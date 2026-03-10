@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import «Adic spaces».ContinuousValuations
 import «Adic spaces».GeometricSeries
 import Mathlib.Topology.Algebra.Ring.Ideal
+import Mathlib.RingTheory.Localization.FractionRing
 
 /-!
 # The Adic Spectrum
@@ -176,17 +177,6 @@ section Prop752
 We characterize elements of `A⁺` and units via the adic spectrum.
 -/
 
-omit [TopologicalSpace A] [PlusSubring A] in
-/-- If `f` is a unit, then no valuation sends `f` to zero. This is the forward direction
-of **Proposition 7.52(2)** of Wedhorn. -/
-lemma not_vle_zero_of_isUnit {f : A} (hu : IsUnit f) (v : Spv A) : ¬ v.vle f 0 := by
-  letI : ValuativeRel A := v.toValuativeRel
-  obtain ⟨u, rfl⟩ := hu
-  intro h
-  have := ValuativeRel.mul_vle_mul_right h (↑u⁻¹ : A)
-  rw [Units.inv_mul, mul_zero] at this
-  exact absurd this (ValuativeRel.not_vle.mpr ValuativeRel.zero_vlt_one)
-
 /-- **Proposition 7.51** of Wedhorn (for open maximal ideals): the trivial valuation on the
 residue field `A/𝔪` composed with the quotient map gives a point of `Spa(A, A⁺)` with
 support `𝔪`. -/
@@ -242,6 +232,41 @@ lemma isUnit_of_forall_not_vle_zero
   haveI := h𝔪
   obtain ⟨v, hv, hsv⟩ := exists_mem_spa_supp_eq 𝔪 (hmax 𝔪 h𝔪)
   exact h v hv ((v.mem_supp_iff f).mp (hsv ▸ hf𝔪 (Ideal.mem_span_singleton_self f)))
+
+/-- For discrete rings: the trivial valuation on the fraction field of `A/p`,
+composed with the quotient map, gives a point of `Spa(A, A⁺)` with support `p`.
+Generalizes `exists_mem_spa_supp_eq` from maximal to arbitrary prime ideals. -/
+lemma exists_mem_spa_supp_eq_of_prime [DiscreteTopology A]
+    (p : Ideal A) [p.IsPrime] :
+    ∃ v ∈ Spa A A⁺, v.supp = p := by
+  classical
+  haveI : IsDomain (A ⧸ p) := Ideal.Quotient.isDomain p
+  let φ : A →+* FractionRing (A ⧸ p) :=
+    (algebraMap (A ⧸ p) (FractionRing (A ⧸ p))).comp (Ideal.Quotient.mk p)
+  let w : Valuation A ℤᵐ⁰ := (1 : Valuation (FractionRing (A ⧸ p)) _).comap φ
+  refine ⟨ofValuation w, ⟨?_, ?_⟩, ?_⟩
+  · -- Continuity: discrete topology, every set is open
+    apply isContinuous_ofValuation_of
+    intro γ
+    exact isOpen_discrete _
+  · -- A⁺ condition: the trivial valuation takes values in {0, 1}, all ≤ 1
+    intro f hf
+    change w f ≤ w 1
+    simp only [w, Valuation.comap_apply, map_one]
+    exact Valuation.one_apply_le_one _
+  · -- Support of trivial valuation composed with quotient = p
+    rw [supp_ofValuation]
+    ext a
+    simp only [Valuation.mem_supp_iff, w, Valuation.comap_apply, φ, RingHom.comp_apply,
+      Valuation.one_apply_eq_zero_iff]
+    constructor
+    · intro h
+      exact Ideal.Quotient.eq_zero_iff_mem.mp
+        ((IsFractionRing.injective (A ⧸ p) (FractionRing (A ⧸ p))).eq_iff.mp
+          (by rwa [map_zero]))
+    · intro ha
+      rw [Ideal.Quotient.eq_zero_iff_mem.mpr ha, map_zero]
+      rfl
 
 end Prop752
 

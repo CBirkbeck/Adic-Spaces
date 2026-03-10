@@ -1,8 +1,14 @@
 import «Adic spaces».AdicSpectrum
 import «Adic spaces».AffinoidRings
 import «Adic spaces».Basic
+import «Adic spaces».Bounded
+import «Adic spaces».CompleteTopCommRingCat
 import «Adic spaces».ContinuousValuations
 import «Adic spaces».GeometricSeries
+import «Adic spaces».HuberRings
+import «Adic spaces».LocalizationTopology
 import «Adic spaces».OpenIdeals
+import «Adic spaces».Presheaf
 import «Adic spaces».RationalSubsets
+import «Adic spaces».StructureSheaf
 import «Adic spaces».ValuationSpectrum

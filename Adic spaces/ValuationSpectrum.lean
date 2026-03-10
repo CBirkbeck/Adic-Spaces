@@ -6,6 +6,7 @@ import Mathlib.RingTheory.Valuation.ValuativeRel.Basic
 import Mathlib.RingTheory.Valuation.Quotient
 import Mathlib.RingTheory.Valuation.ExtendToLocalization
 import Mathlib.Topology.Order
+import Mathlib.RingTheory.Spectrum.Prime.Topology
 
 /-!
 # The Valuation Spectrum of a Ring
@@ -277,6 +278,17 @@ lemma comap_quotient_isEmbedding :
 
 end Quotient
 
+/-- If `f` is a unit, then no valuative relation sends `f` to zero:
+`¬ v(f) ≤ v(0)`. This is because `v(1) = v(f · f⁻¹) ≤ v(0) = 0` would
+contradict `not_vle_one_zero`. -/
+lemma not_vle_zero_of_isUnit {f : A} (hu : IsUnit f) (v : Spv A) : ¬ v.vle f 0 := by
+  letI : ValuativeRel A := v.toValuativeRel
+  obtain ⟨u, rfl⟩ := hu
+  intro h
+  have := ValuativeRel.mul_vle_mul_right h (↑u⁻¹ : A)
+  rw [Units.inv_mul, mul_zero] at this
+  exact absurd this (ValuativeRel.not_vle.mpr ValuativeRel.zero_vlt_one)
+
 /-! ### Localization — Remark 4.4(1) of Wedhorn
 
 For a submonoid `S` of `A` and `B` a localization of `A` at `S`, the map
@@ -313,6 +325,62 @@ lemma comap_localizationLift (v : Spv A) (hS : S ≤ v.supp.primeCompl) :
       Valuation.ext fun a => Valuation.extendToLocalization_apply_map_apply _ hS' B a]
   exact ofValuation_valuation v
 
+/-- For `w : Spv B`, where `B` is a localization of `A` at `S`, the submonoid `S` is
+disjoint from the support of `comap (algebraMap A B) w`.
+This is because `algebraMap A B s` is a unit for `s ∈ S`, so no valuation sends it to zero. -/
+lemma submonoid_le_supp_primeCompl_comap_algebraMap (w : Spv B) :
+    S ≤ (comap (algebraMap A B) w).supp.primeCompl := by
+  intro s hs
+  change s ∉ (comap (algebraMap A B) w).supp
+  rw [mem_supp_iff, comap_vle, map_zero]
+  exact not_vle_zero_of_isUnit (IsLocalization.map_units B ⟨s, hs⟩) w
+
+/-- The range of `comap (algebraMap A B)` is `{ v ∈ Spv A | S ≤ supp(v).primeCompl }`.
+This is the localization analogue of `comap_quotient_range` (Remark 4.4(1) of Wedhorn). -/
+lemma comap_localization_range :
+    Set.range (comap (algebraMap A B)) = { v : Spv A | S ≤ v.supp.primeCompl } := by
+  ext v
+  simp only [Set.mem_range, Set.mem_setOf_eq]
+  exact ⟨fun ⟨w, hw⟩ => hw ▸ submonoid_le_supp_primeCompl_comap_algebraMap S B w,
+    fun h => ⟨localizationLift S B v h, comap_localizationLift S B v h⟩⟩
+
 end Localization
+
+/-! ### Support map to PrimeSpectrum (Remark 4.6 / Corollary 4.8 of Wedhorn)
+
+The support of `v ∈ Spv A` is a prime ideal, defining a continuous map
+`suppFun : Spv A → Spec A` to the prime spectrum. This map is natural in `A`:
+it intertwines `Spv.comap φ` with `PrimeSpectrum.comap φ`.
+-/
+
+/-- The support map `Spv A → Spec A` sending `v` to the prime ideal `supp(v)`
+(Remark 4.6 of Wedhorn). -/
+def suppFun : Spv A → PrimeSpectrum A :=
+  fun v => ⟨v.supp, inferInstance⟩
+
+@[simp]
+lemma suppFun_asIdeal (v : Spv A) : (suppFun v).asIdeal = v.supp := rfl
+
+/-- The preimage of the basic open `D(f) ⊆ Spec A` under `suppFun` is the
+basic open `Spv(A)(f/f) ⊆ Spv A`. -/
+lemma suppFun_preimage_basicOpen (f : A) :
+    suppFun ⁻¹' (PrimeSpectrum.basicOpen f : Set (PrimeSpectrum A)) = basicOpen f f := by
+  ext v
+  simp only [Set.mem_preimage, SetLike.mem_coe, PrimeSpectrum.mem_basicOpen,
+    suppFun_asIdeal, mem_supp_iff, basicOpen_self, Set.mem_setOf_eq]
+
+/-- The support map `Spv A → Spec A` is continuous (Remark 4.6 of Wedhorn). -/
+theorem suppFun_continuous : Continuous (suppFun : Spv A → PrimeSpectrum A) :=
+  PrimeSpectrum.isTopologicalBasis_basic_opens.continuous_iff.mpr fun _ ⟨f, hf⟩ =>
+    hf ▸ suppFun_preimage_basicOpen f ▸
+      TopologicalSpace.isOpen_generateFrom_of_mem ⟨f, f, rfl⟩
+
+/-- The support map commutes with pullback: `supp ∘ Spv(φ) = Spec(φ) ∘ supp`
+(Corollary 4.8 of Wedhorn). -/
+theorem suppFun_comap {B : Type*} [CommRing B] (φ : A →+* B) (v : Spv B) :
+    suppFun (comap φ v) = PrimeSpectrum.comap φ (suppFun v) := by
+  ext a
+  simp only [suppFun_asIdeal, mem_supp_iff, comap_vle, PrimeSpectrum.comap_asIdeal,
+    Ideal.mem_comap, map_zero]
 
 end Spv
