@@ -22,9 +22,9 @@
 | `CompleteTopCommRingCat.lean` | 94 | DONE | Bundled category, forgetful functors |
 | `Presheaf.lean` | 893 | DONE | presheafValue, restriction maps, productRestriction |
 | `StructureSheaf.lean` | 640 | DONE | IsSheafy, structure sheaf, adic space defn |
-| `OrderedGroupConvex.lean` | 255 | DONE | ConvexSubgroup, quotient linear order (§7.1) |
-| `ValuationCoarsening.lean` | 172 | DONE | Valuation coarsening by convex subgroups (§7.1) |
-| `AnalyticPoints.lean` | 88 | DONE | IsAnalytic, Tate => analytic, idealOfDefinition API |
+| `OrderedGroupConvex.lean` | 444 | DONE | ConvexSubgroup, quotient order, maxAvoid, archimedean iff (§7.1) |
+| `ValuationCoarsening.lean` | 213 | DONE | Valuation coarsening, cofinal property for archimedean (§7.1) |
+| `AnalyticPoints.lean` | 112 | DONE | IsAnalytic, Tate => analytic, Jacobson radical, idealOfDef API |
 | `AdicMorphisms.lean` | 171 | DONE | Lemma 7.46(1)+(2 first part), Tate specializations |
 | `Basic.lean` | 1 | PLACEHOLDER | Empty |
 

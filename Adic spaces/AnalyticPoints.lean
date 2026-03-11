@@ -2,6 +2,7 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
+import Mathlib.RingTheory.AdicCompletion.Basic
 import «Adic spaces».HuberRings
 import «Adic spaces».OpenIdeals
 
@@ -84,5 +85,28 @@ theorem exists_mem_I_not_mem_of_not_isOpen
   push_neg at h_all
   exact P.idealOfDefinition_not_le_of_not_isOpen h
     (Ideal.map_le_iff_le_comap.mpr fun a ha => h_all a ha)
+
+/-! ### Jacobson radical and I-adic completeness
+
+When the ring of definition `A₀` is `I`-adically complete, every element of `I`
+lies in the Jacobson radical of `A₀`, i.e., in every maximal ideal of `A₀`.
+This is the algebraic heart of Lemma 7.45 (Wedhorn): it connects the ideal of
+definition to the domination properties of valuation rings. -/
+
+omit [IsTopologicalRing A] [IsLinearTopology A A] in
+/-- If `A₀` is `I`-adically complete, then `I` is in every maximal ideal of `A₀`.
+This follows from `IsAdicComplete.le_jacobson_bot` which gives `I ≤ Jac(A₀)`. -/
+theorem I_le_maximal_of_isAdicComplete
+    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
+    {𝔪 : Ideal P.A₀} (h𝔪 : 𝔪.IsMaximal) : P.I ≤ 𝔪 :=
+  (IsAdicComplete.le_jacobson_bot (I := P.I)).trans (sInf_le ⟨bot_le, h𝔪⟩)
+
+omit [IsTopologicalRing A] [IsLinearTopology A A] in
+/-- If `A₀` is `I`-adically complete and `𝔭₀` is a prime of `A₀` with `I ⊄ 𝔭₀`,
+then `𝔭₀` is not maximal. This is because `I ⊆ 𝔪` for all maximal `𝔪`. -/
+theorem not_isMaximal_of_I_not_le
+    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
+    {𝔭₀ : Ideal P.A₀} (h : ¬P.I ≤ 𝔭₀) : ¬𝔭₀.IsMaximal :=
+  fun h𝔪 => h (P.I_le_maximal_of_isAdicComplete h𝔪)
 
 end PairOfDefinition

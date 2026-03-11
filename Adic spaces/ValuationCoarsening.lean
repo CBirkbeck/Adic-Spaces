@@ -2,6 +2,7 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
+import Mathlib.Algebra.Order.Archimedean.Basic
 import Mathlib.RingTheory.Valuation.Basic
 import «Adic spaces».OrderedGroupConvex
 
@@ -23,6 +24,8 @@ projection `Γ₀ → (Γ ⧸ H)₀`, following §7.1 of [Wedhorn, *Adic Spaces*
 * `Valuation.coarsen_le_one_of_le_one` : If `v(a) ≤ 1` then `(v.coarsen H)(a) ≤ 1`.
 * `Valuation.coarsen_lt_one_of_not_mem` : If `v(a) < 1` and `v(a) ∉ H`, then
   `(v.coarsen H)(a) < 1`.
+* `Valuation.coarsen_pow_cofinal` : In an archimedean quotient, powers of elements
+  with coarsened value `< 1` are cofinal for `0`.
 
 ## References
 
@@ -168,5 +171,43 @@ theorem coarsen_lt_one_of_not_mem (v : Valuation R (WithZero Γ)) (H : ConvexSub
     v.coarsen H a < 1 := by
   simp only [coarsen_apply, hva, WithZero.mapMonoidWithZeroHom_apply_coe]
   exact WithZero.coe_lt_one.mpr (H.quotientMk_lt_one_of_not_mem hg1 hgH)
+
+/-! ### Cofinal property for archimedean coarsenings
+
+When the quotient `Γ ⧸ H` is `MulArchimedean` (equivalently, `H` has no proper
+nontrivial convex subgroups above it), the coarsened valuation enjoys a cofinal
+property: powers of any element with value `< 1` and `≠ 0` eventually drop below
+any positive threshold. This is the key property ensuring continuity of coarsened
+valuations with respect to the `I`-adic topology (§7.1 of Wedhorn).
+-/
+
+/-- In a `MulArchimedean` quotient, elements `< 1` have powers cofinal for `0`. -/
+theorem WithZero.pow_eventually_le_of_lt_one {Q : Type*} [CommGroup Q] [LinearOrder Q]
+    [IsOrderedMonoid Q] [MulArchimedean Q]
+    {g : Q} (hg : g < 1) (δ : WithZero Q) (hδ : 0 < δ) :
+    ∃ n : ℕ, (↑(g ^ n) : WithZero Q) ≤ δ := by
+  obtain ⟨d, rfl⟩ := WithZero.ne_zero_iff_exists.mp (ne_of_gt hδ)
+  obtain ⟨n, hn⟩ := MulArchimedean.arch d⁻¹ (one_lt_inv_of_inv hg)
+  exact ⟨n, WithZero.coe_le_coe.mpr (by rwa [inv_pow, inv_le_inv_iff] at hn)⟩
+
+/-- **Cofinal property for coarsened valuations.** If `Γ ⧸ H` is archimedean,
+`v(a) ≠ 0`, and `(v.coarsen H)(a) < 1`, then powers of `a` have coarsened values
+eventually below any positive threshold `δ`. -/
+theorem coarsen_pow_cofinal
+    (v : Valuation R (WithZero Γ)) (H : ConvexSubgroup Γ)
+    [MulArchimedean (Γ ⧸ H.toSubgroup)]
+    {a : R} (ha_ne : v a ≠ 0) (ha_lt : v.coarsen H a < 1)
+    (δ : WithZero (Γ ⧸ H.toSubgroup)) (hδ : 0 < δ) :
+    ∃ n : ℕ, v.coarsen H (a ^ n) ≤ δ := by
+  obtain ⟨γ, hγ⟩ := WithZero.ne_zero_iff_exists.mp ha_ne
+  have hca : v.coarsen H a = ↑(QuotientGroup.mk' H.toSubgroup γ) := by
+    simp only [coarsen_apply, ← hγ, WithZero.mapMonoidWithZeroHom_apply_coe]
+  have hq_lt : QuotientGroup.mk' H.toSubgroup γ < 1 := by
+    rwa [hca, WithZero.coe_lt_one] at ha_lt
+  obtain ⟨d, rfl⟩ := WithZero.ne_zero_iff_exists.mp (ne_of_gt hδ)
+  obtain ⟨n, hn⟩ := MulArchimedean.arch d⁻¹ (one_lt_inv_of_inv hq_lt)
+  refine ⟨n, ?_⟩
+  rw [map_pow, hca, ← WithZero.coe_pow]
+  exact WithZero.coe_le_coe.mpr (by rwa [inv_pow, inv_le_inv_iff] at hn)
 
 end Valuation
