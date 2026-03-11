@@ -38,9 +38,9 @@ localization topology from `LocalizationTopology.lean`.
 * [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], Section 8.1, Remark 8.3
 -/
 
-open Spv
+open ValuationSpectrum
 
-namespace Spv
+namespace ValuationSpectrum
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
 
@@ -68,12 +68,7 @@ theorem rationalOpen_singleton_one :
 /-- The rational subset `R({1}/1)` corresponds to `⊤` in `Opens ↥(Spa A A⁺)`. -/
 theorem rationalOpens_singleton_one [DecidableEq A] :
     rationalOpens ({1} : Finset A) (1 : A) = ⊤ := by
-  apply TopologicalSpace.Opens.ext
-  simp only [rationalOpens, TopologicalSpace.Opens.coe_mk, TopologicalSpace.Opens.coe_top]
-  ext ⟨v, hv⟩
-  simp only [Set.mem_preimage, Set.mem_univ, iff_true]
-  rw [rationalOpen_singleton_one]
-  exact hv
+  ext ⟨v, hv⟩; simp [rationalOpens, rationalOpen_singleton_one]
 
 /-! ### The adic completion -/
 
@@ -472,12 +467,7 @@ theorem restrictionMap_id (D : RationalLocData A) :
 theorem restrictionMapHom_continuous (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     Continuous (restrictionMapHom D D' h) := by
-  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
-  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
-  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
-  letI : UniformSpace (Localization.Away D'.s) := D'.uniformSpace
-  letI : IsTopologicalRing (Localization.Away D'.s) := D'.isTopologicalRing
-  letI : IsUniformAddGroup (Localization.Away D'.s) := D'.isUniformAddGroup
+  letI := D.uniformSpace
   exact UniformSpace.Completion.continuous_extension
 
 /-- The restriction map as a morphism in `CompleteTopCommRingCat`
@@ -529,8 +519,7 @@ private theorem locTopology_eq_bot_of_discrete {A : Type*} [CommRing A] [Topolog
   -- hM : D.P.I ^ M = 0 (as ideal, 0 = ⊥)
   -- Step 3: J^M = ⊥
   have hJ : locIdeal D.P D.T D.s ^ M = ⊥ := by
-    rw [show locIdeal D.P D.T D.s = Ideal.map (algebraMapD D.P D.T D.s) D.P.I from rfl,
-      ← Ideal.map_pow]
+    rw [locIdeal, ← Ideal.map_pow]
     simp [hM]
   -- Step 4: locNhd P T s M = {0}
   have hNhd : ∀ x ∈ locNhd D.P D.T D.s M, x = (0 : Localization.Away D.s) := by
@@ -548,9 +537,7 @@ private theorem locTopology_eq_bot_of_discrete {A : Type*} [CommRing A] [Topolog
     (hbasis.openAddSubgroup M).isOpen
   -- locNhd M = {0} by step 4
   have hNhd_eq : ((locNhd D.P D.T D.s M : AddSubgroup _) : Set (Localization.Away D.s)) =
-      {0} := by
-    ext y; exact ⟨fun hy => Set.mem_singleton_iff.mpr (hNhd y hy),
-      fun hy => Set.mem_singleton_iff.mp hy ▸ zero_mem_locNhd D.P D.T D.s M⟩
+      {0} := Set.eq_singleton_iff_unique_mem.mpr ⟨zero_mem_locNhd D.P D.T D.s M, hNhd⟩
   -- {0} is open
   have hopen_zero : @IsOpen _ D.topology ({0} : Set (Localization.Away D.s)) :=
     hNhd_eq ▸ hopen_nhd
@@ -640,10 +627,7 @@ instance HasRestrictionMaps.discrete {A : Type*} [CommRing A] [TopologicalSpace 
     -- Therefore algebraMap(D.s) is a unit
     rw [← heq] at hunit_pow
     exact isUnit_of_mul_isUnit_right hunit_pow
-  restrictionMapAlg_continuous := fun D D' h => by
-    have hbot : D.topology = ⊥ := locTopology_eq_bot_of_discrete D
-    rw [hbot]
-    exact continuous_bot
+  restrictionMapAlg_continuous := fun D _ _ => locTopology_eq_bot_of_discrete D ▸ continuous_bot
 
 /-- For a discrete ring `A`, the `coeRingHom` embedding into the completion is bijective.
 This follows because the uniform space is discrete (⊥), so the source is complete and T0,
@@ -744,7 +728,7 @@ theorem productRestriction_injective_discrete {A : Type*} [CommRing A]
     have hy := restrictionMapHom_coe C.base D (C.hsubset D hD) y'
     rwa [hx.symm, hy.symm]
   -- Step 5: It suffices to show x' - y' = 0
-  rw [show (x' = y') ↔ (x' - y' = 0) from sub_eq_zero.symm]
+  rw [← sub_eq_zero]
   set z := x' - y'
   -- Step 6: For each D, restrictionMapAlg sends z to 0 in presheafValue D
   have hz_zero : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
@@ -886,8 +870,8 @@ theorem productRestriction_injective_discrete {A : Type*} [CommRing A]
     hv_D.2.2 ((v.mem_supp_iff D.s).mp (hv_supp ▸ hDs))
   obtain ⟨k, hk⟩ := ha_ann D hD
   exact hDs_notin (Ideal.IsPrime.mem_of_pow_mem hp_prime k
-    (hp_ann (Ideal.subset_span (show D.s ^ k * a = 0 from hk))))
+    (hp_ann (Ideal.subset_span hk)))
 
 end RestrictionMaps
 
-end Spv
+end ValuationSpectrum

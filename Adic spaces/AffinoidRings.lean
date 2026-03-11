@@ -13,17 +13,17 @@ following Definition 7.14 and Remark 7.15 of [Wedhorn, *Adic Spaces*].
 
 ## Main definitions
 
-* `Spv.IsRingOfIntegralElements B` : The subring `B` is a ring of integral elements
+* `ValuationSpectrum.IsRingOfIntegralElements B` : The subring `B` is a ring of integral elements
   (Definition 7.14(1) of Wedhorn).
-* `Spv.IsAffinoidRing A` : The pair `(A, A⁺)` is an affinoid ring
+* `ValuationSpectrum.IsAffinoidRing A` : The pair `(A, A⁺)` is an affinoid ring
   (Definition 7.14 of Wedhorn).
 
 ## Main results
 
-* `Spv.IsRingOfIntegralElements.le_powerBoundedSubring` : Any ring of integral elements is
-  contained in `A°` (Remark 7.15(1) of Wedhorn).
-* `Spv.topologicallyNilpotent_mem_of_isOpen_integrallyClosed` : An open, integrally closed
-  subring contains all topologically nilpotent elements (Remark 7.15(2) of Wedhorn).
+* `IsRingOfIntegralElements.le_powerBoundedSubring` : Any ring of integral elements
+  is contained in `A°` (Remark 7.15(1) of Wedhorn).
+* `topologicallyNilpotent_mem_of_isOpen_integrallyClosed` : An open, integrally
+  closed subring contains all topologically nilpotent elements (Remark 7.15(2)).
 
 ## References
 
@@ -32,7 +32,7 @@ following Definition 7.14 and Remark 7.15 of [Wedhorn, *Adic Spaces*].
 
 open Filter Topology
 
-namespace Spv
+namespace ValuationSpectrum
 
 section IntegralElements
 
@@ -69,18 +69,16 @@ theorem topologicallyNilpotent_mem_of_isOpen_integrallyClosed
     (B : Subring A) (hB_open : IsOpen (B : Set A))
     (hB_ic : ∀ a : A, IsIntegral (↥B) a → a ∈ B)
     {a : A} (ha : IsTopologicallyNilpotent a) : a ∈ B := by
-  have hB_nhds : (B : Set A) ∈ 𝓝 (0 : A) := hB_open.mem_nhds B.zero_mem
-  obtain ⟨n, hn_mem, hn_ge⟩ := (ha.eventually hB_nhds |>.and
-    (Filter.eventually_ge_atTop 1)).exists
-  exact hB_ic a (TopologicalRing.isIntegral_of_pow_mem B (by omega) hn_mem)
+  obtain ⟨n, hn_mem, hn_pos⟩ := (ha.eventually (hB_open.mem_nhds B.zero_mem) |>.and
+    (Filter.eventually_gt_atTop 0)).exists
+  exact hB_ic a (TopologicalRing.isIntegral_of_pow_mem B hn_pos hn_mem)
 
 /-- A ring of integral elements contains all topologically nilpotent elements
 (consequence of Remark 7.15(2)). -/
 theorem IsRingOfIntegralElements.topologicallyNilpotentElements_subset {B : Subring A}
     (hB : IsRingOfIntegralElements B) :
     TopologicalRing.topologicallyNilpotentElements A ⊆ (B : Set A) :=
-  fun _ ha ↦ topologicallyNilpotent_mem_of_isOpen_integrallyClosed B hB.isOpen
-    hB.isIntegrallyClosed ha
+  fun _ ↦ topologicallyNilpotent_mem_of_isOpen_integrallyClosed B hB.isOpen hB.isIntegrallyClosed
 
 variable [PlusSubring A]
 
@@ -91,4 +89,4 @@ def IsAffinoidRing (A : Type*) [CommRing A] [TopologicalSpace A] [PlusSubring A]
 
 end IntegralElements
 
-end Spv
+end ValuationSpectrum

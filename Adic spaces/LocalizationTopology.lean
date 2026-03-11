@@ -26,12 +26,12 @@ a canonical ring topology making it into a Huber ring. The construction is:
 
 ## Main definitions
 
-* `Spv.divByS t s` : The element `t/s` in `Localization.Away s`.
-* `Spv.locSubring P T s` : The ring of definition `D = A₀[t₁/s, …, tₙ/s]`.
-* `Spv.locIdeal P T s` : The ideal of definition `J = I · D` in `D`.
-* `Spv.locNhd P T s n` : The `n`-th neighborhood `image(Jⁿ)` in `Aₛ`.
-* `Spv.locBasis P T s` : The `RingSubgroupsBasis` structure.
-* `Spv.locTopology P T s` : The resulting topology on `Aₛ`.
+* `ValuationSpectrum.divByS t s` : The element `t/s` in `Localization.Away s`.
+* `ValuationSpectrum.locSubring P T s` : The ring of definition `D = A₀[t₁/s, …, tₙ/s]`.
+* `ValuationSpectrum.locIdeal P T s` : The ideal of definition `J = I · D` in `D`.
+* `ValuationSpectrum.locNhd P T s n` : The `n`-th neighborhood `image(Jⁿ)` in `Aₛ`.
+* `ValuationSpectrum.locBasis P T s` : The `RingSubgroupsBasis` structure.
+* `ValuationSpectrum.locTopology P T s` : The resulting topology on `Aₛ`.
 
 ## References
 
@@ -40,7 +40,7 @@ a canonical ring topology making it into a Huber ring. The construction is:
 
 open PairOfDefinition Pointwise
 
-namespace Spv
+namespace ValuationSpectrum
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A]
 
@@ -56,10 +56,8 @@ omit [TopologicalSpace A] in
 theorem divByS_eq_algebraMap (t : A) :
     divByS t (1 : A) = algebraMap A (Localization.Away (1 : A)) t := by
   unfold divByS
-  have : (⟨1, ⟨1, pow_one (1 : A)⟩⟩ : Submonoid.powers (1 : A)) = 1 :=
-    Subtype.ext rfl
-  rw [this, IsLocalization.mk'_one (M := Submonoid.powers (1 : A))
-    (S := Localization.Away (1 : A))]
+  exact IsLocalization.mk'_one (M := Submonoid.powers (1 : A))
+    (S := Localization.Away (1 : A)) t
 
 /-- The subring `D = A₀[t₁/s, …, tₙ/s]` of `Localization.Away s`.
 This is the ring of definition for the localization topology on `A(T/s)`.
@@ -187,27 +185,27 @@ theorem locNhd_leftMul (P : PairOfDefinition A) (T : Finset A) (s : A)
       exact hN b hb
     · simp [(locSubring P T s).zero_mem]
     · intro d1 d2 _ _ h1 h2
-      rw [show (↑(d1 + d2) : Localization.Away s) = ↑d1 + ↑d2 from AddMemClass.coe_add ..]
-      rw [mul_add]; exact (locSubring P T s).add_mem h1 h2
+      simp only [AddMemClass.coe_add, mul_add]
+      exact (locSubring P T s).add_mem h1 h2
     · intro r d1 _ h1
-      rw [show (↑(r • d1) : Localization.Away s) = ↑r * ↑d1 from MulMemClass.coe_mul ..]
-      rw [show divByS 1 s * (↑r * ↑d1) = ↑r * (divByS 1 s * ↑d1) from by ring]
+      rw [show (↑(r • d1) : Localization.Away s) = ↑r * ↑d1 from MulMemClass.coe_mul ..,
+          mul_left_comm]
       exact (locSubring P T s).mul_mem r.property h1
   -- Helper 2: `divByS 1 s * locNhd(n+N) ⊆ locNhd(n)` (mul_induction on `J^N * J^n`)
   have invS_step : ∀ (n : ℕ) (y : Localization.Away s),
       y ∈ locNhd P T s (n + N) → divByS 1 s * y ∈ locNhd P T s n := by
     rintro n _ ⟨d, hd, rfl⟩
     change divByS 1 s * ↑d ∈ locNhd P T s n
-    rw [show n + N = N + n from Nat.add_comm n N, pow_add] at hd
+    rw [Nat.add_comm, pow_add] at hd
     refine Submodule.mul_induction_on hd ?_ ?_
     · intro a ha b hb
       change divByS 1 s * (↑a * ↑b) ∈ locNhd P T s n
-      rw [show divByS 1 s * (↑a * ↑b) = divByS 1 s * ↑a * ↑b from by ring]
+      rw [← mul_assoc]
       exact ⟨⟨divByS 1 s * ↑a, invS_mem ha⟩ * b, Ideal.mul_mem_left _ _ hb,
         MulMemClass.coe_mul ..⟩
     · intro y1 y2 h1 h2
-      change divByS 1 s * (↑y1 + ↑y2) ∈ locNhd P T s n
-      rw [mul_add]; exact (locNhd P T s n).add_mem h1 h2
+      simp only [AddMemClass.coe_add, mul_add]
+      exact (locNhd P T s n).add_mem h1 h2
   -- Helper 3: `algebraMap(a) * locNhd(m₀) ⊆ locNhd(i)` (span induction + continuity)
   have algMap_step : ∀ (a : A), ∃ j, ∀ y ∈ locNhd P T s j,
       algebraMap A (Localization.Away s) a * y ∈ locNhd P T s i := by
@@ -229,12 +227,11 @@ theorem locNhd_leftMul (P : PairOfDefinition A) (T : Finset A) (s : A)
         by rw [locIdeal, ← Ideal.map_pow]; exact Ideal.mem_map_of_mem _ hc, rfl⟩
     · simp [(locNhd P T s i).zero_mem]
     · intro d1 d2 _ _ h1 h2
-      rw [show (↑(d1 + d2) : Localization.Away s) = ↑d1 + ↑d2 from AddMemClass.coe_add ..]
-      rw [mul_add]; exact (locNhd P T s i).add_mem h1 h2
+      simp only [AddMemClass.coe_add, mul_add]
+      exact (locNhd P T s i).add_mem h1 h2
     · intro r d1 _ h1
-      rw [show (↑(r • d1) : Localization.Away s) = ↑r * ↑d1 from MulMemClass.coe_mul ..]
-      rw [show algebraMap A (Localization.Away s) a * (↑r * ↑d1) =
-        ↑r * (algebraMap A (Localization.Away s) a * ↑d1) from by ring]
+      rw [show (↑(r • d1) : Localization.Away s) = ↑r * ↑d1 from MulMemClass.coe_mul ..,
+          mul_left_comm]
       obtain ⟨e, he, he_eq⟩ := h1
       exact ⟨r * e, Ideal.mul_mem_left _ r he,
         congrArg ((↑r : Localization.Away s) * ·) he_eq⟩
@@ -363,4 +360,4 @@ theorem locTopology_hasBasis_singleton_one (P : PairOfDefinition A) :
 
 end Remark83Topology
 
-end Spv
+end ValuationSpectrum

@@ -71,13 +71,12 @@ theorem IsBounded.subset {S T : Set A} (hS : IsBounded S) (hTS : T ⊆ S) : IsBo
 
 /-- The empty set is bounded. -/
 theorem isBounded_empty : IsBounded (∅ : Set A) :=
-  fun U _ ↦ ⟨Set.univ, univ_mem, by simp [Set.empty_mul]⟩
+  fun U _ ↦ ⟨Set.univ, univ_mem, by simp⟩
 
 /-- The singleton `{0}` is bounded. -/
 theorem isBounded_singleton_zero : IsBounded ({0} : Set A) :=
   fun U hU ↦ ⟨Set.univ, univ_mem, fun _ hx ↦ by
-    obtain ⟨a, ha, _, _, rfl⟩ := Set.mem_mul.mp hx
-    rw [Set.mem_singleton_iff.mp ha, zero_mul]; exact mem_of_mem_nhds hU⟩
+    obtain ⟨a, rfl, _, _, rfl⟩ := Set.mem_mul.mp hx; simp [mem_of_mem_nhds hU]⟩
 
 /-- The pair `{0, 1}` is bounded. -/
 theorem isBounded_pair_zero_one : IsBounded ({0, 1} : Set A) :=
@@ -102,9 +101,7 @@ theorem IsBounded.mul {S T : Set A}
     (hS : IsBounded S) (hT : IsBounded T) : IsBounded (S * T) := by
   intro U hU
   obtain ⟨W, hW, hTW⟩ := hT U hU; obtain ⟨V, hV, hSV⟩ := hS W hW
-  exact ⟨V, hV, by calc S * T * V = T * (S * V) := by rw [mul_comm S T, mul_assoc]
-    _ ⊆ T * W := Set.mul_subset_mul_left hSV
-    _ ⊆ U := hTW⟩
+  exact ⟨V, hV, mul_comm S T ▸ mul_assoc T S V ▸ (Set.mul_subset_mul_left hSV).trans hTW⟩
 
 /-- Every singleton is bounded in a topological ring (Remark 5.28(1) of Wedhorn). -/
 theorem isBounded_singleton [IsTopologicalRing A] (a : A) : IsBounded ({a} : Set A) := by
@@ -134,7 +131,7 @@ def powerBoundedSubring (A : Type*) [CommRing A] [TopologicalSpace A] : Set A :=
 /-- `0` is power-bounded. -/
 theorem isPowerBounded_zero : IsPowerBounded (0 : A) := by
   apply isBounded_pair_zero_one.subset; rintro _ ⟨n, rfl⟩
-  rcases n with _ | n <;> simp [zero_pow (Nat.succ_ne_zero _)]
+  rcases n with _ | n <;> simp [zero_pow]
 
 /-- `1` is power-bounded. -/
 theorem isPowerBounded_one : IsPowerBounded (1 : A) := by
@@ -152,7 +149,7 @@ theorem isPowerBounded_neg [IsTopologicalRing A] {a : A} (ha : IsPowerBounded a)
 theorem isPowerBounded_mul {a b : A}
     (ha : IsPowerBounded a) (hb : IsPowerBounded b) : IsPowerBounded (a * b) := by
   apply (ha.mul hb).subset; rintro _ ⟨n, rfl⟩
-  change (a * b) ^ n ∈ _; rw [mul_pow]; exact Set.mul_mem_mul ⟨n, rfl⟩ ⟨n, rfl⟩
+  simp only [mul_pow]; exact Set.mul_mem_mul ⟨n, rfl⟩ ⟨n, rfl⟩
 
 /-- In a non-archimedean topological ring, the sum of two power-bounded elements is
 power-bounded (Proposition 5.30(3) of Wedhorn). The non-archimedean hypothesis
@@ -169,7 +166,7 @@ theorem isPowerBounded_add [IsTopologicalRing A] [IsLinearTopology A A]
   apply hJU; change (a + b) ^ n * v ∈ _; rw [add_pow, Finset.sum_mul]
   refine Submodule.sum_mem J fun m _ => ?_
   rw [show a ^ m * b ^ (n - m) * ↑(n.choose m) * v =
-      ↑(n.choose m) * (a ^ m * b ^ (n - m) * v) from by ring]
+      ↑(n.choose m) * (a ^ m * b ^ (n - m) * v) by ring]
   exact Ideal.mul_mem_left J _ (hSV (Set.mul_mem_mul (Set.mul_mem_mul ⟨m, rfl⟩ ⟨n - m, rfl⟩) hv))
 
 /-- `A°` is a subring of `A` in a non-archimedean topological ring
@@ -177,11 +174,11 @@ theorem isPowerBounded_add [IsTopologicalRing A] [IsLinearTopology A A]
 def powerBoundedSubring.toSubring (A : Type*) [CommRing A] [TopologicalSpace A]
     [IsTopologicalRing A] [IsLinearTopology A A] : Subring A where
   carrier := powerBoundedSubring A
-  mul_mem' ha hb := isPowerBounded_mul ha hb
+  mul_mem' := isPowerBounded_mul
   one_mem' := isPowerBounded_one
-  add_mem' ha hb := isPowerBounded_add ha hb
+  add_mem' := isPowerBounded_add
   zero_mem' := isPowerBounded_zero
-  neg_mem' ha := isPowerBounded_neg ha
+  neg_mem' := isPowerBounded_neg
 
 /-! ### Topologically nilpotent elements -/
 
@@ -199,12 +196,9 @@ theorem IsTopologicallyNilpotent.isPowerBounded [IsTopologicalRing A] {a : A}
     continuous_mul.continuousAt.preimage_mem_nhds (by simp [hU])
   rw [nhds_prod_eq] at hmul
   obtain ⟨U₁, hU₁, U₂, hU₂, hprod⟩ := Filter.mem_prod_iff.mp hmul
-  have hev := ha.eventually hU₁; rw [Filter.Eventually, Filter.mem_atTop_sets] at hev
-  obtain ⟨N, hN⟩ := hev
-  have hfin (i : Fin N) : ∃ V ∈ 𝓝 (0 : A), {a ^ (i : ℕ)} * V ⊆ U := by
-    refine ⟨(a ^ (i : ℕ) * ·) ⁻¹' U,
-      (continuous_const.mul continuous_id).continuousAt.preimage_mem_nhds (by simp [hU]), ?_⟩
-    rintro _ ⟨b, hb, c, hc, rfl⟩; rwa [Set.mem_singleton_iff.mp hb]
+  obtain ⟨N, hN⟩ := (ha.eventually hU₁).exists_forall_of_atTop
+  have hfin (i : Fin N) : ∃ V ∈ 𝓝 (0 : A), {a ^ (i : ℕ)} * V ⊆ U :=
+    isBounded_singleton (a ^ (i : ℕ)) U hU
   choose V hV_mem hV_sub using hfin
   refine ⟨U₂ ∩ ⋂ i, V i, inter_mem hU₂ (Filter.iInter_mem.mpr hV_mem), ?_⟩
   intro x hx; obtain ⟨_, ⟨n, rfl⟩, c, hc, rfl⟩ := Set.mem_mul.mp hx
@@ -215,18 +209,15 @@ theorem IsTopologicallyNilpotent.isPowerBounded [IsTopologicalRing A] {a : A}
 /-- `A°°` is contained in `A°` (Remark 5.28(4) of Wedhorn). -/
 theorem topologicallyNilpotentElements_subset_powerBoundedSubring [IsTopologicalRing A] :
     topologicallyNilpotentElements A ⊆ powerBoundedSubring A :=
-  fun _ ha ↦ IsTopologicallyNilpotent.isPowerBounded ha
+  fun _ ↦ IsTopologicallyNilpotent.isPowerBounded
 
 /-- The product of a power-bounded element and a topologically nilpotent element is
 topologically nilpotent (consequence of Remark 5.28(1,4) of Wedhorn). -/
 theorem IsPowerBounded.isTopologicallyNilpotent_mul [IsTopologicalRing A] {a b : A}
     (ha : IsPowerBounded a) (hb : IsTopologicallyNilpotent b) :
     IsTopologicallyNilpotent (a * b) := by
-  intro U hU
-  obtain ⟨V, hV, hSV⟩ := ha U hU
-  have hbV := hb hV
-  rw [Filter.mem_map] at hbV ⊢
-  exact Filter.mem_of_superset hbV fun n hn =>
+  intro U hU; obtain ⟨V, hV, hSV⟩ := ha U hU
+  rw [Filter.mem_map]; exact Filter.mem_of_superset (Filter.mem_map.mp (hb hV)) fun n hn ↦
     show (a * b) ^ n ∈ U from mul_pow a b n ▸ hSV (Set.mul_mem_mul ⟨n, rfl⟩ hn)
 
 /-- If `a ^ m` is topologically nilpotent (with `m > 0`), then `a` is topologically nilpotent.
@@ -242,8 +233,8 @@ theorem IsTopologicallyNilpotent.of_pow [IsTopologicalRing A] {a : A} {m : ℕ} 
   obtain ⟨N, hN⟩ := Filter.mem_atTop_sets.mp (ha hV)
   refine Filter.mem_atTop_sets.mpr ⟨m * N, fun n hn => ?_⟩
   -- Write n = (n % m) + m * (n / m) with n % m < m and n / m ≥ N
-  rw [Set.mem_preimage, show a ^ n = a ^ (n % m) * (a ^ m) ^ (n / m) from
-    by rw [← pow_mul, ← pow_add, Nat.mod_add_div]]
+  rw [Set.mem_preimage, show a ^ n = a ^ (n % m) * (a ^ m) ^ (n / m) by
+    rw [← pow_mul, ← pow_add, Nat.mod_add_div]]
   exact hSV (Set.mul_mem_mul ⟨⟨n % m, Nat.mod_lt n hm⟩, rfl⟩
     (hN _ ((Nat.le_div_iff_mul_le hm).mpr (by linarith))))
 
@@ -254,7 +245,7 @@ omit [TopologicalSpace A] in
 theorem isIntegral_of_pow_mem (B : Subring A) {a : A} {n : ℕ} (hn : 0 < n)
     (ha : a ^ n ∈ B) : IsIntegral (↥B) a :=
   ⟨X ^ n - C ⟨a ^ n, ha⟩, monic_X_pow_sub_C _ (by omega), by
-    simp only [eval₂_sub, eval₂_pow, eval₂_X, eval₂_C, sub_eq_zero]; rfl⟩
+    simp [sub_eq_zero]; rfl⟩
 
 /-- The sum of two bounded sets is bounded. -/
 theorem IsBounded.add [IsTopologicalRing A] {S T : Set A}
@@ -268,8 +259,8 @@ theorem IsBounded.add [IsTopologicalRing A] {S T : Set A}
   refine ⟨V₁ ∩ V₂, inter_mem hV₁ hV₂, fun _ hx => ?_⟩
   obtain ⟨_, ⟨s₀, hs₀, t₀, ht₀, rfl⟩, v, hv, rfl⟩ := Set.mem_mul.mp hx
   rw [add_mul]; exact hprod (Set.mk_mem_prod
-    (hSV (Set.mul_mem_mul hs₀ (Set.mem_of_mem_inter_left hv)))
-    (hTV (Set.mul_mem_mul ht₀ (Set.mem_of_mem_inter_right hv))))
+    (hSV (Set.mul_mem_mul hs₀ hv.1))
+    (hTV (Set.mul_mem_mul ht₀ hv.2)))
 
 /-- A finite sum of bounded sets is bounded. -/
 theorem isBounded_finset_sum [IsTopologicalRing A] {ι : Type*} (s : Finset ι)
@@ -297,8 +288,8 @@ theorem IsBounded.isPowerBounded_of_isIntegral [IsTopologicalRing A] {B : Subrin
   rintro _ ⟨n, rfl⟩
   have hp_rel : a ^ N = -(∑ i ∈ Finset.range N, (p.coeff i : A) * a ^ i) := by
     have h := hp_eval; rw [eval₂_eq_sum_range, Finset.sum_range_succ] at h
-    simp only [hp_monic.coeff_natDegree, map_one, one_mul] at h
-    rw [add_comm] at h; exact eq_neg_of_add_eq_zero_left h
+    rw [hp_monic.coeff_natDegree, map_one, one_mul, add_comm] at h
+    exact eq_neg_of_add_eq_zero_left h
   -- Reduce to: every a^n is a B-linear combination of {1, a, ..., a^(N-1)}
   suffices key : ∀ n, ∃ c : ℕ → ↥B, a ^ n = ∑ j ∈ Finset.range N, (c j : A) * a ^ j by
     change a ^ n ∈ S; obtain ⟨c, hc⟩ := key n; rw [hc, hS_def]
@@ -314,9 +305,7 @@ theorem IsBounded.isPowerBounded_of_isIntegral [IsTopologicalRing A] {B : Subrin
   by_cases hn : n < N
   · -- Base: a^n = δ_{n,j} * a^j
     classical exact ⟨fun j => if j = n then 1 else 0, by
-      rw [Finset.sum_congr rfl fun j _ => show ((if j = n then (1 : ↥B) else 0 : ↥B) : A) *
-          a ^ j = (if j = n then 1 else 0) * a ^ j from by congr 1; exact apply_ite _ _ _ _]
-      simp [Finset.sum_ite_eq', Finset.mem_range.mpr hn]⟩
+      simp [apply_ite (Subtype.val), Finset.sum_ite_eq', Finset.mem_range.mpr hn]⟩
   · -- Inductive: use monic relation and substitute IH for each a^(i+(n-N))
     push_neg at hn
     choose d hd using fun i (hi : i ∈ Finset.range N) =>
@@ -331,12 +320,7 @@ theorem IsBounded.isPowerBounded_of_isIntegral [IsTopologicalRing A] {B : Subrin
         _ = _ := by rw [← Finset.sum_attach]; congr 1
                     exact Finset.sum_congr rfl fun i _ => by rw [hd ↑i i.2]
     rw [step]; simp_rw [Finset.mul_sum]
-    rw [show -(∑ x ∈ (Finset.range N).attach, ∑ x_1 ∈ Finset.range N,
-          (p.coeff (x : ℕ) : A) * ((d ↑x x.2 x_1 : A) * a ^ x_1)) =
-        -(∑ j ∈ Finset.range N, ∑ i ∈ (Finset.range N).attach,
-          (p.coeff (i : ℕ) : A) * ((d ↑i i.2 j : A) * a ^ j)) from
-      congr_arg Neg.neg (Finset.sum_comm ..),
-      ← Finset.sum_neg_distrib]
+    rw [neg_inj.mpr (Finset.sum_comm ..), ← Finset.sum_neg_distrib]
     refine Finset.sum_congr rfl fun j _ => ?_
     push_cast; simp only [Finset.sum_mul, neg_mul]; congr 1
     exact Finset.sum_congr rfl fun ⟨i, _⟩ _ => by ring

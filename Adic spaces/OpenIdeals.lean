@@ -35,10 +35,8 @@ variable {A : Type*} [CommRing A] [TopologicalSpace A]
 theorem IsTopologicallyNilpotent.mem_ideal_radical
     {f : A} (hf : IsTopologicallyNilpotent f)
     {𝔞 : Ideal A} (h𝔞 : IsOpen (𝔞 : Set A)) :
-    f ∈ 𝔞.radical := by
-  rw [Ideal.mem_radical_iff]
-  obtain ⟨n, hn⟩ := (hf.eventually (h𝔞.mem_nhds 𝔞.zero_mem)).exists
-  exact ⟨n, hn⟩
+    f ∈ 𝔞.radical :=
+  Ideal.mem_radical_iff.mpr (hf.eventually (h𝔞.mem_nhds 𝔞.zero_mem)).exists
 
 section LinearTopology
 
@@ -62,9 +60,8 @@ theorem ideal_isOpen_of_topologicalNilradical_le_radical
     {𝔞 : Ideal A} (h : topologicalNilradical A ≤ 𝔞.radical) :
     IsOpen (𝔞 : Set A) := by
   obtain ⟨J, hfg, hle, hopen⟩ := hJ
-  have hJrad : J ≤ 𝔞.radical := hle.trans h
-  obtain ⟨m, hm⟩ := Ideal.exists_pow_le_of_le_radical_of_fg hJrad hfg
-  have hopen_m : IsOpen ((J ^ m : Ideal A) : Set A) := hopen m
+  obtain ⟨m, hm⟩ := Ideal.exists_pow_le_of_le_radical_of_fg (hle.trans h) hfg
+  have hopen_m := hopen m
   rw [show (𝔞 : Set A) = (𝔞.toAddSubgroup : Set A) from
     (Submodule.coe_toAddSubgroup 𝔞).symm]
   rw [show ((J ^ m : Ideal A) : Set A) = ((J ^ m).toAddSubgroup : Set A) from

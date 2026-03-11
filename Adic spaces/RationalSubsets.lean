@@ -34,7 +34,7 @@ under finite intersection, following Remark 7.30(5) and Theorem 7.35(2) of
 
 open scoped Pointwise
 
-namespace Spv
+namespace ValuationSpectrum
 
 section Helpers
 
@@ -73,10 +73,8 @@ theorem rationalOpen_insert_s (T : Finset A) (s : A) :
   · rintro ⟨hv, hvT, hvs⟩
     exact ⟨hv, fun t ht ↦ hvT t (Finset.mem_insert_of_mem ht), hvs⟩
   · rintro ⟨hv, hvT, hvs⟩
-    refine ⟨hv, fun t ht ↦ ?_, hvs⟩
-    rcases Finset.mem_insert.mp ht with rfl | ht
-    · exact (v.vle_total t t).elim id id
-    · exact hvT t ht
+    exact ⟨hv, fun t ht ↦ (Finset.mem_insert.mp ht).elim
+      (fun h ↦ h ▸ (v.vle_total t t).elim id id) (hvT t), hvs⟩
 
 /-- The intersection of two rational subsets is a rational subset:
 `R(T₁/s₁) ∩ R(T₂/s₂) = R(T₁·T₂ / s₁·s₂)`, assuming `s₁ ∈ T₁` and `s₂ ∈ T₂`
@@ -88,22 +86,20 @@ theorem rationalOpen_inter (T₁ T₂ : Finset A) (s₁ s₂ : A)
   letI : ValuativeRel A := v.toValuativeRel
   constructor
   · rintro ⟨⟨hv₁, hvT₁, hvs₁⟩, ⟨_, hvT₂, hvs₂⟩⟩
-    refine ⟨hv₁, fun t ht ↦ ?_, ?_⟩
-    · rw [Finset.mem_mul] at ht
-      obtain ⟨t₁, ht₁, t₂, ht₂, rfl⟩ := ht
-      exact ValuativeRel.mul_vle_mul (hvT₁ t₁ ht₁) (hvT₂ t₂ ht₂)
-    · exact ValuativeRel.zero_vlt_mul hvs₁ hvs₂
+    refine ⟨hv₁, fun t ht ↦ ?_,
+      ValuativeRel.zero_vlt_mul hvs₁ hvs₂⟩
+    obtain ⟨t₁, ht₁, t₂, ht₂, rfl⟩ := Finset.mem_mul.mp ht
+    exact ValuativeRel.mul_vle_mul (hvT₁ t₁ ht₁) (hvT₂ t₂ ht₂)
   · rintro ⟨hv, hvT, hvs⟩
     have hs₁' : ¬ v.vle s₁ 0 := not_vle_zero_left_of_mul hvs
     have hs₂' : ¬ v.vle s₂ 0 := not_vle_zero_right_of_mul hvs
     refine ⟨⟨hv, fun t₁ ht₁ ↦ ?_, hs₁'⟩, ⟨hv, fun t₂ ht₂ ↦ ?_, hs₂'⟩⟩
-    · have hmem : t₁ * s₂ ∈ T₁ * T₂ := Finset.mul_mem_mul ht₁ hs₂
-      have hle := hvT (t₁ * s₂) hmem
-      rwa [ValuativeRel.mul_vle_mul_iff_left (show (0 : A) <ᵥ s₂ from hs₂')] at hle
+    · have hle := hvT (t₁ * s₂) (Finset.mul_mem_mul ht₁ hs₂)
+      rwa [ValuativeRel.mul_vle_mul_iff_left hs₂'] at hle
     · have hmem : s₁ * t₂ ∈ T₁ * T₂ := Finset.mul_mem_mul hs₁ ht₂
       have hle := hvT (s₁ * t₂) hmem
       rw [mul_comm s₁ t₂, mul_comm s₁ s₂] at hle
-      rwa [ValuativeRel.mul_vle_mul_iff_left (show (0 : A) <ᵥ s₁ from hs₁')] at hle
+      rwa [ValuativeRel.mul_vle_mul_iff_left hs₁'] at hle
 
 omit [DecidableEq A] in
 /-- The intersection of two rational subsets is a rational subset
@@ -123,8 +119,7 @@ omit [DecidableEq A] in
 /-- Every rational subset is contained in `Spa A A⁺`. -/
 theorem IsRationalSubset.subset_spa {U : Set (Spv A)} (hU : IsRationalSubset U) :
     U ⊆ Spa A A⁺ := by
-  obtain ⟨T, s, rfl⟩ := hU
-  exact rationalOpen_subset_spa
+  obtain ⟨_, _, rfl⟩ := hU; exact rationalOpen_subset_spa
 
 /-! ### Openness of rational subsets -/
 
@@ -162,4 +157,4 @@ theorem IsRationalSubset.isOpen {U : Set (Spv A)} (hU : IsRationalSubset U) :
   obtain ⟨T, s, rfl⟩ := hU
   exact rationalOpen_isOpen T s
 
-end Spv
+end ValuationSpectrum

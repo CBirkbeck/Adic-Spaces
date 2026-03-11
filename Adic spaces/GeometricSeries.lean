@@ -35,8 +35,8 @@ omit [T2Space A] [IsTopologicalRing A] in
 in a complete nonarchimedean ring. -/
 theorem IsTopologicallyNilpotent.summable_pow {a : A} (ha : IsTopologicallyNilpotent a) :
     Summable (a ^ · : ℕ → A) := by
-  rw [NonarchimedeanAddGroup.summable_iff_tendsto_cofinite_zero]
-  rwa [Nat.cofinite_eq_atTop]
+  rw [NonarchimedeanAddGroup.summable_iff_tendsto_cofinite_zero, Nat.cofinite_eq_atTop]
+  exact ha
 
 /-- **Proposition 5.38** of Wedhorn: in a complete Hausdorff nonarchimedean ring,
 `1 - a` is a unit for every topologically nilpotent `a`, with inverse `∑ aⁿ`. -/
@@ -52,12 +52,8 @@ theorem IsTopologicallyNilpotent.neg {a : A}
     (ha : IsTopologicallyNilpotent a) : IsTopologicallyNilpotent (-a) := by
   intro U hU
   obtain ⟨V, hVU⟩ := NonarchimedeanAddGroup.is_nonarchimedean U hU
-  have hV_nhds : (V : Set A) ∈ 𝓝 (0 : A) := V.isOpen.mem_nhds V.zero_mem'
-  apply (ha.eventually hV_nhds).mono
-  intro n hn
-  change (-a) ^ n ∈ U
-  apply hVU
-  show (-a) ^ n ∈ (V : Set A)
+  refine (ha.eventually (V.isOpen.mem_nhds V.zero_mem')).mono fun n hn => hVU ?_
+  change (-a) ^ n ∈ (V : Set A)
   rcases Nat.even_or_odd n with he | ho
   · rw [he.neg_pow]; exact hn
   · rw [ho.neg_pow]; exact V.neg_mem' hn
@@ -65,5 +61,5 @@ theorem IsTopologicallyNilpotent.neg {a : A}
 /-- Corollary of Prop 5.38: `1 + a` is a unit for topologically nilpotent `a`. -/
 theorem IsTopologicallyNilpotent.isUnit_one_add {a : A} (ha : IsTopologicallyNilpotent a) :
     IsUnit (1 + a) := by
-  rw [show (1 : A) + a = 1 - (-a) from by ring]
+  rw [← sub_neg_eq_add]
   exact ha.neg.isUnit_one_sub

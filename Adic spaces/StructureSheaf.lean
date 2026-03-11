@@ -59,7 +59,7 @@ noncomputable section
 open TopCat TopologicalSpace CategoryTheory CategoryTheory.Limits Opposite
   AlgebraicGeometry Topology
 
-namespace Spv
+namespace ValuationSpectrum
 
 variable (A : Type u) [CommRing A] [TopologicalSpace A] [PlusSubring A]
 
@@ -219,10 +219,8 @@ reduces to the algebraic one (proved in `structureSheaf`). -/
 instance IsSheafy.discrete [DiscreteTopology A] [IsTopologicalRing A] :
     IsSheafy A :=
   ⟨fun C => by
-    intro x y hxy
-    apply productRestriction_injective_discrete C
-    ext ⟨D, hD⟩
-    exact congr_fun (congr_fun hxy D) hD⟩
+    intro x y hxy; exact productRestriction_injective_discrete C
+      (funext fun ⟨D, hD⟩ => congr_fun (congr_fun hxy D) hD)⟩
 
 /-! ### Affinoid adic spaces (Definition 8.21 of Wedhorn) -/
 
@@ -372,9 +370,8 @@ set_option backward.isDefEq.respectTransparency false in
 theorem ringStalkMap_id (X : TopRingPresheafedSpace.{u}) (x : X) :
     ringStalkMap (𝟙 X) x = 𝟙 (X.ringStalk x) := by
   dsimp [ringStalkMap]
-  simp only [TopCat.Presheaf.stalkPushforward.id]
-  rw [← Functor.map_comp]
-  convert (TopCat.Presheaf.stalkFunctor CommRingCat x).map_id X.ringPresheaf using 1
+  rw [TopCat.Presheaf.stalkPushforward.id, ← Functor.map_comp]
+  exact (TopCat.Presheaf.stalkFunctor CommRingCat x).map_id X.ringPresheaf
 
 set_option backward.isDefEq.respectTransparency false in
 /-- The ring stalk map of a composition is the composition of ring stalk maps. -/
@@ -388,11 +385,12 @@ theorem ringStalkMap_comp {X Y Z : TopRingPresheafedSpace.{u}}
   apply colimit.hom_ext
   rintro ⟨U, hU⟩
   simp only [Functor.whiskeringLeft_obj_obj, Functor.comp_obj, Functor.op_obj,
-    OpenNhds.inclusion_obj, CategoryTheory.Functor.map_comp, TopCat.hom_comp,
+    OpenNhds.inclusion_obj, Functor.map_comp, TopCat.hom_comp,
     ContinuousMap.comp_apply, ι_colimMap_assoc, Presheaf.pushforward_obj_obj,
     Opens.map_comp_obj, Functor.whiskerLeft_app, OpenNhds.map_obj,
-    CategoryTheory.Functor.map_id, colimit.ι_pre, Category.assoc, colimit.ι_pre_assoc]
-  erw [Category.id_comp, Category.id_comp]
+    colimit.ι_pre, Category.assoc, colimit.ι_pre_assoc]
+  erw [CategoryTheory.Functor.map_id, Category.id_comp,
+    CategoryTheory.Functor.map_id, Category.id_comp]
 
 /-! ### The category 𝒱^pre (Definition 8.5 of Wedhorn)
 
@@ -489,7 +487,7 @@ instance : CategoryTheory.Category VPreObj.{u} where
       exact isLocalHom_id _
     val_compat := fun x => by
       simp only [ringStalkMap_id]
-      exact (congr_fun Spv.comap_id (X.val x)).symm }
+      exact (congr_fun ValuationSpectrum.comap_id (X.val x)).symm }
   comp f g := {
     toHom := f.toHom ≫ g.toHom
     isLocalHom_stalkMap := fun x => by
@@ -502,10 +500,10 @@ instance : CategoryTheory.Category VPreObj.{u} where
     val_compat := fun x => by
       rw [ringStalkMap_comp]
       erw [g.val_compat (ConcreteCategory.hom f.toHom.base x), f.val_compat x]
-      exact (congr_fun (Spv.comap_comp _ _) _).symm }
-  id_comp := fun f => VPreHom.ext (CategoryTheory.Category.id_comp f.toHom)
-  comp_id := fun f => VPreHom.ext (CategoryTheory.Category.comp_id f.toHom)
-  assoc := fun f g h => VPreHom.ext (CategoryTheory.Category.assoc f.toHom g.toHom h.toHom)
+      exact (congr_fun (ValuationSpectrum.comap_comp _ _) _).symm }
+  id_comp := fun f => VPreHom.ext (Category.id_comp f.toHom)
+  comp_id := fun f => VPreHom.ext (Category.comp_id f.toHom)
+  assoc := fun f g h => VPreHom.ext (Category.assoc f.toHom g.toHom h.toHom)
 
 /-! ### The full subcategory 𝒱 (Remark 8.20 of Wedhorn)
 
@@ -534,7 +532,7 @@ instance : CategoryTheory.Category VObj.{u} where
       exact isLocalHom_id _
     val_compat := fun x => by
       simp only [ringStalkMap_id]
-      exact (congr_fun Spv.comap_id (X.val x)).symm }
+      exact (congr_fun ValuationSpectrum.comap_id (X.val x)).symm }
   comp f g := {
     toHom := f.toHom ≫ g.toHom
     isLocalHom_stalkMap := fun x => by
@@ -547,10 +545,10 @@ instance : CategoryTheory.Category VObj.{u} where
     val_compat := fun x => by
       rw [ringStalkMap_comp]
       erw [g.val_compat (ConcreteCategory.hom f.toHom.base x), f.val_compat x]
-      exact (congr_fun (Spv.comap_comp _ _) _).symm }
-  id_comp f := VPreHom.ext (CategoryTheory.Category.id_comp f.toHom)
-  comp_id f := VPreHom.ext (CategoryTheory.Category.comp_id f.toHom)
-  assoc f g h := VPreHom.ext (CategoryTheory.Category.assoc f.toHom g.toHom h.toHom)
+      exact (congr_fun (ValuationSpectrum.comap_comp _ _) _).symm }
+  id_comp f := VPreHom.ext (Category.id_comp f.toHom)
+  comp_id f := VPreHom.ext (Category.comp_id f.toHom)
+  assoc f g h := VPreHom.ext (Category.assoc f.toHom g.toHom h.toHom)
 
 /-- The forgetful functor from `𝒱` to `𝒱^pre`. -/
 def VObj.forgetToVPre : VObj.{u} ⥤ VPreObj.{u} where
@@ -620,9 +618,8 @@ instance (priority := 100) IsSheafyTopRing.toIsSheafy (A : Type u) [CommRing A]
     [IsSheafyTopRing A] : IsSheafy A where
   separation C := by
     intro x y hxy
-    have hemb := IsSheafyTopRing.isEmbedding_productRestriction C
-    exact hemb.injective (funext fun ⟨D, hD⟩ => by
-      exact congr_fun (congr_fun hxy D) hD)
+    exact (IsSheafyTopRing.isEmbedding_productRestriction C).injective
+      (funext fun ⟨D, hD⟩ => congr_fun (congr_fun hxy D) hD)
 
 /-! ### Adic spaces as objects of 𝒱 (Definitions 8.21, 8.22 of Wedhorn)
 
@@ -637,4 +634,4 @@ topological and algebraic components. The full definitions as objects of
 presheaf on all opens (via projective limits of rational covering values)
 and equipping each stalk with a compatible valuation. -/
 
-end Spv
+end ValuationSpectrum
