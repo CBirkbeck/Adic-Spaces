@@ -1,0 +1,71 @@
+import «Adic spaces».ScottishBook.Problem007
+
+/-!
+# Nonarchimedean Scottish Book — Problem 8
+
+**Proposer:** Kiran Kedlaya
+**Date:** 18 December 2015
+
+## Problem Statement
+
+Let (A, A+) be a Huber pair. Is sheafiness or stable uniformity independent of the choice
+of A+?
+
+## Notes
+
+None.
+
+## Status
+
+RESOLVED: Yes, both sheafiness and stable uniformity are independent of A+.
+- Hansen proved independence of stable uniformity.
+- Gabber proved independence of sheafiness.
+
+## Definitions needed
+
+- **Independence of A+**: The property that sheafiness/stable uniformity of (A, A+) does
+  not depend on the choice of the ring of integral elements A+ (already formalized as
+  `PlusSubring` in this project).
+-/
+
+open ValuationSpectrum ScottishBook
+
+namespace ScottishBook
+
+universe u
+
+variable (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+
+/-! ### Independence of A⁺
+
+The key challenge is that `IsSheafy` and `IsStablyUniform` depend on a `PlusSubring A`
+instance (which determines `A⁺`) and a `HasRestrictionMaps A` instance. To state
+"independent of A⁺", we parameterize by two different `PlusSubring` instances and their
+corresponding `HasRestrictionMaps` instances.
+-/
+
+/-- **Scottish Book Problem 8a** (Kedlaya, resolved by Gabber):
+*Sheafiness is independent of the choice of A⁺.*
+
+Given two choices of rings of integral elements `A⁺₁` and `A⁺₂` for the same
+topological ring `A`, if `(A, A⁺₁)` is sheafy then so is `(A, A⁺₂)`. -/
+theorem problem8_sheafy
+    (inst₁ : PlusSubring A) (hrm₁ : @HasRestrictionMaps A _ _ _ inst₁)
+    (inst₂ : PlusSubring A) (hrm₂ : @HasRestrictionMaps A _ _ _ inst₂)
+    (h : @IsSheafy A _ _ inst₁ _ hrm₁) :
+    @IsSheafy A _ _ inst₂ _ hrm₂ := by
+  sorry
+
+/-- **Scottish Book Problem 8b** (Kedlaya, resolved by Hansen):
+*Stable uniformity is independent of the choice of A⁺.*
+
+Given two choices of rings of integral elements `A⁺₁` and `A⁺₂` for the same
+topological ring `A`, if `(A, A⁺₁)` is stably uniform then so is `(A, A⁺₂)`. -/
+theorem problem8_stablyUniform
+    (inst₁ : PlusSubring A) (hrm₁ : @HasRestrictionMaps A _ _ _ inst₁)
+    (inst₂ : PlusSubring A) (hrm₂ : @HasRestrictionMaps A _ _ _ inst₂)
+    (h : @IsStablyUniform A _ _ _ inst₁ hrm₁) :
+    @IsStablyUniform A _ _ _ inst₂ hrm₂ := by
+  sorry
+
+end ScottishBook
