@@ -472,22 +472,85 @@ theorem exists_mulArchimedean_valuationSubring_of_prime
         (Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I : Set _) ⊆ V.nonunits ∧
       MulArchimedean V.ValueGroup := by
   haveI : IsDomain (A ⧸ 𝔭) := Ideal.Quotient.isDomain 𝔭
-  -- Get V₀ from domination theorem (conditions 1-2 but not necessarily rank 1)
+  -- Step 1: Get V₀ from domination theorem (conditions 1-2 but not necessarily rank 1)
   obtain ⟨V₀, hrange₀, hnonunits₀⟩ := P.exists_valuationSubring_of_prime (𝔭 := 𝔭)
-  -- We coarsen V₀ to a rank-1 (MulArchimedean) valuation subring.
-  -- The construction uses ValuationSubring.ofPrime at a minimal prime of V₀
-  -- containing the I-image elements. The key facts are:
-  -- (a) V₀.ofPrime Q ≥ V₀, preserving range containment
-  -- (b) Elements of Q are nonunits of V₀.ofPrime Q
-  --     (by idealOfLE_ofPrime: the ideal of V₀ corresponding to V₀.ofPrime Q is Q)
-  -- (c) Q minimal over the I-images gives V₀.ofPrime Q rank ≤ 1
-  --     (the quotient value group has no proper nontrivial convex subgroups)
-  --
-  -- This requires formalizing the Galois correspondence between primes of a
-  -- valuation ring and convex subgroups of its value group (not yet in Mathlib).
-  -- Alternatively, one can construct a rank-1 dominating valuation directly via
-  -- the composition A₀ → Frac(A/𝔭) with a rank-1 valuation existence theorem.
-  sorry
+  -- Step 2: Build ring hom φ : A₀ →+* V₀ via the range containment
+  have hφ : ∀ a : P.A₀, P.toFractionQuotient 𝔭 a ∈ V₀.toSubring :=
+    fun a => hrange₀ ⟨a, rfl⟩
+  let φ : P.A₀ →+* V₀ := (P.toFractionQuotient 𝔭).codRestrict V₀.toSubring hφ
+  -- Key: φ a viewed in K is the same as P.toFractionQuotient 𝔭 a
+  have hφ_coe : ∀ a : P.A₀, (φ a : FractionRing (A ⧸ 𝔭)) = P.toFractionQuotient 𝔭 a :=
+    fun a => rfl
+  -- Step 3: Elements of Ideal.map φ I are nonunits in V₀
+  -- We prove: Ideal.map φ I ≤ maximalIdeal V₀
+  have hJ_le_maximal : Ideal.map φ P.I ≤ IsLocalRing.maximalIdeal V₀ := by
+    rw [Ideal.map, Ideal.span_le]
+    rintro x ⟨a, ha, rfl⟩
+    rw [SetLike.mem_coe, ← ValuationSubring.coe_mem_nonunits_iff]
+    show (φ a : FractionRing (A ⧸ 𝔭)) ∈ V₀.nonunits
+    rw [hφ_coe]
+    exact hnonunits₀ ⟨⟨P.toFractionQuotient 𝔭 a, ⟨a, rfl⟩⟩,
+      Ideal.mem_map_of_mem _ ha, rfl⟩
+  -- Step 4: Find a₀ ∈ I with a₀ ∉ 𝔭 (so its image is nonzero in K)
+  obtain ⟨a₀, ha₀_I, ha₀_notp⟩ := P.exists_mem_I_not_mem_of_not_isOpen h𝔭
+  have hφa₀_ne : φ a₀ ≠ 0 := by
+    intro h
+    have : (φ a₀ : FractionRing (A ⧸ 𝔭)) = 0 := congr_arg Subtype.val h
+    rw [hφ_coe] at this
+    simp only [toFractionQuotient, RingHom.comp_apply, Subring.coe_subtype] at this
+    rw [map_eq_zero_iff _ (IsFractionRing.injective (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭)))] at this
+    exact ha₀_notp (Ideal.Quotient.eq_zero_iff_mem.mp this)
+  -- Step 5: Ideal.map φ I is nonzero and proper
+  have hJ_ne_bot : Ideal.map φ P.I ≠ ⊥ := by
+    intro h; exact hφa₀_ne (Ideal.mem_bot.mp (h ▸ Ideal.mem_map_of_mem φ ha₀_I))
+  have hJ_ne_top : Ideal.map φ P.I ≠ ⊤ :=
+    ne_top_of_le_ne_top (IsLocalRing.maximalIdeal.isMaximal (R := V₀)).ne_top hJ_le_maximal
+  -- Step 6: Get a minimal prime Q over Ideal.map φ I
+  haveI : (IsLocalRing.maximalIdeal V₀).IsPrime :=
+    (IsLocalRing.maximalIdeal.isMaximal (R := V₀)).isPrime
+  obtain ⟨Q, hQ_min, hQ_le_max⟩ :=
+    Ideal.exists_minimalPrimes_le (J := IsLocalRing.maximalIdeal V₀) hJ_le_maximal
+  haveI : Q.IsPrime := Ideal.minimalPrimes_isPrime hQ_min
+  have hJ_le_Q : Ideal.map φ P.I ≤ Q := hQ_min.1.2
+  -- Step 7: V₀.ofPrime Q satisfies all three conditions
+  refine ⟨V₀.ofPrime Q, ?_, ?_, ?_⟩
+  -- Condition 1: Range containment (V₀ ≤ V₀.ofPrime Q)
+  · exact le_trans hrange₀ (ValuationSubring.le_ofPrime V₀ Q)
+  -- Condition 2: I-images are nonunits of V₀.ofPrime Q
+  · -- An element of K is a nonunit of V₀.ofPrime Q iff its valuation is < 1.
+    -- For x : V₀ with x ∈ Q, the valuation is ≠ 1 (by ofPrime_valuation_eq_one_iff)
+    -- and ≤ 1 (since V₀ ≤ V₀.ofPrime Q), hence < 1.
+    intro x hx
+    obtain ⟨⟨y, hy_range⟩, hy_mem, rfl⟩ := hx
+    obtain ⟨a, rfl⟩ := hy_range
+    show (P.toFractionQuotient 𝔭 a : FractionRing (A ⧸ 𝔭)) ∈ (V₀.ofPrime Q).nonunits
+    rw [← hφ_coe, ValuationSubring.mem_nonunits_iff]
+    -- Need: (V₀.ofPrime Q).valuation (φ a : K) < 1
+    -- We know φ a ∈ V₀ ≤ V₀.ofPrime Q, so valuation ≤ 1
+    have hle : (V₀.ofPrime Q).valuation (φ a : FractionRing (A ⧸ 𝔭)) ≤ 1 :=
+      (ValuationSubring.valuation_le_one_iff _ _).mpr
+        (ValuationSubring.le_ofPrime V₀ Q (hφ a))
+    -- And φ a ∈ Q means valuation ≠ 1
+    have hne : (V₀.ofPrime Q).valuation (φ a : FractionRing (A ⧸ 𝔭)) ≠ 1 := by
+      intro h1
+      -- φ a ∈ Q means φ a ∉ Q.primeCompl
+      have ha_in_Q : φ a ∈ Q := by
+        -- a ∈ I follows from hy_mem (the map rangeRestrict a ∈ Ideal.map rangeRestrict I)
+        -- and Ideal.mem_map_of_mem gives φ a ∈ Ideal.map φ I ≤ Q
+        have : (P.toFractionQuotient 𝔭).rangeRestrict a ∈
+            Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I := hy_mem
+        rw [Ideal.mem_map_iff_of_surjective _
+          (P.toFractionQuotient 𝔭).rangeRestrict_surjective] at this
+        obtain ⟨b, hb_I, hb_eq⟩ := this
+        have hab : φ a = φ b := by
+          ext; simp only [hφ_coe]; exact congr_arg Subtype.val hb_eq.symm
+        rw [hab]; exact hJ_le_Q (Ideal.mem_map_of_mem φ hb_I)
+      have ha_in_Qc := (V₀.ofPrime_valuation_eq_one_iff_mem_primeCompl Q (φ a)).mp h1
+      exact absurd ha_in_Qc (show φ a ∉ Q.primeCompl from
+        Ideal.mem_primeCompl_iff.not.mpr (not_not.mpr ha_in_Q))
+    exact lt_of_le_of_ne hle hne
+  -- Condition 3: MulArchimedean (V₀.ofPrime Q).ValueGroup
+  · sorry
 
 /-- **Lemma 7.45 of Wedhorn.** Non-open primes are supports in `Spa`. -/
 theorem exists_mem_spa_supp_eq_of_nonOpen_prime
