@@ -133,12 +133,48 @@ nilpotent in `A`. A topologically nilpotent element cannot be a unit in
 `A°` (its powers converge to 0, contradicting invertibility in a Hausdorff ring).
 
 (Scholze, *Perfectoid Spaces*, implicit in Definition 3.5) -/
-theorem p_not_isUnit_in_powerBounded :
-    ¬ IsUnit (p : ↥(powerBoundedSubring.toSubring A)) := sorry
+theorem p_not_isUnit_in_powerBounded [Nontrivial A] :
+    ¬ IsUnit (p : ↥(powerBoundedSubring.toSubring A)) := by
+  -- Step 1: Extract perfectoid data
+  obtain ⟨ϖ, _, ⟨c, hc, hpc⟩, _⟩ :=
+    IsPerfectoidRing.exists_pseudoUniformizer (p := p) (A := A)
+  -- Step 2: ϖ^p is topologically nilpotent (from ϖ top. nilpotent)
+  have hϖp_nil : IsTopologicallyNilpotent ((ϖ.val : A) ^ p) := by
+    show Filter.Tendsto (((ϖ.val : A) ^ p) ^ ·) Filter.atTop (nhds 0)
+    have hϖ := ϖ.property  -- ϖ topologically nilpotent
+    rw [show (fun n => ((ϖ.val : A) ^ p) ^ n) = (fun n => (ϖ.val : A) ^ (p * n)) from by
+      ext n; rw [← pow_mul]]
+    exact hϖ.comp (Filter.tendsto_atTop_atTop.mpr fun n =>
+      ⟨n, fun m hm => le_trans hm (Nat.le_mul_of_pos_left m (Nat.Prime.pos (Fact.out)))⟩)
+  -- Step 3: p = c * ϖ^p is topologically nilpotent
+  have hp_nil : IsTopologicallyNilpotent (p : A) := by
+    rw [hpc]; exact hc.isTopologicallyNilpotent_mul hϖp_nil
+  -- Step 4: Assume p is a unit in A° and derive contradiction
+  intro ⟨u, hu⟩
+  -- q = u⁻¹ is in A°, hence power-bounded
+  have hq_pb : IsPowerBounded (u⁻¹.val : A) :=
+    (u⁻¹.val : ↥(powerBoundedSubring.toSubring A)).property
+  -- q * p = 1, so 1 is topologically nilpotent
+  have h1_nil : IsTopologicallyNilpotent (1 : A) := by
+    have : (u⁻¹.val : A) * (p : A) = 1 := by
+      have h := u.inv_mul
+      rw [show (u.val : ↥(powerBoundedSubring.toSubring A)) = (p : ↥(powerBoundedSubring.toSubring A))
+        from hu] at h
+      exact_mod_cast h
+    rw [← this]; exact hq_pb.isTopologicallyNilpotent_mul hp_nil
+  -- 1 topologically nilpotent means constant seq 1 → 0
+  haveI := IsPerfectoidRing.t0 (p := p) (A := A)
+  have h01 : Inseparable (0 : A) 1 :=
+    tendsto_nhds_unique_inseparable
+      (show Filter.Tendsto (fun _ : ℕ => (1 : A)) Filter.atTop (nhds 0) from by
+        have : Filter.Tendsto ((1 : A) ^ ·) Filter.atTop (nhds 0) := h1_nil
+        simpa [one_pow] using this)
+      tendsto_const_nhds
+  exact absurd h01.eq (Ne.symm one_ne_zero)
 
 /-- The `Fact` version of `p_not_isUnit_in_powerBounded`, for use with
 Mathlib's `PreTilt` instances which require `[Fact (¬ IsUnit (p : O))]`. -/
-instance instFactNotIsUnitP :
+instance instFactNotIsUnitP [Nontrivial A] :
     Fact (¬ IsUnit (p : ↥(powerBoundedSubring.toSubring A))) :=
   ⟨p_not_isUnit_in_powerBounded⟩
 
@@ -150,7 +186,7 @@ section Theta
 
 variable (p : ℕ) [Fact (Nat.Prime p)]
 variable (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-  [UniformSpace A] [IsLinearTopology A A] [IsPerfectoidRing p A]
+  [UniformSpace A] [IsLinearTopology A A] [IsPerfectoidRing p A] [Nontrivial A]
 
 /-- Fontaine's **theta map** `θ : W(A♭) →+* A°` for a perfectoid ring `A`.
 
@@ -176,7 +212,7 @@ namespace PerfectoidRing
 
 variable {p : ℕ} [Fact (Nat.Prime p)]
 variable {A : Type u} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-  [UniformSpace A] [IsLinearTopology A A] [IsPerfectoidRing p A]
+  [UniformSpace A] [IsLinearTopology A A] [IsPerfectoidRing p A] [Nontrivial A]
 
 /-- The tilt `A♭` of a perfectoid ring is a **perfect ring** of characteristic `p`.
 
@@ -241,7 +277,7 @@ namespace PerfectoidField
 
 variable (p : ℕ) [Fact (Nat.Prime p)]
 variable (K : Type u) [Field K] [TopologicalSpace K] [IsTopologicalRing K]
-  [UniformSpace K] [IsLinearTopology K K] [IsPerfectoidField p K]
+  [UniformSpace K] [IsLinearTopology K K] [IsPerfectoidField p K] [Nontrivial K]
 
 /-- The tilt `K♭` of a perfectoid field `K` is a **field**.
 
