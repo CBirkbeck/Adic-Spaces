@@ -23,10 +23,8 @@ namespace ValuativeRel
 
 variable {A B : Type*} [CommRing A] [CommRing B]
 
-/-- The pullback of a `ValuativeRel` along a ring homomorphism. Given `φ : A →+* B` and
-a valuative relation on `B`, we define a valuative relation on `A` by
-`a₁ ≤ᵥ a₂ ↔ φ(a₁) ≤ᵥ φ(a₂)`. This corresponds to composing a valuation on `B` with `φ`. -/
-def comap (φ : A →+* B) (v : ValuativeRel B) : ValuativeRel A where
+/-- The pullback of a `ValuativeRel` along `φ : A →+* B`: `a₁ ≤ᵥ a₂ ↔ φ(a₁) ≤ᵥ φ(a₂)`. -/
+@[reducible] def comap (φ : A →+* B) (v : ValuativeRel B) : ValuativeRel A where
   vle a₁ a₂ := v.vle (φ a₁) (φ a₂)
   vle_total a₁ a₂ := v.vle_total (φ a₁) (φ a₂)
   vle_trans h₁ h₂ := v.vle_trans h₁ h₂
@@ -41,9 +39,7 @@ def comap (φ : A →+* B) (v : ValuativeRel B) : ValuativeRel A where
 theorem comap_vle (φ : A →+* B) (v : ValuativeRel B) (a₁ a₂ : A) :
     (comap φ v).vle a₁ a₂ = v.vle (φ a₁) (φ a₂) := rfl
 
-/-- If `f` is a unit, then no valuative relation sends `f` to zero:
-`¬ f ≤ᵥ 0`. This is because `1 = f · f⁻¹ ≤ᵥ 0 · f⁻¹ = 0` would
-contradict `not_vle_one_zero`. -/
+/-- If `f` is a unit, then `¬ f ≤ᵥ 0`. -/
 theorem not_vle_zero_of_isUnit [ValuativeRel A] {f : A} (hu : IsUnit f) :
     ¬ f ≤ᵥ (0 : A) := by
   obtain ⟨u, rfl⟩ := hu

@@ -1,4 +1,9 @@
-import «Adic spaces».Basic
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
+import «Adic spaces».PerfectoidRing
+import «Adic spaces».CompletedResidueField
 
 /-!
 # Nonarchimedean Scottish Book — Problem 21
@@ -19,9 +24,41 @@ None.
 
 Open.
 
-## Definitions needed
+## Formalization
 
-- **Residue field at a point of Spa**: For a point v ∈ Spa(A, A+), the residue field is
-  the fraction field of A/supp(v) completed with respect to the valuation v.
-- **Perfectoid**: A Tate ring satisfying the perfectoid condition.
+We state: if every point `v` of `Spa(A, A⁺)` has a completed residue field that admits a
+perfectoid ring structure, then `A` is perfectoid.
+
+The `completedResidueField` is defined (as a placeholder) in `CompletedResidueField.lean`.
 -/
+
+open TopologicalRing ValuationSpectrum
+
+namespace ScottishBook
+
+universe u
+
+/-- **Scottish Book Problem 21** (Kedlaya, 28 Apr 2016):
+*If every completed residue field of `Spa(A, A⁺)` is perfectoid, then `A` is perfectoid.*
+
+This is an **open problem** — the `sorry` is intentional and represents the open question.
+
+The statement says: given a Huber pair `(A, A⁺)` such that for every `v ∈ Spa(A, A⁺)`,
+the completed residue field `κ(v)` admits a perfectoid ring structure, then `A` itself
+is perfectoid. -/
+theorem problem21
+    (p : ℕ) [Fact (Nat.Prime p)]
+    (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [UniformSpace A] [IsLinearTopology A A]
+    [PlusSubring A] [IsTateRing A]
+    (hresfields : ∀ (x : ↥(Spa A A⁺)),
+      ∃ (τ : TopologicalSpace (completedResidueField A x))
+        (h₁ : @IsTopologicalRing (completedResidueField A x) τ _)
+        (u : UniformSpace (completedResidueField A x))
+        (_ : @IsLinearTopology (completedResidueField A x) (completedResidueField A x)
+          _ _ _ τ),
+      @IsPerfectoidRing p _ (completedResidueField A x) _ τ h₁ u _) :
+    IsPerfectoidRing p A := by
+  sorry
+
+end ScottishBook

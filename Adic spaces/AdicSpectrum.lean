@@ -51,10 +51,7 @@ section MaximalIdealClosed
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
 
-/-- In a topological ring where the set of units is open, every maximal ideal is closed.
-
-The proof uses the fact that the closure of a proper ideal is again proper (since units
-are open, their complement — the nonunits — is closed, and the closure stays inside it). -/
+/-- Every maximal ideal is closed when the unit group is open. -/
 theorem isClosed_of_isMaximal_of_isOpen_units
     (hU : IsOpen {a : A | IsUnit a}) (𝔪 : Ideal A) [𝔪.IsMaximal] :
     IsClosed (𝔪 : Set A) := by
@@ -74,42 +71,33 @@ variable {A : Type*} [CommRing A]
   [IsTopologicalRing A] [IsUniformAddGroup A] [NonarchimedeanAddGroup A]
   [IsLinearTopology A A]
 
-/-- In a complete Hausdorff nonarchimedean ring with linear topology where `A°°` is open,
-the set of units is open.
-
-The proof uses Prop 5.38 of Wedhorn: for each unit `u`, the translate `u + A°°` is an open
-neighbourhood of `u` in `A×`. Indeed, for `a ∈ A°°`, `u⁻¹a ∈ A°°` (since `A°°` is an ideal),
-so `1 + u⁻¹a` is a unit by Prop 5.38, hence `u + a = u(1 + u⁻¹a)` is a unit. -/
+/-- The unit group is open when `A°°` is open (Prop 5.38). -/
 theorem isOpen_units_of_isOpen_topologicallyNilpotent
     (hopen : IsOpen {a : A | IsTopologicallyNilpotent a}) :
     IsOpen {a : A | IsUnit a} := by
   rw [isOpen_iff_forall_mem_open]
   intro u hu
   refine ⟨(u + ·) '' {a | IsTopologicallyNilpotent a}, ?_, ?_, ?_⟩
-  · -- Every u + a with a ∈ A°° is a unit
-    rintro x ⟨a, ha, rfl⟩
+  · rintro x ⟨a, ha, rfl⟩
     change IsUnit (_ + a)
     obtain ⟨u', rfl⟩ := (hu : IsUnit u)
     rw [show (↑u' : A) + a = ↑u' * (1 + ↑u'⁻¹ * a) from by
       rw [mul_add, mul_one, ← mul_assoc, mul_comm (↑u' : A) (↑u'⁻¹ : A),
         Units.inv_mul, one_mul]]
     exact u'.isUnit.mul (ha.mul_left ↑u'⁻¹).isUnit_one_add
-  · -- u + A°° is open (translation of open set)
-    exact isOpenMap_add_left u _ hopen
-  · -- u ∈ u + A°° (via a = 0)
-    exact ⟨0, IsTopologicallyNilpotent.zero, by simp⟩
+  · exact isOpenMap_add_left u _ hopen
+  · exact ⟨0, IsTopologicallyNilpotent.zero, by simp⟩
 
 end OpenUnits
 
 namespace ValuationSpectrum
 
-/-- A commutative ring equipped with a designated subring of integral elements `A⁺`,
-as in a Huber pair `(A, A⁺)`. -/
+/-- A commutative ring equipped with a designated subring `A⁺`. -/
 class PlusSubring (A : Type*) [CommRing A] where
   /-- The subring of integral elements `A⁺`. -/
   toSubring : Subring A
 
-/-- The designated subring of integral elements `A⁺`. -/
+/-- The subring `A⁺` of integral elements. -/
 def ringPlus (A : Type*) [CommRing A] [PlusSubring A] : Subring A :=
   PlusSubring.toSubring
 
@@ -118,13 +106,11 @@ scoped postfix:max "⁺" => ringPlus
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A]
 
-/-- The *adic spectrum* `Spa(A, A⁺)` of a topological ring `A` with subring `A⁺`
-(Definition 7.23 of Wedhorn). A point of `Spa(A, A⁺)` is a continuous valuation `v`
-on `A` such that `v(f) ≤ 1` for all `f ∈ A⁺`. -/
+/-- The *adic spectrum* `Spa(A, A⁺)` (Definition 7.23 of Wedhorn). -/
 def Spa (A : Type*) [CommRing A] [TopologicalSpace A] (Aplus : Subring A) : Set (Spv A) :=
   { v ∈ Cont A | ∀ f ∈ Aplus, v.vle f 1 }
 
-/-- `Spa` is antitone in the subring: a larger `A⁺` gives a smaller spectrum. -/
+/-- `Spa` is antitone in the subring. -/
 lemma spa_antitone {Aplus Aplus' : Subring A} (h : Aplus ≤ Aplus') :
     Spa A Aplus' ⊆ Spa A Aplus :=
   fun _ hv ↦ ⟨hv.1, fun f hf ↦ hv.2 f (h hf)⟩
@@ -148,8 +134,7 @@ lemma spa_eq_cont_inter :
   ext v
   simp only [Spa, Set.mem_inter_iff, mem_cont_iff, Set.mem_iInter, Set.mem_setOf_eq]; rfl
 
-/-- If `A` has the discrete topology, then `Spa(A, A⁺) = { v ∈ Spv A | ∀ f ∈ A⁺, v(f) ≤ 1 }`
-(Example 7.26 of Wedhorn, partial). -/
+/-- For discrete `A`, every valuation is continuous (Example 7.26). -/
 theorem spa_eq_of_discreteTopology [DiscreteTopology A] :
     Spa A A⁺ = { v : Spv A | ∀ f ∈ A⁺, v.vle f 1 } := by
   ext v
@@ -163,19 +148,15 @@ section Prop752
 We characterize elements of `A⁺` and units via the adic spectrum.
 -/
 
-/-- **Proposition 7.51** of Wedhorn (for open maximal ideals): the trivial valuation on the
-residue field `A/𝔪` composed with the quotient map gives a point of `Spa(A, A⁺)` with
-support `𝔪`. -/
+/-- The trivial valuation on `A/𝔪` gives a point of `Spa(A, A⁺)` with support `𝔪` (Prop 7.51). -/
 lemma exists_mem_spa_supp_eq (𝔪 : Ideal A) [𝔪.IsMaximal]
     (h𝔪 : IsOpen (𝔪 : Set A)) :
     ∃ v ∈ Spa A A⁺, v.supp = 𝔪 := by
   classical
   haveI := Ideal.Quotient.field 𝔪
-  let w : Valuation A (ℤᵐ⁰) :=
-    (1 : Valuation (A ⧸ 𝔪) _).comap (Ideal.Quotient.mk 𝔪)
+  let w : Valuation A (ℤᵐ⁰) := (1 : Valuation (A ⧸ 𝔪) _).comap (Ideal.Quotient.mk 𝔪)
   refine ⟨ofValuation w, ⟨?_, ?_⟩, ?_⟩
-  · -- Continuity: sublevel sets of the trivial valuation are ∅, 𝔪, or Set.univ
-    apply isContinuous_ofValuation_of
+  · apply isContinuous_ofValuation_of
     intro γ
     by_cases hγ : γ = 0
     · subst hγ; convert isOpen_empty
@@ -195,19 +176,16 @@ lemma exists_mem_spa_supp_eq (𝔪 : Ideal A) [𝔪.IsMaximal]
         · intro ha
           rw [Ideal.Quotient.eq_zero_iff_mem.mpr ha, map_zero]
           exact zero_lt_iff.mpr hγ
-  · -- A⁺ condition: the trivial valuation takes values in {0, 1}, all ≤ 1
-    intro f _
+  · intro f _
     change w f ≤ w 1
     simp only [w, Valuation.comap_apply, map_one]
     exact Valuation.one_apply_le_one _
-  · -- Support of trivial valuation = kernel of quotient map = 𝔪
-    rw [supp_ofValuation]; ext a
+  · rw [supp_ofValuation]; ext a
     simp only [Valuation.mem_supp_iff, w, Valuation.comap_apply,
       Valuation.one_apply_eq_zero_iff]
     exact Ideal.Quotient.eq_zero_iff_mem
 
-/-- **Proposition 7.52(2)** of Wedhorn: if every maximal ideal of `A` is open and
-`v(f) ≠ 0` for all `v ∈ Spa(A, A⁺)`, then `f` is a unit. -/
+/-- If `v(f) ≠ 0` for all `v ∈ Spa(A, A⁺)`, then `f` is a unit (Prop 7.52(2)). -/
 lemma isUnit_of_forall_not_vle_zero
     (hmax : ∀ (𝔪 : Ideal A), 𝔪.IsMaximal → IsOpen (𝔪 : Set A))
     {f : A} (h : ∀ v ∈ Spa A A⁺, ¬ v.vle f 0) : IsUnit f := by
@@ -218,9 +196,7 @@ lemma isUnit_of_forall_not_vle_zero
   obtain ⟨v, hv, hsv⟩ := exists_mem_spa_supp_eq 𝔪 (hmax 𝔪 h𝔪)
   exact h v hv ((v.mem_supp_iff f).mp (hsv ▸ hf𝔪 (Ideal.mem_span_singleton_self f)))
 
-/-- For discrete rings: the trivial valuation on the fraction field of `A/p`,
-composed with the quotient map, gives a point of `Spa(A, A⁺)` with support `p`.
-Generalizes `exists_mem_spa_supp_eq` from maximal to arbitrary prime ideals. -/
+/-- The trivial valuation on `Frac(A/p)` gives a point of `Spa(A, A⁺)` (discrete case). -/
 lemma exists_mem_spa_supp_eq_of_prime [DiscreteTopology A]
     (p : Ideal A) [p.IsPrime] :
     ∃ v ∈ Spa A A⁺, v.supp = p := by
@@ -231,13 +207,11 @@ lemma exists_mem_spa_supp_eq_of_prime [DiscreteTopology A]
   let w : Valuation A ℤᵐ⁰ := (1 : Valuation (FractionRing (A ⧸ p)) _).comap φ
   refine ⟨ofValuation w, ⟨?_, ?_⟩, ?_⟩
   · exact isContinuous_ofValuation_of _ (fun _ ↦ isOpen_discrete _)
-  · -- A⁺ condition: the trivial valuation takes values in {0, 1}, all ≤ 1
-    intro f _
+  · intro f _
     change w f ≤ w 1
     simp only [w, Valuation.comap_apply, map_one]
     exact Valuation.one_apply_le_one _
-  · -- Support of trivial valuation composed with quotient = p
-    rw [supp_ofValuation]; ext a
+  · rw [supp_ofValuation]; ext a
     simp only [Valuation.mem_supp_iff, w, Valuation.comap_apply, φ, RingHom.comp_apply,
       Valuation.one_apply_eq_zero_iff]
     exact ⟨fun h ↦ Ideal.Quotient.eq_zero_iff_mem.mp
@@ -247,8 +221,7 @@ lemma exists_mem_spa_supp_eq_of_prime [DiscreteTopology A]
 
 end Prop752
 
-/-- A *rational subset* of `Spa(A, A⁺)` (Definition 7.29 of Wedhorn).
-`R(T/s) = { v ∈ Spa(A, A⁺) | ∀ t ∈ T, v(t) ≤ v(s) ≠ 0 }`. -/
+/-- A rational subset `R(T/s)` of `Spa(A, A⁺)` (Definition 7.29). -/
 def rationalOpen (T : Finset A) (s : A) : Set (Spv A) :=
   { v ∈ Spa A A⁺ | (∀ t ∈ T, v.vle t s) ∧ ¬ v.vle s 0 }
 
@@ -272,8 +245,7 @@ section Functoriality
 
 variable {B : Type*} [CommRing B] [TopologicalSpace B] [PlusSubring B]
 
-/-- A continuous ring hom `φ : A →+* B` with `φ(A⁺) ⊆ B⁺` induces
-`Spa(φ) : Spa(B, B⁺) → Spa(A, A⁺)` via `ValuationSpectrum.comap` (Remark 7.28 of Wedhorn). -/
+/-- `Spa(φ)` via `comap` (Remark 7.28). -/
 theorem comap_mem_spa {φ : A →+* B} (hφ : Continuous φ)
     (hAB : A⁺ ≤ (B⁺).comap φ)
     {v : Spv B} (hv : v ∈ Spa B B⁺) :
@@ -282,14 +254,12 @@ theorem comap_mem_spa {φ : A →+* B} (hφ : Continuous φ)
   simp only [comap_vle, map_one]
   exact hv.2 (φ f) (hAB hf)
 
-/-- `ValuationSpectrum.comap φ` maps `Spa(B, B⁺)` into `Spa(A, A⁺)` when `φ` is continuous and
-`φ(A⁺) ⊆ B⁺` (Remark 7.28 of Wedhorn). -/
+/-- `comap φ` maps `Spa(B, B⁺)` into `Spa(A, A⁺)` (Remark 7.28). -/
 theorem spa_comap_mapsTo {φ : A →+* B} (hφ : Continuous φ) (hAB : A⁺ ≤ (B⁺).comap φ) :
     Set.MapsTo (comap φ) (Spa B B⁺) (Spa A A⁺) :=
   fun _ hv ↦ comap_mem_spa hφ hAB hv
 
-/-- The continuous map `Spa(φ) : Spa(B, B⁺) → Spa(A, A⁺)` induced by a continuous ring
-homomorphism `φ : A →+* B` with `φ(A⁺) ⊆ B⁺` (Remark 7.28 of Wedhorn). -/
+/-- The continuous map `Spa(φ)` (Remark 7.28). -/
 def spaComap {φ : A →+* B} (hφ : Continuous φ) (hAB : A⁺ ≤ (B⁺).comap φ) :
     C(↥(Spa B B⁺), ↥(Spa A A⁺)) where
   toFun := (spa_comap_mapsTo hφ hAB).restrict _ _ _
@@ -298,36 +268,29 @@ def spaComap {φ : A →+* B} (hφ : Continuous φ) (hAB : A⁺ ≤ (B⁺).comap
 
 end Functoriality
 
-/-! ### Topology on `Cont(A)` and `Spa(A, A⁺)`
-
-Both `Cont(A)` and `Spa(A, A⁺)` carry the subspace topology from `Spv(A)`.
-The chain of inclusions `Spa(A, A⁺) ⊆ Cont(A) ⊆ Spv(A)` gives continuous
-embeddings (Definition 7.23, Remark 7.28 of Wedhorn).
--/
+/-! ### Topology on `Cont(A)` and `Spa(A, A⁺)` -/
 
 section SubspaceTopology
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
 
 omit [PlusSubring A] in
-/-- The inclusion `↥(Cont A) ↪ Spv A` is a topological embedding. -/
+/-- `↥(Cont A) ↪ Spv A` is a topological embedding. -/
 theorem cont_subtypeVal_isEmbedding :
     Topology.IsEmbedding (Subtype.val : ↥(Cont A) → Spv A) :=
   Topology.IsEmbedding.subtypeVal
 
-/-- The inclusion `↥(Spa A A⁺) ↪ Spv A` is a topological embedding. -/
+/-- `↥(Spa A A⁺) ↪ Spv A` is a topological embedding. -/
 theorem spa_subtypeVal_isEmbedding :
     Topology.IsEmbedding (Subtype.val : ↥(Spa A A⁺) → Spv A) :=
   Topology.IsEmbedding.subtypeVal
 
-/-- The inclusion `↥(Spa A A⁺) → ↥(Cont A)` is continuous. -/
+/-- `↥(Spa A A⁺) → ↥(Cont A)` is continuous. -/
 theorem continuous_spa_inclusion :
     Continuous (Set.inclusion spa_subset_cont : ↥(Spa A A⁺) → ↥(Cont A)) :=
   continuous_inclusion spa_subset_cont
 
-/-- The inclusion `↥(Spa A A⁺) ↪ ↥(Cont A)` is a topological embedding.
-Both carry the subspace topology from `Spv A`, so the subspace topology
-on `Spa(A, A⁺)` relative to `Cont(A)` agrees with the one from `Spv(A)`. -/
+/-- `↥(Spa A A⁺) ↪ ↥(Cont A)` is a topological embedding. -/
 theorem spa_inclusion_isEmbedding :
     Topology.IsEmbedding (Set.inclusion spa_subset_cont : ↥(Spa A A⁺) → ↥(Cont A)) :=
   Topology.IsEmbedding.mk
@@ -341,24 +304,14 @@ end ValuationSpectrum
 
 section TopNilMaximal
 
-/-! ### Topologically nilpotent elements and maximal ideals
-
-In a complete Hausdorff nonarchimedean ring with linear topology, every topologically
-nilpotent element lies in every maximal ideal (it is in the Jacobson radical). Combined
-with the hypothesis that `A°°` is open, this shows every maximal ideal is open.
--/
+/-! ### Topologically nilpotent elements and maximal ideals -/
 
 variable {A : Type*} [CommRing A]
   [UniformSpace A] [T2Space A] [CompleteSpace A]
   [IsTopologicalRing A] [IsUniformAddGroup A] [NonarchimedeanAddGroup A]
   [IsLinearTopology A A]
 
-/-- In a complete Hausdorff nonarchimedean ring with linear topology,
-every topologically nilpotent element lies in every maximal ideal.
-
-For any `b`, the product `ab` is topologically nilpotent (since `A°°` is an ideal
-under `IsLinearTopology`), hence `1 - ab` is a unit by Prop 5.38. This means `a` is
-in the Jacobson radical, hence in every maximal ideal. -/
+/-- Topologically nilpotent elements lie in every maximal ideal. -/
 theorem IsTopologicallyNilpotent.mem_of_isMaximal {a : A}
     (ha : IsTopologicallyNilpotent a) (𝔪 : Ideal A) [𝔪.IsMaximal] : a ∈ 𝔪 := by
   by_contra ha𝔪
@@ -372,9 +325,7 @@ theorem IsTopologicallyNilpotent.mem_of_isMaximal {a : A}
   exact Ideal.IsMaximal.ne_top ‹_› (Ideal.eq_top_of_isUnit_mem 𝔪 hm
     (eq_sub_of_add_eq hmn ▸ (ha.mul_left r).isUnit_one_sub))
 
-/-- If the set of topologically nilpotent elements is open, then every maximal ideal is open.
-Every topologically nilpotent element lies in every maximal ideal (by `mem_of_isMaximal`),
-so `𝔪` contains the open neighborhood `A°°` of zero. -/
+/-- Every maximal ideal is open when `A°°` is open. -/
 theorem isOpen_of_isMaximal_of_isOpen_topologicallyNilpotent
     (hopen : IsOpen {a : A | IsTopologicallyNilpotent a})
     (𝔪 : Ideal A) [𝔪.IsMaximal] : IsOpen (𝔪 : Set A) := by
@@ -399,9 +350,7 @@ variable {A : Type*} [CommRing A]
 
 open ValuationSpectrum
 
-/-- **Proposition 7.51** of Wedhorn: in a complete Hausdorff nonarchimedean ring with linear
-topology and open `A°°`, for every maximal ideal `𝔪` there exists `v ∈ Spa(A, A⁺)` with
-`supp(v) = 𝔪`. -/
+/-- Prop 7.51 with f-adic hypotheses. -/
 theorem ValuationSpectrum.exists_mem_spa_supp_eq_of_isOpen_topologicallyNilpotent
     (hopen : IsOpen {a : A | IsTopologicallyNilpotent a})
     (𝔪 : Ideal A) [𝔪.IsMaximal] :
@@ -409,9 +358,7 @@ theorem ValuationSpectrum.exists_mem_spa_supp_eq_of_isOpen_topologicallyNilpoten
   exists_mem_spa_supp_eq 𝔪
     (isOpen_of_isMaximal_of_isOpen_topologicallyNilpotent hopen 𝔪)
 
-/-- **Proposition 7.52(2)** of Wedhorn with f-adic hypotheses: in a complete Hausdorff
-nonarchimedean ring with linear topology and open `A°°`, if `v(f) ≠ 0` for all
-`v ∈ Spa(A, A⁺)`, then `f` is a unit. -/
+/-- Prop 7.52(2) with f-adic hypotheses. -/
 theorem ValuationSpectrum.isUnit_of_forall_not_vle_zero_of_isOpen_topologicallyNilpotent
     (hopen : IsOpen {a : A | IsTopologicallyNilpotent a})
     {f : A} (h : ∀ v ∈ Spa A A⁺, ¬ v.vle f 0) : IsUnit f :=

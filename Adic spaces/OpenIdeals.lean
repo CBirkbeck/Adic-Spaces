@@ -2,10 +2,10 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
-import «Adic spaces».AdicSpectrum
-import Mathlib.Topology.Algebra.TopologicallyNilpotent
-import Mathlib.Topology.Algebra.OpenSubgroup
 import Mathlib.RingTheory.Finiteness.Ideal
+import Mathlib.Topology.Algebra.OpenSubgroup
+import Mathlib.Topology.Algebra.TopologicallyNilpotent
+import «Adic spaces».AdicSpectrum
 
 /-!
 # Open Ideals and the Topological Nilradical
@@ -31,7 +31,7 @@ in its radical.
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A]
 
-/-- A topologically nilpotent element lies in the radical of any open ideal. -/
+/-- Topologically nilpotent elements lie in the radical of any open ideal. -/
 theorem IsTopologicallyNilpotent.mem_ideal_radical
     {f : A} (hf : IsTopologicallyNilpotent f)
     {𝔞 : Ideal A} (h𝔞 : IsOpen (𝔞 : Set A)) :
@@ -42,8 +42,7 @@ section LinearTopology
 
 variable [IsLinearTopology A A]
 
-/-- The topological nilradical is contained in the radical of any open ideal
-(forward direction of Lemma 6.6 of Wedhorn). -/
+/-- The topological nilradical is contained in the radical of any open ideal (Lemma 6.6). -/
 theorem topologicalNilradical_le_radical_of_isOpen
     {𝔞 : Ideal A} (h𝔞 : IsOpen (𝔞 : Set A)) :
     topologicalNilradical A ≤ 𝔞.radical :=
@@ -51,9 +50,7 @@ theorem topologicalNilradical_le_radical_of_isOpen
 
 variable [ContinuousAdd A]
 
-/-- An ideal containing a power of a finitely generated open ideal is open
-(backward direction of Lemma 6.6 of Wedhorn). The hypothesis `hJ` captures the
-existence of an ideal of definition, as in an f-adic ring. -/
+/-- An ideal is open if the topological nilradical is in its radical (Lemma 6.6, backward). -/
 theorem ideal_isOpen_of_topologicalNilradical_le_radical
     (hJ : ∃ J : Ideal A, J.FG ∧ J ≤ topologicalNilradical A ∧
           ∀ n : ℕ, IsOpen ((J ^ n : Ideal A) : Set A))
@@ -68,8 +65,7 @@ theorem ideal_isOpen_of_topologicalNilradical_le_radical
     (Submodule.coe_toAddSubgroup (J ^ m)).symm] at hopen_m
   exact AddSubgroup.isOpen_mono ((Submodule.toAddSubgroup_le _ _).mpr hm) hopen_m
 
-/-- An ideal of an f-adic ring is open iff the topological nilradical is contained
-in its radical (Lemma 6.6 of Wedhorn). -/
+/-- An ideal is open iff the topological nilradical is in its radical (Lemma 6.6). -/
 theorem ideal_isOpen_iff_topologicalNilradical_le_radical
     (hJ : ∃ J : Ideal A, J.FG ∧ J ≤ topologicalNilradical A ∧
           ∀ n : ℕ, IsOpen ((J ^ n : Ideal A) : Set A))
@@ -78,8 +74,7 @@ theorem ideal_isOpen_iff_topologicalNilradical_le_radical
   ⟨topologicalNilradical_le_radical_of_isOpen,
    ideal_isOpen_of_topologicalNilradical_le_radical hJ⟩
 
-/-- A finite subset `T` of an f-adic ring generates an open ideal iff the
-topological nilradical is contained in its radical (Remark 7.30(1) of Wedhorn). -/
+/-- `Ideal.span T` is open iff the topological nilradical is in its radical (Remark 7.30(1)). -/
 theorem finset_span_isOpen_iff
     (hJ : ∃ J : Ideal A, J.FG ∧ J ≤ topologicalNilradical A ∧
           ∀ n : ℕ, IsOpen ((J ^ n : Ideal A) : Set A))

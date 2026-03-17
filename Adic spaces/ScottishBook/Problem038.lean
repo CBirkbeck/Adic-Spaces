@@ -1,4 +1,8 @@
-import «Adic spaces».Basic
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
+import «Adic spaces».Tilting
 
 /-!
 # Nonarchimedean Scottish Book — Problem 38
@@ -19,10 +23,40 @@ None.
 
 RESOLVED: No.
 
-## Definitions needed
+## Formalization
 
-- **Perfectoid field**: A complete nonarchimedean field K with residue characteristic p > 0
-  such that the Frobenius on O_K/p is surjective.
-- **Tilt**: The tilt K^b = lim_{x ↦ x^p} K is a perfectoid field of characteristic p,
-  with K^b = Frac(lim_{Frob} O_K/p).
+We state the negation: there exists a perfectoid field `K` of characteristic 0 whose tilt
+`K♭` contains a perfectoid subfield `E` that is not the tilt of any perfectoid subfield
+of `K`.
 -/
+
+open TopologicalRing ValuationSpectrum
+
+namespace ScottishBook
+
+universe u
+
+/-- **Scottish Book Problem 38** (Shahoseini, 24 Feb 2021):
+*Not every perfectoid subfield of the tilt `K♭` is the tilt of a perfectoid subfield of `K`.*
+
+This is **resolved** (negatively). The `sorry` represents the construction of the
+counterexample.
+
+The statement says: there exists a perfectoid field `K` and a subfield of its tilt `K♭` that
+is perfectoid but does not arise as the tilt of any perfectoid subfield of `K`. -/
+theorem problem38 :
+    ∃ (p : ℕ) (_ : Fact (Nat.Prime p))
+      (K : Type u) (_ : Field K) (τ : TopologicalSpace K) (_ : IsTopologicalRing K)
+      (u : UniformSpace K) (_ : IsLinearTopology K K) (_ : IsPerfectoidField p K),
+    -- There exists a perfectoid subfield of K♭ that is not the tilt of any
+    -- perfectoid subfield of K
+    ∃ (E : Type u) (_ : Field E) (_ : TopologicalSpace E) (_ : IsTopologicalRing E)
+        (_ : UniformSpace E) (_ : IsLinearTopology E E) (_ : IsPerfectoidField p E)
+        (_ : E →+* PerfectoidRing.tilt p K),
+      ¬ ∃ (L : Type u) (_ : Field L) (_ : TopologicalSpace L) (_ : IsTopologicalRing L)
+          (_ : UniformSpace L) (_ : IsLinearTopology L L) (_ : IsPerfectoidField p L)
+          (_ : L →+* K),
+        Nonempty (E ≃+* PerfectoidRing.tilt p L) := by
+  sorry
+
+end ScottishBook

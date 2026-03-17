@@ -45,14 +45,12 @@ theorem IsTopologicallyNilpotent.isUnit_one_sub {a : A} (ha : IsTopologicallyNil
   .of_mul_eq_one _ ha.summable_pow.one_sub_mul_tsum_pow
 
 omit [T2Space A] [CompleteSpace A] [IsTopologicalRing A] [IsUniformAddGroup A] in
-/-- The negation of a topologically nilpotent element is topologically nilpotent
-in a nonarchimedean group. Uses the fact that every neighbourhood of `0` contains
-an open additive subgroup (closed under negation). -/
+/-- The negation of a topologically nilpotent element is topologically nilpotent. -/
 theorem IsTopologicallyNilpotent.neg {a : A}
     (ha : IsTopologicallyNilpotent a) : IsTopologicallyNilpotent (-a) := by
   intro U hU
   obtain ⟨V, hVU⟩ := NonarchimedeanAddGroup.is_nonarchimedean U hU
-  refine (ha.eventually (V.isOpen.mem_nhds V.zero_mem')).mono fun n hn => hVU ?_
+  refine (ha.eventually (V.isOpen.mem_nhds V.zero_mem')).mono fun n hn ↦ hVU ?_
   change (-a) ^ n ∈ (V : Set A)
   rcases Nat.even_or_odd n with he | ho
   · rw [he.neg_pow]; exact hn

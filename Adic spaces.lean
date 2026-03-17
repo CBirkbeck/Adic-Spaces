@@ -1,5 +1,6 @@
 import «Adic spaces».AdicMorphisms
 import «Adic spaces».AdicSpectrum
+import «Adic spaces».AlmostMathematics
 import «Adic spaces».AnalyticPoints
 import «Adic spaces».AffinoidRings
 import «Adic spaces».Basic
@@ -10,6 +11,7 @@ import «Adic spaces».CompletedResidueField
 import «Adic spaces».CompleteTopCommRingCat
 import «Adic spaces».ContinuousValuations
 import «Adic spaces».ExcellentRing
+import «Adic spaces».FarguesFontaine
 import «Adic spaces».GeometricSeries
 import «Adic spaces».HuberRings
 import «Adic spaces».IntegralStructureSheaf
@@ -17,11 +19,15 @@ import «Adic spaces».Lemma745
 import «Adic spaces».LocalizationTopology
 import «Adic spaces».OpenIdeals
 import «Adic spaces».OrderedGroupConvex
+import «Adic spaces».PerfectoidRing
+import «Adic spaces».PerfectoidSpace
 import «Adic spaces».Presheaf
+import «Adic spaces».PseudoUniformizer
 import «Adic spaces».RationalSubsets
 import «Adic spaces».RestrictedPowerSeries
 import «Adic spaces».SeminormalRing
 import «Adic spaces».StructureSheaf
+import «Adic spaces».Tilting
 import «Adic spaces».Uniform
 import «Adic spaces».UniformBanach
 import «Adic spaces».ValuationAction

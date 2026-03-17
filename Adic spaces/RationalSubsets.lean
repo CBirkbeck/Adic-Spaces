@@ -8,24 +8,17 @@ import Mathlib.Algebra.Group.Pointwise.Finset.Basic
 /-!
 # Rational Subsets and Finite Intersection Stability
 
-We define rational subsets of the adic spectrum and prove that they are stable
-under finite intersection, following Remark 7.30(5) and Theorem 7.35(2) of
-[Wedhorn, *Adic Spaces*].
+Rational subsets and their stability under finite intersection (Remark 7.30, Theorem 7.35(2)).
 
 ## Main definitions
 
-* `IsRationalSubset U` : `U` is a rational subset of `Spa(A, A⁺)`, i.e.
-  `U = R(T/s)` for some finite `T` and `s ∈ A` (Definition 7.29).
+* `IsRationalSubset U` : `U = R(T/s)` for some finite `T` and `s ∈ A`.
 
 ## Main results
 
-* `rationalOpen_insert_s` : Adding `s` to `T` does not change `R(T/s)` (Remark 7.30(3)).
-* `rationalOpen_inter` : `R(T₁/s₁) ∩ R(T₂/s₂) = R(T₁·T₂/s₁·s₂)` when
-  `s₁ ∈ T₁` and `s₂ ∈ T₂` (Remark 7.30(5)).
-* `IsRationalSubset.inter` : The intersection of two rational subsets is a
-  rational subset (part of Theorem 7.35(2)).
-* `IsRationalSubset.isOpen` : Rational subsets are open in the subspace topology
-  on `Spa(A, A⁺)` (part of Theorem 7.35(2)).
+* `rationalOpen_inter` : `R(T₁/s₁) ∩ R(T₂/s₂) = R(T₁·T₂/s₁·s₂)` (Remark 7.30(5)).
+* `IsRationalSubset.inter` : Intersection of two rational subsets is rational.
+* `IsRationalSubset.isOpen` : Rational subsets are open in `Spa(A, A⁺)`.
 
 ## References
 
@@ -40,7 +33,7 @@ section Helpers
 
 variable {A : Type*} [CommRing A]
 
-/-- If `v(s₁ * s₂) ≠ 0`, then `v(s₁) ≠ 0`. -/
+/-- `v(s₁ * s₂) ≠ 0` implies `v(s₁) ≠ 0`. -/
 lemma not_vle_zero_left_of_mul {v : Spv A} {s₁ s₂ : A}
     (h : ¬ v.vle (s₁ * s₂) 0) : ¬ v.vle s₁ 0 := by
   intro hs₁
@@ -49,7 +42,7 @@ lemma not_vle_zero_left_of_mul {v : Spv A} {s₁ s₂ : A}
   have := ValuativeRel.mul_vle_mul_left hs₁ s₂
   rwa [zero_mul] at this
 
-/-- If `v(s₁ * s₂) ≠ 0`, then `v(s₂) ≠ 0`. -/
+/-- `v(s₁ * s₂) ≠ 0` implies `v(s₂) ≠ 0`. -/
 lemma not_vle_zero_right_of_mul {v : Spv A} {s₁ s₂ : A}
     (h : ¬ v.vle (s₁ * s₂) 0) : ¬ v.vle s₂ 0 := by
   rw [mul_comm] at h
@@ -59,13 +52,11 @@ end Helpers
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A] [DecidableEq A]
 
-/-- A subset of `Spa(A, A⁺)` is a *rational subset* if it equals `rationalOpen T s` for
-some finite `T` and `s ∈ A` (Definition 7.29 of Wedhorn). -/
+/-- A rational subset is one of the form `rationalOpen T s` (Definition 7.29). -/
 def IsRationalSubset (U : Set (Spv A)) : Prop :=
   ∃ (T : Finset A) (s : A), U = rationalOpen T s
 
-/-- Adding `s` to `T` does not change the rational subset `R(T/s)`
-(Remark 7.30(3) of Wedhorn). -/
+/-- Adding `s` to `T` does not change `R(T/s)` (Remark 7.30(3)). -/
 theorem rationalOpen_insert_s (T : Finset A) (s : A) :
     rationalOpen (insert s T) s = rationalOpen T s := by
   ext v
@@ -76,9 +67,7 @@ theorem rationalOpen_insert_s (T : Finset A) (s : A) :
     exact ⟨hv, fun t ht ↦ (Finset.mem_insert.mp ht).elim
       (fun h ↦ h ▸ (v.vle_total t t).elim id id) (hvT t), hvs⟩
 
-/-- The intersection of two rational subsets is a rational subset:
-`R(T₁/s₁) ∩ R(T₂/s₂) = R(T₁·T₂ / s₁·s₂)`, assuming `s₁ ∈ T₁` and `s₂ ∈ T₂`
-(Remark 7.30(5) of Wedhorn). -/
+/-- `R(T₁/s₁) ∩ R(T₂/s₂) = R(T₁·T₂ / s₁·s₂)` (Remark 7.30(5)). -/
 theorem rationalOpen_inter (T₁ T₂ : Finset A) (s₁ s₂ : A)
     (hs₁ : s₁ ∈ T₁) (hs₂ : s₂ ∈ T₂) :
     rationalOpen T₁ s₁ ∩ rationalOpen T₂ s₂ = rationalOpen (T₁ * T₂) (s₁ * s₂) := by
@@ -102,8 +91,7 @@ theorem rationalOpen_inter (T₁ T₂ : Finset A) (s₁ s₂ : A)
       rwa [ValuativeRel.mul_vle_mul_iff_left hs₁'] at hle
 
 omit [DecidableEq A] in
-/-- The intersection of two rational subsets is a rational subset
-(part of Theorem 7.35(2) of Wedhorn). -/
+/-- The intersection of two rational subsets is rational (Theorem 7.35(2)). -/
 theorem IsRationalSubset.inter {U V : Set (Spv A)}
     (hU : IsRationalSubset U) (hV : IsRationalSubset V) :
     IsRationalSubset (U ∩ V) := by
@@ -124,13 +112,12 @@ theorem IsRationalSubset.subset_spa {U : Set (Spv A)} (hU : IsRationalSubset U) 
 /-! ### Openness of rational subsets -/
 
 omit [TopologicalSpace A] [PlusSubring A] [DecidableEq A] in
-/-- Each basic open set `Spv(A)(f/s)` is open in `Spv A`. -/
+/-- Each basic open set `Spv(A)(f/s)` is open. -/
 theorem isOpen_basicOpen (f s : A) : IsOpen (basicOpen f s) :=
   TopologicalSpace.isOpen_generateFrom_of_mem ⟨f, s, rfl⟩
 
 omit [DecidableEq A] in
-/-- A rational subset `R(T/s)` is open in the subspace topology on `Spa(A, A⁺)`
-(part of Theorem 7.35(2) of Wedhorn). -/
+/-- Rational subsets are open in `Spa(A, A⁺)` (Theorem 7.35(2)). -/
 theorem rationalOpen_isOpen (T : Finset A) (s : A) :
     IsOpen (Subtype.val ⁻¹' rationalOpen T s : Set ↥(Spa A A⁺)) := by
   classical
@@ -149,8 +136,7 @@ theorem rationalOpen_isOpen (T : Finset A) (s : A) :
   exact isOpen_biInter_finset fun t _ ↦ (isOpen_basicOpen t s).preimage continuous_subtype_val
 
 omit [DecidableEq A] in
-/-- A rational subset is open in the subspace topology on `Spa(A, A⁺)`
-(part of Theorem 7.35(2) of Wedhorn). -/
+/-- A rational subset is open in `Spa(A, A⁺)`. -/
 theorem IsRationalSubset.isOpen {U : Set (Spv A)} (hU : IsRationalSubset U) :
     IsOpen (Subtype.val ⁻¹' U : Set ↥(Spa A A⁺)) := by
   classical

@@ -18,32 +18,14 @@ import Mathlib.Geometry.RingedSpace.Stalks
 /-!
 # The Structure Sheaf on the Adic Spectrum
 
-We define the structure sheaf `𝒪_X` on the adic spectrum `X = Spa(A, A⁺)`,
-following §8.1 of [Wedhorn, *Adic Spaces*].
-
-The construction uses the "locally fraction" pattern (as in
-`AlgebraicGeometry.StructureSheaf` for `Spec R`): for each `x ∈ Spa(A, A⁺)`,
-the stalk is `A_{supp(x)}`, and sections on an open `U` are functions into
-the product of stalks that are locally of the form `r/s`.
-
-In the discrete case (Theorem 8.28(c) of Wedhorn), this gives the correct
-structure sheaf: `𝒪_X(R(T/s)) = A_s` with the discrete topology.
+We define the structure sheaf `𝒪_X` on `X = Spa(A, A⁺)` following §8.1 of Wedhorn.
 
 ## Main definitions
 
 * `SpaTop A` : The adic spectrum as an object of `TopCat`.
-* `suppSpa` : The continuous support map `Spa(A, A⁺) → Spec A`.
-* `StructureSheaf.Localizations` : The stalk type family `x ↦ A_{supp(x)}`.
-* `structureSheafInType A` : The structure sheaf valued in `Type`.
-* `structurePresheaf A` : The structure presheaf valued in `CommRingCat`.
 * `structureSheaf A` : The structure sheaf valued in `CommRingCat`.
-* `TopRingPresheafedSpace` : A presheafed space valued in `CompleteTopCommRingCat`.
-* `ringStalkMap` : Ring stalk map for `CompleteTopCommRingCat`-valued presheafed spaces.
-* `VPreObj` : Objects of the category 𝒱^pre (Definition 8.5 of Wedhorn).
-* `VPreHom` : Morphisms of 𝒱^pre (Definition 8.7 of Wedhorn).
-* `VObj` : Objects of the category 𝒱 (Remark 8.20 of Wedhorn).
-* `VObj.forgetToVPre` : Inclusion functor 𝒱 ↪ 𝒱^pre.
-* `IsSheafyTopRing` : Remark 8.20 sheaf condition for topological ring presheaves.
+* `VPreObj` / `VObj` : Categories 𝒱^pre and 𝒱 (Definitions 8.5, 8.7, Remark 8.20).
+* `IsSheafyTopRing` : Full sheaf condition for topological ring presheaves.
 
 ## References
 
@@ -68,8 +50,7 @@ variable (A : Type u) [CommRing A] [TopologicalSpace A] [PlusSubring A]
 /-- The adic spectrum `Spa(A, A⁺)` as an object of `TopCat`. -/
 def SpaTop : TopCat := TopCat.of ↥(Spa A A⁺)
 
-/-- The continuous support map `Spa(A, A⁺) → Spec A` sending `v` to `supp(v)`
-(Remark 4.6 of Wedhorn, restricted to `Spa`). -/
+/-- The continuous support map `Spa(A, A⁺) → Spec A` (Remark 4.6 of Wedhorn). -/
 def suppSpa : C(SpaTop A, PrimeSpectrum A) where
   toFun x := suppFun x.val
   continuous_toFun := suppFun_continuous.comp continuous_subtype_val
@@ -80,59 +61,54 @@ namespace StructureSheaf
 
 variable {A}
 
-/-- The type family over `Spa(A, A⁺)` consisting of the localization at `supp(x)`.
-This is the stalk `𝒪_{X,x}` of the structure sheaf (Definition 8.5 of Wedhorn). -/
+/-- The stalk type family `x ↦ A_{supp(x)}` (Definition 8.5 of Wedhorn). -/
 abbrev Localizations (x : SpaTop A) : Type u :=
   Localization.AtPrime x.val.supp
 
-/-- A section `f` on `U` is a *fraction* if there exist `r, s ∈ A` with `s ∉ supp(x)`
-and `f(x) = r/s` for all `x ∈ U`. -/
+/-- A section is a *fraction* if `f(x) = r/s` for fixed `r, s`. -/
 def IsFraction {U : Opens (SpaTop A)} (f : ∀ x : U, Localizations x.1) : Prop :=
   ∃ (r s : A), ∀ x : U, ∃ hs : s ∉ x.1.val.supp,
     f x = Localization.mk r ⟨s, hs⟩
 
 /-- `IsFraction` is prelocal: it restricts to smaller open subsets. -/
-def isFractionPrelocal : PrelocalPredicate (fun x : SpaTop A => Localizations x) where
+def isFractionPrelocal : PrelocalPredicate (fun x : SpaTop A ↦ Localizations x) where
   pred f := IsFraction f
-  res := by rintro V U i f ⟨r, s, w⟩; exact ⟨r, s, fun x => w (i x)⟩
+  res := by rintro V U i f ⟨r, s, w⟩; exact ⟨r, s, fun x ↦ w (i x)⟩
 
-/-- A section is *locally a fraction* if every point has a neighborhood on which
-the section is a fraction. This is the local predicate defining the structure
-sheaf (§8.1 of Wedhorn). -/
-def isLocallyFraction : LocalPredicate (fun x : SpaTop A => Localizations x) :=
+/-- A section is *locally a fraction* if it is a fraction near each point. -/
+def isLocallyFraction : LocalPredicate (fun x : SpaTop A ↦ Localizations x) :=
   isFractionPrelocal.sheafify
 
-/-- The sections satisfying `isLocallyFraction` form a subring of the product
-of localizations. -/
+/-- The sections satisfying `isLocallyFraction` form a subring. -/
 def sectionsSubring (U : Opens (SpaTop A)) :
     Subring (∀ x : U, Localizations x.1) where
   carrier := { f | isLocallyFraction.pred f }
   mul_mem' {a b} ha hb x := by
     obtain ⟨Va, ma, ia, ra, sa, wa⟩ := ha x
     obtain ⟨Vb, mb, ib, rb, sb, wb⟩ := hb x
-    refine ⟨Va ⊓ Vb, ⟨ma, mb⟩, Opens.infLELeft _ _ ≫ ia, ra * rb, sa * sb, fun y => ?_⟩
+    refine ⟨Va ⊓ Vb, ⟨ma, mb⟩, Opens.infLELeft _ _ ≫ ia, ra * rb, sa * sb, fun y ↦ ?_⟩
     obtain ⟨hsa, ha'⟩ := wa ⟨y.1, y.2.1⟩
     obtain ⟨hsb, hb'⟩ := wb ⟨y.1, y.2.2⟩
     exact ⟨y.1.val.supp.primeCompl.mul_mem hsa hsb,
       (congr_arg₂ (· * ·) ha' hb').trans (Localization.mk_mul ..)⟩
   one_mem' x :=
-    ⟨U, x.2, 𝟙 _, 1, 1, fun y =>
+    ⟨U, x.2, 𝟙 _, 1, 1, fun y ↦
       ⟨y.1.val.supp.primeCompl.one_mem, Localization.mk_one.symm⟩⟩
   add_mem' {a b} ha hb x := by
     obtain ⟨Va, ma, ia, ra, sa, wa⟩ := ha x
     obtain ⟨Vb, mb, ib, rb, sb, wb⟩ := hb x
     refine ⟨Va ⊓ Vb, ⟨ma, mb⟩, Opens.infLELeft _ _ ≫ ia, sa * rb + sb * ra, sa * sb,
-      fun y => ?_⟩
+      fun y ↦ ?_⟩
     obtain ⟨hsa, ha'⟩ := wa ⟨y.1, y.2.1⟩
     obtain ⟨hsb, hb'⟩ := wb ⟨y.1, y.2.2⟩
     exact ⟨y.1.val.supp.primeCompl.mul_mem hsa hsb,
       (congr_arg₂ (· + ·) ha' hb').trans (Localization.add_mk ..)⟩
   zero_mem' x :=
-    ⟨U, x.2, 𝟙 _, 0, 1, fun y =>
+    ⟨U, x.2, 𝟙 _, 0, 1, fun y ↦
       ⟨y.1.val.supp.primeCompl.one_mem, (Localization.mk_zero _).symm⟩⟩
   neg_mem' {a} ha x := by
     obtain ⟨V, m, i, r, s, w⟩ := ha x
-    exact ⟨V, m, i, -r, s, fun y => by
+    exact ⟨V, m, i, -r, s, fun y ↦ by
       obtain ⟨hs, h⟩ := w y
       exact ⟨hs, (congr_arg Neg.neg h).trans (Localization.neg_mk ..)⟩⟩
 
@@ -140,93 +116,65 @@ end StructureSheaf
 
 open StructureSheaf
 
-/-- The structure sheaf of `Spa(A, A⁺)`, valued in `Type`
-(§8.1, equation (8.1.1) of Wedhorn). -/
+/-- The structure sheaf of `Spa(A, A⁺)`, valued in `Type`. -/
 def structureSheafInType : Sheaf (Type u) (SpaTop A) :=
   subsheafToTypes isLocallyFraction
 
 instance structureSheafInType.commRing (U : (Opens (SpaTop A))ᵒᵖ) :
-    CommRing ((structureSheafInType A).val.obj U) :=
+    CommRing ((structureSheafInType A).obj.obj U) :=
   inferInstanceAs (CommRing (sectionsSubring U.unop))
 
-/-- The structure presheaf of `Spa(A, A⁺)`, valued in `CommRingCat`
-(§8.1, equation (8.1.1) of Wedhorn). -/
+/-- The structure presheaf of `Spa(A, A⁺)`, valued in `CommRingCat`. -/
 def structurePresheaf : Presheaf CommRingCat (SpaTop A) where
-  obj U := .of ((structureSheafInType A).val.obj U)
+  obj U := .of ((structureSheafInType A).obj.obj U)
   map i := CommRingCat.ofHom
-    { toFun := (structureSheafInType A).val.map i
+    { toFun := (structureSheafInType A).obj.map i
       map_zero' := rfl
       map_one' := rfl
-      map_add' := fun _ _ => rfl
-      map_mul' := fun _ _ => rfl }
+      map_add' := fun _ _ ↦ rfl
+      map_mul' := fun _ _ ↦ rfl }
 
 /-! ### Lifting to `CommRingCat` -/
 
-/-- The composition of `structurePresheaf A` with the forgetful functor to `Type`
-is isomorphic to the underlying presheaf of `structureSheafInType A`. -/
+/-- `structurePresheaf A ⋙ forget ≅ structureSheafInType A`. -/
 def structurePresheafCompForget :
-    structurePresheaf A ⋙ forget CommRingCat ≅ (structureSheafInType A).val :=
-  NatIso.ofComponents fun _ => Iso.refl _
+    structurePresheaf A ⋙ forget CommRingCat ≅ (structureSheafInType A).obj :=
+  NatIso.ofComponents fun _ ↦ Iso.refl _
 
-/-- The structure sheaf of `Spa(A, A⁺)`, valued in `CommRingCat`
-(Definition 8.5 of Wedhorn, in the algebraic setting). -/
+/-- The structure sheaf of `Spa(A, A⁺)`, valued in `CommRingCat`. -/
 def structureSheaf : Sheaf CommRingCat (SpaTop A) :=
   ⟨structurePresheaf A,
     (TopCat.Presheaf.isSheaf_iff_isSheaf_comp (forget CommRingCat) _).mpr
       (TopCat.Presheaf.isSheaf_of_iso (structurePresheafCompForget A).symm
-        (structureSheafInType A).cond)⟩
+        (structureSheafInType A).property)⟩
 
 /-! ### Sheafy affinoid rings (Definition 8.26 of Wedhorn) -/
 
 variable [IsTopologicalRing A] [HasRestrictionMaps A]
 
-/-- The *product restriction map* for a rational covering: sends a section on `R(T/s)`
-to its restrictions on all covering pieces `R(Tᵢ/sᵢ)`. -/
+/-- The product restriction map for a rational covering. -/
 noncomputable def productRestriction (C : RationalCovering A) :
     presheafValue C.base → ∀ D ∈ C.covers, presheafValue D :=
-  fun x D hD => restrictionMap C.base D (C.hsubset D hD) x
+  fun x D hD ↦ restrictionMap C.base D (C.hsubset D hD) x
 
-/-- An affinoid ring `(A, A⁺)` is *sheafy* (Definition 8.26 of Wedhorn) if the
-presheaf `𝒪_X` on `X = Spa(A, A⁺)` is a sheaf of complete topological rings
-(Remark 8.20 of Wedhorn).
-
-The algebraic part of the sheaf condition (that the `CommRingCat`-valued presheaf
-is a sheaf) is always satisfied by `structureSheaf`. The `IsSheafy` condition
-additionally requires the concrete presheaf values `A⟨T/s⟩` (completions of
-localizations) to assemble into a sheaf with continuous restriction maps
-satisfying the topological embedding condition for coverings (Remark 8.20).
-
-Concretely, for every finite rational covering `R(T/s) = ⋃ R(Tᵢ/sᵢ)`:
-
-1. **Separation**: The product restriction map `A⟨T/s⟩ → ∏ A⟨Tᵢ/sᵢ⟩` is injective.
-2. **Gluing**: Compatible families of sections on the covering pieces glue to a
-   section on the base.
-
-## Key instances
-
-* `IsSheafy.discrete`: If `A` has the discrete topology, then `A` is sheafy
-  (Theorem 8.28(c) of Wedhorn). -/
+/-- An affinoid ring is *sheafy* if the product restriction map is
+injective for every rational covering (Definition 8.26). -/
 class IsSheafy [IsTopologicalRing A] [HasRestrictionMaps A] : Prop where
   /-- For every rational covering, the product restriction map is injective
   (separation / uniqueness of gluing). -/
   separation : ∀ (C : RationalCovering A),
     Function.Injective (productRestriction A C)
 
-/-- **Theorem 8.28(c)** of Wedhorn: if `A` has the discrete topology, then
-`(A, A⁺)` is sheafy. In this case, completions are trivial,
-`𝒪_X(R(T/s)) = Aₛ` with the discrete topology, and the sheaf condition
-reduces to the algebraic one (proved in `structureSheaf`). -/
+/-- **Theorem 8.28(c)** of Wedhorn: discrete rings are sheafy. -/
 instance IsSheafy.discrete [DiscreteTopology A] [IsTopologicalRing A] :
     IsSheafy A :=
-  ⟨fun C => by
+  ⟨fun C ↦ by
     intro x y hxy; exact productRestriction_injective_discrete C
-      (funext fun ⟨D, hD⟩ => congr_fun (congr_fun hxy D) hD)⟩
+      (funext fun ⟨D, hD⟩ ↦ congr_fun (congr_fun hxy D) hD)⟩
 
 /-! ### Affinoid adic spaces (Definition 8.21 of Wedhorn) -/
 
-/-- An *affinoid adic space* (Definition 8.21 of Wedhorn) is the adic spectrum
-`Spa(A, A⁺)` of a sheafy affinoid ring `(A, A⁺)`, equipped with the structure
-sheaf `𝒪_X`. -/
+/-- An *affinoid adic space* (Definition 8.21 of Wedhorn). -/
 structure AffinoidAdicSpace where
   /-- The underlying affinoid ring. -/
   Ring : Type u
@@ -257,14 +205,7 @@ end AffinoidAdicSpace
 
 /-! ### Adic spaces (Definition 8.22 of Wedhorn) -/
 
-/-- An *adic space* (Definition 8.22 of Wedhorn) is a topological space `X`
-that admits an open covering by open subsets, each homeomorphic to the adic
-spectrum of a sheafy affinoid ring.
-
-The full definition also requires a sheaf of complete topological rings `𝒪_X`
-with compatible valuations on the stalks (the category `𝒱` of Wedhorn §8.1).
-In this formalization, we capture the topological part: `X` is locally
-homeomorphic to `Spa(A, A⁺)` for sheafy affinoid rings `(A, A⁺)`. -/
+/-- An *adic space* (Definition 8.22 of Wedhorn). -/
 structure AdicSpace where
   /-- The underlying topological space. -/
   carrier : Type u
@@ -275,87 +216,32 @@ structure AdicSpace where
 
 attribute [instance] AdicSpace.instTopologicalSpace
 
-/-! ### Sheaf condition for topological ring presheaves (Remark 8.20 of Wedhorn)
+/-! ### The categories 𝒱^pre and 𝒱 (Definitions 8.5, 8.7, Remark 8.20 of Wedhorn) -/
 
-A presheaf of topological rings `𝒪_X` is a **sheaf of topological rings**
-(Remark 8.20 of Wedhorn) if and only if:
-
-1. `𝒪_X` is a sheaf of rings (algebraic condition), AND
-2. For every open covering `(U_i)` of `U`, the canonical map
-   `𝒪_X(U) → ∏ 𝒪_X(U_i)` is a topological embedding.
-
-Condition (1) is the usual sheaf condition (separation + gluing for rings).
-Condition (2) says the topology on `𝒪_X(U)` is the coarsest making all
-restriction maps continuous, i.e., the projective limit topology. -/
-
-/-! ### The categories 𝒱^pre and 𝒱 (Definitions 8.5, 8.7 of Wedhorn)
-
-The category 𝒱^pre (Definition 8.5 of Wedhorn) consists of tuples
-`(X, 𝒪_X, (v_x)_{x ∈ X})` where:
-
-- `X` is a topological space,
-- `𝒪_X` is a presheaf of complete topological rings on `X`,
-- Each stalk `𝒪_{X,x}` (of the underlying ring presheaf) is a local ring,
-- `v_x` is an equivalence class of valuations on `𝒪_{X,x}` with
-  `supp(v_x)` equal to the maximal ideal.
-
-The category 𝒱 is the full subcategory of 𝒱^pre where `𝒪_X` is a sheaf
-of topological rings (Remark 8.20).
-
-A morphism `(f, f♭) : X → Y` in 𝒱^pre is:
-- `f : X → Y` continuous,
-- `f♭ : 𝒪_Y → f_* 𝒪_X` a morphism of presheaves of topological rings,
-- The induced stalk maps are local ring homomorphisms,
-- The valuations are compatible: `v_x ∘ f_x♭ ~ v_{f(x)}`.
-
-We capture the presheafed space structure here. The `Category` instance
-is inherited from `PresheafedSpace CompleteTopCommRingCat`, which provides
-morphisms (continuous maps + presheaf maps) and composition. The stalk
-conditions and valuations will be added as refinements. -/
-
-/-- A *presheafed space of complete topological rings* — the presheaf part
-of 𝒱^pre (Definition 8.5 of Wedhorn, p.76).
-
-Morphisms are pairs `(f, f♭)` where `f` is continuous and `f♭` is a
-morphism of presheaves of complete topological rings. The `Category`
-instance is inherited from `PresheafedSpace`. -/
+/-- A presheafed space of complete topological rings (Definition 8.5). -/
 abbrev TopRingPresheafedSpace := PresheafedSpace CompleteTopCommRingCat.{u}
 
 namespace TopRingPresheafedSpace
 
 variable (X : TopRingPresheafedSpace.{u})
 
-/-- The underlying ring presheaf, obtained by composing with the forgetful functor
-to `CommRingCat`. This forgets the topology on presheaf values. -/
+/-- The underlying ring presheaf (forgetting topology). -/
 def ringPresheaf : X.carrier.Presheaf CommRingCat.{u} :=
   X.presheaf ⋙ CompleteTopCommRingCat.forgetToCommRingCat
 
-/-- The underlying topological presheaf, obtained by composing with the forgetful
-functor to `TopCat`. This forgets the ring structure on presheaf values. -/
+/-- The underlying topological presheaf (forgetting ring structure). -/
 def topPresheaf : X.carrier.Presheaf TopCat.{u} :=
   X.presheaf ⋙ CompleteTopCommRingCat.forgetToTopCat
 
-/-- The stalk of the underlying ring presheaf at a point `x`.
-This is the stalk `𝒪_{X,x}` as a commutative ring (forgetting topology). -/
+/-- The ring stalk `𝒪_{X,x}` at a point `x`. -/
 noncomputable def ringStalk (x : X) : CommRingCat.{u} :=
   (X.ringPresheaf).stalk x
 
 end TopRingPresheafedSpace
 
-/-! ### Ring stalk maps for presheafed spaces of complete topological rings
+/-! ### Ring stalk maps for presheafed spaces of complete topological rings -/
 
-Since `CompleteTopCommRingCat` does not have colimits (completions don't
-preserve colimits in general), we cannot form stalks of `CompleteTopCommRingCat`-
-valued presheaves directly. Instead, for a morphism of presheafed spaces
-`α : X ⟶ Y`, we construct a *ring stalk map* on the underlying `CommRingCat`-
-valued presheaves (which do have colimits). -/
-
-/-- The ring stalk map induced by a morphism of `CompleteTopCommRingCat`-valued
-presheafed spaces. Given `α : X ⟶ Y` and `x : X`, this is the ring homomorphism
-`𝒪_{Y,f(x)} → 𝒪_{X,x}` on the stalks of the underlying ring presheaves.
-
-Constructed by whiskering the presheaf map `α.c` with the forgetful functor to
-`CommRingCat`, then applying the stalk functor and pushforward. -/
+/-- The ring stalk map `𝒪_{Y,f(x)} → 𝒪_{X,x}` induced by `α : X ⟶ Y`. -/
 noncomputable def ringStalkMap {X Y : TopRingPresheafedSpace.{u}}
     (α : X ⟶ Y) (x : X) :
     Y.ringPresheaf.stalk (ConcreteCategory.hom α.base x) ⟶
@@ -374,7 +260,7 @@ theorem ringStalkMap_id (X : TopRingPresheafedSpace.{u}) (x : X) :
   exact (TopCat.Presheaf.stalkFunctor CommRingCat x).map_id X.ringPresheaf
 
 set_option backward.isDefEq.respectTransparency false in
-/-- The ring stalk map of a composition is the composition of ring stalk maps. -/
+/-- The ring stalk map is functorial under composition. -/
 @[simp]
 theorem ringStalkMap_comp {X Y Z : TopRingPresheafedSpace.{u}}
     (α : X ⟶ Y) (β : Y ⟶ Z) (x : X) :
@@ -392,30 +278,9 @@ theorem ringStalkMap_comp {X Y Z : TopRingPresheafedSpace.{u}}
   erw [CategoryTheory.Functor.map_id, Category.id_comp,
     CategoryTheory.Functor.map_id, Category.id_comp]
 
-/-! ### The category 𝒱^pre (Definition 8.5 of Wedhorn)
+/-! ### The category 𝒱^pre (Definition 8.5 of Wedhorn) -/
 
-An object of 𝒱^pre is a triple `(X, 𝒪_X, (v_x)_{x ∈ X})` where:
-
-- `X` is a topological space,
-- `𝒪_X` is a presheaf of complete topological rings on `X`,
-- For each `x ∈ X`, the stalk `𝒪_{X,x}` (of the underlying ring presheaf) is
-  a local ring,
-- `v_x` is an equivalence class of valuations on `𝒪_{X,x}` with
-  `supp(v_x)` equal to the maximal ideal.
-
-A morphism `(f, f♭) : (X, 𝒪_X, (v_x)) → (Y, 𝒪_Y, (w_y))` in 𝒱^pre is:
-
-- A morphism `(f, f♭)` of presheafed spaces (continuous map + presheaf map),
-- For each `x ∈ X`, the induced stalk map `f♭_x : 𝒪_{Y,f(x)} → 𝒪_{X,x}` is
-  a local ring homomorphism,
-- The valuations are compatible: `w_{f(x)} = v_x ∘ f♭_x` as equivalence classes. -/
-
-/-- An object of the category `𝒱^pre` (Definition 8.5 of Wedhorn).
-
-A *valued presheafed space* consists of:
-- A presheafed space `(X, 𝒪_X)` of complete topological rings,
-- Local ring structure on each stalk `𝒪_{X,x}`,
-- A valuation `v_x` on each stalk with `supp(v_x) = maximalIdeal`. -/
+/-- An object of `𝒱^pre` (Definition 8.5 of Wedhorn). -/
 structure VPreObj where
   /-- The underlying presheafed space of complete topological rings. -/
   toPresheafedSpace : TopRingPresheafedSpace.{u}
@@ -432,7 +297,7 @@ namespace VPreObj
 
 variable (X : VPreObj.{u})
 
-instance : CoeSort VPreObj.{u} (Type u) := ⟨fun X => X.toPresheafedSpace⟩
+instance : CoeSort VPreObj.{u} (Type u) := ⟨fun X ↦ X.toPresheafedSpace⟩
 
 instance (x : X) : IsLocalRing (X.toPresheafedSpace.ringStalk x) :=
   X.isLocalRing_stalk x
@@ -450,99 +315,80 @@ noncomputable def ringPresheaf : X.toTopCat.Presheaf CommRingCat.{u} :=
 
 end VPreObj
 
-/-- A morphism in the category `𝒱^pre` (Definition 8.7 of Wedhorn).
-
-A morphism `(f, f♭) : X → Y` of valued presheafed spaces is a morphism of
-presheafed spaces such that:
-- Each ring stalk map `f♭_x : 𝒪_{Y,f(x)} → 𝒪_{X,x}` is local,
-- The valuations are compatible: `w_{f(x)} = comap f♭_x v_x`. -/
+/-- A morphism in `𝒱^pre` (Definition 8.7 of Wedhorn). -/
 structure VPreHom (X Y : VPreObj.{u}) where
   /-- The underlying morphism of presheafed spaces. -/
   toHom : X.toPresheafedSpace ⟶ Y.toPresheafedSpace
   /-- The ring stalk maps are local ring homomorphisms. -/
   isLocalHom_stalkMap : ∀ x : X.toPresheafedSpace,
     IsLocalHom (ringStalkMap toHom x).hom'
-  /-- Valuation compatibility: `w_{f(x)} = comap f♭_x v_x`
-  (the pullback of `v_x` along the stalk map equals `w_{f(x)}`). -/
+  /-- Valuation compatibility: `w_{f(x)} = comap f♭_x v_x`. -/
   val_compat : ∀ x : X.toPresheafedSpace,
     Y.val (ConcreteCategory.hom toHom.base x) =
       (X.val x).comap (ringStalkMap toHom x).hom'
 
-/-- Extensionality for `VPreHom`: two morphisms are equal if their underlying
-presheafed space morphisms are equal. -/
+/-- Extensionality for `VPreHom`. -/
 @[ext]
 theorem VPreHom.ext {X Y : VPreObj.{u}} {f g : VPreHom X Y}
     (h : f.toHom = g.toHom) : f = g := by
   cases f; cases g; congr
 
-/-- The `Category` instance on `VPreObj` (Definition 8.7 of Wedhorn).
-The identity is the identity presheafed space morphism (with identity stalk maps).
-Composition is composition of presheafed space morphisms. -/
+/-- The `Category` instance on `VPreObj` (Definition 8.7 of Wedhorn). -/
 instance : CategoryTheory.Category VPreObj.{u} where
   Hom X Y := VPreHom X Y
   id X := {
     toHom := 𝟙 X.toPresheafedSpace
-    isLocalHom_stalkMap := fun x => by
+    isLocalHom_stalkMap := fun x ↦ by
       rw [ringStalkMap_id]
       exact isLocalHom_id _
-    val_compat := fun x => by
+    val_compat := fun x ↦ by
       simp only [ringStalkMap_id]
       exact (congr_fun ValuationSpectrum.comap_id (X.val x)).symm }
   comp f g := {
     toHom := f.toHom ≫ g.toHom
-    isLocalHom_stalkMap := fun x => by
+    isLocalHom_stalkMap := fun x ↦ by
       rw [ringStalkMap_comp]
       haveI := f.isLocalHom_stalkMap x
       haveI := g.isLocalHom_stalkMap (ConcreteCategory.hom f.toHom.base x)
       change IsLocalHom ((ringStalkMap f.toHom x).hom'.comp
         (ringStalkMap g.toHom (ConcreteCategory.hom f.toHom.base x)).hom')
       infer_instance
-    val_compat := fun x => by
+    val_compat := fun x ↦ by
       rw [ringStalkMap_comp]
       erw [g.val_compat (ConcreteCategory.hom f.toHom.base x), f.val_compat x]
       exact (congr_fun (ValuationSpectrum.comap_comp _ _) _).symm }
-  id_comp := fun f => VPreHom.ext (Category.id_comp f.toHom)
-  comp_id := fun f => VPreHom.ext (Category.comp_id f.toHom)
-  assoc := fun f g h => VPreHom.ext (Category.assoc f.toHom g.toHom h.toHom)
+  id_comp := fun f ↦ VPreHom.ext (Category.id_comp f.toHom)
+  comp_id := fun f ↦ VPreHom.ext (Category.comp_id f.toHom)
+  assoc := fun f g h ↦ VPreHom.ext (Category.assoc f.toHom g.toHom h.toHom)
 
-/-! ### The full subcategory 𝒱 (Remark 8.20 of Wedhorn)
+/-! ### The full subcategory 𝒱 (Remark 8.20 of Wedhorn) -/
 
-The category 𝒱 is the full subcategory of 𝒱^pre consisting of objects `(X, 𝒪_X, (v_x))`
-where `𝒪_X` is a sheaf of topological rings in the sense of Remark 8.20. -/
-
-/-- An object of the category `𝒱` (Remark 8.20 of Wedhorn).
-
-A *valued sheafed space* is a valued presheafed space `(X, 𝒪_X, (v_x))` where
-additionally `𝒪_X` is a sheaf of topological rings:
-- The underlying ring presheaf is a sheaf, AND
-- For every open covering, the restriction map into the product is a
-  topological embedding. -/
+/-- An object of `𝒱`: a valued sheafed space (Remark 8.20 of Wedhorn). -/
 structure VObj extends VPreObj.{u} where
   /-- The underlying ring presheaf is a sheaf (algebraic condition). -/
   isSheaf : (toVPreObj.toPresheafedSpace.ringPresheaf).IsSheaf
 
-/-- The `Category` instance on `VObj` (full subcategory of `VPreObj`).
-Morphisms are `VPreHom`s between the underlying `VPreObj`s. -/
+/-- The `Category` instance on `VObj` (full subcategory of `VPreObj`). -/
 instance : CategoryTheory.Category VObj.{u} where
   Hom X Y := VPreHom X.toVPreObj Y.toVPreObj
   id X := {
     toHom := 𝟙 X.toVPreObj.toPresheafedSpace
-    isLocalHom_stalkMap := fun x => by
+    isLocalHom_stalkMap := fun x ↦ by
       rw [ringStalkMap_id]
       exact isLocalHom_id _
-    val_compat := fun x => by
+    val_compat := fun x ↦ by
       simp only [ringStalkMap_id]
       exact (congr_fun ValuationSpectrum.comap_id (X.val x)).symm }
   comp f g := {
     toHom := f.toHom ≫ g.toHom
-    isLocalHom_stalkMap := fun x => by
+    isLocalHom_stalkMap := fun x ↦ by
       rw [ringStalkMap_comp]
       haveI := f.isLocalHom_stalkMap x
       haveI := g.isLocalHom_stalkMap (ConcreteCategory.hom f.toHom.base x)
       change IsLocalHom ((ringStalkMap f.toHom x).hom'.comp
         (ringStalkMap g.toHom (ConcreteCategory.hom f.toHom.base x)).hom')
       infer_instance
-    val_compat := fun x => by
+    val_compat := fun x ↦ by
       rw [ringStalkMap_comp]
       erw [g.val_compat (ConcreteCategory.hom f.toHom.base x), f.val_compat x]
       exact (congr_fun (ValuationSpectrum.comap_comp _ _) _).symm }
@@ -557,47 +403,19 @@ def VObj.forgetToVPre : VObj.{u} ⥤ VPreObj.{u} where
   map_id _ := rfl
   map_comp _ _ := rfl
 
-/-! ### Sheaf condition for topological ring presheaves (Remark 8.20 of Wedhorn)
+/-! ### Sheafy affinoid rings, revisited (Definition 8.26 / Remark 8.20 of Wedhorn) -/
 
-A presheaf of topological rings `𝒪_X` is a **sheaf of topological rings**
-(Remark 8.20 of Wedhorn) if and only if:
-
-1. `𝒪_X` is a sheaf of rings (algebraic condition), AND
-2. For every open covering `(U_i)` of `U`, the canonical map
-   `𝒪_X(U) → ∏ 𝒪_X(U_i)` is a topological embedding.
-
-For the concrete presheaf on rational subsets of `Spa(A, A⁺)`, this
-becomes the `IsSheafyTopRing` condition below. -/
-
-/-! ### Sheafy affinoid rings, revisited (Definition 8.26 of Wedhorn)
-
-Following Remark 8.20, the full sheafiness condition requires:
-1. The product restriction map is a topological embedding (implies injectivity)
-2. Compatible families glue (surjectivity onto compatible families)
-
-The existing `IsSheafy` captures condition (1a) (injectivity = separation).
-`IsSheafyTopRing` captures the full Remark 8.20 condition. -/
-
-/-- The product restriction map using a subtype-indexed product, suitable for
-topological conditions (the codomain has a Pi topology). -/
+/-- The product restriction map using a subtype-indexed product. -/
 noncomputable def productRestrictionSub (C : RationalCovering A) :
     presheafValue C.base → ∀ (D : ↥C.covers), presheafValue D.1 :=
-  fun x ⟨D, hD⟩ => restrictionMap C.base D (C.hsubset D hD) x
+  fun x ⟨D, hD⟩ ↦ restrictionMap C.base D (C.hsubset D hD) x
 
-/-- An affinoid ring `(A, A⁺)` satisfies the **full sheafiness condition**
-(Definition 8.26 / Remark 8.20 of Wedhorn) if, for every rational covering:
-
-1. The product restriction map is a topological embedding, and
-2. Compatible families of sections glue.
-
-This is the correct version of `IsSheafy` following Wedhorn exactly.
-It implies `IsSheafy` (which only requires separation/injectivity). -/
+/-- The full sheafiness condition (Definition 8.26 of Wedhorn). -/
 class IsSheafyTopRing (A : Type u) [CommRing A] [TopologicalSpace A]
     [IsTopologicalRing A] [inst₁ : PlusSubring A] [inst₂ : HasRestrictionMaps A] :
     Prop where
   /-- The product restriction map is a topological embedding
-  (Remark 8.20, condition (2) of Wedhorn). This uses the subtype-indexed
-  product `∀ (D : ↥C.covers), presheafValue D.1` which carries the Pi topology. -/
+  (Remark 8.20, condition (2) of Wedhorn). -/
   isEmbedding_productRestriction : ∀ (C : RationalCovering A),
     Topology.IsEmbedding (productRestrictionSub A C)
   /-- Compatible families of sections glue to a global section
@@ -612,26 +430,15 @@ class IsSheafyTopRing (A : Type u) [CommRing A] [TopologicalSpace A]
     ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
       restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D
 
-/-- `IsSheafyTopRing` implies `IsSheafy` (topological embedding implies injectivity). -/
+/-- `IsSheafyTopRing` implies `IsSheafy`. -/
 instance (priority := 100) IsSheafyTopRing.toIsSheafy (A : Type u) [CommRing A]
     [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] [HasRestrictionMaps A]
     [IsSheafyTopRing A] : IsSheafy A where
   separation C := by
     intro x y hxy
     exact (IsSheafyTopRing.isEmbedding_productRestriction C).injective
-      (funext fun ⟨D, hD⟩ => congr_fun (congr_fun hxy D) hD)
+      (funext fun ⟨D, hD⟩ ↦ congr_fun (congr_fun hxy D) hD)
 
-/-! ### Adic spaces as objects of 𝒱 (Definitions 8.21, 8.22 of Wedhorn)
-
-An *affinoid adic space* (Definition 8.21) is an object of `VObj` that is
-isomorphic to `Spa(A, A⁺)` for some sheafy affinoid ring. An *adic space*
-(Definition 8.22) is an object of `VObj` that admits an open covering by
-affinoid adic spaces.
-
-The `AffinoidAdicSpace` and `AdicSpace` structures below capture the
-topological and algebraic components. The full definitions as objects of
-`VObj` additionally require constructing the `CompleteTopCommRingCat`-valued
-presheaf on all opens (via projective limits of rational covering values)
-and equipping each stalk with a compatible valuation. -/
+/-! ### Adic spaces as objects of 𝒱 (Definitions 8.21, 8.22 of Wedhorn) -/
 
 end ValuationSpectrum

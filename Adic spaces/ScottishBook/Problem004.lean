@@ -1,4 +1,9 @@
-import «Adic spaces».Basic
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
+import «Adic spaces».PerfectoidSpace
+import «Adic spaces».PerfectoidRing
 
 /-!
 # Nonarchimedean Scottish Book — Problem 4
@@ -19,10 +24,40 @@ is perfectoid. Is A perfectoid?
 
 Open.
 
-## Definitions needed
+## Formalization
 
-- **Zariski-open dense subset of Spa**: A subset of Spa(A, A+) that is open in the Zariski
-  topology and dense.
-- **Perfectoid**: A Tate ring satisfying the perfectoid condition.
-- **Sheafy**: The structure presheaf on Spa(A, A+) is a sheaf.
+We state: given a sheafy Tate ring `A` and an open dense subset `U` of `Spa(A, A⁺)` that
+carries a perfectoid space structure, is `A` a perfectoid ring?
+
+The Zariski-dense condition is captured by requiring `Dense U` in the topology of
+`Spa(A, A⁺)`. The perfectoid condition on `U` is stated via the existence of an
+`AffinoidPerfectoidSpace` covering the open subset.
 -/
+
+open TopologicalRing ValuationSpectrum
+
+namespace ScottishBook
+
+universe u
+
+/-- **Scottish Book Problem 4** (Hansen, 18 Dec 2015):
+*If a Zariski-open dense subset of `Spa(A, A⁺)` is perfectoid, then `A` is perfectoid.*
+
+This is an **open problem** — the `sorry` is intentional and represents the open question.
+
+This is a stronger version of Problem 2. -/
+theorem problem4
+    (p : ℕ) [Fact (Nat.Prime p)]
+    (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [UniformSpace A] [IsLinearTopology A A]
+    [PlusSubring A] [HasRestrictionMaps A]
+    [IsTateRing A] [IsSheafy A]
+    -- There exists an open dense subset that is perfectoid
+    (U : TopologicalSpace.Opens (SpaTop A))
+    (hU_dense : Dense (U : Set (SpaTop A)))
+    (hU_perf : ∃ (S : AffinoidPerfectoidSpace.{u} p),
+      Nonempty (↥U ≃ₜ S.toTopCat)) :
+    IsPerfectoidRing p A := by
+  sorry
+
+end ScottishBook

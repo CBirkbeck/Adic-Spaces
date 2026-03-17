@@ -87,7 +87,7 @@ instance : Bot (ConvexSubgroup Γ) where
 instance : Top (ConvexSubgroup Γ) where
   top := {
     toSubgroup := ⊤
-    convex' := fun _ _ _ _ => trivial
+    convex' := fun _ _ _ _ ↦ trivial
   }
 
 omit [IsOrderedMonoid Γ] in
@@ -106,71 +106,57 @@ omit [IsOrderedMonoid Γ] in
 /-- An element `γ` with `1 ≤ γ` is in `H` iff `γ⁻¹` is. -/
 theorem inv_mem_iff_mem {H : ConvexSubgroup Γ} {γ : Γ} :
     γ⁻¹ ∈ H ↔ γ ∈ H :=
-  ⟨fun h => inv_inv γ ▸ inv_mem h, inv_mem⟩
+  ⟨fun h ↦ inv_inv γ ▸ inv_mem h, inv_mem⟩
 
 /-- Partial order on convex subgroups by inclusion. -/
 instance : PartialOrder (ConvexSubgroup Γ) :=
-  { le := fun H₁ H₂ => ∀ x, x ∈ H₁ → x ∈ H₂
-    le_refl := fun _ _ hx => hx
-    le_trans := fun _ _ _ h₁₂ h₂₃ x hx => h₂₃ x (h₁₂ x hx)
-    le_antisymm := fun _ _ h₁₂ h₂₁ => ext fun _ => ⟨h₁₂ _, h₂₁ _⟩ }
+  { le := fun H₁ H₂ ↦ ∀ x, x ∈ H₁ → x ∈ H₂
+    le_refl := fun _ _ hx ↦ hx
+    le_trans := fun _ _ _ h₁₂ h₂₃ x hx ↦ h₂₃ x (h₁₂ x hx)
+    le_antisymm := fun _ _ h₁₂ h₂₁ ↦ ext fun _ ↦ ⟨h₁₂ _, h₂₁ _⟩ }
 
 instance : OrderBot (ConvexSubgroup Γ) where
-  bot_le := fun H _ hx => mem_bot.mp hx ▸ one_mem H
+  bot_le := fun H _ hx ↦ mem_bot.mp hx ▸ one_mem H
 
 instance : OrderTop (ConvexSubgroup Γ) where
-  le_top := fun _ _ _ => mem_top
+  le_top := fun _ _ _ ↦ mem_top
 
 /-! ### Elements outside a convex subgroup -/
 
 omit [IsOrderedMonoid Γ] in
-/-- If `γ ∉ H` and `γ < 1`, then `γ < h` for every `h ∈ H`.
-Proof: if some `h ∈ H` satisfies `h ≤ γ`, then `h ≤ γ ≤ 1` with `h, 1 ∈ H` gives `γ ∈ H`
-by convexity, contradicting `γ ∉ H`. -/
+/-- If `γ ∉ H` and `γ < 1`, then `γ < h` for every `h ∈ H`. -/
 theorem lt_of_not_mem_of_lt_one (H : ConvexSubgroup Γ) {γ : Γ} (hγ : γ ∉ H) (hγ1 : γ < 1)
     {h : Γ} (hh : h ∈ H) : γ < h := by
   by_contra hle; push_neg at hle; exact hγ (H.convex' hh (one_mem H) hle hγ1.le)
 
 omit [IsOrderedMonoid Γ] in
-/-- If `γ ∉ H` and `1 < γ`, then `h < γ` for every `h ∈ H`.
-Symmetric to `lt_of_not_mem_of_lt_one`. -/
+/-- If `γ ∉ H` and `1 < γ`, then `h < γ` for every `h ∈ H`. -/
 theorem lt_of_not_mem_of_one_lt (H : ConvexSubgroup Γ) {γ : Γ} (hγ : γ ∉ H) (hγ1 : 1 < γ)
     {h : Γ} (hh : h ∈ H) : h < γ := by
   by_contra hle; push_neg at hle; exact hγ (H.convex' (one_mem H) hh hγ1.le hle)
 
-/-! ### Quotient linear order on `Γ ⧸ H.toSubgroup`
+/-! ### Quotient linear order on `Γ ⧸ H.toSubgroup` -/
 
-Given a convex subgroup `H` of a linearly ordered commutative group `Γ`,
-the quotient `Γ ⧸ H.toSubgroup` inherits a linear order defined by
-
-  `[a] ≤ [b] ↔ b⁻¹ * a ≤ 1 ∨ b⁻¹ * a ∈ H`
-
-and this order is compatible with the group structure, making the quotient
-an ordered commutative group.
--/
-
-/-- The predicate `c ≤ 1 ∨ c ∈ H` is invariant under right-multiplication by elements of `H`.
-This is the key lemma for well-definedness of the quotient order. -/
+/-- `c ≤ 1 ∨ c ∈ H` is invariant under right-multiplication by `H`-elements. -/
 private theorem quotientLE_aux (H : ConvexSubgroup Γ) (c k : Γ) (hk : k ∈ H.toSubgroup) :
     (c ≤ 1 ∨ c ∈ H.toSubgroup) ↔ (c * k ≤ 1 ∨ c * k ∈ H.toSubgroup) := by
   by_cases hc : (c : Γ) ∈ H
-  · exact ⟨fun _ => .inr (H.toSubgroup.mul_mem hc hk), fun _ => .inr hc⟩
+  · exact ⟨fun _ ↦ .inr (H.toSubgroup.mul_mem hc hk), fun _ ↦ .inr hc⟩
   · have hck : c * k ∉ H := by
       intro hmem; have := H.toSubgroup.mul_mem hmem (H.toSubgroup.inv_mem hk)
       simp only [mul_inv_cancel_right] at this; exact hc this
-    simp only [show ¬(c ∈ H.toSubgroup) from hc, show ¬(c * k ∈ H.toSubgroup) from hck, or_false]
-    exact ⟨fun h1 => le_of_lt (lt_inv_iff_mul_lt_one.mp (H.lt_of_not_mem_of_lt_one hc
-        (lt_of_le_of_ne h1 (fun h => hc (h ▸ H.toSubgroup.one_mem))) (inv_mem hk))),
-      fun h1 => by by_contra hc1; push_neg at hc1; exact absurd h1 (not_le.mpr
+    simp only [show ¬(c ∈ H.toSubgroup) from hc,
+      show ¬(c * k ∈ H.toSubgroup) from hck, or_false]
+    exact ⟨fun h1 ↦ le_of_lt (lt_inv_iff_mul_lt_one.mp (H.lt_of_not_mem_of_lt_one hc
+        (lt_of_le_of_ne h1 (fun h ↦ hc (h ▸ H.toSubgroup.one_mem))) (inv_mem hk))),
+      fun h1 ↦ by by_contra hc1; push_neg at hc1; exact absurd h1 (not_le.mpr
         (inv_lt_iff_one_lt_mul.mp (H.lt_of_not_mem_of_one_lt hc hc1 (inv_mem hk))))⟩
 
-/-- The order relation on `Γ ⧸ H.toSubgroup`: `[a] ≤ [b]` iff `b⁻¹ * a ≤ 1` or
-`b⁻¹ * a ∈ H`. Well-definedness uses `quotientLE_aux` and the fact that replacing `a, b` by
-`a * h₁, b * h₂` with `h₁, h₂ ∈ H` changes `b⁻¹ * a` by an `H`-element. -/
+/-- `[a] ≤ [b]` iff `b⁻¹ * a ≤ 1` or `b⁻¹ * a ∈ H`. -/
 instance quotientLE (H : ConvexSubgroup Γ) : LE (Γ ⧸ H.toSubgroup) where
   le x y := Quotient.liftOn₂' x y
-    (fun a b => b⁻¹ * a ≤ 1 ∨ b⁻¹ * a ∈ H.toSubgroup)
-    (fun a₁ b₁ a₂ b₂ ha hb => by
+    (fun a b ↦ b⁻¹ * a ≤ 1 ∨ b⁻¹ * a ∈ H.toSubgroup)
+    (fun a₁ b₁ a₂ b₂ ha hb ↦ by
       rw [QuotientGroup.leftRel_apply] at ha hb
       change (b₁⁻¹ * a₁ ≤ 1 ∨ _) = (b₂⁻¹ * a₂ ≤ 1 ∨ _)
       have hk : (b₁⁻¹ * b₂)⁻¹ * (a₁⁻¹ * a₂) ∈ H.toSubgroup :=
@@ -190,7 +176,7 @@ private theorem quotient_le_total' (H : ConvexSubgroup Γ) (a b : Γ) :
          (a⁻¹ * b ≤ 1 ∨ a⁻¹ * b ∈ H.toSubgroup)
   by_cases hm : b⁻¹ * a ∈ H.toSubgroup
   · exact .inl (.inr hm)
-  · have hne : b⁻¹ * a ≠ 1 := fun h => hm (h ▸ H.toSubgroup.one_mem)
+  · have hne : b⁻¹ * a ≠ 1 := fun h ↦ hm (h ▸ H.toSubgroup.one_mem)
     rcases lt_or_gt_of_ne hne with h | h
     · exact .inl (.inl h.le)
     · exact .inr (.inl (le_of_lt (by
@@ -241,9 +227,7 @@ noncomputable instance quotientLinearOrder (H : ConvexSubgroup Γ) :
   toDecidableEq := Classical.decEq _
   toDecidableLT := Classical.decRel _
 
-/-- The quotient order on `Γ ⧸ H.toSubgroup` is compatible with the group operation,
-i.e., `[a] ≤ [b] → [a * c] ≤ [b * c]`. In a commutative group this is immediate since
-`(b * c)⁻¹ * (a * c) = b⁻¹ * a`. -/
+/-- The quotient order is compatible with the group operation. -/
 instance quotientIsOrderedMonoid (H : ConvexSubgroup Γ) :
     IsOrderedMonoid (Γ ⧸ H.toSubgroup) where
   mul_le_mul_left a b hab c := by
@@ -257,33 +241,23 @@ instance quotientIsOrderedMonoid (H : ConvexSubgroup Γ) :
 
 /-! ### Total ordering of convex subgroups -/
 
-/-- Convex subgroups of a linearly ordered commutative group are totally ordered by inclusion.
-
-*Proof.* Assume `H₁ ⊄ H₂`. Pick `a ∈ H₁ \ H₂` with `a ≠ 1` (since `1 ∈ H₂`).
-If `1 < a`, then every `b ∈ H₂` satisfies `a⁻¹ < b < a` (by the "outside" lemmas),
-so `b ∈ H₁` by convexity. The case `a < 1` is symmetric via `a⁻¹ > 1`. -/
+/-- Convex subgroups of a linearly ordered commutative group are totally ordered. -/
 theorem le_total_of_convex (H₁ H₂ : ConvexSubgroup Γ) : H₁ ≤ H₂ ∨ H₂ ≤ H₁ := by
   by_contra h
   push_neg at h
   obtain ⟨hne₁, hne₂⟩ := h
-  -- a ∈ H₁ \ H₂
   obtain ⟨a, haH₁, haH₂⟩ := Set.not_subset.mp (show ¬(H₁ : Set Γ) ⊆ H₂ from hne₁)
-  have ha1 : a ≠ 1 := fun h => haH₂ (h ▸ one_mem H₂)
-  -- H₂ ≤ H₁: for all b ∈ H₂, b ∈ H₁
+  have ha1 : a ≠ 1 := fun h ↦ haH₂ (h ▸ one_mem H₂)
   have hle : ∀ b, b ∈ H₂ → b ∈ H₁ := by
     intro b hb
     rcases lt_or_gt_of_ne ha1 with ha_lt | ha_gt
-    · -- a < 1: a < b (any b ∈ H₂) and b < a⁻¹
-      have hab : a < b := H₂.lt_of_not_mem_of_lt_one haH₂ ha_lt hb
+    · have hab : a < b := H₂.lt_of_not_mem_of_lt_one haH₂ ha_lt hb
       have : a⁻¹ ∉ H₂ := inv_mem_iff_mem.not.mpr haH₂
-      have hba : b < a⁻¹ :=
-        H₂.lt_of_not_mem_of_one_lt this (one_lt_inv_of_inv ha_lt) hb
+      have hba : b < a⁻¹ := H₂.lt_of_not_mem_of_one_lt this (one_lt_inv_of_inv ha_lt) hb
       exact H₁.convex haH₁ (inv_mem haH₁) hab.le hba.le
-    · -- a > 1: a⁻¹ < b (any b ∈ H₂) and b < a
-      have hba : b < a := H₂.lt_of_not_mem_of_one_lt haH₂ ha_gt hb
+    · have hba : b < a := H₂.lt_of_not_mem_of_one_lt haH₂ ha_gt hb
       have : a⁻¹ ∉ H₂ := inv_mem_iff_mem.not.mpr haH₂
-      have hab : a⁻¹ < b :=
-        H₂.lt_of_not_mem_of_lt_one this (inv_lt_one_of_one_lt ha_gt) hb
+      have hab : a⁻¹ < b := H₂.lt_of_not_mem_of_lt_one this (inv_lt_one_of_one_lt ha_gt) hb
       exact H₁.convex (inv_mem haH₁) haH₁ hab.le hba.le
   exact hne₂ hle
 
@@ -296,19 +270,16 @@ noncomputable instance : LinearOrder (ConvexSubgroup Γ) :=
 
 /-! ### Largest convex subgroup avoiding an element -/
 
-/-- The largest convex subgroup of `Γ` that does not contain `γ`.
-This is the union `⋃ { H : ConvexSubgroup Γ | γ ∉ H }`, which is well-defined because
-convex subgroups are totally ordered and the union of a chain of subgroups avoiding `γ` still
-avoids `γ`. Requires `γ ≠ 1` (since every subgroup contains `1`). -/
+/-- The largest convex subgroup of `Γ` not containing `γ`. -/
 noncomputable def maxAvoid {γ : Γ} (hγ : γ ≠ 1) : ConvexSubgroup Γ where
   toSubgroup :=
     { carrier := { x | ∃ H : ConvexSubgroup Γ, γ ∉ H ∧ x ∈ H }
-      mul_mem' := fun {a b} ⟨H₁, hγ₁, ha⟩ ⟨H₂, hγ₂, hb⟩ => by
+      mul_mem' := fun {a b} ⟨H₁, hγ₁, ha⟩ ⟨H₂, hγ₂, hb⟩ ↦ by
         rcases le_total H₁ H₂ with h | h
         · exact ⟨H₂, hγ₂, H₂.toSubgroup.mul_mem' (h _ ha) hb⟩
         · exact ⟨H₁, hγ₁, H₁.toSubgroup.mul_mem' ha (h _ hb)⟩
       one_mem' := ⟨⊥, mem_bot.not.mpr hγ, one_mem ⊥⟩
-      inv_mem' := fun {a} ⟨H, hγH, ha⟩ => ⟨H, hγH, H.toSubgroup.inv_mem' ha⟩ }
+      inv_mem' := fun {a} ⟨H, hγH, ha⟩ ↦ ⟨H, hγH, H.toSubgroup.inv_mem' ha⟩ }
   convex' := by
     intro a b x ⟨H₁, hγ₁, ha⟩ ⟨H₂, hγ₂, hb⟩ h₁ h₂
     rcases le_total H₁ H₂ with h | h
@@ -320,84 +291,59 @@ theorem mem_maxAvoid_iff {γ : Γ} {hγ : γ ≠ 1} {x : Γ} :
 
 /-- The element `γ` is not in `maxAvoid hγ`. -/
 theorem not_mem_maxAvoid {γ : Γ} (hγ : γ ≠ 1) : γ ∉ maxAvoid hγ :=
-  fun ⟨_, hγH, hγH'⟩ => hγH hγH'
+  fun ⟨_, hγH, hγH'⟩ ↦ hγH hγH'
 
 /-- Any convex subgroup not containing `γ` is `≤ maxAvoid hγ`. -/
 theorem le_maxAvoid_of_not_mem {γ : Γ} {hγ : γ ≠ 1} {H : ConvexSubgroup Γ} (h : γ ∉ H) :
     H ≤ maxAvoid hγ :=
-  fun _ hx => ⟨H, h, hx⟩
+  fun _ hx ↦ ⟨H, h, hx⟩
 
-/-! ### Properties of `maxAvoid`
+/-! ### Properties of `maxAvoid` -/
 
-The quotient `Γ ⧸ (maxAvoid hγ).toSubgroup` has the property that every nontrivial
-convex subgroup contains `[γ]`. This is a key step toward the cofinal property
-needed for valuation coarsening (§7.1 of Wedhorn). -/
-
-/-- Every nontrivial convex subgroup of `Γ ⧸ (maxAvoid hγ)` contains `[γ]`.
-
-*Proof.* Let `K` be nontrivial in `Γ/H` where `H = maxAvoid hγ`. Its preimage `π⁻¹(K)` is
-a convex subgroup of `Γ` containing `H`. If `γ ∉ π⁻¹(K)`, then `π⁻¹(K) ≤ H`
-by maximality, forcing `K = ⊥`. So `γ ∈ π⁻¹(K)`, i.e., `[γ] ∈ K`. -/
+/-- Every nontrivial convex subgroup of `Γ ⧸ (maxAvoid hγ)` contains `[γ]`. -/
 theorem maxAvoid_mem_of_nontrivial {γ : Γ} (hγ : γ ≠ 1)
     (K : ConvexSubgroup (Γ ⧸ (maxAvoid hγ).toSubgroup))
     (hK : K ≠ ⊥) :
     (QuotientGroup.mk' (maxAvoid hγ).toSubgroup γ : Γ ⧸ _) ∈ K := by
   by_contra hγK
-  -- Build the preimage of K as a convex subgroup of Γ
   have hπ_mono : Monotone (QuotientGroup.mk' (maxAvoid hγ).toSubgroup) := by
     intro a b hab; left; rwa [inv_mul_le_iff_le_mul, mul_one]
   let C : ConvexSubgroup Γ :=
     { toSubgroup := K.toSubgroup.comap (QuotientGroup.mk' (maxAvoid hγ).toSubgroup)
-      convex' := fun ha hb h₁ h₂ => K.convex ha hb (hπ_mono h₁) (hπ_mono h₂) }
-  -- C contains maxAvoid hγ (elements map to 1 ∈ K)
-  have hle : maxAvoid hγ ≤ C := fun x hx => by
+      convex' := fun ha hb h₁ h₂ ↦ K.convex ha hb (hπ_mono h₁) (hπ_mono h₂) }
+  have hle : maxAvoid hγ ≤ C := fun x hx ↦ by
     change (x : Γ ⧸ (maxAvoid hγ).toSubgroup) ∈ K
     rw [(QuotientGroup.eq_one_iff x).mpr hx]; exact one_mem K
-  -- γ ∉ C (since [γ] ∉ K)
   have hγC : γ ∉ C := hγK
-  -- So C ≤ maxAvoid hγ (by maximality)
   have hle' : C ≤ maxAvoid hγ := le_maxAvoid_of_not_mem hγC
-  -- C = maxAvoid hγ, so K is trivial
   apply hK; ext ⟨x⟩; simp only [mem_bot]; constructor
-  · exact fun hx => (QuotientGroup.eq_one_iff x).mpr (hle' _ hx)
+  · exact fun hx ↦ (QuotientGroup.eq_one_iff x).mpr (hle' _ hx)
   · intro hx; rw [hx]; exact one_mem K
 
-/-! ### Archimedean characterization
+/-! ### Archimedean characterization -/
 
-A linearly ordered commutative group is multiplicatively archimedean (`MulArchimedean`)
-iff its only convex subgroups are `⊥` and `⊤`. This is a classical result from
-the theory of ordered abelian groups.
-
-The forward direction is the more useful one: in an archimedean quotient, powers
-of any element `< 1` are cofinal for `0`, ensuring continuity of coarsened valuations.
--/
-
-/-- In a `MulArchimedean` linearly ordered group, every convex subgroup is `⊥` or `⊤`.
-
-*Proof.* If `H` is proper nontrivial, pick `y > 1` in `H` and `x > 1` outside `H`.
-Archimedean gives `x ≤ y^n`, and convexity (`1 ≤ x ≤ y^n`) forces `x ∈ H`. -/
+/-- In a `MulArchimedean` linearly ordered group, every convex subgroup is `⊥` or `⊤`. -/
 theorem eq_bot_or_eq_top_of_mulArchimedean [MulArchimedean Γ]
     (H : ConvexSubgroup Γ) : H = ⊥ ∨ H = ⊤ := by
   by_contra hH; push_neg at hH; obtain ⟨hbot, htop⟩ := hH
   obtain ⟨y, hy, hy1⟩ : ∃ y ∈ H, 1 < y := by
     obtain ⟨y, hy, hy1⟩ : ∃ y ∈ H, y ≠ 1 := by
-      by_contra h; push_neg at h; exact hbot (ext fun x =>
-        ⟨fun hx => mem_bot.mpr (h x hx), fun hx => mem_bot.mp hx ▸ one_mem H⟩)
+      by_contra h; push_neg at h; exact hbot (ext fun x ↦
+        ⟨fun hx ↦ mem_bot.mpr (h x hx), fun hx ↦ mem_bot.mp hx ▸ one_mem H⟩)
     rcases lt_or_gt_of_ne hy1 with h | h
     · exact ⟨y⁻¹, inv_mem hy, one_lt_inv_of_inv h⟩
     · exact ⟨y, hy, h⟩
   obtain ⟨x, hx, hx1⟩ : ∃ x, x ∉ H ∧ 1 < x := by
     obtain ⟨x, hxH⟩ : ∃ x, x ∉ H := by
-      by_contra h; push_neg at h; exact htop (ext fun x =>
-        ⟨fun _ => mem_top, fun _ => h x⟩)
-    rcases lt_or_gt_of_ne (show x ≠ 1 from fun h => hxH (h ▸ one_mem H)) with h | h
+      by_contra h; push_neg at h; exact htop (ext fun x ↦
+        ⟨fun _ ↦ mem_top, fun _ ↦ h x⟩)
+    rcases lt_or_gt_of_ne (show x ≠ 1 from fun h ↦ hxH (h ▸ one_mem H)) with h | h
     · exact ⟨x⁻¹, inv_mem_iff_mem.not.mpr hxH, one_lt_inv_of_inv h⟩
     · exact ⟨x, hxH, h⟩
   obtain ⟨n, hn⟩ := MulArchimedean.arch x hy1
   exact hx (H.convex (one_mem H) (H.toSubgroup.pow_mem hy n) hx1.le hn)
 
-/-- Auxiliary: convex subgroup generated by `y > 1`, consisting of elements bounded
-by powers of `y`. Used only for the converse of the archimedean characterization. -/
+/-- Convex subgroup generated by `y > 1`: elements bounded by powers of `y`. -/
 private noncomputable def generated {y : Γ} (hy : 1 < y) : ConvexSubgroup Γ where
   toSubgroup :=
     { carrier := {h | ∃ n : ℕ, (y ^ n)⁻¹ ≤ h ∧ h ≤ y ^ n}
@@ -416,20 +362,15 @@ private noncomputable def generated {y : Γ} (hy : 1 < y) : ConvexSubgroup Γ wh
       (inv_le_inv' (pow_le_pow_right' hy.le (le_max_left _ _))).trans (ha_lo.trans hax),
       hxb.trans (hb_hi.trans (pow_le_pow_right' hy.le (le_max_right _ _)))⟩
 
-/-- Converse: if every convex subgroup is `⊥` or `⊤`, the group is `MulArchimedean`.
-
-*Proof (contrapositive).* If `¬MulArchimedean`, there exist `x, y` with `1 < y` and
-`y^n < x` for all `n`. The convex subgroup generated by `y` (elements bounded by
-powers of `y`) is nontrivial (contains `y ≠ 1`) and proper (excludes `x`). -/
+/-- If every convex subgroup is `⊥` or `⊤`, the group is `MulArchimedean`. -/
 theorem mulArchimedean_of_no_proper_nontrivial
     (h : ∀ H : ConvexSubgroup Γ, H = ⊥ ∨ H = ⊤) : MulArchimedean Γ where
   arch x {y} hy := by
     by_contra hna; push_neg at hna
-    have hna' : ∀ n : ℕ, y ^ n < x := hna
     let G := generated hy
     have hy_mem : y ∈ G := show ∃ n : ℕ, (y ^ n)⁻¹ ≤ y ∧ y ≤ y ^ n from
       ⟨1, by simp [(inv_le_one_of_one_le hy.le).trans hy.le], by simp⟩
-    have hx_nmem : x ∉ G := fun ⟨n, _, hle⟩ => not_le.mpr (hna' n) hle
+    have hx_nmem : x ∉ G := fun ⟨n, _, hle⟩ ↦ not_le.mpr (hna n) hle
     rcases h G with heq | heq
     · exact ne_of_gt hy (mem_bot.mp (heq ▸ hy_mem))
     · exact hx_nmem (heq ▸ mem_top)
@@ -438,7 +379,7 @@ theorem mulArchimedean_of_no_proper_nontrivial
 `MulArchimedean` if and only if its only convex subgroups are `⊥` and `⊤`. -/
 theorem mulArchimedean_iff_convex_trivial :
     MulArchimedean Γ ↔ (∀ H : ConvexSubgroup Γ, H = ⊥ ∨ H = ⊤) :=
-  ⟨fun _ => eq_bot_or_eq_top_of_mulArchimedean,
+  ⟨fun _ ↦ eq_bot_or_eq_top_of_mulArchimedean,
    mulArchimedean_of_no_proper_nontrivial⟩
 
 end ConvexSubgroup

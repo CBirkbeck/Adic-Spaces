@@ -160,26 +160,17 @@ theorem coarsen_le_one_of_le_one (v : Valuation R (WithZero Γ)) (H : ConvexSubg
   | coe g =>
     rw [WithZero.mapMonoidWithZeroHom_apply_coe]
     rw [hr] at ha
-    have hg : g ≤ 1 := by
-      rwa [WithZero.coe_le_one] at ha
+    have hg : g ≤ 1 := by rwa [WithZero.coe_le_one] at ha
     exact WithZero.coe_le_one.mpr (H.quotientMk_le_one hg)
 
-/-- If `v(a) ≠ 0`, `v(a) < 1` (as elements of `Γ₀`), and the underlying value is not in `H`,
-then `(v.coarsen H)(a) < 1`. -/
+/-- If `v(a) < 1` and the underlying value is not in `H`, then `(v.coarsen H)(a) < 1`. -/
 theorem coarsen_lt_one_of_not_mem (v : Valuation R (WithZero Γ)) (H : ConvexSubgroup Γ)
     {a : R} {g : Γ} (hva : v a = ↑g) (hg1 : g < 1) (hgH : g ∉ H) :
     v.coarsen H a < 1 := by
   simp only [coarsen_apply, hva, WithZero.mapMonoidWithZeroHom_apply_coe]
   exact WithZero.coe_lt_one.mpr (H.quotientMk_lt_one_of_not_mem hg1 hgH)
 
-/-! ### Cofinal property for archimedean coarsenings
-
-When the quotient `Γ ⧸ H` is `MulArchimedean` (equivalently, `H` has no proper
-nontrivial convex subgroups above it), the coarsened valuation enjoys a cofinal
-property: powers of any element with value `< 1` and `≠ 0` eventually drop below
-any positive threshold. This is the key property ensuring continuity of coarsened
-valuations with respect to the `I`-adic topology (§7.1 of Wedhorn).
--/
+/-! ### Cofinal property for archimedean coarsenings -/
 
 /-- In a `MulArchimedean` quotient, elements `< 1` have powers cofinal for `0`. -/
 theorem WithZero.pow_eventually_le_of_lt_one {Q : Type*} [CommGroup Q] [LinearOrder Q]
@@ -190,9 +181,7 @@ theorem WithZero.pow_eventually_le_of_lt_one {Q : Type*} [CommGroup Q] [LinearOr
   obtain ⟨n, hn⟩ := MulArchimedean.arch d⁻¹ (one_lt_inv_of_inv hg)
   exact ⟨n, WithZero.coe_le_coe.mpr (by rwa [inv_pow, inv_le_inv_iff] at hn)⟩
 
-/-- **Cofinal property for coarsened valuations.** If `Γ ⧸ H` is archimedean,
-`v(a) ≠ 0`, and `(v.coarsen H)(a) < 1`, then powers of `a` have coarsened values
-eventually below any positive threshold `δ`. -/
+/-- Powers of elements with coarsened value `< 1` are cofinal for `0`. -/
 theorem coarsen_pow_cofinal
     (v : Valuation R (WithZero Γ)) (H : ConvexSubgroup Γ)
     [MulArchimedean (Γ ⧸ H.toSubgroup)]

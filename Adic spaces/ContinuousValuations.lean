@@ -2,8 +2,8 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
-import «Adic spaces».ValuationSpectrum
 import Mathlib.Topology.Algebra.Ring.Basic
+import «Adic spaces».ValuationSpectrum
 
 /-!
 # Continuous Valuations and Cont(A)
@@ -27,15 +27,14 @@ namespace Valuation
 
 variable {A : Type*} [CommRing A] {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
 
-/-- A valuation `v` on a topological ring `A` is *continuous* if for every `γ` in the value
-group, the sublevel set `{ a ∈ A | v(a) < γ }` is open (Definition 7.7 of Wedhorn). -/
+/-- A valuation `v` on a topological ring `A` is *continuous* if `{ a | v(a) < γ }` is open
+for all `γ` (Definition 7.7 of Wedhorn). -/
 def IsContinuous [TopologicalSpace A] (v : Valuation A Γ₀) : Prop :=
   ∀ (γ : Γ₀), IsOpen { a : A | v a < γ }
 
 variable (v : Valuation A Γ₀) [TopologicalSpace A]
 
-/-- A valuation is continuous iff the sublevel sets `{ a | v(a) < γ }` are open for all
-units `γ` in the value group. -/
+/-- A valuation is continuous iff `{ a | v(a) < γ }` is open for all units `γ`. -/
 lemma isContinuous_iff_units :
     v.IsContinuous ↔ ∀ (γ : Γ₀ˣ), IsOpen { a : A | v a < γ } := by
   constructor
@@ -45,8 +44,7 @@ lemma isContinuous_iff_units :
     · subst hγ; simp [not_lt_zero']
     · exact h (Units.mk0 γ hγ)
 
-/-- If `v` is continuous, then the additive subgroup `v.ltAddSubgroup γ = { a | v(a) < γ }`
-is open for every unit `γ`. -/
+/-- If `v` is continuous, then `v.ltAddSubgroup γ` is open for every unit `γ`. -/
 lemma IsContinuous.isOpen_ltAddSubgroup (hv : v.IsContinuous) (γ : Γ₀ˣ) :
     IsOpen (v.ltAddSubgroup γ : Set A) :=
   Valuation.coe_ltAddSubgroup v γ ▸ hv γ
@@ -57,9 +55,8 @@ namespace ValuationSpectrum
 
 variable {A : Type*} [CommRing A]
 
-/-- A point `v` of `Spv A` is *continuous* if the associated canonical valuation is continuous
-(Definition 7.7 of Wedhorn). This is well-defined since equivalent valuations give the same
-`ValuativeRel` and hence the same canonical valuation. -/
+/-- A point `v` of `Spv A` is *continuous* if the canonical valuation is continuous
+(Definition 7.7 of Wedhorn). -/
 def IsContinuous [TopologicalSpace A] (v : Spv A) : Prop :=
   letI : ValuativeRel A := v.toValuativeRel
   (ValuativeRel.valuation A).IsContinuous
@@ -74,20 +71,22 @@ variable [TopologicalSpace A]
 lemma mem_cont_iff (v : Spv A) : v ∈ Cont A ↔ v.IsContinuous := Iff.rfl
 
 omit [TopologicalSpace A] in
-/-- `embed v ∘ (valuation A) = v` on elements of `A`, where the `ValuativeRel`
-instance comes from `ofValuation v`. -/
+/-- `embedding ∘ embed v ∘ (valuation A) = v` on elements of `A`. -/
 private lemma embed_comp_valuation_eq {Γ₀ : Type*}
     [LinearOrderedCommGroupWithZero Γ₀] (v : Valuation A Γ₀) (a : A) :
     letI := ValuativeRel.ofValuation v
     haveI := Valuation.Compatible.ofValuation v
-    (ValuativeRel.ValueGroupWithZero.embed v)
-      ((ValuativeRel.valuation A) a) = v a := by
+    MonoidWithZeroHom.ValueGroup₀.embedding
+      ((ValuativeRel.ValueGroupWithZero.embed v)
+        ((ValuativeRel.valuation A) a)) = v a := by
   letI := ValuativeRel.ofValuation v
   haveI := Valuation.Compatible.ofValuation v
-  change ValuativeRel.ValueGroupWithZero.embed v
-    (ValuativeRel.ValueGroupWithZero.mk a
-      ⟨1, (ValuativeRel.posSubmonoid A).one_mem⟩) = v a
-  simp [ValuativeRel.ValueGroupWithZero.embed_mk, map_one]
+  change MonoidWithZeroHom.ValueGroup₀.embedding
+    (ValuativeRel.ValueGroupWithZero.embed v
+      (ValuativeRel.ValueGroupWithZero.mk a
+        ⟨1, (ValuativeRel.posSubmonoid A).one_mem⟩)) = v a
+  simp [ValuativeRel.ValueGroupWithZero.embed_mk, map_one,
+    MonoidWithZeroHom.ValueGroup₀.embedding_restrict₀]
 
 /-- If `v : Valuation A Γ₀` is continuous, then `ofValuation v` is continuous. -/
 lemma isContinuous_ofValuation_of {Γ₀ : Type*}
@@ -95,18 +94,18 @@ lemma isContinuous_ofValuation_of {Γ₀ : Type*}
     (hv : v.IsContinuous) : (ofValuation v).IsContinuous := by
   letI : ValuativeRel A := ValuativeRel.ofValuation v
   haveI := Valuation.Compatible.ofValuation v
+  have h_sm := MonoidWithZeroHom.ValueGroup₀.embedding_strictMono (f := (v : A →*₀ Γ₀))
   intro δ
   have heq : { a : A | (ValuativeRel.valuation A) a < δ } =
-      { a : A | v a <
-        (ValuativeRel.ValueGroupWithZero.embed v) δ } := by
-    ext a
-    simp only [Set.mem_setOf_eq, ← embed_comp_valuation_eq v a,
-      (ValuativeRel.ValueGroupWithZero.embed_strictMono v).lt_iff_lt.symm]
+      { a : A | v a < MonoidWithZeroHom.ValueGroup₀.embedding
+        ((ValuativeRel.ValueGroupWithZero.embed v) δ) } := by
+    ext a; simp only [Set.mem_setOf_eq, ← embed_comp_valuation_eq v a]
+    exact ⟨fun h ↦ h_sm ((ValuativeRel.ValueGroupWithZero.embed_strictMono v) h),
+      fun h ↦ (ValuativeRel.ValueGroupWithZero.embed_strictMono v).lt_iff_lt.mp
+        (h_sm.lt_iff_lt.mp h)⟩
   exact heq ▸ hv _
 
-
-/-- If `A` has the discrete topology, then every valuation on `A` is continuous
-(Remark 7.8(2) of Wedhorn). -/
+/-- Every valuation on a discrete ring is continuous (Remark 7.8(2) of Wedhorn). -/
 theorem cont_eq_univ_of_discreteTopology [DiscreteTopology A] :
     Cont A = Set.univ :=
   Set.eq_univ_of_forall fun _ _ ↦ isOpen_discrete _
@@ -115,12 +114,10 @@ section Functoriality
 
 variable {B : Type*} [CommRing B] [TopologicalSpace B]
 
-/-- If `φ : A →+* B` is continuous and `v ∈ Spv B` is continuous, then
-`Spv(φ)(v) ∈ Spv A` is continuous (Remark 7.9 of Wedhorn). -/
+/-- `Spv(φ)` preserves continuity for continuous `φ` (Remark 7.9 of Wedhorn). -/
 theorem comap_isContinuous {φ : A →+* B} (hφ : Continuous φ)
     {v : Spv B} (hv : v.IsContinuous) :
     (comap φ v).IsContinuous := by
-  -- comap φ v = ofValuation ((valuation B).comap φ)
   letI : ValuativeRel B := v.toValuativeRel
   have hkey : comap φ v =
       ofValuation ((ValuativeRel.valuation B).comap φ) := by
@@ -129,8 +126,7 @@ theorem comap_isContinuous {φ : A →+* B} (hφ : Continuous φ)
     exact comap_ofValuation φ (ValuativeRel.valuation B)
   exact hkey ▸ isContinuous_ofValuation_of _ fun γ ↦ hφ.isOpen_preimage _ (hv γ)
 
-/-- `Spv(φ)` maps `Cont B` into `Cont A` when `φ` is continuous
-(Remark 7.9 of Wedhorn). -/
+/-- `Spv(φ)` maps `Cont B` into `Cont A` when `φ` is continuous (Remark 7.9). -/
 theorem cont_comap_mapsTo {φ : A →+* B} (hφ : Continuous φ) :
     Set.MapsTo (comap φ) (Cont B) (Cont A) :=
   fun _ hv ↦ comap_isContinuous hφ hv

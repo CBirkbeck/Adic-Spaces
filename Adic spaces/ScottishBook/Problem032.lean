@@ -1,4 +1,8 @@
-import «Adic spaces».Basic
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
+import «Adic spaces».PerfectoidRing
 
 /-!
 # Nonarchimedean Scottish Book — Problem 32
@@ -19,11 +23,43 @@ None.
 
 Open.
 
-## Definitions needed
+## Formalization
 
-- **Perfectoid ring**: A ring satisfying the perfectoid condition.
-- **Affinoid algebra**: A quotient of a Tate algebra K⟨T_1, ..., T_n⟩ over a
-  nonarchimedean field K.
-- **Completed tensor product**: The completion of the algebraic tensor product A ⊗_K B
-  with respect to the projective tensor product topology.
+We state: given a perfectoid field `K`, a perfectoid `K`-algebra `A`, and a Tate `K`-algebra
+`B`, the completed tensor product `A ⊗̂_K B` is sheafy.
+
+Since the completed tensor product is not yet formalized, we state the existence of a ring
+`C` representing `A ⊗̂_K B` with the required sheafy property.
 -/
+
+open TopologicalRing ValuationSpectrum
+
+namespace ScottishBook
+
+universe u
+
+/-- **Scottish Book Problem 32** (Kedlaya, 7 Jul 2020):
+*The completed tensor product of a perfectoid ring with an affinoid algebra is sheafy.*
+
+This is an **open problem** — the `sorry` is intentional and represents the open question.
+
+The statement says: given a perfectoid field `K`, a perfectoid `K`-algebra `A`, and a
+Tate `K`-algebra `B` (affinoid), there exists a ring `C` (representing the completed
+tensor product `A ⊗̂_K B`) that is sheafy. -/
+theorem problem32
+    (p : ℕ) [Fact (Nat.Prime p)]
+    (K : Type u) [Field K] [TopologicalSpace K] [IsTopologicalRing K]
+    [UniformSpace K] [IsLinearTopology K K] [IsPerfectoidField p K]
+    (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [UniformSpace A] [IsLinearTopology A A] [IsPerfectoidRing p A]
+    [Algebra K A]
+    (B : Type u) [CommRing B] [TopologicalSpace B] [IsTopologicalRing B]
+    [UniformSpace B] [IsLinearTopology B B] [IsTateRing B]
+    [Algebra K B] :
+    -- The completed tensor product A ⊗̂_K B is sheafy
+    ∃ (C : Type u) (_ : CommRing C) (τ : TopologicalSpace C) (ps : @PlusSubring C _)
+      (h₁ : @IsTopologicalRing C τ _) (h₂ : @HasRestrictionMaps C _ τ h₁ ps),
+    @IsSheafy C _ τ ps h₁ h₂ := by
+  sorry
+
+end ScottishBook

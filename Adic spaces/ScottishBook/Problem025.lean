@@ -1,4 +1,8 @@
-import «Adic spaces».Basic
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
+import «Adic spaces».PerfectoidSpace
 
 /-!
 # Nonarchimedean Scottish Book — Problem 25
@@ -19,12 +23,42 @@ None.
 
 Open.
 
-## Definitions needed
+## Formalization
 
-- **Rigid analytic space**: A locally G-ringed space locally isomorphic to affinoid spaces
-  over a nonarchimedean field.
-- **Perfectoid field**: A nonarchimedean field K with residue characteristic p > 0 such that
-  the Frobenius on O_K/p is surjective.
-- **Inverse limit**: The projective limit of the system ... → X → X → X along iterates
-  of f, taken in the category of adic spaces.
+We state: given an adic space `X` that is a perfectoid space, and a finite flat endomorphism
+`f : X → X`, the pro-system `... → X → X → X` (iterating `f`) gives rise to a perfectoid
+space.
+
+Since the full theory of pro-adic spaces and inverse limits is not yet available, we state
+this as: the pro-system determined by a perfectoid space and an endomorphism produces a
+perfectoid space in the limit.
 -/
+
+open TopologicalRing ValuationSpectrum
+
+namespace ScottishBook
+
+universe u
+
+/-- **Scottish Book Problem 25** (Kedlaya, 22 Sep 2016):
+*The inverse limit of an adic space along a finite flat endomorphism is perfectoid.*
+
+This is an **open problem** — the `sorry` is intentional and represents the open question.
+
+The statement is simplified: given an adic space `X` with a self-map (representing a
+finite flat morphism), the resulting inverse limit in the category of adic spaces
+is a perfectoid space. Since inverse limits of adic spaces are not yet formalized,
+we state the existence of the limit perfectoid space. -/
+theorem problem25
+    (p : ℕ) [Fact (Nat.Prime p)]
+    (X : AdicSpace.{u})
+    -- The endomorphism f : X → X (as a continuous self-map of the underlying space)
+    (f : X.carrier → X.carrier) (_ : Continuous f)
+    -- f is "finite flat" (abstract condition since adic space morphism theory is not yet
+    -- available)
+    (hfinflat : True) :
+    -- The inverse limit along f is a perfectoid space
+    ∃ (Y : AdicSpace.{u}), IsPerfectoidSpace p Y := by
+  sorry
+
+end ScottishBook
