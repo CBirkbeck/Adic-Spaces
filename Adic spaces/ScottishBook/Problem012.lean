@@ -67,7 +67,8 @@ def fixedSubringInclusion : ↥(fixedSubring G A) →+* A :=
 /-- The restriction map lands in `Cont(A^G)`: if `v` is a continuous valuation on `A`, then
 its restriction to `A^G` (via the inclusion `A^G ↪ A`) is a continuous valuation on `A^G`. -/
 theorem restrictToFixed_mem_cont (v : ↥(Cont A)) :
-    (comap (fixedSubringInclusion G A) v.1) ∈ Cont ↥(fixedSubring G A) := sorry
+    (comap (fixedSubringInclusion G A) v.1) ∈ Cont ↥(fixedSubring G A) :=
+  comap_isContinuous continuous_subtype_val v.2
 
 /-- The natural map `Cont(A) → Cont(A^G)` induced by restriction to the fixed subring. -/
 noncomputable def restrictToCont :
@@ -78,7 +79,16 @@ noncomputable def restrictToCont :
 valuations `g • v` and `v` agree on `A^G`, since `(g • v)(a) = v(g⁻¹ • a) = v(a)` for
 `a ∈ A^G`. -/
 theorem restrictToCont_smul_eq (g : G) (v : ↥(Cont A)) :
-    restrictToCont G A (g • v) = restrictToCont G A v := sorry
+    restrictToCont G A (g • v) = restrictToCont G A v := by
+  apply Subtype.ext
+  apply ValuationSpectrum.ext
+  funext a₁ a₂
+  change (comap (fixedSubringInclusion G A) (g • v.1)).vle a₁ a₂ =
+    (comap (fixedSubringInclusion G A) v.1).vle a₁ a₂
+  simp only [comap_vle, fixedSubringInclusion, Subring.coe_subtype]
+  show (comap (MulSemiringAction.toRingHom G A g⁻¹) v.1).vle (↑a₁) (↑a₂) =
+    v.1.vle (↑a₁) (↑a₂)
+  simp only [comap_vle, MulSemiringAction.toRingHom_apply, a₁.2 g⁻¹, a₂.2 g⁻¹]
 
 /-- The descended map `Cont(A)/G → Cont(A^G)`, well-defined since the restriction map is
 constant on `G`-orbits. -/
@@ -88,7 +98,10 @@ noncomputable def quotientToCont :
     (fun a b ⟨g, hg⟩ => by rw [← hg, restrictToCont_smul_eq])
 
 /-- `quotientToCont` is continuous. -/
-theorem continuous_quotientToCont : Continuous (quotientToCont G A) := sorry
+theorem continuous_quotientToCont : Continuous (quotientToCont G A) := by
+  apply Continuous.quotient_lift
+  exact Continuous.subtype_mk
+    ((comap_continuous (fixedSubringInclusion G A)).comp continuous_subtype_val) _
 
 end QuotientMap
 

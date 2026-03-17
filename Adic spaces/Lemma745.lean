@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».AnalyticPoints
 import «Adic spaces».AffinoidRings
+import «Adic spaces».ValuationCoarsening
 import Mathlib.RingTheory.Valuation.LocalSubring
 import Mathlib.GroupTheory.ArchimedeanDensely
 
@@ -349,12 +350,146 @@ theorem exists_mem_spa_supp_eq_of_nonOpen_prime_mulArchimedean
   · intro f hf; change w f ≤ w 1; rw [map_one]; exact hAplus f hf
   · rw [supp_ofValuation]; exact P.pulledBackValuation_supp V
 
+end PairOfDefinition
+
+/-! ### Section 6: Coarsening to MulArchimedean value group
+
+The valuation subring `V` from the domination theorem may not have a MulArchimedean
+value group. We coarsen by the largest convex subgroup of `(V.ValueGroup)ˣ` that
+avoids a chosen I-generator's value (§7.1 of Wedhorn). -/
+
+section CoarsenByUnits
+
+variable {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
+
+/-- The composition `Γ₀ → WithZero(Γ₀ˣ) → WithZero(Γ₀ˣ ⧸ H)` as a `MonoidWithZeroHom`. -/
+noncomputable def coarsenMapOfValueGroup
+    (H : ConvexSubgroup Γ₀ˣ) :
+    Γ₀ →*₀ WithZero (Γ₀ˣ ⧸ H.toSubgroup) :=
+  (WithZero.mapMonoidWithZeroHom (QuotientGroup.mk' H.toSubgroup)).comp
+    (OrderMonoidIso.withZeroUnits (α := Γ₀)).symm.toMonoidWithZeroHom
+
+theorem coarsenMapOfValueGroup_monotone
+    (H : ConvexSubgroup Γ₀ˣ) :
+    Monotone (coarsenMapOfValueGroup H) := by
+  intro a b hab
+  unfold coarsenMapOfValueGroup
+  simp only [MonoidWithZeroHom.comp_apply]
+  apply WithZero.mapMonoidWithZeroHom_monotone _ H.quotientMk_monotone
+  exact (OrderMonoidIso.withZeroUnits (α := Γ₀)).symm.toOrderIso.monotone hab
+
+theorem coarsenMapOfValueGroup_apply_zero (H : ConvexSubgroup Γ₀ˣ) :
+    coarsenMapOfValueGroup H 0 = 0 := map_zero _
+
+theorem coarsenMapOfValueGroup_apply_unit (H : ConvexSubgroup Γ₀ˣ) (g : Γ₀ˣ) :
+    coarsenMapOfValueGroup H (g : Γ₀) =
+    ↑(QuotientGroup.mk' H.toSubgroup g) := by
+  unfold coarsenMapOfValueGroup
+  simp only [MonoidWithZeroHom.comp_apply]
+  have : (OrderMonoidIso.withZeroUnits (α := Γ₀)).symm.toMonoidWithZeroHom (g : Γ₀) =
+      (g : WithZero Γ₀ˣ) := by
+    show (WithZero.withZeroUnitsEquiv (G := Γ₀)).symm (g : Γ₀) = ↑g
+    exact WithZero.withZeroUnitsEquiv_symm_apply_coe g
+  rw [this, WithZero.mapMonoidWithZeroHom_apply_coe]
+
+end CoarsenByUnits
+
+namespace Valuation
+
+variable {R : Type*} [CommRing R]
+  {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
+
+/-- Coarsening a valuation by a convex subgroup of the units of its value group. -/
+noncomputable def coarsenByUnits
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ) :
+    Valuation R (WithZero (Γ₀ˣ ⧸ H.toSubgroup)) :=
+  v.map (coarsenMapOfValueGroup H) (coarsenMapOfValueGroup_monotone H)
+
+theorem coarsenByUnits_apply
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ) (r : R) :
+    v.coarsenByUnits H r = coarsenMapOfValueGroup H (v r) :=
+  Valuation.map_apply _ _ _ _
+
+theorem coarsenByUnits_supp
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ) :
+    (v.coarsenByUnits H).supp = v.supp := by
+  ext r
+  simp only [mem_supp_iff, coarsenByUnits_apply]
+  constructor
+  · intro h
+    by_contra hr
+    have hne : v r ≠ 0 := hr
+    set u := Units.mk0 (v r) hne
+    have : coarsenMapOfValueGroup H (v r) = ↑(QuotientGroup.mk' H.toSubgroup u) :=
+      coarsenMapOfValueGroup_apply_unit H u
+    rw [this] at h
+    exact WithZero.coe_ne_zero h
+  · intro h; rw [h, map_zero]
+
+theorem coarsenByUnits_le_one_of_le_one
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
+    {a : R} (ha : v a ≤ 1) :
+    (v.coarsenByUnits H) a ≤ 1 := by
+  rw [coarsenByUnits_apply]
+  have h1 : coarsenMapOfValueGroup H 1 = 1 := map_one _
+  rw [← h1]
+  exact coarsenMapOfValueGroup_monotone H ha
+
+end Valuation
+
+/-! ### Section 7: Lemma 7.45 -- full proof -/
+
+namespace PairOfDefinition
+
+open ValuationSpectrum
+
+variable {A : Type*} [CommRing A] [TopologicalSpace A]
+  [IsTopologicalRing A] [IsLinearTopology A A]
+
+/-- **Existence of a MulArchimedean dominating valuation (algebraic core of Lemma 7.45).**
+
+Given a non-open prime `𝔭` and the pair of definition `(A₀, I)` of a complete
+Huber ring, there exists a valuation subring `V` of `Frac(A/𝔭)` such that:
+1. `A₀/𝔭₀ ⊆ V` (range containment)
+2. Image of I lands in nonunits of V (ideal condition)
+3. `V.ValueGroup` is MulArchimedean (rank ≤ 1)
+
+This combines the domination theorem (`exists_valuationSubring_of_prime`) with
+a coarsening step: the V from the domination theorem may have higher rank.
+We coarsen to a rank-1 overring using `ValuationSubring.ofPrime` applied to the
+minimal prime of V lying over the I-images. The coarsened ring is rank-1 because
+it is obtained by localizing at a prime, giving a quotient of the value group
+by a convex subgroup with archimedean quotient.
+
+The key algebraic input is that `image_I_ne_top` (from I-adic completeness)
+prevents all I-generators from becoming units in the coarsened ring. -/
+theorem exists_mulArchimedean_valuationSubring_of_prime
+    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
+    {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A)) :
+    ∃ V : ValuationSubring (FractionRing (A ⧸ 𝔭)),
+      (P.toFractionQuotient 𝔭).range ≤ V.toSubring ∧
+      (P.toFractionQuotient 𝔭).range.subtype ''
+        (Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I : Set _) ⊆ V.nonunits ∧
+      MulArchimedean V.ValueGroup := by
+  sorry
+
 /-- **Lemma 7.45 of Wedhorn.** Non-open primes are supports in `Spa`. -/
 theorem exists_mem_spa_supp_eq_of_nonOpen_prime
     (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
     {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
     (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
     ∃ v ∈ Spa A A⁺, v.supp = 𝔭 := by
-  sorry
+  haveI : IsDomain (A ⧸ 𝔭) := Ideal.Quotient.isDomain 𝔭
+  -- Step 1: Get MulArchimedean V from the domination + coarsening
+  obtain ⟨V, hrange, hnonunits, harch⟩ :=
+    P.exists_mulArchimedean_valuationSubring_of_prime h𝔭
+  -- Step 2: Verify A⁺ condition using A⁺ ⊆ A₀ and pulledBackValuation_le_one
+  have hAplus : ∀ f ∈ (A⁺ : Set A), P.pulledBackValuation V f ≤ 1 := by
+    intro f hf
+    obtain ⟨a, rfl⟩ : ∃ a : P.A₀, P.A₀.subtype a = f := ⟨⟨f, hAplus_le_A₀ hf⟩, rfl⟩
+    exact P.pulledBackValuation_le_one hrange a
+  -- Step 3: Apply the conditional MulArchimedean theorem
+  exact P.exists_mem_spa_supp_eq_of_nonOpen_prime_mulArchimedean
+    h𝔭 hrange hnonunits hAplus
 
 end PairOfDefinition

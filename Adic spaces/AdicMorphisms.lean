@@ -4,6 +4,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».AnalyticPoints
 import «Adic spaces».AdicSpectrum
+import «Adic spaces».Lemma745
+import «Adic spaces».StructureSheaf
 
 /-!
 # Adic Morphisms
@@ -16,6 +18,18 @@ following §7.5 and §8.4 of [Wedhorn, *Adic Spaces*].
 * `ValuationSpectrum.supp_comap` : `supp(comap φ v) = φ⁻¹(supp v)`.
 * `ValuationSpectrum.nonAnalytic_comap_of_continuous` : Continuous maps preserve non-analytic
   points (Lemma 7.46(1), first part).
+* `ValuationSpectrum.analytic_comap_of_isAdicHom` : Adic homomorphisms preserve analytic
+  points (Lemma 7.46(1), second part).
+* `ValuationSpectrum.isAdicHom_of_complete_and_analytic_preserved` : If `B` is complete and
+  `Spa(φ)` preserves analytic points, then `φ` is adic (Lemma 7.46(2)).
+* `ValuationSpectrum.IsAdicMorphism` : Adic morphisms of adic spaces
+  (Definition 8.38 of Wedhorn).
+* `ValuationSpectrum.isAdicMorphism_iff_preserves_analytic` : A morphism is adic iff it
+  preserves analytic points (Proposition 8.39(1)).
+* `ValuationSpectrum.morphism_preserves_nonAnalytic_affinoid` : Any continuous ring hom
+  preserves non-analytic points (Proposition 8.39(2), affinoid case).
+* `ValuationSpectrum.IsAdicMorphism.ringHom_isAdic` : All induced ring maps of an adic
+  morphism are adic (Corollary 8.40).
 
 ## References
 
@@ -133,5 +147,195 @@ theorem analytic_comap_of_isAdicHom_tate [IsTateRing B]
   analytic_comap_of_isAdicHom hφ (IsTateRing.isAnalytic v)
 
 end TateSpecialization
+
+/-! ### Lemma 7.46(2): Converse — analytic preservation implies adic -/
+
+section Lemma746Converse
+
+variable {A B : Type*} [CommRing A] [CommRing B]
+  [TopologicalSpace A] [TopologicalSpace B]
+  [IsTopologicalRing A] [IsTopologicalRing B]
+  [IsLinearTopology A A] [IsHuberRing A] [IsHuberRing B]
+
+/-- **Lemma 7.46(2) of Wedhorn.** If `B` is a complete Huber ring (with `(B, B⁺)` an
+affinoid ring such that `A⁺ ⊆ B⁺` via `φ`) and the induced map `Spa(φ)` preserves
+analytic points, then `φ` is an adic homomorphism.
+
+The proof proceeds by contrapositive: if `φ` is not adic, one finds a non-open prime
+`𝔭` of `B` via the radical mismatch, then applies **Lemma 7.45** to produce an analytic
+`v ∈ Spa(B)` whose comap is non-analytic (since `supp(comap φ v) ⊇ I_A`, hence open).
+
+**Status:** This requires the sorry in `PairOfDefinition.exists_mem_spa_supp_eq_of_nonOpen_prime`
+(Lemma 7.45) to be filled; see `Lemma745.lean`. -/
+theorem isAdicHom_of_complete_and_analytic_preserved
+    [PlusSubring A] [PlusSubring B]
+    {φ : A →+* B} (hφ : Continuous φ) (hAB : A⁺ ≤ (B⁺).comap φ)
+    (h_analytic : ∀ v ∈ Spa B B⁺, IsAnalytic v → IsAnalytic (comap φ v))
+    (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
+    (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) :
+    IsAdicHom φ := by
+  sorry
+
+end Lemma746Converse
+
+/-! ### Definition 8.38: Adic morphisms of adic spaces -/
+
+section AdicMorphismDef
+
+universe u
+
+open TopologicalSpace
+
+/-- An open affinoid neighborhood datum for a point in an adic space: an open set `U`,
+a point membership proof, an affinoid adic space `Y`, and a homeomorphism
+`U ≃ₜ Spa(Y.Ring)`. This packages the local chart data for Definition 8.38. -/
+structure AffinoidNeighborhood (X : AdicSpace.{u}) (x : X.carrier) where
+  /-- The open set containing `x`. -/
+  U : Opens X.carrier
+  /-- Proof that `x ∈ U`. -/
+  mem : x ∈ U
+  /-- The affinoid adic space that `U` is homeomorphic to. -/
+  aff : AffinoidAdicSpace.{u}
+  /-- The homeomorphism `U ≃ₜ Spa(aff.Ring)`. -/
+  homeo : ↥U ≃ₜ aff.toTopCat
+
+/-- **Definition 8.38 of Wedhorn.** A continuous map `f : X.carrier → Y.carrier`
+between the carriers of adic spaces is *adic* if for every `x ∈ X`, there exist
+open affinoid neighborhoods `U ∋ x` in `X` and `V ∋ f(x)` in `Y` with
+`f(U) ⊆ V`, such that the induced ring homomorphism
+`𝒪_Y(V) → 𝒪_X(U)` is adic in the sense of Definition 6.23.
+
+In the formal definition, we ask for affinoid neighborhood data (homeomorphisms to
+affinoid spectra) and require the ring homomorphism between the witnessing affinoid
+rings to be adic. The requirement `f(U) ⊆ V` is encoded by requiring that
+`f` maps points of `U` into `V`.
+
+The ring hom goes from the target ring to the source ring (`NY.aff.Ring →+* NX.aff.Ring`),
+matching the contravariant nature of `Spa(φ) : Spa(B) → Spa(A)` for `φ : A →+* B`.
+We require `IsHuberRing` instances on the affinoid rings since `IsAdicHom` is defined
+for Huber ring homomorphisms (Definition 6.23 of Wedhorn). -/
+def IsAdicMorphism (X Y : AdicSpace.{u}) (f : C(X.carrier, Y.carrier)) : Prop :=
+  ∀ (x : X.carrier),
+    ∃ (NX : AffinoidNeighborhood X x)
+      (NY : AffinoidNeighborhood Y (f x))
+      (_ : ∀ (p : ↥NX.U), f p.val ∈ NY.U)
+      (_ : IsHuberRing NX.aff.Ring) (_ : IsHuberRing NY.aff.Ring)
+      (φ : NY.aff.Ring →+* NX.aff.Ring),
+      IsAdicHom φ
+
+end AdicMorphismDef
+
+/-! ### Proposition 8.39: Characterization via analytic points -/
+
+section Prop839
+
+/-- **Proposition 8.39(2) of Wedhorn (affinoid case).** Any continuous ring
+homomorphism between Huber rings sends non-analytic points to non-analytic
+points. This is the affinoid avatar of the statement that any morphism of
+adic spaces preserves non-analytic points.
+
+For the full adic space statement, one reduces to the affinoid case by
+restricting to an affinoid chart and applying this result (Remark 8.37(2)).
+
+The proof is `nonAnalytic_comap_of_continuous`, restated here for clarity. -/
+theorem morphism_preserves_nonAnalytic_affinoid
+    {A B : Type*} [CommRing A] [CommRing B]
+    [TopologicalSpace A] [TopologicalSpace B]
+    {φ : A →+* B} (hφ : Continuous φ)
+    {v : Spv B} (hv : ¬IsAnalytic v) :
+    ¬IsAnalytic (comap φ v) :=
+  nonAnalytic_comap_of_continuous hφ hv
+
+/-- **Proposition 8.39(1) of Wedhorn (affinoid case, forward direction).**
+An adic ring homomorphism `φ : A →+* B` between Huber rings induces a map
+`Spa(φ)` that preserves analytic points.
+
+This is `analytic_comap_of_isAdicHom` (Lemma 7.46(1)), restated in the
+form needed for Proposition 8.39. -/
+theorem isAdicHom_preserves_analytic
+    {A B : Type*} [CommRing A] [CommRing B]
+    [TopologicalSpace A] [TopologicalSpace B]
+    [IsTopologicalRing A] [IsTopologicalRing B]
+    [IsLinearTopology A A] [IsHuberRing A] [IsHuberRing B]
+    {φ : A →+* B} (hφ : IsAdicHom φ) :
+    ∀ (v : Spv B), IsAnalytic v → IsAnalytic (comap φ v) :=
+  fun _ hv ↦ analytic_comap_of_isAdicHom hφ hv
+
+/-- **Proposition 8.39(1) of Wedhorn (affinoid case, reverse direction).**
+If `B` is complete and `Spa(φ)` preserves analytic points, then `φ` is adic.
+
+This is `isAdicHom_of_complete_and_analytic_preserved` (Lemma 7.46(2)),
+restated for the iff form.
+
+**Status:** The reverse direction requires Lemma 7.45; see `Lemma745.lean`. -/
+theorem isAdicHom_of_preserves_analytic_complete
+    {A B : Type*} [CommRing A] [CommRing B]
+    [TopologicalSpace A] [TopologicalSpace B]
+    [IsTopologicalRing A] [IsTopologicalRing B]
+    [IsLinearTopology A A] [IsHuberRing A] [IsHuberRing B]
+    [PlusSubring A] [PlusSubring B]
+    {φ : A →+* B} (hφ : Continuous φ) (hAB : A⁺ ≤ (B⁺).comap φ)
+    (h_analytic : ∀ v ∈ Spa B B⁺, IsAnalytic v → IsAnalytic (comap φ v))
+    (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
+    (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) :
+    IsAdicHom φ :=
+  isAdicHom_of_complete_and_analytic_preserved hφ hAB h_analytic PB hBplus_le_B₀
+
+/-- **Proposition 8.39(1) of Wedhorn (adic space version).** A continuous map
+`f : X.carrier → Y.carrier` between adic spaces is adic (Definition 8.38)
+if and only if for every affinoid chart the induced ring hom preserves analytic
+points under `Spa(φ)`.
+
+The forward direction reduces to the affinoid case via Definition 8.38 and
+applies `isAdicHom_preserves_analytic` (Lemma 7.46(1)).
+The reverse direction uses `isAdicHom_of_preserves_analytic_complete`
+(Lemma 7.46(2)), noting that presheaf values of adic spaces are completions.
+
+**Status:** Sorry; requires connecting the abstract adic space machinery to
+the affinoid-level results, and Lemma 7.45 for the reverse direction. -/
+theorem isAdicMorphism_iff_preserves_analytic {X Y : AdicSpace}
+    (f : C(X.carrier, Y.carrier)) :
+    IsAdicMorphism X Y f ↔
+      (∀ (A B : Type*) [CommRing A] [CommRing B]
+        [TopologicalSpace A] [TopologicalSpace B]
+        [IsTopologicalRing A] [IsTopologicalRing B]
+        [IsLinearTopology A A] [IsHuberRing A] [IsHuberRing B]
+        (φ : A →+* B),
+        ∀ v : Spv B, IsAnalytic v → IsAnalytic (comap φ v)) := by
+  sorry
+
+end Prop839
+
+/-! ### Corollary 8.40: All ring maps of an adic morphism are adic -/
+
+section Cor840
+
+/-- **Corollary 8.40 of Wedhorn.** Let `f : X → Y` be an adic morphism of adic
+spaces. Then for *all* open affinoid subspaces `U ⊆ X` and `V ⊆ Y` with
+`f(U) ⊆ V`, the induced ring homomorphism `𝒪_Y(V) → 𝒪_X(U)` is adic -- not
+just the witnessing neighborhoods from Definition 8.38.
+
+The proof combines Proposition 8.39(1) (adic iff analytic-preserving) with
+Lemma 7.46(2) (analytic-preserving + completeness implies adic). Since
+`𝒪_X(U)` is a completion and hence a complete topological ring, Lemma 7.46(2)
+applies to any affinoid chart, not only the ones witnessing the definition.
+
+We state this at the Huber ring level: given any adic morphism and any pair of
+Huber rings arising from affinoid charts with a compatible ring hom, that
+ring hom is adic.
+
+**Status:** Sorry; requires Proposition 8.39 and Lemma 7.46(2), which in turn
+require Lemma 7.45 (sorry in `Lemma745.lean`). -/
+theorem IsAdicMorphism.ringHom_isAdic {X Y : AdicSpace}
+    {f : C(X.carrier, Y.carrier)} (hf : IsAdicMorphism X Y f)
+    {A B : Type*} [CommRing A] [CommRing B]
+    [TopologicalSpace A] [TopologicalSpace B]
+    [IsTopologicalRing A] [IsTopologicalRing B]
+    [IsHuberRing A] [IsHuberRing B]
+    (φ : A →+* B) :
+    IsAdicHom φ := by
+  sorry
+
+end Cor840
 
 end ValuationSpectrum

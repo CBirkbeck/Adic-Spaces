@@ -42,7 +42,7 @@ topological space for all `n`, is `A` sheafy?
 
 Here `A⟨T₁,...,Tₙ⟩` is `restrictedMvPowerSeriesSubring n A`, the canonical concrete
 definition of the restricted power series ring. -/
-theorem problem31 (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+theorem problem31 (A : Type u) [CommRing A] [TopologicalSpace A] [NonarchimedeanRing A]
     [PlusSubring A] [HasRestrictionMaps A]
     (I : Ideal A) (hI : I.FG)
     (h : ∀ n : ℕ, NoetherianSpace

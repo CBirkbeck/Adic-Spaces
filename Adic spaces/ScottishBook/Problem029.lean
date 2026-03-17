@@ -34,16 +34,33 @@ universe u
 
 /-! ### Functorial map on restricted power series -/
 
+/-- If `f : A →+* B` is continuous and `g` is a restricted power series over `A`,
+then `MvPowerSeries.map f g` is a restricted power series over `B`. The key fact:
+a continuous ring homomorphism maps `0` to `0`, so `f ∘ (coefficients tending to 0)`
+still tends to `0`. -/
+private theorem MvPowerSeries.IsRestricted_map {k : ℕ} {A B : Type u}
+    [CommRing A] [TopologicalSpace A] [CommRing B] [TopologicalSpace B]
+    {f : A →+* B} (hf : Continuous f) {g : MvPowerSeries (Fin k) A}
+    (hg : MvPowerSeries.IsRestricted g) :
+    MvPowerSeries.IsRestricted (MvPowerSeries.map f g) := by
+  unfold MvPowerSeries.IsRestricted at *
+  simp only [MvPowerSeries.coeff_map]
+  exact (f.map_zero ▸ hf.tendsto 0).comp hg
+
 /-- The canonical ring homomorphism `A⟨T⟩ → B⟨T⟩` induced by a continuous ring
 homomorphism `f : A →+* B`. This is the functorial action of the restricted power
-series construction on morphisms.
+series construction on morphisms: it applies `f` coefficientwise.
 
 Uses `restrictedMvPowerSeriesSubring 1 A` as the canonical one-variable restricted
-power series ring. -/
+power series ring. Continuity of `f` is required to ensure that the image of a
+restricted power series (coefficients tending to `0`) is again restricted. -/
 noncomputable def restrictedPowerSeriesMap {A B : Type u} [CommRing A] [TopologicalSpace A]
-    [IsTopologicalRing A] [CommRing B] [TopologicalSpace B] [IsTopologicalRing B]
-    (f : A →+* B) :
-    restrictedMvPowerSeriesSubring 1 A →+* restrictedMvPowerSeriesSubring 1 B := sorry
+    [NonarchimedeanRing A] [CommRing B] [TopologicalSpace B] [NonarchimedeanRing B]
+    (f : A →+* B) (hf : Continuous f) :
+    restrictedMvPowerSeriesSubring 1 A →+* restrictedMvPowerSeriesSubring 1 B :=
+  (MvPowerSeries.map f).restrict
+    (restrictedMvPowerSeriesSubring 1 A) (restrictedMvPowerSeriesSubring 1 B)
+    (fun _ hg => MvPowerSeries.IsRestricted_map hf hg)
 
 /-! ### Problem 29: Counterexample -/
 
@@ -64,12 +81,13 @@ The `sorry` represents Gabber's counterexample construction. -/
 theorem problem29_counterexample :
     ∃ (A B : Type u) (_ : CommRing A) (_ : CommRing B)
       (_ : TopologicalSpace A) (_ : TopologicalSpace B)
-      (_ : @IsTopologicalRing A _ _) (_ : @IsTopologicalRing B _ _)
+      (_ : @NonarchimedeanRing A _ _) (_ : @NonarchimedeanRing B _ _)
       (_ : @IsStronglyNoetherian A _ _ _) (_ : @IsStronglyNoetherian B _ _ _)
       (f : A →+* B),
       Continuous f ∧
       f.Flat ∧
-      ¬ (@restrictedPowerSeriesMap A B _ _ _ _ _ _ f).Flat := by
+      ∀ (hf : Continuous f),
+        ¬ (@restrictedPowerSeriesMap A B _ _ _ _ _ _ f hf).Flat := by
   sorry
 
 end ScottishBook

@@ -76,15 +76,51 @@ theorem problem7 [PlusSubring A] [HasRestrictionMaps A] [IsSheafy A]
 
 /-! ### Partial results and related facts -/
 
-/-- Stably uniform implies uniform (the converse direction is trivial). -/
+/-- Stably uniform implies uniform for discrete rings.
+
+In the discrete case, this is immediate because `IsUniform.discrete` gives uniform
+for any discrete ring. The general (non-discrete) case requires identifying `A` with
+its own trivial localization and transferring boundedness through the completion map;
+see `IsStablyUniform.isUniform_general` for the statement. -/
+theorem IsStablyUniform.isUniform_discrete [PlusSubring A] [HasRestrictionMaps A]
+    [DiscreteTopology A] [TopologicalRing.IsStablyUniform A] :
+    TopologicalRing.IsUniform A :=
+  TopologicalRing.IsUniform.discrete
+
+/-- Stably uniform implies uniform (general case).
+
+Mathematically, `A` is (up to completion) its own trivial localization at `s = 1`:
+`presheafValue (globalLocData P) ≅ Â`. Since `IsStablyUniform` says this completion
+is uniform, and the canonical map `A → Â` sends power-bounded elements to power-bounded
+elements, one can pull back boundedness to `A` (when `A` is complete, `A ≅ Â`).
+
+The full formal proof requires:
+1. An `[IsHuberRing A]` assumption (to obtain a `PairOfDefinition P`)
+2. Showing the canonical map `A → presheafValue (globalLocData P)` preserves
+   and reflects power-boundedness
+3. Transferring the `IsBounded` condition through this map
+
+This infrastructure connects `Bounded.lean`, `Presheaf.lean`, and `LocalizationTopology.lean`
+in a way that is not yet formalized. -/
 theorem IsStablyUniform.isUniform [PlusSubring A] [HasRestrictionMaps A]
     [TopologicalRing.IsStablyUniform A] : TopologicalRing.IsUniform A := by
-  sorry -- needs: identify A with its own trivial localization
+  sorry -- needs: identify A with presheafValue (globalLocData P) via Remark 8.3
 
-/-- Stably uniform implies sheafy (Buzzard–Verberkmoes).
-This is the known implication; Problem 7 asks about the converse for uniform pairs. -/
+/-- Stably uniform implies sheafy (Buzzard--Verberkmoes).
+This is the known implication; Problem 7 asks about the converse for uniform pairs.
+
+The proof, due to Buzzard and Verberkmoes, shows that if all rational localizations
+are uniform (have bounded power-bounded subring), then the product restriction maps
+for rational coverings are injective (separation axiom for the presheaf).
+
+The argument proceeds by:
+1. For a uniform localization, the completion map is injective on power-bounded elements
+2. The restriction maps between uniform localizations are determined on dense subrings
+3. Injectivity of the product restriction follows from a patching argument
+
+This is a full research paper result and is beyond the scope of the current formalization. -/
 theorem IsStablyUniform.isSheafy [PlusSubring A] [HasRestrictionMaps A]
     [TopologicalRing.IsStablyUniform A] : IsSheafy A := by
-  sorry -- needs: Buzzard–Verberkmoes argument
+  sorry -- needs: Buzzard--Verberkmoes argument (research paper level)
 
 end ScottishBook
