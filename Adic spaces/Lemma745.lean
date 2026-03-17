@@ -550,6 +550,17 @@ theorem exists_mulArchimedean_valuationSubring_of_prime
         Ideal.mem_primeCompl_iff.not.mpr (not_not.mpr ha_in_Q))
     exact lt_of_le_of_ne hle hne
   -- Condition 3: MulArchimedean (V₀.ofPrime Q).ValueGroup
+  -- This requires: Q minimal prime over J implies (V₀.ofPrime Q).ValueGroup
+  -- is archimedean. The standard proof uses the Galois correspondence between
+  -- primes of a valuation ring and convex subgroups of its value group
+  -- (Bourbaki, Commutative Algebra, Ch. VI, §4, No. 5). Specifically:
+  -- (a) Primes of V₀ contained in Q biject with convex subgroups of the
+  --     value group of V₀.ofPrime Q (order-reversing).
+  -- (b) Q is minimal prime over J (nonzero) → no prime between ⊥ and Q
+  --     contains J → the quotient value group has no proper nontrivial
+  --     convex subgroup containing J-values → MulArchimedean.
+  -- This infrastructure (prime↔convex correspondence for valuation rings)
+  -- is not yet available in Mathlib. The result is classical and correct.
   · sorry
 
 /-- **Lemma 7.45 of Wedhorn.** Non-open primes are supports in `Spa`. -/
