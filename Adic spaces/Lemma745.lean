@@ -471,6 +471,22 @@ theorem exists_mulArchimedean_valuationSubring_of_prime
       (P.toFractionQuotient 𝔭).range.subtype ''
         (Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I : Set _) ⊆ V.nonunits ∧
       MulArchimedean V.ValueGroup := by
+  haveI : IsDomain (A ⧸ 𝔭) := Ideal.Quotient.isDomain 𝔭
+  -- Get V₀ from domination theorem (conditions 1-2 but not necessarily rank 1)
+  obtain ⟨V₀, hrange₀, hnonunits₀⟩ := P.exists_valuationSubring_of_prime (𝔭 := 𝔭)
+  -- We coarsen V₀ to a rank-1 (MulArchimedean) valuation subring.
+  -- The construction uses ValuationSubring.ofPrime at a minimal prime of V₀
+  -- containing the I-image elements. The key facts are:
+  -- (a) V₀.ofPrime Q ≥ V₀, preserving range containment
+  -- (b) Elements of Q are nonunits of V₀.ofPrime Q
+  --     (by idealOfLE_ofPrime: the ideal of V₀ corresponding to V₀.ofPrime Q is Q)
+  -- (c) Q minimal over the I-images gives V₀.ofPrime Q rank ≤ 1
+  --     (the quotient value group has no proper nontrivial convex subgroups)
+  --
+  -- This requires formalizing the Galois correspondence between primes of a
+  -- valuation ring and convex subgroups of its value group (not yet in Mathlib).
+  -- Alternatively, one can construct a rank-1 dominating valuation directly via
+  -- the composition A₀ → Frac(A/𝔭) with a rank-1 valuation existence theorem.
   sorry
 
 /-- **Lemma 7.45 of Wedhorn.** Non-open primes are supports in `Spa`. -/
