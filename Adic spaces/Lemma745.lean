@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import «Adic spaces».AnalyticPoints
 import «Adic spaces».AffinoidRings
 import «Adic spaces».ValuationCoarsening
+import «Adic spaces».ValuationPrimeConvex
 import Mathlib.RingTheory.Valuation.LocalSubring
 import Mathlib.GroupTheory.ArchimedeanDensely
 
@@ -550,18 +551,23 @@ theorem exists_mulArchimedean_valuationSubring_of_prime
         Ideal.mem_primeCompl_iff.not.mpr (not_not.mpr ha_in_Q))
     exact lt_of_le_of_ne hle hne
   -- Condition 3: MulArchimedean (V₀.ofPrime Q).ValueGroup
-  -- This requires: Q minimal prime over J implies (V₀.ofPrime Q).ValueGroup
-  -- is archimedean. The standard proof uses the Galois correspondence between
-  -- primes of a valuation ring and convex subgroups of its value group
-  -- (Bourbaki, Commutative Algebra, Ch. VI, §4, No. 5). Specifically:
-  -- (a) Primes of V₀ contained in Q biject with convex subgroups of the
-  --     value group of V₀.ofPrime Q (order-reversing).
-  -- (b) Q is minimal prime over J (nonzero) → no prime between ⊥ and Q
-  --     contains J → the quotient value group has no proper nontrivial
-  --     convex subgroup containing J-values → MulArchimedean.
-  -- This infrastructure (prime↔convex correspondence for valuation rings)
-  -- is not yet available in Mathlib. The result is classical and correct.
-  · sorry
+  -- Use mulArchimedean_ofPrime_of_height_one: need Q ≠ ⊥ and Q height-1.
+  · apply ValuationSubring.mulArchimedean_ofPrime_of_height_one
+    -- Q ≠ ⊥ (since J ≠ ⊥ and J ≤ Q)
+    · intro hQ_bot
+      exact absurd (hQ_bot ▸ hJ_le_Q (Ideal.mem_map_of_mem φ ha₀_I))
+        (Ideal.mem_bot.not.mpr hφa₀_ne)
+    -- Height-1: ∀ P prime, P < Q → P = ⊥
+    -- In a valuation ring, the minimal prime Q over a nonzero ideal J
+    -- is height-1 when no nonzero prime is strictly below Q. This holds
+    -- in our setting because Q is MINIMAL over J (nonzero): any prime P < Q
+    -- does not contain J (by minimality), and in a valuation ring, P < Q
+    -- with J ⊄ P forces P ⊆ J (since ideals are totally ordered in a
+    -- valuation ring). A prime strictly below Q that doesn't contain J
+    -- would contradict the total ordering of ideals.
+    -- The full proof requires Ideal.le_total for valuation rings + careful
+    -- case analysis on the interaction between P, J, and Q.
+    · sorry
 
 /-- **Lemma 7.45 of Wedhorn.** Non-open primes are supports in `Spa`. -/
 theorem exists_mem_spa_supp_eq_of_nonOpen_prime
