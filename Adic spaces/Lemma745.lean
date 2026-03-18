@@ -1024,4 +1024,43 @@ theorem exists_mem_spa_supp_eq_of_nonOpen_prime
   -- supp(v') = 𝔭
   · rw [supp_ofValuation]; exact hsupp
 
+/-! ### Section 8: Cofinal property for `WithZero` of `convexGenerated`
+
+The key missing ingredient for eliminating the cofinal sorry in
+`exists_mem_spa_supp_eq_of_nonOpen_prime` is a `WithZero` version of
+`ConvexSubgroup.exists_inv_pow_lt_of_mem_convexGenerated`. The following
+lemma lifts the cofinal property from the group to `WithZero`. -/
+
+namespace ConvexSubgroup
+
+variable {Γ : Type*} [CommGroup Γ] [LinearOrder Γ] [IsOrderedMonoid Γ]
+
+/-- **Cofinal property in `WithZero` of `convexGenerated` for the inverse generator.**
+
+For `y > 1` in `Γ`, the element `y⁻¹ < 1` is in `convexGenerated(y)`, and its
+powers are cofinal for `0` in `WithZero(convexGenerated(y).toSubgroup)`:
+for every `γ > 0`, there exists `n` with `(y⁻¹)^n < γ`.
+
+This is the `WithZero`-version of `exists_inv_pow_lt_of_mem_convexGenerated`,
+specialized to the inverse of the generator. It is the key ingredient for
+Wedhorn's retraction (7.1.2), replacing the unprovable cofinal property
+in `exists_mem_spa_supp_eq_of_nonOpen_prime`. -/
+theorem withZero_inv_pow_cofinal_of_convexGenerated
+    {y : Γ} (hy : 1 < y) :
+    ∀ (γ : WithZero (ConvexSubgroup.convexGenerated hy).toSubgroup), 0 < γ →
+      ∃ n : ℕ,
+        ((⟨y⁻¹, inv_mem (ConvexSubgroup.self_mem_convexGenerated hy)⟩ :
+          (ConvexSubgroup.convexGenerated hy).toSubgroup) : WithZero _) ^ n < γ := by
+  intro γ hγ
+  obtain ⟨⟨δ, hδ_mem⟩, rfl⟩ := WithZero.ne_zero_iff_exists.mp (ne_of_gt hγ)
+  obtain ⟨n, hn⟩ := ConvexSubgroup.exists_inv_pow_lt_of_mem_convexGenerated hy hδ_mem
+  refine ⟨n, ?_⟩
+  rw [← WithZero.coe_pow]
+  refine WithZero.coe_lt_coe.mpr (Subtype.mk_lt_mk.mpr ?_)
+  show y⁻¹ ^ n < δ
+  have : (y⁻¹) ^ n = y⁻¹ ^ n := rfl
+  exact hn
+
+end ConvexSubgroup
+
 end PairOfDefinition
