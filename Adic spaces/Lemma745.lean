@@ -558,15 +558,37 @@ theorem exists_mulArchimedean_valuationSubring_of_prime
       exact absurd (hQ_bot ▸ hJ_le_Q (Ideal.mem_map_of_mem φ ha₀_I))
         (Ideal.mem_bot.not.mpr hφa₀_ne)
     -- Height-1: ∀ P prime, P < Q → P = ⊥
-    -- In a valuation ring, the minimal prime Q over a nonzero ideal J
-    -- is height-1 when no nonzero prime is strictly below Q. This holds
-    -- in our setting because Q is MINIMAL over J (nonzero): any prime P < Q
-    -- does not contain J (by minimality), and in a valuation ring, P < Q
-    -- with J ⊄ P forces P ⊆ J (since ideals are totally ordered in a
-    -- valuation ring). A prime strictly below Q that doesn't contain J
-    -- would contradict the total ordering of ideals.
-    -- The full proof requires Ideal.le_total for valuation rings + careful
-    -- case analysis on the interaction between P, J, and Q.
+    --
+    -- **Status: sorry.** The claim "the minimal prime Q over a nonzero ideal
+    -- J in a valuation ring is height-1" is FALSE in general valuation rings.
+    -- Counterexample: a valuation ring with value group Z x Z (lex order) has
+    -- primes ⊥ < P₁ < m. Taking J = m, the minimal prime over J is m itself,
+    -- which has height 2. See `ValuationPrimeConvex.lean` lines 146-164 for
+    -- a detailed discussion.
+    --
+    -- In our setting, J = Ideal.map φ P.I where P.I is finitely generated
+    -- (the ideal of definition). In a valuation ring, finitely generated
+    -- ideals are principal, so J = (j₀) for some j₀. For any prime P < Q
+    -- with Q minimal over (j₀):
+    --   (a) j₀ ∉ P (by `not_le_of_lt_minimalPrime`)
+    --   (b) For p ∈ P: either j₀ ∣ p or p ∣ j₀ (by `dvd_or_dvd`)
+    --   (c) If p ∣ j₀ then j₀ ∈ P, contradicting (a). So j₀ ∣ p.
+    --   (d) p = j₀ · r with r ∈ P (since P prime and j₀ ∉ P)
+    --   (e) Hence P = j₀ · P, and by iteration P ⊆ (j₀ⁿ) for all n
+    --   (f) Need: ⋂ₙ (j₀ⁿ) = {0} in a valuation domain
+    --
+    -- Step (f) is the Krull intersection theorem, which holds in Noetherian
+    -- domains but NOT in general valuation rings (fails when the value group
+    -- has non-archimedean elements). The correct resolution requires either:
+    --   (i)  A rank-1 domination argument (Bourbaki, Comm. Alg., Ch. VI),
+    --        choosing a rank-1 valuation dominating V₀ from the start, or
+    --   (ii) Showing ⋂ₙ (j₀ⁿ) = 0 using I-adic completeness of A₀ transferred
+    --        through φ, or
+    --   (iii) Restructuring to use the height-1 prime of V₀ directly (requires
+    --         showing J ⊆ height-1 prime, which needs additional input).
+    --
+    -- References: Wedhorn, Adic Spaces, Lemma 7.45; Bourbaki, Comm. Alg.,
+    -- Ch. VI, §4, No. 5 (prime-convex correspondence for valuation rings).
     · sorry
 
 /-- **Lemma 7.45 of Wedhorn.** Non-open primes are supports in `Spa`. -/
