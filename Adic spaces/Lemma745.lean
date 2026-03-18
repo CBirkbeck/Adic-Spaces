@@ -567,7 +567,7 @@ noncomputable def restrictToConvex
         suffices h : f (x + y) ≤ f y from h.trans (le_max_right _ _)
         have hy : v y ≠ 0 := ne_of_gt (lt_of_lt_of_le (zero_lt_iff.mpr hxy) hv_le)
         by_cases hmy : Units.mk0 (v y) hy ∈ H
-        · simp only [f, hxy, hy, dif_neg, dif_pos hmxy, dif_pos hmy]
+        · simp only [f, hxy, hy, dif_pos hmxy, dif_pos hmy]
           exact WithZero.coe_le_coe.mpr (Subtype.mk_le_mk.mpr
             (Units.val_le_val.mp hv_le))
         · exfalso
@@ -578,7 +578,7 @@ noncomputable def restrictToConvex
         suffices h : f (x + y) ≤ f x from h.trans (le_max_left _ _)
         have hx' : v x ≠ 0 := ne_of_gt (lt_of_lt_of_le (zero_lt_iff.mpr hxy) hv_le)
         by_cases hmx : Units.mk0 (v x) hx' ∈ H
-        · simp only [f, hxy, hx', dif_neg, dif_pos hmxy, dif_pos hmx]
+        · simp only [f, hxy, hx', dif_pos hmxy, dif_pos hmx]
           exact WithZero.coe_le_coe.mpr (Subtype.mk_le_mk.mpr
             (Units.val_le_val.mp hv_le))
         · exfalso
@@ -586,6 +586,95 @@ noncomputable def restrictToConvex
             (Units.val_le_val.mp (hle x)))
     · -- f(x+y) = 0 (unit not in H), so ≤ anything
       simp only [f, dif_neg hxy, dif_neg hmxy]; exact bot_le
+
+/-! ### API for `restrictToConvex` -/
+
+section RestrictToConvexAPI
+
+open Classical
+
+-- Unfold `restrictToConvex` application to the underlying `dite` chain.
+private theorem restrictToConvex_unfold
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
+    (hle : ∀ r : R, v r ≤ 1) (r : R) :
+    v.restrictToConvex H hle r =
+      (if h : v r = 0 then (0 : WithZero H.toSubgroup)
+       else if hm : Units.mk0 (v r) h ∈ H
+            then (⟨Units.mk0 (v r) h, hm⟩ : H.toSubgroup)
+            else 0) :=
+  rfl
+
+/-- The support of `restrictToConvex` contains the support of `v`. -/
+theorem supp_le_restrictToConvex_supp
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
+    (hle : ∀ r : R, v r ≤ 1) :
+    v.supp ≤ (v.restrictToConvex H hle).supp := by
+  intro r hr
+  rw [mem_supp_iff] at hr ⊢
+  rw [restrictToConvex_unfold, dif_pos hr]
+
+/-- `restrictToConvex` is `≤ 1` on all elements. -/
+theorem restrictToConvex_le_one
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
+    (hle : ∀ r : R, v r ≤ 1) (r : R) :
+    v.restrictToConvex H hle r ≤ 1 := by
+  rw [restrictToConvex_unfold]
+  split
+  · exact bot_le
+  next h =>
+    split
+    next hm =>
+      rw [show (1 : WithZero H.toSubgroup) = ((1 : H.toSubgroup) : WithZero H.toSubgroup) from rfl]
+      exact WithZero.coe_le_coe.mpr (Subtype.mk_le_mk.mpr (Units.val_le_val.mp (hle r)))
+    · exact bot_le
+
+/-- If `v(r) ≠ 0` and `Units.mk0 (v r) ∉ H`, then `restrictToConvex` sends `r` to `0`. -/
+theorem restrictToConvex_eq_zero_of_not_mem
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
+    (hle : ∀ r : R, v r ≤ 1) {r : R} (hr : v r ≠ 0)
+    (hm : Units.mk0 (v r) hr ∉ H) :
+    v.restrictToConvex H hle r = 0 := by
+  rw [restrictToConvex_unfold, dif_neg hr, dif_neg hm]
+
+/-- If `v(r) ≠ 0` and `Units.mk0 (v r) ∈ H`, then `restrictToConvex` sends `r` to a nonzero value. -/
+theorem restrictToConvex_pos_of_mem
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
+    (hle : ∀ r : R, v r ≤ 1) {r : R} (hr : v r ≠ 0)
+    (hm : Units.mk0 (v r) hr ∈ H) :
+    0 < v.restrictToConvex H hle r := by
+  rw [restrictToConvex_unfold, dif_neg hr, dif_pos hm]
+  exact WithZero.zero_lt_coe _
+
+/-- If `v(r) ≠ 0`, `Units.mk0 (v r) ∈ H`, and `v r < 1`, then `restrictToConvex v H r < 1`. -/
+theorem restrictToConvex_lt_one_of_mem
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
+    (hle : ∀ r : R, v r ≤ 1) {r : R} (hr : v r ≠ 0)
+    (hm : Units.mk0 (v r) hr ∈ H) (hlt : v r < 1) :
+    v.restrictToConvex H hle r < 1 := by
+  rw [restrictToConvex_unfold, dif_neg hr, dif_pos hm]
+  rw [show (1 : WithZero H.toSubgroup) = ((1 : H.toSubgroup) : WithZero H.toSubgroup) from rfl]
+  exact WithZero.coe_lt_coe.mpr (Subtype.mk_lt_mk.mpr (Units.val_lt_val.mp hlt))
+
+/-- If `v(r) ≠ 0` and `Units.mk0 (v r) ∉ H`, then `restrictToConvex v H r < 1`
+(trivially, since it equals 0). -/
+theorem restrictToConvex_lt_one_of_not_mem
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
+    (hle : ∀ r : R, v r ≤ 1) {r : R} (hr : v r ≠ 0)
+    (hm : Units.mk0 (v r) hr ∉ H) :
+    v.restrictToConvex H hle r < 1 := by
+  rw [restrictToConvex_eq_zero_of_not_mem v H hle hr hm]
+  exact zero_lt_one
+
+/-- `restrictToConvex` is `< 1` at `r` whenever `v r < 1` (regardless of H-membership). -/
+theorem restrictToConvex_lt_one_of_val_lt_one
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
+    (hle : ∀ r : R, v r ≤ 1) {r : R} (hr : v r ≠ 0) (hlt : v r < 1) :
+    v.restrictToConvex H hle r < 1 := by
+  by_cases hm : Units.mk0 (v r) hr ∈ H
+  · exact restrictToConvex_lt_one_of_mem v H hle hr hm hlt
+  · exact restrictToConvex_lt_one_of_not_mem v H hle hr hm
+
+end RestrictToConvexAPI
 
 end Valuation
 
