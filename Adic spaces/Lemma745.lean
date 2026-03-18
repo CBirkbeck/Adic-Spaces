@@ -767,9 +767,28 @@ theorem exists_mem_spa_supp_eq_of_nonOpen_prime
   -- References: Wedhorn, Adic Spaces, Lemma 7.45; Bourbaki, Comm. Alg.,
   -- Ch. VI, §4, No. 5.
   -- ═══════════════════════════════════════════════════════════════════
+  -- ═══════════════════════════════════════════════════════════════════
+  -- The cofinal property for the quotient by `maxAvoid` is FALSE in general.
+  -- The correct approach (Wedhorn's retraction 7.1.2) uses RESTRICTION to
+  -- `convexGenerated(u₀⁻¹)` instead of coarsening by `maxAvoid(u₀⁻¹)`.
+  --
+  -- The restriction approach defines a new valuation v_r into
+  -- `WithZero (convexGenerated(u₀⁻¹).toSubgroup)` that:
+  -- (1) Keeps values whose unit part is in convexGenerated(u₀⁻¹)
+  -- (2) Sends other values to 0
+  -- (3) Has the cofinal property by `exists_inv_pow_lt_of_mem_convexGenerated`
+  --
+  -- The full implementation of `restrictToConvex` as a `Valuation` requires
+  -- proving multiplicativity and the ultrametric property under the `∀ r, v r ≤ 1`
+  -- hypothesis. The multiplicativity proof uses convexity: for values ≤ 1,
+  -- elements outside H are BELOW H, so products/sums stay outside H.
+  --
+  -- For now, we assert the cofinal property and mark the restriction valuation
+  -- construction as the remaining sorry.
+  -- ═══════════════════════════════════════════════════════════════════
   have hcofinal : ∀ (γ : WithZero (V₀.ValueGroupˣ ⧸ H.toSubgroup)),
       0 < γ → ∃ n : ℕ, g ^ n < γ := by
-    sorry
+    sorry -- Requires Wedhorn's restriction approach; see OrderedGroupConvex.convexGenerated
   have hcont : v'.IsContinuous :=
     Valuation.isContinuous_of_le_one_and_pow_cofinal P v' hle_one hg0 hg1 h_gen hcofinal
   -- ═══════════════════════════════════════════════════════════════════
