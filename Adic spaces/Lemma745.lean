@@ -436,6 +436,27 @@ theorem coarsenByUnits_le_one_of_le_one
   rw [← h1]
   exact coarsenMapOfValueGroup_monotone H ha
 
+/-- If `v(a) ≠ 0`, `Units.mk0 (v a) ∉ H`, and `v(a) ≤ 1`, then `(v.coarsenByUnits H)(a) < 1`.
+
+The unit part of `v(a)` is not in `H` and `≤ 1`, hence `< 1` (since `1 ∈ H`).
+The quotient projection then sends it strictly below `1`. -/
+theorem coarsenByUnits_lt_one_of_not_mem
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
+    {a : R} (ha_ne : v a ≠ 0)
+    (ha_not_mem : Units.mk0 (v a) ha_ne ∉ H) (ha_le : v a ≤ 1) :
+    v.coarsenByUnits H a < 1 := by
+  set u := Units.mk0 (v a) ha_ne with hu_def
+  -- u ≤ 1 from ha_le, and u ≠ 1 (since u ∉ H but 1 ∈ H), hence u < 1
+  have hu_ne : u ≠ 1 :=
+    fun h ↦ ha_not_mem (h ▸ H.toSubgroup.one_mem)
+  have hu_lt : u < 1 :=
+    lt_of_le_of_ne (Units.val_le_val.mp ha_le) (fun h ↦ hu_ne h)
+  -- coarsenByUnits H a = coarsenMapOfValueGroup H (↑u) = ↑(π u)
+  have hva_eq : v a = (u : Γ₀) := rfl
+  rw [coarsenByUnits_apply, hva_eq, coarsenMapOfValueGroup_apply_unit H u]
+  -- π(u) < 1 by quotientMk_lt_one_of_not_mem
+  exact WithZero.coe_lt_one.mpr (H.quotientMk_lt_one_of_not_mem hu_lt ha_not_mem)
+
 end Valuation
 
 /-! ### Section 7: Lemma 7.45 -- full proof -/
