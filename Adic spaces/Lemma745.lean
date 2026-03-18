@@ -831,205 +831,43 @@ theorem exists_mulArchimedean_valuationSubring_of_prime
     -- Ch. VI, §4, No. 5 (prime-convex correspondence for valuation rings).
     · sorry
 
-/-- **Lemma 7.45 of Wedhorn (restriction approach).**
+/-- **Lemma 7.45 of Wedhorn.**
 Non-open primes are supports in `Spa`.
 
-This proof follows Wedhorn's retraction method (7.1.2):
-1. The domination theorem gives `V₀` with `A₀/𝔭₀ ⊆ V₀` and `I ↦ nonunits`.
-2. The pulled-back valuation `v₀ : A → V₀.ValueGroup` has support `𝔭`.
-3. Choose the I-generator `a₀` with the MAX `v₀`-value among those not in `𝔭`.
-4. Form `H_gen = convexGenerated(u₀⁻¹)` (the smallest convex subgroup containing `u₀⁻¹`).
-5. Apply `restrictToConvex` to `v₀|_{A₀}` with value group `WithZero(H_gen.toSubgroup)`.
-6. The restricted valuation on `A₀` is continuous (cofinal property PROVED by
-   `withZero_inv_pow_cofinal_of_convexGenerated`).
-7. Sorry: extend from `A₀` to a Spa point on `A` with support `𝔭` (Wedhorn Lemma 7.44(3)).
+This delegates to `exists_mulArchimedean_valuationSubring_of_prime` (which produces
+a MulArchimedean valuation subring V dominating A₀/𝔭₀ with I-nonunits) and then
+`exists_mem_spa_supp_eq_of_nonOpen_prime_mulArchimedean` (which constructs the Spa point).
 
-The previous coarsening approach (quotienting by `maxAvoid(u₀⁻¹)`) had an UNFILLABLE
-cofinal sorry: the quotient by `maxAvoid` is NOT archimedean in general. The restriction
-approach eliminates this by working with `convexGenerated` where cofinality holds
-by construction. The remaining sorry is the extension from the open subring `A₀` to `A`,
-which is a well-known result (Wedhorn Lemma 7.44(3)). -/
+The only remaining sorry is the height-1 claim inside
+`exists_mulArchimedean_valuationSubring_of_prime`: that the minimal prime Q over
+Ideal.map φ I in a valuation ring is height-1.
+
+References: Wedhorn, Adic Spaces, Lemma 7.45; Bourbaki, Comm. Alg., Ch. VI, §4. -/
 theorem exists_mem_spa_supp_eq_of_nonOpen_prime
     (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
     {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
     (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
     ∃ v ∈ Spa A A⁺, v.supp = 𝔭 := by
-  classical
-  haveI : IsDomain (A ⧸ 𝔭) := Ideal.Quotient.isDomain 𝔭
   -- ═══════════════════════════════════════════════════════════════════
-  -- Step 1: Get V₀ from the domination theorem
-  -- ═══════════════════════════════════════════════════════════════════
-  obtain ⟨V₀, hrange₀, hnonunits₀⟩ := P.exists_valuationSubring_of_prime (𝔭 := 𝔭)
-  -- ═══════════════════════════════════════════════════════════════════
-  -- Step 2: The pulled-back valuation v₀ : A → V₀.ValueGroup
-  -- ═══════════════════════════════════════════════════════════════════
-  set v₀ := P.pulledBackValuation V₀ with hv₀_def
-  -- ═══════════════════════════════════════════════════════════════════
-  -- Step 3: Choose the I-generator with MAX value not in 𝔭
-  -- ═══════════════════════════════════════════════════════════════════
-  -- First get the finite generating set S of I.
-  obtain ⟨S, hS⟩ := P.fg
-  -- Partition S into those in 𝔭 and those not in 𝔭.
-  -- At least one generator is not in 𝔭 (since I ⊄ 𝔭 by non-openness).
-  set S' := S.filter (fun s ↦ (P.A₀.subtype s : A) ∉ 𝔭) with hS'_def
-  -- S' is nonempty: if all generators were in 𝔭, then I ≤ 𝔭, contradicting non-openness.
-  have hS'ne : S'.Nonempty := by
-    rw [Finset.nonempty_iff_ne_empty]; intro hempty
-    have hall : ∀ s ∈ S, (P.A₀.subtype s : A) ∈ 𝔭 := by
-      intro s hs; by_contra hns
-      have : s ∈ S' := Finset.mem_filter.mpr ⟨hs, hns⟩
-      simp [hempty] at this
-    -- All generators are in 𝔭, so I ≤ 𝔭 (via the comap characterization).
-    have hI_le : P.I ≤ Ideal.comap P.A₀.subtype 𝔭 := by
-      rw [← hS, Ideal.span_le]
-      intro x hx; exact Ideal.mem_comap.mpr (hall x (Finset.mem_coe.mp hx))
-    exact P.idealOfDefinition_not_le_of_not_isOpen h𝔭
-      (Ideal.map_le_iff_le_comap.mpr hI_le)
-  -- The MAX value among generators not in 𝔭.
-  set g₀ := S'.sup' hS'ne (fun s ↦ v₀ (P.A₀.subtype s)) with hg₀_def
-  -- g₀ ≠ 0 (pick any s ∈ S'; its value is > 0 ≤ g₀)
-  have hg₀_ne : g₀ ≠ 0 := ne_of_gt <| by
-    obtain ⟨s, hs⟩ := hS'ne
-    have hs_notp : (P.A₀.subtype s : A) ∉ 𝔭 := (Finset.mem_filter.mp hs).2
-    have hvs_ne : v₀ (P.A₀.subtype s) ≠ 0 := by
-      rwa [ne_eq, ← Valuation.mem_supp_iff, P.pulledBackValuation_supp V₀]
-    exact lt_of_lt_of_le (zero_lt_iff.mpr hvs_ne)
-      (Finset.le_sup' (fun s ↦ v₀ (P.A₀.subtype s)) hs)
-  -- g₀ < 1 (each generator not in 𝔭 has value < 1 by pulledBackValuation_lt_one)
-  have hg₀_lt : g₀ < 1 := (Finset.sup'_lt_iff hS'ne).mpr fun s hs ↦
-    P.pulledBackValuation_lt_one hnonunits₀
-      (hS ▸ Ideal.subset_span (Finset.mem_coe.mpr (Finset.mem_filter.mp hs).1))
-  -- ═══════════════════════════════════════════════════════════════════
-  -- Step 4: Build the unit u₀ and H_gen = convexGenerated(u₀⁻¹)
+  -- Delegation to the first proof path.
   --
-  -- We use `convexGenerated` (Wedhorn's retraction 7.1.2) instead of
-  -- `maxAvoid` (the coarsening approach). The key advantage: the cofinal
-  -- property holds by construction in `convexGenerated`.
-  -- ═══════════════════════════════════════════════════════════════════
-  set u₀ := Units.mk0 g₀ hg₀_ne with hu₀_def
-  -- u₀ < 1 (since g₀ < 1 and g₀ ≠ 0)
-  have hu₀_lt : u₀ < 1 := by
-    refine lt_of_le_of_ne ?_ ?_
-    · exact Units.val_le_val.mp hg₀_lt.le
-    · intro h; exact absurd (show (u₀ : V₀.ValueGroup) = 1 from by
-        rw [show (1 : V₀.ValueGroupˣ) = Units.mk0 (1 : V₀.ValueGroup) one_ne_zero from
-          Units.ext rfl] at h
-        exact congr_arg Units.val h) (ne_of_lt hg₀_lt)
-  -- u₀⁻¹ > 1
-  have hu₀_inv_gt : 1 < u₀⁻¹ := one_lt_inv_of_inv hu₀_lt
-  set H_gen := ConvexSubgroup.convexGenerated hu₀_inv_gt with hH_gen_def
-  -- ═══════════════════════════════════════════════════════════════════
-  -- Step 5: Apply restrictToConvex to v₀ on A₀
+  -- Instead of extending a restricted valuation from A₀ to A (Wedhorn 7.44(3)),
+  -- we use `exists_mulArchimedean_valuationSubring_of_prime` to obtain a
+  -- MulArchimedean valuation subring V, and then apply
+  -- `exists_mem_spa_supp_eq_of_nonOpen_prime_mulArchimedean`.
   --
-  -- v₀ restricted to A₀ has all values ≤ 1 (by pulledBackValuation_le_one).
-  -- So `restrictToConvex` applies and gives a valuation on A₀ with value
-  -- group `WithZero(H_gen.toSubgroup)`.
+  -- This reduces the sorry count: the only remaining sorry is the height-1
+  -- claim inside `exists_mulArchimedean_valuationSubring_of_prime` (line ~832).
   -- ═══════════════════════════════════════════════════════════════════
-  -- v₀ composed with A₀.subtype gives a valuation on A₀
-  set v₀_A₀ : Valuation P.A₀ V₀.ValueGroup := v₀.comap P.A₀.subtype with hv₀_A₀_def
-  have hv₀_A₀_le : ∀ r : P.A₀, v₀_A₀ r ≤ 1 :=
-    fun a ↦ P.pulledBackValuation_le_one hrange₀ a
-  set v_r := v₀_A₀.restrictToConvex H_gen hv₀_A₀_le with hv_r_def
-  -- ═══════════════════════════════════════════════════════════════════
-  -- Step 6: Properties of the restricted valuation v_r on A₀
-  -- ═══════════════════════════════════════════════════════════════════
-  -- (a) v_r ≤ 1 on all of A₀
-  have hv_r_le_one : ∀ (a : P.A₀), v_r a ≤ 1 :=
-    fun a ↦ Valuation.restrictToConvex_le_one v₀_A₀ H_gen hv₀_A₀_le a
-  -- (b) v_r < 1 on I-generators (each generator has v₀-value < 1, and < 1 values
-  --     are preserved by restrictToConvex regardless of H-membership)
-  have hv_r_lt_gen : ∀ s ∈ S, v_r s < 1 := by
-    intro s hs
-    -- v₀(s) < 1 since s ∈ I
-    have hlt : v₀_A₀ s < 1 := P.pulledBackValuation_lt_one hnonunits₀
-      (hS ▸ Ideal.subset_span (Finset.mem_coe.mpr hs))
-    by_cases hs0 : v₀_A₀ s = 0
-    · rw [show v_r s = (v₀_A₀.restrictToConvex H_gen hv₀_A₀_le) s from rfl,
-        Valuation.restrictToConvex_unfold, dif_pos hs0]
-      exact zero_lt_one
-    · exact Valuation.restrictToConvex_lt_one_of_val_lt_one v₀_A₀ H_gen hv₀_A₀_le hs0 hlt
-  -- (c) Bound on I: all I-elements have v_r-value ≤ g_r (the max over generators)
-  have hSne : S.Nonempty := hS'ne.mono (Finset.filter_subset _ _)
-  set g_r := S.sup' hSne (fun s ↦ v_r s) with hg_r_def
-  have hg_r_lt : g_r < 1 := (Finset.sup'_lt_iff hSne).mpr (fun s hs ↦ hv_r_lt_gen s hs)
-  have h_gen_r : ∀ (a : P.A₀), a ∈ P.I → v_r a ≤ g_r := by
-    intro a ha
-    -- Direct proof via span induction
-    rw [← hS] at ha
-    induction ha using Submodule.span_induction with
-    | mem x hx => exact Finset.le_sup' (fun s ↦ v_r s) (Finset.mem_coe.mp hx)
-    | zero => simp only [map_zero]; exact zero_le'
-    | add x y _ _ hx hy =>
-      calc v_r (x + y) ≤ max (v_r x) (v_r y) := v_r.map_add x y
-        _ ≤ g_r := max_le hx hy
-    | smul r x _ hx =>
-      calc v_r (r • x) = v_r r * v_r x := by simp only [smul_eq_mul, map_mul]
-        _ ≤ 1 * g_r := mul_le_mul' (hv_r_le_one r) hx
-        _ = g_r := one_mul g_r
-  -- (d) g_r ≠ 0 (some generator not in 𝔭 has nonzero restricted value)
-  have hg_r_ne : g_r ≠ 0 := ne_of_gt <| by
-    -- Use the specific generator s₀ that ACHIEVES the maximum g₀ in S'.
-    -- For s₀: v₀(s₀) = g₀, so Units.mk0(v₀(s₀)) = u₀.
-    -- Since u₀⁻¹ ∈ convexGenerated(u₀⁻¹) (by self_mem), u₀ ∈ H_gen (subgroup inverse).
-    -- Hence restrictToConvex gives a nonzero value at s₀, proving g_r > 0.
-    obtain ⟨s₀, hs₀_mem, hs₀_eq⟩ := Finset.exists_mem_eq_sup' hS'ne
-      (fun s ↦ v₀ (P.A₀.subtype s))
-    -- s₀ ∈ S' means s₀ ∈ S and s₀ ∉ 𝔭
-    have hs₀_in_S : s₀ ∈ S := (Finset.mem_filter.mp hs₀_mem).1
-    have hs₀_notp : (P.A₀.subtype s₀ : A) ∉ 𝔭 := (Finset.mem_filter.mp hs₀_mem).2
-    -- v₀(s₀) = g₀ (the element achieving the max)
-    have hval_eq : v₀ (P.A₀.subtype s₀) = g₀ := hs₀_eq.symm
-    -- v₀(s₀) ≠ 0 since s₀ ∉ 𝔭
-    have hvs₀_ne : v₀_A₀ s₀ ≠ 0 := by
-      rwa [ne_eq, show v₀_A₀ s₀ = v₀ (P.A₀.subtype s₀) from rfl,
-        ← Valuation.mem_supp_iff, P.pulledBackValuation_supp V₀]
-    -- Units.mk0(v₀(s₀)) = u₀ (since v₀(s₀) = g₀ and u₀ = Units.mk0(g₀))
-    have hu_eq : Units.mk0 (v₀_A₀ s₀) hvs₀_ne = u₀ :=
-      Units.ext (show (v₀_A₀ s₀ : V₀.ValueGroup) = g₀ from hval_eq)
-    -- u₀ ∈ H_gen: u₀⁻¹ ∈ convexGenerated(u₀⁻¹) by self_mem, so u₀ ∈ H_gen by inv_mem
-    have hu₀_mem : u₀ ∈ H_gen :=
-      inv_mem (ConvexSubgroup.self_mem_convexGenerated hu₀_inv_gt)
-    -- So Units.mk0(v₀(s₀)) ∈ H_gen
-    have huₛ₀_mem : Units.mk0 (v₀_A₀ s₀) hvs₀_ne ∈ H_gen := hu_eq ▸ hu₀_mem
-    -- restrictToConvex gives a positive value at s₀
-    have hvs₀_pos := Valuation.restrictToConvex_pos_of_mem v₀_A₀ H_gen hv₀_A₀_le hvs₀_ne huₛ₀_mem
-    -- v_r(s₀) ≤ g_r (since s₀ ∈ S and g_r is the sup over S)
-    exact lt_of_lt_of_le hvs₀_pos
-      (Finset.le_sup' (fun s ↦ v_r s) hs₀_in_S)
-  -- ═══════════════════════════════════════════════════════════════════
-  -- Step 7: Cofinal property for the restricted valuation (PROVED)
-  --
-  -- In the value group `WithZero(H_gen.toSubgroup)`, the element
-  -- `(u₀⁻¹)⁻¹ = u₀` (which corresponds to g_r) has powers cofinal
-  -- for 0, by `withZero_inv_pow_cofinal_of_convexGenerated`.
-  -- ═══════════════════════════════════════════════════════════════════
-  -- v_r is continuous on A₀ (when given the subspace topology from A)
-  -- This would follow from `isContinuous_of_le_one_and_pow_cofinal` applied to
-  -- the pair (A₀, I) and the valuation v_r, using the cofinal property.
-  -- ═══════════════════════════════════════════════════════════════════
-  -- Step 8: Extend to a Spa point on A
-  --
-  -- **Sorry: Extension from A₀ to A.**
-  -- We have established:
-  --   * v_r : Valuation A₀ (WithZero H_gen.toSubgroup) — the restricted valuation
-  --   * v_r ≤ 1 on A₀ — by restrictToConvex_le_one
-  --   * v_r < 1 on I — by hv_r_lt_gen
-  --   * The cofinal property for g_r^n in WithZero(H_gen.toSubgroup) — by
-  --     withZero_inv_pow_cofinal_of_convexGenerated (once g_r ≠ 0 is established)
-  --   * supp(v_r) ⊇ 𝔭 ∩ A₀ — by supp_le_restrictToConvex_supp
-  --
-  -- To complete the proof, we need to extend v_r to a continuous valuation
-  -- on all of A with support exactly 𝔭. This is Wedhorn's Lemma 7.44(3):
-  -- for an open subring A₀ of a topological ring A, a continuous valuation
-  -- on A₀ extends uniquely to A (by the universal property of the ring of
-  -- fractions, since every element of A is a "fraction" with denominator
-  -- in A₀ that is a unit in the localization at the complement of 𝔭).
-  --
-  -- References:
-  --   Wedhorn, Adic Spaces, Lemma 7.44(3)
-  --   Bourbaki, Commutative Algebra, Ch. VI, §3
-  -- ═══════════════════════════════════════════════════════════════════
-  sorry
+  obtain ⟨V, hrange, hnonunits, harch⟩ :=
+    P.exists_mulArchimedean_valuationSubring_of_prime h𝔭
+  haveI := harch
+  have hAplus : ∀ f ∈ (A⁺ : Set A), P.pulledBackValuation V f ≤ 1 := by
+    intro f hf
+    have hf_A₀ : f ∈ (P.A₀ : Set A) := hAplus_le_A₀ hf
+    exact P.pulledBackValuation_le_one hrange ⟨f, hf_A₀⟩
+  exact P.exists_mem_spa_supp_eq_of_nonOpen_prime_mulArchimedean
+    h𝔭 hrange hnonunits hAplus
 
 end PairOfDefinition
 
