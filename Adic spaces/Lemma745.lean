@@ -457,6 +457,136 @@ theorem coarsenByUnits_lt_one_of_not_mem
   -- π(u) < 1 by quotientMk_lt_one_of_not_mem
   exact WithZero.coe_lt_one.mpr (H.quotientMk_lt_one_of_not_mem hu_lt ha_not_mem)
 
+/-! ### Restriction of a valuation to a convex subgroup (Wedhorn's retraction 7.1.2) -/
+
+open Classical in
+/-- **Restriction of a valuation to a convex subgroup.**
+
+For `v : Valuation R Γ₀` with `∀ r, v r ≤ 1` and a convex subgroup `H` of `Γ₀ˣ`,
+the restricted valuation keeps values whose unit part is in `H` and zeros out the rest.
+
+This is Wedhorn's retraction `r(v) = v_{|cΓ_v(I)}` from (7.1.2). Unlike coarsening
+(which quotients by H), restriction KEEPS H as the value group. The cofinal property
+holds automatically when `H = convexGenerated(y)` (by `exists_inv_pow_lt_of_mem_convexGenerated`).
+
+**Requires:** `∀ r, v r ≤ 1` — without this, multiplicativity can fail. -/
+noncomputable def restrictToConvex
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
+    (hle : ∀ r : R, v r ≤ 1) :
+    Valuation R (WithZero H.toSubgroup) where
+  toFun r :=
+    if h : v r = 0 then 0
+    else if hm : Units.mk0 (v r) h ∈ H then some ⟨Units.mk0 (v r) h, hm⟩
+    else 0
+  map_zero' := by simp [map_zero]
+  map_one' := by
+    simp only [map_one]
+    have h1 : (1 : Γ₀) ≠ 0 := one_ne_zero
+    have hm : Units.mk0 (1 : Γ₀) h1 ∈ H := by
+      have : Units.mk0 (1 : Γ₀) h1 = 1 := Units.ext rfl
+      rw [this]; exact one_mem H
+    simp [h1]; rfl
+  map_mul' x y := by
+    -- Helper: if u ∉ H and u ≤ 1 and w ≤ u, then w ∉ H (by convexity with 1 ∈ H)
+    have not_mem_of_le' {u w : Γ₀ˣ} (hu : u ∉ H) (hu1 : u ≤ 1) (hw1 : w ≤ u) : w ∉ H :=
+      fun hw_mem => hu (H.convex hw_mem (one_mem H) hw1 hu1)
+    -- All unit parts are ≤ 1 (from hle)
+    have unit_le_one' : ∀ (r : R) (hr : v r ≠ 0), Units.mk0 (v r) hr ≤ 1 :=
+      fun r hr => Units.val_le_val.mp (hle r)
+    -- Case: v x = 0
+    by_cases hx : v x = 0
+    · have hxy : v (x * y) = 0 := by rw [map_mul, hx, zero_mul]
+      simp only [hxy, hx, dif_pos, zero_mul]
+    -- Case: v y = 0
+    by_cases hy : v y = 0
+    · have hxy : v (x * y) = 0 := by rw [map_mul, hy, mul_zero]
+      simp only [hxy, hy, dif_pos, mul_zero]
+    -- Both nonzero. Set up unit parts.
+    have hxy_ne : v (x * y) ≠ 0 := by rw [map_mul]; exact mul_ne_zero hx hy
+    -- Key: Units.mk0 (v (x*y)) _ = Units.mk0 (v x) _ * Units.mk0 (v y) _
+    have huxy_eq : Units.mk0 (v (x * y)) hxy_ne =
+        Units.mk0 (v x) hx * Units.mk0 (v y) hy := Units.ext (map_mul v x y)
+    -- Case analysis on membership in H
+    by_cases hmx : Units.mk0 (v x) hx ∈ H <;> by_cases hmy : Units.mk0 (v y) hy ∈ H
+    · -- Both in H: product in H
+      have hmxy : Units.mk0 (v (x * y)) hxy_ne ∈ H := huxy_eq ▸ mul_mem hmx hmy
+      simp only [hx, hy, hxy_ne, dif_neg, dif_pos hmx, dif_pos hmy, dif_pos hmxy, not_false_eq_true]
+      -- Goal: some ⟨uxy, hmxy⟩ = some ⟨ux, hmx⟩ * some ⟨uy, hmy⟩
+      -- In WithZero, (↑a : WithZero _) * ↑b = ↑(a * b)
+      rw [show (some (⟨Units.mk0 (v x) hx, hmx⟩ : H.toSubgroup) : WithZero H.toSubgroup) =
+        (↑(⟨Units.mk0 (v x) hx, hmx⟩ : H.toSubgroup) : WithZero H.toSubgroup) from rfl,
+        show (some (⟨Units.mk0 (v y) hy, hmy⟩ : H.toSubgroup) : WithZero H.toSubgroup) =
+        (↑(⟨Units.mk0 (v y) hy, hmy⟩ : H.toSubgroup) : WithZero H.toSubgroup) from rfl,
+        ← WithZero.coe_mul]
+      congr 1
+      exact Subtype.ext huxy_eq
+    · -- ux ∈ H, uy ∉ H: product ∉ H
+      have hmxy : Units.mk0 (v (x * y)) hxy_ne ∉ H := by
+        rw [huxy_eq]; intro hmem
+        exact hmy (by have := mul_mem (inv_mem hmx) hmem; rwa [inv_mul_cancel_left] at this)
+      simp only [hx, hy, hxy_ne, dif_neg, dif_pos hmx, dif_neg hmy, dif_neg hmxy, not_false_eq_true,
+        mul_zero]
+    · -- ux ∉ H, uy ∈ H: product ∉ H
+      have hmxy : Units.mk0 (v (x * y)) hxy_ne ∉ H := by
+        rw [huxy_eq]; intro hmem
+        exact hmx (by have := mul_mem hmem (inv_mem hmy); rwa [mul_inv_cancel_right] at this)
+      simp only [hx, hy, hxy_ne, dif_neg, dif_neg hmx, dif_pos hmy, dif_neg hmxy, not_false_eq_true,
+        zero_mul]
+    · -- Both ∉ H: product ∉ H (by convexity)
+      have hmxy : Units.mk0 (v (x * y)) hxy_ne ∉ H := by
+        rw [huxy_eq]
+        intro hmem
+        have hle_ux : Units.mk0 (v x) hx * Units.mk0 (v y) hy ≤ Units.mk0 (v x) hx :=
+          Units.val_le_val.mp (show (v x) * (v y) ≤ v x from by
+            calc v x * v y ≤ v x * 1 := mul_le_mul_right (hle y) (v x)
+              _ = v x := mul_one _)
+        exact not_mem_of_le' hmx (unit_le_one' x hx) hle_ux hmem
+      simp only [hx, hy, hxy_ne, dif_neg, dif_neg hmx, dif_neg hmy, dif_neg hmxy, not_false_eq_true,
+        mul_zero]
+  map_add_le_max' x y := by
+    -- We name the function for clarity.
+    set f : R → WithZero H.toSubgroup := fun r =>
+      if h : v r = 0 then 0
+      else if hm : Units.mk0 (v r) h ∈ H then some ⟨Units.mk0 (v r) h, hm⟩
+      else 0
+    show f (x + y) ≤ max (f x) (f y)
+    -- The key ultrametric from v
+    have hv_add : v (x + y) ≤ max (v x) (v y) := v.map_add x y
+    -- If f(x+y) = 0, we are done (0 ≤ anything)
+    by_cases hxy : v (x + y) = 0
+    · simp only [f, hxy, dif_pos]; exact bot_le
+    by_cases hmxy : Units.mk0 (v (x + y)) hxy ∈ H
+    · -- f(x+y) = some ⟨u_{x+y}, _⟩. Need to show this ≤ max (f x) (f y).
+      -- Since v(x+y) ≤ max(v x, v y) and v(x+y) > 0, the max is > 0.
+      -- We need: some ⟨u_{x+y}, _⟩ ≤ max(f x)(f y).
+      -- It suffices to show that the max side has its unit in H, and that unit ≥ u_{x+y}.
+      -- Use le_total to pick the dominant side.
+      rcases le_total (v x) (v y) with hvxy | hvyx
+      · -- v x ≤ v y, so max(v x, v y) = v y
+        have hv_le : v (x + y) ≤ v y := hv_add.trans (max_eq_right hvxy).le
+        suffices h : f (x + y) ≤ f y from h.trans (le_max_right _ _)
+        have hy : v y ≠ 0 := ne_of_gt (lt_of_lt_of_le (zero_lt_iff.mpr hxy) hv_le)
+        by_cases hmy : Units.mk0 (v y) hy ∈ H
+        · simp only [f, hxy, hy, dif_neg, dif_pos hmxy, dif_pos hmy]
+          exact WithZero.coe_le_coe.mpr (Subtype.mk_le_mk.mpr
+            (Units.val_le_val.mp hv_le))
+        · exfalso
+          exact hmy (H.convex hmxy (one_mem H) (Units.val_le_val.mp hv_le)
+            (Units.val_le_val.mp (hle y)))
+      · -- v y ≤ v x: symmetric case
+        have hv_le : v (x + y) ≤ v x := hv_add.trans (max_eq_left hvyx).le
+        suffices h : f (x + y) ≤ f x from h.trans (le_max_left _ _)
+        have hx' : v x ≠ 0 := ne_of_gt (lt_of_lt_of_le (zero_lt_iff.mpr hxy) hv_le)
+        by_cases hmx : Units.mk0 (v x) hx' ∈ H
+        · simp only [f, hxy, hx', dif_neg, dif_pos hmxy, dif_pos hmx]
+          exact WithZero.coe_le_coe.mpr (Subtype.mk_le_mk.mpr
+            (Units.val_le_val.mp hv_le))
+        · exfalso
+          exact hmx (H.convex hmxy (one_mem H) (Units.val_le_val.mp hv_le)
+            (Units.val_le_val.mp (hle x)))
+    · -- f(x+y) = 0 (unit not in H), so ≤ anything
+      simp only [f, dif_neg hxy, dif_neg hmxy]; exact bot_le
+
 end Valuation
 
 /-! ### Section 7: Lemma 7.45 -- full proof -/
