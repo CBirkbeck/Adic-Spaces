@@ -382,4 +382,26 @@ theorem mulArchimedean_iff_convex_trivial :
   ⟨fun _ ↦ eq_bot_or_eq_top_of_mulArchimedean,
    mulArchimedean_of_no_proper_nontrivial⟩
 
+/-! ### Preimage of convex subgroups -/
+
+/-- Preimage of a convex subgroup under a monotone group homomorphism is convex.
+
+If `f : Γ →* Δ` is monotone and `K` is a convex subgroup of `Δ`, then
+`f⁻¹(K)` is a convex subgroup of `Γ`. This is used to lift convex subgroups
+from quotient value groups back to the original value group. -/
+def comap {Δ : Type*} [CommGroup Δ] [LinearOrder Δ] [IsOrderedMonoid Δ]
+    (K : ConvexSubgroup Δ) (f : Γ →* Δ) (hf : Monotone f) :
+    ConvexSubgroup Γ where
+  toSubgroup := K.toSubgroup.comap f
+  convex' := by
+    intro a b x ha hb hax hxb
+    exact K.convex ha hb (hf hax) (hf hxb)
+
+omit [IsOrderedMonoid Γ] in
+@[simp]
+theorem mem_comap {Δ : Type*} [CommGroup Δ] [LinearOrder Δ] [IsOrderedMonoid Δ]
+    {K : ConvexSubgroup Δ} {f : Γ →* Δ} {hf : Monotone f} {x : Γ} :
+    x ∈ K.comap f hf ↔ f x ∈ K :=
+  Iff.rfl
+
 end ConvexSubgroup
