@@ -298,6 +298,26 @@ theorem le_maxAvoid_of_not_mem {γ : Γ} {hγ : γ ≠ 1} {H : ConvexSubgroup Γ
     H ≤ maxAvoid hγ :=
   fun _ hx ↦ ⟨H, h, hx⟩
 
+/-- If `γ ∉ H`, `1 < γ`, and `γ ≤ x`, then `x ∉ H`.
+
+Any element above an excluded element (above `1`) is also excluded, by
+convexity: if `x ∈ H` then `γ` would lie between `1 ∈ H` and `x ∈ H`,
+hence `γ ∈ H`. -/
+theorem not_mem_of_not_mem_of_one_lt_le (H : ConvexSubgroup Γ)
+    {γ : Γ} (hγ : γ ∉ H) (hγ1 : 1 < γ) {x : Γ} (hγx : γ ≤ x) : x ∉ H :=
+  fun hx ↦ hγ (H.convex (one_mem H) hx hγ1.le hγx)
+
+/-- Elements `≤` an excluded element below `1` are also excluded. -/
+theorem not_mem_of_not_mem_of_le_lt_one (H : ConvexSubgroup Γ)
+    {γ : Γ} (hγ : γ ∉ H) (hγ1 : γ < 1) {x : Γ} (hxγ : x ≤ γ) : x ∉ H :=
+  fun hx ↦ hγ (H.convex hx (one_mem H) hxγ hγ1.le)
+
+/-- If `γ ∉ maxAvoid hδ` and `1 < γ` and `γ ≤ x`, then `x ∉ maxAvoid hδ`. -/
+theorem not_mem_maxAvoid_of_le {δ : Γ} {hδ : δ ≠ 1} {γ : Γ}
+    (hγ : γ ∉ maxAvoid hδ) (hγ1 : 1 < γ) {x : Γ} (hγx : γ ≤ x) :
+    x ∉ maxAvoid hδ :=
+  (maxAvoid hδ).not_mem_of_not_mem_of_one_lt_le hγ hγ1 hγx
+
 /-! ### Properties of `maxAvoid` -/
 
 /-- Every nontrivial convex subgroup of `Γ ⧸ (maxAvoid hγ)` contains `[γ]`. -/

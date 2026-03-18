@@ -612,23 +612,178 @@ theorem exists_mulArchimedean_valuationSubring_of_prime
     -- Ch. VI, §4, No. 5 (prime-convex correspondence for valuation rings).
     · sorry
 
-/-- **Lemma 7.45 of Wedhorn.** Non-open primes are supports in `Spa`. -/
+/-- **Lemma 7.45 of Wedhorn (direct coarsening approach).**
+Non-open primes are supports in `Spa`.
+
+This proof follows Wedhorn's Lemma 7.45 directly:
+1. The domination theorem gives `V₀` with `A₀/𝔭₀ ⊆ V₀` and `I ↦ nonunits`.
+2. The pulled-back valuation `v₀ : A → V₀.ValueGroup` has support `𝔭`.
+3. Choose the I-generator `a₀` with the MAX `v₀`-value among those not in `𝔭`.
+4. Coarsen `v₀` by `maxAvoid(u₀⁻¹)` (where `u₀` is the unit part of `v₀(a₀)`).
+5. The coarsened valuation has support `𝔭`, is `≤ 1` on `A₀`, and `< 1` on `I`.
+6. Continuity follows from cofinal powers of the bound (sorry: MulArchimedean).
+
+This replaces the `exists_mulArchimedean_valuationSubring_of_prime` approach,
+eliminating the height-1 prime sorry in favor of a more direct MulArchimedean sorry. -/
 theorem exists_mem_spa_supp_eq_of_nonOpen_prime
     (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
     {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
     (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
     ∃ v ∈ Spa A A⁺, v.supp = 𝔭 := by
+  classical
   haveI : IsDomain (A ⧸ 𝔭) := Ideal.Quotient.isDomain 𝔭
-  -- Step 1: Get MulArchimedean V from the domination + coarsening
-  obtain ⟨V, hrange, hnonunits, harch⟩ :=
-    P.exists_mulArchimedean_valuationSubring_of_prime h𝔭
-  -- Step 2: Verify A⁺ condition using A⁺ ⊆ A₀ and pulledBackValuation_le_one
-  have hAplus : ∀ f ∈ (A⁺ : Set A), P.pulledBackValuation V f ≤ 1 := by
-    intro f hf
+  -- ═══════════════════════════════════════════════════════════════════
+  -- Step 1: Get V₀ from the domination theorem
+  -- ═══════════════════════════════════════════════════════════════════
+  obtain ⟨V₀, hrange₀, hnonunits₀⟩ := P.exists_valuationSubring_of_prime (𝔭 := 𝔭)
+  -- ═══════════════════════════════════════════════════════════════════
+  -- Step 2: The pulled-back valuation v₀ : A → V₀.ValueGroup
+  -- ═══════════════════════════════════════════════════════════════════
+  set v₀ := P.pulledBackValuation V₀ with hv₀_def
+  -- ═══════════════════════════════════════════════════════════════════
+  -- Step 3: Choose the I-generator with MAX value not in 𝔭
+  -- ═══════════════════════════════════════════════════════════════════
+  -- First get the finite generating set S of I.
+  obtain ⟨S, hS⟩ := P.fg
+  -- Partition S into those in 𝔭 and those not in 𝔭.
+  -- At least one generator is not in 𝔭 (since I ⊄ 𝔭 by non-openness).
+  set S' := S.filter (fun s ↦ (P.A₀.subtype s : A) ∉ 𝔭) with hS'_def
+  -- S' is nonempty: if all generators were in 𝔭, then I ≤ 𝔭, contradicting non-openness.
+  have hS'ne : S'.Nonempty := by
+    rw [Finset.nonempty_iff_ne_empty]; intro hempty
+    have hall : ∀ s ∈ S, (P.A₀.subtype s : A) ∈ 𝔭 := by
+      intro s hs; by_contra hns
+      have : s ∈ S' := Finset.mem_filter.mpr ⟨hs, hns⟩
+      simp [hempty] at this
+    -- All generators are in 𝔭, so I ≤ 𝔭 (via the comap characterization).
+    have hI_le : P.I ≤ Ideal.comap P.A₀.subtype 𝔭 := by
+      rw [← hS, Ideal.span_le]
+      intro x hx; exact Ideal.mem_comap.mpr (hall x (Finset.mem_coe.mp hx))
+    exact P.idealOfDefinition_not_le_of_not_isOpen h𝔭
+      (Ideal.map_le_iff_le_comap.mpr hI_le)
+  -- The MAX value among generators not in 𝔭.
+  set g₀ := S'.sup' hS'ne (fun s ↦ v₀ (P.A₀.subtype s)) with hg₀_def
+  -- g₀ ≠ 0 (pick any s ∈ S'; its value is > 0 ≤ g₀)
+  have hg₀_ne : g₀ ≠ 0 := ne_of_gt <| by
+    obtain ⟨s, hs⟩ := hS'ne
+    have hs_notp : (P.A₀.subtype s : A) ∉ 𝔭 := (Finset.mem_filter.mp hs).2
+    have hvs_ne : v₀ (P.A₀.subtype s) ≠ 0 := by
+      rwa [ne_eq, ← Valuation.mem_supp_iff, P.pulledBackValuation_supp V₀]
+    exact lt_of_lt_of_le (zero_lt_iff.mpr hvs_ne)
+      (Finset.le_sup' (fun s ↦ v₀ (P.A₀.subtype s)) hs)
+  -- g₀ < 1 (each generator not in 𝔭 has value < 1 by pulledBackValuation_lt_one)
+  have hg₀_lt : g₀ < 1 := (Finset.sup'_lt_iff hS'ne).mpr fun s hs ↦
+    P.pulledBackValuation_lt_one hnonunits₀
+      (hS ▸ Ideal.subset_span (Finset.mem_coe.mpr (Finset.mem_filter.mp hs).1))
+  -- ═══════════════════════════════════════════════════════════════════
+  -- Step 4: Build the unit u₀ and H = maxAvoid(u₀⁻¹)
+  -- ═══════════════════════════════════════════════════════════════════
+  set u₀ := Units.mk0 g₀ hg₀_ne with hu₀_def
+  -- u₀ < 1 (since g₀ < 1 and g₀ ≠ 0)
+  have hu₀_lt : u₀ < 1 := by
+    refine lt_of_le_of_ne ?_ ?_
+    · exact Units.val_le_val.mp hg₀_lt.le
+    · intro h; exact absurd (show (u₀ : V₀.ValueGroup) = 1 from by
+        rw [show (1 : V₀.ValueGroupˣ) = Units.mk0 (1 : V₀.ValueGroup) one_ne_zero from
+          Units.ext rfl] at h
+        exact congr_arg Units.val h) (ne_of_lt hg₀_lt)
+  -- u₀⁻¹ > 1, hence u₀⁻¹ ≠ 1
+  have hu₀_inv_ne : u₀⁻¹ ≠ 1 :=
+    ne_of_gt (one_lt_inv_of_inv hu₀_lt)
+  set H := ConvexSubgroup.maxAvoid hu₀_inv_ne with hH_def
+  -- ═══════════════════════════════════════════════════════════════════
+  -- Step 5: Coarsen v₀ by H
+  -- ═══════════════════════════════════════════════════════════════════
+  set v' := v₀.coarsenByUnits H with hv'_def
+  -- (a) Support: supp(v') = supp(v₀) = 𝔭
+  have hsupp : v'.supp = 𝔭 := by
+    rw [hv'_def, Valuation.coarsenByUnits_supp, P.pulledBackValuation_supp]
+  -- (b) v' ≤ 1 on A₀
+  have hle_one : ∀ (a : P.A₀), v' (P.A₀.subtype a) ≤ 1 :=
+    fun a ↦ Valuation.coarsenByUnits_le_one_of_le_one v₀ H
+      (P.pulledBackValuation_le_one hrange₀ a)
+  -- (c) v' < 1 on ALL generators of I (the key step using maxAvoid convexity)
+  have hlt_gen : ∀ s ∈ S, v' (P.A₀.subtype s) < 1 := by
+    intro s hs
+    -- Case 1: s ∈ 𝔭. Then v₀(s) = 0 (since supp(v₀) = 𝔭), so v'(s) = 0 < 1.
+    by_cases hs𝔭 : (P.A₀.subtype s : A) ∈ 𝔭
+    · have hv₀s : v₀ (P.A₀.subtype s) = 0 := by
+        rwa [← Valuation.mem_supp_iff, P.pulledBackValuation_supp V₀]
+      rw [hv'_def, Valuation.coarsenByUnits_apply, hv₀s, map_zero]
+      exact zero_lt_one
+    · -- Case 2: s ∉ 𝔭. The unit uₛ = Units.mk0(v₀(s)) satisfies uₛ ≤ u₀
+      -- (since g₀ = MAX over generators not in 𝔭), hence uₛ ∉ H by convexity.
+      have hs' : s ∈ S' := Finset.mem_filter.mpr ⟨hs, hs𝔭⟩
+      have hvs_ne : v₀ (P.A₀.subtype s) ≠ 0 := by
+        rwa [ne_eq, ← Valuation.mem_supp_iff, P.pulledBackValuation_supp V₀]
+      have hvs_le : v₀ (P.A₀.subtype s) ≤ g₀ :=
+        Finset.le_sup' (fun s ↦ v₀ (P.A₀.subtype s)) hs'
+      set uₛ := Units.mk0 (v₀ (P.A₀.subtype s)) hvs_ne
+      -- uₛ ≤ u₀ (from hvs_le)
+      have huₛ_le : uₛ ≤ u₀ := Units.val_le_val.mp hvs_le
+      -- uₛ⁻¹ ≥ u₀⁻¹ > 1. Since u₀⁻¹ ∉ H and u₀⁻¹ ≤ uₛ⁻¹: uₛ⁻¹ ∉ H.
+      have huₛ_inv_ge : u₀⁻¹ ≤ uₛ⁻¹ := inv_le_inv' huₛ_le
+      have hu₀_inv_gt : 1 < u₀⁻¹ := one_lt_inv_of_inv hu₀_lt
+      have huₛ_not_mem : uₛ ∉ H := by
+        -- uₛ ∈ H ↔ uₛ⁻¹ ∈ H (subgroup). And uₛ⁻¹ ∉ H by convexity.
+        intro hmem
+        exact ConvexSubgroup.not_mem_of_not_mem_of_one_lt_le H
+          (ConvexSubgroup.not_mem_maxAvoid hu₀_inv_ne) hu₀_inv_gt huₛ_inv_ge
+          (inv_mem hmem)
+      exact Valuation.coarsenByUnits_lt_one_of_not_mem v₀ H hvs_ne huₛ_not_mem
+        (P.pulledBackValuation_le_one hrange₀ s)
+  -- ═══════════════════════════════════════════════════════════════════
+  -- Step 6: Continuity of v'
+  -- ═══════════════════════════════════════════════════════════════════
+  -- Build the bound g = sup'(v'(sᵢ)) over generators.
+  have hSne : S.Nonempty :=
+    hS'ne.mono (Finset.filter_subset _ _)
+  set g := S.sup' hSne (fun s ↦ v' (P.A₀.subtype s)) with hg_def
+  have hg1 : g < 1 := (Finset.sup'_lt_iff hSne).mpr (fun s hs ↦ hlt_gen s hs)
+  have h_gen : ∀ (a : P.A₀), a ∈ P.I → v' (P.A₀.subtype a) ≤ g :=
+    fun a ha ↦ valuation_le_on_ideal_of_le_on_generators v' hle_one hS
+      (fun s hs ↦ Finset.le_sup' (fun s ↦ v' (P.A₀.subtype s)) hs) ha
+  -- g ≠ 0 (since v'(s) ≠ 0 for some generator s not in 𝔭, and v'(s) ≤ g)
+  have hg0 : g ≠ 0 := ne_of_gt <| by
+    obtain ⟨s, hs⟩ := hS'ne
+    have hs_notp : (P.A₀.subtype s : A) ∉ 𝔭 := (Finset.mem_filter.mp hs).2
+    have hvs_ne : v' (P.A₀.subtype s) ≠ 0 := by
+      rwa [ne_eq, ← Valuation.mem_supp_iff, hsupp]
+    exact lt_of_lt_of_le (zero_lt_iff.mpr hvs_ne)
+      (h_gen s (hS ▸ Ideal.subset_span (Finset.mem_coe.mpr (Finset.mem_filter.mp hs).1)))
+  -- ═══════════════════════════════════════════════════════════════════
+  -- Cofinal property (sorry): g^n → 0 in the coarsened value group.
+  --
+  -- **Status: sorry.** This is equivalent to `MulArchimedean` of the quotient
+  -- `V₀.ValueGroupˣ ⧸ maxAvoid(u₀⁻¹)`, which follows from the maxAvoid
+  -- construction: every nontrivial convex subgroup of the quotient contains
+  -- `[u₀⁻¹]` (by `maxAvoid_mem_of_nontrivial`). Establishing that the
+  -- generated subgroup of `[u₀⁻¹]` is the full quotient requires either:
+  -- (a) the Krull intersection property `⋂ₙ (j₀ⁿ) = {0}` in V₀, or
+  -- (b) connecting I-adic completeness to archimedean properties of the
+  --     value group quotient.
+  --
+  -- Both approaches require results not yet formalized.
+  -- References: Wedhorn, Adic Spaces, Lemma 7.45; Bourbaki, Comm. Alg.,
+  -- Ch. VI, §4, No. 5.
+  -- ═══════════════════════════════════════════════════════════════════
+  have hcofinal : ∀ (γ : WithZero (V₀.ValueGroupˣ ⧸ H.toSubgroup)),
+      0 < γ → ∃ n : ℕ, g ^ n < γ := by
+    sorry
+  have hcont : v'.IsContinuous :=
+    Valuation.isContinuous_of_le_one_and_pow_cofinal P v' hle_one hg0 hg1 h_gen hcofinal
+  -- ═══════════════════════════════════════════════════════════════════
+  -- Step 7: Construct the Spa point
+  -- ═══════════════════════════════════════════════════════════════════
+  refine ⟨ofValuation v', ⟨?_, ?_⟩, ?_⟩
+  -- v' is continuous
+  · exact isContinuous_ofValuation_of v' hcont
+  -- v' ≤ 1 on A⁺ (since A⁺ ⊆ A₀ and v' ≤ 1 on A₀)
+  · intro f hf
+    change v' f ≤ v' 1; rw [map_one]
     obtain ⟨a, rfl⟩ : ∃ a : P.A₀, P.A₀.subtype a = f := ⟨⟨f, hAplus_le_A₀ hf⟩, rfl⟩
-    exact P.pulledBackValuation_le_one hrange a
-  -- Step 3: Apply the conditional MulArchimedean theorem
-  exact P.exists_mem_spa_supp_eq_of_nonOpen_prime_mulArchimedean
-    h𝔭 hrange hnonunits hAplus
+    exact hle_one a
+  -- supp(v') = 𝔭
+  · rw [supp_ofValuation]; exact hsupp
 
 end PairOfDefinition
