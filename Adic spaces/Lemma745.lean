@@ -703,7 +703,14 @@ it is obtained by localizing at a prime, giving a quotient of the value group
 by a convex subgroup with archimedean quotient.
 
 The key algebraic input is that `image_I_ne_top` (from I-adic completeness)
-prevents all I-generators from becoming units in the coarsened ring. -/
+prevents all I-generators from becoming units in the coarsened ring.
+
+**Known issue:** The current proof strategy (dominate with arbitrary V₀, then
+coarsen via `ofPrime` at a minimal prime Q) contains a sorry: the height-1
+claim for Q is false in general valuation rings. The claim is that Q (the
+minimal prime over `Ideal.map φ I`) has height 1 in V₀. This fails when V₀
+has rank > 1. A correct proof requires constructing a rank-1 dominating
+valuation directly. See the sorry comment at the height-1 goal for details. -/
 theorem exists_mulArchimedean_valuationSubring_of_prime
     (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
     {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A)) :
@@ -799,36 +806,53 @@ theorem exists_mulArchimedean_valuationSubring_of_prime
         (Ideal.mem_bot.not.mpr hφa₀_ne)
     -- Height-1: ∀ P prime, P < Q → P = ⊥
     --
-    -- **Status: sorry.** The claim "the minimal prime Q over a nonzero ideal
-    -- J in a valuation ring is height-1" is FALSE in general valuation rings.
-    -- Counterexample: a valuation ring with value group Z x Z (lex order) has
-    -- primes ⊥ < P₁ < m. Taking J = m, the minimal prime over J is m itself,
-    -- which has height 2. See `ValuationPrimeConvex.lean` lines 146-164 for
-    -- a detailed discussion.
+    -- **Status: sorry (mathematically false as stated).**
     --
-    -- In our setting, J = Ideal.map φ P.I where P.I is finitely generated
-    -- (the ideal of definition). In a valuation ring, finitely generated
-    -- ideals are principal, so J = (j₀) for some j₀. For any prime P < Q
-    -- with Q minimal over (j₀):
-    --   (a) j₀ ∉ P (by `not_le_of_lt_minimalPrime`)
-    --   (b) For p ∈ P: either j₀ ∣ p or p ∣ j₀ (by `dvd_or_dvd`)
-    --   (c) If p ∣ j₀ then j₀ ∈ P, contradicting (a). So j₀ ∣ p.
-    --   (d) p = j₀ · r with r ∈ P (since P prime and j₀ ∉ P)
-    --   (e) Hence P = j₀ · P, and by iteration P ⊆ (j₀ⁿ) for all n
-    --   (f) Need: ⋂ₙ (j₀ⁿ) = {0} in a valuation domain
+    -- The claim "the minimal prime Q over a nonzero ideal J in a valuation
+    -- ring is height-1" is FALSE in general valuation rings.
     --
-    -- Step (f) is the Krull intersection theorem, which holds in Noetherian
-    -- domains but NOT in general valuation rings (fails when the value group
-    -- has non-archimedean elements). The correct resolution requires either:
-    --   (i)  A rank-1 domination argument (Bourbaki, Comm. Alg., Ch. VI),
-    --        choosing a rank-1 valuation dominating V₀ from the start, or
-    --   (ii) Showing ⋂ₙ (j₀ⁿ) = 0 using I-adic completeness of A₀ transferred
-    --        through φ, or
-    --   (iii) Restructuring to use the height-1 prime of V₀ directly (requires
-    --         showing J ⊆ height-1 prime, which needs additional input).
+    -- Counterexample: Z x Z x Z (lex order) valuation ring. An element j₀ with
+    -- val(j₀) = (0,0,-1) generates J = (j₀). Since val(j₀) is in EVERY convex
+    -- subgroup (including the maximal proper {0}xZxZ), the element j₀ is only
+    -- in the maximal ideal m. The minimal prime over (j₀) is m itself, which
+    -- has height 3 (bot < P₁ < P₂ < m), not height 1.
+    -- See `ValuationPrimeConvex.lean` lines 146-164 for the height-2 version.
     --
-    -- References: Wedhorn, Adic Spaces, Lemma 7.45; Bourbaki, Comm. Alg.,
-    -- Ch. VI, §4, No. 5 (prime-convex correspondence for valuation rings).
+    -- Moreover, the entire "dominate then coarsen via ofPrime" strategy is
+    -- fundamentally flawed for valuation rings of rank > 1:
+    --   * Minimal prime Q over J: may not be height-1, so
+    --     `mulArchimedean_ofPrime_of_height_one` does not apply.
+    --   * Height-1 prime Q₁: may not contain J (when I-generators have values
+    --     in the maximal proper convex subgroup), so the nonunits condition fails.
+    --   * Coarsening to rank 1 via `coarsenByUnits`: I-generators with values
+    --     in H_max become units, violating the nonunits condition.
+    --
+    -- The I-adic completeness of A₀ (`IsAdicComplete P.I P.A₀`) does not help
+    -- because the Krull intersection ⋂ₙ I^n = {0} holds in A₀ but does NOT
+    -- transfer to V₀ through φ: the divisibility φ(s)^n | φ(a) in V₀ does not
+    -- imply s^n | a in A₀ (V₀ has more elements for coefficients).
+    --
+    -- **Correct resolution:** Restructure `exists_mulArchimedean_valuationSubring_of_prime`
+    -- to produce a rank-1 valuation subring directly, rather than dominating
+    -- with an arbitrary V₀ and then coarsening. Two approaches:
+    --
+    --   (i)  **Rank-1 domination (Bourbaki, Comm. Alg., Ch. VI, §8, No. 6):**
+    --        Modify `Ideal.image_subset_nonunits_valuationSubring` to produce
+    --        a rank-1 (MulArchimedean) valuation subring via a Zorn argument
+    --        that additionally maximizes the convex subgroup structure. This
+    --        ensures the I-generators land outside the kernel convex subgroup.
+    --
+    --   (ii) **Chevalley extension (Wedhorn, Lemma 7.44(3)):** Extend the
+    --        I-adic valuation on A₀ to A using I-adic completeness. The
+    --        resulting valuation is automatically continuous (from completeness)
+    --        and rank-1 (from the I-adic filtration generating a cofinal
+    --        sequence). This is Wedhorn's original proof strategy.
+    --
+    -- Both approaches require additional Lean infrastructure not yet available
+    -- in this formalization.
+    --
+    -- References: Wedhorn, Adic Spaces, Lemma 7.45 and Lemma 7.44(3);
+    -- Bourbaki, Comm. Alg., Ch. VI, §4, No. 5 and §8, No. 6.
     · sorry
 
 /-- **Lemma 7.45 of Wedhorn.**
@@ -838,9 +862,11 @@ This delegates to `exists_mulArchimedean_valuationSubring_of_prime` (which produ
 a MulArchimedean valuation subring V dominating A₀/𝔭₀ with I-nonunits) and then
 `exists_mem_spa_supp_eq_of_nonOpen_prime_mulArchimedean` (which constructs the Spa point).
 
-The only remaining sorry is the height-1 claim inside
-`exists_mulArchimedean_valuationSubring_of_prime`: that the minimal prime Q over
-Ideal.map φ I in a valuation ring is height-1.
+**Sorry status:** The only sorry is the height-1 claim inside
+`exists_mulArchimedean_valuationSubring_of_prime`. This claim is FALSE in general
+(see the detailed comment there). Resolving it requires restructuring the proof
+to produce a rank-1 dominating valuation directly, rather than dominating with an
+arbitrary valuation ring and trying to coarsen.
 
 References: Wedhorn, Adic Spaces, Lemma 7.45; Bourbaki, Comm. Alg., Ch. VI, §4. -/
 theorem exists_mem_spa_supp_eq_of_nonOpen_prime
