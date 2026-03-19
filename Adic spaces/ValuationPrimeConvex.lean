@@ -679,4 +679,59 @@ theorem mulArchimedean_ofPrime_of_height_one (A : ValuationSubring K)
     obtain ⟨n, hn⟩ := harch_units.arch (Units.mk0 x hx) (show 1 < Units.mk0 y hy0 from hy)
     exact ⟨n, by simpa [Units.val_pow_eq_pow_val] using hn⟩
 
+/-- **Round-trip: H ≤ convexSubgroupOfPrime(primeOfConvexSubgroup H).**
+
+For `g ∈ H`, we need `mapOfLE A (A.ofPrime Q) _ (↑g) = 1` where `Q = primeOfConvexSubgroup A H`.
+Lift `g` to `x : K` via `valuation_surjective`. Then `Units.mk0(v(x)) = g ∈ H`,
+so `x` (or `x⁻¹`) is NOT in `Q` (by definition of `primeOfConvexSubgroup`), hence is in
+`Q.primeCompl`. By `ofPrime_valuation_eq_one_iff_mem_primeCompl`, the value is `1`.
+
+This is one direction of the Bourbaki correspondence (Comm. Alg., Ch. VI, §4, No. 5). -/
+theorem le_convexSubgroupOfPrime_primeOfConvexSubgroup (A : ValuationSubring K)
+    (H : ConvexSubgroup A.ValueGroupˣ) :
+    H ≤ convexSubgroupOfPrime A (primeOfConvexSubgroup A H) := by
+  intro g hg
+  -- Need: mapOfLE A (A.ofPrime Q) _ (↑g) = 1 where Q = primeOfConvexSubgroup A H
+  show mapOfLE A (A.ofPrime (primeOfConvexSubgroup A H))
+    (le_ofPrime A (primeOfConvexSubgroup A H)) (g : A.ValueGroup) = 1
+  -- Lift g to x : K
+  obtain ⟨x, hx⟩ := A.valuation_surjective (g : A.ValueGroup)
+  have hx_ne : x ≠ 0 := by
+    intro he; exact Units.ne_zero g (hx ▸ (show A.valuation x = 0 by simp [he]))
+  rw [show (g : A.ValueGroup) = A.valuation x from hx.symm, mapOfLE_valuation_apply]
+  rcases A.mem_or_inv_mem x with hxA | hxA
+  · -- Case x ∈ A: show a = ⟨x, hxA⟩ is in Q.primeCompl
+    set a : A := ⟨x, hxA⟩
+    have hva : A.valuation (a : K) ≠ 0 := by
+      rw [show (a : K) = x from rfl]; rwa [Valuation.ne_zero_iff]
+    have hunit_eq : Units.mk0 (A.valuation (a : K)) hva = g := by
+      ext; simp [show (a : K) = x from rfl, hx]
+    -- g ∈ H, so Units.mk0(v(a)) ∈ H, so a ∉ primeOfConvexSubgroup A H
+    have ha_not_mem : a ∉ primeOfConvexSubgroup A H := by
+      rw [mem_primeOfConvexSubgroup_iff]; push_neg
+      exact ⟨hva, hunit_eq ▸ hg⟩
+    -- a ∉ Q means a ∈ Q.primeCompl
+    have ha_compl : a ∈ (primeOfConvexSubgroup A H).primeCompl := ha_not_mem
+    exact (ofPrime_valuation_eq_one_iff_mem_primeCompl A
+      (primeOfConvexSubgroup A H) a).mpr ha_compl
+  · -- Case x⁻¹ ∈ A: show ⟨x⁻¹, hxA⟩ is in Q.primeCompl, then use inv
+    set a : A := ⟨x⁻¹, hxA⟩
+    have hva : A.valuation (a : K) ≠ 0 := by
+      rw [show (a : K) = x⁻¹ from rfl, Valuation.ne_zero_iff]; exact inv_ne_zero hx_ne
+    -- Units.mk0(v(x⁻¹)) = g⁻¹
+    have hunit_eq : Units.mk0 (A.valuation (a : K)) hva = g⁻¹ := by
+      ext; simp [show (a : K) = x⁻¹ from rfl, map_inv₀, hx, Units.val_inv_eq_inv_val]
+    -- g ∈ H implies g⁻¹ ∈ H
+    have hg_inv : g⁻¹ ∈ H := inv_mem hg
+    -- So Units.mk0(v(a)) ∈ H, so a ∉ primeOfConvexSubgroup A H
+    have ha_not_mem : a ∉ primeOfConvexSubgroup A H := by
+      rw [mem_primeOfConvexSubgroup_iff]; push_neg
+      exact ⟨hva, hunit_eq ▸ hg_inv⟩
+    have ha_compl : a ∈ (primeOfConvexSubgroup A H).primeCompl := ha_not_mem
+    have h1 := (ofPrime_valuation_eq_one_iff_mem_primeCompl A
+      (primeOfConvexSubgroup A H) a).mpr ha_compl
+    -- (ofPrime Q).valuation x⁻¹ = 1, so (ofPrime Q).valuation x = 1⁻¹ = 1
+    rw [show (a : K) = x⁻¹ from rfl, map_inv₀] at h1
+    exact inv_eq_one.mp h1
+
 end ValuationSubring
