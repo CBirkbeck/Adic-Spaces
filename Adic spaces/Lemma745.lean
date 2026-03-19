@@ -851,48 +851,49 @@ For `f ∈ A⁺ ⊆ A₀`, we have `v_ext(f) = v_r(f) ≤ 1` since `v_r ≤ 1` o
 -- This helper is trivial given `h_ext` and `v_r ≤ 1`, so it is handled inline
 -- in the main proof.
 
-/-! ### The rank-1 extension (Wedhorn Lemma 7.44(3) + 7.45)
+/-! ### The restrictToConvex + v_ext construction (Wedhorn Lemma 7.44(3) + 7.45)
 
-The key remaining sorry: produce a `ValuationSubring` of `Frac(A/𝔭)` with
-MulArchimedean value group that dominates the image of `A₀` and sends I-images
-to nonunits. This isolates all the hard parts (extension construction, well-
-definedness, valuation axioms) into a single well-typed helper.
+The key construction for Lemma 7.45: produce a continuous valuation on `A` with
+support `𝔭` and value `≤ 1` on `A⁺`, using the `restrictToConvex` retraction
+(Wedhorn 7.1.2) and extension from `A₀` to `A`.
 
-The proof sketch is:
-1. Start with `V₀` from the domination theorem (arbitrary rank).
+**Strategy:**
+1. Get `V₀` from the domination theorem (arbitrary rank).
 2. Choose `a₀ ∈ I \ 𝔭`, set `u₀ = Units.mk0(V₀.valuation(φ(a₀)))`.
-3. Let `H = convexGenerated(u₀⁻¹)` and `v_r = V₀.valuation.restrictToConvex H`.
+3. Let `H_gen = convexGenerated(u₀⁻¹)` and
+   `v_r = (V₀.valuation ∘ φ).restrictToConvex H_gen hle` on `A₀`.
 4. Extend `v_r` from `A₀` to `A` via `v_ext(a) = v_r(s^n * a) * v_r(s)^{-n}`.
-5. Take `V = v_ext.valuationSubring`. The value group of `v_ext` lives in
-   `WithZero(H.toSubgroup)` which is MulArchimedean by `convexGenerated`.
+5. Use `v_ext` directly as a `Valuation A (WithZero H_gen.toSubgroup)`.
+6. Prove continuity using the cofinal property of `convexGenerated` (NOT MulArchimedean).
+7. Prove `supp(v_ext) = 𝔭`, `v_ext ≤ 1` on `A⁺`.
+
+This approach avoids the unfillable `MulArchimedean` sorry of the `maxAvoid`/`coarsenByUnits`
+approach. The remaining sorrys are on the v_ext construction and its properties, which
+are fillable algebraic computations.
+
+The cofinal property comes from `withZero_inv_pow_cofinal_of_convexGenerated`:
+for `u₀⁻¹ > 1`, the powers of `u₀ < 1` (= `(u₀⁻¹)⁻¹`) are cofinal in
+`WithZero(convexGenerated(u₀⁻¹).toSubgroup)`.
 -/
 
-/-- **Rank-1 domination (Wedhorn Lemma 7.45, Steps 3-4).**
+/-- **Rank-1 extension (Wedhorn Lemma 7.45, Steps 3-7).**
 
-Given the arbitrary-rank `V₀` from the domination theorem, produce a
-MulArchimedean `V` satisfying the same range and nonunits conditions.
+Constructs a valuation `v_ext : Valuation A (WithZero H_gen.toSubgroup)` that is
+continuous, has `supp = 𝔭`, and `v_ext ≤ 1` on `A⁺`. The value group
+`WithZero(H_gen.toSubgroup)` admits cofinal powers (from `convexGenerated`),
+which yields continuity without requiring `MulArchimedean`.
 
-This encapsulates the full extension construction: retraction via
-`restrictToConvex`, extension from `A₀` to `A` using topological
-nilpotency (`exists_pow_mul_mem_A₀`), and verification of the
-valuation axioms, support, and A-plus bound.
+The proof uses `restrictToConvex` on `A₀` and extends to `A` via the
+`v_ext(a) = v_r(s^n * a) * v_r(s)^{-n}` construction (Wedhorn Lemma 7.44(3)).
 
-The proof requires ~150 lines of additional infrastructure:
-- Well-definedness of `v_ext(a) = v_r(s^n * a) * v_r(s)^{-n}`
-- Multiplicativity and ultrametric inequality for `v_ext`
-- `supp(v_ext) = 𝔭`
-- Continuity transfer (Lemma 7.44(2), now proved above)
-- Correspondence between `v_ext` and a `ValuationSubring` of `Frac(A/𝔭)` -/
-theorem exists_mulArchimedean_valuationSubring
+**Sorrys:** The v_ext construction (well-definedness, valuation axioms, support,
+extension properties) is sorry'd. These are fillable algebraic computations
+using `vExt_well_defined` and the `restrictToConvex` API. -/
+theorem exists_spa_point_via_restrictToConvex
     (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
     {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
     (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
-    ∃ V : ValuationSubring (FractionRing (A ⧸ 𝔭)),
-      (P.toFractionQuotient 𝔭).range ≤ V.toSubring ∧
-      (P.toFractionQuotient 𝔭).range.subtype ''
-        (Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I : Set _) ⊆ V.nonunits ∧
-      MulArchimedean V.ValueGroup ∧
-      (∀ f ∈ (A⁺ : Set A), P.pulledBackValuation V f ≤ 1) := by
+    ∃ v ∈ Spa A A⁺, v.supp = 𝔭 := by
   haveI : IsDomain (A ⧸ 𝔭) := Ideal.Quotient.isDomain 𝔭
   -- Step 1: Get V₀ from the domination theorem
   obtain ⟨V₀, hrange₀, hnonunits₀⟩ := P.exists_valuationSubring_of_prime (𝔭 := 𝔭)
@@ -904,28 +905,20 @@ theorem exists_mulArchimedean_valuationSubring
   -- For any a : A, there exists n with s^n * a ∈ A₀ (proved helper)
   have _h_pow_mul : ∀ a : A, ∃ n : ℕ, s ^ n * a ∈ P.A₀ :=
     P.exists_pow_mul_mem_A₀ hs_nil
-  -- Step 3: Get the maximum V₀-value among I-generators (closest to 1).
-  -- This determines the convex subgroup for coarsening.
+  -- Step 3: Get the maximum V₀-value among I-generators
   set φ := P.toFractionQuotient 𝔭
-  -- Step 3a: Get finite generators for I
   obtain ⟨S, hS⟩ := P.fg
-  -- a₀ ∈ I \ 𝔭 ensures S is nonempty and φ(a₀) ≠ 0
   have hSne : S.Nonempty := by
     rw [Finset.nonempty_iff_ne_empty]; intro hS_eq
     have hI_bot : P.I = ⊥ := by rw [← hS, hS_eq, Finset.coe_empty, Ideal.span_empty]
     have ha₀_zero : a₀ = 0 := Ideal.mem_bot.mp (hI_bot ▸ ha₀_I)
     exact ha₀_notp (by rw [show s = P.A₀.subtype a₀ from rfl, ha₀_zero, map_zero]
                        exact 𝔭.zero_mem)
-  -- Step 3b: The maximum V₀-value among generators
-  -- All generators that are in I have value ≤ 1, and those not in 𝔭 have value < 1.
-  -- We take the sup of all V₀.valuation(φ(t)) for t ∈ S.
   set g_max := S.sup' hSne (fun t ↦ V₀.valuation (φ t)) with g_max_def
-  -- g_max < 1: each generator has value < 1 (since generators ∈ I → image is nonunit of V₀)
   have hg_lt1 : g_max < 1 := by
     rw [Finset.sup'_lt_iff]
     intro t ht
     exact P.pulledBackValuation_lt_one hnonunits₀ (hS ▸ Ideal.subset_span (Finset.mem_coe.mpr ht))
-  -- g_max ≠ 0: V₀.valuation(φ(a₀)) ≠ 0 and V₀.valuation(φ(a₀)) ≤ g_max
   have ha₀_val_ne : V₀.valuation (φ a₀) ≠ 0 := by
     rw [ne_eq, Valuation.zero_iff]; intro h
     exact ha₀_notp (by
@@ -933,11 +926,8 @@ theorem exists_mulArchimedean_valuationSubring
       exact Ideal.Quotient.eq_zero_iff_mem.mp
         ((IsFractionRing.injective (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭))).eq_iff.mp
           (h.trans (map_zero _).symm)))
-  -- V₀.valuation(φ(a₀)) ≤ g_max since a₀ ∈ I = span S and g_max bounds generators
-  -- Use pulledBackValuation to view as a Valuation on A, then apply the bound.
   have hpb_eq : ∀ b : P.A₀, P.pulledBackValuation V₀ (P.A₀.subtype b) =
       V₀.valuation (φ b) := P.pulledBackValuation_eq_valuation_toFractionQuotient V₀
-  -- Helper: the pulled-back valuation on A₀ is bounded by g_max on I
   have hpb_le_gmax : ∀ a : P.A₀, a ∈ P.I →
       P.pulledBackValuation V₀ (P.A₀.subtype a) ≤ g_max :=
     fun a ha ↦ valuation_le_on_ideal_of_le_on_generators (P.pulledBackValuation V₀)
@@ -947,111 +937,101 @@ theorem exists_mulArchimedean_valuationSubring
     rw [← hpb_eq]; exact hpb_le_gmax a₀ ha₀_I
   have hg_ne0 : g_max ≠ 0 := ne_of_gt <|
     lt_of_lt_of_le (zero_lt_iff.mpr ha₀_val_ne) ha₀_val_le_gmax
-  -- Step 4: Construct H = maxAvoid(u_max) where u_max is the unit of g_max
+  -- Step 4: Construct H_gen = convexGenerated(u_max⁻¹) where u_max = Units.mk0(g_max)
+  -- Note: u_max < 1, so u_max⁻¹ > 1, and convexGenerated(u_max⁻¹) is the smallest
+  -- convex subgroup containing u_max⁻¹. The restricted valuation v_r keeps only values
+  -- whose unit part lies in H_gen, zeroing out everything else.
   set u_max := Units.mk0 g_max hg_ne0
   have hu_max_lt1 : (u_max : V₀.ValueGroup) < 1 := hg_lt1
-  have hu_max_ne1 : u_max ≠ 1 := fun h ↦ ne_of_lt hg_lt1
-    (show g_max = 1 from congr_arg Units.val h)
-  set H := ConvexSubgroup.maxAvoid hu_max_ne1 with H_def
-  -- Step 5: Coarsen V₀.valuation by H
-  set v_c := V₀.valuation.coarsenByUnits H with v_c_def
-  -- Step 6: V = valuationSubring of v_c
-  set V := v_c.valuationSubring with V_def
-  -- Key helper: v_c(x) ≤ 1 when V₀.valuation(x) ≤ 1
-  have hvc_le_one : ∀ x, V₀.valuation x ≤ 1 → v_c x ≤ 1 := fun x hx ↦
-    Valuation.coarsenByUnits_le_one_of_le_one _ _ hx
-  -- Key helper: v_c(x) < 1 for I-generators (their unit parts are ≤ u_max, hence ∉ H)
-  have hvc_lt_one_gen : ∀ t ∈ S, v_c (φ t) < 1 := by
-    intro t ht
-    have hval_le : V₀.valuation (φ t) ≤ g_max :=
-      Finset.le_sup' (f := fun t ↦ V₀.valuation (φ t)) ht
-    have hval_lt1 : V₀.valuation (φ t) < 1 :=
-      lt_of_le_of_lt hval_le hg_lt1
-    -- If V₀.valuation(φ(t)) = 0: v_c(φ(t)) = 0 < 1
-    by_cases hne : V₀.valuation (φ t) = 0
-    · rw [Valuation.coarsenByUnits_apply, hne, map_zero]; exact zero_lt_one
-    -- Otherwise, unit part u_t ≤ u_max < 1
-    · have hu_t_le : Units.mk0 (V₀.valuation (φ t)) hne ≤ u_max :=
-        Units.val_le_val.mp hval_le
-      -- u_max ∉ H (by not_mem_maxAvoid)
-      have hu_max_not_H : u_max ∉ H := ConvexSubgroup.not_mem_maxAvoid hu_max_ne1
-      -- u_t ≤ u_max < 1 and u_max ∉ H → u_t ∉ H (by not_mem_of_not_mem_of_le_lt_one)
-      have hu_t_not_H : Units.mk0 (V₀.valuation (φ t)) hne ∉ H :=
-        H.not_mem_of_not_mem_of_le_lt_one hu_max_not_H hu_max_lt1 hu_t_le
-      exact Valuation.coarsenByUnits_lt_one_of_not_mem _ _ hne hu_t_not_H
-        (le_of_lt hval_lt1)
-  refine ⟨V, ?_, ?_, ?_, ?_⟩
-  · -- Condition 1: range(φ) ≤ V
-    -- φ(a) ∈ V iff v_c(φ(a)) ≤ 1, which follows from V₀.valuation(φ(a)) ≤ 1.
-    intro x hx
-    obtain ⟨a, rfl⟩ := hx
-    change v_c (φ a) ≤ 1
-    exact hvc_le_one _ ((ValuationSubring.valuation_le_one_iff V₀ _).mpr (hrange₀ ⟨a, rfl⟩))
-  · -- Condition 2: I-images ⊆ V.nonunits
-    intro x hx
-    obtain ⟨y, hy_mem, rfl⟩ := hx
-    -- We need φ.range.subtype y ∈ V.nonunits.
-    -- By mem_nonunits_iff: V.valuation(x) < 1, which is iff v_c(x) < 1 (by equivalence).
-    -- Use: x ∈ V.nonunits ↔ V.valuation x < 1 ↔ ¬(1 ≤ V.valuation x)
-    -- and ¬(1 ≤ V.valuation x) ↔ ¬(v_c 1 ≤ v_c x) (by IsEquiv) ↔ ¬(1 ≤ v_c x) ↔ v_c x < 1
-    suffices h : v_c (φ.range.subtype y) < 1 by
-      -- v_c(x) < 1 means x ∉ V (as valuationSubring checks v ≤ 1 for inv)
-      -- More precisely: v_c < 1 ↔ V.valuation < 1 ↔ nonunit of V
-      -- Use: isEquiv_iff_val_le_one gives (V.val x ≤ 1 ↔ v_c x ≤ 1).
-      -- So V.val x < 1 ↔ (V.val x ≤ 1 ∧ ¬(V.val x⁻¹ ≤ 1)) ↔ ... complicated.
-      -- Simpler: x ∈ V.nonunits ↔ x = 0 ∨ x⁻¹ ∉ V
-      show φ.range.subtype y ∈ V.nonunits
-      rw [ValuationSubring.mem_nonunits_iff_or]
-      -- v_c(x) < 1 → v_c(x⁻¹) > 1 (when x ≠ 0) → x⁻¹ ∉ V
-      by_cases hne : φ.range.subtype y = 0
-      · exact Or.inl hne
-      · right; intro hmem
-        rw [Valuation.mem_valuationSubring_iff] at hmem
-        -- v_c(x⁻¹) ≤ 1, but v_c(x) < 1 and v_c(x) * v_c(x⁻¹) = 1 (since x ≠ 0)
-        -- gives 1 = v_c(x) * v_c(x⁻¹) < 1 * 1 = 1, contradiction
-        have h1 : v_c (φ.range.subtype y) * v_c (φ.range.subtype y)⁻¹ = 1 := by
-          rw [← map_mul, mul_inv_cancel₀ hne, map_one]
-        -- v_c(x) < 1 and v_c(x⁻¹) ≤ 1 but v_c(x) * v_c(x⁻¹) = 1: contradiction
-        -- since 1 = v_c(x) * v_c(x⁻¹) ≤ v_c(x) * 1 = v_c(x) < 1
-        have : 1 ≤ v_c (φ.range.subtype y) :=
-          h1 ▸ mul_le_of_le_one_right zero_le' hmem
-        exact absurd h (not_lt.mpr this)
-    obtain ⟨a, ha_I, ha_eq⟩ := (Ideal.mem_map_iff_of_surjective _
-      φ.rangeRestrict_surjective).mp hy_mem
-    have : (φ.range.subtype y : FractionRing (A ⧸ 𝔭)) = φ a := by
-      simp only [Subring.coe_subtype]; rw [← ha_eq]; rfl
-    rw [this]
-    -- a ∈ I, so V₀.valuation(φ(a)) ≤ g_max (the bound on I via generators)
-    have hval_le_gen : V₀.valuation (φ a) ≤ g_max := by
-      rw [← hpb_eq]; exact hpb_le_gmax a ha_I
-    -- v_c preserves ≤ (monotone), and v_c(g_max) ≤ 1
-    -- Actually, we need v_c(φ(a)) < 1, not just ≤ 1.
-    -- Since V₀.valuation(φ(a)) ≤ g_max: the unit part is ≤ u_max (when nonzero).
-    -- Then same argument as for generators applies.
-    by_cases hne : V₀.valuation (φ a) = 0
-    · rw [Valuation.coarsenByUnits_apply, hne, map_zero]; exact zero_lt_one
-    · have hval_lt1 : V₀.valuation (φ a) < 1 :=
-        lt_of_le_of_lt hval_le_gen hg_lt1
-      have hu_a_le : Units.mk0 (V₀.valuation (φ a)) hne ≤ u_max :=
-        Units.val_le_val.mp hval_le_gen
-      have hu_a_not_H : Units.mk0 (V₀.valuation (φ a)) hne ∉ H :=
-        H.not_mem_of_not_mem_of_le_lt_one
-          (ConvexSubgroup.not_mem_maxAvoid hu_max_ne1) hu_max_lt1 hu_a_le
-      exact Valuation.coarsenByUnits_lt_one_of_not_mem _ _ hne hu_a_not_H
-        (le_of_lt hval_lt1)
-  · -- Condition 3: MulArchimedean V.ValueGroup
-    -- V.ValueGroup is isomorphic to a quotient of WithZero(V₀.ValueGroupˣ / H).
-    -- This requires showing the quotient V₀.ValueGroupˣ / maxAvoid(u_max)
-    -- is MulArchimedean. This is a nontrivial algebraic fact.
-    sorry
-  · -- Condition 4: A-plus bound
-    intro f hf
-    change V.valuation _ ≤ 1
-    rw [ValuationSubring.valuation_le_one_iff]
-    show v_c _ ≤ 1
-    exact hvc_le_one _
-      ((ValuationSubring.valuation_le_one_iff V₀ _).mpr
-        (hrange₀ ⟨⟨f, hAplus_le_A₀ hf⟩, rfl⟩))
+  have hu_max_inv_gt1 : (1 : V₀.ValueGroupˣ) < u_max⁻¹ :=
+    one_lt_inv_of_inv hu_max_lt1
+  set H_gen := ConvexSubgroup.convexGenerated hu_max_inv_gt1 with H_gen_def
+  -- Key property: u_max ∈ H_gen (its inverse is the generator)
+  have hu_max_mem : u_max ∈ H_gen := by
+    rw [show u_max = (u_max⁻¹)⁻¹ from (inv_inv u_max).symm]
+    exact inv_mem (ConvexSubgroup.self_mem_convexGenerated hu_max_inv_gt1)
+  -- Step 5: Build v_r = restrictToConvex on A₀
+  -- v₀_A₀ : Valuation P.A₀ V₀.ValueGroup = V₀.valuation ∘ φ
+  -- This is ≤ 1 on all of A₀ (since range(φ) ⊆ V₀).
+  set v₀_A₀ := V₀.valuation.comap φ with v₀_A₀_def
+  have hle_A₀ : ∀ r : P.A₀, v₀_A₀ r ≤ 1 := fun r ↦ by
+    simp only [v₀_A₀, Valuation.comap_apply]
+    exact (ValuationSubring.valuation_le_one_iff V₀ _).mpr (hrange₀ ⟨r, rfl⟩)
+  set v_r := v₀_A₀.restrictToConvex H_gen hle_A₀ with v_r_def
+  -- Step 6: v_r is < 1 on I (since V₀.valuation is < 1 on I-images, and the unit
+  -- parts are ≤ u_max ∈ H_gen, hence in H_gen)
+  have hv_r_lt_one_I : ∀ a : P.A₀, a ∈ P.I → v_r a < 1 := by
+    intro a ha
+    have hval_lt : v₀_A₀ a < 1 := by
+      simp only [v₀_A₀, Valuation.comap_apply]
+      exact P.pulledBackValuation_lt_one hnonunits₀ ha
+    -- If v₀_A₀ a = 0, then a ∈ supp(v₀_A₀) ⊆ supp(v_r), so v_r a = 0 < 1
+    by_cases hval_ne : v₀_A₀ a = 0
+    · have ha_supp : a ∈ v₀_A₀.supp := (Valuation.mem_supp_iff v₀_A₀ a).mpr hval_ne
+      have ha_supp_r : a ∈ v_r.supp :=
+        Valuation.supp_le_restrictToConvex_supp v₀_A₀ H_gen hle_A₀ ha_supp
+      rw [(Valuation.mem_supp_iff v_r a).mp ha_supp_r]; exact zero_lt_one
+    · exact Valuation.restrictToConvex_lt_one_of_val_lt_one v₀_A₀ H_gen hle_A₀ hval_ne hval_lt
+  -- Step 7: v_r has the cofinal property (from convexGenerated)
+  -- The bound g_r = v_r(a₀) satisfies: g_r < 1 and g_r ≠ 0, and
+  -- g_r^n → 0 in WithZero(H_gen.toSubgroup) by withZero_inv_pow_cofinal_of_convexGenerated.
+  -- Step 8: Extend v_r from A₀ to A via v_ext(a) = v_r(s^n * a) * v_r(s)^{-n}
+  -- This requires:
+  -- (a) Well-definedness (independence of n): follows from vExt_well_defined
+  -- (b) Multiplicativity: v_ext(a*b) = v_ext(a) * v_ext(b)
+  -- (c) Ultrametric: v_ext(a+b) ≤ max(v_ext(a), v_ext(b))
+  -- (d) v_ext(0) = 0, v_ext(1) = 1
+  -- (e) supp(v_ext) = 𝔭
+  -- (f) v_ext ≤ 1 on A₀ (agrees with v_r)
+  -- (g) v_ext ≤ 1 on A⁺ ⊆ A₀
+  -- These are fillable algebraic computations.
+  --
+  -- For now, we sorry the existence of v_ext with the required properties.
+  -- This sorry is FILLABLE: the construction is well-defined by vExt_well_defined,
+  -- and the valuation axioms follow from algebraic identities.
+  -- (The previous sorry for MulArchimedean of maxAvoid quotient was UNFILLABLE.)
+  suffices h_ext : ∃ (v_ext : Valuation A (WithZero H_gen.toSubgroup)),
+      v_ext.supp = 𝔭 ∧
+      (∀ a : P.A₀, v_ext (P.A₀.subtype a) = v_r a) ∧
+      v_ext.IsContinuous ∧
+      (∀ f ∈ (A⁺ : Set A), v_ext f ≤ 1) by
+    obtain ⟨v_ext, hsupp, _, hcont, hAplus⟩ := h_ext
+    refine ⟨ofValuation v_ext, ⟨isContinuous_ofValuation_of _ hcont, ?_⟩, ?_⟩
+    · intro f hf; change v_ext f ≤ v_ext 1; rw [map_one]; exact hAplus f hf
+    · rw [supp_ofValuation]; exact hsupp
+  -- Construction of v_ext with all required properties.
+  -- The v_ext(a) = v_r(s^n * a) * v_r(s)^{-n} construction is sorry'd here.
+  -- Key ingredients available:
+  -- * exists_pow_mul_mem_A₀: for each a, get n with s^n * a ∈ A₀
+  -- * vExt_well_defined: independence of choice of n
+  -- * restrictToConvex API: v_r properties
+  -- * isContinuous_of_restriction_isContinuous: continuity transfer
+  -- * withZero_inv_pow_cofinal_of_convexGenerated: cofinal property for continuity
+  sorry
+
+/-! ### Legacy: coarsenByUnits approach (DEPRECATED)
+
+The `exists_mulArchimedean_valuationSubring` theorem below uses the `maxAvoid`/`coarsenByUnits`
+approach, which requires proving `MulArchimedean` for the quotient
+`V₀.ValueGroupˣ ⧸ maxAvoid(u_max)`. This sorry is UNFILLABLE for rank >= 2 groups because
+`maxAvoid` is the LARGEST convex subgroup avoiding `u_max`, and its quotient can have
+proper nontrivial convex subgroups.
+
+The `exists_spa_point_via_restrictToConvex` theorem above replaces this with the
+`restrictToConvex`/`convexGenerated` approach, where all remaining sorrys are on
+the v_ext construction (fillable algebraic computations). -/
+
+theorem exists_mulArchimedean_valuationSubring
+    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
+    {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
+    ∃ V : ValuationSubring (FractionRing (A ⧸ 𝔭)),
+      (P.toFractionQuotient 𝔭).range ≤ V.toSubring ∧
+      (P.toFractionQuotient 𝔭).range.subtype ''
+        (Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I : Set _) ⊆ V.nonunits ∧
+      MulArchimedean V.ValueGroup ∧
+      (∀ f ∈ (A⁺ : Set A), P.pulledBackValuation V f ≤ 1) := by
+  sorry
 
 /-! ### Full proof assembly -/
 
@@ -1060,22 +1040,17 @@ theorem exists_mulArchimedean_valuationSubring
 Given a complete affinoid ring `(A, A⁺)` with pair of definition `(A₀, I)` and
 a non-open prime `𝔭` of `A`, there exists `v ∈ Spa(A, A⁺)` with `supp(v) = 𝔭`.
 
-The proof uses `exists_mulArchimedean_valuationSubring` to produce a rank-1
-valuation subring, then applies `exists_mem_spa_supp_eq_of_nonOpen_prime_mulArchimedean`.
+The proof uses `restrictToConvex` with `convexGenerated` to produce a continuous
+valuation with the correct support. The cofinal property of `convexGenerated`
+gives continuity directly, avoiding the `MulArchimedean` intermediate.
 
 References: Wedhorn, Adic Spaces, Lemma 7.45. -/
 theorem exists_mem_spa_supp_eq_of_nonOpen_prime
     (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
     {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
     (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
-    ∃ v ∈ Spa A A⁺, v.supp = 𝔭 := by
-  haveI : IsDomain (A ⧸ 𝔭) := Ideal.Quotient.isDomain 𝔭
-  -- Get the rank-1 valuation subring from the extension construction
-  obtain ⟨V, hrange, hnonunits, harch, hAplus⟩ :=
-    P.exists_mulArchimedean_valuationSubring h𝔭 hAplus_le_A₀
-  -- Apply the conditional MulArchimedean version (already proved)
-  exact P.exists_mem_spa_supp_eq_of_nonOpen_prime_mulArchimedean
-    h𝔭 hrange hnonunits hAplus
+    ∃ v ∈ Spa A A⁺, v.supp = 𝔭 :=
+  P.exists_spa_point_via_restrictToConvex h𝔭 hAplus_le_A₀
 
 end PairOfDefinition
 
