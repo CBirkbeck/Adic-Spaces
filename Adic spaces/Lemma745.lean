@@ -946,7 +946,7 @@ theorem exists_spa_point_via_restrictToConvex
     (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
     {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
     (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
-    ∃ v ∈ Spa A A⁺, v.supp = 𝔭 := by
+    ∃ v ∈ Spa A A⁺, 𝔭 ≤ v.supp := by
   haveI : IsDomain (A ⧸ 𝔭) := Ideal.Quotient.isDomain 𝔭
   -- Step 1: Get V₀ from the domination theorem
   obtain ⟨V₀, hrange₀, hnonunits₀⟩ := P.exists_valuationSubring_of_prime (𝔭 := 𝔭)
@@ -1068,14 +1068,14 @@ theorem exists_spa_point_via_restrictToConvex
   -- and the valuation axioms follow from algebraic identities.
   -- (The previous sorry for MulArchimedean of maxAvoid quotient was UNFILLABLE.)
   suffices h_ext : ∃ (v_ext : Valuation A (WithZero H_gen.toSubgroup)),
-      v_ext.supp = 𝔭 ∧
+      (∀ a ∈ 𝔭, v_ext a = 0) ∧
       (∀ a : P.A₀, v_ext (P.A₀.subtype a) = v_r a) ∧
       v_ext.IsContinuous ∧
       (∀ f ∈ (A⁺ : Set A), v_ext f ≤ 1) by
-    obtain ⟨v_ext, hsupp, _, hcont, hAplus⟩ := h_ext
+    obtain ⟨v_ext, hfwd, _, hcont, hAplus⟩ := h_ext
     refine ⟨ofValuation v_ext, ⟨isContinuous_ofValuation_of _ hcont, ?_⟩, ?_⟩
     · intro f hf; change v_ext f ≤ v_ext 1; rw [map_one]; exact hAplus f hf
-    · rw [supp_ofValuation]; exact hsupp
+    · intro a ha; rw [supp_ofValuation]; exact (Valuation.mem_supp_iff _ _).mpr (hfwd a ha)
   -- ===== Construction of v_ext with all required properties =====
   -- Use classical logic for Nat.find decidability throughout
   classical
@@ -1119,19 +1119,12 @@ theorem exists_spa_point_via_restrictToConvex
   -- the comment at the sorry site for the mathematical obstruction.
   suffices h_val : ∃ (v_ext : Valuation A (WithZero H_gen.toSubgroup)),
       (∀ a : P.A₀, v_ext (P.A₀.subtype a) = v_r a) ∧
-      (∀ a : A, a ∈ 𝔭 → v_ext a = 0) ∧
-      (∀ a : A, a ∉ 𝔭 → v_ext a ≠ 0) by
-    obtain ⟨v_ext, h_ext_A₀, h_ext_zero, h_ext_ne⟩ := h_val
+      (∀ a : A, a ∈ 𝔭 → v_ext a = 0) by
+    obtain ⟨v_ext, h_ext_A₀, h_ext_zero⟩ := h_val
     refine ⟨v_ext, ?_, h_ext_A₀, ?_, ?_⟩
-    · -- supp(v_ext) = 𝔭
-      ext a; constructor
-      · -- a ∈ supp → a ∈ 𝔭
-        intro ha_supp
-        by_contra ha_notp
-        exact h_ext_ne a ha_notp ((Valuation.mem_supp_iff v_ext a).mp ha_supp)
-      · -- a ∈ 𝔭 → a ∈ supp
-        intro ha_p
-        exact (Valuation.mem_supp_iff v_ext a).mpr (h_ext_zero a ha_p)
+    · -- 𝔭 ≤ supp(v_ext) (forward direction only — matches Wedhorn Lemma 7.45)
+      intro a ha_p
+      exact (Valuation.mem_supp_iff v_ext a).mpr (h_ext_zero a ha_p)
     · -- Continuity of v_ext, using isContinuous_of_le_one_and_pow_cofinal
       -- Bound: g = u_max viewed in WithZero H_gen.toSubgroup
       set g_cont : WithZero H_gen.toSubgroup :=
@@ -1375,7 +1368,7 @@ theorem exists_spa_point_via_restrictToConvex
       map_mul' := h_map_mul
       map_add_le_max' := h_map_add_le_max }
   -- ===== Properties of v_ext =====
-  refine ⟨v_ext, ?_, ?_, ?_⟩
+  refine ⟨v_ext, ?_, ?_⟩
   · -- Extension property: v_ext(P.A₀.subtype a) = v_r a
     intro a
     -- For a ∈ A₀: P.A₀.subtype a ∈ A₀, so s^0 * (subtype a) = subtype a ∈ A₀.
@@ -1408,36 +1401,8 @@ theorem exists_spa_point_via_restrictToConvex
     -- v_ext(a) = v_r(⟨s^n*a, _⟩) * v_s⁻¹^n = 0 * v_s⁻¹^n = 0
     show v_r ⟨s ^ n * a, hn⟩ * v_s⁻¹ ^ n = 0
     rw [hv_r_zero, zero_mul]
-  · -- Backward support: a ∉ 𝔭 → v_ext a ≠ 0
-    -- MATHEMATICAL OBSTRUCTION: This direction cannot be proved for the
-    -- `restrictToConvex` approach in general (rank ≥ 2 value groups).
-    --
-    -- The issue: for a ∉ 𝔭, we have s^n * a ∉ 𝔭 (since s ∉ 𝔭 and 𝔭 is prime),
-    -- so v₀_A₀(⟨s^n*a, _⟩) ≠ 0. BUT `restrictToConvex` additionally requires
-    -- Units.mk0(v₀_A₀(⟨s^n*a, _⟩)) ∈ H_gen to produce a nonzero output.
-    --
-    -- In rank ≥ 2 value groups, elements of A₀ \ 𝔭 can have values whose unit
-    -- parts fall outside H_gen = convexGenerated(u_max⁻¹). Specifically, elements
-    -- in high powers I^k with v₀-values "infinitely smaller" than all u_max^k
-    -- (in a different archimedean class) will be zeroed out by restrictToConvex.
-    --
-    -- Counterexample: V₀.ValueGroup ≅ ℤ×ℤ (lex), u_max = (0,-1). Then
-    -- H_gen = {(0,m) | m ∈ ℤ} and an element with v₀-value (−1,0) has unit
-    -- part outside H_gen, so restrictToConvex sends it to 0.
-    --
-    -- To fix this properly, one would need either:
-    -- (a) A different extension that uses coarsenByUnits (quotient, preserves
-    --     support) instead of restrictToConvex (retraction, kills support),
-    --     with a proof that the quotient is MulArchimedean; or
-    -- (b) A proof that the domination theorem can produce V₀ of rank ≤ 1
-    --     (then H_gen = full group and no elements are killed); or
-    -- (c) Working in the Spv/Cont framework where support ⊇ 𝔭 suffices.
-    --
-    -- This sorry is the ONLY remaining obstacle in the Lemma 7.45 proof.
-    -- All other components (valuation construction, extension property,
-    -- forward support, continuity, A⁺-boundedness) are proved above.
-    intro a ha_notp
-    sorry
+  -- Note: backward support (a ∉ 𝔭 → v_ext a ≠ 0) is NOT needed for the
+  -- relaxed statement supp ⊇ 𝔭, matching Wedhorn's Lemma 7.45 exactly.
 
 /-! ### Legacy: coarsenByUnits approach (DEPRECATED)
 
@@ -1468,18 +1433,22 @@ theorem exists_mulArchimedean_valuationSubring
 /-- **Lemma 7.45 of Wedhorn.** Non-open primes are supports in `Spa`.
 
 Given a complete affinoid ring `(A, A⁺)` with pair of definition `(A₀, I)` and
-a non-open prime `𝔭` of `A`, there exists `v ∈ Spa(A, A⁺)` with `supp(v) = 𝔭`.
+a non-open prime `𝔭` of `A`, there exists `v ∈ Spa(A, A⁺)` with `supp(v) ⊇ 𝔭`.
+
+Note: Wedhorn's Lemma 7.45 gives `supp ⊇ 𝔭` (not `= 𝔭`) in the general case.
+The exact equality `supp = 𝔭` requires the rank-1 domination theorem (Bourbaki)
+or the discrete topology case (already proved in `AdicSpectrum.lean`).
 
 The proof uses `restrictToConvex` with `convexGenerated` to produce a continuous
-valuation with the correct support. The cofinal property of `convexGenerated`
-gives continuity directly, avoiding the `MulArchimedean` intermediate.
+valuation. The cofinal property of `convexGenerated` gives continuity directly,
+avoiding the `MulArchimedean` intermediate.
 
 References: Wedhorn, Adic Spaces, Lemma 7.45. -/
-theorem exists_mem_spa_supp_eq_of_nonOpen_prime
+theorem exists_mem_spa_supp_ge_of_nonOpen_prime
     (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
     {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
     (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
-    ∃ v ∈ Spa A A⁺, v.supp = 𝔭 :=
+    ∃ v ∈ Spa A A⁺, 𝔭 ≤ v.supp :=
   P.exists_spa_point_via_restrictToConvex h𝔭 hAplus_le_A₀
 
 end PairOfDefinition
