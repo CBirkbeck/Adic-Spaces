@@ -904,15 +904,154 @@ theorem exists_mulArchimedean_valuationSubring
   -- For any a : A, there exists n with s^n * a ∈ A₀ (proved helper)
   have _h_pow_mul : ∀ a : A, ∃ n : ℕ, s ^ n * a ∈ P.A₀ :=
     P.exists_pow_mul_mem_A₀ hs_nil
-  -- The full rank-1 extension construction requires:
-  -- (a) restrictToConvex of V₀.valuation by convexGenerated(u₀⁻¹) → v_r on A₀
-  -- (b) Extension v_ext(a) = v_r(s^n * a) * v_r(s)^{-n} on A
-  -- (c) v_ext is a well-defined valuation (uses vExt_well_defined, proved above)
-  -- (d) V = corresponding ValuationSubring of Frac(A/𝔭)
-  -- (e) MulArchimedean of V.ValueGroup (from convexGenerated)
-  -- (f) Range and nonunits conditions on V
-  -- (g) A-plus bound (from A⁺ ⊆ A₀ and v_r ≤ 1)
-  sorry
+  -- Step 3: Get the maximum V₀-value among I-generators (closest to 1).
+  -- This determines the convex subgroup for coarsening.
+  set φ := P.toFractionQuotient 𝔭
+  -- Step 3a: Get finite generators for I
+  obtain ⟨S, hS⟩ := P.fg
+  -- a₀ ∈ I \ 𝔭 ensures S is nonempty and φ(a₀) ≠ 0
+  have hSne : S.Nonempty := by
+    rw [Finset.nonempty_iff_ne_empty]; intro hS_eq
+    have hI_bot : P.I = ⊥ := by rw [← hS, hS_eq, Finset.coe_empty, Ideal.span_empty]
+    have ha₀_zero : a₀ = 0 := Ideal.mem_bot.mp (hI_bot ▸ ha₀_I)
+    exact ha₀_notp (by rw [show s = P.A₀.subtype a₀ from rfl, ha₀_zero, map_zero]
+                       exact 𝔭.zero_mem)
+  -- Step 3b: The maximum V₀-value among generators
+  -- All generators that are in I have value ≤ 1, and those not in 𝔭 have value < 1.
+  -- We take the sup of all V₀.valuation(φ(t)) for t ∈ S.
+  set g_max := S.sup' hSne (fun t ↦ V₀.valuation (φ t)) with g_max_def
+  -- g_max < 1: each generator has value < 1 (since generators ∈ I → image is nonunit of V₀)
+  have hg_lt1 : g_max < 1 := by
+    rw [Finset.sup'_lt_iff]
+    intro t ht
+    exact P.pulledBackValuation_lt_one hnonunits₀ (hS ▸ Ideal.subset_span (Finset.mem_coe.mpr ht))
+  -- g_max ≠ 0: V₀.valuation(φ(a₀)) ≠ 0 and V₀.valuation(φ(a₀)) ≤ g_max
+  have ha₀_val_ne : V₀.valuation (φ a₀) ≠ 0 := by
+    rw [ne_eq, Valuation.zero_iff]; intro h
+    exact ha₀_notp (by
+      simp only [φ, toFractionQuotient, RingHom.comp_apply, Subring.coe_subtype] at h
+      exact Ideal.Quotient.eq_zero_iff_mem.mp
+        ((IsFractionRing.injective (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭))).eq_iff.mp
+          (h.trans (map_zero _).symm)))
+  -- V₀.valuation(φ(a₀)) ≤ g_max since a₀ ∈ I = span S and g_max bounds generators
+  -- Use pulledBackValuation to view as a Valuation on A, then apply the bound.
+  have hpb_eq : ∀ b : P.A₀, P.pulledBackValuation V₀ (P.A₀.subtype b) =
+      V₀.valuation (φ b) := P.pulledBackValuation_eq_valuation_toFractionQuotient V₀
+  -- Helper: the pulled-back valuation on A₀ is bounded by g_max on I
+  have hpb_le_gmax : ∀ a : P.A₀, a ∈ P.I →
+      P.pulledBackValuation V₀ (P.A₀.subtype a) ≤ g_max :=
+    fun a ha ↦ valuation_le_on_ideal_of_le_on_generators (P.pulledBackValuation V₀)
+      (P.pulledBackValuation_le_one hrange₀)
+      hS (fun t ht ↦ hpb_eq t ▸ Finset.le_sup' (f := fun t ↦ V₀.valuation (φ t)) ht) ha
+  have ha₀_val_le_gmax : V₀.valuation (φ a₀) ≤ g_max := by
+    rw [← hpb_eq]; exact hpb_le_gmax a₀ ha₀_I
+  have hg_ne0 : g_max ≠ 0 := ne_of_gt <|
+    lt_of_lt_of_le (zero_lt_iff.mpr ha₀_val_ne) ha₀_val_le_gmax
+  -- Step 4: Construct H = maxAvoid(u_max) where u_max is the unit of g_max
+  set u_max := Units.mk0 g_max hg_ne0
+  have hu_max_lt1 : (u_max : V₀.ValueGroup) < 1 := hg_lt1
+  have hu_max_ne1 : u_max ≠ 1 := fun h ↦ ne_of_lt hg_lt1
+    (show g_max = 1 from congr_arg Units.val h)
+  set H := ConvexSubgroup.maxAvoid hu_max_ne1 with H_def
+  -- Step 5: Coarsen V₀.valuation by H
+  set v_c := V₀.valuation.coarsenByUnits H with v_c_def
+  -- Step 6: V = valuationSubring of v_c
+  set V := v_c.valuationSubring with V_def
+  -- Key helper: v_c(x) ≤ 1 when V₀.valuation(x) ≤ 1
+  have hvc_le_one : ∀ x, V₀.valuation x ≤ 1 → v_c x ≤ 1 := fun x hx ↦
+    Valuation.coarsenByUnits_le_one_of_le_one _ _ hx
+  -- Key helper: v_c(x) < 1 for I-generators (their unit parts are ≤ u_max, hence ∉ H)
+  have hvc_lt_one_gen : ∀ t ∈ S, v_c (φ t) < 1 := by
+    intro t ht
+    have hval_le : V₀.valuation (φ t) ≤ g_max :=
+      Finset.le_sup' (f := fun t ↦ V₀.valuation (φ t)) ht
+    have hval_lt1 : V₀.valuation (φ t) < 1 :=
+      lt_of_le_of_lt hval_le hg_lt1
+    -- If V₀.valuation(φ(t)) = 0: v_c(φ(t)) = 0 < 1
+    by_cases hne : V₀.valuation (φ t) = 0
+    · rw [Valuation.coarsenByUnits_apply, hne, map_zero]; exact zero_lt_one
+    -- Otherwise, unit part u_t ≤ u_max < 1
+    · have hu_t_le : Units.mk0 (V₀.valuation (φ t)) hne ≤ u_max :=
+        Units.val_le_val.mp hval_le
+      -- u_max ∉ H (by not_mem_maxAvoid)
+      have hu_max_not_H : u_max ∉ H := ConvexSubgroup.not_mem_maxAvoid hu_max_ne1
+      -- u_t ≤ u_max < 1 and u_max ∉ H → u_t ∉ H (by not_mem_of_not_mem_of_le_lt_one)
+      have hu_t_not_H : Units.mk0 (V₀.valuation (φ t)) hne ∉ H :=
+        H.not_mem_of_not_mem_of_le_lt_one hu_max_not_H hu_max_lt1 hu_t_le
+      exact Valuation.coarsenByUnits_lt_one_of_not_mem _ _ hne hu_t_not_H
+        (le_of_lt hval_lt1)
+  refine ⟨V, ?_, ?_, ?_, ?_⟩
+  · -- Condition 1: range(φ) ≤ V
+    -- φ(a) ∈ V iff v_c(φ(a)) ≤ 1, which follows from V₀.valuation(φ(a)) ≤ 1.
+    intro x hx
+    obtain ⟨a, rfl⟩ := hx
+    change v_c (φ a) ≤ 1
+    exact hvc_le_one _ ((ValuationSubring.valuation_le_one_iff V₀ _).mpr (hrange₀ ⟨a, rfl⟩))
+  · -- Condition 2: I-images ⊆ V.nonunits
+    intro x hx
+    obtain ⟨y, hy_mem, rfl⟩ := hx
+    -- We need φ.range.subtype y ∈ V.nonunits.
+    -- By mem_nonunits_iff: V.valuation(x) < 1, which is iff v_c(x) < 1 (by equivalence).
+    -- Use: x ∈ V.nonunits ↔ V.valuation x < 1 ↔ ¬(1 ≤ V.valuation x)
+    -- and ¬(1 ≤ V.valuation x) ↔ ¬(v_c 1 ≤ v_c x) (by IsEquiv) ↔ ¬(1 ≤ v_c x) ↔ v_c x < 1
+    suffices h : v_c (φ.range.subtype y) < 1 by
+      -- v_c(x) < 1 means x ∉ V (as valuationSubring checks v ≤ 1 for inv)
+      -- More precisely: v_c < 1 ↔ V.valuation < 1 ↔ nonunit of V
+      -- Use: isEquiv_iff_val_le_one gives (V.val x ≤ 1 ↔ v_c x ≤ 1).
+      -- So V.val x < 1 ↔ (V.val x ≤ 1 ∧ ¬(V.val x⁻¹ ≤ 1)) ↔ ... complicated.
+      -- Simpler: x ∈ V.nonunits ↔ x = 0 ∨ x⁻¹ ∉ V
+      show φ.range.subtype y ∈ V.nonunits
+      rw [ValuationSubring.mem_nonunits_iff_or]
+      -- v_c(x) < 1 → v_c(x⁻¹) > 1 (when x ≠ 0) → x⁻¹ ∉ V
+      by_cases hne : φ.range.subtype y = 0
+      · exact Or.inl hne
+      · right; intro hmem
+        rw [Valuation.mem_valuationSubring_iff] at hmem
+        -- v_c(x⁻¹) ≤ 1, but v_c(x) < 1 and v_c(x) * v_c(x⁻¹) = 1 (since x ≠ 0)
+        -- gives 1 = v_c(x) * v_c(x⁻¹) < 1 * 1 = 1, contradiction
+        have h1 : v_c (φ.range.subtype y) * v_c (φ.range.subtype y)⁻¹ = 1 := by
+          rw [← map_mul, mul_inv_cancel₀ hne, map_one]
+        -- v_c(x) < 1 and v_c(x⁻¹) ≤ 1 but v_c(x) * v_c(x⁻¹) = 1: contradiction
+        -- since 1 = v_c(x) * v_c(x⁻¹) ≤ v_c(x) * 1 = v_c(x) < 1
+        have : 1 ≤ v_c (φ.range.subtype y) :=
+          h1 ▸ mul_le_of_le_one_right zero_le' hmem
+        exact absurd h (not_lt.mpr this)
+    obtain ⟨a, ha_I, ha_eq⟩ := (Ideal.mem_map_iff_of_surjective _
+      φ.rangeRestrict_surjective).mp hy_mem
+    have : (φ.range.subtype y : FractionRing (A ⧸ 𝔭)) = φ a := by
+      simp only [Subring.coe_subtype]; rw [← ha_eq]; rfl
+    rw [this]
+    -- a ∈ I, so V₀.valuation(φ(a)) ≤ g_max (the bound on I via generators)
+    have hval_le_gen : V₀.valuation (φ a) ≤ g_max := by
+      rw [← hpb_eq]; exact hpb_le_gmax a ha_I
+    -- v_c preserves ≤ (monotone), and v_c(g_max) ≤ 1
+    -- Actually, we need v_c(φ(a)) < 1, not just ≤ 1.
+    -- Since V₀.valuation(φ(a)) ≤ g_max: the unit part is ≤ u_max (when nonzero).
+    -- Then same argument as for generators applies.
+    by_cases hne : V₀.valuation (φ a) = 0
+    · rw [Valuation.coarsenByUnits_apply, hne, map_zero]; exact zero_lt_one
+    · have hval_lt1 : V₀.valuation (φ a) < 1 :=
+        lt_of_le_of_lt hval_le_gen hg_lt1
+      have hu_a_le : Units.mk0 (V₀.valuation (φ a)) hne ≤ u_max :=
+        Units.val_le_val.mp hval_le_gen
+      have hu_a_not_H : Units.mk0 (V₀.valuation (φ a)) hne ∉ H :=
+        H.not_mem_of_not_mem_of_le_lt_one
+          (ConvexSubgroup.not_mem_maxAvoid hu_max_ne1) hu_max_lt1 hu_a_le
+      exact Valuation.coarsenByUnits_lt_one_of_not_mem _ _ hne hu_a_not_H
+        (le_of_lt hval_lt1)
+  · -- Condition 3: MulArchimedean V.ValueGroup
+    -- V.ValueGroup is isomorphic to a quotient of WithZero(V₀.ValueGroupˣ / H).
+    -- This requires showing the quotient V₀.ValueGroupˣ / maxAvoid(u_max)
+    -- is MulArchimedean. This is a nontrivial algebraic fact.
+    sorry
+  · -- Condition 4: A-plus bound
+    intro f hf
+    change V.valuation _ ≤ 1
+    rw [ValuationSubring.valuation_le_one_iff]
+    show v_c _ ≤ 1
+    exact hvc_le_one _
+      ((ValuationSubring.valuation_le_one_iff V₀ _).mpr
+        (hrange₀ ⟨⟨f, hAplus_le_A₀ hf⟩, rfl⟩))
 
 /-! ### Full proof assembly -/
 
