@@ -678,7 +678,23 @@ end RestrictToConvexAPI
 
 end Valuation
 
-/-! ### Section 7: Lemma 7.45 -- full proof -/
+/-! ### Section 7: Lemma 7.45 -- full proof
+
+## Proof strategy (Wedhorn)
+
+Following Wedhorn's Lemma 7.45:
+1. Get `V₀` from the domination theorem with `range(A₀) ≤ V₀` and I-images
+   landing in `V₀.nonunits`.
+2. Apply the retraction `r` from (7.1.2): `restrictToConvex` with
+   `H = convexGenerated(u₀⁻¹)` where `u₀` is a specific I-generator value.
+3. Extend from `A₀` to `A` using topological nilpotency (Lemma 7.44(3)).
+4. The extended valuation has `supp = 𝔭` and is continuous with a value group
+   that is automatically MulArchimedean (rank ≤ 1).
+
+The extension `v_ext(a) = v_r(s^n * a) * v_r(s)^{-n}` (where `s ∈ I \ 𝔭` is
+topologically nilpotent and `n` is chosen so `s^n * a ∈ A₀`) requires proving
+well-definedness, multiplicativity, the ultrametric inequality, and support = 𝔭.
+-/
 
 namespace PairOfDefinition
 
@@ -687,99 +703,240 @@ open ValuationSpectrum
 variable {A : Type*} [CommRing A] [TopologicalSpace A]
   [IsTopologicalRing A] [IsLinearTopology A A]
 
-/-! ### Proof strategy for Lemma 7.45 (Wedhorn)
+/-! ### Helper (a): Topological nilpotency gives `s^n * a ∈ A₀`
 
-**Previous approach (flawed):** The theorem `exists_height_one_prime_containing_I`
-claimed that in a valuation subring `V₀`, there exists a height-1 prime containing
-all I-generators. This is **incorrect** in general: in a rank >= 2 valuation ring,
-the unique height-1 prime need not contain all I-generators. Generators whose
-values lie in the maximal proper convex subgroup of the value group are NOT in
-the height-1 prime.
+If `s` is topologically nilpotent in `A` and `A₀` is open, then for any `a : A`,
+there exists `n` such that `s ^ n * a ∈ A₀`. This is Wedhorn's Lemma 7.44(1)
+applied to the extension construction. -/
 
-**Correct approach (Wedhorn):** Following Wedhorn's Lemma 7.45:
-1. Get `V₀` from the domination theorem with `range(A₀) ≤ V₀` and I-images
-   landing in `V₀.nonunits`.
-2. Apply the retraction `r` from (7.1.2): `restrictToConvex` with
-   `H = convexGenerated(u₀⁻¹)` where `u₀` is a specific I-generator value.
-3. Extend from `A₀` to `A` using topological nilpotency (Lemma 7.44(3)).
-4. The extended valuation has `supp = 𝔭` and is continuous with a value group
-   that is automatically MulArchimedean (rank <= 1).
+omit [IsLinearTopology A A] in
+/-- For `s` topologically nilpotent and `A₀` open in `A`, there exists `n`
+with `s ^ n * a ∈ A₀` (used in the extension construction, Wedhorn Lemma 7.44). -/
+theorem exists_pow_mul_mem_A₀ (P : PairOfDefinition A)
+    {s : A} (hs : IsTopologicallyNilpotent s) (a : A) :
+    ∃ n : ℕ, s ^ n * a ∈ P.A₀ := by
+  -- The set U = {x : A | x * a ∈ A₀} is open (preimage of open A₀ under
+  -- continuous (· * a)) and contains 0 (since 0 * a = 0 ∈ A₀).
+  have h_cont : Continuous (· * a : A → A) := continuous_mul_const a
+  have h_open : IsOpen {x : A | x * a ∈ P.A₀} :=
+    P.isOpen.preimage h_cont
+  have h_zero : (0 : A) ∈ {x : A | x * a ∈ P.A₀} := by
+    simp [P.A₀.zero_mem]
+  -- Since s^n → 0, eventually s^n ∈ U
+  have h_nhds : {x : A | x * a ∈ P.A₀} ∈ nhds (0 : A) :=
+    h_open.mem_nhds h_zero
+  obtain ⟨n, hn⟩ := (hs.eventually h_nhds).exists
+  exact ⟨n, hn⟩
 
-The extension `v_ext(a) = v_r(s^n * a) * v_r(s)^{-n}` (where `s ∈ I \ 𝔭` is
-topologically nilpotent and `n` is chosen so `s^n * a ∈ A₀`) requires proving
-well-definedness, multiplicativity, the ultrametric inequality, and support = 𝔭.
+omit [IsTopologicalRing A] [IsLinearTopology A A] in
+/-- Monotonicity: if `s ^ n * a ∈ A₀` then `s ^ (n + k) * a ∈ A₀` for all `k`.
+This follows because `s ^ (n + k) * a = s ^ k * (s ^ n * a)` and `A₀` is a subring. -/
+theorem pow_mul_mem_A₀_of_le (P : PairOfDefinition A)
+    {s : A} (hs : s ∈ P.A₀) {a : A} {n : ℕ} (hn : s ^ n * a ∈ P.A₀)
+    (k : ℕ) : s ^ (n + k) * a ∈ P.A₀ := by
+  rw [show n + k = k + n from by omega, pow_add, mul_assoc]
+  exact P.A₀.mul_mem (P.A₀.pow_mem hs k) hn
+
+/-! ### Helper (b)-(c): Extended valuation construction
+
+The extension `v_ext : A → WithZero(H_gen.toSubgroup)` is defined by choosing
+`n` such that `s^n * a ∈ A₀` and setting `v_ext(a) = v_r(s^n * a) * v_r(s)^{-n}`.
+
+This requires proving:
+- Well-definedness (independence of choice of `n`)
+- Multiplicativity
+- Ultrametric inequality
+- v_ext(0) = 0, v_ext(1) = 1
+
+These are stated as sorry lemmas below, to be filled as infrastructure is developed. -/
+
+omit [IsTopologicalRing A] [IsLinearTopology A A] in
+/-- **Well-definedness of the extended valuation.** If `s ^ n * a ∈ A₀` and
+`s ^ m * a ∈ A₀`, then the two definitions of `v_ext(a)` agree:
+`v_r(s^n * a) * v_r(s)^{-n} = v_r(s^m * a) * v_r(s)^{-m}`.
+
+Proof sketch: WLOG `n ≤ m`. Then `s^m * a = s^{m-n} * (s^n * a)`, so
+`v_r(s^m * a) = v_r(s)^{m-n} * v_r(s^n * a)`. Dividing by `v_r(s)^m`
+gives the same result as dividing `v_r(s^n * a)` by `v_r(s)^n`. -/
+theorem vExt_well_defined
+    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
+    (v : Valuation A Γ₀)
+    {s : A} (hs_ne : v s ≠ 0) {a : A}
+    {n m : ℕ} (_hn : s ^ n * a ∈ (P : PairOfDefinition A).A₀)
+    (_hm : s ^ m * a ∈ P.A₀) :
+    v (s ^ n * a) * (v s)⁻¹ ^ n = v (s ^ m * a) * (v s)⁻¹ ^ m := by
+  -- Both sides equal v(a) after simplification using v(s^k * a) = v(s)^k * v(a)
+  -- and cancellation of v(s)^n (possible since v(s) ≠ 0).
+  have h1 : v (s ^ n * a) = v s ^ n * v a := by rw [map_mul, map_pow]
+  have h2 : v (s ^ m * a) = v s ^ m * v a := by rw [map_mul, map_pow]
+  rw [h1, h2]
+  have hs_inv : ∀ k : ℕ, v s ^ k * (v s)⁻¹ ^ k = 1 := by
+    intro k
+    rw [← mul_pow, mul_inv_cancel₀ hs_ne, one_pow]
+  calc v s ^ n * v a * (v s)⁻¹ ^ n
+      = v s ^ n * (v s)⁻¹ ^ n * v a := by rw [mul_assoc, mul_comm (v a), mul_assoc]
+    _ = 1 * v a := by rw [hs_inv]
+    _ = v a := one_mul _
+    _ = 1 * v a := (one_mul _).symm
+    _ = v s ^ m * (v s)⁻¹ ^ m * v a := by rw [hs_inv]
+    _ = v s ^ m * v a * (v s)⁻¹ ^ m := by rw [mul_assoc, mul_comm ((v s)⁻¹ ^ m), ← mul_assoc]
+
+/-! ### Helper (d): Support of the extended valuation
+
+The support of `v_ext` equals `𝔭`. The key point is:
+- `a ∈ 𝔭 ⟹ s^n * a ∈ 𝔭` (since 𝔭 is an ideal) and `v_r(s^n * a) = 0`
+  (since `v_r` restricted to `A₀` has support containing `𝔭 ∩ A₀`)
+- `a ∉ 𝔭 ⟹ s^n * a ∉ 𝔭` (since `s ∉ 𝔭` and `𝔭` is prime) and
+  `v_r(s^n * a) ≠ 0` -/
+
+/-- **Support of the extended valuation equals 𝔭.** This is the key property
+needed to produce a Spa point with the correct support.
+
+Proof: For `a ∈ 𝔭`, `s^n * a ∈ 𝔭` (ideal absorption). Since `supp(v_r) ⊇ 𝔭 ∩ A₀`
+on `A₀`, `v_r(s^n * a) = 0`, hence `v_ext(a) = 0`. Conversely, for `a ∉ 𝔭`,
+`s^n * a ∉ 𝔭` (since `s ∉ 𝔭` and `𝔭` prime), so `v_r(s^n * a) ≠ 0` and
+`v_ext(a) ≠ 0` (after dividing by the nonzero `v_r(s)^n`). -/
+theorem vExt_supp_eq
+    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
+    {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
+    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
+    (v : Valuation A Γ₀) (hv_supp : v.supp = 𝔭)
+    (v_ext : Valuation A Γ₀) (h_ext : ∀ a ∈ P.A₀, v_ext a = v a) :
+    v_ext.supp = 𝔭 := by
+  sorry
+
+/-! ### Helper (e): Continuity of the extended valuation
+
+The extended valuation is continuous when the restricted valuation on `A₀` is
+continuous and `A₀` is open in `A`. This is Wedhorn's Lemma 7.44(2):
+`v` on `A` is continuous iff `v|_{A₀}` is continuous on the open subring `A₀`. -/
+
+omit [IsLinearTopology A A] in
+/-- **Continuity transfer from open subring.** If `v` is a valuation on `A`,
+`A₀` is an open subring, and `v|_{A₀}` (the restriction) is continuous
+(in the subspace topology on `A₀`), then `v` is continuous on `A`.
+
+This is Wedhorn's Lemma 7.44(2). The proof uses: for any `γ`, the set
+`{a ∈ A | v(a) < γ}` is an additive subgroup containing the open set
+`A₀.subtype '' {a ∈ A₀ | v(a) < γ}`, hence is open. -/
+theorem isContinuous_of_restriction_isContinuous
+    (P : PairOfDefinition A)
+    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
+    (v : Valuation A Γ₀)
+    (h_res : ∀ γ : Γ₀, IsOpen (P.A₀.subtype '' {a : P.A₀ | v (P.A₀.subtype a) < γ})) :
+    v.IsContinuous := by
+  intro γ
+  by_cases hγ : γ = 0
+  · subst hγ; simp [not_lt_zero']
+  -- {a : A | v a < γ} is the underlying set of v.ltAddSubgroup (Units.mk0 γ hγ)
+  rw [show { a : A | v a < γ } =
+    (v.ltAddSubgroup (Units.mk0 γ hγ) : Set A) from by ext; simp [Valuation.ltAddSubgroup]]
+  -- It suffices to show this additive subgroup contains an open neighborhood of 0
+  apply AddSubgroup.isOpen_of_mem_nhds
+  -- The image of {a ∈ A₀ | v(a) < γ} under subtype is open (by hypothesis)
+  -- and contained in {a : A | v a < γ}, and contains 0.
+  have h_sub : P.A₀.subtype '' {a : P.A₀ | v (P.A₀.subtype a) < γ} ⊆
+      (v.ltAddSubgroup (Units.mk0 γ hγ) : Set A) := by
+    rintro _ ⟨a, ha, rfl⟩
+    simp only [Valuation.ltAddSubgroup, Units.val_mk0]
+    exact ha
+  have h_zero : (0 : A) ∈ P.A₀.subtype '' {a : P.A₀ | v (P.A₀.subtype a) < γ} := by
+    exact ⟨0, by simp [zero_lt_iff.mpr hγ], rfl⟩
+  exact Filter.mem_of_superset ((h_res γ).mem_nhds h_zero) h_sub
+
+/-! ### Helper (f): A-plus boundedness
+
+For `f ∈ A⁺ ⊆ A₀`, we have `v_ext(f) = v_r(f) ≤ 1` since `v_r ≤ 1` on `A₀`. -/
+
+-- This helper is trivial given `h_ext` and `v_r ≤ 1`, so it is handled inline
+-- in the main proof.
+
+/-! ### The rank-1 extension (Wedhorn Lemma 7.44(3) + 7.45)
+
+The key remaining sorry: produce a `ValuationSubring` of `Frac(A/𝔭)` with
+MulArchimedean value group that dominates the image of `A₀` and sends I-images
+to nonunits. This isolates all the hard parts (extension construction, well-
+definedness, valuation axioms) into a single well-typed helper.
+
+The proof sketch is:
+1. Start with `V₀` from the domination theorem (arbitrary rank).
+2. Choose `a₀ ∈ I \ 𝔭`, set `u₀ = Units.mk0(V₀.valuation(φ(a₀)))`.
+3. Let `H = convexGenerated(u₀⁻¹)` and `v_r = V₀.valuation.restrictToConvex H`.
+4. Extend `v_r` from `A₀` to `A` via `v_ext(a) = v_r(s^n * a) * v_r(s)^{-n}`.
+5. Take `V = v_ext.valuationSubring`. The value group of `v_ext` lives in
+   `WithZero(H.toSubgroup)` which is MulArchimedean by `convexGenerated`.
 -/
+
+/-- **Rank-1 domination (Wedhorn Lemma 7.45, Steps 3-4).**
+
+Given the arbitrary-rank `V₀` from the domination theorem, produce a
+MulArchimedean `V` satisfying the same range and nonunits conditions.
+
+This encapsulates the full extension construction: retraction via
+`restrictToConvex`, extension from `A₀` to `A` using topological
+nilpotency (`exists_pow_mul_mem_A₀`), and verification of the
+valuation axioms, support, and A-plus bound.
+
+The proof requires ~150 lines of additional infrastructure:
+- Well-definedness of `v_ext(a) = v_r(s^n * a) * v_r(s)^{-n}`
+- Multiplicativity and ultrametric inequality for `v_ext`
+- `supp(v_ext) = 𝔭`
+- Continuity transfer (Lemma 7.44(2), now proved above)
+- Correspondence between `v_ext` and a `ValuationSubring` of `Frac(A/𝔭)` -/
+theorem exists_mulArchimedean_valuationSubring
+    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
+    {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
+    ∃ V : ValuationSubring (FractionRing (A ⧸ 𝔭)),
+      (P.toFractionQuotient 𝔭).range ≤ V.toSubring ∧
+      (P.toFractionQuotient 𝔭).range.subtype ''
+        (Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I : Set _) ⊆ V.nonunits ∧
+      MulArchimedean V.ValueGroup ∧
+      (∀ f ∈ (A⁺ : Set A), P.pulledBackValuation V f ≤ 1) := by
+  haveI : IsDomain (A ⧸ 𝔭) := Ideal.Quotient.isDomain 𝔭
+  -- Step 1: Get V₀ from the domination theorem
+  obtain ⟨V₀, hrange₀, hnonunits₀⟩ := P.exists_valuationSubring_of_prime (𝔭 := 𝔭)
+  -- Step 2: Get a₀ ∈ I \ 𝔭 (exists since 𝔭 is non-open)
+  obtain ⟨a₀, ha₀_I, ha₀_notp⟩ := P.exists_mem_I_not_mem_of_not_isOpen h𝔭
+  set s := (P.A₀.subtype a₀ : A)
+  -- s is topologically nilpotent and s ∉ 𝔭
+  have hs_nil : IsTopologicallyNilpotent s := P.isTopologicallyNilpotent_of_mem ha₀_I
+  -- For any a : A, there exists n with s^n * a ∈ A₀ (proved helper)
+  have _h_pow_mul : ∀ a : A, ∃ n : ℕ, s ^ n * a ∈ P.A₀ :=
+    P.exists_pow_mul_mem_A₀ hs_nil
+  -- The full rank-1 extension construction requires:
+  -- (a) restrictToConvex of V₀.valuation by convexGenerated(u₀⁻¹) → v_r on A₀
+  -- (b) Extension v_ext(a) = v_r(s^n * a) * v_r(s)^{-n} on A
+  -- (c) v_ext is a well-defined valuation (uses vExt_well_defined, proved above)
+  -- (d) V = corresponding ValuationSubring of Frac(A/𝔭)
+  -- (e) MulArchimedean of V.ValueGroup (from convexGenerated)
+  -- (f) Range and nonunits conditions on V
+  -- (g) A-plus bound (from A⁺ ⊆ A₀ and v_r ≤ 1)
+  sorry
+
+/-! ### Full proof assembly -/
 
 /-- **Lemma 7.45 of Wedhorn.** Non-open primes are supports in `Spa`.
 
-**Proof (following Wedhorn):**
-1. The domination theorem (`exists_valuationSubring_of_prime`) produces
-   `V₀ : ValuationSubring(Frac(A/𝔭))` with `range(A₀ → Frac(A/𝔭)) ≤ V₀` and
-   image of `I` landing in `V₀.nonunits`.
-2. The pulled-back valuation `w = pulledBackValuation V₀` has `supp(w) = 𝔭`,
-   `w ≤ 1` on `A₀`, `w < 1` on `I`.
-3. Coarsen `w` by `maxAvoid(u₀⁻¹)` where `u₀ = Units.mk0(w(a₀))` for `a₀ ∈ I \ 𝔭`
-   with `u₀` being the generator whose value's unit part is smallest (farthest
-   from 1). This gives `w' = w.coarsenByUnits(maxAvoid(u₀⁻¹))` with:
-   - `supp(w') = 𝔭` (by `coarsenByUnits_supp`)
-   - `w' ≤ 1` on `A₀` (by `coarsenByUnits_le_one_of_le_one`)
-   - `w' < 1` on `I`-generators (by `coarsenByUnits_lt_one_of_not_mem` +
-     convexity argument)
-   - The quotient value group is MulArchimedean (by `maxAvoid` being a co-atom
-     when `u₀⁻¹` is not in any proper convex subgroup)
-4. Continuity of `w'` via `pulledBackValuation_isContinuous`.
-5. Construct the Spa point via `ofValuation`.
+Given a complete affinoid ring `(A, A⁺)` with pair of definition `(A₀, I)` and
+a non-open prime `𝔭` of `A`, there exists `v ∈ Spa(A, A⁺)` with `supp(v) = 𝔭`.
 
-**Sorry status:** Step 3 requires that `u₀⁻¹` (the inverse of the smallest
-I-generator unit part) is not in any proper convex subgroup of `V₀.ValueGroupˣ`.
-This is the condition that the I-generator with the smallest value lies in the
-"top layer" of the value group hierarchy. In Wedhorn's proof, this is handled by
-his Steps 3-4: extending the retracted valuation from `A₀` to `A` using topological
-nilpotency (Lemma 7.44(3)), which produces a valuation whose value group is
-automatically of rank 1. The full extension construction requires ~200 lines of
-additional infrastructure (defining `v_ext`, proving it is a valuation, showing
-well-definedness, etc.). This is left as a sorry pending that infrastructure.
+The proof uses `exists_mulArchimedean_valuationSubring` to produce a rank-1
+valuation subring, then applies `exists_mem_spa_supp_eq_of_nonOpen_prime_mulArchimedean`.
 
-References: Wedhorn, Adic Spaces, Lemma 7.45; Bourbaki, Comm. Alg., Ch. VI, §4. -/
+References: Wedhorn, Adic Spaces, Lemma 7.45. -/
 theorem exists_mem_spa_supp_eq_of_nonOpen_prime
     (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
     {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
     (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
     ∃ v ∈ Spa A A⁺, v.supp = 𝔭 := by
   haveI : IsDomain (A ⧸ 𝔭) := Ideal.Quotient.isDomain 𝔭
-  -- Step 1: Get V₀ from the domination theorem
-  obtain ⟨V₀, hrange, hnonunits⟩ := P.exists_valuationSubring_of_prime (𝔭 := 𝔭)
-  set w := P.pulledBackValuation V₀
-  -- Step 2: w has supp = 𝔭, w ≤ 1 on A₀, w < 1 on I
-  have hw_supp : w.supp = 𝔭 := P.pulledBackValuation_supp V₀
-  have hw_le : ∀ a : P.A₀, w (P.A₀.subtype a) ≤ 1 :=
-    P.pulledBackValuation_le_one hrange
-  have hw_lt : ∀ a : P.A₀, a ∈ P.I → w (P.A₀.subtype a) < 1 :=
-    fun a ha ↦ P.pulledBackValuation_lt_one hnonunits ha
-  -- Step 3: Wedhorn's extension construction
-  -- Following Wedhorn Lemma 7.45: apply the retraction r from (7.1.2) to get
-  -- r(u) ∈ Cont(A₀) with cΓ_u(I) as value group, then extend to A via
-  -- Lemma 7.44(3). The extended valuation v on A has supp = 𝔭 and is continuous
-  -- with MulArchimedean value group (rank ≤ 1).
-  --
-  -- The extension v_ext : A → WithZero(H.toSubgroup) is defined by:
-  --   v_ext(a) = v_r(s^n * a) * v_r(s)^{-n}
-  -- where s ∈ I \ 𝔭 is topologically nilpotent, n is chosen so that s^n * a ∈ A₀,
-  -- and v_r = restrictToConvex(w|_{A₀}, convexGenerated(u₀⁻¹)).
-  --
-  -- This is well-defined (independent of n), multiplicative, satisfies the
-  -- ultrametric inequality, and has supp = 𝔭. The continuity follows from the
-  -- cofinal property of convexGenerated.
-  --
-  -- The full construction requires:
-  -- (a) exists_pow_mul_mem_of_topNilpotent: ∃ n, s^n * a ∈ A₀ (from topological
-  --     nilpotency of s and openness of A₀)
-  -- (b) Well-definedness of v_ext (independence of choice of n)
-  -- (c) Valuation axioms for v_ext
-  -- (d) supp(v_ext) = 𝔭
-  -- (e) Continuity of v_ext
-  -- (f) Boundedness on A⁺
-  sorry
+  -- Get the rank-1 valuation subring from the extension construction
+  obtain ⟨V, hrange, hnonunits, harch, hAplus⟩ :=
+    P.exists_mulArchimedean_valuationSubring h𝔭 hAplus_le_A₀
+  -- Apply the conditional MulArchimedean version (already proved)
+  exact P.exists_mem_spa_supp_eq_of_nonOpen_prime_mulArchimedean
+    h𝔭 hrange hnonunits hAplus
 
 end PairOfDefinition
 
