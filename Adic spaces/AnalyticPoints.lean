@@ -77,7 +77,7 @@ omit [IsLinearTopology A A] in
 theorem isOpen_of_idealOfDefinition_le
     (P : PairOfDefinition A) {𝔭 : Ideal A} [𝔭.IsPrime]
     (hle : P.idealOfDefinition ≤ 𝔭) : IsOpen (𝔭 : Set A) :=
-  P.ideal_isOpen_of_nilpotent_le_radical fun a ha ↦
+  P.ideal_isOpen_of_nilpotent_le_radical fun _ ha ↦
     Ideal.radical_mono hle (P.isTopologicallyNilpotent_mem_idealOfDefinition_radical ha)
 
 omit [IsLinearTopology A A] in
