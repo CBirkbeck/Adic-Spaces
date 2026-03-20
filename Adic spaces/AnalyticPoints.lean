@@ -114,7 +114,8 @@ theorem not_isMaximal_of_I_not_le
   fun h𝔪 ↦ h (P.I_le_maximal_of_isAdicComplete h𝔪)
 
 omit [IsTopologicalRing A] [IsLinearTopology A A] in
-/-- If `A₀` is `I`-adically complete and `𝔭₀` is prime, then `I + 𝔭₀ ≠ A₀` (Lemma 7.45). -/
+/-- If `A₀` is `I`-adically complete and `𝔭₀` is prime, then `I + 𝔭₀ ≠ A₀`
+(Lemma 7.45). -/
 theorem I_sup_prime_ne_top
     (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
     {𝔭₀ : Ideal P.A₀} [𝔭₀.IsPrime] : P.I ⊔ 𝔭₀ ≠ ⊤ := by

@@ -66,7 +66,7 @@ theorem exists_pow_mul_mem_A₀ (P : PairOfDefinition A)
   have h_open : IsOpen {x : A | x * a ∈ P.A₀} :=
     P.isOpen.preimage h_cont
   have h_zero : (0 : A) ∈ {x : A | x * a ∈ P.A₀} := by
-    simp [P.A₀.zero_mem]
+    simp only [Set.mem_setOf_eq, zero_mul, P.A₀.zero_mem]
   -- Since s^n → 0, eventually s^n ∈ U
   have h_nhds : {x : A | x * a ∈ P.A₀} ∈ nhds (0 : A) :=
     h_open.mem_nhds h_zero
@@ -156,10 +156,12 @@ theorem isContinuous_of_restriction_isContinuous
     v.IsContinuous := by
   intro γ
   by_cases hγ : γ = 0
-  · subst hγ; simp [not_lt_zero']
+  · subst hγ; simp only [not_lt_zero', Set.setOf_false, isOpen_empty]
   -- {a : A | v a < γ} is the underlying set of v.ltAddSubgroup (Units.mk0 γ hγ)
   rw [show { a : A | v a < γ } =
-    (v.ltAddSubgroup (Units.mk0 γ hγ) : Set A) from by ext; simp [Valuation.ltAddSubgroup]]
+    (v.ltAddSubgroup (Units.mk0 γ hγ) : Set A) from by ext; simp only [Set.mem_setOf_eq,
+      Valuation.ltAddSubgroup, Units.val_mk0, AddSubgroup.coe_set_mk, AddSubmonoid.coe_set_mk,
+      AddSubsemigroup.coe_set_mk]]
   -- It suffices to show this additive subgroup contains an open neighborhood of 0
   apply AddSubgroup.isOpen_of_mem_nhds
   · -- The image of {a ∈ A₀ | v(a) < γ} under subtype is open (by hypothesis)
@@ -170,7 +172,7 @@ theorem isContinuous_of_restriction_isContinuous
       simp only [Valuation.ltAddSubgroup, Units.val_mk0]
       exact ha
     have h_zero : (0 : A) ∈ P.A₀.subtype '' {a : P.A₀ | v (P.A₀.subtype a) < γ} := by
-      exact ⟨0, by simp [zero_lt_iff.mpr hγ], rfl⟩
+      exact ⟨0, by simp? [zero_lt_iff.mpr hγ], rfl⟩
     exact Filter.mem_of_superset ((h_res γ).mem_nhds h_zero) h_sub
 
 /-! ### Helper (f): A-plus boundedness
