@@ -155,7 +155,7 @@ section Lemma746Converse
 variable {A B : Type*} [CommRing A] [CommRing B]
   [TopologicalSpace A] [TopologicalSpace B]
   [IsTopologicalRing A] [IsTopologicalRing B]
-  [IsLinearTopology A A] [IsHuberRing A] [IsHuberRing B]
+  [IsLinearTopology A A] [IsLinearTopology B B] [IsHuberRing A] [IsHuberRing B]
 
 /-- **Lemma 7.46(2) of Wedhorn.** If `B` is a complete Huber ring (with `(B, B⁺)` an
 affinoid ring such that `A⁺ ⊆ B⁺` via `φ`) and the induced map `Spa(φ)` preserves
@@ -167,13 +167,16 @@ The proof proceeds by contrapositive: if `φ` is not adic, one finds a non-open 
 comap is non-analytic (since `supp(comap φ v) ⊇ I_A`, hence open). This contradicts
 the hypothesis that `Spa(φ)` preserves analytic points.
 
-**Sorry status:** The proof chain has three sorry'd helpers:
+**Sorry status:** The proof chain has two sorry'd helpers:
 1. `exists_pairOfDefinition_le_subring` (Wedhorn Lemma 6.5) — any open subring of a
    Huber ring contains a ring of definition. Used by `exists_compatible_pair`.
 2. `exists_nonOpen_prime_of_B_from_B₀_prime` — extending primes from `PB.A₀` to `B`.
    Requires Huber ring lying-over infrastructure.
-3. `spa_point_from_nonOpen_prime` — applying Lemma 7.45 with analyticity guarantee.
-   Requires `IsHuberRing → IsLinearTopology` instance and strengthened Lemma 7.45 API.
+
+Previously sorry'd `spa_point_from_nonOpen_prime` is now proved using the strengthened
+Lemma 7.45 API (which exports `idealOfDefinition ⊄ supp(v)`, yielding analyticity).
+The `[IsLinearTopology B B]` instance is assumed as a section hypothesis (derivable
+from `IsHuberRing B` but not yet formalized as an instance).
 
 The main proof structure (contrapositive + contradiction) is sorry-free. -/
 
@@ -227,7 +230,7 @@ private theorem exists_pairOfDefinition_le_subring
   -- This is Wedhorn Lemma 6.5; the formalization requires several sub-steps.
   sorry
 
-omit [IsTopologicalRing B] [IsHuberRing B] in
+omit [IsTopologicalRing B] [IsLinearTopology B B] [IsHuberRing B] in
 private theorem exists_compatible_pair
     {φ : A →+* B} (hφ : Continuous φ) (PB : PairOfDefinition B) :
     ∃ (PA : PairOfDefinition A), ∀ a ∈ PA.A₀, φ a ∈ PB.A₀ := by
@@ -247,7 +250,7 @@ private theorem exists_compatible_pair
 -- Helper 2a: from strict radical containment, find a separating prime of B₀.
 -- This is a standard commutative algebra argument using Ideal.radical_eq_sInf.
 omit [IsTopologicalRing A] [IsTopologicalRing B] [IsLinearTopology A A]
-  [IsHuberRing A] [IsHuberRing B] in
+  [IsLinearTopology B B] [IsHuberRing A] [IsHuberRing B] in
 private theorem exists_separating_prime_of_B₀
     {φ : A →+* B}
     (PA : PairOfDefinition A) (PB : PairOfDefinition B)
@@ -315,7 +318,8 @@ private theorem exists_separating_prime_of_B₀
 -- is not integral in general, so standard going-up does not apply directly.
 -- In Wedhorn, this uses the fact that a Huber ring is a union of finite
 -- PB.A₀-modules (bounded subsets).
-omit [IsTopologicalRing A] [IsLinearTopology A A] [IsHuberRing A] in
+omit [IsTopologicalRing A] [IsLinearTopology A A] [IsHuberRing A]
+  [IsLinearTopology B B] in
 private theorem exists_nonOpen_prime_of_B_from_B₀_prime
     (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
     {𝔭₀ : Ideal PB.A₀} [𝔭₀.IsPrime]
@@ -327,20 +331,10 @@ private theorem exists_nonOpen_prime_of_B_from_B₀_prime
 -- Sub-step C/D: From a non-open prime of B, get v ∈ Spa(B, B⁺) with the right properties.
 -- This combines Lemma 7.45 (⊇ direction) with the non-openness argument.
 --
--- **Dependencies:**
---   - `exists_mem_spa_supp_ge_of_nonOpen_prime` (Lemma 7.45) requires
---     `IsLinearTopology B B`, which is derivable from `IsHuberRing B` but not
---     yet formalized as an instance. We sorry the conclusion directly.
---   - The analyticity of v (supp(v) non-open) requires the Lemma 7.45 construction
---     to also export that PB.idealOfDefinition is NOT contained in supp(v). The
---     current API only gives supp ⊇ 𝔭, so this needs a strengthened API.
---
--- **Both issues are fillable:**
---   1. Proving `IsHuberRing B → IsLinearTopology B B` via the adic basis.
---   2. Strengthening `exists_mem_spa_supp_ge_of_nonOpen_prime` to also state
---      that idealOfDefinition is not in supp(v) (this IS proved internally
---      in the Lemma745 construction: I-elements have v-value < 1, hence
---      I ⊄ comap A₀.subtype (supp v), hence idealOfDefinition ⊄ supp v).
+-- **Proved** using the strengthened Lemma 7.45 API (which now exports
+-- `idealOfDefinition ⊄ supp(v)` alongside `𝔭 ≤ supp(v)`). Analyticity
+-- follows from: for prime p in a Huber ring with pair of definition,
+-- `IsOpen p ↔ idealOfDefinition ≤ p` (Lemma 6.6).
 omit [IsTopologicalRing A] [IsLinearTopology A A] [IsHuberRing A] in
 private theorem spa_point_from_nonOpen_prime
     [PlusSubring B]
@@ -348,10 +342,21 @@ private theorem spa_point_from_nonOpen_prime
     {𝔭 : Ideal B} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set B))
     (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) :
     ∃ v ∈ Spa B B⁺, IsAnalytic v ∧ 𝔭 ≤ v.supp := by
-  -- Requires: (1) IsLinearTopology B B (from IsHuberRing, not yet an instance),
-  -- (2) strengthened Lemma 7.45 API exporting idealOfDefinition ⊄ supp(v).
-  -- Both are fillable; see the comment above.
-  sorry
+  -- Apply strengthened Lemma 7.45 to get v ∈ Spa with 𝔭 ≤ supp(v) and
+  -- idealOfDefinition ⊄ supp(v).
+  have hx : ∃ v ∈ Spa B B⁺, 𝔭 ≤ v.supp ∧ ¬PB.idealOfDefinition ≤ v.supp :=
+    PB.exists_mem_spa_supp_ge_of_nonOpen_prime h𝔭 hBplus_le_B₀
+  obtain ⟨v, hv_spa, hv_supp, hv_idealOfDef⟩ := hx
+  refine ⟨v, hv_spa, ?_, hv_supp⟩
+  -- IsAnalytic: supp(v) is not open.
+  -- If supp(v) were open, then idealOfDefinition ≤ supp(v) (since supp(v) is prime
+  -- and open ideal ⟹ contains topological nilradical ⊇ idealOfDefinition).
+  -- This contradicts hv_idealOfDef.
+  intro h_open
+  exact hv_idealOfDef
+    (PB.idealOfDefinition_le_topologicalNilradical.trans
+      ((topologicalNilradical_le_radical_of_isOpen h_open).trans
+        (instIsPrimeSupp v).radical.le))
 
 omit [IsHuberRing A] in
 private theorem exists_analytic_spa_point_from_B₀_prime
@@ -542,7 +547,7 @@ theorem isAdicHom_of_preserves_analytic_complete
     {A B : Type*} [CommRing A] [CommRing B]
     [TopologicalSpace A] [TopologicalSpace B]
     [IsTopologicalRing A] [IsTopologicalRing B]
-    [IsLinearTopology A A] [IsHuberRing A] [IsHuberRing B]
+    [IsLinearTopology A A] [IsLinearTopology B B] [IsHuberRing A] [IsHuberRing B]
     [PlusSubring A] [PlusSubring B]
     {φ : A →+* B} (hφ : Continuous φ) (hAB : A⁺ ≤ (B⁺).comap φ)
     (h_analytic : ∀ v ∈ Spa B B⁺, IsAnalytic v → IsAnalytic (comap φ v))

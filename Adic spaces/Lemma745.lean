@@ -275,7 +275,7 @@ theorem exists_spa_point_via_restrictToConvex
     (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
     {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
     (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
-    ∃ v ∈ Spa A A⁺, 𝔭 ≤ v.supp := by
+    ∃ v ∈ Spa A A⁺, 𝔭 ≤ v.supp ∧ ¬P.idealOfDefinition ≤ v.supp := by
   haveI : IsDomain (A ⧸ 𝔭) := Ideal.Quotient.isDomain 𝔭
   -- Step 1: Get V₀ from the domination theorem
   obtain ⟨V₀, hrange₀, hnonunits₀⟩ := P.exists_valuationSubring_of_prime (𝔭 := 𝔭)
@@ -396,30 +396,10 @@ theorem exists_spa_point_via_restrictToConvex
   -- This sorry is FILLABLE: the construction is well-defined by vExt_well_defined,
   -- and the valuation axioms follow from algebraic identities.
   -- (The previous sorry for MulArchimedean of maxAvoid quotient was UNFILLABLE.)
-  suffices h_ext : ∃ (v_ext : Valuation A (WithZero H_gen.toSubgroup)),
-      (∀ a ∈ 𝔭, v_ext a = 0) ∧
-      (∀ a : P.A₀, v_ext (P.A₀.subtype a) = v_r a) ∧
-      v_ext.IsContinuous ∧
-      (∀ f ∈ (A⁺ : Set A), v_ext f ≤ 1) by
-    obtain ⟨v_ext, hfwd, _, hcont, hAplus⟩ := h_ext
-    refine ⟨ofValuation v_ext, ⟨isContinuous_ofValuation_of _ hcont, ?_⟩, ?_⟩
-    · intro f hf; change v_ext f ≤ v_ext 1; rw [map_one]; exact hAplus f hf
-    · intro a ha; rw [supp_ofValuation]; exact (Valuation.mem_supp_iff _ _).mpr (hfwd a ha)
-  -- ===== Construction of v_ext with all required properties =====
-  -- Use classical logic for Nat.find decidability throughout
-  classical
-  -- Step 8a: Key facts about s and v_r(s)
-  have hs_not_p : s ∉ 𝔭 := ha₀_notp
-  have h_pow_mul : ∀ a : A, ∃ n : ℕ, s ^ n * a ∈ P.A₀ :=
-    P.exists_pow_mul_mem_A₀ hs_nil
-  -- v₀_A₀(a₀) ≠ 0 (since a₀ ∉ 𝔭 = supp(v₀_A₀))
+  -- v₀_A₀(a₀) ≠ 0 (needed for idealOfDefinition ⊄ supp)
   have hv₀_a₀_ne : v₀_A₀ a₀ ≠ 0 := by
     intro h_eq
-    -- a₀ ∈ supp(v₀_A₀) means v₀_A₀(a₀) = 0
-    -- supp(v₀_A₀) = supp(V₀.valuation.comap φ) = comap φ (supp V₀.valuation)
-    -- = comap φ ⊥ = ker φ = comap A₀.subtype 𝔭
-    -- So a₀ ∈ comap A₀.subtype 𝔭, i.e., P.A₀.subtype a₀ = s ∈ 𝔭. Contradiction.
-    apply hs_not_p
+    apply ha₀_notp
     have : v₀_A₀ a₀ = V₀.valuation (φ a₀) := by rfl
     rw [this] at h_eq
     have hφ_zero : φ a₀ = 0 := V₀.valuation.zero_iff.mp h_eq
@@ -427,18 +407,36 @@ theorem exists_spa_point_via_restrictToConvex
     exact Ideal.Quotient.eq_zero_iff_mem.mp
       ((IsFractionRing.injective (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭))).eq_iff.mp
         (hφ_zero.trans (map_zero _).symm))
-  -- v₀_A₀(a₀) ≤ g_max, and g_max achieves the sup of I-generator values.
-  -- The unit of v₀_A₀(a₀) belongs to H_gen by convexity:
-  -- it lies between u_max^N (for large N) and u_max, both in H_gen.
   have hu_a₀_mem : Units.mk0 (v₀_A₀ a₀) hv₀_a₀_ne ∈ H_gen := by
-    -- Since a₀ is the I-generator achieving g_max: v₀_A₀(a₀) = g_max, hence
-    -- Units.mk0(v₀_A₀(a₀)) = u_max, which is in H_gen.
-    have hval_eq : v₀_A₀ a₀ = g_max := ha₀_val_eq
     have hu_eq : Units.mk0 (v₀_A₀ a₀) hv₀_a₀_ne = u_max :=
-      Units.ext hval_eq
+      Units.ext ha₀_val_eq
     rw [hu_eq]; exact hu_max_mem
   have hv_r_s_ne : v_r a₀ ≠ 0 :=
     ne_of_gt (Valuation.restrictToConvex_pos_of_mem v₀_A₀ H_gen hle_A₀ hv₀_a₀_ne hu_a₀_mem)
+  suffices h_ext : ∃ (v_ext : Valuation A (WithZero H_gen.toSubgroup)),
+      (∀ a ∈ 𝔭, v_ext a = 0) ∧
+      (∀ a : P.A₀, v_ext (P.A₀.subtype a) = v_r a) ∧
+      v_ext.IsContinuous ∧
+      (∀ f ∈ (A⁺ : Set A), v_ext f ≤ 1) by
+    obtain ⟨v_ext, hfwd, h_ext_A₀, hcont, hAplus⟩ := h_ext
+    refine ⟨ofValuation v_ext, ⟨isContinuous_ofValuation_of _ hcont, ?_⟩, ?_, ?_⟩
+    · intro f hf; change v_ext f ≤ v_ext 1; rw [map_one]; exact hAplus f hf
+    · intro a ha; rw [supp_ofValuation]; exact (Valuation.mem_supp_iff _ _).mpr (hfwd a ha)
+    · -- idealOfDefinition ⊄ supp(v): a₀ ∈ I maps to nonzero under v_ext
+      intro h_le
+      have ha₀_in_J : (P.A₀.subtype a₀ : A) ∈ P.idealOfDefinition :=
+        Ideal.mem_map_of_mem _ ha₀_I
+      have ha₀_supp : (P.A₀.subtype a₀ : A) ∈ (ofValuation v_ext).supp :=
+        h_le ha₀_in_J
+      rw [supp_ofValuation, Valuation.mem_supp_iff] at ha₀_supp
+      exact hv_r_s_ne (h_ext_A₀ a₀ ▸ ha₀_supp)
+  -- ===== Construction of v_ext with all required properties =====
+  -- Use classical logic for Nat.find decidability throughout
+  classical
+  -- Step 8a: Key facts about s and v_r(s)
+  have hs_not_p : s ∉ 𝔭 := ha₀_notp
+  have h_pow_mul : ∀ a : A, ∃ n : ℕ, s ^ n * a ∈ P.A₀ :=
+    P.exists_pow_mul_mem_A₀ hs_nil
   -- Step 8b: Define v_ext_fun(a) = v_r(⟨s^n * a, _⟩) * (v_r(a₀))⁻¹ ^ n
   -- where n = Nat.find(h_pow_mul a)
   set v_s := v_r a₀ with v_s_def
@@ -753,7 +751,7 @@ theorem exists_mem_spa_supp_ge_of_nonOpen_prime
     (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
     {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
     (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
-    ∃ v ∈ Spa A A⁺, 𝔭 ≤ v.supp :=
+    ∃ v ∈ Spa A A⁺, 𝔭 ≤ v.supp ∧ ¬P.idealOfDefinition ≤ v.supp :=
   P.exists_spa_point_via_restrictToConvex h𝔭 hAplus_le_A₀
 
 end PairOfDefinition
