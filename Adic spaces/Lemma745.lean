@@ -544,48 +544,34 @@ noncomputable def restrictToConvex
       simp only [hx, hy, hxy_ne, dif_neg, dif_neg hmx, dif_neg hmy, dif_neg hmxy, not_false_eq_true,
         mul_zero]
   map_add_le_max' x y := by
-    -- We name the function for clarity.
     set f : R → WithZero H.toSubgroup := fun r =>
       if h : v r = 0 then 0
       else if hm : Units.mk0 (v r) h ∈ H then some ⟨Units.mk0 (v r) h, hm⟩
       else 0
     change f (x + y) ≤ max (f x) (f y)
-    -- The key ultrametric from v
-    have hv_add : v (x + y) ≤ max (v x) (v y) := v.map_add x y
-    -- If f(x+y) = 0, we are done (0 ≤ anything)
     by_cases hxy : v (x + y) = 0
     · simp only [f, hxy, dif_pos]; exact bot_le
     by_cases hmxy : Units.mk0 (v (x + y)) hxy ∈ H
-    · -- f(x+y) = some ⟨u_{x+y}, _⟩. Need to show this ≤ max (f x) (f y).
-      -- Since v(x+y) ≤ max(v x, v y) and v(x+y) > 0, the max is > 0.
-      -- We need: some ⟨u_{x+y}, _⟩ ≤ max(f x)(f y).
-      -- It suffices to show that the max side has its unit in H, and that unit ≥ u_{x+y}.
-      -- Use le_total to pick the dominant side.
-      rcases le_total (v x) (v y) with hvxy | hvyx
-      · -- v x ≤ v y, so max(v x, v y) = v y
-        have hv_le : v (x + y) ≤ v y := hv_add.trans (max_eq_right hvxy).le
+    · rcases le_total (v x) (v y) with hvxy | hvyx
+      · have hv_le : v (x + y) ≤ v y := (v.map_add x y).trans (max_eq_right hvxy).le
         suffices h : f (x + y) ≤ f y from h.trans (le_max_right _ _)
         have hy : v y ≠ 0 := ne_of_gt (lt_of_lt_of_le (zero_lt_iff.mpr hxy) hv_le)
         by_cases hmy : Units.mk0 (v y) hy ∈ H
         · simp only [f, hxy, hy, dif_pos hmxy, dif_pos hmy]
           exact WithZero.coe_le_coe.mpr (Subtype.mk_le_mk.mpr
             (Units.val_le_val.mp hv_le))
-        · exfalso
-          exact hmy (H.convex hmxy (one_mem H) (Units.val_le_val.mp hv_le)
-            (Units.val_le_val.mp (hle y)))
-      · -- v y ≤ v x: symmetric case
-        have hv_le : v (x + y) ≤ v x := hv_add.trans (max_eq_left hvyx).le
+        · exfalso; exact hmy (H.convex hmxy (one_mem H)
+            (Units.val_le_val.mp hv_le) (Units.val_le_val.mp (hle y)))
+      · have hv_le : v (x + y) ≤ v x := (v.map_add x y).trans (max_eq_left hvyx).le
         suffices h : f (x + y) ≤ f x from h.trans (le_max_left _ _)
         have hx' : v x ≠ 0 := ne_of_gt (lt_of_lt_of_le (zero_lt_iff.mpr hxy) hv_le)
         by_cases hmx : Units.mk0 (v x) hx' ∈ H
         · simp only [f, hxy, hx', dif_pos hmxy, dif_pos hmx]
           exact WithZero.coe_le_coe.mpr (Subtype.mk_le_mk.mpr
             (Units.val_le_val.mp hv_le))
-        · exfalso
-          exact hmx (H.convex hmxy (one_mem H) (Units.val_le_val.mp hv_le)
-            (Units.val_le_val.mp (hle x)))
-    · -- f(x+y) = 0 (unit not in H), so ≤ anything
-      simp only [f, dif_neg hxy, dif_neg hmxy]; exact bot_le
+        · exfalso; exact hmx (H.convex hmxy (one_mem H)
+            (Units.val_le_val.mp hv_le) (Units.val_le_val.mp (hle x)))
+    · simp only [f, dif_neg hxy, dif_neg hmxy]; exact bot_le
 
 /-! ### API for `restrictToConvex` -/
 
