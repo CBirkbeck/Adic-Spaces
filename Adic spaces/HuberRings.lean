@@ -127,6 +127,7 @@ def idealOfDefinition (P : PairOfDefinition A) : Ideal A :=
   Ideal.map P.A₀.subtype P.I
 
 omit [IsTopologicalRing A] in
+/-- The ideal of definition is finitely generated. -/
 theorem idealOfDefinition_fg (P : PairOfDefinition A) : P.idealOfDefinition.FG :=
   P.fg.map _
 
@@ -437,11 +438,13 @@ def PairOfDefinition.withPrincipal (P : PairOfDefinition A)
   isAdic := P.isAdic_of_interleaving
     (Ideal.span_le.mpr (Set.singleton_subset_iff.mpr ha)) hm
 
+/-- The ring of definition of `withPrincipal` equals the original. -/
 @[simp]
 theorem PairOfDefinition.withPrincipal_A₀ (P : PairOfDefinition A)
     {a : P.A₀} (ha : a ∈ P.I) {m : ℕ} (hm : P.I ^ m ≤ Ideal.span {a}) :
     (P.withPrincipal ha hm).A₀ = P.A₀ := rfl
 
+/-- The ideal of definition of `withPrincipal` is `span {a}`. -/
 @[simp]
 theorem PairOfDefinition.withPrincipal_I (P : PairOfDefinition A)
     {a : P.A₀} (ha : a ∈ P.I) {m : ℕ} (hm : P.I ^ m ≤ Ideal.span {a}) :
