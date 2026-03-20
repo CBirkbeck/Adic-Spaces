@@ -162,11 +162,101 @@ affinoid ring such that `A⁺ ⊆ B⁺` via `φ`) and the induced map `Spa(φ)` 
 analytic points, then `φ` is an adic homomorphism.
 
 The proof proceeds by contrapositive: if `φ` is not adic, one finds a non-open prime
-`𝔭` of `B` via the radical mismatch, then applies **Lemma 7.45** to produce an analytic
-`v ∈ Spa(B)` whose comap is non-analytic (since `supp(comap φ v) ⊇ I_A`, hence open).
+`𝔭` of `B` via the radical mismatch, then applies **Lemma 7.45** to produce a
+`v ∈ Spa(B)` with `supp(v) = 𝔭` that is analytic (non-open support), but whose
+comap is non-analytic (since `supp(comap φ v) ⊇ I_A`, hence open). This contradicts
+the hypothesis that `Spa(φ)` preserves analytic points.
 
-**Status:** This requires the sorry in `PairOfDefinition.exists_mem_spa_supp_eq_of_nonOpen_prime`
-(Lemma 7.45) to be filled; see `Lemma745.lean`. -/
+**Sorry status:** Two helper lemmas are sorry'd:
+1. `exists_compatible_pair` — constructing a pair of definition for `A` that is
+   compatible with `PB` under `φ`. Fillable Huber ring construction.
+2. `exists_analytic_spa_point_with_open_comap_supp` — the combined construction
+   that produces `v ∈ Spa(B, B⁺)` with `IsAnalytic v` and `supp(comap φ v)` open.
+   This requires: radical mismatch → B₀-prime → B-prime → Lemma 7.45 with exact
+   support. The exact support direction is sorry'd in `Lemma745.lean`.
+
+The main proof structure (contrapositive + contradiction) is sorry-free. -/
+
+-- Helper 1: there exists a pair of definition for A compatible with PB under φ.
+-- This is a standard fact: φ⁻¹(PB.A₀) is open (continuity), and any open subring
+-- of a Huber ring contains a ring of definition with compatible ideal.
+private theorem exists_compatible_pair
+    {φ : A →+* B} (hφ : Continuous φ) (PB : PairOfDefinition B) :
+    ∃ (PA : PairOfDefinition A), ∀ a ∈ PA.A₀, φ a ∈ PB.A₀ := by
+  sorry
+
+-- Helper 2a: from strict radical containment, find a separating prime of B₀.
+-- This is a standard commutative algebra argument using Ideal.radical_eq_sInf.
+omit [IsTopologicalRing A] [IsTopologicalRing B] [IsLinearTopology A A]
+  [IsHuberRing A] [IsHuberRing B] in
+private theorem exists_separating_prime_of_B₀
+    {φ : A →+* B}
+    (PA : PairOfDefinition A) (PB : PairOfDefinition B)
+    (h_map : ∀ a ∈ PA.A₀, φ a ∈ PB.A₀)
+    (h_not_eq : (Ideal.map (PA.restrictRingHom PB φ h_map) PA.I).radical ≠ PB.I.radical)
+    (h_le : (Ideal.map (PA.restrictRingHom PB φ h_map) PA.I).radical ≤ PB.I.radical) :
+    ∃ (𝔭₀ : Ideal PB.A₀), 𝔭₀.IsPrime ∧
+      Ideal.map (PA.restrictRingHom PB φ h_map) PA.I ≤ 𝔭₀ ∧ ¬PB.I ≤ 𝔭₀ := by
+  -- Strict containment gives an element in rad(J) \ rad(image)
+  have h_strict := lt_of_le_of_ne h_le h_not_eq
+  -- Choose j ∈ rad(J) \ rad(image). exists_of_ssubset gives (j ∈ t, j ∉ s).
+  obtain ⟨j, hj_radJ, hj_not_radI⟩ :=
+    Set.exists_of_ssubset (show (Ideal.map (PA.restrictRingHom PB φ h_map) PA.I).radical <
+      PB.I.radical from h_strict)
+  -- j ∉ rad(image), so there exists a prime 𝔭₀ ⊇ image with j ∉ 𝔭₀
+  set img := Ideal.map (PA.restrictRingHom PB φ h_map) PA.I
+  -- j ∉ rad(img), and rad(img) = sInf{𝔭 | img ≤ 𝔭 ∧ IsPrime 𝔭}
+  have hj_not_all : ¬(∀ (𝔭 : Ideal PB.A₀), (img ≤ 𝔭 ∧ 𝔭.IsPrime) → j ∈ 𝔭) := by
+    intro hall
+    exact hj_not_radI (Ideal.radical_eq_sInf img ▸ Ideal.mem_sInf.mpr
+      fun J hJ ↦ hall J hJ)
+  push_neg at hj_not_all
+  obtain ⟨𝔭₀, ⟨h_image_le, h𝔭₀_prime⟩, hj_not_p⟩ := hj_not_all
+  refine ⟨𝔭₀, h𝔭₀_prime, h_image_le, fun hJ_le ↦ hj_not_p ?_⟩
+  -- j ∈ rad(J) and J ≤ 𝔭₀ (prime), so j ∈ rad(J) ≤ rad(𝔭₀) = 𝔭₀
+  exact h𝔭₀_prime.radical.symm ▸ Ideal.radical_mono hJ_le hj_radJ
+
+-- Helper 2b: from a prime 𝔭₀ of B₀ (with image ≤ 𝔭₀ and J ⊄ 𝔭₀), produce an
+-- analytic v ∈ Spa(B, B⁺) with PA.idealOfDefinition ≤ φ⁻¹(supp(v)).
+-- This is the core of Lemma 7.46(2) that requires Lemma 7.45 with exact support.
+--
+-- Strategy: 𝔭₀ is a prime of B₀ with J ⊄ 𝔭₀. Since IsAdicComplete, 𝔭₀ is not
+-- maximal (by not_isMaximal_of_I_not_le). Convert 𝔭₀ to a non-open prime 𝔭 of B,
+-- then apply Lemma 7.45 with exact support to get v with supp(v) = 𝔭.
+-- Then v is analytic (non-open support) and supp(comap φ v) = φ⁻¹(𝔭) ⊇
+-- φ⁻¹(image of 𝔭₀) ⊇ PA.idealOfDefinition, so comap is non-analytic.
+--
+-- **Sorry:** The conversion from B₀-prime to B-prime (with controlled support)
+-- and the exact support direction of Lemma 7.45.
+private theorem exists_analytic_spa_point_from_B₀_prime
+    [PlusSubring B]
+    {φ : A →+* B}
+    (PA : PairOfDefinition A) (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
+    (h_map : ∀ a ∈ PA.A₀, φ a ∈ PB.A₀)
+    {𝔭₀ : Ideal PB.A₀} [𝔭₀.IsPrime]
+    (h_image_le : Ideal.map (PA.restrictRingHom PB φ h_map) PA.I ≤ 𝔭₀)
+    (hJ_not_le : ¬PB.I ≤ 𝔭₀)
+    (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) :
+    ∃ v ∈ Spa B B⁺, IsAnalytic v ∧ IsOpen ((comap φ v).supp : Set A) := by
+  sorry
+
+-- Helper 2: the key construction, assembled from 2a and 2b.
+private theorem exists_analytic_spa_point_with_open_comap_supp
+    [PlusSubring B]
+    {φ : A →+* B} (hφ : Continuous φ)
+    (PA : PairOfDefinition A) (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
+    (h_map : ∀ a ∈ PA.A₀, φ a ∈ PB.A₀)
+    (h_not_eq : (Ideal.map (PA.restrictRingHom PB φ h_map) PA.I).radical ≠ PB.I.radical)
+    (h_le : (Ideal.map (PA.restrictRingHom PB φ h_map) PA.I).radical ≤ PB.I.radical)
+    (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) :
+    ∃ v ∈ Spa B B⁺, IsAnalytic v ∧ IsOpen ((comap φ v).supp : Set A) := by
+  -- Step 1: Get a separating prime of B₀
+  obtain ⟨𝔭₀, h𝔭₀_prime, h_image_le, hJ_not_le⟩ :=
+    exists_separating_prime_of_B₀ PA PB h_map h_not_eq h_le
+  haveI := h𝔭₀_prime
+  -- Step 2: Apply 2b to get the Spa point
+  exact exists_analytic_spa_point_from_B₀_prime PA PB h_map h_image_le hJ_not_le hBplus_le_B₀
+
 theorem isAdicHom_of_complete_and_analytic_preserved
     [PlusSubring A] [PlusSubring B]
     {φ : A →+* B} (hφ : Continuous φ) (hAB : A⁺ ≤ (B⁺).comap φ)
@@ -174,7 +264,32 @@ theorem isAdicHom_of_complete_and_analytic_preserved
     (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
     (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) :
     IsAdicHom φ := by
-  sorry
+  -- Step 1: Get a compatible pair of definition for A
+  obtain ⟨PA, h_map⟩ := exists_compatible_pair hφ PB
+  -- Step 2: By contradiction — if φ is not adic, the radical equality fails
+  by_contra h_not_adic
+  have h_ne : (Ideal.map (PA.restrictRingHom PB φ h_map) PA.I).radical ≠ PB.I.radical :=
+    fun h_eq ↦ h_not_adic ⟨PA, PB, h_map, h_eq⟩
+  -- Step 3: Produce an analytic v ∈ Spa(B, B⁺) whose comap has open support
+  -- First: the easy direction rad(φ(I)·B₀) ≤ rad(J)
+  have h_le : (Ideal.map (PA.restrictRingHom PB φ h_map) PA.I).radical ≤ PB.I.radical := by
+    rw [Ideal.radical_le_radical_iff, Ideal.map_le_iff_le_comap]
+    intro a ha
+    -- PA.restrictRingHom sends a to ⟨φ(subtype a), _⟩ in PB.A₀
+    -- a ∈ PA.I → PA.A₀.subtype a is top. nilpotent in A → φ-image is top. nilpotent in B
+    have h_nil : IsTopologicallyNilpotent (φ (PA.A₀.subtype a)) :=
+      (PA.isTopologicallyNilpotent_of_mem ha).map hφ
+    have h_mem : φ (PA.A₀.subtype a) ∈ PB.A₀ := h_map _ a.2
+    -- φ(subtype a) ∈ PB.A₀ and top. nilpotent → ⟨φ(subtype a), _⟩^N ∈ PB.I for some N
+    obtain ⟨N, hN⟩ := PB.exists_pow_mem_I h_mem h_nil
+    show PA.restrictRingHom PB φ h_map a ∈ PB.I.radical
+    exact Ideal.mem_radical_iff.mpr ⟨N, hN⟩
+  obtain ⟨v, hv_spa, hv_an, hv_open⟩ :=
+    exists_analytic_spa_point_with_open_comap_supp hφ PA PB h_map h_ne h_le hBplus_le_B₀
+  -- Step 4: Derive contradiction
+  -- h_analytic says: v ∈ Spa, v analytic ⟹ comap φ v analytic (= support not open)
+  -- But comap φ v has open support, hence is NOT analytic — contradiction
+  exact (h_analytic v hv_spa hv_an) hv_open
 
 end Lemma746Converse
 
