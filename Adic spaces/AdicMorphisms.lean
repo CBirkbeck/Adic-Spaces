@@ -156,7 +156,7 @@ variable {A B : Type*} [CommRing A] [CommRing B]
   [IsTopologicalRing A] [IsTopologicalRing B]
   [IsHuberRing A] [IsHuberRing B]
 
-/-- **Lemma 7.46(2) of Wedhorn.** If `B` is a complete Huber ring (with `(B, B⁺)` an
+/- **Lemma 7.46(2) of Wedhorn.** If `B` is a complete Huber ring (with `(B, B⁺)` an
 affinoid ring such that `A⁺ ⊆ B⁺` via `φ`) and the induced map `Spa(φ)` preserves
 analytic points, then `φ` is an adic homomorphism.
 
@@ -220,9 +220,10 @@ The main proof structure (contrapositive + contradiction) is sorry-free. -/
 -- 3. `A₀'` is open (it contains `I^(2m)` which is open in `A₀`, hence in `A`).
 -- 4. The `I^m`-adic topology on `A₀'` equals the subspace topology from `A`.
 -- 5. `I^m` is finitely generated (since `I` is, `I^m` is a product of f.g. ideals).
+omit [IsHuberRing A] in
 private theorem exists_pairOfDefinition_le_subring
     (PA : PairOfDefinition A) {U : Subring A} (hU : IsOpen (U : Set A))
-    (hU_le : U ≤ PA.A₀) :
+    (_hU_le : U ≤ PA.A₀) :
     ∃ (PA' : PairOfDefinition A), PA'.A₀ ≤ U := by
   -- **Wedhorn Lemma 6.5 (simplified).**
   -- Step 1: Find m with image(I^m) ⊆ U.
@@ -231,7 +232,9 @@ private theorem exists_pairOfDefinition_le_subring
   rcases Nat.eq_zero_or_pos m with rfl | hm_pos
   · -- PA.I^0 = ⊤, so image(⊤) = PA.A₀ ⊆ U. Hence PA.A₀ ≤ U.
     have : PA.A₀ ≤ U := by
-      intro a ha; exact hm (Set.mem_image_of_mem PA.A₀.subtype (by simp : (⟨a, ha⟩ : PA.A₀) ∈ (PA.I ^ 0 : Ideal PA.A₀)))
+      intro a ha
+      exact hm (Set.mem_image_of_mem PA.A₀.subtype
+        (by simp : (⟨a, ha⟩ : PA.A₀) ∈ (PA.I ^ 0 : Ideal PA.A₀)))
     exact ⟨PA, this⟩
   -- From now on, m > 0.
   -- Step 2: Define A₀' = Subring.closure S where S = image of I^m in A.
@@ -261,7 +264,7 @@ private theorem exists_pairOfDefinition_le_subring
       refine Submodule.mul_induction_on hx'
         (fun a ha b hb ↦ ?_) (fun _ _ h1 h2 ↦ A₀'.add_mem h1 h2)
       -- a ∈ I^m, b ∈ I^m, need subtype(a*b) ∈ A₀'
-      show PA.A₀.subtype (a * b) ∈ A₀'
+      change PA.A₀.subtype (a * b) ∈ A₀'
       rw [map_mul]
       exact A₀'.mul_mem
         (Subring.subset_closure ⟨a, ha, rfl⟩)
@@ -321,13 +324,13 @@ private theorem exists_pairOfDefinition_le_subring
     induction n with
     | zero =>
       intro x _
-      show x ∈ (I' ^ 0 : Ideal ↥A₀')
+      change x ∈ (I' ^ 0 : Ideal ↥A₀')
       simp
     | succ n ih =>
       -- Need: comap ι (PA.I^((n+3)·m)) ≤ I'^(n+1).
       -- PA.I^((n+3)·m) = PA.I^(m + (n+2)·m) = PA.I^m · PA.I^((n+2)·m).
       intro x hx
-      show x ∈ I' ^ (n + 1)
+      change x ∈ I' ^ (n + 1)
       -- ι(x) ∈ PA.I^((n+3)·m) = PA.I^m · PA.I^((n+2)·m)
       have hιx : ι x ∈ PA.I ^ m * PA.I ^ ((n + 2) * m) := by
         rw [← pow_add, show m + (n + 2) * m = (n + 3) * m from by ring]
@@ -370,7 +373,7 @@ private theorem exists_pairOfDefinition_le_subring
           refine ⟨hfw'_A₀', fun h' ↦ ?_⟩
           -- By IH: lift of w' is in I'^n.
           have hw'_In : (⟨PA.A₀.subtype w', hw'_A₀'⟩ : A₀') ∈ (I' ^ n : Ideal A₀') := by
-            apply ih; show ι ⟨PA.A₀.subtype w', hw'_A₀'⟩ ∈ PA.I ^ ((n + 2) * m)
+            apply ih; change ι ⟨PA.A₀.subtype w', hw'_A₀'⟩ ∈ PA.I ^ ((n + 2) * m)
             rw [show (ι ⟨PA.A₀.subtype w', hw'_A₀'⟩ : PA.A₀) = w' from
               Subtype.ext (by simp [ι, Subring.inclusion])]
             exact hw'
@@ -403,7 +406,7 @@ private theorem exists_pairOfDefinition_le_subring
           have heq : c • x' * w' = x' * (c * w') := by
             simp only [smul_eq_mul]; ring
           constructor
-          · show (PA.A₀.subtype (c • x' * w') : A) ∈ A₀'
+          · change (PA.A₀.subtype (c • x' * w') : A) ∈ A₀'
             rw [show (c • x' * w' : PA.A₀) = x' * (c * w') from Subtype.ext (by
               simp [mul_comm, mul_left_comm])]
             exact hx'cw'_A₀'
@@ -437,8 +440,8 @@ private theorem exists_pairOfDefinition_le_subring
           ((I' ^ n : Ideal A₀') : Set A₀') := by
         intro x ⟨y, hy, hval⟩
         apply comap_le_pow n
-        show ι x ∈ PA.I ^ ((n + 2) * m)
-        exact (Subtype.ext (by simp [ι, Subring.inclusion]; exact hval.symm) : ι x = y) ▸ hy
+        change ι x ∈ PA.I ^ ((n + 2) * m)
+        exact (Subtype.ext (by simp only [ι, Subring.inclusion]; exact hval.symm) : ι x = y) ▸ hy
       change IsOpen ((I' ^ n).toAddSubgroup : Set A₀')
       exact AddSubgroup.isOpen_of_mem_nhds _
         (Filter.mem_of_superset (hW_open.mem_nhds hW_zero)
@@ -573,7 +576,7 @@ private theorem exists_separating_prime_of_B₀
 -- not yet formalized. Alternative approach: use integrality of certain
 -- localizations (Cohen's theorem for adic rings), also not yet available.
 -- Estimated formalization: ~100-150 lines of Huber ring structure theory.
-omit [IsTopologicalRing A] [IsHuberRing A] in
+omit [IsTopologicalRing A] [IsHuberRing A] [IsHuberRing B] in
 private theorem exists_nonOpen_prime_of_B_from_B₀_prime
     (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
     {𝔭₀ : Ideal PB.A₀} [𝔭₀.IsPrime]
@@ -665,7 +668,7 @@ private theorem exists_nonOpen_prime_of_B_from_B₀_prime
         (𝔭₀.primeCompl.map PB.A₀.subtype : Set B) := by
       rintro _ ⟨n, rfl⟩
       refine ⟨j ^ n, ?_, map_pow PB.A₀.subtype j n⟩
-      show j ^ n ∉ 𝔭₀
+      change j ^ n ∉ 𝔭₀
       intro h
       rcases n.eq_zero_or_pos with rfl | hn
       · exact (Ideal.IsPrime.ne_top ‹_›) ((Ideal.eq_top_iff_one 𝔭₀).mpr (pow_zero j ▸ h))
@@ -704,7 +707,7 @@ private theorem exists_nonOpen_prime_of_B_from_B₀_prime
 -- `idealOfDefinition ⊄ supp(v)` alongside `𝔭 ≤ supp(v)`). Analyticity
 -- follows from: for prime p in a Huber ring with pair of definition,
 -- `IsOpen p ↔ idealOfDefinition ≤ p` (Lemma 6.6).
-omit [IsTopologicalRing A] [IsHuberRing A] in
+omit [IsTopologicalRing A] [IsHuberRing A] [IsHuberRing B] in
 private theorem spa_point_from_nonOpen_prime
     [PlusSubring B]
     (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
@@ -727,7 +730,7 @@ private theorem spa_point_from_nonOpen_prime
     exact fun a ha ↦ (instIsPrimeSupp v).radical.le
       ((PB.isTopologicallyNilpotent_of_mem ha).mem_ideal_radical h_open))
 
-omit [IsHuberRing A] in
+omit [IsHuberRing A] [IsHuberRing B] in
 private theorem exists_analytic_spa_point_from_B₀_prime
     [PlusSubring B]
     {φ : A →+* B}
@@ -769,10 +772,10 @@ private theorem exists_analytic_spa_point_from_B₀_prime
   exact PA.isOpen_of_idealOfDefinition_le h_idealOfDef_le
 
 -- Helper 2: the key construction, assembled from 2a and 2b.
-omit [IsHuberRing A] in
+omit [IsHuberRing A] [IsHuberRing B] in
 private theorem exists_analytic_spa_point_with_open_comap_supp
     [PlusSubring B]
-    {φ : A →+* B} (hφ : Continuous φ)
+    {φ : A →+* B} (_hφ : Continuous φ)
     (PA : PairOfDefinition A) (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
     (h_map : ∀ a ∈ PA.A₀, φ a ∈ PB.A₀)
     (h_not_eq : (Ideal.map (PA.restrictRingHom PB φ h_map) PA.I).radical ≠ PB.I.radical)
@@ -788,7 +791,7 @@ private theorem exists_analytic_spa_point_with_open_comap_supp
 
 theorem isAdicHom_of_complete_and_analytic_preserved
     [PlusSubring A] [PlusSubring B]
-    {φ : A →+* B} (hφ : Continuous φ) (hAB : A⁺ ≤ (B⁺).comap φ)
+    {φ : A →+* B} (hφ : Continuous φ) (_hAB : A⁺ ≤ (B⁺).comap φ)
     (h_analytic : ∀ v ∈ Spa B B⁺, IsAnalytic v → IsAnalytic (comap φ v))
     (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
     (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) :
@@ -811,7 +814,7 @@ theorem isAdicHom_of_complete_and_analytic_preserved
     have h_mem : φ (PA.A₀.subtype a) ∈ PB.A₀ := h_map _ a.2
     -- φ(subtype a) ∈ PB.A₀ and top. nilpotent → ⟨φ(subtype a), _⟩^N ∈ PB.I for some N
     obtain ⟨N, hN⟩ := PB.exists_pow_mem_I h_mem h_nil
-    show PA.restrictRingHom PB φ h_map a ∈ PB.I.radical
+    change PA.restrictRingHom PB φ h_map a ∈ PB.I.radical
     exact Ideal.mem_radical_iff.mpr ⟨N, hN⟩
   obtain ⟨v, hv_spa, hv_an, hv_open⟩ :=
     exists_analytic_spa_point_with_open_comap_supp hφ PA PB h_map h_ne h_le hBplus_le_B₀
