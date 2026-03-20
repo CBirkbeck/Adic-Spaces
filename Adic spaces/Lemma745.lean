@@ -789,22 +789,6 @@ The support of `v_ext` equals `𝔭`. The key point is:
 - `a ∉ 𝔭 ⟹ s^n * a ∉ 𝔭` (since `s ∉ 𝔭` and `𝔭` is prime) and
   `v_r(s^n * a) ≠ 0` -/
 
-/-- **Support of the extended valuation equals 𝔭.** This is the key property
-needed to produce a Spa point with the correct support.
-
-Proof: For `a ∈ 𝔭`, `s^n * a ∈ 𝔭` (ideal absorption). Since `supp(v_r) ⊇ 𝔭 ∩ A₀`
-on `A₀`, `v_r(s^n * a) = 0`, hence `v_ext(a) = 0`. Conversely, for `a ∉ 𝔭`,
-`s^n * a ∉ 𝔭` (since `s ∉ 𝔭` and `𝔭` prime), so `v_r(s^n * a) ≠ 0` and
-`v_ext(a) ≠ 0` (after dividing by the nonzero `v_r(s)^n`). -/
-theorem vExt_supp_eq
-    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
-    {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
-    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
-    (v : Valuation A Γ₀) (hv_supp : v.supp = 𝔭)
-    (v_ext : Valuation A Γ₀) (h_ext : ∀ a ∈ P.A₀, v_ext a = v a) :
-    v_ext.supp = 𝔭 := by
-  sorry
-
 /-! ### Helper (e): Continuity of the extended valuation
 
 The extended valuation is continuous when the restricted valuation on `A₀` is
@@ -1403,30 +1387,6 @@ theorem exists_spa_point_via_restrictToConvex
     rw [hv_r_zero, zero_mul]
   -- Note: backward support (a ∉ 𝔭 → v_ext a ≠ 0) is NOT needed for the
   -- relaxed statement supp ⊇ 𝔭, matching Wedhorn's Lemma 7.45 exactly.
-
-/-! ### Legacy: coarsenByUnits approach (DEPRECATED)
-
-The `exists_mulArchimedean_valuationSubring` theorem below uses the `maxAvoid`/`coarsenByUnits`
-approach, which requires proving `MulArchimedean` for the quotient
-`V₀.ValueGroupˣ ⧸ maxAvoid(u_max)`. This sorry is UNFILLABLE for rank >= 2 groups because
-`maxAvoid` is the LARGEST convex subgroup avoiding `u_max`, and its quotient can have
-proper nontrivial convex subgroups.
-
-The `exists_spa_point_via_restrictToConvex` theorem above replaces this with the
-`restrictToConvex`/`convexGenerated` approach, where all remaining sorrys are on
-the v_ext construction (fillable algebraic computations). -/
-
-theorem exists_mulArchimedean_valuationSubring
-    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
-    {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
-    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
-    ∃ V : ValuationSubring (FractionRing (A ⧸ 𝔭)),
-      (P.toFractionQuotient 𝔭).range ≤ V.toSubring ∧
-      (P.toFractionQuotient 𝔭).range.subtype ''
-        (Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I : Set _) ⊆ V.nonunits ∧
-      MulArchimedean V.ValueGroup ∧
-      (∀ f ∈ (A⁺ : Set A), P.pulledBackValuation V f ≤ 1) := by
-  sorry
 
 /-! ### Full proof assembly -/
 
