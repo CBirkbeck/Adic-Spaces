@@ -298,6 +298,7 @@ theorem le_maxAvoid_of_not_mem {γ : Γ} {hγ : γ ≠ 1} {H : ConvexSubgroup Γ
     H ≤ maxAvoid hγ :=
   fun _ hx ↦ ⟨H, h, hx⟩
 
+omit [IsOrderedMonoid Γ] in
 /-- If `γ ∉ H`, `1 < γ`, and `γ ≤ x`, then `x ∉ H`.
 
 Any element above an excluded element (above `1`) is also excluded, by
@@ -307,6 +308,7 @@ theorem not_mem_of_not_mem_of_one_lt_le (H : ConvexSubgroup Γ)
     {γ : Γ} (hγ : γ ∉ H) (hγ1 : 1 < γ) {x : Γ} (hγx : γ ≤ x) : x ∉ H :=
   fun hx ↦ hγ (H.convex (one_mem H) hx hγ1.le hγx)
 
+omit [IsOrderedMonoid Γ] in
 /-- Elements `≤` an excluded element below `1` are also excluded. -/
 theorem not_mem_of_not_mem_of_le_lt_one (H : ConvexSubgroup Γ)
     {γ : Γ} (hγ : γ ∉ H) (hγ1 : γ < 1) {x : Γ} (hxγ : x ≤ γ) : x ∉ H :=

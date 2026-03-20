@@ -260,6 +260,7 @@ theorem isBounded_finset_sum [IsTopologicalRing A] {ι : Type*} (s : Finset ι)
   | insert _ _ hni ih => rw [Finset.sum_insert hni]; exact
       (hf _ (Finset.mem_insert_self _ _)).add (ih fun j hj ↦ hf j (Finset.mem_insert_of_mem hj))
 
+omit [TopologicalSpace A] in
 /-- Strong induction: every power `a ^ n` is a `B`-linear combination of `a ^ 0, …, a ^ (N-1)`,
 given that `a ^ N` satisfies the monic relation `hp_rel`. Requires `N ≠ 0`. -/
 private theorem pow_eq_lincomb_of_monic_rel {B : Subring A} {a : A} {N : ℕ}

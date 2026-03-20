@@ -140,7 +140,7 @@ theorem p_not_isUnit_in_powerBounded [Nontrivial A] :
     IsPerfectoidRing.exists_pseudoUniformizer (p := p) (A := A)
   -- Step 2: ϖ^p is topologically nilpotent (from ϖ top. nilpotent)
   have hϖp_nil : IsTopologicallyNilpotent ((ϖ.val : A) ^ p) := by
-    show Filter.Tendsto (((ϖ.val : A) ^ p) ^ ·) Filter.atTop (nhds 0)
+    change Filter.Tendsto (((ϖ.val : A) ^ p) ^ ·) Filter.atTop (nhds 0)
     have hϖ := ϖ.property  -- ϖ topologically nilpotent
     rw [show (fun n => ((ϖ.val : A) ^ p) ^ n) = (fun n => (ϖ.val : A) ^ (p * n)) from by
       ext n; rw [← pow_mul]]
@@ -158,8 +158,9 @@ theorem p_not_isUnit_in_powerBounded [Nontrivial A] :
   have h1_nil : IsTopologicallyNilpotent (1 : A) := by
     have : (u⁻¹.val : A) * (p : A) = 1 := by
       have h := u.inv_mul
-      rw [show (u.val : ↥(powerBoundedSubring.toSubring A)) = (p : ↥(powerBoundedSubring.toSubring A))
-        from hu] at h
+      have heq : (u.val : ↥(powerBoundedSubring.toSubring A)) =
+          (p : ↥(powerBoundedSubring.toSubring A)) := hu
+      rw [heq] at h
       exact_mod_cast h
     rw [← this]; exact hq_pb.isTopologicallyNilpotent_mul hp_nil
   -- 1 topologically nilpotent means constant seq 1 → 0
@@ -168,7 +169,7 @@ theorem p_not_isUnit_in_powerBounded [Nontrivial A] :
     tendsto_nhds_unique_inseparable
       (show Filter.Tendsto (fun _ : ℕ => (1 : A)) Filter.atTop (nhds 0) from by
         have : Filter.Tendsto ((1 : A) ^ ·) Filter.atTop (nhds 0) := h1_nil
-        simpa [one_pow] using this)
+        simp [one_pow] at this)
       tendsto_const_nhds
   exact absurd h01.eq (Ne.symm one_ne_zero)
 
