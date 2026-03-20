@@ -32,6 +32,7 @@ import «Adic spaces».Uniform
 import «Adic spaces».UniformBanach
 import «Adic spaces».ValuationAction
 import «Adic spaces».ValuationCoarsening
+import «Adic spaces».ValuationContinuity
 import «Adic spaces».ValuationPrimeConvex
 import «Adic spaces».ValuationSpectrum
 import «Adic spaces».ValuativeRel.Comap
