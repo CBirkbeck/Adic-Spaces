@@ -47,7 +47,7 @@ namespace PairOfDefinition
 open ValuationSpectrum
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A]
-  [IsTopologicalRing A] [IsLinearTopology A A]
+  [IsTopologicalRing A]
 
 /-! ### Helper (a): Topological nilpotency gives `s^n * a ∈ A₀`
 
@@ -55,7 +55,6 @@ If `s` is topologically nilpotent in `A` and `A₀` is open, then for any `a : A
 there exists `n` such that `s ^ n * a ∈ A₀`. This is Wedhorn's Lemma 7.44(1)
 applied to the extension construction. -/
 
-omit [IsLinearTopology A A] in
 /-- For `s` topologically nilpotent and `A₀` open in `A`, there exists `n`
 with `s ^ n * a ∈ A₀` (used in the extension construction, Wedhorn Lemma 7.44). -/
 theorem exists_pow_mul_mem_A₀ (P : PairOfDefinition A)
@@ -74,7 +73,7 @@ theorem exists_pow_mul_mem_A₀ (P : PairOfDefinition A)
   obtain ⟨n, hn⟩ := (hs.eventually h_nhds).exists
   exact ⟨n, hn⟩
 
-omit [IsTopologicalRing A] [IsLinearTopology A A] in
+omit [IsTopologicalRing A] in
 /-- Monotonicity: if `s ^ n * a ∈ A₀` then `s ^ (n + k) * a ∈ A₀` for all `k`.
 This follows because `s ^ (n + k) * a = s ^ k * (s ^ n * a)` and `A₀` is a subring. -/
 theorem pow_mul_mem_A₀_of_le (P : PairOfDefinition A)
@@ -96,7 +95,7 @@ This requires proving:
 
 These are stated as sorry lemmas below, to be filled as infrastructure is developed. -/
 
-omit [IsTopologicalRing A] [IsLinearTopology A A] in
+omit [IsTopologicalRing A] in
 /-- **Well-definedness of the extended valuation.** If `s ^ n * a ∈ A₀` and
 `s ^ m * a ∈ A₀`, then the two definitions of `v_ext(a)` agree:
 `v_r(s^n * a) * v_r(s)^{-n} = v_r(s^m * a) * v_r(s)^{-m}`.
@@ -141,7 +140,7 @@ The extended valuation is continuous when the restricted valuation on `A₀` is
 continuous and `A₀` is open in `A`. This is Wedhorn's Lemma 7.44(2):
 `v` on `A` is continuous iff `v|_{A₀}` is continuous on the open subring `A₀`. -/
 
-omit [IsLinearTopology A A] in
+
 /-- **Continuity transfer from open subring.** If `v` is a valuation on `A`,
 `A₀` is an open subring, and `v|_{A₀}` (the restriction) is continuous
 (in the subspace topology on `A₀`), then `v` is continuous on `A`.
@@ -225,7 +224,7 @@ namespace PairOfDefinition
 open ValuationSpectrum
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A]
-  [IsTopologicalRing A] [IsLinearTopology A A]
+  [IsTopologicalRing A]
 
 /-! ### The restrictToConvex + v_ext construction (Wedhorn Lemma 7.44(3) + 7.45)
 

@@ -72,20 +72,22 @@ namespace PairOfDefinition
 variable {A : Type*} [CommRing A] [TopologicalSpace A]
   [IsTopologicalRing A] [IsLinearTopology A A]
 
+omit [IsLinearTopology A A] in
 /-- If a prime ideal contains the ideal of definition, then it is open. -/
 theorem isOpen_of_idealOfDefinition_le
     (P : PairOfDefinition A) {𝔭 : Ideal A} [𝔭.IsPrime]
-    (h : P.idealOfDefinition ≤ 𝔭) : IsOpen (𝔭 : Set A) :=
-  ideal_isOpen_of_topologicalNilradical_le_radical
-    P.exists_fg_le_topologicalNilradical
-    (P.topologicalNilradical_le_idealOfDefinition_radical.trans (Ideal.radical_mono h))
+    (hle : P.idealOfDefinition ≤ 𝔭) : IsOpen (𝔭 : Set A) :=
+  P.ideal_isOpen_of_nilpotent_le_radical fun a ha ↦
+    Ideal.radical_mono hle (P.isTopologicallyNilpotent_mem_idealOfDefinition_radical ha)
 
+omit [IsLinearTopology A A] in
 /-- A non-open prime does not contain the ideal of definition (Lemma 7.45). -/
 theorem idealOfDefinition_not_le_of_not_isOpen
     (P : PairOfDefinition A) {𝔭 : Ideal A} [𝔭.IsPrime]
     (h : ¬IsOpen (𝔭 : Set A)) : ¬P.idealOfDefinition ≤ 𝔭 :=
   fun hle ↦ h (P.isOpen_of_idealOfDefinition_le hle)
 
+omit [IsLinearTopology A A] in
 /-- A non-open prime does not contain all of `I`: there exists `a ∈ I` with `a ∉ 𝔭`. -/
 theorem exists_mem_I_not_mem_of_not_isOpen
     (P : PairOfDefinition A) {𝔭 : Ideal A} [𝔭.IsPrime]

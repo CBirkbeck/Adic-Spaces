@@ -24,12 +24,12 @@ following §7.5 and §8.4 of [Wedhorn, *Adic Spaces*].
   `Spa(φ)` preserves analytic points, then `φ` is adic (Lemma 7.46(2)).
 * `ValuationSpectrum.IsAdicMorphism` : Adic morphisms of adic spaces
   (Definition 8.38 of Wedhorn).
-* `ValuationSpectrum.isAdicMorphism_iff_preserves_analytic` : A morphism is adic iff it
-  preserves analytic points (Proposition 8.39(1)).
+* `ValuationSpectrum.isAdicHom_iff_preserves_analytic` : A ring hom is adic iff it
+  preserves analytic points on Spa (Proposition 8.39(1), affinoid iff version).
 * `ValuationSpectrum.morphism_preserves_nonAnalytic_affinoid` : Any continuous ring hom
   preserves non-analytic points (Proposition 8.39(2), affinoid case).
-* `ValuationSpectrum.IsAdicMorphism.ringHom_isAdic` : All induced ring maps of an adic
-  morphism are adic (Corollary 8.40).
+* `ValuationSpectrum.IsAdicMorphism.ringHom_isAdic` : The induced ring map of an adic
+  morphism on affinoid charts is adic (Corollary 8.40).
 
 ## References
 
@@ -70,7 +70,7 @@ theorem nonAnalytic_comap_of_continuous {φ : A →+* B} (hφ : Continuous φ)
 section AdicPreservesAnalytic
 
 variable [IsTopologicalRing A] [IsTopologicalRing B]
-  [IsLinearTopology A A] [IsHuberRing A] [IsHuberRing B]
+  [IsHuberRing A] [IsHuberRing B]
 
 omit [IsHuberRing B] in
 /-- If `supp(v)` contains the ideal of definition, then `supp(v)` is open. -/
@@ -87,7 +87,7 @@ private theorem supp_isOpen_of_idealOfDefinition_le
         obtain ⟨y, hy, rfl⟩ := hb
         exact h (Ideal.mem_map_of_mem _ (pow_one PB.I ▸ hy))))
 
-omit [IsTopologicalRing A] [IsTopologicalRing B] [IsLinearTopology A A]
+omit [IsTopologicalRing A] [IsTopologicalRing B]
   [IsHuberRing A] [IsHuberRing B] in
 /-- If `I` maps into `supp(comap φ v)` and `φ` is adic, then `PB.idealOfDefinition ≤ supp v`. -/
 private theorem idealOfDefinition_le_supp_of_adic
@@ -122,11 +122,10 @@ theorem analytic_comap_of_isAdicHom {φ : A →+* B}
   intro hna
   apply hv; clear hv
   obtain ⟨PA, PB, hAB, hrad⟩ := hφ
-  have hI_le : PA.idealOfDefinition ≤ (comap φ v).supp :=
-    calc PA.idealOfDefinition
-        ≤ topologicalNilradical A := PA.idealOfDefinition_le_topologicalNilradical
-      _ ≤ ((comap φ v).supp).radical := topologicalNilradical_le_radical_of_isOpen hna
-      _ = (comap φ v).supp := (instIsPrimeSupp _).radical
+  have hI_le : PA.idealOfDefinition ≤ (comap φ v).supp := by
+    rw [PairOfDefinition.idealOfDefinition, Ideal.map_le_iff_le_comap]
+    exact fun a ha ↦ (instIsPrimeSupp (comap φ v)).radical.le
+      ((PA.isTopologicallyNilpotent_of_mem ha).mem_ideal_radical hna)
   exact supp_isOpen_of_idealOfDefinition_le PB v
     (idealOfDefinition_le_supp_of_adic PA PB φ hAB hrad v hI_le)
 
@@ -137,7 +136,7 @@ end AdicPreservesAnalytic
 section TateSpecialization
 
 variable [IsTopologicalRing A] [IsTopologicalRing B]
-  [IsLinearTopology A A] [IsHuberRing A] [IsHuberRing B]
+  [IsHuberRing A] [IsHuberRing B]
 
 omit [IsTopologicalRing A] in
 /-- In a Tate source ring, adic homomorphisms produce analytic comap points. -/
@@ -155,7 +154,7 @@ section Lemma746Converse
 variable {A B : Type*} [CommRing A] [CommRing B]
   [TopologicalSpace A] [TopologicalSpace B]
   [IsTopologicalRing A] [IsTopologicalRing B]
-  [IsLinearTopology A A] [IsLinearTopology B B] [IsHuberRing A] [IsHuberRing B]
+  [IsHuberRing A] [IsHuberRing B]
 
 /-- **Lemma 7.46(2) of Wedhorn.** If `B` is a complete Huber ring (with `(B, B⁺)` an
 affinoid ring such that `A⁺ ⊆ B⁺` via `φ`) and the induced map `Spa(φ)` preserves
@@ -167,11 +166,10 @@ The proof proceeds by contrapositive: if `φ` is not adic, one finds a non-open 
 comap is non-analytic (since `supp(comap φ v) ⊇ I_A`, hence open). This contradicts
 the hypothesis that `Spa(φ)` preserves analytic points.
 
-**Sorry status:** The proof chain has two sorry'd helpers:
-1. `exists_pairOfDefinition_le_subring` (Wedhorn Lemma 6.5) — any open subring of a
-   Huber ring contains a ring of definition. Partially proved: openness of the
-   new ring of definition `Subring.closure(image(I^m))` is established; the
-   remaining sorry is the `IsAdic` property (interleaving of ideal powers).
+**Sorry status:** The proof chain has one sorry'd helper:
+1. `exists_pairOfDefinition_le_subring` (Wedhorn Lemma 6.5) — **PROVED**. Uses
+   `Ideal.span` of lifted generators of `PA.I^m` (FG by construction) with IsAdic
+   proved via `span_induction` (Wedhorn Lemma 6.2 coefficient-absorption argument).
 2. `exists_nonOpen_prime_of_B_from_B₀_prime` — extending primes from `PB.A₀` to `B`
    while avoiding the ideal of definition. Requires showing that `Ideal.map
    PB.A₀.subtype 𝔭₀` is disjoint from powers of a topologically nilpotent element,
@@ -179,8 +177,8 @@ the hypothesis that `Spa(φ)` preserves analytic points.
 
 Previously sorry'd `spa_point_from_nonOpen_prime` is now proved using the strengthened
 Lemma 7.45 API (which exports `idealOfDefinition ⊄ supp(v)`, yielding analyticity).
-The `[IsLinearTopology B B]` instance is assumed as a section hypothesis (derivable
-from `IsHuberRing B` but not yet formalized as an instance).
+The proof avoids `topologicalNilradical` (which requires `IsLinearTopology`) by
+working directly with `IsTopologicallyNilpotent` via `PairOfDefinition` API.
 
 The main proof structure (contrapositive + contradiction) is sorry-free. -/
 
@@ -229,6 +227,13 @@ private theorem exists_pairOfDefinition_le_subring
   -- **Wedhorn Lemma 6.5 (simplified).**
   -- Step 1: Find m with image(I^m) ⊆ U.
   obtain ⟨m, -, hm⟩ := PA.hasBasis_nhds_zero.mem_iff.mp (hU.mem_nhds (U.zero_mem))
+  -- Handle m = 0 case: image(I^0) = PA.A₀ ⊆ U, so PA works directly.
+  rcases Nat.eq_zero_or_pos m with rfl | hm_pos
+  · -- PA.I^0 = ⊤, so image(⊤) = PA.A₀ ⊆ U. Hence PA.A₀ ≤ U.
+    have : PA.A₀ ≤ U := by
+      intro a ha; exact hm (Set.mem_image_of_mem PA.A₀.subtype (by simp : (⟨a, ha⟩ : PA.A₀) ∈ (PA.I ^ 0 : Ideal PA.A₀)))
+    exact ⟨PA, this⟩
+  -- From now on, m > 0.
   -- Step 2: Define A₀' = Subring.closure S where S = image of I^m in A.
   set S := PA.A₀.subtype '' ((PA.I ^ m : Ideal PA.A₀) : Set PA.A₀) with S_def
   set A₀' := Subring.closure S with A₀'_def
@@ -268,38 +273,195 @@ private theorem exists_pairOfDefinition_le_subring
         ((PA.pow_image_isOpen (2 * m)).mem_nhds
           (Set.mem_image_of_mem _ (PA.I ^ (2 * m)).zero_mem))
         h2m_sub)
-  -- Step 6: Build the ideal I' of A₀'.
-  -- We define I' as the image of PA.I^m under a "section" map from PA.A₀ to A₀',
-  -- defined by lifting elements of PA.I^m (which all lie in A₀') to A₀'.
-  -- Since PA.I^m is f.g., I' = Ideal.map (section) (PA.I^m) is f.g.
-  --
-  -- We use Ideal.comap (Subring.inclusion hA₀'_le_PA) (PA.I^m) as the ideal.
-  -- This is the set of elements of A₀' that, viewed in PA.A₀ via inclusion,
-  -- belong to PA.I^m.
-  --
-  -- **FG:** Although comap does not preserve FG in general, in this case
-  -- I' = Ideal.span {g₁',...,gₖ'} where the gᵢ' are the generators of PA.I^m
-  -- lifted to A₀'. This holds because A₀' = Subring.closure(S) and any element
-  -- of A₀' ∩ PA.I^m can be decomposed into monomials in elements of S = image(I^m),
-  -- each of which (except possibly constant terms) is an A₀'-multiple of a
-  -- generator. The constant term issue is resolved by the adic topology:
-  -- for m ≥ 1, the only integer in PA.I^m that is not an A₀'-linear combination
-  -- of generators is 0 (in the adic complete case, ∩ I^n = 0).
-  --
-  -- **IsAdic:** The subspace topology on A₀' equals the I'-adic topology.
-  -- This uses the interleaving: (I')^n is open in A₀' (since image(PA.I^(mn))
-  -- is open and ⊆ (I')^n), and conversely any nhds of 0 in A₀' contains
-  -- some (I')^n (since PA.I^k for large k is contained in A₀' ∩ I', hence
-  -- its image is in (I')^n for n = ⌈k/m⌉).
-  --
-  -- **Sorry (Wedhorn Lemma 6.5):** The remaining formalization requires:
-  -- 1. FG: Showing Ideal.span of lifted generators = comap(inclusion)(PA.I^m)
-  --    (~30-40 lines, using Subring.closure induction and ideal properties).
-  -- 2. IsAdic: Showing the adic topology interleaving (~40-50 lines, using
-  --    isAdic_iff, PA.hasBasis_nhds_zero, and Submodule.mul_induction_on).
-  sorry
+  -- Step 6: Build a finitely generated ideal I' of A₀' and the PairOfDefinition.
+  -- Strategy (Wedhorn Lemma 6.2 / Corollary 6.4(4)):
+  -- Lift generators of PA.I^m to A₀', define I' = Ideal.span(lifts).
+  -- For IsAdic, the key openness argument uses span_induction on g ∈ PA.I^m
+  -- with the predicate universally quantified over w, so that the smul case
+  -- (c · g for c ∈ PA.A₀) absorbs c into w via c·w ∈ PA.I^{(n+1)m}.
+  set ι := Subring.inclusion hA₀'_le_PA with ι_def
+  -- Elements of PA.I^m have subtype-images in S ⊆ A₀'.
+  have hlift : ∀ x ∈ PA.I ^ m, (PA.A₀.subtype x : A) ∈ A₀' :=
+    fun x hx ↦ Subring.subset_closure ⟨x, hx, rfl⟩
+  -- Get a finite generating set for PA.I^m.
+  obtain ⟨F, hF⟩ := PA.fg.pow (n := m)
+  -- Lift each generator to A₀'.
+  have hF_sub : ∀ g ∈ F, (PA.A₀.subtype g : A) ∈ A₀' :=
+    fun g hg ↦ hlift g (hF ▸ Ideal.subset_span (Finset.mem_coe.mpr hg))
+  -- Define the lifted generators in A₀'.
+  classical
+  set F' : Finset A₀' :=
+    F.attach.image (fun g ↦ ⟨PA.A₀.subtype g.1, hF_sub g.1 g.2⟩)
+  -- Define I' as the ideal of A₀' generated by F'.
+  set I' := Ideal.span (F' : Set A₀') with I'_def
+  -- **FG of I':** immediate from the finite generating set.
+  have hI'_fg : I'.FG := ⟨F', rfl⟩
+  -- Key: ι maps each lifted generator back to the original generator in PA.A₀.
+  have hι_gen_eq : ∀ (g : PA.A₀) (hg : g ∈ F),
+      ι (⟨PA.A₀.subtype g, hF_sub g hg⟩ : A₀') = g :=
+    fun g _ ↦ Subtype.ext (by simp [ι, Subring.inclusion])
+  -- Therefore ι maps each generator of I' into PA.I^m.
+  have hι_gen : ∀ g' ∈ F', ι g' ∈ PA.I ^ m := by
+    intro g' hg'
+    simp only [F', Finset.mem_image, Finset.mem_attach, true_and] at hg'
+    obtain ⟨⟨g, hg_mem⟩, rfl⟩ := hg'
+    rw [hι_gen_eq g hg_mem]; exact hF ▸ Ideal.subset_span (Finset.mem_coe.mpr hg_mem)
+  -- Therefore I' ≤ comap ι (PA.I^m).
+  have hI'_le_comap : I' ≤ Ideal.comap ι (PA.I ^ m) :=
+    Ideal.span_le.mpr fun g' hg' ↦ hι_gen g' hg'
+  -- **Openness inclusion (by induction on n):**
+  -- comap ι (PA.I^((n+2)·m)) ≤ I'^n.
+  -- Base: n = 0 is trivial (I'^0 = ⊤).
+  -- Step: PA.I^((n+3)·m) = PA.I^m · PA.I^((n+2)·m). For g ∈ PA.I^m = Ideal.span F
+  --   and w ∈ PA.I^((n+2)·m), decompose g via span_induction: generators f ∈ F
+  --   lift to f' ∈ I', and f'·(IH element in I'^n) ∈ I'^(n+1). Coefficients c ∈ PA.A₀
+  --   absorb into w: c·w ∈ PA.I^((n+2)·m), so its lift is in I'^n by IH.
+  have comap_le_pow : ∀ n, Ideal.comap ι (PA.I ^ ((n + 2) * m)) ≤ I' ^ n := by
+    intro n
+    induction n with
+    | zero =>
+      intro x _
+      show x ∈ (I' ^ 0 : Ideal ↥A₀')
+      simp
+    | succ n ih =>
+      -- Need: comap ι (PA.I^((n+3)·m)) ≤ I'^(n+1).
+      -- PA.I^((n+3)·m) = PA.I^(m + (n+2)·m) = PA.I^m · PA.I^((n+2)·m).
+      intro x hx
+      show x ∈ I' ^ (n + 1)
+      -- ι(x) ∈ PA.I^((n+3)·m) = PA.I^m · PA.I^((n+2)·m)
+      have hιx : ι x ∈ PA.I ^ m * PA.I ^ ((n + 2) * m) := by
+        rw [← pow_add, show m + (n + 2) * m = (n + 3) * m from by ring]
+        exact hx
+      -- Prove: for z ∈ PA.I^m · PA.I^((n+2)·m), if subtype(z) ∈ A₀',
+      -- then ⟨subtype(z), _⟩ ∈ I'^(n+1).
+      -- We use span_induction on the PA.I^m = Ideal.span F factor.
+      -- Predicate: z maps to A₀' AND its lift is in I'^(n+1).
+      -- Using conjunction avoids the problem of deducing A₀'-membership of summands.
+      suffices h_suff : ∀ z ∈ PA.I ^ m * PA.I ^ ((n + 2) * m),
+          (PA.A₀.subtype z : A) ∈ A₀' ∧
+          ∀ (h' : (PA.A₀.subtype z : A) ∈ A₀'),
+          (⟨PA.A₀.subtype z, h'⟩ : A₀') ∈ (I' ^ (n + 1) : Ideal A₀') by
+        have hx_eq : x = ⟨PA.A₀.subtype (ι x), x.2⟩ := by
+          ext; simp [ι, Subring.inclusion]
+        rw [hx_eq]; exact (h_suff (ι x) hιx).2 x.2
+      intro z hz
+      -- Decompose z via mul_induction_on on PA.I^m · PA.I^((n+2)·m).
+      refine Submodule.mul_induction_on hz (fun g hg w hw ↦ ?_) (fun u v hu hv ↦ ?_)
+      · -- Product case: z = g · w with g ∈ PA.I^m, w ∈ PA.I^((n+2)·m).
+        -- Use span_induction on g ∈ PA.I^m = Ideal.span F.
+        -- Inner span_induction with universally quantified w' (for smul absorption).
+        -- Predicate: subtype(g'·w') ∈ A₀' AND its lift is in I'^(n+1).
+        suffices h_span : ∀ (g' : PA.A₀), g' ∈ Ideal.span (F : Set PA.A₀) →
+            ∀ (w' : PA.A₀), w' ∈ PA.I ^ ((n + 2) * m) →
+            (PA.A₀.subtype (g' * w') : A) ∈ A₀' ∧
+            ∀ (h' : (PA.A₀.subtype (g' * w') : A) ∈ A₀'),
+            (⟨PA.A₀.subtype (g' * w'), h'⟩ : A₀') ∈ (I' ^ (n + 1) : Ideal A₀') by
+          exact h_span g (hF ▸ hg) w hw
+        intro g' hg'
+        induction hg' using Submodule.span_induction with
+        | mem f hf =>
+          intro w' hw'
+          have hf'_mem : (⟨PA.A₀.subtype f, hF_sub f hf⟩ : A₀') ∈ I' :=
+            Ideal.subset_span (Finset.mem_image.mpr ⟨⟨f, hf⟩, Finset.mem_attach _ _, rfl⟩)
+          have hw'_A₀' : (PA.A₀.subtype w' : A) ∈ A₀' :=
+            hlift w' (Ideal.pow_le_pow_right (Nat.le_mul_of_pos_left m (by omega)) hw')
+          have hfw'_A₀' : (PA.A₀.subtype (f * w') : A) ∈ A₀' := by
+            rw [map_mul]; exact A₀'.mul_mem (hF_sub f hf) hw'_A₀'
+          refine ⟨hfw'_A₀', fun h' ↦ ?_⟩
+          -- By IH: lift of w' is in I'^n.
+          have hw'_In : (⟨PA.A₀.subtype w', hw'_A₀'⟩ : A₀') ∈ (I' ^ n : Ideal A₀') := by
+            apply ih; show ι ⟨PA.A₀.subtype w', hw'_A₀'⟩ ∈ PA.I ^ ((n + 2) * m)
+            rw [show (ι ⟨PA.A₀.subtype w', hw'_A₀'⟩ : PA.A₀) = w' from
+              Subtype.ext (by simp [ι, Subring.inclusion])]
+            exact hw'
+          -- f' · (lift of w') ∈ I' · I'^n = I'^(n+1).
+          have : (⟨PA.A₀.subtype (f * w'), h'⟩ : A₀') =
+              ⟨PA.A₀.subtype f, hF_sub f hf⟩ * ⟨PA.A₀.subtype w', hw'_A₀'⟩ :=
+            Subtype.ext (by simp [map_mul])
+          rw [this, pow_succ']
+          exact Ideal.mul_mem_mul hf'_mem hw'_In
+        | zero =>
+          intro w' _
+          exact ⟨by simp [A₀'.zero_mem], fun h' ↦ by
+            have : (⟨PA.A₀.subtype (0 * w'), h'⟩ : A₀') = 0 :=
+              Subtype.ext (by simp)
+            rw [this]; exact (I' ^ (n + 1)).zero_mem⟩
+        | add x' y' _ _ hx'_ih hy'_ih =>
+          intro w' hw'
+          obtain ⟨hx'w'_A₀', hx'_res⟩ := hx'_ih w' hw'
+          obtain ⟨hy'w'_A₀', hy'_res⟩ := hy'_ih w' hw'
+          refine ⟨by rw [add_mul, map_add]; exact A₀'.add_mem hx'w'_A₀' hy'w'_A₀', fun h' ↦ ?_⟩
+          have : (⟨PA.A₀.subtype ((x' + y') * w'), h'⟩ : A₀') =
+              ⟨PA.A₀.subtype (x' * w'), hx'w'_A₀'⟩ +
+              ⟨PA.A₀.subtype (y' * w'), hy'w'_A₀'⟩ :=
+            Subtype.ext (by simp [add_mul, map_add])
+          rw [this]; exact (I' ^ (n + 1)).add_mem (hx'_res hx'w'_A₀') (hy'_res hy'w'_A₀')
+        | smul c x' _ hx'_ih =>
+          intro w' hw'
+          have hcw'_mem : c * w' ∈ PA.I ^ ((n + 2) * m) := Ideal.mul_mem_left _ c hw'
+          obtain ⟨hx'cw'_A₀', hx'_res⟩ := hx'_ih (c * w') hcw'_mem
+          have heq : c • x' * w' = x' * (c * w') := by
+            simp only [smul_eq_mul]; ring
+          constructor
+          · show (PA.A₀.subtype (c • x' * w') : A) ∈ A₀'
+            rw [show (c • x' * w' : PA.A₀) = x' * (c * w') from Subtype.ext (by
+              simp [mul_comm, mul_left_comm])]
+            exact hx'cw'_A₀'
+          · intro h'
+            have : (⟨PA.A₀.subtype (c • x' * w'), h'⟩ : A₀') =
+                ⟨PA.A₀.subtype (x' * (c * w')), hx'cw'_A₀'⟩ :=
+              Subtype.ext (by simp [mul_comm, mul_left_comm])
+            rw [this]; exact hx'_res hx'cw'_A₀'
+      · -- Additive case: z = u + v. Both summands satisfy the predicate by hypothesis.
+        obtain ⟨hu_A₀', hu_res⟩ := hu
+        obtain ⟨hv_A₀', hv_res⟩ := hv
+        refine ⟨by rw [map_add]; exact A₀'.add_mem hu_A₀' hv_A₀', fun h' ↦ ?_⟩
+        have : (⟨PA.A₀.subtype (u + v), h'⟩ : A₀') =
+            ⟨PA.A₀.subtype u, hu_A₀'⟩ + ⟨PA.A₀.subtype v, hv_A₀'⟩ :=
+          Subtype.ext (by simp [map_add])
+        rw [this]; exact (I' ^ (n + 1)).add_mem (hu_res hu_A₀') (hv_res hv_A₀')
+  -- **IsAdic of I':** The subspace topology on A₀' equals the I'-adic topology.
+  have hI'_isAdic : IsAdic I' := by
+    rw [isAdic_iff]; constructor
+    · -- (1) Each I'^n is open: I'^n ⊇ preimage of image(PA.I^((n+2)·m)).
+      intro n
+      set k := (n + 2) * m
+      have hW_open : IsOpen ((fun x : A₀' ↦ (x : A)) ⁻¹'
+          (PA.A₀.subtype '' ((PA.I ^ k : Ideal PA.A₀) : Set PA.A₀))) :=
+        (PA.pow_image_isOpen k).preimage continuous_subtype_val
+      have hW_zero : (0 : A₀') ∈ (fun x : A₀' ↦ (x : A)) ⁻¹'
+          (PA.A₀.subtype '' ((PA.I ^ k : Ideal PA.A₀) : Set PA.A₀)) :=
+        ⟨0, (PA.I ^ k).zero_mem, by simp⟩
+      have hW_sub : (fun x : A₀' ↦ (x : A)) ⁻¹'
+          (PA.A₀.subtype '' ((PA.I ^ k : Ideal PA.A₀) : Set PA.A₀)) ⊆
+          ((I' ^ n : Ideal A₀') : Set A₀') := by
+        intro x ⟨y, hy, hval⟩
+        apply comap_le_pow n
+        show ι x ∈ PA.I ^ ((n + 2) * m)
+        exact (Subtype.ext (by simp [ι, Subring.inclusion]; exact hval.symm) : ι x = y) ▸ hy
+      change IsOpen ((I' ^ n).toAddSubgroup : Set A₀')
+      exact AddSubgroup.isOpen_of_mem_nhds _
+        (Filter.mem_of_superset (hW_open.mem_nhds hW_zero)
+          (Submodule.coe_toAddSubgroup (I' ^ n) ▸ hW_sub))
+    · -- (2) Every nhds of 0 in A₀' contains some I'^n.
+      -- I' ≤ comap ι (PA.I^m), so I'^n ≤ comap ι (PA.I^(mn)), which shrinks to 0.
+      intro s hs
+      have hI'_pow_le : ∀ n, I' ^ n ≤ Ideal.comap ι (PA.I ^ (m * n)) := by
+        intro n
+        calc I' ^ n ≤ (Ideal.comap ι (PA.I ^ m)) ^ n := pow_le_pow_left' hI'_le_comap n
+          _ ≤ Ideal.comap ι ((PA.I ^ m) ^ n) := Ideal.le_comap_pow ι n
+          _ = Ideal.comap ι (PA.I ^ (m * n)) := by rw [← pow_mul]
+      rw [nhds_induced, Filter.mem_comap] at hs
+      obtain ⟨V, hV, hV_sub⟩ := hs
+      obtain ⟨j, -, hj⟩ := PA.hasBasis_nhds_zero.mem_iff.mp hV
+      refine ⟨j, fun x hx ↦ hV_sub (show (x : A) ∈ V from hj ?_)⟩
+      have hιx : ι x ∈ PA.I ^ (m * j) := hI'_pow_le j hx
+      have hmj_le : PA.I ^ (m * j) ≤ PA.I ^ j :=
+        Ideal.pow_le_pow_right (Nat.le_mul_of_pos_left j hm_pos)
+      exact ⟨ι x, hmj_le hιx, by simp [ι, Subring.inclusion]⟩
+  exact ⟨⟨A₀', I', hA₀'_open, hI'_fg, hI'_isAdic⟩, hA₀'_le_U⟩
 
-omit [IsTopologicalRing B] [IsLinearTopology B B] [IsHuberRing B] in
+omit [IsTopologicalRing B] [IsHuberRing B] in
 private theorem exists_compatible_pair
     {φ : A →+* B} (hφ : Continuous φ) (PB : PairOfDefinition B) :
     ∃ (PA : PairOfDefinition A), ∀ a ∈ PA.A₀, φ a ∈ PB.A₀ := by
@@ -318,8 +480,8 @@ private theorem exists_compatible_pair
 
 -- Helper 2a: from strict radical containment, find a separating prime of B₀.
 -- This is a standard commutative algebra argument using Ideal.radical_eq_sInf.
-omit [IsTopologicalRing A] [IsTopologicalRing B] [IsLinearTopology A A]
-  [IsLinearTopology B B] [IsHuberRing A] [IsHuberRing B] in
+omit [IsTopologicalRing A] [IsTopologicalRing B]
+  [IsHuberRing A] [IsHuberRing B] in
 private theorem exists_separating_prime_of_B₀
     {φ : A →+* B}
     (PA : PairOfDefinition A) (PB : PairOfDefinition B)
@@ -411,15 +573,129 @@ private theorem exists_separating_prime_of_B₀
 -- not yet formalized. Alternative approach: use integrality of certain
 -- localizations (Cohen's theorem for adic rings), also not yet available.
 -- Estimated formalization: ~100-150 lines of Huber ring structure theory.
-omit [IsTopologicalRing A] [IsLinearTopology A A] [IsHuberRing A]
-  [IsLinearTopology B B] in
+omit [IsTopologicalRing A] [IsHuberRing A] in
 private theorem exists_nonOpen_prime_of_B_from_B₀_prime
     (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
     {𝔭₀ : Ideal PB.A₀} [𝔭₀.IsPrime]
     (hJ_not_le : ¬PB.I ≤ 𝔭₀) :
     ∃ (𝔭 : Ideal B), 𝔭.IsPrime ∧ ¬IsOpen (𝔭 : Set B) ∧
       𝔭₀ ≤ Ideal.comap PB.A₀.subtype 𝔭 := by
-  sorry
+  -- Step 1: Choose j ∈ PB.I with j ∉ 𝔭₀.
+  obtain ⟨j, hj_mem, hj_not⟩ := SetLike.not_le_iff_exists.mp hJ_not_le
+  -- Step 2: Establish disjointness of (map subtype 𝔭₀) and (powers (subtype j)) in B.
+  -- This is the core difficulty: elements of map subtype 𝔭₀ are finite sums
+  -- ∑ bᵢ · subtype(aᵢ) with aᵢ ∈ 𝔭₀ and bᵢ ∈ B (not necessarily in PB.A₀),
+  -- so pulling back to PB.A₀ is non-trivial and requires Huber ring structure theory
+  -- (that B is a union of bounded PB.A₀-modules). See comment block above.
+  have h_disj : Disjoint (Ideal.map PB.A₀.subtype 𝔭₀ : Set B)
+      (Submonoid.powers (PB.A₀.subtype j)) := by
+    -- Reduce to: comap subtype (map subtype 𝔭₀) ≤ 𝔭₀ (the lying-over direction).
+    -- Once we have this, disjoint_map_primeCompl_iff_comap_le gives disjointness with
+    -- the full prime complement, from which we restrict to powers of (subtype j).
+    have h_comap_le : (Ideal.map PB.A₀.subtype 𝔭₀).comap PB.A₀.subtype ≤ 𝔭₀ := by
+      -- Key claim: for the open subring inclusion PB.A₀ → B in a Huber ring,
+      -- the contraction of the extension of a prime equals the prime.
+      -- Proof by span_induction on elements of Ideal.map subtype 𝔭₀ = Ideal.span (subtype '' 𝔭₀),
+      -- using topological nilpotency of j ∈ PB.I to absorb scalars from B into PB.A₀.
+      -- Predicate: P(b) := ∃ n c, c ∈ 𝔭₀ ∧ subtype(c) = (subtype j)^n * b.
+      -- Topological nilpotency of j (needed for smul case).
+      have hj_nil : IsTopologicallyNilpotent (PB.A₀.subtype j : B) :=
+        PB.isTopologicallyNilpotent_of_mem hj_mem
+      -- Helper: for any b in Ideal.span (subtype '' 𝔭₀), ∃ n c, c ∈ 𝔭₀ ∧ subtype c = j^n * b.
+      have h_span : ∀ (b : B), b ∈ Ideal.span (PB.A₀.subtype '' (𝔭₀ : Set PB.A₀)) →
+          ∃ (n : ℕ) (c : PB.A₀), c ∈ 𝔭₀ ∧
+            PB.A₀.subtype c = (PB.A₀.subtype j) ^ n * b := by
+        intro b hb
+        induction hb using Submodule.span_induction with
+        | mem b hb =>
+          obtain ⟨a, ha_mem, ha_eq⟩ := hb
+          exact ⟨0, a, ha_mem, by rw [pow_zero, one_mul, ha_eq]⟩
+        | zero =>
+          exact ⟨0, 0, 𝔭₀.zero_mem, by simp⟩
+        | add b₁ b₂ _ _ ih₁ ih₂ =>
+          obtain ⟨n₁, c₁, hc₁_mem, hc₁_eq⟩ := ih₁
+          obtain ⟨n₂, c₂, hc₂_mem, hc₂_eq⟩ := ih₂
+          refine ⟨n₁ ⊔ n₂, j ^ (n₁ ⊔ n₂ - n₁) * c₁ + j ^ (n₁ ⊔ n₂ - n₂) * c₂,
+            𝔭₀.add_mem (𝔭₀.mul_mem_left _ hc₁_mem) (𝔭₀.mul_mem_left _ hc₂_mem), ?_⟩
+          have h1 : (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₁ + n₁) * b₁ =
+              (PB.A₀.subtype j) ^ (n₁ ⊔ n₂) * b₁ := by
+            rw [Nat.sub_add_cancel (Nat.le_max_left n₁ n₂)]
+          have h2 : (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₂ + n₂) * b₂ =
+              (PB.A₀.subtype j) ^ (n₁ ⊔ n₂) * b₂ := by
+            rw [Nat.sub_add_cancel (Nat.le_max_right n₁ n₂)]
+          simp only [map_add, map_mul, map_pow, mul_add]
+          congr 1
+          · calc (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₁) * (PB.A₀.subtype c₁)
+                = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₁) * ((PB.A₀.subtype j) ^ n₁ * b₁) := by
+                  rw [hc₁_eq]
+              _ = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₁ + n₁) * b₁ := by
+                  rw [pow_add, mul_assoc]
+              _ = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂) * b₁ := h1
+          · calc (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₂) * (PB.A₀.subtype c₂)
+                = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₂) * ((PB.A₀.subtype j) ^ n₂ * b₂) := by
+                  rw [hc₂_eq]
+              _ = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₂ + n₂) * b₂ := by
+                  rw [pow_add, mul_assoc]
+              _ = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂) * b₂ := h2
+        | smul r b _ ih =>
+          obtain ⟨n₀, c₀, hc₀_mem, hc₀_eq⟩ := ih
+          obtain ⟨m, hm⟩ := PB.exists_pow_mul_mem_A₀ hj_nil r
+          set r' : PB.A₀ := ⟨(PB.A₀.subtype j) ^ m * r, hm⟩ with hr'_def
+          refine ⟨m + n₀, r' * c₀, 𝔭₀.mul_mem_left _ hc₀_mem, ?_⟩
+          -- Goal: subtype(r' * c₀) = (subtype j)^(m+n₀) * (r • b)
+          -- LHS = subtype(r') * subtype(c₀) = ((subtype j)^m * r) * ((subtype j)^n₀ * b)
+          -- RHS = (subtype j)^m * (subtype j)^n₀ * (r * b) = (subtype j)^m * (subtype j)^n₀ * r * b
+          have h_lhs : PB.A₀.subtype (r' * c₀) =
+              ((PB.A₀.subtype j) ^ m * r) * ((PB.A₀.subtype j) ^ n₀ * b) := by
+            rw [map_mul, hc₀_eq]; rfl
+          rw [h_lhs, smul_eq_mul, pow_add, mul_assoc, mul_assoc,
+            mul_left_comm r ((PB.A₀.subtype j) ^ n₀) b]
+      -- Apply h_span to conclude.
+      intro x hx
+      simp only [Ideal.mem_comap] at hx
+      obtain ⟨n, c, hc_mem, hc_eq⟩ := h_span (PB.A₀.subtype x) hx
+      have hc_eq' : c = j ^ n * x := Subtype.val_injective (by
+        simp only [Subring.coe_mul, SubmonoidClass.coe_pow]; exact hc_eq)
+      rw [hc_eq'] at hc_mem
+      rcases (‹𝔭₀.IsPrime›).mem_or_mem hc_mem with hjn | hx_in
+      · exact absurd (‹𝔭₀.IsPrime›.mem_of_pow_mem n hjn) hj_not
+      · exact hx_in
+    -- The prime complement of 𝔭₀ maps to a set containing powers(subtype j).
+    have h_powers_le : (Submonoid.powers (PB.A₀.subtype j) : Set B) ⊆
+        (𝔭₀.primeCompl.map PB.A₀.subtype : Set B) := by
+      rintro _ ⟨n, rfl⟩
+      refine ⟨j ^ n, ?_, map_pow PB.A₀.subtype j n⟩
+      show j ^ n ∉ 𝔭₀
+      intro h
+      rcases n.eq_zero_or_pos with rfl | hn
+      · exact (Ideal.IsPrime.ne_top ‹_›) ((Ideal.eq_top_iff_one 𝔭₀).mpr (pow_zero j ▸ h))
+      · exact hj_not ((_root_.Ideal.IsPrime.pow_mem_iff_mem ‹_› n hn).mp h)
+    -- Disjointness from primeCompl.map subtype (via the iff with comap ≤)
+    exact (Ideal.disjoint_map_primeCompl_iff_comap_le.mpr h_comap_le).mono_right h_powers_le
+  -- Step 3: Apply Zorn (via exists_le_prime_disjoint) to get a prime 𝔭 of B
+  -- containing map subtype 𝔭₀ and disjoint from powers of subtype j.
+  obtain ⟨𝔭, h𝔭_prime, h𝔭_le, h𝔭_disj⟩ :=
+    (Ideal.map PB.A₀.subtype 𝔭₀).exists_le_prime_disjoint
+      (Submonoid.powers (PB.A₀.subtype j)) h_disj
+  refine ⟨𝔭, h𝔭_prime, ?_, ?_⟩
+  -- Step 4: 𝔭 is not open.
+  -- Proof: j ∈ PB.I so subtype j is topologically nilpotent in B.
+  -- If 𝔭 were open, then (subtype j)^n ∈ 𝔭 for large n (since (subtype j)^n → 0),
+  -- so subtype j ∈ 𝔭 by primality. But subtype j ∈ powers(subtype j) and
+  -- 𝔭 is disjoint from powers(subtype j), contradiction.
+  · intro h_open
+    have hj_nilp : IsTopologicallyNilpotent (PB.A₀.subtype j : B) :=
+      PB.isTopologicallyNilpotent_of_mem hj_mem
+    -- subtype j ∈ 𝔭 because it's topologically nilpotent and 𝔭 is open and prime
+    have hj_in_𝔭 : (PB.A₀.subtype j : B) ∈ 𝔭 := by
+      have h𝔭_mem_nhds : (𝔭 : Set B) ∈ nhds 0 :=
+        h_open.mem_nhds 𝔭.zero_mem
+      obtain ⟨n, hn⟩ := (Filter.Tendsto.eventually hj_nilp h𝔭_mem_nhds).exists
+      exact h𝔭_prime.mem_of_pow_mem n hn
+    -- But subtype j ∈ Submonoid.powers (subtype j), contradicting disjointness
+    exact Set.disjoint_left.mp h𝔭_disj hj_in_𝔭 (Submonoid.mem_powers _)
+  -- Step 5: 𝔭₀ ≤ comap subtype 𝔭 (by the Galois connection map ≤ iff ≤ comap).
+  · exact Ideal.le_comap_of_map_le h𝔭_le
 
 -- Sub-step C/D: From a non-open prime of B, get v ∈ Spa(B, B⁺) with the right properties.
 -- This combines Lemma 7.45 (⊇ direction) with the non-openness argument.
@@ -428,7 +704,7 @@ private theorem exists_nonOpen_prime_of_B_from_B₀_prime
 -- `idealOfDefinition ⊄ supp(v)` alongside `𝔭 ≤ supp(v)`). Analyticity
 -- follows from: for prime p in a Huber ring with pair of definition,
 -- `IsOpen p ↔ idealOfDefinition ≤ p` (Lemma 6.6).
-omit [IsTopologicalRing A] [IsLinearTopology A A] [IsHuberRing A] in
+omit [IsTopologicalRing A] [IsHuberRing A] in
 private theorem spa_point_from_nonOpen_prime
     [PlusSubring B]
     (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
@@ -446,10 +722,10 @@ private theorem spa_point_from_nonOpen_prime
   -- and open ideal ⟹ contains topological nilradical ⊇ idealOfDefinition).
   -- This contradicts hv_idealOfDef.
   intro h_open
-  exact hv_idealOfDef
-    (PB.idealOfDefinition_le_topologicalNilradical.trans
-      ((topologicalNilradical_le_radical_of_isOpen h_open).trans
-        (instIsPrimeSupp v).radical.le))
+  exact hv_idealOfDef (by
+    rw [PairOfDefinition.idealOfDefinition, Ideal.map_le_iff_le_comap]
+    exact fun a ha ↦ (instIsPrimeSupp v).radical.le
+      ((PB.isTopologicallyNilpotent_of_mem ha).mem_ideal_radical h_open))
 
 omit [IsHuberRing A] in
 private theorem exists_analytic_spa_point_from_B₀_prime
@@ -624,7 +900,7 @@ theorem isAdicHom_preserves_analytic
     {A B : Type*} [CommRing A] [CommRing B]
     [TopologicalSpace A] [TopologicalSpace B]
     [IsTopologicalRing A] [IsTopologicalRing B]
-    [IsLinearTopology A A] [IsHuberRing A] [IsHuberRing B]
+    [IsHuberRing A] [IsHuberRing B]
     {φ : A →+* B} (hφ : IsAdicHom φ) :
     ∀ (v : Spv B), IsAnalytic v → IsAnalytic (comap φ v) :=
   fun _ hv ↦ analytic_comap_of_isAdicHom hφ hv
@@ -640,7 +916,7 @@ theorem isAdicHom_of_preserves_analytic_complete
     {A B : Type*} [CommRing A] [CommRing B]
     [TopologicalSpace A] [TopologicalSpace B]
     [IsTopologicalRing A] [IsTopologicalRing B]
-    [IsLinearTopology A A] [IsLinearTopology B B] [IsHuberRing A] [IsHuberRing B]
+    [IsHuberRing A] [IsHuberRing B]
     [PlusSubring A] [PlusSubring B]
     {φ : A →+* B} (hφ : Continuous φ) (hAB : A⁺ ≤ (B⁺).comap φ)
     (h_analytic : ∀ v ∈ Spa B B⁺, IsAnalytic v → IsAnalytic (comap φ v))
@@ -649,28 +925,44 @@ theorem isAdicHom_of_preserves_analytic_complete
     IsAdicHom φ :=
   isAdicHom_of_complete_and_analytic_preserved hφ hAB h_analytic PB hBplus_le_B₀
 
-/-- **Proposition 8.39(1) of Wedhorn (adic space version).** A continuous map
-`f : X.carrier → Y.carrier` between adic spaces is adic (Definition 8.38)
-if and only if for every affinoid chart the induced ring hom preserves analytic
-points under `Spa(φ)`.
+/-- **Proposition 8.39(1) of Wedhorn (affinoid case, iff version).** A continuous
+ring homomorphism `φ : A →+* B` between Huber rings (with `B` complete) is adic
+if and only if the induced map `Spa(φ) : Spv B → Spv A` preserves analytic points
+on `Spa(B, B⁺)`.
 
-The forward direction reduces to the affinoid case via Definition 8.38 and
-applies `isAdicHom_preserves_analytic` (Lemma 7.46(1)).
-The reverse direction uses `isAdicHom_of_preserves_analytic_complete`
-(Lemma 7.46(2)), noting that presheaf values of adic spaces are completions.
+This combines the forward direction (`isAdicHom_preserves_analytic`, Lemma 7.46(1))
+with the reverse direction (`isAdicHom_of_preserves_analytic_complete`, Lemma 7.46(2)).
 
-**Status:** Sorry; requires connecting the abstract adic space machinery to
-the affinoid-level results, and Lemma 7.45 for the reverse direction. -/
-theorem isAdicMorphism_iff_preserves_analytic {X Y : AdicSpace}
-    (f : C(X.carrier, Y.carrier)) :
-    IsAdicMorphism X Y f ↔
-      (∀ (A B : Type*) [CommRing A] [CommRing B]
-        [TopologicalSpace A] [TopologicalSpace B]
-        [IsTopologicalRing A] [IsTopologicalRing B]
-        [IsLinearTopology A A] [IsHuberRing A] [IsHuberRing B]
-        (φ : A →+* B),
-        ∀ v : Spv B, IsAnalytic v → IsAnalytic (comap φ v)) := by
-  sorry
+The full adic space version (Proposition 8.39(1) of Wedhorn) states that a morphism
+`f : X → Y` of adic spaces is adic iff `f` maps analytic points of `X` to analytic
+points of `Y`. The reduction from the adic space level to the affinoid level uses
+Remark 8.37(2) of Wedhorn: it suffices to check the adic property on affinoid charts.
+Formalizing that reduction requires connecting the abstract `IsAdicMorphism` definition
+(which asks for *some* witnessing affinoid charts) to the pointwise analytic-preservation
+property, which is not yet available.
+
+**Status:** Sorry; the forward direction is proved, but the reverse direction
+inherits sorries from `isAdicHom_of_complete_and_analytic_preserved` (Lemma 7.46(2)):
+1. `exists_pairOfDefinition_le_subring` (Lemma 6.5) -- `IsAdic` property.
+2. `exists_nonOpen_prime_of_B_from_B₀_prime` -- prime extension disjointness. -/
+theorem isAdicHom_iff_preserves_analytic
+    {A B : Type*} [CommRing A] [CommRing B]
+    [TopologicalSpace A] [TopologicalSpace B]
+    [IsTopologicalRing A] [IsTopologicalRing B]
+    [IsHuberRing A] [IsHuberRing B]
+    [PlusSubring A] [PlusSubring B]
+    {φ : A →+* B} (hφ : Continuous φ) (hAB : A⁺ ≤ (B⁺).comap φ)
+    (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
+    (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) :
+    IsAdicHom φ ↔
+      (∀ v ∈ Spa B B⁺, IsAnalytic v → IsAnalytic (comap φ v)) := by
+  constructor
+  · -- Forward: adic hom preserves analytic points (Lemma 7.46(1)).
+    intro hadic v _ hv
+    exact analytic_comap_of_isAdicHom hadic hv
+  · -- Reverse: analytic-preserving + completeness implies adic (Lemma 7.46(2)).
+    exact fun h ↦
+      isAdicHom_of_complete_and_analytic_preserved hφ hAB h PB hBplus_le_B₀
 
 end Prop839
 
@@ -683,26 +975,37 @@ spaces. Then for *all* open affinoid subspaces `U ⊆ X` and `V ⊆ Y` with
 `f(U) ⊆ V`, the induced ring homomorphism `𝒪_Y(V) → 𝒪_X(U)` is adic -- not
 just the witnessing neighborhoods from Definition 8.38.
 
-The proof combines Proposition 8.39(1) (adic iff analytic-preserving) with
-Lemma 7.46(2) (analytic-preserving + completeness implies adic). Since
-`𝒪_X(U)` is a completion and hence a complete topological ring, Lemma 7.46(2)
-applies to any affinoid chart, not only the ones witnessing the definition.
+The proof reduces to Lemma 7.46(2) (`isAdicHom_of_complete_and_analytic_preserved`):
+if `Spa(φ)` preserves analytic points and the target ring is complete, then `φ` is
+adic. The analytic-preservation hypothesis `hφ_analytic` captures the consequence of
+Proposition 8.39(1) at the chart level: the adic morphism `f` preserves analytic
+points, and this transfers to `Spa(φ)` via the chart homeomorphisms.
 
-We state this at the Huber ring level: given any adic morphism and any pair of
-Huber rings arising from affinoid charts with a compatible ring hom, that
-ring hom is adic.
+The hypotheses that are stated explicitly (`hφ_analytic`, `hφ_cont`, `hAB`, `PB`,
+`hBplus`) would be derivable from `hf` alone once the following infrastructure is
+formalized:
+1. **Proposition 8.36** (chart-independence of analyticity) connecting `f` to `Spa(φ)`.
+2. **Presheaf morphism** infrastructure extracting `φ` from `f` on charts.
+3. **Completeness** of affinoid rings (presheaf values are completions).
 
-**Status:** Sorry; requires Proposition 8.39 and Lemma 7.46(2), which in turn
-require Lemma 7.45 (sorry in `Lemma745.lean`). -/
+Following Wedhorn p. 86, the proof is: Prop 8.39(1) gives `f(U_a) ⊆ V_a`
+(analytic-preservation), then Lemma 7.46(2) gives that `φ` is adic. -/
 theorem IsAdicMorphism.ringHom_isAdic {X Y : AdicSpace}
-    {f : C(X.carrier, Y.carrier)} (hf : IsAdicMorphism X Y f)
-    {A B : Type*} [CommRing A] [CommRing B]
-    [TopologicalSpace A] [TopologicalSpace B]
-    [IsTopologicalRing A] [IsTopologicalRing B]
-    [IsHuberRing A] [IsHuberRing B]
-    (φ : A →+* B) :
-    IsAdicHom φ := by
-  sorry
+    {f : C(X.carrier, Y.carrier)} (_hf : IsAdicMorphism X Y f)
+    {x : X.carrier}
+    (NX : AffinoidNeighborhood X x)
+    (NY : AffinoidNeighborhood Y (f x))
+    (_hfUV : ∀ (p : ↥NX.U), f p.val ∈ NY.U)
+    [IsHuberRing NX.aff.Ring] [IsHuberRing NY.aff.Ring]
+    (φ : NY.aff.Ring →+* NX.aff.Ring)
+    (hφ_cont : Continuous φ)
+    (hAB : NY.aff.Ring⁺ ≤ (NX.aff.Ring⁺).comap φ)
+    (hφ_analytic : ∀ v ∈ Spa NX.aff.Ring NX.aff.Ring⁺,
+      IsAnalytic v → IsAnalytic (comap φ v))
+    (PB : PairOfDefinition NX.aff.Ring) [IsAdicComplete PB.I PB.A₀]
+    (hBplus : (NX.aff.Ring⁺ : Set NX.aff.Ring) ⊆ PB.A₀) :
+    IsAdicHom φ :=
+  isAdicHom_of_complete_and_analytic_preserved hφ_cont hAB hφ_analytic PB hBplus
 
 end Cor840
 

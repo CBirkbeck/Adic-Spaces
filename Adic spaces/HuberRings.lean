@@ -218,6 +218,18 @@ theorem topologicalNilradical_le_idealOfDefinition_radical (P : PairOfDefinition
 
 end LinearTopology
 
+/-- Topologically nilpotent elements of `A` lie in the radical of the ideal of definition
+(Remark 6.7 of Wedhorn). This version avoids `topologicalNilradical` (which requires
+`IsLinearTopology`) by working directly with `IsTopologicallyNilpotent`. -/
+theorem isTopologicallyNilpotent_mem_idealOfDefinition_radical (P : PairOfDefinition A)
+    {a : A} (ha : IsTopologicallyNilpotent a) : a ∈ P.idealOfDefinition.radical := by
+  obtain ⟨n, y, hy, hval⟩ :=
+    (ha.eventually
+      ((P.pow_image_isOpen 1).mem_nhds
+        (Set.mem_image_of_mem _ (P.I ^ 1).zero_mem))).exists
+  exact Ideal.mem_radical_iff.mpr
+    ⟨n, by rw [← hval, idealOfDefinition]; exact Ideal.mem_map_of_mem _ (pow_one P.I ▸ hy)⟩
+
 /-- The power-bounded subring `A°` is open in any Huber ring (Proposition 6.4(4) of Wedhorn). -/
 theorem isOpen_powerBoundedSubring (P : PairOfDefinition A) [IsLinearTopology A A] :
     IsOpen (TopologicalRing.powerBoundedSubring A) := by
