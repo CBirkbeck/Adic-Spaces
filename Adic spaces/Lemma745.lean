@@ -172,7 +172,8 @@ theorem isContinuous_of_restriction_isContinuous
       simp only [Valuation.ltAddSubgroup, Units.val_mk0]
       exact ha
     have h_zero : (0 : A) ∈ P.A₀.subtype '' {a : P.A₀ | v (P.A₀.subtype a) < γ} := by
-      exact ⟨0, by simp? [zero_lt_iff.mpr hγ], rfl⟩
+      exact ⟨0, by simp only [Subring.subtype_apply, Set.mem_setOf_eq, ZeroMemClass.coe_zero,
+        map_zero, zero_lt_iff.mpr hγ], rfl⟩
     exact Filter.mem_of_superset ((h_res γ).mem_nhds h_zero) h_sub
 
 /-! ### Helper (f): A-plus boundedness
@@ -490,7 +491,7 @@ theorem exists_spa_point_via_restrictToConvex
     · -- v_ext ≤ 1 on A⁺
       intro f hf
       have hf_A₀ : f ∈ P.A₀ := hAplus_le_A₀ hf
-      have : v_ext f = v_ext (P.A₀.subtype ⟨f, hf_A₀⟩) := by simp
+      have : v_ext f = v_ext (P.A₀.subtype ⟨f, hf_A₀⟩) := by simp only [Subring.subtype_apply]
       rw [this, h_ext_A₀ ⟨f, hf_A₀⟩]
       exact Valuation.restrictToConvex_le_one v₀_A₀ H_gen hle_A₀ ⟨f, hf_A₀⟩
   -- ===== Step 8d: Construct the Valuation with extension and support properties =====
@@ -505,9 +506,9 @@ theorem exists_spa_point_via_restrictToConvex
   -- 0 ∈ A₀
   have h0_A₀ : (0 : A) ∈ P.A₀ := P.A₀.zero_mem
   -- s^0 * 0 = 0 ∈ A₀ (for map_zero)
-  have h0_mem : s ^ 0 * 0 ∈ P.A₀ := by simp [P.A₀.zero_mem]
+  have h0_mem : s ^ 0 * 0 ∈ P.A₀ := by simp? [P.A₀.zero_mem]
   -- s^0 * 1 = 1 ∈ A₀ (for map_one)
-  have h1_mem : s ^ 0 * 1 ∈ P.A₀ := by simp [P.A₀.one_mem]
+  have h1_mem : s ^ 0 * 1 ∈ P.A₀ := by simp? [P.A₀.one_mem]
   -- The extended valuation function
   let v_ext_fun : A → WithZero H_gen.toSubgroup := fun a =>
     let n := Nat.find (h_pow_mul a)

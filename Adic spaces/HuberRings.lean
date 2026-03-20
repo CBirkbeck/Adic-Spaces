@@ -331,7 +331,8 @@ theorem PairOfDefinition.exists_pow_mem_I (P : PairOfDefinition A)
   exact ⟨N, by rwa [show (⟨u, hu_mem⟩ : P.A₀) ^ N = ⟨y, hy_mem⟩ from
     Subtype.ext (by simpa [SubmonoidClass.coe_pow] using hval.symm)]⟩
 
-/-- If `u` is a unit in `A` with `u ∈ A₀`, then `I^m ≤ Ideal.span {u_A₀ ^ N}` for some `m`. -/
+/-- If `u` is a unit in `A` with `u ∈ A₀`, then `I^m ≤ Ideal.span {u_A₀ ^ N}`
+for some `m`. -/
 theorem PairOfDefinition.exists_pow_I_le_span_unit (P : PairOfDefinition A)
     {u : Aˣ} (hu_mem : (u : A) ∈ P.A₀) (N : ℕ) :
     ∃ m : ℕ, P.I ^ m ≤ Ideal.span {(⟨(u : A), hu_mem⟩ : P.A₀) ^ N} := by
@@ -548,8 +549,9 @@ theorem IsTateRing.isAdicHom_of_continuous_with_pairs
   have hv_L_unit_mem : (((Units.map (φ : A →* B) u) ^ L : Bˣ) : B) ∈ PB.A₀ := by
     rw [Units.val_pow_eq_pow_val, Units.coe_map]; exact hv_L
   obtain ⟨mB, hmB⟩ := PB.exists_pow_I_le_span_unit hv_L_unit_mem M
-  rw [show (⟨(((Units.map (φ : A →* B) u) ^ L : Bˣ) : B), hv_L_unit_mem⟩ : PB.A₀) = vL from
-    Subtype.ext (by simp [vL, Units.val_pow_eq_pow_val, Units.coe_map])] at hmB
+  rw [show (⟨(((Units.map (φ : A →* B) u) ^ L : Bˣ) : B),
+    hv_L_unit_mem⟩ : PB.A₀) = vL from Subtype.ext
+    (by simp [vL, Units.val_pow_eq_pow_val, Units.coe_map])] at hmB
   refine ⟨PA.withPrincipal hN_mem hmA, PB.withPrincipal hM_mem hmB, h_map, ?_⟩
   simp only [restrictRingHom_withPrincipal, PairOfDefinition.withPrincipal_I]
   erw [Ideal.map_span, Set.image_singleton]
