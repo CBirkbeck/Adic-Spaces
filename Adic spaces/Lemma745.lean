@@ -68,7 +68,7 @@ theorem isContinuous_of_ideal_pow_lt
 theorem isContinuous_of_le_one_and_pow_cofinal
     (P : PairOfDefinition A) (v : Valuation A Γ₀)
     (h_le : ∀ (a : P.A₀), v (P.A₀.subtype a) ≤ 1)
-    {g : Γ₀} (hg0 : g ≠ 0) (hg1 : g < 1)
+    {g : Γ₀}
     (h_gen : ∀ (a : P.A₀), a ∈ P.I → v (P.A₀.subtype a) ≤ g)
     (h_cofinal : ∀ (γ : Γ₀), 0 < γ → ∃ n : ℕ, g ^ n < γ) :
     v.IsContinuous := by
@@ -329,7 +329,7 @@ theorem pulledBackValuation_isContinuous
       rwa [ne_eq, ← Valuation.mem_supp_iff, P.pulledBackValuation_supp V]))
       (h_gen a₀ ha₀_I)
   exact Valuation.isContinuous_of_le_one_and_pow_cofinal P v
-    (P.pulledBackValuation_le_one hrange) hg0 hg1 h_gen
+    (P.pulledBackValuation_le_one hrange) h_gen
     (fun γ hγ ↦ exists_pow_lt₀ hg1 (Units.mk0 γ hγ.ne'))
 
 /-- **Lemma 7.45 (conditional on MulArchimedean).** -/
@@ -389,7 +389,7 @@ theorem coarsenMapOfValueGroup_apply_unit (H : ConvexSubgroup Γ₀ˣ) (g : Γ�
   simp only [MonoidWithZeroHom.comp_apply]
   have : (OrderMonoidIso.withZeroUnits (α := Γ₀)).symm.toMonoidWithZeroHom (g : Γ₀) =
       (g : WithZero Γ₀ˣ) := by
-    show (WithZero.withZeroUnitsEquiv (G := Γ₀)).symm (g : Γ₀) = ↑g
+    change (WithZero.withZeroUnitsEquiv (G := Γ₀)).symm (g : Γ₀) = ↑g
     exact WithZero.withZeroUnitsEquiv_symm_apply_coe g
   rw [this, WithZero.mapMonoidWithZeroHom_apply_coe]
 
@@ -549,7 +549,7 @@ noncomputable def restrictToConvex
       if h : v r = 0 then 0
       else if hm : Units.mk0 (v r) h ∈ H then some ⟨Units.mk0 (v r) h, hm⟩
       else 0
-    show f (x + y) ≤ max (f x) (f y)
+    change f (x + y) ≤ max (f x) (f y)
     -- The key ultrametric from v
     have hv_add : v (x + y) ≤ max (v x) (v y) := v.map_add x y
     -- If f(x+y) = 0, we are done (0 ≤ anything)
@@ -591,8 +591,7 @@ noncomputable def restrictToConvex
 
 section RestrictToConvexAPI
 
-open Classical
-
+open Classical in
 -- Unfold `restrictToConvex` application to the underlying `dite` chain.
 private theorem restrictToConvex_unfold
     (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
@@ -636,7 +635,8 @@ theorem restrictToConvex_eq_zero_of_not_mem
     v.restrictToConvex H hle r = 0 := by
   rw [restrictToConvex_unfold, dif_neg hr, dif_neg hm]
 
-/-- If `v(r) ≠ 0` and `Units.mk0 (v r) ∈ H`, then `restrictToConvex` sends `r` to a nonzero value. -/
+/-- If `v(r) ≠ 0` and `Units.mk0 (v r) ∈ H`, then `restrictToConvex`
+sends `r` to a nonzero value. -/
 theorem restrictToConvex_pos_of_mem
     (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
     (hle : ∀ r : R, v r ≤ 1) {r : R} (hr : v r ≠ 0)
@@ -817,16 +817,16 @@ theorem isContinuous_of_restriction_isContinuous
     (v.ltAddSubgroup (Units.mk0 γ hγ) : Set A) from by ext; simp [Valuation.ltAddSubgroup]]
   -- It suffices to show this additive subgroup contains an open neighborhood of 0
   apply AddSubgroup.isOpen_of_mem_nhds
-  -- The image of {a ∈ A₀ | v(a) < γ} under subtype is open (by hypothesis)
-  -- and contained in {a : A | v a < γ}, and contains 0.
-  have h_sub : P.A₀.subtype '' {a : P.A₀ | v (P.A₀.subtype a) < γ} ⊆
-      (v.ltAddSubgroup (Units.mk0 γ hγ) : Set A) := by
-    rintro _ ⟨a, ha, rfl⟩
-    simp only [Valuation.ltAddSubgroup, Units.val_mk0]
-    exact ha
-  have h_zero : (0 : A) ∈ P.A₀.subtype '' {a : P.A₀ | v (P.A₀.subtype a) < γ} := by
-    exact ⟨0, by simp [zero_lt_iff.mpr hγ], rfl⟩
-  exact Filter.mem_of_superset ((h_res γ).mem_nhds h_zero) h_sub
+  · -- The image of {a ∈ A₀ | v(a) < γ} under subtype is open (by hypothesis)
+    -- and contained in {a : A | v a < γ}, and contains 0.
+    have h_sub : P.A₀.subtype '' {a : P.A₀ | v (P.A₀.subtype a) < γ} ⊆
+        (v.ltAddSubgroup (Units.mk0 γ hγ) : Set A) := by
+      rintro _ ⟨a, ha, rfl⟩
+      simp only [Valuation.ltAddSubgroup, Units.val_mk0]
+      exact ha
+    have h_zero : (0 : A) ∈ P.A₀.subtype '' {a : P.A₀ | v (P.A₀.subtype a) < γ} := by
+      exact ⟨0, by simp [zero_lt_iff.mpr hγ], rfl⟩
+    exact Filter.mem_of_superset ((h_res γ).mem_nhds h_zero) h_sub
 
 /-! ### Helper (f): A-plus boundedness
 
@@ -906,9 +906,8 @@ for `u₀⁻¹ > 1`, the powers of `u₀ < 1` (= `(u₀⁻¹)⁻¹`) are cofinal
 `WithZero(convexGenerated(u₀⁻¹).toSubgroup)`.
 -/
 
--- Heartbeat increase: the v_ext construction involves heavy dependent-type unification
--- in WithZero of a convex subgroup, causing Lean's type checker to work harder.
 set_option maxHeartbeats 800000 in
+-- v_ext construction: heavy dependent-type unification in WithZero of a convex subgroup
 /-- **Rank-1 extension (Wedhorn Lemma 7.45, Steps 3-7).**
 
 Constructs a valuation `v_ext : Valuation A (WithZero H_gen.toSubgroup)` that is
@@ -1141,7 +1140,7 @@ theorem exists_spa_point_via_restrictToConvex
         obtain ⟨n, hn⟩ := ConvexSubgroup.withZero_inv_pow_cofinal_of_convexGenerated
           hu_max_inv_gt1 γ hγ
         exact ⟨n, by convert hn using 2⟩
-      exact Valuation.isContinuous_of_le_one_and_pow_cofinal P v_ext h_le_ext hg_ne hg_lt
+      exact Valuation.isContinuous_of_le_one_and_pow_cofinal P v_ext h_le_ext
         hg_bound h_cofinal
     · -- v_ext ≤ 1 on A⁺
       intro f hf
@@ -1183,7 +1182,7 @@ theorem exists_spa_point_via_restrictToConvex
   have v_ext_at : ∀ (a : A) (m : ℕ) (hm : s ^ m * a ∈ P.A₀),
       v_ext_fun a = v_r ⟨s ^ m * a, hm⟩ * v_s⁻¹ ^ m := by
     intro a m hm
-    show v_r ⟨s ^ _ * a, _⟩ * v_s⁻¹ ^ _ = v_r ⟨s ^ m * a, hm⟩ * v_s⁻¹ ^ m
+    change v_r ⟨s ^ _ * a, _⟩ * v_s⁻¹ ^ _ = v_r ⟨s ^ m * a, hm⟩ * v_s⁻¹ ^ m
     set n := Nat.find (h_pow_mul a)
     have hn : s ^ n * a ∈ P.A₀ := Nat.find_spec (h_pow_mul a)
     -- Use a common exponent N = n + m. Both sides equal
@@ -1209,7 +1208,7 @@ theorem exists_spa_point_via_restrictToConvex
     have hfact : (⟨s ^ (k + j) * a, P.pow_mul_mem_A₀_of_le hs_A₀ hk j⟩ : P.A₀) =
         a₀ ^ j * ⟨s ^ k * a, hk⟩ := by
       apply Subtype.ext
-      show s ^ (k + j) * a = s ^ j * (s ^ k * a)
+      change s ^ (k + j) * a = s ^ j * (s ^ k * a)
       rw [show k + j = j + k from by omega, pow_add, mul_assoc]
     -- v_r(⟨s^(k+j)*a,_⟩) = v_s^j * v_r(⟨s^k*a,_⟩)
     have hval : v_r ⟨s ^ (k + j) * a, P.pow_mul_mem_A₀_of_le hs_A₀ hk j⟩ =
@@ -1294,7 +1293,7 @@ theorem exists_spa_point_via_restrictToConvex
     set b := v_r ⟨s ^ ny * y, hny⟩
     set c := v_s⁻¹ ^ nx
     set d := v_s⁻¹ ^ ny
-    show a * b * (c * d) = a * c * (b * d)
+    change a * b * (c * d) = a * c * (b * d)
     rw [mul_assoc a b, ← mul_assoc b c d, mul_comm b c, mul_assoc c b d, ← mul_assoc a c]
   -- map_add_le_max: v_ext_fun(x + y) ≤ max(v_ext_fun x)(v_ext_fun y)
   -- Proof sketch: Let N = max(n_x, n_y). Then s^N*x, s^N*y, s^N*(x+y) ∈ A₀.
@@ -1357,7 +1356,7 @@ theorem exists_spa_point_via_restrictToConvex
     intro a
     -- For a ∈ A₀: P.A₀.subtype a ∈ A₀, so s^0 * (subtype a) = subtype a ∈ A₀.
     -- Hence Nat.find = 0 by hfind_zero, and v_ext = v_r(⟨subtype a, _⟩) * v_s⁻¹^0 = v_r(a).
-    show v_ext_fun (P.A₀.subtype a) = v_r a
+    change v_ext_fun (P.A₀.subtype a) = v_r a
     have hmem : s ^ 0 * (P.A₀.subtype a) ∈ P.A₀ := by
       simp only [pow_zero, one_mul]; exact Subtype.coe_prop a
     rw [v_ext_at (P.A₀.subtype a) 0 hmem]
@@ -1366,7 +1365,7 @@ theorem exists_spa_point_via_restrictToConvex
     exact congrArg v_r (Subtype.ext rfl)
   · -- Forward support: a ∈ 𝔭 → v_ext a = 0
     intro a ha_p
-    show v_ext_fun a = 0
+    change v_ext_fun a = 0
     set n := Nat.find (h_pow_mul a)
     have hn := Nat.find_spec (h_pow_mul a)
     -- s^n * a ∈ 𝔭 (since a ∈ 𝔭 and 𝔭 is an ideal, it absorbs s^n)
@@ -1383,7 +1382,7 @@ theorem exists_spa_point_via_restrictToConvex
     have hv_r_zero : v_r ⟨s ^ n * a, hn⟩ = 0 := by
       rw [v_r_def, Valuation.restrictToConvex_unfold, dif_pos hv₀_zero]
     -- v_ext(a) = v_r(⟨s^n*a, _⟩) * v_s⁻¹^n = 0 * v_s⁻¹^n = 0
-    show v_r ⟨s ^ n * a, hn⟩ * v_s⁻¹ ^ n = 0
+    change v_r ⟨s ^ n * a, hn⟩ * v_s⁻¹ ^ n = 0
     rw [hv_r_zero, zero_mul]
   -- Note: backward support (a ∉ 𝔭 → v_ext a ≠ 0) is NOT needed for the
   -- relaxed statement supp ⊇ 𝔭, matching Wedhorn's Lemma 7.45 exactly.
