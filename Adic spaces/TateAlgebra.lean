@@ -198,4 +198,146 @@ noncomputable def zetaUnit : (LaurentTateAlgebra A)ˣ where
 noncomputable instance : Algebra A (LaurentTateAlgebra A) :=
   (mkHom.comp (algebraMap A ↥(TateAlgebra₂ A))).toAlgebra
 
+/-! ### Embeddings into the Laurent algebra -/
+
+/-- The underlying function for the variable inclusion: sends a univariate power series to
+a `k`-variate one by mapping the single variable to variable `j`. -/
+noncomputable def varInclFun {k : ℕ} (j : Fin k) (f : MvPowerSeries (Fin 1) A) :
+    MvPowerSeries (Fin k) A :=
+  fun e => if e = Finsupp.single j (e j)
+    then (MvPowerSeries.coeff (Finsupp.single 0 (e j))) f else 0
+
+omit [TopologicalSpace A] [NonarchimedeanRing A] in
+@[simp]
+theorem varInclFun_apply {k : ℕ} (j : Fin k) (f : MvPowerSeries (Fin 1) A)
+    (e : Fin k →₀ ℕ) : varInclFun j f e =
+    if e = Finsupp.single j (e j)
+    then (MvPowerSeries.coeff (Finsupp.single 0 (e j))) f else 0 := rfl
+
+omit [TopologicalSpace A] [NonarchimedeanRing A] in
+@[simp]
+theorem varInclFun_coeff_single {k : ℕ} (j : Fin k) (f : MvPowerSeries (Fin 1) A) (n : ℕ) :
+    varInclFun j f (Finsupp.single j n) =
+    (MvPowerSeries.coeff (Finsupp.single 0 n)) f := by
+  simp [varInclFun]
+
+omit [TopologicalSpace A] [NonarchimedeanRing A] in
+theorem varInclFun_zero {k : ℕ} (j : Fin k) :
+    varInclFun j (0 : MvPowerSeries (Fin 1) A) = 0 := by
+  apply MvPowerSeries.ext; intro e
+  change varInclFun j 0 e = (MvPowerSeries.coeff e) 0
+  rw [varInclFun_apply, map_zero]; split_ifs <;> rfl
+
+omit [TopologicalSpace A] [NonarchimedeanRing A] in
+theorem varInclFun_one {k : ℕ} (j : Fin k) :
+    varInclFun j (1 : MvPowerSeries (Fin 1) A) = 1 := by
+  apply MvPowerSeries.ext; intro e
+  change varInclFun j 1 e = (MvPowerSeries.coeff e) 1
+  rw [varInclFun_apply, MvPowerSeries.coeff_one]
+  split_ifs with h1 h2
+  · rw [MvPowerSeries.coeff_one, if_pos]
+    rw [h1]; simp [Finsupp.single_eq_zero.mp h2]
+  · rw [MvPowerSeries.coeff_one, if_neg]
+    intro h0; exact h2 (Finsupp.single_eq_zero.mpr (by rw [h1] at h0; simpa using h0))
+  · rw [MvPowerSeries.coeff_one, if_neg]
+    intro h0; exact h1 (by rw [h0]; simp)
+
+omit [TopologicalSpace A] [NonarchimedeanRing A] in
+theorem varInclFun_add {k : ℕ} (j : Fin k) (f g : MvPowerSeries (Fin 1) A) :
+    varInclFun j (f + g) = varInclFun j f + varInclFun j g := by
+  apply MvPowerSeries.ext; intro e
+  change varInclFun j (f + g) e = varInclFun j f e + varInclFun j g e
+  simp only [varInclFun_apply, map_add]; split_ifs <;> ring
+
+omit [TopologicalSpace A] [NonarchimedeanRing A] in
+theorem varInclFun_mul {k : ℕ} (j : Fin k) (f g : MvPowerSeries (Fin 1) A) :
+    varInclFun j (f * g) = varInclFun j f * varInclFun j g := by
+  apply MvPowerSeries.ext; intro e
+  by_cases h : e = Finsupp.single j (e j)
+  · -- e supported on {j}: reduce to univariate multiplication via varInclFun_coeff_single
+    change varInclFun j (f * g) e = (MvPowerSeries.coeff e) (varInclFun j f * varInclFun j g)
+    rw [h]; simp only [varInclFun_coeff_single]
+    rw [MvPowerSeries.coeff_mul, MvPowerSeries.coeff_mul]
+    rw [Finsupp.antidiagonal_single, Finsupp.antidiagonal_single]
+    simp only [Finset.sum_map]
+    apply Finset.sum_congr rfl; intro ⟨a, b⟩ _
+    change _ = varInclFun j f (Finsupp.single j a) * varInclFun j g (Finsupp.single j b)
+    simp
+  · -- e not supported on {j}: both sides are 0
+    change varInclFun j (f * g) e = (MvPowerSeries.coeff e) (varInclFun j f * varInclFun j g)
+    rw [varInclFun_apply, if_neg h, MvPowerSeries.coeff_mul]
+    symm; apply Finset.sum_eq_zero; intro p hp
+    rw [Finset.mem_antidiagonal] at hp
+    change varInclFun j f p.1 * varInclFun j g p.2 = 0
+    rw [varInclFun_apply, varInclFun_apply]
+    by_cases h1 : p.1 = Finsupp.single j (p.1 j)
+    · have h2 : p.2 ≠ Finsupp.single j (p.2 j) := by
+        intro h2; apply h; rw [← hp, h1, h2]
+        ext i; simp [Finsupp.single_apply]
+      rw [if_neg h2]; ring
+    · rw [if_neg h1]; ring
+
+/-- The variable inclusion as a ring homomorphism. -/
+noncomputable def varInclHom {k : ℕ} (j : Fin k) :
+    MvPowerSeries (Fin 1) A →+* MvPowerSeries (Fin k) A where
+  toFun := varInclFun j
+  map_zero' := varInclFun_zero j
+  map_one' := varInclFun_one j
+  map_add' := varInclFun_add j
+  map_mul' := varInclFun_mul j
+
+omit [NonarchimedeanRing A] in
+/-- The variable inclusion preserves the restricted property. -/
+theorem varInclHom_isRestricted {k : ℕ} (j : Fin k) (f : MvPowerSeries (Fin 1) A)
+    (hf : MvPowerSeries.IsRestricted f) :
+    MvPowerSeries.IsRestricted (varInclHom j f) := by
+  change Tendsto _ cofinite (nhds 0)
+  rw [tendsto_nhds]
+  intro U hU h0U
+  rw [Filter.mem_cofinite]
+  have hfU : {s | (MvPowerSeries.coeff s) f ∉ U}.Finite := by
+    have := tendsto_nhds.mp hf U hU h0U
+    rwa [Filter.mem_cofinite] at this
+  apply (hfU.image (fun d => Finsupp.mapDomain (fun _ => j) d)).subset
+  intro e he
+  simp only [Set.mem_compl_iff, Set.mem_preimage] at he
+  show e ∈ _
+  have he2 : varInclFun j f e ∉ U := by
+    change (MvPowerSeries.coeff e) (varInclHom j f) ∉ U at he
+    convert he using 1
+  rw [varInclFun_apply] at he2
+  split_ifs at he2 with h
+  · refine ⟨Finsupp.single 0 (e j), he2, ?_⟩
+    change Finsupp.mapDomain (fun _ => j) (Finsupp.single 0 (e j)) = e
+    rw [Finsupp.mapDomain_single]; exact h.symm
+  · exact absurd h0U he2
+
+/-- The positive inclusion `A⟨X⟩ →+* A⟨X, Y⟩` sending `f(X) ↦ f(X)`, defined by mapping
+the single variable to the first variable `X` of the bivariate ring. -/
+noncomputable def posIncl : ↥(TateAlgebra A) →+* ↥(TateAlgebra₂ A) where
+  toFun f := ⟨varInclHom 0 f.val, varInclHom_isRestricted 0 f.val f.prop⟩
+  map_one' := by ext1; exact map_one (varInclHom (0 : Fin 2))
+  map_mul' f g := by ext1; exact map_mul (varInclHom (0 : Fin 2)) f.val g.val
+  map_zero' := by ext1; exact map_zero (varInclHom (0 : Fin 2))
+  map_add' f g := by ext1; exact map_add (varInclHom (0 : Fin 2)) f.val g.val
+
+/-- The negative inclusion `A⟨X⟩ →+* A⟨X, Y⟩` sending `f(X) ↦ f(Y)`, defined by mapping
+the single variable to the second variable `Y` of the bivariate ring. -/
+noncomputable def negIncl : ↥(TateAlgebra A) →+* ↥(TateAlgebra₂ A) where
+  toFun f := ⟨varInclHom 1 f.val, varInclHom_isRestricted 1 f.val f.prop⟩
+  map_one' := by ext1; exact map_one (varInclHom (1 : Fin 2))
+  map_mul' f g := by ext1; exact map_mul (varInclHom (1 : Fin 2)) f.val g.val
+  map_zero' := by ext1; exact map_zero (varInclHom (1 : Fin 2))
+  map_add' f g := by ext1; exact map_add (varInclHom (1 : Fin 2)) f.val g.val
+
+/-- The positive embedding `A⟨X⟩ →+* A⟨ζ, ζ⁻¹⟩` sending `X ↦ ζ`.
+Embeds restricted power series in positive powers of `ζ`. -/
+noncomputable def posEmbHom : ↥(TateAlgebra A) →+* LaurentTateAlgebra A :=
+  mkHom.comp posIncl
+
+/-- The negative embedding `A⟨X⟩ →+* A⟨ζ, ζ⁻¹⟩` sending `X ↦ ζ⁻¹`.
+Embeds restricted power series in negative powers of `ζ`. -/
+noncomputable def negEmbHom : ↥(TateAlgebra A) →+* LaurentTateAlgebra A :=
+  mkHom.comp negIncl
+
 end LaurentTateAlgebra
