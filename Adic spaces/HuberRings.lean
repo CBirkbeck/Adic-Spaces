@@ -515,7 +515,39 @@ private theorem radical_span_eq_of_pow_eq {R : Type*} [CommRing R] {a b : R}
     (Ideal.radical_le_radical_iff.mpr
       (Ideal.span_le.mpr (Set.singleton_subset_iff.mpr hb_rad)))
 
-/-- **Proposition 6.25 of Wedhorn**: a continuous ring homomorphism from a Tate ring is adic. -/
+/-- Given a topologically nilpotent unit `u` and a pair of definition `P`,
+find exponents `K`, `N` with `0 < K`, `0 < N` such that `(u^K)^N ∈ P.I`
+and `P.I^m ≤ span{(u^K)^N}` for some `m`, yielding a principal pair. -/
+private theorem nilpotentUnit_principalData
+    {C : Type*} [CommRing C] [TopologicalSpace C] [IsTopologicalRing C]
+    (P : PairOfDefinition C)
+    (u : Cˣ) (hu_nil : IsTopologicallyNilpotent (u : C)) :
+    ∃ (K N : ℕ) (_ : 0 < K) (_ : 0 < N)
+      (hu_K : (u : C) ^ K ∈ P.A₀)
+      (_ : (⟨(u : C) ^ K, hu_K⟩ : P.A₀) ^ N ∈ P.I),
+      ∃ m, P.I ^ m ≤
+        Ideal.span {(⟨(u : C) ^ K, hu_K⟩ : P.A₀) ^ N} := by
+  obtain ⟨K₀, hK₀⟩ := eventually_atTop.mp
+    (hu_nil (P.isOpen.mem_nhds P.A₀.zero_mem))
+  set K := max K₀ 1
+  have hK_pos : 0 < K := lt_of_lt_of_le Nat.zero_lt_one (le_max_right _ _)
+  have hu_K : (u : C) ^ K ∈ P.A₀ := hK₀ K (le_max_left _ _)
+  obtain ⟨N₀, hN₀⟩ := P.exists_pow_mem_I hu_K
+    (isTopologicallyNilpotent_pow hu_nil hK_pos)
+  set N := N₀ + 1
+  have hN_mem : (⟨(u : C) ^ K, hu_K⟩ : P.A₀) ^ N ∈ P.I := by
+    rw [show N = 1 + N₀ from by omega, pow_add, pow_one]
+    exact Ideal.mul_mem_left _ _ hN₀
+  have hu_K_unit : ((u ^ K : Cˣ) : C) ∈ P.A₀ := by
+    rwa [Units.val_pow_eq_pow_val]
+  obtain ⟨m, hm⟩ := P.exists_pow_I_le_span_unit hu_K_unit N
+  rw [show (⟨((u ^ K : Cˣ) : C), hu_K_unit⟩ : P.A₀) =
+    ⟨(u : C) ^ K, hu_K⟩ from
+    Subtype.ext (Units.val_pow_eq_pow_val u K)] at hm
+  exact ⟨K, N, hK_pos, Nat.succ_pos N₀, hu_K, hN_mem, m, hm⟩
+
+/-- **Proposition 6.25 of Wedhorn**: a continuous ring homomorphism
+from a Tate ring is adic. -/
 theorem IsTateRing.isAdicHom_of_continuous_with_pairs
     [IsTateRing A] [IsHuberRing B]
     {φ : A →+* B} (hφ : Continuous φ)
@@ -523,47 +555,28 @@ theorem IsTateRing.isAdicHom_of_continuous_with_pairs
     (h_map : ∀ a ∈ PA.A₀, φ a ∈ PB.A₀) : IsAdicHom φ := by
   obtain ⟨u, hu_nil⟩ := ‹IsTateRing A›.exists_topologicallyNilpotent_unit
   have hv_nil : IsTopologicallyNilpotent (φ u) := hu_nil.map hφ
-  obtain ⟨K₀, hK₀⟩ := eventually_atTop.mp (hu_nil (PA.isOpen.mem_nhds PA.A₀.zero_mem))
-  set K := max K₀ 1
-  have hK_pos : 0 < K := lt_of_lt_of_le Nat.zero_lt_one (le_max_right _ _)
-  have hu_K : (u : A) ^ K ∈ PA.A₀ := hK₀ K (le_max_left _ _)
-  obtain ⟨L₀, hL₀⟩ := eventually_atTop.mp (hv_nil (PB.isOpen.mem_nhds PB.A₀.zero_mem))
-  set L := max L₀ 1
-  have hL_pos : 0 < L := lt_of_lt_of_le Nat.zero_lt_one (le_max_right _ _)
-  have hv_L : (φ u) ^ L ∈ PB.A₀ := hL₀ L (le_max_left _ _)
+  obtain ⟨K, N, hK_pos, hN_pos, hu_K, hN_mem, mA, hmA⟩ :=
+    nilpotentUnit_principalData PA u hu_nil
   set uK : PA.A₀ := ⟨(u : A) ^ K, hu_K⟩
-  set vL : PB.A₀ := ⟨(φ u) ^ L, hv_L⟩
-  obtain ⟨N₀, hN₀⟩ := PA.exists_pow_mem_I hu_K (isTopologicallyNilpotent_pow hu_nil hK_pos)
-  set N := N₀ + 1
-  have hN_pos : 0 < N := Nat.succ_pos N₀
-  have hN_mem : uK ^ N ∈ PA.I := by
-    rw [show N = 1 + N₀ from by omega, pow_add, pow_one]
-    exact Ideal.mul_mem_left _ _ hN₀
-  obtain ⟨M₀, hM₀⟩ := PB.exists_pow_mem_I hv_L (isTopologicallyNilpotent_pow hv_nil hL_pos)
-  set M := M₀ + 1
-  have hM_pos : 0 < M := Nat.succ_pos M₀
-  have hM_mem : vL ^ M ∈ PB.I := by
-    rw [show M = 1 + M₀ from by omega, pow_add, pow_one]
-    exact Ideal.mul_mem_left _ _ hM₀
-  have hu_K_unit_mem : ((u ^ K : Aˣ) : A) ∈ PA.A₀ := by rwa [Units.val_pow_eq_pow_val]
-  obtain ⟨mA, hmA⟩ := PA.exists_pow_I_le_span_unit hu_K_unit_mem N
-  rw [show (⟨((u ^ K : Aˣ) : A), hu_K_unit_mem⟩ : PA.A₀) = uK from
-    Subtype.ext (Units.val_pow_eq_pow_val u K)] at hmA
-  have hv_L_unit_mem : (((Units.map (φ : A →* B) u) ^ L : Bˣ) : B) ∈ PB.A₀ := by
-    rw [Units.val_pow_eq_pow_val, Units.coe_map]; exact hv_L
-  obtain ⟨mB, hmB⟩ := PB.exists_pow_I_le_span_unit hv_L_unit_mem M
-  rw [show (⟨(((Units.map (φ : A →* B) u) ^ L : Bˣ) : B),
-    hv_L_unit_mem⟩ : PB.A₀) = vL from Subtype.ext
-    (by simp [vL, Units.val_pow_eq_pow_val, Units.coe_map])] at hmB
-  refine ⟨PA.withPrincipal hN_mem hmA, PB.withPrincipal hM_mem hmB, h_map, ?_⟩
+  obtain ⟨L, M, hL_pos, hM_pos, hv_L, hM_mem, mB, hmB⟩ :=
+    nilpotentUnit_principalData PB (Units.map (φ : A →* B) u)
+      (show IsTopologicallyNilpotent ((Units.map (φ : A →* B) u : B))
+        from Units.coe_map (φ : A →* B) u ▸ hv_nil)
+  set vL : PB.A₀ := ⟨(φ u) ^ L, Units.coe_map (φ : A →* B) u ▸ hv_L⟩
+  have hmB' : PB.I ^ mB ≤ Ideal.span {vL ^ M} := by
+    convert hmB using 2
+  refine ⟨PA.withPrincipal hN_mem hmA,
+    PB.withPrincipal hM_mem hmB', h_map, ?_⟩
   simp only [restrictRingHom_withPrincipal, PairOfDefinition.withPrincipal_I]
   erw [Ideal.map_span, Set.image_singleton]
   set a : PB.A₀ := (PA.restrictRingHom PB φ h_map) (uK ^ N)
-  have h_agree : a ^ (L * M) = (vL ^ M) ^ (K * N) := Subtype.ext (by
-    simp only [a, PairOfDefinition.restrictRingHom, uK, vL, SubmonoidClass.coe_pow,
-      RingHom.codRestrict_apply, RingHom.coe_comp, Function.comp_apply,
-      Subring.coe_subtype, map_pow, ← pow_mul]
-    congr 1; ring)
+  have h_agree : a ^ (L * M) = (vL ^ M) ^ (K * N) :=
+    Subtype.ext (by
+      simp only [a, PairOfDefinition.restrictRingHom, uK, vL,
+        SubmonoidClass.coe_pow, RingHom.codRestrict_apply,
+        RingHom.coe_comp, Function.comp_apply,
+        Subring.coe_subtype, map_pow, ← pow_mul]
+      congr 1; ring)
   exact radical_span_eq_of_pow_eq
     (Nat.mul_pos hL_pos hM_pos)
     (Nat.mul_pos hK_pos hN_pos)
