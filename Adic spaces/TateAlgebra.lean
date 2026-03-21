@@ -5,6 +5,9 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import «Adic spaces».RestrictedPowerSeries
 import Mathlib.RingTheory.Ideal.Quotient.Basic
 import Mathlib.Data.Finsupp.Antidiagonal
+import Mathlib.RingTheory.Flat.Basic
+import Mathlib.RingTheory.Flat.FaithfullyFlat.Algebra
+import Mathlib.RingTheory.Spectrum.Prime.RingHom
 
 /-!
 # Tate and Laurent Algebras
@@ -341,3 +344,238 @@ noncomputable def negEmbHom : ↥(TateAlgebra A) →+* LaurentTateAlgebra A :=
   mkHom.comp negIncl
 
 end LaurentTateAlgebra
+
+/-! ### TICKET-2B: Remark 8.29 + Lemma 8.31
+
+The algebraic engine for Tate acyclicity: the quotient `A⟨X⟩/(X) ≅ A`,
+faithful flatness of `A⟨X⟩` over `A`, and quotient flatness results.
+
+References: Wedhorn, Remark 8.29, Lemma 8.31.
+-/
+
+namespace TateAlgebra
+
+variable {A : Type u} [CommRing A] [TopologicalSpace A] [NonarchimedeanRing A]
+
+/-! #### The splitting: evalZeroHom ∘ algebraMap = id -/
+
+/-- Evaluating the constant coefficient of `algebraMap a` gives back `a`. -/
+theorem evalZeroHom_algebraMap (a : A) :
+    evalZeroHom (algebraMap A ↥(TateAlgebra A) a) = a := by
+  simp only [evalZeroHom, coeff, toIndex_zero]
+  norm_cast
+
+/-- The composition `evalZeroHom ∘ algebraMap` is the identity on `A`.
+This means `algebraMap` is a section of `evalZeroHom`. -/
+theorem evalZeroHom_comp_algebraMap :
+    evalZeroHom.comp (algebraMap A ↥(TateAlgebra A)) = RingHom.id A := by
+  ext a
+  simp only [RingHom.comp_apply, RingHom.id_apply]
+  exact evalZeroHom_algebraMap a
+
+/-! #### The shift operation and kernel of evalZeroHom -/
+
+/-- The "shift" of a univariate power series: `(shiftFun f)(s) = f(s + single 0 1)`.
+This extracts the quotient `f / X` when `f(0) = 0`. -/
+noncomputable def shiftFun (f : MvPowerSeries (Fin 1) A) : MvPowerSeries (Fin 1) A :=
+  fun s => f (s + Finsupp.single 0 1)
+
+omit [NonarchimedeanRing A] in
+/-- The shift of a restricted power series is restricted. The map `s ↦ s + single 0 1`
+is injective, so composing with it preserves the cofinite-filter condition. -/
+theorem shiftFun_isRestricted {f : MvPowerSeries (Fin 1) A}
+    (hf : MvPowerSeries.IsRestricted f) : MvPowerSeries.IsRestricted (shiftFun f) := by
+  change Tendsto _ cofinite (nhds 0)
+  change Tendsto _ cofinite (nhds 0) at hf
+  -- The shift map is s ↦ s + single 0 1, which is injective
+  have inj : Function.Injective fun s : Fin 1 →₀ ℕ => s + Finsupp.single 0 1 :=
+    fun s t => by simp [Finsupp.ext_iff]
+  -- Composing with an injective function preserves the cofinite filter property
+  exact hf.comp inj.tendsto_cofinite
+
+/-- The shift as an element of `A⟨X⟩`: given `f ∈ A⟨X⟩`, `shift f` is the shifted
+element, also in `A⟨X⟩`. -/
+noncomputable def shift (f : ↥(TateAlgebra A)) : ↥(TateAlgebra A) :=
+  ⟨shiftFun f.val, shiftFun_isRestricted f.prop⟩
+
+-- Helper: coefficient identity for the splitting f = C(f(0)) + X * shift(f)
+omit [TopologicalSpace A] [NonarchimedeanRing A] in
+private theorem mvps_coeff_eq (g : MvPowerSeries (Fin 1) A) (n : ℕ) :
+    MvPowerSeries.coeff (toIndex n) g =
+    MvPowerSeries.coeff (toIndex n) (MvPowerSeries.C (g 0)) +
+    MvPowerSeries.coeff (toIndex n) (MvPowerSeries.X 0 * shiftFun g) := by
+  induction n with
+  | zero =>
+    simp only [toIndex_zero]
+    rw [MvPowerSeries.coeff_zero_C, MvPowerSeries.coeff_zero_X_mul, add_zero,
+        MvPowerSeries.coeff_apply]
+  | succ n =>
+    rw [MvPowerSeries.coeff_C]
+    rw [if_neg (by simp [toIndex, Finsupp.single_eq_zero] : toIndex (n + 1) ≠ 0)]
+    rw [zero_add]
+    -- Goal: coeff (toIndex (n+1)) g = coeff (toIndex (n+1)) (X 0 * shiftFun g)
+    -- X 0 = monomial (single 0 1) 1
+    rw [show (MvPowerSeries.X (R := A) (0 : Fin 1)) =
+        MvPowerSeries.monomial (Finsupp.single 0 1) (1 : A) from rfl]
+    rw [MvPowerSeries.coeff_monomial_mul]
+    have hle : Finsupp.single (0 : Fin 1) 1 ≤ toIndex (n + 1) := by
+      simp [toIndex]
+    rw [if_pos hle, one_mul]
+    -- Goal: coeff (toIndex (n+1)) g = shiftFun g (toIndex (n+1) - single 0 1)
+    -- shiftFun g s = g (s + single 0 1)
+    -- toIndex (n+1) - single 0 1 = single 0 (n+1) - single 0 1 = single 0 n
+    -- So RHS = g (single 0 n + single 0 1) = g (single 0 (n+1)) = g (toIndex (n+1))
+    simp [shiftFun, toIndex, Finsupp.single_add, MvPowerSeries.coeff_apply]
+
+omit [TopologicalSpace A] [NonarchimedeanRing A] in
+private theorem mvps_eq_const_add_X_mul_shift (g : MvPowerSeries (Fin 1) A) :
+    g = MvPowerSeries.C (g 0) + MvPowerSeries.X 0 * shiftFun g := by
+  ext s
+  rw [map_add, eq_toIndex s]
+  exact mvps_coeff_eq g (s 0)
+
+/-- Key identity: `f = const(f(0)) + X * shift(f)` as power series. -/
+theorem eq_const_add_X_mul_shift (f : ↥(TateAlgebra A)) :
+    f = algebraMap A _ (evalZeroHom f) + X * shift f := by
+  -- Use the ext lemma to reduce to coefficient comparison
+  ext n
+  -- coeff n f = coeff n (algebraMap ... + X * shift f)
+  -- Use mvps_coeff_eq to handle the underlying MvPowerSeries
+  unfold coeff
+  have hval : (algebraMap A ↥(TateAlgebra A) (evalZeroHom f) +
+      X * shift f).val = (algebraMap A ↥(TateAlgebra A) (evalZeroHom f)).val +
+      ((X : ↥(TateAlgebra A)).val * (shift f).val) := by
+    rfl
+  rw [hval]
+  -- Now goal: MvPowerSeries.coeff (toIndex n) f.val =
+  --   MvPowerSeries.coeff (toIndex n) (algebraMap(..).val + X.val * (shift f).val)
+  rw [map_add]
+  -- Rewrite the algebraMap val to C (f.val 0)
+  have halg : (algebraMap A ↥(TateAlgebra A) (evalZeroHom f)).val =
+      MvPowerSeries.C (σ := Fin 1) (f.val 0) := by
+    change algebraMap A (MvPowerSeries (Fin 1) A) (evalZeroHom f) = _
+    rw [MvPowerSeries.algebraMap_apply]
+    simp [evalZeroHom, coeff, toIndex_zero, MvPowerSeries.coeff_apply]
+  rw [halg]
+  exact mvps_coeff_eq f.val n
+
+/-- An element of `A⟨X⟩` with zero constant term is divisible by `X`. -/
+theorem mem_ideal_X_of_evalZeroHom_eq_zero {f : ↥(TateAlgebra A)}
+    (hf : evalZeroHom f = 0) : f ∈ Ideal.span ({X} : Set ↥(TateAlgebra A)) := by
+  have key : f = X * shift f := by
+    have h := eq_const_add_X_mul_shift f
+    rw [hf, map_zero, zero_add] at h
+    exact h
+  rw [key]
+  exact Ideal.mul_mem_right _ _ (Ideal.subset_span (Set.mem_singleton _))
+
+/-- The constant term of `X * g` is zero. -/
+theorem evalZeroHom_X_mul (g : ↥(TateAlgebra A)) : evalZeroHom (X * g) = 0 := by
+  simp only [evalZeroHom, coeff, toIndex_zero, map_mul, TateAlgebra.X]
+  norm_cast
+  simp
+
+/-- Every element of `Ideal.span {X}` has zero constant term. -/
+theorem evalZeroHom_eq_zero_of_mem_ideal_X {f : ↥(TateAlgebra A)}
+    (hf : f ∈ Ideal.span ({X} : Set ↥(TateAlgebra A))) : evalZeroHom f = 0 := by
+  -- X ∈ ker evalZeroHom, so Ideal.span {X} ≤ ker evalZeroHom
+  have hX : (X : ↥(TateAlgebra A)) ∈ RingHom.ker evalZeroHom := by
+    rw [RingHom.mem_ker]
+    simp [evalZeroHom, coeff, toIndex_zero, TateAlgebra.X]
+  exact RingHom.mem_ker.mp (Ideal.span_le.mpr (Set.singleton_subset_iff.mpr hX) hf)
+
+/-- The kernel of `evalZeroHom` equals the ideal generated by `X`. -/
+theorem ker_evalZeroHom :
+    RingHom.ker evalZeroHom = Ideal.span ({X} : Set ↥(TateAlgebra A)) := by
+  ext f
+  constructor
+  · intro hf
+    exact mem_ideal_X_of_evalZeroHom_eq_zero (RingHom.mem_ker.mp hf)
+  · intro hf
+    exact RingHom.mem_ker.mpr (evalZeroHom_eq_zero_of_mem_ideal_X hf)
+
+/-- The ideal generated by `X` in `A⟨X⟩`. -/
+noncomputable def idealX : Ideal ↥(TateAlgebra A) :=
+  Ideal.span {X}
+
+/-! #### Faithful flatness of A⟨X⟩ over A (Lemma 8.31(1)) -/
+
+/-- `PrimeSpectrum.comap (algebraMap A A⟨X⟩)` is surjective.
+This follows because `evalZeroHom` provides a section: the composition
+`algebraMap` then `evalZeroHom` is the identity, so `comap evalZeroHom`
+is a right inverse of `comap algebraMap`. -/
+theorem PrimeSpectrum_comap_algebraMap_surjective :
+    Function.Surjective
+      (PrimeSpectrum.comap (algebraMap A ↥(TateAlgebra A))) := by
+  intro p
+  refine ⟨PrimeSpectrum.comap evalZeroHom p, ?_⟩
+  ext x; simp [PrimeSpectrum.comap, evalZeroHom_algebraMap]
+
+/-- `A⟨X⟩` is flat over `A` (Lemma 8.31(1), flatness part).
+
+**TODO:** The full proof requires the topological isomorphism `M ⊗[A] A⟨X⟩ ≃ M⟨X⟩`
+(Remark 8.29) which needs the topology on `A⟨X⟩` (not yet defined). -/
+instance flat : Module.Flat A ↥(TateAlgebra A) := by
+  sorry
+
+/-- `A⟨X⟩` is faithfully flat over `A` (Lemma 8.31(1)).
+Faithful flatness follows from flatness + surjectivity on spectra. -/
+instance faithfullyFlat : Module.FaithfullyFlat A ↥(TateAlgebra A) :=
+  Module.FaithfullyFlat.of_comap_surjective PrimeSpectrum_comap_algebraMap_surjective
+
+/-! #### Quotient flatness from injectivity (Lemma 8.31(2)) -/
+
+/-- **Quotient flatness from injectivity** (reusable lemma for Lemma 8.31(2)):
+If multiplication by `g` is injective on `A⟨X⟩`, then `A⟨X⟩/(g)` is flat over `A`.
+
+The proof uses the short exact sequence `0 → A⟨X⟩ →[·g] A⟨X⟩ → A⟨X⟩/(g) → 0`
+and the flatness of `A⟨X⟩` over `A`. -/
+theorem flat_quotient_of_regular (g : ↥(TateAlgebra A))
+    (hg : ∀ (x : ↥(TateAlgebra A)), g * x = 0 → x = 0) :
+    Module.Flat A (↥(TateAlgebra A) ⧸ Ideal.span {g}) := by
+  sorry
+
+/-- Multiplication by `f - X` is injective on `A⟨X⟩` when `A` is noetherian.
+
+**TODO:** The proof uses Wedhorn's noetherian ascending chain argument on the
+recurrence `f·m₀ = 0, f·mₙ = mₙ₋₁`. This requires the coefficient structure
+of `A⟨X⟩` (power series expansion), which needs the topological identification
+`M ⊗[A] A⟨X⟩ ≃ M⟨X⟩`. -/
+theorem mul_fSubX_regular [IsNoetherianRing A] (f : A) :
+    ∀ (x : ↥(TateAlgebra A)),
+      (algebraMap A _ f - X) * x = 0 → x = 0 := by
+  sorry
+
+/-- Multiplication by `1 - f·X` is injective on `A⟨X⟩` when `A` is noetherian.
+
+**TODO:** Same dependency as `mul_fSubX_regular`. -/
+theorem mul_oneSubfX_regular [IsNoetherianRing A] (f : A) :
+    ∀ (x : ↥(TateAlgebra A)),
+      (1 - algebraMap A _ f * X) * x = 0 → x = 0 := by
+  sorry
+
+/-- `A⟨X⟩/(f - X)` is flat over a noetherian `A` (Lemma 8.31(2), first case).
+Identifies with `O_X(R(f/1))` in the presheaf. -/
+theorem flat_quotient_fSubX [IsNoetherianRing A] (f : A) :
+    Module.Flat A (↥(TateAlgebra A) ⧸ Ideal.span {algebraMap A ↥(TateAlgebra A) f - X}) :=
+  flat_quotient_of_regular _ (mul_fSubX_regular f)
+
+/-- `A⟨X⟩/(1 - f·X)` is flat over a noetherian `A` (Lemma 8.31(2), second case).
+Identifies with `O_X(R(1/f))` in the presheaf. -/
+theorem flat_quotient_oneSubfX [IsNoetherianRing A] (f : A) :
+    Module.Flat A (↥(TateAlgebra A) ⧸ Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X}) :=
+  flat_quotient_of_regular _ (mul_oneSubfX_regular f)
+
+end TateAlgebra
+
+/-! ### Quotient equivalence (moved outside namespace for typeclass inference) -/
+
+/-- The isomorphism `A⟨X⟩/(X) ≃+* A`. -/
+noncomputable def TateAlgebra.quotientXEquiv {A : Type u}
+    [CommRing A] [TopologicalSpace A] [NonarchimedeanRing A] :
+    (TateAlgebra A : Type u) ⧸
+    (Ideal.span {TateAlgebra.X (A := A)} :
+      Ideal (TateAlgebra A)) ≃+* A :=
+  (Ideal.quotEquivOfEq TateAlgebra.ker_evalZeroHom.symm).trans
+    (RingHom.quotientKerEquivOfSurjective
+      TateAlgebra.evalZeroHom_surjective)
