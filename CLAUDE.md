@@ -83,6 +83,16 @@ Multiple Claude Code agents may work on this project concurrently. Follow these 
 5. **Check `lake env lean "Adic spaces/YourFile.lean"` compiles** before considering work done.
 6. **Commit frequently** with descriptive messages referencing Wedhorn sections.
 
+### Tate Acyclicity Tickets
+
+For the Tate acyclicity project (Wedhorn Thm 8.28(b)), use the ticket tracker:
+
+1. **Read `docs/TICKETS-tate-acyclicity.md`** — it has the tracker table and dependency graph.
+2. **Before starting a ticket:** Update the tracker table (Status → `IN PROGRESS`, fill Agent + date), then **commit** before writing code.
+3. **When done:** Update tracker (Status → `DONE`, fill date + commit hash), then **commit**.
+4. **Never work on a ticket that's already `IN PROGRESS`** by another agent.
+5. **Only pick tickets whose dependencies are all `DONE`.**
+
 ## Key Design Decisions
 
 - **Discrete case first:** Sorries for `isUnit_canonicalMap_s`, `restrictionMapAlg_continuous`, and `IsSheafy.discrete` are proved under `[DiscreteTopology A]`. General case is future work.

@@ -5,6 +5,48 @@
 **Constraint:** No `sorry` or `axiom`.
 **Full plan:** `docs/plans/2026-03-21-tate-acyclicity.md`
 
+---
+
+## Agent Coordination Protocol
+
+**EVERY agent MUST follow these rules:**
+
+1. **Before starting a ticket:** Update the tracker table below — set Status
+   to `IN PROGRESS`, fill in your Agent ID and start date. **Commit this change**
+   before writing any code. This prevents two agents from picking up the same ticket.
+
+2. **Check for conflicts:** Before picking a ticket, read this file and check
+   the tracker. If a ticket is `IN PROGRESS`, do NOT work on it. Pick a
+   different ticket from the same wave, or wait.
+
+3. **Check dependencies:** Only pick up tickets whose dependencies are `DONE`.
+   See the dependency graph below.
+
+4. **When finished:** Update the tracker — set Status to `DONE`, fill in the
+   completion date and the commit hash. **Commit this change** immediately.
+
+5. **If blocked:** Set Status to `BLOCKED`, add a note explaining why, and commit.
+
+6. **Do not modify files owned by another in-progress ticket.** Each ticket
+   lists its file(s). If another ticket is IN PROGRESS on that file, wait.
+
+7. **Commit frequently** with messages referencing the ticket number
+   (e.g., `TICKET-1A: define CechCochain and cechDiff`).
+
+## Tracker
+
+| Ticket | Status | Agent | Started | Completed | Commit | Notes |
+|--------|--------|-------|---------|-----------|--------|-------|
+| 0 | NOT STARTED | — | — | — | — | |
+| 1A | NOT STARTED | — | — | — | — | |
+| 1B | NOT STARTED | — | — | — | — | Depends: 1A |
+| 2A | NOT STARTED | — | — | — | — | |
+| 2B | NOT STARTED | — | — | — | — | Depends: 2A, 0 |
+| 3 | NOT STARTED | — | — | — | — | Depends: 2B |
+| 4 | NOT STARTED | — | — | — | — | Depends: 1A, 2B, 3, 6 |
+| 5 | NOT STARTED | — | — | — | — | Depends: 1B, 4 |
+| 6 | NOT STARTED | — | — | — | — | Depends: 0 |
+
 ## Dependency Graph
 
 ```
