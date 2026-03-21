@@ -1,7 +1,8 @@
 # Tate Acyclicity — Parallelizable Tickets
 
-**Master goal:** Prove Wedhorn Theorem 8.28(b): strongly noetherian Tate rings are sheafy.
-**Reference:** Wedhorn, *Adic Spaces*, pp.80-85 + Appendix A (pp.104-106).
+**Master goal:** Prove Wedhorn Theorem 8.28(b): strongly noetherian Tate rings are sheafy
+(as a sheaf of complete topological rings).
+**Reference:** Wedhorn, *Adic Spaces*, §6.18, §8.1–8.2, Appendix A (pp.73-85, 104-106).
 **Constraint:** No `sorry` or `axiom`.
 **Full plan:** `docs/plans/2026-03-21-tate-acyclicity.md`
 
@@ -13,7 +14,7 @@
 
 1. **Before starting a ticket:** Update the tracker table below — set Status
    to `IN PROGRESS`, fill in your Agent ID and start date. **Commit this change**
-   before writing any code. This prevents two agents from picking up the same ticket.
+   before writing any code. This prevents two agents picking up the same ticket.
 
 2. **Check for conflicts:** Before picking a ticket, read this file and check
    the tracker. If a ticket is `IN PROGRESS`, do NOT work on it. Pick a
@@ -41,565 +42,522 @@
 | 1A | NOT STARTED | — | — | — | — | |
 | 1B | NOT STARTED | — | — | — | — | Depends: 1A |
 | 2A | NOT STARTED | — | — | — | — | |
-| 2B | NOT STARTED | — | — | — | — | Depends: 2A, 0 |
+| 2B | NOT STARTED | — | — | — | — | Depends: 2A, 6 |
 | 3 | NOT STARTED | — | — | — | — | Depends: 2B |
-| 4 | NOT STARTED | — | — | — | — | Depends: 1A, 2B, 3, 6 |
-| 5 | NOT STARTED | — | — | — | — | Depends: 1B, 4 |
+| 4 | NOT STARTED | — | — | — | — | Depends: 2A, 2B, 3 |
+| 5 | NOT STARTED | — | — | — | — | Depends: 1B, 3, 4 |
 | 6 | NOT STARTED | — | — | — | — | Depends: 0 |
 
 ## Dependency Graph
 
 ```
-TICKET-0 ──────────────────────────────────────────────────────────
-  (prereqs)
-      │
-      ├──→ TICKET-1A ──→ TICKET-1B ─────────────────────┐
-      │    (Čech defs)   (Čech theorems)                 │
-      │                                                  │
-      ├──→ TICKET-2A ──→ TICKET-2B ──→ TICKET-3 ──→ TICKET-4
-      │    (Tate defs)   (Tate flat)   (restriction)  (Laurent)
-      │                                                  │
-      └──→ TICKET-6 (open mapping / Artin-Rees)──────────┘
-                                                         │
-                                                    TICKET-5
-                                                    (assembly)
+TICKET-0   mathlib/project audit
+    |
+    +---> TICKET-1A  finite-cover Cech API
+    |         |
+    |         +---> TICKET-1B  refinement lemmas + minimal basis-sheaf criterion
+    |
+    +---> TICKET-2A  Tate/Laurent algebra models + universal properties
+    |
+    +---> TICKET-6   noetherian Tate module topology API (Prop 6.18)
+                |
+                +---> TICKET-2B  Remark 8.29 + Lemma 8.31
+                          |
+                          +---> TICKET-3  Prop 8.30 + Cor 8.32
+
+TICKET-2A + TICKET-2B + TICKET-3 ---> TICKET-4  Lemma 8.33
+
+TICKET-1B + TICKET-3 + TICKET-4 ---> TICKET-5  Lemma 8.34 + Theorem 8.28(b)
 ```
 
 **Can run in parallel:** {1A, 2A, 6} then {1B, 2B} then {3} then {4} then {5}
 
 ---
 
-## TICKET-0: Prerequisite Mathlib Audit
+## Worker Instructions
 
-**Status:** NOT STARTED
-**Assignee:** (any agent)
-**Estimated:** 1 hour
-**Blocks:** All other tickets
-**Output:** A markdown report in `docs/plans/mathlib-audit-tate.md`
-
-### Task
-
-Audit mathlib v4.29.0-rc3 for the following APIs. For each, report:
-- Does it exist? (exact declaration name + file)
-- If not, how hard to prove? (trivial / medium / hard)
-- Alternative approaches if missing
-
-### Checklist
-
-- [ ] **Artin-Rees lemma**: `∃ c, I^n M ∩ N ⊆ I^{n-c} N` for f.g. submodules over noetherian rings. Search for `artinRees`, `artin_rees`, `Ideal.smul_inf_le`.
-- [ ] **Open mapping for I-adic modules**: Surjective maps between f.g. modules over noetherian I-adic rings are open. Search for `IsOpenMap`, `Ideal.adic_module_isOpen`.
-- [ ] **Completion preserves exact sequences**: For strict morphisms of topological abelian groups, completion preserves exactness. Search for `UniformSpace.Completion.map_exact`, `strictMorphism`.
-- [ ] **5-lemma**: Search for `five_lemma`, `fiveLemma`, or snake lemma `snake_lemma`.
-- [ ] **Faithful flatness API**: What lemmas does `RingHom.faithfullyFlat` provide? Can we deduce injectivity of `A → ∏ B_i` from faithful flatness of each `A → B_i`?
-- [ ] **Tensor product over algebra**: `M ⊗[A] N` for modules, right exactness of tensor. Search for `TensorProduct.rightExact`.
-- [ ] **Power series coefficients API**: `MvPowerSeries.coeff`, convergence, algebra structure. Check `RestrictedPowerSeries.lean` in the project.
-- [ ] **IsNoetherianRing preservation**: Does mathlib prove `R noetherian → R⟦X⟧ noetherian` or `R noetherian → R[X] noetherian`? Search `Polynomial.isNoetherianRing`, `PowerSeries.isNoetherianRing`.
-
-### Acceptance criteria
-
-A markdown file listing each item with: exists/missing, exact name, file path, and if missing, a 1-paragraph proposal for how to prove it.
+1. **Do NOT implement Cartan/Godement** unless on an optional follow-up ticket.
+2. **Do NOT implement completion-preserves-exactness for TICKET-4.** Wedhorn 8.33
+   works directly in completed Tate algebras — there is no separate uncompleted
+   row whose completion gives the target.
+3. **Track topological strictness early.** The final theorem is a sheaf of
+   **complete topological rings**, not just a sheaf of rings. Expose `IsStrict`
+   for continuous linear maps and strict-exact sequences.
+4. **Model the Laurent algebra cleanly.** It is the central reusable object.
+   Use two models (quotient + bilateral series) with a comparison isomorphism.
+5. **Fix the class design before downstream tickets.** Use Wedhorn Def 6.36 for
+   `IsStronglyNoetherianTate`, NOT just "noetherian ring of definition".
 
 ---
 
-## TICKET-1A: Čech Complex — Definitions
+## TICKET-0: Prerequisite Mathlib/Project Audit
 
 **Status:** NOT STARTED
-**Assignee:** (any agent)
+**Estimated:** 1 session
+**Blocks:** All other tickets
+**File:** `docs/plans/mathlib-audit-tate.md` (report)
+
+### Task
+
+Audit mathlib v4.29.0-rc3 and the existing project for APIs needed by the
+proof. For each item, report: exists? (name + file), or how hard to build.
+
+### Audit checklist
+
+- [ ] Existing project API for rational subsets / presheaf values / completed
+  rational localizations / restricted power series / Laurent series
+- [ ] `RingHom.Flat` / `RingHom.FaithfullyFlat` and useful lemmas (contraction
+  of primes, faithful flatness criteria, finite products)
+- [ ] Snake lemma / 3x3 lemma support for module diagrams
+- [ ] Adic/module-topology APIs in mathlib
+- [ ] Artin-Rees and cofinality lemmas for filtrations
+- [ ] Whether the project has Wedhorn Remark 7.55 (decomposing rational subsets
+  into basic R(f/1) and R(1/f) steps)
+- [ ] `IsNoetherianRing` preservation for polynomial/power series rings
+- [ ] `TensorProduct` right exactness API
+- [ ] `UniformSpace.Completion.map` properties
+
+### Deliverable
+
+Report ending with a **critical path** section: which lemmas are needed for
+Wedhorn 8.33 vs which are future/generalization only.
+
+---
+
+## TICKET-1A: Finite-Cover Cech Complex — Definitions
+
+**Status:** NOT STARTED
 **Estimated:** ~150 lines
 **Blocks:** TICKET-1B
 **Depends on:** TICKET-0
 **File:** `Adic spaces/CechCohomology.lean`
 
-### Context
-
-Wedhorn Appendix A (pp.104-106). No Čech cohomology exists in mathlib or the project. We build it from scratch, working concretely with `Fin`-indexed finite covers.
-
 ### Task
 
-Define the Čech complex for finite open covers of a topological space, with values in a presheaf of abelian groups (or rings).
+Build a finite-cover Cech complex API from scratch (none exists in mathlib).
+
+### Design decisions
+
+- Index by `Fin (q+1) -> ι` (all functions), NOT order-homs `→o`. This is
+  better for refinement maps, product covers, and restriction of covers.
+- Do NOT expose alternating cochains in the public API. If needed later, add
+  as internal comparison. The current theorem only needs the full complex.
 
 ### Definitions to create
 
 ```
--- A finite open cover indexed by Fin n
-structure FinCover (X : Type*) [TopologicalSpace X] (n : ℕ) where
-  sets : Fin n → Set X
-  isOpen : ∀ i, IsOpen (sets i)
-  isCover : ⋃ i, sets i = Set.univ
+-- Finite cover indexed by type ι
+structure FiniteCover (X : Type*) [TopologicalSpace X] (ι : Type*) [Fintype ι]
 
--- Multi-intersection U_{i₀} ∩ ... ∩ U_{i_q}
-def FinCover.inter (U : FinCover X n) (σ : Fin (q+1) →o Fin n) : Set X
+-- Multi-intersection
+def FiniteCover.inter (U : FiniteCover X ι) (σ : Fin (q+1) → ι) : Set X
 
--- q-cochains: ∏_{σ : Fin(q+1) →o Fin n} F(U_σ)
-def CechCochain (F : Set X → Type*) (U : FinCover X n) (q : ℕ) : Type*
+-- q-cochains
+def Cech (F : Set X → Type*) (U : FiniteCover X ι) (q : ℕ) : Type*
+  -- := ∏ σ : Fin (q+1) → ι, F (U.inter σ)
 
--- Alternating q-cochains
-def CechCochainAlt (F : Set X → Type*) (U : FinCover X n) (q : ℕ) : Type*
+-- Differential
+def cechDiff ... : Cech F U q → Cech F U (q+1)
 
--- Differential d^q : Č^q → Č^{q+1}
-def cechDiff (F : Set X → Type*) (res : ∀ {U V}, V ⊆ U → F U → F V)
-    (U : FinCover X n) (q : ℕ) : CechCochain F U q → CechCochain F U (q+1)
+-- Augmentation
+def cechAug ... : F Set.univ → Cech F U 0
 
--- Augmentation ε : F(X) → Č^0
-def cechAugmentation (F : Set X → Type*) (res : ∀ {U V}, V ⊆ U → F U → F V)
-    (U : FinCover X n) : F Set.univ → CechCochain F U 0
-
--- Augmented Čech complex
-structure AugCechComplex (F : Set X → Type*) (U : FinCover X n) where
-  ...
-
--- F-acyclicity: the augmented complex is exact
-def IsAcyclic (F : Set X → Type*) (U : FinCover X n) : Prop
+-- Cover restriction and product-cover constructions
+def FiniteCover.restrictTo ...
+def FiniteCover.prod ...
 ```
 
-### Key properties to prove
+### Properties to prove
 
-- [ ] `cechDiff_comp_cechDiff : cechDiff q+1 ∘ cechDiff q = 0`
-- [ ] `cechAugmentation_comp_cechDiff : cechDiff 0 ∘ cechAugmentation = 0`
+- [ ] `cechDiff_comp_cechDiff : cechDiff (q+1) ∘ cechDiff q = 0`
+- [ ] `cechAug_comp_cechDiff : cechDiff 0 ∘ cechAug = 0`
+- [ ] Extensionality lemmas for cochains
+- [ ] Chain maps induced by cover maps / refinements
 
 ### Acceptance criteria
 
-- File compiles with `lake env lean "Adic spaces/CechCohomology.lean"`
-- Zero warnings
-- All definitions are well-typed and usable
-- `d ∘ d = 0` proved
-- At least 1 docstring per public definition
+- File compiles, zero warnings, no sorry
+- Docstring on every public definition
 
 ---
 
-## TICKET-1B: Čech Complex — Refinement Theorems
+## TICKET-1B: Cech Refinement Theorems + Basis-Sheaf Criterion
 
 **Status:** NOT STARTED
-**Assignee:** (any agent)
 **Estimated:** ~250 lines
 **Blocks:** TICKET-5
 **Depends on:** TICKET-1A
-**File:** `Adic spaces/CechCohomology.lean` (append to file from 1A)
+**File:** `Adic spaces/CechCohomology.lean` (append)
 
-### Context
+### Task
 
-Wedhorn Appendix A, Propositions A.3 and A.4. These are the key structural
-theorems that let us reduce sheafiness to acyclicity on a basis.
+Formalize exactly the Cech infrastructure used in Lemma 8.34 (Wedhorn App A).
 
-### Theorems to prove
+### What to prove (and what NOT to prove)
 
-**Prop A.3(2):** If `V` refines `U` (i.e., ∀ j, V_j ⊆ U_{τ(j)} for some τ),
-then `U` is F-acyclic iff `V` is F-acyclic.
+**DO prove:**
 
-*Proof:* The refinement map τ induces a chain map `Č•(U,F) → Č•(V,F)` which
-is a quasi-isomorphism (standard homotopy argument).
+- **Prop A.3(1)** (master lemma): If restrictions of V to intersections of U are
+  acyclic, and vice versa, then U acyclic iff V acyclic.
+- **Prop A.3(2)**: Refinement preserves acyclicity. (Follows from A.3(1)
+  because trivial cover is always acyclic.)
+- **Prop A.3(3)**: If V|_{U_{i₀...i_q}} is acyclic for all intersections, then
+  U × V acyclic iff U acyclic. This is the exact form used in Lemma 8.34(i).
+- **Minimal basis-sheaf criterion**: If B is a basis stable under finite
+  intersections, and every finite B-cover of every U ∈ B is acyclic, then the
+  presheaf is a sheaf on B, hence extends to a sheaf on all opens.
 
-**Prop A.3(3):** The product cover `U × V := (U_i ∩ V_j)_{i,j}` is F-acyclic
-iff `U` is F-acyclic.
+**Do NOT prove:**
 
-*Proof:* `U × V` refines both `U` and `V`. Use (2).
+- Full Cech-to-derived-functor comparison (Cartan/Godement). Optional later.
+- Higher cohomology H^q = Ȟ^q on all opens. Not needed for Thm 8.28(b).
 
-**Prop A.4:** Let B be a basis of the topology stable under finite intersections.
-If F is a presheaf on B, and every covering of U ∈ B by elements of B is
-F-acyclic, then:
-- F extends uniquely to a sheaf F' on X
-- Ȟ^q(U, F) = H^q(U, F') = 0 for all U ∈ B and q ≥ 1
-
-*Proof:* Exactness of `0 → F(U) → Č^0 → Č^1` shows F' is a sheaf on B.
-The acyclicity of the augmented complex for all B-coverings of U ∈ B gives
-Ȟ^q(U, F) = 0. By Cartan's theorem (Godement II.5.9.2), Ȟ^q = H^q for
-all open U.
-
-### Steps
-
-- [ ] Define refinement map `τ : V refines U`
-- [ ] Construct chain map induced by refinement
-- [ ] Prove Prop A.3(2) (refinement preserves acyclicity)
-- [ ] Prove Prop A.3(3) (product covers)
-- [ ] State and prove Prop A.4 (sheaf on basis)
-- [ ] Connect to existing `RationalCovering` from Presheaf.lean
+If you do formalize the full A.4, keep it in a separate namespace so the
+main theorem does not depend on it.
 
 ### Acceptance criteria
 
-- File compiles, zero warnings
-- Prop A.3(2), A.3(3), A.4 all proved (no sorry)
-- Connected to `RationalCovering` type
+- A.3(1)/(2)/(3) and basis-sheaf criterion proved, no sorry
+- Connected to `RationalCovering` from Presheaf.lean
 
 ---
 
-## TICKET-2A: Tate Algebra — Definitions and Basic Properties
+## TICKET-2A: Tate and Laurent Algebra Models
 
 **Status:** NOT STARTED
-**Assignee:** (any agent)
-**Estimated:** ~150 lines
-**Blocks:** TICKET-2B
+**Estimated:** ~200 lines
+**Blocks:** TICKET-2B, TICKET-4
 **Depends on:** TICKET-0
 **File:** `Adic spaces/TateAlgebra.lean`
 
-### Context
+### Task
 
-Wedhorn Remark 8.29 and §5.7. The Tate algebra `A⟨X⟩` is the ring of restricted
-power series: `∑ aₙ Xⁿ` with `aₙ → 0`. For a f.g. A-module M, define `M⟨X⟩`
-similarly. The project already has `RestrictedPowerSeries.lean` with
-`MvPowerSeries.IsRestricted` and `restrictedMvPowerSeriesSubring`.
+Provide clean models for the completed algebras in Wedhorn 8.29-8.33.
 
-### Definitions to create
+### Objects to define
 
-```
--- Tate algebra: A⟨X⟩ (univariate restricted power series)
--- Use existing restrictedMvPowerSeriesSubring with k=1, or define directly
-def tateAlgebra (A : Type*) [CommRing A] [TopologicalSpace A] :
-    Subring (PowerSeries A)
+1. `TateAlgebra A` := A⟨X⟩ (univariate restricted power series)
+2. `LaurentTateAlgebra A` := A⟨ζ, ζ⁻¹⟩ (bilateral restricted Laurent series)
 
--- Module of restricted power series M⟨X⟩
-def tateModule (M : Type*) [AddCommGroup M] [Module A M]
-    [TopologicalSpace M] : Type*
+### Design: two models for Laurent algebra
 
--- Natural map μ_M : M ⊗_A A⟨X⟩ → M⟨X⟩
-def tateModuleMap (M : Type*) ... : M ⊗[A] tateAlgebra A → tateModule M
+- **Quotient model:** `TateAlgebra2 A / (XY - 1)` for universal properties and
+  comparison with presheaf values.
+- **Bilateral series model:** Direct definition via coefficients for explicit
+  computations (decomposition into positive/negative parts).
+- Prove a comparison isomorphism between them.
 
--- Topology on A⟨X⟩ making it a Tate ring
-instance : TopologicalSpace (tateAlgebra A)
-instance : IsTopologicalRing (tateAlgebra A)
-instance : IsTateRing (tateAlgebra A) -- X is a topologically nilpotent unit
-```
+### Required API
 
-### Key lemma
-
-- [ ] `tateAlgebra_quotient_iso` : `A⟨X⟩ / (X) ≅ A` (the augmentation)
+- [ ] Constants/variables and evaluation maps
+- [ ] Quotient: `A⟨X⟩/(X) ≃ A`
+- [ ] Quotient: `A⟨X,Y⟩/(XY-1) ≃ LaurentTateAlgebra A`
+- [ ] Extensionality by coefficients on each model
+- [ ] Embeddings: `A⟨ζ⟩ → LaurentTateAlgebra A`, `A⟨ζ⁻¹⟩ → LaurentTateAlgebra A`
+- [ ] Topology making A⟨X⟩ a Tate ring (inherited from a topologically
+  nilpotent unit of A, **NOT from X** — X is not a unit)
 
 ### Acceptance criteria
 
-- File compiles, zero warnings
-- `tateAlgebra`, `tateModule`, `tateModuleMap` all defined
-- `IsTateRing` instance on `tateAlgebra A`
-- Augmentation quotient isomorphism proved
+- All objects defined with proper topology
+- Comparison isomorphism proved
+- No sorry, zero warnings
 
 ---
 
-## TICKET-2B: Tate Algebra — Flatness (Lemma 8.31)
+## TICKET-6: Noetherian Tate Module Topology (Prop 6.18)
 
 **Status:** NOT STARTED
-**Assignee:** (any agent)
 **Estimated:** ~200 lines
-**Blocks:** TICKET-3
-**Depends on:** TICKET-2A, TICKET-0 (Artin-Rees audit)
-**File:** `Adic spaces/TateAlgebra.lean` (append)
+**Blocks:** TICKET-2B
+**Depends on:** TICKET-0
+**File:** `Adic spaces/NoetherianTateModules.lean`
 
-### Context
+### Task
 
-Wedhorn Lemma 8.31. This is the algebraic engine behind the sheafiness proof.
+Formalize the API around Wedhorn Prop 6.18 and Remark 6.19. This is the
+module topology / open mapping infrastructure needed by Remark 8.29.
 
-### Theorems to prove
+### What to prove
 
-**Remark 8.29:** `μ_M : M ⊗_A A⟨X⟩ → M⟨X⟩` is bijective when A is noetherian.
-*Proof:* Clear for M = A^n (free). General: take presentation A^n → A^m → M → 0,
-tensor with A⟨X⟩ (right exact), get A⟨X⟩^n → A⟨X⟩^m → M ⊗ A⟨X⟩ → 0.
-Prop 6.18(2) shows u and p are continuous and open. By 5-lemma on the diagram
-with M⟨X⟩, conclude μ_M is bijective.
+1. **Canonical topology** on f.g. modules over a complete noetherian Tate ring
+   (Prop 6.18(1)): the unique topology making M a topological A-module with
+   I^n M → 0.
+2. **Independence** of the chosen ring of definition / lattice.
+3. **Continuity**: every A-linear map between f.g. modules is continuous
+   (Prop 6.18(2), easy direction).
+4. **Open mapping**: every surjective A-linear map between f.g. modules is open
+   (Prop 6.18(2), hard direction — needs Artin-Rees).
+5. **Strict map API**: reusable `IsStrict` predicate for continuous maps that
+   are open onto their image.
 
-**Lemma 8.31(1):** `A⟨X⟩` is faithfully flat over A.
-*Proof:* Flat because μ_M bijective means `M ⊗ A⟨X⟩ ≅ M⟨X⟩`, and M⟨X⟩
-contains M (constant power series), so `M → M ⊗ A⟨X⟩` is injective.
-Faithful because `A⟨X⟩/(X) ≅ A`.
+### Artin-Rees
 
-**Lemma 8.31(2):** `A⟨X⟩/(f-X)` and `A⟨X⟩/(1-fX)` are flat over A for any f ∈ A.
-*Proof:* For any f.g. A-module M, need to show multiplication by `g = f - X`
-(resp. `g = 1 - fX`) on `M⟨X⟩` is injective. If `gu = 0` where
-`u = ∑ mₙXⁿ`, the relation `fm₀ = 0, fmₙ = mₙ₋₁` (for g = f-X) gives
-`f^{l+1}m_l = 0`. Since M is noetherian, the submodule generated by
-{m₀, m₁, ...} is finitely generated, say by m₀,...,m_l. Then
-`m_{2l+1} = am_l` for some a, and `f^{l+1}m_{2l+1} = af^{l+1}m_l = 0`.
-Thus the submodule M' = 0, so u = 0.
+If not in mathlib (check TICKET-0), prove it here:
+`∃ c, ∀ n ≥ c, I^n M ∩ N = I^{n-c}(I^c M ∩ N)` for f.g. N ⊆ M over
+noetherian rings. (~50 lines)
 
-### Steps
+### What does NOT belong here
 
-- [ ] Prove `tateModuleMap_bijective` for free modules
-- [ ] Prove `tateModuleMap_bijective` for f.g. modules (using presentation + 5-lemma)
-- [ ] Prove `tateAlgebra_flat` (Lemma 8.31(1), flat part)
-- [ ] Prove `tateAlgebra_faithfullyFlat` (Lemma 8.31(1), faithful part)
-- [ ] Prove `multiplication_injective_fX` (Lemma 8.31(2), g = f-X case)
-- [ ] Prove `multiplication_injective_1fX` (Lemma 8.31(2), g = 1-fX case)
-- [ ] Prove `tateAlgebra_quotient_flat` (Lemma 8.31(2))
+- Completion-preserves-exactness (future Zavyalov phase)
+- Projective scheme arguments
 
 ### Acceptance criteria
 
-- Lemma 8.31(1) and 8.31(2) fully proved, no sorry
-- File compiles, zero warnings
+- Prop 6.18 (both parts) proved, no sorry
+- `IsStrict` predicate defined and usable
+- Zero warnings
+
+---
+
+## TICKET-2B: Remark 8.29 + Lemma 8.31
+
+**Status:** NOT STARTED
+**Estimated:** ~250 lines
+**Blocks:** TICKET-3
+**Depends on:** TICKET-2A, TICKET-6
+**File:** `Adic spaces/TateAlgebra.lean` (append)
+
+### Task
+
+Follow Wedhorn 8.29 / 8.31 exactly. This is the algebraic engine.
+
+### Sub-parts
+
+**2B.1 — M⟨X⟩ as a functor:**
+Define M⟨X⟩ for f.g. A-modules. Prove that a strict short exact sequence of
+f.g. modules remains exact after applying ⟨X⟩. (Uses Prop 6.18 from TICKET-6.)
+
+**2B.2 — Remark 8.29 (μ_M isomorphism):**
+For f.g. M, prove `μ_M : M ⊗[A] A⟨X⟩ →≃ M⟨X⟩`.
+Proof: presentation A^n → A^m → M → 0, free case, exactness of ⟨X⟩ on strict maps.
+
+**2B.3 — Lemma 8.31(1) (faithful flatness):**
+- Flat: tensor with A⟨X⟩ preserves injections of f.g. modules (via μ_M).
+- Faithful: via prime-lifting on the constant term, or quotient criterion
+  using `A⟨X⟩/(X) ≅ A`.
+
+**2B.4 — Lemma 8.31(2) (quotient flatness):**
+Reusable lemma: if multiplication by g is injective on M⟨X⟩ for every f.g. M,
+then A⟨X⟩/(g) is flat over A.
+
+Specialize to `g = f - X` and `g = 1 - fX`. For `g = f - X`, formalize the
+noetherian argument: the recurrence `fm₀ = 0, fmₙ = mₙ₋₁` implies the
+submodule generated by {m₀, m₁, ...} is finitely generated, leading to u = 0.
+
+### Acceptance criteria
+
+- Remark 8.29 and Lemma 8.31(1)+(2) fully proved, no sorry
+- Reusable quotient-flatness-from-injectivity lemma
 
 ---
 
 ## TICKET-3: Flatness of Restriction Maps (Prop 8.30 + Cor 8.32)
 
 **Status:** NOT STARTED
-**Assignee:** (any agent)
 **Estimated:** ~200 lines
-**Blocks:** TICKET-4
+**Blocks:** TICKET-4, TICKET-5
 **Depends on:** TICKET-2B
 **File:** `Adic spaces/FlatnessResults.lean`
 
-### Context
+### Task
 
-Wedhorn Prop 8.30 and Cor 8.32. Connects the abstract Tate algebra flatness
-to the presheaf structure.
+Connect Tate algebra flatness to the presheaf structure.
 
-### Theorems to prove
+### Prerequisites from existing project
 
-**Prop 8.30:** For rational subsets U ⊆ V ⊆ Spa A (with A strongly noetherian
-Tate), the restriction `O_X(V) → O_X(U)` is flat.
-*Proof:* WLOG V = X, A complete. By Remark 7.55, U = R(f/1) or R(1/f).
-Then O_X(U) = A⟨X⟩/(f-X) or A⟨X⟩/(1-fX), flat by Lemma 8.31(2).
+- Rational localizations of strongly noetherian Tate rings remain strongly
+  noetherian Tate (Example 6.38 — prove if not already in project)
+- Wedhorn Remark 7.55: every rational subset decomposes into basic R(f/1)
+  and R(1/f) steps (check if already in project from TICKET-0)
 
-**Cor 8.32:** The product `O_X(X) → ∏ O_X(U_i)` is faithfully flat (and injective).
-*Proof:* Factors through A⟨X⟩ (faithfully flat by 8.31(1)).
+### Prop 8.30 (restriction maps flat)
 
-### Interface with existing code
+- Reduce to V = X and A complete
+- Use Remark 7.55 to reduce to two basic cases
+- Identify O_X(R(f/1)) = A⟨X⟩/(f-X) and O_X(R(1/f)) = A⟨X⟩/(1-fX)
+- Apply TICKET-2B flatness
 
-- Uses `presheafValue` from Presheaf.lean (= completion of Localization.Away s)
-- Uses `restrictionMap` from Presheaf.lean
-- Needs to connect `presheafValue D` with `tateAlgebra A / (f-X)` or similar
-- This connection (Example 6.38 / equation 8.1.1) may be the hardest part
+### Cor 8.32 (product restriction faithfully flat)
 
-### Steps
+Prove `A → ∏ O_X(U_i)` is faithfully flat for a finite rational cover:
+- Flatness: finite products of flat algebras are flat
+- Faithfulness: induced map on spectra is surjective because U_i cover Spa A
 
-- [ ] Establish `presheafValue ≅ A⟨X⟩/(f-X)` for rational subsets of the form R(f/1)
-- [ ] Establish `presheafValue ≅ A⟨X⟩/(1-fX)` for R(1/f)
-- [ ] Prove Prop 8.30 using Lemma 8.31(2)
-- [ ] Prove Cor 8.32 using Lemma 8.31(1)
+**Do NOT describe this as factoring through A⟨X⟩** — that is not the right proof.
+
+### Reusable API to leave behind
+
+A general lemma: for a finite family of flat A-algebras whose affinoid spectra
+cover Spa A, the map to the finite product is faithfully flat.
 
 ### Acceptance criteria
 
-- Prop 8.30 and Cor 8.32 fully proved, no sorry
+- Prop 8.30 and Cor 8.32 proved, no sorry
 - Connected to existing `presheafValue` and `restrictionMap`
 
 ---
 
-## TICKET-4: Laurent Cover Exactness — Completed vs Decompleted (Lemma 8.33)
+## TICKET-4: Laurent Cover Exactness (Lemma 8.33)
 
 **Status:** NOT STARTED
 **Assignee:** (experienced agent — hardest ticket)
-**Estimated:** ~400 lines
+**Estimated:** ~350 lines
 **Blocks:** TICKET-5
-**Depends on:** TICKET-1A, TICKET-2B, TICKET-3, TICKET-6
+**Depends on:** TICKET-2A, TICKET-2B, TICKET-3
 **File:** `Adic spaces/LaurentCoverExact.lean`
 
-### Context
+### Task
 
-Wedhorn Lemma 8.33, p.83. This is the **heart** of the entire proof — the
-completed vs decompleted exactness argument.
+Formalize exactly Wedhorn Lemma 8.33 on pp.83-84. The proof works **directly
+in completed Tate algebras** — there is NO separate uncompleted row whose
+completion gives the target row.
 
 ### Setup
 
-For `f ∈ A`, define the 2-element cover:
-- `U₁ = R(f/1) = {x ∈ Spa A : x(f) ≤ 1}`
-- `U₂ = R(1/f) = {x ∈ Spa A : x(f) ≥ 1}`
+For f ∈ A, the 2-element cover U₁ = R(f/1), U₂ = R(1/f). Identify:
+- B₁ := O_X(U₁) = A⟨ζ⟩/(f-ζ)
+- B₂ := O_X(U₂) = A⟨η⟩/(1-fη)
+- B₁₂ := O_X(U₁∩U₂) = A⟨ζ,ζ⁻¹⟩/(f-ζ)
 
-The augmented Čech complex is:
-`0 → O_X(X) → O_X(U₁) × O_X(U₂) → O_X(U₁ ∩ U₂) → 0`
-
-Using the identifications:
-- `O_X(U₁) = A⟨ζ⟩/(f-ζ)`
-- `O_X(U₂) = A⟨η⟩/(1-fη)`
-- `O_X(U₁ ∩ U₂) = A⟨ζ, ζ⁻¹⟩/(f-ζ)`
-
-### The 3×3 diagram
+### The 3×3 diagram (Wedhorn p.83)
 
 ```
                     0                     0
                     ↓                     ↓
-(f-ζ)A⟨ζ⟩ × (1-fη)A⟨η⟩  →λ'→  (f-ζ)A⟨ζ,ζ⁻¹⟩  → 0    [Row 1: kernels]
+(f-ζ)A⟨ζ⟩ × (1-fη)A⟨η⟩  →λ'→  (f-ζ)A⟨ζ,ζ⁻¹⟩  → 0    [Row 1]
                     ↓                     ↓
-0 → A  →ι→  A⟨ζ⟩ × A⟨η⟩      →λ→   A⟨ζ,ζ⁻¹⟩          [Row 2: Tate algebras]
+0 → A  →ι→  A⟨ζ⟩ × A⟨η⟩      →λ→   A⟨ζ,ζ⁻¹⟩          [Row 2]
                     ↓                     ↓
-0 → A  →ε→  O_X(U₁) × O_X(U₂) →δ→  O_X(U₁∩U₂)  → 0  [Row 3: presheaf values]
+0 → A  →ε→  B₁ × B₂           →δ→   B₁₂         → 0   [Row 3]
                     ↓                     ↓
                     0                     0
 ```
 
-### Proof steps
+### Sub-parts
 
-1. **Define Laurent algebra** `A⟨ζ, ζ⁻¹⟩` (power series in ζ and ζ⁻¹ with
-   coefficients → 0 in both directions)
+**4.1 — Decomposition lemmas:**
+- `A⟨ζ,ζ⁻¹⟩ = A⟨ζ⟩ + ζ⁻¹ A⟨ζ⁻¹⟩` (gives surjectivity of λ)
+- `(f-ζ)A⟨ζ,ζ⁻¹⟩ = (f-ζ)A⟨ζ⟩ + (1-fζ⁻¹)A⟨ζ⁻¹⟩` (gives surjectivity of λ')
 
-2. **Prove decomposition** `A⟨ζ, ζ⁻¹⟩ = A⟨ζ⟩ + ζ⁻¹·A⟨ζ⁻¹⟩` (direct sum of
-   positive and negative parts)
+**4.2 — Kernel lemma:**
+For `λ(g(ζ), h(η)) = g(ζ) - h(ζ⁻¹)`, prove `ker λ = im ι` by explicit
+coefficient comparison. This is the key computational lemma.
 
-3. **Construct λ** : `A⟨ζ⟩ × A⟨η⟩ → A⟨ζ, ζ⁻¹⟩` by
-   `(g(ζ), h(η)) ↦ g(ζ) - h(ζ⁻¹)`
+**4.3 — Diagram chase:**
+Columns exact (by definition as quotients). Row 1 exact (λ' surjective).
+Row 2 exact (λ surjective, ker = im ι). By 3×3 lemma / snake lemma,
+row 3 is exact.
 
-4. **Prove λ surjective** (from the decomposition in step 2)
+**4.4 — Topological upgrade:**
+Strengthen to strict-exactness: the map ε is a topological embedding into
+B₁ × B₂ (for `IsSheafyTopRing`).
 
-5. **Prove ker(λ) = im(ι)**: If `g(ζ) = h(ζ⁻¹)`, comparing coefficients gives
-   `aₖ = bₖ = 0` for k > 0 and `a₀ = b₀`. So `(g, h) = ι(a₀)`.
+### What does NOT belong here
 
-6. **Row 1 exact**: `λ'` surjective by similar coefficient argument applied to
-   `(f-ζ)A⟨ζ,ζ⁻¹⟩ = (f-ζ)A⟨ζ⟩ + (1-fζ⁻¹)ζ⁻¹A⟨ζ⁻¹⟩`
-
-7. **Columns exact**: by definition (quotient by the ideals (f-ζ), (1-fη))
-
-8. **Diagram chase** (snake lemma or direct): rows 1+2 exact with exact columns
-   ⟹ row 3 exact. This is the "decompleted" exactness.
-
-9. **Open mapping** (Prop 6.18(2)): The maps ι, λ are continuous and open
-   (surjective maps of f.g. modules over noetherian Tate rings are open
-   by Artin-Rees). Therefore the quotient maps to row 3 preserve exactness.
-
-10. **Completion**: Since all maps are strict (continuous + open on image),
-    passing to the I-adic completion preserves the exact sequence.
-    Row 3 = completion of the decompleted row ⟹ row 3 is exact.
-
-### Steps
-
-- [ ] Define `laurentAlgebra A` (A⟨ζ, ζ⁻¹⟩)
-- [ ] Prove decomposition A⟨ζ, ζ⁻¹⟩ = A⟨ζ⟩ ⊕ ζ⁻¹·A⟨ζ⁻¹⟩₊
-- [ ] Define and prove λ surjective
-- [ ] Prove ker(λ) = im(ι)
-- [ ] Prove row 1 exact
-- [ ] Prove columns exact
-- [ ] Diagram chase → row 3 exact (decompleted)
-- [ ] Prove maps are open (using TICKET-6)
-- [ ] Prove completion preserves exact sequence
-- [ ] Package as `laurentCover_isAcyclic`
+- "Decompleted exactness" — not part of Wedhorn 8.33
+- "Completion preserves exactness" — not part of Wedhorn 8.33
+- TICKET-6 is NOT a dependency of this ticket
 
 ### Acceptance criteria
 
-- Lemma 8.33 fully proved, no sorry
-- The completed vs decompleted argument is explicit
-- Connected to `IsAcyclic` from CechCohomology.lean
+- Lemma 8.33 fully proved (including topological embedding), no sorry
+- Uses Laurent algebra API from TICKET-2A
+- Connected to `IsAcyclic` from TICKET-1A
 
 ---
 
-## TICKET-5: General Acyclicity + Assembly (Lemma 8.34, Thm 8.28(b))
+## TICKET-5: General Acyclicity + Assembly (Lemma 8.34 + Thm 8.28(b))
 
 **Status:** NOT STARTED
-**Assignee:** (any agent)
 **Estimated:** ~250 lines
 **Blocks:** None (final ticket)
-**Depends on:** TICKET-1B, TICKET-4
+**Depends on:** TICKET-1B, TICKET-3, TICKET-4
 **Files:** `Adic spaces/TateAcyclicity.lean` (new),
   `Adic spaces/StructureSheaf.lean` (modify), `Adic spaces.lean` (modify)
 
-### Context
+### Class design
 
-Wedhorn Lemma 8.34 and Theorem 8.28(b). Induction on covers using
-Laurent cover exactness + Čech refinement.
-
-### Definition
+Use Wedhorn Definition 6.36:
 
 ```
--- Strongly noetherian Tate ring (Wedhorn Definition 8.28 condition (b))
 class IsStronglyNoetherianTate (A : Type*) [CommRing A] [TopologicalSpace A]
     extends IsTateRing A where
-  noetherian_ring_of_def : ∃ P : PairOfDefinition A, IsNoetherianRing P.A₀
-  -- + stability under topologically finite type base change
+  noetherian_tate_algebra : ∀ n : ℕ, IsNoetherianRing (completion_of (A⟨X₁,...,Xₙ⟩))
 ```
 
-### Theorems to prove
+Equivalently: every Tate ring topologically of finite type over A is noetherian.
 
-**Lemma 8.34:** Standard covers of a complete strongly noetherian Tate ring are
-O_X-acyclic. Proof by induction:
-- (i) 2-element Laurent covers are acyclic (Lemma 8.33 = TICKET-4)
-- (ii) Laurent covers generated by units refine to acyclic covers
-- (iii) Every rational cover has a Laurent cover refinement
-- (iv) Combine with Prop A.3 (TICKET-1B)
+### Lemma 8.34 (standard covers acyclic)
 
-**Theorem 8.28(b):** O_X is a sheaf. Proof:
-- Rational subsets form a basis stable under intersections (existing in project)
-- Standard covers are acyclic on this basis (Lemma 8.34)
-- By Prop A.4 (TICKET-1B), O_X is a sheaf
+Follow Wedhorn pp.84-85 literally:
+1. 2-element covers U_f = {R(f/1), R(1/f)} are acyclic (TICKET-4)
+2. Restriction to any rational subset remains acyclic (rational localizations
+   stay strongly noetherian Tate)
+3. By A.3(3) (TICKET-1B), products of 2-element covers (Laurent covers)
+   are acyclic
+4. For standard cover by T = (f₀,...,fₙ), use Cor 7.32 to choose unit s so
+   that Laurent cover by s⁻¹f₁,...,s⁻¹fₙ has U|_{V_j} generated by units
+5. Rational covers by units are refined by Laurent covers by f_if_j⁻¹
+6. By A.3(2)/(3), standard cover is acyclic
+
+### Theorem 8.28(b) — two outputs
+
+**5.1 Ring-sheaf:** Use basis-sheaf criterion (TICKET-1B) on rational subsets.
+
+**5.2 Topological sheaf:** Either inherit from strict-exactness (TICKET-4
+topological upgrade), or separately prove the equalizer map is a topological
+embedding. Target: `IsSheafyTopRing A`.
 
 ### Steps
 
-- [ ] Define `IsStronglyNoetherianTate`
-- [ ] Prove rational localizations preserve strongly noetherian (Example 6.38)
-- [ ] Define Laurent covers
-- [ ] Prove 2-element Laurent covers acyclic (wrap TICKET-4)
-- [ ] Prove Laurent cover refinement exists (Lemma 8.34(ii)-(iii))
+- [ ] Define `IsStronglyNoetherianTate` (Wedhorn 6.36)
+- [ ] Prove rational localizations preserve strongly noetherian
+- [ ] Define Laurent covers, prove acyclic (wrap TICKET-4)
+- [ ] Prove Laurent cover refinement (8.34(ii)-(iii))
 - [ ] Prove Lemma 8.34 by induction
-- [ ] Prove `IsStronglyNoetherianTate.isSheafyTopRing` (Theorem 8.28(b))
+- [ ] Prove `IsStronglyNoetherianTate.isSheafyTopRing`
 - [ ] Add `IsSheafy` instance to StructureSheaf.lean
 - [ ] Update imports in `Adic spaces.lean`
 - [ ] Full `lake build` verification
 
 ### Acceptance criteria
 
-- Theorem 8.28(b) fully proved, no sorry
-- `IsSheafy` instance registered
+- Theorem 8.28(b) proved as `IsSheafyTopRing`, no sorry
 - Full project builds with zero errors
-
----
-
-## TICKET-6: Open Mapping Theorem for I-adic Modules
-
-**Status:** NOT STARTED
-**Assignee:** (any agent)
-**Estimated:** ~200 lines
-**Blocks:** TICKET-4
-**Depends on:** TICKET-0 (to know if Artin-Rees exists)
-**File:** `Adic spaces/OpenMapping.lean`
-
-### Context
-
-Wedhorn Prop 6.18(2). This is a prerequisite for the completed vs decompleted
-argument (TICKET-4). We need: surjective A-linear maps between f.g. modules
-over a noetherian I-adic ring are open (with the I-adic topology).
-
-### What to prove
-
-**Artin-Rees Lemma** (if not in mathlib):
-For a noetherian ring A, ideal I, f.g. A-module M, and submodule N ⊆ M:
-`∃ c, ∀ n ≥ c, I^n M ∩ N = I^{n-c}(I^c M ∩ N)`
-
-**Prop 6.18(1):** For a noetherian Tate ring A and a f.g. A-module M, the
-I-adic topology on M (for any ideal of definition I) is the unique
-topology making M a topological A-module with I^n M → 0.
-
-**Prop 6.18(2):** Any surjective A-linear map u : M → N between f.g. modules
-(with canonical topology) is continuous and open.
-*Proof:* Continuous by definition (I-adic). Open: ker(u) ⊆ M is a submodule.
-By Artin-Rees, `I^n M ∩ ker(u) ⊆ I^{n-c} ker(u)`. Since `u(I^n M) = I^n N`,
-the map on quotients `M/I^n M → N/I^n N` has kernel
-`(I^n M + ker u)/I^n M ≅ ker(u)/(I^n M ∩ ker u)`. By Artin-Rees, this is
-surjected by `ker(u)/I^{n-c} ker(u)`, which is a finite module quotient.
-This gives openness of u.
-
-**Completion preserves exact sequences:**
-If `0 → K → M → N → 0` is a short exact sequence of f.g. modules over a
-noetherian I-adic ring, with all maps continuous and open, then the completed
-sequence `0 → K̂ → M̂ → N̂ → 0` is exact.
-*Proof:* K̂ = lim K/I^n K, M̂ = lim M/I^n M, N̂ = lim N/I^n N.
-By Artin-Rees, `I^n M ∩ K` and `I^{n-c} K` are cofinal, so K̂ = lim K/(I^n M ∩ K).
-The short exact sequence `0 → K/(I^n M ∩ K) → M/I^n M → N/I^n N → 0`
-is exact for each n. Taking inverse limits (of surjective systems, hence exact)
-gives the completed sequence.
-
-### Steps
-
-- [ ] Check if Artin-Rees is in mathlib (from TICKET-0). If not, prove it.
-- [ ] Prove Prop 6.18(1) (canonical topology on f.g. modules)
-- [ ] Prove Prop 6.18(2) (surjective ⟹ open)
-- [ ] Prove completion preserves exact sequences for strict morphisms
-- [ ] Package as API lemmas usable by TICKET-4
-
-### Acceptance criteria
-
-- All three results proved, no sorry
-- Clean API for TICKET-4 to consume
 
 ---
 
 ## Summary Table
 
-| Ticket | File | Lines | Depends on | Can parallel with | Difficulty |
-|--------|------|-------|------------|-------------------|------------|
-| **0** | (report) | N/A | — | — | Easy |
+| Ticket | File | Lines | Depends on | Parallel with | Difficulty |
+|--------|------|-------|------------|---------------|------------|
+| **0** | (report) | — | — | — | Easy |
 | **1A** | CechCohomology.lean | ~150 | 0 | 2A, 6 | Medium |
 | **1B** | CechCohomology.lean | ~250 | 1A | 2B | Medium |
-| **2A** | TateAlgebra.lean | ~150 | 0 | 1A, 6 | Medium |
-| **2B** | TateAlgebra.lean | ~200 | 2A, 0 | 1B | Hard |
+| **2A** | TateAlgebra.lean | ~200 | 0 | 1A, 6 | Medium |
+| **2B** | TateAlgebra.lean | ~250 | 2A, 6 | 1B | Hard |
 | **3** | FlatnessResults.lean | ~200 | 2B | — | Hard |
-| **4** | LaurentCoverExact.lean | ~400 | 1A, 2B, 3, 6 | — | **Very Hard** |
-| **5** | TateAcyclicity.lean | ~250 | 1B, 4 | — | Medium |
-| **6** | OpenMapping.lean | ~200 | 0 | 1A, 2A | Hard |
+| **4** | LaurentCoverExact.lean | ~350 | 2A, 2B, 3 | — | **Very Hard** |
+| **5** | TateAcyclicity.lean | ~250 | 1B, 3, 4 | — | Medium |
+| **6** | NoetherianTateModules.lean | ~200 | 0 | 1A, 2A | Hard |
 
-**Parallel execution plan:**
-- **Wave 1** (3 agents): TICKET-0, then {TICKET-1A, TICKET-2A, TICKET-6}
+**Parallel execution:**
+- **Wave 1** (3 agents): {TICKET-1A, TICKET-2A, TICKET-6}
 - **Wave 2** (2 agents): {TICKET-1B, TICKET-2B}
 - **Wave 3** (1 agent): TICKET-3
 - **Wave 4** (1 agent): TICKET-4
 - **Wave 5** (1 agent): TICKET-5
+
+---
+
+## Phase II: Zavyalov's Generalization (FUTURE — separate from Wedhorn 8.28)
+
+Do NOT mix these into the current tickets. Start after Thm 8.28(b) lands.
+
+| Ticket | What |
+|--------|------|
+| Z-1 | Rational localization API for general Huber pairs (Zavyalov 2.1/2.5) |
+| Z-2 | Strong rigid-noetherianity (Def 2.8, Lemma 2.11/2.13, Thm 2.16) |
+| Z-3 | Projective/decompleted Cech proof (Zavyalov Thm 3.5 Steps 2-4) |
+| Z-4 | FP-approximated sheaves appendix (Lemma A.3, Thm A.5, A.13) |
