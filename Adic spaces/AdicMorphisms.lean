@@ -74,8 +74,7 @@ variable [IsTopologicalRing A] [IsTopologicalRing B]
 
 omit [IsHuberRing B] in
 /-- If `supp(v)` contains the ideal of definition, then `supp(v)` is open. -/
-private theorem supp_isOpen_of_idealOfDefinition_le
-    (PB : PairOfDefinition B) (v : Spv B)
+private theorem supp_isOpen_of_idealOfDefinition_le (PB : PairOfDefinition B) (v : Spv B)
     (h : PB.idealOfDefinition ≤ v.supp) : IsOpen (v.supp : Set B) := by
   change IsOpen (v.supp.toAddSubgroup : Set B)
   exact AddSubgroup.isOpen_of_mem_nhds _
@@ -90,12 +89,10 @@ private theorem supp_isOpen_of_idealOfDefinition_le
 omit [IsTopologicalRing A] [IsTopologicalRing B]
   [IsHuberRing A] [IsHuberRing B] in
 /-- If `I` maps into `supp(comap φ v)` and `φ` is adic, then `PB.idealOfDefinition ≤ supp v`. -/
-private theorem idealOfDefinition_le_supp_of_adic
-    (PA : PairOfDefinition A) (PB : PairOfDefinition B)
-    (φ : A →+* B) (hAB : ∀ a ∈ PA.A₀, φ a ∈ PB.A₀)
+private theorem idealOfDefinition_le_supp_of_adic (PA : PairOfDefinition A)
+    (PB : PairOfDefinition B) (φ : A →+* B) (hAB : ∀ a ∈ PA.A₀, φ a ∈ PB.A₀)
     (hrad : (Ideal.map (PA.restrictRingHom PB φ hAB) PA.I).radical = PB.I.radical)
-    (v : Spv B)
-    (hI : PA.idealOfDefinition ≤ (comap φ v).supp) :
+    (v : Spv B) (hI : PA.idealOfDefinition ≤ (comap φ v).supp) :
     PB.idealOfDefinition ≤ v.supp := by
   have hI_comap : PA.I ≤ Ideal.comap PA.A₀.subtype (comap φ v).supp := by
     rwa [PairOfDefinition.idealOfDefinition, Ideal.map_le_iff_le_comap] at hI
@@ -116,8 +113,7 @@ private theorem idealOfDefinition_le_supp_of_adic
 
 omit [IsTopologicalRing A] in
 /-- **Lemma 7.46(1), second part.** Adic homomorphisms preserve analytic points. -/
-theorem analytic_comap_of_isAdicHom {φ : A →+* B}
-    (hφ : IsAdicHom φ) {v : Spv B}
+theorem analytic_comap_of_isAdicHom {φ : A →+* B} (hφ : IsAdicHom φ) {v : Spv B}
     (hv : IsAnalytic v) : IsAnalytic (comap φ v) := by
   intro hna
   apply hv; clear hv
@@ -140,9 +136,8 @@ variable [IsTopologicalRing A] [IsTopologicalRing B]
 
 omit [IsTopologicalRing A] in
 /-- In a Tate source ring, adic homomorphisms produce analytic comap points. -/
-theorem analytic_comap_of_isAdicHom_tate [IsTateRing B]
-    {φ : A →+* B} (hφ : IsAdicHom φ) (v : Spv B) :
-    IsAnalytic (comap φ v) :=
+theorem analytic_comap_of_isAdicHom_tate [IsTateRing B] {φ : A →+* B} (hφ : IsAdicHom φ)
+    (v : Spv B) : IsAnalytic (comap φ v) :=
   analytic_comap_of_isAdicHom hφ (IsTateRing.isAnalytic v)
 
 end TateSpecialization
@@ -159,9 +154,8 @@ variable {A B : Type*} [CommRing A] [CommRing B]
 omit [IsTopologicalRing A] [IsHuberRing A] in
 /-- The closure of `I^(2m)` under `PA.A₀.subtype` lies in `Subring.closure S`
 where `S` is the image of `I^m`. Used to show `A₀'` is open. -/
-private theorem pow_2m_image_sub_closure
-    (PA : PairOfDefinition A) {m : ℕ}
-    {S : Set A} (hS : S = PA.A₀.subtype '' ((PA.I ^ m : Ideal PA.A₀) : Set PA.A₀)) :
+private theorem pow_2m_image_sub_closure (PA : PairOfDefinition A) {m : ℕ} {S : Set A}
+    (hS : S = PA.A₀.subtype '' ((PA.I ^ m : Ideal PA.A₀) : Set PA.A₀)) :
     PA.A₀.subtype '' ((PA.I ^ (2 * m) : Ideal PA.A₀) : Set PA.A₀) ⊆
         (Subring.closure S : Set A) := by
   set A₀' := Subring.closure S
@@ -179,13 +173,10 @@ private theorem pow_2m_image_sub_closure
 
 omit [IsHuberRing A] in
 /-- Each I' power is open in A₀', using `comap_le_pow`. -/
-private theorem isAdic_pow_open
-    (PA : PairOfDefinition A) {m : ℕ}
-    {A₀' : Subring A} (hA₀'_le_PA : A₀' ≤ PA.A₀)
-    {I' : Ideal A₀'}
-    (comap_le_pow :
-      ∀ n, Ideal.comap (Subring.inclusion hA₀'_le_PA)
-        (PA.I ^ ((n + 2) * m)) ≤ I' ^ n)
+private theorem isAdic_pow_open (PA : PairOfDefinition A) {m : ℕ} {A₀' : Subring A}
+    (hA₀'_le_PA : A₀' ≤ PA.A₀) {I' : Ideal A₀'}
+    (comap_le_pow : ∀ n, Ideal.comap (Subring.inclusion hA₀'_le_PA)
+      (PA.I ^ ((n + 2) * m)) ≤ I' ^ n)
     (n : ℕ) : IsOpen ((I' ^ n).toAddSubgroup : Set A₀') := by
   set ι := Subring.inclusion hA₀'_le_PA
   set k := (n + 2) * m
@@ -211,14 +202,10 @@ private theorem isAdic_pow_open
 
 omit [IsHuberRing A] in
 /-- The I'-adic topology on A₀' is finer than the subspace topology. -/
-private theorem isAdic_topology_finer
-    (PA : PairOfDefinition A) {m : ℕ} (hm_pos : m > 0)
-    {A₀' : Subring A} (hA₀'_le_PA : A₀' ≤ PA.A₀)
-    {I' : Ideal A₀'}
-    (hI'_le_comap : I' ≤
-      Ideal.comap (Subring.inclusion hA₀'_le_PA) (PA.I ^ m))
-    (s : Set A₀') (hs : s ∈ nhds (0 : A₀')) :
-    ∃ n, ∀ x ∈ I' ^ n, x ∈ s := by
+private theorem isAdic_topology_finer (PA : PairOfDefinition A) {m : ℕ} (hm_pos : m > 0)
+    {A₀' : Subring A} (hA₀'_le_PA : A₀' ≤ PA.A₀) {I' : Ideal A₀'}
+    (hI'_le_comap : I' ≤ Ideal.comap (Subring.inclusion hA₀'_le_PA) (PA.I ^ m))
+    (s : Set A₀') (hs : s ∈ nhds (0 : A₀')) : ∃ n, ∀ x ∈ I' ^ n, x ∈ s := by
   set ι := Subring.inclusion hA₀'_le_PA
   have hI'_pow_le :
       ∀ n, I' ^ n ≤ Ideal.comap ι (PA.I ^ (m * n)) := by
@@ -237,9 +224,8 @@ private theorem isAdic_topology_finer
   exact ⟨ι x, hmj_le hιx, rfl⟩
 
 omit [IsHuberRing A] in
-private theorem exists_pairOfDefinition_le_subring
-    (PA : PairOfDefinition A) {U : Subring A} (hU : IsOpen (U : Set A))
-    (_hU_le : U ≤ PA.A₀) :
+private theorem exists_pairOfDefinition_le_subring (PA : PairOfDefinition A) {U : Subring A}
+    (hU : IsOpen (U : Set A)) (_hU_le : U ≤ PA.A₀) :
     ∃ (PA' : PairOfDefinition A), PA'.A₀ ≤ U := by
   obtain ⟨m, -, hm⟩ := PA.hasBasis_nhds_zero.mem_iff.mp (hU.mem_nhds (U.zero_mem))
   rcases Nat.eq_zero_or_pos m with rfl | hm_pos
@@ -436,10 +422,8 @@ private theorem exists_compatible_pair
 
 omit [IsTopologicalRing A] [IsTopologicalRing B]
   [IsHuberRing A] [IsHuberRing B] in
-private theorem exists_separating_prime_of_B₀
-    {φ : A →+* B}
-    (PA : PairOfDefinition A) (PB : PairOfDefinition B)
-    (h_map : ∀ a ∈ PA.A₀, φ a ∈ PB.A₀)
+private theorem exists_separating_prime_of_B₀ {φ : A →+* B} (PA : PairOfDefinition A)
+    (PB : PairOfDefinition B) (h_map : ∀ a ∈ PA.A₀, φ a ∈ PB.A₀)
     (h_not_eq : (Ideal.map (PA.restrictRingHom PB φ h_map) PA.I).radical ≠ PB.I.radical)
     (h_le : (Ideal.map (PA.restrictRingHom PB φ h_map) PA.I).radical ≤ PB.I.radical) :
     ∃ (𝔭₀ : Ideal PB.A₀), 𝔭₀.IsPrime ∧
@@ -464,10 +448,8 @@ omit [IsTopologicalRing A] [IsHuberRing A] [IsHuberRing B] in
 /-- Span induction for the prime extension argument: for each element
 `b` in `span(subtype '' 𝔭₀)`, there exist `n` and `c ∈ 𝔭₀` with
 `subtype c = (subtype j)^n * b`. -/
-private theorem span_pow_mul_eq_of_prime
-    (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
-    {𝔭₀ : Ideal PB.A₀}
-    {j : PB.A₀}
+private theorem span_pow_mul_eq_of_prime (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
+    {𝔭₀ : Ideal PB.A₀} {j : PB.A₀}
     (hj_nil : IsTopologicallyNilpotent (PB.A₀.subtype j : B))
     (b : B) (hb : b ∈ Ideal.span (PB.A₀.subtype '' (𝔭₀ : Set PB.A₀))) :
     ∃ (n : ℕ) (c : PB.A₀), c ∈ 𝔭₀ ∧
@@ -517,10 +499,9 @@ private theorem span_pow_mul_eq_of_prime
 omit [IsTopologicalRing A] [IsHuberRing A] [IsHuberRing B] in
 /-- The comap of the mapped prime ideal is contained in the original
 prime, using the span induction and primality. -/
-private theorem comap_map_subtype_le_of_prime
-    (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
-    {𝔭₀ : Ideal PB.A₀} [𝔭₀.IsPrime]
-    {j : PB.A₀} (hj_mem : j ∈ PB.I) (hj_not : j ∉ 𝔭₀) :
+private theorem comap_map_subtype_le_of_prime (PB : PairOfDefinition B)
+    [IsAdicComplete PB.I PB.A₀] {𝔭₀ : Ideal PB.A₀} [𝔭₀.IsPrime] {j : PB.A₀}
+    (hj_mem : j ∈ PB.I) (hj_not : j ∉ 𝔭₀) :
     (Ideal.map PB.A₀.subtype 𝔭₀).comap PB.A₀.subtype ≤ 𝔭₀ := by
   have hj_nil : IsTopologicallyNilpotent (PB.A₀.subtype j : B) :=
     PB.isTopologicallyNilpotent_of_mem hj_mem
@@ -540,12 +521,10 @@ omit [TopologicalSpace A] [TopologicalSpace B]
   [IsTopologicalRing A] [IsTopologicalRing B]
   [IsHuberRing A] [IsHuberRing B] in
 /-- Powers of `j` outside `𝔭₀` map to the prime complement image. -/
-private theorem powers_sub_primeCompl_map
-    {B₀ : Subring B}
-    {𝔭₀ : Ideal B₀} [𝔭₀.IsPrime]
-    {j : B₀} (hj_not : j ∉ 𝔭₀) :
+private theorem powers_sub_primeCompl_map {B₀ : Subring B} {𝔭₀ : Ideal B₀}
+    [𝔭₀.IsPrime] {j : B₀} (hj_not : j ∉ 𝔭₀) :
     (Submonoid.powers (B₀.subtype j) : Set B) ⊆
-      (𝔭₀.primeCompl.map B₀.subtype : Set B) := by
+    (𝔭₀.primeCompl.map B₀.subtype : Set B) := by
   rintro _ ⟨n, rfl⟩
   refine ⟨j ^ n, ?_, map_pow B₀.subtype j n⟩
   change j ^ n ∉ 𝔭₀
@@ -557,12 +536,10 @@ private theorem powers_sub_primeCompl_map
       ((_root_.Ideal.IsPrime.pow_mem_iff_mem ‹_› n hn).mp h)
 
 omit [IsTopologicalRing A] [IsHuberRing A] [IsHuberRing B] in
-private theorem exists_nonOpen_prime_of_B_from_B₀_prime
-    (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
-    {𝔭₀ : Ideal PB.A₀} [𝔭₀.IsPrime]
-    (hJ_not_le : ¬PB.I ≤ 𝔭₀) :
-    ∃ (𝔭 : Ideal B), 𝔭.IsPrime ∧ ¬IsOpen (𝔭 : Set B) ∧
-      𝔭₀ ≤ Ideal.comap PB.A₀.subtype 𝔭 := by
+private theorem exists_nonOpen_prime_of_B_from_B₀_prime (PB : PairOfDefinition B)
+    [IsAdicComplete PB.I PB.A₀] {𝔭₀ : Ideal PB.A₀} [𝔭₀.IsPrime]
+    (hJ_not_le : ¬PB.I ≤ 𝔭₀) : ∃ (𝔭 : Ideal B), 𝔭.IsPrime ∧ ¬IsOpen (𝔭 : Set B) ∧
+    𝔭₀ ≤ Ideal.comap PB.A₀.subtype 𝔭 := by
   obtain ⟨j, hj_mem, hj_not⟩ := SetLike.not_le_iff_exists.mp hJ_not_le
   have h_disj : Disjoint (Ideal.map PB.A₀.subtype 𝔭₀ : Set B)
       (Submonoid.powers (PB.A₀.subtype j)) := by
@@ -587,11 +564,9 @@ private theorem exists_nonOpen_prime_of_B_from_B₀_prime
   · exact Ideal.le_comap_of_map_le h𝔭_le
 
 omit [IsTopologicalRing A] [IsHuberRing A] [IsHuberRing B] in
-private theorem spa_point_from_nonOpen_prime
-    [PlusSubring B]
-    (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
-    {𝔭 : Ideal B} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set B))
-    (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) :
+private theorem spa_point_from_nonOpen_prime [PlusSubring B] (PB : PairOfDefinition B)
+    [IsAdicComplete PB.I PB.A₀] {𝔭 : Ideal B} [𝔭.IsPrime]
+    (h𝔭 : ¬IsOpen (𝔭 : Set B)) (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) :
     ∃ v ∈ Spa B B⁺, IsAnalytic v ∧ 𝔭 ≤ v.supp := by
   have hx : ∃ v ∈ Spa B B⁺, 𝔭 ≤ v.supp ∧ ¬PB.idealOfDefinition ≤ v.supp :=
     PB.exists_mem_spa_supp_ge_of_nonOpen_prime h𝔭 hBplus_le_B₀
@@ -604,15 +579,11 @@ private theorem spa_point_from_nonOpen_prime
       ((PB.isTopologicallyNilpotent_of_mem ha).mem_ideal_radical h_open))
 
 omit [IsHuberRing A] [IsHuberRing B] in
-private theorem exists_analytic_spa_point_from_B₀_prime
-    [PlusSubring B]
-    {φ : A →+* B}
+private theorem exists_analytic_spa_point_from_B₀_prime [PlusSubring B] {φ : A →+* B}
     (PA : PairOfDefinition A) (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
-    (h_map : ∀ a ∈ PA.A₀, φ a ∈ PB.A₀)
-    {𝔭₀ : Ideal PB.A₀} [𝔭₀.IsPrime]
+    (h_map : ∀ a ∈ PA.A₀, φ a ∈ PB.A₀) {𝔭₀ : Ideal PB.A₀} [𝔭₀.IsPrime]
     (h_image_le : Ideal.map (PA.restrictRingHom PB φ h_map) PA.I ≤ 𝔭₀)
-    (hJ_not_le : ¬PB.I ≤ 𝔭₀)
-    (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) :
+    (hJ_not_le : ¬PB.I ≤ 𝔭₀) (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) :
     ∃ v ∈ Spa B B⁺, IsAnalytic v ∧ IsOpen ((comap φ v).supp : Set A) := by
   obtain ⟨𝔭, h𝔭_prime, h𝔭_notopen, h𝔭₀_le⟩ :=
     exists_nonOpen_prime_of_B_from_B₀_prime PB hJ_not_le
@@ -633,11 +604,9 @@ private theorem exists_analytic_spa_point_from_B₀_prime
   exact PA.isOpen_of_idealOfDefinition_le h_idealOfDef_le
 
 omit [IsHuberRing A] [IsHuberRing B] in
-private theorem exists_analytic_spa_point_with_open_comap_supp
-    [PlusSubring B]
-    {φ : A →+* B} (_hφ : Continuous φ)
-    (PA : PairOfDefinition A) (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
-    (h_map : ∀ a ∈ PA.A₀, φ a ∈ PB.A₀)
+private theorem exists_analytic_spa_point_with_open_comap_supp [PlusSubring B]
+    {φ : A →+* B} (_hφ : Continuous φ) (PA : PairOfDefinition A) (PB : PairOfDefinition B)
+    [IsAdicComplete PB.I PB.A₀] (h_map : ∀ a ∈ PA.A₀, φ a ∈ PB.A₀)
     (h_not_eq : (Ideal.map (PA.restrictRingHom PB φ h_map) PA.I).radical ≠ PB.I.radical)
     (h_le : (Ideal.map (PA.restrictRingHom PB φ h_map) PA.I).radical ≤ PB.I.radical)
     (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) :
@@ -650,13 +619,11 @@ private theorem exists_analytic_spa_point_with_open_comap_supp
 
 /-- **Lemma 7.46(2) of Wedhorn.** If `Spa(φ)` preserves analytic points and `B` is
 complete, then `φ` is adic. -/
-theorem isAdicHom_of_complete_and_analytic_preserved
-    [PlusSubring A] [PlusSubring B]
+theorem isAdicHom_of_complete_and_analytic_preserved [PlusSubring A] [PlusSubring B]
     {φ : A →+* B} (hφ : Continuous φ) (_hAB : A⁺ ≤ (B⁺).comap φ)
     (h_analytic : ∀ v ∈ Spa B B⁺, IsAnalytic v → IsAnalytic (comap φ v))
     (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
-    (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) :
-    IsAdicHom φ := by
+    (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) : IsAdicHom φ := by
   obtain ⟨PA, h_map⟩ := exists_compatible_pair hφ PB
   by_contra h_not_adic
   have h_ne :
@@ -741,12 +708,9 @@ For the full adic space statement, one reduces to the affinoid case by
 restricting to an affinoid chart and applying this result (Remark 8.37(2)).
 
 The proof is `nonAnalytic_comap_of_continuous`, restated here for clarity. -/
-theorem morphism_preserves_nonAnalytic_affinoid
-    {A B : Type*} [CommRing A] [CommRing B]
-    [TopologicalSpace A] [TopologicalSpace B]
-    {φ : A →+* B} (hφ : Continuous φ)
-    {v : Spv B} (hv : ¬IsAnalytic v) :
-    ¬IsAnalytic (comap φ v) :=
+theorem morphism_preserves_nonAnalytic_affinoid {A B : Type*} [CommRing A] [CommRing B]
+    [TopologicalSpace A] [TopologicalSpace B] {φ : A →+* B} (hφ : Continuous φ)
+    {v : Spv B} (hv : ¬IsAnalytic v) : ¬IsAnalytic (comap φ v) :=
   nonAnalytic_comap_of_continuous hφ hv
 
 /-- **Proposition 8.39(1) of Wedhorn (affinoid case, forward direction).**
@@ -755,12 +719,9 @@ An adic ring homomorphism `φ : A →+* B` between Huber rings induces a map
 
 This is `analytic_comap_of_isAdicHom` (Lemma 7.46(1)), restated in the
 form needed for Proposition 8.39. -/
-theorem isAdicHom_preserves_analytic
-    {A B : Type*} [CommRing A] [CommRing B]
-    [TopologicalSpace A] [TopologicalSpace B]
-    [IsTopologicalRing A] [IsTopologicalRing B]
-    [IsHuberRing A] [IsHuberRing B]
-    {φ : A →+* B} (hφ : IsAdicHom φ) :
+theorem isAdicHom_preserves_analytic {A B : Type*} [CommRing A] [CommRing B]
+    [TopologicalSpace A] [TopologicalSpace B] [IsTopologicalRing A] [IsTopologicalRing B]
+    [IsHuberRing A] [IsHuberRing B] {φ : A →+* B} (hφ : IsAdicHom φ) :
     ∀ (v : Spv B), IsAnalytic v → IsAnalytic (comap φ v) :=
   fun _ hv ↦ analytic_comap_of_isAdicHom hφ hv
 
@@ -771,17 +732,13 @@ This is `isAdicHom_of_complete_and_analytic_preserved` (Lemma 7.46(2)),
 restated for the iff form.
 
 **Status:** The reverse direction requires Lemma 7.45; see `Lemma745.lean`. -/
-theorem isAdicHom_of_preserves_analytic_complete
-    {A B : Type*} [CommRing A] [CommRing B]
-    [TopologicalSpace A] [TopologicalSpace B]
-    [IsTopologicalRing A] [IsTopologicalRing B]
-    [IsHuberRing A] [IsHuberRing B]
-    [PlusSubring A] [PlusSubring B]
+theorem isAdicHom_of_preserves_analytic_complete {A B : Type*} [CommRing A] [CommRing B]
+    [TopologicalSpace A] [TopologicalSpace B] [IsTopologicalRing A] [IsTopologicalRing B]
+    [IsHuberRing A] [IsHuberRing B] [PlusSubring A] [PlusSubring B]
     {φ : A →+* B} (hφ : Continuous φ) (hAB : A⁺ ≤ (B⁺).comap φ)
     (h_analytic : ∀ v ∈ Spa B B⁺, IsAnalytic v → IsAnalytic (comap φ v))
     (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
-    (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) :
-    IsAdicHom φ :=
+    (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) : IsAdicHom φ :=
   isAdicHom_of_complete_and_analytic_preserved hφ hAB h_analytic PB hBplus_le_B₀
 
 /-- **Proposition 8.39(1) of Wedhorn (affinoid case, iff version).** A continuous
@@ -804,17 +761,13 @@ property, which is not yet available.
 inherits sorries from `isAdicHom_of_complete_and_analytic_preserved` (Lemma 7.46(2)):
 1. `exists_pairOfDefinition_le_subring` (Lemma 6.5) -- `IsAdic` property.
 2. `exists_nonOpen_prime_of_B_from_B₀_prime` -- prime extension disjointness. -/
-theorem isAdicHom_iff_preserves_analytic
-    {A B : Type*} [CommRing A] [CommRing B]
-    [TopologicalSpace A] [TopologicalSpace B]
-    [IsTopologicalRing A] [IsTopologicalRing B]
-    [IsHuberRing A] [IsHuberRing B]
-    [PlusSubring A] [PlusSubring B]
+theorem isAdicHom_iff_preserves_analytic {A B : Type*} [CommRing A] [CommRing B]
+    [TopologicalSpace A] [TopologicalSpace B] [IsTopologicalRing A] [IsTopologicalRing B]
+    [IsHuberRing A] [IsHuberRing B] [PlusSubring A] [PlusSubring B]
     {φ : A →+* B} (hφ : Continuous φ) (hAB : A⁺ ≤ (B⁺).comap φ)
     (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
-    (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) :
-    IsAdicHom φ ↔
-      (∀ v ∈ Spa B B⁺, IsAnalytic v → IsAnalytic (comap φ v)) := by
+    (hBplus_le_B₀ : (B⁺ : Set B) ⊆ PB.A₀) : IsAdicHom φ ↔
+    (∀ v ∈ Spa B B⁺, IsAnalytic v → IsAnalytic (comap φ v)) := by
   constructor
   · intro hadic v _ hv
     exact analytic_comap_of_isAdicHom hadic hv
@@ -848,20 +801,15 @@ formalized:
 Following Wedhorn p. 86, the proof is: Prop 8.39(1) gives `f(U_a) ⊆ V_a`
 (analytic-preservation), then Lemma 7.46(2) gives that `φ` is adic. -/
 theorem IsAdicMorphism.ringHom_isAdic {X Y : AdicSpace}
-    {f : C(X.carrier, Y.carrier)} (_hf : IsAdicMorphism X Y f)
-    {x : X.carrier}
-    (NX : AffinoidNeighborhood X x)
-    (NY : AffinoidNeighborhood Y (f x))
-    (_hfUV : ∀ (p : ↥NX.U), f p.val ∈ NY.U)
-    [IsHuberRing NX.aff.Ring] [IsHuberRing NY.aff.Ring]
-    (φ : NY.aff.Ring →+* NX.aff.Ring)
-    (hφ_cont : Continuous φ)
+    {f : C(X.carrier, Y.carrier)} (_hf : IsAdicMorphism X Y f) {x : X.carrier}
+    (NX : AffinoidNeighborhood X x) (NY : AffinoidNeighborhood Y (f x))
+    (_hfUV : ∀ (p : ↥NX.U), f p.val ∈ NY.U) [IsHuberRing NX.aff.Ring]
+    [IsHuberRing NY.aff.Ring] (φ : NY.aff.Ring →+* NX.aff.Ring) (hφ_cont : Continuous φ)
     (hAB : NY.aff.Ring⁺ ≤ (NX.aff.Ring⁺).comap φ)
     (hφ_analytic : ∀ v ∈ Spa NX.aff.Ring NX.aff.Ring⁺,
       IsAnalytic v → IsAnalytic (comap φ v))
     (PB : PairOfDefinition NX.aff.Ring) [IsAdicComplete PB.I PB.A₀]
-    (hBplus : (NX.aff.Ring⁺ : Set NX.aff.Ring) ⊆ PB.A₀) :
-    IsAdicHom φ :=
+    (hBplus : (NX.aff.Ring⁺ : Set NX.aff.Ring) ⊆ PB.A₀) : IsAdicHom φ :=
   isAdicHom_of_complete_and_analytic_preserved hφ_cont hAB hφ_analytic PB hBplus
 
 end Cor840

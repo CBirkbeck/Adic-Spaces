@@ -74,23 +74,20 @@ variable {A : Type*} [CommRing A] [TopologicalSpace A]
 
 omit [IsLinearTopology A A] in
 /-- If a prime ideal contains the ideal of definition, then it is open. -/
-theorem isOpen_of_idealOfDefinition_le
-    (P : PairOfDefinition A) {𝔭 : Ideal A} [𝔭.IsPrime]
+theorem isOpen_of_idealOfDefinition_le (P : PairOfDefinition A) {𝔭 : Ideal A} [𝔭.IsPrime]
     (hle : P.idealOfDefinition ≤ 𝔭) : IsOpen (𝔭 : Set A) :=
   P.ideal_isOpen_of_nilpotent_le_radical fun _ ha ↦
     Ideal.radical_mono hle (P.isTopologicallyNilpotent_mem_idealOfDefinition_radical ha)
 
 omit [IsLinearTopology A A] in
 /-- A non-open prime does not contain the ideal of definition (Lemma 7.45). -/
-theorem idealOfDefinition_not_le_of_not_isOpen
-    (P : PairOfDefinition A) {𝔭 : Ideal A} [𝔭.IsPrime]
-    (h : ¬IsOpen (𝔭 : Set A)) : ¬P.idealOfDefinition ≤ 𝔭 :=
+theorem idealOfDefinition_not_le_of_not_isOpen (P : PairOfDefinition A) {𝔭 : Ideal A}
+    [𝔭.IsPrime] (h : ¬IsOpen (𝔭 : Set A)) : ¬P.idealOfDefinition ≤ 𝔭 :=
   fun hle ↦ h (P.isOpen_of_idealOfDefinition_le hle)
 
 omit [IsLinearTopology A A] in
 /-- A non-open prime does not contain all of `I`: there exists `a ∈ I` with `a ∉ 𝔭`. -/
-theorem exists_mem_I_not_mem_of_not_isOpen
-    (P : PairOfDefinition A) {𝔭 : Ideal A} [𝔭.IsPrime]
+theorem exists_mem_I_not_mem_of_not_isOpen (P : PairOfDefinition A) {𝔭 : Ideal A} [𝔭.IsPrime]
     (h : ¬IsOpen (𝔭 : Set A)) : ∃ a ∈ P.I, (P.A₀.subtype a : A) ∉ 𝔭 := by
   by_contra h_all
   push_neg at h_all
@@ -101,23 +98,20 @@ theorem exists_mem_I_not_mem_of_not_isOpen
 
 omit [IsTopologicalRing A] [IsLinearTopology A A] in
 /-- If `A₀` is `I`-adically complete, then `I ≤ 𝔪` for every maximal `𝔪`. -/
-theorem I_le_maximal_of_isAdicComplete
-    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
+theorem I_le_maximal_of_isAdicComplete (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
     {𝔪 : Ideal P.A₀} (h𝔪 : 𝔪.IsMaximal) : P.I ≤ 𝔪 :=
   (IsAdicComplete.le_jacobson_bot (I := P.I)).trans (sInf_le ⟨bot_le, h𝔪⟩)
 
 omit [IsTopologicalRing A] [IsLinearTopology A A] in
 /-- If `A₀` is `I`-adically complete and `I ⊄ 𝔭₀`, then `𝔭₀` is not maximal. -/
-theorem not_isMaximal_of_I_not_le
-    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
+theorem not_isMaximal_of_I_not_le (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
     {𝔭₀ : Ideal P.A₀} (h : ¬P.I ≤ 𝔭₀) : ¬𝔭₀.IsMaximal :=
   fun h𝔪 ↦ h (P.I_le_maximal_of_isAdicComplete h𝔪)
 
 omit [IsTopologicalRing A] [IsLinearTopology A A] in
 /-- If `A₀` is `I`-adically complete and `𝔭₀` is prime, then `I + 𝔭₀ ≠ A₀`
 (Lemma 7.45). -/
-theorem I_sup_prime_ne_top
-    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
+theorem I_sup_prime_ne_top (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
     {𝔭₀ : Ideal P.A₀} [𝔭₀.IsPrime] : P.I ⊔ 𝔭₀ ≠ ⊤ := by
   intro htop
   obtain ⟨i, hi, p, hp, hip⟩ := Submodule.mem_sup.mp ((Ideal.eq_top_iff_one _).mp htop)

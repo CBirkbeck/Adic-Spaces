@@ -57,9 +57,8 @@ applied to the extension construction. -/
 
 /-- For `s` topologically nilpotent and `A₀` open in `A`, there exists `n`
 with `s ^ n * a ∈ A₀` (used in the extension construction, Wedhorn Lemma 7.44). -/
-theorem exists_pow_mul_mem_A₀ (P : PairOfDefinition A)
-    {s : A} (hs : IsTopologicallyNilpotent s) (a : A) :
-    ∃ n : ℕ, s ^ n * a ∈ P.A₀ := by
+theorem exists_pow_mul_mem_A₀ (P : PairOfDefinition A) {s : A}
+    (hs : IsTopologicallyNilpotent s) (a : A) : ∃ n : ℕ, s ^ n * a ∈ P.A₀ := by
   have h_cont : Continuous (· * a : A → A) := continuous_mul_const a
   have h_open : IsOpen {x : A | x * a ∈ P.A₀} :=
     P.isOpen.preimage h_cont
@@ -73,9 +72,8 @@ theorem exists_pow_mul_mem_A₀ (P : PairOfDefinition A)
 omit [IsTopologicalRing A] in
 /-- Monotonicity: if `s ^ n * a ∈ A₀` then `s ^ (n + k) * a ∈ A₀` for all `k`.
 This follows because `s ^ (n + k) * a = s ^ k * (s ^ n * a)` and `A₀` is a subring. -/
-theorem pow_mul_mem_A₀_of_le (P : PairOfDefinition A)
-    {s : A} (hs : s ∈ P.A₀) {a : A} {n : ℕ} (hn : s ^ n * a ∈ P.A₀)
-    (k : ℕ) : s ^ (n + k) * a ∈ P.A₀ := by
+theorem pow_mul_mem_A₀_of_le (P : PairOfDefinition A) {s : A} (hs : s ∈ P.A₀) {a : A}
+    {n : ℕ} (hn : s ^ n * a ∈ P.A₀) (k : ℕ) : s ^ (n + k) * a ∈ P.A₀ := by
   rw [show n + k = k + n from by omega, pow_add, mul_assoc]
   exact P.A₀.mul_mem (P.A₀.pow_mem hs k) hn
 
@@ -102,12 +100,9 @@ omit [IsTopologicalRing A] in
 Proof sketch: WLOG `n ≤ m`. Then `s^m * a = s^{m-n} * (s^n * a)`, so
 `v_r(s^m * a) = v_r(s)^{m-n} * v_r(s^n * a)`. Dividing by `v_r(s)^m`
 gives the same result as dividing `v_r(s^n * a)` by `v_r(s)^n`. -/
-theorem vExt_well_defined
-    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
-    (v : Valuation A Γ₀)
-    {s : A} (hs_ne : v s ≠ 0) {a : A}
-    {n m : ℕ} (_hn : s ^ n * a ∈ (P : PairOfDefinition A).A₀)
-    (_hm : s ^ m * a ∈ P.A₀) :
+theorem vExt_well_defined {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
+    (v : Valuation A Γ₀) {s : A} (hs_ne : v s ≠ 0) {a : A} {n m : ℕ}
+    (_hn : s ^ n * a ∈ (P : PairOfDefinition A).A₀) (_hm : s ^ m * a ∈ P.A₀) :
     v (s ^ n * a) * (v s)⁻¹ ^ n = v (s ^ m * a) * (v s)⁻¹ ^ m := by
   have h1 : v (s ^ n * a) = v s ^ n * v a := by rw [map_mul, map_pow]
   have h2 : v (s ^ m * a) = v s ^ m * v a := by rw [map_mul, map_pow]
@@ -146,10 +141,8 @@ continuous and `A₀` is open in `A`. This is Wedhorn's Lemma 7.44(2):
 This is Wedhorn's Lemma 7.44(2). The proof uses: for any `γ`, the set
 `{a ∈ A | v(a) < γ}` is an additive subgroup containing the open set
 `A₀.subtype '' {a ∈ A₀ | v(a) < γ}`, hence is open. -/
-theorem isContinuous_of_restriction_isContinuous
-    (P : PairOfDefinition A)
-    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
-    (v : Valuation A Γ₀)
+theorem isContinuous_of_restriction_isContinuous (P : PairOfDefinition A) {Γ₀ : Type*}
+    [LinearOrderedCommGroupWithZero Γ₀] (v : Valuation A Γ₀)
     (h_res : ∀ γ : Γ₀, IsOpen (P.A₀.subtype '' {a : P.A₀ | v (P.A₀.subtype a) < γ})) :
     v.IsContinuous := by
   intro γ
@@ -198,8 +191,7 @@ for every `γ > 0`, there exists `n` with `(y⁻¹)^n < γ`.
 
 This is the `WithZero`-version of `exists_inv_pow_lt_of_mem_convexGenerated`,
 specialized to the inverse of the generator. -/
-theorem withZero_inv_pow_cofinal_of_convexGenerated
-    {y : Γ} (hy : 1 < y) :
+theorem withZero_inv_pow_cofinal_of_convexGenerated {y : Γ} (hy : 1 < y) :
     ∀ (γ : WithZero (convexGenerated hy).toSubgroup), 0 < γ →
       ∃ n : ℕ,
         ((⟨y⁻¹, inv_mem (self_mem_convexGenerated hy)⟩ :
@@ -248,12 +240,9 @@ The following private lemmas factor out the algebraic steps of the
 They are stated with explicit parameters to keep each proof short. -/
 
 omit [IsTopologicalRing A] in
-private theorem vExtFun_step
-    (P : PairOfDefinition A)
-    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
-    (v_r : Valuation P.A₀ Γ₀) (v_s : Γ₀)
-    {s : A} (hs_A₀ : s ∈ P.A₀)
-    (hv_s : v_s = v_r ⟨s, hs_A₀⟩) (hv_r_s_ne : v_s ≠ 0)
+private theorem vExtFun_step (P : PairOfDefinition A) {Γ₀ : Type*}
+    [LinearOrderedCommGroupWithZero Γ₀] (v_r : Valuation P.A₀ Γ₀) (v_s : Γ₀)
+    {s : A} (hs_A₀ : s ∈ P.A₀) (hv_s : v_s = v_r ⟨s, hs_A₀⟩) (hv_r_s_ne : v_s ≠ 0)
     {a : A} (k j : ℕ) (hk : s ^ k * a ∈ P.A₀) :
     v_r ⟨s ^ k * a, hk⟩ * v_s⁻¹ ^ k =
     v_r ⟨s ^ (k + j) * a,
@@ -279,14 +268,10 @@ private theorem vExtFun_step
     ← mul_assoc (v_s ^ j), hc, one_mul]
 
 omit [IsTopologicalRing A] in
-private theorem vExtFun_well_defined
-    (P : PairOfDefinition A)
-    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
-    (v_r : Valuation P.A₀ Γ₀) (v_s : Γ₀)
-    {s : A} (hs_A₀ : s ∈ P.A₀)
-    (hv_s : v_s = v_r ⟨s, hs_A₀⟩) (hv_r_s_ne : v_s ≠ 0)
-    {a : A} (n m : ℕ)
-    (hn : s ^ n * a ∈ P.A₀) (hm : s ^ m * a ∈ P.A₀) :
+private theorem vExtFun_well_defined (P : PairOfDefinition A) {Γ₀ : Type*}
+    [LinearOrderedCommGroupWithZero Γ₀] (v_r : Valuation P.A₀ Γ₀) (v_s : Γ₀)
+    {s : A} (hs_A₀ : s ∈ P.A₀) (hv_s : v_s = v_r ⟨s, hs_A₀⟩) (hv_r_s_ne : v_s ≠ 0)
+    {a : A} (n m : ℕ) (hn : s ^ n * a ∈ P.A₀) (hm : s ^ m * a ∈ P.A₀) :
     v_r ⟨s ^ n * a, hn⟩ * v_s⁻¹ ^ n =
     v_r ⟨s ^ m * a, hm⟩ * v_s⁻¹ ^ m := by
   rw [vExtFun_step P v_r v_s hs_A₀ hv_s hv_r_s_ne n m hn,
@@ -298,12 +283,9 @@ private theorem vExtFun_well_defined
       by rw [Nat.add_comm])
 
 omit [IsTopologicalRing A] in
-private theorem vExtFun_map_mul
-    (P : PairOfDefinition A)
-    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
-    (v_r : Valuation P.A₀ Γ₀) (v_s : Γ₀)
-    {s x y : A} {nx ny : ℕ}
-    (hnx : s ^ nx * x ∈ P.A₀) (hny : s ^ ny * y ∈ P.A₀)
+private theorem vExtFun_map_mul (P : PairOfDefinition A) {Γ₀ : Type*}
+    [LinearOrderedCommGroupWithZero Γ₀] (v_r : Valuation P.A₀ Γ₀) (v_s : Γ₀)
+    {s x y : A} {nx ny : ℕ} (hnx : s ^ nx * x ∈ P.A₀) (hny : s ^ ny * y ∈ P.A₀)
     (hprod_mem : s ^ (nx + ny) * (x * y) ∈ P.A₀) :
     v_r ⟨s ^ (nx + ny) * (x * y), hprod_mem⟩ *
       v_s⁻¹ ^ (nx + ny) =
@@ -323,12 +305,9 @@ private theorem vExtFun_map_mul
     mul_assoc c b d, ← mul_assoc a c]
 
 omit [IsTopologicalRing A] in
-private theorem vExtFun_map_add_le_max
-    (P : PairOfDefinition A)
-    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
-    (v_r : Valuation P.A₀ Γ₀) (v_s : Γ₀)
-    {s : A} {x y : A} {N : ℕ}
-    (hNx : s ^ N * x ∈ P.A₀) (hNy : s ^ N * y ∈ P.A₀)
+private theorem vExtFun_map_add_le_max (P : PairOfDefinition A) {Γ₀ : Type*}
+    [LinearOrderedCommGroupWithZero Γ₀] (v_r : Valuation P.A₀ Γ₀) (v_s : Γ₀)
+    {s : A} {x y : A} {N : ℕ} (hNx : s ^ N * x ∈ P.A₀) (hNy : s ^ N * y ∈ P.A₀)
     (hNxy : s ^ N * (x + y) ∈ P.A₀) :
     v_r ⟨s ^ N * (x + y), hNxy⟩ * v_s⁻¹ ^ N ≤
     max (v_r ⟨s ^ N * x, hNx⟩ * v_s⁻¹ ^ N)
@@ -362,10 +341,9 @@ The proof uses `restrictToConvex` on `A₀` and extends to `A` via the
 The algebraic sub-proofs (well-definedness, multiplicativity, ultrametric
 inequality) are factored into the private helpers `vExtFun_step`,
 `vExtFun_well_defined`, `vExtFun_map_mul`, `vExtFun_map_add_le_max`. -/
-theorem exists_spa_point_via_restrictToConvex
-    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
-    {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
-    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
+theorem exists_spa_point_via_restrictToConvex (P : PairOfDefinition A)
+    [IsAdicComplete P.I P.A₀] [PlusSubring A] {𝔭 : Ideal A} [𝔭.IsPrime]
+    (h𝔭 : ¬IsOpen (𝔭 : Set A)) (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
     ∃ v ∈ Spa A A⁺, 𝔭 ≤ v.supp ∧ ¬P.idealOfDefinition ≤ v.supp := by
   haveI : IsDomain (A ⧸ 𝔭) := Ideal.Quotient.isDomain 𝔭
   obtain ⟨V₀, hrange₀, hnonunits₀⟩ := P.exists_valuationSubring_of_prime (𝔭 := 𝔭)
@@ -636,10 +614,9 @@ valuation. The cofinal property of `convexGenerated` gives continuity directly,
 avoiding the `MulArchimedean` intermediate.
 
 References: Wedhorn, Adic Spaces, Lemma 7.45. -/
-theorem exists_mem_spa_supp_ge_of_nonOpen_prime
-    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
-    {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
-    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
+theorem exists_mem_spa_supp_ge_of_nonOpen_prime (P : PairOfDefinition A)
+    [IsAdicComplete P.I P.A₀] [PlusSubring A] {𝔭 : Ideal A} [𝔭.IsPrime]
+    (h𝔭 : ¬IsOpen (𝔭 : Set A)) (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
     ∃ v ∈ Spa A A⁺, 𝔭 ≤ v.supp ∧ ¬P.idealOfDefinition ≤ v.supp :=
   P.exists_spa_point_via_restrictToConvex h𝔭 hAplus_le_A₀
 

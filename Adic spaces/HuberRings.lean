@@ -97,8 +97,8 @@ theorem pow_image_isOpen (P : PairOfDefinition A) (n : ℕ) :
 omit [IsTopologicalRing A] in
 /-- Elements of the ideal of definition `I` are topologically nilpotent in `A`
 (see Corollary 6.4(3) of Wedhorn). -/
-theorem isTopologicallyNilpotent_of_mem (P : PairOfDefinition A) {a : P.A₀}
-    (ha : a ∈ P.I) : IsTopologicallyNilpotent (a : A) := by
+theorem isTopologicallyNilpotent_of_mem (P : PairOfDefinition A) {a : P.A₀} (ha : a ∈ P.I) :
+    IsTopologicallyNilpotent (a : A) := by
   have h₀ : IsTopologicallyNilpotent a :=
     P.isAdic.hasBasis_nhds_zero.tendsto_right_iff.mpr fun n _ ↦
       Filter.eventually_atTop.mpr ⟨n, fun m hm ↦
@@ -147,8 +147,7 @@ theorem idealOfDefinition_pow_isOpen (P : PairOfDefinition A) (n : ℕ) :
 /-- Backward direction of Lemma 6.6 of Wedhorn: if every topologically nilpotent
 element lies in `√𝔞`, then `𝔞` is open. -/
 theorem ideal_isOpen_of_nilpotent_le_radical (P : PairOfDefinition A) {𝔞 : Ideal A}
-    (h : ∀ a : A, IsTopologicallyNilpotent a → a ∈ 𝔞.radical) :
-    IsOpen (𝔞 : Set A) := by
+    (h : ∀ a : A, IsTopologicallyNilpotent a → a ∈ 𝔞.radical) : IsOpen (𝔞 : Set A) := by
   have hJ_le : P.idealOfDefinition ≤ 𝔞.radical := by
     rw [idealOfDefinition, Ideal.map_le_iff_le_comap]
     exact fun _ hy ↦ h _ (P.isTopologicallyNilpotent_of_mem hy)
@@ -222,8 +221,8 @@ end LinearTopology
 /-- Topologically nilpotent elements of `A` lie in the radical of the ideal of definition
 (Remark 6.7 of Wedhorn). This version avoids `topologicalNilradical` (which requires
 `IsLinearTopology`) by working directly with `IsTopologicallyNilpotent`. -/
-theorem isTopologicallyNilpotent_mem_idealOfDefinition_radical (P : PairOfDefinition A)
-    {a : A} (ha : IsTopologicallyNilpotent a) : a ∈ P.idealOfDefinition.radical := by
+theorem isTopologicallyNilpotent_mem_idealOfDefinition_radical (P : PairOfDefinition A) {a : A}
+    (ha : IsTopologicallyNilpotent a) : a ∈ P.idealOfDefinition.radical := by
   obtain ⟨n, y, hy, hval⟩ :=
     (ha.eventually
       ((P.pow_image_isOpen 1).mem_nhds
@@ -294,10 +293,8 @@ theorem IsTateRing.isOpen_topologicallyNilpotentElements :
 
 omit [IsTopologicalRing A] [IsLinearTopology A A] in
 /-- A continuous ring homomorphism from a Tate ring preserves topologically nilpotent units. -/
-theorem IsTateRing.map_topologicallyNilpotent_unit
-    {B : Type*} [CommRing B] [TopologicalSpace B]
-    {φ : A →+* B} (hφ : Continuous φ) :
-    ∃ v : Bˣ, IsTopologicallyNilpotent (v : B) := by
+theorem IsTateRing.map_topologicallyNilpotent_unit {B : Type*} [CommRing B] [TopologicalSpace B]
+    {φ : A →+* B} (hφ : Continuous φ) : ∃ v : Bˣ, IsTopologicallyNilpotent (v : B) := by
   obtain ⟨u, hu⟩ := ‹IsTateRing A›.exists_topologicallyNilpotent_unit
   refine ⟨u.map φ, ?_⟩
   change IsTopologicallyNilpotent (φ u)
@@ -306,9 +303,9 @@ theorem IsTateRing.map_topologicallyNilpotent_unit
 omit [IsTopologicalRing A] [IsLinearTopology A A] in
 /-- A Huber ring that receives a continuous ring hom from a Tate ring is itself
 Tate (Remark 6.11 of Wedhorn). -/
-theorem IsTateRing.of_continuous_map
-    {B : Type*} [CommRing B] [TopologicalSpace B] [IsTopologicalRing B] [IsHuberRing B]
-    {φ : A →+* B} (hφ : Continuous φ) : IsTateRing B where
+theorem IsTateRing.of_continuous_map {B : Type*} [CommRing B] [TopologicalSpace B]
+    [IsTopologicalRing B] [IsHuberRing B] {φ : A →+* B} (hφ : Continuous φ) :
+    IsTateRing B where
   exists_topologicallyNilpotent_unit := IsTateRing.map_topologicallyNilpotent_unit hφ
 
 end TateRing
@@ -322,8 +319,8 @@ open Filter Topology Pointwise
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
 
 /-- If `u ∈ A₀` is topologically nilpotent in `A`, then `u^N ∈ I` for some `N`. -/
-theorem PairOfDefinition.exists_pow_mem_I (P : PairOfDefinition A)
-    {u : A} (hu_mem : u ∈ P.A₀) (hu_nil : IsTopologicallyNilpotent u) :
+theorem PairOfDefinition.exists_pow_mem_I (P : PairOfDefinition A) {u : A}
+    (hu_mem : u ∈ P.A₀) (hu_nil : IsTopologicallyNilpotent u) :
     ∃ N : ℕ, (⟨u, hu_mem⟩ : P.A₀) ^ N ∈ P.I := by
   have h_nhds : P.A₀.subtype '' ((P.I : Ideal P.A₀) : Set P.A₀) ∈ 𝓝 (0 : A) :=
     (pow_one P.I ▸ P.pow_image_isOpen 1).mem_nhds
@@ -334,8 +331,8 @@ theorem PairOfDefinition.exists_pow_mem_I (P : PairOfDefinition A)
 
 /-- If `u` is a unit in `A` with `u ∈ A₀`, then `I^m ≤ Ideal.span {u_A₀ ^ N}`
 for some `m`. -/
-theorem PairOfDefinition.exists_pow_I_le_span_unit (P : PairOfDefinition A)
-    {u : Aˣ} (hu_mem : (u : A) ∈ P.A₀) (N : ℕ) :
+theorem PairOfDefinition.exists_pow_I_le_span_unit (P : PairOfDefinition A) {u : Aˣ}
+    (hu_mem : (u : A) ∈ P.A₀) (N : ℕ) :
     ∃ m : ℕ, P.I ^ m ≤ Ideal.span {(⟨(u : A), hu_mem⟩ : P.A₀) ^ N} := by
   have h_open : IsOpen ((u ^ N : Aˣ) • (P.A₀ : Set A)) := isOpenMap_smul (u ^ N) _ P.isOpen
   obtain ⟨m, -, hm⟩ := P.hasBasis_nhds_zero.mem_iff.mp
@@ -359,9 +356,8 @@ variable {R : Type*} [CommRing R] [TopologicalSpace R]
 
 omit [TopologicalSpace R] in
 /-- If `a ∈ I` and `I^m ⊆ (a)` for some `m`, then `I.radical = (a).radical`. -/
-theorem Ideal.radical_eq_of_mem_and_pow_le {I : Ideal R} {a : R}
-    (ha : a ∈ I) {m : ℕ} (hm : I ^ m ≤ Ideal.span {a}) :
-    I.radical = (Ideal.span {a}).radical := by
+theorem Ideal.radical_eq_of_mem_and_pow_le {I : Ideal R} {a : R} (ha : a ∈ I) {m : ℕ}
+    (hm : I ^ m ≤ Ideal.span {a}) : I.radical = (Ideal.span {a}).radical := by
   apply le_antisymm
   · intro x hx
     obtain ⟨k, hk⟩ := Ideal.mem_radical_iff.mp hx
@@ -389,9 +385,8 @@ variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
 
 /-- If `J ≤ I` and `I^m ≤ J`, then the `I`-adic topology is also `J`-adic
 (Remark 6.12 of Wedhorn). -/
-theorem PairOfDefinition.isAdic_of_interleaving (P : PairOfDefinition A)
-    {J : Ideal P.A₀} (hJ_le : J ≤ P.I) {m : ℕ} (hI_le : P.I ^ m ≤ J) :
-    IsAdic J := by
+theorem PairOfDefinition.isAdic_of_interleaving (P : PairOfDefinition A) {J : Ideal P.A₀}
+    (hJ_le : J ≤ P.I) {m : ℕ} (hI_le : P.I ^ m ≤ J) : IsAdic J := by
   have hJ_pow_le : ∀ n, J ^ n ≤ P.I ^ n := fun n ↦ pow_le_pow_left' hJ_le n
   have hI_pow_le : ∀ n, P.I ^ (m * n) ≤ J ^ n := fun n ↦
     pow_mul P.I m n ▸ pow_le_pow_left' hI_le n
@@ -412,8 +407,8 @@ end InterleavedIsAdic
 /-! ### Power of topologically nilpotent is topologically nilpotent -/
 
 /-- A positive power of a topologically nilpotent element is topologically nilpotent. -/
-theorem isTopologicallyNilpotent_pow {A : Type*} [TopologicalSpace A] [MonoidWithZero A]
-    {a : A} (ha : IsTopologicallyNilpotent a) {K : ℕ} (hK : 0 < K) :
+theorem isTopologicallyNilpotent_pow {A : Type*} [TopologicalSpace A] [MonoidWithZero A] {a : A}
+    (ha : IsTopologicallyNilpotent a) {K : ℕ} (hK : 0 < K) :
     IsTopologicallyNilpotent (a ^ K) := by
   change Filter.Tendsto (fun n ↦ (a ^ K) ^ n) Filter.atTop (nhds 0)
   simp_rw [← pow_mul]
@@ -428,9 +423,8 @@ section PrincipalPair
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
 
 /-- Replace the ideal of definition with a principal ideal `span{a}`, keeping the same `A₀`. -/
-def PairOfDefinition.withPrincipal (P : PairOfDefinition A)
-    {a : P.A₀} (ha : a ∈ P.I) {m : ℕ} (hm : P.I ^ m ≤ Ideal.span {a}) :
-    PairOfDefinition A where
+def PairOfDefinition.withPrincipal (P : PairOfDefinition A) {a : P.A₀} (ha : a ∈ P.I) {m : ℕ}
+    (hm : P.I ^ m ≤ Ideal.span {a}) : PairOfDefinition A where
   A₀ := P.A₀
   I := Ideal.span {a}
   isOpen := P.isOpen
@@ -440,15 +434,13 @@ def PairOfDefinition.withPrincipal (P : PairOfDefinition A)
 
 /-- The ring of definition of `withPrincipal` equals the original. -/
 @[simp]
-theorem PairOfDefinition.withPrincipal_A₀ (P : PairOfDefinition A)
-    {a : P.A₀} (ha : a ∈ P.I) {m : ℕ} (hm : P.I ^ m ≤ Ideal.span {a}) :
-    (P.withPrincipal ha hm).A₀ = P.A₀ := rfl
+theorem PairOfDefinition.withPrincipal_A₀ (P : PairOfDefinition A) {a : P.A₀} (ha : a ∈ P.I)
+    {m : ℕ} (hm : P.I ^ m ≤ Ideal.span {a}) : (P.withPrincipal ha hm).A₀ = P.A₀ := rfl
 
 /-- The ideal of definition of `withPrincipal` is `span {a}`. -/
 @[simp]
-theorem PairOfDefinition.withPrincipal_I (P : PairOfDefinition A)
-    {a : P.A₀} (ha : a ∈ P.I) {m : ℕ} (hm : P.I ^ m ≤ Ideal.span {a}) :
-    (P.withPrincipal ha hm).I = Ideal.span {a} := rfl
+theorem PairOfDefinition.withPrincipal_I (P : PairOfDefinition A) {a : P.A₀} (ha : a ∈ P.I)
+    {m : ℕ} (hm : P.I ^ m ≤ Ideal.span {a}) : (P.withPrincipal ha hm).I = Ideal.span {a} := rfl
 
 end PrincipalPair
 
@@ -483,9 +475,8 @@ variable {A B : Type*} [CommRing A] [TopologicalSpace A] [CommRing B] [Topologic
   [IsTopologicalRing A] [IsTopologicalRing B]
 
 /-- The `restrictRingHom` for `withPrincipal` pairs equals the original. -/
-private theorem restrictRingHom_withPrincipal
-    (PA : PairOfDefinition A) (PB : PairOfDefinition B)
-    (φ : A →+* B) (h : ∀ a ∈ PA.A₀, φ a ∈ PB.A₀)
+private theorem restrictRingHom_withPrincipal (PA : PairOfDefinition A)
+    (PB : PairOfDefinition B) (φ : A →+* B) (h : ∀ a ∈ PA.A₀, φ a ∈ PB.A₀)
     {aA : PA.A₀} (haA : aA ∈ PA.I) {mA : ℕ} (hmA : PA.I ^ mA ≤ Ideal.span {aA})
     {aB : PB.A₀} (haB : aB ∈ PB.I) {mB : ℕ} (hmB : PB.I ^ mB ≤ Ideal.span {aB}) :
     (PA.withPrincipal haA hmA).restrictRingHom (PB.withPrincipal haB hmB) φ h =
@@ -493,9 +484,8 @@ private theorem restrictRingHom_withPrincipal
 
 /-- If `a ^ e = b ^ e'` for positive `e, e'`, then `a` and `b` are in each other's
 span-radicals. -/
-private theorem radical_span_eq_of_pow_eq {R : Type*} [CommRing R] {a b : R}
-    {e e' : ℕ} (he : 0 < e) (he' : 0 < e')
-    (h : a ^ e = b ^ e') :
+private theorem radical_span_eq_of_pow_eq {R : Type*} [CommRing R] {a b : R} {e e' : ℕ}
+    (he : 0 < e) (he' : 0 < e') (h : a ^ e = b ^ e') :
     (Ideal.span {a}).radical = (Ideal.span {b}).radical := by
   have ha_rad : a ∈ (Ideal.span {b}).radical := by
     rw [Ideal.mem_radical_iff]; refine ⟨e, ?_⟩; rw [h]
@@ -518,10 +508,9 @@ private theorem radical_span_eq_of_pow_eq {R : Type*} [CommRing R] {a b : R}
 /-- Given a topologically nilpotent unit `u` and a pair of definition `P`,
 find exponents `K`, `N` with `0 < K`, `0 < N` such that `(u^K)^N ∈ P.I`
 and `P.I^m ≤ span{(u^K)^N}` for some `m`, yielding a principal pair. -/
-private theorem nilpotentUnit_principalData
-    {C : Type*} [CommRing C] [TopologicalSpace C] [IsTopologicalRing C]
-    (P : PairOfDefinition C)
-    (u : Cˣ) (hu_nil : IsTopologicallyNilpotent (u : C)) :
+private theorem nilpotentUnit_principalData {C : Type*} [CommRing C] [TopologicalSpace C]
+    [IsTopologicalRing C] (P : PairOfDefinition C) (u : Cˣ)
+    (hu_nil : IsTopologicallyNilpotent (u : C)) :
     ∃ (K N : ℕ) (_ : 0 < K) (_ : 0 < N)
       (hu_K : (u : C) ^ K ∈ P.A₀)
       (_ : (⟨(u : C) ^ K, hu_K⟩ : P.A₀) ^ N ∈ P.I),
@@ -548,10 +537,8 @@ private theorem nilpotentUnit_principalData
 
 /-- **Proposition 6.25 of Wedhorn**: a continuous ring homomorphism
 from a Tate ring is adic. -/
-theorem IsTateRing.isAdicHom_of_continuous_with_pairs
-    [IsTateRing A] [IsHuberRing B]
-    {φ : A →+* B} (hφ : Continuous φ)
-    (PA : PairOfDefinition A) (PB : PairOfDefinition B)
+theorem IsTateRing.isAdicHom_of_continuous_with_pairs [IsTateRing A] [IsHuberRing B]
+    {φ : A →+* B} (hφ : Continuous φ) (PA : PairOfDefinition A) (PB : PairOfDefinition B)
     (h_map : ∀ a ∈ PA.A₀, φ a ∈ PB.A₀) : IsAdicHom φ := by
   obtain ⟨u, hu_nil⟩ := ‹IsTateRing A›.exists_topologicallyNilpotent_unit
   have hv_nil : IsTopologicallyNilpotent (φ u) := hu_nil.map hφ
