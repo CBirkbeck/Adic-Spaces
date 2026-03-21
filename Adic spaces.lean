@@ -17,6 +17,7 @@ import «Adic spaces».HuberRings
 import «Adic spaces».IntegralStructureSheaf
 import «Adic spaces».Lemma745
 import «Adic spaces».LocalizationTopology
+import «Adic spaces».NoetherianTateModules
 import «Adic spaces».OpenIdeals
 import «Adic spaces».OrderedGroupConvex
 import «Adic spaces».PerfectoidRing
