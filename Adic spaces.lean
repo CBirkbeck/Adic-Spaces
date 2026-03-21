@@ -1,6 +1,7 @@
 import «Adic spaces».AdicMorphisms
 import «Adic spaces».AdicSpectrum
 import «Adic spaces».AlmostMathematics
+import «Adic spaces».CechCohomology
 import «Adic spaces».AnalyticPoints
 import «Adic spaces».AffinoidRings
 import «Adic spaces».Basic

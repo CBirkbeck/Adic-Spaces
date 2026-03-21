@@ -39,7 +39,7 @@
 | Ticket | Status | Agent | Started | Completed | Commit | Notes |
 |--------|--------|-------|---------|-----------|--------|-------|
 | 0 | DONE | claude-main | 2026-03-21 | 2026-03-21 | — | Report: docs/plans/mathlib-audit-tate.md |
-| 1A | IN PROGRESS | claude-main | 2026-03-21 | — | — | |
+| 1A | DONE | claude-main | 2026-03-21 | 2026-03-21 | — | CechCohomology.lean |
 | 1B | NOT STARTED | — | — | — | — | Depends: 1A |
 | 2A | DONE | claude-opus | 2026-03-21 | 2026-03-21 | 7843694 | Algebraic defs + embeddings; topology TBD |
 | 2B | IN PROGRESS | claude-opus | 2026-03-21 | — | — | Depends: 2A, 6 |
