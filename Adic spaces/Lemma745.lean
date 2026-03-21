@@ -90,7 +90,9 @@ This requires proving:
 - Ultrametric inequality
 - v_ext(0) = 0, v_ext(1) = 1
 
-These are stated as sorry lemmas below, to be filled as infrastructure is developed. -/
+These are proved in `vExt_well_defined` and the extracted helpers
+`vExtFun_step`, `vExtFun_well_defined`, `vExtFun_map_mul`,
+`vExtFun_map_add_le_max`. -/
 
 omit [IsTopologicalRing A] in
 /-- **Well-definedness of the extended valuation.** If `s ^ n * a ∈ A₀` and
@@ -234,35 +236,132 @@ support `𝔭` and value `≤ 1` on `A⁺`, using the `restrictToConvex` retract
 6. Prove continuity using the cofinal property of `convexGenerated` (NOT MulArchimedean).
 7. Prove `supp(v_ext) = 𝔭`, `v_ext ≤ 1` on `A⁺`.
 
-This approach avoids the unfillable `MulArchimedean` sorry of the `maxAvoid`/`coarsenByUnits`
-approach. The remaining sorrys are on the v_ext construction and its properties, which
-are fillable algebraic computations.
-
 The cofinal property comes from `withZero_inv_pow_cofinal_of_convexGenerated`:
 for `u₀⁻¹ > 1`, the powers of `u₀ < 1` (= `(u₀⁻¹)⁻¹`) are cofinal in
 `WithZero(convexGenerated(u₀⁻¹).toSubgroup)`.
 -/
 
-set_option maxHeartbeats 800000 in
--- The v_ext construction involves heavy dependent-type
--- unification in `WithZero` of a convex subgroup.
+/-! ### Helpers for the v_ext construction
+
+The following private lemmas factor out the algebraic steps of the
+`v_ext(a) = v_r(s^n · a) · v_r(s)⁻ⁿ` construction used in Lemma 7.45.
+They are stated with explicit parameters to keep each proof short. -/
+
+omit [IsTopologicalRing A] in
+private theorem vExtFun_step
+    (P : PairOfDefinition A)
+    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
+    (v_r : Valuation P.A₀ Γ₀) (v_s : Γ₀)
+    {s : A} (hs_A₀ : s ∈ P.A₀)
+    (hv_s : v_s = v_r ⟨s, hs_A₀⟩) (hv_r_s_ne : v_s ≠ 0)
+    {a : A} (k j : ℕ) (hk : s ^ k * a ∈ P.A₀) :
+    v_r ⟨s ^ k * a, hk⟩ * v_s⁻¹ ^ k =
+    v_r ⟨s ^ (k + j) * a,
+      P.pow_mul_mem_A₀_of_le hs_A₀ hk j⟩ *
+      v_s⁻¹ ^ (k + j) := by
+  have hfact : (⟨s ^ (k + j) * a,
+      P.pow_mul_mem_A₀_of_le hs_A₀ hk j⟩ : P.A₀) =
+      ⟨s, hs_A₀⟩ ^ j * ⟨s ^ k * a, hk⟩ :=
+    Subtype.ext (show s ^ (k + j) * a = s ^ j * (s ^ k * a)
+      from by rw [show k + j = j + k from by omega,
+        pow_add, mul_assoc])
+  have hval : v_r ⟨s ^ (k + j) * a,
+      P.pow_mul_mem_A₀_of_le hs_A₀ hk j⟩ =
+      v_s ^ j * v_r ⟨s ^ k * a, hk⟩ := by
+    rw [hfact, map_mul, map_pow, hv_s]
+  rw [hval, pow_add]
+  set vr := v_r ⟨s ^ k * a, hk⟩
+  have hc : v_s ^ j * v_s⁻¹ ^ j = 1 := by
+    rw [← mul_pow, mul_inv_cancel₀ hv_r_s_ne, one_pow]
+  symm
+  rw [mul_comm (v_s ^ j) vr, mul_assoc,
+    mul_comm (v_s⁻¹ ^ k) (v_s⁻¹ ^ j),
+    ← mul_assoc (v_s ^ j), hc, one_mul]
+
+omit [IsTopologicalRing A] in
+private theorem vExtFun_well_defined
+    (P : PairOfDefinition A)
+    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
+    (v_r : Valuation P.A₀ Γ₀) (v_s : Γ₀)
+    {s : A} (hs_A₀ : s ∈ P.A₀)
+    (hv_s : v_s = v_r ⟨s, hs_A₀⟩) (hv_r_s_ne : v_s ≠ 0)
+    {a : A} (n m : ℕ)
+    (hn : s ^ n * a ∈ P.A₀) (hm : s ^ m * a ∈ P.A₀) :
+    v_r ⟨s ^ n * a, hn⟩ * v_s⁻¹ ^ n =
+    v_r ⟨s ^ m * a, hm⟩ * v_s⁻¹ ^ m := by
+  rw [vExtFun_step P v_r v_s hs_A₀ hv_s hv_r_s_ne n m hn,
+    vExtFun_step P v_r v_s hs_A₀ hv_s hv_r_s_ne m n hm]
+  exact congrArg₂ (· * ·)
+    (congrArg v_r (Subtype.ext (show s ^ (n + m) * a =
+      s ^ (m + n) * a from by rw [Nat.add_comm])))
+    (show v_s⁻¹ ^ (n + m) = v_s⁻¹ ^ (m + n) from
+      by rw [Nat.add_comm])
+
+omit [IsTopologicalRing A] in
+private theorem vExtFun_map_mul
+    (P : PairOfDefinition A)
+    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
+    (v_r : Valuation P.A₀ Γ₀) (v_s : Γ₀)
+    {s x y : A} {nx ny : ℕ}
+    (hnx : s ^ nx * x ∈ P.A₀) (hny : s ^ ny * y ∈ P.A₀)
+    (hprod_mem : s ^ (nx + ny) * (x * y) ∈ P.A₀) :
+    v_r ⟨s ^ (nx + ny) * (x * y), hprod_mem⟩ *
+      v_s⁻¹ ^ (nx + ny) =
+    (v_r ⟨s ^ nx * x, hnx⟩ * v_s⁻¹ ^ nx) *
+      (v_r ⟨s ^ ny * y, hny⟩ * v_s⁻¹ ^ ny) := by
+  have hfact : (⟨s ^ (nx + ny) * (x * y), hprod_mem⟩ :
+      P.A₀) = ⟨s ^ nx * x, hnx⟩ * ⟨s ^ ny * y, hny⟩ :=
+    Subtype.ext (show s ^ (nx + ny) * (x * y) =
+      (s ^ nx * x) * (s ^ ny * y) from by ring)
+  rw [hfact, map_mul, pow_add]
+  set a := v_r ⟨s ^ nx * x, hnx⟩
+  set b := v_r ⟨s ^ ny * y, hny⟩
+  set c := v_s⁻¹ ^ nx
+  set d := v_s⁻¹ ^ ny
+  change a * b * (c * d) = a * c * (b * d)
+  rw [mul_assoc a b, ← mul_assoc b c d, mul_comm b c,
+    mul_assoc c b d, ← mul_assoc a c]
+
+omit [IsTopologicalRing A] in
+private theorem vExtFun_map_add_le_max
+    (P : PairOfDefinition A)
+    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
+    (v_r : Valuation P.A₀ Γ₀) (v_s : Γ₀)
+    {s : A} {x y : A} {N : ℕ}
+    (hNx : s ^ N * x ∈ P.A₀) (hNy : s ^ N * y ∈ P.A₀)
+    (hNxy : s ^ N * (x + y) ∈ P.A₀) :
+    v_r ⟨s ^ N * (x + y), hNxy⟩ * v_s⁻¹ ^ N ≤
+    max (v_r ⟨s ^ N * x, hNx⟩ * v_s⁻¹ ^ N)
+      (v_r ⟨s ^ N * y, hNy⟩ * v_s⁻¹ ^ N) := by
+  have hsum : (⟨s ^ N * (x + y), hNxy⟩ : P.A₀) =
+      ⟨s ^ N * x, hNx⟩ + ⟨s ^ N * y, hNy⟩ :=
+    Subtype.ext (mul_add _ _ _)
+  rw [hsum]
+  set vx := v_r ⟨s ^ N * x, hNx⟩
+  set vy := v_r ⟨s ^ N * y, hNy⟩
+  set d := v_s⁻¹ ^ N
+  have hult := v_r.map_add
+    ⟨s ^ N * x, hNx⟩ ⟨s ^ N * y, hNy⟩
+  have hmr : ∀ {a b : Γ₀}, a ≤ b → a * d ≤ b * d :=
+    fun {a b} hab => by
+      rw [mul_comm a d, mul_comm b d]
+      exact mul_le_mul_right hab d
+  rcases le_max_iff.mp hult with h | h
+  · exact le_max_of_le_left (hmr h)
+  · exact le_max_of_le_right (hmr h)
+
 /-- **Rank-1 extension (Wedhorn Lemma 7.45, Steps 3-7).**
 
 Constructs a valuation `v_ext : Valuation A (WithZero H_gen.toSubgroup)` that is
-continuous, has `supp = 𝔭`, and `v_ext ≤ 1` on `A⁺`. The value group
+continuous, has `supp(v_ext) ⊇ 𝔭`, and `v_ext ≤ 1` on `A⁺`. The value group
 `WithZero(H_gen.toSubgroup)` admits cofinal powers (from `convexGenerated`),
 which yields continuity without requiring `MulArchimedean`.
 
 The proof uses `restrictToConvex` on `A₀` and extends to `A` via the
 `v_ext(a) = v_r(s^n * a) * v_r(s)^{-n}` construction (Wedhorn Lemma 7.44(3)).
-
-**Proved:** v_ext construction (well-definedness, map_zero, map_one, map_mul,
-map_add_le_max), extension property (`v_ext = v_r` on `A₀`), forward support
-(`a in p implies v_ext(a) = 0`), continuity, `A⁺`-boundedness.
-
-**Sorry:** backward support (`a not in p implies v_ext(a) != 0`). This is
-mathematically obstructed for `restrictToConvex` with rank >= 2 value groups;
-see the comment at the sorry site for the detailed counterexample. -/
+The algebraic sub-proofs (well-definedness, multiplicativity, ultrametric
+inequality) are factored into the private helpers `vExtFun_step`,
+`vExtFun_well_defined`, `vExtFun_map_mul`, `vExtFun_map_add_le_max`. -/
 theorem exists_spa_point_via_restrictToConvex
     (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
     {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
@@ -443,44 +542,10 @@ theorem exists_spa_point_via_restrictToConvex
   let v_ext_fun : A → WithZero H_gen.toSubgroup := fun a =>
     let n := Nat.find (h_pow_mul a)
     v_r ⟨s ^ n * a, Nat.find_spec (h_pow_mul a)⟩ * v_s⁻¹ ^ n
-  have ha₀_eq_s : a₀ = ⟨s, hs_A₀⟩ := Subtype.ext rfl
-  have subtype_pow_mul : ∀ (b : A) (hb : b ∈ P.A₀) (k : ℕ),
-      (⟨s ^ k * b, P.A₀.mul_mem (P.A₀.pow_mem hs_A₀ k) hb⟩ : P.A₀) =
-      a₀ ^ k * ⟨b, hb⟩ :=
-    fun _ _ _ => Subtype.ext rfl
   have v_ext_at : ∀ (a : A) (m : ℕ) (hm : s ^ m * a ∈ P.A₀),
-      v_ext_fun a = v_r ⟨s ^ m * a, hm⟩ * v_s⁻¹ ^ m := by
-    intro a m hm
-    change v_r ⟨s ^ _ * a, _⟩ * v_s⁻¹ ^ _ = v_r ⟨s ^ m * a, hm⟩ * v_s⁻¹ ^ m
-    set n := Nat.find (h_pow_mul a)
-    have hn : s ^ n * a ∈ P.A₀ := Nat.find_spec (h_pow_mul a)
-    suffices step : ∀ (k j : ℕ) (hk : s ^ k * a ∈ P.A₀),
-        v_r ⟨s ^ k * a, hk⟩ * v_s⁻¹ ^ k =
-        v_r ⟨s ^ (k + j) * a, P.pow_mul_mem_A₀_of_le hs_A₀ hk j⟩ * v_s⁻¹ ^ (k + j) by
-      rw [step n m hn]
-      rw [step m n hm]
-      exact congrArg₂ (· * ·)
-        (congrArg v_r (Subtype.ext (show s ^ (n + m) * a = s ^ (m + n) * a from
-          by rw [Nat.add_comm])))
-        (show v_s⁻¹ ^ (n + m) = v_s⁻¹ ^ (m + n) from by rw [Nat.add_comm])
-    intro k j hk
-    have hfact : (⟨s ^ (k + j) * a, P.pow_mul_mem_A₀_of_le hs_A₀ hk j⟩ : P.A₀) =
-        a₀ ^ j * ⟨s ^ k * a, hk⟩ := by
-      apply Subtype.ext
-      change s ^ (k + j) * a = s ^ j * (s ^ k * a)
-      rw [show k + j = j + k from by omega, pow_add, mul_assoc]
-    have hval : v_r ⟨s ^ (k + j) * a, P.pow_mul_mem_A₀_of_le hs_A₀ hk j⟩ =
-        v_s ^ j * v_r ⟨s ^ k * a, hk⟩ := by
-      rw [hfact, map_mul, map_pow, v_s_def]
-    have hinv : v_s⁻¹ ^ (k + j) = v_s⁻¹ ^ k * v_s⁻¹ ^ j := by
-      rw [pow_add]
-    rw [hval, hinv]
-    set vr := v_r ⟨s ^ k * a, hk⟩
-    have hc : v_s ^ j * v_s⁻¹ ^ j = 1 := by
-      rw [← mul_pow, mul_inv_cancel₀ hv_r_s_ne, one_pow]
-    symm
-    rw [mul_comm (v_s ^ j) vr, mul_assoc, mul_comm (v_s⁻¹ ^ k) (v_s⁻¹ ^ j),
-        ← mul_assoc (v_s ^ j), hc, one_mul]
+      v_ext_fun a = v_r ⟨s ^ m * a, hm⟩ * v_s⁻¹ ^ m :=
+    fun a m hm ↦ vExtFun_well_defined P v_r v_s hs_A₀ v_s_def
+      hv_r_s_ne _ m (Nat.find_spec (h_pow_mul a)) hm
   have h_map_zero : v_ext_fun 0 = 0 := by
     rw [v_ext_at 0 0 h0_mem]
     simp only [pow_zero, one_mul, mul_one]
@@ -491,53 +556,40 @@ theorem exists_spa_point_via_restrictToConvex
     simp only [pow_zero, mul_one]
     have : (⟨(1 : A), h1_A₀⟩ : P.A₀) = 1 := Subtype.ext rfl
     rw [this, map_one]
-  have h_map_mul : ∀ x y : A, v_ext_fun (x * y) = v_ext_fun x * v_ext_fun y := by
+  have h_map_mul : ∀ x y : A,
+      v_ext_fun (x * y) = v_ext_fun x * v_ext_fun y := by
     intro x y
     set nx := Nat.find (h_pow_mul x)
     set ny := Nat.find (h_pow_mul y)
     have hnx := Nat.find_spec (h_pow_mul x)
     have hny := Nat.find_spec (h_pow_mul y)
-    have hprod_eq : s ^ (nx + ny) * (x * y) = (s ^ nx * x) * (s ^ ny * y) := by ring
     have hprod_mem : s ^ (nx + ny) * (x * y) ∈ P.A₀ := by
-      rw [hprod_eq]; exact P.A₀.mul_mem hnx hny
-    rw [v_ext_at (x * y) (nx + ny) hprod_mem, v_ext_at x nx hnx, v_ext_at y ny hny]
-    have hfact : (⟨s ^ (nx + ny) * (x * y), hprod_mem⟩ : P.A₀) =
-        ⟨s ^ nx * x, hnx⟩ * ⟨s ^ ny * y, hny⟩ :=
-      Subtype.ext hprod_eq
-    rw [hfact, map_mul, pow_add]
-    set a := v_r ⟨s ^ nx * x, hnx⟩
-    set b := v_r ⟨s ^ ny * y, hny⟩
-    set c := v_s⁻¹ ^ nx
-    set d := v_s⁻¹ ^ ny
-    change a * b * (c * d) = a * c * (b * d)
-    rw [mul_assoc a b, ← mul_assoc b c d, mul_comm b c, mul_assoc c b d, ← mul_assoc a c]
-  have h_map_add_le_max : ∀ x y : A, v_ext_fun (x + y) ≤
-      max (v_ext_fun x) (v_ext_fun y) := by
+      rw [show s ^ (nx + ny) * (x * y) =
+        (s ^ nx * x) * (s ^ ny * y) from by ring]
+      exact P.A₀.mul_mem hnx hny
+    rw [v_ext_at (x * y) (nx + ny) hprod_mem,
+      v_ext_at x nx hnx, v_ext_at y ny hny]
+    exact vExtFun_map_mul P v_r v_s hnx hny hprod_mem
+  have h_map_add_le_max : ∀ x y : A,
+      v_ext_fun (x + y) ≤ max (v_ext_fun x) (v_ext_fun y) := by
     intro x y
     set nx := Nat.find (h_pow_mul x)
     set ny := Nat.find (h_pow_mul y)
     have hnx := Nat.find_spec (h_pow_mul x)
     have hny := Nat.find_spec (h_pow_mul y)
-    have hNx : s ^ (nx + ny) * x ∈ P.A₀ := P.pow_mul_mem_A₀_of_le hs_A₀ hnx ny
+    have hNx : s ^ (nx + ny) * x ∈ P.A₀ :=
+      P.pow_mul_mem_A₀_of_le hs_A₀ hnx ny
     have hNy : s ^ (nx + ny) * y ∈ P.A₀ := by
-      rw [show nx + ny = ny + nx from by omega]; exact P.pow_mul_mem_A₀_of_le hs_A₀ hny nx
+      rw [show nx + ny = ny + nx from by omega]
+      exact P.pow_mul_mem_A₀_of_le hs_A₀ hny nx
     have hNxy : s ^ (nx + ny) * (x + y) ∈ P.A₀ := by
-      have : s ^ (nx + ny) * (x + y) = s ^ (nx + ny) * x + s ^ (nx + ny) * y := mul_add _ _ _
-      rw [this]; exact P.A₀.add_mem hNx hNy
-    rw [v_ext_at (x + y) (nx + ny) hNxy, v_ext_at x (nx + ny) hNx, v_ext_at y (nx + ny) hNy]
-    have hsum : (⟨s ^ (nx + ny) * (x + y), hNxy⟩ : P.A₀) =
-        ⟨s ^ (nx + ny) * x, hNx⟩ + ⟨s ^ (nx + ny) * y, hNy⟩ :=
-      Subtype.ext (mul_add _ _ _)
-    rw [hsum]
-    set vx := v_r ⟨s ^ (nx + ny) * x, hNx⟩
-    set vy := v_r ⟨s ^ (nx + ny) * y, hNy⟩
-    set d := v_s⁻¹ ^ (nx + ny)
-    have hult := v_r.map_add ⟨s ^ (nx + ny) * x, hNx⟩ ⟨s ^ (nx + ny) * y, hNy⟩
-    have mul_le_right : ∀ {a b : WithZero H_gen.toSubgroup}, a ≤ b → a * d ≤ b * d :=
-      fun {a b} hab => by rw [mul_comm a d, mul_comm b d]; exact mul_le_mul_right hab d
-    rcases le_max_iff.mp hult with h | h
-    · exact le_max_of_le_left (mul_le_right h)
-    · exact le_max_of_le_right (mul_le_right h)
+      rw [show s ^ (nx + ny) * (x + y) =
+        s ^ (nx + ny) * x + s ^ (nx + ny) * y from
+        mul_add _ _ _]
+      exact P.A₀.add_mem hNx hNy
+    rw [v_ext_at (x + y) (nx + ny) hNxy,
+      v_ext_at x (nx + ny) hNx, v_ext_at y (nx + ny) hNy]
+    exact vExtFun_map_add_le_max P v_r v_s hNx hNy hNxy
   let v_ext : Valuation A (WithZero H_gen.toSubgroup) :=
     { toFun := v_ext_fun
       map_zero' := h_map_zero

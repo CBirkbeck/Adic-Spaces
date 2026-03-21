@@ -156,6 +156,86 @@ variable {A B : Type*} [CommRing A] [CommRing B]
   [IsTopologicalRing A] [IsTopologicalRing B]
   [IsHuberRing A] [IsHuberRing B]
 
+omit [IsTopologicalRing A] [IsHuberRing A] in
+/-- The closure of `I^(2m)` under `PA.A₀.subtype` lies in `Subring.closure S`
+where `S` is the image of `I^m`. Used to show `A₀'` is open. -/
+private theorem pow_2m_image_sub_closure
+    (PA : PairOfDefinition A) {m : ℕ}
+    {S : Set A} (hS : S = PA.A₀.subtype '' ((PA.I ^ m : Ideal PA.A₀) : Set PA.A₀)) :
+    PA.A₀.subtype '' ((PA.I ^ (2 * m) : Ideal PA.A₀) : Set PA.A₀) ⊆
+        (Subring.closure S : Set A) := by
+  set A₀' := Subring.closure S
+  rintro _ ⟨x, hx, rfl⟩
+  have hx' : x ∈ PA.I ^ m * PA.I ^ m := by
+    rwa [← pow_add, show m + m = 2 * m from by ring]
+  refine Submodule.mul_induction_on hx'
+    (fun a ha b hb ↦ ?_) (fun _ _ h1 h2 ↦ A₀'.add_mem h1 h2)
+  change PA.A₀.subtype (a * b) ∈ A₀'
+  rw [map_mul]
+  exact A₀'.mul_mem
+    (Subring.subset_closure (hS ▸ ⟨a, ha, rfl⟩))
+    (Subring.subset_closure (hS ▸ ⟨b, hb, rfl⟩))
+
+
+omit [IsHuberRing A] in
+/-- Each I' power is open in A₀', using `comap_le_pow`. -/
+private theorem isAdic_pow_open
+    (PA : PairOfDefinition A) {m : ℕ}
+    {A₀' : Subring A} (hA₀'_le_PA : A₀' ≤ PA.A₀)
+    {I' : Ideal A₀'}
+    (comap_le_pow :
+      ∀ n, Ideal.comap (Subring.inclusion hA₀'_le_PA)
+        (PA.I ^ ((n + 2) * m)) ≤ I' ^ n)
+    (n : ℕ) : IsOpen ((I' ^ n).toAddSubgroup : Set A₀') := by
+  set ι := Subring.inclusion hA₀'_le_PA
+  set k := (n + 2) * m
+  have hW_open : IsOpen ((fun x : A₀' ↦ (x : A)) ⁻¹'
+      (PA.A₀.subtype '' ((PA.I ^ k : Ideal PA.A₀) : Set PA.A₀))) :=
+    (PA.pow_image_isOpen k).preimage continuous_subtype_val
+  have hW_zero : (0 : A₀') ∈ (fun x : A₀' ↦ (x : A)) ⁻¹'
+      (PA.A₀.subtype '' ((PA.I ^ k : Ideal PA.A₀) : Set PA.A₀)) :=
+    ⟨0, (PA.I ^ k).zero_mem,
+      by simp only [ZeroMemClass.coe_zero, map_zero]⟩
+  have hW_sub : (fun x : A₀' ↦ (x : A)) ⁻¹'
+      (PA.A₀.subtype '' ((PA.I ^ k : Ideal PA.A₀) : Set PA.A₀)) ⊆
+      ((I' ^ n : Ideal A₀') : Set A₀') := by
+    intro x ⟨y, hy, hval⟩
+    apply comap_le_pow n
+    change ι x ∈ PA.I ^ ((n + 2) * m)
+    exact (Subtype.ext
+      (by simp only [ι, Subring.inclusion]; exact hval.symm) :
+        ι x = y) ▸ hy
+  exact AddSubgroup.isOpen_of_mem_nhds _
+    (Filter.mem_of_superset (hW_open.mem_nhds hW_zero)
+      (Submodule.coe_toAddSubgroup (I' ^ n) ▸ hW_sub))
+
+omit [IsHuberRing A] in
+/-- The I'-adic topology on A₀' is finer than the subspace topology. -/
+private theorem isAdic_topology_finer
+    (PA : PairOfDefinition A) {m : ℕ} (hm_pos : m > 0)
+    {A₀' : Subring A} (hA₀'_le_PA : A₀' ≤ PA.A₀)
+    {I' : Ideal A₀'}
+    (hI'_le_comap : I' ≤
+      Ideal.comap (Subring.inclusion hA₀'_le_PA) (PA.I ^ m))
+    (s : Set A₀') (hs : s ∈ nhds (0 : A₀')) :
+    ∃ n, ∀ x ∈ I' ^ n, x ∈ s := by
+  set ι := Subring.inclusion hA₀'_le_PA
+  have hI'_pow_le :
+      ∀ n, I' ^ n ≤ Ideal.comap ι (PA.I ^ (m * n)) := by
+    intro n
+    calc I' ^ n
+        ≤ (Ideal.comap ι (PA.I ^ m)) ^ n := pow_le_pow_left' hI'_le_comap n
+      _ ≤ Ideal.comap ι ((PA.I ^ m) ^ n) := Ideal.le_comap_pow ι n
+      _ = Ideal.comap ι (PA.I ^ (m * n)) := by rw [← pow_mul]
+  rw [nhds_induced, Filter.mem_comap] at hs
+  obtain ⟨V, hV, hV_sub⟩ := hs
+  obtain ⟨j, -, hj⟩ := PA.hasBasis_nhds_zero.mem_iff.mp hV
+  refine ⟨j, fun x hx ↦ hV_sub (show (x : A) ∈ V from hj ?_)⟩
+  have hιx : ι x ∈ PA.I ^ (m * j) := hI'_pow_le j hx
+  have hmj_le : PA.I ^ (m * j) ≤ PA.I ^ j :=
+    Ideal.pow_le_pow_right (Nat.le_mul_of_pos_left j hm_pos)
+  exact ⟨ι x, hmj_le hιx, rfl⟩
+
 omit [IsHuberRing A] in
 private theorem exists_pairOfDefinition_le_subring
     (PA : PairOfDefinition A) {U : Subring A} (hU : IsOpen (U : Set A))
@@ -173,48 +253,39 @@ private theorem exists_pairOfDefinition_le_subring
   set A₀' := Subring.closure S with A₀'_def
   have hA₀'_le_U : A₀' ≤ U := Subring.closure_le.mpr hm
   have hA₀'_le_PA : A₀' ≤ PA.A₀ :=
-    Subring.closure_le.mpr (Set.image_subset_iff.mpr fun _ _ ↦ Subtype.coe_prop _)
+    Subring.closure_le.mpr
+      (Set.image_subset_iff.mpr fun _ _ ↦ Subtype.coe_prop _)
   have hA₀'_open : IsOpen (A₀' : Set A) := by
-    have h2m_sub : PA.A₀.subtype '' ((PA.I ^ (2 * m) : Ideal PA.A₀) : Set PA.A₀) ⊆
-        (A₀' : Set A) := by
-      rintro _ ⟨x, hx, rfl⟩
-      have hx' : x ∈ PA.I ^ m * PA.I ^ m := by
-        rwa [← pow_add, show m + m = 2 * m from by ring]
-      refine Submodule.mul_induction_on hx'
-        (fun a ha b hb ↦ ?_) (fun _ _ h1 h2 ↦ A₀'.add_mem h1 h2)
-      change PA.A₀.subtype (a * b) ∈ A₀'
-      rw [map_mul]
-      exact A₀'.mul_mem
-        (Subring.subset_closure ⟨a, ha, rfl⟩)
-        (Subring.subset_closure ⟨b, hb, rfl⟩)
     change IsOpen (A₀'.toAddSubgroup : Set A)
     exact AddSubgroup.isOpen_of_mem_nhds _
       (Filter.mem_of_superset
         ((PA.pow_image_isOpen (2 * m)).mem_nhds
           (Set.mem_image_of_mem _ (PA.I ^ (2 * m)).zero_mem))
-        h2m_sub)
+        (pow_2m_image_sub_closure PA S_def))
   set ι := Subring.inclusion hA₀'_le_PA with ι_def
   have hlift : ∀ x ∈ PA.I ^ m, (PA.A₀.subtype x : A) ∈ A₀' :=
     fun x hx ↦ Subring.subset_closure ⟨x, hx, rfl⟩
   obtain ⟨F, hF⟩ := PA.fg.pow (n := m)
   have hF_sub : ∀ g ∈ F, (PA.A₀.subtype g : A) ∈ A₀' :=
-    fun g hg ↦ hlift g (hF ▸ Ideal.subset_span (Finset.mem_coe.mpr hg))
+    fun g hg ↦
+      hlift g (hF ▸ Ideal.subset_span (Finset.mem_coe.mpr hg))
   classical
   set F' : Finset A₀' :=
     F.attach.image (fun g ↦ ⟨PA.A₀.subtype g.1, hF_sub g.1 g.2⟩)
   set I' := Ideal.span (F' : Set A₀') with I'_def
-  have hI'_fg : I'.FG := ⟨F', rfl⟩
-  have hι_gen_eq : ∀ (g : PA.A₀) (hg : g ∈ F),
-      ι (⟨PA.A₀.subtype g, hF_sub g hg⟩ : A₀') = g :=
-    fun g _ ↦ Subtype.ext rfl
   have hι_gen : ∀ g' ∈ F', ι g' ∈ PA.I ^ m := by
     intro g' hg'
-    simp only [F', Finset.mem_image, Finset.mem_attach, true_and] at hg'
+    simp only [F', Finset.mem_image, Finset.mem_attach,
+      true_and] at hg'
     obtain ⟨⟨g, hg_mem⟩, rfl⟩ := hg'
-    rw [hι_gen_eq g hg_mem]; exact hF ▸ Ideal.subset_span (Finset.mem_coe.mpr hg_mem)
+    have : ι ⟨PA.A₀.subtype g, hF_sub g hg_mem⟩ = g :=
+      Subtype.ext rfl
+    rw [this]
+    exact hF ▸ Ideal.subset_span (Finset.mem_coe.mpr hg_mem)
   have hI'_le_comap : I' ≤ Ideal.comap ι (PA.I ^ m) :=
     Ideal.span_le.mpr fun g' hg' ↦ hι_gen g' hg'
-  have comap_le_pow : ∀ n, Ideal.comap ι (PA.I ^ ((n + 2) * m)) ≤ I' ^ n := by
+  have comap_le_pow :
+      ∀ n, Ideal.comap ι (PA.I ^ ((n + 2) * m)) ≤ I' ^ n := by
     intro n
     induction n with
     | zero =>
@@ -225,123 +296,131 @@ private theorem exists_pairOfDefinition_le_subring
       intro x hx
       change x ∈ I' ^ (n + 1)
       have hιx : ι x ∈ PA.I ^ m * PA.I ^ ((n + 2) * m) := by
-        rw [← pow_add, show m + (n + 2) * m = (n + 3) * m from by ring]
+        rw [← pow_add,
+          show m + (n + 2) * m = (n + 3) * m from by ring]
         exact hx
-      suffices h_suff : ∀ z ∈ PA.I ^ m * PA.I ^ ((n + 2) * m),
+      suffices h_suff :
+          ∀ z ∈ PA.I ^ m * PA.I ^ ((n + 2) * m),
           (PA.A₀.subtype z : A) ∈ A₀' ∧
           ∀ (h' : (PA.A₀.subtype z : A) ∈ A₀'),
-          (⟨PA.A₀.subtype z, h'⟩ : A₀') ∈ (I' ^ (n + 1) : Ideal A₀') by
-        have hx_eq : x = ⟨PA.A₀.subtype (ι x), x.2⟩ := by
+          (⟨PA.A₀.subtype z, h'⟩ : A₀') ∈
+            (I' ^ (n + 1) : Ideal A₀') by
+        have hx_eq :
+            x = ⟨PA.A₀.subtype (ι x), x.2⟩ := by
           ext; rfl
         rw [hx_eq]; exact (h_suff (ι x) hιx).2 x.2
       intro z hz
-      refine Submodule.mul_induction_on hz (fun g hg w hw ↦ ?_) (fun u v hu hv ↦ ?_)
-      · suffices h_span : ∀ (g' : PA.A₀), g' ∈ Ideal.span (F : Set PA.A₀) →
-            ∀ (w' : PA.A₀), w' ∈ PA.I ^ ((n + 2) * m) →
+      refine Submodule.mul_induction_on hz
+        (fun g hg w hw ↦ ?_) (fun u v hu hv ↦ ?_)
+      · suffices h_span :
+            ∀ (g' : PA.A₀),
+            g' ∈ Ideal.span (F : Set PA.A₀) →
+            ∀ (w' : PA.A₀),
+            w' ∈ PA.I ^ ((n + 2) * m) →
             (PA.A₀.subtype (g' * w') : A) ∈ A₀' ∧
             ∀ (h' : (PA.A₀.subtype (g' * w') : A) ∈ A₀'),
-            (⟨PA.A₀.subtype (g' * w'), h'⟩ : A₀') ∈ (I' ^ (n + 1) : Ideal A₀') by
+            (⟨PA.A₀.subtype (g' * w'), h'⟩ : A₀') ∈
+              (I' ^ (n + 1) : Ideal A₀') by
           exact h_span g (hF ▸ hg) w hw
         intro g' hg'
         induction hg' using Submodule.span_induction with
         | mem f hf =>
           intro w' hw'
-          have hf'_mem : (⟨PA.A₀.subtype f, hF_sub f hf⟩ : A₀') ∈ I' :=
-            Ideal.subset_span (Finset.mem_image.mpr ⟨⟨f, hf⟩, Finset.mem_attach _ _, rfl⟩)
+          have hf'_mem :
+              (⟨PA.A₀.subtype f, hF_sub f hf⟩ : A₀') ∈ I' :=
+            Ideal.subset_span (Finset.mem_image.mpr
+              ⟨⟨f, hf⟩, Finset.mem_attach _ _, rfl⟩)
           have hw'_A₀' : (PA.A₀.subtype w' : A) ∈ A₀' :=
-            hlift w' (Ideal.pow_le_pow_right (Nat.le_mul_of_pos_left m (by omega)) hw')
-          have hfw'_A₀' : (PA.A₀.subtype (f * w') : A) ∈ A₀' := by
-            rw [map_mul]; exact A₀'.mul_mem (hF_sub f hf) hw'_A₀'
+            hlift w' (Ideal.pow_le_pow_right
+              (Nat.le_mul_of_pos_left m (by omega)) hw')
+          have hfw'_A₀' :
+              (PA.A₀.subtype (f * w') : A) ∈ A₀' := by
+            rw [map_mul]
+            exact A₀'.mul_mem (hF_sub f hf) hw'_A₀'
           refine ⟨hfw'_A₀', fun h' ↦ ?_⟩
           have hw'_In :
-              (⟨PA.A₀.subtype w', hw'_A₀'⟩ : A₀') ∈ (I' ^ n : Ideal A₀') := by
-            apply ih; change ι ⟨PA.A₀.subtype w', hw'_A₀'⟩ ∈ PA.I ^ ((n + 2) * m)
-            rw [show (ι ⟨PA.A₀.subtype w', hw'_A₀'⟩ : PA.A₀) = w' from
-              Subtype.ext (by simp [ι, Subring.inclusion])]
+              (⟨PA.A₀.subtype w', hw'_A₀'⟩ : A₀') ∈
+                (I' ^ n : Ideal A₀') := by
+            apply ih
+            change ι ⟨_, hw'_A₀'⟩ ∈ PA.I ^ ((n + 2) * m)
+            rw [show (ι ⟨PA.A₀.subtype w', hw'_A₀'⟩ :
+                PA.A₀) = w' from Subtype.ext rfl]
             exact hw'
           have : (⟨PA.A₀.subtype (f * w'), h'⟩ : A₀') =
-              ⟨PA.A₀.subtype f, hF_sub f hf⟩ * ⟨PA.A₀.subtype w', hw'_A₀'⟩ :=
+              ⟨PA.A₀.subtype f, hF_sub f hf⟩ *
+              ⟨PA.A₀.subtype w', hw'_A₀'⟩ :=
             Subtype.ext (map_mul PA.A₀.subtype f w')
           rw [this, pow_succ']
           exact Ideal.mul_mem_mul hf'_mem hw'_In
         | zero =>
           intro w' _
-          exact ⟨by simp only [zero_mul, map_zero]; exact A₀'.zero_mem, fun h' ↦ by
-            have : (⟨PA.A₀.subtype (0 * w'), h'⟩ : A₀') = 0 :=
-              Subtype.ext (by simp only [zero_mul, map_zero, ZeroMemClass.coe_zero])
-            rw [this]; exact (I' ^ (n + 1)).zero_mem⟩
+          exact ⟨by simp only [zero_mul, map_zero]; exact A₀'.zero_mem,
+            fun h' ↦ by
+              have : (⟨PA.A₀.subtype (0 * w'), h'⟩ : A₀') = 0 :=
+                Subtype.ext (by simp only [zero_mul, map_zero,
+                  ZeroMemClass.coe_zero])
+              rw [this]; exact (I' ^ (n + 1)).zero_mem⟩
         | add x' y' _ _ hx'_ih hy'_ih =>
           intro w' hw'
           obtain ⟨hx'w'_A₀', hx'_res⟩ := hx'_ih w' hw'
           obtain ⟨hy'w'_A₀', hy'_res⟩ := hy'_ih w' hw'
-          have hadd : (PA.A₀.subtype ((x' + y') * w') : A) ∈ A₀' := by
-            rw [add_mul, map_add]; exact A₀'.add_mem hx'w'_A₀' hy'w'_A₀'
+          have hadd :
+              (PA.A₀.subtype ((x' + y') * w') : A) ∈
+                A₀' := by
+            rw [add_mul, map_add]
+            exact A₀'.add_mem hx'w'_A₀' hy'w'_A₀'
           refine ⟨hadd, fun h' ↦ ?_⟩
-          have : (⟨PA.A₀.subtype ((x' + y') * w'), h'⟩ : A₀') =
+          have : (⟨PA.A₀.subtype ((x' + y') * w'),
+              h'⟩ : A₀') =
               ⟨PA.A₀.subtype (x' * w'), hx'w'_A₀'⟩ +
               ⟨PA.A₀.subtype (y' * w'), hy'w'_A₀'⟩ :=
-            Subtype.ext (by simp [add_mul, map_add])
-          rw [this]; exact (I' ^ (n + 1)).add_mem (hx'_res hx'w'_A₀') (hy'_res hy'w'_A₀')
+            Subtype.ext (by
+              simp only [add_mul, map_add,
+                AddMemClass.coe_add])
+          rw [this]
+          exact (I' ^ (n + 1)).add_mem
+            (hx'_res hx'w'_A₀') (hy'_res hy'w'_A₀')
         | smul c x' _ hx'_ih =>
           intro w' hw'
-          have hcw'_mem : c * w' ∈ PA.I ^ ((n + 2) * m) := Ideal.mul_mem_left _ c hw'
-          obtain ⟨hx'cw'_A₀', hx'_res⟩ := hx'_ih (c * w') hcw'_mem
-          have heq : c • x' * w' = x' * (c * w') := by
-            simp only [smul_eq_mul]; ring
+          have hcw'_mem :
+              c * w' ∈ PA.I ^ ((n + 2) * m) :=
+            Ideal.mul_mem_left _ c hw'
+          obtain ⟨hx'cw'_A₀', hx'_res⟩ :=
+            hx'_ih (c * w') hcw'_mem
           constructor
-          · change (PA.A₀.subtype (c • x' * w') : A) ∈ A₀'
-            rw [show (c • x' * w' : PA.A₀) = x' * (c * w') from Subtype.ext (by
-              simp [mul_comm, mul_left_comm])]
+          · change (PA.A₀.subtype (c • x' * w') :
+                A) ∈ A₀'
+            rw [show (c • x' * w' : PA.A₀) =
+                x' * (c * w') from Subtype.ext (by
+              simp only [smul_eq_mul, Subring.coe_mul]
+              ring)]
             exact hx'cw'_A₀'
           · intro h'
-            have : (⟨PA.A₀.subtype (c • x' * w'), h'⟩ : A₀') =
-                ⟨PA.A₀.subtype (x' * (c * w')), hx'cw'_A₀'⟩ :=
-              Subtype.ext (by simp [mul_comm, mul_left_comm])
+            have : (⟨PA.A₀.subtype (c • x' * w'),
+                h'⟩ : A₀') =
+                ⟨PA.A₀.subtype (x' * (c * w')),
+                  hx'cw'_A₀'⟩ :=
+              Subtype.ext (by
+                simp only [smul_eq_mul, map_mul]
+                ring)
             rw [this]; exact hx'_res hx'cw'_A₀'
       · obtain ⟨hu_A₀', hu_res⟩ := hu
         obtain ⟨hv_A₀', hv_res⟩ := hv
-        refine ⟨by rw [map_add]; exact A₀'.add_mem hu_A₀' hv_A₀', fun h' ↦ ?_⟩
+        refine ⟨by rw [map_add]; exact A₀'.add_mem hu_A₀' hv_A₀',
+          fun h' ↦ ?_⟩
         have : (⟨PA.A₀.subtype (u + v), h'⟩ : A₀') =
-            ⟨PA.A₀.subtype u, hu_A₀'⟩ + ⟨PA.A₀.subtype v, hv_A₀'⟩ :=
+            ⟨PA.A₀.subtype u, hu_A₀'⟩ +
+            ⟨PA.A₀.subtype v, hv_A₀'⟩ :=
           Subtype.ext (map_add PA.A₀.subtype u v)
-        rw [this]; exact (I' ^ (n + 1)).add_mem (hu_res hu_A₀') (hv_res hv_A₀')
+        rw [this]
+        exact (I' ^ (n + 1)).add_mem
+          (hu_res hu_A₀') (hv_res hv_A₀')
   have hI'_isAdic : IsAdic I' := by
-    rw [isAdic_iff]; constructor
-    · intro n
-      set k := (n + 2) * m
-      have hW_open : IsOpen ((fun x : A₀' ↦ (x : A)) ⁻¹'
-          (PA.A₀.subtype '' ((PA.I ^ k : Ideal PA.A₀) : Set PA.A₀))) :=
-        (PA.pow_image_isOpen k).preimage continuous_subtype_val
-      have hW_zero : (0 : A₀') ∈ (fun x : A₀' ↦ (x : A)) ⁻¹'
-          (PA.A₀.subtype '' ((PA.I ^ k : Ideal PA.A₀) : Set PA.A₀)) :=
-        ⟨0, (PA.I ^ k).zero_mem, by simp only [ZeroMemClass.coe_zero, map_zero]⟩
-      have hW_sub : (fun x : A₀' ↦ (x : A)) ⁻¹'
-          (PA.A₀.subtype '' ((PA.I ^ k : Ideal PA.A₀) : Set PA.A₀)) ⊆
-          ((I' ^ n : Ideal A₀') : Set A₀') := by
-        intro x ⟨y, hy, hval⟩
-        apply comap_le_pow n
-        change ι x ∈ PA.I ^ ((n + 2) * m)
-        exact (Subtype.ext
-          (by simp only [ι, Subring.inclusion]; exact hval.symm) : ι x = y) ▸ hy
-      change IsOpen ((I' ^ n).toAddSubgroup : Set A₀')
-      exact AddSubgroup.isOpen_of_mem_nhds _
-        (Filter.mem_of_superset (hW_open.mem_nhds hW_zero)
-          (Submodule.coe_toAddSubgroup (I' ^ n) ▸ hW_sub))
-    · intro s hs
-      have hI'_pow_le : ∀ n, I' ^ n ≤ Ideal.comap ι (PA.I ^ (m * n)) := by
-        intro n
-        calc I' ^ n ≤ (Ideal.comap ι (PA.I ^ m)) ^ n := pow_le_pow_left' hI'_le_comap n
-          _ ≤ Ideal.comap ι ((PA.I ^ m) ^ n) := Ideal.le_comap_pow ι n
-          _ = Ideal.comap ι (PA.I ^ (m * n)) := by rw [← pow_mul]
-      rw [nhds_induced, Filter.mem_comap] at hs
-      obtain ⟨V, hV, hV_sub⟩ := hs
-      obtain ⟨j, -, hj⟩ := PA.hasBasis_nhds_zero.mem_iff.mp hV
-      refine ⟨j, fun x hx ↦ hV_sub (show (x : A) ∈ V from hj ?_)⟩
-      have hιx : ι x ∈ PA.I ^ (m * j) := hI'_pow_le j hx
-      have hmj_le : PA.I ^ (m * j) ≤ PA.I ^ j :=
-        Ideal.pow_le_pow_right (Nat.le_mul_of_pos_left j hm_pos)
-      exact ⟨ι x, hmj_le hιx, rfl⟩
-  exact ⟨⟨A₀', I', hA₀'_open, hI'_fg, hI'_isAdic⟩, hA₀'_le_U⟩
+    rw [isAdic_iff]
+    exact ⟨fun n ↦ isAdic_pow_open PA hA₀'_le_PA comap_le_pow n,
+      fun s hs ↦ isAdic_topology_finer PA hm_pos hA₀'_le_PA
+        hI'_le_comap s hs⟩
+  exact ⟨⟨A₀', I', hA₀'_open, ⟨F', rfl⟩, hI'_isAdic⟩, hA₀'_le_U⟩
 
 omit [IsTopologicalRing B] [IsHuberRing B] in
 private theorem exists_compatible_pair
@@ -382,6 +461,102 @@ private theorem exists_separating_prime_of_B₀
   exact h𝔭₀_prime.radical.symm ▸ Ideal.radical_mono hJ_le hj_radJ
 
 omit [IsTopologicalRing A] [IsHuberRing A] [IsHuberRing B] in
+/-- Span induction for the prime extension argument: for each element
+`b` in `span(subtype '' 𝔭₀)`, there exist `n` and `c ∈ 𝔭₀` with
+`subtype c = (subtype j)^n * b`. -/
+private theorem span_pow_mul_eq_of_prime
+    (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
+    {𝔭₀ : Ideal PB.A₀}
+    {j : PB.A₀}
+    (hj_nil : IsTopologicallyNilpotent (PB.A₀.subtype j : B))
+    (b : B) (hb : b ∈ Ideal.span (PB.A₀.subtype '' (𝔭₀ : Set PB.A₀))) :
+    ∃ (n : ℕ) (c : PB.A₀), c ∈ 𝔭₀ ∧
+      PB.A₀.subtype c = (PB.A₀.subtype j) ^ n * b := by
+  induction hb using Submodule.span_induction with
+  | mem b hb =>
+    obtain ⟨a, ha_mem, ha_eq⟩ := hb
+    exact ⟨0, a, ha_mem, by rw [pow_zero, one_mul, ha_eq]⟩
+  | zero =>
+    exact ⟨0, 0, 𝔭₀.zero_mem,
+      by simp only [map_zero, pow_zero, one_mul]⟩
+  | add b₁ b₂ _ _ ih₁ ih₂ =>
+    obtain ⟨n₁, c₁, hc₁_mem, hc₁_eq⟩ := ih₁
+    obtain ⟨n₂, c₂, hc₂_mem, hc₂_eq⟩ := ih₂
+    refine ⟨n₁ ⊔ n₂,
+      j ^ (n₁ ⊔ n₂ - n₁) * c₁ + j ^ (n₁ ⊔ n₂ - n₂) * c₂,
+      𝔭₀.add_mem (𝔭₀.mul_mem_left _ hc₁_mem)
+        (𝔭₀.mul_mem_left _ hc₂_mem), ?_⟩
+    simp only [map_add, map_mul, map_pow, mul_add]
+    congr 1
+    · calc (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₁) * (PB.A₀.subtype c₁)
+          = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₁) *
+              ((PB.A₀.subtype j) ^ n₁ * b₁) := by rw [hc₁_eq]
+        _ = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₁ + n₁) * b₁ := by
+            rw [pow_add, mul_assoc]
+        _ = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂) * b₁ := by
+            rw [Nat.sub_add_cancel (Nat.le_max_left n₁ n₂)]
+    · calc (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₂) * (PB.A₀.subtype c₂)
+          = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₂) *
+              ((PB.A₀.subtype j) ^ n₂ * b₂) := by rw [hc₂_eq]
+        _ = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₂ + n₂) * b₂ := by
+            rw [pow_add, mul_assoc]
+        _ = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂) * b₂ := by
+            rw [Nat.sub_add_cancel (Nat.le_max_right n₁ n₂)]
+  | smul r b _ ih =>
+    obtain ⟨n₀, c₀, hc₀_mem, hc₀_eq⟩ := ih
+    obtain ⟨m, hm⟩ := PB.exists_pow_mul_mem_A₀ hj_nil r
+    set r' : PB.A₀ := ⟨(PB.A₀.subtype j) ^ m * r, hm⟩
+    refine ⟨m + n₀, r' * c₀, 𝔭₀.mul_mem_left _ hc₀_mem, ?_⟩
+    have h_lhs : PB.A₀.subtype (r' * c₀) =
+        ((PB.A₀.subtype j) ^ m * r) *
+          ((PB.A₀.subtype j) ^ n₀ * b) := by
+      rw [map_mul, hc₀_eq]; rfl
+    rw [h_lhs, smul_eq_mul, pow_add, mul_assoc, mul_assoc,
+      mul_left_comm r ((PB.A₀.subtype j) ^ n₀) b]
+
+omit [IsTopologicalRing A] [IsHuberRing A] [IsHuberRing B] in
+/-- The comap of the mapped prime ideal is contained in the original
+prime, using the span induction and primality. -/
+private theorem comap_map_subtype_le_of_prime
+    (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
+    {𝔭₀ : Ideal PB.A₀} [𝔭₀.IsPrime]
+    {j : PB.A₀} (hj_mem : j ∈ PB.I) (hj_not : j ∉ 𝔭₀) :
+    (Ideal.map PB.A₀.subtype 𝔭₀).comap PB.A₀.subtype ≤ 𝔭₀ := by
+  have hj_nil : IsTopologicallyNilpotent (PB.A₀.subtype j : B) :=
+    PB.isTopologicallyNilpotent_of_mem hj_mem
+  intro x hx
+  simp only [Ideal.mem_comap] at hx
+  obtain ⟨n, c, hc_mem, hc_eq⟩ :=
+    span_pow_mul_eq_of_prime PB hj_nil (PB.A₀.subtype x) hx
+  have hc_eq' : c = j ^ n * x := Subtype.val_injective (by
+    simp only [Subring.coe_mul, SubmonoidClass.coe_pow]
+    exact hc_eq)
+  rw [hc_eq'] at hc_mem
+  rcases (‹𝔭₀.IsPrime›).mem_or_mem hc_mem with hjn | hx_in
+  · exact absurd (‹𝔭₀.IsPrime›.mem_of_pow_mem n hjn) hj_not
+  · exact hx_in
+
+omit [TopologicalSpace A] [TopologicalSpace B]
+  [IsTopologicalRing A] [IsTopologicalRing B]
+  [IsHuberRing A] [IsHuberRing B] in
+/-- Powers of `j` outside `𝔭₀` map to the prime complement image. -/
+private theorem powers_sub_primeCompl_map
+    {B₀ : Subring B}
+    {𝔭₀ : Ideal B₀} [𝔭₀.IsPrime]
+    {j : B₀} (hj_not : j ∉ 𝔭₀) :
+    (Submonoid.powers (B₀.subtype j) : Set B) ⊆
+      (𝔭₀.primeCompl.map B₀.subtype : Set B) := by
+  rintro _ ⟨n, rfl⟩
+  refine ⟨j ^ n, ?_, map_pow B₀.subtype j n⟩
+  change j ^ n ∉ 𝔭₀
+  intro h
+  rcases n.eq_zero_or_pos with rfl | hn
+  · exact (Ideal.IsPrime.ne_top ‹_›)
+      ((Ideal.eq_top_iff_one 𝔭₀).mpr (pow_zero j ▸ h))
+  · exact hj_not
+      ((_root_.Ideal.IsPrime.pow_mem_iff_mem ‹_› n hn).mp h)
+
+omit [IsTopologicalRing A] [IsHuberRing A] [IsHuberRing B] in
 private theorem exists_nonOpen_prime_of_B_from_B₀_prime
     (PB : PairOfDefinition B) [IsAdicComplete PB.I PB.A₀]
     {𝔭₀ : Ideal PB.A₀} [𝔭₀.IsPrime]
@@ -391,96 +566,24 @@ private theorem exists_nonOpen_prime_of_B_from_B₀_prime
   obtain ⟨j, hj_mem, hj_not⟩ := SetLike.not_le_iff_exists.mp hJ_not_le
   have h_disj : Disjoint (Ideal.map PB.A₀.subtype 𝔭₀ : Set B)
       (Submonoid.powers (PB.A₀.subtype j)) := by
-    have h_comap_le :
-        (Ideal.map PB.A₀.subtype 𝔭₀).comap PB.A₀.subtype ≤ 𝔭₀ := by
-      have hj_nil : IsTopologicallyNilpotent (PB.A₀.subtype j : B) :=
-        PB.isTopologicallyNilpotent_of_mem hj_mem
-      have h_span :
-          ∀ (b : B), b ∈ Ideal.span (PB.A₀.subtype '' (𝔭₀ : Set PB.A₀)) →
-          ∃ (n : ℕ) (c : PB.A₀), c ∈ 𝔭₀ ∧
-            PB.A₀.subtype c = (PB.A₀.subtype j) ^ n * b := by
-        intro b hb
-        induction hb using Submodule.span_induction with
-        | mem b hb =>
-          obtain ⟨a, ha_mem, ha_eq⟩ := hb
-          exact ⟨0, a, ha_mem, by rw [pow_zero, one_mul, ha_eq]⟩
-        | zero =>
-          exact ⟨0, 0, 𝔭₀.zero_mem, by simp only [map_zero, pow_zero, one_mul]⟩
-        | add b₁ b₂ _ _ ih₁ ih₂ =>
-          obtain ⟨n₁, c₁, hc₁_mem, hc₁_eq⟩ := ih₁
-          obtain ⟨n₂, c₂, hc₂_mem, hc₂_eq⟩ := ih₂
-          refine ⟨n₁ ⊔ n₂,
-            j ^ (n₁ ⊔ n₂ - n₁) * c₁ + j ^ (n₁ ⊔ n₂ - n₂) * c₂,
-            𝔭₀.add_mem (𝔭₀.mul_mem_left _ hc₁_mem)
-              (𝔭₀.mul_mem_left _ hc₂_mem), ?_⟩
-          have h1 : (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₁ + n₁) * b₁ =
-              (PB.A₀.subtype j) ^ (n₁ ⊔ n₂) * b₁ := by
-            rw [Nat.sub_add_cancel (Nat.le_max_left n₁ n₂)]
-          have h2 : (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₂ + n₂) * b₂ =
-              (PB.A₀.subtype j) ^ (n₁ ⊔ n₂) * b₂ := by
-            rw [Nat.sub_add_cancel (Nat.le_max_right n₁ n₂)]
-          simp only [map_add, map_mul, map_pow, mul_add]
-          congr 1
-          · calc (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₁) *
-                  (PB.A₀.subtype c₁)
-                = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₁) *
-                    ((PB.A₀.subtype j) ^ n₁ * b₁) := by
-                  rw [hc₁_eq]
-              _ = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₁ + n₁) * b₁ := by
-                  rw [pow_add, mul_assoc]
-              _ = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂) * b₁ := h1
-          · calc (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₂) *
-                  (PB.A₀.subtype c₂)
-                = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₂) *
-                    ((PB.A₀.subtype j) ^ n₂ * b₂) := by
-                  rw [hc₂_eq]
-              _ = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂ - n₂ + n₂) * b₂ := by
-                  rw [pow_add, mul_assoc]
-              _ = (PB.A₀.subtype j) ^ (n₁ ⊔ n₂) * b₂ := h2
-        | smul r b _ ih =>
-          obtain ⟨n₀, c₀, hc₀_mem, hc₀_eq⟩ := ih
-          obtain ⟨m, hm⟩ := PB.exists_pow_mul_mem_A₀ hj_nil r
-          set r' : PB.A₀ := ⟨(PB.A₀.subtype j) ^ m * r, hm⟩ with hr'_def
-          refine ⟨m + n₀, r' * c₀, 𝔭₀.mul_mem_left _ hc₀_mem, ?_⟩
-          have h_lhs : PB.A₀.subtype (r' * c₀) =
-              ((PB.A₀.subtype j) ^ m * r) * ((PB.A₀.subtype j) ^ n₀ * b) := by
-            rw [map_mul, hc₀_eq]; rfl
-          rw [h_lhs, smul_eq_mul, pow_add, mul_assoc, mul_assoc,
-            mul_left_comm r ((PB.A₀.subtype j) ^ n₀) b]
-      intro x hx
-      simp only [Ideal.mem_comap] at hx
-      obtain ⟨n, c, hc_mem, hc_eq⟩ := h_span (PB.A₀.subtype x) hx
-      have hc_eq' : c = j ^ n * x := Subtype.val_injective (by
-        simp only [Subring.coe_mul, SubmonoidClass.coe_pow]; exact hc_eq)
-      rw [hc_eq'] at hc_mem
-      rcases (‹𝔭₀.IsPrime›).mem_or_mem hc_mem with hjn | hx_in
-      · exact absurd (‹𝔭₀.IsPrime›.mem_of_pow_mem n hjn) hj_not
-      · exact hx_in
-    have h_powers_le : (Submonoid.powers (PB.A₀.subtype j) : Set B) ⊆
-        (𝔭₀.primeCompl.map PB.A₀.subtype : Set B) := by
-      rintro _ ⟨n, rfl⟩
-      refine ⟨j ^ n, ?_, map_pow PB.A₀.subtype j n⟩
-      change j ^ n ∉ 𝔭₀
-      intro h
-      rcases n.eq_zero_or_pos with rfl | hn
-      · exact (Ideal.IsPrime.ne_top ‹_›)
-          ((Ideal.eq_top_iff_one 𝔭₀).mpr (pow_zero j ▸ h))
-      · exact hj_not ((_root_.Ideal.IsPrime.pow_mem_iff_mem ‹_› n hn).mp h)
-    exact (Ideal.disjoint_map_primeCompl_iff_comap_le.mpr h_comap_le).mono_right
-      h_powers_le
+    exact (Ideal.disjoint_map_primeCompl_iff_comap_le.mpr
+      (comap_map_subtype_le_of_prime PB hj_mem hj_not)).mono_right
+      (powers_sub_primeCompl_map hj_not)
   obtain ⟨𝔭, h𝔭_prime, h𝔭_le, h𝔭_disj⟩ :=
     (Ideal.map PB.A₀.subtype 𝔭₀).exists_le_prime_disjoint
       (Submonoid.powers (PB.A₀.subtype j)) h_disj
   refine ⟨𝔭, h𝔭_prime, ?_, ?_⟩
   · intro h_open
-    have hj_nilp : IsTopologicallyNilpotent (PB.A₀.subtype j : B) :=
-      PB.isTopologicallyNilpotent_of_mem hj_mem
     have hj_in_𝔭 : (PB.A₀.subtype j : B) ∈ 𝔭 := by
       have h𝔭_mem_nhds : (𝔭 : Set B) ∈ nhds 0 :=
         h_open.mem_nhds 𝔭.zero_mem
-      obtain ⟨n, hn⟩ := (Filter.Tendsto.eventually hj_nilp h𝔭_mem_nhds).exists
+      obtain ⟨n, hn⟩ :=
+        (Filter.Tendsto.eventually
+          (PB.isTopologicallyNilpotent_of_mem hj_mem)
+          h𝔭_mem_nhds).exists
       exact h𝔭_prime.mem_of_pow_mem n hn
-    exact Set.disjoint_left.mp h𝔭_disj hj_in_𝔭 (Submonoid.mem_powers _)
+    exact Set.disjoint_left.mp h𝔭_disj hj_in_𝔭
+      (Submonoid.mem_powers _)
   · exact Ideal.le_comap_of_map_le h𝔭_le
 
 omit [IsTopologicalRing A] [IsHuberRing A] [IsHuberRing B] in
