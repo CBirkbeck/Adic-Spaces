@@ -38,7 +38,7 @@
 
 | Ticket | Status | Agent | Started | Completed | Commit | Notes |
 |--------|--------|-------|---------|-----------|--------|-------|
-| 0 | NOT STARTED | — | — | — | — | |
+| 0 | IN PROGRESS | claude-main | 2026-03-21 | — | — | |
 | 1A | NOT STARTED | — | — | — | — | |
 | 1B | NOT STARTED | — | — | — | — | Depends: 1A |
 | 2A | NOT STARTED | — | — | — | — | |
