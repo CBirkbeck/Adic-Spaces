@@ -79,4 +79,4 @@ Detailed implementation plans live in `docs/plans/`:
 
 | Agent | Working On | File(s) | Started |
 |-------|-----------|---------|---------|
-| — | — | — | — |
+| claude-opus | TICKET-2A: Tate/Laurent algebra models | TateAlgebra.lean | 2026-03-21 |
