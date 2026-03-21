@@ -38,7 +38,7 @@
 
 | Ticket | Status | Agent | Started | Completed | Commit | Notes |
 |--------|--------|-------|---------|-----------|--------|-------|
-| 0 | IN PROGRESS | claude-main | 2026-03-21 | — | — | |
+| 0 | DONE | claude-main | 2026-03-21 | 2026-03-21 | — | Report: docs/plans/mathlib-audit-tate.md |
 | 1A | NOT STARTED | — | — | — | — | |
 | 1B | NOT STARTED | — | — | — | — | Depends: 1A |
 | 2A | NOT STARTED | — | — | — | — | |
