@@ -42,7 +42,7 @@
 | 1A | IN PROGRESS | claude-main | 2026-03-21 | — | — | |
 | 1B | NOT STARTED | — | — | — | — | Depends: 1A |
 | 2A | DONE | claude-opus | 2026-03-21 | 2026-03-21 | 7843694 | Algebraic defs + embeddings; topology TBD |
-| 2B | NOT STARTED | — | — | — | — | Depends: 2A, 6 |
+| 2B | IN PROGRESS | claude-opus | 2026-03-21 | — | — | Depends: 2A, 6 |
 | 3 | NOT STARTED | — | — | — | — | Depends: 2B |
 | 4 | NOT STARTED | — | — | — | — | Depends: 2A, 2B, 3 |
 | 5 | NOT STARTED | — | — | — | — | Depends: 1B, 3, 4 |
