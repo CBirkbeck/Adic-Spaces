@@ -1036,17 +1036,268 @@ theorem flat_quotient_fSubX [DiscreteTopology A] [IsNoetherianRing A] (f : A) :
     { e.toAddEquiv with
       map_smul' := hsmul }
 
+/-! #### Evaluation at `f⁻¹` in `Localization.Away f` (discrete case)
+
+Under `[DiscreteTopology A]`, we build a ring homomorphism
+`TateAlgebra A → Localization.Away f` by evaluating at `IsLocalization.Away.invSelf f`.
+This factors through the quotient by `(1 - fX)` and yields an isomorphism
+`A⟨X⟩/(1-fX) ≃+* Localization.Away f`. -/
+
+/-- Evaluation of `TateAlgebra A` at `IsLocalization.Away.invSelf f` in `Localization.Away f`.
+Defined as `MvPolynomial.eval (fun _ => invSelf f)` composed with `ringEquivMvPolynomial`. -/
+noncomputable def evalInvFHom [DiscreteTopology A] (f : A) :
+    ↥(TateAlgebra A) →+* Localization.Away f :=
+  ((MvPolynomial.aeval (R := A) (fun (_ : Fin 1) =>
+    IsLocalization.Away.invSelf (S := Localization.Away f) f)).toRingHom).comp
+    ringEquivMvPolynomial.toRingHom
+
+theorem evalInvFHom_algebraMap [DiscreteTopology A] (f a : A) :
+    evalInvFHom f (algebraMap A _ a) =
+      algebraMap A (Localization.Away f) a := by
+  simp only [evalInvFHom, RingHom.comp_apply, RingEquiv.toRingHom_eq_coe,
+    ringEquivMvPolynomial_algebraMap,
+    AlgHom.toRingHom_eq_coe, RingHom.coe_coe, MvPolynomial.aeval_C]
+
+theorem evalInvFHom_X [DiscreteTopology A] (f : A) :
+    evalInvFHom f X =
+      IsLocalization.Away.invSelf (S := Localization.Away f) f := by
+  simp only [evalInvFHom, RingHom.comp_apply, RingEquiv.toRingHom_eq_coe,
+    ringEquivMvPolynomial_X,
+    AlgHom.toRingHom_eq_coe, RingHom.coe_coe, MvPolynomial.aeval_X]
+
+theorem evalInvFHom_oneSubfX [DiscreteTopology A] (f : A) :
+    evalInvFHom f (1 - algebraMap A _ f * X) = 0 := by
+  rw [map_sub, map_one, map_mul, evalInvFHom_algebraMap, evalInvFHom_X,
+    IsLocalization.Away.mul_invSelf, sub_self]
+
+/-- The ideal `(1 - fX)` is contained in the kernel of `evalInvFHom`. -/
+theorem ideal_oneSubfX_le_ker_evalInvFHom [DiscreteTopology A] (f : A) :
+    Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X} ≤
+      RingHom.ker (evalInvFHom f) := by
+  rw [Ideal.span_le]
+  intro x hx
+  simp only [Set.mem_singleton_iff] at hx
+  simp only [SetLike.mem_coe, RingHom.mem_ker, hx, evalInvFHom_oneSubfX]
+
+/-- The quotient ring hom from `TateAlgebra A ⧸ (1-fX)` to `Localization.Away f`. -/
+noncomputable def quotientOneSubfXToLoc [DiscreteTopology A] (f : A) :
+    (↥(TateAlgebra A) ⧸ Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X}) →+*
+      Localization.Away f :=
+  Ideal.Quotient.lift _ (evalInvFHom f) (fun _ hx =>
+    ideal_oneSubfX_le_ker_evalInvFHom f hx)
+
+/-- The image of `algebraMap f` is a unit in `TateAlgebra A ⧸ (1-fX)`, with inverse
+equal to the image of `X`. -/
+theorem isUnit_algebraMap_f_in_quotient [DiscreteTopology A] (f : A) :
+    IsUnit (((Ideal.Quotient.mk
+      (Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X})).comp
+        (algebraMap A _)) f) := by
+  rw [RingHom.comp_apply, isUnit_iff_exists_inv]
+  refine ⟨(Ideal.Quotient.mk _) X, ?_⟩
+  rw [← map_mul]
+  have : (Ideal.Quotient.mk (Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X}))
+      (algebraMap A ↥(TateAlgebra A) f * X) = 1 := by
+    rw [← sub_eq_zero]
+    change (Ideal.Quotient.mk _) (algebraMap A ↥(TateAlgebra A) f * X) -
+      (Ideal.Quotient.mk _) 1 = 0
+    rw [← map_sub]
+    exact Ideal.Quotient.eq_zero_iff_mem.mpr (by
+      rw [show algebraMap A ↥(TateAlgebra A) f * X - 1 =
+        -(1 - algebraMap A ↥(TateAlgebra A) f * X) from by ring]
+      exact neg_mem (Ideal.subset_span rfl))
+  exact this
+
+noncomputable def locToQuotientOneSubfX [DiscreteTopology A] (f : A) :
+    Localization.Away f →+*
+      (↥(TateAlgebra A) ⧸ Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X}) :=
+  IsLocalization.Away.lift (x := f)
+    (g := (Ideal.Quotient.mk _).comp (algebraMap A _))
+    (isUnit_algebraMap_f_in_quotient f)
+
+theorem locToQuotientOneSubfX_algebraMap [DiscreteTopology A] (f a : A) :
+    locToQuotientOneSubfX f (algebraMap A _ a) =
+      (Ideal.Quotient.mk _) (algebraMap A _ a) := by
+  simp only [locToQuotientOneSubfX]
+  rw [IsLocalization.Away.lift_eq]
+  simp
+
+theorem quotientOneSubfXToLoc_comp_locToQuotientOneSubfX [DiscreteTopology A] (f : A) :
+    (quotientOneSubfXToLoc f).comp (locToQuotientOneSubfX f) =
+      RingHom.id (Localization.Away f) := by
+  apply IsLocalization.ringHom_ext (Submonoid.powers f)
+  ext a
+  simp only [RingHom.comp_apply, RingHom.id_apply]
+  rw [locToQuotientOneSubfX_algebraMap]
+  simp only [quotientOneSubfXToLoc, Ideal.Quotient.lift_mk, evalInvFHom_algebraMap]
+
+/-- Every element `p` of `TateAlgebra A` satisfies
+`p - algebraMap(evalInvFHom f p) ∈ Ideal.span {1 - fX}` in the appropriate sense:
+`mk(p) = locToQuotientOneSubfX(evalInvFHom f p)`.
+
+The proof uses induction on the polynomial degree. In the quotient, since `fX = 1`,
+we have `X = f⁻¹` and every polynomial `∑ aₙXⁿ` evaluates to `∑ aₙ/fⁿ`.
+The key identity is `p = algebraMap(coeff 0 p) + X * shift(p)`, and in the quotient,
+`X = algebraMap(f)⁻¹` (via the ideal relation `fX = 1`). -/
+theorem locToQuotientOneSubfX_comp_quotientOneSubfXToLoc [DiscreteTopology A] (f : A) :
+    (locToQuotientOneSubfX f).comp (quotientOneSubfXToLoc f) =
+      RingHom.id _ := by
+  rw [← RingHom.cancel_right (Ideal.Quotient.mk_surjective)]
+  ext p
+  simp only [RingHom.comp_apply, RingHom.id_apply, quotientOneSubfXToLoc,
+    Ideal.Quotient.lift_mk]
+  -- Need: locToQuotientOneSubfX f (evalInvFHom f p) = Ideal.Quotient.mk _ p
+  -- i.e., mk(p) - locToQuotientOneSubfX(evalInvFHom f p) = 0 in the quotient
+  -- Equivalently: p - locToQuotientOneSubfX(evalInvFHom f p) lies in the ideal.
+  -- Strategy: induction using eq_const_add_X_mul_shift
+  -- In the quotient, X = algebraMap(f)⁻¹, so locToQuotientOneSubfX puts things back.
+  -- We need to show this for all p by induction on finite support.
+  -- Helper: locToQuotientOneSubfX sends algebraMap a to mk(algebraMap a)
+  have loc_alg : ∀ (a : A),
+      locToQuotientOneSubfX f (algebraMap A _ a) =
+        (Ideal.Quotient.mk _) (algebraMap A _ a) :=
+    locToQuotientOneSubfX_algebraMap f
+  -- Helper: locToQuotientOneSubfX sends invSelf to mk(X)
+  have loc_inv : locToQuotientOneSubfX f
+      (IsLocalization.Away.invSelf (S := Localization.Away f) f) =
+      (Ideal.Quotient.mk _) X := by
+    -- invSelf f = mk' 1 ⟨f, 1, pow_one f⟩
+    -- locToQuotientOneSubfX maps mk' a ⟨f^n, ...⟩ to mk(a) * mk(X)^n
+    -- For invSelf: algebraMap f * invSelf = 1, so
+    --   locToQuotientOneSubfX(algebraMap f) * locToQuotientOneSubfX(invSelf) = 1
+    -- i.e., mk(algebraMap f) * locToQuotientOneSubfX(invSelf) = 1
+    -- But also mk(algebraMap f) * mk(X) = 1 in the quotient.
+    -- Since mk(algebraMap f) is a unit, locToQuotientOneSubfX(invSelf) = mk(X).
+    set I := Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X} with hI_def
+    have hfX : (Ideal.Quotient.mk I)
+        (algebraMap A (↥(TateAlgebra A)) f * X) = 1 := by
+      rw [← sub_eq_zero]
+      change (Ideal.Quotient.mk I) (algebraMap A _ f * X) -
+        (Ideal.Quotient.mk I) 1 = 0
+      rw [← map_sub]
+      exact Ideal.Quotient.eq_zero_iff_mem.mpr (by
+        rw [show algebraMap A ↥(TateAlgebra A) f * X - 1 =
+          -(1 - algebraMap A ↥(TateAlgebra A) f * X) from by ring]
+        exact neg_mem (Ideal.subset_span rfl))
+    have hunit : IsUnit ((Ideal.Quotient.mk I) (algebraMap A _ f)) := by
+      rw [isUnit_iff_exists_inv]
+      exact ⟨(Ideal.Quotient.mk I) X, by rw [← map_mul]; exact hfX⟩
+    have h1 : (Ideal.Quotient.mk I) (algebraMap A (↥(TateAlgebra A)) f) *
+        locToQuotientOneSubfX f
+          (IsLocalization.Away.invSelf (S := Localization.Away f) f) = 1 := by
+      rw [← loc_alg, ← map_mul,
+        IsLocalization.Away.mul_invSelf, map_one]
+    have h2 : (Ideal.Quotient.mk I) (algebraMap A (↥(TateAlgebra A)) f) *
+        (Ideal.Quotient.mk I) X = 1 := by
+      rw [← map_mul]; exact hfX
+    exact hunit.mul_left_cancel (h1.trans h2.symm)
+  -- Helper: coeff of shift
+  have coeff_shift : ∀ (q : ↥(TateAlgebra A)) (k : ℕ),
+      coeff k (shift q) = coeff (k + 1) q := by
+    intro q k
+    show MvPowerSeries.coeff (Finsupp.single 0 k) (shiftFun q.val) =
+      MvPowerSeries.coeff (Finsupp.single 0 (k + 1)) q.val
+    simp [shiftFun, MvPowerSeries.coeff_apply, Finsupp.single_add]
+  -- evalZeroHom = coeff 0
+  have eval_zero_eq : ∀ (q : ↥(TateAlgebra A)), evalZeroHom q = coeff 0 q := fun _ => rfl
+  -- Now the main proof: evalInvFHom evaluates p via ringEquivMvPolynomial and aeval.
+  -- We show by induction on finite support that the result holds.
+  have hmain : ∀ (n : ℕ) (q : ↥(TateAlgebra A)),
+      (∀ k, n < k → coeff k q = 0) →
+      locToQuotientOneSubfX f (evalInvFHom f q) =
+        (Ideal.Quotient.mk _) q := by
+    intro n; induction n with
+    | zero =>
+      intro q hq
+      -- q has coeff k q = 0 for all k > 0, so q = algebraMap(coeff 0 q)
+      have hshift_zero : shift q = 0 := by
+        apply ext; intro k
+        rw [coeff_shift, hq (k + 1) (Nat.succ_pos k)]
+        simp [coeff, map_zero]
+      have hq0 : q = algebraMap A _ (evalZeroHom q) := by
+        have := eq_const_add_X_mul_shift q
+        rw [hshift_zero, mul_zero, add_zero] at this
+        exact this
+      rw [hq0, evalInvFHom_algebraMap, loc_alg]
+    | succ n ih =>
+      intro q hq
+      -- q = algebraMap(coeff 0 q) + X * shift q
+      have hdecomp := eq_const_add_X_mul_shift q
+      conv_rhs => rw [hdecomp]
+      rw [map_add, map_mul]
+      -- evalInvFHom is also a ring hom, so it preserves the decomposition
+      have hev : evalInvFHom f q =
+          evalInvFHom f (algebraMap A _ (evalZeroHom q)) +
+          evalInvFHom f X * evalInvFHom f (shift q) := by
+        conv_lhs => rw [hdecomp]
+        rw [map_add, map_mul]
+      rw [hev, map_add, map_mul, evalInvFHom_algebraMap, loc_alg,
+        evalInvFHom_X, loc_inv]
+      congr 1
+      congr 1
+      exact ih (shift q) (fun k hk => by rw [coeff_shift]; exact hq _ (by omega))
+  -- Apply hmain with a suitable bound from finite support
+  have hfin : Set.Finite {s : Fin 1 →₀ ℕ | p.val s ≠ 0} :=
+    (isRestricted_iff_finite_support p.val).mp p.prop
+  by_cases hp : ∀ k, coeff k p = 0
+  · rw [(ext hp : p = 0), map_zero, map_zero, map_zero]
+  · push_neg at hp
+    have hne : hfin.toFinset.Nonempty := by
+      obtain ⟨k, hk⟩ := hp
+      refine ⟨toIndex k, ?_⟩
+      rw [Set.Finite.mem_toFinset]
+      simp only [Set.mem_setOf_eq, coeff, toIndex] at hk ⊢
+      exact hk
+    exact hmain (hfin.toFinset.sup' hne (fun s => s 0)) p (fun k hk => by
+      by_contra hne2
+      have hmem : toIndex k ∈ hfin.toFinset := by
+        rw [Set.Finite.mem_toFinset]
+        simp only [Set.mem_setOf_eq, coeff, toIndex] at hne2 ⊢
+        exact hne2
+      have hle := Finset.le_sup' (fun s : Fin 1 →₀ ℕ => s 0) hmem
+      simp only [toIndex, Finsupp.single_apply, ite_true] at hle
+      omega)
+
+/-- The ring equivalence `TateAlgebra A ⧸ (1-fX) ≃+* Localization.Away f` (discrete case). -/
+noncomputable def quotientOneSubfXEquiv [DiscreteTopology A] (f : A) :
+    (↥(TateAlgebra A) ⧸ Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X}) ≃+*
+      Localization.Away f where
+  toFun := quotientOneSubfXToLoc f
+  invFun := locToQuotientOneSubfX f
+  left_inv x := by
+    have h := congr_fun (congr_arg DFunLike.coe
+      (locToQuotientOneSubfX_comp_quotientOneSubfXToLoc f)) x
+    simp [RingHom.id_apply] at h
+    exact h
+  right_inv s := by
+    have h := congr_fun (congr_arg DFunLike.coe
+      (quotientOneSubfXToLoc_comp_locToQuotientOneSubfX f)) s
+    simp [RingHom.id_apply] at h
+    exact h
+  map_mul' := map_mul _
+  map_add' := map_add _
+
 /-- `A⟨X⟩/(1 - f·X)` is flat over a noetherian `A` (Lemma 8.31(2), second case).
 Under discrete topology, `A⟨X⟩/(1-fX) ≅ Localization.Away f` via the universal
 property of localization, and localization is flat.
-Identifies with `O_X(R(1/f))` in the presheaf.
-
-**TODO:** Build the explicit isomorphism `A⟨X⟩/(1-fX) ≃ₐ[A] Localization.Away f`
-using the MvPolynomial localization equivalence
-`IsLocalization.Away.mvPolynomialQuotientEquiv`. -/
+Identifies with `O_X(R(1/f))` in the presheaf. -/
 theorem flat_quotient_oneSubfX [DiscreteTopology A] [IsNoetherianRing A] (f : A) :
     Module.Flat A (↥(TateAlgebra A) ⧸ Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X}) := by
-  sorry
+  -- The quotient is isomorphic to Localization.Away f as a ring (hence as an A-module),
+  -- via quotientOneSubfXEquiv. Localization.Away f is flat over A (IsLocalization.flat).
+  let e := quotientOneSubfXEquiv f
+  have hsmul : ∀ (a : A)
+      (x : ↥(TateAlgebra A) ⧸ Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X}),
+      e (a • x) = a • e x := by
+    intro a x
+    rw [Algebra.smul_def, Algebra.smul_def, map_mul]
+    congr 1
+    -- Show e(algebraMap a) = algebraMap a in Localization.Away f
+    show quotientOneSubfXToLoc f ((Ideal.Quotient.mk _) (algebraMap A _ a)) = algebraMap A _ a
+    simp only [quotientOneSubfXToLoc, Ideal.Quotient.lift_mk, evalInvFHom_algebraMap]
+  have : Module.Flat A (Localization.Away f) := IsLocalization.flat _ (Submonoid.powers f)
+  exact Module.Flat.of_linearEquiv
+    { e.toAddEquiv with
+      map_smul' := hsmul }
 
 end TateAlgebra
 
