@@ -30,7 +30,8 @@ variable (Γ : Type*) [CommGroup Γ] [LinearOrder Γ] [IsOrderedMonoid Γ]
 /-- A **convex subgroup** of a linearly ordered commutative group `Γ` is a subgroup
 that is order-convex: if `a ≤ x ≤ b` and `a, b ∈ H`, then `x ∈ H`. -/
 structure ConvexSubgroup extends Subgroup Γ where
-  convex' : ∀ {a b x : Γ}, a ∈ carrier → b ∈ carrier → a ≤ x → x ≤ b → x ∈ carrier
+  convex' : ∀ {a b x : Γ},
+    a ∈ carrier → b ∈ carrier → a ≤ x → x ≤ b → x ∈ carrier
 
 namespace ConvexSubgroup
 
@@ -49,11 +50,13 @@ instance : SubgroupClass (ConvexSubgroup Γ) Γ where
   inv_mem {H} := H.toSubgroup.inv_mem'
 
 omit [IsOrderedMonoid Γ] in
+/-- Extensionality for convex subgroups. -/
 @[ext]
 theorem ext {H₁ H₂ : ConvexSubgroup Γ} (h : ∀ x, x ∈ H₁ ↔ x ∈ H₂) : H₁ = H₂ :=
   SetLike.ext h
 
 omit [IsOrderedMonoid Γ] in
+/-- Convexity: if `a, b ∈ H` and `a ≤ x ≤ b`, then `x ∈ H`. -/
 theorem convex (H : ConvexSubgroup Γ) {a b x : Γ} (ha : a ∈ H) (hb : b ∈ H)
     (h₁ : a ≤ x) (h₂ : x ≤ b) : x ∈ H :=
   H.convex' ha hb h₁ h₂
@@ -91,10 +94,12 @@ instance : Top (ConvexSubgroup Γ) where
   }
 
 omit [IsOrderedMonoid Γ] in
+/-- Membership in `⊥` is equivalent to being `1`. -/
 @[simp] theorem mem_bot {x : Γ} : x ∈ (⊥ : ConvexSubgroup Γ) ↔ x = 1 :=
   Subgroup.mem_bot
 
 omit [IsOrderedMonoid Γ] in
+/-- Every element belongs to `⊤`. -/
 @[simp] theorem mem_top {x : Γ} : x ∈ (⊤ : ConvexSubgroup Γ) :=
   trivial
 
@@ -161,10 +166,12 @@ instance quotientLE (H : ConvexSubgroup Γ) : LE (Γ ⧸ H.toSubgroup) where
       change (b₁⁻¹ * a₁ ≤ 1 ∨ _) = (b₂⁻¹ * a₂ ≤ 1 ∨ _)
       have hk : (b₁⁻¹ * b₂)⁻¹ * (a₁⁻¹ * a₂) ∈ H.toSubgroup :=
         H.toSubgroup.mul_mem (H.toSubgroup.inv_mem hb) ha
-      have : b₂⁻¹ * a₂ = (b₁⁻¹ * a₁) * ((b₁⁻¹ * b₂)⁻¹ * (a₁⁻¹ * a₂)) := by
+      have : b₂⁻¹ * a₂ =
+          (b₁⁻¹ * a₁) * ((b₁⁻¹ * b₂)⁻¹ * (a₁⁻¹ * a₂)) := by
         simp only [mul_inv_rev, inv_inv, ← mul_assoc]; simp [mul_comm, mul_left_comm, mul_assoc]
       rw [this]; exact propext (quotientLE_aux H _ _ hk))
 
+/-- Unfolding of `≤` on the quotient `Γ ⧸ H.toSubgroup`. -/
 theorem quotient_le_iff (H : ConvexSubgroup Γ) (a b : Γ) :
     ((a : Γ ⧸ H.toSubgroup) ≤ (b : Γ ⧸ H.toSubgroup)) ↔
     (b⁻¹ * a ≤ 1 ∨ b⁻¹ * a ∈ H.toSubgroup) :=
@@ -189,12 +196,14 @@ noncomputable instance quotientLinearOrder (H : ConvexSubgroup Γ) :
     LinearOrder (Γ ⧸ H.toSubgroup) where
   le_refl x := by
     induction x using Quotient.inductionOn with
-    | _ a => change a⁻¹ * a ≤ 1 ∨ _; left; simp
+    | _ a => change a⁻¹ * a ≤ 1 ∨ _; left; simp only [inv_mul_cancel, le_refl]
   le_trans x y z hxy hyz := by
     induction x using Quotient.inductionOn with | _ a =>
     induction y using Quotient.inductionOn with | _ b =>
     induction z using Quotient.inductionOn with | _ c =>
-    change c⁻¹ * a ≤ 1 ∨ _; change b⁻¹ * a ≤ 1 ∨ _ at hxy; change c⁻¹ * b ≤ 1 ∨ _ at hyz
+    change c⁻¹ * a ≤ 1 ∨ _
+    change b⁻¹ * a ≤ 1 ∨ _ at hxy
+    change c⁻¹ * b ≤ 1 ∨ _ at hyz
     have : c⁻¹ * a = (c⁻¹ * b) * (b⁻¹ * a) := by simp [mul_assoc, mul_inv_cancel_left]
     rw [this]
     rcases hxy with hxy | hxy <;> rcases hyz with hyz | hyz
@@ -286,6 +295,8 @@ noncomputable def maxAvoid {γ : Γ} (hγ : γ ≠ 1) : ConvexSubgroup Γ where
     · exact ⟨H₂, hγ₂, H₂.convex (h _ ha) hb h₁ h₂⟩
     · exact ⟨H₁, hγ₁, H₁.convex ha (h _ hb) h₁ h₂⟩
 
+/-- Membership in `maxAvoid hγ`: `x ∈ maxAvoid hγ` iff some convex subgroup excludes `γ`
+but contains `x`. -/
 theorem mem_maxAvoid_iff {γ : Γ} {hγ : γ ≠ 1} {x : Γ} :
     x ∈ maxAvoid hγ ↔ ∃ H : ConvexSubgroup Γ, γ ∉ H ∧ x ∈ H := Iff.rfl
 
@@ -378,10 +389,11 @@ noncomputable def convexGenerated {y : Γ} (hy : 1 < y) : ConvexSubgroup Γ wher
     { carrier := {h | ∃ n : ℕ, (y ^ n)⁻¹ ≤ h ∧ h ≤ y ^ n}
       mul_mem' := by
         rintro a b ⟨n₁, ha_lo, ha_hi⟩ ⟨n₂, hb_lo, hb_hi⟩
-        exact ⟨n₁ + n₂,
-          by rw [pow_add, mul_inv_rev, mul_comm]; exact mul_le_mul' ha_lo hb_lo,
-          (mul_le_mul' ha_hi hb_hi).trans (pow_add y n₁ n₂ ▸ le_refl _)⟩
-      one_mem' := ⟨0, by simp, by simp⟩
+        refine ⟨n₁ + n₂, ?_, ?_⟩
+        · rw [pow_add, mul_inv_rev, mul_comm]; exact mul_le_mul' ha_lo hb_lo
+        · exact (mul_le_mul' ha_hi hb_hi).trans (pow_add y n₁ n₂ ▸ le_refl _)
+      one_mem' := ⟨0, by simp only [pow_zero, inv_one, le_refl],
+        le_of_eq (by simp only [pow_zero])⟩
       inv_mem' := by
         rintro a ⟨n, ha_lo, ha_hi⟩
         exact ⟨n, inv_le_inv' ha_hi, inv_inv (y ^ n) ▸ inv_le_inv' ha_lo⟩ }
@@ -391,14 +403,17 @@ noncomputable def convexGenerated {y : Γ} (hy : 1 < y) : ConvexSubgroup Γ wher
       (inv_le_inv' (pow_le_pow_right' hy.le (le_max_left _ _))).trans (ha_lo.trans hax),
       hxb.trans (hb_hi.trans (pow_le_pow_right' hy.le (le_max_right _ _)))⟩
 
+/-- Membership in `convexGenerated hy`: bounded between inverse powers and powers of `y`. -/
 theorem mem_convexGenerated_iff {y : Γ} {hy : 1 < y} {h : Γ} :
     h ∈ convexGenerated hy ↔ ∃ n : ℕ, (y ^ n)⁻¹ ≤ h ∧ h ≤ y ^ n :=
   Iff.rfl
 
 /-- The generator `y` belongs to `convexGenerated hy`. -/
 theorem self_mem_convexGenerated {y : Γ} (hy : 1 < y) :
-    y ∈ convexGenerated hy :=
-  ⟨1, by simp [(inv_le_one_of_one_le hy.le).trans hy.le], by simp⟩
+    y ∈ convexGenerated hy := by
+  refine ⟨1, ?_, by simp only [pow_one, le_refl]⟩
+  simp only [pow_one]
+  exact (inv_le_one_of_one_le hy.le).trans hy.le
 
 /-- An element `h ≤ y` with `y⁻¹ ≤ h` belongs to `convexGenerated hy`. -/
 theorem mem_convexGenerated_of_between {y : Γ} {hy : 1 < y} {h : Γ}
@@ -446,15 +461,13 @@ theorem exists_inv_pow_lt_of_mem_convexGenerated {y : Γ} (hy : 1 < y) {h : Γ}
   obtain ⟨m, hm⟩ := inv_pow_succ_lt_of_mem_convexGenerated hy hh
   exact ⟨m + 1, by rwa [inv_pow]⟩
 
-
 /-- If every convex subgroup is `⊥` or `⊤`, the group is `MulArchimedean`. -/
 theorem mulArchimedean_of_no_proper_nontrivial
     (h : ∀ H : ConvexSubgroup Γ, H = ⊥ ∨ H = ⊤) : MulArchimedean Γ where
   arch x {y} hy := by
     by_contra hna; push_neg at hna
     let G := convexGenerated hy
-    have hy_mem : y ∈ G := show ∃ n : ℕ, (y ^ n)⁻¹ ≤ y ∧ y ≤ y ^ n from
-      ⟨1, by simp [(inv_le_one_of_one_le hy.le).trans hy.le], by simp⟩
+    have hy_mem : y ∈ G := self_mem_convexGenerated hy
     have hx_nmem : x ∉ G := fun ⟨n, _, hle⟩ ↦ not_le.mpr (hna n) hle
     rcases h G with heq | heq
     · exact ne_of_gt hy (mem_bot.mp (heq ▸ hy_mem))
