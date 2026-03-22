@@ -689,14 +689,14 @@ coercion `MvPolynomial → MvPowerSeries`, which is a ring homomorphism. -/
 theorem fromMvPolynomial_mul [DiscreteTopology A] (p q : MvPolynomial (Fin 1) A) :
     fromMvPolynomial (p * q) = fromMvPolynomial p * fromMvPolynomial q := by
   apply Subtype.ext
-  show (↑(p * q) : MvPowerSeries (Fin 1) A) =
+  change (↑(p * q) : MvPowerSeries (Fin 1) A) =
     (↑p : MvPowerSeries (Fin 1) A) * (↑q : MvPowerSeries (Fin 1) A)
   exact (MvPolynomial.coeToMvPowerSeries.ringHom (σ := Fin 1) (R := A)).map_mul p q
 
 theorem fromMvPolynomial_one [DiscreteTopology A] :
     fromMvPolynomial (1 : MvPolynomial (Fin 1) A) = (1 : ↥(TateAlgebra A)) := by
   apply Subtype.ext
-  show (↑(1 : MvPolynomial (Fin 1) A) : MvPowerSeries (Fin 1) A) = 1
+  change (↑(1 : MvPolynomial (Fin 1) A) : MvPowerSeries (Fin 1) A) = 1
   exact (MvPolynomial.coeToMvPowerSeries.ringHom (σ := Fin 1) (R := A)).map_one
 
 theorem toMvPolynomial_mul [DiscreteTopology A] (f g : ↥(TateAlgebra A)) :
@@ -750,7 +750,7 @@ theorem ringEquivMvPolynomial_X [DiscreteTopology A] :
     ext s; exact h s
   intro s
   -- LHS coefficient
-  show @DFunLike.coe _ _ _ Finsupp.instFunLike (toMvPolynomial (X : ↥(TateAlgebra A))) s = _
+  change @DFunLike.coe _ _ _ Finsupp.instFunLike (toMvPolynomial (X : ↥(TateAlgebra A))) s = _
   simp only [toMvPolynomial, toFinsupp, Finsupp.onFinset_apply]
   change MvPowerSeries.coeff s (MvPowerSeries.X (0 : Fin 1)) = _
   rw [MvPowerSeries.coeff_X]
@@ -825,7 +825,7 @@ theorem sub_algebraMap_evalFHom_mem_ideal_fSubX [DiscreteTopology A] (f : A)
   have coeff_shift : ∀ (q : ↥(TateAlgebra A)) (k : ℕ),
       coeff k (shift q) = coeff (k + 1) q := by
     intro q k
-    show MvPowerSeries.coeff (Finsupp.single 0 k) (shiftFun q.val) =
+    change MvPowerSeries.coeff (Finsupp.single 0 k) (shiftFun q.val) =
       MvPowerSeries.coeff (Finsupp.single 0 (k + 1)) q.val
     simp [shiftFun, MvPowerSeries.coeff_apply, Finsupp.single_add]
   -- Helper: evalFHom decomposes
@@ -872,7 +872,8 @@ theorem sub_algebraMap_evalFHom_mem_ideal_fSubX [DiscreteTopology A] (f : A)
         have := eq_const_add_X_mul_shift q
         rw [hshift_zero, mul_zero, add_zero, eval_zero_eq] at this
         exact this
-      -- q - algebraMap(evalFHom f q) = 0 because evalFHom f q = coeff 0 q and q = algebraMap(coeff 0 q)
+      -- q - algebraMap(evalFHom f q) = 0 because evalFHom f q = coeff 0 q
+      -- and q = algebraMap(coeff 0 q)
       have h1 : algebraMap A _ (evalFHom f q) = q := by
         rw [hev]; exact hq0.symm
       rw [h1, sub_self]
@@ -947,12 +948,12 @@ noncomputable def quotientFSubXEquiv [DiscreteTopology A] (f : A) :
   left_inv x := by
     have h := congr_fun (congr_arg DFunLike.coe
       (AToQuotientFSubX_comp_quotientFSubXToA f)) x
-    simp [RingHom.id_apply] at h
+    simp only [RingHom.comp_apply, RingHom.id_apply] at h
     exact h
   right_inv a := by
     have h := congr_fun (congr_arg DFunLike.coe
       (quotientFSubXToA_comp_AToQuotientFSubX f)) a
-    simp [RingHom.id_apply] at h
+    simp only [RingHom.comp_apply, RingHom.id_apply] at h
     exact h
   map_mul' := map_mul _
   map_add' := map_add _
@@ -1194,7 +1195,7 @@ theorem locToQuotientOneSubfX_comp_quotientOneSubfXToLoc [DiscreteTopology A] (f
   have coeff_shift : ∀ (q : ↥(TateAlgebra A)) (k : ℕ),
       coeff k (shift q) = coeff (k + 1) q := by
     intro q k
-    show MvPowerSeries.coeff (Finsupp.single 0 k) (shiftFun q.val) =
+    change MvPowerSeries.coeff (Finsupp.single 0 k) (shiftFun q.val) =
       MvPowerSeries.coeff (Finsupp.single 0 (k + 1)) q.val
     simp [shiftFun, MvPowerSeries.coeff_apply, Finsupp.single_add]
   -- evalZeroHom = coeff 0
@@ -1266,12 +1267,12 @@ noncomputable def quotientOneSubfXEquiv [DiscreteTopology A] (f : A) :
   left_inv x := by
     have h := congr_fun (congr_arg DFunLike.coe
       (locToQuotientOneSubfX_comp_quotientOneSubfXToLoc f)) x
-    simp [RingHom.id_apply] at h
+    simp only [RingHom.comp_apply, RingHom.id_apply] at h
     exact h
   right_inv s := by
     have h := congr_fun (congr_arg DFunLike.coe
       (quotientOneSubfXToLoc_comp_locToQuotientOneSubfX f)) s
-    simp [RingHom.id_apply] at h
+    simp only [RingHom.comp_apply, RingHom.id_apply] at h
     exact h
   map_mul' := map_mul _
   map_add' := map_add _
@@ -1292,7 +1293,7 @@ theorem flat_quotient_oneSubfX [DiscreteTopology A] [IsNoetherianRing A] (f : A)
     rw [Algebra.smul_def, Algebra.smul_def, map_mul]
     congr 1
     -- Show e(algebraMap a) = algebraMap a in Localization.Away f
-    show quotientOneSubfXToLoc f ((Ideal.Quotient.mk _) (algebraMap A _ a)) = algebraMap A _ a
+    change quotientOneSubfXToLoc f ((Ideal.Quotient.mk _) (algebraMap A _ a)) = algebraMap A _ a
     simp only [quotientOneSubfXToLoc, Ideal.Quotient.lift_mk, evalInvFHom_algebraMap]
   have : Module.Flat A (Localization.Away f) := IsLocalization.flat _ (Submonoid.powers f)
   exact Module.Flat.of_linearEquiv
