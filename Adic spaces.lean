@@ -30,6 +30,7 @@ import «Adic spaces».RestrictedPowerSeries
 import «Adic spaces».SeminormalRing
 import «Adic spaces».StructureSheaf
 import «Adic spaces».TateAlgebra
+import «Adic spaces».TateAlgebraTopology
 import «Adic spaces».Tilting
 import «Adic spaces».Uniform
 import «Adic spaces».UniformBanach
