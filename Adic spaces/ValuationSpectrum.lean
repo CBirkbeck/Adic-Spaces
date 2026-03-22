@@ -136,11 +136,13 @@ def supp (v : Spv A) : Ideal A :=
 lemma mem_supp_iff (v : Spv A) (x : A) : x ∈ v.supp ↔ v.vle x 0 :=
   @ValuativeRel.supp_def A _ v.toValuativeRel x
 
+/-- The support of a point `v ∈ Spv A` is a prime ideal. -/
 instance instIsPrimeSupp (v : Spv A) : v.supp.IsPrime := by
   change (@ValuativeRel.supp A _ v.toValuativeRel).IsPrime
   rw [@ValuativeRel.supp_eq_valuation_supp A _ v.toValuativeRel]
   infer_instance
 
+/-- The support of `ofValuation v` equals `v.supp`. -/
 lemma supp_ofValuation {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
     (v : Valuation A Γ₀) : (ofValuation v).supp = v.supp := by
   ext x; rw [mem_supp_iff, Valuation.mem_supp_iff]

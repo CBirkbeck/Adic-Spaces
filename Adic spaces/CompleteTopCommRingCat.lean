@@ -39,22 +39,26 @@ structure CompleteTopCommRingCat where
 
 namespace CompleteTopCommRingCat
 
+/-- Coerce a `CompleteTopCommRingCat` to its carrier type. -/
 instance : CoeSort CompleteTopCommRingCat.{u} (Type u) :=
   ⟨CompleteTopCommRingCat.α⟩
 
 attribute [instance] instCommRing instTopologicalSpace instIsTopologicalRing
   instUniformSpace instIsUniformAddGroup instCompleteSpace instT0Space
 
+/-- Category structure on `CompleteTopCommRingCat`. -/
 instance : Category CompleteTopCommRingCat.{u} where
   Hom R S := { f : R →+* S // Continuous f }
   id R := ⟨RingHom.id R, continuous_id⟩
   comp f g := ⟨g.val.comp f.val, g.2.comp f.2⟩
 
+/-- `FunLike` instance for morphisms in `CompleteTopCommRingCat`. -/
 instance (R S : CompleteTopCommRingCat.{u}) :
     FunLike { f : R →+* S // Continuous f } R S where
   coe f := f.val
   coe_injective' _ _ h := Subtype.ext (DFunLike.coe_injective h)
 
+/-- `CompleteTopCommRingCat` is a concrete category. -/
 instance : ConcreteCategory CompleteTopCommRingCat.{u}
     (fun R S ↦ { f : R →+* S // Continuous f }) where
   hom f := f

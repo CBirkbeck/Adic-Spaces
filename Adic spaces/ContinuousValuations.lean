@@ -67,6 +67,7 @@ def Cont (A : Type*) [CommRing A] [TopologicalSpace A] : Set (Spv A) :=
 
 variable [TopologicalSpace A]
 
+/-- Membership in `Cont A` is equivalent to `IsContinuous`. -/
 @[simp]
 lemma mem_cont_iff (v : Spv A) : v ∈ Cont A ↔ v.IsContinuous := Iff.rfl
 

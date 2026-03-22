@@ -109,11 +109,8 @@ def restrictedMvPowerSeriesSubring (k : ℕ) (A : Type*) [CommRing A] [Topologic
     rw [tendsto_nhds]
     intro U hU h0U
     rw [Filter.mem_cofinite]
-    -- Step 1: Use nonarchimedean property: find open additive subgroup V ⊆ U.
     obtain ⟨V, hVU⟩ := NonarchimedeanAddGroup.is_nonarchimedean U (hU.mem_nhds h0U)
-    -- Step 2: Find open additive subgroup W with W * W ⊆ V.
     obtain ⟨W, hWV⟩ := NonarchimedeanRing.mul_subset V
-    -- Step 3: Identify the finite "bad" index sets for f and g (outside W).
     set Sf := {s | MvPowerSeries.coeff s f ∉ (W : Set A)}
     set Sg := {s | MvPowerSeries.coeff s g ∉ (W : Set A)}
     have hSf : Sf.Finite := by
@@ -122,8 +119,6 @@ def restrictedMvPowerSeriesSubring (k : ℕ) (A : Type*) [CommRing A] [Topologic
     have hSg : Sg.Finite := by
       have := (tendsto_nhds.mp hg) _ W.isOpen (SetLike.mem_coe.mpr W.zero_mem)
       rwa [Filter.mem_cofinite] at this
-    -- Step 4: Build target T ∈ nhds 0 such that T ⊆ W,
-    -- coeff(a,f) * T ⊆ V for all a ∈ Sf, and T * coeff(b,g) ⊆ V for all b ∈ Sg.
     set T := (W : Set A) ∩
       (⋂ a ∈ hSf.toFinset,
         (fun x => MvPowerSeries.coeff a f * x) ⁻¹' (V : Set A)) ∩
@@ -149,7 +144,6 @@ def restrictedMvPowerSeriesSubring (k : ℕ) (A : Type*) [CommRing A] [Topologic
         x * MvPowerSeries.coeff b g ∈ (V : Set A) := by
       intro b hb x hx
       exact (Set.mem_iInter₂.mp hx.2 b hb : _)
-    -- Step 5: The "bad" set for the product is finite.
     have hgT : {s | MvPowerSeries.coeff s g ∉ T}.Finite :=
       (Filter.mem_cofinite.mp (hg hT_nhds)).subset (fun s hs => hs)
     have hfT : {s | MvPowerSeries.coeff s f ∉ T}.Finite :=
@@ -168,17 +162,13 @@ def restrictedMvPowerSeriesSubring (k : ℕ) (A : Type*) [CommRing A] [Topologic
         intro n ⟨b, hb, hbn, hnf⟩
         simp only [Set.mem_iUnion, Set.mem_image, Finset.mem_coe]
         exact ⟨b, hb, n - b, hnf, tsub_add_cancel_of_le hbn⟩
-    -- Step 6: Show {n | coeff n (f*g) ∉ U} ⊆ B
     apply hB_finite.subset
     intro n hn
     simp only [Set.mem_compl_iff, Set.mem_preimage] at hn
     by_contra hnB
     apply hn; clear hn
-    -- n ∉ B: for all a ∈ Sf with a ≤ n, coeff(n-a,g) ∈ T;
-    -- and for all b ∈ Sg with b ≤ n, coeff(n-b,f) ∈ T.
     simp only [B, Set.mem_union, Set.mem_setOf_eq, not_or, not_exists, not_and] at hnB
     obtain ⟨hnB1, hnB2⟩ := hnB
-    -- All summands land in V, so the sum is in V ⊆ U.
     apply hVU
     rw [SetLike.mem_coe]
     rw [show MvPowerSeries.coeff n (f * g) =
@@ -189,21 +179,18 @@ def restrictedMvPowerSeriesSubring (k : ℕ) (A : Type*) [CommRing A] [Topologic
     intro ⟨a, b⟩ hab
     rw [Finset.mem_antidiagonal] at hab
     by_cases haS : a ∈ Sf
-    · -- Case 1: a ∈ Sf. coeff(b,g) ∈ T since n ∉ B.
-      have hab_le : a ≤ n := hab ▸ le_add_right le_rfl
+    · have hab_le : a ≤ n := hab ▸ le_add_right le_rfl
       have hb_eq : b = n - a := by rw [← hab]; exact (add_tsub_cancel_left a b).symm
       have hgT_b : MvPowerSeries.coeff b g ∈ T := by
         rw [hb_eq]; exact not_not.mp (hnB1 a (hSf.mem_toFinset.mpr haS) hab_le)
       exact SetLike.mem_coe.mp (hT_left a (hSf.mem_toFinset.mpr haS) _ hgT_b)
     · by_cases hbS : b ∈ Sg
-      · -- Case 2: a ∉ Sf, b ∈ Sg. coeff(a,f) ∈ T since n ∉ B.
-        have hb_le : b ≤ n := hab ▸ le_add_left le_rfl
+      · have hb_le : b ≤ n := hab ▸ le_add_left le_rfl
         have ha_eq : a = n - b := by rw [← hab]; exact (add_tsub_cancel_right a b).symm
         have hfT_a : MvPowerSeries.coeff a f ∈ T := by
           rw [ha_eq]; exact not_not.mp (hnB2 b (hSg.mem_toFinset.mpr hbS) hb_le)
         exact SetLike.mem_coe.mp (hT_right b (hSg.mem_toFinset.mpr hbS) _ hfT_a)
-      · -- Case 3: a ∉ Sf, b ∉ Sg. Both in W, product in W * W ⊆ V.
-        have haW : MvPowerSeries.coeff a f ∈ (W : Set A) := by
+      · have haW : MvPowerSeries.coeff a f ∈ (W : Set A) := by
           simp only [Sf, Set.mem_setOf_eq, not_not] at haS; exact haS
         have hbW : MvPowerSeries.coeff b g ∈ (W : Set A) := by
           simp only [Sg, Set.mem_setOf_eq, not_not] at hbS; exact hbS
@@ -235,10 +222,10 @@ noncomputable instance restrictedMvPowerSeriesSubring.instAlgebra (k : ℕ) (A :
   RingHom.toAlgebra
     { toFun := fun a => ⟨algebraMap A (MvPowerSeries (Fin k) A) a,
         MvPowerSeries.IsRestricted_algebraMap a⟩
-      map_one' := by ext; simp
-      map_mul' := by intros; ext; simp
-      map_zero' := by ext; simp
-      map_add' := by intros; ext; simp }
+      map_one' := by ext; simp only [map_one, OneMemClass.coe_one]
+      map_mul' := by intros; ext; simp only [map_mul, Subring.coe_mul]
+      map_zero' := by ext; simp only [map_zero, ZeroMemClass.coe_zero]
+      map_add' := by intros; ext; simp only [map_add, Subring.coe_add] }
 
 /-! ### Strongly noetherian rings -/
 

@@ -16,7 +16,8 @@ Rational subsets and their stability under finite intersection (Remark 7.30, The
 
 ## Main results
 
-* `rationalOpen_inter` : `R(T₁/s₁) ∩ R(T₂/s₂) = R(T₁·T₂/s₁·s₂)` (Remark 7.30(5)).
+* `rationalOpen_inter` : `R(T₁/s₁) ∩ R(T₂/s₂) = R(T₁·T₂/s₁·s₂)`
+  (Remark 7.30(5)).
 * `IsRationalSubset.inter` : Intersection of two rational subsets is rational.
 * `IsRationalSubset.isOpen` : Rational subsets are open in `Spa(A, A⁺)`.
 
@@ -70,7 +71,8 @@ theorem rationalOpen_insert_s (T : Finset A) (s : A) :
 /-- `R(T₁/s₁) ∩ R(T₂/s₂) = R(T₁·T₂ / s₁·s₂)` (Remark 7.30(5)). -/
 theorem rationalOpen_inter (T₁ T₂ : Finset A) (s₁ s₂ : A)
     (hs₁ : s₁ ∈ T₁) (hs₂ : s₂ ∈ T₂) :
-    rationalOpen T₁ s₁ ∩ rationalOpen T₂ s₂ = rationalOpen (T₁ * T₂) (s₁ * s₂) := by
+    rationalOpen T₁ s₁ ∩ rationalOpen T₂ s₂ =
+      rationalOpen (T₁ * T₂) (s₁ * s₂) := by
   ext v
   letI : ValuativeRel A := v.toValuativeRel
   constructor

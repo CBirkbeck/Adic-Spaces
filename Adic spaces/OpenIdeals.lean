@@ -46,7 +46,8 @@ variable [IsLinearTopology A A]
 theorem topologicalNilradical_le_radical_of_isOpen
     {𝔞 : Ideal A} (h𝔞 : IsOpen (𝔞 : Set A)) :
     topologicalNilradical A ≤ 𝔞.radical :=
-  fun _ ha ↦ (IsTopologicallyNilpotent.mem_topologicalNilradical_iff.mp ha).mem_ideal_radical h𝔞
+  fun _ ha ↦
+    (IsTopologicallyNilpotent.mem_topologicalNilradical_iff.mp ha).mem_ideal_radical h𝔞
 
 variable [ContinuousAdd A]
 
