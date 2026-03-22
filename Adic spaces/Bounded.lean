@@ -66,7 +66,8 @@ def IsBounded (S : Set A) : Prop :=
 
 /-- Subsets of bounded sets are bounded. -/
 theorem IsBounded.subset {S T : Set A} (hS : IsBounded S) (hTS : T ⊆ S) : IsBounded T :=
-  fun U hU ↦ let ⟨V, hV, hSV⟩ := hS U hU; ⟨V, hV, (Set.mul_subset_mul_right hTS).trans hSV⟩
+  fun U hU ↦ let ⟨V, hV, hSV⟩ := hS U hU
+  ⟨V, hV, (Set.mul_subset_mul_right hTS).trans hSV⟩
 
 /-- The empty set is bounded. -/
 theorem isBounded_empty : IsBounded (∅ : Set A) :=
@@ -163,7 +164,8 @@ theorem isPowerBounded_add [IsTopologicalRing A] [IsLinearTopology A A]
   refine Submodule.sum_mem J fun m _ ↦ ?_
   rw [show a ^ m * b ^ (n - m) * ↑(n.choose m) * v =
       ↑(n.choose m) * (a ^ m * b ^ (n - m) * v) by ring]
-  exact Ideal.mul_mem_left J _ (hSV (Set.mul_mem_mul (Set.mul_mem_mul ⟨m, rfl⟩ ⟨n - m, rfl⟩) hv))
+  exact Ideal.mul_mem_left J _
+    (hSV (Set.mul_mem_mul (Set.mul_mem_mul ⟨m, rfl⟩ ⟨n - m, rfl⟩) hv))
 
 /-- `A°` is a subring in a nonarchimedean topological ring (Prop 5.30(3)). -/
 def powerBoundedSubring.toSubring (A : Type*) [CommRing A] [TopologicalSpace A]
@@ -196,7 +198,8 @@ theorem IsTopologicallyNilpotent.isPowerBounded [IsTopologicalRing A] {a : A}
   refine ⟨U₂ ∩ ⋂ i, V i, inter_mem hU₂ (Filter.iInter_mem.mpr hV_mem), ?_⟩
   intro x hx; obtain ⟨_, ⟨n, rfl⟩, c, hc, rfl⟩ := Set.mem_mul.mp hx
   by_cases hn : n < N
-  · exact hV_sub ⟨n, hn⟩ (Set.mem_mul.mpr ⟨a ^ n, rfl, c, Set.mem_iInter.mp hc.2 ⟨n, hn⟩, rfl⟩)
+  · exact hV_sub ⟨n, hn⟩
+      (Set.mem_mul.mpr ⟨a ^ n, rfl, c, Set.mem_iInter.mp hc.2 ⟨n, hn⟩, rfl⟩)
   · exact hprod (Set.mk_mem_prod (hN n (by omega)) hc.1)
 
 /-- `A°°` is contained in `A°` (Remark 5.28(4)). -/
@@ -210,7 +213,8 @@ theorem IsPowerBounded.isTopologicallyNilpotent_mul [IsTopologicalRing A] {a b :
     IsTopologicallyNilpotent (a * b) := by
   intro U hU; obtain ⟨V, hV, hSV⟩ := ha U hU
   rw [Filter.mem_map]; exact Filter.mem_of_superset (Filter.mem_map.mp (hb hV)) fun n hn ↦
-    show (a * b) ^ n ∈ U from mul_pow a b n ▸ hSV (Set.mul_mem_mul ⟨n, rfl⟩ hn)
+    show (a * b) ^ n ∈ U from
+      mul_pow a b n ▸ hSV (Set.mul_mem_mul ⟨n, rfl⟩ hn)
 
 /-- `A°°` is radical: `a ^ m ∈ A°°` implies `a ∈ A°°` (Prop 5.30(4)). -/
 theorem IsTopologicallyNilpotent.of_pow [IsTopologicalRing A] {a : A} {m : ℕ} (hm : 0 < m)

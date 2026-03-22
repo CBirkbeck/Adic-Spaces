@@ -117,18 +117,22 @@ lemma spa_antitone {Aplus Aplus' : Subring A} (h : Aplus ≤ Aplus') :
 
 variable [PlusSubring A]
 
+/-- Characterization of membership in `Spa(A, A⁺)`. -/
 @[simp]
 lemma mem_spa_iff (v : Spv A) :
     v ∈ Spa A A⁺ ↔ v.IsContinuous ∧ ∀ f ∈ A⁺, v.vle f 1 :=
   Iff.rfl
 
+/-- `Spa(A, A⁺)` is contained in `Cont(A)`. -/
 lemma spa_subset_cont : Spa A A⁺ ⊆ Cont A :=
   fun _ hv ↦ hv.1
 
+/-- Elements of `A⁺` satisfy `v(f) ≤ v(1)` for `v ∈ Spa(A, A⁺)`. -/
 lemma vle_one_of_mem_spa {v : Spv A} (hv : v ∈ Spa A A⁺)
     {f : A} (hf : f ∈ A⁺) : v.vle f 1 :=
   hv.2 f hf
 
+/-- `Spa(A, A⁺)` as an intersection of `Cont(A)` with valuation conditions. -/
 lemma spa_eq_cont_inter :
     Spa A A⁺ = Cont A ∩ ⋂ f ∈ (A⁺ : Set A), { v : Spv A | v.vle f 1 } := by
   ext v
@@ -148,7 +152,8 @@ section Prop752
 We characterize elements of `A⁺` and units via the adic spectrum.
 -/
 
-/-- The trivial valuation on `A/𝔪` gives a point of `Spa(A, A⁺)` with support `𝔪` (Prop 7.51). -/
+/-- The trivial valuation on `A/𝔪` gives a point of `Spa(A, A⁺)`
+with support `𝔪` (Prop 7.51). -/
 lemma exists_mem_spa_supp_eq (𝔪 : Ideal A) [𝔪.IsMaximal]
     (h𝔪 : IsOpen (𝔪 : Set A)) :
     ∃ v ∈ Spa A A⁺, v.supp = 𝔪 := by
@@ -225,10 +230,12 @@ end Prop752
 def rationalOpen (T : Finset A) (s : A) : Set (Spv A) :=
   { v ∈ Spa A A⁺ | (∀ t ∈ T, v.vle t s) ∧ ¬ v.vle s 0 }
 
+/-- A rational subset is contained in `Spa(A, A⁺)`. -/
 lemma rationalOpen_subset_spa {T : Finset A} {s : A} :
     rationalOpen T s ⊆ Spa A A⁺ :=
   fun _ hv ↦ hv.1
 
+/-- A rational subset as an intersection of basic opens with `Spa`. -/
 lemma rationalOpen_eq_spa_inter {T : Finset A} (hT : T.Nonempty) (s : A) :
     rationalOpen T s = Spa A A⁺ ∩ ⋂ t ∈ (T : Set A), basicOpen t s := by
   ext v
@@ -363,7 +370,8 @@ theorem ValuationSpectrum.isUnit_of_forall_not_vle_zero_of_isOpen_topologicallyN
     (hopen : IsOpen {a : A | IsTopologicallyNilpotent a})
     {f : A} (h : ∀ v ∈ Spa A A⁺, ¬ v.vle f 0) : IsUnit f :=
   isUnit_of_forall_not_vle_zero
-    (fun 𝔪 h𝔪 ↦ letI := h𝔪; isOpen_of_isMaximal_of_isOpen_topologicallyNilpotent hopen 𝔪)
+    (fun 𝔪 h𝔪 ↦ letI := h𝔪;
+      isOpen_of_isMaximal_of_isOpen_topologicallyNilpotent hopen 𝔪)
     h
 
 end Prop752Full

@@ -46,7 +46,8 @@ theorem divByS_eq_algebraMap (t : A) :
   exact IsLocalization.mk'_one (M := Submonoid.powers (1 : A))
     (S := Localization.Away (1 : A)) t
 
-/-- The ring of definition `D = A₀[t₁/s, …, tₙ/s]` of `Localization.Away s` (§8.1 of Wedhorn). -/
+/-- The ring of definition `D = A₀[t₁/s, …, tₙ/s]` of `Localization.Away s`
+(§8.1 of Wedhorn). -/
 noncomputable def locSubring (P : PairOfDefinition A) (T : Finset A)
     (s : A) : Subring (Localization.Away s) :=
   Subring.closure
