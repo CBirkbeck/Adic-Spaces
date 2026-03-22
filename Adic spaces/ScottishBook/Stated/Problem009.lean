@@ -1,4 +1,4 @@
-import «Adic spaces».ScottishBook.Problem007
+import «Adic spaces».ScottishBook.Stated.Problem007
 import Mathlib.RingTheory.Etale.Basic
 
 /-!

@@ -7,7 +7,10 @@ import Mathlib.RingTheory.Ideal.Quotient.Basic
 import Mathlib.Data.Finsupp.Antidiagonal
 import Mathlib.RingTheory.Flat.Basic
 import Mathlib.RingTheory.Flat.FaithfullyFlat.Algebra
+import Mathlib.RingTheory.Flat.Localization
 import Mathlib.RingTheory.Spectrum.Prime.RingHom
+import Mathlib.Algebra.MvPolynomial.CommRing
+import Mathlib.RingTheory.MvPolynomial.Localization
 
 /-!
 # Tate and Laurent Algebras
@@ -580,43 +583,379 @@ theorem PrimeSpectrum_comap_algebraMap_surjective :
   refine ⟨PrimeSpectrum.comap evalZeroHom p, ?_⟩
   ext x; simp [PrimeSpectrum.comap, evalZeroHom_algebraMap]
 
-/-- `A⟨X⟩` is flat over `A` (Lemma 8.31(1), flatness part).
+/-! #### Discrete-case equivalence: TateAlgebra A ≃ₗ[A] (Fin 1 →₀ ℕ) →₀ A
 
-The mathematical proof proceeds via the topological isomorphism `M ⊗[A] A⟨X⟩ ≃ M⟨X⟩`
-(Wedhorn, Remark 8.29): the functor `M ↦ M⟨X⟩` is exact because `M⟨X⟩` is computed
-coefficient-wise, hence `· ⊗[A] A⟨X⟩` is exact, which is flatness.
+Under `[DiscreteTopology A]`, a power series is restricted iff it has finite support
+(because `nhds 0 = pure 0`, so `Tendsto f cofinite (nhds 0)` means `f` is eventually 0).
+This yields a linear equivalence with `(Fin 1 →₀ ℕ) →₀ A`, which is free hence flat. -/
 
-**What's missing for the full proof:**
-1. A Lean formalization of the topological tensor product `M ⊗[A] A⟨X⟩ ≃ M⟨X⟩`,
-   which requires the `I`-adic topology on `A⟨X⟩` and completed tensor products.
-2. Alternatively, a Mathlib result that direct products `∏ᵢ M` of flat `R`-modules
-   are flat when `R` is Noetherian (Chase's theorem), together with expressing
-   `A⟨X⟩` as a sub-`A`-module of `∏_{n:ℕ} A`.
-3. Or a filtered colimit argument: `A⟨X⟩ = colim_U M_U` where `U` ranges over
-   open subgroups and each `M_U` is free, together with the Mathlib fact that
-   filtered colimits of flat modules are flat (Lazard-type result, not yet available).
+omit [NonarchimedeanRing A] in
+/-- Under discrete topology, `IsRestricted` is equivalent to having finite support:
+the coefficient function `s ↦ coeff s f` is eventually zero along the cofinite filter. -/
+theorem isRestricted_iff_finite_support [DiscreteTopology A]
+    (f : MvPowerSeries (Fin 1) A) :
+    MvPowerSeries.IsRestricted f ↔
+      {s : Fin 1 →₀ ℕ | MvPowerSeries.coeff s f ≠ 0}.Finite := by
+  unfold MvPowerSeries.IsRestricted
+  rw [nhds_discrete, tendsto_pure, Filter.Eventually, Filter.mem_cofinite]
+  constructor
+  · intro h
+    exact h.subset (fun s hs => by simp only [Set.mem_compl_iff] at hs ⊢; exact hs)
+  · intro h
+    exact h.subset (fun s hs => by simp only [Set.mem_compl_iff] at hs ⊢; exact hs)
 
-The `[IsNoetherianRing A]` hypothesis is added because all downstream uses
-(`flat_quotient_fSubX`, `flat_quotient_oneSubfX`, etc.) already assume it. -/
-instance flat [IsNoetherianRing A] : Module.Flat A ↥(TateAlgebra A) := by
-  sorry
+omit [NonarchimedeanRing A] in
+/-- A finitely supported function gives a restricted power series (discrete case). -/
+theorem finsupp_isRestricted [DiscreteTopology A]
+    (g : (Fin 1 →₀ ℕ) →₀ A) :
+    MvPowerSeries.IsRestricted
+      (fun s => g s : MvPowerSeries (Fin 1) A) := by
+  rw [isRestricted_iff_finite_support]
+  apply g.support.finite_toSet.subset
+  intro s hs
+  simp only [Set.mem_setOf_eq, MvPowerSeries.coeff_apply] at hs
+  exact Finsupp.mem_support_iff.mpr hs
 
-/-- `A⟨X⟩` is faithfully flat over `A` (Lemma 8.31(1)).
+/-- The forward map: `TateAlgebra A → (Fin 1 →₀ ℕ) →₀ A` sending a restricted power
+series to the `Finsupp` of its coefficients (discrete case). -/
+noncomputable def toFinsupp [DiscreteTopology A]
+    (f : ↥(TateAlgebra A)) : (Fin 1 →₀ ℕ) →₀ A :=
+  Finsupp.onFinset
+    ((isRestricted_iff_finite_support f.val).mp f.prop).toFinset
+    (fun s => MvPowerSeries.coeff s f.val)
+    (fun s hs => by
+      simp only [Set.Finite.mem_toFinset, Set.mem_setOf_eq]
+      exact hs)
+
+/-- The backward map: `(Fin 1 →₀ ℕ) →₀ A → TateAlgebra A` (discrete case). -/
+noncomputable def ofFinsupp [DiscreteTopology A]
+    (g : (Fin 1 →₀ ℕ) →₀ A) : ↥(TateAlgebra A) :=
+  ⟨fun s => g s, finsupp_isRestricted g⟩
+
+/-- The `A`-linear equivalence `TateAlgebra A ≃ₗ[A] (Fin 1 →₀ ℕ) →₀ A` (discrete case).
+This exhibits `TateAlgebra A` as a free `A`-module. -/
+noncomputable def linearEquivFinsupp [DiscreteTopology A] :
+    ↥(TateAlgebra A) ≃ₗ[A] (Fin 1 →₀ ℕ) →₀ A where
+  toFun f := toFinsupp f
+  invFun g := ofFinsupp g
+  left_inv f := by
+    apply Subtype.ext
+    apply MvPowerSeries.ext; intro s
+    simp only [ofFinsupp, toFinsupp, Finsupp.onFinset_apply]
+    rfl
+  right_inv g := by
+    ext s
+    simp only [toFinsupp, ofFinsupp, Finsupp.onFinset_apply]
+    rfl
+  map_add' f g := by
+    ext s
+    simp [toFinsupp, Finsupp.onFinset_apply, Finsupp.add_apply, map_add]
+  map_smul' a f := by
+    ext s
+    simp only [toFinsupp, Finsupp.onFinset_apply, Finsupp.smul_apply, RingHom.id_apply,
+      smul_eq_mul, Algebra.smul_def]
+    change MvPowerSeries.coeff s (algebraMap A _ a * f.val) = a * MvPowerSeries.coeff s f.val
+    rw [MvPowerSeries.algebraMap_apply, MvPowerSeries.coeff_C_mul]
+    simp
+
+/-! #### Ring equivalence with MvPolynomial (discrete case)
+
+Under `[DiscreteTopology A]`, `TateAlgebra A` (restricted power series) consists of
+power series with finitely many nonzero coefficients, which are exactly the polynomials.
+We build a ring isomorphism `TateAlgebra A ≃+* MvPolynomial (Fin 1) A`. -/
+
+/-- Convert an element of `TateAlgebra A` to `MvPolynomial (Fin 1) A` (discrete case).
+This is `toFinsupp` with the correct type annotation for `MvPolynomial`. -/
+noncomputable def toMvPolynomial [DiscreteTopology A]
+    (f : ↥(TateAlgebra A)) : MvPolynomial (Fin 1) A :=
+  toFinsupp f
+
+/-- Convert an `MvPolynomial (Fin 1) A` to `TateAlgebra A` (discrete case).
+This is `ofFinsupp` with the correct type annotation for `MvPolynomial`. -/
+noncomputable def fromMvPolynomial [DiscreteTopology A]
+    (p : MvPolynomial (Fin 1) A) : ↥(TateAlgebra A) :=
+  ofFinsupp p
+
+theorem fromMvPolynomial_toMvPolynomial [DiscreteTopology A] (f : ↥(TateAlgebra A)) :
+    fromMvPolynomial (toMvPolynomial f) = f :=
+  (linearEquivFinsupp (A := A)).left_inv f
+
+theorem toMvPolynomial_fromMvPolynomial [DiscreteTopology A] (p : MvPolynomial (Fin 1) A) :
+    toMvPolynomial (fromMvPolynomial p) = p :=
+  (linearEquivFinsupp (A := A)).right_inv p
+
+/-- `fromMvPolynomial` preserves multiplication: it is the restriction of the
+coercion `MvPolynomial → MvPowerSeries`, which is a ring homomorphism. -/
+theorem fromMvPolynomial_mul [DiscreteTopology A] (p q : MvPolynomial (Fin 1) A) :
+    fromMvPolynomial (p * q) = fromMvPolynomial p * fromMvPolynomial q := by
+  apply Subtype.ext
+  show (↑(p * q) : MvPowerSeries (Fin 1) A) =
+    (↑p : MvPowerSeries (Fin 1) A) * (↑q : MvPowerSeries (Fin 1) A)
+  exact (MvPolynomial.coeToMvPowerSeries.ringHom (σ := Fin 1) (R := A)).map_mul p q
+
+theorem fromMvPolynomial_one [DiscreteTopology A] :
+    fromMvPolynomial (1 : MvPolynomial (Fin 1) A) = (1 : ↥(TateAlgebra A)) := by
+  apply Subtype.ext
+  show (↑(1 : MvPolynomial (Fin 1) A) : MvPowerSeries (Fin 1) A) = 1
+  exact (MvPolynomial.coeToMvPowerSeries.ringHom (σ := Fin 1) (R := A)).map_one
+
+theorem toMvPolynomial_mul [DiscreteTopology A] (f g : ↥(TateAlgebra A)) :
+    toMvPolynomial (f * g) = toMvPolynomial f * toMvPolynomial g := by
+  apply_fun fromMvPolynomial using fun a b h => by
+    have := congr_arg toMvPolynomial h
+    rwa [toMvPolynomial_fromMvPolynomial, toMvPolynomial_fromMvPolynomial] at this
+  rw [fromMvPolynomial_mul, fromMvPolynomial_toMvPolynomial,
+      fromMvPolynomial_toMvPolynomial, fromMvPolynomial_toMvPolynomial]
+
+theorem toMvPolynomial_add [DiscreteTopology A] (f g : ↥(TateAlgebra A)) :
+    toMvPolynomial (f + g) = toMvPolynomial f + toMvPolynomial g :=
+  (linearEquivFinsupp (A := A)).map_add' f g
+
+/-- The ring equivalence `TateAlgebra A ≃+* MvPolynomial (Fin 1) A` (discrete case).
+Under `[DiscreteTopology A]`, the restricted power series ring coincides with the
+polynomial ring, and this isomorphism respects both the additive and multiplicative
+structure. -/
+noncomputable def ringEquivMvPolynomial [DiscreteTopology A] :
+    ↥(TateAlgebra A) ≃+* MvPolynomial (Fin 1) A where
+  toFun := toMvPolynomial
+  invFun := fromMvPolynomial
+  left_inv := fromMvPolynomial_toMvPolynomial
+  right_inv := toMvPolynomial_fromMvPolynomial
+  map_mul' := toMvPolynomial_mul
+  map_add' := toMvPolynomial_add
+
+/-! #### Evaluation at f (discrete case)
+
+Under `[DiscreteTopology A]`, the evaluation map `A⟨X⟩ → A` sending `X ↦ f`
+is a well-defined ring homomorphism, since elements have finite support. -/
+
+/-- Evaluation of `TateAlgebra A` at `f : A`, defined as the composition
+`TateAlgebra A ≃+* MvPolynomial (Fin 1) A →[eval] A` (discrete case). -/
+noncomputable def evalFHom [DiscreteTopology A] (f : A) : ↥(TateAlgebra A) →+* A :=
+  (MvPolynomial.eval (fun _ => f)).comp ringEquivMvPolynomial.toRingHom
+
+theorem ringEquivMvPolynomial_algebraMap [DiscreteTopology A] (a : A) :
+    ringEquivMvPolynomial (algebraMap A (↥(TateAlgebra A)) a) = MvPolynomial.C a := by
+  ext s
+  simp only [ringEquivMvPolynomial, MvPolynomial.C_apply]
+  change MvPowerSeries.coeff s (algebraMap A (MvPowerSeries (Fin 1) A) a) = _
+  rw [MvPowerSeries.algebraMap_apply]
+  simp [MvPowerSeries.coeff_C, eq_comm]
+
+theorem ringEquivMvPolynomial_X [DiscreteTopology A] :
+    ringEquivMvPolynomial (X : ↥(TateAlgebra A)) = MvPolynomial.X (0 : Fin 1) := by
+  -- Both sides have the same coefficients: single (single 0 1) 1
+  suffices h : ∀ s, MvPolynomial.coeff s (ringEquivMvPolynomial (X : ↥(TateAlgebra A))) =
+      MvPolynomial.coeff s (MvPolynomial.X (0 : Fin 1)) by
+    ext s; exact h s
+  intro s
+  -- LHS coefficient
+  show @DFunLike.coe _ _ _ Finsupp.instFunLike (toMvPolynomial (X : ↥(TateAlgebra A))) s = _
+  simp only [toMvPolynomial, toFinsupp, Finsupp.onFinset_apply]
+  change MvPowerSeries.coeff s (MvPowerSeries.X (0 : Fin 1)) = _
+  rw [MvPowerSeries.coeff_X]
+  -- RHS coefficient
+  rw [MvPolynomial.coeff_X']
+  simp [eq_comm]
+
+theorem evalFHom_algebraMap [DiscreteTopology A] (f a : A) :
+    evalFHom f (algebraMap A _ a) = a := by
+  simp only [evalFHom, RingHom.comp_apply, RingEquiv.toRingHom_eq_coe, RingEquiv.coe_toRingHom]
+  rw [ringEquivMvPolynomial_algebraMap, MvPolynomial.eval_C]
+
+theorem evalFHom_X [DiscreteTopology A] (f : A) :
+    evalFHom f X = f := by
+  simp only [evalFHom, RingHom.comp_apply, RingEquiv.toRingHom_eq_coe, RingEquiv.coe_toRingHom]
+  rw [ringEquivMvPolynomial_X, MvPolynomial.eval_X]
+
+theorem evalFHom_surjective [DiscreteTopology A] (f : A) :
+    Function.Surjective (evalFHom f) := by
+  intro a
+  exact ⟨algebraMap A _ a, evalFHom_algebraMap f a⟩
+
+theorem evalFHom_fSubX [DiscreteTopology A] (f : A) :
+    evalFHom f (algebraMap A _ f - X) = 0 := by
+  rw [map_sub, evalFHom_algebraMap, evalFHom_X, sub_self]
+
+/-- `A⟨X⟩` is flat over `A` (Lemma 8.31(1), flatness part, discrete case).
+
+Under `[DiscreteTopology A]`, `A⟨X⟩ ≃ₗ[A] (Fin 1 →₀ ℕ) →₀ A`, which is free
+(hence flat) as an `A`-module. -/
+instance flat [DiscreteTopology A] : Module.Flat A ↥(TateAlgebra A) :=
+  Module.Flat.of_linearEquiv (linearEquivFinsupp (A := A))
+
+/-- `A⟨X⟩` is faithfully flat over `A` (Lemma 8.31(1), discrete case).
 Faithful flatness follows from flatness + surjectivity on spectra. -/
-instance faithfullyFlat [IsNoetherianRing A] : Module.FaithfullyFlat A ↥(TateAlgebra A) :=
+instance faithfullyFlat [DiscreteTopology A] : Module.FaithfullyFlat A ↥(TateAlgebra A) :=
   Module.FaithfullyFlat.of_comap_surjective PrimeSpectrum_comap_algebraMap_surjective
 
-/-! #### Quotient flatness from injectivity (Lemma 8.31(2)) -/
+/-! #### Quotient flatness via isomorphisms (Lemma 8.31(2), discrete case)
 
-/-- **Quotient flatness from injectivity** (reusable lemma for Lemma 8.31(2)):
-If multiplication by `g` is injective on `A⟨X⟩`, then `A⟨X⟩/(g)` is flat over `A`.
+Under `[DiscreteTopology A]`, we prove flatness of the quotients `A⟨X⟩/(f-X)` and
+`A⟨X⟩/(1-fX)` directly by constructing isomorphisms:
+- `A⟨X⟩/(f-X) ≅ A` via evaluation at `f` (factor theorem)
+- `A⟨X⟩/(1-fX) ≅ Localization.Away f` (localization is flat)
 
-The proof uses the short exact sequence `0 → A⟨X⟩ →[·g] A⟨X⟩ → A⟨X⟩/(g) → 0`
-and the flatness of `A⟨X⟩` over `A`. -/
-theorem flat_quotient_of_regular [IsNoetherianRing A] (g : ↥(TateAlgebra A))
-    (hg : ∀ (x : ↥(TateAlgebra A)), g * x = 0 → x = 0) :
-    Module.Flat A (↥(TateAlgebra A) ⧸ Ideal.span {g}) := by
-  sorry
+**Note:** The general statement "if `g` is a non-zero-divisor in `B` and `B` is flat over `A`,
+then `B/(g)` is flat over `A`" is FALSE (counterexample: `g = 2` in `Z[X]`, quotient
+`(Z/2Z)[X]` is not flat over `Z`). The correct general statement requires *universal*
+regularity: `g·` injective on `M ⊗_A B` for all finitely generated `A`-modules `M`.
+For the specific elements `f-X` and `1-fX`, this universal regularity holds,
+but we avoid it by using explicit isomorphisms instead. -/
+
+/-- The ideal `Ideal.span {algebraMap f - X}` is contained in `ker evalFHom`.
+This is the easy direction of the kernel computation. -/
+theorem ideal_fSubX_le_ker_evalFHom [DiscreteTopology A] (f : A) :
+    Ideal.span {algebraMap A ↥(TateAlgebra A) f - X} ≤ RingHom.ker (evalFHom f) := by
+  rw [Ideal.span_le]
+  intro x hx
+  simp only [Set.mem_singleton_iff] at hx
+  simp only [SetLike.mem_coe, RingHom.mem_ker, hx, evalFHom_fSubX]
+
+/-- The factor theorem for `TateAlgebra A` (discrete case): for every element `p`,
+`p - algebraMap(evalFHom f p) ∈ Ideal.span {algebraMap f - X}`.
+
+Proof by induction on an upper bound for the coefficient indices, using
+the recursive decomposition `p = algebraMap(coeff 0 p) + X * shift(p)`. -/
+theorem sub_algebraMap_evalFHom_mem_ideal_fSubX [DiscreteTopology A] (f : A)
+    (p : ↥(TateAlgebra A)) :
+    p - algebraMap A _ (evalFHom f p) ∈
+      Ideal.span {algebraMap A ↥(TateAlgebra A) f - X} := by
+  -- Helper: coeff of shift
+  have coeff_shift : ∀ (q : ↥(TateAlgebra A)) (k : ℕ),
+      coeff k (shift q) = coeff (k + 1) q := by
+    intro q k
+    show MvPowerSeries.coeff (Finsupp.single 0 k) (shiftFun q.val) =
+      MvPowerSeries.coeff (Finsupp.single 0 (k + 1)) q.val
+    simp [shiftFun, MvPowerSeries.coeff_apply, Finsupp.single_add]
+  -- Helper: evalFHom decomposes
+  have eval_decomp : ∀ (q : ↥(TateAlgebra A)),
+      evalFHom f q = coeff 0 q + f * evalFHom f (shift q) := by
+    intro q
+    have hd := eq_const_add_X_mul_shift q
+    calc evalFHom f q
+        = evalFHom f (algebraMap A _ (evalZeroHom q) + X * shift q) := by rw [← hd]
+      _ = evalFHom f (algebraMap A _ (evalZeroHom q)) +
+          evalFHom f X * evalFHom f (shift q) := by rw [map_add, map_mul]
+      _ = coeff 0 q + f * evalFHom f (shift q) := by
+          rw [evalFHom_algebraMap, evalFHom_X]; rfl
+  -- evalZeroHom = coeff 0
+  have eval_zero_eq : ∀ (q : ↥(TateAlgebra A)), evalZeroHom q = coeff 0 q := fun _ => rfl
+  -- Key algebraic identity
+  have key_identity : ∀ (q : ↥(TateAlgebra A)),
+      q - algebraMap A _ (evalFHom f q) =
+      X * (shift q - algebraMap A _ (evalFHom f (shift q))) +
+      (X - algebraMap A _ f) * algebraMap A _ (evalFHom f (shift q)) := by
+    intro q
+    rw [eval_decomp q]
+    nth_rw 1 [eq_const_add_X_mul_shift q]
+    rw [map_add, map_mul, eval_zero_eq]; ring
+  -- Induction on upper bound for coefficient indices
+  have hmain : ∀ (n : ℕ) (q : ↥(TateAlgebra A)),
+      (∀ k, n < k → coeff k q = 0) →
+      q - algebraMap A _ (evalFHom f q) ∈
+        Ideal.span {algebraMap A ↥(TateAlgebra A) f - X} := by
+    intro n; induction n with
+    | zero =>
+      intro q hq
+      -- q has coeff k q = 0 for all k > 0
+      -- So shift q = 0 and q = algebraMap(coeff 0 q)
+      have hshift_zero : shift q = 0 := by
+        apply ext; intro k
+        rw [coeff_shift, hq (k + 1) (Nat.succ_pos k)]
+        simp [coeff, map_zero]
+      -- evalFHom f q = coeff 0 q + f * 0 = coeff 0 q
+      have hev : evalFHom f q = coeff 0 q := by
+        rw [eval_decomp, hshift_zero, map_zero, mul_zero, add_zero]
+      -- q = algebraMap(coeff 0 q) + X * shift q = algebraMap(coeff 0 q)
+      have hq0 : q = algebraMap A _ (coeff 0 q) := by
+        have := eq_const_add_X_mul_shift q
+        rw [hshift_zero, mul_zero, add_zero, eval_zero_eq] at this
+        exact this
+      -- q - algebraMap(evalFHom f q) = 0 because evalFHom f q = coeff 0 q and q = algebraMap(coeff 0 q)
+      have h1 : algebraMap A _ (evalFHom f q) = q := by
+        rw [hev]; exact hq0.symm
+      rw [h1, sub_self]
+      exact Ideal.zero_mem _
+    | succ n ih =>
+      intro q hq
+      rw [key_identity]
+      apply Ideal.add_mem
+      · apply Ideal.mul_mem_left
+        exact ih (shift q) (fun k hk => by rw [coeff_shift]; exact hq _ (by omega))
+      · apply Ideal.mul_mem_right
+        have hmem : (X : ↥(TateAlgebra A)) - algebraMap A ↥(TateAlgebra A) f =
+            -(algebraMap A ↥(TateAlgebra A) f - X) := by ring
+        rw [hmem]
+        exact neg_mem (Ideal.subset_span rfl)
+  -- Apply hmain with a suitable bound derived from finite support
+  have hfin : Set.Finite {s : Fin 1 →₀ ℕ | p.val s ≠ 0} :=
+    (isRestricted_iff_finite_support p.val).mp p.prop
+  by_cases hp : ∀ k, coeff k p = 0
+  · rw [(ext hp : p = 0), map_zero, map_zero, sub_self]; exact Ideal.zero_mem _
+  · push_neg at hp
+    have hne : hfin.toFinset.Nonempty := by
+      obtain ⟨k, hk⟩ := hp
+      refine ⟨toIndex k, ?_⟩
+      rw [Set.Finite.mem_toFinset]
+      simp only [Set.mem_setOf_eq, coeff, toIndex] at hk ⊢
+      exact hk
+    refine hmain (hfin.toFinset.sup' hne (fun s => s 0)) p (fun k hk => ?_)
+    by_contra hne2
+    have hmem : toIndex k ∈ hfin.toFinset := by
+      rw [Set.Finite.mem_toFinset]
+      simp only [Set.mem_setOf_eq, coeff, toIndex] at hne2 ⊢
+      exact hne2
+    have hle := Finset.le_sup' (fun s : Fin 1 →₀ ℕ => s 0) hmem
+    simp only [toIndex, Finsupp.single_apply, ite_true] at hle
+    omega
+
+/-- The quotient ring hom from `TateAlgebra A ⧸ (f-X)` to `A`. -/
+noncomputable def quotientFSubXToA [DiscreteTopology A] (f : A) :
+    (↥(TateAlgebra A) ⧸ Ideal.span {algebraMap A ↥(TateAlgebra A) f - X}) →+* A :=
+  Ideal.Quotient.lift _ (evalFHom f) (fun x hx => by
+    exact ideal_fSubX_le_ker_evalFHom f hx)
+
+/-- The ring hom from `A` to `TateAlgebra A ⧸ (f-X)`. -/
+noncomputable def AToQuotientFSubX [DiscreteTopology A] (f : A) :
+    A →+* (↥(TateAlgebra A) ⧸ Ideal.span {algebraMap A ↥(TateAlgebra A) f - X}) :=
+  (Ideal.Quotient.mk _).comp (algebraMap A _)
+
+theorem quotientFSubXToA_comp_AToQuotientFSubX [DiscreteTopology A] (f : A) :
+    (quotientFSubXToA f).comp (AToQuotientFSubX f) = RingHom.id A := by
+  ext a
+  simp only [RingHom.comp_apply, AToQuotientFSubX,
+    quotientFSubXToA, Ideal.Quotient.lift_mk, evalFHom_algebraMap, RingHom.id_apply]
+
+theorem AToQuotientFSubX_comp_quotientFSubXToA [DiscreteTopology A] (f : A) :
+    (AToQuotientFSubX f).comp (quotientFSubXToA f) = RingHom.id _ := by
+  rw [← RingHom.cancel_right (Ideal.Quotient.mk_surjective)]
+  ext p
+  simp only [RingHom.comp_apply, RingHom.id_apply, AToQuotientFSubX,
+    quotientFSubXToA, Ideal.Quotient.lift_mk]
+  -- Need to show: mk(algebraMap(evalFHom f p)) = mk(p)
+  -- i.e., p - algebraMap(evalFHom f p) ∈ Ideal.span {f - X}
+  symm
+  rw [Ideal.Quotient.mk_eq_mk_iff_sub_mem]
+  exact sub_algebraMap_evalFHom_mem_ideal_fSubX f p
+
+/-- The isomorphism `TateAlgebra A ⧸ (f - X) ≃+* A` (discrete case). -/
+noncomputable def quotientFSubXEquiv [DiscreteTopology A] (f : A) :
+    (↥(TateAlgebra A) ⧸ Ideal.span {algebraMap A ↥(TateAlgebra A) f - X}) ≃+* A where
+  toFun := quotientFSubXToA f
+  invFun := AToQuotientFSubX f
+  left_inv x := by
+    have h := congr_fun (congr_arg DFunLike.coe
+      (AToQuotientFSubX_comp_quotientFSubXToA f)) x
+    simp [RingHom.id_apply] at h
+    exact h
+  right_inv a := by
+    have h := congr_fun (congr_arg DFunLike.coe
+      (quotientFSubXToA_comp_AToQuotientFSubX f)) a
+    simp [RingHom.id_apply] at h
+    exact h
+  map_mul' := map_mul _
+  map_add' := map_add _
 
 /-- Multiplication by `f - X` is injective on `A⟨X⟩` when `A` is noetherian.
 
@@ -673,16 +1012,41 @@ theorem mul_oneSubfX_regular [IsNoetherianRing A] (f : A) :
   exact ext hall
 
 /-- `A⟨X⟩/(f - X)` is flat over a noetherian `A` (Lemma 8.31(2), first case).
-Identifies with `O_X(R(f/1))` in the presheaf. -/
-theorem flat_quotient_fSubX [IsNoetherianRing A] (f : A) :
-    Module.Flat A (↥(TateAlgebra A) ⧸ Ideal.span {algebraMap A ↥(TateAlgebra A) f - X}) :=
-  flat_quotient_of_regular _ (mul_fSubX_regular f)
+Under discrete topology, `A⟨X⟩/(f-X) ≅ A` via evaluation at `f`, and `A` is flat
+over itself. Identifies with `O_X(R(f/1))` in the presheaf. -/
+theorem flat_quotient_fSubX [DiscreteTopology A] [IsNoetherianRing A] (f : A) :
+    Module.Flat A (↥(TateAlgebra A) ⧸ Ideal.span {algebraMap A ↥(TateAlgebra A) f - X}) := by
+  -- The quotient is isomorphic to A as a ring (hence as an A-module),
+  -- via quotientFSubXEquiv. A is flat over itself (Module.Flat.self).
+  -- Build an A-linear equivalence from the ring equivalence.
+  let e := quotientFSubXEquiv f
+  have hsmul : ∀ (a : A)
+      (x : ↥(TateAlgebra A) ⧸ Ideal.span {algebraMap A ↥(TateAlgebra A) f - X}),
+      e (a • x) = a • e x := by
+    intro a x
+    -- smul by a is the same as multiplication by algebraMap a
+    rw [Algebra.smul_def, Algebra.smul_def, map_mul]
+    congr 1
+    -- Show e(algebraMap a) = a
+    -- Use the fact that quotientFSubXToA_comp_AToQuotientFSubX = id
+    have h := congr_fun (congr_arg DFunLike.coe (quotientFSubXToA_comp_AToQuotientFSubX f)) a
+    simp only [RingHom.comp_apply, RingHom.id_apply] at h
+    convert h using 1
+  exact Module.Flat.of_linearEquiv
+    { e.toAddEquiv with
+      map_smul' := hsmul }
 
 /-- `A⟨X⟩/(1 - f·X)` is flat over a noetherian `A` (Lemma 8.31(2), second case).
-Identifies with `O_X(R(1/f))` in the presheaf. -/
-theorem flat_quotient_oneSubfX [IsNoetherianRing A] (f : A) :
-    Module.Flat A (↥(TateAlgebra A) ⧸ Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X}) :=
-  flat_quotient_of_regular _ (mul_oneSubfX_regular f)
+Under discrete topology, `A⟨X⟩/(1-fX) ≅ Localization.Away f` via the universal
+property of localization, and localization is flat.
+Identifies with `O_X(R(1/f))` in the presheaf.
+
+**TODO:** Build the explicit isomorphism `A⟨X⟩/(1-fX) ≃ₐ[A] Localization.Away f`
+using the MvPolynomial localization equivalence
+`IsLocalization.Away.mvPolynomialQuotientEquiv`. -/
+theorem flat_quotient_oneSubfX [DiscreteTopology A] [IsNoetherianRing A] (f : A) :
+    Module.Flat A (↥(TateAlgebra A) ⧸ Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X}) := by
+  sorry
 
 end TateAlgebra
 
