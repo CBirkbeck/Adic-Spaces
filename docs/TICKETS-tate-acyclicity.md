@@ -43,7 +43,7 @@
 | 1B | DONE | claude-main | 2026-03-21 | 2026-03-22 | — | A.3 infra + basis-sheaf types |
 | 2A | DONE | claude-opus | 2026-03-21 | 2026-03-21 | 7843694 | Algebraic defs + embeddings; topology TBD |
 | 2B | DONE | claude-opus | 2026-03-21 | 2026-03-22 | be52a6c | 0 sorry (discrete case) |
-| 3 | IN PROGRESS | claude-opus | 2026-03-22 | — | — | Depends: 2B |
+| 3 | IN PROGRESS | claude-opus | 2026-03-22 | — | — | Prop 8.30 done; Cor 8.32 WIP |
 | 4 | NOT STARTED | — | — | — | — | Depends: 2A, 2B, 3 |
 | 5 | NOT STARTED | — | — | — | — | Depends: 1B, 3, 4 |
 | 6 | DONE | claude-opus | 2026-03-21 | 2026-03-21 | 0c4be61 | Depends: 0 |
