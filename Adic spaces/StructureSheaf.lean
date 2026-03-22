@@ -73,7 +73,8 @@ def IsFraction {U : Opens (SpaTop A)} (f : ∀ x : U, Localizations x.1) : Prop 
 /-- `IsFraction` is prelocal: it restricts to smaller open subsets. -/
 def isFractionPrelocal : PrelocalPredicate (fun x : SpaTop A ↦ Localizations x) where
   pred f := IsFraction f
-  res := by rintro V U i f ⟨r, s, w⟩; exact ⟨r, s, fun x ↦ w (i x)⟩
+  res := by
+    rintro V U i f ⟨r, s, w⟩; exact ⟨r, s, fun x ↦ w (i x)⟩
 
 /-- A section is *locally a fraction* if it is a fraction near each point. -/
 def isLocallyFraction : LocalPredicate (fun x : SpaTop A ↦ Localizations x) :=
@@ -426,7 +427,8 @@ class IsSheafyTopRing (A : Type u) [CommRing A] [TopologicalSpace A]
        (D₃ : RationalLocData A)
        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
-       restrictionMap D₁.1 D₃ h₃₁ (f D₁) = restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
+       restrictionMap D₁.1 D₃ h₃₁ (f D₁) =
+         restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
     ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
       restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D
 
