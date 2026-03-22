@@ -13,6 +13,7 @@ import «Adic spaces».CompleteTopCommRingCat
 import «Adic spaces».ContinuousValuations
 import «Adic spaces».ExcellentRing
 import «Adic spaces».FarguesFontaine
+import «Adic spaces».FlatnessResults
 import «Adic spaces».GeometricSeries
 import «Adic spaces».HuberRings
 import «Adic spaces».IntegralStructureSheaf

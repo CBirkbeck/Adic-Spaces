@@ -559,7 +559,7 @@ instance HasRestrictionMaps.discrete {A : Type*} [CommRing A] [TopologicalSpace 
   restrictionMapAlg_continuous := fun D _ _ ↦ locTopology_eq_bot_of_discrete D ▸ continuous_bot
 
 /-- The completion embedding is bijective for discrete rings. -/
-private theorem coeRingHom_bijective_of_discrete {A : Type*} [CommRing A]
+theorem coeRingHom_bijective_of_discrete {A : Type*} [CommRing A]
     [TopologicalSpace A] [IsTopologicalRing A] [DiscreteTopology A]
     (D : RationalLocData A) :
     Function.Bijective D.coeRingHom := by
