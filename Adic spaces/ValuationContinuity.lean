@@ -299,6 +299,7 @@ theorem valuation_le_on_ideal_of_le_on_generators
       _ ≤ 1 * g := mul_le_mul' (h_le r) hx
       _ = g := one_mul g
 
+omit [IsLinearTopology A A] in
 /-- The pulled-back valuation is continuous when `MulArchimedean`. -/
 theorem pulledBackValuation_isContinuous
     (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
@@ -335,6 +336,7 @@ theorem pulledBackValuation_isContinuous
     (P.pulledBackValuation_le_one hrange) h_gen
     (fun γ hγ ↦ exists_pow_lt₀ hg1 (Units.mk0 γ hγ.ne'))
 
+omit [IsLinearTopology A A] in
 /-- **Lemma 7.45 (conditional on MulArchimedean).** -/
 theorem exists_mem_spa_supp_eq_of_nonOpen_prime_mulArchimedean
     (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
