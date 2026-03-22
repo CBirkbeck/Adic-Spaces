@@ -498,6 +498,75 @@ theorem ker_evalZeroHom :
 noncomputable def idealX : Ideal ↥(TateAlgebra A) :=
   Ideal.span {X}
 
+/-! #### Coefficient arithmetic helpers -/
+
+/-- Coefficient of a difference of power series. -/
+theorem coeff_sub (f g : ↥(TateAlgebra A)) (n : ℕ) :
+    coeff n (f - g) = coeff n f - coeff n g := by
+  simp [coeff, map_sub]
+
+/-- Coefficient of `algebraMap a * u`: the `algebraMap` acts as scalar multiplication. -/
+theorem coeff_algebraMap_mul (a : A) (u : ↥(TateAlgebra A)) (n : ℕ) :
+    coeff n (algebraMap A _ a * u) = a * coeff n u := by
+  simp only [coeff, toIndex]
+  change (MvPowerSeries.coeff (Finsupp.single 0 n))
+    ((algebraMap A (MvPowerSeries (Fin 1) A) a) * u.val) = _
+  rw [MvPowerSeries.algebraMap_apply, MvPowerSeries.coeff_C_mul]; simp
+
+/-- The `(n+1)`-th coefficient of `X * u` equals the `n`-th coefficient of `u`. -/
+theorem coeff_succ_X_mul (u : ↥(TateAlgebra A)) (n : ℕ) :
+    coeff (n + 1) (X * u) = coeff n u := by
+  simp only [coeff, X, toIndex]
+  change (MvPowerSeries.coeff (Finsupp.single 0 (n + 1)))
+    (MvPowerSeries.X (0 : Fin 1) * u.val) = _
+  rw [show (MvPowerSeries.X (R := A) (0 : Fin 1)) =
+      MvPowerSeries.monomial (Finsupp.single 0 1) (1 : A) from rfl]
+  rw [MvPowerSeries.coeff_monomial_mul,
+    if_pos (show Finsupp.single (0 : Fin 1) 1 ≤ Finsupp.single 0 (n + 1) by simp), one_mul]
+  simp [Finsupp.single_add, MvPowerSeries.coeff_apply]
+
+/-- The constant coefficient of `X * u` is zero. -/
+theorem coeff_zero_X_mul (u : ↥(TateAlgebra A)) :
+    coeff 0 (X * u) = 0 := by
+  have := evalZeroHom_X_mul u; simp only [evalZeroHom] at this; exact this
+
+/-! #### Noetherian ascending chain lemma -/
+
+omit [TopologicalSpace A] [NonarchimedeanRing A] in
+/-- In a noetherian ring, if `a * x 0 = 0` and `x k = a * x (k + 1)` for all `k`,
+then `x 0 = 0`. The proof uses the ascending chain of annihilator ideals
+`{b | a^n * b = 0}` and its stabilization. -/
+private theorem noeth_zero_of_mul_shift [IsNoetherianRing A] (a : A) (x : ℕ → A)
+    (h0 : a * x 0 = 0) (hstep : ∀ k, x k = a * x (k + 1)) : x 0 = 0 := by
+  have hpow : ∀ k, x 0 = a ^ k * x k := by
+    intro k; induction k with
+    | zero => simp
+    | succ k ih => rw [ih, hstep k, pow_succ, mul_assoc]
+  have hann : ∀ k, a ^ (k + 1) * x k = 0 := by
+    intro k
+    have : a ^ (k + 1) * x k = a * (a ^ k * x k) := by ring
+    rw [this, ← hpow k, h0]
+  have chain_monotone : Monotone (fun n => (⟨⟨⟨{b | a ^ n * b = 0},
+    fun {x y} (hx : a ^ n * x = 0) (hy : a ^ n * y = 0) => by
+      change a ^ n * (x + y) = 0; rw [mul_add, hx, hy, add_zero]⟩,
+    by change a ^ n * 0 = 0; simp⟩,
+    fun c {x} (hx : a ^ n * x = 0) => by
+      change a ^ n * (c • x) = 0; rw [smul_eq_mul, mul_left_comm, hx, mul_zero]⟩
+    : Submodule A A)) := by
+    intro m n hmn b (hb : a ^ m * b = 0)
+    change a ^ n * b = 0
+    calc a ^ n * b = a ^ (n - m) * (a ^ m * b) := by
+          rw [← mul_assoc, ← pow_add, Nat.sub_add_cancel hmn]
+      _ = 0 := by rw [hb, mul_zero]
+  let chain : ℕ →o Submodule A A := ⟨_, chain_monotone⟩
+  obtain ⟨K, hK⟩ :=
+    (monotone_stabilizes_iff_noetherian (R := A) (M := A)).mpr inferInstance chain
+  have hxK_mem : x K ∈ chain (K + 1) := by
+    change a ^ (K + 1) * x K = 0; exact hann K
+  have hxK : a ^ K * x K = 0 :=
+    (hK (K + 1) (by omega) ▸ hxK_mem : x K ∈ chain K)
+  rw [hpow K, hxK]
+
 /-! #### Faithful flatness of A⟨X⟩ over A (Lemma 8.31(1)) -/
 
 /-- `PrimeSpectrum.comap (algebraMap A A⟨X⟩)` is surjective.
@@ -537,22 +606,57 @@ theorem flat_quotient_of_regular (g : ↥(TateAlgebra A))
 
 /-- Multiplication by `f - X` is injective on `A⟨X⟩` when `A` is noetherian.
 
-**TODO:** The proof uses Wedhorn's noetherian ascending chain argument on the
-recurrence `f·m₀ = 0, f·mₙ = mₙ₋₁`. This requires the coefficient structure
-of `A⟨X⟩` (power series expansion), which needs the topological identification
-`M ⊗[A] A⟨X⟩ ≃ M⟨X⟩`. -/
+The coefficient equations from `(f - X) * u = 0` give `f * coeff n u = coeff n (X * u)`,
+which yields `f * coeff 0 u = 0` and `coeff n u = f * coeff (n + 1) u`. The noetherian
+ascending chain argument on annihilator ideals forces all coefficients to vanish. -/
 theorem mul_fSubX_regular [IsNoetherianRing A] (f : A) :
     ∀ (x : ↥(TateAlgebra A)),
       (algebraMap A _ f - X) * x = 0 → x = 0 := by
-  sorry
+  intro u hu
+  have hcoeff : ∀ n, f * coeff n u = coeff n (X * u) := by
+    intro n
+    have h1 : coeff n ((algebraMap A _ f - X) * u) = 0 := by
+      rw [hu]; simp [coeff, map_zero]
+    rw [sub_mul, coeff_sub, coeff_algebraMap_mul] at h1
+    exact sub_eq_zero.mp h1
+  have h0 : f * coeff 0 u = 0 := by rw [hcoeff 0, coeff_zero_X_mul]
+  have hstep : ∀ n, coeff n u = f * coeff (n + 1) u := by
+    intro n; have h := hcoeff (n + 1); rw [coeff_succ_X_mul] at h; exact h.symm
+  have hall : ∀ n, coeff n u = 0 := by
+    intro n; induction n using Nat.strongRecOn with
+    | ind n ih =>
+      refine noeth_zero_of_mul_shift f (fun k => coeff (n + k) u) ?_ (fun k => hstep (n + k))
+      simp only [Nat.add_zero]
+      cases n with
+      | zero => exact h0
+      | succ m =>
+        have hm : coeff m u = 0 := ih m (by omega)
+        rw [← hstep m, hm]
+  exact ext hall
 
 /-- Multiplication by `1 - f·X` is injective on `A⟨X⟩` when `A` is noetherian.
 
-**TODO:** Same dependency as `mul_fSubX_regular`. -/
+The coefficient equations from `(1 - fX) * u = 0` give `coeff n u = f * coeff n (X * u)`,
+which yields `coeff 0 u = 0` and `coeff (n+1) u = f * coeff n u`. By induction,
+all coefficients vanish (no noetherian argument needed in this case). -/
 theorem mul_oneSubfX_regular [IsNoetherianRing A] (f : A) :
     ∀ (x : ↥(TateAlgebra A)),
       (1 - algebraMap A _ f * X) * x = 0 → x = 0 := by
-  sorry
+  intro u hu
+  have hcoeff : ∀ n, coeff n u = f * coeff n (X * u) := by
+    intro n
+    have h1 : coeff n ((1 - algebraMap A _ f * X) * u) = 0 := by
+      rw [hu]; simp [coeff, map_zero]
+    rw [sub_mul, one_mul, mul_assoc, coeff_sub, coeff_algebraMap_mul] at h1
+    exact sub_eq_zero.mp h1
+  have h0 : coeff 0 u = 0 := by rw [hcoeff 0, coeff_zero_X_mul, mul_zero]
+  have hstep : ∀ n, coeff (n + 1) u = f * coeff n u := by
+    intro n; rw [hcoeff (n + 1), coeff_succ_X_mul]
+  have hall : ∀ n, coeff n u = 0 := by
+    intro n; induction n with
+    | zero => exact h0
+    | succ n ih => rw [hstep n, ih, mul_zero]
+  exact ext hall
 
 /-- `A⟨X⟩/(f - X)` is flat over a noetherian `A` (Lemma 8.31(2), first case).
 Identifies with `O_X(R(f/1))` in the presheaf. -/
