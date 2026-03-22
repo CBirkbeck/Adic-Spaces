@@ -67,7 +67,9 @@ theorem rationalOpen_singleton_one :
 /-- The rational subset `R({1}/1)` corresponds to `⊤` in `Opens ↥(Spa A A⁺)`. -/
 theorem rationalOpens_singleton_one [DecidableEq A] :
     rationalOpens ({1} : Finset A) (1 : A) = ⊤ := by
-  ext ⟨v, hv⟩; simp [rationalOpens, rationalOpen_singleton_one]
+  ext ⟨v, hv⟩
+  simp only [rationalOpens, rationalOpen_singleton_one, Subtype.coe_preimage_self,
+    TopologicalSpace.Opens.mk_univ, TopologicalSpace.Opens.coe_top, Set.mem_univ]
 
 /-! ### The adic completion -/
 
@@ -171,27 +173,34 @@ variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
 noncomputable def presheafValue (D : RationalLocData A) : Type _ :=
   @UniformSpace.Completion (Localization.Away D.s) D.uniformSpace
 
+/-- The `CommRing` instance on `presheafValue D`. -/
 noncomputable instance (D : RationalLocData A) : CommRing (presheafValue D) :=
   @UniformSpace.Completion.commRing _ _ D.uniformSpace D.isUniformAddGroup
     D.isTopologicalRing
 
+/-- The `TopologicalSpace` instance on `presheafValue D`. -/
 noncomputable instance (D : RationalLocData A) : TopologicalSpace (presheafValue D) :=
   @UniformSpace.toTopologicalSpace _ (@UniformSpace.Completion.uniformSpace
     (Localization.Away D.s) D.uniformSpace)
 
+/-- The `UniformSpace` instance on `presheafValue D`. -/
 noncomputable instance (D : RationalLocData A) : UniformSpace (presheafValue D) :=
   @UniformSpace.Completion.uniformSpace (Localization.Away D.s) D.uniformSpace
 
+/-- The `IsTopologicalRing` instance on `presheafValue D`. -/
 noncomputable instance (D : RationalLocData A) : IsTopologicalRing (presheafValue D) :=
   @UniformSpace.Completion.topologicalRing _ _ D.uniformSpace
     D.isTopologicalRing D.isUniformAddGroup
 
+/-- The `IsUniformAddGroup` instance on `presheafValue D`. -/
 noncomputable instance (D : RationalLocData A) : IsUniformAddGroup (presheafValue D) :=
   @UniformSpace.Completion.isUniformAddGroup _ D.uniformSpace _ D.isUniformAddGroup
 
+/-- The `CompleteSpace` instance on `presheafValue D`. -/
 instance (D : RationalLocData A) : CompleteSpace (presheafValue D) :=
   @UniformSpace.Completion.completeSpace _ D.uniformSpace
 
+/-- The `T0Space` instance on `presheafValue D`. -/
 instance (D : RationalLocData A) : T0Space (presheafValue D) :=
   @UniformSpace.Completion.t0Space _ D.uniformSpace
 
@@ -446,15 +455,18 @@ private theorem locTopology_eq_bot_of_discrete {A : Type*} [CommRing A] [Topolog
     intro ⟨a, ha⟩ haI
     obtain ⟨n, hn⟩ := isNilpotent_of_isTopologicallyNilpotent_discrete
       (D.P.isTopologicallyNilpotent_of_mem haI)
-    exact ⟨n, Subtype.val_injective (by simp [hn])⟩
+    exact ⟨n, Subtype.val_injective (by simp only [SubmonoidClass.mk_pow, hn,
+      ZeroMemClass.coe_zero])⟩
   obtain ⟨M, hM⟩ := (Ideal.FG.isNilpotent_iff_le_nilradical D.P.fg).mpr hI_le
   have hJ : locIdeal D.P D.T D.s ^ M = ⊥ := by
-    rw [locIdeal, ← Ideal.map_pow]; simp [hM]
+    rw [locIdeal, ← Ideal.map_pow]
+    simp only [hM, Submodule.zero_eq_bot, Ideal.map_bot]
   have hNhd : ∀ x ∈ locNhd D.P D.T D.s M, x = (0 : Localization.Away D.s) := by
     rintro _ ⟨d, hd, rfl⟩
     have hd' : d ∈ (locIdeal D.P D.T D.s) ^ M := hd
     rw [hJ] at hd'
-    simp [show d = 0 from hd']
+    simp only [RingHom.toAddMonoidHom_eq_coe, show d = 0 from hd',
+      AddMonoidHom.coe_coe, Subring.subtype_apply, ZeroMemClass.coe_zero]
   letI : TopologicalSpace (Localization.Away D.s) := D.topology
   letI := D.isTopologicalRing
   have hbasis := locBasis D.P D.T D.s D.hopen
@@ -467,7 +479,8 @@ private theorem locTopology_eq_bot_of_discrete {A : Type*} [CommRing A] [Topolog
     hNhd_eq ▸ hopen_nhd
   apply eq_bot_of_singletons_open
   intro x
-  rw [show ({x} : Set (Localization.Away D.s)) = (x + ·) '' {0} from by simp]
+  rw [show ({x} : Set (Localization.Away D.s)) = (x + ·) '' {0} from by
+    simp only [Set.image_singleton, add_zero]]
   exact (isOpenMap_add_left x) _ hopen_zero
 
 /-- Given a prime `p` containing `D.s` but not `D'.s`, construct a point in `rationalOpen D'.T D'.s`
@@ -515,9 +528,10 @@ private theorem mem_prime_of_rational_subset_discrete {A : Type*} [CommRing A]
       simp only [w, Valuation.comap_apply]
       exact Valuation.one_apply_le_one _
     · change ¬ (w D'.s ≤ w 0)
-      simp [hw_Ds, w, map_zero]
+      simp only [hw_Ds, map_zero, le_zero_iff, one_ne_zero, not_false_eq_true, w]
   exact (h hv_rat).2.2 ((v.mem_supp_iff D.s).mp (hv_supp ▸ hDs))
 
+/-- Discrete rings have restriction maps (Proposition 8.2 of Wedhorn, discrete case). -/
 instance HasRestrictionMaps.discrete {A : Type*} [CommRing A] [TopologicalSpace A]
     [DiscreteTopology A] [IsTopologicalRing A] [PlusSubring A] :
     HasRestrictionMaps A where
@@ -672,7 +686,8 @@ private theorem base_s_mem_annihilator_radical {A : Type*} [CommRing A]
         change w t ≤ w C.base.s; rw [hw_s]
         simp only [w, Valuation.comap_apply]
         exact Valuation.one_apply_le_one _,
-      by change ¬ (w C.base.s ≤ w 0); simp [hw_s, w, map_zero]⟩
+      by change ¬ (w C.base.s ≤ w 0)
+         simp only [hw_s, map_zero, le_zero_iff, one_ne_zero, not_false_eq_true, w]⟩
   obtain ⟨D, hD, hv_D⟩ := C.hcover v hv_rat
   have hDs_notin : D.s ∉ p := fun hDs ↦
     hv_D.2.2 ((v.mem_supp_iff D.s).mp (hv_supp ▸ hDs))
