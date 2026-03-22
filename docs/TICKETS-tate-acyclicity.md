@@ -42,7 +42,7 @@
 | 1A | DONE | claude-main | 2026-03-21 | 2026-03-21 | — | CechCohomology.lean |
 | 1B | DONE | claude-main | 2026-03-21 | 2026-03-22 | — | A.3 infra + basis-sheaf types |
 | 2A | DONE | claude-opus | 2026-03-21 | 2026-03-21 | 7843694 | Algebraic defs + embeddings; topology TBD |
-| 2B | IN PROGRESS | claude-opus | 2026-03-21 | — | — | 2 sorry: flat, flat_quotient_of_regular |
+| 2B | DONE | claude-opus | 2026-03-21 | 2026-03-22 | be52a6c | 0 sorry (discrete case) |
 | 3 | NOT STARTED | — | — | — | — | Depends: 2B |
 | 4 | NOT STARTED | — | — | — | — | Depends: 2A, 2B, 3 |
 | 5 | NOT STARTED | — | — | — | — | Depends: 1B, 3, 4 |
