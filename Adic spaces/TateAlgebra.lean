@@ -582,14 +582,28 @@ theorem PrimeSpectrum_comap_algebraMap_surjective :
 
 /-- `A⟨X⟩` is flat over `A` (Lemma 8.31(1), flatness part).
 
-**TODO:** The full proof requires the topological isomorphism `M ⊗[A] A⟨X⟩ ≃ M⟨X⟩`
-(Remark 8.29) which needs the topology on `A⟨X⟩` (not yet defined). -/
-instance flat : Module.Flat A ↥(TateAlgebra A) := by
+The mathematical proof proceeds via the topological isomorphism `M ⊗[A] A⟨X⟩ ≃ M⟨X⟩`
+(Wedhorn, Remark 8.29): the functor `M ↦ M⟨X⟩` is exact because `M⟨X⟩` is computed
+coefficient-wise, hence `· ⊗[A] A⟨X⟩` is exact, which is flatness.
+
+**What's missing for the full proof:**
+1. A Lean formalization of the topological tensor product `M ⊗[A] A⟨X⟩ ≃ M⟨X⟩`,
+   which requires the `I`-adic topology on `A⟨X⟩` and completed tensor products.
+2. Alternatively, a Mathlib result that direct products `∏ᵢ M` of flat `R`-modules
+   are flat when `R` is Noetherian (Chase's theorem), together with expressing
+   `A⟨X⟩` as a sub-`A`-module of `∏_{n:ℕ} A`.
+3. Or a filtered colimit argument: `A⟨X⟩ = colim_U M_U` where `U` ranges over
+   open subgroups and each `M_U` is free, together with the Mathlib fact that
+   filtered colimits of flat modules are flat (Lazard-type result, not yet available).
+
+The `[IsNoetherianRing A]` hypothesis is added because all downstream uses
+(`flat_quotient_fSubX`, `flat_quotient_oneSubfX`, etc.) already assume it. -/
+instance flat [IsNoetherianRing A] : Module.Flat A ↥(TateAlgebra A) := by
   sorry
 
 /-- `A⟨X⟩` is faithfully flat over `A` (Lemma 8.31(1)).
 Faithful flatness follows from flatness + surjectivity on spectra. -/
-instance faithfullyFlat : Module.FaithfullyFlat A ↥(TateAlgebra A) :=
+instance faithfullyFlat [IsNoetherianRing A] : Module.FaithfullyFlat A ↥(TateAlgebra A) :=
   Module.FaithfullyFlat.of_comap_surjective PrimeSpectrum_comap_algebraMap_surjective
 
 /-! #### Quotient flatness from injectivity (Lemma 8.31(2)) -/
@@ -599,7 +613,7 @@ If multiplication by `g` is injective on `A⟨X⟩`, then `A⟨X⟩/(g)` is flat
 
 The proof uses the short exact sequence `0 → A⟨X⟩ →[·g] A⟨X⟩ → A⟨X⟩/(g) → 0`
 and the flatness of `A⟨X⟩` over `A`. -/
-theorem flat_quotient_of_regular (g : ↥(TateAlgebra A))
+theorem flat_quotient_of_regular [IsNoetherianRing A] (g : ↥(TateAlgebra A))
     (hg : ∀ (x : ↥(TateAlgebra A)), g * x = 0 → x = 0) :
     Module.Flat A (↥(TateAlgebra A) ⧸ Ideal.span {g}) := by
   sorry
