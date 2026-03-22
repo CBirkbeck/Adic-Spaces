@@ -3,7 +3,6 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import Mathlib.RingTheory.MvPowerSeries.PiTopology
-import Mathlib.RingTheory.Flat.Basic
 import «Adic spaces».TateAlgebra
 
 /-!
@@ -23,7 +22,7 @@ converges iff each coefficient converges in `A`.
 * `TateAlgebra.topologicalSpace` : The topology on `A⟨X⟩` (product/subspace topology).
 * `TateAlgebra.isTopologicalRing` : `A⟨X⟩` is a topological ring.
 * `TateAlgebra.continuous_coeff` : Each coefficient function `coeff n` is continuous.
-* `TateAlgebra.flat` : `A⟨X⟩` is flat over `A` (for noetherian `A`).
+* `TateAlgebra.continuous_evalZeroHom` : The evaluation-at-zero map is continuous.
 
 ## References
 
@@ -53,7 +52,7 @@ the continuous coefficient projection). -/
 theorem continuous_coeff (n : ℕ) :
     Continuous (fun f : ↥(TateAlgebra A) => coeff n f) := by
   apply Continuous.comp
-  · exact MvPowerSeries.WithPiTopology.continuous_coeff (toIndex n)
+  · exact MvPowerSeries.WithPiTopology.continuous_coeff A (toIndex n)
   · exact continuous_subtype_val
 
 /-- `evalZeroHom` is continuous (it extracts the 0-th coefficient). -/

@@ -61,7 +61,7 @@ theorem isStrictMap_of_isOpenMap {X Y : Type*} [TopologicalSpace X] [Topological
   rw [isOpen_induced_iff]
   exact ⟨f '' U, hf U hU, by
     ext ⟨y, x, rfl⟩
-    simp [Set.rangeFactorization]⟩
+    simp only [Set.rangeFactorization, Set.mem_preimage, Set.mem_image, Subtype.mk.injEq]⟩
 
 /-- A strict surjective map is open. -/
 theorem IsStrictMap.isOpenMap_of_surjective {X Y : Type*}
@@ -72,8 +72,6 @@ theorem IsStrictMap.isOpenMap_of_surjective {X Y : Type*}
   have h := hf U hU
   rw [isOpen_induced_iff] at h
   obtain ⟨V, hV, hVeq⟩ := h
-  -- V is open in Y, Subtype.val ⁻¹' V = rangeFactorization f '' U
-  -- Since f is surjective, f '' U = V
   convert hV using 1
   ext y
   constructor
@@ -151,6 +149,7 @@ def latticeNhd (P : PairOfDefinition A) {M : Type*} [AddCommGroup M] [Module A M
   P.I ^ n • M₀
 
 omit [IsTopologicalRing A] in
+/-- The lattice neighborhoods `I^n • M₀` are antitone in `n`. -/
 theorem latticeNhd_antitone (P : PairOfDefinition A) {M : Type*} [AddCommGroup M] [Module A M]
     (M₀ : Submodule P.A₀ M) : Antitone (latticeNhd P M₀) := by
   intro m n hmn
