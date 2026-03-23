@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import «Adic spaces».PseudoUniformizer
 import «Adic spaces».Uniform
 import «Adic spaces».StructureSheaf
+import Mathlib.RingTheory.AdicCompletion.Basic
 
 /-!
 # Perfectoid Rings and Fields
@@ -119,6 +120,31 @@ theorem perfectoidPseudoUniformizer_frobenius_surj (p : ℕ) [Fact (Nat.Prime p)
         ∃ z : A, IsPowerBounded z ∧
           x = y ^ p + ((perfectoidPseudoUniformizer p A).val : A) * z :=
   (IsPerfectoidRing.exists_pseudoUniformizer (p := p) (A := A)).choose_spec.2.2
+
+/-! ### p-adic completeness of A° -/
+
+/-- **The power-bounded subring of a perfectoid ring is `p`-adically complete.**
+
+Mathematically, this follows from three facts:
+1. The `(p)`-adic filtration `p^n · A°` is cofinal with the `ϖ`-adic filtration
+   (since `p = c · ϖ^p` with `c, ϖ ∈ A°`).
+2. The `ϖ`-adic topology on `A°` agrees with the subspace topology from `A`.
+3. `A°` is complete in the subspace topology (it is closed in the complete ring `A`).
+
+The proof of `IsHausdorff` uses: if `x ∈ p^n A°` for all `n`, then
+`x ∈ ϖ^{np} · A°` for all `n`, and since `ϖ` is top. nilpotent and `A°` is
+bounded, `x` is in every neighborhood of `0`, hence `x = 0` by T₀.
+
+The proof of `IsPrecomplete` uses: a `p`-adic Cauchy sequence is also Cauchy
+in the subspace topology (by the cofinality above), hence converges in `A°`.
+
+(Scholze, *Perfectoid Spaces*, implicit in §3) -/
+instance instIsAdicComplete (p : ℕ) [Fact (Nat.Prime p)]
+    (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [UniformSpace A] [IsLinearTopology A A] [IsPerfectoidRing p A] [Nontrivial A] :
+    IsAdicComplete (Ideal.span {(p : ↥(powerBoundedSubring.toSubring A))})
+      ↥(powerBoundedSubring.toSubring A) := by
+  sorry
 
 /-! ### Sorry'd deep theorems -/
 
