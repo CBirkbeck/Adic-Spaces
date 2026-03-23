@@ -330,16 +330,38 @@ variable (K : Type u) [Field K] [TopologicalSpace K] [IsTopologicalRing K]
 
 /-- The tilt `O_{K♭} = PreTilt O_K p` of a perfectoid field `K` is an **integral domain**.
 
-Since `K` is a field, `O_K = K°` is a valuation ring, and `O_K/(p)` is a
-domain (since `p` is in the maximal ideal of `O_K`). The perfection of
-a domain of characteristic `p` is again a domain.
+The proof constructs a rank-1 valuation `v : Valuation K NNReal` on `K` whose
+ring of integers is `K°` (the power-bounded subring), then applies Mathlib's
+`PreTilt.isDomain` which builds a valuation on the perfection `Perfection(O_K/(p), p)`
+and shows it has no zero divisors via the multiplicative valuation.
+
+The one sorry'd step is `exists_valuation_with_integers`: for a perfectoid field, the
+topology is induced by a rank-1 valuation `v`, and `K° = {x | v(x) ≤ 1}`. This is
+standard (Wedhorn, Proposition 6.1) but requires connecting the topological
+characterization (`IsLinearTopology`, `IsTateRing`) with the valuation-theoretic one.
+To fill the sorry, one should construct the valuation from the topologically nilpotent
+unit (which gives a Tate ring structure), show it induces the given topology, and
+verify `v.Integers = K°`.
 
 The tilt *field* is `K♭ := FractionRing O_{K♭}`, which is a perfectoid field
 of characteristic `p`. See also `tilt_admits_perfectoid_structure`.
 
 (Scholze, *Perfectoid Spaces*, Proposition 3.6; Heuer, Prop 1.1.23) -/
 theorem tilt_isDomain : IsDomain (PerfectoidRing.tilt p K) := by
-  sorry
+  -- Step 1: Construct a rank-1 valuation on K with K° as its integer ring.
+  -- For a perfectoid field (= Tate field), the topology is induced by a non-archimedean
+  -- rank-1 valuation, and the power-bounded subring is its valuation ring.
+  -- This is Wedhorn Proposition 6.1 / Heuer Lemma 1.1.5.
+  suffices h : ∃ (v : Valuation K NNReal),
+      v.Integers ↥(powerBoundedSubring.toSubring K) from by
+    obtain ⟨v, hv⟩ := h
+    -- Step 2: Apply Mathlib's PreTilt.isDomain using the valuation.
+    exact PreTilt.isDomain K v ↥(powerBoundedSubring.toSubring K) hv p
+  -- The valuation existence is the one sorry'd step.
+  -- It requires: (1) constructing v from the Tate ring structure,
+  -- (2) showing algebraMap is injective (K° ↪ K),
+  -- (3) showing v(x) ≤ 1 ↔ x ∈ K° for all x.
+  exact sorry
 
 /-- The **tilting equivalence**: the tilt functor gives an equivalence between
 perfectoid fields of mixed characteristic `(0, p)` and perfectoid fields of
