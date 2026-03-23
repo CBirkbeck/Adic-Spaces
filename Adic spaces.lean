@@ -31,6 +31,7 @@ import «Adic spaces».RationalSubsets
 import «Adic spaces».RestrictedPowerSeries
 import «Adic spaces».SeminormalRing
 import «Adic spaces».StructureSheaf
+import «Adic spaces».TateAcyclicity
 import «Adic spaces».TateAlgebra
 import «Adic spaces».TateAlgebraTopology
 import «Adic spaces».Tilting
