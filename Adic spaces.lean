@@ -27,6 +27,7 @@ import «Adic spaces».OrderedGroupConvex
 import «Adic spaces».PerfectoidRing
 import «Adic spaces».PerfectoidSpace
 import «Adic spaces».Presheaf
+import «Adic spaces».PresheafIdentification
 import «Adic spaces».PseudoUniformizer
 import «Adic spaces».RationalSubsets
 import «Adic spaces».RestrictedPowerSeries
