@@ -11,7 +11,7 @@
 | 1 | `tilt_isDomain` | REDUCED | Moderate | Renamed from tilt_isField (wrong statement). Now reduces to valuation construction via PreTilt.isDomain. Sorry: exists v : Valuation K NNReal with v.Integers = K° |
 | 2 | `tilt_admits_perfectoid_structure` | **DONE** | Easy | Discrete topology (⊥ uniformity) |
 | 3 | `tiltingEquiv` | **DONE** | Easy | Same discrete topology |
-| 4 | `ker_theta_principal` | **IN PROGRESS** | Very Hard | Plan at docs/plans/2026-03-23-ker-theta-principal.md. Generator: ξ = p - [ϖ♭]. Reference: Berkeley Lectures Lemma 6.2.8 |
+| 4 | `ker_theta_principal` | STRUCTURED | Very Hard | Proof skeleton done, 1 core sorry. Plan at docs/plans/2026-03-23-ker-theta-principal.md. Generator: ξ = [ϖ♭] - p. Reference: Berkeley Lectures Lemma 6.2.8. Needs: construct ϖ♭ via Perfection.coeff_surjective + show ker ⊆ (ξ) via p-adic completeness |
 
 ## Sorry Status (PerfectoidRing.lean)
 
@@ -30,6 +30,23 @@
 - [x] theta_surjective: proved via surjective_fontaineTheta
 - [x] frobenius_modP_surjective: proved (after class refactor to Scholze Def 3.5)
 - [x] IsPerfectoidRing refactored to Scholze's formulation (p-Frobenius)
+
+## Shared Blocker for Both Remaining Sorry's
+
+Both `ker_theta_principal` and `tilt_isDomain` share the same fundamental gap:
+**connecting the topological perfectoid setup to the valuation-theoretic one**.
+
+- `tilt_isDomain` needs `v : Valuation K NNReal` with `v.Integers = K°`
+- `ker_theta_principal` needs ϖ♭ constructed from the perfectoid data with exact control over `untilt`
+
+The bridge is **Wedhorn Proposition 6.1**: for a Tate field, the topology is induced by a rank-1 valuation whose integer ring is the power-bounded subring. Once this is formalized, both sorry's become fillable.
+
+**Critical Mathlib APIs for the construction:**
+- `PreTilt.untilt : PreTilt O p →* O` — the sharp map (♯)
+- `PreTilt.mk_untilt_eq_coeff_zero` — `mk (untilt x) = coeff 0 x`
+- `fontaineTheta_teichmuller` — `θ([x]) = x.untilt`
+- `Perfection.coeff_surjective` — every coeff map is surjective (when Frobenius surj)
+- `PreTilt.isDomain` — needs `v : Valuation K NNReal, v.Integers O`
 
 ## Key Mathlib APIs
 
