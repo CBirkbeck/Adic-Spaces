@@ -56,6 +56,11 @@ class IsPerfectoidRing (p : ℕ) [Fact (Nat.Prime p)]
     (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [UniformSpace A] [IsLinearTopology A A] : Prop
     extends IsTateRing A where
+  /-- The uniform space is compatible with the additive group structure, and its
+  topology agrees with `[TopologicalSpace A]`. -/
+  uniformAddGroup : IsUniformAddGroup A
+  /-- The uniform space topology agrees with the given topology. -/
+  topologyEq : ‹UniformSpace A›.toTopologicalSpace = ‹TopologicalSpace A›
   /-- The ring is complete with respect to its uniform structure. -/
   complete : CompleteSpace A
   /-- The topology is T₀ (separated). -/
@@ -210,11 +215,229 @@ private theorem isHausdorff_pIdeal (p : ℕ) [Fact (Nat.Prime p)]
   -- Conclude x = 0 in A°
   exact Subtype.val_injective hx_zero
 
-/-- **IsPrecomplete**: `p`-adic Cauchy sequences in `A°` converge. -/
+/-- In a uniform ring with linear topology, the limit of a sequence of power-bounded
+elements (in the topology of A) is power-bounded, provided A° is bounded. -/
+private theorem isPowerBounded_of_tendsto_of_powerBounded
+    {A : Type u} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [IsLinearTopology A A] [IsUniform A] {f : ℕ → A} {L : A}
+    (hf : ∀ n, IsPowerBounded (f n)) (hL : Filter.Tendsto f Filter.atTop (nhds L)) :
+    IsPowerBounded L := by
+  intro U hU
+  -- Pick open ideal J ⊆ U
+  obtain ⟨J, hJopen, hJU⟩ :=
+    (IsLinearTopology.hasBasis_open_ideal (R := A)).mem_iff.mp hU
+  -- Pick V ∈ nhds 0 with A° * V ⊆ J (using A° bounded)
+  obtain ⟨V, hV, hAV⟩ :=
+    IsUniform.isBounded_powerBounded (A := A) (J : Set A) (hJopen.mem_nhds J.zero_mem)
+  -- Pick open ideal J' ⊆ V ∩ J
+  obtain ⟨J', hJ'open, hJ'VJ⟩ :=
+    (IsLinearTopology.hasBasis_open_ideal (R := A)).mem_iff.mp
+      (Filter.inter_mem hV (hJopen.mem_nhds J.zero_mem))
+  have hJ'V : (J' : Set A) ⊆ V := fun x hx => (hJ'VJ hx).1
+  have hJ'J : (J' : Set A) ⊆ (J : Set A) := fun x hx => (hJ'VJ hx).2
+  -- Pick N such that f N - L ∈ J'
+  have hJ'nhds : {x | x - L ∈ (J' : Set A)} ∈ nhds L :=
+    (continuous_sub_right L).continuousAt.preimage_mem_nhds
+      (by simpa using hJ'open.mem_nhds J'.zero_mem)
+  obtain ⟨N, hN⟩ := Filter.mem_atTop_sets.mp (hL hJ'nhds)
+  have hLfN : L - f N ∈ (J' : Set A) := by
+    have h := hN N le_rfl
+    simp only [Set.mem_preimage, Set.mem_setOf_eq] at h
+    have : -(f N - L) = L - f N := by ring
+    rw [show L - f N = -(f N - L) from by ring]; exact J'.neg_mem h
+  -- For all k: L^k - (f N)^k ∈ J' (J' is an ideal, L - f N ∈ J')
+  have hLk : ∀ k : ℕ, L ^ k - (f N) ^ k ∈ (J' : Set A) := by
+    intro k; induction k with
+    | zero => simp [J'.zero_mem]
+    | succ k ih =>
+      have : L ^ (k + 1) - (f N) ^ (k + 1) =
+          L ^ k * (L - f N) + (L ^ k - (f N) ^ k) * f N := by ring
+      rw [this]; exact J'.add_mem (J'.mul_mem_left _ hLfN) (J'.mul_mem_right _ ih)
+  -- Witness: V' = J' works for {L^k | k} * J' ⊆ J ⊆ U
+  refine ⟨(J' : Set A), hJ'open.mem_nhds J'.zero_mem, ?_⟩
+  rintro _ ⟨_, ⟨k, rfl⟩, v, hv, rfl⟩
+  apply hJU
+  show L ^ k * v ∈ (J : Set A)
+  have hsplit : L ^ k * v = (f N) ^ k * v + (L ^ k - (f N) ^ k) * v := by ring
+  rw [hsplit]; apply J.add_mem
+  · -- (f N)^k * v ∈ A° * V ⊆ J
+    have hfNk : IsPowerBounded ((f N) ^ k) := by
+      apply (hf N).subset; rintro _ ⟨m, rfl⟩
+      exact ⟨k * m, show f N ^ (k * m) = (f N ^ k) ^ m from pow_mul _ _ _⟩
+    exact hAV (Set.mul_mem_mul hfNk (hJ'V hv))
+  · -- (L^k - (f N)^k) * v ∈ J' ⊆ J
+    exact hJ'J (J'.mul_mem_right _ (hLk k))
+
+/-- **IsPrecomplete**: `p`-adic Cauchy sequences in `A°` converge.
+
+The proof proceeds in four steps:
+1. Extract the divisibility content of the Cauchy condition.
+2. Show the coerced sequence `(f n : A)` is Cauchy in the uniform space on `A`.
+3. Obtain a limit `L : A` from `CompleteSpace A`, show `L ∈ A°` using the helper lemma.
+4. Verify the `SModEq` condition: `p^n | (f n - L)` in `A°`. -/
 private theorem isPrecomplete_pIdeal (p : ℕ) [Fact (Nat.Prime p)]
     (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [UniformSpace A] [IsLinearTopology A A] [IsPerfectoidRing p A] [Nontrivial A] :
     IsPrecomplete (pIdeal p A) (PBSubring A) := by
+  haveI := IsPerfectoidRing.complete (p := p) (A := A)
+  haveI := IsPerfectoidRing.t0 (p := p) (A := A)
+  haveI := IsPerfectoidRing.uniform (p := p) (A := A)
+  -- Extract perfectoid data
+  obtain ⟨ϖ, hϖ_pb, ⟨c, hc_pb, hpc⟩, _⟩ :=
+    IsPerfectoidRing.exists_pseudoUniformizer (p := p) (A := A)
+  have hp_pos : 0 < p := (Fact.out : Nat.Prime p).pos
+  constructor
+  intro f hf
+  -- Step 1: Extract divisibility from the Cauchy condition
+  have hf_div : ∀ m n, m ≤ n → ∃ y : PBSubring A, f m - f n = (p : PBSubring A) ^ m * y := by
+    intro m n hmn
+    have := SModEq.sub_mem.mp (hf hmn)
+    rw [Ideal.smul_eq_mul, Ideal.mul_top, Ideal.span_singleton_pow,
+      Ideal.mem_span_singleton] at this
+    exact this
+  -- Step 1b: Divisibility in A
+  have hf_divA : ∀ m n, m ≤ n →
+      (f m : A) - (f n : A) ∈ Set.range (fun y : PBSubring A => (p : A) ^ m * (y : A)) := by
+    intro m n hmn
+    obtain ⟨y, hy⟩ := hf_div m n hmn
+    exact ⟨y, by have := congr_arg (Subtype.val) hy; push_cast at this ⊢; exact this.symm⟩
+  -- Step 2: Show (f n : A) is Cauchy in A
+  -- For any U ∈ 𝓤 A, we need: ∃ N, ∀ m n ≥ N, (f m, f n) ∈ U
+  -- We use: (f n : A) - (f m : A) = p^m * y = (c * ϖ^p)^m * y = (c^m * y) * ϖ^{mp}
+  -- For large m, this is small since A° is bounded and ϖ^{mp} → 0.
+  -- Key: show the difference is in any nhds 0 for large m
+  have hf_small : ∀ W ∈ nhds (0 : A), ∃ N, ∀ m n, N ≤ m → m ≤ n →
+      (f m : A) - (f n : A) ∈ W := by
+    intro W hW
+    obtain ⟨V, hV, hAV⟩ :=
+      IsUniform.isBounded_powerBounded (A := A) W hW
+    have hϖp_tn : IsTopologicallyNilpotent ((ϖ.val : A) ^ p) := by
+      rw [IsTopologicallyNilpotent]; simp_rw [← pow_mul]
+      exact ϖ.property.comp
+        (Filter.tendsto_atTop_atTop_of_monotone (fun _ _ h => Nat.mul_le_mul_left p h)
+          fun b => ⟨b, Nat.le_mul_of_pos_left _ hp_pos⟩)
+    have hcn_pb : ∀ m : ℕ, IsPowerBounded (c ^ m) := by
+      intro m; induction m with
+      | zero => simpa using isPowerBounded_one
+      | succ k ih => simpa [pow_succ] using isPowerBounded_mul ih hc_pb
+    -- Pick open ideal J ⊆ V with (ϖ^p)^N ∈ J
+    obtain ⟨J, hJopen, hJV⟩ :=
+      (IsLinearTopology.hasBasis_open_ideal (R := A)).mem_iff.mp hV
+    obtain ⟨N, hN⟩ := hϖp_tn.exists_pow_mem_of_mem_nhds (hJopen.mem_nhds J.zero_mem)
+    refine ⟨N, fun m n hNm hmn => ?_⟩
+    obtain ⟨y, hy⟩ := hf_divA m n hmn
+    have hcy_pb : IsPowerBounded (c ^ m * (y : A)) :=
+      isPowerBounded_mul (hcn_pb m) y.property
+    have hϖm : ((ϖ.val : A) ^ p) ^ m ∈ V := by
+      apply hJV
+      rw [show ((ϖ.val : A) ^ p) ^ m = ((ϖ.val : A) ^ p) ^ (m - N) * ((ϖ.val : A) ^ p) ^ N by
+        rw [← pow_add, Nat.sub_add_cancel hNm]]
+      exact J.mul_mem_left _ hN
+    have : (f m : A) - (f n : A) = c ^ m * (y : A) * ((ϖ.val : A) ^ p) ^ m := by
+      rw [← hy, hpc]; ring
+    rw [this]; exact hAV (Set.mul_mem_mul hcy_pb hϖm)
+  -- Step 3: Show CauchySeq and get limit
+  haveI : IsUniformAddGroup A := IsPerfectoidRing.uniformAddGroup (p := p) (A := A)
+  have htop := IsPerfectoidRing.topologyEq (p := p) (A := A)
+  -- Convert hf_small to use uniform-space nhds (needed for CauchySeq)
+  have hf_unif : ∀ W ∈ @nhds A ‹UniformSpace A›.toTopologicalSpace 0,
+      ∃ N, ∀ m n, N ≤ m → m ≤ n → (f m : A) - (f n : A) ∈ W := by
+    intro W hW; rw [htop] at hW; exact hf_small W hW
+  -- Symmetric version
+  have hf_sym : ∀ W ∈ @nhds A ‹UniformSpace A›.toTopologicalSpace 0,
+      ∃ N, ∀ m n, N ≤ m → N ≤ n → (f m : A) - (f n : A) ∈ W := by
+    intro W hW
+    rw [htop] at hW
+    obtain ⟨J, hJopen, hJW⟩ :=
+      (IsLinearTopology.hasBasis_open_ideal (R := A)).mem_iff.mp hW
+    obtain ⟨N, hN⟩ := hf_small (J : Set A) (hJopen.mem_nhds J.zero_mem)
+    exact ⟨N, fun m n hm hn => by
+      rcases le_total m n with hmn | hmn
+      · exact hJW (hN m n hm hmn)
+      · rw [show (f m : A) - (f n : A) = -((f n : A) - (f m : A)) from by ring]
+        exact hJW (J.neg_mem (hN n m hn hmn))⟩
+  -- CauchySeq
+  have hCauchy : CauchySeq (fun n => (f n : A)) := by
+    rw [CauchySeq, IsUniformAddGroup.cauchy_map_iff_tendsto_swapped]
+    refine ⟨Filter.atTop_neBot, ?_⟩
+    rw [Filter.Tendsto, Filter.map_le_iff_le_comap]
+    intro U hU
+    obtain ⟨W, hW, hWU⟩ := Filter.mem_comap.mp hU
+    obtain ⟨N, hN⟩ := hf_sym W hW
+    rw [Filter.prod_atTop_atTop_eq, Filter.mem_atTop_sets]
+    exact ⟨(N, N), fun ⟨m, n⟩ ⟨hm, hn⟩ => hWU (hN n m hn hm)⟩
+  -- Get limit from CompleteSpace
+  obtain ⟨L, hL⟩ := cauchySeq_tendsto_of_complete hCauchy
+  -- Convert hL to use the given topology
+  have hL' : Filter.Tendsto (fun n => (f n : A)) Filter.atTop
+      (@nhds A ‹TopologicalSpace A› L) := by rwa [htop] at hL
+  -- Step 4: L is power-bounded
+  have hL_pb : IsPowerBounded L :=
+    isPowerBounded_of_tendsto_of_powerBounded (fun n => (f n).property) hL'
+  -- Step 5: Verify SModEq condition: p^n | (f n - ⟨L, hL_pb⟩) in A°.
+  -- For m ≥ n: f n - f m = p^n * g_{n,m} for some g_{n,m} ∈ A°.
+  -- The sequence (g_{n,m} : A) for m = n, n+1, ... has the property that
+  -- p^n * (g_{n,m} : A) = (f n : A) - (f m : A) → (f n : A) - L.
+  -- We show g_{n,m} converges by multiplying by ϖ^{-np} (ϖ is a unit):
+  -- c^n * (g_{n,m} : A) = (ϖ^{-1})^{np} * ((f n : A) - (f m : A)) converges.
+  -- The sequence c^n * g_{n,m} is Cauchy and each term is power-bounded.
+  -- Its limit H is power-bounded. Then (f n : A) - L = ϖ^{np} * H = p^n * Y
+  -- where Y = (ϖ^{-1})^{np} * ϖ^{np} * Y = ... This requires c^n * Y = H,
+  -- i.e., Y = H / c^n, which may not exist in A° without c being a non-zerodivisor.
+  --
+  -- Alternative approach: use ϖ^{-np} to "divide" directly.
+  -- (f n : A) - (f m : A) = p^n * (g_{n,m} : A) = c^n * ϖ^{np} * (g_{n,m} : A)
+  -- So (ϖ^{-1})^{np} * ((f n : A) - (f m : A)) = c^n * (g_{n,m} : A)
+  -- Define h_m := (ϖ^{-1} : A)^{n*p} * ((f n : A) - (f m : A))
+  -- Then h_m = c^n * (g_{n,m} : A) is power-bounded (product of power-bounded elements)
+  -- and h_m is Cauchy (since (f m : A) is Cauchy and multiplication by a constant is
+  -- uniformly continuous).
+  -- By CompleteSpace, h_m → H for some H, which is power-bounded by the helper.
+  -- Now (f n : A) - L = ϖ^{np} * H (by continuity of multiplication by ϖ^{np}).
+  -- We need ∃ y : A°, (f n : A) - L = p^n * (y : A).
+  -- (f n : A) - L = ϖ^{np} * H = (1/c^n) * p^n * H... but 1/c^n may not exist.
+  -- However: H = c^n * lim(g_{n,m}) IF lim(g_{n,m}) exists. And if it exists, it's in A°.
+  -- Then (f n : A) - L = p^n * lim(g_{n,m}).
+  -- The question reduces to: does H = c^n * G for some G ∈ A°?
+  -- H = lim(c^n * g_{n,m}) where g_{n,m} ∈ A°.
+  -- If the limit of g_{n,m} exists (call it G), then H = c^n * G and G ∈ A°.
+  -- Does lim(g_{n,m}) exist? We need g_{n,m} to be Cauchy.
+  -- g_{n,m₁} - g_{n,m₂}: from the Cauchy condition on f with indices n+m₁, n+m₂:
+  -- f(m₁) - f(m₂) = p^{m₁} * z for some z ∈ A° (when m₁ ≤ m₂).
+  -- And p^n * (g_{n,m₁} - g_{n,m₂}) = f(m₂) - f(m₁) = -p^{m₁} * z.
+  -- Multiplying by (ϖ^{-1})^{np}: c^n * (g_{n,m₁} - g_{n,m₂}) = -(ϖ^{-1})^{np} * p^{m₁} * z
+  -- = -(ϖ^{-1})^{np} * c^{m₁} * ϖ^{m₁*p} * z = -c^{m₁} * (ϖ^{-1})^{np} * ϖ^{m₁*p} * z
+  -- = -c^{m₁} * ϖ^{(m₁-n)*p} * z
+  -- This is small since ϖ^{(m₁-n)*p} → 0 and the rest is bounded.
+  -- So c^n * g_{n,m} IS Cauchy, and since g_{n,m} = (c^n * g_{n,m}) / c^n...
+  -- we still can't extract g_{n,m} without dividing by c^n.
+  --
+  -- FINAL APPROACH: Directly construct the divisor using the Cauchy condition.
+  -- For each m ≥ n, hf gives f n ≡ f m [SMOD p^n]. So f n - f m ∈ p^n · A°.
+  -- We show f n - ⟨L,_⟩ ∈ p^n · A° by showing p^n · A° is OPEN in A°
+  -- (hence closed, since any open subgroup of a topological group is also closed).
+  -- p^n · A° is open iff it contains an open neighborhood of 0.
+  -- p^n · A° ⊇ p^n · J for any open ideal J. And p^n · J = (c^n * ϖ^{np}) · J.
+  -- ϖ^{np} · J = J (since ϖ is a unit, multiplication by ϖ^{np} is a homeomorphism,
+  -- so ϖ^{np} · J = J if J is an ideal... no, ϖ^{np} · J ⊂ J generally).
+  -- Actually ϖ^{np} · J ⊆ J since J is an ideal and ϖ^{np} ∈ A.
+  -- And c^n · J ⊆ J since J is an ideal.
+  -- So p^n · J = c^n · ϖ^{np} · J ⊆ J. That's the wrong direction.
+  -- We need p^n · A° ⊇ some open set. p^n · A° ⊇ p^n · J for open J.
+  -- But p^n · J ⊆ J ⊆ some nhds 0. We need p^n · J to be open.
+  -- p^n · J = {p^n * j | j ∈ J} which is generally not open.
+  -- Hmm, but p^n · A° ⊇ {p^n * a | a ∈ A°} which contains p^n · V for any V ∈ nhds 0
+  -- with V ⊆ A°... but A° might not contain any open ideal.
+  --
+  -- p^n · A° IS NOT necessarily open. So this approach fails.
+  --
+  -- I need a different argument. The correct proof uses that the g_{n,m} form a
+  -- Cauchy sequence, which requires showing they're eventually close. The obstacle
+  -- is cancelling p^n from both sides without p being a non-zerodivisor.
+  -- This appears to require the almost mathematics framework or an explicit
+  -- construction via the tilt. This is beyond the scope of what can be filled here.
+  --
+  -- TODO: Complete this step using almost mathematics or the tilt construction.
   sorry
 
 instance instIsAdicComplete (p : ℕ) [Fact (Nat.Prime p)]
