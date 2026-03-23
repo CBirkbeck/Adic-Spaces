@@ -8,7 +8,7 @@
 
 | # | Sorry | Status | Difficulty | Notes |
 |---|-------|--------|------------|-------|
-| 1 | `tilt_isField` | **IN PROGRESS** | Moderate | Show PreTilt O_K p is a field when K is perfectoid field |
+| 1 | `tilt_isDomain` | REDUCED | Moderate | Renamed from tilt_isField (wrong statement). Now reduces to valuation construction via PreTilt.isDomain. Sorry: exists v : Valuation K NNReal with v.Integers = K° |
 | 2 | `tilt_admits_perfectoid_structure` | NOT STARTED | Hard | Inverse limit topology on PreTilt |
 | 3 | `tiltingEquiv` | NOT STARTED | Easy (after #2) | Follows from #2 |
 | 4 | `ker_theta_principal` | DEFERRED | Very Hard | Needs Witt vector Teichmüller lifts |
