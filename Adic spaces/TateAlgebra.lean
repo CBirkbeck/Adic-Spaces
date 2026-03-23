@@ -6,6 +6,7 @@ import «Adic spaces».RestrictedPowerSeries
 import Mathlib.RingTheory.Ideal.Quotient.Basic
 import Mathlib.Data.Finsupp.Antidiagonal
 import Mathlib.RingTheory.Flat.Basic
+import Mathlib.RingTheory.Flat.EquationalCriterion
 import Mathlib.RingTheory.Flat.FaithfullyFlat.Algebra
 import Mathlib.RingTheory.Flat.Localization
 import Mathlib.RingTheory.Spectrum.Prime.RingHom
@@ -1244,6 +1245,105 @@ theorem flat_quotient_oneSubfX [DiscreteTopology A] [IsNoetherianRing A] (f : A)
       map_smul' := hsmul }
 
 end TateAlgebra
+
+/-! ### Chase's theorem and general flatness (Lemma 8.31, no DiscreteTopology)
+
+Over a noetherian commutative ring, arbitrary products of copies of the ring are flat.
+This is a special case of Chase's theorem. We use this to prove flatness of the
+full power series ring `MvPowerSeries σ A` and then of the Tate algebra `A⟨X⟩`
+over noetherian `A` (Lemma 8.31(1) of Wedhorn, general case).
+
+References: [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], Lemma 8.31
+-/
+
+section ChaseFlatness
+
+/-- An element of `span(range s)` can be written as `∑ c(j) • s(j)` for some `c : Fin k → R`.
+This extracts `Finsupp` coefficients into a plain function. -/
+private lemma mem_span_range_iff_exists_fin {R : Type u} [CommRing R] {M : Type u}
+    [AddCommGroup M] [Module R M] {k : ℕ} {s : Fin k → M} {x : M} :
+    x ∈ Submodule.span R (Set.range s) ↔
+      ∃ c : Fin k → R, x = ∑ j, c j • s j := by
+  constructor
+  · intro hx
+    obtain ⟨cf, hcf⟩ := Finsupp.mem_span_range_iff_exists_finsupp.mp hx
+    refine ⟨cf, ?_⟩
+    rw [← hcf, Finsupp.sum, Finset.sum_subset (s₂ := Finset.univ) (Finset.subset_univ _)]
+    intro j _ hj; rw [Finsupp.notMem_support_iff] at hj; simp [hj]
+  · intro ⟨c, hc⟩; rw [hc]
+    exact Submodule.sum_mem _
+      (fun j _ => Submodule.smul_mem _ _ (Submodule.subset_span ⟨j, rfl⟩))
+
+/-- The relation map for syzygies: sends `r` to `∑ f(i) * r(i)`. -/
+private noncomputable def relMapFlat {R : Type u} [CommRing R] {l : ℕ}
+    (f : Fin l → R) : (Fin l → R) →ₗ[R] R where
+  toFun r := ∑ i, f i * r i
+  map_add' r s := by simp [mul_add, Finset.sum_add_distrib]
+  map_smul' a r := by simp [smul_eq_mul, mul_left_comm, Finset.mul_sum]
+
+/-- **Chase's theorem (special case):** Products of copies of `R` are flat over
+noetherian `R`.
+
+The proof uses the equational criterion for flatness. Given a relation
+`∑ f(i) • x(i) = 0` where `x(i) : ι → R`, for each coordinate `n ∈ ι` the tuple
+`(x(0)(n), …, x(l-1)(n))` is a syzygy of `(f(0), …, f(l-1))`. Since `R` is noetherian,
+the syzygy module is finitely generated. Decomposing each coordinate's syzygy in terms
+of generators gives the witnesses for `IsTrivialRelation`. -/
+theorem Module.Flat.pi_self {R : Type u} [CommRing R] [IsNoetherianRing R]
+    (ι : Type u) : Module.Flat R (ι → R) := by
+  apply Module.Flat.of_forall_isTrivialRelation
+  intro l f x hfx
+  -- Coordinate-wise relation: for all n, ∑ f(i) * x(i)(n) = 0
+  have hcoord : ∀ n : ι, ∑ i, f i * (x i n) = 0 := by
+    intro n
+    have : (∑ i, f i • x i) n = (0 : ι → R) n := congr_fun hfx n
+    simpa [Finset.sum_apply, Pi.smul_apply, smul_eq_mul] using this
+  -- Get generators of the syzygy module (kernel of the relation map)
+  obtain ⟨k, s, hs⟩ := Submodule.fg_iff_exists_fin_generating_family.mp
+    (IsNoetherian.noetherian
+      (⊤ : Submodule R ↥(LinearMap.ker (relMapFlat f))))
+  -- Decompose each coordinate's syzygy using the generators
+  have hdecomp : ∀ n : ι, ∃ c : Fin k → R,
+      ∀ i, x i n = ∑ j, c j * (s j : Fin l → R) i := by
+    intro n
+    have hmem : (⟨fun i => x i n, by
+        simp only [LinearMap.mem_ker, relMapFlat]; exact hcoord n⟩ :
+        ↥(LinearMap.ker (relMapFlat f))) ∈
+        Submodule.span R (Set.range s) := by
+      rw [hs]; trivial
+    obtain ⟨c, hc⟩ := mem_span_range_iff_exists_fin.mp hmem
+    exact ⟨c, fun i => by
+      have := congr_arg
+        (fun (v : ↥(LinearMap.ker (relMapFlat f))) =>
+          (v : Fin l → R) i) hc
+      simp only [Submodule.coe_sum, Submodule.coe_smul_of_tower,
+        Finset.sum_apply, Pi.smul_apply, smul_eq_mul] at this
+      exact this⟩
+  choose c hc using hdecomp
+  -- Build IsTrivialRelation witnesses:
+  -- a(i,j) = s(j)(i) (syzygy generator components)
+  -- y(j)(n) = c(n)(j) (coefficient at coordinate n)
+  refine ⟨k, fun i j => (s j : Fin l → R) i,
+    fun j n => c n j, ?_, ?_⟩
+  · -- x(i) = ∑_j a(i,j) • y(j)
+    intro i; ext n
+    simp only [Finset.sum_apply, Pi.smul_apply, smul_eq_mul]
+    rw [hc n i]; congr 1; ext j; ring
+  · -- ∑_i f(i) * a(i,j) = 0 (syzygy condition)
+    intro j
+    have hker := (s j).prop
+    simp only [LinearMap.mem_ker, relMapFlat] at hker
+    convert hker using 1
+
+/-- The multivariate power series ring `MvPowerSeries σ R` is flat over noetherian `R`.
+Since `MvPowerSeries σ R = (σ →₀ ℕ) → R` as an `R`-module, this is a direct
+consequence of `Module.Flat.pi_self`. -/
+instance MvPowerSeries.instModuleFlat {R : Type u} [CommRing R]
+    [IsNoetherianRing R] (σ : Type u) :
+    Module.Flat R (MvPowerSeries σ R) :=
+  Module.Flat.pi_self (σ →₀ ℕ)
+
+end ChaseFlatness
 
 /-! ### Quotient equivalence (moved outside namespace for typeclass inference) -/
 
