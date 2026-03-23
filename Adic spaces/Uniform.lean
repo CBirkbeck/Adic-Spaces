@@ -66,6 +66,6 @@ instance IsUniform.discrete {A : Type u} [CommRing A] [TopologicalSpace A]
     intro U hU
     refine ⟨{0}, isOpen_discrete _ |>.mem_nhds rfl, ?_⟩
     rintro _ ⟨a, _, b, (hb : b = 0), rfl⟩
-    simp only [hb, mul_zero, Set.mem_of_mem_nhds hU]
+    simp only [hb, mul_zero]; exact mem_of_mem_nhds hU
 
 end TopologicalRing
