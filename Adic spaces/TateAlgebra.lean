@@ -84,7 +84,7 @@ theorem toIndex_zero : toIndex (0 : ℕ) = (0 : Fin 1 →₀ ℕ) :=
 theorem eq_toIndex (s : Fin 1 →₀ ℕ) : s = toIndex (s 0) := by
   apply Finsupp.ext; intro j
   rw [show j = 0 from Fin.eq_zero j]
-  simp [toIndex]
+  simp only [toIndex, Finsupp.single_eq_same]
 
 /-- The n-th coefficient of a univariate restricted power series `f ∈ A⟨X⟩`. -/
 noncomputable def coeff (n : ℕ) (f : ↥(TateAlgebra A)) : A :=
@@ -103,20 +103,21 @@ theorem ext {f g : ↥(TateAlgebra A)} (h : ∀ n : ℕ, coeff n f = coeff n g) 
 /-- The constant term (evaluation at zero) is a ring homomorphism `A⟨X⟩ →+* A`. -/
 noncomputable def evalZeroHom : ↥(TateAlgebra A) →+* A where
   toFun f := coeff 0 f
-  map_one' := by simp [coeff, toIndex_zero, MvPowerSeries.coeff_one]
+  map_one' := by simp only [coeff, toIndex_zero]; norm_cast
   map_mul' f g := by
     simp only [coeff, toIndex_zero, Subring.coe_mul]
     rw [MvPowerSeries.coeff_mul, Finsupp.antidiagonal_zero]
-    simp
-  map_zero' := by simp [coeff, map_zero]
-  map_add' f g := by simp [coeff, map_add, Subring.coe_add]
+    simp only [Finset.sum_singleton]
+  map_zero' := by simp only [coeff, Subring.coe_zero, map_zero]
+  map_add' f g := by simp only [coeff, map_add, Subring.coe_add]
 
 /-- The evaluation-at-zero map is surjective: every `a : A` is the constant term of the
 constant power series `algebraMap A _ a`. -/
 theorem evalZeroHom_surjective : Function.Surjective (evalZeroHom (A := A)) := by
   intro a
   exact ⟨⟨algebraMap A _ a, MvPowerSeries.IsRestricted_algebraMap a⟩, by
-    simp [evalZeroHom, coeff, toIndex_zero, MvPowerSeries.algebraMap_apply]⟩
+    simp only [evalZeroHom, coeff, toIndex_zero, MvPowerSeries.algebraMap_apply]
+    norm_cast⟩
 
 end TateAlgebra
 
@@ -225,7 +226,7 @@ omit [TopologicalSpace A] [NonarchimedeanRing A] in
 theorem varInclFun_coeff_single {k : ℕ} (j : Fin k) (f : MvPowerSeries (Fin 1) A) (n : ℕ) :
     varInclFun j f (Finsupp.single j n) =
     (MvPowerSeries.coeff (Finsupp.single 0 n)) f := by
-  simp [varInclFun]
+  simp only [varInclFun, Finsupp.single_eq_same, ↓reduceIte]
 
 omit [TopologicalSpace A] [NonarchimedeanRing A] in
 theorem varInclFun_zero {k : ℕ} (j : Fin k) :
@@ -242,11 +243,11 @@ theorem varInclFun_one {k : ℕ} (j : Fin k) :
   rw [varInclFun_apply, MvPowerSeries.coeff_one]
   split_ifs with h1 h2
   · rw [MvPowerSeries.coeff_one, if_pos]
-    rw [h1]; simp [Finsupp.single_eq_zero.mp h2]
+    rw [h1]; simp only [Finsupp.single_eq_zero.mp h2, Finsupp.single_zero]
   · rw [MvPowerSeries.coeff_one, if_neg]
     intro h0; exact h2 (Finsupp.single_eq_zero.mpr (by rw [h1] at h0; simpa using h0))
   · rw [MvPowerSeries.coeff_one, if_neg]
-    intro h0; exact h1 (by rw [h0]; simp)
+    intro h0; exact h1 (by rw [h0]; simp only [Finsupp.zero_apply, Finsupp.single_zero])
 
 omit [TopologicalSpace A] [NonarchimedeanRing A] in
 theorem varInclFun_add {k : ℕ} (j : Fin k) (f g : MvPowerSeries (Fin 1) A) :
@@ -260,17 +261,15 @@ theorem varInclFun_mul {k : ℕ} (j : Fin k) (f g : MvPowerSeries (Fin 1) A) :
     varInclFun j (f * g) = varInclFun j f * varInclFun j g := by
   apply MvPowerSeries.ext; intro e
   by_cases h : e = Finsupp.single j (e j)
-  · -- e supported on {j}: reduce to univariate multiplication via varInclFun_coeff_single
-    change varInclFun j (f * g) e = (MvPowerSeries.coeff e) (varInclFun j f * varInclFun j g)
+  · change varInclFun j (f * g) e = (MvPowerSeries.coeff e) (varInclFun j f * varInclFun j g)
     rw [h]; simp only [varInclFun_coeff_single]
     rw [MvPowerSeries.coeff_mul, MvPowerSeries.coeff_mul]
     rw [Finsupp.antidiagonal_single, Finsupp.antidiagonal_single]
     simp only [Finset.sum_map]
     apply Finset.sum_congr rfl; intro ⟨a, b⟩ _
     change _ = varInclFun j f (Finsupp.single j a) * varInclFun j g (Finsupp.single j b)
-    simp
-  · -- e not supported on {j}: both sides are 0
-    change varInclFun j (f * g) e = (MvPowerSeries.coeff e) (varInclFun j f * varInclFun j g)
+    simp only [varInclFun_coeff_single]; rfl
+  · change varInclFun j (f * g) e = (MvPowerSeries.coeff e) (varInclFun j f * varInclFun j g)
     rw [varInclFun_apply, if_neg h, MvPowerSeries.coeff_mul]
     symm; apply Finset.sum_eq_zero; intro p hp
     rw [Finset.mem_antidiagonal] at hp
@@ -279,7 +278,7 @@ theorem varInclFun_mul {k : ℕ} (j : Fin k) (f g : MvPowerSeries (Fin 1) A) :
     by_cases h1 : p.1 = Finsupp.single j (p.1 j)
     · have h2 : p.2 ≠ Finsupp.single j (p.2 j) := by
         intro h2; apply h; rw [← hp, h1, h2]
-        ext i; simp [Finsupp.single_apply]
+        ext i; simp only [Finsupp.single_apply, Finsupp.add_apply]; split_ifs <;> ring
       rw [if_neg h2]; ring
     · rw [if_neg h1]; ring
 
@@ -307,7 +306,6 @@ theorem varInclHom_isRestricted {k : ℕ} (j : Fin k) (f : MvPowerSeries (Fin 1)
   apply (hfU.image (fun d => Finsupp.mapDomain (fun _ => j) d)).subset
   intro e he
   simp only [Set.mem_compl_iff, Set.mem_preimage] at he
-  show e ∈ _
   have he2 : varInclFun j f e ∉ U := by
     change (MvPowerSeries.coeff e) (varInclHom j f) ∉ U at he
     convert he using 1
@@ -390,10 +388,10 @@ theorem shiftFun_isRestricted {f : MvPowerSeries (Fin 1) A}
     (hf : MvPowerSeries.IsRestricted f) : MvPowerSeries.IsRestricted (shiftFun f) := by
   change Tendsto _ cofinite (nhds 0)
   change Tendsto _ cofinite (nhds 0) at hf
-  -- The shift map is s ↦ s + single 0 1, which is injective
   have inj : Function.Injective fun s : Fin 1 →₀ ℕ => s + Finsupp.single 0 1 :=
-    fun s t => by simp [Finsupp.ext_iff]
-  -- Composing with an injective function preserves the cofinite filter property
+    fun s t h => by
+      simp only [Finsupp.ext_iff, Finsupp.add_apply, Finsupp.single_apply] at h
+      exact Finsupp.ext (fun i => by have := h i; omega)
   exact hf.comp inj.tendsto_cofinite
 
 /-- The shift as an element of `A⟨X⟩`: given `f ∈ A⟨X⟩`, `shift f` is the shifted
@@ -401,7 +399,6 @@ element, also in `A⟨X⟩`. -/
 noncomputable def shift (f : ↥(TateAlgebra A)) : ↥(TateAlgebra A) :=
   ⟨shiftFun f.val, shiftFun_isRestricted f.prop⟩
 
--- Helper: coefficient identity for the splitting f = C(f(0)) + X * shift(f)
 omit [TopologicalSpace A] [NonarchimedeanRing A] in
 private theorem mvps_coeff_eq (g : MvPowerSeries (Fin 1) A) (n : ℕ) :
     MvPowerSeries.coeff (toIndex n) g =
@@ -414,21 +411,19 @@ private theorem mvps_coeff_eq (g : MvPowerSeries (Fin 1) A) (n : ℕ) :
         MvPowerSeries.coeff_apply]
   | succ n =>
     rw [MvPowerSeries.coeff_C]
-    rw [if_neg (by simp [toIndex, Finsupp.single_eq_zero] : toIndex (n + 1) ≠ 0)]
+    rw [if_neg (show toIndex (n + 1) ≠ 0 from Finsupp.single_ne_zero.mpr (by omega))]
     rw [zero_add]
-    -- Goal: coeff (toIndex (n+1)) g = coeff (toIndex (n+1)) (X 0 * shiftFun g)
-    -- X 0 = monomial (single 0 1) 1
     rw [show (MvPowerSeries.X (R := A) (0 : Fin 1)) =
         MvPowerSeries.monomial (Finsupp.single 0 1) (1 : A) from rfl]
     rw [MvPowerSeries.coeff_monomial_mul]
     have hle : Finsupp.single (0 : Fin 1) 1 ≤ toIndex (n + 1) := by
-      simp [toIndex]
+      simp only [toIndex, Finsupp.single_le_iff, Finsupp.single_eq_same]; omega
     rw [if_pos hle, one_mul]
-    -- Goal: coeff (toIndex (n+1)) g = shiftFun g (toIndex (n+1) - single 0 1)
-    -- shiftFun g s = g (s + single 0 1)
-    -- toIndex (n+1) - single 0 1 = single 0 (n+1) - single 0 1 = single 0 n
-    -- So RHS = g (single 0 n + single 0 1) = g (single 0 (n+1)) = g (toIndex (n+1))
-    simp [shiftFun, toIndex, Finsupp.single_add, MvPowerSeries.coeff_apply]
+    simp only [shiftFun, toIndex, Finsupp.single_add, MvPowerSeries.coeff_apply]
+    congr 1
+    ext
+    simp only [Finsupp.tsub_apply, Finsupp.add_apply, Finsupp.single_apply]
+    omega
 
 omit [TopologicalSpace A] [NonarchimedeanRing A] in
 private theorem mvps_eq_const_add_X_mul_shift (g : MvPowerSeries (Fin 1) A) :
@@ -440,25 +435,19 @@ private theorem mvps_eq_const_add_X_mul_shift (g : MvPowerSeries (Fin 1) A) :
 /-- Key identity: `f = const(f(0)) + X * shift(f)` as power series. -/
 theorem eq_const_add_X_mul_shift (f : ↥(TateAlgebra A)) :
     f = algebraMap A _ (evalZeroHom f) + X * shift f := by
-  -- Use the ext lemma to reduce to coefficient comparison
   ext n
-  -- coeff n f = coeff n (algebraMap ... + X * shift f)
-  -- Use mvps_coeff_eq to handle the underlying MvPowerSeries
   unfold coeff
   have hval : (algebraMap A ↥(TateAlgebra A) (evalZeroHom f) +
       X * shift f).val = (algebraMap A ↥(TateAlgebra A) (evalZeroHom f)).val +
       ((X : ↥(TateAlgebra A)).val * (shift f).val) := by
     rfl
   rw [hval]
-  -- Now goal: MvPowerSeries.coeff (toIndex n) f.val =
-  --   MvPowerSeries.coeff (toIndex n) (algebraMap(..).val + X.val * (shift f).val)
   rw [map_add]
-  -- Rewrite the algebraMap val to C (f.val 0)
   have halg : (algebraMap A ↥(TateAlgebra A) (evalZeroHom f)).val =
       MvPowerSeries.C (σ := Fin 1) (f.val 0) := by
     change algebraMap A (MvPowerSeries (Fin 1) A) (evalZeroHom f) = _
     rw [MvPowerSeries.algebraMap_apply]
-    simp [evalZeroHom, coeff, toIndex_zero, MvPowerSeries.coeff_apply]
+    simp only [evalZeroHom, coeff, toIndex_zero, MvPowerSeries.coeff_apply]; norm_cast
   rw [halg]
   exact mvps_coeff_eq f.val n
 
@@ -475,16 +464,15 @@ theorem mem_ideal_X_of_evalZeroHom_eq_zero {f : ↥(TateAlgebra A)}
 /-- The constant term of `X * g` is zero. -/
 theorem evalZeroHom_X_mul (g : ↥(TateAlgebra A)) : evalZeroHom (X * g) = 0 := by
   simp only [evalZeroHom, coeff, toIndex_zero, map_mul, TateAlgebra.X]
-  norm_cast
-  simp
+  norm_num
 
 /-- Every element of `Ideal.span {X}` has zero constant term. -/
 theorem evalZeroHom_eq_zero_of_mem_ideal_X {f : ↥(TateAlgebra A)}
     (hf : f ∈ Ideal.span ({X} : Set ↥(TateAlgebra A))) : evalZeroHom f = 0 := by
-  -- X ∈ ker evalZeroHom, so Ideal.span {X} ≤ ker evalZeroHom
   have hX : (X : ↥(TateAlgebra A)) ∈ RingHom.ker evalZeroHom := by
     rw [RingHom.mem_ker]
-    simp [evalZeroHom, coeff, toIndex_zero, TateAlgebra.X]
+    simp only [evalZeroHom, coeff, toIndex_zero, TateAlgebra.X]
+    norm_num
   exact RingHom.mem_ker.mp (Ideal.span_le.mpr (Set.singleton_subset_iff.mpr hX) hf)
 
 /-- The kernel of `evalZeroHom` equals the ideal generated by `X`. -/
@@ -506,7 +494,7 @@ noncomputable def idealX : Ideal ↥(TateAlgebra A) :=
 /-- Coefficient of a difference of power series. -/
 theorem coeff_sub (f g : ↥(TateAlgebra A)) (n : ℕ) :
     coeff n (f - g) = coeff n f - coeff n g := by
-  simp [coeff, map_sub]
+  simp only [coeff]; exact map_sub _ _ _
 
 /-- Coefficient of `algebraMap a * u`: the `algebraMap` acts as scalar multiplication. -/
 theorem coeff_algebraMap_mul (a : A) (u : ↥(TateAlgebra A)) (n : ℕ) :
@@ -514,7 +502,7 @@ theorem coeff_algebraMap_mul (a : A) (u : ↥(TateAlgebra A)) (n : ℕ) :
   simp only [coeff, toIndex]
   change (MvPowerSeries.coeff (Finsupp.single 0 n))
     ((algebraMap A (MvPowerSeries (Fin 1) A) a) * u.val) = _
-  rw [MvPowerSeries.algebraMap_apply, MvPowerSeries.coeff_C_mul]; simp
+  rw [MvPowerSeries.algebraMap_apply, MvPowerSeries.coeff_C_mul]; rfl
 
 /-- The `(n+1)`-th coefficient of `X * u` equals the `n`-th coefficient of `u`. -/
 theorem coeff_succ_X_mul (u : ↥(TateAlgebra A)) (n : ℕ) :
@@ -525,8 +513,9 @@ theorem coeff_succ_X_mul (u : ↥(TateAlgebra A)) (n : ℕ) :
   rw [show (MvPowerSeries.X (R := A) (0 : Fin 1)) =
       MvPowerSeries.monomial (Finsupp.single 0 1) (1 : A) from rfl]
   rw [MvPowerSeries.coeff_monomial_mul,
-    if_pos (show Finsupp.single (0 : Fin 1) 1 ≤ Finsupp.single 0 (n + 1) by simp), one_mul]
-  simp [Finsupp.single_add, MvPowerSeries.coeff_apply]
+    if_pos (show Finsupp.single (0 : Fin 1) 1 ≤ Finsupp.single 0 (n + 1) by
+      simp only [Finsupp.single_le_iff, Finsupp.single_eq_same]; omega), one_mul]
+  simp only [Finsupp.single_add, MvPowerSeries.coeff_apply, add_tsub_cancel_right]
 
 /-- The constant coefficient of `X * u` is zero. -/
 theorem coeff_zero_X_mul (u : ↥(TateAlgebra A)) :
@@ -543,7 +532,7 @@ private theorem noeth_zero_of_mul_shift [IsNoetherianRing A] (a : A) (x : ℕ �
     (h0 : a * x 0 = 0) (hstep : ∀ k, x k = a * x (k + 1)) : x 0 = 0 := by
   have hpow : ∀ k, x 0 = a ^ k * x k := by
     intro k; induction k with
-    | zero => simp
+    | zero => simp only [pow_zero, one_mul]
     | succ k ih => rw [ih, hstep k, pow_succ, mul_assoc]
   have hann : ∀ k, a ^ (k + 1) * x k = 0 := by
     intro k
@@ -581,7 +570,8 @@ theorem PrimeSpectrum_comap_algebraMap_surjective :
       (PrimeSpectrum.comap (algebraMap A ↥(TateAlgebra A))) := by
   intro p
   refine ⟨PrimeSpectrum.comap evalZeroHom p, ?_⟩
-  ext x; simp [PrimeSpectrum.comap, evalZeroHom_algebraMap]
+  ext x
+  simp only [PrimeSpectrum.comap, Ideal.mem_comap, evalZeroHom_algebraMap]
 
 /-! #### Discrete-case equivalence: TateAlgebra A ≃ₗ[A] (Fin 1 →₀ ℕ) →₀ A
 
@@ -632,8 +622,8 @@ noncomputable def ofFinsupp [DiscreteTopology A]
     (g : (Fin 1 →₀ ℕ) →₀ A) : ↥(TateAlgebra A) :=
   ⟨fun s => g s, finsupp_isRestricted g⟩
 
-/-- The `A`-linear equivalence `TateAlgebra A ≃ₗ[A] (Fin 1 →₀ ℕ) →₀ A` (discrete case).
-This exhibits `TateAlgebra A` as a free `A`-module. -/
+/-- The `A`-linear equivalence `TateAlgebra A ≃ₗ[A] (Fin 1 →₀ ℕ) →₀ A`
+(discrete case). This exhibits `TateAlgebra A` as a free `A`-module. -/
 noncomputable def linearEquivFinsupp [DiscreteTopology A] :
     ↥(TateAlgebra A) ≃ₗ[A] (Fin 1 →₀ ℕ) →₀ A where
   toFun f := toFinsupp f
@@ -649,14 +639,14 @@ noncomputable def linearEquivFinsupp [DiscreteTopology A] :
     rfl
   map_add' f g := by
     ext s
-    simp [toFinsupp, Finsupp.onFinset_apply, Finsupp.add_apply, map_add]
+    simp only [toFinsupp, Finsupp.onFinset_apply, Finsupp.add_apply, Subring.coe_add, map_add]
   map_smul' a f := by
     ext s
     simp only [toFinsupp, Finsupp.onFinset_apply, Finsupp.smul_apply, RingHom.id_apply,
       smul_eq_mul, Algebra.smul_def]
     change MvPowerSeries.coeff s (algebraMap A _ a * f.val) = a * MvPowerSeries.coeff s f.val
     rw [MvPowerSeries.algebraMap_apply, MvPowerSeries.coeff_C_mul]
-    simp
+    rfl
 
 /-! #### Ring equivalence with MvPolynomial (discrete case)
 
@@ -740,23 +730,20 @@ theorem ringEquivMvPolynomial_algebraMap [DiscreteTopology A] (a : A) :
   simp only [ringEquivMvPolynomial, MvPolynomial.C_apply]
   change MvPowerSeries.coeff s (algebraMap A (MvPowerSeries (Fin 1) A) a) = _
   rw [MvPowerSeries.algebraMap_apply]
-  simp [MvPowerSeries.coeff_C, eq_comm]
+  simp only [MvPowerSeries.coeff_C, MvPolynomial.coeff_monomial, eq_comm]; norm_cast
 
 theorem ringEquivMvPolynomial_X [DiscreteTopology A] :
     ringEquivMvPolynomial (X : ↥(TateAlgebra A)) = MvPolynomial.X (0 : Fin 1) := by
-  -- Both sides have the same coefficients: single (single 0 1) 1
   suffices h : ∀ s, MvPolynomial.coeff s (ringEquivMvPolynomial (X : ↥(TateAlgebra A))) =
       MvPolynomial.coeff s (MvPolynomial.X (0 : Fin 1)) by
     ext s; exact h s
   intro s
-  -- LHS coefficient
   change @DFunLike.coe _ _ _ Finsupp.instFunLike (toMvPolynomial (X : ↥(TateAlgebra A))) s = _
   simp only [toMvPolynomial, toFinsupp, Finsupp.onFinset_apply]
   change MvPowerSeries.coeff s (MvPowerSeries.X (0 : Fin 1)) = _
   rw [MvPowerSeries.coeff_X]
-  -- RHS coefficient
   rw [MvPolynomial.coeff_X']
-  simp [eq_comm]
+  simp only [eq_comm]
 
 theorem evalFHom_algebraMap [DiscreteTopology A] (f a : A) :
     evalFHom f (algebraMap A _ a) = a := by
@@ -821,14 +808,12 @@ theorem sub_algebraMap_evalFHom_mem_ideal_fSubX [DiscreteTopology A] (f : A)
     (p : ↥(TateAlgebra A)) :
     p - algebraMap A _ (evalFHom f p) ∈
       Ideal.span {algebraMap A ↥(TateAlgebra A) f - X} := by
-  -- Helper: coeff of shift
   have coeff_shift : ∀ (q : ↥(TateAlgebra A)) (k : ℕ),
       coeff k (shift q) = coeff (k + 1) q := by
     intro q k
     change MvPowerSeries.coeff (Finsupp.single 0 k) (shiftFun q.val) =
       MvPowerSeries.coeff (Finsupp.single 0 (k + 1)) q.val
-    simp [shiftFun, MvPowerSeries.coeff_apply, Finsupp.single_add]
-  -- Helper: evalFHom decomposes
+    simp only [shiftFun, MvPowerSeries.coeff_apply, Finsupp.single_add]
   have eval_decomp : ∀ (q : ↥(TateAlgebra A)),
       evalFHom f q = coeff 0 q + f * evalFHom f (shift q) := by
     intro q
@@ -839,9 +824,7 @@ theorem sub_algebraMap_evalFHom_mem_ideal_fSubX [DiscreteTopology A] (f : A)
           evalFHom f X * evalFHom f (shift q) := by rw [map_add, map_mul]
       _ = coeff 0 q + f * evalFHom f (shift q) := by
           rw [evalFHom_algebraMap, evalFHom_X]; rfl
-  -- evalZeroHom = coeff 0
   have eval_zero_eq : ∀ (q : ↥(TateAlgebra A)), evalZeroHom q = coeff 0 q := fun _ => rfl
-  -- Key algebraic identity
   have key_identity : ∀ (q : ↥(TateAlgebra A)),
       q - algebraMap A _ (evalFHom f q) =
       X * (shift q - algebraMap A _ (evalFHom f (shift q))) +
@@ -850,7 +833,6 @@ theorem sub_algebraMap_evalFHom_mem_ideal_fSubX [DiscreteTopology A] (f : A)
     rw [eval_decomp q]
     nth_rw 1 [eq_const_add_X_mul_shift q]
     rw [map_add, map_mul, eval_zero_eq]; ring
-  -- Induction on upper bound for coefficient indices
   have hmain : ∀ (n : ℕ) (q : ↥(TateAlgebra A)),
       (∀ k, n < k → coeff k q = 0) →
       q - algebraMap A _ (evalFHom f q) ∈
@@ -858,22 +840,16 @@ theorem sub_algebraMap_evalFHom_mem_ideal_fSubX [DiscreteTopology A] (f : A)
     intro n; induction n with
     | zero =>
       intro q hq
-      -- q has coeff k q = 0 for all k > 0
-      -- So shift q = 0 and q = algebraMap(coeff 0 q)
       have hshift_zero : shift q = 0 := by
         apply ext; intro k
         rw [coeff_shift, hq (k + 1) (Nat.succ_pos k)]
-        simp [coeff, map_zero]
-      -- evalFHom f q = coeff 0 q + f * 0 = coeff 0 q
+        simp only [coeff, map_zero, ZeroMemClass.coe_zero]
       have hev : evalFHom f q = coeff 0 q := by
         rw [eval_decomp, hshift_zero, map_zero, mul_zero, add_zero]
-      -- q = algebraMap(coeff 0 q) + X * shift q = algebraMap(coeff 0 q)
       have hq0 : q = algebraMap A _ (coeff 0 q) := by
         have := eq_const_add_X_mul_shift q
         rw [hshift_zero, mul_zero, add_zero, eval_zero_eq] at this
         exact this
-      -- q - algebraMap(evalFHom f q) = 0 because evalFHom f q = coeff 0 q
-      -- and q = algebraMap(coeff 0 q)
       have h1 : algebraMap A _ (evalFHom f q) = q := by
         rw [hev]; exact hq0.symm
       rw [h1, sub_self]
@@ -889,7 +865,6 @@ theorem sub_algebraMap_evalFHom_mem_ideal_fSubX [DiscreteTopology A] (f : A)
             -(algebraMap A ↥(TateAlgebra A) f - X) := by ring
         rw [hmem]
         exact neg_mem (Ideal.subset_span rfl)
-  -- Apply hmain with a suitable bound derived from finite support
   have hfin : Set.Finite {s : Fin 1 →₀ ℕ | p.val s ≠ 0} :=
     (isRestricted_iff_finite_support p.val).mp p.prop
   by_cases hp : ∀ k, coeff k p = 0
@@ -934,8 +909,6 @@ theorem AToQuotientFSubX_comp_quotientFSubXToA [DiscreteTopology A] (f : A) :
   ext p
   simp only [RingHom.comp_apply, RingHom.id_apply, AToQuotientFSubX,
     quotientFSubXToA, Ideal.Quotient.lift_mk]
-  -- Need to show: mk(algebraMap(evalFHom f p)) = mk(p)
-  -- i.e., p - algebraMap(evalFHom f p) ∈ Ideal.span {f - X}
   symm
   rw [Ideal.Quotient.mk_eq_mk_iff_sub_mem]
   exact sub_algebraMap_evalFHom_mem_ideal_fSubX f p
@@ -970,7 +943,7 @@ theorem mul_fSubX_regular [IsNoetherianRing A] (f : A) :
   have hcoeff : ∀ n, f * coeff n u = coeff n (X * u) := by
     intro n
     have h1 : coeff n ((algebraMap A _ f - X) * u) = 0 := by
-      rw [hu]; simp [coeff, map_zero]
+      rw [hu]; simp only [coeff, map_zero, ZeroMemClass.coe_zero]
     rw [sub_mul, coeff_sub, coeff_algebraMap_mul] at h1
     exact sub_eq_zero.mp h1
   have h0 : f * coeff 0 u = 0 := by rw [hcoeff 0, coeff_zero_X_mul]
@@ -1000,7 +973,7 @@ theorem mul_oneSubfX_regular [IsNoetherianRing A] (f : A) :
   have hcoeff : ∀ n, coeff n u = f * coeff n (X * u) := by
     intro n
     have h1 : coeff n ((1 - algebraMap A _ f * X) * u) = 0 := by
-      rw [hu]; simp [coeff, map_zero]
+      rw [hu]; simp only [coeff, map_zero, ZeroMemClass.coe_zero]
     rw [sub_mul, one_mul, mul_assoc, coeff_sub, coeff_algebraMap_mul] at h1
     exact sub_eq_zero.mp h1
   have h0 : coeff 0 u = 0 := by rw [hcoeff 0, coeff_zero_X_mul, mul_zero]
@@ -1017,19 +990,13 @@ Under discrete topology, `A⟨X⟩/(f-X) ≅ A` via evaluation at `f`, and `A` i
 over itself. Identifies with `O_X(R(f/1))` in the presheaf. -/
 theorem flat_quotient_fSubX [DiscreteTopology A] [IsNoetherianRing A] (f : A) :
     Module.Flat A (↥(TateAlgebra A) ⧸ Ideal.span {algebraMap A ↥(TateAlgebra A) f - X}) := by
-  -- The quotient is isomorphic to A as a ring (hence as an A-module),
-  -- via quotientFSubXEquiv. A is flat over itself (Module.Flat.self).
-  -- Build an A-linear equivalence from the ring equivalence.
   let e := quotientFSubXEquiv f
   have hsmul : ∀ (a : A)
       (x : ↥(TateAlgebra A) ⧸ Ideal.span {algebraMap A ↥(TateAlgebra A) f - X}),
       e (a • x) = a • e x := by
     intro a x
-    -- smul by a is the same as multiplication by algebraMap a
     rw [Algebra.smul_def, Algebra.smul_def, map_mul]
     congr 1
-    -- Show e(algebraMap a) = a
-    -- Use the fact that quotientFSubXToA_comp_AToQuotientFSubX = id
     have h := congr_fun (congr_arg DFunLike.coe (quotientFSubXToA_comp_AToQuotientFSubX f)) a
     simp only [RingHom.comp_apply, RingHom.id_apply] at h
     convert h using 1
@@ -1108,6 +1075,7 @@ theorem isUnit_algebraMap_f_in_quotient [DiscreteTopology A] (f : A) :
       exact neg_mem (Ideal.subset_span rfl))
   exact this
 
+/-- The ring hom from `Localization.Away f` to `TateAlgebra A ⧸ (1-fX)`. -/
 noncomputable def locToQuotientOneSubfX [DiscreteTopology A] (f : A) :
     Localization.Away f →+*
       (↥(TateAlgebra A) ⧸ Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X}) :=
@@ -1120,7 +1088,7 @@ theorem locToQuotientOneSubfX_algebraMap [DiscreteTopology A] (f a : A) :
       (Ideal.Quotient.mk _) (algebraMap A _ a) := by
   simp only [locToQuotientOneSubfX]
   rw [IsLocalization.Away.lift_eq]
-  simp
+  rfl
 
 theorem quotientOneSubfXToLoc_comp_locToQuotientOneSubfX [DiscreteTopology A] (f : A) :
     (quotientOneSubfXToLoc f).comp (locToQuotientOneSubfX f) =
@@ -1146,28 +1114,13 @@ theorem locToQuotientOneSubfX_comp_quotientOneSubfXToLoc [DiscreteTopology A] (f
   ext p
   simp only [RingHom.comp_apply, RingHom.id_apply, quotientOneSubfXToLoc,
     Ideal.Quotient.lift_mk]
-  -- Need: locToQuotientOneSubfX f (evalInvFHom f p) = Ideal.Quotient.mk _ p
-  -- i.e., mk(p) - locToQuotientOneSubfX(evalInvFHom f p) = 0 in the quotient
-  -- Equivalently: p - locToQuotientOneSubfX(evalInvFHom f p) lies in the ideal.
-  -- Strategy: induction using eq_const_add_X_mul_shift
-  -- In the quotient, X = algebraMap(f)⁻¹, so locToQuotientOneSubfX puts things back.
-  -- We need to show this for all p by induction on finite support.
-  -- Helper: locToQuotientOneSubfX sends algebraMap a to mk(algebraMap a)
   have loc_alg : ∀ (a : A),
       locToQuotientOneSubfX f (algebraMap A _ a) =
         (Ideal.Quotient.mk _) (algebraMap A _ a) :=
     locToQuotientOneSubfX_algebraMap f
-  -- Helper: locToQuotientOneSubfX sends invSelf to mk(X)
   have loc_inv : locToQuotientOneSubfX f
       (IsLocalization.Away.invSelf (S := Localization.Away f) f) =
       (Ideal.Quotient.mk _) X := by
-    -- invSelf f = mk' 1 ⟨f, 1, pow_one f⟩
-    -- locToQuotientOneSubfX maps mk' a ⟨f^n, ...⟩ to mk(a) * mk(X)^n
-    -- For invSelf: algebraMap f * invSelf = 1, so
-    --   locToQuotientOneSubfX(algebraMap f) * locToQuotientOneSubfX(invSelf) = 1
-    -- i.e., mk(algebraMap f) * locToQuotientOneSubfX(invSelf) = 1
-    -- But also mk(algebraMap f) * mk(X) = 1 in the quotient.
-    -- Since mk(algebraMap f) is a unit, locToQuotientOneSubfX(invSelf) = mk(X).
     set I := Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X} with hI_def
     have hfX : (Ideal.Quotient.mk I)
         (algebraMap A (↥(TateAlgebra A)) f * X) = 1 := by
@@ -1191,17 +1144,13 @@ theorem locToQuotientOneSubfX_comp_quotientOneSubfXToLoc [DiscreteTopology A] (f
         (Ideal.Quotient.mk I) X = 1 := by
       rw [← map_mul]; exact hfX
     exact hunit.mul_left_cancel (h1.trans h2.symm)
-  -- Helper: coeff of shift
   have coeff_shift : ∀ (q : ↥(TateAlgebra A)) (k : ℕ),
       coeff k (shift q) = coeff (k + 1) q := by
     intro q k
     change MvPowerSeries.coeff (Finsupp.single 0 k) (shiftFun q.val) =
       MvPowerSeries.coeff (Finsupp.single 0 (k + 1)) q.val
-    simp [shiftFun, MvPowerSeries.coeff_apply, Finsupp.single_add]
-  -- evalZeroHom = coeff 0
+    simp only [shiftFun, MvPowerSeries.coeff_apply, Finsupp.single_add]
   have eval_zero_eq : ∀ (q : ↥(TateAlgebra A)), evalZeroHom q = coeff 0 q := fun _ => rfl
-  -- Now the main proof: evalInvFHom evaluates p via ringEquivMvPolynomial and aeval.
-  -- We show by induction on finite support that the result holds.
   have hmain : ∀ (n : ℕ) (q : ↥(TateAlgebra A)),
       (∀ k, n < k → coeff k q = 0) →
       locToQuotientOneSubfX f (evalInvFHom f q) =
@@ -1209,11 +1158,10 @@ theorem locToQuotientOneSubfX_comp_quotientOneSubfXToLoc [DiscreteTopology A] (f
     intro n; induction n with
     | zero =>
       intro q hq
-      -- q has coeff k q = 0 for all k > 0, so q = algebraMap(coeff 0 q)
       have hshift_zero : shift q = 0 := by
         apply ext; intro k
         rw [coeff_shift, hq (k + 1) (Nat.succ_pos k)]
-        simp [coeff, map_zero]
+        simp only [coeff, map_zero, ZeroMemClass.coe_zero]
       have hq0 : q = algebraMap A _ (evalZeroHom q) := by
         have := eq_const_add_X_mul_shift q
         rw [hshift_zero, mul_zero, add_zero] at this
@@ -1221,11 +1169,9 @@ theorem locToQuotientOneSubfX_comp_quotientOneSubfXToLoc [DiscreteTopology A] (f
       rw [hq0, evalInvFHom_algebraMap, loc_alg]
     | succ n ih =>
       intro q hq
-      -- q = algebraMap(coeff 0 q) + X * shift q
       have hdecomp := eq_const_add_X_mul_shift q
       conv_rhs => rw [hdecomp]
       rw [map_add, map_mul]
-      -- evalInvFHom is also a ring hom, so it preserves the decomposition
       have hev : evalInvFHom f q =
           evalInvFHom f (algebraMap A _ (evalZeroHom q)) +
           evalInvFHom f X * evalInvFHom f (shift q) := by
@@ -1236,7 +1182,6 @@ theorem locToQuotientOneSubfX_comp_quotientOneSubfXToLoc [DiscreteTopology A] (f
       congr 1
       congr 1
       exact ih (shift q) (fun k hk => by rw [coeff_shift]; exact hq _ (by omega))
-  -- Apply hmain with a suitable bound from finite support
   have hfin : Set.Finite {s : Fin 1 →₀ ℕ | p.val s ≠ 0} :=
     (isRestricted_iff_finite_support p.val).mp p.prop
   by_cases hp : ∀ k, coeff k p = 0
@@ -1282,9 +1227,8 @@ Under discrete topology, `A⟨X⟩/(1-fX) ≅ Localization.Away f` via the unive
 property of localization, and localization is flat.
 Identifies with `O_X(R(1/f))` in the presheaf. -/
 theorem flat_quotient_oneSubfX [DiscreteTopology A] [IsNoetherianRing A] (f : A) :
-    Module.Flat A (↥(TateAlgebra A) ⧸ Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X}) := by
-  -- The quotient is isomorphic to Localization.Away f as a ring (hence as an A-module),
-  -- via quotientOneSubfXEquiv. Localization.Away f is flat over A (IsLocalization.flat).
+    Module.Flat A
+      (↥(TateAlgebra A) ⧸ Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X}) := by
   let e := quotientOneSubfXEquiv f
   have hsmul : ∀ (a : A)
       (x : ↥(TateAlgebra A) ⧸ Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X}),
@@ -1292,7 +1236,6 @@ theorem flat_quotient_oneSubfX [DiscreteTopology A] [IsNoetherianRing A] (f : A)
     intro a x
     rw [Algebra.smul_def, Algebra.smul_def, map_mul]
     congr 1
-    -- Show e(algebraMap a) = algebraMap a in Localization.Away f
     change quotientOneSubfXToLoc f ((Ideal.Quotient.mk _) (algebraMap A _ a)) = algebraMap A _ a
     simp only [quotientOneSubfXToLoc, Ideal.Quotient.lift_mk, evalInvFHom_algebraMap]
   have : Module.Flat A (Localization.Away f) := IsLocalization.flat _ (Submonoid.powers f)
