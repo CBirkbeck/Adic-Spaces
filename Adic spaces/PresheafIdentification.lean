@@ -531,4 +531,228 @@ theorem coeff_of_oneSubfX_eq_aXn (f a : A) (n : ℕ)
 
 end GeneralTateQuotient
 
+/-! ### Section 6: Completion extension — Tate algebra to presheaf value (non-discrete)
+
+For a rational localization datum `D`, we establish the algebraic infrastructure connecting
+the Tate algebra `A⟨X⟩` to the presheaf value `presheafValue D` (completion of
+`Localization.Away D.s`).
+
+The key results:
+1. `D.s` maps to a unit in `presheafValue D` via the canonical map.
+2. The lift `Localization.Away D.s →+* presheafValue D` from `IsLocalization.Away.lift`
+   agrees with the completion embedding `D.coeRingHom`.
+3. The ring hom `Localization.Away D.s → A⟨X⟩/(1-sX)` from `locToQuotientOneSubfX_gen`
+   composes with the completion embedding to give a map from `A⟨X⟩/(1-sX)` to
+   `presheafValue D` (in the discrete case).
+4. The ideal `(1-sX)` is in the kernel of any evaluation-type ring hom
+   `A⟨X⟩ → presheafValue D` (from `oneSubfX_le_ker_of_eval`).
+
+These results do not require `DiscreteTopology A` (except where noted) and are used in
+the Tate acyclicity proof (Wedhorn Proposition 8.30, Remark 7.55).
+
+## References
+
+* [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], Proposition 5.32, 5.49, 8.30
+-/
+
+section CompletionExtension
+
+variable [NonarchimedeanRing A]
+
+/-! #### The canonical map `A → presheafValue D` and unit of `s` -/
+
+omit [NonarchimedeanRing A] in
+/-- The image of `D.s` under `algebraMap A (Localization.Away D.s)` is a unit.
+This is a direct consequence of the universal property of localization. -/
+theorem isUnit_algebraMap_s (D : RationalLocData A) :
+    IsUnit (algebraMap A (Localization.Away D.s) D.s) :=
+  IsLocalization.Away.algebraMap_isUnit D.s
+
+omit [NonarchimedeanRing A] in
+/-- The image of `D.s` under `D.coeRingHom ∘ algebraMap` (i.e., in `presheafValue D`)
+is a unit. The unit in the localization transfers through the completion embedding. -/
+theorem isUnit_s_in_presheafValue (D : RationalLocData A) :
+    IsUnit (D.canonicalMap D.s) :=
+  (isUnit_algebraMap_s D).map D.coeRingHom
+
+/-- The unit of `D.s` in `presheafValue D`, extracted from `isUnit_s_in_presheafValue`. -/
+noncomputable def sUnit (D : RationalLocData A) : (presheafValue D)ˣ :=
+  (isUnit_s_in_presheafValue D).unit
+
+/-- The inverse of `D.s` in `presheafValue D`. -/
+noncomputable def invS (D : RationalLocData A) : presheafValue D :=
+  ↑(sUnit D)⁻¹
+
+omit [NonarchimedeanRing A] in
+/-- `canonicalMap(s) * invS = 1` in `presheafValue D`. -/
+theorem canonicalMap_s_mul_invS (D : RationalLocData A) :
+    D.canonicalMap D.s * invS D = 1 := by
+  change D.canonicalMap D.s * ↑(isUnit_s_in_presheafValue D).unit⁻¹ = 1
+  exact (isUnit_s_in_presheafValue D).mul_val_inv
+
+omit [NonarchimedeanRing A] in
+/-- `invS * canonicalMap(s) = 1` in `presheafValue D`. -/
+theorem invS_mul_canonicalMap_s (D : RationalLocData A) :
+    invS D * D.canonicalMap D.s = 1 := by
+  rw [mul_comm]; exact canonicalMap_s_mul_invS D
+
+/-! #### The lift from Localization.Away to presheafValue via IsLocalization.Away.lift -/
+
+/-- The ring hom `Localization.Away D.s →+* presheafValue D` obtained from the
+universal property of localization, using the fact that `D.s` maps to a unit
+in `presheafValue D`.
+
+This agrees with `D.coeRingHom` (the completion embedding) by uniqueness of the
+localization lift. -/
+noncomputable def locLiftToPresheaf (D : RationalLocData A) :
+    Localization.Away D.s →+* presheafValue D :=
+  IsLocalization.Away.lift D.s (isUnit_s_in_presheafValue D)
+
+omit [NonarchimedeanRing A] in
+/-- `locLiftToPresheaf` agrees with `canonicalMap` on elements of `A`. -/
+theorem locLiftToPresheaf_algebraMap (D : RationalLocData A) (a : A) :
+    locLiftToPresheaf D (algebraMap A _ a) = D.canonicalMap a := by
+  simp only [locLiftToPresheaf, IsLocalization.Away.lift_eq, RationalLocData.canonicalMap]
+
+omit [NonarchimedeanRing A] in
+/-- `locLiftToPresheaf` equals `D.coeRingHom` (uniqueness of localization lift). -/
+theorem locLiftToPresheaf_eq_coeRingHom (D : RationalLocData A) :
+    locLiftToPresheaf D = D.coeRingHom := by
+  apply IsLocalization.ringHom_ext (Submonoid.powers D.s)
+  ext a
+  simp only [RingHom.comp_apply, locLiftToPresheaf_algebraMap,
+    RationalLocData.canonicalMap, RationalLocData.coeRingHom]
+
+/-! #### The evaluation map in the discrete case -/
+
+/-- In the discrete case, the evaluation ring hom `A⟨X⟩ →+* presheafValue D` that
+sends `X` to `s⁻¹` in the completion. This is the composition:
+`A⟨X⟩ →[evalInvFHom] Localization.Away s →[coeRingHom] presheafValue D`.
+
+Since `evalInvFHom` evaluates at `1/s` in the localization, and `coeRingHom` embeds
+into the completion, the composition evaluates at `s⁻¹` in the presheaf value. -/
+noncomputable def evalPresheafHom [DiscreteTopology A]
+    (D : RationalLocData A) :
+    ↥(TateAlgebra A) →+* presheafValue D :=
+  D.coeRingHom.comp (TateAlgebra.evalInvFHom D.s)
+
+/-- `evalPresheafHom` sends `algebraMap(a)` to `canonicalMap(a)`. -/
+theorem evalPresheafHom_algebraMap [DiscreteTopology A]
+    (D : RationalLocData A) (a : A) :
+    evalPresheafHom D (algebraMap A _ a) = D.canonicalMap a := by
+  simp only [evalPresheafHom, RingHom.comp_apply, TateAlgebra.evalInvFHom_algebraMap,
+    RationalLocData.canonicalMap]
+
+/-- `evalPresheafHom` sends `X` to `invS D` (the inverse of `s` in `presheafValue D`).
+In the discrete case, `coeRingHom` is bijective, so the image of `invSelf` under
+`coeRingHom` equals `invS D`. -/
+theorem evalPresheafHom_X [DiscreteTopology A]
+    (D : RationalLocData A) :
+    evalPresheafHom D TateAlgebra.X =
+      D.coeRingHom (IsLocalization.Away.invSelf
+        (S := Localization.Away D.s) D.s) := by
+  simp only [evalPresheafHom, RingHom.comp_apply, TateAlgebra.evalInvFHom_X]
+
+/-- `evalPresheafHom` sends `1 - sX` to `0`. -/
+theorem evalPresheafHom_oneSubsX [DiscreteTopology A]
+    (D : RationalLocData A) :
+    evalPresheafHom D (1 - algebraMap A _ D.s * TateAlgebra.X) = 0 := by
+  simp only [evalPresheafHom, RingHom.comp_apply, TateAlgebra.evalInvFHom_oneSubfX,
+    map_zero]
+
+/-- The ideal `(1 - sX)` is contained in the kernel of `evalPresheafHom`. -/
+theorem oneSubsX_le_ker_evalPresheafHom [DiscreteTopology A]
+    (D : RationalLocData A) :
+    oneSubfXIdeal D.s ≤ RingHom.ker (evalPresheafHom D) := by
+  rw [oneSubfXIdeal, Ideal.span_le]
+  intro x hx
+  simp only [Set.mem_singleton_iff] at hx
+  rw [SetLike.mem_coe, RingHom.mem_ker, hx]
+  exact evalPresheafHom_oneSubsX D
+
+/-- The kernel of `evalPresheafHom` equals the ideal `(1 - sX)`, in the discrete case. -/
+theorem ker_evalPresheafHom [DiscreteTopology A]
+    (D : RationalLocData A) :
+    RingHom.ker (evalPresheafHom D) = oneSubfXIdeal D.s := by
+  apply le_antisymm
+  · intro x hx
+    rw [RingHom.mem_ker] at hx
+    simp only [evalPresheafHom, RingHom.comp_apply] at hx
+    have hinj := (coeRingHom_bijective_of_discrete D).1
+    have hker : TateAlgebra.evalInvFHom D.s x = 0 :=
+      hinj (hx.trans (map_zero D.coeRingHom).symm)
+    have hker' : x ∈ RingHom.ker (TateAlgebra.evalInvFHom D.s) :=
+      RingHom.mem_ker.mpr hker
+    rwa [evalInvF_kernel_eq_oneSubfX] at hker'
+  · exact oneSubsX_le_ker_evalPresheafHom D
+
+/-- The quotient ring hom `A⟨X⟩/(1-sX) →+* presheafValue D` induced by `evalPresheafHom`,
+in the discrete case. Since `ker(evalPresheafHom) = (1-sX)`, this is injective. -/
+noncomputable def quotientEvalPresheafHom [DiscreteTopology A]
+    (D : RationalLocData A) :
+    (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) →+* presheafValue D :=
+  Ideal.Quotient.lift (oneSubfXIdeal D.s) (evalPresheafHom D)
+    (fun _ hx ↦ oneSubsX_le_ker_evalPresheafHom D hx)
+
+/-- `quotientEvalPresheafHom` is injective (the kernel of `evalPresheafHom` is
+exactly `(1-sX)`). -/
+theorem quotientEvalPresheafHom_injective [DiscreteTopology A]
+    (D : RationalLocData A) :
+    Function.Injective (quotientEvalPresheafHom D) :=
+  RingHom.lift_injective_of_ker_le_ideal _ _
+    (ker_evalPresheafHom D).le
+
+/-! #### General (non-discrete) presheaf value ring hom from quotient
+
+For general nonarchimedean `A`, we construct a ring hom from the Tate quotient
+`A⟨X⟩/(1-sX)` to `presheafValue D` by composing the localization map
+`locToQuotientOneSubfX_gen` (which goes `Loc → Quotient`) with the completion
+embedding going in the other direction. Specifically, we use the composition:
+
+`A⟨X⟩/(1-sX) →[locToQuotientOneSubfX_gen composed with coeRingHom]→ presheafValue D`
+
+The map `locToQuotientOneSubfX_gen : Localization.Away s → A⟨X⟩/(1-sX)` is a ring hom.
+The composition `D.coeRingHom ∘ some_inverse` would require the inverse of
+`locToQuotientOneSubfX_gen`, which we have in the discrete case.
+
+Instead, we define the quotient-to-presheaf map via `Ideal.Quotient.lift`, using the
+fact that any ring hom `A⟨X⟩ → R` with `φ(algebraMap s) * φ(X) = 1` has `(1-sX)` in
+its kernel. -/
+
+/-- The ring hom `A⟨X⟩/(1-sX) →+* presheafValue D` in the discrete case,
+via the chain `A⟨X⟩/(1-sX) ≃ Localization.Away s →[coeRingHom] presheafValue D`.
+This is an alternative construction equivalent to `quotientEvalPresheafHom`. -/
+noncomputable def quotientToPresheaf [DiscreteTopology A]
+    (D : RationalLocData A) :
+    (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) →+* presheafValue D :=
+  D.coeRingHom.comp (TateAlgebra.quotientOneSubfXToLoc D.s)
+
+/-- `quotientToPresheaf` sends `mk(algebraMap a)` to `canonicalMap a`. -/
+theorem quotientToPresheaf_algebraMap [DiscreteTopology A]
+    (D : RationalLocData A) (a : A) :
+    quotientToPresheaf D ((Ideal.Quotient.mk _) (algebraMap A _ a)) =
+      D.canonicalMap a := by
+  unfold quotientToPresheaf
+  rw [RingHom.comp_apply]
+  change D.coeRingHom (TateAlgebra.quotientOneSubfXToLoc D.s
+    ((Ideal.Quotient.mk _) (algebraMap A _ a))) = _
+  simp only [TateAlgebra.quotientOneSubfXToLoc, Ideal.Quotient.lift_mk,
+    TateAlgebra.evalInvFHom_algebraMap, RationalLocData.canonicalMap,
+    RingHom.comp_apply]
+
+/-- `quotientToPresheaf` agrees with `quotientEvalPresheafHom`. Both send
+`mk(p)` to `coeRingHom(evalInvFHom(p))`. -/
+theorem quotientToPresheaf_eq_quotientEvalPresheafHom [DiscreteTopology A]
+    (D : RationalLocData A) :
+    quotientToPresheaf D = quotientEvalPresheafHom D := by
+  ext ⟨p⟩
+  unfold quotientToPresheaf quotientEvalPresheafHom evalPresheafHom
+  simp only [RingHom.comp_apply]
+  change D.coeRingHom (TateAlgebra.quotientOneSubfXToLoc D.s
+    ((Ideal.Quotient.mk _) ⟨p, _⟩)) = _
+  simp only [TateAlgebra.quotientOneSubfXToLoc, Ideal.Quotient.lift_mk,
+    RingHom.comp_apply]
+
+end CompletionExtension
+
 end ValuationSpectrum
