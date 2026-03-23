@@ -47,7 +47,7 @@ Same rules as v1. Update tracker before starting, commit claim, update when done
 | G2-alg | DONE | claude-main | 2026-03-23 | 2026-03-23 | Algebraic identification |
 | G2-topo | NOT STARTED | — | — | — | T-topology model + completion ID. Blocks: R-4 |
 | G3 | DONE | claude-opus | 2026-03-23 | 2026-03-23 | Completion exact seqs |
-| R-2B | NOT STARTED | — | — | — | Lemma 8.31 non-discrete. Depends: G2-alg |
+| R-2B | IN PROGRESS | claude-main | 2026-03-23 | — | Lemma 8.31 non-discrete. Depends: G2-alg |
 | R-3 | NOT STARTED | — | — | — | Prop 8.30 + Cor 8.32. Depends: R-2B, G2-alg |
 | R-4 | NOT STARTED | — | — | — | Lemma 8.33 strict. Depends: R-2B, R-3, G2-topo, G3 |
 | R-5 | NOT STARTED | — | — | — | Assembly. Depends: R-3, R-4, TICKET-1B |
