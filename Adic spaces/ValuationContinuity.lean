@@ -57,7 +57,8 @@ theorem isContinuous_of_ideal_pow_lt
   · subst hγ; simp [not_lt_zero']
   · have hγ_pos : (0 : Γ₀) < γ := zero_lt_iff.mpr hγ
     obtain ⟨n, hn⟩ := h γ hγ_pos
-    have h_sub : P.A₀.subtype '' ((P.I ^ n : Ideal P.A₀) : Set P.A₀) ⊆ { a | v a < γ } := by
+    have h_sub : P.A₀.subtype '' ((P.I ^ n : Ideal P.A₀) : Set P.A₀) ⊆
+        { a | v a < γ } := by
       rintro _ ⟨y, hy, rfl⟩
       exact hn y hy
     rw [show { a : A | v a < γ } =
@@ -110,7 +111,8 @@ variable {A : Type*} [CommRing A] [TopologicalSpace A]
 /-- The composition `A₀ → A → A/𝔭 → Frac(A/𝔭)` as a ring homomorphism. -/
 noncomputable def toFractionQuotient (P : PairOfDefinition A)
     (𝔭 : Ideal A) : P.A₀ →+* FractionRing (A ⧸ 𝔭) :=
-  ((algebraMap (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭))).comp (Ideal.Quotient.mk 𝔭)).comp P.A₀.subtype
+  ((algebraMap (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭))).comp
+    (Ideal.Quotient.mk 𝔭)).comp P.A₀.subtype
 
 omit [IsTopologicalRing A] [IsLinearTopology A A] in
 /-- The kernel of `A₀ → Frac(A/𝔭)` equals `𝔭 ∩ A₀` when `𝔭` is prime. -/
@@ -183,7 +185,7 @@ theorem supp_comap_quotient_fractionRing {𝔭 : Ideal A} [𝔭.IsPrime]
       exact hq
     exact hk (v.zero_iff.mp h)
   · intro h
-    simp [Ideal.Quotient.eq_zero_iff_mem.mpr h]
+    simp only [Ideal.Quotient.eq_zero_iff_mem.mpr h, map_zero]
 
 end PairOfDefinition
 
@@ -202,7 +204,8 @@ noncomputable def pulledBackValuation (_P : PairOfDefinition A)
     (V : ValuationSubring (FractionRing (A ⧸ 𝔭))) :
     Valuation A V.ValueGroup :=
   haveI : IsDomain (A ⧸ 𝔭) := Ideal.Quotient.isDomain 𝔭
-  V.valuation.comap ((algebraMap (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭))).comp (Ideal.Quotient.mk 𝔭))
+  V.valuation.comap
+    ((algebraMap (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭))).comp (Ideal.Quotient.mk 𝔭))
 
 omit [IsTopologicalRing A] [IsLinearTopology A A] in
 /-- The pulled-back valuation has support equal to `𝔭`. -/
@@ -368,7 +371,8 @@ section CoarsenByUnits
 
 variable {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
 
-/-- The composition `Γ₀ → WithZero(Γ₀ˣ) → WithZero(Γ₀ˣ ⧸ H)` as a `MonoidWithZeroHom`. -/
+/-- The composition `Γ₀ → WithZero(Γ₀ˣ) → WithZero(Γ₀ˣ ⧸ H)`
+as a `MonoidWithZeroHom`. -/
 noncomputable def coarsenMapOfValueGroup
     (H : ConvexSubgroup Γ₀ˣ) :
     Γ₀ →*₀ WithZero (Γ₀ˣ ⧸ H.toSubgroup) :=
@@ -451,15 +455,12 @@ theorem coarsenByUnits_lt_one_of_not_mem
     (ha_not_mem : Units.mk0 (v a) ha_ne ∉ H) (ha_le : v a ≤ 1) :
     v.coarsenByUnits H a < 1 := by
   set u := Units.mk0 (v a) ha_ne with hu_def
-  -- u ≤ 1 from ha_le, and u ≠ 1 (since u ∉ H but 1 ∈ H), hence u < 1
   have hu_ne : u ≠ 1 :=
     fun h ↦ ha_not_mem (h ▸ H.toSubgroup.one_mem)
   have hu_lt : u < 1 :=
     lt_of_le_of_ne (Units.val_le_val.mp ha_le) (fun h ↦ hu_ne h)
-  -- coarsenByUnits H a = coarsenMapOfValueGroup H (↑u) = ↑(π u)
   have hva_eq : v a = (u : Γ₀) := rfl
   rw [coarsenByUnits_apply, hva_eq, coarsenMapOfValueGroup_apply_unit H u]
-  -- π(u) < 1 by quotientMk_lt_one_of_not_mem
   exact WithZero.coe_lt_one.mpr (H.quotientMk_lt_one_of_not_mem hu_lt ha_not_mem)
 
 /-! ### Restriction of a valuation to a convex subgroup (Wedhorn's retraction 7.1.2) -/
@@ -490,34 +491,26 @@ noncomputable def restrictToConvex
     have hm : Units.mk0 (1 : Γ₀) h1 ∈ H := by
       have : Units.mk0 (1 : Γ₀) h1 = 1 := Units.ext rfl
       rw [this]; exact one_mem H
-    simp [h1]; rfl
+    simp only [h1, dite_false, dif_pos hm,
+      show (1 : WithZero H.toSubgroup) = ((1 : H.toSubgroup) : WithZero H.toSubgroup) from rfl]
+    congr 1; exact Subtype.ext (Units.ext rfl)
   map_mul' x y := by
-    -- Helper: if u ∉ H and u ≤ 1 and w ≤ u, then w ∉ H (by convexity with 1 ∈ H)
     have not_mem_of_le' {u w : Γ₀ˣ} (hu : u ∉ H) (hu1 : u ≤ 1) (hw1 : w ≤ u) : w ∉ H :=
       fun hw_mem => hu (H.convex hw_mem (one_mem H) hw1 hu1)
-    -- All unit parts are ≤ 1 (from hle)
     have unit_le_one' : ∀ (r : R) (hr : v r ≠ 0), Units.mk0 (v r) hr ≤ 1 :=
       fun r hr => Units.val_le_val.mp (hle r)
-    -- Case: v x = 0
     by_cases hx : v x = 0
     · have hxy : v (x * y) = 0 := by rw [map_mul, hx, zero_mul]
       simp only [hxy, hx, dif_pos, zero_mul]
-    -- Case: v y = 0
     by_cases hy : v y = 0
     · have hxy : v (x * y) = 0 := by rw [map_mul, hy, mul_zero]
       simp only [hxy, hy, dif_pos, mul_zero]
-    -- Both nonzero. Set up unit parts.
     have hxy_ne : v (x * y) ≠ 0 := by rw [map_mul]; exact mul_ne_zero hx hy
-    -- Key: Units.mk0 (v (x*y)) _ = Units.mk0 (v x) _ * Units.mk0 (v y) _
     have huxy_eq : Units.mk0 (v (x * y)) hxy_ne =
         Units.mk0 (v x) hx * Units.mk0 (v y) hy := Units.ext (map_mul v x y)
-    -- Case analysis on membership in H
     by_cases hmx : Units.mk0 (v x) hx ∈ H <;> by_cases hmy : Units.mk0 (v y) hy ∈ H
-    · -- Both in H: product in H
-      have hmxy : Units.mk0 (v (x * y)) hxy_ne ∈ H := huxy_eq ▸ mul_mem hmx hmy
+    · have hmxy : Units.mk0 (v (x * y)) hxy_ne ∈ H := huxy_eq ▸ mul_mem hmx hmy
       simp only [hx, hy, hxy_ne, dif_neg, dif_pos hmx, dif_pos hmy, dif_pos hmxy, not_false_eq_true]
-      -- Goal: some ⟨uxy, hmxy⟩ = some ⟨ux, hmx⟩ * some ⟨uy, hmy⟩
-      -- In WithZero, (↑a : WithZero _) * ↑b = ↑(a * b)
       rw [show (some (⟨Units.mk0 (v x) hx, hmx⟩ : H.toSubgroup) : WithZero H.toSubgroup) =
         (↑(⟨Units.mk0 (v x) hx, hmx⟩ : H.toSubgroup) : WithZero H.toSubgroup) from rfl,
         show (some (⟨Units.mk0 (v y) hy, hmy⟩ : H.toSubgroup) : WithZero H.toSubgroup) =
@@ -525,20 +518,17 @@ noncomputable def restrictToConvex
         ← WithZero.coe_mul]
       congr 1
       exact Subtype.ext huxy_eq
-    · -- ux ∈ H, uy ∉ H: product ∉ H
-      have hmxy : Units.mk0 (v (x * y)) hxy_ne ∉ H := by
+    · have hmxy : Units.mk0 (v (x * y)) hxy_ne ∉ H := by
         rw [huxy_eq]; intro hmem
         exact hmy (by have := mul_mem (inv_mem hmx) hmem; rwa [inv_mul_cancel_left] at this)
       simp only [hx, hy, hxy_ne, dif_neg, dif_pos hmx, dif_neg hmy, dif_neg hmxy, not_false_eq_true,
         mul_zero]
-    · -- ux ∉ H, uy ∈ H: product ∉ H
-      have hmxy : Units.mk0 (v (x * y)) hxy_ne ∉ H := by
+    · have hmxy : Units.mk0 (v (x * y)) hxy_ne ∉ H := by
         rw [huxy_eq]; intro hmem
         exact hmx (by have := mul_mem hmem (inv_mem hmy); rwa [mul_inv_cancel_right] at this)
       simp only [hx, hy, hxy_ne, dif_neg, dif_neg hmx, dif_pos hmy, dif_neg hmxy, not_false_eq_true,
         zero_mul]
-    · -- Both ∉ H: product ∉ H (by convexity)
-      have hmxy : Units.mk0 (v (x * y)) hxy_ne ∉ H := by
+    · have hmxy : Units.mk0 (v (x * y)) hxy_ne ∉ H := by
         rw [huxy_eq]
         intro hmem
         have hle_ux : Units.mk0 (v x) hx * Units.mk0 (v y) hy ≤ Units.mk0 (v x) hx :=
