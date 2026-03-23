@@ -81,19 +81,113 @@ composed with this equivalence is the identity. -/
 theorem epsilonHom_injective (f : A) : Function.Injective (epsilonHom f) := by
   intro a b hab
   have h1 := (Prod.mk.inj hab).1
-  -- The first component: Quotient.mk (algebraMap a) = Quotient.mk (algebraMap b)
-  -- Apply quotientFSubXEquiv which sends Quotient.mk(algebraMap a) ↦ a
-  -- AToQuotientFSubX is the first component; it has a left inverse (quotientFSubXToA)
-  -- so it's injective
   have hcomp : (TateAlgebra.quotientFSubXToA f).comp
       (TateAlgebra.AToQuotientFSubX f) = RingHom.id A :=
     TateAlgebra.quotientFSubXToA_comp_AToQuotientFSubX f
-  -- h1 says AToQuotientFSubX(a) = AToQuotientFSubX(b)
   have ha := RingHom.congr_fun hcomp a
   have hb := RingHom.congr_fun hcomp b
   simp only [RingHom.comp_apply, RingHom.id_apply] at ha hb
   rw [← ha, ← hb]
   exact congr_arg (TateAlgebra.quotientFSubXToA f) h1
+
+/-- The δ map: `B₁ f × B₂ f →+ Localization.Away f` defined as the difference
+of the two natural maps to `Localization.Away f`:
+- First component: `B₁ f ≅ A → Localization.Away f` (algebraMap composed with equiv)
+- Second component: `B₂ f ≅ Localization.Away f` (just the equiv)
+
+This is the second map in the Cech complex for the Laurent cover. -/
+noncomputable def deltaMap (f : A) : B₁ f × B₂ f →+ Localization.Away f where
+  toFun p :=
+    algebraMap A (Localization.Away f) (TateAlgebra.quotientFSubXToA f p.1) -
+      TateAlgebra.quotientOneSubfXToLoc f p.2
+  map_zero' := by simp [map_zero]
+  map_add' p q := by
+    simp only [Prod.fst_add, Prod.snd_add, map_add]
+    ring
+
+omit [IsNoetherianRing A] in
+/-- The composition `delta circ epsilon = 0`: the image of `epsilon` lands in the
+kernel of `delta`. -/
+theorem deltaMap_comp_epsilonHom (f : A) :
+    ∀ a : A, deltaMap f (epsilonHom f a) = 0 := by
+  intro a
+  simp only [deltaMap, epsilonHom, AddMonoidHom.coe_mk, ZeroHom.coe_mk,
+    RingHom.prod_apply, RingHom.comp_apply]
+  have h1 : TateAlgebra.quotientFSubXToA f
+      ((Ideal.Quotient.mk _) (algebraMap A ↥(TateAlgebra A) a)) = a := by
+    have := RingHom.congr_fun (TateAlgebra.quotientFSubXToA_comp_AToQuotientFSubX f) a
+    simp only [RingHom.comp_apply, RingHom.id_apply, TateAlgebra.AToQuotientFSubX] at this
+    exact this
+  have h2 : TateAlgebra.quotientOneSubfXToLoc f
+      ((Ideal.Quotient.mk _) (algebraMap A ↥(TateAlgebra A) a)) =
+      algebraMap A (Localization.Away f) a := by
+    simp only [TateAlgebra.quotientOneSubfXToLoc, Ideal.Quotient.lift_mk,
+      TateAlgebra.evalInvFHom_algebraMap]
+  rw [h1, h2, sub_self]
+
+omit [IsNoetherianRing A] in
+/-- The delta map is surjective: given any element of `Localization.Away f`,
+we can find a preimage in `B_1 f x B_2 f`. -/
+theorem deltaMap_surjective (f : A) : Function.Surjective (deltaMap f) := by
+  intro y
+  refine ⟨(0, (TateAlgebra.quotientOneSubfXEquiv f).symm (-y)), ?_⟩
+  simp only [deltaMap, AddMonoidHom.coe_mk, ZeroHom.coe_mk, map_zero]
+  have h : TateAlgebra.quotientOneSubfXToLoc f
+      ((TateAlgebra.quotientOneSubfXEquiv f).symm (-y)) = -y :=
+    (TateAlgebra.quotientOneSubfXEquiv f).right_inv (-y)
+  rw [h]
+  ring
+
+omit [IsNoetherianRing A] in
+/-- Helper: `quotientOneSubfXToLoc` is injective (it's one direction of an equiv). -/
+theorem quotientOneSubfXToLoc_injective (f : A) :
+    Function.Injective (TateAlgebra.quotientOneSubfXToLoc f) :=
+  (TateAlgebra.quotientOneSubfXEquiv f).injective
+
+omit [IsNoetherianRing A] in
+/-- Reverse inclusion: if `delta(b_1, b_2) = 0` then `(b_1, b_2)` is in the range
+of `epsilon`. This uses that both equivalences allow us to recover the element
+`a` in `A`. -/
+theorem ker_deltaMap_le_range_epsilonHom (f : A) :
+    ∀ p : B₁ f × B₂ f, deltaMap f p = 0 → ∃ a : A, epsilonHom f a = p := by
+  intro ⟨b₁, b₂⟩ h
+  simp only [deltaMap, AddMonoidHom.coe_mk, ZeroHom.coe_mk] at h
+  -- From h: algebraMap(quotientFSubXToA(b₁)) - quotientOneSubfXToLoc(b₂) = 0
+  have heq : algebraMap A (Localization.Away f) (TateAlgebra.quotientFSubXToA f b₁) =
+      TateAlgebra.quotientOneSubfXToLoc f b₂ := sub_eq_zero.mp h
+  set a := TateAlgebra.quotientFSubXToA f b₁
+  -- b₁ = AToQuotientFSubX(a) since the equiv round-trips
+  have hb₁ : TateAlgebra.AToQuotientFSubX f a = b₁ := by
+    change (TateAlgebra.quotientFSubXEquiv f).symm (TateAlgebra.quotientFSubXEquiv f b₁) = b₁
+    exact (TateAlgebra.quotientFSubXEquiv f).symm_apply_apply b₁
+  -- quotientOneSubfXToLoc(mk(algebraMap a)) = algebraMap(a)
+  have himg : TateAlgebra.quotientOneSubfXToLoc f
+      ((Ideal.Quotient.mk _) (algebraMap A ↥(TateAlgebra A) a)) =
+      algebraMap A (Localization.Away f) a := by
+    simp only [TateAlgebra.quotientOneSubfXToLoc, Ideal.Quotient.lift_mk,
+      TateAlgebra.evalInvFHom_algebraMap]
+  have hb₂ : (Ideal.Quotient.mk _) (algebraMap A ↥(TateAlgebra A) a) = b₂ := by
+    apply quotientOneSubfXToLoc_injective f
+    rw [himg, heq]
+  exact ⟨a, Prod.ext hb₁ hb₂⟩
+
+omit [IsNoetherianRing A] in
+/-- **Laurent cover exactness (Wedhorn Lemma 8.33, discrete case).**
+The sequence `0 -> A ->[epsilon] B_1 f x B_2 f ->[delta] Localization.Away f -> 0`
+is exact:
+1. `epsilon` is injective
+2. `delta` is surjective
+3. `delta circ epsilon = 0` (image of epsilon is contained in kernel of delta)
+4. `ker delta` is a subset of `im epsilon` -/
+theorem laurentCover_exact (f : A) :
+    Function.Injective (epsilonHom f) ∧
+    Function.Surjective (deltaMap f) ∧
+    (∀ x, deltaMap f (epsilonHom f x) = 0) ∧
+    (∀ p, deltaMap f p = 0 → ∃ a, epsilonHom f a = p) :=
+  ⟨epsilonHom_injective f,
+   deltaMap_surjective f,
+   deltaMap_comp_epsilonHom f,
+   ker_deltaMap_le_range_epsilonHom f⟩
 
 end Discrete
 
