@@ -32,7 +32,7 @@ Same rules as v1 — see the protocol section in the original tickets file.
 |--------|--------|-------|---------|-----------|-------|
 | G1 | IN PROGRESS | claude-main | 2026-03-23 | — | I-adic topology on A⟨X⟩ |
 | G2 | NOT STARTED | — | — | — | Presheaf = Tate quotient (Rem 7.55). Depends: G1 |
-| G3 | IN PROGRESS | claude-opus | 2026-03-23 | — | Completion preserves strict exact seqs |
+| G3 | DONE | claude-opus | 2026-03-23 | 2026-03-23 | 0 sorry; wraps mathlib AdicCompletion |
 | R-2B | NOT STARTED | — | — | — | Redo Lemma 8.31 non-discrete. Depends: G1, G2 |
 | R-3 | NOT STARTED | — | — | — | Redo Prop 8.30 non-discrete. Depends: R-2B, G2 |
 | R-4 | NOT STARTED | — | — | — | Redo Lemma 8.33 non-discrete. Depends: R-2B, R-3, G3 |
