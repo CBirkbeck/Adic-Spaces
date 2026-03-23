@@ -1,6 +1,6 @@
 # Tilt Infrastructure — Status Tracker
 
-**Last updated:** 2026-03-23
+**Last updated:** 2026-03-23 (evening)
 **Plan:** `docs/plans/2026-03-23-tilt-infrastructure.md`
 **References:** `docs/heuer-perfectoid-notes.pdf`, `docs/scholze-perfectoid-spaces.pdf`
 
@@ -11,7 +11,7 @@
 | 1 | `tilt_isDomain` | REDUCED | Moderate | Renamed from tilt_isField (wrong statement). Now reduces to valuation construction via PreTilt.isDomain. Sorry: exists v : Valuation K NNReal with v.Integers = K° |
 | 2 | `tilt_admits_perfectoid_structure` | **DONE** | Easy | Discrete topology (⊥ uniformity) |
 | 3 | `tiltingEquiv` | **DONE** | Easy | Same discrete topology |
-| 4 | `ker_theta_principal` | DEFERRED | Very Hard | Needs Witt vector Teichmüller lifts |
+| 4 | `ker_theta_principal` | **IN PROGRESS** | Very Hard | Plan at docs/plans/2026-03-23-ker-theta-principal.md. Generator: ξ = p - [ϖ♭]. Reference: Berkeley Lectures Lemma 6.2.8 |
 
 ## Sorry Status (PerfectoidRing.lean)
 
