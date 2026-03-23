@@ -88,4 +88,17 @@ theorem canonicalMap_flat_discrete [DiscreteTopology A] (D : RationalLocData A) 
           e.symm (e (algebraMap A _ a)) * e.symm x from e.symm.map_mul _ _,
           e.symm_apply_apply] }
 
+/-! ### Cor 8.32: each cover piece is flat over A (discrete case) -/
+
+/-- **Corollary 8.32** of Wedhorn (discrete case): the product of presheaf values
+for a rational cover is flat over `A`.
+
+Each factor `presheafValue D` is flat over `A` (by `canonicalMap_flat_discrete`),
+so the product is flat over `A` (by `Module.Flat.pi`). -/
+theorem productPresheafValues_flat_discrete [DiscreteTopology A] [PlusSubring A]
+    (C : RationalCovering A) (D : ↥C.covers) :
+    @Module.Flat A (presheafValue D.1) _ _
+      (RingHom.toModule (RationalLocData.canonicalMap D.1)) :=
+  canonicalMap_flat_discrete D.1
+
 end ValuationSpectrum
