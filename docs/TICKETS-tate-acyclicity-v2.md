@@ -30,7 +30,7 @@ Same rules as v1 — see the protocol section in the original tickets file.
 
 | Ticket | Status | Agent | Started | Completed | Notes |
 |--------|--------|-------|---------|-----------|-------|
-| G1 | IN PROGRESS | claude-main | 2026-03-23 | — | I-adic topology on A⟨X⟩ |
+| G1 | DONE | claude-main | 2026-03-23 | 2026-03-23 | I-adic on A₀⟨X⟩; A⟨X⟩ product ≠ I-adic |
 | G2 | NOT STARTED | — | — | — | Presheaf = Tate quotient (Rem 7.55). Depends: G1 |
 | G3 | DONE | claude-opus | 2026-03-23 | 2026-03-23 | 0 sorry; wraps mathlib AdicCompletion |
 | R-2B | NOT STARTED | — | — | — | Redo Lemma 8.31 non-discrete. Depends: G1, G2 |
