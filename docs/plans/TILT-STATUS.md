@@ -8,7 +8,7 @@
 
 | # | Sorry | Status | Difficulty | Notes |
 |---|-------|--------|------------|-------|
-| 1 | `tilt_isDomain` | REDUCED | Moderate | Renamed from tilt_isField (wrong statement). Now reduces to valuation construction via PreTilt.isDomain. Sorry: exists v : Valuation K NNReal with v.Integers = K° |
+| 1 | `tilt_isDomain` | **DONE** | Easy | Proved via PreTilt.isDomain + IsPerfectoidField.exists_valuation |
 | 2 | `tilt_admits_perfectoid_structure` | **DONE** | Easy | Discrete topology (⊥ uniformity) |
 | 3 | `tiltingEquiv` | **DONE** | Easy | Same discrete topology |
 | 4 | `ker_theta_principal` | STRUCTURED | Very Hard | Proof skeleton done, 1 core sorry. Plan at docs/plans/2026-03-23-ker-theta-principal.md. Generator: ξ = [ϖ♭] - p. Reference: Berkeley Lectures Lemma 6.2.8. Needs: construct ϖ♭ via Perfection.coeff_surjective + show ker ⊆ (ξ) via p-adic completeness |
