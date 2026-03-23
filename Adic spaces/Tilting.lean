@@ -242,10 +242,28 @@ theorem theta_surjective : Function.Surjective (PerfectoidRing.theta p A) := by
   exact (surjective_fontaineTheta (R := ↥(powerBoundedSubring.toSubring A))
     (frobenius_modP_surjective p A)) x
 where
-  /-- Frobenius is surjective on `A°/(p)`. The perfectoid condition gives Frobenius surjectivity
-  on `A°/(ϖ)`. Since `p = c·ϖ^p`, we have `(p) ⊆ (ϖ^p) ⊆ (ϖ)` in `A°`, so A°/(ϖ) is
-  a quotient of A°/(p). Frobenius surjectivity on A°/(ϖ) implies it on A°/(p) because
-  the kernel (ϖ)/(p) is nilpotent (ϖ^p ∈ (p) via c·ϖ^p = p). -/
+  /-- Frobenius is surjective on `A°/(p)`.
+  **Status: sorry.** The perfectoid condition (`IsPerfectoidRing.exists_pseudoUniformizer`)
+  gives Frobenius surjectivity on `A°/(ϖ)`, i.e., for every power-bounded `x` there exist
+  power-bounded `y, z` with `x = y^p + ϖ·z`. What we need is surjectivity on `A°/(p)`,
+  i.e., for every `x ∈ A°` there exists `y ∈ A°` with `x - y^p ∈ (p)·A°`.
+
+  The naive iterative approach (apply perfectoid condition to the error term `ϖ·z`,
+  use freshman's dream `(a+b)^p = a^p + b^p` in characteristic `p`) gives after `n`
+  steps: `x̄ = S̄_n^p + ϖ̄·t̄_n` in `A°/(p)`. But `ϖ̄` is not nilpotent in `A°/(p)`
+  in general (we only know `c̄·ϖ̄^p = 0`), so the iteration does not terminate
+  algebraically.
+
+  **Resolution:** Scholze's original Definition 3.5 includes Frobenius surjectivity
+  on `A°/(p)` directly as part of the perfectoid condition. Our formulation
+  (`IsPerfectoidRing`) uses the weaker ϖ-based condition from Wedhorn. To fill
+  this sorry, one should either:
+  1. Strengthen `IsPerfectoidRing` to include `∀ x : A°, ∃ y : A°, x - y^p ∈ (p)·A°`
+     as a field (matching Scholze's formulation), or
+  2. Prove the implication using p-adic completeness of `A°` and the topological
+     convergence of the partial sums `S_n` (requires showing the sequence converges
+     in the `(p)`-adic topology on `A°`, which is available via
+     `IsPerfectoidRing.instIsAdicComplete`). -/
   frobenius_modP_surjective (p : ℕ) [Fact (Nat.Prime p)]
       (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
       [UniformSpace A] [IsLinearTopology A A] [IsPerfectoidRing p A] [Nontrivial A] :
