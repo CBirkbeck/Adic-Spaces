@@ -139,12 +139,90 @@ The proof of `IsPrecomplete` uses: a `p`-adic Cauchy sequence is also Cauchy
 in the subspace topology (by the cofinality above), hence converges in `A°`.
 
 (Scholze, *Perfectoid Spaces*, implicit in §3) -/
+private abbrev PBSubring (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [IsLinearTopology A A] := ↥(powerBoundedSubring.toSubring A)
+
+private abbrev pIdeal (p : ℕ) (A : Type u) [CommRing A] [TopologicalSpace A]
+    [IsTopologicalRing A] [IsLinearTopology A A] :=
+  Ideal.span {(p : PBSubring A)}
+
+/-- **IsHausdorff**: `⋂_n p^n A° = {0}`.
+
+If `x ∈ p^n A°` for all `n`, then `(x : A) = (c·ϖ^p)^n · yₙ` for power-bounded
+`yₙ`. Since `ϖ` is topologically nilpotent and `A°` is bounded, `(x : A)` is in
+every neighborhood of 0, hence `(x : A) = 0` by T₀. -/
+private theorem isHausdorff_pIdeal (p : ℕ) [Fact (Nat.Prime p)]
+    (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [UniformSpace A] [IsLinearTopology A A] [IsPerfectoidRing p A] [Nontrivial A] :
+    IsHausdorff (pIdeal p A) (PBSubring A) := by
+  constructor
+  intro x hx
+  -- Extract perfectoid data: ϖ (top. nilp. unit), c (power-bounded), p = c * ϖ^p
+  obtain ⟨ϖ, hϖ_pb, ⟨c, hc_pb, hpc⟩, _⟩ :=
+    IsPerfectoidRing.exists_pseudoUniformizer (p := p) (A := A)
+  -- x ∈ (Ideal.span {p})^n • ⊤ for all n, i.e., p^n | x in A°
+  have hx_mem : ∀ n : ℕ, (x : A) ∈ (Set.range (fun y : PBSubring A => (p : A) ^ n * (y : A))) := by
+    intro n
+    have := (SModEq.sub_mem.mp (hx n))
+    simp only [sub_zero] at this
+    -- x ∈ (Ideal.span {p})^n • ⊤ in A°, i.e. p^n ∣ x in A°
+    rw [Ideal.smul_eq_mul, Ideal.mul_top, Ideal.span_singleton_pow,
+      Ideal.mem_span_singleton] at this
+    obtain ⟨y, hy⟩ := this
+    exact ⟨y, by push_cast [hy]; ring⟩
+  -- Show (x : A) is in every neighborhood of 0
+  -- Using: (x : A) = (c * ϖ^p)^n * y_n, A° is bounded, ϖ top. nilp.
+  have hx_zero : (x : A) = 0 := by
+    -- Show 0 ∈ closure {(x : A)}, hence x = 0 by T₁ (from T₀ + UniformSpace)
+    haveI := IsPerfectoidRing.t0 (p := p) (A := A)
+    haveI := IsPerfectoidRing.uniform (p := p) (A := A)
+    suffices h_mem_nhds : ∀ U ∈ nhds (0 : A), (x : A) ∈ U by
+      have h0 : (0 : A) ∈ closure ({(x : A)} : Set A) :=
+        mem_closure_iff_nhds.mpr fun U hU => ⟨(x : A), h_mem_nhds U hU, Set.mem_singleton _⟩
+      rwa [IsClosed.closure_eq isClosed_singleton, Set.mem_singleton_iff, eq_comm] at h0
+    intro U hU
+    -- A° is bounded: ∃ V ∈ nhds 0, A° * V ⊆ U
+    obtain ⟨V, hV, hAV⟩ :=
+      IsUniform.isBounded_powerBounded (A := A) U hU
+    -- ϖ^p is topologically nilpotent (since ϖ is, and (ϖ^p)^n = ϖ^{pn} → 0)
+    have hp_pos : 0 < p := (Fact.out : Nat.Prime p).pos
+    have hϖp_tn : IsTopologicallyNilpotent ((ϖ.val : A) ^ p) := by
+      rw [IsTopologicallyNilpotent]; simp_rw [← pow_mul]
+      exact (ϖ.property).comp
+        (Filter.tendsto_atTop_atTop_of_monotone (fun _ _ h => Nat.mul_le_mul_left p h)
+          fun b => ⟨b, Nat.le_mul_of_pos_left _ hp_pos⟩)
+    -- c^n is power-bounded for all n (A° is a subring, c ∈ A°)
+    have hcn_pb : ∀ m : ℕ, IsPowerBounded (c ^ m) := by
+      intro m; induction m with
+      | zero => simpa using isPowerBounded_one
+      | succ k ih => simpa [pow_succ] using isPowerBounded_mul ih hc_pb
+    -- Pick n with (ϖ^p)^n ∈ V
+    obtain ⟨n, hn⟩ := hϖp_tn.exists_pow_mem_of_mem_nhds hV
+    -- (x : A) = (p : A)^n * y for some y ∈ A°
+    obtain ⟨y, hy⟩ := hx_mem n
+    -- c^n * y ∈ A° (product of power-bounded elements)
+    have hcy_pb : IsPowerBounded (c ^ n * (y : A)) := isPowerBounded_mul (hcn_pb n) y.property
+    -- Rewrite: (x : A) = (c * ϖ^p)^n * y = (c^n * y) * (ϖ^p)^n
+    have hx_eq : (x : A) = c ^ n * (y : A) * ((ϖ.val : A) ^ p) ^ n := by
+      rw [← hy, hpc]; ring
+    -- (c^n * y) * (ϖ^p)^n ∈ A° * V ⊆ U
+    rw [hx_eq]; exact hAV (Set.mul_mem_mul hcy_pb hn)
+  -- Conclude x = 0 in A°
+  exact Subtype.val_injective hx_zero
+
+/-- **IsPrecomplete**: `p`-adic Cauchy sequences in `A°` converge. -/
+private theorem isPrecomplete_pIdeal (p : ℕ) [Fact (Nat.Prime p)]
+    (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [UniformSpace A] [IsLinearTopology A A] [IsPerfectoidRing p A] [Nontrivial A] :
+    IsPrecomplete (pIdeal p A) (PBSubring A) := by
+  sorry
+
 instance instIsAdicComplete (p : ℕ) [Fact (Nat.Prime p)]
     (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [UniformSpace A] [IsLinearTopology A A] [IsPerfectoidRing p A] [Nontrivial A] :
-    IsAdicComplete (Ideal.span {(p : ↥(powerBoundedSubring.toSubring A))})
-      ↥(powerBoundedSubring.toSubring A) := by
-  sorry
+    IsAdicComplete (pIdeal p A) (PBSubring A) :=
+  { toIsHausdorff := isHausdorff_pIdeal p A
+    toIsPrecomplete := isPrecomplete_pIdeal p A }
 
 /-! ### Sorry'd deep theorems -/
 
