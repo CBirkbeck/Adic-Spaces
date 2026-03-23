@@ -3,174 +3,67 @@
 **Master goal:** Prove Wedhorn Theorem 8.28(b) for **non-discrete** strongly
 noetherian Tate rings: `O_X` is a sheaf of complete topological rings.
 
-**Problem with v1:** All v1 tickets (2B, 3, 4, 5) were proved only for
-`[DiscreteTopology A]`, which is the trivial case already covered by
-`IsSheafy.discrete`. The whole point of Thm 8.28(b) is the non-discrete case.
+**Constraint:** No `sorry` or `axiom`.
 
-**What's genuinely done (general, reusable):**
-- TICKET-0: Mathlib audit (still valid)
-- TICKET-1A/1B: Cech cohomology (pure algebra, no ring topology)
-- TICKET-6: NoetherianTateModules — Prop 6.18(2) open mapping, strict maps
-- TateAlgebra.lean: Laurent algebra definitions, basic theory, noetherian regularity
-- TateAlgebraTopology.lean: Product topology on A⟨X⟩
+---
 
-**What needs rework for non-discrete:**
-- Tate algebra quotient theory (evalF, quotient isomorphisms)
-- Flatness of restriction maps (Prop 8.30)
-- Laurent cover exactness (Lemma 8.33)
-- Assembly (Lemma 8.34, Thm 8.28(b))
+## Completed infrastructure (reusable from v1 + gaps)
+
+| What | File | Status |
+|------|------|--------|
+| Cech complex + d∘d=0 | CechCohomology.lean | DONE (general) |
+| Cech refinement + basis-sheaf | CechCohomology.lean | DONE (general) |
+| Noetherian Tate module topology (Prop 6.18) | NoetherianTateModules.lean | DONE (general) |
+| TateAlgebra definitions (Laurent, etc.) | TateAlgebra.lean | DONE (general algebraic defs) |
+| Product topology on A⟨X⟩ | TateAlgebraTopology.lean | DONE (but WRONG for eval maps) |
+| I-adic topology on A₀⟨X⟩ | TateAlgebraTopology.lean | DONE (G1) |
+| Completion preserves strict exact seqs | CompletionExact.lean | DONE (G3) |
+| Algebraic presheaf identification | PresheafIdentification.lean | DONE (G2 algebraic) |
+| Discrete flatness + Laurent exactness | TateAlgebra + FlatnessResults + LaurentCoverExact | DONE (discrete only) |
+
+## Key design issue (from reviewer)
+
+The product topology on `TateAlgebra A` makes `X^n → 0`. A continuous map
+`TateAlgebra A → presheafValue D` sending `X ↦ 1/f` would force `(1/f)^n → 0`,
+i.e., `1/f` topologically nilpotent. This is NOT correct for `R(1/f)`.
+
+**Resolution:** For algebraic results (flatness, kernel identification), topology
+doesn't matter. For topological results (continuity, strict exactness), need
+Wedhorn's T-topology (Definition 5.48) on a separate object. Split accordingly:
+- R-2B, R-3: use algebraic identification (unblocked NOW)
+- R-4, R-5: need correct topology (separate ticket G2-topo)
 
 ---
 
 ## Agent Coordination Protocol
 
-Same rules as v1 — see the protocol section in the original tickets file.
+Same rules as v1. Update tracker before starting, commit claim, update when done.
 
 ## Tracker
 
 | Ticket | Status | Agent | Started | Completed | Notes |
 |--------|--------|-------|---------|-----------|-------|
-| G1 | DONE | claude-main | 2026-03-23 | 2026-03-23 | I-adic on A₀⟨X⟩; A⟨X⟩ product ≠ I-adic |
-| G2 | PARTIAL | claude-main | 2026-03-23 | — | Algebraic ID done; topology BLOCKED (product topo wrong for eval) |
-| G3 | DONE | claude-opus | 2026-03-23 | 2026-03-23 | 0 sorry; wraps mathlib AdicCompletion |
-| R-2B | NOT STARTED | — | — | — | Redo Lemma 8.31 non-discrete. Depends: G1, G2 |
-| R-3 | NOT STARTED | — | — | — | Redo Prop 8.30 non-discrete. Depends: R-2B, G2 |
-| R-4 | NOT STARTED | — | — | — | Redo Lemma 8.33 non-discrete. Depends: R-2B, R-3, G3 |
-| R-5 | NOT STARTED | — | — | — | Assembly: Lemma 8.34 + Thm 8.28(b). Depends: R-3, R-4 |
+| G1 | DONE | claude-main | 2026-03-23 | 2026-03-23 | I-adic on A₀⟨X⟩ |
+| G2-alg | DONE | claude-main | 2026-03-23 | 2026-03-23 | Algebraic identification |
+| G2-topo | NOT STARTED | — | — | — | T-topology model + completion ID. Blocks: R-4 |
+| G3 | DONE | claude-opus | 2026-03-23 | 2026-03-23 | Completion exact seqs |
+| R-2B | NOT STARTED | — | — | — | Lemma 8.31 non-discrete. Depends: G2-alg |
+| R-3 | NOT STARTED | — | — | — | Prop 8.30 + Cor 8.32. Depends: R-2B, G2-alg |
+| R-4 | NOT STARTED | — | — | — | Lemma 8.33 strict. Depends: R-2B, R-3, G2-topo, G3 |
+| R-5 | NOT STARTED | — | — | — | Assembly. Depends: R-3, R-4, TICKET-1B |
 
 ## Dependency Graph
 
 ```
-G1 (I-adic topology) ──→ G2 (Rem 7.55) ──→ R-2B (Lemma 8.31) ──→ R-3 (Prop 8.30)
-                                                    │                      │
-G3 (completion exact) ──────────────────────────────┼──→ R-4 (Lemma 8.33) │
-                                                    │          │           │
-                                                    └──────────┴───→ R-5 (assembly)
+G2-alg (DONE) ──→ R-2B (Lemma 8.31) ──→ R-3 (Prop 8.30)
+                                              │
+G2-topo + G3 (DONE) ────────────────→ R-4 (Lemma 8.33 strict)
+                                              │
+                            R-3 + R-4 ──→ R-5 (assembly)
 ```
 
-**Parallel:** {G1, G3} can run in parallel. Then G2. Then {R-2B}. Then {R-3, R-4}. Then R-5.
-
----
-
-## TICKET-G1: I-adic Topology on A⟨X⟩
-
-**Status:** NOT STARTED
-**Estimated:** ~200 lines
-**Blocks:** G2, R-2B
-**File:** `Adic spaces/TateAlgebraTopology.lean` (extend)
-
-### Context
-
-Currently A⟨X⟩ has the product topology (coefficient-wise convergence from
-`MvPowerSeries.instTopologicalSpace`). For Wedhorn's proof, A⟨X⟩ needs the
-**I-adic topology**: the ring of definition is `A₀⟨X⟩` (restricted power series
-with coefficients in A₀), the ideal of definition is `I · A₀⟨X⟩`, and
-`{(I · A₀⟨X⟩)^n}` is a fundamental system of neighborhoods of 0.
-
-### What to build
-
-1. **Ring of definition** `A₀⟨X⟩ ⊆ A⟨X⟩`: the subring of restricted power series
-   with coefficients in A₀ (a subring of A).
-2. **Ideal of definition** `I · A₀⟨X⟩`: the ideal generated by I inside A₀⟨X⟩.
-3. **I-adic topology** on A⟨X⟩: the topology where `{image((I·A₀⟨X⟩)^n)}` is a
-   neighborhood basis of 0.
-4. **PairOfDefinition instance**: `(A₀⟨X⟩, I·A₀⟨X⟩)` is a pair of definition
-   for A⟨X⟩ with the I-adic topology.
-5. **IsTateRing instance**: A⟨X⟩ is a Tate ring (the topologically nilpotent
-   unit comes from the topologically nilpotent unit of A, NOT from X).
-6. **IsHuberRing instance**: follows from PairOfDefinition.
-
-### Key properties
-
-- The I-adic topology refines the product topology (more open sets)
-- A⟨X⟩ is complete for the I-adic topology
-- The coefficient maps `coeff n : A⟨X⟩ → A` are continuous for I-adic topology
-- Evaluation at 0 is continuous and open (for I-adic topology)
-
-### Mathematical reference
-
-Wedhorn §5.7 (Definition 5.48), §6.9, and Remark 8.29.
-
----
-
-## TICKET-G2: Presheaf Values = Tate Algebra Quotients (Remark 7.55)
-
-**Status:** NOT STARTED
-**Estimated:** ~250 lines
-**Blocks:** R-2B, R-3
-**Depends on:** G1
-**File:** `Adic spaces/PresheafIdentification.lean` (new)
-
-### Context
-
-Wedhorn Remark 7.55 + equation 8.1.1: for the basic rational subsets
-R(f/1) and R(1/f), the presheaf values (completions of localization algebras)
-are isomorphic to Tate algebra quotients:
-
-- `O_X(R(f/1)) ≅ A⟨X⟩/(f - X)` (as topological rings)
-- `O_X(R(1/f)) ≅ A⟨X⟩/(1 - fX)` (as topological rings)
-
-where A⟨X⟩ carries the I-adic topology from TICKET-G1.
-
-### What to build
-
-1. **Continuous evaluation maps**: `evalF : A⟨X⟩ → A_f` (localization away from f)
-   that are continuous for the I-adic topology on source and localization
-   topology on target.
-2. **Kernel identification**: `ker(evalF) = (f - X)` as an ideal of A⟨X⟩.
-3. **Topological isomorphism**: `A⟨X⟩/(f - X) ≃ₜ presheafValue D` where
-   D is the RationalLocData for R(f/1).
-4. Same for `1 - fX` and R(1/f).
-5. **General decomposition** (Remark 7.55): any rational subset can be built
-   from R(f/1) and R(1/f) steps.
-
-### Why this is hard
-
-The existing `presheafValue D` is defined as `UniformSpace.Completion` of
-`Localization.Away D.s` with the localization topology. Showing this equals
-a Tate algebra quotient requires:
-- The localization topology matches the quotient of the I-adic topology
-- The completion of the localization = the quotient of the completed A⟨X⟩
-- These are topological ring isomorphisms, not just algebraic
-
----
-
-## TICKET-G3: Completion Preserves Strict Exact Sequences
-
-**Status:** NOT STARTED
-**Estimated:** ~150 lines
-**Blocks:** R-4
-**File:** `Adic spaces/CompletionExact.lean` (new)
-
-### Context
-
-For the acyclicity argument (Lemma 8.34), we need that I-adic completion
-preserves exact sequences under appropriate conditions. Specifically:
-
-If `0 → K → M → N → 0` is a short exact sequence of f.g. modules over a
-noetherian I-adic ring, where all maps are strict (continuous + open onto image),
-then `0 → K̂ → M̂ → N̂ → 0` is exact.
-
-### What to build
-
-1. **Completion functor** for topological A-modules: `M ↦ M̂`
-2. **Completion preserves strict surjections**: If `f : M → N` is strict and
-   surjective, then `f̂ : M̂ → N̂` is surjective.
-3. **Completion preserves strict injections**: Under Artin-Rees conditions.
-4. **Main theorem**: Strict short exact sequences of f.g. modules over
-   noetherian I-adic rings remain exact after completion.
-
-### Mathlib dependencies
-
-- `AdicCompletion.map_exact` may already exist (check TICKET-0 audit)
-- `UniformSpace.Completion.map` for functoriality
-- Artin-Rees lemma (`Ideal.exists_pow_inf_eq_pow_smul` — confirmed in mathlib)
-
-### Relationship to NoetherianTateModules.lean
-
-TICKET-6 already proved the open mapping theorem (Prop 6.18(2)) — every
-surjective linear map between f.g. modules is open (= strict). This ticket
-builds ON that result to show completion preserves the exactness.
+**R-2B and R-3 are UNBLOCKED** (only need G2-alg which is done).
+R-4 needs G2-topo (the correct topological model).
 
 ---
 
@@ -179,141 +72,144 @@ builds ON that result to show completion preserves the exactness.
 **Status:** NOT STARTED
 **Estimated:** ~300 lines
 **Blocks:** R-3
-**Depends on:** G1, G2
-**File:** `Adic spaces/TateAlgebra.lean` (extend, add non-discrete section)
+**Depends on:** G2-alg (DONE)
+**File:** `Adic spaces/TateAlgebra.lean` (add non-discrete section)
 
-### Context
+### What to prove
 
-Redo Lemma 8.31 without `[DiscreteTopology A]`. The current discrete proofs
-use `ringEquivMvPolynomial` (A⟨X⟩ = A[X] for discrete A) which doesn't
-generalize.
-
-### What to prove (same theorems, different proofs)
+Same theorems as the discrete versions, but without `[DiscreteTopology A]`.
+The proofs use the ALGEBRAIC identification from G2-alg.
 
 **Lemma 8.31(1): A⟨X⟩ is faithfully flat over A.**
-
-Proof (Wedhorn, non-discrete):
-- Define M⟨X⟩ for f.g. A-module M (Remark 8.29)
-- Prove `μ_M : M ⊗_A A⟨X⟩ → M⟨X⟩` is bijective using:
-  - Free case: direct (M = A^n)
-  - General: presentation A^n → A^m → M → 0, tensor with A⟨X⟩ (right exact),
-    use Prop 6.18(2) [from TICKET-6] to show maps are strict, apply 5-lemma
-- Flat: μ_M bijective ⟹ tensor preserves injections
-- Faithful: A⟨X⟩/(X) ≅ A (from TICKET-G1)
+- Already have `noeth_zero_of_mul_shift` (general, no discrete needed)
+- Already have `evalZeroHom_surjective` (general)
+- Need: `μ_M : M ⊗_A A⟨X⟩ → M⟨X⟩` bijective (Remark 8.29)
+- Then flat via tensor criterion, faithful via `A⟨X⟩/(X) ≅ A`
 
 **Lemma 8.31(2): A⟨X⟩/(f-X) and A⟨X⟩/(1-fX) are flat over A.**
+- Already have regularity of `f-X` and `1-fX` (general)
+- Use: quotient by regular element of a flat algebra is flat
+  (general algebra: `A⟨X⟩` flat + regular element → quotient flat)
 
-Proof (Wedhorn):
-- For every f.g. M, multiplication by g = f-X (resp. 1-fX) on M⟨X⟩ is injective
-- This uses the noetherian ascending chain argument (already proved generally
-  as `noeth_zero_of_mul_shift` in TateAlgebra.lean)
-- Injectivity of multiplication ⟹ flat quotient (general algebra)
+### Key: what's already general in TateAlgebra.lean
 
-### Key difference from discrete version
+- `mul_fSubX_regular` (~line 939): `f-X` is a non-zero-divisor (needs `[IsNoetherianRing A]` only)
+- `mul_oneSubfX_regular` (~line 986): `1-fX` is a non-zero-divisor
+- `noeth_zero_of_mul_shift` (~line 540): ascending chain argument
+- `ker_evalZeroHom` (~line 530): kernel of eval at 0 = (X)
 
-The discrete version shortcuts via `ringEquivMvPolynomial`. The non-discrete
-version goes through M⟨X⟩ and the open mapping theorem, which is more work
-but mathematically correct for all strongly noetherian Tate rings.
+### What's missing
+
+- `M⟨X⟩` definition and `μ_M` (Remark 8.29) — can be defined using product topology
+- Flatness criterion: flat algebra + quotient by regular element → flat quotient
+  (check mathlib: `Module.Flat.of_quotient_by_regular` or similar)
+- Faithful flatness: `A⟨X⟩/(X) ≅ A` + flat → faithful
 
 ---
 
-## TICKET-R-3: Prop 8.30 + Cor 8.32 — Non-Discrete Flatness
+## TICKET-R-3: Prop 8.30 + Cor 8.32 — Non-Discrete Restriction Flatness
 
 **Status:** NOT STARTED
 **Estimated:** ~200 lines
 **Blocks:** R-4, R-5
-**Depends on:** R-2B, G2
-**File:** `Adic spaces/FlatnessResults.lean` (extend with non-discrete section)
+**Depends on:** R-2B, G2-alg (DONE)
+**File:** `Adic spaces/FlatnessResults.lean` (add non-discrete section)
 
 ### What to prove
 
-Same as v1 TICKET-3 but using the non-discrete identifications from G2:
+**Prop 8.30:** For rational U ⊆ V ⊆ Spa A, `O_X(V) → O_X(U)` is flat.
+- WLOG V = X, A complete
+- Use Wedhorn Remark 7.55: decompose into R(f/1) and R(1/f) steps
+- `presheafValue D ≅ A⟨X⟩/(f-X)` or `A⟨X⟩/(1-fX)` ALGEBRAICALLY (from G2-alg)
+- Flat by R-2B (Lemma 8.31(2))
 
-**Prop 8.30:** O_X(V) → O_X(U) is flat for rational U ⊆ V.
-- Use G2 to identify presheaf values with Tate algebra quotients
-- Apply R-2B (Lemma 8.31(2)) for flatness
+**Cor 8.32:** Product restriction `A → ∏ O_X(U_i)` is faithfully flat.
+- Flat: finite products of flat algebras are flat (already proved: `Module.Flat.pi`)
+- Faithful: induced map on spectra surjective (covering condition)
 
-**Cor 8.32:** Product restriction is faithfully flat.
-- Use R-2B (Lemma 8.31(1)) for faithful flatness of A⟨X⟩
-- Deduce for the product via covering argument
+### Key bridge
+
+The algebraic isomorphism `presheafValue D ≃+* TateAlgebra A ⧸ (1-fX)` from
+G2-alg allows transferring flatness: `TateAlgebra A ⧸ (1-fX)` is flat by R-2B,
+and flatness transfers along ring isomorphisms.
 
 ---
 
-## TICKET-R-4: Lemma 8.33 — Non-Discrete Laurent Cover Exactness
+## TICKET-G2-topo: Correct Topological Model for Evaluation (FUTURE)
+
+**Status:** NOT STARTED
+**Estimated:** ~300 lines
+**Blocks:** R-4
+**File:** `Adic spaces/TateAlgebraWedhorn.lean` (new)
+
+### Context
+
+The product topology on `TateAlgebra A` is WRONG for evaluation maps
+(X^n → 0 forces invS topologically nilpotent). Need Wedhorn's T-topology
+(Definition 5.48, Remark 5.47).
+
+### What to build
+
+1. Define `TateAlgebraT A T` with Wedhorn's T-topology where neighborhoods
+   are `{∑ aᵥ Xᵥ : aᵥ ∈ Tᵥ U}` for open subgroups U of A
+2. Prove `A[X]_T` is dense (Prop 5.49(1))
+3. Prove `A⟨X⟩_T` = completion of `A[X]_T` (Prop 5.49(3))
+4. The evaluation `ev: A[X]_T → A_f` is continuous (1/f power-bounded)
+5. Extend via `IsDenseInducing.extendRingHom` to `A⟨X⟩_T → presheafValue D`
+6. Identify kernel = (1-fX), surjective
+7. Topological ring isomorphism `A⟨X⟩_T/(1-fX) ≃ₜ presheafValue D`
+
+### Mathlib tools
+
+- `IsDenseInducing.extendRingHom` for dense extension
+- `HasSum.mul_of_nonarchimedean` for Cauchy products
+- `NonarchimedeanAddGroup.summable_of_tendsto_cofinite_zero` for convergence
+
+---
+
+## TICKET-R-4: Lemma 8.33 Strict Laurent Cover Exactness (FUTURE)
 
 **Status:** NOT STARTED
 **Estimated:** ~350 lines
 **Blocks:** R-5
-**Depends on:** R-2B, R-3, G3
-**File:** `Adic spaces/LaurentCoverExact.lean` (extend with non-discrete section)
+**Depends on:** R-2B, R-3, G2-topo, G3
+**File:** `Adic spaces/LaurentCoverExact.lean` (add non-discrete section)
 
-### Context
+### Needs G2-topo
 
-This is the **core theorem**. The 3×3 diagram chase from Wedhorn p.83.
-The discrete version already has the algebraic structure; the non-discrete
-version needs topological strictness throughout.
-
-### What changes from discrete
-
-The algebraic kernel/surjectivity arguments are similar, but:
-
-1. **All maps must be strict** (continuous + open onto image). Uses Prop 6.18(2)
-   from TICKET-6 (already proved generally).
-
-2. **Presheaf values** must be identified with Tate algebra quotients via G2,
-   not via the discrete `ringEquivMvPolynomial`.
-
-3. **The 3×3 diagram** works in **completed** Tate algebras. The quotient maps
-   (columns) are strict because they are surjective between f.g. modules.
-
-4. **Exactness of row 3** (the presheaf row) follows from the diagram chase
-   + strictness. This is where G3 (completion preserves strict exactness) is used.
-
-### Topological sheaf condition
-
-For `IsSheafyTopRing` (not just `IsSheafy`), we also need the augmentation
-map `ε : A → B₁ × B₂` to be a **topological embedding**. This follows from
-the faithful flatness (Cor 8.32) + strictness of the maps.
+The 3×3 diagram chase requires all maps to be **strict** (continuous + open
+onto image). This needs the correct topology from G2-topo, not the product
+topology. The algebraic exactness is the same as the discrete case; the
+topological upgrade uses Prop 6.18(2) from NoetherianTateModules.lean.
 
 ---
 
-## TICKET-R-5: Assembly — Lemma 8.34 + Theorem 8.28(b)
+## TICKET-R-5: Assembly — Lemma 8.34 + Theorem 8.28(b) (FUTURE)
 
 **Status:** NOT STARTED
 **Estimated:** ~250 lines
-**Blocks:** None (final ticket)
+**Blocks:** None (final)
 **Depends on:** TICKET-1B, R-3, R-4
-**File:** `Adic spaces/TateAcyclicity.lean` (rewrite non-discrete section)
+**File:** `Adic spaces/TateAcyclicity.lean` (rewrite)
 
-### Same structure as v1 TICKET-5
-
-But using non-discrete versions of all ingredients:
-- Laurent cover acyclicity from R-4
-- Flatness from R-3
-- Cech refinement from TICKET-1B
-- Class `IsStronglyNoetherianTate` (already general)
-
-### Final output
+### Output
 
 ```lean
 instance IsStronglyNoetherianTate.isSheafyTopRing : IsSheafyTopRing A where
-  isEmbedding_productRestriction := ...  -- from R-4 topological embedding
-  gluing := ...                          -- from R-4 + R-3 exactness
+  isEmbedding_productRestriction := ...  -- from R-4
+  gluing := ...                          -- from R-4 + R-3
 ```
 
 ---
 
 ## Summary
 
-| Ticket | What | Lines | Depends on | Difficulty |
-|--------|------|-------|------------|------------|
-| **G1** | I-adic topology on A⟨X⟩ | ~200 | — | Hard |
-| **G2** | Presheaf = Tate quotient (Rem 7.55) | ~250 | G1 | **Very Hard** |
-| **G3** | Completion preserves strict exact seqs | ~150 | — | Hard |
-| **R-2B** | Lemma 8.31 non-discrete | ~300 | G1, G2 | Hard |
-| **R-3** | Prop 8.30 + Cor 8.32 non-discrete | ~200 | R-2B, G2 | Medium |
-| **R-4** | Lemma 8.33 non-discrete | ~350 | R-2B, R-3, G3 | **Very Hard** |
-| **R-5** | Assembly | ~250 | 1B, R-3, R-4 | Medium |
-| **Total** | | **~1700** | | |
+| Ticket | Lines | Depends on | Status | Difficulty |
+|--------|-------|------------|--------|------------|
+| **R-2B** | ~300 | G2-alg (DONE) | **UNBLOCKED** | Hard |
+| **R-3** | ~200 | R-2B, G2-alg | **UNBLOCKED after R-2B** | Medium |
+| G2-topo | ~300 | G1 (DONE) | Future | Very Hard |
+| R-4 | ~350 | R-2B, R-3, G2-topo, G3 | Future (needs G2-topo) | Very Hard |
+| R-5 | ~250 | 1B, R-3, R-4 | Future (needs R-4) | Medium |
 
-**Parallel:** {G1, G3} → G2 → R-2B → {R-3, R-4} → R-5
+**Immediate action:** R-2B and R-3 are unblocked. R-4 and R-5 await G2-topo.
