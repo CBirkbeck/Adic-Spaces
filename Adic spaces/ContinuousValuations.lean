@@ -86,7 +86,7 @@ private lemma embed_comp_valuation_eq {Γ₀ : Type*}
     (ValuativeRel.ValueGroupWithZero.embed v
       (ValuativeRel.ValueGroupWithZero.mk a
         ⟨1, (ValuativeRel.posSubmonoid A).one_mem⟩)) = v a
-  simp [ValuativeRel.ValueGroupWithZero.embed_mk, map_one,
+  simp only [ValuativeRel.ValueGroupWithZero.embed_mk, map_one, div_one,
     MonoidWithZeroHom.ValueGroup₀.embedding_restrict₀]
 
 /-- If `v : Valuation A Γ₀` is continuous, then `ofValuation v` is continuous. -/

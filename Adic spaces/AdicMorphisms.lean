@@ -538,8 +538,9 @@ private theorem powers_sub_primeCompl_map {B₀ : Subring B} {𝔭₀ : Ideal B�
 omit [IsTopologicalRing A] [IsHuberRing A] [IsHuberRing B] in
 private theorem exists_nonOpen_prime_of_B_from_B₀_prime (PB : PairOfDefinition B)
     [IsAdicComplete PB.I PB.A₀] {𝔭₀ : Ideal PB.A₀} [𝔭₀.IsPrime]
-    (hJ_not_le : ¬PB.I ≤ 𝔭₀) : ∃ (𝔭 : Ideal B), 𝔭.IsPrime ∧ ¬IsOpen (𝔭 : Set B) ∧
-    𝔭₀ ≤ Ideal.comap PB.A₀.subtype 𝔭 := by
+    (hJ_not_le : ¬PB.I ≤ 𝔭₀) :
+    ∃ (𝔭 : Ideal B), 𝔭.IsPrime ∧ ¬IsOpen (𝔭 : Set B) ∧
+      𝔭₀ ≤ Ideal.comap PB.A₀.subtype 𝔭 := by
   obtain ⟨j, hj_mem, hj_not⟩ := SetLike.not_le_iff_exists.mp hJ_not_le
   have h_disj : Disjoint (Ideal.map PB.A₀.subtype 𝔭₀ : Set B)
       (Submonoid.powers (PB.A₀.subtype j)) := by
