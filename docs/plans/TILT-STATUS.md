@@ -1,0 +1,48 @@
+# Tilt Infrastructure — Status Tracker
+
+**Last updated:** 2026-03-23
+**Plan:** `docs/plans/2026-03-23-tilt-infrastructure.md`
+**References:** `docs/heuer-perfectoid-notes.pdf`, `docs/scholze-perfectoid-spaces.pdf`
+
+## Sorry Status (Tilting.lean)
+
+| # | Sorry | Status | Difficulty | Notes |
+|---|-------|--------|------------|-------|
+| 1 | `tilt_isField` | **IN PROGRESS** | Moderate | Show PreTilt O_K p is a field when K is perfectoid field |
+| 2 | `tilt_admits_perfectoid_structure` | NOT STARTED | Hard | Inverse limit topology on PreTilt |
+| 3 | `tiltingEquiv` | NOT STARTED | Easy (after #2) | Follows from #2 |
+| 4 | `ker_theta_principal` | DEFERRED | Very Hard | Needs Witt vector Teichmüller lifts |
+
+## Sorry Status (PerfectoidRing.lean)
+
+| Sorry | Status | Notes |
+|-------|--------|-------|
+| `isPrecomplete_pIdeal` SModEq step | BLOCKED | Needs closedness of p^n·A° |
+| `toIsStablyUniform` | DEFERRED | Research-level (almost mathematics) |
+| `toIsSheafy` | DEFERRED | Follows from stably uniform |
+
+## Completed (this session)
+
+- [x] CompletedResidueField.lean: 3 → 0 sorry
+- [x] isHausdorff_pIdeal: fully proved
+- [x] isPowerBounded_of_tendsto_of_powerBounded: proved
+- [x] theta: concrete def via fontaineTheta
+- [x] theta_surjective: proved via surjective_fontaineTheta
+- [x] frobenius_modP_surjective: proved (after class refactor to Scholze Def 3.5)
+- [x] IsPerfectoidRing refactored to Scholze's formulation (p-Frobenius)
+
+## Key Mathlib APIs
+
+- `PreTilt O p = Perfection (O ⧸ Ideal.span {p}) p` — the algebraic tilt
+- `Perfection R p` — inverse limit `{f : ℕ → R // ∀ n, f(n+1)^p = f(n)}`
+- `WittVector.fontaineTheta R p` — θ map (needs `IsAdicComplete`)
+- `surjective_fontaineTheta` — θ surjective (needs Frobenius surjective on ModP)
+- `ModP R p = R ⧸ Ideal.span {p}` — reduction mod p
+- `frobenius R p x = x ^ p` — Frobenius endomorphism
+
+## How to Continue
+
+1. Read the plan at `docs/plans/2026-03-23-tilt-infrastructure.md`
+2. Check this status file for current progress
+3. Read `Adic spaces/Tilting.lean` for the actual sorry locations
+4. Reference `docs/heuer-perfectoid-notes.pdf` pages 12-25 for proofs
