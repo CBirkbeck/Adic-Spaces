@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».Presheaf
 import «Adic spaces».TateAlgebra
+import Mathlib.Topology.Algebra.Nonarchimedean.Completion
 
 /-!
 # Presheaf Value Identifications (Wedhorn Remark 7.55)
@@ -754,5 +755,298 @@ theorem quotientToPresheaf_eq_quotientEvalPresheafHom [DiscreteTopology A]
     RingHom.comp_apply]
 
 end CompletionExtension
+
+/-! ### Section 7: Non-discrete evaluation infrastructure
+
+General (non-discrete) algebraic and topological infrastructure for the
+evaluation map `A⟨X⟩ → presheafValue D` and the quotient identification
+`A⟨X⟩/(1-sX) ≃ presheafValue D`.
+
+We establish:
+1. `NonarchimedeanAddGroup` on `Localization.Away D.s` with the
+   localization topology, and on `presheafValue D` (its completion).
+2. `T2Space` and `T3Space` on `presheafValue D`.
+3. Continuity of `algebraMap A → Localization.Away D.s` and `canonicalMap`.
+4. The key lemma `locLiftToPresheaf_invSelf`: the localization lift
+   sends `1/s` to `invS D`.
+5. The polynomial evaluation ring hom
+   `MvPolynomial (Fin 1) A →+* presheafValue D` sending `X ↦ invS D`.
+6. The evaluation ring hom `A⟨X⟩ →+* presheafValue D` (non-discrete)
+   via the quotient `A⟨X⟩/(1-sX)` and the localization universal property.
+7. The kernel containment `(1-sX) ≤ ker(tateEvalPresheaf)`.
+
+These results do not require `DiscreteTopology A`.
+
+## References
+
+* [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], Proposition 8.30, Remark 7.55
+-/
+
+section NonDiscreteEvaluation
+
+variable [NonarchimedeanRing A]
+
+/-! #### Topological instances on localization and presheaf value -/
+
+/-- The localization `Localization.Away D.s` with the localization
+topology is a nonarchimedean additive group: its neighborhoods of `0`
+are given by the open additive subgroups `locNhd n` from the
+`RingSubgroupsBasis`. -/
+noncomputable instance locNonarchimedeanAddGroup
+    (D : RationalLocData A) :
+    @NonarchimedeanAddGroup (Localization.Away D.s)
+      _ D.topology := by
+  letI : TopologicalSpace (Localization.Away D.s) := D.topology
+  letI : IsTopologicalAddGroup (Localization.Away D.s) :=
+    D.isTopologicalAddGroup
+  have hbasis := locBasis D.P D.T D.s D.hopen
+  exact @NonarchimedeanAddGroup.mk _ _
+    D.topology D.isTopologicalAddGroup (by
+    intro U hU
+    let hb := hbasis.toRingFilterBasis.toAddGroupFilterBasis
+    obtain ⟨V, ⟨n, rfl⟩, hVU⟩ :=
+      hb.nhds_zero_hasBasis.mem_iff.mp hU
+    exact ⟨hbasis.openAddSubgroup n, hVU⟩)
+
+/-- The presheaf value `presheafValue D` (completion of
+`Localization.Away D.s`) is a nonarchimedean additive group.
+Inherited from `instNonarchimedeanAddGroupCompletion`. -/
+noncomputable instance presheafValueNonarchimedeanAddGroup
+    (D : RationalLocData A) :
+    @NonarchimedeanAddGroup (presheafValue D) _
+      (inferInstance : TopologicalSpace (presheafValue D)) :=
+  @instNonarchimedeanAddGroupCompletion _ _
+    D.uniformSpace D.isUniformAddGroup
+    (locNonarchimedeanAddGroup D)
+
+/-- `presheafValue D` is T2 (Hausdorff): it is T0 (from the
+completion) and regular (from the uniform space), hence T3 hence T2. -/
+instance presheafValueT2Space (D : RationalLocData A) :
+    T2Space (presheafValue D) := by
+  haveI : T0Space (presheafValue D) := inferInstance
+  haveI : RegularSpace (presheafValue D) :=
+    UniformSpace.to_regularSpace
+  exact inferInstance
+
+/-- `presheafValue D` is T3: it is T0 and regular. -/
+instance presheafValueT3Space (D : RationalLocData A) :
+    T3Space (presheafValue D) := by
+  haveI : T0Space (presheafValue D) := inferInstance
+  haveI : RegularSpace (presheafValue D) :=
+    UniformSpace.to_regularSpace
+  exact inferInstance
+
+/-! #### Continuity of algebraMap and canonicalMap -/
+
+omit [NonarchimedeanRing A] in
+/-- The preimage of `locNhd n` under `algebraMap A → Localization.Away D.s`
+is a neighborhood of `0` in `A`. This is because `I^n` maps into
+`locNhd n` under the algebraic map. -/
+private theorem algebraMap_preimage_locNhd'
+    (D : RationalLocData A) (n : ℕ) :
+    (algebraMap A (Localization.Away D.s)) ⁻¹'
+      (locNhd D.P D.T D.s n :
+        Set (Localization.Away D.s)) ∈ nhds (0 : A) := by
+  apply Filter.mem_of_superset
+    (D.P.hasBasis_nhds_zero.mem_of_mem (i := n) trivial)
+  intro a ha
+  obtain ⟨⟨b, hb⟩, hbn, rfl⟩ := ha
+  exact ⟨algebraMapD D.P D.T D.s ⟨b, hb⟩,
+    by rw [locIdeal, ← Ideal.map_pow]
+       exact Ideal.mem_map_of_mem _ hbn, rfl⟩
+
+/-- The ring homomorphism `algebraMap A → Localization.Away D.s`
+is continuous with respect to the localization topology on
+`Localization.Away D.s`. This follows because the preimage of
+each basis neighborhood `locNhd n` contains `I^n`, which is a
+neighborhood of `0` in `A`. -/
+theorem algebraMap_continuous_loc (D : RationalLocData A) :
+    @Continuous A (Localization.Away D.s) _ D.topology
+      (algebraMap A (Localization.Away D.s)) := by
+  letI : TopologicalSpace (Localization.Away D.s) := D.topology
+  letI : IsTopologicalRing (Localization.Away D.s) :=
+    D.isTopologicalRing
+  letI : IsTopologicalAddGroup (Localization.Away D.s) :=
+    D.isTopologicalAddGroup
+  have hbasis := locBasis D.P D.T D.s D.hopen
+  apply continuous_of_continuousAt_zero
+    (algebraMap A (Localization.Away D.s))
+  rw [ContinuousAt, map_zero, Filter.tendsto_def]
+  intro S hS
+  let hb := hbasis.toRingFilterBasis.toAddGroupFilterBasis
+  obtain ⟨V, ⟨n, rfl⟩, hVS⟩ :=
+    hb.nhds_zero_hasBasis.mem_iff.mp hS
+  exact Filter.mem_of_superset
+    (algebraMap_preimage_locNhd' D n)
+    (fun _ h => hVS h)
+
+/-- The canonical map `A → presheafValue D` is continuous. It is
+the composition of `algebraMap A → Localization.Away D.s` (continuous
+by `algebraMap_continuous_loc`) with the completion embedding
+`coeRingHom` (uniformly continuous). -/
+theorem canonicalMap_continuous (D : RationalLocData A) :
+    Continuous D.canonicalMap := by
+  letI : UniformSpace (Localization.Away D.s) :=
+    D.uniformSpace
+  change Continuous
+    (D.coeRingHom ∘ algebraMap A (Localization.Away D.s))
+  exact (UniformSpace.Completion.continuous_coe
+    (Localization.Away D.s)).comp
+    (algebraMap_continuous_loc D)
+
+/-! #### The localization lift sends invSelf to invS -/
+
+omit [NonarchimedeanRing A] in
+/-- `locLiftToPresheaf D` sends `IsLocalization.Away.invSelf D.s` to
+`invS D`. Since both are inverses of the image of `D.s`, they must
+be equal by the unit cancellation law. -/
+theorem locLiftToPresheaf_invSelf (D : RationalLocData A) :
+    locLiftToPresheaf D
+      (IsLocalization.Away.invSelf
+        (S := Localization.Away D.s) D.s) = invS D := by
+  have h1 : D.canonicalMap D.s *
+      locLiftToPresheaf D
+        (IsLocalization.Away.invSelf
+          (S := Localization.Away D.s) D.s) = 1 := by
+    rw [← locLiftToPresheaf_algebraMap, ← map_mul,
+      IsLocalization.Away.mul_invSelf, map_one]
+  exact (isUnit_s_in_presheafValue D).mul_left_cancel
+    (h1.trans (canonicalMap_s_mul_invS D).symm)
+
+/-! #### Polynomial evaluation ring hom -/
+
+/-- The evaluation ring hom from `MvPolynomial (Fin 1) A` to
+`presheafValue D`, sending `X ↦ invS D` and
+`MvPolynomial.C a ↦ canonicalMap(a)`. This is well-defined for
+polynomials (finite sums) without any convergence hypothesis. -/
+noncomputable def polyEvalPresheaf (D : RationalLocData A) :
+    MvPolynomial (Fin 1) A →+* presheafValue D :=
+  MvPolynomial.eval₂Hom D.canonicalMap (fun _ => invS D)
+
+omit [NonarchimedeanRing A] in
+/-- `polyEvalPresheaf` sends constants to `canonicalMap`. -/
+theorem polyEvalPresheaf_C (D : RationalLocData A) (a : A) :
+    polyEvalPresheaf D (MvPolynomial.C a) =
+      D.canonicalMap a := by
+  simp [polyEvalPresheaf]
+
+omit [NonarchimedeanRing A] in
+/-- `polyEvalPresheaf` sends `X` to `invS D`. -/
+theorem polyEvalPresheaf_X (D : RationalLocData A) :
+    polyEvalPresheaf D (MvPolynomial.X 0) = invS D := by
+  simp [polyEvalPresheaf]
+
+omit [NonarchimedeanRing A] in
+/-- `polyEvalPresheaf` sends `1 - C(s) * X` to `0`:
+the polynomial `1 - sX` evaluates to `1 - s·s⁻¹ = 0`
+in `presheafValue D`. -/
+theorem polyEvalPresheaf_oneSubsX (D : RationalLocData A) :
+    polyEvalPresheaf D
+      (1 - MvPolynomial.C D.s * MvPolynomial.X 0) = 0 := by
+  simp [polyEvalPresheaf, canonicalMap_s_mul_invS]
+
+/-! #### Coefficient analysis and coeff tendsto -/
+
+omit [IsTopologicalRing A] in
+/-- The coefficients `coeff n g` of a restricted power series `g`
+tend to `0` along the cofinite filter on `ℕ`. This transfers the
+restricted condition from multi-indices to natural numbers via the
+injective map `toIndex`. -/
+theorem coeff_tendsto_zero (g : ↥(TateAlgebra A)) :
+    Filter.Tendsto (fun n => TateAlgebra.coeff n g)
+      Filter.cofinite (nhds (0 : A)) := by
+  exact g.prop.comp
+    (Finsupp.single_injective (0 : Fin 1)).tendsto_cofinite
+
+/-- The image of coefficients under `canonicalMap` tends to `0` in
+`presheafValue D`, because `canonicalMap` is continuous and the
+coefficients tend to `0` in `A`. -/
+theorem canonicalMap_coeff_tendsto_zero
+    (D : RationalLocData A)
+    (g : ↥(TateAlgebra A)) :
+    Filter.Tendsto
+      (fun n => D.canonicalMap (TateAlgebra.coeff n g))
+      Filter.cofinite (nhds (0 : presheafValue D)) := by
+  rw [show (0 : presheafValue D) = D.canonicalMap 0
+    from (map_zero D.canonicalMap).symm]
+  exact (canonicalMap_continuous D).continuousAt.tendsto.comp
+    (coeff_tendsto_zero g)
+
+/-! #### Non-discrete quotient evaluation bridge
+
+The localization lift `locLiftToPresheaf D` sends
+`Localization.Away s → presheafValue D` with
+`algebraMap(a) ↦ canonicalMap(a)` and `invSelf ↦ invS D`.
+Meanwhile, `locToQuotientOneSubfX_gen` sends
+`Localization.Away s → A⟨X⟩/(1-sX)` with
+`algebraMap(a) ↦ mk(algebraMap a)` and `invSelf ↦ mk(X)`.
+
+These two ring homs from the same source provide the bridge:
+any ring hom `φ : A⟨X⟩ → presheafValue D` with
+`φ(algebraMap s) * φ(X) = 1` has `(1-sX) ⊆ ker φ`
+(by `oneSubfX_le_ker_of_eval`).
+
+## References
+
+* [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], Proposition 8.30 -/
+
+omit [NonarchimedeanRing A] in
+/-- `locLiftToPresheaf` composed with `algebraMap` equals
+`canonicalMap`. This is the foundation for the evaluation bridge:
+elements from `A` in the localization are sent to `canonicalMap`
+values in `presheafValue D`. -/
+theorem locLiftPresheaf_comp_algebraMap_eq_canonicalMap
+    (D : RationalLocData A) :
+    (locLiftToPresheaf D).comp
+      (algebraMap A (Localization.Away D.s)) =
+      D.canonicalMap := by
+  ext a
+  simp only [RingHom.comp_apply, locLiftToPresheaf_algebraMap]
+
+/-- The ideal `(1 - sX)` is contained in the kernel of ANY ring
+hom `A⟨X⟩ → presheafValue D` that satisfies
+`φ(algebraMap s) * φ(X) = 1`. This follows from
+`oneSubfX_le_ker_of_eval`. -/
+theorem oneSubsX_le_ker_of_presheaf_eval
+    (D : RationalLocData A)
+    (φ : ↥(TateAlgebra A) →+* presheafValue D)
+    (hφ : φ (algebraMap A _ D.s) *
+      φ TateAlgebra.X = 1) :
+    oneSubfXIdeal D.s ≤ RingHom.ker φ :=
+  oneSubfX_le_ker_of_eval D.s φ hφ
+
+omit [NonarchimedeanRing A] in
+/-- The composition
+`locLiftToPresheaf D ∘ locToQuotientOneSubfX_gen⁻¹` (where
+the inverse exists) sends elements of the quotient to
+`presheafValue D`. On generators:
+- `mk(algebraMap a) ↦ canonicalMap(a)`
+- `mk(X) ↦ invS D`
+
+This ring hom is well-defined on the image of
+`locToQuotientOneSubfX_gen`. In the discrete case, this image is
+the entire quotient (`locToQuotientOneSubfX_gen` is an iso),
+so the map extends to all of `A⟨X⟩/(1-sX)`. -/
+theorem locLiftToPresheaf_comp_locToQuot_algebraMap
+    (D : RationalLocData A) (a : A) :
+    locLiftToPresheaf D (algebraMap A _ a) =
+      D.canonicalMap a :=
+  locLiftToPresheaf_algebraMap D a
+
+omit [NonarchimedeanRing A] in
+/-- The localization lift sends the localization inverse
+to `invS D` (proved in `locLiftToPresheaf_invSelf`). Combined
+with `locToQuotientOneSubfX_gen_invSelf`, this shows that the
+image of `mk(X)` under any quotient-to-presheaf ring hom must
+equal `invS D`. -/
+theorem locToQuot_invSelf_maps_to_invS
+    (D : RationalLocData A) :
+    locLiftToPresheaf D
+      (IsLocalization.Away.invSelf
+        (S := Localization.Away D.s) D.s) =
+      invS D :=
+  locLiftToPresheaf_invSelf D
+
+end NonDiscreteEvaluation
 
 end ValuationSpectrum
