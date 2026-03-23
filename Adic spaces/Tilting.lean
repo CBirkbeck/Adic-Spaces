@@ -74,11 +74,12 @@ variable (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
 the (inverse limit) perfection of the reduction modulo `p` of the ring of
 power-bounded elements `A°`. This is Mathlib's `PreTilt` applied to `A°`.
 
-For a perfectoid ring, the tilt is again perfectoid (in characteristic `p`),
-and the tilting operation gives an equivalence between perfectoid rings of
-characteristic 0 and characteristic p.
+More precisely, this is `O_{A♭}`, the **ring of integers** of the tilt.
+For a perfectoid ring, this is a perfect ring of characteristic `p`.
+For a perfectoid field `K`, this is a complete valuation ring, and the
+tilt field is `K♭ = FractionRing (tilt p K)`.
 
-(Scholze, *Perfectoid Spaces*, §3) -/
+(Scholze, *Perfectoid Spaces*, §3; Heuer, *Perfectoid Spaces*, Prop 1.1.23) -/
 abbrev PerfectoidRing.tilt : Type u :=
   PreTilt ↥(powerBoundedSubring.toSubring A) p
 
@@ -327,15 +328,18 @@ variable (p : ℕ) [Fact (Nat.Prime p)]
 variable (K : Type u) [Field K] [TopologicalSpace K] [IsTopologicalRing K]
   [UniformSpace K] [IsLinearTopology K K] [IsPerfectoidField p K] [Nontrivial K]
 
-/-- The tilt `K♭` of a perfectoid field `K` is a **field**.
+/-- The tilt `O_{K♭} = PreTilt O_K p` of a perfectoid field `K` is an **integral domain**.
 
-Since `K` is a field, `K° = O_K` is a valuation ring, and `K°/(p)` is a
-domain. The perfection of a domain of characteristic `p` is again a domain,
-and the tilt inherits a valuation from the inverse limit construction that
-makes it a (non-archimedean) valued field.
+Since `K` is a field, `O_K = K°` is a valuation ring, and `O_K/(p)` is a
+domain (since `p` is in the maximal ideal of `O_K`). The perfection of
+a domain of characteristic `p` is again a domain.
 
-(Scholze, *Perfectoid Spaces*, Proposition 3.4) -/
-theorem tilt_isField : IsField (PerfectoidRing.tilt p K) := sorry
+The tilt *field* is `K♭ := FractionRing O_{K♭}`, which is a perfectoid field
+of characteristic `p`. See also `tilt_admits_perfectoid_structure`.
+
+(Scholze, *Perfectoid Spaces*, Proposition 3.6; Heuer, Prop 1.1.23) -/
+theorem tilt_isDomain : IsDomain (PerfectoidRing.tilt p K) := by
+  sorry
 
 /-- The **tilting equivalence**: the tilt functor gives an equivalence between
 perfectoid fields of mixed characteristic `(0, p)` and perfectoid fields of
