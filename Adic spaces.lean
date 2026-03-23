@@ -8,6 +8,7 @@ import «Adic spaces».Basic
 import «Adic spaces».Bounded
 import «Adic spaces».CoherentRing
 import «Adic spaces».CompletedAlgClosure
+import «Adic spaces».CompletionExact
 import «Adic spaces».CompletedResidueField
 import «Adic spaces».CompleteTopCommRingCat
 import «Adic spaces».ContinuousValuations
