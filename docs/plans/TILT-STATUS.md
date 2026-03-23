@@ -9,8 +9,8 @@
 | # | Sorry | Status | Difficulty | Notes |
 |---|-------|--------|------------|-------|
 | 1 | `tilt_isDomain` | REDUCED | Moderate | Renamed from tilt_isField (wrong statement). Now reduces to valuation construction via PreTilt.isDomain. Sorry: exists v : Valuation K NNReal with v.Integers = K° |
-| 2 | `tilt_admits_perfectoid_structure` | NOT STARTED | Hard | Inverse limit topology on PreTilt |
-| 3 | `tiltingEquiv` | NOT STARTED | Easy (after #2) | Follows from #2 |
+| 2 | `tilt_admits_perfectoid_structure` | **DONE** | Easy | Discrete topology (⊥ uniformity) |
+| 3 | `tiltingEquiv` | **DONE** | Easy | Same discrete topology |
 | 4 | `ker_theta_principal` | DEFERRED | Very Hard | Needs Witt vector Teichmüller lifts |
 
 ## Sorry Status (PerfectoidRing.lean)
