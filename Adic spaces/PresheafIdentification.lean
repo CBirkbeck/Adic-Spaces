@@ -19,6 +19,10 @@ We prove the algebraic identifications:
 3. `A⟨X⟩/(1 - fX) ≃+* Localization.Away f` (from `TateAlgebra.quotientOneSubfXEquiv`).
 4. The kernel of the evaluation map `A⟨X⟩ → A_f` equals the ideal `(1 - fX)`.
 5. Flatness re-exports connecting presheaf values to Tate algebra quotients.
+6. **General (non-discrete) algebraic infrastructure**: `algebraMap f` is a unit
+   in `A⟨X⟩/(1-fX)`, the ring hom `Localization.Away f → A⟨X⟩/(1-fX)` from the
+   universal property, coefficient analysis forcing `f^k * a → 0` when
+   `(1-fX) * q = algebraMap(a) * X^n`, and regularity of `1 - fX`.
 
 ## References
 
@@ -260,5 +264,271 @@ theorem algebraMap_factors_through_tateQuotientFSubX (f : A) (a : A) :
   exact this
 
 end LaurentBridge
+
+/-! ### Section 5: General (non-discrete) Tate quotient algebraic infrastructure
+
+The algebraic core of the `R(1/f)` identification for general nonarchimedean
+rings, without any discrete topology assumption. We prove:
+
+1. `algebraMap A f` is a unit in `A⟨X⟩/(1-fX)` (purely algebraic).
+2. The ring hom `Localization.Away f → A⟨X⟩/(1-fX)` from the universal
+   property of localization.
+3. The coefficient recurrence for `(1-fX) * q = algebraMap(a) * X^n`:
+   `coeff(n+k)(q) = f^k * a`, forcing `f^k * a → 0` since `q` is restricted.
+4. Regularity of `1 - fX` in `A⟨X⟩` (re-export of `mul_oneSubfX_regular`).
+5. The composition `quotientOneSubfXToLoc ∘ locToQuotientOneSubfX_gen = id`
+   (one direction, connecting to the discrete case).
+
+These results are used in the presheaf identification of `R(1/f)` with the
+completion of `Localization.Away f` (Wedhorn Remark 7.55, Proposition 8.30).
+
+## References
+
+* [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], §8.1, Proposition 8.30
+-/
+
+section GeneralTateQuotient
+
+variable [NonarchimedeanRing A]
+
+/-- The ideal `(1 - fX)` in `A⟨X⟩`. No discrete topology needed. -/
+noncomputable def oneSubfXIdeal (f : A) : Ideal ↥(TateAlgebra A) :=
+  Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * TateAlgebra.X}
+
+omit [IsTopologicalRing A] in
+/-- In the quotient `A⟨X⟩/(1-fX)`, the product `fX = 1`.
+Purely algebraic (Wedhorn Proposition 8.30). -/
+theorem fX_eq_one_in_quotient (f : A) :
+    (Ideal.Quotient.mk (oneSubfXIdeal f))
+      (algebraMap A ↥(TateAlgebra A) f * TateAlgebra.X) = 1 := by
+  rw [← sub_eq_zero]
+  change (Ideal.Quotient.mk _) (algebraMap A _ f * TateAlgebra.X) -
+    (Ideal.Quotient.mk _) 1 = 0
+  rw [← map_sub]
+  apply Ideal.Quotient.eq_zero_iff_mem.mpr
+  rw [show algebraMap A ↥(TateAlgebra A) f * TateAlgebra.X - 1 =
+    -(1 - algebraMap A ↥(TateAlgebra A) f * TateAlgebra.X) from by ring]
+  exact neg_mem (Ideal.subset_span rfl)
+
+omit [IsTopologicalRing A] in
+/-- `X` is the two-sided inverse of `algebraMap f` in `A⟨X⟩/(1-fX)`. -/
+theorem X_mul_f_eq_one_in_quotient (f : A) :
+    (Ideal.Quotient.mk (oneSubfXIdeal f)) TateAlgebra.X *
+    (Ideal.Quotient.mk (oneSubfXIdeal f))
+      (algebraMap A ↥(TateAlgebra A) f) = 1 := by
+  rw [← map_mul, mul_comm]; exact fX_eq_one_in_quotient f
+
+omit [IsTopologicalRing A] in
+/-- The image of `f` under `A → A⟨X⟩/(1-fX)` is a unit with inverse
+`mk(X)`. No discrete topology needed (Wedhorn Proposition 8.30). -/
+theorem isUnit_algebraMap_f_in_quotient_gen (f : A) :
+    IsUnit (((Ideal.Quotient.mk (oneSubfXIdeal f)).comp
+        (algebraMap A _)) f) := by
+  rw [RingHom.comp_apply, isUnit_iff_exists_inv]
+  exact ⟨(Ideal.Quotient.mk _) TateAlgebra.X,
+    by rw [← map_mul]; exact fX_eq_one_in_quotient f⟩
+
+/-- Ring hom `Localization.Away f → A⟨X⟩/(1-fX)` from the universal
+property of localization. Sends `algebraMap(a) ↦ mk(algebraMap a)` and
+`1/f ↦ mk(X)`. No discrete topology needed. -/
+noncomputable def locToQuotientOneSubfX_gen (f : A) :
+    Localization.Away f →+*
+      (↥(TateAlgebra A) ⧸ oneSubfXIdeal f) :=
+  IsLocalization.Away.lift (x := f)
+    (isUnit_algebraMap_f_in_quotient_gen f)
+
+omit [IsTopologicalRing A] in
+/-- `locToQuotientOneSubfX_gen` commutes with `algebraMap`. -/
+theorem locToQuotientOneSubfX_gen_algebraMap (f a : A) :
+    locToQuotientOneSubfX_gen f (algebraMap A _ a) =
+      (Ideal.Quotient.mk _) (algebraMap A _ a) := by
+  simp only [locToQuotientOneSubfX_gen,
+    IsLocalization.Away.lift_eq]
+  rfl
+
+omit [IsTopologicalRing A] in
+/-- `locToQuotientOneSubfX_gen` sends `1/f` to `mk(X)`. -/
+theorem locToQuotientOneSubfX_gen_invSelf (f : A) :
+    locToQuotientOneSubfX_gen f
+      (IsLocalization.Away.invSelf
+        (S := Localization.Away f) f) =
+      (Ideal.Quotient.mk (oneSubfXIdeal f))
+        TateAlgebra.X := by
+  have hunit : IsUnit ((Ideal.Quotient.mk (oneSubfXIdeal f))
+      (algebraMap A _ f)) :=
+    ⟨⟨_, _,
+      by rw [← map_mul]; exact fX_eq_one_in_quotient f,
+      by rw [← map_mul, mul_comm]
+         exact fX_eq_one_in_quotient f⟩,
+     rfl⟩
+  have h1 : (Ideal.Quotient.mk (oneSubfXIdeal f))
+      (algebraMap A _ f) *
+      locToQuotientOneSubfX_gen f
+        (IsLocalization.Away.invSelf
+          (S := Localization.Away f) f) = 1 := by
+    rw [← locToQuotientOneSubfX_gen_algebraMap, ← map_mul,
+      IsLocalization.Away.mul_invSelf, map_one]
+  have h2 : (Ideal.Quotient.mk (oneSubfXIdeal f))
+      (algebraMap A _ f) *
+      (Ideal.Quotient.mk (oneSubfXIdeal f))
+        TateAlgebra.X = 1 := by
+    rw [← map_mul]; exact fX_eq_one_in_quotient f
+  exact hunit.mul_left_cancel (h1.trans h2.symm)
+
+omit [IsTopologicalRing A] in
+/-- The composition `quotientOneSubfXToLoc ∘ locToQuotientOneSubfX_gen`
+equals the identity on `Localization.Away f` (discrete case bridge). -/
+theorem quotientOneSubfXToLoc_comp_gen
+    [DiscreteTopology A] (f : A) :
+    (TateAlgebra.quotientOneSubfXToLoc f).comp
+      (locToQuotientOneSubfX_gen f) =
+      RingHom.id (Localization.Away f) := by
+  apply IsLocalization.ringHom_ext (Submonoid.powers f)
+  ext a
+  simp only [RingHom.comp_apply, RingHom.id_apply]
+  change (TateAlgebra.quotientOneSubfXToLoc f)
+    (locToQuotientOneSubfX_gen f (algebraMap A _ a)) =
+    algebraMap A _ a
+  unfold locToQuotientOneSubfX_gen oneSubfXIdeal
+  rw [IsLocalization.Away.lift_eq]
+  simp only [RingHom.comp_apply]
+  change TateAlgebra.quotientOneSubfXToLoc f
+    ((Ideal.Quotient.mk _) (algebraMap A _ a)) = _
+  simp only [TateAlgebra.quotientOneSubfXToLoc,
+    Ideal.Quotient.lift_mk,
+    TateAlgebra.evalInvFHom_algebraMap]
+
+omit [IsTopologicalRing A] in
+/-- Multiplication by `1 - fX` is injective on `A⟨X⟩` for noetherian
+`A`. No discrete topology needed.
+Re-export of `TateAlgebra.mul_oneSubfX_regular`. -/
+theorem oneSubfX_regular [IsNoetherianRing A] (f : A)
+    (x : ↥(TateAlgebra A))
+    (hx : (1 - algebraMap A _ f * TateAlgebra.X) * x = 0) :
+    x = 0 :=
+  TateAlgebra.mul_oneSubfX_regular f x hx
+
+omit [IsTopologicalRing A] in
+/-- The ideal `(1 - fX)` is contained in the kernel of any ring hom
+`φ : A⟨X⟩ → R` satisfying `φ(algebraMap f) * φ(X) = 1`. -/
+theorem oneSubfX_le_ker_of_eval {R : Type*} [CommRing R]
+    (f : A) (φ : ↥(TateAlgebra A) →+* R)
+    (hφ : φ (algebraMap A _ f) * φ TateAlgebra.X = 1) :
+    oneSubfXIdeal f ≤ RingHom.ker φ := by
+  rw [oneSubfXIdeal, Ideal.span_le]
+  intro x hx
+  simp only [Set.mem_singleton_iff] at hx
+  rw [SetLike.mem_coe, RingHom.mem_ker, hx, map_sub,
+    map_one, map_mul, sub_eq_zero]
+  exact hφ.symm
+
+/-! #### Coefficient analysis for `(1-fX)` membership -/
+
+omit [IsTopologicalRing A] in
+private theorem coeff_X_pow_eq' (n : ℕ) :
+    TateAlgebra.coeff n
+      (TateAlgebra.X ^ n : ↥(TateAlgebra A)) = 1 := by
+  induction n with
+  | zero =>
+    simp only [pow_zero, TateAlgebra.coeff, TateAlgebra.toIndex_zero]
+    norm_cast
+  | succ n ih =>
+    rw [pow_succ, mul_comm, TateAlgebra.coeff_succ_X_mul]
+    exact ih
+
+omit [IsTopologicalRing A] in
+private theorem coeff_X_pow_ne' {k n : ℕ} (h : k ≠ n) :
+    TateAlgebra.coeff k
+      (TateAlgebra.X ^ n : ↥(TateAlgebra A)) = 0 := by
+  induction n generalizing k with
+  | zero =>
+    cases k with
+    | zero => exact absurd rfl h
+    | succ k =>
+      simp only [pow_zero, TateAlgebra.coeff, TateAlgebra.toIndex]
+      norm_cast
+      rw [MvPowerSeries.coeff_one,
+        if_neg (Finsupp.single_ne_zero.mpr (by omega))]
+  | succ n ih =>
+    rw [pow_succ, mul_comm]; cases k with
+    | zero => exact TateAlgebra.coeff_zero_X_mul _
+    | succ k =>
+      rw [TateAlgebra.coeff_succ_X_mul]; exact ih (by omega)
+
+omit [IsTopologicalRing A] in
+/-- If `(1 - fX) * q = algebraMap(a) * X^n` in `A⟨X⟩`, then
+`coeff k q = 0` for `k < n` and `coeff (n+k) q = f^k * a` for
+`k ≥ 0`.
+
+Since `q` is a restricted power series (`coeff k q → 0`), this
+forces `f^k * a → 0`. In the noetherian Hausdorff case, this
+implies `f^m * a = 0` for some `m`, hence `a/f^n = 0` in
+`Localization.Away f`.
+
+This is the coefficient-level core of the kernel identification
+`ker(eval) = (1-fX)`. No discrete topology needed
+(Wedhorn Proposition 8.30). -/
+theorem coeff_of_oneSubfX_eq_aXn (f a : A) (n : ℕ)
+    (q : ↥(TateAlgebra A))
+    (h : (1 - algebraMap A _ f * TateAlgebra.X) * q =
+      algebraMap A _ a * TateAlgebra.X ^ n) :
+    (∀ k, k < n → TateAlgebra.coeff k q = 0) ∧
+    (∀ k, TateAlgebra.coeff (n + k) q = f ^ k * a) := by
+  have h_base : TateAlgebra.coeff 0 q =
+      if (0 : ℕ) = n then a else 0 := by
+    have hc : TateAlgebra.coeff 0
+        ((1 - algebraMap A _ f * TateAlgebra.X) * q) =
+        TateAlgebra.coeff 0 q := by
+      rw [sub_mul, one_mul, mul_assoc, TateAlgebra.coeff_sub,
+        TateAlgebra.coeff_algebraMap_mul,
+        TateAlgebra.coeff_zero_X_mul, mul_zero, sub_zero]
+    rw [h] at hc; rw [← hc, TateAlgebra.coeff_algebraMap_mul]
+    split
+    · next heq => subst heq; rw [coeff_X_pow_eq', mul_one]
+    · next hne => rw [coeff_X_pow_ne' hne, mul_zero]
+  have h_step : ∀ m, TateAlgebra.coeff (m + 1) q =
+      f * TateAlgebra.coeff m q +
+        (if m + 1 = n then a else 0) := by
+    intro m
+    have hc : TateAlgebra.coeff (m + 1) q -
+        f * TateAlgebra.coeff m q =
+        TateAlgebra.coeff (m + 1)
+          (algebraMap A _ a * TateAlgebra.X ^ n) := by
+      have : TateAlgebra.coeff (m + 1)
+          ((1 - algebraMap A _ f * TateAlgebra.X) * q) =
+          TateAlgebra.coeff (m + 1) q -
+            f * TateAlgebra.coeff m q := by
+        rw [sub_mul, one_mul, mul_assoc,
+          TateAlgebra.coeff_sub, TateAlgebra.coeff_algebraMap_mul,
+          TateAlgebra.coeff_succ_X_mul]
+      rw [← h, this]
+    rw [TateAlgebra.coeff_algebraMap_mul] at hc
+    by_cases hmn : m + 1 = n
+    · subst hmn; rw [coeff_X_pow_eq', mul_one] at hc
+      rw [if_pos rfl, sub_eq_iff_eq_add.mp hc]; ring
+    · rw [coeff_X_pow_ne' hmn, mul_zero] at hc
+      rw [if_neg hmn, sub_eq_zero.mp hc, add_zero]
+  have hlt : ∀ k, k < n → TateAlgebra.coeff k q = 0 := by
+    intro k hk; induction k with
+    | zero => rw [h_base, if_neg (by omega)]
+    | succ k ih =>
+      rw [h_step k, ih (by omega), mul_zero, zero_add,
+        if_neg (by omega)]
+  constructor
+  · exact hlt
+  · intro k; induction k with
+    | zero =>
+      simp only [Nat.add_zero, pow_zero, one_mul]
+      cases n with
+      | zero => rw [h_base, if_pos rfl]
+      | succ n =>
+        rw [h_step n, hlt n (by omega), mul_zero,
+          zero_add, if_pos rfl]
+    | succ k ih =>
+      rw [show n + (k + 1) = n + k + 1 from by omega,
+        h_step (n + k), ih, if_neg (by omega), add_zero,
+        pow_succ]; ring
+
+end GeneralTateQuotient
 
 end ValuationSpectrum

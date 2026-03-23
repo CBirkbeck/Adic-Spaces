@@ -31,7 +31,7 @@ Same rules as v1 — see the protocol section in the original tickets file.
 | Ticket | Status | Agent | Started | Completed | Notes |
 |--------|--------|-------|---------|-----------|-------|
 | G1 | DONE | claude-main | 2026-03-23 | 2026-03-23 | I-adic on A₀⟨X⟩; A⟨X⟩ product ≠ I-adic |
-| G2 | BLOCKED | claude-main | 2026-03-23 | — | Discrete wrappers only; non-discrete needs topology matching |
+| G2 | PARTIAL | claude-main | 2026-03-23 | — | Algebraic core done (no discrete); completion extension TBD |
 | G3 | DONE | claude-opus | 2026-03-23 | 2026-03-23 | 0 sorry; wraps mathlib AdicCompletion |
 | R-2B | NOT STARTED | — | — | — | Redo Lemma 8.31 non-discrete. Depends: G1, G2 |
 | R-3 | NOT STARTED | — | — | — | Redo Prop 8.30 non-discrete. Depends: R-2B, G2 |
