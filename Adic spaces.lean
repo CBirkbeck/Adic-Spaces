@@ -17,6 +17,7 @@ import «Adic spaces».FlatnessResults
 import «Adic spaces».GeometricSeries
 import «Adic spaces».HuberRings
 import «Adic spaces».IntegralStructureSheaf
+import «Adic spaces».LaurentCoverExact
 import «Adic spaces».Lemma745
 import «Adic spaces».LocalizationTopology
 import «Adic spaces».NoetherianTateModules
