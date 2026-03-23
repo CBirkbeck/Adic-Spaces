@@ -425,11 +425,7 @@ theorem tilt_isDomain : IsDomain (PerfectoidRing.tilt p K) := by
     obtain ⟨v, hv⟩ := h
     -- Step 2: Apply Mathlib's PreTilt.isDomain using the valuation.
     exact PreTilt.isDomain K v ↥(powerBoundedSubring.toSubring K) hv p
-  -- The valuation existence is the one sorry'd step.
-  -- It requires: (1) constructing v from the Tate ring structure,
-  -- (2) showing algebraMap is injective (K° ↪ K),
-  -- (3) showing v(x) ≤ 1 ↔ x ∈ K° for all x.
-  exact sorry
+  exact IsPerfectoidField.exists_valuation (p := p)
 
 /-- The **tilting equivalence**: the tilt functor gives an equivalence between
 perfectoid fields of mixed characteristic `(0, p)` and perfectoid fields of

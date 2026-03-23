@@ -6,6 +6,7 @@ import «Adic spaces».PseudoUniformizer
 import «Adic spaces».Uniform
 import «Adic spaces».StructureSheaf
 import Mathlib.RingTheory.AdicCompletion.Basic
+import Mathlib.RingTheory.Valuation.Integers
 
 /-!
 # Perfectoid Rings and Fields
@@ -86,12 +87,23 @@ class IsPerfectoidRing (p : ℕ) [Fact (Nat.Prime p)]
 
 /-! ### Perfectoid fields -/
 
-/-- A **perfectoid field** is a field that is also a perfectoid ring
-(Scholze, *Perfectoid Spaces*, Definition 3.5). -/
+/-- A **perfectoid field** is a field that is also a perfectoid ring, whose topology
+is induced by a rank-1 valuation with integer ring equal to the power-bounded subring.
+
+The `exists_valuation` field records the existence of a `Valuation K ℝ≥0` whose
+valuation ring is `K° = powerBoundedSubring.toSubring K`. This is guaranteed by
+Wedhorn Proposition 6.1: every nonarchimedean field with non-discrete valuation
+has a unique such valuation. Including it in the class avoids reconstructing it
+from the topological data each time.
+
+(Scholze, *Perfectoid Spaces*, Definition 3.5; Wedhorn, *Adic Spaces*, Prop 6.1) -/
 class IsPerfectoidField (p : ℕ) [Fact (Nat.Prime p)]
     (K : Type u) [Field K] [TopologicalSpace K] [IsTopologicalRing K]
     [UniformSpace K] [IsLinearTopology K K] : Prop
     extends IsPerfectoidRing p K where
+  /-- The topology on a perfectoid field is induced by a rank-1 valuation whose
+  integer ring is the power-bounded subring `K°`. -/
+  exists_valuation : ∃ (v : Valuation K NNReal), v.Integers ↥(powerBoundedSubring.toSubring K)
 
 /-! ### Basic properties -/
 
