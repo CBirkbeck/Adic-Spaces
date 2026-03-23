@@ -30,7 +30,7 @@ Same rules as v1 — see the protocol section in the original tickets file.
 
 | Ticket | Status | Agent | Started | Completed | Notes |
 |--------|--------|-------|---------|-----------|-------|
-| G1 | NOT STARTED | — | — | — | I-adic topology on A⟨X⟩ |
+| G1 | IN PROGRESS | claude-main | 2026-03-23 | — | I-adic topology on A⟨X⟩ |
 | G2 | NOT STARTED | — | — | — | Presheaf = Tate quotient (Rem 7.55). Depends: G1 |
 | G3 | NOT STARTED | — | — | — | Completion preserves strict exact seqs |
 | R-2B | NOT STARTED | — | — | — | Redo Lemma 8.31 non-discrete. Depends: G1, G2 |
