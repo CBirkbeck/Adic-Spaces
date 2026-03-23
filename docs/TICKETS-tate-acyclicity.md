@@ -45,7 +45,7 @@
 | 2B | DONE | claude-opus | 2026-03-21 | 2026-03-22 | be52a6c | 0 sorry (discrete case) |
 | 3 | DONE | claude-opus | 2026-03-22 | 2026-03-23 | a68b496 | 0 sorry; discrete case |
 | 4 | DONE | claude-opus | 2026-03-23 | 2026-03-23 | 6312c2c | 0 sorry; discrete case |
-| 5 | NOT STARTED | — | — | — | — | Depends: 1B, 3, 4 |
+| 5 | IN PROGRESS | claude-opus | 2026-03-23 | — | — | Depends: 1B, 3, 4 |
 | 6 | DONE | claude-opus | 2026-03-21 | 2026-03-21 | 0c4be61 | Depends: 0 |
 
 ## Dependency Graph
