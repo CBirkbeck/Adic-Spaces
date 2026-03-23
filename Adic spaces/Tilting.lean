@@ -356,6 +356,13 @@ where
     -- By fontaineTheta_teichmuller: θ([ϖ♭]) = ϖ♭.untilt.
     -- And ϖ♭.untilt ≡ ϖ (mod p) by mk_untilt_eq_coeff_zero.
     -- The exact construction: ξ = p - [f] - [ϖ]·Σ[rₙ]pⁿ⁺¹ (primitive of degree 1).
+    -- TODO: This is the core content of Berkeley Lectures Lemma 6.2.8 (pp.46-47).
+    -- The generator is ξ = [ϖ♭] - p (a distinguished/primitive element of degree 1
+    -- in W(A♭⁺)). Principality of ker(θ) requires:
+    --   (1) Constructing ξ as a Witt vector and showing θ(ξ) = 0.
+    --   (2) Showing every element of ker(θ) is divisible by ξ, using that ξ is
+    --       primitive of degree 1 and W(A♭⁺) is ξ-adically complete.
+    -- This requires Witt vector divisibility machinery not yet in Mathlib.
     have hb : ∃ (xi : Ainf p A), xi ∈ RingHom.ker (PerfectoidRing.theta p A) ∧
         ∀ (x : Ainf p A), x ∈ RingHom.ker (PerfectoidRing.theta p A) →
           ∃ q, x = xi * q :=
