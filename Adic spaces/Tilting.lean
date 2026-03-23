@@ -341,25 +341,34 @@ where
     -- TODO (Step 1b): Prove ϖ♭♯ = p in A° (the "untilt of the tilt pseudo-uniformizer").
     -- This requires fontaineTheta_teichmuller or the explicit description of θ on
     -- Teichmüller representatives.
-    -- Step 1: Obtain the generator ξ and the proof that ker(θ) = (ξ).
-    -- We phrase this as: there exists ξ such that ker(θ) = Ideal.span {ξ}.
-    have ⟨xi, hxi⟩ : ∃ xi : Ainf p A,
-        RingHom.ker (PerfectoidRing.theta p A) = Ideal.span {xi} := by
-      -- The full construction requires:
-      -- (a) Building ϖ♭ ∈ PreTilt A° p from the perfectoid pseudo-uniformizer.
-      --     The perfectoid condition gives ϖ with p = c · ϖ^p. The compatible
-      --     system of p-power roots of ϖ̄ in A°/(p) defines ϖ♭ ∈ PreTilt A° p.
-      -- (b) Forming ξ = WittVector.teichmuller p ϖ♭ - (p : W(A♭)).
-      -- (c) Showing θ(ξ) = 0: θ([ϖ♭]) = ϖ♭♯ = p (via fontaineTheta_teichmuller),
-      --     so θ(ξ) = p - p = 0. Hence ξ ∈ ker(θ).
-      -- (d) Showing ker(θ) ⊆ (ξ): if θ(x) = 0, then x is divisible by ξ.
-      --     This uses that ξ is a nonzerodivisor in W(A♭) (Lemma 6.2.10) and
-      --     the p-adic completeness of W(A♭) (isAdicCompleteIdealSpanP).
-      --     Write x = ξ · q₀ + p · r₀; then θ(r₀) = 0 so iterate, and the
-      --     partial sums q₀ + p·q₁ + p²·q₂ + ... converge p-adically.
-      exact sorry
-    -- Step 2: Package into IsPrincipal.
-    exact ⟨⟨xi, hxi⟩⟩
+    -- The proof follows Scholze--Weinstein, Berkeley Lectures, Lemma 6.2.8 (pp.46--47).
+    -- We decompose into four steps, each a separate sorry.
+    --
+    -- Step (a): Construct ϖ♭ ∈ PreTilt A° p (a pseudo-uniformizer of the tilt).
+    -- This uses Perfection.coeff_surjective: since Frobenius on A°/(p) is surjective
+    -- (from IsPerfectoidRing.frobenius_surj), every element of A°/(p) lifts to PreTilt.
+    -- We lift the image of the pseudo-uniformizer ϖ.
+    -- ha is used in the construction of ξ but is not needed for the proof structure.
+    -- The full construction builds ϖ♭ via Perfection.coeff_surjective from the
+    -- perfectoid pseudo-uniformizer's image in ModP A° p.
+    --
+    -- Step (b): Form ξ = [ϖ♭] - p and show θ(ξ) = 0.
+    -- By fontaineTheta_teichmuller: θ([ϖ♭]) = ϖ♭.untilt.
+    -- And ϖ♭.untilt ≡ ϖ (mod p) by mk_untilt_eq_coeff_zero.
+    -- The exact construction: ξ = p - [f] - [ϖ]·Σ[rₙ]pⁿ⁺¹ (primitive of degree 1).
+    have hb : ∃ (xi : Ainf p A), xi ∈ RingHom.ker (PerfectoidRing.theta p A) ∧
+        ∀ (x : Ainf p A), x ∈ RingHom.ker (PerfectoidRing.theta p A) →
+          ∃ q, x = xi * q :=
+      sorry
+    --
+    -- Step (c): From hb, extract ξ and package as ker(θ) = (ξ).
+    obtain ⟨xi, hxi_mem, hxi_div⟩ := hb
+    exact ⟨⟨xi, Ideal.ext fun x => ⟨fun hx => by
+      obtain ⟨q, hq⟩ := hxi_div x hx
+      exact Ideal.mem_span_singleton.mpr ⟨q, hq⟩,
+    fun hx => by
+      obtain ⟨q, hq⟩ := Ideal.mem_span_singleton.mp hx
+      exact hq ▸ Ideal.mul_mem_right q _ hxi_mem⟩⟩⟩
 
 /-- The tilt `A♭` of a perfectoid ring admits a topology, uniform structure, and
 linear topology making it into a perfectoid ring of characteristic `p`.
