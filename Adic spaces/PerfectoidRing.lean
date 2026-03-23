@@ -48,8 +48,12 @@ universe u
 2. `A` is uniform (A° is bounded),
 3. there exists a pseudo-uniformizer `ϖ` that is power-bounded, such that `ϖ^p | p`
    in `A°` (i.e., `p = c · ϖ^p` for some power-bounded `c`), and
-4. the `p`-th power (Frobenius) map is surjective on `A°/ϖ` (i.e., for every
-   power-bounded `x`, there exist power-bounded `y, z` with `x = y^p + ϖ · z`).
+4. the `p`-th power (Frobenius) map is surjective on `A°/p` (i.e., for every
+   power-bounded `x`, there exist power-bounded `y, z` with `x = y^p + p · z`).
+
+Condition (4) uses the Scholze formulation (Frobenius on `A°/(p)`), which is what
+`surjective_fontaineTheta` requires. The Wedhorn formulation (Frobenius on `A°/(ϖ)`)
+is a consequence; see `perfectoidPseudoUniformizer_frobenius_surj_varpi`.
 
 (Scholze, *Perfectoid Spaces*, Definition 3.5) -/
 class IsPerfectoidRing (p : ℕ) [Fact (Nat.Prime p)]
@@ -67,19 +71,18 @@ class IsPerfectoidRing (p : ℕ) [Fact (Nat.Prime p)]
   t0 : T0Space A
   /-- The ring is uniform: `A°` is bounded. -/
   uniform : IsUniform A
-  /-- There exists a pseudo-uniformizer `ϖ` that is power-bounded, with `ϖ^p | p` in `A°`
-  and Frobenius surjective on `A°/ϖ`. -/
+  /-- There exists a pseudo-uniformizer `ϖ` that is power-bounded, with `ϖ^p | p` in `A°`. -/
   exists_pseudoUniformizer :
     ∃ (ϖ : PseudoUniformizer A),
       -- ϖ is power-bounded
       IsPowerBounded (ϖ.val : A) ∧
       -- ϖ^p divides p in A°: there exists power-bounded c with p = c · ϖ^p
-      (∃ c : A, IsPowerBounded c ∧ (p : A) = c * ((ϖ.val : A) ^ p)) ∧
-      -- Frobenius is surjective on A°/ϖ: for every power-bounded x,
-      -- there exist power-bounded y, z with x = y^p + ϖ · z
-      (∀ x : A, IsPowerBounded x →
-        ∃ y : A, IsPowerBounded y ∧
-          ∃ z : A, IsPowerBounded z ∧ x = y ^ p + (ϖ.val : A) * z)
+      (∃ c : A, IsPowerBounded c ∧ (p : A) = c * ((ϖ.val : A) ^ p))
+  /-- The Frobenius map is surjective on `A°/(p)`: for every power-bounded `x`, there
+  exist power-bounded `y, z` with `x = y^p + p · z`.
+  (Scholze, *Perfectoid Spaces*, Definition 3.5, condition (iv).) -/
+  frobenius_surj : ∀ x : A, IsPowerBounded x →
+    ∃ y : A, IsPowerBounded y ∧ ∃ z : A, IsPowerBounded z ∧ x = y ^ p + (p : A) * z
 
 /-! ### Perfectoid fields -/
 
@@ -114,17 +117,35 @@ theorem perfectoidPseudoUniformizer_divides_p (p : ℕ) [Fact (Nat.Prime p)]
     [UniformSpace A] [IsLinearTopology A A] [IsPerfectoidRing p A] :
     ∃ c : A, IsPowerBounded c ∧
       (p : A) = c * (((perfectoidPseudoUniformizer p A).val : A) ^ p) :=
-  (IsPerfectoidRing.exists_pseudoUniformizer (p := p) (A := A)).choose_spec.2.1
+  (IsPerfectoidRing.exists_pseudoUniformizer (p := p) (A := A)).choose_spec.2
 
-/-- Frobenius is surjective on A°/ϖ for the perfectoid pseudo-uniformizer. -/
-theorem perfectoidPseudoUniformizer_frobenius_surj (p : ℕ) [Fact (Nat.Prime p)]
+/-- Frobenius is surjective on `A°/(ϖ)` (Wedhorn formulation).
+This follows from the class field `frobenius_surj` (surjectivity on `A°/(p)`)
+together with `p = c · ϖ^p`: if `x = y^p + p·z = y^p + c·ϖ^p·z = y^p + ϖ·(c·ϖ^{p-1}·z)`,
+then `z' := c · ϖ^{p-1} · z` is power-bounded. -/
+theorem perfectoidPseudoUniformizer_frobenius_surj_varpi (p : ℕ) [Fact (Nat.Prime p)]
     (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [UniformSpace A] [IsLinearTopology A A] [IsPerfectoidRing p A] :
     ∀ x : A, IsPowerBounded x →
       ∃ y : A, IsPowerBounded y ∧
         ∃ z : A, IsPowerBounded z ∧
-          x = y ^ p + ((perfectoidPseudoUniformizer p A).val : A) * z :=
-  (IsPerfectoidRing.exists_pseudoUniformizer (p := p) (A := A)).choose_spec.2.2
+          x = y ^ p + ((perfectoidPseudoUniformizer p A).val : A) * z := by
+  intro x hx
+  obtain ⟨y, hy, z, hz, hxyz⟩ := IsPerfectoidRing.frobenius_surj (p := p) x hx
+  obtain ⟨c, hc, hpc⟩ := perfectoidPseudoUniformizer_divides_p p A
+  let ϖ := (perfectoidPseudoUniformizer p A).val
+  have hϖ_pb := perfectoidPseudoUniformizer_isPowerBounded p A
+  refine ⟨y, hy, c * (ϖ : A) ^ (p - 1) * z, ?_, ?_⟩
+  · exact isPowerBounded_mul (isPowerBounded_mul hc
+      ((powerBoundedSubring.toSubring A).pow_mem hϖ_pb (p - 1))) hz
+  · rw [hxyz, hpc]
+    simp only [ϖ]
+    have hp_pos := (Fact.out : Nat.Prime p).pos
+    set w := (perfectoidPseudoUniformizer p A).val.val
+    have : w ^ p = w ^ (p - 1) * w := by
+      have : p - 1 + 1 = p := Nat.succ_pred_eq_of_pos hp_pos
+      rw [← pow_succ]; congr 1; linarith
+    rw [this]; ring
 
 /-! ### p-adic completeness of A° -/
 
@@ -163,7 +184,7 @@ private theorem isHausdorff_pIdeal (p : ℕ) [Fact (Nat.Prime p)]
   constructor
   intro x hx
   -- Extract perfectoid data: ϖ (top. nilp. unit), c (power-bounded), p = c * ϖ^p
-  obtain ⟨ϖ, hϖ_pb, ⟨c, hc_pb, hpc⟩, _⟩ :=
+  obtain ⟨ϖ, hϖ_pb, ⟨c, hc_pb, hpc⟩⟩ :=
     IsPerfectoidRing.exists_pseudoUniformizer (p := p) (A := A)
   -- x ∈ (Ideal.span {p})^n • ⊤ for all n, i.e., p^n | x in A°
   have hx_mem : ∀ n : ℕ, (x : A) ∈ (Set.range (fun y : PBSubring A => (p : A) ^ n * (y : A))) := by
@@ -283,7 +304,7 @@ private theorem isPrecomplete_pIdeal (p : ℕ) [Fact (Nat.Prime p)]
   haveI := IsPerfectoidRing.t0 (p := p) (A := A)
   haveI := IsPerfectoidRing.uniform (p := p) (A := A)
   -- Extract perfectoid data
-  obtain ⟨ϖ, hϖ_pb, ⟨c, hc_pb, hpc⟩, _⟩ :=
+  obtain ⟨ϖ, hϖ_pb, ⟨c, hc_pb, hpc⟩⟩ :=
     IsPerfectoidRing.exists_pseudoUniformizer (p := p) (A := A)
   have hp_pos : 0 < p := (Fact.out : Nat.Prime p).pos
   constructor
