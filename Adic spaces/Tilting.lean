@@ -431,6 +431,27 @@ where
         --   (WittVectorPrimitive.lean)
         --   fontaineTheta_teichmuller, mk_untilt_eq_coeff_zero,
         --   Perfection.coeff_surjective (Mathlib)
+        -- Step 1: Extract nonzero element from nontrivial kernel.
+        have hex : ∃ x ∈ RingHom.ker (theta p A), x ≠ (0 : Ainf p A) := by
+          by_contra h; push_neg at h
+          exact hker ((Submodule.eq_bot_iff _).mpr fun x hx => h x hx)
+        obtain ⟨xi₀, hxi₀_mem, hxi₀_ne⟩ := hex
+        -- Step 2: Use xi₀ as the generator with ker_of_primitive_and_division.
+        refine ⟨xi₀, hxi₀_mem, ?_⟩
+        apply WittVector.ker_of_primitive_and_division (PerfectoidRing.theta p A) hxi₀_mem
+        -- Division step: ∀ x ∈ ker(θ), ∃ q r, x = xi₀*q + p*r ∧ r ∈ ker(θ).
+        -- For ANY x, write x = [x.coeff 0] + p*x' (eq_teichmuller_add_p_mul).
+        -- If xi₀.coeff 0 divides x.coeff 0, set q₀ with x.coeff 0 = xi₀.coeff 0 * q₀,
+        -- then x - xi₀*[q₀] has coeff 0 = 0, hence ∈ (p), giving the division.
+        -- The remainder r ∈ ker(θ) from θ(x) = θ(xi₀) = 0 and p-torsion-free.
+        --
+        -- This requires xi₀.coeff 0 to divide ALL x.coeff 0 for x ∈ ker(θ).
+        -- This holds for the specific PRIMITIVE xi₀ from Berkeley Lectures
+        -- (where xi₀.coeff 0 generates the kernel's image in k = tilt p A),
+        -- or for any xi₀ with coeff 0 ≠ 0 when k is a field (every nonzero divides).
+        --
+        -- For general perfectoid rings, this requires the explicit primitive
+        -- element construction. See Berkeley Lectures Lemma 6.2.8 (pp.46-47).
         sorry
     --
     -- Step (c): From hb, extract ξ and package as ker(θ) = (ξ).
