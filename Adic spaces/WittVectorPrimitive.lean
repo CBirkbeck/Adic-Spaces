@@ -53,59 +53,90 @@ structure WittVector.IsPrimitive (ξ : 𝕎 k) (ϖ : k) : Prop where
   /-- The primitive element equals p + [ϖ] · α for some α. -/
   eq_p_add : ∃ α : 𝕎 k, ξ = (p : 𝕎 k) + teichmuller p ϖ * α
 
+omit [PerfectRing k p] in
 /-- The 0-th Witt coefficient of `p ∈ W(k)` is 0 when `k` has characteristic `p`. -/
 theorem WittVector.coeff_zero_p : ((p : 𝕎 k)).coeff 0 = 0 := by
   rw [WittVector.coeff_p]; simp
 
+omit [PerfectRing k p] in
 /-- A primitive element `ξ = p + [ϖ]α` has `ξ.coeff 0 = ϖ · (α.coeff 0)`. -/
-theorem WittVector.IsPrimitive.coeff_zero {ξ : 𝕎 k} {ϖ : k} (h : ξ.IsPrimitive ϖ) :
-    ξ.coeff 0 = ϖ * (h.eq_p_add.choose.coeff 0) := by
-  obtain ⟨α, hα⟩ := h.eq_p_add
-  simp [hα, coeff_zero_p, mul_comm]
+theorem WittVector.IsPrimitive.coeff_zero_eq {ξ : 𝕎 k} {ϖ : k} {α : 𝕎 k}
+    (hξ : ξ = (p : 𝕎 k) + teichmuller p ϖ * α) :
+    ξ.coeff 0 = ϖ * α.coeff 0 := by
+  rw [hξ, WittVector.add_coeff_zero, WittVector.mul_coeff_zero,
+    WittVector.coeff_zero_p, WittVector.teichmuller_coeff_zero, zero_add]
 
-/-- A primitive element has nonzero 0-th coefficient when `ϖ` is a nonzerodivisor
-and `α.coeff 0 ≠ 0`. More precisely, `ξ.coeff 0 = ϖ · (α.coeff 0)`. -/
-theorem WittVector.IsPrimitive.coeff_zero_ne_zero {ξ : 𝕎 k} {ϖ : k}
-    (h : ξ.IsPrimitive ϖ) (hϖ : ϖ ≠ 0) [NoZeroDivisors k]
-    (hα : h.eq_p_add.choose.coeff 0 ≠ 0) : ξ.coeff 0 ≠ 0 := by
-  rw [h.coeff_zero]
+omit [PerfectRing k p] in
+/-- A primitive element `ξ = p + [ϖ]α` has nonzero 0-th coefficient when ϖ and
+`α.coeff 0` are both nonzero in a domain. -/
+theorem WittVector.IsPrimitive.coeff_zero_ne_zero_of {ξ : 𝕎 k} {ϖ : k} {α : 𝕎 k}
+    (hξ : ξ = (p : 𝕎 k) + teichmuller p ϖ * α)
+    (hϖ : ϖ ≠ 0) (hα : α.coeff 0 ≠ 0) [NoZeroDivisors k] : ξ.coeff 0 ≠ 0 := by
+  rw [IsPrimitive.coeff_zero_eq hξ]
   exact mul_ne_zero hϖ hα
 
-/-- A primitive element is nonzero when `ϖ ≠ 0`, `k` has no zero divisors,
-and the coefficient `α` has `α.coeff 0 ≠ 0`. -/
-theorem WittVector.IsPrimitive.ne_zero {ξ : 𝕎 k} {ϖ : k}
-    (h : ξ.IsPrimitive ϖ) (hϖ : ϖ ≠ 0) [NoZeroDivisors k]
-    (hα : h.eq_p_add.choose.coeff 0 ≠ 0) : ξ ≠ 0 := by
-  intro heq
-  have := h.coeff_zero_ne_zero hϖ hα
-  simp [heq] at this
+omit [PerfectRing k p] in
+/-- A primitive element `ξ = p + [ϖ]α` is nonzero when ϖ ≠ 0 and α.coeff 0 ≠ 0. -/
+theorem WittVector.IsPrimitive.ne_zero_of {ξ : 𝕎 k} {ϖ : k} {α : 𝕎 k}
+    (hξ : ξ = (p : 𝕎 k) + teichmuller p ϖ * α)
+    (hϖ : ϖ ≠ 0) (hα : α.coeff 0 ≠ 0) [NoZeroDivisors k] : ξ ≠ 0 := by
+  intro h; rw [h] at hξ
+  have := IsPrimitive.coeff_zero_ne_zero_of hξ hϖ hα
+  simp at this
 
-/-- A primitive element is not in the ideal `(p)` of `W(k)`.
-This is because `ξ.coeff 0 = ϖ · (α.coeff 0)` which is nonzero (in the right
-conditions), while every element of `(p)` has `coeff 0 = 0`. -/
-theorem WittVector.IsPrimitive.not_mem_span_p {ξ : 𝕎 k} {ϖ : k}
-    (h : ξ.IsPrimitive ϖ) (hϖ : ϖ ≠ 0) [NoZeroDivisors k]
-    (hα : h.eq_p_add.choose.coeff 0 ≠ 0) : ξ ∉ Ideal.span {(p : 𝕎 k)} := by
+/-- A primitive element is not in `(p)` when ϖ ≠ 0 and α.coeff 0 ≠ 0, since
+every element of `(p)` has 0-th coefficient equal to 0. -/
+theorem WittVector.IsPrimitive.not_mem_span_p_of {ξ : 𝕎 k} {ϖ : k} {α : 𝕎 k}
+    (hξ : ξ = (p : 𝕎 k) + teichmuller p ϖ * α)
+    (hϖ : ϖ ≠ 0) (hα : α.coeff 0 ≠ 0) [NoZeroDivisors k] :
+    ξ ∉ Ideal.span {(p : 𝕎 k)} := by
   rw [WittVector.mem_span_p_iff_coeff_zero_eq_zero]
-  exact h.coeff_zero_ne_zero hϖ hα
+  exact IsPrimitive.coeff_zero_ne_zero_of hξ hϖ hα
+
+/-! ### Coefficient-level operations for p-adic division -/
+
+/-- In `W(k)` for a perfect ring `k` of char `p`, every element `x` can be written as
+`x = [x.coeff 0] + p · x'` for a unique `x'`. This is because `W(k)/(p) ≅ k` via
+`coeff 0`, and the Teichmüller lift provides a section. -/
+theorem WittVector.eq_teichmuller_add_p_mul (x : 𝕎 k) :
+    ∃ x' : 𝕎 k, x = teichmuller p (x.coeff 0) + (p : 𝕎 k) * x' := by
+  -- x - [x.coeff 0] has coeff 0 = x.coeff 0 - x.coeff 0 = 0
+  -- So x - [x.coeff 0] ∈ ker(constantCoeff) = (p) by ker_constantCoeff
+  have h0 : constantCoeff (x - teichmuller p (x.coeff 0)) = 0 := by
+    rw [map_sub, constantCoeff_apply, constantCoeff_apply,
+      WittVector.teichmuller_coeff_zero, sub_self]
+  have hmem : x - teichmuller p (x.coeff 0) ∈ RingHom.ker constantCoeff := h0
+  rw [WittVector.ker_constantCoeff, Ideal.mem_span_singleton] at hmem
+  obtain ⟨x', hx'⟩ := hmem
+  exact ⟨x', by linear_combination hx'⟩
+
+omit [PerfectRing k p] in
+/-- `p · x` has 0-th coefficient equal to 0. -/
+theorem WittVector.coeff_zero_mul_p (x : 𝕎 k) : (x * (p : 𝕎 k)).coeff 0 = 0 :=
+  WittVector.mul_charP_coeff_zero x
+
+/-- If `x ∈ (p^n)` in `W(k)`, then `x.coeff i = 0` for all `i < n`. -/
+theorem WittVector.coeff_eq_zero_of_mem_pow_p {x : 𝕎 k} {n : ℕ}
+    (hx : x ∈ Ideal.span {(p : 𝕎 k) ^ n}) {i : ℕ} (hi : i < n) :
+    x.coeff i = 0 :=
+  (WittVector.mem_span_p_pow_iff_le_coeff_eq_zero x n).mp hx i hi
 
 /-! ### Division by primitive elements -/
 
 /-- **Lemma 6.2.10 (Scholze-Weinstein):** A primitive element `ξ = p + [ϖ]α` is a
 nonzerodivisor in `W(k)`, provided `ϖ` is a nonzerodivisor in `k`.
 
-The proof: if `ξ · x = 0`, then modulo `[ϖ]`, `p · x ≡ 0`. By p-torsion-freeness
-of `W(k)` (`eq_zero_of_p_mul_eq_zero`), all coefficients of `x` are divisible by `ϖ`.
-Dividing by `ϖ` and repeating shows `x = 0`. -/
+The proof: if `ξ · x = 0`, then `(p + [ϖ]α) · x = 0`, so `p · x = -[ϖ]α · x`.
+The 0-th coefficient gives: `0 = -(ϖ · (α.coeff 0)) · (x.coeff 0)` (using
+`mul_charP_coeff_zero`). Since ϖ is a nonzerodivisor, `α.coeff 0 · x.coeff 0 = 0`.
+If α.coeff 0 is also a nonzerodivisor, then x.coeff 0 = 0, so x ∈ (p).
+Writing `x = p · x₁`, we get `ξ · p · x₁ = 0`, hence `p · (ξ · x₁) = 0`.
+By p-torsion-freeness, `ξ · x₁ = 0`. Induct to get x₁ ∈ (p^n) for all n,
+hence x₁ = 0 by Hausdorffness, so x = 0. -/
 theorem WittVector.IsPrimitive.isRegular {ξ : 𝕎 k} {ϖ : k}
     (hξ : ξ.IsPrimitive ϖ) (hϖ : ϖ ≠ 0) [IsDomain k] :
     IsRegular ξ := by
-  sorry -- Requires detailed coefficient manipulation with Verschiebung/Frobenius.
-  -- The proof goes: ξ·x = 0 → (p + [ϖ]α)·x = 0 → p·x = -[ϖ]α·x.
-  -- Reducing mod [ϖ]: p·x ≡ 0 mod [ϖ]. In W(k), the coeff structure of
-  -- [ϖ]·y means (ϖ·y₀, ...). So p·x mod [ϖ] means all coefficients of
-  -- p·x are divisible by ϖ. By WittVector.eq_zero_of_p_mul_eq_zero and
-  -- induction, x = 0.
+  sorry
 
 /-! ### Kernel generation by primitive elements -/
 
