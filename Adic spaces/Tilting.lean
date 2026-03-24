@@ -363,10 +363,49 @@ where
     --   (2) Showing every element of ker(θ) is divisible by ξ, using that ξ is
     --       primitive of degree 1 and W(A♭⁺) is ξ-adically complete.
     -- This requires Witt vector divisibility machinery not yet in Mathlib.
+    -- Sub-step (i): Construct ϖ♭ ∈ PreTilt A° p from the perfectoid pseudo-uniformizer.
+    -- Frobenius on A°/(p) is surjective (from theta_surjective.frobenius_modP_surjective),
+    -- so Perfection.coeff_surjective lets us lift elements from A°/(p) to PreTilt A° p.
+    -- We lift the image of the perfectoid pseudo-uniformizer ϖ to get ϖ♭.
+    letI := IsPerfectoidRing.instIsAdicComplete (p := p) (A := A)
+    -- Sub-step (ii): Construct ξ ∈ ker(θ).
+    -- By theta_surjective, θ is surjective with nontrivial kernel.
+    -- The kernel is nonzero because the tilt has char p (so the PreTilt has interesting
+    -- structure), and θ factors through the (p)-adic completion.
+    -- Berkeley Lectures Lemma 6.2.8: ξ = [ϖ♭] - p, where ϖ♭.untilt = p.
+    have hxi_exists : ∃ (xi : Ainf p A), xi ∈ RingHom.ker (PerfectoidRing.theta p A) ∧
+        xi ≠ 0 := by
+      -- The kernel of θ is nontrivial: θ is surjective (theta_surjective) and
+      -- not injective (the source W(A♭) has char 0 while ker(θ) contains p - [ϖ♭]).
+      -- Concretely: the Frobenius-surjective structure of the tilt forces
+      -- ker(θ) to contain a "primitive element of degree 1".
+      -- TODO: Construct ξ = [ϖ♭] - p explicitly via Perfection.coeff_surjective
+      -- and fontaineTheta_teichmuller, then show θ(ξ) = ϖ♭.untilt - p = 0.
+      sorry
+    -- Sub-step (iii): Every element of ker(θ) is divisible by ξ.
+    -- This is the hardest part (Berkeley Lectures Lemma 6.2.8, pp.46-47).
+    -- The argument: for x ∈ ker(θ), write x = ξ · q₀ + p · r₀ using that
+    -- W(A♭)/(ξ) → A° is surjective mod (p) (since W(A♭)/(p) ≅ A♭ via quotientPEquiv
+    -- and ξ mod p = -[ϖ♭] generates the image of the kernel). Then θ(r₀) = 0,
+    -- so iterate: x = ξ · (Σ qₙ · pⁿ). The sum converges by p-adic completeness
+    -- of W(A♭) (isAdicCompleteIdealSpanP).
+    have hxi_div : ∀ (xi : Ainf p A), xi ∈ RingHom.ker (PerfectoidRing.theta p A) →
+        xi ≠ 0 →
+        (∀ (x : Ainf p A), x ∈ RingHom.ker (PerfectoidRing.theta p A) →
+          ∃ q, x = xi * q) := by
+      -- TODO: The inductive divisibility argument requires:
+      -- (1) mem_span_p_pow_iff_le_coeff_eq_zero for membership in (p^n)
+      -- (2) isAdicCompleteIdealSpanP for convergence of the partial sums
+      -- (3) eq_zero_of_p_mul_eq_zero for p-torsion-freeness
+      -- (4) quotientPEquiv for the quotient W(k)/(p) ≅ k
+      -- See Scholze-Weinstein, Berkeley Lectures, Lemma 6.2.8 (pp.46-47).
+      sorry
+    -- Assemble: combine the existence of ξ with divisibility.
+    obtain ⟨xi, hxi_mem, hxi_ne⟩ := hxi_exists
     have hb : ∃ (xi : Ainf p A), xi ∈ RingHom.ker (PerfectoidRing.theta p A) ∧
         ∀ (x : Ainf p A), x ∈ RingHom.ker (PerfectoidRing.theta p A) →
           ∃ q, x = xi * q :=
-      sorry
+      ⟨xi, hxi_mem, hxi_div xi hxi_mem hxi_ne⟩
     --
     -- Step (c): From hb, extract ξ and package as ker(θ) = (ξ).
     obtain ⟨xi, hxi_mem, hxi_div⟩ := hb
