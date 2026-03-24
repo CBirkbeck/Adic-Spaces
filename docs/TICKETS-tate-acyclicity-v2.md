@@ -45,7 +45,7 @@ Same rules as v1. Update tracker before starting, commit claim, update when done
 |--------|--------|-------|---------|-----------|-------|
 | G1 | DONE | claude-main | 2026-03-23 | 2026-03-23 | I-adic on A₀⟨X⟩ |
 | G2-alg | DONE | claude-main | 2026-03-23 | 2026-03-23 | Algebraic identification |
-| G2-topo | NOT STARTED | — | — | — | T-topology model + completion ID. Blocks: R-4 |
+| G2-topo | IN PROGRESS | claude-main | 2026-03-24 | — | Plan: docs/plans/2026-03-24-G2-topo-plan.md |
 | G3 | DONE | claude-opus | 2026-03-23 | 2026-03-23 | Completion exact seqs |
 | R-2B | DONE | claude-main | 2026-03-23 | 2026-03-24 | tateAlgebra_flat proved (0 sorry) |
 | R-3 | DONE | claude-main | 2026-03-24 | 2026-03-24 | Lemma 8.31(2) all proved (0 sorry) |
