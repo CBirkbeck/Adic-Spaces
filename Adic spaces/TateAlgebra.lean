@@ -1736,13 +1736,17 @@ theorem tateAlgebra_flat (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
   -- Step 4: A₀-syzygies give A-syzygies of f.
   have hsyz : ∀ j : Fin k, ∑ i, f i * P.A₀.subtype ((s₀ j : Fin l → P.A₀) i) = 0 := by
     intro j
-    have hker := (s₀ j).prop
-    simp only [LinearMap.mem_ker] at hker
-    have := congr_arg P.A₀.subtype hker
-    simp only [map_sum, map_zero, map_mul, Subring.coe_subtype] at this
-    have : (↑w : A) ^ N * ∑ i, f i * P.A₀.subtype ((s₀ j : Fin l → P.A₀) i) = 0 := by
-      rw [Finset.mul_sum]; convert this using 1; ext i; ring
-    exact (hw_unit.mul_left_cancel (by rw [this, mul_zero])).symm
+    have hker : relMap₀ (s₀ j : Fin l → P.A₀) = 0 := (s₀ j).prop
+    have h_A := congr_arg P.A₀.subtype hker
+    simp only [relMap₀, LinearMap.coe_mk, AddHom.coe_mk, map_sum, map_zero,
+      map_mul, Subring.coe_subtype] at h_A
+    have h_scaled : (↑w : A) ^ N *
+        ∑ i, f i * P.A₀.subtype ((s₀ j : Fin l → P.A₀) i) = 0 := by
+      trans ∑ i, ((↑w : A) ^ N * f i) *
+        P.A₀.subtype ((s₀ j : Fin l → ↥P.A₀) i)
+      · rw [Finset.mul_sum]; exact Finset.sum_congr rfl (fun i _ => by ring)
+      · exact h_A
+    exact (hw_unit.mul_left_cancel (by rw [h_scaled, mul_zero])).symm
   -- Step 5: Artin-Rees over A₀.
   obtain ⟨k₀, hAR⟩ := Ideal.exists_pow_inf_eq_pow_smul P.I K₀
   -- Step 6: For each n and m, if all components ∈ image(I^{m+k₀}), get controlled decomp.
@@ -1754,21 +1758,37 @@ theorem tateAlgebra_flat (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
         ∀ i, (x i).val n = ∑ j, c₀ j * P.A₀.subtype ((s₀ j : Fin l → P.A₀) i) := by
     intro n m hn
     have hcomp : ∀ i, ∃ a : P.A₀, a ∈ P.I ^ (m + k₀) ∧ P.A₀.subtype a = (x i).val n := by
-      intro i; obtain ⟨a, ha, rfl⟩ := hn i; exact ⟨a, ha, rfl⟩
+      intro i; obtain ⟨a, ha, heq⟩ := hn i; exact ⟨a, ha, heq⟩
     choose lift₀ hlift₀_mem hlift₀_eq using hcomp
     have h_ker : (fun i => lift₀ i) ∈ K₀ := by
-      simp only [LinearMap.mem_ker, LinearMap.coe_mk, AddHom.coe_mk]
-      apply Subtype.ext
-      simp only [map_sum, map_mul, Subring.coe_subtype, ZeroMemClass.coe_zero]
-      rw [show ∑ i, ((↑w : A) ^ N * f i) * P.A₀.subtype (lift₀ i) =
-          (↑w : A) ^ N * ∑ i, f i * (x i).val n from by
-        rw [Finset.mul_sum]; congr 1; ext i; rw [hlift₀_eq]; ring]
-      rw [hcoord, mul_zero]
+      -- K₀ = ker relMap₀, so need relMap₀ (fun i => lift₀ i) = 0
+      -- i.e., ∑ g(i) * lift₀(i) = 0 in A₀
+      -- Proof by injectivity of A₀ → A.
+      have h_sum_zero : P.A₀.subtype (∑ i : Fin l, g i * lift₀ i) = 0 := by
+        simp only [map_sum, map_mul, Subring.coe_subtype]
+        -- Goal: ∑ i, ↑(g i) * ↑(lift₀ i) = 0
+        -- ↑(g i) = ↑w ^ N * f i, ↑(lift₀ i) = (x i).val n
+        trans (↑w : A) ^ N * ∑ i, f i * (x i).val n
+        · rw [Finset.mul_sum]
+          exact Finset.sum_congr rfl (fun i _ => by
+            rw [show (↑(lift₀ i) : A) = (x i).val n from hlift₀_eq i]; ring)
+        · rw [hcoord, mul_zero]
+      have h_eq_zero : ∑ i : Fin l, g i * lift₀ i = 0 := by
+        ext; simpa [Subring.coe_subtype] using h_sum_zero
+      show (fun i => lift₀ i) ∈ LinearMap.ker relMap₀
+      rw [LinearMap.mem_ker]
+      exact h_eq_zero
+    have h_smul_top : (fun i => lift₀ i) ∈
+        (P.I ^ (m + k₀) • ⊤ : Submodule P.A₀ (Fin l → P.A₀)) := by
+      rw [show (fun i => lift₀ i) = ∑ i, lift₀ i • Pi.single i 1 from by
+        ext j; simp [Finset.sum_apply, Pi.single_apply]]
+      exact Submodule.sum_mem _ (fun i _ =>
+        Submodule.smul_mem_smul (hlift₀_mem i) Submodule.mem_top)
     have h_in_inf : (fun i => lift₀ i) ∈
         (P.I ^ (m + k₀) • ⊤ ⊓ K₀ : Submodule P.A₀ (Fin l → P.A₀)) :=
-      Submodule.mem_inf.mpr ⟨Submodule.mem_smul_top_iff.mpr (fun i => hlift₀_mem i), h_ker⟩
-    rw [hAR (m + k₀) (Nat.le_add_left k₀ m),
-      show m + k₀ - k₀ = m from Nat.add_sub_cancel] at h_in_inf
+      Submodule.mem_inf.mpr ⟨h_smul_top, h_ker⟩
+    rw [hAR (m + k₀) (by omega : k₀ ≤ m + k₀),
+      show m + k₀ - k₀ = m from by omega] at h_in_inf
     -- h_in_inf : lift₀ ∈ I^m • (I^{k₀} • ⊤ ⊓ K₀) in (Fin l → A₀)
     -- Since I^{k₀} • ⊤ ⊓ K₀ ≤ K₀, lift₀ ∈ I^m • K₀.
     -- In the submodule K₀, this means ⟨lift₀, h_ker⟩ ∈ I^m • ⊤ as a K₀-element.
@@ -1777,13 +1797,53 @@ theorem tateAlgebra_flat (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
     -- then the generating family to extract Fin k coefficients.
     have h_in_smul_K₀ : (fun i => lift₀ i) ∈
         (P.I ^ m • K₀ : Submodule P.A₀ (Fin l → P.A₀)) :=
-      Submodule.smul_mono_right Submodule.inf_le_right h_in_inf
+      Submodule.smul_mono le_rfl inf_le_right h_in_inf
     -- Now extract coefficients. An element of I^m • K₀ is a finite sum ∑ aⱼ • vⱼ
     -- with aⱼ ∈ I^m and vⱼ ∈ K₀. Each vⱼ ∈ span(s₀) over A₀.
     -- So the total element decomposes over s₀ with I^m-coefficients.
     -- We extract this using Submodule.smul_induction_on.
     -- The element (as a K₀-element) decomposes over the span of s₀.
-    sorry
+    -- Step A: Prove that any element of I^m • K₀ decomposes over s₀ with I^m coeffs.
+    suffices ∃ c₀ : Fin k → P.A₀, (∀ j, c₀ j ∈ P.I ^ m) ∧
+        ∀ i, lift₀ i = ∑ j, c₀ j * (s₀ j : Fin l → P.A₀) i by
+      obtain ⟨c₀, hc₀_mem, hc₀_eq⟩ := this
+      refine ⟨fun j => P.A₀.subtype (c₀ j), fun j => ⟨c₀ j, hc₀_mem j, rfl⟩, fun i => ?_⟩
+      have h := congr_arg P.A₀.subtype (hc₀_eq i)
+      simp only [map_sum, map_mul] at h
+      rw [← hlift₀_eq i]; exact h
+    -- Step B: Use smul_induction_on on h_in_smul_K₀ with the predicate
+    -- "can be decomposed over s₀ with I^m coefficients".
+    refine Submodule.smul_induction_on (p := fun v =>
+        ∃ c₀ : Fin k → ↥P.A₀, (∀ j, c₀ j ∈ P.I ^ m) ∧
+          ∀ i, v i = ∑ j, c₀ j * (s₀ j : Fin l → ↥P.A₀) i) h_in_smul_K₀
+      (fun a ha v hv => ?_) (fun u v ⟨cu, hcu, heu⟩ ⟨cv, hcv, hev⟩ => ?_)
+    · -- Base case: a • v with a ∈ I^m and v ∈ K₀.
+      -- Decompose v ∈ K₀ over s₀ using the spanning hypothesis.
+      have hv_span : (⟨v, hv⟩ : K₀) ∈ Submodule.span P.A₀ (Set.range s₀) :=
+        hs₀ ▸ Submodule.mem_top
+      obtain ⟨cf, hcf⟩ := Finsupp.mem_span_range_iff_exists_finsupp.mp hv_span
+      -- Convert Finsupp.sum to Finset.sum over univ
+      have hcf_sum : (⟨v, hv⟩ : K₀) = ∑ j : Fin k, cf j • s₀ j := by
+        rw [← hcf, Finsupp.sum,
+          Finset.sum_subset (Finset.subset_univ _)]
+        intro j _ hj; rw [Finsupp.notMem_support_iff.mp hj, zero_smul]
+      -- Extract component-wise equality
+      have hv_eq : ∀ i, v i = ∑ j, (cf j : P.A₀) * (s₀ j : Fin l → P.A₀) i := by
+        intro i
+        have := congr_arg (fun (w : K₀) => (w : Fin l → P.A₀) i) hcf_sum
+        simp only [Submodule.coe_sum, Submodule.coe_smul_of_tower,
+          Finset.sum_apply, Pi.smul_apply, smul_eq_mul] at this
+        exact this
+      -- Set c₀(j) = a * cf(j), which are in I^m since a ∈ I^m.
+      refine ⟨fun j => a * cf j, fun j => Ideal.mul_mem_right _ _ ha, fun i => ?_⟩
+      have : (a • v) i = a * v i := by simp [Pi.smul_apply, smul_eq_mul]
+      rw [this, hv_eq i, Finset.mul_sum]
+      exact Finset.sum_congr rfl (fun j _ => by ring)
+    · -- Addition case: combine coefficients.
+      exact ⟨fun j => cu j + cv j, fun j => (P.I ^ m).add_mem (hcu j) (hcv j), fun i => by
+        have : (u + v) i = u i + v i := Pi.add_apply u v i
+        rw [this, heu i, hev i, ← Finset.sum_add_distrib]
+        exact Finset.sum_congr rfl (fun j _ => by ring)⟩
   -- Step 7: Assemble the IsTrivialRelation witness.
   -- For each n, hdecomp_A gives a decomposition over the A₀-generators.
   -- For convergence, hAR_ctrl gives controlled coefficients.
@@ -1827,17 +1887,122 @@ theorem tateAlgebra_flat (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
             Subtype.val '' ((P.I ^ (m + k₀) : Ideal P.A₀) : Set P.A₀)) →
           ∀ j, c₀ j ∈ Subtype.val '' ((P.I ^ m : Ideal P.A₀) : Set P.A₀)) := by
     intro n
-    -- Use hAR_ctrl at level 0 for the decomposition (if components ∈ image(I^{k₀})),
-    -- or use the A-decomposition via clearing denominators otherwise.
-    -- For the filtration claim: for each m where the hypothesis holds,
-    -- hAR_ctrl gives a DIFFERENT c₀^{(m)} in image(I^m).
-    -- We need a SINGLE c₀ that works for all m.
-    -- This is possible because for the highest available level q,
-    -- hAR_ctrl(n, q) gives c₀ ∈ image(I^q) ⊆ image(I^m) for all m ≤ q.
-    -- So we pick c₀ from hAR_ctrl at the highest level where the hypothesis holds.
-    -- If no level works (components ∉ image(I^{k₀})), the filtration claim is vacuous
-    -- for m ≥ 1 (since image(I^{m+k₀}) ⊆ image(I^{k₀})).
-    sorry
+    -- The set of valid levels S = {m | ∀ i, (x i).val n ∈ image(I^{m+k₀})} is downward
+    -- closed (hyp(m+1) → hyp(m) since I^{m+1+k₀} ⊆ I^{m+k₀}).
+    -- Case split: either all levels valid (components = 0) or some level fails.
+    by_cases h_all_levels :
+        ∀ m, ∀ i, (x i).val n ∈
+          Subtype.val '' ((P.I ^ (m + k₀) : Ideal P.A₀) : Set P.A₀)
+    · -- All levels valid: each component ∈ ⋂ image(I^{m+k₀}) = {0} (by T2).
+      have h_zero : ∀ i, (x i).val n = 0 := by
+        intro i
+        by_contra hne
+        obtain ⟨U, _, hU_open, _, h0U, hxV, hUV⟩ := t2_separation (Ne.symm hne)
+        obtain ⟨p, _, hp⟩ := P.hasBasis_nhds_zero.mem_iff.mp (hU_open.mem_nhds h0U)
+        exact Set.disjoint_left.mp hUV (hp (Set.image_mono
+          (show (↑(P.I ^ (p + k₀)) : Set ↥P.A₀) ⊆ ↑(P.I ^ p) from
+            Ideal.pow_le_pow_right (by omega))
+          (h_all_levels p i))) hxV
+      refine ⟨0, fun i => by simp [h_zero i],
+        fun m _ j => ⟨0, (P.I ^ m).zero_mem, by simp⟩⟩
+    · -- Some level fails. Find the smallest failing level q.
+      push_neg at h_all_levels
+      obtain ⟨m_fail, hm_fail⟩ := h_all_levels
+      -- The set of failing levels is upward closed: if hyp(m) fails,
+      -- then hyp(m') fails for m' ≥ m (contrapositively, hyp(m'+1) → hyp(m')).
+      -- So there exists a smallest failing level.
+      have h_fail_exists : ∃ m, ∃ i, (x i).val n ∉
+          Subtype.val '' ((P.I ^ (m + k₀) : Ideal P.A₀) : Set P.A₀) :=
+        ⟨m_fail, hm_fail⟩
+      -- Nat.find gives the smallest failing level q.
+      classical
+      set q := Nat.find h_fail_exists with hq_def
+      have hq_fail := Nat.find_spec h_fail_exists
+      -- For m < q, the hypothesis holds (by minimality of q).
+      have hq_valid : ∀ m < q, ∀ i, (x i).val n ∈
+          Subtype.val '' ((P.I ^ (m + k₀) : Ideal P.A₀) : Set P.A₀) := by
+        intro m hm
+        by_contra h; push_neg at h
+        exact Nat.find_min h_fail_exists hm h
+      -- For m ≥ q, the hypothesis fails (upward closure).
+      have hq_fail_above : ∀ m, q ≤ m → ¬(∀ i, (x i).val n ∈
+          Subtype.val '' ((P.I ^ (m + k₀) : Ideal P.A₀) : Set P.A₀)) := by
+        intro m hm hall
+        obtain ⟨i₀, hi₀⟩ := hq_fail
+        exact hi₀ (Set.image_mono (Ideal.pow_le_pow_right (by omega)) (hall i₀))
+      -- Case split on q: either q = 0 or q ≥ 1.
+      by_cases hq0 : q = 0
+      · -- q = 0: hypothesis fails at all levels. Filtration is vacuous.
+        -- Need unconditional decomposition via denominator-clearing.
+        -- Clear denominators: find M with w^M * (x i).val n ∈ A₀ for all i.
+        have h_clear : ∃ M : ℕ, ∀ i, (w : A) ^ M * (x i).val n ∈ P.A₀ :=
+          (Filter.eventually_all.mpr (fun i => hw_event ((x i).val n))).exists
+        obtain ⟨M, hM⟩ := h_clear
+        -- The scaled vector is in K₀.
+        have h_scaled_ker : (fun i => (⟨(w : A) ^ M * (x i).val n, hM i⟩ : ↥P.A₀)) ∈ K₀ := by
+          have h_zero : P.A₀.subtype
+            (∑ i : Fin l, g i * (⟨(w : A) ^ M * (x i).val n, hM i⟩ : ↥P.A₀)) = 0 := by
+            simp only [map_sum, map_mul, Subring.coe_subtype]
+            trans (↑w : A) ^ (N + M) * ∑ i, f i * (x i).val n
+            · rw [Finset.mul_sum]
+              exact Finset.sum_congr rfl (fun i _ => by rw [pow_add]; ring)
+            · rw [hcoord n, mul_zero]
+          have h_eq : ∑ i : Fin l, g i * (⟨(w : A) ^ M * (x i).val n, hM i⟩ : ↥P.A₀) = 0 := by
+            ext; simpa [Subring.coe_subtype] using h_zero
+          show (fun i => (⟨(w : A) ^ M * (x i).val n, hM i⟩ : ↥P.A₀)) ∈ LinearMap.ker relMap₀
+          rw [LinearMap.mem_ker]
+          exact h_eq
+        -- Decompose over s₀.
+        have h_in_span : (⟨fun i => (⟨(w : A) ^ M * (x i).val n, hM i⟩ : ↥P.A₀),
+            h_scaled_ker⟩ : K₀) ∈ Submodule.span P.A₀ (Set.range s₀) :=
+          hs₀ ▸ Submodule.mem_top
+        obtain ⟨cf, hcf⟩ := Finsupp.mem_span_range_iff_exists_finsupp.mp h_in_span
+        have hcf_sum : (⟨fun i => (⟨(w : A) ^ M * (x i).val n, hM i⟩ : ↥P.A₀),
+            h_scaled_ker⟩ : K₀) = ∑ j : Fin k, cf j • s₀ j := by
+          rw [← hcf, Finsupp.sum,
+            Finset.sum_subset (Finset.subset_univ _)]
+          intro j _ hj; rw [Finsupp.notMem_support_iff.mp hj, zero_smul]
+        -- Extract component-wise equality (in A₀).
+        have hcf_eq : ∀ i, (⟨(w : A) ^ M * (x i).val n, hM i⟩ : ↥P.A₀) =
+            ∑ j, cf j * (s₀ j : Fin l → P.A₀) i := by
+          intro i
+          have := congr_arg (fun (v : K₀) => (v : Fin l → P.A₀) i) hcf_sum
+          simp only [Submodule.coe_sum, Submodule.coe_smul_of_tower,
+            Finset.sum_apply, Pi.smul_apply, smul_eq_mul] at this
+          exact this
+        -- Unscale: divide by w^M (which is a unit).
+        have hw_M_unit : IsUnit ((w : A) ^ M) := w.isUnit.pow M
+        set c₀ := fun j => ↑(hw_M_unit.unit⁻¹ : Aˣ) * P.A₀.subtype (cf j)
+        refine ⟨c₀, fun i => ?_, fun m hm => ?_⟩
+        · -- Decomposition: (x i).val n = ∑ c₀ j * s₀(j)(i)
+          have h_scaled := congr_arg P.A₀.subtype (hcf_eq i)
+          simp only [map_sum, map_mul, Subring.coe_subtype] at h_scaled
+          -- h_scaled : w^M * (x i).val n = ∑ j, ↑(cf j) * s₀(j)(i) in A
+          have : (x i).val n = ↑(hw_M_unit.unit⁻¹ : Aˣ) *
+              ((w : A) ^ M * (x i).val n) := by
+            rw [← mul_assoc, hw_M_unit.val_inv_mul, one_mul]
+          rw [this, h_scaled, Finset.mul_sum]
+          exact Finset.sum_congr rfl (fun j _ => by
+            simp only [c₀, Subring.coe_subtype]; ring)
+        · -- Filtration: vacuously true since q = 0 means hypothesis fails for all m.
+          exfalso
+          exact hq_fail_above m (by omega) hm
+      · -- q ≥ 1: use hAR_ctrl at level q - 1.
+        have hq_pos : 0 < q := Nat.pos_of_ne_zero hq0
+        have hq_hyp : ∀ i, (x i).val n ∈
+            Subtype.val '' ((P.I ^ ((q - 1) + k₀) : Ideal P.A₀) : Set P.A₀) :=
+          hq_valid (q - 1) (by omega)
+        obtain ⟨c₀, hc₀_mem, hc₀_decomp⟩ := hAR_ctrl n (q - 1) hq_hyp
+        refine ⟨c₀, hc₀_decomp, fun m hm j => ?_⟩
+        -- Need: c₀ j ∈ image(I^m).
+        -- We have: c₀ j ∈ image(I^{q-1}).
+        -- If m ≤ q-1: I^{q-1} ⊆ I^m, so image(I^{q-1}) ⊆ image(I^m). Done.
+        -- If m ≥ q: hypothesis fails, contradiction.
+        by_cases hmq : m < q
+        · -- m ≤ q-1: use monotonicity
+          exact Set.image_mono (Ideal.pow_le_pow_right (by omega)) (hc₀_mem j)
+        · -- m ≥ q: hypothesis fails, contradiction
+          exact absurd hm (hq_fail_above m (by omega))
   choose c' hc'_decomp hc'_filt using hdecomp_or_ctrl
   suffices ∃ c' : (Fin 1 →₀ ℕ) → Fin k → A,
       (∀ n i, (x i).val n =
@@ -1878,19 +2043,16 @@ theorem tateAlgebra_flat (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
   -- Goal: {n | c' n j ∉ image(P.I^m)}.Finite
   -- By hc'_filt: if all (x i).val n ∈ image(I^{m+k₀}), then c' n j ∈ image(I^m).
   -- So {n | c' n j ∉ image(I^m)} ⊆ {n | ∃ i, (x i).val n ∉ image(I^{m+k₀})}.
-  apply Set.Finite.subset _ (fun n hn => by
-    simp only [Set.mem_setOf_eq] at hn ⊢
-    by_contra h; push_neg at h
-    exact hn (hc'_filt n m h j))
-  -- Remains: {n | ∃ i, (x i).val n ∉ image(I^{m+k₀})}.Finite
-  -- This follows from the restricted property of each x_i.
-  apply Set.Finite.subset (s₂ := ⋃ i : Fin l,
-    {n | (x i).val n ∉ Subtype.val '' ((P.I ^ (m + k₀) : Ideal P.A₀) : Set P.A₀)})
-  · exact Set.Finite.biUnion (Set.finite_univ) (fun i _ => by
+  apply Set.Finite.subset (Set.finite_iUnion (fun i : Fin l => by
       have hxi := (x i).prop
       change MvPowerSeries.IsRestricted (x i).val at hxi
       rw [MvPowerSeries.IsRestricted] at hxi
-      exact (P.hasBasis_nhds_zero.tendsto_right_iff.mp hxi (m + k₀) trivial).cofinite_eq)
-  · intro n hn; simp only [Set.mem_iUnion, Set.mem_setOf]; exact hn
+      have := P.hasBasis_nhds_zero.tendsto_right_iff.mp hxi (m + k₀) trivial
+      rwa [Filter.eventually_cofinite] at this))
+  intro n hn
+  simp only [Set.mem_setOf_eq] at hn
+  simp only [Set.mem_iUnion, Set.mem_setOf_eq]
+  by_contra h_all; push_neg at h_all
+  exact hn (hc'_filt n m h_all j)
 
 end TateAlgebraFlat
