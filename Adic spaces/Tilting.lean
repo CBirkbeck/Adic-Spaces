@@ -424,8 +424,25 @@ where
       --     showing c'.coeff 0 * varpi_flat^p ≠ 0. This needs either IsDomain on A♭
       --     or careful choice of c' (e.g., c' = teichmuller of some nonzero element).
       --
-      -- The construction is mathematically complete; the remaining work is Lean
-      -- bookkeeping with subtypes and Witt vector arithmetic.
+      -- Construction: lift c to c' ∈ W(A♭), form α₀ = c'·[ϖ♭]^p, correct by θ-preimage.
+      -- Step (c.1): Lift c to c' ∈ W(A♭) via θ surjectivity.
+      obtain ⟨c', hc'⟩ := theta_surjective ⟨c, hc_pb⟩
+      -- Step (c.2): Form α₀ = c' · [ϖ♭]^p ∈ W(A♭).
+      -- θ(α₀) = c · (ϖ♭.untilt)^p.
+      -- Since ϖ♭.untilt ≡ ϖ (mod p), (ϖ♭.untilt)^p ≡ ϖ^p (mod p).
+      -- So θ(α₀) = c · (ϖ♭.untilt)^p ≡ c · ϖ^p = p (mod p).
+      -- Hence θ(α₀) - p ∈ p · A°, i.e., θ(α₀ - p) = p · s₀ for some s₀.
+      -- The type Ainf p A = WittVector p (tilt p A) = WittVector p (PreTilt O p).
+      -- varpi_flat : tilt p A, so teichmuller p varpi_flat : Ainf p A.
+      set vf := (WittVector.teichmuller p varpi_flat : Ainf p A)
+      set α₀ : Ainf p A := c' * vf ^ p
+      -- Step (c.3): θ(α₀ - p) ∈ p · A°. Get correction w₁.
+      -- θ(α₀) - p = c · (ϖ♭.untilt)^p - p. Since p = c · ϖ^p and ϖ♭.untilt ≡ ϖ (mod p),
+      -- this difference is in p · A°.
+      -- Step (c.4): Set ξ = α₀ - p - p · w₁ where θ(w₁) = (θ(α₀) - p) / p.
+      -- Then θ(ξ) = θ(α₀) - p - p · θ(w₁) = θ(α₀) - p - (θ(α₀) - p) = 0.
+      -- And ξ ≠ 0 because ξ.coeff 0 = α₀.coeff 0 ≠ 0 (p.coeff 0 = 0, (p·w₁).coeff 0 = 0).
+      -- TODO: Complete the formalization (~40 lines of type coercion management).
       sorry
     -- Sub-step (iii): Combine existence of ξ with divisibility.
     -- The divisibility uses `WittVector.ker_of_primitive_and_division` (proved in
