@@ -407,59 +407,149 @@ private theorem isPrecomplete_pIdeal (p : ℕ) [Fact (Nat.Prime p)]
   -- Step 4: L is power-bounded
   have hL_pb : IsPowerBounded L :=
     isPowerBounded_of_tendsto_of_powerBounded (fun n => (f n).property) hL'
-  -- Step 5: Verify SModEq condition: p^n | (f n - ⟨L, hL_pb⟩) in A°.
-  -- For m ≥ n: f n - f m = p^n * g_{n,m} for some g_{n,m} ∈ A°.
-  -- The sequence (g_{n,m} : A) for m = n, n+1, ... has the property that
-  -- p^n * (g_{n,m} : A) = (f n : A) - (f m : A) → (f n : A) - L.
-  -- We show g_{n,m} converges by multiplying by ϖ^{-np} (ϖ is a unit):
-  -- c^n * (g_{n,m} : A) = (ϖ^{-1})^{np} * ((f n : A) - (f m : A)) converges.
-  -- The sequence c^n * g_{n,m} is Cauchy and each term is power-bounded.
-  -- Its limit H is power-bounded. Then (f n : A) - L = ϖ^{np} * H = p^n * Y
-  -- where Y = (ϖ^{-1})^{np} * ϖ^{np} * Y = ... This requires c^n * Y = H,
-  -- i.e., Y = H / c^n, which may not exist in A° without c being a non-zerodivisor.
-  --
-  -- Alternative approach: use ϖ^{-np} to "divide" directly.
-  -- (f n : A) - (f m : A) = p^n * (g_{n,m} : A) = c^n * ϖ^{np} * (g_{n,m} : A)
-  -- So (ϖ^{-1})^{np} * ((f n : A) - (f m : A)) = c^n * (g_{n,m} : A)
-  -- Define h_m := (ϖ^{-1} : A)^{n*p} * ((f n : A) - (f m : A))
-  -- Then h_m = c^n * (g_{n,m} : A) is power-bounded (product of power-bounded elements)
-  -- and h_m is Cauchy (since (f m : A) is Cauchy and multiplication by a constant is
-  -- uniformly continuous).
-  -- By CompleteSpace, h_m → H for some H, which is power-bounded by the helper.
-  -- Now (f n : A) - L = ϖ^{np} * H (by continuity of multiplication by ϖ^{np}).
-  -- We need ∃ y : A°, (f n : A) - L = p^n * (y : A).
-  -- (f n : A) - L = ϖ^{np} * H = (1/c^n) * p^n * H... but 1/c^n may not exist.
-  -- However: H = c^n * lim(g_{n,m}) IF lim(g_{n,m}) exists. And if it exists, it's in A°.
-  -- Then (f n : A) - L = p^n * lim(g_{n,m}).
-  -- The question reduces to: does H = c^n * G for some G ∈ A°?
-  -- H = lim(c^n * g_{n,m}) where g_{n,m} ∈ A°.
-  -- If the limit of g_{n,m} exists (call it G), then H = c^n * G and G ∈ A°.
-  -- Does lim(g_{n,m}) exist? We need g_{n,m} to be Cauchy.
-  -- g_{n,m₁} - g_{n,m₂}: from the Cauchy condition on f with indices n+m₁, n+m₂:
-  -- f(m₁) - f(m₂) = p^{m₁} * z for some z ∈ A° (when m₁ ≤ m₂).
-  -- And p^n * (g_{n,m₁} - g_{n,m₂}) = f(m₂) - f(m₁) = -p^{m₁} * z.
-  -- Multiplying by (ϖ^{-1})^{np}: c^n * (g_{n,m₁} - g_{n,m₂}) = -(ϖ^{-1})^{np} * p^{m₁} * z
-  -- = -(ϖ^{-1})^{np} * c^{m₁} * ϖ^{m₁*p} * z = -c^{m₁} * (ϖ^{-1})^{np} * ϖ^{m₁*p} * z
-  -- = -c^{m₁} * ϖ^{(m₁-n)*p} * z
-  -- This is small since ϖ^{(m₁-n)*p} → 0 and the rest is bounded.
-  -- So c^n * g_{n,m} IS Cauchy, and since g_{n,m} = (c^n * g_{n,m}) / c^n...
-  -- we still can't extract g_{n,m} without dividing by c^n.
-  --
-  -- NEW APPROACH: Construct the divisor s_n directly via telescoping series.
-  -- For each k, hf_div gives d_k ∈ A° with f(k) - f(k+1) = p^k * d_k.
-  -- Then f(n) - f(n+N) = Σ_{j=0}^{N-1} p^{n+j} * d_{n+j} = p^n * Σ_{j=0}^{N-1} p^j * d_{n+j}.
-  -- As N → ∞, the partial sums converge in A (topological completeness),
-  -- the limit s_n is power-bounded, and p^n * s_n = f(n) - L.
-  --
-  -- Step 1: Extract the "differences" d_k with f(k) - f(k+1) = p^k * d_k.
-  -- Step 2: Show Σ p^j * d_{n+j} converges in A.
-  -- Step 3: Show the limit is power-bounded (hence in A°).
-  -- Step 4: Show p^n * (limit) = f(n) - L by continuity.
-  --
-  -- This avoids the need for p to be a non-zerodivisor or p^n·A° to be closed.
-  -- It uses only: topological completeness of A, power-bounded limits, and
-  -- continuity of multiplication by p^n.
-  sorry
+  -- Step 5: Verify SModEq condition via telescoping series.
+  -- Extract differences d_k ∈ A° with f(k) - f(k+1) = p^k * d_k.
+  have hd_ex : ∀ k, ∃ d : PBSubring A, f k - f (k + 1) = (p : PBSubring A) ^ k * d :=
+    fun k => hf_div k (k + 1) (Nat.le_succ k)
+  choose d hd using hd_ex
+  -- Define partial sums in A: S(n, N) = Σ_{j<N} p^j * d(n+j)
+  let S : ℕ → ℕ → A := fun n N =>
+    ∑ j ∈ Finset.range N, (p : A) ^ j * (d (n + j) : A)
+  -- Telescoping identity: p^n * S(n, N) = (f n : A) - (f(n+N) : A)
+  -- Coercion of hd to A
+  have hd_val : ∀ k, (f k : A) - (f (k + 1) : A) = (p : A) ^ k * (d k : A) := by
+    intro k; exact_mod_cast congr_arg (Subtype.val) (hd k)
+  have htelescope : ∀ n N, (p : A) ^ n * S n N = (f n : A) - (f (n + N) : A) := by
+    intro n N; induction N with
+    | zero => simp [S]
+    | succ N ih =>
+      -- S n (N+1) = S n N + p^N * d(n+N)
+      have hS_succ : S n (N + 1) = S n N + (p : A) ^ N * (d (n + N) : A) := by
+        simp [S, Finset.sum_range_succ]
+      rw [hS_succ, mul_add, ih]
+      have h1 := hd_val (n + N)
+      have h2 : (p : A) ^ n * ((p : A) ^ N * (d (n + N) : A)) =
+          (p : A) ^ (n + N) * (d (n + N) : A) := by rw [pow_add]; ring
+      rw [h2, ← h1, show n + (N + 1) = n + N + 1 from by omega]; ring
+  -- p^m is power-bounded for all m (since p = c * ϖ^p and c, ϖ are PB)
+  have hcn_pb' : ∀ m : ℕ, IsPowerBounded (c ^ m) := by
+    intro m; induction m with
+    | zero => simpa using isPowerBounded_one
+    | succ k ih => simpa [pow_succ] using isPowerBounded_mul ih hc_pb
+  have hpn_pb : ∀ m : ℕ, IsPowerBounded ((p : A) ^ m) := by
+    intro m; rw [show (p : A) = c * ((ϖ.val : A) ^ p) from hpc, mul_pow]
+    exact isPowerBounded_mul (hcn_pb' m)
+      ((powerBoundedSubring.toSubring A).pow_mem
+        ((powerBoundedSubring.toSubring A).pow_mem hϖ_pb p) m)
+  -- Each partial sum S(n, N) is power-bounded
+  have hS_pb : ∀ n N, IsPowerBounded (S n N) := by
+    intro n N; induction N with
+    | zero => simp [S]; exact isPowerBounded_zero
+    | succ N ih =>
+      simp only [S, Finset.sum_range_succ]
+      exact isPowerBounded_add ih (isPowerBounded_mul (hpn_pb N) (d (n + N)).property)
+  -- ϖ^p is topologically nilpotent
+  have hϖp_tn : IsTopologicallyNilpotent ((ϖ.val : A) ^ p) := by
+    rw [IsTopologicallyNilpotent]; simp_rw [← pow_mul]
+    exact ϖ.property.comp
+      (Filter.tendsto_atTop_atTop_of_monotone (fun _ _ h => Nat.mul_le_mul_left p h)
+        fun b => ⟨b, Nat.le_mul_of_pos_left _ hp_pos⟩)
+  -- Key lemma: each term p^j * d(n+j) is in any open ideal for large j.
+  -- p^j * d(n+j) = (c^j * d(n+j)) * (ϖ^p)^j ∈ A° * {small} ⊆ any nhd of 0.
+  have hterm_small : ∀ W ∈ nhds (0 : A), ∃ M, ∀ n j, M ≤ j →
+      (p : A) ^ j * (d (n + j) : A) ∈ W := by
+    intro W hW
+    obtain ⟨V, hV, hAV⟩ := IsUniform.isBounded_powerBounded (A := A) W hW
+    obtain ⟨J, hJopen, hJV⟩ :=
+      (IsLinearTopology.hasBasis_open_ideal (R := A)).mem_iff.mp hV
+    obtain ⟨M, hM⟩ := hϖp_tn.exists_pow_mem_of_mem_nhds (hJopen.mem_nhds J.zero_mem)
+    exact ⟨M, fun n j hj => by
+      have hϖpj : ((ϖ.val : A) ^ p) ^ j ∈ V := by
+        apply hJV
+        rw [show ((ϖ.val : A) ^ p) ^ j =
+          ((ϖ.val : A) ^ p) ^ (j - M) * ((ϖ.val : A) ^ p) ^ M by
+          rw [← pow_add, Nat.sub_add_cancel hj]]
+        exact J.mul_mem_left _ hM
+      have : (p : A) ^ j * (d (n + j) : A) =
+          (c ^ j * (d (n + j) : A)) * ((ϖ.val : A) ^ p) ^ j := by rw [hpc]; ring
+      rw [this]
+      exact hAV (Set.mul_mem_mul (isPowerBounded_mul (hcn_pb' j) (d (n + j)).property)
+        hϖpj)⟩
+  -- S(n, ·) is Cauchy: use open ideals (closed under finite sums and negation).
+  have hS_cauchy_unif : ∀ n, CauchySeq (S n) := by
+    intro n
+    haveI : IsUniformAddGroup A := IsPerfectoidRing.uniformAddGroup (p := p) (A := A)
+    rw [CauchySeq, IsUniformAddGroup.cauchy_map_iff_tendsto_swapped]
+    refine ⟨Filter.atTop_neBot, ?_⟩
+    rw [Filter.Tendsto, Filter.map_le_iff_le_comap]
+    intro U hU
+    obtain ⟨W, hW, hWU⟩ := Filter.mem_comap.mp hU
+    rw [htop] at hW
+    -- Pick open ideal K ⊆ W (K is closed under finite sums)
+    obtain ⟨K, hKopen, hKW⟩ :=
+      (IsLinearTopology.hasBasis_open_ideal (R := A)).mem_iff.mp hW
+    obtain ⟨M, hM⟩ := hterm_small (K : Set A) (hKopen.mem_nhds K.zero_mem)
+    rw [Filter.prod_atTop_atTop_eq, Filter.mem_atTop_sets]
+    refine ⟨(M, M), fun ⟨N₂, N₁⟩ ⟨hN₂, hN₁⟩ => ?_⟩
+    -- Need: (N₂, N₁) ∈ (fun p => S n p.2 - S n p.1) ⁻¹' W
+    apply hWU; show S n N₁ - S n N₂ ∈ W
+    -- Use the Ico sum and show it lands in K ⊆ W.
+    -- Helper: sum over Ico lands in K for any a ≤ b with M ≤ a.
+    suffices hsub : ∀ a b, M ≤ a → a ≤ b →
+        ∑ j ∈ Finset.Ico a b, (p : A) ^ j * (d (n + j) : A) ∈ (K : Set A) from by
+      rcases le_total N₁ N₂ with h | h
+      · -- S n N₁ - S n N₂ = -(Σ Ico N₁ N₂)
+        have heq := Finset.sum_range_add_sum_Ico
+          (fun j => (p : A) ^ j * (d (n + j) : A)) h
+        have hS_diff : S n N₂ - S n N₁ =
+            ∑ j ∈ Finset.Ico N₁ N₂, (p : A) ^ j * (d (n + j) : A) := by
+          simp only [S]; rw [← heq]; ring
+        rw [show S n N₁ - S n N₂ = -(S n N₂ - S n N₁) from by ring, hS_diff]
+        exact hKW (K.neg_mem (hsub N₁ N₂ hN₁ h))
+      · -- S n N₁ - S n N₂ = Σ Ico N₂ N₁
+        have heq := Finset.sum_range_add_sum_Ico
+          (fun j => (p : A) ^ j * (d (n + j) : A)) h
+        have hS_diff : S n N₁ - S n N₂ =
+            ∑ j ∈ Finset.Ico N₂ N₁, (p : A) ^ j * (d (n + j) : A) := by
+          simp only [S]; rw [← heq]; ring
+        rw [hS_diff]; exact hKW (hsub N₂ N₁ hN₂ h)
+    -- Prove the sub-result: Σ Ico a b ∈ K
+    intro a b ha hab
+    exact Submodule.sum_mem _ fun j hj =>
+      hM n j (le_trans ha (Finset.mem_Ico.mp hj).1)
+  -- Get limits of S(n, ·) from CompleteSpace
+  have hS_lim : ∀ n, ∃ sn : A, Filter.Tendsto (S n) Filter.atTop
+      (@nhds A ‹UniformSpace A›.toTopologicalSpace sn) := by
+    intro n; exact cauchySeq_tendsto_of_complete (hS_cauchy_unif n)
+  choose sn hsn using hS_lim
+  -- Convert limits to given topology
+  have hsn' : ∀ n, Filter.Tendsto (S n) Filter.atTop (@nhds A ‹TopologicalSpace A› (sn n)) := by
+    intro n; rw [htop] at hsn; exact hsn n
+  -- Each sn is power-bounded (limit of PB sequence)
+  have hsn_pb : ∀ n, IsPowerBounded (sn n) := by
+    intro n; exact isPowerBounded_of_tendsto_of_powerBounded (fun N => hS_pb n N) (hsn' n)
+  -- p^n * sn(n) = (f n : A) - L, by continuity of multiplication by p^n
+  have hpn_sn : ∀ n, (p : A) ^ n * sn n = (f n : A) - L := by
+    intro n
+    -- p^n * S(n, N) = (f n : A) - (f(n+N) : A) and S(n,N) → sn(n), f(n+N) → L
+    have hlhs : Filter.Tendsto (fun N => (p : A) ^ n * S n N) Filter.atTop
+        (@nhds A ‹TopologicalSpace A› ((p : A) ^ n * sn n)) :=
+      (continuous_const.mul continuous_id).continuousAt.tendsto.comp (hsn' n)
+    have hrhs : Filter.Tendsto (fun N => (f n : A) - (f (n + N) : A)) Filter.atTop
+        (@nhds A ‹TopologicalSpace A› ((f n : A) - L)) := by
+      apply Filter.Tendsto.const_sub
+      exact hL'.comp (Filter.tendsto_atTop_atTop_of_monotone
+        (fun _ _ h => Nat.add_le_add_left h n) fun b => ⟨b, Nat.le_add_left b n⟩)
+    have heq : (fun N => (p : A) ^ n * S n N) = fun N => (f n : A) - (f (n + N) : A) := by
+      ext N; exact htelescope n N
+    rw [heq] at hlhs
+    exact tendsto_nhds_unique hlhs hrhs
+  -- Construct the limit in A° and verify SModEq
+  refine ⟨⟨L, hL_pb⟩, fun n => ?_⟩
+  rw [SModEq.sub_mem]
+  rw [Ideal.smul_eq_mul, Ideal.mul_top, Ideal.span_singleton_pow, Ideal.mem_span_singleton]
+  refine ⟨⟨sn n, hsn_pb n⟩, Subtype.val_injective ?_⟩
+  push_cast; exact (hpn_sn n).symm
 
 instance instIsAdicComplete (p : ℕ) [Fact (Nat.Prime p)]
     (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
