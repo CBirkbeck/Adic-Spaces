@@ -2317,7 +2317,177 @@ theorem mem_ideal_map_of_forall_coeff_mem (I : Ideal A)
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (h : ↥(TateAlgebra A)) (hcoeffs : ∀ n, coeff n h ∈ I) :
     h ∈ Ideal.map (algebraMap A ↥(TateAlgebra A)) I := by
-  sorry
+  classical
+  -- Helper: h.val n ∈ I for every multi-index n.
+  have hval_mem_I : ∀ n : Fin 1 →₀ ℕ, h.val n ∈ I := by
+    intro n; rw [eq_toIndex n]; exact hcoeffs (n 0)
+  -- Step 1: Set up I₀ = I ∩ A₀ and its generators.
+  set I₀ : Ideal P.A₀ := I.comap P.A₀.subtype
+  obtain ⟨numG, g₀, hg₀⟩ :=
+    Submodule.fg_iff_exists_fin_generating_family.mp
+      (IsNoetherian.noetherian (⊤ : Submodule P.A₀ I₀))
+  -- Step 2: Apply Artin-Rees: P.I^n ∩ I₀ stabilizes.
+  obtain ⟨k₁, hAR⟩ := Ideal.exists_pow_inf_eq_pow_smul P.I
+    (I₀.restrictScalars P.A₀ : Submodule P.A₀ P.A₀)
+  -- Step 3: Get pseudo-uniformizer.
+  obtain ⟨w, hw_nil⟩ := ‹IsTateRing A›.exists_topologicallyNilpotent_unit
+  have hw_event : ∀ a : A, ∀ᶠ n in Filter.atTop, (w : A) ^ n * a ∈ P.A₀ :=
+    fun a => hw_nil.eventually ((P.isOpen.preimage (continuous_mul_const a)).mem_nhds
+      (by simp [P.A₀.zero_mem]))
+  -- Step 4: Each generator maps to I.
+  have hg₀_in_I : ∀ q : Fin numG, P.A₀.subtype (g₀ q : I₀).val ∈ I :=
+    fun q => (g₀ q : I₀).prop
+  -- Step 5: The diagonal decomposition.
+  have hdecomp_ctrl : ∀ n : Fin 1 →₀ ℕ,
+      ∃ c : Fin numG → A,
+        (h.val n = ∑ q, P.A₀.subtype (g₀ q : I₀).val * c q) ∧
+        (∀ l, h.val n ∈ Subtype.val '' ((P.I ^ (l + k₁) : Ideal P.A₀) : Set P.A₀) →
+          ∀ q, c q ∈ Subtype.val '' ((P.I ^ l : Ideal P.A₀) : Set P.A₀)) := by
+    intro n
+    by_cases h_all :
+        ∀ l, h.val n ∈ Subtype.val '' ((P.I ^ (l + k₁) : Ideal P.A₀) : Set P.A₀)
+    · -- All levels valid ⟹ h.val n = 0.
+      have h_zero : h.val n = 0 := by
+        by_contra hne
+        obtain ⟨U, _, hU_open, _, h0U, hxV, hUV⟩ := t2_separation (Ne.symm hne)
+        obtain ⟨p, _, hp⟩ := P.hasBasis_nhds_zero.mem_iff.mp (hU_open.mem_nhds h0U)
+        exact Set.disjoint_left.mp hUV (hp (Set.image_mono
+          (Ideal.pow_le_pow_right (by omega) :
+            (↑(P.I ^ (p + k₁)) : Set ↥P.A₀) ⊆ ↑(P.I ^ p))
+          (h_all p))) hxV
+      exact ⟨0, by simp [h_zero], fun l _ q => ⟨0, (P.I ^ l).zero_mem, by simp⟩⟩
+    · push_neg at h_all
+      obtain ⟨l_fail, hl_fail⟩ := h_all
+      have h_fail_ex : ∃ l, h.val n ∉
+          Subtype.val '' ((P.I ^ (l + k₁) : Ideal P.A₀) : Set P.A₀) :=
+        ⟨l_fail, hl_fail⟩
+      set qn := Nat.find h_fail_ex
+      have hqn_fail := Nat.find_spec h_fail_ex
+      have hqn_valid : ∀ l < qn, h.val n ∈
+          Subtype.val '' ((P.I ^ (l + k₁) : Ideal P.A₀) : Set P.A₀) :=
+        fun l hl => Decidable.not_not.mp (Nat.find_min h_fail_ex hl)
+      have hqn_fail_above : ∀ l, qn ≤ l →
+          h.val n ∉ Subtype.val '' ((P.I ^ (l + k₁) : Ideal P.A₀) : Set P.A₀) :=
+        fun l hl hmem => hqn_fail (Set.image_mono (Ideal.pow_le_pow_right (by omega)) hmem)
+      by_cases hq0 : qn = 0
+      · -- qn = 0: hypothesis fails at all levels. Use arbitrary decomposition.
+        obtain ⟨M, hM⟩ := (hw_event (h.val n)).exists
+        have hM_I₀ : ⟨(w : A) ^ M * h.val n, hM⟩ ∈ I₀ := by
+          show P.A₀.subtype ⟨_, hM⟩ ∈ I; simp [Subring.coe_subtype, I.mul_mem_left _ (hval_mem_I n)]
+        have h_in_sp : (⟨⟨_, hM⟩, hM_I₀⟩ : I₀) ∈
+            Submodule.span P.A₀ (Set.range g₀) := hg₀ ▸ Submodule.mem_top
+        obtain ⟨cf, hcf⟩ := Finsupp.mem_span_range_iff_exists_finsupp.mp h_in_sp
+        have hcf_sum : (⟨⟨(w : A) ^ M * h.val n, hM⟩, hM_I₀⟩ : I₀) =
+            ∑ q : Fin numG, cf q • g₀ q := by
+          rw [← hcf, Finsupp.sum, Finset.sum_subset (Finset.subset_univ _)]
+          intro q _ hq; rw [Finsupp.notMem_support_iff.mp hq, zero_smul]
+        have hcf_A : (w : A) ^ M * h.val n =
+            ∑ q, P.A₀.subtype ((g₀ q : I₀).val) * P.A₀.subtype (cf q) := by
+          have h' := congr_arg (fun (x : I₀) => P.A₀.subtype x.val) hcf_sum
+          simp only [Submodule.coe_sum, Submodule.coe_smul_of_tower,
+            map_sum, smul_eq_mul, map_mul, Subring.coe_subtype] at h'
+          rw [h']; congr 1; ext q
+          simp only [Subring.coe_subtype]; ring
+        have hw_unit : IsUnit ((w : A) ^ M) := w.isUnit.pow M
+        refine ⟨fun q => ↑(hw_unit.unit⁻¹ : Aˣ) * P.A₀.subtype (cf q),
+          ?_, fun l hl => absurd hl (hqn_fail_above l (by omega))⟩
+        have hinv : h.val n = ↑(hw_unit.unit⁻¹ : Aˣ) * ((w : A) ^ M * h.val n) := by
+          rw [← mul_assoc, hw_unit.val_inv_mul, one_mul]
+        rw [hinv, hcf_A, Finset.mul_sum]
+        congr 1; ext q; ring
+      · -- qn ≥ 1: use AR at level qn - 1.
+        have hqn_pos : 0 < qn := Nat.pos_of_ne_zero hq0
+        obtain ⟨y, hy_mem, hy_eq⟩ := hqn_valid (qn - 1) (by omega)
+        have hy_I₀ : y ∈ I₀ := show P.A₀.subtype y ∈ I by
+          change (↑y : A) ∈ I; rw [hy_eq]; exact hval_mem_I n
+        have hy_inter : y ∈ (P.I ^ ((qn - 1) + k₁) • ⊤ ⊓
+            I₀.restrictScalars P.A₀ : Submodule P.A₀ P.A₀) := by
+          refine Submodule.mem_inf.mpr ⟨?_, hy_I₀⟩
+          rw [Ideal.smul_top_eq_map (P.I ^ ((qn - 1) + k₁))]
+          exact Ideal.mem_map_of_mem _ hy_mem
+        rw [hAR ((qn - 1) + k₁) (by omega),
+          show (qn - 1) + k₁ - k₁ = qn - 1 from by omega] at hy_inter
+        have hy_smul : y ∈ (P.I ^ (qn - 1) • I₀.restrictScalars P.A₀ :
+            Submodule P.A₀ P.A₀) :=
+          Submodule.smul_mono le_rfl inf_le_right hy_inter
+        -- Decompose y over generators of I₀ with P.I^{qn-1}-coefficients.
+        have hy_decomp : ∃ c₀ : Fin numG → P.A₀,
+            (∀ j, c₀ j ∈ P.I ^ (qn - 1)) ∧
+            y = ∑ j, c₀ j * (g₀ j : I₀).val := by
+          refine Submodule.smul_induction_on (p := fun v =>
+              ∃ c₀ : Fin numG → P.A₀,
+                (∀ j, c₀ j ∈ P.I ^ (qn - 1)) ∧
+                v = ∑ j, c₀ j * (g₀ j : I₀).val)
+            hy_smul (fun a ha v hv => ?_) (fun u v ⟨cu, hcu, heu⟩ ⟨cv, hcv, hev⟩ => ?_)
+          · -- Base: a ∈ P.I^{qn-1}, v ∈ I₀.
+            have hv_sp : (⟨v, hv⟩ : I₀) ∈ Submodule.span P.A₀ (Set.range g₀) :=
+              hg₀ ▸ Submodule.mem_top
+            obtain ⟨cf, hcf⟩ := Finsupp.mem_span_range_iff_exists_finsupp.mp hv_sp
+            have hv_eq : v = ∑ j : Fin numG, (cf j : P.A₀) * (g₀ j : I₀).val := by
+              have h' := congr_arg (fun (x : I₀) => x.val) (show (⟨v, hv⟩ : I₀) =
+                ∑ j, cf j • g₀ j from by
+                  rw [← hcf, Finsupp.sum, Finset.sum_subset (Finset.subset_univ _)]
+                  intro j _ hj; rw [Finsupp.notMem_support_iff.mp hj, zero_smul])
+              simp only [Submodule.coe_sum, Submodule.coe_smul_of_tower, smul_eq_mul] at h'
+              exact h'
+            refine ⟨fun j => a * cf j, fun j => Ideal.mul_mem_right _ _ ha, ?_⟩
+            rw [show a • v = a * v from smul_eq_mul _ _, hv_eq, Finset.mul_sum]
+            exact Finset.sum_congr rfl (fun j _ => by ring)
+          · exact ⟨fun j => cu j + cv j,
+              fun j => (P.I ^ (qn - 1)).add_mem (hcu j) (hcv j), by
+              rw [heu, hev, ← Finset.sum_add_distrib]
+              exact Finset.sum_congr rfl (fun j _ => by ring)⟩
+        obtain ⟨c₀, hc₀_mem, hc₀_eq⟩ := hy_decomp
+        refine ⟨fun j => P.A₀.subtype (c₀ j), ?_, fun l hl j => ?_⟩
+        · rw [← hy_eq]
+          have := congr_arg P.A₀.subtype hc₀_eq
+          simp only [map_sum, map_mul, Subring.coe_subtype] at this
+          rw [this]; congr 1; ext j; simp only [Subring.coe_subtype]; ring
+        · by_cases hlq : l < qn
+          · exact ⟨c₀ j, Ideal.pow_le_pow_right (by omega) (hc₀_mem j), rfl⟩
+          · exact absurd hl (hqn_fail_above l (by omega))
+  -- Step 6: Choose the decomposition for all n.
+  choose c' hc'_decomp hc'_filt using hdecomp_ctrl
+  -- Step 7: Restrictedness.
+  have hrestr : ∀ q : Fin numG, MvPowerSeries.IsRestricted (fun n => c' n q) := by
+    intro q
+    rw [MvPowerSeries.IsRestricted, P.hasBasis_nhds_zero.tendsto_right_iff]
+    intro l _; rw [Filter.eventually_cofinite]
+    apply Set.Finite.subset (by
+      have := P.hasBasis_nhds_zero.tendsto_right_iff.mp
+        (show Tendsto h.val cofinite (nhds 0) from h.prop) (l + k₁) trivial
+      rwa [Filter.eventually_cofinite] at this)
+    intro n hn; simp only [Set.mem_setOf_eq] at hn ⊢
+    intro hmem; exact hn (hc'_filt n l hmem q)
+  -- Step 8: Assemble.
+  set g : Fin numG → ↥(TateAlgebra A) := fun q => ⟨fun n => c' n q, hrestr q⟩
+  have hmem : h = ∑ q : Fin numG,
+      algebraMap A ↥(TateAlgebra A) (P.A₀.subtype (g₀ q : I₀).val) * g q := by
+    apply Subtype.ext; funext n
+    -- LHS = h.val n = ∑ q, ↑(g₀ q) * c' n q (from hc'_decomp)
+    -- RHS = ∑ q, (algebraMap(↑(g₀ q)) * g q).val n = ∑ q, ↑(g₀ q) * c' n q
+    have lhs := hc'_decomp n
+    -- Unfold RHS
+    have rhs : (∑ q : Fin numG,
+        algebraMap A ↥(TateAlgebra A) (P.A₀.subtype ↑↑(g₀ q)) * g q :
+        ↥(TateAlgebra A)).val n =
+        ∑ q, P.A₀.subtype (g₀ q : I₀).val * c' n q := by
+      trans ∑ q, (algebraMap A ↥(TateAlgebra A) (P.A₀.subtype ↑↑(g₀ q)) * g q :
+        ↥(TateAlgebra A)).val n
+      · change (TateAlgebra A).subtype (∑ q, _) n = _
+        rw [map_sum]; exact Fintype.sum_apply n _
+      · congr 1; ext q
+        change (algebraMap A (MvPowerSeries (Fin 1) A) (P.A₀.subtype ↑↑(g₀ q)) *
+          (g q).val) n = _
+        rw [MvPowerSeries.algebraMap_apply]
+        change MvPowerSeries.coeff n
+          (MvPowerSeries.C (P.A₀.subtype ↑↑(g₀ q)) * (g q).val) = _
+        rw [MvPowerSeries.coeff_C_mul]
+        rfl
+    rw [lhs, rhs]
+  rw [hmem]
+  exact Ideal.sum_mem _ (fun q _ =>
+    Ideal.mul_mem_right _ _ (Ideal.mem_map_of_mem _ (hg₀_in_I q)))
 
 theorem fSubX_saturated
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]

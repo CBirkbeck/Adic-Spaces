@@ -48,7 +48,7 @@ Same rules as v1. Update tracker before starting, commit claim, update when done
 | G2-topo | NOT STARTED | — | — | — | T-topology model + completion ID. Blocks: R-4 |
 | G3 | DONE | claude-opus | 2026-03-23 | 2026-03-23 | Completion exact seqs |
 | R-2B | DONE | claude-main | 2026-03-23 | 2026-03-24 | tateAlgebra_flat proved (0 sorry) |
-| R-3 | PARTIAL | claude-main | 2026-03-24 | — | Discrete: done (0 sorry). Non-discrete: BLOCKED on G2-topo (completion ID needed) |
+| R-3 | IN PROGRESS | claude-main | 2026-03-24 | — | Tor approach: need μ_M injective + universal regularity |
 | R-4 | NOT STARTED | — | — | — | Lemma 8.33 strict. Depends: R-2B, R-3, G2-topo, G3 |
 | R-5 | NOT STARTED | — | — | — | Assembly. Depends: R-3, R-4, TICKET-1B |
 
