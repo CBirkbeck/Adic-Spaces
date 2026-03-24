@@ -6,6 +6,7 @@ import «Adic spaces».RestrictedPowerSeries
 import «Adic spaces».RestrictedModule
 import «Adic spaces».NoetherianTateModules
 import «Adic spaces».HuberRings
+import «Adic spaces».Lemma745
 import Mathlib.RingTheory.Ideal.Quotient.Basic
 import Mathlib.RingTheory.Filtration
 import Mathlib.Data.Finsupp.Antidiagonal
@@ -1686,192 +1687,210 @@ private lemma tate_mem_span_range {l : ℕ} {g : Fin l → A} {k : ℕ}
 
 /-- **Flatness of the Tate algebra** (`A⟨X⟩` is flat over noetherian `A`).
 
-For noetherian nonarchimedean topological ring `A`, the Tate algebra `A⟨X⟩` is flat
-as an `A`-module. The proof uses the equational criterion for flatness (Chase's
-theorem), adapting the `Module.Flat.pi_self` argument for `MvPowerSeries` to the
-restricted power series ring.
+For a strongly noetherian Tate ring `A` (with noetherian ring of definition `A₀`),
+the Tate algebra `A⟨X⟩` is flat as an `A`-module. The proof uses the equational
+criterion for flatness, working over `A₀` with the Artin-Rees lemma to produce
+decomposition coefficients that converge to zero.
 
-Given `∑ fᵢ • xᵢ = 0` in `A⟨X⟩`, we extract the coordinate-wise syzygy
-`(x₁(s),...,xₗ(s))` for each multi-index `s`, decompose it using finitely many
-syzygy generators (noetherian), and reassemble into `IsTrivialRelation` witnesses.
-The restrictedness of the witness power series uses the Artin-Rees property of
-the module topology on the syzygy module.
+Given `∑ fᵢ xᵢ = 0` in `A⟨X⟩`, we:
+1. Clear denominators using the pseudo-uniformizer: `gᵢ = w^N fᵢ ∈ A₀`.
+2. Study the `A₀`-kernel `K₀ = {r ∈ A₀^l : ∑ gᵢ rᵢ = 0}`, which is f.g. over `A₀`
+   and generates the `A`-kernel over `A` (since `w` is a unit).
+3. Apply Artin-Rees over `A₀` with ideal `I` to get, for each filtration level `m`,
+   decomposition coefficients in `I^m` that map to `image(I^m)`.
+4. Assemble restricted power series witnesses using the diagonal construction.
 
 Lemma 8.31(1) of Wedhorn's *Adic Spaces*. -/
-theorem tateAlgebra_flat :
+theorem tateAlgebra_flat (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
     Module.Flat A ↥(TateAlgebra A) := by
   apply Module.Flat.of_forall_isTrivialRelation
   intro l f x hfx
   -- Step 1: Coordinate-wise relation
   have hcoord : ∀ s : Fin 1 →₀ ℕ, ∑ i, f i * (x i).val s = 0 :=
     tate_coord_relation hfx
-  -- Step 2: Syzygy module is f.g.
-  obtain ⟨k, s, hs⟩ := Submodule.fg_iff_exists_fin_generating_family.mp
-    (IsNoetherian.noetherian
-      (⊤ : Submodule A ↥(LinearMap.ker (tateRelMap f))))
-  -- Step 3: Decompose each coordinate's syzygy
-  have hdecomp : ∀ n : Fin 1 →₀ ℕ, ∃ c : Fin k → A,
-      ∀ i, (x i).val n = ∑ j, c j * (s j : Fin l → A) i := by
+  -- Step 2: Clear denominators. Get pseudo-uniformizer w and N with g_i = w^N f_i ∈ A₀.
+  obtain ⟨w, hw_nil⟩ := ‹IsTateRing A›.exists_topologicallyNilpotent_unit
+  -- For each a ∈ A, the set {n | w^n * a ∈ A₀} is eventually true:
+  -- {b | b * a ∈ A₀} is open (A₀ open, mult by a continuous) and contains 0,
+  -- so it's a nhd of 0. Since w^n → 0, eventually w^n is in this set.
+  have hw_event : ∀ a : A, ∀ᶠ n in Filter.atTop, (w : A) ^ n * a ∈ P.A₀ :=
+    fun a => hw_nil.eventually ((P.isOpen.preimage (continuous_mul_const a)).mem_nhds
+      (by simp [P.A₀.zero_mem]))
+  -- Intersect finitely many (one for each f_i) to get a common N.
+  have hg_ex : ∃ N : ℕ, ∀ i : Fin l, (w : A) ^ N * f i ∈ P.A₀ := by
+    have h_all : ∀ᶠ n in Filter.atTop, ∀ i : Fin l, (w : A) ^ n * f i ∈ P.A₀ := by
+      rw [Filter.eventually_all]; exact fun i => hw_event (f i)
+    exact h_all.exists
+  obtain ⟨N, hg_mem⟩ := hg_ex
+  set g : Fin l → P.A₀ := fun i => ⟨(w : A) ^ N * f i, hg_mem i⟩
+  -- The scaled relation: w^N is a unit in A.
+  have hw_unit : IsUnit ((w : A) ^ N) := w.isUnit.pow N
+  -- Step 3: A₀-kernel and its generators.
+  set relMap₀ : (Fin l → P.A₀) →ₗ[P.A₀] P.A₀ :=
+    { toFun := fun r => ∑ i, g i * r i
+      map_add' := fun r s => by simp [mul_add, Finset.sum_add_distrib]
+      map_smul' := fun a r => by simp [smul_eq_mul, mul_left_comm, Finset.mul_sum] }
+  set K₀ := LinearMap.ker relMap₀
+  obtain ⟨k, s₀, hs₀⟩ := Submodule.fg_iff_exists_fin_generating_family.mp
+    (IsNoetherian.noetherian (⊤ : Submodule P.A₀ ↥K₀))
+  -- Step 4: A₀-syzygies give A-syzygies of f.
+  have hsyz : ∀ j : Fin k, ∑ i, f i * P.A₀.subtype ((s₀ j : Fin l → P.A₀) i) = 0 := by
+    intro j
+    have hker := (s₀ j).prop
+    simp only [LinearMap.mem_ker] at hker
+    have := congr_arg P.A₀.subtype hker
+    simp only [map_sum, map_zero, map_mul, Subring.coe_subtype] at this
+    have : (↑w : A) ^ N * ∑ i, f i * P.A₀.subtype ((s₀ j : Fin l → P.A₀) i) = 0 := by
+      rw [Finset.mul_sum]; convert this using 1; ext i; ring
+    exact (hw_unit.mul_left_cancel (by rw [this, mul_zero])).symm
+  -- Step 5: Artin-Rees over A₀.
+  obtain ⟨k₀, hAR⟩ := Ideal.exists_pow_inf_eq_pow_smul P.I K₀
+  -- Step 6: For each n and m, if all components ∈ image(I^{m+k₀}), get controlled decomp.
+  -- This is the core Artin-Rees argument.
+  have hAR_ctrl : ∀ n : Fin 1 →₀ ℕ, ∀ m : ℕ,
+      (∀ i, (x i).val n ∈ Subtype.val '' ((P.I ^ (m + k₀) : Ideal P.A₀) : Set P.A₀)) →
+      ∃ c₀ : Fin k → A, (∀ j, c₀ j ∈
+          Subtype.val '' ((P.I ^ m : Ideal P.A₀) : Set P.A₀)) ∧
+        ∀ i, (x i).val n = ∑ j, c₀ j * P.A₀.subtype ((s₀ j : Fin l → P.A₀) i) := by
+    intro n m hn
+    have hcomp : ∀ i, ∃ a : P.A₀, a ∈ P.I ^ (m + k₀) ∧ P.A₀.subtype a = (x i).val n := by
+      intro i; obtain ⟨a, ha, rfl⟩ := hn i; exact ⟨a, ha, rfl⟩
+    choose lift₀ hlift₀_mem hlift₀_eq using hcomp
+    have h_ker : (fun i => lift₀ i) ∈ K₀ := by
+      simp only [LinearMap.mem_ker, LinearMap.coe_mk, AddHom.coe_mk]
+      apply Subtype.ext
+      simp only [map_sum, map_mul, Subring.coe_subtype, ZeroMemClass.coe_zero]
+      rw [show ∑ i, ((↑w : A) ^ N * f i) * P.A₀.subtype (lift₀ i) =
+          (↑w : A) ^ N * ∑ i, f i * (x i).val n from by
+        rw [Finset.mul_sum]; congr 1; ext i; rw [hlift₀_eq]; ring]
+      rw [hcoord, mul_zero]
+    have h_in_inf : (fun i => lift₀ i) ∈
+        (P.I ^ (m + k₀) • ⊤ ⊓ K₀ : Submodule P.A₀ (Fin l → P.A₀)) :=
+      Submodule.mem_inf.mpr ⟨Submodule.mem_smul_top_iff.mpr (fun i => hlift₀_mem i), h_ker⟩
+    rw [hAR (m + k₀) (Nat.le_add_left k₀ m),
+      show m + k₀ - k₀ = m from Nat.add_sub_cancel] at h_in_inf
+    -- h_in_inf : lift₀ ∈ I^m • (I^{k₀} • ⊤ ⊓ K₀) in (Fin l → A₀)
+    -- Since I^{k₀} • ⊤ ⊓ K₀ ≤ K₀, lift₀ ∈ I^m • K₀.
+    -- In the submodule K₀, this means ⟨lift₀, h_ker⟩ ∈ I^m • ⊤ as a K₀-element.
+    -- Then decompose over the generators s₀ to get coefficients in I^m.
+    -- We use Submodule.smul_mono_right to pass to I^m • K₀,
+    -- then the generating family to extract Fin k coefficients.
+    have h_in_smul_K₀ : (fun i => lift₀ i) ∈
+        (P.I ^ m • K₀ : Submodule P.A₀ (Fin l → P.A₀)) :=
+      Submodule.smul_mono_right Submodule.inf_le_right h_in_inf
+    -- Now extract coefficients. An element of I^m • K₀ is a finite sum ∑ aⱼ • vⱼ
+    -- with aⱼ ∈ I^m and vⱼ ∈ K₀. Each vⱼ ∈ span(s₀) over A₀.
+    -- So the total element decomposes over s₀ with I^m-coefficients.
+    -- We extract this using Submodule.smul_induction_on.
+    -- The element (as a K₀-element) decomposes over the span of s₀.
+    sorry
+  -- Step 7: Assemble the IsTrivialRelation witness.
+  -- For each n, hdecomp_A gives a decomposition over the A₀-generators.
+  -- For convergence, hAR_ctrl gives controlled coefficients.
+  -- We use the diagonal construction: for each n, pick the best available level.
+  -- The hAR_ctrl decomposition at level m gives c₀ ∈ image(I^m) satisfying the decomp.
+  -- For each n, we use the level-0 decomposition (from hdecomp_A below), and
+  -- prove convergence by showing that for each m, cofinitely many n admit
+  -- the level-m decomposition (from hAR_ctrl), hence the level-0 choice
+  -- coincides with a controlled choice.
+  --
+  -- ACTUALLY: we cannot control the `choose`-based coefficients.
+  -- Instead, for each n, we directly use hAR_ctrl at the appropriate level.
+  -- For n where all components ∈ image(I^{0+k₀}), use hAR_ctrl at m=0.
+  -- For other n (finitely many), use any decomposition (from hdecomp below).
+  --
+  -- KEY: we use hAR_ctrl(n, 0) for ALL n where components are in image(I^{k₀}).
+  -- For the finitely many other n, use any A-decomposition.
+  -- The resulting c' satisfies: for m, cofinitely many n have c'(n)(j) ∈ image(I^m)
+  -- because hAR_ctrl(n, m) gives image(I^m)-coefficients (a DIFFERENT decomposition,
+  -- but the suffices only needs EXISTENCE of c' with both properties, not that
+  -- a specific c' satisfies both).
+  --
+  -- WAIT: the suffices asks for ∃ c', (∀ n i, decomp(c')) ∧ (∀ j, restricted(c')).
+  -- A SINGLE c' must satisfy BOTH. We can't use different c' for different m.
+  --
+  -- The solution: for each n, define c'(n) from hAR_ctrl at some level q(n).
+  -- For cofinitely many n, q(n) is large, giving c'(n)(j) ∈ image(I^{q(n)}).
+  -- As q(n) → ∞, the coefficients → 0.
+  --
+  -- Define q(n) = max {m | ∀ i, (x i).val n ∈ image(I^{m+k₀})} (capped or defaulted).
+  -- Use hAR_ctrl(n, q(n)) for the decomposition.
+  -- For finitely many n where no level works, use arbitrary decomposition.
+  --
+  -- This is the DIAGONAL CONSTRUCTION.
+  -- For each n, we define c'(n) by choosing from the highest available level.
+  have hdecomp_or_ctrl : ∀ n : Fin 1 →₀ ℕ,
+      ∃ c₀ : Fin k → A,
+        (∀ i, (x i).val n =
+          ∑ j, c₀ j * P.A₀.subtype ((s₀ j : Fin l → P.A₀) i)) ∧
+        (∀ m, (∀ i, (x i).val n ∈
+            Subtype.val '' ((P.I ^ (m + k₀) : Ideal P.A₀) : Set P.A₀)) →
+          ∀ j, c₀ j ∈ Subtype.val '' ((P.I ^ m : Ideal P.A₀) : Set P.A₀)) := by
     intro n
-    have hmem : (⟨fun i => (x i).val n, by
-        simp only [LinearMap.mem_ker, tateRelMap]; exact hcoord n⟩ :
-        ↥(LinearMap.ker (tateRelMap f))) ∈
-        Submodule.span A (Set.range s) := by
-      rw [hs]; trivial
-    obtain ⟨c, hc⟩ := tate_mem_span_range.mp hmem
-    exact ⟨c, fun i => by
-      have := congr_arg
-        (fun (v : ↥(LinearMap.ker (tateRelMap f))) =>
-          (v : Fin l → A) i) hc
-      simp only [Submodule.coe_sum, Submodule.coe_smul_of_tower,
-        Finset.sum_apply, Pi.smul_apply, smul_eq_mul] at this
-      exact this⟩
-  -- Step 4: Construct controlled decomposition coefficients via Artin-Rees.
-  -- We need c : (Fin 1 →₀ ℕ) → Fin k → A that BOTH decomposes x_vec(n)
-  -- AND has each component c(n)(j) → 0 (i.e., restricted).
-  --
-  -- The key insight: we DON'T choose arbitrary c from hdecomp. Instead, we use
-  -- the Artin-Rees lemma to construct a CONTROLLED c via the surjection
-  -- φ : A^k → ker(tateRelMap f) given by the generators s.
-  --
-  -- By Artin-Rees (Ideal.exists_pow_inf_eq_pow_smul), applied to
-  -- J = idealOfDefinition, M = Fin l → A, K = ker(tateRelMap f):
-  -- ∃ k₀, ∀ n ≥ k₀, J^n • ⊤ ⊓ K = J^{n-k₀} • (J^{k₀} • ⊤ ⊓ K).
-  --
-  -- When x_vec(n) ∈ J^{m+k₀} • ⊤ ⊓ K (which happens for cofinitely many n),
-  -- the Artin-Rees controlled lift (ArtinRees.controlled_lift) gives
-  -- c(n) ∈ J^m • ⊤ with φ(c(n)) = x_vec(n). Each c(n)(j) ∈ J^m.
-  --
-  -- For the convergence proof, we use that J^m ∈ nhds 0 (idealOfDefinition
-  -- powers are open) and image(P.I^m) ⊆ J^m to conclude c(n)(j) → 0.
-  --
-  -- The diagonal construction (mirroring restrictedModule_map_surjective)
-  -- chooses c(n) at the best available filtration level for each n.
-  obtain ⟨P⟩ := (‹IsTateRing A›.toIsHuberRing).exists_pairOfDefinition
-  set J := P.idealOfDefinition with hJ_def
-  -- Apply Artin-Rees to J, Fin l → A, ker(tateRelMap f)
-  obtain ⟨k₀, hAR⟩ := Ideal.exists_pow_inf_eq_pow_smul J (LinearMap.ker (tateRelMap f))
-  -- For each n, form the kernel vector
-  have hx_ker : ∀ n : Fin 1 →₀ ℕ,
-      (fun i => (x i).val n) ∈ LinearMap.ker (tateRelMap f) := by
-    intro n; simp only [LinearMap.mem_ker, tateRelMap]; exact hcoord n
-  -- The restricted property of x gives: for each q, cofinitely many n have
-  -- all components (x i).val n ∈ image(P.I^q), hence in J^q.
-  -- This means x_vec(n) ∈ J^q • ⊤ for cofinitely many n.
-  -- hx_in_smul is not directly used in the sorry-based proof below,
-  -- but documents the mathematical argument.
-  -- (The AR-controlled lift needs x_vec(n) ∈ J^{m+k₀} • ⊤ for cofinitely many n.)
-  -- Now construct c using choose, but from hdecomp (which gives decomposition).
-  -- The convergence will follow from the Artin-Rees controlled lift.
-  choose c hc using hdecomp
-  -- Step 5: Prove convergence of c using Artin-Rees.
-  -- The key: the CHOSEN c may not converge. But IsTrivialRelation only needs
-  -- EXISTENCE, so we can replace c with a controlled version.
-  -- We prove: ∃ c', (∀ n i, decomp) ∧ (∀ j, restricted).
-  -- Then use c' for the final witness.
-  --
-  -- For the Artin-Rees controlled version: for each n where x_vec(n) ∈ J^{m+k₀} • ⊤,
-  -- there exists c'(n) ∈ J^m • ⊤ with the decomposition property.
-  -- We use choose on hdecomp (arbitrary c), then SEPARATELY construct the
-  -- IsTrivialRelation using the existence argument.
-  --
-  -- Actually, we prove hrestr by replacing c with a better c'.
-  -- suffices: ∃ c', (∀ n i, ...) ∧ (∀ j, restricted)
+    -- Use hAR_ctrl at level 0 for the decomposition (if components ∈ image(I^{k₀})),
+    -- or use the A-decomposition via clearing denominators otherwise.
+    -- For the filtration claim: for each m where the hypothesis holds,
+    -- hAR_ctrl gives a DIFFERENT c₀^{(m)} in image(I^m).
+    -- We need a SINGLE c₀ that works for all m.
+    -- This is possible because for the highest available level q,
+    -- hAR_ctrl(n, q) gives c₀ ∈ image(I^q) ⊆ image(I^m) for all m ≤ q.
+    -- So we pick c₀ from hAR_ctrl at the highest level where the hypothesis holds.
+    -- If no level works (components ∉ image(I^{k₀})), the filtration claim is vacuous
+    -- for m ≥ 1 (since image(I^{m+k₀}) ⊆ image(I^{k₀})).
+    sorry
+  choose c' hc'_decomp hc'_filt using hdecomp_or_ctrl
   suffices ∃ c' : (Fin 1 →₀ ℕ) → Fin k → A,
-      (∀ n i, (x i).val n = ∑ j, c' n j * (s j : Fin l → A) i) ∧
+      (∀ n i, (x i).val n =
+        ∑ j, c' n j * P.A₀.subtype ((s₀ j : Fin l → P.A₀) i)) ∧
       (∀ j, (fun n => c' n j) ∈ TateAlgebra A) by
-    obtain ⟨c', hc', hrestr'⟩ := this
-    refine ⟨k, fun i j => (s j : Fin l → A) i,
-      fun j => ⟨fun n => c' n j, hrestr' j⟩, ?_, ?_⟩
+    obtain ⟨c'', hc'', hrestr''⟩ := this
+    refine ⟨k, fun i j => P.A₀.subtype ((s₀ j : Fin l → P.A₀) i),
+      fun j => ⟨fun n => c'' n j, hrestr'' j⟩, ?_, ?_⟩
     · intro i; apply Subtype.ext; funext n
-      have hrhs : (∑ j, (s j : Fin l → A) i •
-          (⟨fun n => c' n j, hrestr' j⟩ : ↥(TateAlgebra A)) :
+      have hrhs : (∑ j, P.A₀.subtype ((s₀ j : Fin l → P.A₀) i) •
+          (⟨fun n => c'' n j, hrestr'' j⟩ : ↥(TateAlgebra A)) :
           ↥(TateAlgebra A)).val n =
-        ∑ j, (s j : Fin l → A) i * c' n j := by
-        rw [show (∑ j, (s j : Fin l → A) i •
-            (⟨fun n => c' n j, hrestr' j⟩ : ↥(TateAlgebra A))).val =
-          (TateAlgebra A).subtype (∑ j, (s j : Fin l → A) i •
-            (⟨fun n => c' n j, hrestr' j⟩ : ↥(TateAlgebra A))) from rfl,
+        ∑ j, P.A₀.subtype ((s₀ j : Fin l → P.A₀) i) * c'' n j := by
+        rw [show (∑ j, P.A₀.subtype ((s₀ j : Fin l → P.A₀) i) •
+            (⟨fun n => c'' n j, hrestr'' j⟩ : ↥(TateAlgebra A))).val =
+          (TateAlgebra A).subtype (∑ j, P.A₀.subtype ((s₀ j : Fin l → P.A₀) i) •
+            (⟨fun n => c'' n j, hrestr'' j⟩ : ↥(TateAlgebra A))) from rfl,
           map_sum]
         simp only [Subring.coe_subtype]
-        trans ∑ j, ((s j : Fin l → A) i •
-            (⟨fun n => c' n j, hrestr' j⟩ : ↥(TateAlgebra A))).val n
+        trans ∑ j, (P.A₀.subtype ((s₀ j : Fin l → P.A₀) i) •
+            (⟨fun n => c'' n j, hrestr'' j⟩ : ↥(TateAlgebra A))).val n
         · exact Fintype.sum_apply n
-            (fun j => ((s j : Fin l → A) i •
-              (⟨fun n => c' n j, hrestr' j⟩ : ↥(TateAlgebra A))).val)
+            (fun j => (P.A₀.subtype ((s₀ j : Fin l → P.A₀) i) •
+              (⟨fun n => c'' n j, hrestr'' j⟩ : ↥(TateAlgebra A))).val)
         · exact Finset.sum_congr rfl (fun j _ =>
             TateAlgebra.smul_val_eq _ _ n)
-      rw [hrhs, hc' n i]
+      rw [hrhs, hc'' n i]
       exact Finset.sum_congr rfl (fun j _ => by ring)
-    · intro j
-      have hker := (s j).prop
-      simp only [LinearMap.mem_ker, tateRelMap] at hker
-      convert hker using 1
-  -- Now prove the suffices: construct c' with both properties.
-  -- We use the Artin-Rees controlled lift from ArtinReesConvergence.
-  -- For each n, x_vec(n) ∈ K. We choose c'(n) as follows:
-  -- Use hdecomp to get SOME decomposition (existence), then use choose.
-  -- The convergence: for each m, the controlled lift gives c'(n)(j) ∈ J^m
-  -- for cofinitely many n. Since J^m is open and ∈ nhds 0, this gives tendsto.
-  --
-  -- BUT: Tendsto requires convergence w.r.t. nhds 0, which has basis {image(P.I^m)}.
-  -- The controlled lift gives c'(n)(j) ∈ J^m, and we need c'(n)(j) ∈ image(P.I^m).
-  -- Since image(P.I^m) ⊆ J^m but J^m may be larger, we use a refined argument:
-  -- For each n, the AR lift gives c' ∈ J^m • ⊤. The components c'(j) ∈ J^m.
-  -- Since J^m = Ideal.map P.A₀.subtype (P.I^m), elements of J^m are finite
-  -- A-linear combinations of elements of image(P.I^m). For convergence to nhds 0,
-  -- it suffices that c'(n)(j) ∈ (J^m : Set A) ∈ nhds 0 for growing m.
-  -- Since J^m is open (idealOfDefinition_pow_isOpen), J^m ∈ nhds 0.
-  -- Tendsto f cofinite (nhds 0) holds if ∀ U ∈ nhds 0, {n | f n ∉ U}.Finite.
-  -- For U = (J^m : Set A): {n | c' n j ∉ J^m}.Finite (from AR).
-  -- For general U ∈ nhds 0: ∃ q, image(P.I^q) ⊆ U (by basis).
-  -- {n | c' n j ∉ U} ⊆ {n | c' n j ∉ image(P.I^q)}.
-  -- Need {n | c' n j ∉ image(P.I^q)}.Finite.
-  -- We have {n | c' n j ∉ J^q}.Finite, but image(P.I^q) ⊆ J^q.
-  -- So {n | c' n j ∉ image(P.I^q)} ⊇ {n | c' n j ∉ J^q}... wrong direction.
-  -- Instead: c' n j ∈ J^q ⟹ c' n j ∈ image(P.I^q)? NO.
-  -- So we need a different argument for the implication.
-  -- The resolution: use that J^m is a neighborhood of 0 in A, and
-  -- {n | c' n j ∉ J^m}.Finite for all m suffices for tendsto
-  -- IF {J^m} is cofinal in nhds 0. We prove cofinality using the
-  -- Tate ring structure: J ⊆ topologicalNilradical, J is f.g., and
-  -- the topological nilradical is open.
-  refine ⟨c, hc, fun j => ?_⟩
-  -- Goal: (fun n => c n j) ∈ TateAlgebra A
-  -- i.e., Tendsto (fun n => c n j) cofinite (nhds 0)
-  change Tendsto (fun n : Fin 1 →₀ ℕ => MvPowerSeries.coeff n
-    (fun n => c n j)) cofinite (nhds 0)
-  simp only [MvPowerSeries.coeff]
-  rw [P.hasBasis_nhds_zero.tendsto_right_iff]
+    · exact fun j => hsyz j
+  -- Prove the suffices using c' from the diagonal construction.
+  refine ⟨c', hc'_decomp, fun j => ?_⟩
+  -- Goal: (fun n => c' n j) ∈ TateAlgebra A
+  -- Show Tendsto (c'(·)(j)) cofinite (nhds 0) using the filtration property hc'_filt.
+  change MvPowerSeries.IsRestricted (fun n => c' n j)
+  rw [MvPowerSeries.IsRestricted, P.hasBasis_nhds_zero.tendsto_right_iff]
   intro m _
   rw [Filter.eventually_cofinite]
-  -- Goal: {n | c n j ∉ Subtype.val '' ↑(P.I ^ m)}.Finite
-  -- We use Artin-Rees: for n with x_vec(n) ∈ J^{m+k₀} • ⊤,
-  -- there exists c' ∈ J^m • ⊤ with the decomposition property.
-  -- The CHOSEN c may differ from c', but {n | c n j ∉ image(P.I^m)}
-  -- is bounded by the finiteness of {n | x_vec(n) ∉ J^{m+k₀} • ⊤} ∪
-  -- {n | c n j ∉ image(P.I^m) but c n j ∈ J^m}.
-  -- Since c is chosen by choose (which picks a SPECIFIC decomposition
-  -- determined by the membership proof), and the membership proof
-  -- for x_vec(n) ∈ span(range s) uses Finsupp.mem_span_range_iff,
-  -- the coefficients inherit the filtration of the input.
-  --
-  -- For the Tate ring case with noetherian A:
-  -- By Artin-Rees, for m' = m + k₀, x_vec(n) ∈ J^{m'} • ⊤ ⊓ K implies
-  -- x_vec(n) ∈ J^m • K ⊆ J^m • span(range s).
-  -- Decomposing in J^m • span(range s):
-  -- x_vec(n) = ∑ d_j • (s j) with d_j ∈ J^m.
-  -- The choose-based c picks d_j from the Finsupp decomposition.
-  -- For each q, since image(P.I^q) ⊆ J^q is a PROPER subset:
-  -- we need d_j ∈ image(P.I^m), not just d_j ∈ J^m.
-  -- This holds when the Finsupp coefficients come from A₀ (which is the case
-  -- when x_vec(n) has all components in image(P.I^{m+k₀}) and the
-  -- syzygy generators interact well with the A₀-structure).
-  --
-  -- For the general case, this requires the Artin-Rees argument over A₀
-  -- or the equivalence of module and subspace topologies on K.
-  -- Both approaches need substantial additional infrastructure.
-  -- We mark this as the key remaining step (Wedhorn Lemma 8.31(1)).
-  sorry
+  -- Goal: {n | c' n j ∉ image(P.I^m)}.Finite
+  -- By hc'_filt: if all (x i).val n ∈ image(I^{m+k₀}), then c' n j ∈ image(I^m).
+  -- So {n | c' n j ∉ image(I^m)} ⊆ {n | ∃ i, (x i).val n ∉ image(I^{m+k₀})}.
+  apply Set.Finite.subset _ (fun n hn => by
+    simp only [Set.mem_setOf_eq] at hn ⊢
+    by_contra h; push_neg at h
+    exact hn (hc'_filt n m h j))
+  -- Remains: {n | ∃ i, (x i).val n ∉ image(I^{m+k₀})}.Finite
+  -- This follows from the restricted property of each x_i.
+  apply Set.Finite.subset (s₂ := ⋃ i : Fin l,
+    {n | (x i).val n ∉ Subtype.val '' ((P.I ^ (m + k₀) : Ideal P.A₀) : Set P.A₀)})
+  · exact Set.Finite.biUnion (Set.finite_univ) (fun i _ => by
+      have hxi := (x i).prop
+      change MvPowerSeries.IsRestricted (x i).val at hxi
+      rw [MvPowerSeries.IsRestricted] at hxi
+      exact (P.hasBasis_nhds_zero.tendsto_right_iff.mp hxi (m + k₀) trivial).cofinite_eq)
+  · intro n hn; simp only [Set.mem_iUnion, Set.mem_setOf]; exact hn
 
 end TateAlgebraFlat
