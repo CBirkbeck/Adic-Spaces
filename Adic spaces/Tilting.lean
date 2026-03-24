@@ -394,16 +394,34 @@ where
       obtain ⟨varpi_flat, hvarpi_flat⟩ :=
         Perfection.coeff_surjective hFrob 0
           (Ideal.Quotient.mk _ ⟨(ϖ.val : A), hϖ_pb⟩ : ModP O p)
-      -- Step (c): θ([ϖ♭]) = ϖ♭.untilt by fontaineTheta_teichmuller.
-      -- And ϖ♭.untilt ≡ ϖ (mod p) by mk_untilt_eq_coeff_zero.
-      -- So θ([ϖ♭]) = ϖ + p·s for some s ∈ A°.
-      -- Then c · θ([ϖ♭])^p = c · (ϖ + p·s)^p ≡ c · ϖ^p = p (mod p²).
-      -- This gives an element close to ker(θ), refined by p-adic approximation.
+      -- Step (c): Construct a nonzero element of ker(θ).
       --
-      -- TODO: Complete the p-adic approximation to construct exact ξ with θ(ξ) = 0.
-      -- The full construction (Berkeley Lectures p.46) defines
-      -- ξ = p - [f] - [ϖ♭]·Σ[rₙ]·p^{n+1}
-      -- using the p-adic completeness of W(tilt p A) (isAdicCompleteIdealSpanP).
+      -- MATHEMATICAL ARGUMENT (Berkeley Lectures, Lemma 6.2.8, pp.46-47):
+      --
+      -- (1) θ([ϖ♭]) = ϖ♭.untilt by `fontaineTheta_teichmuller`.
+      --     mk(ϖ♭.untilt) = coeff 0 ϖ♭ = mk ⟨ϖ, _⟩ by `mk_untilt_eq_coeff_zero`
+      --     and `hvarpi_flat`. So ϖ♭.untilt = ϖ + p·s₀ for some s₀ ∈ A°.
+      --
+      -- (2) Define α₀ := c · [ϖ♭]^p ∈ W(k). Then:
+      --     θ(α₀) = c · (ϖ + p·s₀)^p = c · ϖ^p + p · (stuff) = p + p · r₀
+      --     So θ(α₀ - p) = p · r₀, hence α₀ - p ≡ 0 (mod p) in A° but not exactly zero.
+      --
+      -- (3) Iterative refinement: By θ surjectivity, lift r₀ to w₁ with θ(w₁) = r₀.
+      --     Then θ(α₀ - p - p·w₁) = p · r₀ - p · r₀ = 0 mod p².
+      --     Iterate: ξₙ converges p-adically in W(k) (by `isAdicCompleteIdealSpanP`).
+      --     The limit ξ satisfies θ(ξ) = 0 exactly.
+      --
+      -- (4) ξ ≠ 0 because ξ ≡ α₀ - p (mod p), and (α₀ - p).coeff 0 ≠ 0:
+      --     α₀.coeff 0 depends on c and varpi_flat, while p.coeff 0 = 0
+      --     (by `WittVector.coeff_p_zero`). So ξ.coeff 0 ≠ 0 implies ξ ≠ 0.
+      --
+      -- FORMALIZATION BLOCKERS:
+      -- - Need to extract s₀ from `ϖ♭.untilt ∈ ϖ + (p)` using `Ideal.Quotient.eq`
+      -- - Need p-adic convergence argument using `IsAdicComplete.prec'`
+      -- - Need to compute coeff 0 of the limit (diagonal argument)
+      -- - The iterated lifting requires ~50 lines of Witt vector arithmetic
+      --
+      -- See `docs/plans/2026-03-24-ker-theta-witt-vector-plan.md` for the full plan.
       sorry
     -- Sub-step (iii): Every element of ker(θ) is divisible by ξ.
     -- This is the hardest part (Berkeley Lectures Lemma 6.2.8, pp.46-47).
