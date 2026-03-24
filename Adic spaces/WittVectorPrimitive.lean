@@ -166,13 +166,32 @@ theorem WittVector.IsPrimitive.mul_left_cancel {ξ : 𝕎 k} {ϖ : k} {α : 𝕎
       -- Finally x.coeff i = (p^i*y).coeff i = y.coeff 0^{p^i} = 0
       --   (mul_pow_charP_coeff_succ with m = 0).
       --
-      -- (ξ*y).coeff 0 = ξ.coeff 0 * y.coeff 0 = 0 (mul_coeff_zero + hξy)
-      -- ξ.coeff 0 ≠ 0 (coeff_zero_ne_zero_of), so y.coeff 0 = 0 (domain)
-      -- x.coeff i = (p^i * y).coeff (0+i) = y.coeff 0^{p^i} = 0
-      --   (mul_pow_charP_coeff_succ)
-      -- Each step is clear but times out with default heartbeats due to
-      -- Witt vector coefficient reduction. Increasing heartbeats would work.
-      sorry
+      -- Step A: ξ * y = 0 (cancel p^i using p-torsion-freeness)
+      -- Cancel p^i: if a * p^n = 0 then a = 0 (iterated p-torsion-free)
+      have cancel_p_pow : ∀ (a : 𝕎 k) (n : ℕ), a * (p : 𝕎 k) ^ n = 0 → a = 0 := by
+        intro a n; induction n with
+        | zero => simp [pow_zero, mul_one]
+        | succ m ihm =>
+          intro h
+          apply ihm
+          have : a * (p : 𝕎 k) ^ (m + 1) = (a * (p : 𝕎 k) ^ m) * p := by ring
+          rw [this] at h
+          exact WittVector.eq_zero_of_p_mul_eq_zero _ h
+      have hξy : ξ * y = 0 := by
+        apply cancel_p_pow _ i
+        have : ξ * y * (p : 𝕎 k) ^ i = ξ * ((p : 𝕎 k) ^ i * y) := by ring
+        rw [this]; exact hxy ▸ h
+      -- Step B: y.coeff 0 = 0
+      have hy0 : y.coeff 0 = 0 := by
+        have h0 := WittVector.mul_coeff_zero ξ y
+        rw [hξy, WittVector.zero_coeff] at h0
+        have hξ0 : ξ.coeff 0 ≠ 0 := IsPrimitive.coeff_zero_ne_zero_of hξ hϖ hα
+        exact (mul_eq_zero.mp h0.symm).resolve_left hξ0
+      -- Step C: x.coeff i = y.coeff 0 ^ (p^i) = 0
+      have hcoeff := WittVector.mul_pow_charP_coeff_succ y (m := 0) (n := i)
+      simp only [zero_add] at hcoeff
+      rw [hxy, show (p : 𝕎 k) ^ i * y = y * (p : 𝕎 k) ^ i from mul_comm _ _,
+        hcoeff, hy0, zero_pow (pow_ne_zero i (Fact.out : Nat.Prime p).ne_zero)]
 
 /-! ### Kernel generation by primitive elements -/
 
