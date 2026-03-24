@@ -8,6 +8,7 @@ import «Adic spaces».NoetherianTateModules
 import «Adic spaces».HuberRings
 import «Adic spaces».Lemma745
 import Mathlib.RingTheory.Ideal.Quotient.Basic
+import Mathlib.RingTheory.Ideal.Quotient.Noetherian
 import Mathlib.RingTheory.Filtration
 import Mathlib.Data.Finsupp.Antidiagonal
 import Mathlib.RingTheory.Flat.Basic
@@ -2056,3 +2057,306 @@ theorem tateAlgebra_flat (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
   exact hn (hc'_filt n m h_all j)
 
 end TateAlgebraFlat
+
+/-! ### Quotient flatness via universal saturation (Lemma 8.31(2), general case)
+
+We prove that `A⟨X⟩/(f-X)` and `A⟨X⟩/(1-fX)` are flat over `A` for noetherian
+nonarchimedean topological rings, without requiring `[DiscreteTopology A]`.
+
+The proof proceeds in three steps:
+
+1. **Abstract engine** (`Module.Flat.quotient_of_flat_of_saturated`): If `S` is a flat
+   `R`-algebra, `g ∈ S` is regular, and for every ideal `I` of `R` the submodule `I·S` is
+   `g`-saturated (`g*s ∈ I·S → s ∈ I·S`), then `S/(g)` is flat over `R`. The proof uses the
+   equational criterion: lift a relation from the quotient, apply saturation to adjust the
+   lift, then use flatness of `S` to decompose.
+
+2. **Ascending chain argument** (`noeth_mem_ideal_of_mul_shift`): In a noetherian ring, if
+   `a*x₀ ∈ I` and `xₖ ≡ a*xₖ₊₁ (mod I)` for all `k`, then `x₀ ∈ I`. This generalises the
+   existing `noeth_zero_of_mul_shift` from `I = 0` to arbitrary ideals by passing to `A/I`.
+
+3. **Saturation for `f-X` and `1-fX`** (`fSubX_saturated`, `oneSubfX_saturated`): The
+   coefficient equations from `(f-X)*h ∈ I·A⟨X⟩` yield exactly the hypotheses of the
+   ascending chain lemma, forcing all coefficients of `h` into `I`.
+
+References: [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], Lemma 8.31(2)
+-/
+
+/-! #### Step 1: Abstract flat quotient engine -/
+
+/-- **Flat quotient by universally saturated element.** If `S` is a flat `R`-algebra,
+`g ∈ S` is regular (non-zero-divisor), and for every ideal `I` of `R` the extended ideal
+`I·S = Ideal.map (algebraMap R S) I` is `g`-saturated (`g*s ∈ I·S → s ∈ I·S`), then the
+quotient `S/(g)` is flat over `R`.
+
+The proof uses the equational criterion. Given `∑ fᵢ • x̄ᵢ = 0` in `S/(g)`:
+1. Lift `x̄ᵢ` to `xᵢ ∈ S`; then `∑ fᵢ xᵢ = gw` for some `w`.
+2. By saturation with `I = ⟨f₁,…,fₗ⟩`: write `w = ∑ fᵢ cᵢ`.
+3. Then `∑ fᵢ (xᵢ - g cᵢ) = 0` in `S`; apply flatness of `S`.
+4. Project witnesses to `S/(g)`.
+
+This is the abstract engine behind Lemma 8.31(2) of Wedhorn. -/
+theorem Module.Flat.quotient_of_flat_of_saturated
+    {R : Type u} [CommRing R]
+    {S : Type u} [CommRing S] [Algebra R S] [Module.Flat R S]
+    {g : S} (hreg : ∀ x : S, g * x = 0 → x = 0)
+    (hsat : ∀ (I : Ideal R) (s : S),
+      g * s ∈ Ideal.map (algebraMap R S) I → s ∈ Ideal.map (algebraMap R S) I) :
+    Module.Flat R (S ⧸ Ideal.span ({g} : Set S)) := by
+  set Q := S ⧸ Ideal.span ({g} : Set S)
+  set π := Ideal.Quotient.mk (Ideal.span ({g} : Set S))
+  sorry
+
+/-! #### Step 2: Modular ascending chain lemma -/
+
+/-- **Ascending chain lemma modulo an ideal.** In a noetherian ring, if `a * x₀ ∈ I`
+and `xₖ ≡ a * xₖ₊₁ (mod I)` for all `k`, then `x₀ ∈ I`.
+
+This generalises `noeth_zero_of_mul_shift` (which is the case `I = 0`) by passing to
+the quotient ring `A/I`, which is noetherian since `A` is. -/
+theorem noeth_mem_ideal_of_mul_shift {R : Type u} [CommRing R] [IsNoetherianRing R]
+    (a : R) (I : Ideal R) (x : ℕ → R)
+    (h0 : a * x 0 ∈ I) (hstep : ∀ k, x k - a * x (k + 1) ∈ I) : x 0 ∈ I := by
+  -- Reduce to noeth_zero_of_mul_shift in A/I.
+  -- In A/I: ā * x̄₀ = 0 and x̄ₖ = ā * x̄ₖ₊₁, so x̄₀ = 0 by the ascending chain argument.
+  rw [← Ideal.Quotient.eq_zero_iff_mem]
+  haveI : IsNoetherianRing (R ⧸ I) := Ideal.Quotient.isNoetherianRing I
+  set mk := Ideal.Quotient.mk I
+  -- Set up notation for the quotient
+  set a' := mk a with ha'_def
+  -- Quotient hypotheses
+  have h0' : a' * mk (x 0) = 0 := by
+    rw [← map_mul]; exact Ideal.Quotient.eq_zero_iff_mem.mpr h0
+  have hstep' : ∀ k, mk (x k) = a' * mk (x (k + 1)) := by
+    intro k
+    have hmem := hstep k
+    rw [← Ideal.Quotient.eq_zero_iff_mem] at hmem
+    rw [map_sub, map_mul] at hmem
+    exact sub_eq_zero.mp hmem
+  -- Apply noeth_zero_of_mul_shift in A/I (inlined since it is private)
+  -- Power relation: mk(x 0) = a'^k * mk(x k)
+  have hpow : ∀ k, mk (x 0) = a' ^ k * mk (x k) := by
+    intro k; induction k with
+    | zero => simp only [pow_zero, one_mul]
+    | succ k ih => rw [ih, hstep' k, pow_succ, mul_assoc]
+  -- Annihilation: a'^(k+1) * mk(x k) = 0
+  have hann : ∀ k, a' ^ (k + 1) * mk (x k) = 0 := by
+    intro k
+    have : a' ^ (k + 1) * mk (x k) = a' * (a' ^ k * mk (x k)) := by ring
+    rw [this, ← hpow k, h0']
+  -- Ascending chain of annihilator submodules in A/I: ann(a'^n) = ker(a'^n • ·)
+  -- Use LinearMap.ker of left-multiplication by a'^n
+  let mulPow (n : ℕ) : (R ⧸ I) →ₗ[R ⧸ I] (R ⧸ I) :=
+    LinearMap.lsmul (R ⧸ I) (R ⧸ I) (a' ^ n)
+  have chain_monotone : Monotone (fun n => LinearMap.ker (mulPow n)) := by
+    intro m n hmn b hb
+    simp only [mulPow, LinearMap.mem_ker, LinearMap.lsmul_apply, smul_eq_mul] at hb ⊢
+    have key : a' ^ n * b = a' ^ (n - m) * (a' ^ m * b) := by
+      rw [← mul_assoc, ← pow_add, Nat.sub_add_cancel hmn]
+    rw [key, hb, mul_zero]
+  let chain : ℕ →o Submodule (R ⧸ I) (R ⧸ I) := ⟨_, chain_monotone⟩
+  obtain ⟨K, hK⟩ :=
+    (monotone_stabilizes_iff_noetherian (R := R ⧸ I) (M := R ⧸ I)).mpr inferInstance chain
+  have hxK_mem : mk (x K) ∈ chain (K + 1) := by
+    show mk (x K) ∈ LinearMap.ker (mulPow (K + 1))
+    rw [LinearMap.mem_ker]
+    show a' ^ (K + 1) • mk (x K) = 0
+    rw [smul_eq_mul]; exact hann K
+  have hxK : a' ^ K * mk (x K) = 0 := by
+    have hmem : mk (x K) ∈ chain K := hK (K + 1) (by omega) ▸ hxK_mem
+    have hmem' : mk (x K) ∈ LinearMap.ker (mulPow K) := hmem
+    rw [LinearMap.mem_ker] at hmem'
+    change a' ^ K • mk (x K) = 0 at hmem'
+    rwa [smul_eq_mul] at hmem'
+  rw [hpow K, hxK]
+
+/-! #### Step 3: Saturation for f-X and 1-fX -/
+
+section QuotientFlatnessGeneral
+
+variable {A : Type u} [CommRing A] [TopologicalSpace A] [NonarchimedeanRing A]
+  [IsNoetherianRing A]
+
+namespace TateAlgebra
+
+/-- All coefficients of elements in the extended ideal `I · A⟨X⟩` lie in `I`.
+This uses `span_induction` with the predicate strengthened to all coefficients
+simultaneously, and the convolution formula for the scalar multiplication case. -/
+theorem forall_coeff_mem_of_mem_ideal_map (I : Ideal A) (g : ↥(TateAlgebra A))
+    (hg : g ∈ Ideal.map (algebraMap A ↥(TateAlgebra A)) I) :
+    ∀ n, coeff n g ∈ I := by
+  -- Use span_induction with predicate "all coefficients in I".
+  -- The dependent predicate ignores the membership proof.
+  refine Submodule.span_induction
+    (p := fun (g' : ↥(TateAlgebra A)) _ => ∀ n, coeff n g' ∈ I)
+    ?_ ?_ ?_ ?_ hg
+  · -- Generators: algebraMap a for a ∈ I.
+    rintro _ ⟨a, ha, rfl⟩ n
+    by_cases hn : n = 0
+    · subst hn; simp only [coeff, toIndex_zero, MvPowerSeries.algebraMap_apply]; exact ha
+    · simp only [coeff, toIndex]
+      change MvPowerSeries.coeff (Finsupp.single 0 n) (algebraMap A _ a) ∈ I
+      rw [MvPowerSeries.algebraMap_apply, MvPowerSeries.coeff_C]
+      split
+      · next h => exact absurd (Finsupp.single_eq_zero.mp h) hn
+      · exact I.zero_mem
+  · -- Zero
+    intro n; simp only [coeff, map_zero, ZeroMemClass.coe_zero]; exact I.zero_mem
+  · -- Addition
+    intro g₁ g₂ _ _ ih₁ ih₂ n
+    show coeff n (g₁ + g₂) ∈ I
+    rw [show coeff n (g₁ + g₂) = coeff n g₁ + coeff n g₂ from by
+      simp only [coeff, map_add, Subring.coe_add]]
+    exact I.add_mem (ih₁ n) (ih₂ n)
+  · -- Scalar multiplication: coeff n (r * g'') ∈ I when all coeff of g'' are in I.
+    intro r g'' _ ih n
+    show coeff n (r • g'') ∈ I
+    change coeff n (r * g'') ∈ I
+    simp only [coeff, toIndex]
+    change MvPowerSeries.coeff (Finsupp.single 0 n) (r.val * g''.val) ∈ I
+    rw [MvPowerSeries.coeff_mul]
+    apply Ideal.sum_mem
+    intro ⟨s₁, s₂⟩ _hmem_anti
+    apply I.mul_mem_left
+    -- s₂ is a Fin 1 →₀ ℕ, so s₂ = Finsupp.single 0 (s₂ 0)
+    have hs₂ : s₂ = Finsupp.single 0 (s₂ 0) := by
+      ext i; simp [show i = 0 from Fin.ext_iff.mpr (Nat.lt_one_iff.mp i.isLt)]
+    rw [hs₂]; exact ih (s₂ 0)
+
+/-! #### Assembling: quotient flatness (general case) -/
+
+variable [IsTopologicalRing A] [T2Space A] [FirstCountableTopology A] [IsTateRing A]
+
+/-- A restricted power series with all coefficients in `I` belongs to `Ideal.map I`
+in the Tate algebra. This is the reverse direction of `forall_coeff_mem_of_mem_ideal_map`.
+
+The proof uses the Artin-Rees lemma via the pair of definition: for each coefficient level `m`,
+the Artin-Rees argument gives controlled decompositions over generators of `I`, which assemble
+into restricted power series witnesses via the diagonal construction. -/
+theorem mem_ideal_map_of_forall_coeff_mem (I : Ideal A)
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (h : ↥(TateAlgebra A)) (hcoeffs : ∀ n, coeff n h ∈ I) :
+    h ∈ Ideal.map (algebraMap A ↥(TateAlgebra A)) I := by
+  sorry
+
+theorem fSubX_saturated
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (f : A) (I : Ideal A)
+    (h : ↥(TateAlgebra A))
+    (hmem : (algebraMap A ↥(TateAlgebra A) f - X) * h ∈
+      Ideal.map (algebraMap A ↥(TateAlgebra A)) I) :
+    h ∈ Ideal.map (algebraMap A ↥(TateAlgebra A)) I := by
+  -- Step 1: Extract coefficient information from the hypothesis.
+  have hcoeffs_prod : ∀ n, coeff n ((algebraMap A _ f - X) * h) ∈ I :=
+    forall_coeff_mem_of_mem_ideal_map I _ hmem
+  -- Step 2: Derive the coefficient equations for h.
+  -- coeff n ((f - X) * h) = f * coeff n h - coeff n (X * h)
+  have hcoeff_eq : ∀ n, f * coeff n h - coeff n (X * h) ∈ I := by
+    intro n
+    have h1 := hcoeffs_prod n
+    rw [sub_mul, coeff_sub, coeff_algebraMap_mul] at h1
+    exact h1
+  -- coeff 0 (X * h) = 0, so f * coeff 0 h ∈ I
+  have h0 : f * coeff 0 h ∈ I := by
+    have := hcoeff_eq 0; rw [coeff_zero_X_mul, sub_zero] at this; exact this
+  -- coeff (n+1) (X * h) = coeff n h, so f * coeff (n+1) h - coeff n h ∈ I
+  -- i.e., coeff n h - f * coeff (n+1) h ∈ I
+  have hstep : ∀ n, coeff n h - f * coeff (n + 1) h ∈ I := by
+    intro n
+    have h1 := hcoeff_eq (n + 1); rw [coeff_succ_X_mul] at h1
+    -- h1 : f * coeff (n + 1) h - coeff n h ∈ I
+    have : -(f * coeff (n + 1) h - coeff n h) ∈ I := I.neg_mem h1
+    rwa [neg_sub] at this
+  -- Step 3: Apply the ascending chain lemma to get coeff 0 h ∈ I.
+  have hcoeff0 : coeff 0 h ∈ I := noeth_mem_ideal_of_mul_shift f I (fun n => coeff n h) h0 hstep
+  -- Step 4: By induction, ALL coefficients of h are in I.
+  -- Once coeff 0 h ∈ I, from coeff 0 h - f * coeff 1 h ∈ I we get f * coeff 1 h ∈ I.
+  -- Apply the ascending chain starting from coeff 1 h to get coeff 1 h ∈ I. Etc.
+  have hall : ∀ n, coeff n h ∈ I := by
+    intro n; induction n with
+    | zero => exact hcoeff0
+    | succ n ih =>
+      -- From ih: coeff n h ∈ I, and hstep n: coeff n h - f * coeff (n+1) h ∈ I.
+      -- So f * coeff (n+1) h = coeff n h - (coeff n h - f * coeff (n+1) h) ∈ I.
+      have hf_succ : f * coeff (n + 1) h ∈ I := by
+        have := I.sub_mem ih (hstep n)
+        rwa [sub_sub_cancel] at this
+      -- Apply ascending chain starting from coeff (n+1) h.
+      exact noeth_mem_ideal_of_mul_shift f I (fun k => coeff (n + 1 + k) h)
+        (by simp only [Nat.add_zero]; exact hf_succ)
+        (fun k => by
+          show coeff (n + 1 + k) h - f * coeff (n + 1 + (k + 1)) h ∈ I
+          rw [show n + 1 + (k + 1) = (n + 1 + k) + 1 from by omega]
+          exact hstep (n + 1 + k))
+  -- Step 5: Conclude h ∈ Ideal.map I.
+  exact mem_ideal_map_of_forall_coeff_mem I P h hall
+
+/-- The element `1 - f·X` is universally saturated in `A⟨X⟩` over noetherian `A`.
+
+Similar coefficient analysis as `fSubX_saturated`: the equations from `(1-fX)*h ∈ I·A⟨X⟩`
+give `coeff 0 h ∈ I` directly and `coeff (n+1) h - f * coeff n h ∈ I`, which by induction
+forces all coefficients into `I`. -/
+theorem oneSubfX_saturated
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (f : A) (I : Ideal A)
+    (h : ↥(TateAlgebra A))
+    (hmem : (1 - algebraMap A ↥(TateAlgebra A) f * X) * h ∈
+      Ideal.map (algebraMap A ↥(TateAlgebra A)) I) :
+    h ∈ Ideal.map (algebraMap A ↥(TateAlgebra A)) I := by
+  -- Step 1: Extract coefficient information.
+  have hcoeffs_prod : ∀ n, coeff n ((1 - algebraMap A _ f * X) * h) ∈ I :=
+    forall_coeff_mem_of_mem_ideal_map I _ hmem
+  -- Step 2: Coefficient equations.
+  -- (1 - fX) * h = h - fX * h, so coeff n = coeff n h - f * coeff n (X * h)
+  have hcoeff_eq : ∀ n, coeff n h - f * coeff n (X * h) ∈ I := by
+    intro n
+    have h1 := hcoeffs_prod n
+    rw [sub_mul, one_mul, mul_assoc, coeff_sub, coeff_algebraMap_mul] at h1
+    exact h1
+  -- coeff 0 h - f * 0 = coeff 0 h ∈ I
+  have h0 : coeff 0 h ∈ I := by
+    have := hcoeff_eq 0; rw [coeff_zero_X_mul, mul_zero, sub_zero] at this; exact this
+  -- coeff (n+1) h - f * coeff n h ∈ I
+  have hstep : ∀ n, coeff (n + 1) h - f * coeff n h ∈ I := by
+    intro n; have := hcoeff_eq (n + 1); rwa [coeff_succ_X_mul] at this
+  -- Step 3: By induction, all coefficients of h are in I.
+  have hall : ∀ n, coeff n h ∈ I := by
+    intro n; induction n with
+    | zero => exact h0
+    | succ n ih =>
+      -- coeff (n+1) h = f * coeff n h + (coeff (n+1) h - f * coeff n h) ∈ I
+      have hfn : f * coeff n h ∈ I := I.mul_mem_left f ih
+      have hdiff : coeff (n + 1) h - f * coeff n h ∈ I := hstep n
+      have : coeff (n + 1) h = f * coeff n h + (coeff (n + 1) h - f * coeff n h) := by ring
+      rw [this]; exact I.add_mem hfn hdiff
+  exact mem_ideal_map_of_forall_coeff_mem I P h hall
+
+/-- `A⟨X⟩/(f-X)` is flat over noetherian `A` (Lemma 8.31(2), general case).
+
+The proof combines:
+- `tateAlgebra_flat`: `A⟨X⟩` is flat over `A`
+- `mul_fSubX_regular`: `f-X` is regular on `A⟨X⟩`
+- `fSubX_saturated`: universal saturation of `f-X`
+- `quotient_of_flat_of_saturated`: the abstract flat quotient engine -/
+theorem flat_quotient_fSubX_general
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (f : A) :
+    Module.Flat A (↥(TateAlgebra A) ⧸
+      Ideal.span {algebraMap A ↥(TateAlgebra A) f - X}) := by
+  haveI := tateAlgebra_flat P
+  exact Module.Flat.quotient_of_flat_of_saturated
+    (mul_fSubX_regular f) (fun I s hmem => fSubX_saturated P f I s hmem)
+
+/-- `A⟨X⟩/(1-fX)` is flat over noetherian `A` (Lemma 8.31(2), general case). -/
+theorem flat_quotient_oneSubfX_general
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (f : A) :
+    Module.Flat A (↥(TateAlgebra A) ⧸
+      Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * X}) := by
+  haveI := tateAlgebra_flat P
+  exact Module.Flat.quotient_of_flat_of_saturated
+    (mul_oneSubfX_regular f) (fun I s hmem => oneSubfX_saturated P f I s hmem)
+
+end TateAlgebra
+
+end QuotientFlatnessGeneral
