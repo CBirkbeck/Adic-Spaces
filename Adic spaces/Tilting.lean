@@ -426,7 +426,8 @@ where
       --
       -- Construction: lift c to c' ∈ W(A♭), form α₀ = c'·[ϖ♭]^p, correct by θ-preimage.
       -- Step (c.1): Lift c to c' ∈ W(A♭) via θ surjectivity.
-      obtain ⟨c', hc'⟩ := theta_surjective ⟨c, hc_pb⟩
+      obtain ⟨c', hc'⟩ := theta_surjective (p := p) (A := A)
+        (⟨c, hc_pb⟩ : ↥(powerBoundedSubring.toSubring A))
       -- Step (c.2): Form α₀ = c' · [ϖ♭]^p ∈ W(A♭).
       -- θ(α₀) = c · (ϖ♭.untilt)^p.
       -- Since ϖ♭.untilt ≡ ϖ (mod p), (ϖ♭.untilt)^p ≡ ϖ^p (mod p).
