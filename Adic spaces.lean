@@ -47,6 +47,7 @@ import «Adic spaces».ValuationContinuity
 import «Adic spaces».ValuationPrimeConvex
 import «Adic spaces».ValuationSpectrum
 import «Adic spaces».ValuativeRel.Comap
+import «Adic spaces».WittVectorPrimitive
 -- Nonarchimedean Scottish Book (Kedlaya et al., 2015–2022)
 -- Proved (0 sorry)
 import «Adic spaces».ScottishBook.Proved.Problem011
