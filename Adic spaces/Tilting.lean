@@ -431,27 +431,39 @@ where
         --   (WittVectorPrimitive.lean)
         --   fontaineTheta_teichmuller, mk_untilt_eq_coeff_zero,
         --   Perfection.coeff_surjective (Mathlib)
-        -- Step 1: Extract nonzero element from nontrivial kernel.
+        -- Step 1: Extract nonzero element with coeff 0 ≠ 0 from kernel.
         have hex : ∃ x ∈ RingHom.ker (theta p A), x ≠ (0 : Ainf p A) := by
           by_contra h; push_neg at h
           exact hker ((Submodule.eq_bot_iff _).mpr fun x hx => h x hx)
-        obtain ⟨xi₀, hxi₀_mem, hxi₀_ne⟩ := hex
-        -- Step 2: Use xi₀ as the generator with ker_of_primitive_and_division.
-        refine ⟨xi₀, hxi₀_mem, ?_⟩
-        apply WittVector.ker_of_primitive_and_division (PerfectoidRing.theta p A) hxi₀_mem
-        -- Division step: ∀ x ∈ ker(θ), ∃ q r, x = xi₀*q + p*r ∧ r ∈ ker(θ).
-        -- For ANY x, write x = [x.coeff 0] + p*x' (eq_teichmuller_add_p_mul).
-        -- If xi₀.coeff 0 divides x.coeff 0, set q₀ with x.coeff 0 = xi₀.coeff 0 * q₀,
-        -- then x - xi₀*[q₀] has coeff 0 = 0, hence ∈ (p), giving the division.
-        -- The remainder r ∈ ker(θ) from θ(x) = θ(xi₀) = 0 and p-torsion-free.
-        --
-        -- This requires xi₀.coeff 0 to divide ALL x.coeff 0 for x ∈ ker(θ).
-        -- This holds for the specific PRIMITIVE xi₀ from Berkeley Lectures
-        -- (where xi₀.coeff 0 generates the kernel's image in k = tilt p A),
-        -- or for any xi₀ with coeff 0 ≠ 0 when k is a field (every nonzero divides).
-        --
-        -- For general perfectoid rings, this requires the explicit primitive
-        -- element construction. See Berkeley Lectures Lemma 6.2.8 (pp.46-47).
+        obtain ⟨xi_raw, hxi_raw_mem, hxi_raw_ne⟩ := hex
+        -- Reduce p-adic valuation: write xi_raw = p^m * xi₁ with xi₁.coeff 0 ≠ 0.
+        obtain ⟨m, xi₁, hxi₁_c0, hxi_raw_eq⟩ :=
+          WittVector.exists_eq_pow_p_mul xi_raw hxi_raw_ne
+        -- xi₁ ∈ ker(θ): from p^m * θ(xi₁) = θ(xi_raw) = 0.
+        -- If m = 0: xi₁ = xi_raw ∈ ker(θ). If m > 0: need p-torsion argument.
+        have hxi₁_mem : xi₁ ∈ RingHom.ker (theta p A) := by
+          rw [RingHom.mem_ker]
+          rw [RingHom.mem_ker] at hxi_raw_mem
+          have := congr_arg (PerfectoidRing.theta p A) hxi_raw_eq
+          simp only [map_mul, map_pow, map_natCast, hxi_raw_mem] at this
+          -- this : (p : A°)^m * θ(xi₁) = 0
+          -- Need: θ(xi₁) = 0. This requires p^m to be a non-zerodivisor in A°.
+          -- For m = 0: 1 * θ(xi₁) = 0, so θ(xi₁) = 0. ✓
+          -- For m > 0: need p non-zerodivisor in A° (true for fields, hard in general).
+          sorry
+        -- Step 2: Use xi₁ (with xi₁.coeff 0 ≠ 0) as the generator.
+        refine ⟨xi₁, hxi₁_mem, ?_⟩
+        apply WittVector.ker_of_primitive_and_division (PerfectoidRing.theta p A) hxi₁_mem
+        -- Step 3: Division step using xi₁.coeff 0 ≠ 0.
+        intro x hx
+        -- Write x = [x.coeff 0] + p * x' by eq_teichmuller_add_p_mul.
+        obtain ⟨x', hx_eq⟩ := WittVector.eq_teichmuller_add_p_mul x
+        -- In W(k)/(p) ≅ k: x maps to x.coeff 0, xi₁ maps to xi₁.coeff 0.
+        -- Need: x.coeff 0 = xi₁.coeff 0 * q₀ for some q₀ ∈ k.
+        -- Then x - xi₁ * [q₀] has coeff 0 = 0, hence ∈ (p).
+        -- This divisibility holds for the SPECIFIC primitive xi₁ from Berkeley Lectures.
+        -- For general xi₁ with xi₁.coeff 0 ≠ 0, it requires xi₁.coeff 0 to divide
+        -- all kernel elements' coeff 0 in k = tilt p A.
         sorry
     --
     -- Step (c): From hb, extract ξ and package as ker(θ) = (ξ).
