@@ -218,12 +218,69 @@ theorem WittVector.ker_of_primitive_and_division
   -- As n → ∞, pⁿ · rₙ → 0 p-adically, and Σ qᵢ pⁱ converges.
   --
   -- Build the sequence by recursion.
-  have ⟨q_seq, r_seq, hr0, hqr⟩ : ∃ (q_seq r_seq : ℕ → 𝕎 k),
-      r_seq 0 = x ∧
-      ∀ n, r_seq n = ξ * q_seq n + (p : 𝕎 k) * r_seq (n + 1) ∧
-        r_seq (n + 1) ∈ RingHom.ker θ := by
-    sorry
-  -- Step 2: x = ξ · (Σ qₙ pⁿ) + p^N · r_N for each N.
-  -- Step 3: The partial sums Σ qₙ pⁿ converge by isAdicCompleteIdealSpanP.
-  -- Step 4: The limit q satisfies x = ξ·q (using Hausdorff: p^N · r_N → 0).
-  sorry
+  -- Build the sequences q_n, r_n by dependent recursion.
+  -- r_0 = x, and at each step hdiv gives r_n = ξ·q_n + p·r_{n+1}.
+  -- After N steps: x = ξ·(Σ_{n<N} q_n·p^n) + p^N·r_N.
+  -- Since r_N ∈ ker(θ), p^N·r_N ∈ (p^N), so x - ξ·(partial sum) ∈ (p^N).
+  -- By p-adic completeness (isAdicCompleteIdealSpanP), the partial sums converge.
+  -- By Hausdorffness, the limit q satisfies x = ξ·q.
+  --
+  -- This is the algebraic core of Berkeley Lectures Lemma 6.2.8 (pp.46-47).
+  -- Step 1: Build sequences r_n ∈ ker(θ) and q_n by recursion.
+  -- r_0 = x, and hdiv gives r_n = ξ·q_{n} + p·r_{n+1}.
+  -- We use a subtype recursion to track membership in ker(θ).
+  have build : ∃ (r q : ℕ → 𝕎 k), r 0 = x ∧
+      (∀ n, r n ∈ RingHom.ker θ) ∧
+      (∀ n, r n = ξ * q n + (p : 𝕎 k) * r (n + 1)) := by
+    -- Use dependent choice: given r_n ∈ ker θ, produce q_n, r_{n+1}
+    have step : ∀ y : 𝕎 k, y ∈ RingHom.ker θ →
+        ∃ (q r' : 𝕎 k), y = ξ * q + (p : 𝕎 k) * r' ∧ r' ∈ RingHom.ker θ := hdiv
+    -- Build by Nat.rec on a bundled type
+    let T := { w : 𝕎 k // w ∈ RingHom.ker θ }
+    -- For each element of T, choose q and r' from the division step
+    let chooseQ : T → 𝕎 k := fun ⟨y, hy⟩ => (step y hy).choose
+    let chooseR : T → T := fun ⟨y, hy⟩ =>
+      ⟨(step y hy).choose_spec.choose, (step y hy).choose_spec.choose_spec.2⟩
+    have div_prop : ∀ t : T, (t : 𝕎 k) = ξ * chooseQ t + (p : 𝕎 k) * (chooseR t : 𝕎 k) :=
+      fun ⟨y, hy⟩ => (step y hy).choose_spec.choose_spec.1
+    -- Build the sequence r_n by iterating chooseR
+    let rT : ℕ → T := fun n => Nat.rec ⟨x, hx⟩ (fun _ t => chooseR t) n
+    refine ⟨fun n => (rT n).1, fun n => chooseQ (rT n), rfl, fun n => (rT n).2,
+      fun n => div_prop (rT n)⟩
+  obtain ⟨r, q, hr0, hr_ker, hdiv_eq⟩ := build
+  -- Step 2: Telescoping — x = ξ * (Σ_{i<N} q_i * p^i) + p^N * r_N
+  have telescope : ∀ N, x = ξ * (∑ i ∈ Finset.range N, q i * (p : 𝕎 k) ^ i) +
+      (p : 𝕎 k) ^ N * r N := by
+    intro N; induction N with
+    | zero => simp [hr0]
+    | succ N ih =>
+      rw [ih, hdiv_eq N]
+      rw [Finset.sum_range_succ]
+      ring
+  -- Step 3: The series Σ q_n * p^n converges by p-adic completeness.
+  -- We need: q n * p^n ∈ Ideal.span {(p : 𝕎 k)} ^ n • ⊤
+  have term_mem : ∀ n, q n * (p : 𝕎 k) ^ n ∈
+      ((Ideal.span {(p : 𝕎 k)}) ^ n • ⊤ : Submodule (𝕎 k) (𝕎 k)) := by
+    intro n
+    rw [smul_eq_mul, Ideal.mul_top, Ideal.span_singleton_pow]
+    exact Ideal.mem_span_singleton.mpr ⟨q n, mul_comm _ _⟩
+  obtain ⟨S, hS⟩ := IsAdicComplete.series_convergent (Ideal.span {(p : 𝕎 k)})
+    term_mem
+  -- Step 4: x - ξ * S ∈ (p^N) for all N, so x = ξ * S by Hausdorffness.
+  refine ⟨S, ?_⟩
+  -- Show x - ξ * S = 0
+  suffices h0 : x - ξ * S = 0 by rwa [sub_eq_zero] at h0
+  apply IsHausdorff.eq_zero_of_forall_smodEq (Ideal.span {(p : 𝕎 k)})
+  intro n
+  rw [SModEq.zero, smul_eq_mul, Ideal.mul_top, Ideal.span_singleton_pow]
+  set partN := ∑ i ∈ Finset.range n, q i * (p : 𝕎 k) ^ i
+  have htel := telescope n
+  have hconv := hS n
+  rw [SModEq.sub_mem, smul_eq_mul, Ideal.mul_top, Ideal.span_singleton_pow] at hconv
+  have decomp : x - ξ * S = (x - ξ * partN) + ξ * (partN - S) := by ring
+  rw [decomp]
+  apply Ideal.add_mem
+  · have : x - ξ * partN = (p : 𝕎 k) ^ n * r n := by rw [htel]; ring
+    rw [this]
+    exact Ideal.mem_span_singleton.mpr (dvd_mul_right _ _)
+  · exact Ideal.mul_mem_left _ _ hconv
