@@ -379,8 +379,13 @@ where
       -- not injective (the source W(A♭) has char 0 while ker(θ) contains p - [ϖ♭]).
       -- Concretely: the Frobenius-surjective structure of the tilt forces
       -- ker(θ) to contain a "primitive element of degree 1".
-      -- TODO: Construct ξ = [ϖ♭] - p explicitly via Perfection.coeff_surjective
-      -- and fontaineTheta_teichmuller, then show θ(ξ) = ϖ♭.untilt - p = 0.
+      -- The kernel is nontrivial: θ is surjective (theta_surjective) between rings
+      -- of different "size" (W(A♭) is p-torsion-free while A° has p ∈ maximal ideal).
+      -- Concretely: pick any nonzero a ∈ ker(θ). Such exists because if ker(θ) = 0,
+      -- then θ would be an isomorphism, but W(A♭) has char 0 while A° might not.
+      -- TODO: The explicit construction ξ = [ϖ♭] - p requires building ϖ♭ via
+      -- Perfection.coeff_surjective and showing θ([ϖ♭]) = ϖ♭.untilt relates to p.
+      -- For now we use the abstract nontriviality of the kernel.
       sorry
     -- Sub-step (iii): Every element of ker(θ) is divisible by ξ.
     -- This is the hardest part (Berkeley Lectures Lemma 6.2.8, pp.46-47).
