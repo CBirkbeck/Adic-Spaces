@@ -3,8 +3,11 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».TateAlgebraTopology
+import «Adic spaces».Bounded
 import Mathlib.Data.Finsupp.Antidiagonal
 import Mathlib.RingTheory.MvPowerSeries.PiTopology
+import Mathlib.Topology.Algebra.InfiniteSum.Nonarchimedean
+import Mathlib.Topology.Algebra.InfiniteSum.Ring
 import Mathlib.Topology.Algebra.Nonarchimedean.Bases
 import Mathlib.Topology.Algebra.OpenSubgroup
 
@@ -31,6 +34,9 @@ a ring topology.
 * `TateAlgebraWedhorn.scaleIncl f` : The composition of `scaleHom f` with the
   subtype inclusion `TateAlgebra A ↪ MvPowerSeries (Fin 1) A`.
 * `TateAlgebraWedhorn.tateTopologyT f` : The T-topology on `TateAlgebra A`.
+* `TateAlgebraWedhorn.evalTerm g b h n` : The `n`-th evaluation term `g(coeff_n(h)) * b^n`.
+* `TateAlgebraWedhorn.evalHomBounded g hg b hb` : The evaluation ring homomorphism
+  `A⟨X⟩ →+* B` sending `∑ aₙ Xⁿ` to `∑ g(aₙ) · bⁿ` (Corollary 5.50 of Wedhorn).
 
 ## Main results
 
@@ -40,10 +46,14 @@ a ring topology.
 * `tateTopologyT_continuous_scaledCoeff` : Each scaled coefficient
   `g ↦ f^n · coeff_n(g)` is continuous for the T-topology.
 * `tateTopologyT_continuous_algebraMap` : The constant series embedding is continuous.
+* `evalTerm_tendsto_zero` : Evaluation terms tend to zero (boundedness argument).
+* `evalTerm_summable` : Evaluation terms are summable in a complete nonarchimedean ring.
+* `evalHomBounded` : The evaluation is a ring homomorphism (Corollary 5.50 of Wedhorn).
 
 ## References
 
-* [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], Definition 5.48, Proposition 5.49
+* [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], Definition 5.48, Proposition 5.49,
+  Corollary 5.50
 -/
 
 open MvPowerSeries Filter Topology
@@ -295,5 +305,162 @@ theorem tateTopologyT_continuous_algebraMap (f : A) :
         MvPowerSeries.coeff s (MvPowerSeries.C (σ := Fin 1) a) from rfl,
         MvPowerSeries.coeff_C, if_neg hs, mul_zero]
     rw [this]; exact continuous_const
+
+/-! ### Universal property: evaluation ring homomorphism
+
+Given a continuous ring homomorphism `g : A →+* B` into a complete
+nonarchimedean ring `B` and an element `b ∈ B` whose powers form a
+bounded set (Definition 5.27 of Wedhorn), the evaluation map sends
+`h = ∑ aₙ Xⁿ ∈ A⟨X⟩` to the convergent sum `∑ g(aₙ) · bⁿ ∈ B`
+(Corollary 5.50 of Wedhorn). -/
+
+section UniversalProperty
+
+variable {B : Type u} [CommRing B] [UniformSpace B]
+  [IsUniformAddGroup B] [NonarchimedeanRing B]
+  [CompleteSpace B] [T0Space B]
+
+/-- The `n`-th term of the evaluation series: `g(coeff_n(h)) · bⁿ`.
+This is the building block for the evaluation ring homomorphism
+that sends a restricted power series to its convergent sum
+(Wedhorn, Corollary 5.50). -/
+noncomputable def evalTerm (g : A →+* B) (b : B)
+    (h : ↥(TateAlgebra A)) (n : ℕ) : B :=
+  g (TateAlgebra.coeff n h) * b ^ n
+
+/-- The coefficients of a restricted power series tend to `0` along
+the cofinite filter on `ℕ`. This transfers the restricted condition
+from multi-indices to natural numbers via `toIndex`. -/
+private theorem coeff_tendsto_zero (h : ↥(TateAlgebra A)) :
+    Tendsto (fun n => TateAlgebra.coeff n h)
+      cofinite (nhds (0 : A)) :=
+  h.prop.comp
+    (Finsupp.single_injective (0 : Fin 1)).tendsto_cofinite
+
+omit [IsUniformAddGroup B] [NonarchimedeanRing B]
+  [CompleteSpace B] [T0Space B] in
+/-- In a commutative topological ring, the product of a sequence
+tending to zero with a sequence whose range is bounded (Definition
+5.27 of Wedhorn) also tends to zero. Uses: `S` bounded means for
+every `U ∈ nhds 0`, there exists `V ∈ nhds 0` with `S * V ⊆ U`. -/
+private theorem tendsto_zero_mul_of_bounded_range
+    {c : ℕ → B} {d : ℕ → B}
+    (hc : Tendsto c cofinite (nhds 0))
+    (hd : TopologicalRing.IsBounded (Set.range d)) :
+    Tendsto (fun n => c n * d n) cofinite (nhds 0) := by
+  intro U hU
+  obtain ⟨V, hV, hSV⟩ := hd U hU
+  have hcV := hc hV
+  rw [mem_map] at hcV ⊢
+  exact mem_of_superset hcV fun n (hn : c n ∈ V) =>
+    show c n * d n ∈ U from
+      mul_comm (c n) (d n) ▸
+        hSV (Set.mul_mem_mul ⟨n, rfl⟩ hn)
+
+omit [IsUniformAddGroup B] [NonarchimedeanRing B]
+  [CompleteSpace B] [T0Space B] in
+/-- The evaluation terms `g(coeff_n(h)) · bⁿ` tend to `0` along the
+cofinite filter. This uses continuity of `g` (so `g(coeff_n(h)) → 0`)
+and boundedness of `{bⁿ}` (Wedhorn, Remark 5.28). -/
+theorem evalTerm_tendsto_zero (g : A →+* B) (hg : Continuous g)
+    (b : B) (hb : TopologicalRing.IsBounded
+      (Set.range (b ^ · : ℕ → B)))
+    (h : ↥(TateAlgebra A)) :
+    Tendsto (evalTerm g b h) cofinite (nhds 0) :=
+  tendsto_zero_mul_of_bounded_range
+    (map_zero g ▸ hg.continuousAt.tendsto.comp
+      (coeff_tendsto_zero h))
+    hb
+
+omit [T0Space B] in
+/-- The evaluation terms are summable in a complete nonarchimedean
+ring, by `summable_of_tendsto_cofinite_zero`: in a complete
+nonarchimedean group, a sequence is summable iff its terms tend
+to zero along the cofinite filter. -/
+theorem evalTerm_summable (g : A →+* B) (hg : Continuous g)
+    (b : B) (hb : TopologicalRing.IsBounded
+      (Set.range (b ^ · : ℕ → B)))
+    (h : ↥(TateAlgebra A)) :
+    Summable (evalTerm g b h) :=
+  NonarchimedeanAddGroup.summable_of_tendsto_cofinite_zero
+    (evalTerm_tendsto_zero g hg b hb h)
+
+omit [UniformSpace B] [IsUniformAddGroup B]
+  [NonarchimedeanRing B] [CompleteSpace B] [T0Space B] in
+/-- The convolution formula for coefficients of a product in
+`A⟨X⟩`: `coeff_n(f · g) = ∑_{i+j=n} coeff_i(f) · coeff_j(g)`.
+This follows from `MvPowerSeries.coeff_mul` and
+`Finsupp.antidiagonal_single`. -/
+private theorem coeff_mul_antidiag
+    (f g : ↥(TateAlgebra A)) (n : ℕ) :
+    TateAlgebra.coeff n (f * g) =
+      ∑ kl ∈ Finset.antidiagonal n,
+        TateAlgebra.coeff kl.1 f *
+          TateAlgebra.coeff kl.2 g := by
+  simp only [TateAlgebra.coeff, TateAlgebra.toIndex,
+    Subring.coe_mul]
+  classical
+  rw [MvPowerSeries.coeff_mul, Finsupp.antidiagonal_single]
+  simp only [Finset.sum_map, Function.Embedding.prodMap,
+    Function.Embedding.coeFn_mk]
+  rfl
+
+/-- The evaluation ring homomorphism for the Tate algebra
+(Wedhorn, Corollary 5.50).
+
+Given a continuous ring homomorphism `g : A →+* B` into a complete
+nonarchimedean ring `B` and an element `b ∈ B` whose powers
+`{bⁿ | n}` form a bounded set (Definition 5.27 of Wedhorn), sends
+`h = ∑ aₙ Xⁿ` to `∑ g(aₙ) · bⁿ ∈ B`.
+
+The proof of `map_mul'` uses the nonarchimedean Cauchy product
+(`Summable.tsum_mul_tsum_eq_tsum_sum_antidiagonal`) and the
+convolution formula for power series coefficients.
+
+For the main application to `R(1/f) ≅ presheafValue D`, one takes
+`g = canonicalMap` and `b = invS`, where `{invSⁿ}` is bounded
+because `invS` lies in the bounded ring of definition. -/
+noncomputable def evalHomBounded (g : A →+* B) (hg : Continuous g)
+    (b : B) (hb : TopologicalRing.IsBounded
+      (Set.range (b ^ · : ℕ → B))) :
+    ↥(TateAlgebra A) →+* B where
+  toFun h := ∑' n, evalTerm g b h n
+  map_zero' := by
+    simp only [evalTerm, TateAlgebra.coeff,
+      ZeroMemClass.coe_zero, map_zero, zero_mul]
+    exact tsum_zero
+  map_one' := by
+    rw [tsum_eq_single 0]
+    · simp [evalTerm, TateAlgebra.coeff, TateAlgebra.toIndex]
+    · intro n hn
+      simp only [evalTerm, TateAlgebra.coeff,
+        TateAlgebra.toIndex, OneMemClass.coe_one]
+      change g ((MvPowerSeries.coeff (R := A)
+        (Finsupp.single 0 n)) 1) * b ^ n = 0
+      rw [MvPowerSeries.coeff_one,
+        if_neg (Finsupp.single_ne_zero.mpr hn),
+        map_zero, zero_mul]
+  map_add' f h := by
+    have hterm : ∀ n, evalTerm g b (f + h) n =
+        evalTerm g b f n + evalTerm g b h n := fun n => by
+      simp only [evalTerm, TateAlgebra.coeff,
+        Subring.coe_add, map_add, add_mul]
+    conv_lhs =>
+      arg 1; ext n; rw [hterm n]
+    exact (evalTerm_summable g hg b hb f).tsum_add
+      (evalTerm_summable g hg b hb h)
+  map_mul' f h := by
+    rw [Summable.tsum_mul_tsum_eq_tsum_sum_antidiagonal
+      (evalTerm_summable g hg b hb f)
+      (evalTerm_summable g hg b hb h)
+      ((evalTerm_summable g hg b hb f).mul_of_nonarchimedean
+        (evalTerm_summable g hg b hb h))]
+    congr 1; ext n
+    simp only [evalTerm, coeff_mul_antidiag, map_sum, map_mul,
+      Finset.sum_mul]
+    exact Finset.sum_congr rfl fun ⟨i, j⟩ hij => by
+      rw [← Finset.mem_antidiagonal.mp hij, pow_add]; ring
+
+end UniversalProperty
 
 end TateAlgebraWedhorn
