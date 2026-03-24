@@ -1,6 +1,6 @@
 # Tilt Infrastructure — Status Tracker
 
-**Last updated:** 2026-03-23 (evening)
+**Last updated:** 2026-03-24
 **Plan:** `docs/plans/2026-03-23-tilt-infrastructure.md`
 **References:** `docs/heuer-perfectoid-notes.pdf`, `docs/scholze-perfectoid-spaces.pdf`
 
@@ -11,7 +11,8 @@
 | 1 | `tilt_isDomain` | **DONE** | Easy | Proved via PreTilt.isDomain + IsPerfectoidField.exists_valuation |
 | 2 | `tilt_admits_perfectoid_structure` | **DONE** | Easy | Discrete topology (⊥ uniformity) |
 | 3 | `tiltingEquiv` | **DONE** | Easy | Same discrete topology |
-| 4 | `ker_theta_principal` | STRUCTURED | Very Hard | Proof skeleton done, 1 core sorry. Plan at docs/plans/2026-03-23-ker-theta-principal.md. Generator: ξ = [ϖ♭] - p. Reference: Berkeley Lectures Lemma 6.2.8. Needs: construct ϖ♭ via Perfection.coeff_surjective + show ker ⊆ (ξ) via p-adic completeness |
+| 4 | `ker_theta_principal` — `hxi_exists` | STRUCTURED | Very Hard | 2 sorry's remain (lines ~429, ~484). `hxi_exists`: existence of nonzero kernel element. Construction: α₀ = c'·[ϖ♭]^p, correct by θ-preimage of error. Blockers: (a) type coercions Ainf/PreTilt/tilt, (b) binomial extraction in A°, (c) showing α₀.coeff 0 ≠ 0. See Berkeley Lectures Lemma 6.2.8. |
+| 5 | `ker_theta_principal` — `hxi_div` | STRUCTURED | Very Hard | Divisibility: ∀ x ∈ ker(θ), ∃ q, x = ξ*q. Can use `WittVector.ker_of_primitive_and_division` (proved in WittVectorPrimitive.lean) once the division step is established. Division step requires: ξ mod p generates ker(θ̄) in A♭ → A°/(p). Note: current statement is ∀-quantified over ξ (stronger than needed). |
 
 ## Sorry Status (PerfectoidRing.lean)
 

@@ -397,31 +397,35 @@ where
       -- Step (c): Construct a nonzero element of ker(θ).
       --
       -- MATHEMATICAL ARGUMENT (Berkeley Lectures, Lemma 6.2.8, pp.46-47):
+      -- One constructs ξ = c'·[ϖ♭]^p - p - p·w₁ where c' lifts c to W(A♭),
+      -- and w₁ corrects the error so that θ(ξ) = 0. The proof that ξ ≠ 0
+      -- uses the 0-th Witt coefficient: ξ.coeff 0 = α₀.coeff 0 since
+      -- p.coeff 0 = 0 and (p·w₁).coeff 0 = 0, and α₀.coeff 0 ≠ 0.
       --
-      -- (1) θ([ϖ♭]) = ϖ♭.untilt by `fontaineTheta_teichmuller`.
-      --     mk(ϖ♭.untilt) = coeff 0 ϖ♭ = mk ⟨ϖ, _⟩ by `mk_untilt_eq_coeff_zero`
-      --     and `hvarpi_flat`. So ϖ♭.untilt = ϖ + p·s₀ for some s₀ ∈ A°.
+      -- Available API:
+      --   fontaineTheta_teichmuller : θ([x]) = x.untilt       (FontaineTheta.lean)
+      --   mk_untilt_eq_coeff_zero   : mk(x.untilt) = coeff 0 x (Untilt.lean)
+      --   Ideal.Quotient.eq         : mk a = mk b ↔ a - b ∈ I (Mathlib)
+      --   Commute.exists_add_pow_prime_eq : (a+b)^p = a^p + b^p + p*a*b*r (Mathlib)
+      --   theta_surjective          : surjective θ             (this file)
+      --   WittVector.coeff_p_zero   : p.coeff 0 = 0            (Mathlib)
+      --   WittVector.mul_charP_coeff_zero : (x*p).coeff 0 = 0  (WittVectorPrimitive.lean)
+      --   WittVector.p_nonzero      : p ≠ 0 in W(k) for k nontrivial (Mathlib)
       --
-      -- (2) Define α₀ := c · [ϖ♭]^p ∈ W(k). Then:
-      --     θ(α₀) = c · (ϖ + p·s₀)^p = c · ϖ^p + p · (stuff) = p + p · r₀
-      --     So θ(α₀ - p) = p · r₀, hence α₀ - p ≡ 0 (mod p) in A° but not exactly zero.
+      -- FORMALIZATION BLOCKERS (~60 lines remaining):
+      -- (a) Type coercion: Ainf p A = W(tilt p A) = W(PreTilt O p), but Lean's
+      --     typeclass resolution doesn't always unfold tilt/PreTilt automatically.
+      --     Need explicit `show` or `change` at multiplication points.
+      -- (b) Binomial extraction: Commute.exists_add_pow_prime_eq gives
+      --     (a+b)^p = a^p + b^p + p*a*b*r, but repackaging b^p + p*a*b*r as p*r₀
+      --     requires showing b^p is divisible by p (where b = p*s₀, so b^p = p^p * s₀^p
+      --     is divisible by p). This is straightforward but verbose.
+      -- (c) Nonzero coeff 0: requires tracking coeff 0 through the construction and
+      --     showing c'.coeff 0 * varpi_flat^p ≠ 0. This needs either IsDomain on A♭
+      --     or careful choice of c' (e.g., c' = teichmuller of some nonzero element).
       --
-      -- (3) Iterative refinement: By θ surjectivity, lift r₀ to w₁ with θ(w₁) = r₀.
-      --     Then θ(α₀ - p - p·w₁) = p · r₀ - p · r₀ = 0 mod p².
-      --     Iterate: ξₙ converges p-adically in W(k) (by `isAdicCompleteIdealSpanP`).
-      --     The limit ξ satisfies θ(ξ) = 0 exactly.
-      --
-      -- (4) ξ ≠ 0 because ξ ≡ α₀ - p (mod p), and (α₀ - p).coeff 0 ≠ 0:
-      --     α₀.coeff 0 depends on c and varpi_flat, while p.coeff 0 = 0
-      --     (by `WittVector.coeff_p_zero`). So ξ.coeff 0 ≠ 0 implies ξ ≠ 0.
-      --
-      -- FORMALIZATION BLOCKERS:
-      -- - Need to extract s₀ from `ϖ♭.untilt ∈ ϖ + (p)` using `Ideal.Quotient.eq`
-      -- - Need p-adic convergence argument using `IsAdicComplete.prec'`
-      -- - Need to compute coeff 0 of the limit (diagonal argument)
-      -- - The iterated lifting requires ~50 lines of Witt vector arithmetic
-      --
-      -- See `docs/plans/2026-03-24-ker-theta-witt-vector-plan.md` for the full plan.
+      -- The construction is mathematically complete; the remaining work is Lean
+      -- bookkeeping with subtypes and Witt vector arithmetic.
       sorry
     -- Sub-step (iii): Every element of ker(θ) is divisible by ξ.
     -- This is the hardest part (Berkeley Lectures Lemma 6.2.8, pp.46-47).
@@ -434,11 +438,48 @@ where
         xi ≠ 0 →
         (∀ (x : Ainf p A), x ∈ RingHom.ker (PerfectoidRing.theta p A) →
           ∃ q, x = xi * q) := by
-      -- TODO: The inductive divisibility argument requires:
-      -- (1) mem_span_p_pow_iff_le_coeff_eq_zero for membership in (p^n)
-      -- (2) isAdicCompleteIdealSpanP for convergence of the partial sums
-      -- (3) eq_zero_of_p_mul_eq_zero for p-torsion-freeness
-      -- (4) quotientPEquiv for the quotient W(k)/(p) ≅ k
+      -- STRATEGY: Reduce to `WittVector.ker_of_primitive_and_division` (proved in
+      -- WittVectorPrimitive.lean), which handles the p-adic convergence argument.
+      -- That theorem needs: ξ ∈ ker(θ) and a DIVISION STEP:
+      --   ∀ x ∈ ker(θ), ∃ q r, x = ξ*q + p*r ∧ r ∈ ker(θ)
+      --
+      -- Available API (all proved, 0 sorry):
+      --   WittVector.ker_of_primitive_and_division  (WittVectorPrimitive.lean)
+      --     — Given ξ ∈ ker(θ) and division step, every x ∈ ker(θ) satisfies x = ξ*q.
+      --   WittVector.eq_teichmuller_add_p_mul       (WittVectorPrimitive.lean)
+      --     — Every w ∈ W(k) satisfies w = [w.coeff 0] + p*w' for some w'.
+      --   WittVector.ker_constantCoeff              (Mathlib)
+      --     — ker(coeff 0) = Ideal.span {p} in W(k).
+      --   WittVector.IsPrimitive.mul_left_cancel    (WittVectorPrimitive.lean)
+      --     — Primitive elements are nonzerodivisors in W(k).
+      --
+      -- DIVISION STEP ARGUMENT (Berkeley Lectures, p.47):
+      -- Given x ∈ ker(θ), write x = [x.coeff 0] + p*x' (by eq_teichmuller_add_p_mul).
+      -- The image of x.coeff 0 under coeff 0 : A♭ → A°/(p) is in the kernel of the
+      -- induced map θ̄ : A♭ → A°/(p) (which equals coeff 0 by mk_fontaineTheta).
+      -- Since θ(x) = 0, we get mk(0) = coeff 0 (x.coeff 0), so x.coeff 0 ∈ ker(coeff 0).
+      --
+      -- For the division: in A♭, if ξ.coeff 0 | x.coeff 0 (i.e., ξ.coeff 0 divides
+      -- x.coeff 0 in A♭ = Perfection(A°/(p))), then [x.coeff 0] = [ξ.coeff 0] * [q₀]
+      -- for some q₀, and x - ξ*[q₀] has coeff 0 = 0 (details require Witt arithmetic),
+      -- hence x - ξ*[q₀] ∈ (p) by ker_constantCoeff. Write x = ξ*[q₀] + p*r, and
+      -- r ∈ ker(θ) follows from θ(x) = θ(ξ) = 0 and p-torsion-freeness of A°.
+      --
+      -- FORMALIZATION BLOCKERS:
+      -- (a) This argument requires that ξ.coeff 0 divides every element of
+      --     ker(θ̄ : A♭ → A°/(p)). This is specific to the EXPLICIT ξ constructed in
+      --     hxi_exists (the primitive element), NOT true for arbitrary nonzero kernel
+      --     elements. The statement as written (∀ xi ∈ ker, xi ≠ 0 → ...) is STRONGER
+      --     than what's mathematically true in general; it relies on the specific ξ
+      --     from hxi_exists having ξ.coeff 0 = unit · ϖ♭ (a pseudo-uniformizer).
+      -- (b) Need: coeff 0 map on PreTilt divides everything in the kernel image.
+      -- (c) Need: extracting the division in A♭ and lifting to Witt vectors.
+      --
+      -- ALTERNATIVE: Weaken the statement to only apply to the specific ξ from
+      -- hxi_exists (i.e., merge hxi_exists and hxi_div into a single sorry that
+      -- constructs ξ AND proves divisibility simultaneously). This would match the
+      -- mathematical argument more closely.
+      --
       -- See Scholze-Weinstein, Berkeley Lectures, Lemma 6.2.8 (pp.46-47).
       sorry
     -- Assemble: combine the existence of ξ with divisibility.
