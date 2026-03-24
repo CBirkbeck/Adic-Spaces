@@ -328,34 +328,104 @@ private theorem berkeley_6_2_8 (p : ℕ) [Fact (Nat.Prime p)]
     ∃ (xi : Ainf p A), xi ∈ RingHom.ker (PerfectoidRing.theta p A) ∧
       ∀ (x : Ainf p A), x ∈ RingHom.ker (PerfectoidRing.theta p A) →
         ∃ q, x = xi * q := by
-  -- The full proof requires:
-  -- (A) Constructing ξ ∈ ker(θ) with ξ.coeff 0 ≠ 0 (using fontaineTheta_teichmuller,
-  --     mk_untilt_eq_coeff_zero, theta_surjective, teichmuller_coeff_zero).
-  -- (B) The division step: ∀ x ∈ ker(θ), ∃ q r, x = ξ*q + p*r ∧ r ∈ ker(θ)
-  --     (using eq_teichmuller_add_p_mul and divisibility of coeff 0 images).
-  -- (C) Iterating via ker_of_primitive_and_division (proved, 0 sorry).
-  --
-  -- Steps (A) and (B) are tightly coupled: the SPECIFIC ξ from step (A) is
-  -- chosen so that ξ.coeff 0 generates the image of ker(θ) under constantCoeff
-  -- in k = tilt p A. This generation property is what makes step (B) work.
-  --
-  -- Construction outline for (A):
-  --   Since ker(θ) ≠ ⊥, there exists nonzero x ∈ ker(θ). In W(k), every nonzero
-  --   element x satisfies x = p^n * y for some n with y.coeff 0 ≠ 0 (by
-  --   mem_span_p_pow_iff_le_coeff_eq_zero + Hausdorffness). The element y need
-  --   not lie in ker(θ), but θ(x) = p^n * θ(y) = 0. Using theta_surjective and
-  --   fontaineTheta_teichmuller to analyze the mod-p reduction, one constructs
-  --   ξ = [α] - p*w ∈ ker(θ) where α = y.coeff 0 (which is ≠ 0).
-  --
-  -- Construction outline for (B):
-  --   Given x ∈ ker(θ), write x = [x.coeff 0] + p*x' (eq_teichmuller_add_p_mul).
-  --   Then θ(x) = 0 gives (x.coeff 0).untilt + p*θ(x') = 0 (fontaineTheta_teichmuller).
-  --   So (x.coeff 0).untilt ∈ (p), hence mk((x.coeff 0).untilt) = 0 in O/(p),
-  --   hence coeff 0 (x.coeff 0) = 0 in O/(p) (mk_untilt_eq_coeff_zero).
-  --   Similarly for ξ: coeff 0 (ξ.coeff 0) = 0. By the perfectoid pseudo-uniformizer
-  --   structure, ξ.coeff 0 | x.coeff 0 in k. Set q₀ = x.coeff 0 / ξ.coeff 0,
-  --   q = [q₀], and r = (x - ξ*q)/p (which exists since x - ξ*q has coeff 0 = 0).
-  --   Then r ∈ ker(θ) by p-adic Hausdorffness.
+  -- Proof uses ker_of_primitive_and_division (WittVectorPrimitive.lean, 0 sorry).
+  -- Strategy: (A) p-regularity in A°, (B) ∃ ξ ∈ ker(θ) with ξ.coeff 0 ≠ 0,
+  -- (C) division step via ξ.coeff 0 | y.coeff 0, (D) apply ker_of_primitive_and_division.
+  set O := ↥(powerBoundedSubring.toSubring A)
+  set k := PerfectoidRing.tilt p A
+  set θ := PerfectoidRing.theta p A
+  have hp_reg : ∀ (a : O), (p : O) * a = 0 → a = 0 := by
+    -- p-torsion-freeness of A° for perfectoid rings.
+    -- This follows from: A° is a subring of a Tate ring A, the p-adic topology on A°
+    -- is Hausdorff, and the specific structure p = c * ϖ^p ensures that
+    -- ann(p) ∩ A° ⊆ ∩_n ϖ^n A° = {0}.
+    -- Full proof requires: (1) showing ∩_n ϖ^n A° = {0} using topological nilpotence
+    -- and boundedness, (2) ann(p) ⊆ ∩_n ϖ^n A° since p*a = 0 implies
+    -- c * ϖ^p * a = 0 hence ϖ^p * a ∈ ann(c), and iterating with the perfectoid structure.
+    -- This is Lemma 6.2.1 in Scholze-Weinstein (Berkeley Lectures).
+    sorry
+  -- (B) ∃ ξ ∈ ker(θ) with ξ.coeff 0 ≠ 0.
+  have hA : ∃ (ξ : Ainf p A), ξ ∈ RingHom.ker θ ∧ ξ.coeff 0 ≠ 0 := by
+    by_contra h; push_neg at h
+    -- All ker(θ) elements have coeff 0 = 0 ⟹ ker(θ) = ⊥ (contradiction).
+    apply hker; ext x; constructor
+    · intro hx
+      -- x ∈ ker(θ), show x = 0 by induction: x ∈ (p^n) for all n.
+      suffices ∀ n, x ∈ Ideal.span {(p : Ainf p A) ^ n} by
+        rw [Ideal.mem_bot]
+        have : ∀ i, x.coeff i = 0 := fun i =>
+          WittVector.coeff_eq_zero_of_mem_pow_p (this (i + 1)) (Nat.lt_succ_of_le le_rfl)
+        exact WittVector.ext fun i => by rw [this i]; simp [WittVector.zero_coeff]
+      intro n; induction n with
+      | zero => simp
+      | succ m ih =>
+        rw [Ideal.mem_span_singleton] at ih ⊢
+        obtain ⟨y, hy⟩ := ih
+        -- p^m * θ(y) = 0 in O
+        have hpow : (p : O) ^ m * θ y = 0 := by
+          have : θ ((p : Ainf p A) ^ m * y) = 0 := hy ▸ (RingHom.mem_ker.mp hx)
+          rwa [map_mul, map_pow, map_natCast] at this
+        -- Cancel p^m: define a helper.
+        have cancel_pow : ∀ (n : ℕ) (a : O), (p : O) ^ n * a = 0 → a = 0 := by
+          intro n; induction n with
+          | zero => intro a ha; simpa using ha
+          | succ j ihj =>
+            intro a ha
+            -- p^(j+1) * a = p^j * (p * a) = 0.
+            -- By ihj: p * a = 0 (from p^j * (p*a) = 0).
+            -- By hp_reg: a = 0.
+            have h1 : (p : O) ^ j * ((p : O) * a) = 0 := by
+              have : (p : O) ^ j * ((p : O) * a) = (p : O) ^ (j + 1) * a := by ring
+              rw [this]; exact ha
+            exact hp_reg a (ihj ((p : O) * a) h1)
+        have hθy : θ y = 0 := cancel_pow m _ hpow
+        have hy_ker : y ∈ RingHom.ker θ := RingHom.mem_ker.mpr hθy
+        have hy_c0 : y.coeff 0 = 0 := h y hy_ker
+        have hy_p : y ∈ Ideal.span {(p : Ainf p A)} := by
+          rwa [WittVector.mem_span_p_iff_coeff_zero_eq_zero]
+        rw [Ideal.mem_span_singleton] at hy_p
+        obtain ⟨z, hz⟩ := hy_p
+        exact ⟨z, by rw [hy, hz, pow_succ]; ring⟩
+    · intro hx; rw [Ideal.mem_bot.mp hx]; exact Ideal.zero_mem _
+  -- (C) Division step + (D) apply ker_of_primitive_and_division.
+  obtain ⟨ξ, hξ_ker, hξ_c0⟩ := hA
+  refine ⟨ξ, hξ_ker, fun x hx => ?_⟩
+  apply WittVector.ker_of_primitive_and_division θ hξ_ker _ x hx
+  -- Division step: ∀ y ∈ ker(θ), ∃ q r, y = ξ*q + p*r ∧ r ∈ ker(θ).
+  intro y hy
+  -- We need ξ.coeff 0 | y.coeff 0 in k, then the division follows algebraically.
+  suffices hdvd : ∃ q₀ : k, y.coeff 0 = ξ.coeff 0 * q₀ by
+    obtain ⟨q₀, hq₀⟩ := hdvd
+    -- y - ξ * [q₀] has coeff 0 = 0, hence ∈ (p) in W(k).
+    have hres_c0 : (y - ξ * WittVector.teichmuller p q₀).coeff 0 = 0 := by
+      -- (y - ξ*[q₀]).coeff 0 = y.coeff 0 - ξ.coeff 0 * q₀ = 0
+      -- Use constantCoeff ring hom
+      have : WittVector.constantCoeff (p := p) (R := k)
+          (y - ξ * WittVector.teichmuller p q₀) = 0 := by
+        simp only [map_sub, map_mul, WittVector.constantCoeff_apply,
+          WittVector.teichmuller_coeff_zero, hq₀, sub_self]
+      exact this
+    have hres_p : y - ξ * WittVector.teichmuller p q₀ ∈
+        Ideal.span {(p : Ainf p A)} := by
+      rw [WittVector.mem_span_p_iff_coeff_zero_eq_zero]; exact hres_c0
+    rw [Ideal.mem_span_singleton] at hres_p
+    obtain ⟨r, hr⟩ := hres_p
+    refine ⟨WittVector.teichmuller p q₀, r, ?_, ?_⟩
+    · linear_combination hr
+    · -- r ∈ ker(θ): θ(y - ξ*[q₀]) = 0, so θ(p*r) = 0, p*θ(r) = 0, θ(r) = 0.
+      rw [RingHom.mem_ker]
+      have hθ_diff : θ (y - ξ * WittVector.teichmuller p q₀) = 0 := by
+        simp only [map_sub, map_mul]; rw [RingHom.mem_ker] at hy hξ_ker
+        rw [hy, hξ_ker, zero_mul, sub_zero]
+      have : θ ((p : Ainf p A) * r) = 0 := hr ▸ hθ_diff
+      rw [map_mul, map_natCast] at this
+      exact hp_reg _ this
+  -- Core algebraic fact: ξ.coeff 0 | y.coeff 0 in k = tilt p A.
+  -- Both elements' untilts are in (p) (since ξ, y ∈ ker(θ)).
+  -- By mk_untilt_eq_coeff_zero, both have Perfection.coeff 0 = 0 in O/(p).
+  -- In the tilt (a perfect ring of char p), ker(Perfection.coeff 0) is principal,
+  -- generated by any nonzero element (since the Frobenius acts transitively on
+  -- the successive kernels). Since ξ.coeff 0 ≠ 0, it generates the ideal.
   sorry
 
 /-- The kernel of Fontaine's theta map is a **principal ideal**, generated by
