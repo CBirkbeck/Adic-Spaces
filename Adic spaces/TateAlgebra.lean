@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».RestrictedPowerSeries
 import «Adic spaces».RestrictedModule
+import «Adic spaces».NoetherianTateModules
 import Mathlib.RingTheory.Ideal.Quotient.Basic
 import Mathlib.Data.Finsupp.Antidiagonal
 import Mathlib.RingTheory.Flat.Basic
@@ -1490,6 +1491,109 @@ noncomputable def restrictedModuleA_equiv :
         MvPowerSeries.coeff_apply]]
 
 end Remark829
+
+/-! ### NonarchimedeanAddGroup on Fin n → A -/
+
+section PiNonarchimedean
+
+variable {A : Type u} [CommRing A] [TopologicalSpace A] [NonarchimedeanRing A]
+  [IsTopologicalRing A]
+
+omit [NonarchimedeanRing A] [IsTopologicalRing A] in
+private def piOpenAddSubgroup {n : ℕ} (W : Fin n → OpenAddSubgroup A) :
+    OpenAddSubgroup (Fin n → A) where
+  toAddSubgroup := {
+    carrier := Set.pi Set.univ (fun i => (W i : Set A))
+    add_mem' := fun ha hb => fun i _ => (W i).add_mem (ha i trivial) (hb i trivial)
+    zero_mem' := fun i _ => (W i).zero_mem
+    neg_mem' := fun ha => fun i _ => (W i).neg_mem (ha i trivial) }
+  isOpen' := isOpen_set_pi (Set.toFinite _) (fun i _ => (W i).isOpen)
+
+/-- Finite pi types over a nonarchimedean ring are nonarchimedean.
+Every open neighborhood of 0 contains a product of open subgroups. -/
+instance nonarchimedeanPiFin (n : ℕ) :
+    NonarchimedeanAddGroup (Fin n → A) where
+  is_nonarchimedean U hU := by
+    classical
+    rw [nhds_pi, Filter.mem_pi'] at hU
+    obtain ⟨I, S, hS, hSU⟩ := hU
+    have hW : ∀ i : Fin n, ∃ W : OpenAddSubgroup A,
+        (i ∈ I → (W : Set A) ⊆ S i) := by
+      intro i
+      by_cases hi : i ∈ I
+      · obtain ⟨W, hW⟩ := NonarchimedeanAddGroup.is_nonarchimedean (S i) (hS i)
+        exact ⟨W, fun _ => hW⟩
+      · obtain ⟨V, _⟩ := NonarchimedeanAddGroup.is_nonarchimedean
+            (Set.univ : Set A) Filter.univ_mem
+        exact ⟨V, fun h => absurd h hi⟩
+    choose W hW using hW
+    exact ⟨piOpenAddSubgroup W, fun f hf => hSU (fun i hi => hW i hi (hf i trivial))⟩
+
+end PiNonarchimedean
+
+/-! ### Remark 8.29 continued: μ_M surjective
+
+References: [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], Remark 8.29
+-/
+
+section MuMapSurjective
+
+variable {A : Type u} [CommRing A] [TopologicalSpace A] [NonarchimedeanRing A]
+  [IsTopologicalRing A] [T2Space A] [FirstCountableTopology A]
+
+-- IsNoetherianRing not needed for muMap_surjective itself (only for muMap_injective later).
+
+/-- The natural map `μ_M : M ⊗[A] A⟨X⟩ → M⟨X⟩` is surjective for finitely generated
+modules `M` over a noetherian topological ring `A`.
+
+The proof: take a surjection `p : Aⁿ → M` from finite generation. Since `Aⁿ` and `M`
+carry the module topology, `p` is open (Prop 6.18(2)), hence `p⟨X⟩ : (Aⁿ)⟨X⟩ → M⟨X⟩`
+is surjective. Given `g ∈ M⟨X⟩`, lift to `h ∈ (Aⁿ)⟨X⟩`, decompose via the free case
+equivalence `(Aⁿ)⟨X⟩ ≅ A⟨X⟩ⁿ` to get `(h₁,...,hₙ)`, and verify
+`g = μ_M(∑ p(eᵢ) ⊗ hᵢ)`. Remark 8.29 of Wedhorn. -/
+theorem muMap_surjective
+    {M : Type u} [AddCommGroup M] [Module A M]
+    [TopologicalSpace M] [IsTopologicalAddGroup M]
+    [ContinuousSMul A M] [ContinuousConstSMul A M]
+    [IsModuleTopology A M] [Module.Finite A M] [T2Space M] :
+    Function.Surjective (muMap (A := A) (M := M)) := by
+  obtain ⟨n, p, hp_surj⟩ := Module.Finite.exists_fin' A M
+  have hp_cont : Continuous p :=
+    IsModuleTopology.continuous_linearMap_of_finite p
+  have hp_open : IsOpenMap p :=
+    IsModuleTopology.isOpenMap_of_surjective_of_finite p hp_surj
+  have hp_surj_mod : Function.Surjective
+      (restrictedModule.map (A := A) p hp_cont) :=
+    restrictedModule_map_surjective p hp_cont hp_surj hp_open
+  intro g
+  obtain ⟨h, hh⟩ := hp_surj_mod g
+  refine ⟨∑ i : Fin n, p (Pi.single i 1) ⊗ₜ[A]
+      (restrictedModule_fin_equiv n h i), ?_⟩
+  suffices muMap (∑ i : Fin n, p (Pi.single i 1) ⊗ₜ[A]
+      (restrictedModule_fin_equiv n h i)) = restrictedModule.map p hp_cont h by
+    rw [this, hh]
+  apply Subtype.ext; funext s
+  have lhs : (muMap (∑ i : Fin n, p (Pi.single i 1) ⊗ₜ[A]
+      (restrictedModule_fin_equiv n h i))).val s =
+      ∑ i : Fin n, h.val s i • p (Pi.single i 1) := by
+    simp only [map_sum, muMap, TensorProduct.lift.tmul, LinearMap.mk₂_apply]
+    rw [show (∑ x : Fin n, (⟨fun s =>
+        (restrictedModule_fin_equiv n h x : ↥(TateAlgebra A)).val s •
+          p (Pi.single x 1), _⟩ : ↥(restrictedModule A M))).val s =
+        ∑ x : Fin n, (restrictedModule_fin_equiv n h x : ↥(TateAlgebra A)).val s •
+          p (Pi.single x 1) from by
+      simp only [AddSubmonoidClass.coe_finset_sum]
+      exact Fintype.sum_apply s _]
+    rfl
+  rw [lhs]
+  show _ = p (h.val s)
+  rw [show h.val s = ∑ i : Fin n, h.val s i • Pi.single i (1 : A) from
+    funext fun j => by simp [Finset.sum_apply, Pi.single_apply]]
+  rw [map_sum]; congr 1; funext i; rw [map_smul]
+  congr 1
+  simp [Finset.sum_apply, Pi.single_apply]
+
+end MuMapSurjective
 
 /-! ### Quotient equivalence (moved outside namespace for typeclass inference) -/
 
