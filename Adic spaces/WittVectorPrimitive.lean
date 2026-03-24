@@ -195,12 +195,15 @@ theorem WittVector.IsPrimitive.mul_left_cancel {ξ : 𝕎 k} {ϖ : k} {α : 𝕎
 
 /-! ### Kernel generation by primitive elements -/
 
-/-- **Key step for ker(θ) = (ξ):** In `W(k)` (p-adically complete, p-torsion-free),
-given a surjective `θ : W(k) →+* R` with primitive `ξ ∈ ker(θ)`, if every element
-of `ker(θ)` can be written as `ξ · q₀ + p · r₀` with `r₀ ∈ ker(θ)`, then
-iterating and using p-adic completeness gives `x = ξ · (Σ qₙ pⁿ)`.
+/-- In `W(k)` (p-adically complete, p-torsion-free), given `ξ ∈ ker(θ)` and a
+division step `∀ x ∈ ker(θ), ∃ q r, x = ξ·q + p·r ∧ r ∈ ker(θ)`, every
+element of `ker(θ)` is divisible by `ξ`.
 
-This is the algebraic core of Berkeley Lectures Lemma 6.2.8. -/
+The proof iterates the division: `x = ξ·q₀ + p·r₀`, `r₀ = ξ·q₁ + p·r₁`, etc.
+Then `x = ξ·(q₀ + p·q₁ + p²·q₂ + ...)` where the series converges p-adically
+by `isAdicCompleteIdealSpanP`.
+
+(Scholze-Weinstein, Berkeley Lectures, Lemma 6.2.8 — algebraic core) -/
 theorem WittVector.ker_of_primitive_and_division
     {R : Type*} [CommRing R] (θ : 𝕎 k →+* R)
     {ξ : 𝕎 k} (hξ_ker : ξ ∈ RingHom.ker θ)
@@ -208,15 +211,19 @@ theorem WittVector.ker_of_primitive_and_division
       r ∈ RingHom.ker θ)
     (x : 𝕎 k) (hx : x ∈ RingHom.ker θ) :
     ∃ q : 𝕎 k, x = ξ * q := by
-  -- Construct the sequence (qₙ, rₙ) by iterating hdiv:
-  -- x = ξ·q₀ + p·r₀, r₀ = ξ·q₁ + p·r₁, etc.
-  -- Then x = ξ·(q₀ + p·q₁ + p²·q₂ + ...) where the series converges p-adically.
+  -- Step 1: Build sequences qₙ, rₙ by recursion using hdiv.
+  -- rₙ ∈ ker(θ) and r_{n-1} = ξ·qₙ + p·rₙ for all n.
+  -- So x = ξ·q₀ + p·(ξ·q₁ + p·r₁) = ξ·(q₀ + p·q₁) + p²·r₁ = ...
+  -- After n steps: x = ξ · (Σ_{i<n} qᵢ · pⁱ) + pⁿ · rₙ.
+  -- As n → ∞, pⁿ · rₙ → 0 p-adically, and Σ qᵢ pⁱ converges.
   --
-  -- Step 1: Build the sequences qₙ and rₙ by recursion.
-  have build : ∀ r₀ ∈ RingHom.ker θ, ∃ (q_seq : ℕ → 𝕎 k),
-      ∀ n, (∑ i ∈ Finset.range (n + 1), (p : 𝕎 k) ^ i * ξ * q_seq i) ≡
-        r₀ [SMOD (Ideal.span {(p : 𝕎 k)} ^ (n + 1) • ⊤ : Submodule (𝕎 k) (𝕎 k))] := by
-    sorry -- Inductive construction using hdiv
-  -- Step 2: The partial sums Σ qₙ·pⁿ converge by isAdicCompleteIdealSpanP.
-  -- Step 3: The limit q satisfies x = ξ·q.
+  -- Build the sequence by recursion.
+  have ⟨q_seq, r_seq, hr0, hqr⟩ : ∃ (q_seq r_seq : ℕ → 𝕎 k),
+      r_seq 0 = x ∧
+      ∀ n, r_seq n = ξ * q_seq n + (p : 𝕎 k) * r_seq (n + 1) ∧
+        r_seq (n + 1) ∈ RingHom.ker θ := by
+    sorry
+  -- Step 2: x = ξ · (Σ qₙ pⁿ) + p^N · r_N for each N.
+  -- Step 3: The partial sums Σ qₙ pⁿ converge by isAdicCompleteIdealSpanP.
+  -- Step 4: The limit q satisfies x = ξ·q (using Hausdorff: p^N · r_N → 0).
   sorry
