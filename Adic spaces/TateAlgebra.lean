@@ -2099,13 +2099,93 @@ This is the abstract engine behind Lemma 8.31(2) of Wedhorn. -/
 theorem Module.Flat.quotient_of_flat_of_saturated
     {R : Type u} [CommRing R]
     {S : Type u} [CommRing S] [Algebra R S] [Module.Flat R S]
-    {g : S} (hreg : ∀ x : S, g * x = 0 → x = 0)
+    {g : S} (_hreg : ∀ x : S, g * x = 0 → x = 0)
     (hsat : ∀ (I : Ideal R) (s : S),
       g * s ∈ Ideal.map (algebraMap R S) I → s ∈ Ideal.map (algebraMap R S) I) :
     Module.Flat R (S ⧸ Ideal.span ({g} : Set S)) := by
   set Q := S ⧸ Ideal.span ({g} : Set S)
   set π := Ideal.Quotient.mk (Ideal.span ({g} : Set S))
-  sorry
+  apply Module.Flat.of_forall_isTrivialRelation
+  intro l f x hfx
+  -- Step 1: Lift x̄ᵢ from Q to S.
+  choose x' hx' using fun i => Ideal.Quotient.mk_surjective (x i)
+  -- Step 2: ∑ fᵢ • x'ᵢ maps to 0 in Q, so it lies in Ideal.span {g}.
+  have hπ_sum : π (∑ i, f i • x' i) = 0 := by
+    rw [map_sum]
+    convert hfx using 1
+    congr 1; ext i
+    show π (f i • x' i) = f i • x i
+    rw [Algebra.smul_def, Algebra.smul_def, map_mul, ← RingHom.comp_apply,
+      show (π : S →+* Q).comp (algebraMap R S) = algebraMap R Q from rfl, hx']
+  have hsum_mem : ∑ i, f i • x' i ∈ Ideal.span ({g} : Set S) :=
+    Ideal.Quotient.eq_zero_iff_mem.mp hπ_sum
+  -- Extract: w * g = ∑ fᵢ • x'ᵢ for some w.
+  rw [Ideal.mem_span_singleton'] at hsum_mem
+  obtain ⟨w, hw⟩ := hsum_mem
+  -- Step 3: g * w ∈ Ideal.map (algebraMap R S) (Ideal.span (Set.range f)).
+  set J := Ideal.span (Set.range f)
+  have hgw_mem : g * w ∈ Ideal.map (algebraMap R S) J := by
+    rw [show g * w = w * g from mul_comm g w, hw]
+    apply Ideal.sum_mem
+    intro i _
+    rw [Algebra.smul_def]
+    exact Ideal.mul_mem_right _ _ (Ideal.mem_map_of_mem _ (Ideal.subset_span (Set.mem_range_self i)))
+  -- Step 4: By saturation, w ∈ Ideal.map (algebraMap R S) J.
+  have hw_mem := hsat J w hgw_mem
+  -- Decompose w: Ideal.map (algebraMap R S) J = Ideal.span (range (algebraMap R S ∘ f)).
+  have hJ_map : Ideal.map (algebraMap R S) J = Ideal.span (Set.range (algebraMap R S ∘ f)) := by
+    rw [Ideal.map_span]; congr 1; exact (Set.range_comp _ _).symm
+  rw [hJ_map] at hw_mem
+  rw [Ideal.mem_span_range_iff_exists_fun] at hw_mem
+  obtain ⟨c, hc⟩ := hw_mem
+  -- So w = ∑ cᵢ * algebraMap(fᵢ).
+  -- Step 5: Set x''ᵢ = x'ᵢ - g * cᵢ. Then ∑ fᵢ • x''ᵢ = 0 in S.
+  set x'' : Fin l → S := fun i => x' i - g * c i
+  have hrel : ∑ i, f i • x'' i = 0 := by
+    simp only [x'', smul_sub, Finset.sum_sub_distrib]
+    suffices h : ∑ i, f i • (g * c i) = ∑ i, f i • x' i by
+      rw [h, sub_self]
+    rw [← hw, show w * g = g * w from mul_comm w g,
+      show g * w = g * (∑ i, c i * (algebraMap R S ∘ f) i) from by rw [hc]]
+    rw [Finset.mul_sum]
+    congr 1; ext i
+    rw [Algebra.smul_def, Function.comp_apply]; ring
+  -- Step 6: Apply flatness of S to get trivial relation witnesses.
+  have hrel' : ∑ i : Fin l, f i • x'' i = (0 : S) := hrel
+  obtain ⟨k, a, y, ha, hsyz⟩ :=
+    (Module.Flat.iff_forall_isTrivialRelation.mp ‹Module.Flat R S›) hrel'
+  -- Step 7: Project to Q.
+  -- x̄ᵢ = π(x'ᵢ) = π(x''ᵢ + g * cᵢ) = π(x''ᵢ) since π(g) = 0.
+  -- x''ᵢ = ∑ⱼ aᵢⱼ • yⱼ, so π(x''ᵢ) = ∑ⱼ aᵢⱼ • π(yⱼ).
+  have hπg : π g = 0 := Ideal.Quotient.eq_zero_iff_mem.mpr
+    (Ideal.subset_span (Set.mem_singleton g))
+  refine ⟨k, a, fun j => π (y j), fun i => ?_, hsyz⟩
+  -- x i = π(x'' i)
+  have hxi_eq : x i = π (x'' i) := by
+    -- x'' i = x' i - g * c i. Since g * c i ∈ Ideal.span {g},
+    -- π(x' i) = π(x' i - g * c i), so x i = π(x'' i).
+    change x i = π (x' i - g * c i)
+    have hgci : g * c i ∈ Ideal.span ({g} : Set S) :=
+      Ideal.mem_span_singleton'.mpr ⟨c i, mul_comm (c i) g⟩
+    -- π(x' i - g * c i) = π(x' i) because x' i ≡ x' i - g*ci (mod span {g})
+    have : (Ideal.Quotient.mk (Ideal.span ({g} : Set S))) (x' i - g * c i) =
+           (Ideal.Quotient.mk (Ideal.span ({g} : Set S))) (x' i) := by
+      rw [Ideal.Quotient.eq]
+      -- Goal: (x' i - g * c i) - x' i ∈ Ideal.span {g}
+      -- This is -(g * c i), which is in the ideal.
+      have : x' i - g * c i - x' i = -(g * c i) := by ring
+      rw [this]
+      exact (Ideal.span ({g} : Set S)).neg_mem hgci
+    rw [this, hx']
+  -- π(x'' i) = π(∑ a_ij • y_j) = ∑ a_ij • π(y_j)
+  -- The smul from IsTrivialRelation uses Module.toDistribSMul, same as Algebra.toModule.
+  -- Use calc to handle this explicitly.
+  calc x i = π (x'' i) := hxi_eq
+    _ = π (∑ j, a i j • y j) := congr_arg π (ha i)
+    _ = ∑ j, π (a i j • y j) := map_sum π _ _
+    _ = ∑ j, a i j • π (y j) := by
+        exact Finset.sum_congr rfl (fun j _ =>
+          map_smul (Ideal.Quotient.mkₐ R _).toLinearMap (a i j) (y j))
 
 /-! #### Step 2: Modular ascending chain lemma -/
 
