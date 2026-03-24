@@ -90,8 +90,8 @@ theorem canonicalMap_flat_discrete [DiscreteTopology A] (D : RationalLocData A) 
 
 /-! ### Cor 8.32: each cover piece is flat over A (discrete case) -/
 
-/-- **Corollary 8.32** of Wedhorn (discrete case): the product of presheaf values
-for a rational cover is flat over `A`.
+/-- **Corollary 8.32** of Wedhorn (discrete case): each presheaf value in a
+rational cover is flat over `A`.
 
 Each factor `presheafValue D` is flat over `A` (by `canonicalMap_flat_discrete`),
 so the product is flat over `A` (by `Module.Flat.pi`). -/
@@ -100,5 +100,89 @@ theorem productPresheafValues_flat_discrete [DiscreteTopology A] [PlusSubring A]
     @Module.Flat A (presheafValue D.1) _ _
       (RingHom.toModule (RationalLocData.canonicalMap D.1)) :=
   canonicalMap_flat_discrete D.1
+
+/-! ### Flatness transfer along ring isomorphisms
+
+We prove that flatness of an `R`-module transfers along `R`-algebra isomorphisms.
+This will be useful for connecting Tate algebra quotients to presheaf values. -/
+
+/-- If `S` is flat over `R` and `e : S ≃+* T` is a ring isomorphism that respects the
+`R`-algebra structure (`e (algebraMap r) = algebraMap r`), then `T` is flat over `R`.
+
+This is used to transfer flatness from `A⟨X⟩/(f-X)` (a Tate algebra quotient)
+to `presheafValue D` (a presheaf value) along the ring isomorphism from
+`PresheafIdentification.lean`.
+
+For the discrete case, the `A`-algebra structures are:
+- On `A⟨X⟩/(f-X)`: via `mk ∘ algebraMap : A → A⟨X⟩/(f-X)`
+- On `presheafValue D`: via `canonicalMap : A → presheafValue D`
+-/
+theorem flat_of_ringEquiv_respecting_algebra {R : Type*} [CommRing R]
+    {S : Type*} [CommRing S] [Algebra R S] [Module.Flat R S]
+    {T : Type*} [CommRing T] [Algebra R T]
+    (e : S ≃+* T) (halg : ∀ r : R, e (algebraMap R S r) = algebraMap R T r) :
+    Module.Flat R T := by
+  exact Module.Flat.of_linearEquiv
+    { e.symm.toEquiv with
+      map_add' := e.symm.map_add
+      map_smul' := fun r x => by
+        simp only [Algebra.smul_def, RingHom.id_apply]
+        change e.symm (algebraMap R T r * x) = algebraMap R S r * e.symm x
+        rw [show algebraMap R T r = e (algebraMap R S r) from (halg r).symm]
+        rw [e.symm.map_mul, e.symm_apply_apply] }
+
+/-! ### Tate algebra quotient flatness (discrete, Lemma 8.31(2))
+
+We re-export the flatness results for Tate algebra quotients from `TateAlgebra.lean`.
+These are the building blocks for Prop 8.30 (presheaf restriction maps are flat). -/
+
+omit [IsTopologicalRing A] in
+/-- `A⟨X⟩/(f-X)` is flat over discrete noetherian `A` (Lemma 8.31(2), case 1).
+Re-export of `TateAlgebra.flat_quotient_fSubX`.
+
+In the quotient, `X = f`, so `A⟨X⟩/(f-X) ≅ A` via evaluation at `f`.
+Since `A` is flat over itself, the quotient is flat. -/
+theorem tateQuotient_fSubX_flat_discrete [DiscreteTopology A]
+    [NonarchimedeanRing A] [IsNoetherianRing A] (f : A) :
+    Module.Flat A (↥(TateAlgebra A) ⧸
+      Ideal.span {algebraMap A ↥(TateAlgebra A) f - TateAlgebra.X}) :=
+  TateAlgebra.flat_quotient_fSubX f
+
+omit [IsTopologicalRing A] in
+/-- `A⟨X⟩/(1-fX)` is flat over discrete noetherian `A` (Lemma 8.31(2), case 2).
+Re-export of `TateAlgebra.flat_quotient_oneSubfX`.
+
+In the quotient, `fX = 1`, so `A⟨X⟩/(1-fX) ≅ Localization.Away f`.
+Since localization is flat, the quotient is flat. -/
+theorem tateQuotient_oneSubfX_flat_discrete [DiscreteTopology A]
+    [NonarchimedeanRing A] [IsNoetherianRing A] (f : A) :
+    Module.Flat A (↥(TateAlgebra A) ⧸
+      Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * TateAlgebra.X}) :=
+  TateAlgebra.flat_quotient_oneSubfX f
+
+/-! ### Quotient flatness: non-discrete case (Lemma 8.31(2))
+
+**Status: BLOCKED on G2-topo.**
+
+The general (non-discrete) proof of quotient flatness for `A⟨X⟩/(f-X)` and `A⟨X⟩/(1-fX)`
+requires identifying these quotients with adic completions:
+- `A⟨X⟩/(f-X) ≅ AdicCompletion I A` (completion of `A`)
+- `A⟨X⟩/(1-fX) ≅ AdicCompletion I (Localization.Away f)` (completion of localization)
+
+Then flatness follows from `AdicCompletion.flat_of_isNoetherian` (in Mathlib).
+
+**Why "flat + regular = flat quotient" fails in general:**
+The naive approach "if `S` is flat over `R` and `g ∈ S` is a non-zero-divisor,
+then `S/(g)` is flat over `R`" is FALSE. Counterexample: `g = 2` in `S = ℤ[X]`
+gives `ℤ[X]/(2) ≅ 𝔽₂[X]`, which has 2-torsion and is not flat over `ℤ`.
+
+The correct statement requires *universal regularity*: for all ideals `I` of `R`,
+the submodule `I · S ⊆ S` must be `g`-saturated (`g · s ∈ I · S ⟹ s ∈ I · S`).
+For `g = f - X`, this fails when `f` is not a unit modulo `I` (e.g., `I = (f)`).
+The correct proof must go through completions, not universal regularity.
+
+**Unblocking:** Implement TICKET-G2-topo (correct T-topology on Tate algebra,
+adic completion identification).
+-/
 
 end ValuationSpectrum
