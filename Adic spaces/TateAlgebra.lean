@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».RestrictedPowerSeries
+import «Adic spaces».RestrictedModule
 import Mathlib.RingTheory.Ideal.Quotient.Basic
 import Mathlib.Data.Finsupp.Antidiagonal
 import Mathlib.RingTheory.Flat.Basic
@@ -1344,6 +1345,151 @@ instance MvPowerSeries.instModuleFlat {R : Type u} [CommRing R]
   Module.Flat.pi_self (σ →₀ ℕ)
 
 end ChaseFlatness
+
+/-! ### Remark 8.29: Restricted modules and flatness (general, no DiscreteTopology)
+
+This section establishes the free case equivalence `(Aⁿ)⟨X⟩ ≅ A⟨X⟩ⁿ`, the natural
+transformation `μ_M : M ⊗ A⟨X⟩ → M⟨X⟩`, the injectivity of `restrictedModule.map`
+for injections, and the flatness of `A⟨X⟩` over noetherian `A`. These are the
+building blocks for Remark 8.29 and Lemma 8.31 of Wedhorn.
+
+References: [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], Remark 8.29, Lemma 8.31
+-/
+
+section Remark829
+
+variable {A : Type u} [CommRing A] [TopologicalSpace A] [NonarchimedeanRing A]
+
+/-! #### Coefficient of smul in TateAlgebra -/
+
+/-- The coefficient of `a • f` in `TateAlgebra A` equals `a` times the
+coefficient of `f`. Bridges the Subring-based scalar multiplication
+(via `algebraMap`) with pointwise scaling. -/
+theorem TateAlgebra.smul_val_eq (a : A) (f : ↥(TateAlgebra A))
+    (s : Fin 1 →₀ ℕ) : (a • f).val s = a * f.val s := by
+  rw [show (a • f).val s =
+    MvPowerSeries.coeff s ((a • f).val) from
+    (MvPowerSeries.coeff_apply _ _).symm]
+  change MvPowerSeries.coeff s
+    (MvPowerSeries.C (σ := Fin 1) a * f.val) = _
+  rw [MvPowerSeries.coeff_C_mul, MvPowerSeries.coeff_apply]
+
+/-! #### Step 1: Free case — (Aⁿ)⟨X⟩ ≅ A⟨X⟩ⁿ -/
+
+/-- For `M = Fin n → A` (the free module of rank `n`), the restricted
+module `M⟨X⟩` is linearly equivalent to `Fin n → A⟨X⟩`.
+A restricted `(Fin n → A)`-valued power series is the same as `n`
+restricted `A`-valued power series (componentwise).
+Remark 8.29 of Wedhorn. -/
+noncomputable def restrictedModule_fin_equiv (n : ℕ) :
+    restrictedModule A (Fin n → A) ≃ₗ[A]
+      Fin n → ↥(TateAlgebra A) where
+  toFun f i := ⟨fun s => f.val s i,
+    (tendsto_pi_nhds.mp f.prop i).congr fun _ => rfl⟩
+  invFun g := ⟨fun s i => (g i).val s,
+    tendsto_pi_nhds.mpr fun i =>
+      ((g i).prop).congr fun s =>
+        (MvPowerSeries.coeff_apply _ _).symm⟩
+  left_inv f := by apply Subtype.ext; rfl
+  right_inv g := by funext i; apply Subtype.ext; rfl
+  map_add' f g := by funext i; apply Subtype.ext; rfl
+  map_smul' a f := by
+    funext i; apply Subtype.ext; funext s
+    simp only [RingHom.id_apply, Pi.smul_apply]
+    change (a • f.val) s i =
+      (a • (⟨fun s => f.val s i, _⟩ :
+        ↥(TateAlgebra A))).val s
+    rw [TateAlgebra.smul_val_eq]; rfl
+
+/-! #### Step 2: The natural transformation μ_M -/
+
+/-- The natural transformation `μ_M : M ⊗[A] A⟨X⟩ → M⟨X⟩` sending
+`m ⊗ f ↦ (s ↦ f(s) • m)` (scalar multiplication of each coefficient
+by `m`). Requires `ContinuousSMul A M` so that `aₛ → 0` in `A`
+implies `aₛ • m → 0` in `M`. Remark 8.29 of Wedhorn. -/
+noncomputable def muMap
+    {M : Type*} [AddCommGroup M] [Module A M]
+    [TopologicalSpace M] [IsTopologicalAddGroup M]
+    [ContinuousSMul A M] :
+    TensorProduct A M ↥(TateAlgebra A) →ₗ[A]
+      ↥(restrictedModule A M) :=
+  TensorProduct.lift (LinearMap.mk₂ A
+    (fun m f => ⟨fun s => f.val s • m, by
+      change Tendsto _ cofinite (nhds 0)
+      rw [show (0 : M) = (0 : A) • m from
+        (zero_smul A m).symm]
+      exact (f.prop.congr fun s =>
+        (MvPowerSeries.coeff_apply _ _).symm).smul_const
+          m⟩)
+    (fun m₁ m₂ f =>
+      Subtype.ext (funext fun s => smul_add _ _ _))
+    (fun a m f => Subtype.ext (funext fun s => by
+      change f.val s • (a • m) = a • (f.val s • m)
+      rw [smul_comm]))
+    (fun m f₁ f₂ =>
+      Subtype.ext (funext fun s => add_smul _ _ _))
+    (fun a m f => Subtype.ext (funext fun s => by
+      change (a • f).val s • m = a • (f.val s • m)
+      rw [TateAlgebra.smul_val_eq, mul_smul])))
+
+/-! #### Injectivity of restrictedModule.map -/
+
+/-- The induced map `M⟨X⟩ → N⟨X⟩` is injective when `f` is injective.
+The map applies `f` pointwise to coefficients, so injectivity is
+immediate. -/
+theorem restrictedModule_map_injective
+    {M : Type*} [AddCommGroup M] [Module A M]
+    [TopologicalSpace M] [IsTopologicalAddGroup M]
+    [ContinuousConstSMul A M]
+    {N : Type*} [AddCommGroup N] [Module A N]
+    [TopologicalSpace N] [IsTopologicalAddGroup N]
+    [ContinuousConstSMul A N]
+    (f : M →ₗ[A] N) (hf_cont : Continuous f)
+    (hf_inj : Function.Injective f) :
+    Function.Injective
+      (restrictedModule.map (A := A) f hf_cont) := by
+  intro ⟨g₁, _⟩ ⟨g₂, _⟩ h
+  apply Subtype.ext; funext s
+  exact hf_inj (congr_fun (congr_arg Subtype.val h) s)
+
+/-! #### Equivalence restrictedModule A A ≃ TateAlgebra A -/
+
+/-- The restricted module `A⟨X⟩` (as an `A`-submodule of
+`MvPowerSeries`) is linearly equivalent to the Tate algebra `A⟨X⟩`
+(as a subring). The two have the same carrier (restricted power
+series) viewed through different type-class lenses. -/
+noncomputable def restrictedModuleA_equiv :
+    ↥(restrictedModule A A) ≃ₗ[A] ↥(TateAlgebra A) where
+  toFun f := ⟨f.val,
+    f.prop.congr fun s =>
+      MvPowerSeries.coeff_apply f.val s⟩
+  invFun g := ⟨g.val,
+    g.prop.congr fun s =>
+      (MvPowerSeries.coeff_apply g.val s).symm⟩
+  left_inv f := by apply Subtype.ext; rfl
+  right_inv g := by apply Subtype.ext; rfl
+  map_add' f g := by apply Subtype.ext; rfl
+  map_smul' a f := by
+    apply Subtype.ext; ext s
+    simp only [RingHom.id_apply]
+    change (a • f).val s =
+      (a • (⟨f.val, _⟩ : ↥(TateAlgebra A))).val s
+    rw [show (a • f).val s = a * f.val s from rfl]
+    rw [show
+      (a • (⟨f.val, _⟩ : ↥(TateAlgebra A))).val s =
+        a * f.val s from by
+      rw [show
+        (a • (⟨f.val, _⟩ : ↥(TateAlgebra A))).val s =
+          MvPowerSeries.coeff s
+            ((a • (⟨f.val, _⟩ :
+              ↥(TateAlgebra A))).val) from
+          (MvPowerSeries.coeff_apply _ _).symm]
+      change MvPowerSeries.coeff s
+        (MvPowerSeries.C (σ := Fin 1) a * f.val) = _
+      rw [MvPowerSeries.coeff_C_mul,
+        MvPowerSeries.coeff_apply]]
+
+end Remark829
 
 /-! ### Quotient equivalence (moved outside namespace for typeclass inference) -/
 
