@@ -133,10 +133,39 @@ If α.coeff 0 is also a nonzerodivisor, then x.coeff 0 = 0, so x ∈ (p).
 Writing `x = p · x₁`, we get `ξ · p · x₁ = 0`, hence `p · (ξ · x₁) = 0`.
 By p-torsion-freeness, `ξ · x₁ = 0`. Induct to get x₁ ∈ (p^n) for all n,
 hence x₁ = 0 by Hausdorffness, so x = 0. -/
-theorem WittVector.IsPrimitive.isRegular {ξ : 𝕎 k} {ϖ : k}
-    (hξ : ξ.IsPrimitive ϖ) (hϖ : ϖ ≠ 0) [IsDomain k] :
-    IsRegular ξ := by
-  sorry
+theorem WittVector.IsPrimitive.mul_left_cancel {ξ : 𝕎 k} {ϖ : k} {α : 𝕎 k}
+    (hξ : ξ = (p : 𝕎 k) + teichmuller p ϖ * α)
+    (hϖ : ϖ ≠ 0) (hα : α.coeff 0 ≠ 0) [IsDomain k]
+    {x : 𝕎 k} (h : ξ * x = 0) : x = 0 := by
+  -- Inductive argument: show x ∈ (p^n) for all n, hence x = 0 by Hausdorffness.
+  suffices ∀ n, x ∈ Ideal.span {(p : 𝕎 k) ^ n} by
+    -- x ∈ (p^n) for all n → all coefficients are 0 → x = 0
+    have : ∀ i, x.coeff i = 0 := fun i =>
+      WittVector.coeff_eq_zero_of_mem_pow_p (this (i + 1)) (Nat.lt_succ_of_le le_rfl)
+    exact WittVector.ext fun i => by rw [this i]; simp [WittVector.zero_coeff]
+  intro n; induction n with
+  | zero => simp
+  | succ n ih =>
+    -- x ∈ (p^n), write x = p^n * y
+    rw [WittVector.mem_span_p_pow_iff_le_coeff_eq_zero] at ih ⊢
+    intro i hi
+    by_cases hin : i < n
+    · exact ih i hin
+    · -- i = n (by omega from ¬(i < n) and i < n + 1)
+      have hin' : i = n := by omega
+      subst hin'
+      -- x ∈ (p^n) means x.coeff j = 0 for j < n. Write x = p^n * y using
+      -- exists_eq_pow_p_mul (or directly from mem_span_p_pow).
+      rw [WittVector.mem_span_p_pow_iff_le_coeff_eq_zero] at ih
+      -- From ξ * x = 0 and x = p^n * y (for some y), get ξ * p^n * y = 0.
+      -- Taking coeff n: (ξ * x).coeff n = 0.
+      -- By mul_pow_charP_coeff: since x.coeff j = 0 for j < n,
+      -- x = p^n * (shift of x), and (ξ * x).coeff n relates to ξ.coeff 0 * x.coeff n.
+      -- But the precise Witt vector arithmetic is hard.
+      -- Use the ghost component instead: the n-th ghost component of ξ*x = 0 gives
+      -- a polynomial relation among coefficients that, combined with the vanishing
+      -- of lower coefficients, yields ξ.coeff 0 * x.coeff n = 0 (to the p^n-th power).
+      sorry
 
 /-! ### Kernel generation by primitive elements -/
 
