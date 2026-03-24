@@ -431,26 +431,21 @@ where
         --   (WittVectorPrimitive.lean)
         --   fontaineTheta_teichmuller, mk_untilt_eq_coeff_zero,
         --   Perfection.coeff_surjective (Mathlib)
-        -- Step 1: Extract nonzero element with coeff 0 ≠ 0 from kernel.
+        -- Step 1: Find a kernel element with coeff 0 ≠ 0.
+        -- First extract any nonzero element.
         have hex : ∃ x ∈ RingHom.ker (theta p A), x ≠ (0 : Ainf p A) := by
           by_contra h; push_neg at h
           exact hker ((Submodule.eq_bot_iff _).mpr fun x hx => h x hx)
-        obtain ⟨xi_raw, hxi_raw_mem, hxi_raw_ne⟩ := hex
-        -- Reduce p-adic valuation: write xi_raw = p^m * xi₁ with xi₁.coeff 0 ≠ 0.
-        obtain ⟨m, xi₁, hxi₁_c0, hxi_raw_eq⟩ :=
-          WittVector.exists_eq_pow_p_mul xi_raw hxi_raw_ne
-        -- xi₁ ∈ ker(θ): from p^m * θ(xi₁) = θ(xi_raw) = 0.
-        -- If m = 0: xi₁ = xi_raw ∈ ker(θ). If m > 0: need p-torsion argument.
-        have hxi₁_mem : xi₁ ∈ RingHom.ker (theta p A) := by
-          rw [RingHom.mem_ker]
-          rw [RingHom.mem_ker] at hxi_raw_mem
-          have := congr_arg (PerfectoidRing.theta p A) hxi_raw_eq
-          simp only [map_mul, map_pow, map_natCast, hxi_raw_mem] at this
-          -- this : (p : A°)^m * θ(xi₁) = 0
-          -- Need: θ(xi₁) = 0. This requires p^m to be a non-zerodivisor in A°.
-          -- For m = 0: 1 * θ(xi₁) = 0, so θ(xi₁) = 0. ✓
-          -- For m > 0: need p non-zerodivisor in A° (true for fields, hard in general).
-          sorry
+        -- Find one with coeff 0 ≠ 0 using exists_eq_pow_p_mul and iteration.
+        -- Every nonzero x = p^m * b with b.coeff 0 ≠ 0. For the SMALLEST m
+        -- among all nonzero kernel elements, if m = 0 we're done. If m > 0,
+        -- then p * (p^{m-1} * b) = 0 in ker(θ), and we need p cancellable.
+        -- This requires the kernel of θ to not be entirely contained in (p).
+        -- For general perfectoid rings, this is part of the Berkeley construction.
+        have hex0 : ∃ xi₁ ∈ RingHom.ker (theta p A), xi₁.coeff 0 ≠ 0 := by
+          sorry -- Needs: either explicit primitive element construction, or
+          -- the argument that ker(θ) ⊄ (p) (which uses the structure of θ mod p)
+        obtain ⟨xi₁, hxi₁_mem, hxi₁_c0⟩ := hex0
         -- Step 2: Use xi₁ (with xi₁.coeff 0 ≠ 0) as the generator.
         refine ⟨xi₁, hxi₁_mem, ?_⟩
         apply WittVector.ker_of_primitive_and_division (PerfectoidRing.theta p A) hxi₁_mem
