@@ -39,6 +39,7 @@ import «Adic spaces».StructureSheaf
 import «Adic spaces».TateAcyclicity
 import «Adic spaces».TateAlgebra
 import «Adic spaces».TateAlgebraTopology
+import «Adic spaces».TateAlgebraWedhorn
 import «Adic spaces».Tilting
 import «Adic spaces».Uniform
 import «Adic spaces».UniformBanach
