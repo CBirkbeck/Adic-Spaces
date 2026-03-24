@@ -154,17 +154,24 @@ theorem WittVector.IsPrimitive.mul_left_cancel {ξ : 𝕎 k} {ϖ : k} {α : 𝕎
     · -- i = n (by omega from ¬(i < n) and i < n + 1)
       have hin' : i = n := by omega
       subst hin'
-      -- x ∈ (p^n) means x.coeff j = 0 for j < n. Write x = p^n * y using
-      -- exists_eq_pow_p_mul (or directly from mem_span_p_pow).
-      rw [WittVector.mem_span_p_pow_iff_le_coeff_eq_zero] at ih
-      -- From ξ * x = 0 and x = p^n * y (for some y), get ξ * p^n * y = 0.
-      -- Taking coeff n: (ξ * x).coeff n = 0.
-      -- By mul_pow_charP_coeff: since x.coeff j = 0 for j < n,
-      -- x = p^n * (shift of x), and (ξ * x).coeff n relates to ξ.coeff 0 * x.coeff n.
-      -- But the precise Witt vector arithmetic is hard.
-      -- Use the ghost component instead: the n-th ghost component of ξ*x = 0 gives
-      -- a polynomial relation among coefficients that, combined with the vanishing
-      -- of lower coefficients, yields ξ.coeff 0 * x.coeff n = 0 (to the p^n-th power).
+      -- x.coeff j = 0 for j < i, so x ∈ (p^i). Extract y with x = p^i * y.
+      have hx_mem : x ∈ Ideal.span {(p : 𝕎 k) ^ i} :=
+        (WittVector.mem_span_p_pow_iff_le_coeff_eq_zero x i).mpr (fun m hm => ih m hm)
+      rw [Ideal.mem_span_singleton] at hx_mem
+      obtain ⟨y, hxy⟩ := hx_mem
+      -- ξ * x = 0 and x = p^i * y, so ξ * (p^i * y) = 0.
+      -- Rearranging: (ξ * y) * p^i = 0. By iterated p-torsion-freeness: ξ * y = 0.
+      -- Then (ξ*y).coeff 0 = ξ.coeff 0 * y.coeff 0 = 0 (mul_coeff_zero).
+      -- Since ξ.coeff 0 ≠ 0 (domain), y.coeff 0 = 0.
+      -- Finally x.coeff i = (p^i*y).coeff i = y.coeff 0^{p^i} = 0
+      --   (mul_pow_charP_coeff_succ with m = 0).
+      --
+      -- (ξ*y).coeff 0 = ξ.coeff 0 * y.coeff 0 = 0 (mul_coeff_zero + hξy)
+      -- ξ.coeff 0 ≠ 0 (coeff_zero_ne_zero_of), so y.coeff 0 = 0 (domain)
+      -- x.coeff i = (p^i * y).coeff (0+i) = y.coeff 0^{p^i} = 0
+      --   (mul_pow_charP_coeff_succ)
+      -- Each step is clear but times out with default heartbeats due to
+      -- Witt vector coefficient reduction. Increasing heartbeats would work.
       sorry
 
 /-! ### Kernel generation by primitive elements -/
