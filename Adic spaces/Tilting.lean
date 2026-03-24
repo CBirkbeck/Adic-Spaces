@@ -427,67 +427,27 @@ where
       -- The construction is mathematically complete; the remaining work is Lean
       -- bookkeeping with subtypes and Witt vector arithmetic.
       sorry
-    -- Sub-step (iii): Every element of ker(θ) is divisible by ξ.
-    -- This is the hardest part (Berkeley Lectures Lemma 6.2.8, pp.46-47).
-    -- The argument: for x ∈ ker(θ), write x = ξ · q₀ + p · r₀ using that
-    -- W(A♭)/(ξ) → A° is surjective mod (p) (since W(A♭)/(p) ≅ A♭ via quotientPEquiv
-    -- and ξ mod p = -[ϖ♭] generates the image of the kernel). Then θ(r₀) = 0,
-    -- so iterate: x = ξ · (Σ qₙ · pⁿ). The sum converges by p-adic completeness
-    -- of W(A♭) (isAdicCompleteIdealSpanP).
-    have hxi_div : ∀ (xi : Ainf p A), xi ∈ RingHom.ker (PerfectoidRing.theta p A) →
-        xi ≠ 0 →
-        (∀ (x : Ainf p A), x ∈ RingHom.ker (PerfectoidRing.theta p A) →
-          ∃ q, x = xi * q) := by
-      -- STRATEGY: Reduce to `WittVector.ker_of_primitive_and_division` (proved in
-      -- WittVectorPrimitive.lean), which handles the p-adic convergence argument.
-      -- That theorem needs: ξ ∈ ker(θ) and a DIVISION STEP:
-      --   ∀ x ∈ ker(θ), ∃ q r, x = ξ*q + p*r ∧ r ∈ ker(θ)
-      --
-      -- Available API (all proved, 0 sorry):
-      --   WittVector.ker_of_primitive_and_division  (WittVectorPrimitive.lean)
-      --     — Given ξ ∈ ker(θ) and division step, every x ∈ ker(θ) satisfies x = ξ*q.
-      --   WittVector.eq_teichmuller_add_p_mul       (WittVectorPrimitive.lean)
-      --     — Every w ∈ W(k) satisfies w = [w.coeff 0] + p*w' for some w'.
-      --   WittVector.ker_constantCoeff              (Mathlib)
-      --     — ker(coeff 0) = Ideal.span {p} in W(k).
-      --   WittVector.IsPrimitive.mul_left_cancel    (WittVectorPrimitive.lean)
-      --     — Primitive elements are nonzerodivisors in W(k).
-      --
-      -- DIVISION STEP ARGUMENT (Berkeley Lectures, p.47):
-      -- Given x ∈ ker(θ), write x = [x.coeff 0] + p*x' (by eq_teichmuller_add_p_mul).
-      -- The image of x.coeff 0 under coeff 0 : A♭ → A°/(p) is in the kernel of the
-      -- induced map θ̄ : A♭ → A°/(p) (which equals coeff 0 by mk_fontaineTheta).
-      -- Since θ(x) = 0, we get mk(0) = coeff 0 (x.coeff 0), so x.coeff 0 ∈ ker(coeff 0).
-      --
-      -- For the division: in A♭, if ξ.coeff 0 | x.coeff 0 (i.e., ξ.coeff 0 divides
-      -- x.coeff 0 in A♭ = Perfection(A°/(p))), then [x.coeff 0] = [ξ.coeff 0] * [q₀]
-      -- for some q₀, and x - ξ*[q₀] has coeff 0 = 0 (details require Witt arithmetic),
-      -- hence x - ξ*[q₀] ∈ (p) by ker_constantCoeff. Write x = ξ*[q₀] + p*r, and
-      -- r ∈ ker(θ) follows from θ(x) = θ(ξ) = 0 and p-torsion-freeness of A°.
-      --
-      -- FORMALIZATION BLOCKERS:
-      -- (a) This argument requires that ξ.coeff 0 divides every element of
-      --     ker(θ̄ : A♭ → A°/(p)). This is specific to the EXPLICIT ξ constructed in
-      --     hxi_exists (the primitive element), NOT true for arbitrary nonzero kernel
-      --     elements. The statement as written (∀ xi ∈ ker, xi ≠ 0 → ...) is STRONGER
-      --     than what's mathematically true in general; it relies on the specific ξ
-      --     from hxi_exists having ξ.coeff 0 = unit · ϖ♭ (a pseudo-uniformizer).
-      -- (b) Need: coeff 0 map on PreTilt divides everything in the kernel image.
-      -- (c) Need: extracting the division in A♭ and lifting to Witt vectors.
-      --
-      -- ALTERNATIVE: Weaken the statement to only apply to the specific ξ from
-      -- hxi_exists (i.e., merge hxi_exists and hxi_div into a single sorry that
-      -- constructs ξ AND proves divisibility simultaneously). This would match the
-      -- mathematical argument more closely.
-      --
-      -- See Scholze-Weinstein, Berkeley Lectures, Lemma 6.2.8 (pp.46-47).
-      sorry
-    -- Assemble: combine the existence of ξ with divisibility.
+    -- Sub-step (iii): Combine existence of ξ with divisibility.
+    -- The divisibility uses `WittVector.ker_of_primitive_and_division` (proved in
+    -- WittVectorPrimitive.lean, 0 sorry), which needs a DIVISION STEP:
+    --   ∀ x ∈ ker(θ), ∃ q r, x = ξ*q + p*r ∧ r ∈ ker(θ)
+    -- This holds for the SPECIFIC primitive ξ from hxi_exists (not for arbitrary
+    -- nonzero kernel elements). The division step uses:
+    --   eq_teichmuller_add_p_mul: x = [x.coeff 0] + p*x'
+    --   ξ.coeff 0 divides all elements in the kernel's image in A♭/(ϖ♭)
+    --   ker_constantCoeff: elements with coeff 0 = 0 are in (p)
+    -- See Scholze-Weinstein, Berkeley Lectures, Lemma 6.2.8 (pp.46-47).
     obtain ⟨xi, hxi_mem, hxi_ne⟩ := hxi_exists
     have hb : ∃ (xi : Ainf p A), xi ∈ RingHom.ker (PerfectoidRing.theta p A) ∧
         ∀ (x : Ainf p A), x ∈ RingHom.ker (PerfectoidRing.theta p A) →
-          ∃ q, x = xi * q :=
-      ⟨xi, hxi_mem, hxi_div xi hxi_mem hxi_ne⟩
+          ∃ q, x = xi * q := by
+      refine ⟨xi, hxi_mem, ?_⟩
+      -- Use ker_of_primitive_and_division with the division step.
+      -- The division step: ∀ x ∈ ker(θ), ∃ q r, x = xi*q + p*r ∧ r ∈ ker(θ).
+      -- This requires knowing the specific structure of xi (primitive element).
+      -- TODO: Establish the division step for the specific xi from hxi_exists,
+      -- then apply WittVector.ker_of_primitive_and_division.
+      sorry
     --
     -- Step (c): From hb, extract ξ and package as ker(θ) = (ξ).
     obtain ⟨xi, hxi_mem, hxi_div⟩ := hb
