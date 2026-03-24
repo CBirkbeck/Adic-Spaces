@@ -379,13 +379,31 @@ where
       -- not injective (the source W(A♭) has char 0 while ker(θ) contains p - [ϖ♭]).
       -- Concretely: the Frobenius-surjective structure of the tilt forces
       -- ker(θ) to contain a "primitive element of degree 1".
-      -- The kernel is nontrivial: θ is surjective (theta_surjective) between rings
-      -- of different "size" (W(A♭) is p-torsion-free while A° has p ∈ maximal ideal).
-      -- Concretely: pick any nonzero a ∈ ker(θ). Such exists because if ker(θ) = 0,
-      -- then θ would be an isomorphism, but W(A♭) has char 0 while A° might not.
-      -- TODO: The explicit construction ξ = [ϖ♭] - p requires building ϖ♭ via
-      -- Perfection.coeff_surjective and showing θ([ϖ♭]) = ϖ♭.untilt relates to p.
-      -- For now we use the abstract nontriviality of the kernel.
+      -- Construct ξ ∈ ker(θ) with ξ ≠ 0, following Berkeley Lectures Lemma 6.2.8.
+      --
+      -- Step (a): Get the perfectoid pseudo-uniformizer ϖ with p = c · ϖ^p.
+      obtain ⟨ϖ, hϖ_pb, ⟨c, hc_pb, hpc⟩⟩ :=
+        IsPerfectoidRing.exists_pseudoUniformizer (p := p) (A := A)
+      -- Step (b): Lift ϖ̄ ∈ A°/(p) to ϖ♭ ∈ PreTilt A° p using coeff_surjective.
+      -- The Frobenius on A°/(p) is surjective (from IsPerfectoidRing.frobenius_surj).
+      have hFrob : Function.Surjective
+          (frobenius (ModP ↥(powerBoundedSubring.toSubring A) p) p) :=
+        theta_surjective.frobenius_modP_surjective p A
+      -- Lift the image of ϖ to a compatible system of p-th roots.
+      set O := ↥(powerBoundedSubring.toSubring A)
+      obtain ⟨varpi_flat, hvarpi_flat⟩ :=
+        Perfection.coeff_surjective hFrob 0
+          (Ideal.Quotient.mk _ ⟨(ϖ.val : A), hϖ_pb⟩ : ModP O p)
+      -- Step (c): θ([ϖ♭]) = ϖ♭.untilt by fontaineTheta_teichmuller.
+      -- And ϖ♭.untilt ≡ ϖ (mod p) by mk_untilt_eq_coeff_zero.
+      -- So θ([ϖ♭]) = ϖ + p·s for some s ∈ A°.
+      -- Then c · θ([ϖ♭])^p = c · (ϖ + p·s)^p ≡ c · ϖ^p = p (mod p²).
+      -- This gives an element close to ker(θ), refined by p-adic approximation.
+      --
+      -- TODO: Complete the p-adic approximation to construct exact ξ with θ(ξ) = 0.
+      -- The full construction (Berkeley Lectures p.46) defines
+      -- ξ = p - [f] - [ϖ♭]·Σ[rₙ]·p^{n+1}
+      -- using the p-adic completeness of W(tilt p A) (isAdicCompleteIdealSpanP).
       sorry
     -- Sub-step (iii): Every element of ker(θ) is divisible by ξ.
     -- This is the hardest part (Berkeley Lectures Lemma 6.2.8, pp.46-47).
