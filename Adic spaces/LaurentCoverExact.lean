@@ -28,6 +28,16 @@ For `[DiscreteTopology A]`:
 
 This is the standard Čech complex for the cover `Spec A = D(f) ∪ Spec A`.
 
+## General (non-discrete) case
+
+For `[IsDomain A] [IsNoetherianRing A]` without `[DiscreteTopology A]`:
+- `B₁` and `B₂` are defined as the same quotient rings (these are purely algebraic).
+- The diagonal map `ε : A → B₁ × B₂` is injective when `f` is not a unit, via the
+  Krull intersection theorem for domains: the coefficient recurrence from
+  `(f - X) · c = algebraMap a` forces `a ∈ ⋂ₙ (f)ⁿ = 0`.
+- Both quotients `B₁` and `B₂` are flat over `A` (from `flat_quotient_fSubX_general`
+  and `flat_quotient_oneSubfX_general` in `TateAlgebra.lean`).
+
 ## References
 
 * [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], Lemma 8.33
@@ -190,5 +200,144 @@ theorem laurentCover_exact (f : A) :
    ker_deltaMap_le_range_epsilonHom f⟩
 
 end Discrete
+
+/-! ### General (non-discrete) case: algebraic exactness via Krull intersection
+
+For a noetherian domain `A` (without `[DiscreteTopology A]`), the quotient rings
+`B₁ = A⟨X⟩/(f-X)` and `B₂ = A⟨X⟩/(1-fX)` are defined identically to the discrete
+case. The key new result is the injectivity of the diagonal embedding `ε : A → B₁ × B₂`
+for non-unit `f`, proved via the Krull intersection theorem.
+
+The delta map and full exactness in the non-discrete case require completing these
+quotients with respect to the T-topology (Wedhorn, Definition 8.27), which belongs
+to the completed presheaf theory. Here we establish the algebraic ingredients. -/
+
+section General
+
+variable [IsNoetherianRing A] [IsDomain A]
+
+/-- `B₁` for the general (non-discrete) case: the quotient `A⟨X⟩/(f-X)`.
+This is the same type as the discrete `B₁`, but without requiring `[DiscreteTopology A]`. -/
+noncomputable abbrev B₁_gen (f : A) :=
+  ↥(TateAlgebra A) ⧸ Ideal.span {algebraMap A ↥(TateAlgebra A) f - TateAlgebra.X}
+
+/-- `B₂` for the general (non-discrete) case: the quotient `A⟨X⟩/(1-fX)`.
+This is the same type as the discrete `B₂`, but without requiring `[DiscreteTopology A]`. -/
+noncomputable abbrev B₂_gen (f : A) :=
+  ↥(TateAlgebra A) ⧸ Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * TateAlgebra.X}
+
+/-- The diagonal map `ε : A → B₁ × B₂` (general case, no `[DiscreteTopology A]`). -/
+noncomputable def epsilonHom_gen (f : A) : A →+* B₁_gen f × B₂_gen f :=
+  RingHom.prod
+    ((Ideal.Quotient.mk _).comp (algebraMap A ↥(TateAlgebra A)))
+    ((Ideal.Quotient.mk _).comp (algebraMap A ↥(TateAlgebra A)))
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- The 0-th coefficient of a constant series equals the constant. -/
+private theorem coeff_zero_algebraMap (a : A) :
+    TateAlgebra.coeff 0 (algebraMap A ↥(TateAlgebra A) a) = a := by
+  simp only [TateAlgebra.coeff, TateAlgebra.toIndex_zero]; norm_cast
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- Higher coefficients of a constant series vanish. -/
+private theorem coeff_succ_algebraMap (a : A) (n : ℕ) :
+    TateAlgebra.coeff (n + 1) (algebraMap A ↥(TateAlgebra A) a) = 0 := by
+  simp only [TateAlgebra.coeff, TateAlgebra.toIndex]
+  change MvPowerSeries.coeff (Finsupp.single 0 (n + 1)) (algebraMap A _ a) = 0
+  rw [MvPowerSeries.algebraMap_apply, MvPowerSeries.coeff_C]
+  exact if_neg (Finsupp.single_ne_zero.mpr (Nat.succ_ne_zero n))
+
+/-- If a constant `algebraMap a` lies in `Ideal.span {f - X}` and `f` is not a unit
+in a noetherian domain, then `a = 0`.
+
+The proof extracts the coefficient recurrence from `(f - X) · c = algebraMap a`:
+- Constant term: `f · coeff 0 c = a`
+- Higher terms: `coeff n c = f · coeff (n + 1) c` for all `n`
+
+This yields `a = f^(n+1) · coeff n c`, hence `a ∈ (f)^n` for all `n`. Since `f`
+is not a unit in a noetherian domain, the Krull intersection theorem
+(`Ideal.iInf_pow_eq_bot_of_isDomain`) gives `a ∈ ⋂ₙ (f)ⁿ = 0`. -/
+theorem algebraMap_mem_span_fSubX_eq_zero (f : A) (hf : ¬IsUnit f) (a : A)
+    (h : algebraMap A ↥(TateAlgebra A) a ∈
+      Ideal.span {algebraMap A ↥(TateAlgebra A) f - TateAlgebra.X}) : a = 0 := by
+  rw [Ideal.mem_span_singleton'] at h
+  obtain ⟨c, hc⟩ := h
+  -- Rewrite with (f - X) on the left
+  have hc' : (algebraMap A ↥(TateAlgebra A) f - TateAlgebra.X) * c =
+      algebraMap A _ a := by rw [mul_comm]; exact hc
+  -- Coefficient equations from (f - X) * c = algebraMap a
+  have hcoeff_eq : ∀ n,
+      f * TateAlgebra.coeff n c - TateAlgebra.coeff n (TateAlgebra.X * c) =
+      TateAlgebra.coeff n (algebraMap A ↥(TateAlgebra A) a) := by
+    intro n; have := congr_arg (TateAlgebra.coeff n) hc'
+    rw [sub_mul, TateAlgebra.coeff_sub, TateAlgebra.coeff_algebraMap_mul] at this
+    exact this
+  -- Constant coefficient: f * coeff 0 c = a
+  have h0 : f * TateAlgebra.coeff 0 c = a := by
+    have := hcoeff_eq 0
+    rw [TateAlgebra.coeff_zero_X_mul, sub_zero, coeff_zero_algebraMap] at this
+    exact this
+  -- Recurrence: coeff n c = f * coeff (n + 1) c
+  have hstep : ∀ n,
+      TateAlgebra.coeff n c = f * TateAlgebra.coeff (n + 1) c := by
+    intro n; have h1 := hcoeff_eq (n + 1)
+    rw [TateAlgebra.coeff_succ_X_mul, coeff_succ_algebraMap] at h1
+    exact (sub_eq_zero.mp h1).symm
+  -- Power relation: coeff 0 c = f^n * coeff n c
+  have hpow : ∀ n,
+      TateAlgebra.coeff 0 c = f ^ n * TateAlgebra.coeff n c := by
+    intro n; induction n with
+    | zero => simp
+    | succ n ih => rw [ih, hstep n, pow_succ, mul_assoc]
+  -- a ∈ (f)^n for all n
+  have ha_mem : ∀ n, a ∈ Ideal.span {f} ^ n := by
+    intro n; cases n with
+    | zero => simp [Ideal.one_eq_top]
+    | succ n =>
+      have : a = f ^ (n + 1) * TateAlgebra.coeff n c := by
+        rw [← h0, hpow n]; ring
+      rw [this]
+      exact Ideal.mul_mem_right _ _
+        (Ideal.pow_mem_pow (Ideal.mem_span_singleton_self f) (n + 1))
+  -- Krull intersection: ⋂_n (f)^n = 0 in a noetherian domain with (f) ≠ ⊤
+  have hf_ne_top : Ideal.span ({f} : Set A) ≠ ⊤ := by
+    rwa [Ne, Ideal.span_singleton_eq_top]
+  exact Ideal.mem_bot.mp
+    (Ideal.iInf_pow_eq_bot_of_isDomain _ hf_ne_top ▸ Ideal.mem_iInf.mpr ha_mem)
+
+/-- **`ε` is injective (general case, Wedhorn Lemma 8.33 without `[DiscreteTopology A]`).**
+
+For a noetherian domain `A` and non-unit `f`, the diagonal embedding
+`ε : A → B₁(f) × B₂(f)` is injective. The proof uses the first projection:
+if `ε(a) = ε(b)` then `algebraMap(a - b) ∈ (f - X)`, and the Krull intersection
+theorem forces `a - b = 0`. -/
+theorem epsilonHom_gen_injective (f : A) (hf : ¬IsUnit f) :
+    Function.Injective (epsilonHom_gen f) := by
+  intro a b hab
+  have h1 := (Prod.mk.inj hab).1
+  simp only [RingHom.comp_apply] at h1
+  have hmem : algebraMap A ↥(TateAlgebra A) (a - b) ∈
+      Ideal.span {algebraMap A ↥(TateAlgebra A) f - TateAlgebra.X} := by
+    rw [map_sub]; exact Ideal.Quotient.eq.mp h1
+  exact sub_eq_zero.mp (algebraMap_mem_span_fSubX_eq_zero f hf (a - b) hmem)
+
+omit [IsDomain A] in
+/-- Multiplication by `f - X` is injective on `A⟨X⟩` (general case, no topology needed
+beyond `[IsNoetherianRing A]`). This is `TateAlgebra.mul_fSubX_regular`, re-exported
+here for convenience. -/
+theorem fSubX_regular (f : A) :
+    ∀ x : ↥(TateAlgebra A),
+      (algebraMap A _ f - TateAlgebra.X) * x = 0 → x = 0 :=
+  TateAlgebra.mul_fSubX_regular f
+
+omit [IsDomain A] in
+/-- Multiplication by `1 - fX` is injective on `A⟨X⟩` (general case). This is
+`TateAlgebra.mul_oneSubfX_regular`, re-exported here for convenience. -/
+theorem oneSubfX_regular (f : A) :
+    ∀ x : ↥(TateAlgebra A),
+      (1 - algebraMap A _ f * TateAlgebra.X) * x = 0 → x = 0 :=
+  TateAlgebra.mul_oneSubfX_regular f
+
+end General
 
 end LaurentCover
