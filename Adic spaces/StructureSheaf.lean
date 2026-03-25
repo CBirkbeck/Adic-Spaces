@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import «Adic spaces».Presheaf
 import «Adic spaces».CompleteTopCommRingCat
 import «Adic spaces».Lemma745
+import «Adic spaces».TopologyComparison
 import Mathlib.Topology.Sheaves.LocalPredicate
 import Mathlib.Topology.Sheaves.Forget
 import Mathlib.Topology.Sheaves.Stalks
@@ -908,15 +909,12 @@ theorem separation_ofStronglyNoetherianTate
       have h0 := hb_zero D hD
       -- canonicalMap = coeRingHom ∘ algebraMap
       change D.coeRingHom (algebraMap A (Localization.Away D.s) b) = 0 at h0
-      -- In the T0 completion, coeRingHom(x) = 0 means x is in ⋂_n locNhd(n).
-      -- For noetherian localizations: Krull intersection gives ⋂_n I^n = 0,
-      -- so algebraMap(b) = 0 in Localization.Away D.s.
-      -- Then by localization: ∃ k, D.s^k * b = 0.
-      --
-      -- This step requires the identification of the localization topology
-      -- with an I-adic topology + Krull intersection for noetherian rings.
-      -- See TICKET-G2-topo.
-      sorry
+      -- The localization topology is T₀ (Krull intersection for noetherian
+      -- rings of definition). TODO: prove T0Space from IsTateRing hypotheses.
+      have ht0 : @T0Space (Localization.Away D.s)
+          (@UniformSpace.toTopologicalSpace _ D.uniformSpace) := by
+        sorry -- T0Space of localization: needs Krull intersection on locSubring
+      exact exists_pow_mul_eq_zero_of_coeRingHom_zero D b ht0 h0
     -- Apply the Spa-point radical argument.
     -- For open primes, the trivial valuation construction
     -- (exists_spa_point_in_rationalOpen_of_isOpen_prime) gives Spa points

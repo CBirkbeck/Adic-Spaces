@@ -73,20 +73,45 @@ NOT the product topology. With the product topology, the condition would
 be `b ∈ U` (no `s^k` factor), which is weaker and doesn't match.
 -/
 
--- TODO: Implement the continuity proof.
--- This requires connecting locNhd to the T-topology quotient neighborhoods,
--- which involves the Artin-Rees comparison on the ring of definition D.
+/-! ### Bridge lemma: T₀ localization → annihilation by powers of s
 
-/-! ### Step 2: Extension to completion
+For sorry-elimination in StructureSheaf.lean: if the localization topology
+is T₀ and `coeRingHom(algebraMap b) = 0`, then `∃ k, s^k * b = 0`.
+This reduces deep sorries to a single clean T₀ hypothesis. -/
+
+omit [PlusSubring A] [HasRestrictionMaps A] [NonarchimedeanRing A] in
+/-- If the localization topology on `Localization.Away D.s` is T₀, then
+`D.coeRingHom (algebraMap b) = 0` implies `∃ k, D.s ^ k * b = 0`.
+
+Uses injectivity of the completion embedding for T₀ uniform spaces
+(`UniformSpace.Completion.coe_injective`) and the localization
+characterization (`IsLocalization.map_eq_zero_iff`). -/
+theorem exists_pow_mul_eq_zero_of_coeRingHom_zero (D : RationalLocData A) (b : A)
+    (ht0 : @T0Space (Localization.Away D.s)
+      (@UniformSpace.toTopologicalSpace _ D.uniformSpace))
+    (h : D.coeRingHom (algebraMap A (Localization.Away D.s) b) = 0) :
+    ∃ k : ℕ, D.s ^ k * b = 0 := by
+  have hinj : Function.Injective D.coeRingHom :=
+    @UniformSpace.Completion.coe_injective _ D.uniformSpace ht0
+  have hab : algebraMap A (Localization.Away D.s) b = 0 :=
+    hinj (h.trans (map_zero D.coeRingHom).symm)
+  rw [IsLocalization.map_eq_zero_iff (Submonoid.powers D.s)] at hab
+  obtain ⟨⟨_, ⟨k, rfl⟩⟩, hk⟩ := hab
+  exact ⟨k, hk⟩
+
+/-! ### Step 1 (TODO): Continuity of locToQuotientOneSubfX_gen
+
+The continuity proof requires connecting locNhd to the T-topology
+quotient neighborhoods via the Artin-Rees comparison. See the docstring
+above for the proof sketch. -/
+
+/-! ### Step 2 (TODO): Extension to completion
 
 Once continuity is established, `extensionHom` gives:
 `presheafValueToQuotient : presheafValue D →+* A⟨X⟩/(1-sX)`
 
 And the composition with `tateQuotientToPresheafHom` is the identity
-on both sides (by the round-trip + T₂ uniqueness).
--/
-
--- TODO: Build the inverse map and the isomorphism.
+on both sides (by the round-trip + T₂ uniqueness). -/
 
 end CompletionIsomorphism
 
