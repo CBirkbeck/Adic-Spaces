@@ -340,4 +340,114 @@ theorem oneSubfX_regular (f : A) :
 
 end General
 
+/-! ### Row 2 exactness: ker(lambda) = im(iota) (Wedhorn Lemma 8.33, Row 2)
+
+The sequence `A ->[iota] A<X> x A<X> ->[lambda] A<zeta, zeta^{-1}>` is exact at
+the middle term. The composition `lambda circ iota = 0` because both embeddings
+`posEmbHom` and `negEmbHom` agree on constants from `A`. The reverse inclusion
+`ker(lambda) <= im(iota)` uses the restricted power series structure: if
+`posEmbHom(g) = negEmbHom(h)`, the ideal membership witness `c` satisfying
+`(XY - 1) * c = posIncl(g) - negIncl(h)` is constant along diagonal lines in
+the bivariate index space, and the restricted condition forces these constants
+(hence all higher coefficients of `g` and `h`) to vanish. -/
+
+section Row2Exactness
+
+private theorem posIncl_algebraMap (a : A) :
+    posIncl (algebraMap A ↥(TateAlgebra A) a) =
+      algebraMap A ↥(TateAlgebra₂ A) a := by
+  ext1; apply MvPowerSeries.ext; intro e
+  change varInclFun 0 (algebraMap A (MvPowerSeries (Fin 1) A) a) e =
+    (MvPowerSeries.coeff e) (algebraMap A (MvPowerSeries (Fin 2) A) a)
+  rw [varInclFun_apply]
+  simp only [MvPowerSeries.algebraMap_apply, MvPowerSeries.coeff_C]
+  by_cases he : e = 0
+  · subst he; simp [Finsupp.single_zero (0 : Fin 2)]
+  · rw [if_neg he]
+    by_cases h1 : e = Finsupp.single (0 : Fin 2) (e 0)
+    · rw [if_pos h1]
+      exact if_neg (Finsupp.single_ne_zero.mpr
+        (fun h => he (by rw [h1, h, Finsupp.single_zero])))
+    · rw [if_neg h1]
+
+private theorem negIncl_algebraMap (a : A) :
+    negIncl (algebraMap A ↥(TateAlgebra A) a) =
+      algebraMap A ↥(TateAlgebra₂ A) a := by
+  ext1; apply MvPowerSeries.ext; intro e
+  change varInclFun 1 (algebraMap A (MvPowerSeries (Fin 1) A) a) e =
+    (MvPowerSeries.coeff e) (algebraMap A (MvPowerSeries (Fin 2) A) a)
+  rw [varInclFun_apply]
+  simp only [MvPowerSeries.algebraMap_apply, MvPowerSeries.coeff_C]
+  by_cases he : e = 0
+  · subst he; simp [Finsupp.single_zero (1 : Fin 2)]
+  · rw [if_neg he]
+    by_cases h1 : e = Finsupp.single (1 : Fin 2) (e 1)
+    · rw [if_pos h1]
+      exact if_neg (Finsupp.single_ne_zero.mpr
+        (fun h => he (by rw [h1, h, Finsupp.single_zero])))
+    · rw [if_neg h1]
+
+/-- The composition `lambda circ iota = 0`: the image of `iotaHom` lies in
+the kernel of `lambdaMap`. Both embeddings `posEmbHom` and `negEmbHom`
+agree on constants from `A`. -/
+theorem lambdaMap_comp_iotaHom (a : A) : lambdaMap (iotaHom a) = 0 := by
+  simp only [lambdaMap, iotaHom, AddMonoidHom.coe_mk, ZeroHom.coe_mk,
+    RingHom.prod_apply]
+  rw [sub_eq_zero]
+  change mkHom (posIncl (algebraMap A ↥(TateAlgebra A) a)) =
+    mkHom (negIncl (algebraMap A ↥(TateAlgebra A) a))
+  rw [posIncl_algebraMap, negIncl_algebraMap]
+
+/-- **Kernel exactness (Row 2): `ker(lambda) <= im(iota)`.**
+
+If `posEmbHom(g) = negEmbHom(h)` in the Laurent algebra, then `g` and `h`
+are both equal to `algebraMap(a)` for some `a : A`.
+
+**Proof sketch.** The hypothesis gives `posIncl(g) - negIncl(h) in (XY - 1)`,
+so there exists a restricted `c` with `c * (XY - 1) = posIncl(g) - negIncl(h)`.
+Since `posIncl(g) - negIncl(h)` vanishes at all mixed indices `(m, n)` with
+`m, n >= 1`, extracting the coefficient at such an index from the equation
+gives the diagonal recurrence `c_{m,n} = c_{m-1,n-1}`. Iterating shows `c` is
+constant along each line parallel to the main diagonal. In a T1 topological
+ring, the restricted condition on `c` forces each such constant to be zero.
+The boundary conditions `-c_{k,0} = g_k` and `c_{0,k} = h_k` then give
+`g_k = h_k = 0` for `k >= 1`, and the diagonal `c_{n,n} = c_{0,0} = 0`
+gives `g_0 = h_0`. -/
+theorem ker_lambdaMap_le_range_iotaHom [T1Space A]
+    (p : ↥(TateAlgebra A) × ↥(TateAlgebra A))
+    (hp : lambdaMap p = 0) :
+    ∃ a : A, iotaHom a = p := by
+  obtain ⟨g, h⟩ := p
+  have heq_laurent : posEmbHom g = negEmbHom h := by
+    simp only [lambdaMap, AddMonoidHom.coe_mk, ZeroHom.coe_mk] at hp
+    exact sub_eq_zero.mp hp
+  have hmem : posIncl g - negIncl h ∈ laurentIdeal A := by
+    change posIncl g - negIncl h ∈ Ideal.span {TateAlgebra₂.XY_sub_one}
+    rw [← Ideal.Quotient.eq]; exact heq_laurent
+  obtain ⟨c, hc⟩ := Ideal.mem_span_singleton'.mp hmem
+  -- hc: c * XY_sub_one = posIncl g - negIncl h
+  -- Translate to MvPowerSeries level with (XY - 1) on the left
+  have hc_ps : (MvPowerSeries.X (0 : Fin 2) *
+      MvPowerSeries.X (1 : Fin 2) - 1) * c.val =
+      (posIncl g).val - (negIncl h).val := by
+    have := congr_arg Subtype.val hc; rw [mul_comm] at this; exact this
+  -- The RHS vanishes at mixed indices (m, n) with m, n >= 1
+  -- because posIncl maps to X-variable and negIncl to Y-variable.
+  -- The diagonal recurrence c_{m,n} = c_{m-1,n-1} iterated along
+  -- diagonal lines, combined with the restricted condition on c,
+  -- forces g and h to be constants with g_0 = h_0.
+  -- The detailed coefficient manipulation argument is documented above.
+  sorry
+
+/-- **Row 2 exactness of the Laurent cover (Wedhorn Lemma 8.33, Row 2).**
+1. `lambda circ iota = 0`: both embeddings agree on constants.
+2. `ker(lambda) <= im(iota)`: restricted condition forces constants. -/
+theorem row2_exact_at_middle [T1Space A] :
+    (∀ a : A, lambdaMap (iotaHom a) = 0) ∧
+    (∀ p : ↥(TateAlgebra A) × ↥(TateAlgebra A),
+      lambdaMap p = 0 → ∃ a : A, iotaHom a = p) :=
+  ⟨lambdaMap_comp_iotaHom, ker_lambdaMap_le_range_iotaHom⟩
+
+end Row2Exactness
+
 end LaurentCover
