@@ -1275,4 +1275,109 @@ theorem tateQuotientToPresheafHom_X (D : RationalLocData A)
 
 end TateEvalPresheaf
 
+/-! ### Section 9: The isomorphism `A⟨X⟩/(1-sX) ≃+* presheafValue D` (discrete case)
+
+For discrete nonarchimedean rings, we prove that the Tate algebra quotient
+`A⟨X⟩/(1-sX)` is ring-isomorphic to `presheafValue D`, the completion of
+`Localization.Away D.s` with the localization topology.
+
+This is the **key identification** for the structure sheaf (Wedhorn Remark 7.55):
+it connects the algebraic presentation via restricted power series to the
+topological presentation via completions.
+
+The isomorphism is:
+- **Injective** because `ker(evalPresheafHom) = (1-sX)` (proved in Section 6
+  as `ker_evalPresheafHom`).
+- **Surjective** because the map factors as
+  `A⟨X⟩/(1-sX) →[quotientOneSubfXToLoc] Localization.Away s →[coeRingHom] presheafValue D`
+  and both components are surjective: `quotientOneSubfXToLoc` is an equivalence
+  (from `TateAlgebra.quotientOneSubfXEquiv`), and `coeRingHom` is bijective for
+  discrete rings (from `coeRingHom_bijective_of_discrete`).
+
+## References
+
+* [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], Remark 7.55, Proposition 8.30
+-/
+
+section DiscreteIsomorphism
+
+variable [NonarchimedeanRing A] [DiscreteTopology A]
+
+/-- The surjectivity of `quotientEvalPresheafHom` in the discrete case.
+The map factors as
+`A⟨X⟩/(1-sX) →[quotientOneSubfXToLoc] Localization.Away s →[coeRingHom] presheafValue D`,
+and both components are surjective: the first is an equivalence
+(`TateAlgebra.quotientOneSubfXEquiv`), the second is bijective for discrete
+rings (`coeRingHom_bijective_of_discrete`). -/
+theorem quotientEvalPresheafHom_surjective (D : RationalLocData A) :
+    Function.Surjective (quotientEvalPresheafHom D) := by
+  rw [show quotientEvalPresheafHom D = quotientToPresheaf D from
+    (quotientToPresheaf_eq_quotientEvalPresheafHom D).symm]
+  intro y
+  obtain ⟨w, rfl⟩ := (coeRingHom_bijective_of_discrete D).2 y
+  obtain ⟨q, rfl⟩ :=
+    (TateAlgebra.quotientOneSubfXEquiv D.s).surjective w
+  exact ⟨q, rfl⟩
+
+/-- **Isomorphism `A⟨X⟩/(1-sX) ≃+* presheafValue D`** (discrete case,
+Wedhorn Remark 7.55).
+
+The presheaf value `presheafValue D` (completion of `Localization.Away D.s`)
+is ring-isomorphic to the Tate algebra quotient `A⟨X⟩/(1-sX)`.
+
+- **Injectivity**: `ker(evalPresheafHom) = (1-sX)` by `ker_evalPresheafHom`,
+  so the induced quotient map is injective.
+- **Surjectivity**: factors through the localization equivalence and the
+  bijective completion embedding (discrete case). -/
+noncomputable def tateQuotientPresheafEquiv
+    (D : RationalLocData A) :
+    (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) ≃+*
+      presheafValue D :=
+  RingEquiv.ofBijective (quotientEvalPresheafHom D)
+    ⟨quotientEvalPresheafHom_injective D,
+     quotientEvalPresheafHom_surjective D⟩
+
+/-- The isomorphism sends `mk(algebraMap a)` to `canonicalMap(a)`. -/
+theorem tateQuotientPresheafEquiv_mk_algebraMap
+    (D : RationalLocData A) (a : A) :
+    tateQuotientPresheafEquiv D
+      ((Ideal.Quotient.mk _) (algebraMap A _ a)) =
+      D.canonicalMap a := by
+  simp only [tateQuotientPresheafEquiv,
+    RingEquiv.ofBijective_apply, quotientEvalPresheafHom,
+    Ideal.Quotient.lift_mk, evalPresheafHom_algebraMap]
+
+/-- The isomorphism sends `mk(X)` to `coeRingHom(invSelf s)`,
+which is the image of `1/s` in the completion. -/
+theorem tateQuotientPresheafEquiv_mk_X
+    (D : RationalLocData A) :
+    tateQuotientPresheafEquiv D
+      ((Ideal.Quotient.mk _) TateAlgebra.X) =
+      D.coeRingHom (IsLocalization.Away.invSelf
+        (S := Localization.Away D.s) D.s) := by
+  simp only [tateQuotientPresheafEquiv,
+    RingEquiv.ofBijective_apply, quotientEvalPresheafHom,
+    Ideal.Quotient.lift_mk, evalPresheafHom_X]
+
+/-- The inverse sends `canonicalMap(a)` back to `mk(algebraMap a)`. -/
+theorem tateQuotientPresheafEquiv_symm_canonicalMap
+    (D : RationalLocData A) (a : A) :
+    (tateQuotientPresheafEquiv D).symm (D.canonicalMap a) =
+      (Ideal.Quotient.mk _) (algebraMap A _ a) := by
+  rw [RingEquiv.symm_apply_eq]
+  exact (tateQuotientPresheafEquiv_mk_algebraMap D a).symm
+
+/-- The isomorphism respects the `A`-algebra structure:
+`tateQuotientPresheafEquiv D (mk (algebraMap a)) = canonicalMap(a)`.
+This makes explicit that the Tate quotient and the presheaf value
+represent the same `A`-algebra. -/
+theorem tateQuotientPresheafEquiv_respects_algebra
+    (D : RationalLocData A) :
+    ∀ a : A, tateQuotientPresheafEquiv D
+      ((Ideal.Quotient.mk _) (algebraMap A _ a)) =
+        D.canonicalMap a :=
+  tateQuotientPresheafEquiv_mk_algebraMap D
+
+end DiscreteIsomorphism
+
 end ValuationSpectrum

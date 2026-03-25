@@ -30,7 +30,7 @@
 
 ## Sorry-Free Status
 
-As of 2026-03-24:
+As of 2026-03-25:
 
 **Tilting.lean** — 0 sorry's in `berkeley_6_2_8` (Berkeley Lectures Lemma 6.2.8):
 - `hp_reg` (line 346): p-torsion-freeness of A° — proved via `IsPerfectoidRing.p_regular` class field.
@@ -42,6 +42,16 @@ As of 2026-03-24:
 - `TateAlgebra.fSubX_saturated` (saturation for f-X)
 - `TateAlgebra.oneSubfX_saturated` (saturation for 1-fX)
 The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_general` compile modulo these sorry's.
+
+**PresheafIdentification.lean** — 0 sorry's. New results (2026-03-25):
+- `tateQuotientPresheafEquiv` : Ring isomorphism `A⟨X⟩/(1-sX) ≃+* presheafValue D` (discrete case, Wedhorn Remark 7.55). Verified sorry-free.
+- `tateQuotientPresheafEquiv_mk_algebraMap`, `_mk_X`, `_symm_canonicalMap` : Key properties of the isomorphism.
+- `quotientEvalPresheafHom_surjective` : Surjectivity of the quotient evaluation map.
+
+**StructureSheaf.lean** — 2 sorry's (reduced from 2, but restructured):
+- `base_s_in_annihilator_radical_of_covering` : The Spa-point radical lemma for general (non-discrete) rings. Needs Lemma 7.45 of Wedhorn (continuous valuations at primes). This is the ONLY mathematical sorry; all algebraic infrastructure around it is sorry-free.
+- `separation_ofStronglyNoetherianTate` : Uses the above + density argument for completion.
+- New sorry-free: `restrictionMapAlg_factors` (factorization through coeRingHom).
 
 ## Key Theorems (Adic Morphisms Chain)
 
@@ -68,7 +78,7 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 - [ ] **Lemma 7.46(2)** — Converse: analytic preservation implies adic (needs 7.45)
 - [ ] **Remove h_map hypothesis from Prop 6.25** — needs Prop 6.4(5) (bounded open subring = ring of definition)
 - [ ] **General (non-discrete) sorry removal** — `isUnit_canonicalMap_s` and `restrictionMapAlg_continuous` currently require `[DiscreteTopology A]`
-- [ ] **Sheaf condition for general Huber rings** — `IsSheafy` stated for Tate rings (`separation_ofStronglyNoetherianTate`, 1 sorry); `productRestriction_comp_canonicalMap` proved (0 sorry). Needs: Lemma 7.45 (Spa points at primes), topological identification, categorical wrapping.
+- [ ] **Sheaf condition for general Huber rings** — `IsSheafy` stated for Tate rings (`separation_ofStronglyNoetherianTate`, sorry reduced to `base_s_in_annihilator_radical_of_covering`); ring isomorphism `A⟨X⟩/(1-sX) ≃+* presheafValue D` proved (`tateQuotientPresheafEquiv`, 0 sorry); `restrictionMapAlg_factors` (0 sorry). Needs: Lemma 7.45 (Spa points at primes).
 - [ ] **Categories V^pre and V** — see `docs/plans/2026-03-08-complete-top-ring-category.md` Tasks 2-3
 
 ### Low Priority / Future
