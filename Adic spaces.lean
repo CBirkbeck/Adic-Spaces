@@ -51,11 +51,11 @@ import «Adic spaces».ValuationSpectrum
 import «Adic spaces».ValuativeRel.Comap
 import «Adic spaces».WittVectorPrimitive
 -- Nonarchimedean Scottish Book (Kedlaya et al., 2015–2022)
--- Proved (0 sorry)
-import «Adic spaces».ScottishBook.Proved.Problem011
-import «Adic spaces».ScottishBook.Proved.Problem016
-import «Adic spaces».ScottishBook.Proved.Problem018
-import «Adic spaces».ScottishBook.Proved.Problem040
+-- Described (docstring only, no Lean formalization yet)
+import «Adic spaces».ScottishBook.Described.Problem011
+import «Adic spaces».ScottishBook.Described.Problem016
+import «Adic spaces».ScottishBook.Described.Problem018
+import «Adic spaces».ScottishBook.Described.Problem040
 -- Stated (with sorry)
 import «Adic spaces».ScottishBook.Stated.Problem001
 import «Adic spaces».ScottishBook.Stated.Problem002
