@@ -353,6 +353,147 @@ the bivariate index space, and the restricted condition forces these constants
 
 section Row2Exactness
 
+/-! #### Helper lemmas for bivariate coefficient manipulation -/
+
+/-- A bivariate multi-index `(i, j) : Fin 2 →₀ ℕ`. -/
+private noncomputable def idx (i j : ℕ) : Fin 2 →₀ ℕ :=
+  Finsupp.single 0 i + Finsupp.single 1 j
+
+private theorem idx_apply_zero (i j : ℕ) : idx i j 0 = i := by
+  simp [idx]
+
+private theorem idx_apply_one (i j : ℕ) : idx i j 1 = j := by
+  simp [idx]
+
+private theorem idx_eq_single_zero_iff (i j : ℕ) :
+    idx i j = Finsupp.single 0 (idx i j 0) ↔ j = 0 := by
+  rw [idx_apply_zero]
+  constructor
+  · intro h
+    have := Finsupp.ext_iff.mp h 1
+    simp [idx] at this
+    exact this
+  · intro hj
+    subst hj; ext k; fin_cases k <;> simp [idx]
+
+private theorem idx_eq_single_one_iff (i j : ℕ) :
+    idx i j = Finsupp.single 1 (idx i j 1) ↔ i = 0 := by
+  rw [idx_apply_one]
+  constructor
+  · intro h
+    have := Finsupp.ext_iff.mp h 0
+    simp [idx] at this
+    exact this
+  · intro hi
+    subst hi; ext k; fin_cases k <;> simp [idx]
+
+private theorem idx_zero_zero : idx 0 0 = (0 : Fin 2 →₀ ℕ) := by
+  ext k; fin_cases k <;> simp [idx]
+
+/-- Every `Fin 2 →₀ ℕ` index equals `idx (e 0) (e 1)`. -/
+private theorem eq_idx (e : Fin 2 →₀ ℕ) : e = idx (e 0) (e 1) := by
+  ext k; fin_cases k <;> simp [idx]
+
+/-- The RHS coefficient: `posIncl g` at index `idx i j`. -/
+private theorem coeff_posIncl (g : ↥(TateAlgebra A)) (i j : ℕ) :
+    MvPowerSeries.coeff (idx i j) (posIncl g).val =
+      if j = 0 then MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) i) g.val else 0 := by
+  change varInclFun 0 g.val (idx i j) = _
+  rw [varInclFun_apply]
+  have h1 : idx i j 0 = i := idx_apply_zero i j
+  rw [h1]
+  have h2 : (idx i j = Finsupp.single 0 i) ↔ j = 0 := by
+    rw [show Finsupp.single (0 : Fin 2) i = Finsupp.single 0 (idx i j 0) from by rw [h1]]
+    exact idx_eq_single_zero_iff i j
+  by_cases hj : j = 0
+  · rw [if_pos (h2.mpr hj), if_pos hj]
+  · rw [if_neg (mt h2.mp hj), if_neg hj]
+
+/-- The RHS coefficient: `negIncl h` at index `idx i j`. -/
+private theorem coeff_negIncl (h : ↥(TateAlgebra A)) (i j : ℕ) :
+    MvPowerSeries.coeff (idx i j) (negIncl h).val =
+      if i = 0 then MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) j) h.val else 0 := by
+  change varInclFun 1 h.val (idx i j) = _
+  rw [varInclFun_apply]
+  have h1 : idx i j 1 = j := idx_apply_one i j
+  rw [h1]
+  have h2 : (idx i j = Finsupp.single 1 j) ↔ i = 0 := by
+    rw [show Finsupp.single (1 : Fin 2) j = Finsupp.single 1 (idx i j 1) from by rw [h1]]
+    exact idx_eq_single_one_iff i j
+  by_cases hi : i = 0
+  · rw [if_pos (h2.mpr hi), if_pos hi]
+  · rw [if_neg (mt h2.mp hi), if_neg hi]
+
+private theorem idx_11 :
+    Finsupp.single (0 : Fin 2) 1 + Finsupp.single (1 : Fin 2) 1 = idx 1 1 := by
+  ext k; fin_cases k <;> simp [idx]
+
+omit [TopologicalSpace A] [NonarchimedeanRing A] in
+/-- The LHS: coefficient of `(X₀ * X₁ - 1) * c` at index `idx i j`.
+This equals `c(i-1, j-1) - c(i, j)` when `i, j ≥ 1`, and `-c(i, j)` otherwise. -/
+private theorem coeff_XY_sub_one_mul (c : MvPowerSeries (Fin 2) A) (i j : ℕ) :
+    MvPowerSeries.coeff (idx i j)
+      ((MvPowerSeries.X 0 * MvPowerSeries.X 1 - 1) * c) =
+      (if 0 < i ∧ 0 < j then MvPowerSeries.coeff (idx (i - 1) (j - 1)) c else 0) -
+      MvPowerSeries.coeff (idx i j) c := by
+  have hsub : MvPowerSeries.coeff (idx i j) ((MvPowerSeries.X 0 * MvPowerSeries.X 1 - 1) * c) =
+    MvPowerSeries.coeff (idx i j) (MvPowerSeries.X 0 * MvPowerSeries.X 1 * c) -
+    MvPowerSeries.coeff (idx i j) (1 * c) := by
+    rw [sub_mul]; exact map_sub _ _ _
+  rw [hsub, one_mul]
+  congr 1
+  -- Need: coeff_{idx i j} (X₀ * X₁ * c) = if (0 < i ∧ 0 < j) then c(i-1, j-1) else 0
+  rw [show MvPowerSeries.X (0 : Fin 2) * MvPowerSeries.X (1 : Fin 2) =
+    MvPowerSeries.monomial (Finsupp.single 0 1 + Finsupp.single 1 1) (1 : A) by
+    rw [MvPowerSeries.X, MvPowerSeries.X, MvPowerSeries.monomial_mul_monomial, one_mul]]
+  rw [MvPowerSeries.coeff_monomial_mul]
+  set m := Finsupp.single (0 : Fin 2) 1 + Finsupp.single (1 : Fin 2) 1
+  by_cases h : m ≤ idx i j
+  · rw [if_pos h, one_mul]
+    have hi : 0 < i := by
+      have h0 := h (0 : Fin 2)
+      simp [m, idx] at h0; omega
+    have hj : 0 < j := by
+      have h1 := h (1 : Fin 2)
+      simp [m, idx] at h1; omega
+    rw [if_pos ⟨hi, hj⟩]
+    have hsub_eq : idx i j - m = idx (i - 1) (j - 1) := by
+      apply Finsupp.ext; intro k
+      simp only [Finsupp.tsub_apply, idx, m, Finsupp.add_apply, Finsupp.single_apply]
+      fin_cases k <;> (simp (config := { decide := true }); try omega)
+    rw [hsub_eq]
+  · rw [if_neg h]
+    have hnotij : ¬(0 < i ∧ 0 < j) := by
+      intro ⟨hi, hj⟩; apply h; intro k
+      fin_cases k <;> simp [m, idx] <;> omega
+    rw [if_neg hnotij]
+
+omit [NonarchimedeanRing A] in
+/-- In a T1 space, if a restricted power series has a constant value `b` along infinitely
+many indices, then `b = 0`. More precisely, if `tendsto (coeff s) cofinite (nhds 0)` and
+there is an injection `ℕ → σ →₀ ℕ` such that `coeff` is constantly `b` on the range,
+then `b = 0`. -/
+private theorem eq_zero_of_restricted_const [T1Space A] {σ : Type*}
+    (f : (σ →₀ ℕ) → A) (hf : Filter.Tendsto f Filter.cofinite (nhds 0))
+    (ι : ℕ → σ →₀ ℕ) (hinj : Function.Injective ι)
+    {b : A} (hconst : ∀ n, f (ι n) = b) : b = 0 := by
+  by_contra hne
+  -- In a T1 space, singletons are closed, so {b}ᶜ is open and contains 0
+  have hopen : IsOpen ({b}ᶜ : Set A) := isOpen_compl_singleton
+  have h0 : (0 : A) ∈ ({b}ᶜ : Set A) := Set.mem_compl_singleton_iff.mpr (Ne.symm hne)
+  -- The set of indices where f ∉ {b}ᶜ (i.e., f = b) is finite by restrictedness
+  have hmem : {b}ᶜ ∈ nhds (0 : A) := hopen.mem_nhds h0
+  have hev := hf hmem
+  rw [Filter.mem_map, Filter.mem_cofinite] at hev
+  -- hev : {s | f s ∉ {b}ᶜ} is cofinite, i.e. {s | f s = b} is finite (in complement form)
+  -- But the range of ι is infinite and lands in {s | f s = b}
+  have hinf : Set.Infinite (Set.range ι) := Set.infinite_range_of_injective hinj
+  have hrange_sub : Set.range ι ⊆ {s | f s ∉ ({b}ᶜ : Set A)} := by
+    rintro s ⟨n, rfl⟩
+    simp only [Set.mem_setOf_eq, Set.mem_compl_iff, Set.mem_singleton_iff, not_not]
+    exact hconst n
+  exact (hev.subset hrange_sub).not_infinite hinf
+
 private theorem posIncl_algebraMap (a : A) :
     posIncl (algebraMap A ↥(TateAlgebra A) a) =
       algebraMap A ↥(TateAlgebra₂ A) a := by
@@ -431,13 +572,183 @@ theorem ker_lambdaMap_le_range_iotaHom [T1Space A]
       MvPowerSeries.X (1 : Fin 2) - 1) * c.val =
       (posIncl g).val - (negIncl h).val := by
     have := congr_arg Subtype.val hc; rw [mul_comm] at this; exact this
-  -- The RHS vanishes at mixed indices (m, n) with m, n >= 1
-  -- because posIncl maps to X-variable and negIncl to Y-variable.
-  -- The diagonal recurrence c_{m,n} = c_{m-1,n-1} iterated along
-  -- diagonal lines, combined with the restricted condition on c,
-  -- forces g and h to be constants with g_0 = h_0.
-  -- The detailed coefficient manipulation argument is documented above.
-  sorry
+  -- Step 1: Extract the coefficient equation at every (i, j)
+  -- From hc_ps, for each (i,j): (XY-1)*c at (i,j) = (posIncl g - negIncl h) at (i,j)
+  have hcoeff_eq : ∀ i j,
+      (if 0 < i ∧ 0 < j then MvPowerSeries.coeff (idx (i - 1) (j - 1)) c.val else 0) -
+        MvPowerSeries.coeff (idx i j) c.val =
+      MvPowerSeries.coeff (idx i j) (posIncl g).val -
+        MvPowerSeries.coeff (idx i j) (negIncl h).val := by
+    intro i j
+    have h1 := congr_arg (MvPowerSeries.coeff (idx i j)) hc_ps
+    rw [coeff_XY_sub_one_mul] at h1
+    rwa [map_sub] at h1
+  -- Step 2: Diagonal recurrence: for i ≥ 1, j ≥ 1, c(i,j) = c(i-1,j-1)
+  have hdiag : ∀ i j, 0 < i → 0 < j →
+      MvPowerSeries.coeff (idx i j) c.val =
+      MvPowerSeries.coeff (idx (i - 1) (j - 1)) c.val := by
+    intro i j hi hj
+    have h1 := hcoeff_eq i j
+    rw [if_pos ⟨hi, hj⟩] at h1
+    -- RHS: posIncl g at (i,j) with i ≥ 1, j ≥ 1 is 0; negIncl h at (i,j) with i ≥ 1 is 0
+    rw [coeff_posIncl, if_neg (by omega : ¬(j = 0))] at h1
+    rw [coeff_negIncl, if_neg (by omega : ¬(i = 0))] at h1
+    -- h1 : c(i-1,j-1) - c(i,j) = 0 - 0
+    simp only [sub_zero] at h1
+    -- h1 : c(i-1,j-1) - c(i,j) = 0
+    exact eq_of_sub_eq_zero h1 |>.symm
+  -- Step 2b: Iterated diagonal: c(i+k, j+k) = c(i, j) for all k
+  have hdiag_iter : ∀ i j k,
+      MvPowerSeries.coeff (idx (i + k) (j + k)) c.val =
+      MvPowerSeries.coeff (idx i j) c.val := by
+    intro i j k; induction k with
+    | zero => simp
+    | succ k ih =>
+      rw [show i + (k + 1) = (i + k) + 1 from by omega,
+          show j + (k + 1) = (j + k) + 1 from by omega]
+      rw [hdiag _ _ (by omega) (by omega)]
+      simp only [show (i + k + 1) - 1 = i + k from by omega,
+                  show (j + k + 1) - 1 = j + k from by omega]
+      exact ih
+  -- Step 3: c is restricted (coefficients tend to 0)
+  have hc_restr : Filter.Tendsto
+      (fun s => MvPowerSeries.coeff s c.val) Filter.cofinite (nhds 0) := c.prop
+  -- Step 4: Along diagonal n+k, k (for n ≥ 1): c(n+k,k) = c(n,0) = -coeff_n g
+  -- First: boundary equation at (n, 0) for n ≥ 1: -c(n,0) = coeff_n g
+  have hboundary_x : ∀ n, 0 < n →
+      MvPowerSeries.coeff (idx n 0) c.val =
+      -(MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) n) g.val) := by
+    intro n hn
+    have h1 := hcoeff_eq n 0
+    rw [if_neg (by omega : ¬(0 < n ∧ 0 < 0))] at h1
+    rw [coeff_posIncl, if_pos rfl, coeff_negIncl, if_neg (by omega : ¬(n = 0))] at h1
+    -- h1 : 0 - c(n,0) = coeff_n g - 0
+    simp only [zero_sub, sub_zero] at h1
+    -- h1 : -c(n,0) = coeff_n g, so c(n,0) = -coeff_n g
+    have : MvPowerSeries.coeff (idx n 0) c.val =
+        -(MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) n) g.val) := by
+      rw [← h1, neg_neg]
+    exact this
+  -- Boundary equation at (0, m) for m ≥ 1: -c(0,m) = -coeff_m h, i.e. c(0,m) = coeff_m h
+  have hboundary_y : ∀ m, 0 < m →
+      MvPowerSeries.coeff (idx 0 m) c.val =
+      MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) m) h.val := by
+    intro m hm
+    have h1 := hcoeff_eq 0 m
+    rw [if_neg (by omega : ¬(0 < 0 ∧ 0 < m))] at h1
+    rw [coeff_posIncl, if_neg (by omega : ¬(m = 0)), coeff_negIncl, if_pos rfl] at h1
+    -- h1 : 0 - c(0,m) = 0 - coeff_m h
+    simp only [zero_sub] at h1
+    -- h1 : -c(0,m) = -coeff_m h
+    exact neg_injective h1
+  -- Boundary at (0, 0): -c(0,0) = coeff_0 g - coeff_0 h
+  have hboundary_00 :
+      MvPowerSeries.coeff (idx 0 0) c.val =
+      MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) 0) h.val -
+      MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) 0) g.val := by
+    have h1 := hcoeff_eq 0 0
+    rw [if_neg (by omega : ¬(0 < 0 ∧ 0 < 0))] at h1
+    rw [coeff_posIncl, if_pos rfl, coeff_negIncl, if_pos rfl] at h1
+    -- h1 : 0 - c(0,0) = coeff_0 g - coeff_0 h
+    simp only [zero_sub] at h1
+    -- h1 : -c(0,0) = coeff_0 g - coeff_0 h
+    -- Want: c(0,0) = coeff_0 h - coeff_0 g
+    have : MvPowerSeries.coeff (idx 0 0) c.val =
+      -(MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) 0) g.val -
+       MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) 0) h.val) := by
+      rw [← h1, neg_neg]
+    rw [this]; ring
+  -- Step 5: For n ≥ 1, the diagonal c(n+k, k) = c(n, 0) for all k.
+  -- This is constant, and by restricted condition in T1 space, must be 0.
+  -- Therefore coeff_n g = 0 for all n ≥ 1.
+  have hg_higher_zero : ∀ n, 0 < n →
+      MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) n) g.val = 0 := by
+    intro n hn
+    -- c(n, 0) = -coeff_n g, and c(n+k, k) = c(n, 0) for all k
+    have hconst : ∀ k, MvPowerSeries.coeff (idx (n + k) k) c.val =
+        MvPowerSeries.coeff (idx n 0) c.val := by
+      intro k
+      have := hdiag_iter n 0 k
+      simp only [Nat.zero_add] at this; exact this
+    -- The injection ℕ → Fin 2 →₀ ℕ sending k ↦ idx (n + k) k
+    have hinj : Function.Injective (fun k => idx (n + k) k) := by
+      intro a b hab
+      have := Finsupp.ext_iff.mp hab 1
+      simp [idx] at this; omega
+    -- By restricted + T1, the constant value must be 0
+    have h0 := eq_zero_of_restricted_const (fun s => MvPowerSeries.coeff s c.val)
+      hc_restr (fun k => idx (n + k) k) hinj hconst
+    rw [hboundary_x n hn] at h0
+    -- h0 : -(coeff_n g) = 0
+    exact neg_eq_zero.mp h0
+  -- Step 6: Similarly, coeff_m h = 0 for all m ≥ 1.
+  have hh_higher_zero : ∀ m, 0 < m →
+      MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) m) h.val = 0 := by
+    intro m hm
+    have hconst : ∀ k, MvPowerSeries.coeff (idx k (m + k)) c.val =
+        MvPowerSeries.coeff (idx 0 m) c.val := by
+      intro k
+      have := hdiag_iter 0 m k
+      simp only [Nat.zero_add] at this; exact this
+    have hinj : Function.Injective (fun k => idx k (m + k)) := by
+      intro a b hab
+      have := Finsupp.ext_iff.mp hab 0
+      simp [idx] at this; omega
+    have h0 := eq_zero_of_restricted_const (fun s => MvPowerSeries.coeff s c.val)
+      hc_restr (fun k => idx k (m + k)) hinj hconst
+    rw [hboundary_y m hm] at h0
+    exact h0
+  -- Step 7: c(0,0) = 0, which gives coeff_0 g = coeff_0 h.
+  have hc00_zero : MvPowerSeries.coeff (idx 0 0) c.val = 0 := by
+    have hconst : ∀ k, MvPowerSeries.coeff (idx k k) c.val =
+        MvPowerSeries.coeff (idx 0 0) c.val := by
+      intro k
+      have := hdiag_iter 0 0 k
+      simp only [Nat.zero_add] at this; exact this
+    have hinj : Function.Injective (fun k => idx k k) := by
+      intro a b hab
+      have := Finsupp.ext_iff.mp hab 0
+      simp [idx] at this; omega
+    exact eq_zero_of_restricted_const (fun s => MvPowerSeries.coeff s c.val)
+      hc_restr (fun k => idx k k) hinj hconst
+  have hg0_eq_h0 :
+      MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) 0) g.val =
+      MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) 0) h.val := by
+    have := hboundary_00
+    rw [hc00_zero] at this
+    -- this : 0 = coeff_0 h - coeff_0 g
+    -- So coeff_0 h - coeff_0 g = 0, hence coeff_0 h = coeff_0 g
+    exact (eq_of_sub_eq_zero this.symm).symm
+  -- Step 8: Assemble. Set a = coeff_0 g (as TateAlgebra.coeff).
+  -- coeff_zero_algebraMap and coeff_succ_algebraMap use TateAlgebra.coeff.
+  set a := TateAlgebra.coeff 0 g with ha_def
+  -- Convert MvPowerSeries-level results to TateAlgebra.coeff
+  have hg0_eq_h0' : TateAlgebra.coeff 0 g = TateAlgebra.coeff 0 h :=
+    hg0_eq_h0  -- both are definitionally MvPowerSeries.coeff (Finsupp.single 0 0) _.val
+  have hg_higher' : ∀ n, 0 < n → TateAlgebra.coeff n g = 0 :=
+    hg_higher_zero  -- TateAlgebra.coeff n = MvPowerSeries.coeff (Finsupp.single 0 n) _.val
+  have hh_higher' : ∀ n, 0 < n → TateAlgebra.coeff n h = 0 :=
+    hh_higher_zero
+  refine ⟨a, ?_⟩
+  rw [show iotaHom a = (algebraMap A ↥(TateAlgebra A) a,
+    algebraMap A ↥(TateAlgebra A) a) from rfl]
+  -- Prove g = algebraMap a
+  have hg_eq : algebraMap A ↥(TateAlgebra A) a = g := by
+    apply TateAlgebra.ext; intro n
+    cases n with
+    | zero => rw [coeff_zero_algebraMap]
+    | succ n =>
+      rw [coeff_succ_algebraMap]
+      exact (hg_higher' (n + 1) (Nat.succ_pos n)).symm
+  -- Prove h = algebraMap a
+  have hh_eq : algebraMap A ↥(TateAlgebra A) a = h := by
+    apply TateAlgebra.ext; intro n
+    cases n with
+    | zero => rw [coeff_zero_algebraMap]; rw [ha_def]; exact hg0_eq_h0'
+    | succ n =>
+      rw [coeff_succ_algebraMap]
+      exact (hh_higher' (n + 1) (Nat.succ_pos n)).symm
+  exact Prod.ext hg_eq hh_eq
 
 /-- **Row 2 exactness of the Laurent cover (Wedhorn Lemma 8.33, Row 2).**
 1. `lambda circ iota = 0`: both embeddings agree on constants.
