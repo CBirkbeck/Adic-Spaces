@@ -134,7 +134,16 @@ noncomputable def tateQuotientPresheafEquiv_via_roundtrip
     simp only [tateQuotientToPresheafHom, quotientEvalPresheafHom,
       RingHom.comp_apply, Ideal.Quotient.lift_mk,
       tateEvalPresheafHom, evalPresheafHom]
-    sorry -- Need: tsum-based eval = composition-based eval for discrete A
+    -- Both ring homs TateAlgebra A →+* presheafValue D agree on
+    -- algebraMap and X, hence are equal.
+    -- For the RHS: coeRingHom ∘ evalInvFHom
+    -- For the LHS: tateEvalPresheafHom (= evalHomBounded)
+    -- We use Ideal.Quotient.ringHom_ext at the Tate algebra level is
+    -- not applicable (TateAlgebra is not a quotient of A). Instead,
+    -- show both agree pointwise using TateAlgebra.ext (coefficients).
+    -- For discrete A, the tsum reduces to a finite sum agreeing with
+    -- the algebraic evaluation.
+    sorry
   RingEquiv.ofBijective (tateQuotientToPresheafHom D hb)
     ⟨hinj, tateQuotientToPresheafHom_surjective_discrete D hb⟩
 
