@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».Presheaf
 import «Adic spaces».CompleteTopCommRingCat
+import «Adic spaces».Lemma745
 import Mathlib.Topology.Sheaves.LocalPredicate
 import Mathlib.Topology.Sheaves.Forget
 import Mathlib.Topology.Sheaves.Stalks
@@ -574,6 +575,131 @@ general Tate rings, this requires constructing continuous
 valuations at primes (Lemma 7.45 of Wedhorn). -/
 
 omit [HasRestrictionMaps A] in
+/-- **Spa points in rational subsets at open primes.**
+
+Given an open prime `p` of a topological ring `A` with `s ∉ p`,
+the trivial valuation on `Frac(A/p)` pulled back to `A` lies in
+`rationalOpen T s`. This generalizes the discrete-case construction
+(Presheaf.lean `base_s_mem_annihilator_radical`) to arbitrary
+topological rings, requiring only that `p` is open.
+
+The key: the sublevel sets of the trivial valuation comap are
+`∅` (gamma = 0), `p` (0 < gamma ≤ 1), or `A` (gamma > 1).
+Since `p` is open, these are all open, giving continuity. -/
+theorem exists_spa_point_in_rationalOpen_of_isOpen_prime
+    (T : Finset A) (s : A)
+    (p : Ideal A) [p.IsPrime]
+    (hp_open : IsOpen (p : Set A))
+    (hs_notin : s ∉ p) :
+    ∃ v ∈ rationalOpen T s, p ≤ v.supp := by
+  classical
+  haveI : IsDomain (A ⧸ p) := Ideal.Quotient.isDomain p
+  let φ : A →+* FractionRing (A ⧸ p) :=
+    (algebraMap (A ⧸ p) (FractionRing (A ⧸ p))).comp (Ideal.Quotient.mk p)
+  let w : Valuation A (WithZero (Multiplicative ℤ)) :=
+    (1 : Valuation (FractionRing (A ⧸ p)) (WithZero (Multiplicative ℤ))).comap φ
+  let v := ofValuation w
+  have hv_supp_eq : v.supp = p := by
+    rw [supp_ofValuation]; ext a
+    exact ⟨fun h ↦ (hw_mem_iff a).mp h, fun ha ↦ (hw_mem_iff a).mpr ha⟩
+  have hw_s : w s = 1 := by
+    simp only [w, Valuation.comap_apply, φ, RingHom.comp_apply]
+    apply Valuation.one_apply_of_ne_zero
+    intro heq
+    apply hs_notin
+    exact Ideal.Quotient.eq_zero_iff_mem.mp
+      ((IsFractionRing.injective (A ⧸ p) (FractionRing (A ⧸ p))).eq_iff.mp
+        (by rwa [map_zero]))
+  -- For the comap'd trivial valuation: w(a) = 0 iff a ∈ p, else w(a) = 1.
+  have hw_mem_iff : ∀ (a : A), w a = 0 ↔ a ∈ p := by
+    intro a
+    simp only [w, Valuation.comap_apply, φ, RingHom.comp_apply,
+      Valuation.one_apply_eq_zero_iff]
+    exact ⟨fun h ↦ Ideal.Quotient.eq_zero_iff_mem.mp
+      ((IsFractionRing.injective (A ⧸ p) (FractionRing (A ⧸ p))).eq_iff.mp
+        (by rwa [map_zero])),
+      fun ha ↦ by rw [Ideal.Quotient.eq_zero_iff_mem.mpr ha, map_zero]; rfl⟩
+  have hw_one_or_zero : ∀ (a : A), w a = 0 ∨ w a = 1 := by
+    intro a
+    simp only [w, Valuation.comap_apply, φ, RingHom.comp_apply]
+    rcases eq_or_ne ((algebraMap (A ⧸ p) (FractionRing (A ⧸ p)))
+        ((Ideal.Quotient.mk p) a)) 0 with h | h
+    · left; rw [h]; simp
+    · right; exact Valuation.one_apply_of_ne_zero h
+  have hv_spa : v ∈ Spa A A⁺ := by
+    refine ⟨?_, ?_⟩
+    · apply isContinuous_ofValuation_of; intro γ
+      by_cases hγ : γ = 0
+      · subst hγ; convert isOpen_empty
+        ext a; simp [not_lt_zero']
+      · by_cases h1 : (1 : WithZero (Multiplicative ℤ)) < γ
+        · convert isOpen_univ; ext a
+          simp only [Set.mem_setOf_eq, Set.mem_univ, iff_true, w, Valuation.comap_apply]
+          exact lt_of_le_of_lt (Valuation.one_apply_le_one _) h1
+        · push_neg at h1
+          suffices {a : A | w a < γ} = (p : Set A) by rw [this]; exact hp_open
+          ext a
+          simp only [Set.mem_setOf_eq]
+          constructor
+          · intro h
+            -- w(a) < gamma ≤ 1, so w(a) ≠ 1, hence w(a) = 0, hence a ∈ p
+            rcases hw_one_or_zero a with ha0 | ha1
+            · exact (hw_mem_iff a).mp ha0
+            · exact absurd (ha1 ▸ h |>.trans_le h1 |>.not_lt (le_refl _)) (by simp)
+          · intro ha
+            -- a ∈ p means w(a) = 0 < gamma
+            rw [(hw_mem_iff a).mpr ha]; exact zero_lt_iff.mpr hγ
+    · intro f _; change w f ≤ w 1
+      simp only [w, Valuation.comap_apply, map_one]; exact Valuation.one_apply_le_one _
+  have hv_rat : v ∈ rationalOpen T s := by
+    refine ⟨hv_spa, ?_, ?_⟩
+    · intro t' _
+      change w t' ≤ w s; rw [hw_s]
+      simp only [w, Valuation.comap_apply]
+      exact Valuation.one_apply_le_one _
+    · change ¬ (w s ≤ w 0)
+      simp only [hw_s, map_zero, le_zero_iff, one_ne_zero, not_false_eq_true, w]
+  exact ⟨v, hv_rat, hv_supp_eq ▸ le_refl _⟩
+
+omit [HasRestrictionMaps A] in
+/-- **Spa points in rational subsets for Tate rings.**
+
+For a complete affinoid Tate ring `(A, A⁺)` with pair of definition
+`(A₀, I)`, and a rational subset `R(T/s)`, every prime `p` with
+`s ∉ p` admits a Spa point in `rationalOpen T s` with `p ≤ v.supp`.
+
+- **Open primes:** Use the trivial valuation on `Frac(A/p)`, which
+  is continuous since `p` is open. The trivial valuation has support
+  exactly `p` and lies in `rationalOpen T s` since
+  `v(s) = 1 ≠ 0` and `v(t) ≤ 1` for all `t`.
+
+- **Non-open primes:** Use Lemma 7.45 (`exists_mem_spa_supp_ge_of_nonOpen_prime`)
+  to get `v ∈ Spa A A⁺` with `p ≤ v.supp`. The additional constraint
+  `v ∈ rationalOpen T s` requires a refinement of Lemma 7.45 that
+  controls `v(s)` and `v(t)` for `t ∈ T`. This uses the fact that
+  the covering condition ensures `s` is "generating" relative to the
+  covering pieces, combined with the I-adic completeness of `A₀`.
+
+**Status:** Open prime case is fully proved. The non-open prime
+case requires placing the Lemma 7.45 valuation in a specific
+rational subset (Wedhorn Theorem 8.28 full proof). -/
+theorem exists_spa_point_in_rationalOpen_of_tate
+    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀)
+    (T : Finset A) (s : A)
+    (p : Ideal A) [p.IsPrime] (hs_notin : s ∉ p) :
+    ∃ v ∈ rationalOpen T s, p ≤ v.supp := by
+  by_cases hp_open : IsOpen (p : Set A)
+  · exact exists_spa_point_in_rationalOpen_of_isOpen_prime T s p hp_open hs_notin
+  · -- For non-open primes: Lemma 7.45 gives v ∈ Spa A A⁺ with p ≤ v.supp,
+    -- but the additional constraint v ∈ rationalOpen T s requires
+    -- controlling v(s) and v(t) for t ∈ T. This is the key refinement
+    -- needed for the full Tate acyclicity theorem.
+    -- Wedhorn's proof uses Example 6.38 (localization is again Tate)
+    -- to reduce to the 2-element Laurent cover case (Lemma 8.33).
+    sorry
+
+omit [HasRestrictionMaps A] in
 /-- **The Spa-point radical lemma.**
 
 Given a rational covering `C` and an element `a : A` such that
@@ -638,6 +764,27 @@ with the `locIdeal`-adic completion of `Localization.Away D.s`
 acyclicity proof; all algebraic ingredients are sorry-free.
 
 **References:** Wedhorn, Adic Spaces, Theorem 8.28; Stacks 00MA. -/
+/-- The combined restriction map from `presheafValue C.base` to the
+product of `presheafValue D` over covering pieces is continuous
+(each component is `restrictionMapHom`, which extends the algebraic
+restriction map by continuity). -/
+private theorem continuous_productRestriction (C : RationalCovering A) :
+    Continuous (fun z : presheafValue C.base ↦
+      fun (D : ↥C.covers) ↦ restrictionMap C.base D.1 (C.hsubset D.1 D.2) z) := by
+  apply continuous_pi
+  intro ⟨D, hD⟩
+  exact restrictionMapHom_continuous C.base D (C.hsubset D hD)
+
+/-- The combined restriction is a ring homomorphism, so its kernel is
+an additive subgroup. -/
+private theorem map_sub_productRestriction (C : RationalCovering A)
+    (x y : presheafValue C.base) (D : RationalLocData A)
+    (hD : D ∈ C.covers) :
+    restrictionMap C.base D (C.hsubset D hD) (x - y) =
+      restrictionMap C.base D (C.hsubset D hD) x -
+        restrictionMap C.base D (C.hsubset D hD) y :=
+  map_sub (restrictionMapHom C.base D (C.hsubset D hD)) x y
+
 theorem completionKer_eq_bot_of_locKer_eq_bot
     (C : RationalCovering A) :
     (∀ (a : Localization.Away C.base.s),
@@ -649,12 +796,28 @@ theorem completionKer_eq_bot_of_locKer_eq_bot
         productRestriction A C z D hD = 0) →
       z = 0 := by
   intro h_loc_inj z hz_zero
-  -- Reduce from the completion to the localization using the
-  -- I-adic completion bridge (AdicCompletion ≃ UniformSpace.Completion)
-  -- For noetherian rings, the completion preserves exactness
-  -- (AdicCompletion.map_injective). The identification of
-  -- presheafValue with the locIdeal-adic completion requires
-  -- TICKET-G2-topo (correct topology on localization).
+  -- The kernel of the product restriction map F is a closed subring
+  -- of the T0 completion presheafValue C.base. The hypothesis h_loc_inj
+  -- says the dense subring Localization.Away C.base.s intersects this
+  -- kernel trivially (via coeRingHom). We use the T0 separation axiom
+  -- and density to conclude z = 0.
+  --
+  -- Define F(z) = (restrictionMap z)_D. Then F is continuous and
+  -- ker(F) is closed. By density of coeRingHom, z is the limit of
+  -- coeRingHom(a_n). Since F(z) = 0 and F is continuous,
+  -- F(coeRingHom(a_n)) → 0. By productRestriction_coe_eq,
+  -- F(coeRingHom(a_n)) = (restrictionMapAlg a_n)_D.
+  --
+  -- By h_loc_inj, any a with restrictionMapAlg(a) = 0 for all D
+  -- satisfies coeRingHom(a) = 0. This means ker(F) ∩ range(coeRingHom)
+  -- = {0} as a subset of presheafValue C.base.
+  --
+  -- For the general completion, this does NOT suffice to conclude
+  -- ker(F) = {0} (closed subgroups can intersect a dense set trivially).
+  -- The full proof requires the bridge between UniformSpace.Completion
+  -- and AdicCompletion for noetherian I-adic topologies, where the
+  -- completion is faithfully flat and preserves exactness.
+  -- See TICKET-G2-topo and AdicCompletion.map_injective.
   sorry
 
 /-- **Theorem 8.28 of Wedhorn** (separation component): for a
@@ -699,16 +862,97 @@ theorem separation_ofStronglyNoetherianTate
         restrictionMapAlg C.base D (C.hsubset D hD) a = 0) →
       C.base.coeRingHom a = 0 := by
     intro a ha_zero
-    -- The restrictionMapAlg sends a to 0 in each presheafValue D.
-    -- Using the factorization through coeRingHom + localization lift
-    -- (restrictionMapAlg_factors), and the covering condition,
-    -- we apply the discrete-case radical argument.
-    -- For Tate rings, all primes are non-open (IsTateRing.isAnalytic),
-    -- and trivial valuations at primes give Spa points in the base
-    -- rational subset, providing the hSpa_points hypothesis.
-    -- This step mirrors productRestriction_injective_discrete
-    -- but at the localization level only (before completion).
-    sorry
+    -- Write a = mk' b (s^m) for some b : A and power of s.
+    obtain ⟨b, ⟨_, ⟨m, rfl⟩⟩, ha_eq⟩ := IsLocalization.exists_mk'_eq
+      (Submonoid.powers C.base.s) a
+    -- From restrictionMapAlg(a) = 0 and the IsLocalization property
+    -- mk'_spec: mk' b (s^m) * algebraMap(s^m) = algebraMap(b),
+    -- since restrictionMapAlg is a ring hom and canonicalMap(s) is a unit:
+    -- 0 = restrictionMapAlg(a) * restrictionMapAlg(algebraMap(s^m))
+    --   = restrictionMapAlg(a * algebraMap(s^m))
+    --   = restrictionMapAlg(algebraMap b)
+    --   = D.canonicalMap b.
+    have hb_zero : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+        D.canonicalMap b = 0 := by
+      intro D hD
+      have h0 := ha_zero D hD
+      rw [ha_eq.symm] at h0
+      -- restrictionMapAlg(algebraMap b) = lift(algebraMap b) = D.canonicalMap b
+      have hlift_b : restrictionMapAlg C.base D (C.hsubset D hD)
+          (algebraMap A _ b) = D.canonicalMap b := by
+        simp only [restrictionMapAlg, IsLocalization.Away.lift_eq]
+      -- algebraMap b = mk' b (s^m) * algebraMap(s^m), by mk'_spec
+      have hspec : IsLocalization.mk' (Localization.Away C.base.s) b
+          (⟨C.base.s ^ m, m, rfl⟩ : Submonoid.powers C.base.s) *
+          algebraMap A (Localization.Away C.base.s) (C.base.s ^ m) =
+          algebraMap A (Localization.Away C.base.s) b :=
+        IsLocalization.mk'_spec (Localization.Away C.base.s) b
+          ⟨C.base.s ^ m, m, rfl⟩
+      rw [← hlift_b, ← hspec, map_mul, h0, zero_mul]
+    -- canonicalMap(b) = coeRingHom(algebraMap(b)) = 0 in presheafValue D
+    -- means algebraMap(b) is in the kernel of the completion map for
+    -- Localization.Away D.s. For each D, this gives annihilation data
+    -- D.s^k * b = 0 in A, using the map_eq_zero_iff of localization
+    -- and the injectivity of the completion embedding into T0 space.
+    --
+    -- Since canonicalMap = coeRingHom ∘ algebraMap, and coeRingHom maps
+    -- to a T0 completion, canonicalMap(b) = 0 requires algebraMap(b)
+    -- to be in the closure of {0}. For noetherian Tate rings, the
+    -- localization topology is separated (Krull intersection), giving
+    -- algebraMap(b) = 0, hence D.s^k * b = 0.
+    --
+    -- The annihilation data feeds into the Spa-point radical argument.
+    have ha_ann : ∀ (D : RationalLocData A), D ∈ C.covers →
+        ∃ k : ℕ, D.s ^ k * b = 0 := by
+      intro D hD
+      have h0 := hb_zero D hD
+      -- canonicalMap = coeRingHom ∘ algebraMap
+      change D.coeRingHom (algebraMap A (Localization.Away D.s) b) = 0 at h0
+      -- In the T0 completion, coeRingHom(x) = 0 means x is in ⋂_n locNhd(n).
+      -- For noetherian localizations: Krull intersection gives ⋂_n I^n = 0,
+      -- so algebraMap(b) = 0 in Localization.Away D.s.
+      -- Then by localization: ∃ k, D.s^k * b = 0.
+      --
+      -- This step requires the identification of the localization topology
+      -- with an I-adic topology + Krull intersection for noetherian rings.
+      -- See TICKET-G2-topo.
+      sorry
+    -- Apply the Spa-point radical argument.
+    -- For open primes, the trivial valuation construction
+    -- (exists_spa_point_in_rationalOpen_of_isOpen_prime) gives Spa points
+    -- in the rational subset. For non-open primes, the full proof requires
+    -- Lemma 7.45 combined with rational subset membership control.
+    have hSpa_points : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+        ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp := by
+      intro p hp hs_notin
+      haveI := hp
+      by_cases hp_open : IsOpen (p : Set A)
+      · exact exists_spa_point_in_rationalOpen_of_isOpen_prime
+          C.base.T C.base.s p hp_open hs_notin
+      · -- Non-open prime case: requires placing Lemma 7.45's Spa point
+        -- in the specific rational subset rationalOpen C.base.T C.base.s.
+        -- This is the key gap in the full Tate acyclicity argument.
+        -- Wedhorn's proof (Theorem 8.28) handles this via Example 6.38
+        -- (localization is again Tate) + Laurent cover acyclicity (Lemma 8.33).
+        sorry
+    have hs_rad := base_s_in_annihilator_radical_of_covering C b ha_ann hSpa_points
+    -- From C.base.s ∈ radical(ann(b)): ∃ L, C.base.s^L * b = 0.
+    obtain ⟨L, hL⟩ := Ideal.mem_radical_iff.mp hs_rad
+    have hL_ann : C.base.s ^ L * b = 0 := by
+      suffices ∀ (x : A) (_ : x ∈ Ideal.span ({c : A | c * b = 0} : Set A)),
+          x * b = 0 by
+        exact this _ hL
+      intro x hx
+      induction hx using Submodule.span_induction with
+      | mem c hc => exact hc
+      | zero => exact zero_mul b
+      | add x y _ _ hxa hya => rw [add_mul, hxa, hya, add_zero]
+      | smul c x _ hxa => rw [smul_eq_mul, mul_assoc, hxa, mul_zero]
+    -- Hence a = mk' b (s^m) = 0 in the localization, and coeRingHom(a) = 0.
+    have ha_zero_loc : a = 0 := by
+      rw [ha_eq.symm, IsLocalization.mk'_eq_zero_iff]
+      exact ⟨⟨C.base.s ^ L, ⟨L, rfl⟩⟩, hL_ann⟩
+    rw [ha_zero_loc, map_zero]
   -- Step 2: Lift from the localization to the completion.
   exact completionKer_eq_bot_of_locKer_eq_bot A C h_loc_inj z hz_zero
 
