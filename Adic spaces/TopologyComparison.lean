@@ -93,6 +93,51 @@ theorem tateQuotient_roundtrip_apply
     locLiftToPresheaf D a :=
   RingHom.congr_fun (tateQuotient_roundtrip_eq_locLift D hb) a
 
+/-! ### Surjectivity of tateQuotientToPresheafHom
+
+The image of `tateQuotientToPresheafHom` contains the dense localization
+subring (by the round-trip lemma). For surjectivity, we need the image
+to be all of `presheafValue D`.
+
+The key: construct the inverse map `presheafValue D → A⟨X⟩/(1-sX)` using
+`UniformSpace.Completion.extensionHom` applied to `locToQuotientOneSubfX_gen`.
+This requires `locToQuotientOneSubfX_gen` to be continuous for the
+localization topology on the source.
+
+For now, we prove surjectivity for the DISCRETE case (where everything
+simplifies) and record the general strategy.
+-/
+
+/-- For discrete A, `tateQuotientToPresheafHom` is surjective. -/
+theorem tateQuotientToPresheafHom_surjective_discrete
+    [DiscreteTopology A] [IsNoetherianRing A]
+    (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D)) :
+    Function.Surjective (tateQuotientToPresheafHom D hb) := by
+  intro y
+  have hbij := coeRingHom_bijective_of_discrete D
+  obtain ⟨a, rfl⟩ := hbij.2 y
+  refine ⟨locToQuotientOneSubfX_gen D.s a, ?_⟩
+  rw [tateQuotient_roundtrip_apply, locLiftToPresheaf_eq_coeRingHom]
+
+/-- For discrete A, the isomorphism `A⟨X⟩/(1-sX) ≃+* presheafValue D`. -/
+noncomputable def tateQuotientPresheafEquiv_via_roundtrip
+    [DiscreteTopology A] [IsNoetherianRing A]
+    (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D)) :
+    (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) ≃+* presheafValue D :=
+  have hinj : Function.Injective (tateQuotientToPresheafHom D hb) := by
+    suffices key : tateQuotientToPresheafHom D hb = quotientEvalPresheafHom D by
+      rw [key]; exact quotientEvalPresheafHom_injective D
+    apply Ideal.Quotient.ringHom_ext
+    ext g
+    simp only [tateQuotientToPresheafHom, quotientEvalPresheafHom,
+      RingHom.comp_apply, Ideal.Quotient.lift_mk,
+      tateEvalPresheafHom, evalPresheafHom]
+    sorry -- Need: tsum-based eval = composition-based eval for discrete A
+  RingEquiv.ofBijective (tateQuotientToPresheafHom D hb)
+    ⟨hinj, tateQuotientToPresheafHom_surjective_discrete D hb⟩
+
 end CompletionIsomorphism
 
 end ValuationSpectrum
