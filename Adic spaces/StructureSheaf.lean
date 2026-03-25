@@ -441,6 +441,133 @@ instance (priority := 100) IsSheafyTopRing.toIsSheafy (A : Type u) [CommRing A]
     exact (IsSheafyTopRing.isEmbedding_productRestriction C).injective
       (funext fun ⟨D, hD⟩ ↦ congr_fun (congr_fun hxy D) hD)
 
+/-! ### Sheafiness of strongly noetherian Tate rings (Theorem 8.28 of Wedhorn)
+
+Wedhorn's Theorem 8.28 states that strongly noetherian Tate rings are sheafy.
+The proof goes through **Tate acyclicity**: every rational covering of
+`Spa(A, A⁺)` yields an exact Čech complex.
+
+The **separation** (= injectivity of the product restriction) requires showing
+that the canonical map
+
+  `presheafValue C.base → ∏_{D ∈ C.covers} presheafValue D`
+
+is injective. Since `presheafValue D` is the *completion* of `Localization.Away D.s`
+with respect to the localization topology, this is strictly stronger than injectivity
+at the algebraic (localization) level.
+
+**Proof outline (Wedhorn pp. 82-85):**
+1. Laurent cover exactness gives separation for 2-element covers (Lemma 8.33).
+2. Every standard rational covering refines a product of Laurent covers (Lemma 7.54).
+3. Refinement preserves separation (Proposition A.3).
+
+**Current status:**
+- Steps 1 and 3 are proved in `TateAcyclicity.lean` (sorry-free).
+- Step 2 requires the decomposition of rational subsets into basic pieces and the
+  categorical connection between `RationalCovering` and the `FiniteCover`/`AbPresheaf`
+  framework. These are documented as Components B and C in `TateAcyclicity.lean`.
+- The algebraic injectivity argument from the discrete case (`Presheaf.lean`,
+  `productRestriction_injective_discrete`) relies on constructing Spa points at
+  every prime ideal (via `exists_mem_spa_supp_eq_of_prime`), which uses
+  `DiscreteTopology` to ensure all valuations are continuous. For general Tate
+  rings, this requires Lemma 7.45 of Wedhorn (analytic point construction at
+  arbitrary primes), which is not yet formalized.
+-/
+
+/-- **Theorem 8.28 of Wedhorn** (separation component): for a strongly
+noetherian Tate ring, every rational covering has injective product
+restriction.
+
+This is the key step toward `IsSheafy`. The proof requires infrastructure
+not yet fully formalized:
+
+1. *Analytic point construction (Lemma 7.45)*: for every prime `p` of a
+   complete Tate ring, there exists `v ∈ Spa(A, A⁺)` with `v.supp = p`.
+   This generalizes `exists_mem_spa_supp_eq_of_prime` (which assumes
+   `[DiscreteTopology A]`).
+2. *Topological identification*: `presheafValue D` (the completion of
+   `Localization.Away D.s`) is isomorphic to `A⟨X⟩/(1 - D.s · X)`.
+3. *Categorical wrapping*: connecting `RationalCovering`/`presheafValue`
+   to the `FiniteCover`/`AbPresheaf` framework for Čech cohomology.
+
+The algebraic foundations (Laurent cover exactness, flatness, refinement
+transfer) are proved in `TateAcyclicity.lean`.
+
+The discrete case is fully proved by `productRestriction_injective_discrete`
+in `Presheaf.lean` and `IsSheafy.discrete` in this file. -/
+theorem separation_ofStronglyNoetherianTate
+    [IsTateRing A] [IsNoetherianRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) :
+    Function.Injective (productRestriction A C) := by
+  /- The proof reduces to showing: for every rational covering C of a rational
+     subset, the product of restriction maps is injective.
+
+     In the discrete case, this is `productRestriction_injective_discrete`.
+     For the general case, the argument uses the Čech complex machinery
+     from TateAcyclicity.lean (Laurent cover exactness + refinement transfer)
+     or the faithful flatness route (Corollary 8.32 of Wedhorn).
+
+     The remaining gap is the connection between the completion-valued presheaf
+     (`presheafValue`) and the algebraic/topological machinery. -/
+  sorry
+
+/-- **Theorem 8.28 of Wedhorn**: strongly noetherian Tate rings are sheafy.
+
+Uses `separation_ofStronglyNoetherianTate` for the separation axiom.
+See that theorem's docstring for the proof roadmap and remaining gaps. -/
+theorem isSheafy_ofStronglyNoetherianTate
+    [IsTateRing A] [IsNoetherianRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
+    IsSheafy A where
+  separation C := separation_ofStronglyNoetherianTate A P C
+
+/-! ### Factoring the product restriction through the canonical map
+
+The product of canonical maps `A → ∏ presheafValue D` factors through
+the canonical map to the base `A → presheafValue C.base` followed by
+the product restriction. This is a key structural property used in the
+faithful flatness route to sheafiness. -/
+
+/-- The product restriction composed with the canonical map to the base
+equals the product of canonical maps to the covering pieces. That is,
+the following diagram commutes:
+```
+            canonicalMap C.base
+        A ─────────────────────────→ presheafValue C.base
+        │                                    │
+        │ ∏ D.canonicalMap                   │ productRestriction C
+        ↓                                    ↓
+  ∏ presheafValue D  ═══════════  ∏ presheafValue D
+```
+-/
+theorem productRestriction_comp_canonicalMap
+    (C : RationalCovering A)
+    (a : A) (D : RationalLocData A) (hD : D ∈ C.covers) :
+    productRestriction A C (C.base.canonicalMap a) D hD =
+      D.canonicalMap a := by
+  -- productRestriction C (canonicalMap a) D hD
+  -- = restrictionMap C.base D h (canonicalMap a)
+  -- = restrictionMapHom(coeRingHom(algebraMap a))
+  -- = extensionHom(restrictionMapAlg)(coeRingHom(algebraMap a))
+  -- = restrictionMapAlg(algebraMap a)              [by extensionHom_coe]
+  -- = IsLocalization.Away.lift(algebraMap a)        [by defn of restrictionMapAlg]
+  -- = D.canonicalMap a                              [by lift_eq]
+  change restrictionMap C.base D (C.hsubset D hD) (C.base.canonicalMap a) =
+    D.canonicalMap a
+  unfold restrictionMap restrictionMapHom
+  letI := C.base.uniformSpace
+  letI := C.base.isTopologicalRing
+  letI := C.base.isUniformAddGroup
+  letI := D.uniformSpace
+  letI := D.isTopologicalRing
+  letI := D.isUniformAddGroup
+  erw [UniformSpace.Completion.extensionHom_coe
+    (restrictionMapAlg C.base D (C.hsubset D hD))
+    (HasRestrictionMaps.restrictionMapAlg_continuous
+      C.base D (C.hsubset D hD))]
+  simp only [restrictionMapAlg, IsLocalization.Away.lift_eq]
+
 /-! ### Adic spaces as objects of 𝒱 (Definitions 8.21, 8.22 of Wedhorn) -/
 
 end ValuationSpectrum
