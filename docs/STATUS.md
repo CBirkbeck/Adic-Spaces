@@ -2,7 +2,7 @@
 
 > **Agents: Read this file before starting work. Update it when you begin or complete a task.**
 >
-> Last updated: 2026-03-25
+> Last updated: 2026-03-25 (sorry decomposition in StructureSheaf)
 
 ## Module Status
 
@@ -48,10 +48,10 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 - `tateQuotientPresheafEquiv_mk_algebraMap`, `_mk_X`, `_symm_canonicalMap` : Key properties of the isomorphism.
 - `quotientEvalPresheafHom_surjective` : Surjectivity of the quotient evaluation map.
 
-**StructureSheaf.lean** — 2 sorry's (reduced from 2, but restructured):
-- `base_s_in_annihilator_radical_of_covering` : The Spa-point radical lemma for general (non-discrete) rings. Needs Lemma 7.45 of Wedhorn (continuous valuations at primes). This is the ONLY mathematical sorry; all algebraic infrastructure around it is sorry-free.
-- `separation_ofStronglyNoetherianTate` : Uses the above + density argument for completion.
-- New sorry-free: `restrictionMapAlg_factors` (factorization through coeRingHom).
+**StructureSheaf.lean** — 2 sorry's (restructured 2026-03-25):
+- `completionKer_eq_bot_of_locKer_eq_bot` : Completion-level kernel reduction. If the algebraic product restriction is injective on the dense localization, then the product restriction is injective on the completion. Requires AdicCompletion <-> UniformSpace.Completion bridge (TICKET-G2-topo).
+- `h_loc_inj` (inside `separation_ofStronglyNoetherianTate`) : Algebraic injectivity on the localization for Tate rings. Needs Spa points in specific rational subsets (not just in Spa). For discrete rings, this uses trivial valuations; for Tate rings, requires Lemma 7.45 + rational subset membership.
+- Sorry-free: `base_s_in_annihilator_radical_of_covering` (Spa-point radical lemma, parameterized by hSpa_points), `restrictionMapAlg_factors` (factorization through coeRingHom), `productRestriction_coe_eq`, `productRestriction_comp_canonicalMap`.
 
 ## Key Theorems (Adic Morphisms Chain)
 
@@ -62,7 +62,7 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 | `nonAnalytic_comap_of_continuous` (Lem 7.46(1) first) | AdicMorphisms:53 | Lem 7.46(1) | DONE |
 | `analytic_comap_of_isAdicHom` (Lem 7.46(1) second) | AdicMorphisms:123 | Lem 7.46(1) | DONE |
 | `analytic_comap_of_isAdicHom_tate` (Tate specialization) | AdicMorphisms:164 | Lem 7.46(1) | DONE |
-| Lemma 7.45 (analytic point construction) | — | Lem 7.45 | NOT STARTED |
+| Lemma 7.45 (analytic point construction) | Lemma745.lean | Lem 7.45 | DONE (sorry-free) |
 | Lemma 7.46(2) (converse: analytic preservation => adic) | — | Lem 7.46(2) | NOT STARTED (needs 7.45) |
 | Def 8.38 (adic morphisms of adic spaces) | — | Def 8.38 | NOT STARTED |
 | Prop 8.39, Cor 8.40 | — | Prop 8.39, Cor 8.40 | NOT STARTED |
@@ -74,11 +74,11 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 - [ ] **Commit all current work** — many new files + modified files uncommitted
 
 ### Medium Priority (extending the formalization)
-- [ ] **Lemma 7.45** — Analytic point construction for complete affinoid rings (needs Mathlib `IsLocalRing.exists_factor_valuationRing`, `IsAdicComplete.le_jacobson_bot`)
+- [x] **Lemma 7.45** — Analytic point construction for complete affinoid rings. Proved sorry-free in `Lemma745.lean` as `exists_mem_spa_supp_ge_of_nonOpen_prime`.
 - [ ] **Lemma 7.46(2)** — Converse: analytic preservation implies adic (needs 7.45)
 - [ ] **Remove h_map hypothesis from Prop 6.25** — needs Prop 6.4(5) (bounded open subring = ring of definition)
 - [ ] **General (non-discrete) sorry removal** — `isUnit_canonicalMap_s` and `restrictionMapAlg_continuous` currently require `[DiscreteTopology A]`
-- [ ] **Sheaf condition for general Huber rings** — `IsSheafy` stated for Tate rings (`separation_ofStronglyNoetherianTate`, sorry reduced to `base_s_in_annihilator_radical_of_covering`); ring isomorphism `A⟨X⟩/(1-sX) ≃+* presheafValue D` proved (`tateQuotientPresheafEquiv`, 0 sorry); `restrictionMapAlg_factors` (0 sorry). Needs: Lemma 7.45 (Spa points at primes).
+- [ ] **Sheaf condition for general Huber rings** — `IsSheafy` stated for Tate rings. Sorry decomposed (2026-03-25) into: (A) `completionKer_eq_bot_of_locKer_eq_bot` (completion kernel reduction, needs AdicCompletion bridge / G2-topo), (B) algebraic injectivity on localization (needs Spa points in specific rational subsets for Tate rings). All algebraic infrastructure sorry-free: `base_s_in_annihilator_radical_of_covering`, `restrictionMapAlg_factors`, `tateQuotientPresheafEquiv`.
 - [ ] **Categories V^pre and V** — see `docs/plans/2026-03-08-complete-top-ring-category.md` Tasks 2-3
 
 ### Low Priority / Future
