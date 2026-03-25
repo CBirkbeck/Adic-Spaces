@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».Presheaf
 import «Adic spaces».TateAlgebra
+import «Adic spaces».TateAlgebraWedhorn
 import Mathlib.Topology.Algebra.Nonarchimedean.Completion
 
 /-!
@@ -1048,5 +1049,230 @@ theorem locToQuot_invSelf_maps_to_invS
   locLiftToPresheaf_invSelf D
 
 end NonDiscreteEvaluation
+
+
+/-! ### Section 8: Topological identification via evalHomBounded (Phase 3, G2-topo)
+
+The evaluation ring homomorphism `A⟨X⟩ →+* presheafValue D` using
+`TateAlgebraWedhorn.evalHomBounded` (Corollary 5.50 of Wedhorn). This sends
+`∑ aₙ Xⁿ` to `∑ canonicalMap(aₙ) · (invS D)ⁿ` in the completion.
+
+The key results:
+1. `presheafValue D` is a `NonarchimedeanRing` (combining existing instances).
+2. `locSubring` is bounded in the localization topology.
+3. The evaluation map `tateEvalPresheafHom : A⟨X⟩ →+* presheafValue D`,
+   parameterized by a proof of power-boundedness of `invS D`.
+4. The evaluation sends `algebraMap(a)` to `canonicalMap(a)` and `X` to `invS D`.
+5. The ideal `(1-sX)` is in the kernel.
+6. Agreement with `locLiftToPresheaf` on the localization image.
+7. The induced quotient map `A⟨X⟩/(1-sX) →+* presheafValue D`.
+
+## References
+
+* [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], Corollary 5.50, Proposition 8.30, Remark 7.55
+-/
+
+section TateEvalPresheaf
+
+variable [NonarchimedeanRing A]
+
+/-! #### NonarchimedeanRing instance on presheafValue -/
+
+/-- `presheafValue D` is a `NonarchimedeanRing`: it has `IsTopologicalRing`
+and `NonarchimedeanAddGroup`, which together give the nonarchimedean ring structure. -/
+noncomputable instance presheafValueNonarchimedeanRing
+    (D : RationalLocData A) :
+    NonarchimedeanRing (presheafValue D) :=
+  { (inferInstance : IsTopologicalRing (presheafValue D)) with
+    is_nonarchimedean :=
+      (presheafValueNonarchimedeanAddGroup D).is_nonarchimedean }
+
+/-! #### Boundedness of locSubring -/
+
+omit [NonarchimedeanRing A] in
+/-- The ring of definition `locSubring` is bounded in the localization
+topology: for any neighborhood `locNhd k`, `locSubring * locNhd k ⊆ locNhd k`.
+This is because `locNhd k = image(J^k)` where `J = locIdeal` is an ideal of
+`locSubring`, so `locSubring * J^k ⊆ J^k`. -/
+theorem locSubring_isBounded (D : RationalLocData A) :
+    @TopologicalRing.IsBounded (Localization.Away D.s) _ D.topology
+      (locSubring D.P D.T D.s : Set (Localization.Away D.s)) := by
+  letI : TopologicalSpace (Localization.Away D.s) := D.topology
+  have hbasis := locBasis D.P D.T D.s D.hopen
+  intro U hU
+  obtain ⟨V, ⟨k, rfl⟩, hVU⟩ :=
+    hbasis.toRingFilterBasis.toAddGroupFilterBasis.nhds_zero_hasBasis.mem_iff.mp hU
+  refine ⟨locNhd D.P D.T D.s k,
+    hbasis.toRingFilterBasis.toAddGroupFilterBasis.nhds_zero_hasBasis.mem_iff.mpr
+      ⟨locNhd D.P D.T D.s k, ⟨k, rfl⟩, le_refl _⟩, ?_⟩
+  intro x hx
+  obtain ⟨d, hd, v, hv, rfl⟩ := Set.mem_mul.mp hx
+  apply hVU
+  obtain ⟨jv, hjv, rfl⟩ := hv
+  exact ⟨⟨d, hd⟩ * jv, Ideal.mul_mem_left _ _ hjv, MulMemClass.coe_mul ..⟩
+
+omit [TopologicalSpace A] [IsTopologicalRing A] [NonarchimedeanRing A] in
+/-- `invSelf s` equals `divByS 1 s` in `Localization.Away s`. -/
+theorem invSelf_eq_divByS (s : A) :
+    IsLocalization.Away.invSelf (S := Localization.Away s) s =
+      divByS 1 s := by
+  unfold IsLocalization.Away.invSelf divByS
+  simp [IsLocalization.mk']
+
+/-! #### The evaluation ring homomorphism -/
+
+/-- The evaluation ring homomorphism `A⟨X⟩ →+* presheafValue D` via
+`TateAlgebraWedhorn.evalHomBounded` (Corollary 5.50 of Wedhorn).
+
+Sends `∑ aₙ Xⁿ ↦ ∑ canonicalMap(aₙ) · (invS D)ⁿ` in the completion.
+
+The convergence is guaranteed by:
+- Continuity of `canonicalMap`: `canonicalMap(aₙ) → 0` in `presheafValue D`.
+- Power-boundedness of `invS D`: `{(invS D)^n}` is bounded (provided by `hb`).
+- Completeness and nonarchimedean property of `presheafValue D`. -/
+noncomputable def tateEvalPresheafHom (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D)) :
+    ↥(TateAlgebra A) →+* presheafValue D :=
+  TateAlgebraWedhorn.evalHomBounded
+    D.canonicalMap
+    (canonicalMap_continuous D)
+    (invS D)
+    hb
+
+/-! #### Properties of the evaluation map -/
+
+/-- `tateEvalPresheafHom` sends `algebraMap(a)` to `canonicalMap(a)`.
+The tsum reduces to a single term at `n = 0`:
+`canonicalMap(a) * (invS D)^0 = canonicalMap(a)`. -/
+theorem tateEvalPresheafHom_algebraMap (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (a : A) :
+    tateEvalPresheafHom D hb (algebraMap A _ a) = D.canonicalMap a := by
+  simp only [tateEvalPresheafHom, TateAlgebraWedhorn.evalHomBounded,
+    RingHom.coe_mk, MonoidHom.coe_mk, OneHom.coe_mk]
+  rw [tsum_eq_single 0]
+  · -- n = 0: evalTerm g b (algebraMap a) 0 = g(coeff 0 (algebraMap a)) * b^0
+    --       = g(a) * 1 = canonicalMap(a)
+    unfold TateAlgebraWedhorn.evalTerm TateAlgebra.coeff TateAlgebra.toIndex
+    simp only [Finsupp.single_zero, pow_zero, mul_one]
+    congr 1
+  · -- n ≠ 0: coeff n (algebraMap a) = 0, so the term vanishes
+    intro n hn
+    unfold TateAlgebraWedhorn.evalTerm TateAlgebra.coeff TateAlgebra.toIndex
+    have : (MvPowerSeries.coeff (R := A) (Finsupp.single 0 n))
+        (↑(algebraMap A ↥(TateAlgebra A) a) : MvPowerSeries (Fin 1) A) = 0 := by
+      change (MvPowerSeries.coeff (Finsupp.single 0 n))
+        (MvPowerSeries.C (σ := Fin 1) a) = 0
+      classical
+      rw [MvPowerSeries.coeff_C, if_neg (Finsupp.single_ne_zero.mpr hn)]
+    simp [this]
+
+/-- `tateEvalPresheafHom` sends `X` to `invS D`.
+The tsum reduces to a single term at `n = 1`:
+`canonicalMap(1) * invS = invS D`. -/
+theorem tateEvalPresheafHom_X (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D)) :
+    tateEvalPresheafHom D hb TateAlgebra.X = invS D := by
+  simp only [tateEvalPresheafHom, TateAlgebraWedhorn.evalHomBounded,
+    RingHom.coe_mk, MonoidHom.coe_mk, OneHom.coe_mk]
+  rw [tsum_eq_single 1]
+  · simp only [TateAlgebraWedhorn.evalTerm, TateAlgebra.coeff,
+      TateAlgebra.toIndex, TateAlgebra.X, pow_one]
+    change D.canonicalMap ((MvPowerSeries.coeff (R := A)
+      (Finsupp.single 0 1))
+        (MvPowerSeries.X 0)) * invS D = invS D
+    rw [MvPowerSeries.coeff_X, if_pos rfl, map_one, one_mul]
+  · intro n hn
+    simp only [TateAlgebraWedhorn.evalTerm, TateAlgebra.coeff,
+      TateAlgebra.toIndex, TateAlgebra.X]
+    change D.canonicalMap ((MvPowerSeries.coeff (R := A)
+      (Finsupp.single 0 n))
+        (MvPowerSeries.X 0)) * _ = 0
+    have : Finsupp.single (0 : Fin 1) n ≠ Finsupp.single (0 : Fin 1) 1 := by
+      intro h; exact hn (Finsupp.single_injective (0 : Fin 1) h)
+    rw [MvPowerSeries.coeff_X, if_neg this, map_zero, zero_mul]
+
+/-- `tateEvalPresheafHom` sends `algebraMap(s) * X` to `1`:
+the element `sX` evaluates to `s * (1/s) = 1`. -/
+theorem tateEvalPresheafHom_sX (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D)) :
+    tateEvalPresheafHom D hb
+      (algebraMap A _ D.s * TateAlgebra.X) = 1 := by
+  rw [map_mul, tateEvalPresheafHom_algebraMap,
+    tateEvalPresheafHom_X, canonicalMap_s_mul_invS]
+
+/-- `tateEvalPresheafHom` sends `1 - sX` to `0`. -/
+theorem tateEvalPresheafHom_oneSubsX (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D)) :
+    tateEvalPresheafHom D hb
+      (1 - algebraMap A _ D.s * TateAlgebra.X) = 0 := by
+  rw [map_sub, map_one, tateEvalPresheafHom_sX, sub_self]
+
+/-! #### Kernel containment -/
+
+/-- The ideal `(1-sX)` is contained in the kernel of `tateEvalPresheafHom`.
+This follows from `oneSubfX_le_ker_of_eval` since `phi(s) * phi(X) = 1`. -/
+theorem oneSubsX_le_ker_tateEvalPresheafHom (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D)) :
+    oneSubfXIdeal D.s ≤ RingHom.ker (tateEvalPresheafHom D hb) := by
+  rw [oneSubfXIdeal, Ideal.span_le]
+  intro x hx
+  simp only [Set.mem_singleton_iff] at hx
+  rw [SetLike.mem_coe, RingHom.mem_ker, hx]
+  exact tateEvalPresheafHom_oneSubsX D hb
+
+/-! #### Agreement with locLiftToPresheaf -/
+
+/-- On elements of the form `algebraMap(a)`, `tateEvalPresheafHom` agrees
+with `locLiftToPresheaf ∘ algebraMap`: both send `a` to `canonicalMap(a)`. -/
+theorem tateEvalPresheafHom_eq_locLift_on_algebraMap
+    (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (a : A) :
+    tateEvalPresheafHom D hb (algebraMap A _ a) =
+      locLiftToPresheaf D (algebraMap A _ a) := by
+  rw [tateEvalPresheafHom_algebraMap, locLiftToPresheaf_algebraMap]
+
+/-- On the generator `X`, `tateEvalPresheafHom` agrees with the
+localization lift applied to `invSelf`: both produce `invS D`. -/
+theorem tateEvalPresheafHom_X_eq_locLift_invSelf
+    (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D)) :
+    tateEvalPresheafHom D hb TateAlgebra.X =
+      locLiftToPresheaf D
+        (IsLocalization.Away.invSelf
+          (S := Localization.Away D.s) D.s) := by
+  rw [tateEvalPresheafHom_X, locLiftToPresheaf_invSelf]
+
+/-! #### The quotient map A⟨X⟩/(1-sX) →+* presheafValue D -/
+
+/-- The induced ring hom from the Tate quotient `A⟨X⟩/(1-sX)` to `presheafValue D`,
+via the first isomorphism theorem. Since `(1-sX) ⊆ ker(tateEvalPresheafHom)`,
+this is well-defined. -/
+noncomputable def tateQuotientToPresheafHom (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D)) :
+    (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) →+* presheafValue D :=
+  Ideal.Quotient.lift (oneSubfXIdeal D.s) (tateEvalPresheafHom D hb)
+    (fun _ hx => oneSubsX_le_ker_tateEvalPresheafHom D hb hx)
+
+/-- `tateQuotientToPresheafHom` sends `mk(algebraMap a)` to `canonicalMap(a)`. -/
+theorem tateQuotientToPresheafHom_algebraMap (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (a : A) :
+    tateQuotientToPresheafHom D hb
+      ((Ideal.Quotient.mk _) (algebraMap A _ a)) =
+      D.canonicalMap a := by
+  simp only [tateQuotientToPresheafHom, Ideal.Quotient.lift_mk]
+  exact tateEvalPresheafHom_algebraMap D hb a
+
+/-- `tateQuotientToPresheafHom` sends `mk(X)` to `invS D`. -/
+theorem tateQuotientToPresheafHom_X (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D)) :
+    tateQuotientToPresheafHom D hb
+      ((Ideal.Quotient.mk _) TateAlgebra.X) = invS D := by
+  simp only [tateQuotientToPresheafHom, Ideal.Quotient.lift_mk]
+  exact tateEvalPresheafHom_X D hb
+
+end TateEvalPresheaf
 
 end ValuationSpectrum
