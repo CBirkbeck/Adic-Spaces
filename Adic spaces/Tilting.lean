@@ -384,9 +384,7 @@ private theorem berkeley_6_2_8 (p : ℕ) [Fact (Nat.Prime p)]
   -- (C) Division step + (D) apply ker_of_primitive_and_division.
   obtain ⟨ξ, hξ_ker, hξ_c0⟩ := hA
   refine ⟨ξ, hξ_ker, fun x hx => ?_⟩
-  apply WittVector.ker_of_primitive_and_division θ hξ_ker _ x hx
-  -- Division step: ∀ y ∈ ker(θ), ∃ q r, y = ξ*q + p*r ∧ r ∈ ker(θ).
-  intro y hy
+  apply WittVector.ker_of_primitive_and_division (ξ := ξ) θ (fun y hy => ?_) x hx
   suffices hdvd : ∃ q₀ : k, y.coeff 0 = ξ.coeff 0 * q₀ by
     obtain ⟨q₀, hq₀⟩ := hdvd
     have hres_c0 : (y - ξ * WittVector.teichmuller p q₀).coeff 0 = 0 := by

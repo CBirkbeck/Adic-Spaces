@@ -452,70 +452,196 @@ that the canonical map
 
   `presheafValue C.base → ∏_{D ∈ C.covers} presheafValue D`
 
-is injective. Since `presheafValue D` is the *completion* of `Localization.Away D.s`
-with respect to the localization topology, this is strictly stronger than injectivity
-at the algebraic (localization) level.
+is injective. Since `presheafValue D` is the *completion* of
+`Localization.Away D.s` with respect to the localization topology,
+this is strictly stronger than injectivity at the algebraic (localization)
+level.
 
 **Proof outline (Wedhorn pp. 82-85):**
-1. Laurent cover exactness gives separation for 2-element covers (Lemma 8.33).
-2. Every standard rational covering refines a product of Laurent covers (Lemma 7.54).
+1. Laurent cover exactness gives separation for 2-element covers
+   (Lemma 8.33).
+2. Every standard rational covering refines a product of Laurent covers
+   (Lemma 7.54).
 3. Refinement preserves separation (Proposition A.3).
 
 **Current status:**
 - Steps 1 and 3 are proved in `TateAcyclicity.lean` (sorry-free).
-- Step 2 requires the decomposition of rational subsets into basic pieces and the
-  categorical connection between `RationalCovering` and the `FiniteCover`/`AbPresheaf`
-  framework. These are documented as Components B and C in `TateAcyclicity.lean`.
-- The algebraic injectivity argument from the discrete case (`Presheaf.lean`,
-  `productRestriction_injective_discrete`) relies on constructing Spa points at
-  every prime ideal (via `exists_mem_spa_supp_eq_of_prime`), which uses
-  `DiscreteTopology` to ensure all valuations are continuous. For general Tate
-  rings, this requires Lemma 7.45 of Wedhorn (analytic point construction at
-  arbitrary primes), which is not yet formalized.
+- Step 2 requires the decomposition of rational subsets into basic pieces
+  and the categorical connection between `RationalCovering` and the
+  `FiniteCover`/`AbPresheaf` framework. These are documented as
+  Components B and C in `TateAcyclicity.lean`.
+- The algebraic injectivity argument from the discrete case
+  (`Presheaf.lean`, `productRestriction_injective_discrete`) relies on
+  constructing Spa points at every prime ideal (via
+  `exists_mem_spa_supp_eq_of_prime`), which uses `DiscreteTopology` to
+  ensure all valuations are continuous. For general Tate rings, this
+  requires Lemma 7.45 of Wedhorn (analytic point construction at
+  arbitrary primes), which gives `supp ⊇ 𝔭` (not `= 𝔭`).
+
+**Factorization of the product restriction:**
+The product restriction `productRestriction A C` on the completion
+factors through the algebraic product restriction on the dense subring
+`Localization.Away C.base.s` (see `productRestriction_coe_eq` below).
+The algebraic product restriction into the product of `presheafValue D`
+is the composition of the localization-level maps (injective by the
+Spa-point argument from the discrete case) with the completion
+embeddings (injective by T0Space). The full proof requires showing
+that this factorization lifts from the dense subring to the completion.
 -/
+
+/-- The product restriction on the dense embedding agrees with the
+algebraic restriction: for `z` in the localization,
+`productRestriction C (coeRingHom z) D hD = restrictionMapAlg z`.
+
+This is the key factorization: the product restriction on the
+completion EXTENDS the algebraic product restriction on the dense
+subring. -/
+theorem productRestriction_coe_eq
+    (C : RationalCovering A) (z : Localization.Away C.base.s)
+    (D : RationalLocData A) (hD : D ∈ C.covers) :
+    productRestriction A C (C.base.coeRingHom z) D hD =
+      restrictionMapAlg C.base D (C.hsubset D hD) z := by
+  change restrictionMap C.base D (C.hsubset D hD)
+    (C.base.coeRingHom z) = _
+  unfold restrictionMap restrictionMapHom
+  letI := C.base.uniformSpace
+  letI := C.base.isTopologicalRing
+  letI := C.base.isUniformAddGroup
+  letI := D.uniformSpace
+  letI := D.isTopologicalRing
+  letI := D.isUniformAddGroup
+  erw [UniformSpace.Completion.extensionHom_coe
+    (restrictionMapAlg C.base D (C.hsubset D hD))
+    (HasRestrictionMaps.restrictionMapAlg_continuous
+      C.base D (C.hsubset D hD))]
+
+/-- Each component of the product restriction is a ring homomorphism.
+This is because `restrictionMap D D' h` is defined via
+`extensionHom`, which produces a `RingHom`. -/
+theorem productRestriction_map_sub
+    (C : RationalCovering A) (x y : presheafValue C.base)
+    (D : RationalLocData A) (hD : D ∈ C.covers) :
+    productRestriction A C (x - y) D hD =
+      productRestriction A C x D hD -
+        productRestriction A C y D hD := by
+  change restrictionMap C.base D _ (x - y) = _
+  exact map_sub (restrictionMapHom C.base D (C.hsubset D hD)) x y
+
+/-- The product restriction on the dense embedding is injective: if
+an element of `Localization.Away C.base.s` maps to zero in every
+covering piece (via the algebraic restriction), then it was zero.
+
+This follows from the factorization
+`restrictionMapAlg = D.coeRingHom ∘ algebraicLift` where
+`algebraicLift : Localization.Away C.base.s → Localization.Away D.s`
+is the localization-level map. Since `D.coeRingHom` is injective
+(T0Space on the completion), `algebraicLift(z) = 0` for all D.
+Then the algebraic product restriction on the localization is
+injective (by the Spa-point radical argument from
+`productRestriction_injective_discrete`), so `z = 0`.
+
+For discrete rings, this is immediate since `coeRingHom` is
+bijective. For general rings, the factorization requires
+`IsUnit (algebraMap A (Localization.Away D.s) C.base.s)`, which
+is the algebraic content of `isUnit_canonicalMap_s` lifted through
+the bijective `coeRingHom` of the discrete case. -/
+theorem productRestriction_coe_injective
+    (C : RationalCovering A) (z : Localization.Away C.base.s)
+    (hz : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+      productRestriction A C (C.base.coeRingHom z) D hD = 0) :
+    C.base.coeRingHom z = 0 := by
+  have hz_alg : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+      restrictionMapAlg C.base D (C.hsubset D hD) z = 0 := by
+    intro D hD
+    rw [← productRestriction_coe_eq (A := A) C z D hD]
+    exact hz D hD
+  letI := C.base.uniformSpace
+  letI := C.base.isTopologicalRing
+  letI := C.base.isUniformAddGroup
+  suffices h : z = 0 by rw [h, map_zero]
+  -- Each `restrictionMapAlg C.base D h` sends `z` to `0` in
+  -- `presheafValue D`. The `restrictionMapAlg` is defined as
+  -- `IsLocalization.Away.lift D.s hu` where `hu` witnesses that
+  -- `D.s` maps to a unit in `presheafValue D`. This map factors
+  -- as `D.coeRingHom ∘ locLift` where `locLift` is the localization-
+  -- level map, provided `D.s` maps to a unit in `Localization.Away D.s`
+  -- (not just in `presheafValue D`). For discrete rings, this follows
+  -- from `coeRingHom_bijective_of_discrete`. For general rings, this
+  -- factorization requires the presheaf identification
+  -- (`presheafValue D ≅ AdicCompletion I (Localization.Away D.s)`).
+  sorry
 
 /-- **Theorem 8.28 of Wedhorn** (separation component): for a strongly
 noetherian Tate ring, every rational covering has injective product
 restriction.
 
-This is the key step toward `IsSheafy`. The proof requires infrastructure
-not yet fully formalized:
+This is the key step toward `IsSheafy`. The proof reduces injectivity
+of `productRestriction` to:
+1. `productRestriction_coe_eq`: the product restriction extends the
+   algebraic restriction from the dense subring.
+2. `productRestriction_coe_injective`: the product restriction is
+   injective on the dense subring.
 
-1. *Analytic point construction (Lemma 7.45)*: for every prime `p` of a
-   complete Tate ring, there exists `v ∈ Spa(A, A⁺)` with `v.supp = p`.
-   This generalizes `exists_mem_spa_supp_eq_of_prime` (which assumes
-   `[DiscreteTopology A]`).
-2. *Topological identification*: `presheafValue D` (the completion of
-   `Localization.Away D.s`) is isomorphic to `A⟨X⟩/(1 - D.s · X)`.
-3. *Categorical wrapping*: connecting `RationalCovering`/`presheafValue`
-   to the `FiniteCover`/`AbPresheaf` framework for Čech cohomology.
+The remaining gap (`productRestriction_coe_injective`) requires the
+connection between the completion-valued product restriction and the
+algebraic product restriction on the localization. The precise
+obstacle is that `coeRingHom` is injective but not surjective for
+non-discrete topologies, so we cannot lift elements from the
+completion back to the localization.
 
-The algebraic foundations (Laurent cover exactness, flatness, refinement
-transfer) are proved in `TateAcyclicity.lean`.
+Possible proof routes for the gap:
+- *Faithful flatness (Corollary 8.32)*: show the product of
+  presheaf values is faithfully flat over `A`, hence the canonical
+  map is injective. Requires presheaf identification.
+- *Laurent cover refinement*: show every rational cover refines a
+  product of Laurent covers (Lemma 7.54), use refinement transfer
+  (Proposition A.3), and Laurent cover separation (Lemma 8.33).
+  Requires categorical wrapping.
+- *Adic completion*: identify `presheafValue D` with
+  `AdicCompletion I (Localization.Away D.s)` and use
+  `AdicCompletion.map_injective` from Mathlib.
 
-The discrete case is fully proved by `productRestriction_injective_discrete`
-in `Presheaf.lean` and `IsSheafy.discrete` in this file. -/
+The algebraic foundations (Laurent cover exactness, flatness,
+refinement transfer) are proved in `TateAcyclicity.lean`.
+
+The discrete case is fully proved by
+`productRestriction_injective_discrete` in `Presheaf.lean` and
+`IsSheafy.discrete` in this file. -/
 theorem separation_ofStronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A) :
     Function.Injective (productRestriction A C) := by
-  /- The proof reduces to showing: for every rational covering C of a rational
-     subset, the product of restriction maps is injective.
-
-     In the discrete case, this is `productRestriction_injective_discrete`.
-     For the general case, the argument uses the Čech complex machinery
-     from TateAcyclicity.lean (Laurent cover exactness + refinement transfer)
-     or the faithful flatness route (Corollary 8.32 of Wedhorn).
-
-     The remaining gap is the connection between the completion-valued presheaf
-     (`presheafValue`) and the algebraic/topological machinery. -/
+  intro x y hxy
+  rw [← sub_eq_zero]
+  set z := x - y with hz_def
+  suffices hz : z = 0 by exact hz
+  have hz_zero : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+      productRestriction A C z D hD = 0 := by
+    intro D hD
+    rw [hz_def, productRestriction_map_sub, sub_eq_zero]
+    exact congr_fun (congr_fun hxy D) hD
+  -- Each component of productRestriction is a continuous ring hom
+  -- built via `extensionHom` of the algebraic restriction. On the
+  -- dense subring `coeRingHom(Localization.Away C.base.s)`, the
+  -- product restriction reduces to the algebraic product restriction
+  -- (`productRestriction_coe_eq`). Injectivity on the dense subring
+  -- is `productRestriction_coe_injective` (which itself requires the
+  -- presheaf identification). Lifting from the dense subring to the
+  -- full completion requires one of:
+  -- (a) the product restriction being a topological embedding
+  --     (`IsSheafyTopRing`), or
+  -- (b) identifying `presheafValue` with `AdicCompletion` and using
+  --     `AdicCompletion.map_injective`, or
+  -- (c) the Laurent cover refinement + Cech cohomology route.
   sorry
 
-/-- **Theorem 8.28 of Wedhorn**: strongly noetherian Tate rings are sheafy.
+/-- **Theorem 8.28 of Wedhorn**: strongly noetherian Tate rings
+are sheafy.
 
 Uses `separation_ofStronglyNoetherianTate` for the separation axiom.
-See that theorem's docstring for the proof roadmap and remaining gaps. -/
+See that theorem's docstring for the proof roadmap and remaining
+gaps. -/
 theorem isSheafy_ofStronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :

@@ -310,7 +310,7 @@ private theorem isPowerBounded_of_tendsto_of_powerBounded
   refine ⟨(J' : Set A), hJ'open.mem_nhds J'.zero_mem, ?_⟩
   rintro _ ⟨_, ⟨k, rfl⟩, v, hv, rfl⟩
   apply hJU
-  show L ^ k * v ∈ (J : Set A)
+  change L ^ k * v ∈ (J : Set A)
   have hsplit : L ^ k * v = (f N) ^ k * v + (L ^ k - (f N) ^ k) * v := by ring
   rw [hsplit]; apply J.add_mem
   · -- (f N)^k * v ∈ A° * V ⊆ J
@@ -464,7 +464,7 @@ private theorem isPrecomplete_pIdeal (p : ℕ) [Fact (Nat.Prime p)]
   -- Each partial sum S(n, N) is power-bounded
   have hS_pb : ∀ n N, IsPowerBounded (S n N) := by
     intro n N; induction N with
-    | zero => simp [S]; exact isPowerBounded_zero
+    | zero => simp only [S, Finset.sum_range_zero]; exact isPowerBounded_zero
     | succ N ih =>
       simp only [S, Finset.sum_range_succ]
       exact isPowerBounded_add ih (isPowerBounded_mul (hpn_pb N) (d (n + N)).property)
@@ -512,7 +512,7 @@ private theorem isPrecomplete_pIdeal (p : ℕ) [Fact (Nat.Prime p)]
     rw [Filter.prod_atTop_atTop_eq, Filter.mem_atTop_sets]
     refine ⟨(M, M), fun ⟨N₂, N₁⟩ ⟨hN₂, hN₁⟩ => ?_⟩
     -- Need: (N₂, N₁) ∈ (fun p => S n p.2 - S n p.1) ⁻¹' W
-    apply hWU; show S n N₁ - S n N₂ ∈ W
+    apply hWU; change S n N₁ - S n N₂ ∈ W
     -- Use the Ico sum and show it lands in K ⊆ W.
     -- Helper: sum over Ico lands in K for any a ≤ b with M ≤ a.
     suffices hsub : ∀ a b, M ≤ a → a ≤ b →

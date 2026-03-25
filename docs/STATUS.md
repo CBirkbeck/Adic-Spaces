@@ -2,7 +2,7 @@
 
 > **Agents: Read this file before starting work. Update it when you begin or complete a task.**
 >
-> Last updated: 2026-03-11
+> Last updated: 2026-03-25
 
 ## Module Status
 
@@ -68,11 +68,11 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 - [ ] **Lemma 7.46(2)** — Converse: analytic preservation implies adic (needs 7.45)
 - [ ] **Remove h_map hypothesis from Prop 6.25** — needs Prop 6.4(5) (bounded open subring = ring of definition)
 - [ ] **General (non-discrete) sorry removal** — `isUnit_canonicalMap_s` and `restrictionMapAlg_continuous` currently require `[DiscreteTopology A]`
-- [ ] **Sheaf condition for general Huber rings** — `IsSheafy` only proved for discrete; need Tate acyclicity (Thm 8.28)
+- [ ] **Sheaf condition for general Huber rings** — `IsSheafy` stated for Tate rings (`separation_ofStronglyNoetherianTate`, 1 sorry); `productRestriction_comp_canonicalMap` proved (0 sorry). Needs: Lemma 7.45 (Spa points at primes), topological identification, categorical wrapping.
 - [ ] **Categories V^pre and V** — see `docs/plans/2026-03-08-complete-top-ring-category.md` Tasks 2-3
 
 ### Low Priority / Future
-- [ ] **Tate's acyclicity theorem** (Wedhorn Thm 8.28) — the hard theorem
+- [ ] **Tate's acyclicity theorem** (Wedhorn Thm 8.28) — algebraic foundation complete (Laurent exactness, flatness, Cech refinement). Remaining: topological identification (G2-topo), categorical wrapping, Laurent-to-standard refinement.
 - [ ] **Perfectoid spaces** — long-term goal
 - [ ] **Clean up `Basic.lean`** — currently a placeholder
 

@@ -206,7 +206,7 @@ by `isAdicCompleteIdealSpanP`.
 (Scholze-Weinstein, Berkeley Lectures, Lemma 6.2.8 — algebraic core) -/
 theorem WittVector.ker_of_primitive_and_division
     {R : Type*} [CommRing R] (θ : 𝕎 k →+* R)
-    {ξ : 𝕎 k} (hξ_ker : ξ ∈ RingHom.ker θ)
+    {ξ : 𝕎 k}
     (hdiv : ∀ x ∈ RingHom.ker θ, ∃ (q r : 𝕎 k), x = ξ * q + (p : 𝕎 k) * r ∧
       r ∈ RingHom.ker θ)
     (x : 𝕎 k) (hx : x ∈ RingHom.ker θ) :
