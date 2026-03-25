@@ -172,6 +172,39 @@ theorem locToQuotientOneSubfX_gen_locSubring_isBounded (D : RationalLocData A)
       _ (quotientTTopology D.s)
       (locToQuotientOneSubfX_gen D.s '' (locSubring D.P D.T D.s :
         Set (Localization.Away D.s))) := by
+  -- PROOF OUTLINE (self-preserving T-topology neighborhood):
+  --
+  -- For each tᵢ ∈ D.T, since A₀ is open and x ↦ D.s · tᵢ · x is continuous,
+  -- ∃ Cᵢ : ℕ such that D.s · tᵢ · Im(I^{k+Cᵢ}) ⊆ Im(I^k) for all k ≥ 0.
+  -- Let C = max(Cᵢ : tᵢ ∈ D.T).
+  --
+  -- Given target U ∈ nhds 0 (quotient T-topology), find M, N₀ such that
+  -- the T-topology open additive subgroup
+  --   W_T := {g ∈ A⟨X⟩ : ∀ n ≤ M, s^n · coeff_n(g) ∈ Im(I^{N₀ - n·C})}
+  -- satisfies mk(W_T) ⊆ U.
+  --
+  -- Self-preservation (Subring.closure_induction with P(r) = φ(r)·mk(W_T) ⊆ mk(W_T)):
+  -- - algebraMap(a₀), a₀ ∈ A₀: algebraMap(a₀)·g has s^n·coeff_n = a₀·(s^n·coeff_n(g)).
+  --   Since a₀ ∈ A₀ and I^k is an ideal of A₀: a₀ · Im(I^k) ⊆ Im(I^k). ✓
+  -- - tᵢ/s: φ(tᵢ/s)·mk(g) = mk(algebraMap(tᵢ)·X·g). Scaled coeff at n:
+  --   s^n·coeff_n(algebraMap(tᵢ)·X·g) = s·tᵢ·(s^{n-1}·coeff_{n-1}(g)).
+  --   Source: s^{n-1}·coeff_{n-1}(g) ∈ Im(I^{N₀-(n-1)·C}).
+  --   Need: s·tᵢ · Im(I^{N₀-(n-1)·C}) ⊆ Im(I^{N₀-n·C}).
+  --   Write N₀-(n-1)·C = (N₀-n·C) + C ≥ (N₀-n·C) + Cᵢ.
+  --   By choice of Cᵢ: s·tᵢ · Im(I^{(N₀-n·C)+Cᵢ}) ⊆ Im(I^{N₀-n·C}). ✓
+  -- - mul: P(r₁)∧P(r₂) → P(r₁·r₂) since r₁·(r₂·W) ⊆ r₁·W ⊆ W. ✓
+  -- - add/neg/0/1: standard from additive subgroup properties.
+  --
+  -- Then V = mk(W_T), and φ(locSubring) · V ⊆ V ⊆ U. V ∈ nhds 0 since
+  -- W_T is a T-topology open set (finitely many coordinates constrained to
+  -- open sets Im(I^k)), and mk is an open map.
+  --
+  -- TODO: Formalize the T-topology neighborhood construction and the
+  -- coefficient-level analysis. Requires:
+  -- (1) The "Artin-Rees shift" Cᵢ for each tᵢ (from continuity of multiplication
+  --     by s·tᵢ and openness of A₀).
+  -- (2) Explicit T-topology open additive subgroup with graded constraints.
+  -- (3) Subring.closure_induction at the quotient level.
   sorry
 
 /-! ### Step 1b: Continuity of locToQuotientOneSubfX_gen
@@ -472,6 +505,52 @@ theorem presheafToQuotient_comp_tateQuotientToPresheaf (D : RationalLocData A)
     (q : ↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :
     presheafValueToQuotient D hb hcs ht0
       (tateQuotientToPresheafHom D hb q) = q := by
+  -- Setup instances for the quotient T-topology and localization.
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  letI τQ : TopologicalSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientTTopology D.s
+  letI : UniformSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientTUniformSpace D.s
+  letI : IsTopologicalRing (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientTTopology_isTopologicalRing D.s
+  letI : IsTopologicalAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientTTopology_isTopologicalAddGroup D.s
+  letI : IsUniformAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientTTopology_isUniformAddGroup D.s
+  -- T₀ uniform space is T₂.
+  haveI hT2 : T2Space (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    @R1Space.t2Space_of_t0Space _ τQ
+      (@UniformSpace.instR1Space _ (quotientTUniformSpace D.s)) ht0
+  -- The composites agree on the dense image of locToQuotientOneSubfX_gen:
+  -- presheafValueToQuotient(tateQuotientToPresheafHom(locToQuotientOneSubfX_gen a))
+  -- = presheafValueToQuotient(coeRingHom a)     [round-trip]
+  -- = locToQuotientOneSubfX_gen a               [extensionHom_coe]
+  have hagree : ∀ (a : Localization.Away D.s),
+      presheafValueToQuotient D hb hcs ht0
+        (tateQuotientToPresheafHom D hb (locToQuotientOneSubfX_gen D.s a)) =
+        locToQuotientOneSubfX_gen D.s a := by
+    intro a
+    rw [tateQuotient_roundtrip_apply D hb a,
+      locLiftToPresheaf_eq_coeRingHom D,
+      presheafValueToQuotient_coe D hb hcs ht0 a]
+  -- KEY SORRY: Density of locToQuotientOneSubfX_gen + continuity of composite
+  -- → DenseRange.equalizer closes this goal.
+  --
+  -- Density holds because: the T-topology on TateAlgebra A is induced from the
+  -- product topology via scaleIncl. Truncations of any power series g converge
+  -- to g coordinate-wise under scaleIncl, hence in the T-topology. Since the
+  -- quotient map mk is continuous, mk(truncations) converge in the quotient.
+  -- Each mk(truncation) is in the image of locToQuotientOneSubfX_gen.
+  --
+  -- Continuity of the composite requires showing tateQuotientToPresheafHom
+  -- (= Ideal.Quotient.lift of evalHomBounded) is continuous from quotient
+  -- T-topology to presheafValue D. This follows from continuity of
+  -- evalHomBounded in the T-topology (the tsum converges by construction).
+  --
+  -- Both density and continuity need ~50-100 lines of new infrastructure
+  -- (truncation convergence for T-topology, T-topology continuity of evaluation).
   sorry
 
 /-! ### Step 4: Package as RingEquiv -/

@@ -48,10 +48,10 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 - `tateQuotientPresheafEquiv_mk_algebraMap`, `_mk_X`, `_symm_canonicalMap` : Key properties of the isomorphism.
 - `quotientEvalPresheafHom_surjective` : Surjectivity of the quotient evaluation map.
 
-**TopologyComparison.lean** — 3 sorry's (added 2026-03-25):
-- `locToQuotientOneSubfX_gen_continuous` : Continuity of the localization-to-quotient map for localization topology -> quotient T-topology. This is the Artin-Rees topology comparison (hardest remaining sorry).
-- `tateQuotientToPresheaf_comp_presheafToQuotient` : Left inverse of the completion isomorphism. Needs T2 density + continuity of the composite.
-- `presheafToQuotient_comp_tateQuotientToPresheaf` : Right inverse. Needs surjectivity argument on quotient generators.
+**TopologyComparison.lean** — 3 sorry's (updated 2026-03-25):
+- `locToQuotientOneSubfX_gen_locSubring_isBounded` : Boundedness of φ(locSubring) in quotient T-topology. Proof outline: construct self-preserving T-topology neighborhood with graded ideal constraints Im(I^{N-n*C}) at index n. Requires Artin-Rees shift constants for each t_i ∈ T. Detailed mathematical proof documented in comment. Used by the continuity theorem below.
+- `locToQuotientOneSubfX_gen_continuous` : Continuity of the localization-to-quotient map for localization topology -> quotient T-topology. Proved modulo `locSubring_isBounded` above. Uses Submodule.span_induction with strengthened predicate.
+- `presheafToQuotient_comp_tateQuotientToPresheaf` : Right inverse. Uses Ideal.Quotient.ringHom_ext + agreement on generators.
 - Sorry-free: `quotientTTopology` + ring/nonarchimedean instances, `presheafValueToQuotient` (extension to completion), `presheafValueToQuotient_coe`, `presheafValueTateQuotientEquiv` (packaged as RingEquiv modulo the 3 sorry hypotheses), `presheafValueTateQuotientEquiv_canonicalMap`, `_symm_algebraMap`.
 
 **StructureSheaf.lean** — 2 sorry's (restructured 2026-03-25):
