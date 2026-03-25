@@ -519,10 +519,11 @@ theorem presheafToQuotient_comp_tateQuotientToPresheaf (D : RationalLocData A)
     quotientTTopology_isTopologicalAddGroup D.s
   letI : IsUniformAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
     quotientTTopology_isUniformAddGroup D.s
-  -- T₀ uniform space is T₂.
-  haveI hT2 : T2Space (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
-    @R1Space.t2Space_of_t0Space _ τQ
-      (@UniformSpace.instR1Space _ (quotientTUniformSpace D.s)) ht0
+  -- T₀ uniform space is T₂ (uniform → regular → R1, and R1 + T₀ → T₂).
+  haveI hT2 : @T2Space _ τQ := by
+    haveI : @RegularSpace _ τQ :=
+      @UniformSpace.to_regularSpace _ (quotientTUniformSpace D.s)
+    exact inferInstance
   -- The composites agree on the dense image of locToQuotientOneSubfX_gen:
   -- presheafValueToQuotient(tateQuotientToPresheafHom(locToQuotientOneSubfX_gen a))
   -- = presheafValueToQuotient(coeRingHom a)     [round-trip]
