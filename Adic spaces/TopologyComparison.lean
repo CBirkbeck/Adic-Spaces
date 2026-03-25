@@ -299,10 +299,33 @@ theorem tateQuotientToPresheaf_comp_presheafToQuotient (D : RationalLocData A)
     (hb : TopologicalRing.IsPowerBounded (invS D))
     (hcs : @CompleteSpace _ (quotientTUniformSpace D.s))
     (ht0 : @T0Space _ (quotientTTopology D.s))
+    (hcont_eval : @Continuous _ _
+      (quotientTTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb))
     (x : presheafValue D) :
     tateQuotientToPresheafHom D hb
       (presheafValueToQuotient D hb hcs ht0 x) = x := by
-  sorry
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  letI : TopologicalSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientTTopology D.s
+  letI : UniformSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientTUniformSpace D.s
+  -- Use T2 density: the composite and id agree on the dense image.
+  refine @UniformSpace.Completion.ext' _ D.uniformSpace
+    (presheafValue D) _ _ _ _
+    (hcont_eval.comp UniformSpace.Completion.continuous_extension)
+    continuous_id ?_ x
+  -- On the dense image: show agreement pointwise.
+  intro a
+  simp only [Function.comp, id]
+  change tateQuotientToPresheafHom D hb
+    (presheafValueToQuotient D hb hcs ht0 (D.coeRingHom a)) = D.coeRingHom a
+  rw [presheafValueToQuotient_coe D hb hcs ht0 a,
+    tateQuotient_roundtrip_apply D hb a,
+    locLiftToPresheaf_eq_coeRingHom D]
 
 /-- The composite `presheafValueToQuotient ∘ tateQuotientToPresheafHom` is the
 identity on `A⟨X⟩/(1-sX)`.
@@ -344,12 +367,16 @@ noncomputable def presheafValueTateQuotientEquiv (D : RationalLocData A)
     [T2Space A]
     (hb : TopologicalRing.IsPowerBounded (invS D))
     (hcs : @CompleteSpace _ (quotientTUniformSpace D.s))
-    (ht0 : @T0Space _ (quotientTTopology D.s)) :
+    (ht0 : @T0Space _ (quotientTTopology D.s))
+    (hcont_eval : @Continuous _ _
+      (quotientTTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb)) :
     presheafValue D ≃+*
       (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) where
   toFun := presheafValueToQuotient D hb hcs ht0
   invFun := tateQuotientToPresheafHom D hb
-  left_inv := tateQuotientToPresheaf_comp_presheafToQuotient D hb hcs ht0
+  left_inv := tateQuotientToPresheaf_comp_presheafToQuotient D hb hcs ht0 hcont_eval
   right_inv := presheafToQuotient_comp_tateQuotientToPresheaf D hb hcs ht0
   map_mul' := map_mul _
   map_add' := map_add _
@@ -360,8 +387,12 @@ theorem presheafValueTateQuotientEquiv_canonicalMap (D : RationalLocData A)
     (hb : TopologicalRing.IsPowerBounded (invS D))
     (hcs : @CompleteSpace _ (quotientTUniformSpace D.s))
     (ht0 : @T0Space _ (quotientTTopology D.s))
+    (hcont_eval : @Continuous _ _
+      (quotientTTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb))
     (a : A) :
-    presheafValueTateQuotientEquiv D hb hcs ht0 (D.canonicalMap a) =
+    presheafValueTateQuotientEquiv D hb hcs ht0 hcont_eval (D.canonicalMap a) =
       (Ideal.Quotient.mk _) (algebraMap A _ a) := by
   change presheafValueToQuotient D hb hcs ht0
     (D.coeRingHom (algebraMap A _ a)) = _
@@ -373,8 +404,12 @@ theorem presheafValueTateQuotientEquiv_symm_algebraMap (D : RationalLocData A)
     (hb : TopologicalRing.IsPowerBounded (invS D))
     (hcs : @CompleteSpace _ (quotientTUniformSpace D.s))
     (ht0 : @T0Space _ (quotientTTopology D.s))
+    (hcont_eval : @Continuous _ _
+      (quotientTTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb))
     (a : A) :
-    (presheafValueTateQuotientEquiv D hb hcs ht0).symm
+    (presheafValueTateQuotientEquiv D hb hcs ht0 hcont_eval).symm
       ((Ideal.Quotient.mk _) (algebraMap A _ a)) =
       D.canonicalMap a := by
   simp only [presheafValueTateQuotientEquiv, RingEquiv.symm_mk,
