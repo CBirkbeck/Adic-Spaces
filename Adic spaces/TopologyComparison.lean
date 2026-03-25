@@ -6,146 +6,87 @@ import «Adic spaces».PresheafIdentification
 import «Adic spaces».TateAlgebraWedhorn
 
 /-!
-# Topology Comparison: Completion Isomorphism
+# Topology Comparison: Completion Isomorphism (Non-Discrete)
 
-For a Huber ring `A` with pair of definition `(A₀, I)` and a rational
-localization datum `D`, we show that `presheafValue D` (the completion
-of `Localization.Away D.s` with the localization topology) is isomorphic
-to `A⟨X⟩/(1-sX)` (the Tate algebra quotient).
-
-Both are completions of the same dense ring `Localization.Away D.s`, but
-a priori with different topologies. The comparison uses the Artin-Rees
-lemma to show the topologies agree on the dense subring.
+The key bridge: `presheafValue D ≃+* A⟨X⟩/(1-sX)` for non-discrete
+strongly noetherian Tate rings.
 
 ## Strategy
 
-Rather than comparing topologies directly, we use the universal property
-of `UniformSpace.Completion`: both `presheafValue D` and `A⟨X⟩/(1-sX)`
-are complete T₂ rings receiving `Localization.Away D.s` as a dense subring.
-We construct continuous maps in both directions and show they compose to
-the identity.
-
-### Map 1: presheafValue D → A⟨X⟩/(1-sX)
-Via `locToQuotientOneSubfX_gen` (from PresheafIdentification.lean),
-the localization maps into the quotient. If this map is continuous for
-the localization topology on the source and the quotient topology on
-the target, it extends to the completion by the universal property.
-
-### Map 2: A⟨X⟩/(1-sX) → presheafValue D
-This is `tateQuotientToPresheafHom` (from PresheafIdentification.lean),
-which sends `mk(∑ aₙ Xⁿ)` to `∑ canonicalMap(aₙ) · invS^n`.
-
-### Composites
-Both composites are the identity on the dense localization subring.
-By density + T₂, they are the identity on the whole ring.
+1. Show `locToQuotientOneSubfX_gen : Localization.Away s →+* A⟨X⟩/(1-sX)`
+   is continuous for localization topology → T-topology quotient.
+2. Extend to `presheafValue D →+* A⟨X⟩/(1-sX)` via `extensionHom`.
+3. The round-trip `Localization → Quotient → presheafValue` = `coeRingHom`.
+4. Both composites are identity → isomorphism.
 
 ## References
 
-* [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], §5.6, §8.1, Prop 5.49(3)
+* [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], §5.6, §8.1
 -/
 
 namespace ValuationSpectrum
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-  [PlusSubring A] [HasRestrictionMaps A]
+  [PlusSubring A] [HasRestrictionMaps A] [NonarchimedeanRing A]
 
 section CompletionIsomorphism
 
-/-! ### The presheaf-to-quotient map
-
-For the discrete case, we already have `tateQuotientPresheafEquiv`
-which gives the full ring isomorphism. The non-discrete case requires
-the topology comparison.
-
-For now, we record that the composition
-`Localization.Away s → presheafValue D → A⟨X⟩/(1-sX) → presheafValue D`
-is the identity on the dense subring, from which surjectivity follows
-by completeness + T₂.
--/
-
-variable [NonarchimedeanRing A]
-
-/-- The composition `tateQuotientToPresheafHom ∘ locToQuotientOneSubfX_gen`
-agrees with `locLiftToPresheaf` (both send `a/s^n` to `canonicalMap(a) · invS^n`).
-Since `locLiftToPresheaf = coeRingHom` (the dense embedding), this shows
-the round-trip through the quotient is the identity on the dense subring. -/
-theorem tateQuotient_roundtrip_eq_locLift
-    (D : RationalLocData A)
+/-- The round-trip `Localization → Quotient → presheafValue` equals
+`locLiftToPresheaf = coeRingHom`. -/
+theorem tateQuotient_roundtrip_eq_locLift (D : RationalLocData A)
     (hb : TopologicalRing.IsPowerBounded (invS D)) :
-    ((tateQuotientToPresheafHom D hb).comp
-      (locToQuotientOneSubfX_gen D.s)) =
+    ((tateQuotientToPresheafHom D hb).comp (locToQuotientOneSubfX_gen D.s)) =
     locLiftToPresheaf D := by
   apply IsLocalization.ringHom_ext (Submonoid.powers D.s)
   ext b
   simp only [RingHom.comp_apply, RingHom.coe_comp]
-  rw [locToQuotientOneSubfX_gen_algebraMap,
-    tateQuotientToPresheafHom_algebraMap,
+  rw [locToQuotientOneSubfX_gen_algebraMap, tateQuotientToPresheafHom_algebraMap,
     locLiftToPresheaf_algebraMap]
 
-/-- The round-trip sends each localization element to its image
-under `locLiftToPresheaf = coeRingHom`. -/
-theorem tateQuotient_roundtrip_apply
-    (D : RationalLocData A)
+/-- The round-trip pointwise. -/
+theorem tateQuotient_roundtrip_apply (D : RationalLocData A)
     (hb : TopologicalRing.IsPowerBounded (invS D))
     (a : Localization.Away D.s) :
-    tateQuotientToPresheafHom D hb
-      (locToQuotientOneSubfX_gen D.s a) =
+    tateQuotientToPresheafHom D hb (locToQuotientOneSubfX_gen D.s a) =
     locLiftToPresheaf D a :=
   RingHom.congr_fun (tateQuotient_roundtrip_eq_locLift D hb) a
 
-/-! ### Surjectivity of tateQuotientToPresheafHom
+/-! ### Step 1: Continuity of locToQuotientOneSubfX_gen
 
-The image of `tateQuotientToPresheafHom` contains the dense localization
-subring (by the round-trip lemma). For surjectivity, we need the image
-to be all of `presheafValue D`.
+For the localization topology on `Localization.Away D.s` and the
+quotient of the T-topology on `A⟨X⟩/(1-sX)`, the map
+`locToQuotientOneSubfX_gen` is continuous.
 
-The key: construct the inverse map `presheafValue D → A⟨X⟩/(1-sX)` using
-`UniformSpace.Completion.extensionHom` applied to `locToQuotientOneSubfX_gen`.
-This requires `locToQuotientOneSubfX_gen` to be continuous for the
-localization topology on the source.
+This is the Artin-Rees topology comparison: the localization neighborhoods
+`{(I·D)^m}` eventually land inside the quotient neighborhoods
+`{class(g) : coeff n g ∈ s^n · U for all n}`.
 
-For now, we prove surjectivity for the DISCRETE case (where everything
-simplifies) and record the general strategy.
+For the proof: an element of `locNhd m` has the form `b/s^k` with
+`b ∈ I^m · A₀`. Its image in the quotient is `class(b · X^k)`.
+The T-topology condition: `coeff n (b · X^k) ∈ s^n · U`.
+Since `coeff n (b · X^k) = b` if `n = k`, 0 otherwise.
+Condition: `b ∈ s^k · U`. Since `b ∈ I^m · A₀` and `s^k · U`
+contains `I^m · A₀` for `m ≥ m₀(U, k)` (Artin-Rees), this holds.
+
+**NOTE:** This step requires the T-topology (from TateAlgebraWedhorn.lean),
+NOT the product topology. With the product topology, the condition would
+be `b ∈ U` (no `s^k` factor), which is weaker and doesn't match.
 -/
 
-/-- For discrete A, `tateQuotientToPresheafHom` is surjective. -/
-theorem tateQuotientToPresheafHom_surjective_discrete
-    [DiscreteTopology A] [IsNoetherianRing A]
-    (D : RationalLocData A)
-    (hb : TopologicalRing.IsPowerBounded (invS D)) :
-    Function.Surjective (tateQuotientToPresheafHom D hb) := by
-  intro y
-  have hbij := coeRingHom_bijective_of_discrete D
-  obtain ⟨a, rfl⟩ := hbij.2 y
-  refine ⟨locToQuotientOneSubfX_gen D.s a, ?_⟩
-  rw [tateQuotient_roundtrip_apply, locLiftToPresheaf_eq_coeRingHom]
+-- TODO: Implement the continuity proof.
+-- This requires connecting locNhd to the T-topology quotient neighborhoods,
+-- which involves the Artin-Rees comparison on the ring of definition D.
 
-/-- For discrete A, the isomorphism `A⟨X⟩/(1-sX) ≃+* presheafValue D`. -/
-noncomputable def tateQuotientPresheafEquiv_via_roundtrip
-    [DiscreteTopology A] [IsNoetherianRing A]
-    (D : RationalLocData A)
-    (hb : TopologicalRing.IsPowerBounded (invS D)) :
-    (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) ≃+* presheafValue D :=
-  have hinj : Function.Injective (tateQuotientToPresheafHom D hb) := by
-    suffices key : tateQuotientToPresheafHom D hb = quotientEvalPresheafHom D by
-      rw [key]; exact quotientEvalPresheafHom_injective D
-    apply Ideal.Quotient.ringHom_ext
-    ext g
-    simp only [tateQuotientToPresheafHom, quotientEvalPresheafHom,
-      RingHom.comp_apply, Ideal.Quotient.lift_mk,
-      tateEvalPresheafHom, evalPresheafHom]
-    -- Both ring homs TateAlgebra A →+* presheafValue D agree on
-    -- algebraMap and X, hence are equal.
-    -- For the RHS: coeRingHom ∘ evalInvFHom
-    -- For the LHS: tateEvalPresheafHom (= evalHomBounded)
-    -- We use Ideal.Quotient.ringHom_ext at the Tate algebra level is
-    -- not applicable (TateAlgebra is not a quotient of A). Instead,
-    -- show both agree pointwise using TateAlgebra.ext (coefficients).
-    -- For discrete A, the tsum reduces to a finite sum agreeing with
-    -- the algebraic evaluation.
-    sorry
-  RingEquiv.ofBijective (tateQuotientToPresheafHom D hb)
-    ⟨hinj, tateQuotientToPresheafHom_surjective_discrete D hb⟩
+/-! ### Step 2: Extension to completion
+
+Once continuity is established, `extensionHom` gives:
+`presheafValueToQuotient : presheafValue D →+* A⟨X⟩/(1-sX)`
+
+And the composition with `tateQuotientToPresheafHom` is the identity
+on both sides (by the round-trip + T₂ uniqueness).
+-/
+
+-- TODO: Build the inverse map and the isomorphism.
 
 end CompletionIsomorphism
 
