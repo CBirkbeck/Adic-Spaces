@@ -821,6 +821,27 @@ theorem completionKer_eq_bot_of_locKer_eq_bot
   -- See TICKET-G2-topo and AdicCompletion.map_injective.
   sorry
 
+/-- **T0Space of the localization topology for Tate rings** (Krull intersection).
+
+For a Tate ring `A` with noetherian ring of definition `A₀`, the localization
+`Localization.Away D.s` equipped with the localization topology is T0.
+This follows from the Krull intersection theorem on `locIdeal` in `locSubring`:
+`⋂ (locIdeal)^n = {x : ∃ r ∈ locIdeal, r * x = x}`, and since `locIdeal` is
+topologically nilpotent, `1 - r` is a unit for `r ∈ locIdeal`, giving
+`⋂ (locIdeal)^n = 0`. Hence the localization topology is Hausdorff, and in
+particular T0.
+
+This is the key enabler for `coeRingHom` injectivity via
+`UniformSpace.Completion.coe_injective`, which is used in the Spa-point
+radical argument to extract annihilation data `D.s^k * b = 0`. -/
+omit [HasRestrictionMaps A] in
+theorem localization_isT0 [IsTateRing A] [IsNoetherianRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D : RationalLocData A) :
+    @T0Space (Localization.Away D.s)
+      (@UniformSpace.toTopologicalSpace _ D.uniformSpace) := by
+  sorry
+
 /-- **Theorem 8.28 of Wedhorn** (separation component): for a
 strongly noetherian Tate ring, every rational covering has
 injective product restriction.
@@ -909,12 +930,9 @@ theorem separation_ofStronglyNoetherianTate
       have h0 := hb_zero D hD
       -- canonicalMap = coeRingHom ∘ algebraMap
       change D.coeRingHom (algebraMap A (Localization.Away D.s) b) = 0 at h0
-      -- The localization topology is T₀ (Krull intersection for noetherian
-      -- rings of definition). TODO: prove T0Space from IsTateRing hypotheses.
-      have ht0 : @T0Space (Localization.Away D.s)
-          (@UniformSpace.toTopologicalSpace _ D.uniformSpace) := by
-        sorry -- T0Space of localization: needs Krull intersection on locSubring
-      exact exists_pow_mul_eq_zero_of_coeRingHom_zero D b ht0 h0
+      -- The localization topology is T₀ by `localization_isT0`.
+      exact exists_pow_mul_eq_zero_of_coeRingHom_zero D b
+        (localization_isT0 A P D) h0
     -- Apply the Spa-point radical argument.
     -- For open primes, the trivial valuation construction
     -- (exists_spa_point_in_rationalOpen_of_isOpen_prime) gives Spa points
