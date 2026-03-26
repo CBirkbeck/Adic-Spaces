@@ -16,7 +16,6 @@ import Mathlib.RingTheory.LocalRing.MaximalIdeal.Basic
 import Mathlib.RingTheory.LocalRing.RingHom.Basic
 import Mathlib.Geometry.RingedSpace.PresheafedSpace
 import Mathlib.Geometry.RingedSpace.Stalks
-import Mathlib.RingTheory.Filtration
 
 /-!
 # The Structure Sheaf on the Adic Spectrum
@@ -822,18 +821,6 @@ theorem completionKer_eq_bot_of_locKer_eq_bot
   -- See TICKET-G2-topo and AdicCompletion.map_injective.
   sorry
 
-omit [PlusSubring A] [HasRestrictionMaps A] in
-/-- **Krull intersection for the localization topology**: `⨅ (locIdeal)^n = ⊥` in `locSubring`.
-Requires `IsNoetherianRing locSubring` (Hilbert basis theorem: locSubring is a f.g.
-algebra over the noetherian `A₀`) and `locIdeal ≤ jacobson ⊥` (elements of `I` are
-topologically nilpotent, making `1 - r` a unit for `r ∈ locIdeal`). -/
-theorem locIdeal_iInf_pow_eq_bot [IsTateRing A] [IsNoetherianRing A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (D : RationalLocData A) :
-    ⨅ n, (locIdeal D.P D.T D.s) ^ n = ⊥ := by
-  sorry
-
-omit [PlusSubring A] [HasRestrictionMaps A] in
 /-- **T0Space of the localization topology for Tate rings** (Krull intersection).
 
 For a Tate ring `A` with noetherian ring of definition `A₀`, the localization
@@ -842,57 +829,18 @@ This follows from the Krull intersection theorem on `locIdeal` in `locSubring`:
 `⋂ (locIdeal)^n = {x : ∃ r ∈ locIdeal, r * x = x}`, and since `locIdeal` is
 topologically nilpotent, `1 - r` is a unit for `r ∈ locIdeal`, giving
 `⋂ (locIdeal)^n = 0`. Hence the localization topology is Hausdorff, and in
-particular T0. -/
+particular T0.
+
+This is the key enabler for `coeRingHom` injectivity via
+`UniformSpace.Completion.coe_injective`, which is used in the Spa-point
+radical argument to extract annihilation data `D.s^k * b = 0`. -/
+omit [HasRestrictionMaps A] in
 theorem localization_isT0 [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D : RationalLocData A) :
     @T0Space (Localization.Away D.s)
       (@UniformSpace.toTopologicalSpace _ D.uniformSpace) := by
-  -- Step 1: The uniform space topology = D.topology = filter basis topology.
-  -- Suffices to show T2Space (T2 -> T1 -> T0 via standard instances).
-  letI := D.topology
-  letI := D.isTopologicalRing
-  letI := D.isTopologicalAddGroup
-  change @T0Space _ D.topology
-  set F := (locBasis D.P D.T D.s D.hopen).toRingFilterBasis.toAddGroupFilterBasis
-  -- T2Space implies T0Space via instances
-  suffices h : @T2Space _ D.topology by
-    haveI := h; infer_instance
-  -- Step 2: T2Space iff ⋂₀ F.sets ⊆ {0} (AddGroupFilterBasis characterization)
-  rw [F.t2Space_iff_sInter_subset rfl]
-  -- Step 3: Show ⋂₀ F.sets ⊆ {0}
-  -- F.sets = { locNhd(n) | n : Nat }, so ⋂₀ F.sets = ⋂_n locNhd(n)
-  intro x hx
-  rw [Set.mem_singleton_iff]
-  simp only [Set.mem_sInter] at hx
-  -- x ∈ locNhd(n) for all n
-  have hx_mem : ∀ n, x ∈ locNhd D.P D.T D.s n := fun n ↦ hx _ ⟨n, rfl⟩
-  -- From locNhd(0): x = (d₀ : As) for some d₀ ∈ locSubring
-  obtain ⟨d₀, _, hd₀_eq⟩ := hx_mem 0
-  -- d₀ lies in J^n for all n: each d_n from J^n maps to x = (d₀ : As),
-  -- and the subring inclusion is injective, so d₀ = d_n.
-  have h_d₀_in_pow : ∀ n, (d₀ : locSubring D.P D.T D.s) ∈
-      (locIdeal D.P D.T D.s) ^ n := by
-    intro n
-    obtain ⟨d_n, hd_n, hd_n_eq⟩ := hx_mem n
-    -- d₀ and d_n both map to x under the subring inclusion, hence d₀ = d_n
-    rwa [show d₀ = d_n from Subtype.ext (hd₀_eq.trans hd_n_eq.symm)]
-  -- By Krull intersection theorem: d₀ ∈ ⋂ J^n implies d₀ = 0.
-  -- Uses Ideal.iInf_pow_smul_eq_bot_of_le_jacobson with:
-  -- (a) IsNoetherianRing (locSubring D.P D.T D.s)
-  --     [locSubring is a f.g. algebra over noetherian A₀ by Hilbert's basis theorem]
-  -- (b) locIdeal D.P D.T D.s ≤ (⊥ : Ideal _).jacobson
-  --     [elements of locIdeal are topologically nilpotent in the Tate ring]
-  suffices d₀ = (0 : locSubring D.P D.T D.s) by
-    rw [← hd₀_eq, this, map_zero]
-  have h_mem_iInf : (d₀ : locSubring D.P D.T D.s) ∈
-      ⨅ n, (locIdeal D.P D.T D.s) ^ n :=
-    (Submodule.mem_iInf (fun n ↦ (locIdeal D.P D.T D.s) ^ n)).mpr h_d₀_in_pow
-  -- Krull intersection: ⨅ J^n = ⊥ in the noetherian ring locSubring.
-  -- Proof: locSubring is a f.g. algebra over noetherian A₀ (Hilbert basis thm),
-  -- and locIdeal ≤ jacobson ⊥ (elements of I are top. nilpotent in the Tate ring).
-  -- Then Ideal.iInf_pow_eq_bot_of_isLocalRing (or _le_jacobson variant) applies.
-  rwa [locIdeal_iInf_pow_eq_bot A P D, Submodule.mem_bot] at h_mem_iInf
+  sorry
 
 /-- **Theorem 8.28 of Wedhorn** (separation component): for a
 strongly noetherian Tate ring, every rational covering has
