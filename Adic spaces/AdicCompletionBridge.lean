@@ -406,10 +406,14 @@ noncomputable def adicCompletionRingEquiv (hadic : IsAdic I) :
       -- Step 2: for x = coe(a), show (fun y => e(coe(a)*y)) = (fun y => e(coe(a))*e(y)) by ext on y.
       -- Step 3: for y = coe(b): e(coe(a)*coe(b)) = e(coe(a*b)) = of(a*b) = of(a)*of(b) = e(coe(a))*e(coe(b)).
       haveI : T2Space (AdicCompletion I R) := inferInstance
-      sorry -- map_mul: density + T₂, needs Completion.ext with instance plumbing
+      -- Need: induction_on₂ + IsClosed (from continuous maps to T₂) + coe case.
+      -- The coe case: e(coe(a)*coe(b)) = e(coe(a*b)) = of(a*b) = of(a)*of(b) = e(coe(a))*e(coe(b)).
+      -- The instance gap: AbstractCompletion.compare's continuity is between
+      -- abstract .space types, not our concrete types. Need to transfer.
+      sorry
     map_add' := fun x y => by
       haveI : T2Space (AdicCompletion I R) := inferInstance
-      sorry -- map_add: same approach
+      sorry
   }
 
 end Bridge
