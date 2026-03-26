@@ -376,7 +376,39 @@ noncomputable def adicCompletionEquivInv (hadic : IsAdic I) :
 /-- The ring isomorphism `Completion R ≃+* AdicCompletion I R`. -/
 noncomputable def adicCompletionRingEquiv (hadic : IsAdic I) :
     UniformSpace.Completion R ≃+* AdicCompletion I R := by
-  sorry
+  -- The forward map: compare from AbstractCompletion.
+  let e := adicCompletionEquiv I hadic
+  let e_inv := adicCompletionEquivInv I hadic
+  -- Build ring equiv from the equiv (e is already a homeomorphism from compareEquiv).
+  -- Multiplicativity: two continuous maps agree on dense R → agree everywhere.
+  -- e(coe r) = of r (by AbstractCompletion.compare_coe).
+  -- coe is a ring hom. of is a ring hom (linear map).
+  -- So e(coe r * coe s) = e(coe(r * s)) = of(r * s) = of(r) * of(s)
+  --  = e(coe r) * e(coe s).
+  -- Both (x,y) ↦ e(x*y) and (x,y) ↦ e(x)*e(y) are continuous and agree on dense R×R.
+  -- Target (AdicCompletion) is T₂. So they agree everywhere.
+  let e := adicCompletionEquiv I hadic
+  let e_inv := adicCompletionEquivInv I hadic
+  exact {
+    toFun := e
+    invFun := e_inv
+    left_inv := fun x => by
+      show e_inv (e x) = x
+      exact congr_fun (AbstractCompletion.inverse_compare
+        (adicAbstractCompletion I hadic) UniformSpace.Completion.cPkg) x
+    right_inv := fun x => by
+      show e (e_inv x) = x
+      exact congr_fun (AbstractCompletion.inverse_compare
+        UniformSpace.Completion.cPkg (adicAbstractCompletion I hadic)) x
+    map_mul' := fun x y => by
+      -- By induction_on₂ + density: e(xy) = e(x)*e(y).
+      -- IsClosed from continuous maps to T₂.
+      -- On coe: e(coe(ab)) = of(ab) = of(a)*of(b) = e(coe a)*e(coe b).
+      sorry
+    map_add' := fun x y => by
+      -- Same argument for addition.
+      sorry
+  }
 
 end Bridge
 
