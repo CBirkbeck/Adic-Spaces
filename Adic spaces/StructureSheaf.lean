@@ -879,6 +879,18 @@ proof. It requires:
    transfers to `0` in `A⟨X⟩/(1-sDX)` via the cover isomorphism `eD`.
 2. Interpreting the kernel condition at the localization level.
 3. Applying the Spa-point radical argument to conclude `q = 0`. -/
+/- The theorem below is the wrong intermediate: it tries to prove injectivity
+of the transferred product restriction via abstract isomorphisms, which requires
+the completion-of-injective-is-injective bridge.
+
+The correct approach uses Laurent exactness (`epsilonHom_gen_injective`) at the
+Tate quotient level, where `B₂_gen f = A⟨X⟩/(1-fX)` is definitionally equal to
+`oneSubfXIdeal` quotient (the same type as `presheafValueTateQuotientEquiv` target).
+
+For the 2-element Laurent cover: `epsilonHom_gen` gives `A →+* B₁ × B₂` injective.
+Via the TopologyComparison isomorphisms: this is `presheafValue(global) →+* ∏ presheafValue(D_i)`.
+For general covers: use Laurent-to-standard refinement (Lemma 8.34) + `Refinement.separation_of_finer`.
+-/
 theorem tateQuotientProductRestriction_injective
     [NonarchimedeanRing A]
     (C : RationalCovering A)
@@ -892,6 +904,12 @@ theorem tateQuotientProductRestriction_injective
     (hker : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
       productRestriction A C z D hD = 0) :
     e_base z = 0 := by
+  -- The proof requires two ingredients not yet formalized:
+  -- 1. Showing that the transferred product restriction via the isomorphisms
+  --    agrees with epsilonHom_gen on the algebraMap image (plumbing).
+  -- 2. For general covers (not just Laurent): the Laurent-to-standard
+  --    refinement step (Lemma 8.34 of Wedhorn).
+  -- Both are structural/combinatorial, not deep analysis.
   sorry
 
 /-- **Theorem 8.28 of Wedhorn** (separation component).
