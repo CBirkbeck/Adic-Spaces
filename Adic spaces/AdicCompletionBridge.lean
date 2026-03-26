@@ -114,6 +114,14 @@ theorem of_isUniformInducing (_ : IsAdic I) :
 theorem of_denseRange (_ : IsAdic I) :
     @DenseRange (AdicCompletion I R) (adicCompletionUniformSpace I).toTopologicalSpace
       R (AdicCompletion.of I R) := by
+  intro x
+  rw [@mem_closure_iff_nhds _ (adicCompletionUniformSpace I).toTopologicalSpace]
+  intro U hU hxU
+  -- U is a neighborhood of x in the projective limit topology.
+  -- The projective limit topology has basis: eval_n⁻¹({eval_n(x)}) for each n.
+  -- Any neighborhood contains such a basic open. Find r ∈ R with of(r) ∈ U.
+  -- For now, use the fact that eval_n is surjective on quotients:
+  -- eval_n(x) is a coset in R/(I^n•⊤), which has a representative r ∈ R.
   sorry
 
 /-! ### AbstractCompletion package -/
