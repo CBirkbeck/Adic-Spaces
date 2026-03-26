@@ -835,44 +835,139 @@ theorem localization_isT0 [IsTateRing A] [IsNoetherianRing A]
       (@UniformSpace.toTopologicalSpace _ D.uniformSpace) := by
   sorry
 
+/-- **Algebraic injectivity on the localization (Wedhorn Theorem 8.28, Step 1).**
+
+Given a rational covering `C` and T0 localization topologies, the combined
+algebraic restriction map is injective on `Localization.Away C.base.s`:
+if `restrictionMapAlg C.base D h a = 0` for all covering pieces `D`,
+then `C.base.coeRingHom a = 0`.
+
+The proof writes `a = b/s^m`, shows `D.canonicalMap(b) = 0` for each `D`,
+extracts `D.s^k * b = 0` via T0, then uses the Spa-point radical argument
+to get `C.base.s^N * b = 0`, hence `a = 0`. -/
+theorem loc_algebraic_injectivity_of_tate
+    [IsTateRing A] [IsNoetherianRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    (hT0 : ∀ (D : RationalLocData A), D ∈ C.covers →
+      @T0Space (Localization.Away D.s)
+        (@UniformSpace.toTopologicalSpace _ D.uniformSpace))
+    (hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp) :
+    ∀ (a : Localization.Away C.base.s),
+      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+        restrictionMapAlg C.base D (C.hsubset D hD) a = 0) →
+      C.base.coeRingHom a = 0 := by
+  intro a ha_zero
+  -- Write a = b / s^m
+  obtain ⟨b, ⟨_, ⟨m, rfl⟩⟩, ha_eq⟩ := IsLocalization.exists_mk'_eq
+    (Submonoid.powers C.base.s) a
+  -- For each D, restrictionMapAlg(a) = 0. Since restrictionMapAlg = lift(canonicalMap_s_unit),
+  -- and canonicalMap(b) = lift(algebraMap b), we get canonicalMap(b) = 0 after clearing
+  -- the unit factor. By T₀ + completion injectivity: algebraMap(b) = 0 in Localization.Away D.s.
+  -- Hence ∃ k, D.s^k * b = 0.
+  have ha_ann : ∀ (D : RationalLocData A), D ∈ C.covers →
+      ∃ k : ℕ, D.s ^ k * b = 0 := by
+    intro D hD
+    have haz := ha_zero D hD
+    -- restrictionMapAlg = IsLocalization.Away.lift, which sends algebraMap(r) to
+    -- D.canonicalMap(r). So restrictionMapAlg(a) * D.canonicalMap(s^m) = D.canonicalMap(b).
+    have hu := isUnit_canonicalMap_s C.base D (C.hsubset D hD)
+    -- The lift is a ring hom, so it preserves the localization relation.
+    -- From a = mk'(b, s^m) and lift(a) = 0, deduce canonicalMap(b) = 0.
+    have hcb_zero : D.canonicalMap b = 0 := by
+      have hlift : restrictionMapAlg C.base D (C.hsubset D hD) =
+          IsLocalization.Away.lift C.base.s hu := rfl
+      rw [hlift] at haz
+      have hunit_sm : IsUnit (D.canonicalMap (C.base.s ^ m)) := by
+        rw [map_pow]; exact hu.pow m
+      -- lift(a) = 0 and a * algebraMap(s^m) = algebraMap(b)
+      -- So lift(a) * lift(algebraMap(s^m)) = lift(algebraMap(b))
+      -- 0 * canonicalMap(s^m) = canonicalMap(b)
+      have hmul : (IsLocalization.Away.lift (S := Localization.Away C.base.s)
+          C.base.s hu) a *
+          D.canonicalMap (C.base.s ^ m) = D.canonicalMap b := by
+        have hspec := IsLocalization.mk'_spec (Localization.Away C.base.s) b
+          (⟨C.base.s ^ m, m, rfl⟩ : Submonoid.powers C.base.s)
+        -- hspec : mk'(b, s^m) * algebraMap(s^m) = algebraMap(b)
+        -- Since a = mk'(b, s^m) (by ha_eq):
+        -- a * algebraMap(s^m) = algebraMap(b)
+        -- Apply the lift to both sides:
+        -- lift(a) * lift(algebraMap(s^m)) = lift(algebraMap(b))
+        -- lift(a) * canonicalMap(s^m) = canonicalMap(b)
+        have := congr_arg (IsLocalization.Away.lift (S := Localization.Away C.base.s)
+          C.base.s hu) (ha_eq ▸ hspec)
+        rwa [map_mul, IsLocalization.Away.lift_eq, IsLocalization.Away.lift_eq] at this
+      rw [haz, zero_mul] at hmul
+      exact hmul.symm
+    -- D.canonicalMap(b) = D.coeRingHom(algebraMap b) = 0
+    -- By T₀, coeRingHom is injective => algebraMap(b) = 0 in Localization.Away D.s
+    have hinj := @UniformSpace.Completion.coe_injective _ D.uniformSpace (hT0 D hD)
+    have hb_zero : algebraMap A (Localization.Away D.s) b = 0 :=
+      hinj (hcb_zero.trans (map_zero D.coeRingHom).symm)
+    rw [IsLocalization.map_eq_zero_iff (Submonoid.powers D.s)] at hb_zero
+    obtain ⟨⟨_, ⟨k, rfl⟩⟩, hk⟩ := hb_zero
+    exact ⟨k, hk⟩
+  -- Now use the Spa-point radical argument
+  have hs_rad := @base_s_in_annihilator_radical_of_covering A _ _ _ _ C b ha_ann hSpa
+  -- Extract: ∃ N, s^N * b = 0
+  obtain ⟨N, hN⟩ := Ideal.mem_radical_iff.mp hs_rad
+  have hNb : C.base.s ^ N * b = 0 := by
+    suffices ∀ (x : A) (_ : x ∈ Ideal.span ({c : A | c * b = 0} : Set A)),
+        x * b = 0 by
+      exact this _ hN
+    intro x hx
+    induction hx using Submodule.span_induction with
+    | mem c hc => exact hc
+    | zero => exact zero_mul b
+    | add x y _ _ hxa hya => rw [add_mul, hxa, hya, add_zero]
+    | smul c x _ hxa => rw [smul_eq_mul, mul_assoc, hxa, mul_zero]
+  -- Hence a = mk'(b, s^m) = 0 in Localization.Away C.base.s
+  have ha_zero_loc : a = 0 := by
+    rw [ha_eq.symm, IsLocalization.mk'_eq_zero_iff]
+    exact ⟨⟨C.base.s ^ N, ⟨N, rfl⟩⟩, hNb⟩
+  -- So coeRingHom(a) = coeRingHom(0) = 0
+  rw [ha_zero_loc, map_zero]
+
 /-- **Theorem 8.28 of Wedhorn** (separation component): for a
 strongly noetherian Tate ring, every rational covering has
 injective product restriction.
 
 The proof proceeds in two stages:
-1. **Algebraic injectivity on the localization:** The algebraic
-   product restriction `restrictionMapAlg` is injective on
-   `Localization.Away C.base.s`. This uses `restrictionMapAlg_factors`
-   (factorization through `coeRingHom`), `base_s_in_annihilator_radical_of_covering`
-   (Spa-point radical lemma with trivial valuations at primes),
-   and the covering condition of `RationalCovering`.
-2. **Completion-level reduction:** Injectivity of the algebraic
-   product restriction on the dense localization extends to
-   injectivity of the product restriction on the completion
-   (`completionKer_eq_bot_of_locKer_eq_bot`).
+1. **Algebraic injectivity on the localization** via
+   `loc_algebraic_injectivity_of_tate`: uses T0 localization +
+   Spa-point radical argument.
+2. **Completion-level reduction** via
+   `completionKer_eq_bot_of_locKer_eq_bot`: lifts from localization
+   to completion.
 
-For discrete rings, see `IsSheafy.discrete` (sorry-free).
-For the ring isomorphism `A⟨X⟩/(1-sX) ≃+* presheafValue D`, see
-`tateQuotientPresheafEquiv` in `PresheafIdentification.lean`. -/
+Remaining sorries:
+- `completionKer_eq_bot_of_locKer_eq_bot` (needs AdicCompletion bridge)
+- `localization_isT0` (needs Krull intersection on locIdeal)
+- `exists_spa_point_in_rationalOpen_of_tate` (needs non-open prime Spa points) -/
 theorem separation_ofStronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A) :
     Function.Injective (productRestriction A C) := by
-  sorry
+  intro x y hxy
+  rw [← sub_eq_zero]
+  suffices h : ∀ (z : presheafValue C.base),
+      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+        productRestriction A C z D hD = 0) → z = 0 by
+    apply h; intro D hD
+    rw [productRestriction_map_sub]
+    exact sub_eq_zero.mpr (congr_fun (congr_fun hxy D) hD)
+  apply completionKer_eq_bot_of_locKer_eq_bot
+  exact loc_algebraic_injectivity_of_tate A P C
+    (fun D _ ↦ localization_isT0 A P D)
+    (fun p _ hs ↦ sorry) -- Spa points: exists_spa_point_in_rationalOpen_of_tate
 
 /-- **Theorem 8.28 of Wedhorn**: strongly noetherian Tate rings
 are sheafy.
 
-Uses `separation_ofStronglyNoetherianTate` for the separation
-axiom. The remaining sorry is in `completionKer_eq_bot_of_locKer_eq_bot`
-(completion-level reduction, needs G2-topo) and `h_loc_inj`
-(algebraic injectivity, needs Spa points in rational subsets).
-
-For the discrete case, see `IsSheafy.discrete` (sorry-free).
-
-For the ring isomorphism `A⟨X⟩/(1-sX) ≃+* presheafValue D`, see
-`tateQuotientPresheafEquiv` in `PresheafIdentification.lean`. -/
+Uses `separation_ofStronglyNoetherianTate` for the separation axiom.
+For the discrete case, see `IsSheafy.discrete` (sorry-free). -/
 theorem isSheafy_ofStronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :

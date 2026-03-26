@@ -54,11 +54,13 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 - Sorry-free: `quotientTTopology` + ring/nonarchimedean instances, `presheafValueToQuotient` (extension to completion), `presheafValueToQuotient_coe`, `presheafValueTateQuotientEquiv` (packaged as RingEquiv modulo the 1 sorry + external hypotheses), `presheafValueTateQuotientEquiv_canonicalMap`, `_symm_algebraMap`.
 
 **StructureSheaf.lean** — 4 sorry's (updated 2026-03-26):
-- `localization_isT0` (new, extracted): T0Space of localization topology for Tate rings. Follows from Krull intersection on locIdeal in locSubring. Key enabler for `coeRingHom` injectivity.
+- `localization_isT0` : T0Space of localization topology for Tate rings. Follows from Krull intersection on locIdeal in locSubring.
 - `completionKer_eq_bot_of_locKer_eq_bot` : Completion-level kernel reduction. Requires AdicCompletion <-> UniformSpace.Completion bridge (TICKET-G2-topo).
-- Non-open prime Spa point (inside `separation_ofStronglyNoetherianTate`): Placing Lemma 7.45 Spa point in a specific rational subset. Needs Example 6.38 (localization is Tate).
-- `exists_spa_point_in_rationalOpen_of_tate` : Standalone version of the non-open prime sorry.
-- Sorry-free: `base_s_in_annihilator_radical_of_covering`, `restrictionMapAlg_factors`, `productRestriction_coe_eq`, `productRestriction_comp_canonicalMap`. The T0Space inline sorry is now replaced by a call to `localization_isT0`.
+- `exists_spa_point_in_rationalOpen_of_tate` : Non-open prime Spa points in rational subsets. Open-prime case is fully proved (`exists_spa_point_in_rationalOpen_of_isOpen_prime`).
+- `separation_ofStronglyNoetherianTate` inline sorry: delegates to `exists_spa_point_in_rationalOpen_of_tate`.
+- **Sorry-free (NEW)**: `loc_algebraic_injectivity_of_tate` — algebraic injectivity of the localization-level product restriction, the key algebraic step in Wedhorn Theorem 8.28. Proves that if `restrictionMapAlg(a) = 0` for all covering pieces then `coeRingHom(a) = 0`, using T0 + Spa-point radical argument. This is the main new result.
+- Sorry-free: `base_s_in_annihilator_radical_of_covering`, `restrictionMapAlg_factors`, `productRestriction_coe_eq`, `productRestriction_comp_canonicalMap`.
+- `separation_ofStronglyNoetherianTate` and `isSheafy_ofStronglyNoetherianTate` now have real proofs that reduce to the 3 standalone sorries above (previously were complete sorries).
 
 ## Key Theorems (Adic Morphisms Chain)
 
