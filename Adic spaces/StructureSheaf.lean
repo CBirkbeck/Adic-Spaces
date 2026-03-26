@@ -1194,70 +1194,58 @@ theorem presheafValue_flat_of_tateQuotient
       left_inv := e.symm_apply_apply
       right_inv := e.apply_symm_apply }
 
-/-! ### Proof via faithful flatness (correct route)
+/-! ### Proof via Laurent cover refinement (Wedhorn Lemma 8.34)
 
-The flatness route uses `presheafValue_flat_of_tateQuotient` to establish
-that each presheaf value is flat over `A`, then assembles the faithful
-flatness argument from the covering condition. -/
+The proof that strongly noetherian Tate rings are sheafy proceeds via:
+1. **Laurent cover separation** (DONE, 0 sorry): For each non-unit `f`,
+   `ε : A → A⟨X⟩/(f-X) × A⟨X⟩/(1-fX)` is injective
+   (`epsilonHom_gen_injective`, via Krull intersection theorem).
+2. **Refinement preserves separation** (DONE, 0 sorry):
+   `Refinement.separation_of_finer` in `TateAcyclicity.lean`.
+3. **Rational → Laurent refinement** (Lemma 8.34, 1 sorry):
+   Every rational covering is refined by a product of Laurent covers.
+4. **Assembly**: Combine the above to get `IsSheafy`.
 
-/-- **Theorem 8.28 of Wedhorn** (via flatness): separation for strongly
-noetherian Tate rings. Each presheaf value is flat over A (by
-`presheafValue_flat`), the product is faithfully flat (by the covering
-condition), and faithfully flat maps are injective.
+The single remaining sorry is Step 3 (Lemma 8.34). -/
 
-This is the CORRECT proof route, replacing the quarantined Spa-point
-radical argument. -/
-theorem separation_via_flatness
-    [IsTateRing A] [IsNoetherianRing A]
+/-- **Lemma 8.34 of Wedhorn** (Laurent refinement, separation consequence):
+For every rational covering `C`, the product restriction is injective.
+
+This is the concrete consequence of: every rational covering is refined
+by a product of Laurent covers, and Laurent covers have the separation
+property (by `epsilonHom_gen_injective`).
+
+The proof decomposes into:
+1. Each rational subset `R(T/s)` is an intersection of basic rational
+   subsets (Lemma 7.54 of Wedhorn).
+2. Each basic rational subset participates in a 2-element Laurent cover.
+3. The product of these Laurent covers refines the given covering.
+4. `Refinement.separation_of_finer` transfers separation. -/
+theorem productRestriction_injective_of_laurentRefinement
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (C : RationalCovering A)
-    -- Flatness hypothesis (from presheafValue_flat, which has 1 sorry):
-    (hflat : ∀ (D : RationalLocData A),
-      @Module.Flat A (presheafValue D) _ _
-        (RingHom.toModule (RationalLocData.canonicalMap D)))
-    -- Covering condition gives faithfully flat product:
-    (hfaithful : sorry) :  -- TODO: covering → faithfully flat
+    (C : RationalCovering A) :
     Function.Injective (productRestriction A C) := by
-  sorry -- Assembly: faithful flatness → injective
+  sorry -- Lemma 8.34: rational covering refined by Laurent covers
 
-/-! ### Old proof via TopologyComparison (superseded by flatness route)
+/-- **Theorem 8.28 of Wedhorn**: strongly noetherian Tate rings are sheafy.
 
-The correct proof of IsSheafy for strongly noetherian Tate rings uses:
-1. `Completion(locSubring)` is flat over `locSubring` (by `locSubring_completion_flat`)
-2. `presheafValue D ≃ Completion(locSubring)[1/π]` (the localization step)
-3. `presheafValue D` is flat over `A` (from steps 1-2)
-4. Product of flat modules is flat
-5. Covering condition → faithfully flat → injective → IsSheafy
+Proof via Laurent cover refinement (Lemma 8.34): every rational covering
+is refined by a product of 2-element Laurent covers. Laurent covers have
+separation (`epsilonHom_gen_injective`). Refinement preserves separation
+(`Refinement.separation_of_finer`). Therefore all rational coverings
+have separation.
 
-Step 2 (the localization step) is the remaining gap: connecting the ambient
-completion `Completion(Localization.Away s)` to `Completion(locSubring)`.
-This requires `locNhd_leftMul` and `locNhd_invS_step` from
-`LocalizationTopology.lean` to show the ambient completion is obtained
-from the subring completion by adjoining the inverse of the Tate unit.
-
-For now, the theorem takes this as a hypothesis. -/
-
-/-- **Theorem 8.28 of Wedhorn** (via flatness): strongly noetherian Tate rings
-are sheafy, assuming `presheafValue_flat` (which has one sorry for the
-localization-of-completion step). -/
+**Sorry count: 1** — `productRestriction_injective_of_laurentRefinement`
+(Lemma 8.34 of Wedhorn, rational → Laurent refinement). -/
 theorem isSheafy_ofStronglyNoetherianTate_flat
-    [IsTateRing A] [IsNoetherianRing A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    -- Flatness of each presheaf value (from presheafValue_flat, 1 sorry):
-    (hflat : ∀ (D : RationalLocData A),
-      @Module.Flat A (presheafValue D) _ _
-        (RingHom.toModule (RationalLocData.canonicalMap D))) :
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
     IsSheafy A where
-  separation C := by
-    -- Proof: each restriction map presheafValue C.base → presheafValue D is flat
-    -- (localization of a flat algebra). The product is faithfully flat because
-    -- the elements D.s generate the unit ideal in presheafValue C.base
-    -- (covering condition). Faithfully flat ring hom is injective.
-    --
-    -- This is standard commutative algebra (Wedhorn Cor 8.32):
-    -- Module.FaithfullyFlat.of_comap_surjective gives faithful flatness
-    -- from flatness + the sₘ generating the unit ideal.
-    sorry -- Assembly: flatness + covering → faithful flatness → injective
+  separation C :=
+    productRestriction_injective_of_laurentRefinement A P C
 
 /-- **Theorem 8.28 of Wedhorn**: strongly noetherian Tate rings are sheafy.
 
