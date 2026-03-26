@@ -21,31 +21,29 @@ namespace ValuationSpectrum
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
   [IsTopologicalRing A] [HasRestrictionMaps A]
 
-/-- **Refinement preserves separation.**
+/-- A rational covering has the *separation property* if the restriction
+maps to the covering pieces are jointly injective. -/
+def RationalCovering.HasSeparation (C : RationalCovering A) : Prop :=
+  ∀ x y : presheafValue C.base,
+    (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+      restrictionMap C.base D (C.hsubset D hD) x =
+      restrictionMap C.base D (C.hsubset D hD) y) → x = y
 
-Given a covering `C` and a finer covering `V_covers` of the same base:
-- `τ` maps each V-piece to a C-piece containing it
-- `hV_sep`: the V-covering has the separation property
+/-- **Refinement preserves separation (Proposition A.3 of Wedhorn).**
 
-Then C also has the separation property.
-
-This is the concrete analogue of `Refinement.separation_of_finer` from
-`TateAcyclicity.lean`, working directly with `RationalCovering` and
-`restrictionMap` instead of the abstract `AbPresheaf`/`FiniteCover`. -/
+Given a covering `C` and a finer covering `V_covers` of the same base,
+if V has separation then C has separation. Uses `restrictionMap_comp`. -/
 theorem separation_of_finer_rational (C : RationalCovering A)
     (V_covers : Finset (RationalLocData A))
     (hV_subset : ∀ D ∈ V_covers, rationalOpen D.T D.s ⊆
       rationalOpen C.base.T C.base.s)
-    -- The refinement map: each V-piece sits inside some C-piece
     (τ : { D // D ∈ V_covers } → { E // E ∈ C.covers })
     (hτ : ∀ d : { D // D ∈ V_covers },
       rationalOpen d.1.T d.1.s ⊆ rationalOpen (τ d).1.T (τ d).1.s)
-    -- V has separation
     (hV_sep : ∀ x y : presheafValue C.base,
       (∀ (D : RationalLocData A) (hD : D ∈ V_covers),
         restrictionMap C.base D (hV_subset D hD) x =
         restrictionMap C.base D (hV_subset D hD) y) → x = y)
-    -- C has jointly equal restrictions
     (x y : presheafValue C.base)
     (hC : ∀ (E : RationalLocData A) (hE : E ∈ C.covers),
       restrictionMap C.base E (C.hsubset E hE) x =
@@ -53,15 +51,11 @@ theorem separation_of_finer_rational (C : RationalCovering A)
     x = y := by
   apply hV_sep
   intro D hD
-  -- τ maps D to some C-piece E
   let E := (τ ⟨D, hD⟩).1
   have hE : E ∈ C.covers := (τ ⟨D, hD⟩).2
   have hDE : rationalOpen D.T D.s ⊆ rationalOpen E.T E.s := hτ ⟨D, hD⟩
-  -- res_{base→E}(x) = res_{base→E}(y) by hypothesis
   have hE_eq := hC E hE
-  -- res_{base→D} = res_{E→D} ∘ res_{base→E} by restrictionMap_comp
   have hcomp := restrictionMap_comp C.base E D (C.hsubset E hE) hDE
-  -- The subset proofs are propositionally equal
   have hsub : hV_subset D hD = hDE.trans (C.hsubset E hE) :=
     Subsingleton.elim _ _
   rw [hsub, ← congr_fun hcomp x, ← congr_fun hcomp y]
