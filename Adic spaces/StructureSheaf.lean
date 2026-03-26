@@ -1153,14 +1153,14 @@ theorem separation_via_flatness
     [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)
-    -- Noetherianity of locSubring for each piece:
-    [∀ D : RationalLocData A, IsNoetherianRing (locSubring D.P D.T D.s)] :
+    -- Flatness hypothesis (from presheafValue_flat, which has 1 sorry):
+    (hflat : ∀ (D : RationalLocData A),
+      @Module.Flat A (presheafValue D) _ _
+        (RingHom.toModule (RationalLocData.canonicalMap D)))
+    -- Covering condition gives faithfully flat product:
+    (hfaithful : sorry) :  -- TODO: covering → faithfully flat
     Function.Injective (productRestriction A C) := by
-  -- Each presheafValue D is flat over A (by presheafValue_flat).
-  -- The product ∏ presheafValue D is flat (by Module.Flat.pi or similar).
-  -- The covering condition implies the product is faithfully flat.
-  -- Faithfully flat → productRestriction injective.
-  sorry -- Remaining: faithful flatness assembly
+  sorry -- Assembly: faithful flatness → injective
 
 /-! ### Old proof via TopologyComparison (superseded by flatness route)
 
@@ -1178,6 +1178,26 @@ This requires `locNhd_leftMul` and `locNhd_invS_step` from
 from the subring completion by adjoining the inverse of the Tate unit.
 
 For now, the theorem takes this as a hypothesis. -/
+
+/-- **Theorem 8.28 of Wedhorn** (via flatness): strongly noetherian Tate rings
+are sheafy, assuming `presheafValue_flat` (which has one sorry for the
+localization-of-completion step). -/
+theorem isSheafy_ofStronglyNoetherianTate_flat
+    [IsTateRing A] [IsNoetherianRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    -- Flatness of each presheaf value (from presheafValue_flat, 1 sorry):
+    (hflat : ∀ (D : RationalLocData A),
+      @Module.Flat A (presheafValue D) _ _
+        (RingHom.toModule (RationalLocData.canonicalMap D))) :
+    IsSheafy A where
+  separation C := by
+    -- Each presheafValue D is flat over A (by hflat).
+    -- The canonicalMap : A → presheafValue C.base is injective
+    -- (since presheafValue C.base is flat and the covering condition
+    -- ensures the product is faithfully flat).
+    -- productRestriction factors through canonicalMap.
+    -- Faithful flatness → injective.
+    sorry
 
 /-- **Theorem 8.28 of Wedhorn**: strongly noetherian Tate rings are sheafy.
 
