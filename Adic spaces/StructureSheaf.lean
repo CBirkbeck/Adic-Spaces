@@ -1131,6 +1131,23 @@ theorem separation_ofStronglyNoetherianTate
       (hdense_cover D hD) a)
     hSpa z hker
 
+/-! ### Alternative proof via faithful flatness
+
+The correct proof of IsSheafy for strongly noetherian Tate rings uses:
+1. `Completion(locSubring)` is flat over `locSubring` (by `locSubring_completion_flat`)
+2. `presheafValue D ≃ Completion(locSubring)[1/π]` (the localization step)
+3. `presheafValue D` is flat over `A` (from steps 1-2)
+4. Product of flat modules is flat
+5. Covering condition → faithfully flat → injective → IsSheafy
+
+Step 2 (the localization step) is the remaining gap: connecting the ambient
+completion `Completion(Localization.Away s)` to `Completion(locSubring)`.
+This requires `locNhd_leftMul` and `locNhd_invS_step` from
+`LocalizationTopology.lean` to show the ambient completion is obtained
+from the subring completion by adjoining the inverse of the Tate unit.
+
+For now, the theorem takes this as a hypothesis. -/
+
 /-- **Theorem 8.28 of Wedhorn**: strongly noetherian Tate rings are sheafy.
 
 For strongly noetherian Tate rings with `[T2Space A]` and the isomorphism
