@@ -2,7 +2,7 @@
 
 > **Agents: Read this file before starting work. Update it when you begin or complete a task.**
 >
-> Last updated: 2026-03-25 (sorry decomposition in StructureSheaf)
+> Last updated: 2026-03-26 (localization_isT0 proved modulo Krull intersection)
 
 ## Module Status
 
@@ -54,7 +54,8 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 - Sorry-free: `quotientTTopology` + ring/nonarchimedean instances, `presheafValueToQuotient` (extension to completion), `presheafValueToQuotient_coe`, `presheafValueTateQuotientEquiv` (packaged as RingEquiv modulo the 1 sorry + external hypotheses), `presheafValueTateQuotientEquiv_canonicalMap`, `_symm_algebraMap`.
 
 **StructureSheaf.lean** — 4 sorry's (updated 2026-03-26):
-- `localization_isT0` (new, extracted): T0Space of localization topology for Tate rings. Follows from Krull intersection on locIdeal in locSubring. Key enabler for `coeRingHom` injectivity.
+- `locIdeal_iInf_pow_eq_bot` (new): Krull intersection for localization topology. Requires proving `IsNoetherianRing locSubring` (Hilbert basis theorem) and `locIdeal ≤ jacobson ⊥` (topological nilpotency of ideal of definition).
+- `localization_isT0` : T0Space of localization topology for Tate rings. **Fully proved** modulo `locIdeal_iInf_pow_eq_bot`. Strategy: T0Space <- T2Space (via R1Space from uniform RegularSpace) <- `⋂ locNhd(n) ⊆ {0}` (AddGroupFilterBasis.t2Space_iff_sInter_subset) <- Krull intersection on locSubring.
 - `completionKer_eq_bot_of_locKer_eq_bot` : Completion-level kernel reduction. Requires AdicCompletion <-> UniformSpace.Completion bridge (TICKET-G2-topo).
 - Non-open prime Spa point (inside `separation_ofStronglyNoetherianTate`): Placing Lemma 7.45 Spa point in a specific rational subset. Needs Example 6.38 (localization is Tate).
 - `exists_spa_point_in_rationalOpen_of_tate` : Standalone version of the non-open prime sorry.
