@@ -244,10 +244,8 @@ theorem of_isUniformInducing (hadic : IsAdic I) :
 theorem of_denseRange (hadic : IsAdic I) :
     @DenseRange (AdicCompletion I R) (adicCompletionUniformSpace I).toTopologicalSpace
       R (AdicCompletion.of I R) := by
-  -- For any x : AdicCompletion and entourage E: find r ∈ R with of(r) in ball(x, E).
-  -- At level n: eval n x has a representative r in R (surjectivity of mkQ).
-  -- By compatibility: this r works at all levels ≤ n.
-  -- So for any finite coordinate entourage (from Pi uniformity): such r exists.
+  -- For each x and basic entourage {eval n equal}: lift x.val n to r ∈ R.
+  -- By compatibility + eval_of: of(r) agrees with x at that level.
   sorry
 
 /-- `AdicCompletion I R` with subtype uniformity as an `AbstractCompletion`. -/
