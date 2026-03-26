@@ -35,6 +35,7 @@ import «Adic spaces».PerfectoidSpace
 import «Adic spaces».Presheaf
 import «Adic spaces».PresheafIdentification
 import «Adic spaces».PseudoUniformizer
+import «Adic spaces».RationalRefinement
 import «Adic spaces».RationalSubsets
 import «Adic spaces».RestrictedPowerSeries
 import «Adic spaces».RestrictedModule
