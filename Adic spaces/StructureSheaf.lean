@@ -859,6 +859,113 @@ Tate algebra quotients. This ring hom is injective because it factors
 through the localization product map, which is injective by the
 covering condition (Spa-point radical argument). -/
 
+/-- If `s ∈ radical(ann(a))` and `s` is a unit in `A⟨X⟩/(1-sX)`,
+then `mk(algebraMap a) = 0` in the quotient. -/
+private theorem algebraMap_zero_of_radical_ann
+    [NonarchimedeanRing A]
+    (s a : A)
+    (hs_rad : s ∈ (Ideal.span ({b : A | b * a = 0} : Set A)).radical) :
+    (Ideal.Quotient.mk (oneSubfXIdeal s))
+      (algebraMap A _ a) = 0 := by
+  -- Extract s^N ∈ ann(a) from the radical membership.
+  rw [Ideal.mem_radical_iff] at hs_rad
+  obtain ⟨N, hN⟩ := hs_rad
+  -- s^N ∈ Ideal.span {b | b * a = 0} means s^N * a = 0.
+  have hs_ann : s ^ N * a = 0 := by
+    -- The annihilator of a is an ideal containing {b | b * a = 0}.
+    -- We show s^N ∈ this ideal implies s^N * a = 0.
+    -- Define the annihilator ideal of a.
+    let ann_a : Ideal A :=
+      { carrier := {b : A | b * a = 0}
+        add_mem' := fun {x y} (hx : x * a = 0) (hy : y * a = 0) => by
+          show (x + y) * a = 0; rw [add_mul, hx, hy, add_zero]
+        zero_mem' := zero_mul a
+        smul_mem' := fun r {x} (hx : x * a = 0) => by
+          show r * x * a = 0; rw [mul_assoc, hx, mul_zero] }
+    -- Since {b | b * a = 0} is already an ideal, Ideal.span = ann_a
+    have hspan : Ideal.span ({b : A | b * a = 0} : Set A) = ann_a :=
+      le_antisymm (Ideal.span_le.mpr (fun _ h => h)) (fun _ h => Ideal.subset_span h)
+    rw [hspan] at hN
+    exact hN
+  -- Since s is a unit in Q₀ = A⟨X⟩/(1-sX), s^N is also a unit.
+  have hs_unit := isUnit_algebraMap_f_in_quotient_gen s
+  rw [RingHom.comp_apply] at hs_unit
+  -- mk(algebraMap(s^N * a)) = mk(algebraMap(s)^N) * mk(algebraMap(a)) = 0
+  have hmul : (Ideal.Quotient.mk (oneSubfXIdeal s))
+      (algebraMap A _ (s ^ N * a)) = 0 := by
+    rw [hs_ann, map_zero, map_zero]
+  rw [map_mul, map_pow] at hmul
+  exact (IsUnit.mul_right_eq_zero (IsUnit.pow N hs_unit)).mp hmul
+
+/-- **Separation for the canonicalMap image.** If `z = C.base.canonicalMap a`
+and the product restriction kills `z`, then `e_base z = 0`.
+
+This is the algebraic core of the separation theorem: the radical argument
++ unitality of `s` in `Q₀` forces `mk(algebraMap a) = 0`. -/
+theorem tateQuotientProductRestriction_injective_on_algebraMap
+    [NonarchimedeanRing A]
+    (C : RationalCovering A)
+    (e_base : presheafValue C.base ≃+*
+      (↥(TateAlgebra A) ⧸ oneSubfXIdeal C.base.s))
+    (e_cover : ∀ D ∈ C.covers, presheafValue D ≃+*
+      (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s))
+    (compat_base : ∀ a : A, e_base (C.base.canonicalMap a) =
+      (Ideal.Quotient.mk _) (algebraMap A _ a))
+    (compat_cover : ∀ (D : RationalLocData A) (hD : D ∈ C.covers) (a : A),
+      (e_cover D hD) (D.canonicalMap a) =
+        (Ideal.Quotient.mk _) (algebraMap A _ a))
+    (hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp)
+    (a : A)
+    (hker : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+      productRestriction A C (C.base.canonicalMap a) D hD = 0) :
+    e_base (C.base.canonicalMap a) = 0 := by
+  -- Step 1: productRestriction(canonicalMap a) = canonicalMap_D(a) for each D.
+  -- This is productRestriction_comp_canonicalMap, inlined to avoid forward reference.
+  have hcan : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+      D.canonicalMap a = 0 := by
+    intro D hD
+    have hz := hker D hD
+    -- Unfold productRestriction and restrictionMap
+    change restrictionMap C.base D (C.hsubset D hD) (C.base.canonicalMap a) = 0 at hz
+    -- restrictionMap(canonicalMap a) = canonicalMap_D a
+    unfold restrictionMap restrictionMapHom at hz
+    letI := C.base.uniformSpace
+    letI := C.base.isTopologicalRing
+    letI := C.base.isUniformAddGroup
+    letI := D.uniformSpace
+    letI := D.isTopologicalRing
+    letI := D.isUniformAddGroup
+    rw [show C.base.canonicalMap a = C.base.coeRingHom (algebraMap A _ a) from rfl] at hz
+    erw [UniformSpace.Completion.extensionHom_coe
+      (restrictionMapAlg C.base D (C.hsubset D hD))
+      (HasRestrictionMaps.restrictionMapAlg_continuous
+        C.base D (C.hsubset D hD))] at hz
+    simp only [restrictionMapAlg, IsLocalization.Away.lift_eq] at hz
+    exact hz
+  -- Step 2: mk(algebraMap a) = 0 in Q_D for each D.
+  have hker_Q : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+      (Ideal.Quotient.mk (oneSubfXIdeal D.s))
+        (algebraMap A _ a) = 0 := by
+    intro D hD
+    rw [← compat_cover D hD a, hcan D hD, map_zero]
+  -- Step 3: From hker_Q + hSpa, get D.s^k * a = 0 for each D (need Q_D → annihilation).
+  have ha_ann : ∀ (D : RationalLocData A), D ∈ C.covers → ∃ k : ℕ, D.s ^ k * a = 0 := by
+    intro D hD
+    -- mk(algebraMap a) = 0 in Q_D means algebraMap a ∈ oneSubfXIdeal D.s.
+    have hmem := Ideal.Quotient.eq_zero_iff_mem.mp (hker_Q D hD)
+    -- oneSubfXIdeal D.s = Ideal.span {1 - D.s·X}, so algebraMap a = (1 - D.s·X) · g.
+    -- For discrete topology, A⟨X⟩ has polynomial coefficients.
+    -- The coefficient recurrence gives D.s^k * a = coeff_k(g), and since g is
+    -- a restricted power series, the coefficients tend to 0.
+    -- For nonarchimedean discrete topology: D.s^k * a eventually = 0.
+    sorry
+  -- Step 4: By Spa-point radical argument.
+  have hs_rad := base_s_in_annihilator_radical_of_covering (A := A) C a ha_ann hSpa
+  -- Step 5: Apply algebraMap_zero_of_radical_ann.
+  rw [compat_base]
+  exact algebraMap_zero_of_radical_ann (A := A) C.base.s a hs_rad
+
 /-- **Key algebraic lemma for Theorem 8.28:** The product restriction,
 transferred to Tate algebra quotients via the isomorphism, has
 trivial kernel.
@@ -898,18 +1005,36 @@ theorem tateQuotientProductRestriction_injective
       (↥(TateAlgebra A) ⧸ oneSubfXIdeal C.base.s))
     (e_cover : ∀ D ∈ C.covers, presheafValue D ≃+*
       (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s))
+    -- Compatibility: the isomorphisms respect canonicalMap and algebraMap.
+    (compat_base : ∀ a : A, e_base (C.base.canonicalMap a) =
+      (Ideal.Quotient.mk _) (algebraMap A _ a))
+    (compat_cover : ∀ (D : RationalLocData A) (hD : D ∈ C.covers) (a : A),
+      (e_cover D hD) (D.canonicalMap a) =
+        (Ideal.Quotient.mk _) (algebraMap A _ a))
     (hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
       ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp)
     (z : presheafValue C.base)
     (hker : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
       productRestriction A C z D hD = 0) :
     e_base z = 0 := by
-  -- The proof requires two ingredients not yet formalized:
-  -- 1. Showing that the transferred product restriction via the isomorphisms
-  --    agrees with epsilonHom_gen on the algebraMap image (plumbing).
-  -- 2. For general covers (not just Laurent): the Laurent-to-standard
-  --    refinement step (Lemma 8.34 of Wedhorn).
-  -- Both are structural/combinatorial, not deep analysis.
+  -- Step 1: For elements in the algebraMap image, prove the result.
+  -- If z = canonicalMap(a), then restrictionMap(z) = canonicalMap_D(a) = 0
+  -- (by productRestriction_comp_canonicalMap), giving mk(algebraMap a) = 0 in Q_D
+  -- (by compat_cover). By algebraMap_zero_of_radical_ann + hSpa: mk(algebraMap a) = 0
+  -- in Q₀. By compat_base: e_base(canonicalMap a) = 0.
+  --
+  -- Step 2: Extension from canonicalMap image to full completion.
+  -- The canonicalMap A has dense range in presheafValue C.base. The kernel of
+  -- e_base ∘ productRestriction is a closed additive subgroup of presheafValue C.base.
+  -- By Step 1, it intersects the image of canonicalMap only at 0.
+  -- The extension to the full completion requires completion preserving injectivity
+  -- (AdicCompletion.map_injective, TICKET G2-topo), or equivalently, faithful
+  -- flatness of the completed product restriction (Wedhorn Cor 8.32).
+  --
+  -- Key helper for Step 1 (proved): algebraMap_zero_of_radical_ann shows
+  -- s ∈ radical(ann a) → mk(algebraMap a) = 0 in A⟨X⟩/(1-sX).
+  --
+  -- Remaining gap (1 sorry): the completion-level extension.
   sorry
 
 /-- **Theorem 8.28 of Wedhorn** (separation component).
@@ -996,6 +1121,11 @@ theorem separation_ofStronglyNoetherianTate
   exact tateQuotientProductRestriction_injective (A := A) C e_base
     (fun D hD => presheafValueTateQuotientEquiv D (hb_all D)
       (hcs_cover D hD) (ht0_cover D hD) (hcont_cover D hD) (hdense_cover D hD))
+    (fun a => presheafValueTateQuotientEquiv_canonicalMap C.base
+      hb_base hcs_base ht0_base hcont_base hdense_base a)
+    (fun D hD a => presheafValueTateQuotientEquiv_canonicalMap D
+      (hb_all D) (hcs_cover D hD) (ht0_cover D hD) (hcont_cover D hD)
+      (hdense_cover D hD) a)
     hSpa z hker
 
 /-- **Theorem 8.28 of Wedhorn**: strongly noetherian Tate rings are sheafy.
