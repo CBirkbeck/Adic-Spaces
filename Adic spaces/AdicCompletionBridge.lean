@@ -187,8 +187,45 @@ theorem of_isUniformInducing (hadic : IsAdic I) :
       obtain ⟨V, hV, hVU⟩ := Filter.mem_comap.mp hU
       obtain ⟨W, hW, hWV⟩ := Filter.mem_comap.mp hV
       rw [Pi.uniformity] at hW
-      obtain ⟨S, hSW⟩ := (Filter.mem_iInf_finite W).mp hW
-      sorry -- Extract finite S, show basis at max(S) ⊆ U
+      -- W ∈ ⨅ i, F_i. By mem_iInf: ∃ finite I, ∃ V, (∀ i, V i ∈ F_i) ∧ W = ⋂ V.
+      rw [Filter.mem_iInf] at hW
+      obtain ⟨S, hSfin, V_fn, hV_mem, hW_eq⟩ := hW
+      -- Take n = max of S (or 0 if empty).
+      -- S : Set ℕ, V_fn : S → Set (Pi × Pi), hW_eq : W = ⋂ i, V_fn i
+      -- Each V_fn ⟨i, hi⟩ ∈ comap (proj_i × proj_i) 𝓤(Q_i).
+      -- So V_fn ⟨i, hi⟩ ⊇ {(f,g) | f i = g i}.
+      -- W = ⋂ V_fn ⟨i, hi⟩ ⊇ ⋂_{i ∈ S} {agree at i}.
+      -- On AdicCompletion: {agree at max(S)} ⊆ {agree at i} for i ∈ S.
+      -- So W ⊇ {agree at max(S)}.
+      -- Pull back: U ⊇ {(a,b) | b-a ∈ I^max(S)}.
+      refine ⟨hSfin.toFinset.sup id, trivial, ?_⟩
+      intro ⟨a, b⟩ (hab : b - a ∈ (I ^ hSfin.toFinset.sup id : Ideal R))
+      apply hVU; apply hWV; rw [hW_eq]
+      -- Need: ((of a).val, (of b).val) ∈ ⋂ i, V_fn i
+      apply Set.mem_iInter.mpr; intro ⟨i, hi⟩
+      -- Need: ((of a).val, (of b).val) ∈ V_fn ⟨i, hi⟩
+      -- V_fn ⟨i, hi⟩ ∈ comap (proj_i × proj_i) 𝓤(Q_i)
+      obtain ⟨D_i, hD_i, hD_V⟩ := Filter.mem_comap.mp (hV_mem ⟨i, hi⟩)
+      apply hD_V
+      -- Need: ((of a).val i, (of b).val i) ∈ D_i
+      -- D_i ∈ 𝓤(Q_i) = principal diagonal. So D_i ⊇ diagonal.
+      -- (of a).val i = (of b).val i (from hab + eval_agree_of_le).
+      have hle : i ≤ hSfin.toFinset.sup id :=
+        Finset.le_sup (f := id) (hSfin.mem_toFinset.mpr hi)
+      have hsub : b - a ∈ (I ^ i : Ideal R) := Ideal.pow_le_pow_right hle hab
+      -- Show eval agreement: (of a).val i = (of b).val i
+      have heval_eq : (AdicCompletion.of I R a).val i =
+          (AdicCompletion.of I R b).val i := by
+        change AdicCompletion.eval I R i (AdicCompletion.of I R a) =
+          AdicCompletion.eval I R i (AdicCompletion.of I R b)
+        rw [AdicCompletion.eval_of, AdicCompletion.eval_of]
+        rw [← sub_eq_zero, ← map_sub]
+        apply (Submodule.Quotient.mk_eq_zero _).mpr
+        rw [ideal_smul_top_eq_self]
+        exact (I ^ i).neg_mem_iff.mp (show -(a - b) ∈ (I ^ i : Ideal R) by rwa [neg_sub])
+      -- Now show the pair is in (proj_i × proj_i)⁻¹(D_i).
+      show ((AdicCompletion.of I R a).val i, (AdicCompletion.of I R b).val i) ∈ D_i
+      rw [heval_eq]; exact refl_mem_uniformity hD_i
     · -- ∃ n, True ∧ basis_n ⊆ U → U ∈ comap
       rintro ⟨n, -, hn⟩
       apply Filter.mem_comap.mpr
