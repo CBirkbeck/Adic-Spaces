@@ -73,6 +73,29 @@ instance quotientDiscrete (n : ℕ) :
 instance quotientDiscreteUnif (n : ℕ) :
     DiscreteUniformity (R ⧸ (I ^ n • (⊤ : Submodule R R))) := ⟨rfl⟩
 
+/-! ### Helper: coordinate entourages -/
+
+/-- `{(f,g) | f n = g n}` is a Pi-uniformity entourage (discrete factors). -/
+private theorem pi_coord_mem_uniformity (n : ℕ) :
+    {p : (∀ k, R ⧸ (I ^ k • (⊤ : Submodule R R))) ×
+         (∀ k, R ⧸ (I ^ k • (⊤ : Submodule R R))) |
+      p.1 n = p.2 n} ∈
+      𝓤 (∀ k, R ⧸ (I ^ k • (⊤ : Submodule R R))) := by
+  rw [Pi.uniformity]
+  apply Filter.mem_iInf_of_mem n
+  rw [Filter.mem_comap]
+  exact ⟨{p | p.1 = p.2}, Filter.mem_principal_self _, fun ⟨_, _⟩ h => h⟩
+
+/-- `{(x,y) | eval n x = eval n y}` is in the subtype uniformity of AdicCompletion. -/
+private theorem eval_entourage_mem [UniformSpace R] (n : ℕ) :
+    {p : AdicCompletion I R × AdicCompletion I R |
+      AdicCompletion.eval I R n p.1 =
+        AdicCompletion.eval I R n p.2} ∈
+      @uniformity (AdicCompletion I R) instUniformSpaceSubtype := by
+  apply Filter.mem_comap.mpr
+  exact ⟨{p | p.1 n = p.2 n}, pi_coord_mem_uniformity I n,
+    fun ⟨_, _⟩ h => h⟩
+
 /-! ### Topology and uniformity on AdicCompletion via subtype of product -/
 
 section Instances
@@ -135,13 +158,24 @@ on `R` and the subtype uniformity on `AdicCompletion I R`. -/
 theorem of_isUniformInducing (hadic : IsAdic I) :
     @IsUniformInducing R (AdicCompletion I R) _ (adicCompletionUniformSpace I)
       (AdicCompletion.of I R) := by
-  rw [isUniformInducing_iff]
+  constructor
   -- Need: comap (Prod.map of of) 𝓤(AdicCompletion) = 𝓤 R
-  -- The AdicCompletion uniformity (subtype of product of discrete) has
-  -- basis: {(x,y) | eval n x = eval n y} for each n.
-  -- Pulling back: {(a,b) | eval n (of a) = eval n (of b)} = {(a,b) | a-b ∈ I^n•⊤} = {(a,b) | a-b ∈ I^n}.
-  -- Since hadic says topology = I.adicTopology: these are the I-adic entourages.
-  sorry
+  -- Both uniformities have basis: {(a,b) | a - b ∈ I^n} for each n.
+  -- LHS: subtype of Pi-discrete, pulled back via of.
+  -- RHS: I-adic uniformity (from IsAdic I).
+  apply le_antisymm
+  · -- comap ≤ 𝓤 R means: every adic entourage is a pullback entourage.
+    -- I.e., ∀ U ∈ 𝓤 R, U ∈ comap (of×of) 𝓤(AC).
+    -- For each n: {(a,b) | a-b ∈ I^n} = of⁻¹({(x,y) | eval n x = eval n y}).
+    -- And {(x,y) | eval n x = eval n y} ∈ 𝓤(AC) by eval_entourage_mem.
+    -- So every adic basis entourage is in the pullback.
+    sorry
+  · -- 𝓤 R ≤ comap means: every pullback entourage is an adic entourage.
+    -- I.e., ∀ U ∈ comap (of×of) 𝓤(AC), U ∈ 𝓤 R.
+    -- Pullback entourage contains of⁻¹(V) for V ∈ 𝓤(AC).
+    -- V contains {(x,y) | eval n x = eval n y} for some n (Pi basis).
+    -- Pull back: {(a,b) | a-b ∈ I^n} which is in 𝓤 R.
+    sorry
 
 /-- `AdicCompletion.of I R` has dense range in the subtype topology. -/
 theorem of_denseRange (hadic : IsAdic I) :
