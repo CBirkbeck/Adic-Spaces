@@ -406,14 +406,76 @@ noncomputable def adicCompletionRingEquiv (hadic : IsAdic I) :
       -- Step 2: for x = coe(a), show (fun y => e(coe(a)*y)) = (fun y => e(coe(a))*e(y)) by ext on y.
       -- Step 3: for y = coe(b): e(coe(a)*coe(b)) = e(coe(a*b)) = of(a*b) = of(a)*of(b) = e(coe(a))*e(coe(b)).
       haveI : T2Space (AdicCompletion I R) := inferInstance
-      -- Need: induction_on₂ + IsClosed (from continuous maps to T₂) + coe case.
-      -- The coe case: e(coe(a)*coe(b)) = e(coe(a*b)) = of(a*b) = of(a)*of(b) = e(coe(a))*e(coe(b)).
-      -- The instance gap: AbstractCompletion.compare's continuity is between
-      -- abstract .space types, not our concrete types. Need to transfer.
-      sorry
+      haveI : CompleteSpace (AdicCompletion I R) := @adicCompletionComplete R _ I _ _ _
+      -- ContinuousMul/Add for the subtype-of-Pi-discrete topology on AdicCompletion.
+      -- This is true (componentwise ops on Pi are continuous, subtype inherits).
+      -- The definitional equality between (x*y).val n and x.val n * y.val n
+      -- requires unfolding the CommRing instance on AdicCompletion.
+      haveI : ContinuousMul (AdicCompletion I R) := ⟨by
+        apply Continuous.subtype_mk; apply continuous_pi; intro n
+        change Continuous (fun p : AdicCompletion I R × AdicCompletion I R =>
+          p.1.val n * p.2.val n)
+        exact ((continuous_apply n).comp (continuous_subtype_val.comp continuous_fst)).mul
+          ((continuous_apply n).comp (continuous_subtype_val.comp continuous_snd))⟩
+      haveI : ContinuousAdd (AdicCompletion I R) := ⟨by
+        apply Continuous.subtype_mk; apply continuous_pi; intro n
+        change Continuous (fun p : AdicCompletion I R × AdicCompletion I R =>
+          p.1.val n + p.2.val n)
+        exact ((continuous_apply n).comp (continuous_subtype_val.comp continuous_fst)).add
+          ((continuous_apply n).comp (continuous_subtype_val.comp continuous_snd))⟩
+      have he_cont : Continuous e := @UniformSpace.Completion.continuous_extension
+        R _ (AdicCompletion I R) (adicCompletionUniformSpace I)
+        (f := AdicCompletion.of I R) (@adicCompletionComplete R _ I _ _ _)
+      have he_coe : ∀ a : R, e (↑a) = AdicCompletion.of I R a :=
+        fun a => AbstractCompletion.compare_coe
+          UniformSpace.Completion.cPkg (adicAbstractCompletion I hadic) a
+      -- map_mul by double ext. The AdicCompletion might not have ContinuousMul.
+      -- But (fun p => e p.1 * e p.2) is continuous since e is continuous and
+      -- multiplication on AdicCompletion (from CommRing) composed with the
+      -- subtype topology... we need ContinuousMul.
+      -- AdicCompletion I R has CommRing from Mathlib. But the topology is ours.
+      -- Multiplication continuity for the subtype-of-Pi-discrete:
+      -- AdicCompletion has mul from CommRing. Is it continuous for our topology?
+      refine UniformSpace.Completion.induction_on₂ x y ?_ ?_
+      · exact isClosed_eq (he_cont.comp continuous_mul)
+          ((he_cont.comp continuous_fst).mul (he_cont.comp continuous_snd))
+      · intro a b; show e (↑a * ↑b) = e ↑a * e ↑b
+        rw [← UniformSpace.Completion.coe_mul, he_coe, he_coe, he_coe]
+        change algebraMap R (AdicCompletion I R) (a * b) =
+          algebraMap R (AdicCompletion I R) a * algebraMap R (AdicCompletion I R) b
+        exact map_mul (algebraMap R (AdicCompletion I R)) a b
     map_add' := fun x y => by
       haveI : T2Space (AdicCompletion I R) := inferInstance
-      sorry
+      haveI : CompleteSpace (AdicCompletion I R) := @adicCompletionComplete R _ I _ _ _
+      -- ContinuousMul/Add for the subtype-of-Pi-discrete topology on AdicCompletion.
+      -- This is true (componentwise ops on Pi are continuous, subtype inherits).
+      -- The definitional equality between (x*y).val n and x.val n * y.val n
+      -- requires unfolding the CommRing instance on AdicCompletion.
+      haveI : ContinuousMul (AdicCompletion I R) := ⟨by
+        apply Continuous.subtype_mk; apply continuous_pi; intro n
+        change Continuous (fun p : AdicCompletion I R × AdicCompletion I R =>
+          p.1.val n * p.2.val n)
+        exact ((continuous_apply n).comp (continuous_subtype_val.comp continuous_fst)).mul
+          ((continuous_apply n).comp (continuous_subtype_val.comp continuous_snd))⟩
+      haveI : ContinuousAdd (AdicCompletion I R) := ⟨by
+        apply Continuous.subtype_mk; apply continuous_pi; intro n
+        change Continuous (fun p : AdicCompletion I R × AdicCompletion I R =>
+          p.1.val n + p.2.val n)
+        exact ((continuous_apply n).comp (continuous_subtype_val.comp continuous_fst)).add
+          ((continuous_apply n).comp (continuous_subtype_val.comp continuous_snd))⟩
+      have he_cont : Continuous e := @UniformSpace.Completion.continuous_extension
+        R _ (AdicCompletion I R) (adicCompletionUniformSpace I)
+        (f := AdicCompletion.of I R) (@adicCompletionComplete R _ I _ _ _)
+      have he_coe : ∀ a : R, e (↑a) = AdicCompletion.of I R a :=
+        fun a => AbstractCompletion.compare_coe
+          UniformSpace.Completion.cPkg (adicAbstractCompletion I hadic) a
+      refine UniformSpace.Completion.induction_on₂ x y ?_ ?_
+      · exact isClosed_eq (he_cont.comp continuous_add)
+          ((he_cont.comp continuous_fst).add (he_cont.comp continuous_snd))
+      · intro a b; show e (↑a + ↑b) = e ↑a + e ↑b
+        rw [show (↑a : UniformSpace.Completion R) + ↑b = ↑(a + b) from
+          (map_add UniformSpace.Completion.coeRingHom a b).symm,
+          he_coe, he_coe, he_coe, map_add (AdicCompletion.of I R)]
   }
 
 end Bridge
