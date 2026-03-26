@@ -215,9 +215,49 @@ theorem of_isUniformInducing (hadic : IsAdic I) :
     apply hVU; apply hWV
     -- Need: (val (of a), val (of b)) ∈ W.
     -- W ⊇ ⋂_{i ∈ S} {(f,g) | f i = g i} (from hSW).
-    -- For each i ∈ S: i ≤ S.sup id. And b - a ∈ I^(S.sup id) ⊆ I^i.
-    -- So eval i (of a) = eval i (of b) (same quotient class).
-    -- Hence (val (of a), val (of b)) ∈ {(f,g) | f i = g i} for all i ∈ S.
+    -- Need: ((of a).val, (of b).val) ∈ W.
+    -- hSW: W ∈ ⨅ i ∈ S, comap (...) 𝓤(Q i). This means W ⊇ ⋂_{i ∈ S} {agree at i}.
+    -- Show that ((of a).val, (of b).val) agrees at all coordinates i ∈ S.
+    -- Then it's in W.
+    -- From hab: b - a ∈ I^(S.sup id). For i ∈ S: i ≤ S.sup id, so b - a ∈ I^i.
+    -- Hence eval i (of a) = eval i (of b), i.e., (of a).val i = (of b).val i.
+    -- This means the pair is in every coordinate entourage for i ∈ S,
+    -- hence in their intersection, hence in W.
+    have hab' : b - a ∈ (I ^ S.sup id : Ideal R) := hab
+    -- For each i ∈ S: (of a).val i = (of b).val i
+    have hcoord : ∀ i ∈ S, (AdicCompletion.of I R a).val i =
+        (AdicCompletion.of I R b).val i := by
+      intro i hi
+      have hle : i ≤ S.sup id := Finset.le_sup (f := id) hi
+      have hsub : b - a ∈ (I ^ i : Ideal R) := Ideal.pow_le_pow_right hle hab'
+      -- (of a).val i = eval i (of a) by definition
+      change AdicCompletion.eval I R i (AdicCompletion.of I R a) =
+        AdicCompletion.eval I R i (AdicCompletion.of I R b)
+      rw [AdicCompletion.eval_of, AdicCompletion.eval_of]
+      rw [← sub_eq_zero, ← map_sub]
+      apply (Submodule.Quotient.mk_eq_zero _).mpr
+      rw [ideal_smul_top_eq_self]
+      exact (I ^ i).neg_mem_iff.mp (neg_sub a b ▸ hsub)
+    -- Show the pair is in each coordinate filter, hence in W.
+    -- The pair is in ⨅ i ∈ S, comap ... because it agrees at each coordinate.
+    -- W ∈ ⨅ i ∈ S, F_i. And the pair is in ⋂_{i ∈ S} (basic of F_i) ⊆ W.
+    -- More precisely: show the pair is in ⨅ i ∈ S, comap (proj_i × proj_i) 𝓤(Q i).
+    -- Then since W ∈ this filter: the pair is in W? No, filter membership ≠ set membership.
+    -- I need W to CONTAIN a set that CONTAINS the pair.
+    -- From hSW: W ⊇ some member of each F_i intersected.
+    -- And the pair is in each F_i's basic member.
+    -- So the pair is in W.
+    -- Actually: the pair is a POINT, not a set. I need to show the POINT is in the SET W.
+    -- From hSW: W ∈ ⨅ i ∈ S, comap (proj_i × proj_i) 𝓤(Q i).
+    -- For finite S: W ⊇ ⋂_{i ∈ S} V_i where V_i ∈ comap (proj_i × proj_i) 𝓤(Q i).
+    -- Each V_i ⊇ {(f,g) | f i = g i} (from discrete uniformity).
+    -- So W ⊇ ⋂_{i ∈ S} {(f,g) | f i = g i} = {(f,g) | ∀ i ∈ S, f i = g i}.
+    -- The pair satisfies: (of a).val i = (of b).val i for all i ∈ S (by hcoord).
+    -- Hence the pair is in the intersection, hence in W.
+    --
+    -- For the formalization: use Filter.mem_biInf_of_mem or extract the intersection.
+    -- Let me use Finset.iInf_mem_biInf or similar.
+    -- Actually, use Filter.biInf_le on hSW to extract each V_i, then intersect.
     sorry
 
 /-- `AdicCompletion.of I R` has dense range in the subtype topology. -/
