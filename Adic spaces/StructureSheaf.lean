@@ -949,22 +949,25 @@ theorem tateQuotientProductRestriction_injective_on_algebraMap
         (algebraMap A _ a) = 0 := by
     intro D hD
     rw [← compat_cover D hD a, hcan D hD, map_zero]
-  -- Step 3: From hker_Q + hSpa, get D.s^k * a = 0 for each D (need Q_D → annihilation).
-  have ha_ann : ∀ (D : RationalLocData A), D ∈ C.covers → ∃ k : ℕ, D.s ^ k * a = 0 := by
-    intro D hD
-    -- mk(algebraMap a) = 0 in Q_D means algebraMap a ∈ oneSubfXIdeal D.s.
-    have hmem := Ideal.Quotient.eq_zero_iff_mem.mp (hker_Q D hD)
-    -- oneSubfXIdeal D.s = Ideal.span {1 - D.s·X}, so algebraMap a = (1 - D.s·X) · g.
-    -- For discrete topology, A⟨X⟩ has polynomial coefficients.
-    -- The coefficient recurrence gives D.s^k * a = coeff_k(g), and since g is
-    -- a restricted power series, the coefficients tend to 0.
-    -- For nonarchimedean discrete topology: D.s^k * a eventually = 0.
-    sorry
-  -- Step 4: By Spa-point radical argument.
-  have hs_rad := base_s_in_annihilator_radical_of_covering (A := A) C a ha_ann hSpa
-  -- Step 5: Apply algebraMap_zero_of_radical_ann.
-  rw [compat_base]
-  exact algebraMap_zero_of_radical_ann (A := A) C.base.s a hs_rad
+  -- Step 3: BLOCKED. The natural next step would be to extract algebraic
+  -- annihilation ∃ k, D.s^k * a = 0 from mk(algebraMap a) = 0 in Q_D.
+  --
+  -- However, this implication is FALSE for non-discrete rings:
+  -- ker(A → Q_s) = {a : s^n a → 0 topologically}, NOT {a : ∃ k, s^k a = 0}.
+  -- Counterexample: A = K×K, s = (1,t), a = (0,t²) — topologically nilpotent
+  -- but never algebraically zero. See memory/feedback_kernel_characterization.md.
+  --
+  -- The Spa-point radical argument (base_s_in_annihilator_radical_of_covering)
+  -- requires algebraic annihilation, which is unavailable here.
+  --
+  -- The correct non-discrete proof must use either:
+  -- (a) Faithful flatness of the completed restriction (Wedhorn Cor 8.32), or
+  -- (b) Completed Laurent exactness via AdicCompletion (CompletionExact.lean).
+  -- Both require the AdicCompletion ↔ UniformSpace.Completion bridge.
+  --
+  -- For the DISCRETE case: the conclusion holds because A⟨X⟩ = A[X]
+  -- (finite support), so s^k a = 0 for k > deg(g).
+  sorry
 
 /-- **Key algebraic lemma for Theorem 8.28:** The product restriction,
 transferred to Tate algebra quotients via the isomorphism, has
