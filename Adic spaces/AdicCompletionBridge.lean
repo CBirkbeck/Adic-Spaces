@@ -244,8 +244,19 @@ theorem of_isUniformInducing (hadic : IsAdic I) :
 theorem of_denseRange (hadic : IsAdic I) :
     @DenseRange (AdicCompletion I R) (adicCompletionUniformSpace I).toTopologicalSpace
       R (AdicCompletion.of I R) := by
-  -- For each x and basic entourage {eval n equal}: lift x.val n to r ∈ R.
-  -- By compatibility + eval_of: of(r) agrees with x at that level.
+  intro x
+  rw [@mem_closure_iff_nhds _ (adicCompletionUniformSpace I).toTopologicalSpace]
+  intro U hxU
+  -- U ∈ nhds x in the subtype-of-Pi-discrete topology.
+  -- Need: (U ∩ range(of)).Nonempty.
+  -- Decompose U: nhds x = comap val (Pi nhds x.val).
+  -- Pi nhds: for discrete factors, a basic open is {f | f n = x.val n} for each n.
+  -- U contains {y : AC | y.val n = x.val n} for some n.
+  -- Take r with mkQ_n(r) = x.val n (surjectivity).
+  -- Then (of r).val n = eval_of = mkQ_n(r) = x.val n.
+  -- And (of r).val m = transitionMap(mkQ_n(r)) = transitionMap(x.val n) = x.val m for m ≤ n.
+  -- So of(r) ∈ {y | y.val n = x.val n} ⊆ U.
+  -- Hence (U ∩ range(of)).Nonempty.
   sorry
 
 /-- `AdicCompletion I R` with subtype uniformity as an `AbstractCompletion`. -/

@@ -1,3 +1,4 @@
+import «Adic spaces».AdicCompletionBridge
 import «Adic spaces».AdicConvergence
 import «Adic spaces».ArtinReesConvergence
 import «Adic spaces».AdicMorphisms
