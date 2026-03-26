@@ -180,7 +180,27 @@ theorem of_isUniformInducing (hadic : IsAdic I) :
       (𝓤 (AdicCompletion I R))).HasBasis
       (fun (_ : ℕ) => True)
       (fun n => {x : R × R | x.2 - x.1 ∈ (I ^ n : Ideal R)}) := by
-    sorry -- prove the comap has the adic basis
+    constructor; intro U; constructor
+    · -- U ∈ comap → ∃ n, True ∧ basis_n ⊆ U
+      intro hU
+      -- Extract V from comap, W from Pi uniformity, S from finite iInf.
+      obtain ⟨V, hV, hVU⟩ := Filter.mem_comap.mp hU
+      obtain ⟨W, hW, hWV⟩ := Filter.mem_comap.mp hV
+      rw [Pi.uniformity] at hW
+      obtain ⟨S, hSW⟩ := (Filter.mem_iInf_finite W).mp hW
+      sorry -- Extract finite S, show basis at max(S) ⊆ U
+    · -- ∃ n, True ∧ basis_n ⊆ U → U ∈ comap
+      rintro ⟨n, -, hn⟩
+      apply Filter.mem_comap.mpr
+      refine ⟨{p | AdicCompletion.eval I R n p.1 =
+        AdicCompletion.eval I R n p.2}, eval_entourage_mem I n, ?_⟩
+      intro ⟨a, b⟩ hab
+      apply hn; show b - a ∈ (I ^ n : Ideal R)
+      simp only [Set.mem_preimage, Set.mem_setOf_eq] at hab
+      rw [AdicCompletion.eval_of, AdicCompletion.eval_of] at hab
+      have hmem := (Submodule.Quotient.eq (I ^ n • ⊤)).mp hab
+      rw [ideal_smul_top_eq_self] at hmem
+      exact (I ^ n).neg_mem_iff.mp (show -(b - a) ∈ (I ^ n : Ideal R) by rwa [neg_sub])
   exact hbasis_unif.eq_of_same_basis hbasis_comap |>.symm
 
 /-- `AdicCompletion.of I R` has dense range in the subtype topology. -/
