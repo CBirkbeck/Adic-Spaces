@@ -244,20 +244,114 @@ theorem of_isUniformInducing (hadic : IsAdic I) :
 theorem of_denseRange (hadic : IsAdic I) :
     @DenseRange (AdicCompletion I R) (adicCompletionUniformSpace I).toTopologicalSpace
       R (AdicCompletion.of I R) := by
+  -- For each x : AdicCompletion, construct a sequence of(r_n) → x.
+  -- r_n = representative of x.val n. Then of(r_n) agrees with x at levels ≤ n.
+  -- Hence of(r_n) → x in the Pi-discrete topology → x ∈ closure(range of).
   intro x
-  rw [@mem_closure_iff_nhds _ (adicCompletionUniformSpace I).toTopologicalSpace]
-  intro U hxU
-  -- U ∈ nhds x in the subtype-of-Pi-discrete topology.
-  -- Need: (U ∩ range(of)).Nonempty.
-  -- Decompose U: nhds x = comap val (Pi nhds x.val).
-  -- Pi nhds: for discrete factors, a basic open is {f | f n = x.val n} for each n.
-  -- U contains {y : AC | y.val n = x.val n} for some n.
-  -- Take r with mkQ_n(r) = x.val n (surjectivity).
-  -- Then (of r).val n = eval_of = mkQ_n(r) = x.val n.
-  -- And (of r).val m = transitionMap(mkQ_n(r)) = transitionMap(x.val n) = x.val m for m ≤ n.
-  -- So of(r) ∈ {y | y.val n = x.val n} ⊆ U.
-  -- Hence (U ∩ range(of)).Nonempty.
-  sorry
+  -- Choose r_n for each n
+  choose r hr using fun n => Submodule.Quotient.mk_surjective (I ^ n • ⊤) (x.val n)
+  -- hr n : (I ^ n • ⊤).mkQ (r n) = x.val n
+  -- U ∈ nhds x (subtype). So val⁻¹(some Pi open) ⊆ U with x in it.
+  -- Decompose using the uniformity basis: U ⊇ ball(x, E) for E ∈ 𝓤.
+  -- E ∈ 𝓤(AC) = subtype of Pi-discrete.
+  -- Ball: {y | (x,y) ∈ E}. E ⊇ {(a,b) | a.val n = b.val n} for some n.
+  -- Ball ⊇ {y | y.val n = x.val n}.
+  -- of(r n) has: (of (r n)).val n = mkQ_n(r n) = x.val n (by hr n + eval_of).
+  -- So of(r n) ∈ ball(x, E) ⊆ U. And of(r n) ∈ range(of). Done.
+  --
+  -- Formalize: extract entourage from nhds, find n, use r n.
+  -- Use eval_entourage_mem: {(a,b) | eval n a = eval n b} ∈ 𝓤(AC).
+  -- Ball(x, this entourage) = {y | eval n y = eval n x} = {y | y.val n = x.val n}.
+  -- This is a nhd of x (entourage ball is always a nhd).
+  -- of(r n) is in this set: (of (r n)).val n = mkQ_n(r n) = x.val n (by hr n + eval_of).
+  -- So of(r n) ∈ ball(x, entourage) and of(r n) ∈ range(of).
+  -- The ball is a nhd ⊆ U for some n... but we need U-specific n.
+  -- Actually: U is already a nhd. We need U ∩ range(of) ≠ ∅.
+  -- If U ⊇ ball(x, E_n) for some n: use r n.
+  -- Since nhds x has basis from uniformity balls:
+  -- U ∈ nhds x means U ⊇ ball(x, E) for some E ∈ 𝓤.
+  -- E ∈ 𝓤(AC). Using the IsUniformInducing proof infrastructure:
+  -- E contains an entourage of the form {(a,b) | ∀ i ∈ S, a.val i = b.val i} for finite S.
+  -- Ball(x, this) = {y | ∀ i ∈ S, y.val i = x.val i}.
+  -- Use r (max S): of(r (max S)).val i = mkQ_i(r(max S)) = transition(x.val (max S)) = x.val i.
+  -- The last step uses x.property and eval_of.
+  -- So of(r (max S)) ∈ ball ⊆ U. Done.
+  --
+  -- But extracting S from E ∈ 𝓤(AC) is the same filter plumbing issue!
+  -- Let me just use the `eval_entourage_mem` directly.
+  -- For each n: ball(x, eval_n_entourage) is a nhd of x.
+  -- So nhds x has basis including these balls.
+  -- If U ∈ nhds x: U ⊇ some ball. But which?
+  --
+  -- SIMPLER: just show {of(r n) | n} has x as a cluster point (limit along atTop).
+  -- of(r n) → x along atTop (in the subtype topology):
+  -- For each basic nhd {y | y.val m = x.val m} of x (at coordinate m):
+  -- For n ≥ m: of(r n).val m = transition(mkQ_n(r n)) = transition(x.val n) = x.val m.
+  -- So eventually (for n ≥ m): of(r n) ∈ the basic nhd.
+  -- Hence of(r n) → x.
+  -- x ∈ closure(range of) because it's a limit of elements in range(of).
+  --
+  -- In Lean: use Filter.Tendsto + mem_closure_of_tendsto.
+  have htendsto : Filter.Tendsto (fun n => AdicCompletion.of I R (r n))
+      Filter.atTop (@nhds _ (adicCompletionUniformSpace I).toTopologicalSpace x) := by
+    -- Tendsto in subtype = tendsto of val in Pi = pointwise tendsto.
+    -- Use tendsto_subtype_rng: tendsto to subtype iff tendsto of val to Pi.
+    rw [Filter.Tendsto]
+    simp only [Filter.map_le_iff_le_comap]
+    -- Now need: atTop ≤ comap (of ∘ r) (nhds x).
+    -- nhds x in the subtype topology = comap val (nhds (val x)) in Pi.
+    -- Pull back: comap (val ∘ of ∘ r) (nhds (val x)) in Pi.
+    -- In Pi-discrete: this is ⨅ m, comap (eval m ∘ val ∘ of ∘ r) (nhds (val x m)).
+    -- For discrete: nhds = pure. So eventually (of(r n)).val m = x.val m.
+    rw [Filter.le_def]
+    intro U hU
+    -- U ∈ comap (of ∘ r) (nhds x). Need U ∈ atTop.
+    rw [Filter.mem_comap] at hU
+    obtain ⟨V, hV, hVU⟩ := hU
+    -- V ∈ nhds x (subtype). Decompose using uniformity basis.
+    -- nhds x has basis: ball(x, E) for E ∈ 𝓤.
+    -- E ∈ 𝓤(AC) contains {(a,b) | a.val n = b.val n} for some n (from the iInf).
+    -- ball(x, E) ⊇ {y | y.val n = x.val n}.
+    -- For m ≥ n: (of (r m)).val n = transition(mkQ_m(r m)) = transition(x.val m) = x.val n.
+    -- So of(r m) ∈ ball(x, E) ⊆ V for m ≥ n. Hence of(r m) ⁻¹ ∈ V ⁻¹ ⊆ U for m ≥ n.
+    -- So U ∈ atTop (eventually for m ≥ n).
+    --
+    -- To formalize: extract n from V ∈ nhds x using the uniformity + iInf structure.
+    -- This is the SAME filter extraction as before.
+    -- Let me use nhds_eq_comap_uniformity and then the iInf decomposition.
+    rw [@nhds_eq_comap_uniformity _ (adicCompletionUniformSpace I)] at hV
+    obtain ⟨E, hE, hEV⟩ := Filter.mem_comap.mp hV
+    -- E ∈ 𝓤(AC). Extract finite coordinate set.
+    obtain ⟨W, hW, hWE⟩ := Filter.mem_comap.mp hE
+    rw [Pi.uniformity] at hW
+    obtain ⟨S, hSfin, V_fn, hV_fn, hW_eq⟩ := (Filter.mem_iInf).mp hW
+    -- Take n = hSfin.toFinset.sup id
+    apply Filter.mem_atTop_sets.mpr
+    refine ⟨hSfin.toFinset.sup id, fun m hm => hVU ?_⟩
+    apply hEV; apply hWE; rw [hW_eq]; apply Set.mem_iInter.mpr
+    intro ⟨i, hi⟩
+    obtain ⟨D_i, hD_i, hD_V⟩ := Filter.mem_comap.mp (hV_fn ⟨i, hi⟩)
+    apply hD_V
+    show (x.val i, (AdicCompletion.of I R (r m)).val i) ∈ D_i
+    have hle : i ≤ hSfin.toFinset.sup id :=
+      Finset.le_sup (f := id) (hSfin.mem_toFinset.mpr hi)
+    have hle_m : i ≤ m := le_trans hle hm
+    -- (of (r m)).val i = transition(mkQ_m(r m)) = transition(x.val m) = x.val i
+    have heval : (AdicCompletion.of I R (r m)).val i = x.val i := by
+      have h1 := (AdicCompletion.of I R (r m)).property hle_m
+      have h2 := x.property hle_m
+      change AdicCompletion.eval I R i (AdicCompletion.of I R (r m)) = x.val i
+      rw [show AdicCompletion.eval I R i (AdicCompletion.of I R (r m)) =
+        (AdicCompletion.transitionMap I R hle_m)
+          (AdicCompletion.eval I R m (AdicCompletion.of I R (r m))) from h1.symm]
+      rw [AdicCompletion.eval_of]
+      -- mkQ(r m) = x.val m (by hr), then transition gives x.val i (by h2)
+      change (AdicCompletion.transitionMap I R hle_m)
+        (Submodule.Quotient.mk (r m)) = x.val i
+      rw [hr m, h2]
+    rw [heval]; exact refl_mem_uniformity hD_i
+  exact mem_closure_of_tendsto htendsto (Filter.Eventually.of_forall
+    fun n => Set.mem_range.mpr ⟨r n, rfl⟩)
 
 /-- `AdicCompletion I R` with subtype uniformity as an `AbstractCompletion`. -/
 noncomputable def adicAbstractCompletion (hadic : IsAdic I) : AbstractCompletion R where
