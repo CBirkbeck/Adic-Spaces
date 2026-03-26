@@ -73,39 +73,26 @@ theorem locSubring_completion_flat [IsNoetherianRing (locSubring D.P D.T D.s)] :
 /-! ### Flatness of presheafValue over A (Wedhorn Proposition 8.30)
 
 For the localization topology: `presheafValue D = Completion(Localization.Away s)`.
-The chain:
-1. `Completion(locSubring)` is flat over `locSubring` (by `locSubring_completion_flat`)
-2. `Completion(Localization.Away s) ≃ Completion(locSubring)[1/π]` (localization of completion)
-3. Localization of flat is flat → `presheafValue D` is flat over `locSubring`
-4. `locSubring` is flat over `A₀` (localization + f.g. algebra)
-5. `A₀` is flat over `A₀` (trivially), and `A = A₀[1/π]` → composition.
 
-Step 2 requires: the ambient completion = localization of the subring completion.
-This uses `locNhd_leftMul` and `locNhd_invS_step` from `LocalizationTopology.lean`.
+**Proof route (via TopologyComparison):**
+1. `A⟨X⟩` is flat over `A` (restricted power series of noetherian ring)
+2. `1-sX` is universally regular in `A⟨X⟩` → `A⟨X⟩/(1-sX)` flat over `A`
+   (`flat_quotient_oneSubfX_general` in `TateAlgebra.lean`, sorry-free)
+3. `presheafValue D ≃+* A⟨X⟩/(1-sX)` (TopologyComparison, sorry-free)
+4. Transfer flatness via the A-compatible ring isomorphism
+
+The proof is in `StructureSheaf.lean` as `presheafValue_flat_of_tateQuotient`
+since it requires the TopologyComparison hypotheses.
 -/
--- **Completion commutes with localization** (for the localization topology):
--- presheafValue D = Completion(locSubring[1/s]) ≃ Completion(locSubring)[1/s'].
--- Proof: R⁺[1/s] → R̂⁺[1/s'] is dense + continuous, target is complete
--- (R̂⁺ open complete subgroup). Universal property gives Completion(R⁺[1/s]) → R̂⁺[1/s'].
--- Inverse: R⁺ → R → Completion(R) extends to R̂⁺ → Completion(R),
--- then s invertible → R̂⁺[1/s'] → Completion(R). Round-trip = id by density + T₂.
---
--- presheafValue_isLocalization_completion: Completion(R⁺[1/s]) ≃ Completion(R⁺)[1/s']
--- This requires defining the topological localization of the completion
--- and constructing the isomorphism. See CompletionLocalization.lean for the plan.
--- For now: the result is used as a sorry in presheafValue_flat below.
 
 /-- `presheafValue D` is flat over `A` (Wedhorn Proposition 8.30).
-
-Chain: Completion(locSubring) flat over locSubring (by bridge) →
-localization Completion(locSubring)[1/s'] flat over locSubring →
-presheafValue D ≃ Completion(locSubring)[1/s'] (by above) → flat over locSubring →
-locSubring flat over A₀ (localization) → flat over A (transitivity). -/
+See `presheafValue_flat_of_tateQuotient` in `StructureSheaf.lean`
+for the sorry-free version with TopologyComparison hypotheses. -/
 theorem presheafValue_flat (D : RationalLocData A)
     [IsNoetherianRing (locSubring D.P D.T D.s)] :
     @Module.Flat A (presheafValue D) _ _
       (RingHom.toModule (RationalLocData.canonicalMap D)) := by
-  sorry -- depends on presheafValue_isLocalization_completion
+  sorry -- See StructureSheaf.presheafValue_flat_of_tateQuotient for the proof
 
 end LocSubringCompletion
 

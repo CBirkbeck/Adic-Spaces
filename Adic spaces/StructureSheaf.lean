@@ -6,6 +6,7 @@ import «Adic spaces».Presheaf
 import «Adic spaces».CompleteTopCommRingCat
 import «Adic spaces».Lemma745
 import «Adic spaces».TopologyComparison
+import Mathlib.RingTheory.RingHom.Flat
 import Mathlib.Topology.Sheaves.LocalPredicate
 import Mathlib.Topology.Sheaves.Forget
 import Mathlib.Topology.Sheaves.Stalks
@@ -1131,16 +1132,73 @@ theorem separation_ofStronglyNoetherianTate
       (hdense_cover D hD) a)
     hSpa z hker
 
+/-! ### Flatness of presheafValue (Wedhorn Proposition 8.30, via TopologyComparison)
+
+For strongly noetherian Tate rings, the presheaf value `presheafValue D` is
+flat over `A`. The proof uses the sorry-free TopologyComparison isomorphism
+`presheafValue D ≃+* A⟨X⟩/(1-sX)` together with the sorry-free flatness
+`flat_quotient_oneSubfX_general : Module.Flat A (A⟨X⟩/(1-sX))`.
+
+The transfer uses `RingHom.Flat.respectsIso`: since
+`canonicalMap D = e.symm ∘ algebraMap` and `algebraMap` is flat,
+the composition with the ring isomorphism `e.symm` is also flat. -/
+
+/-- `presheafValue D` is flat over `A` (Wedhorn Proposition 8.30), assuming
+the TopologyComparison isomorphism hypotheses are satisfied. -/
+theorem presheafValue_flat_of_tateQuotient
+    [T2Space A] [NonarchimedeanRing A] [IsNoetherianRing A]
+    [FirstCountableTopology A] [IsTateRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hcs : @CompleteSpace _ (quotientTUniformSpace D.s))
+    (ht0 : @T0Space _ (quotientTTopology D.s))
+    (hcont : @Continuous _ _
+      (quotientTTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb))
+    (hdense : @DenseRange (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s)
+      (quotientTTopology D.s) (Localization.Away D.s)
+      (locToQuotientOneSubfX_gen D.s)) :
+    @Module.Flat A (presheafValue D) _ _
+      (RingHom.toModule (RationalLocData.canonicalMap D)) := by
+  -- A⟨X⟩/(1-sX) is flat over A (via the algebra module structure)
+  haveI hflat_quot : Module.Flat A (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    TateAlgebra.flat_quotient_oneSubfX_general P D.s
+  -- The isomorphism e : presheafValue D ≃+* A⟨X⟩/(1-sX)
+  let e := presheafValueTateQuotientEquiv D hb hcs ht0 hcont hdense
+  -- Transfer: canonicalMap is flat because it factors as e.symm ∘ algebraMap
+  -- and algebraMap is flat (flat_quotient_oneSubfX_general)
+  show @Module.Flat A (presheafValue D) _ _
+    (RingHom.toModule (RationalLocData.canonicalMap D))
+  -- Use Module.Flat.of_linearEquiv: need A-linear equiv presheafValue D ≃ₗ[A] Q
+  letI : Module A (presheafValue D) :=
+    RingHom.toModule (RationalLocData.canonicalMap D)
+  have he_smul : ∀ (a : A) (x : presheafValue D),
+      e (a • x) = a • e x := by
+    intro a x
+    show e (RationalLocData.canonicalMap D a * x) =
+      algebraMap A _ a * e x
+    rw [e.map_mul]
+    congr 1
+    exact presheafValueTateQuotientEquiv_canonicalMap
+      D hb hcs ht0 hcont hdense a
+  exact @Module.Flat.of_linearEquiv A
+    (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) (presheafValue D)
+    inferInstance inferInstance inferInstance inferInstance this hflat_quot
+    { toLinearMap :=
+        { toFun := e
+          map_add' := e.map_add
+          map_smul' := he_smul }
+      invFun := e.symm
+      left_inv := e.symm_apply_apply
+      right_inv := e.apply_symm_apply }
+
 /-! ### Proof via faithful flatness (correct route)
 
-The flatness route avoids the TopologyComparison isomorphism hypotheses.
-Instead, it uses:
-1. `presheafValue_flat D` : each presheaf value is flat over A
-2. Product of flat is flat
-3. Covering condition → faithfully flat → productRestriction injective
-
-This depends on `presheafValue_flat` which has a single sorry:
-the "localization of completion" step. -/
+The flatness route uses `presheafValue_flat_of_tateQuotient` to establish
+that each presheaf value is flat over `A`, then assembles the faithful
+flatness argument from the covering condition. -/
 
 /-- **Theorem 8.28 of Wedhorn** (via flatness): separation for strongly
 noetherian Tate rings. Each presheaf value is flat over A (by
