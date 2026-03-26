@@ -401,12 +401,17 @@ noncomputable def adicCompletionRingEquiv (hadic : IsAdic I) :
       exact congr_fun (AbstractCompletion.inverse_compare
         UniformSpace.Completion.cPkg (adicAbstractCompletion I hadic)) x
     map_mul' := fun x y => by
-      -- By induction_on₂ + density: e(xy) = e(x)*e(y).
-      -- IsClosed from continuous maps to T₂.
-      -- On coe: e(coe(ab)) = of(ab) = of(a)*of(b) = e(coe a)*e(coe b).
+      -- Double application of Completion.ext (density + T₂).
+      -- Step 1: fix y, show (fun x => e(x*y)) = (fun x => e(x)*e(y)) by ext on x.
+      -- Step 2: for x = coe(a), show (fun y => e(coe(a)*y)) = (fun y => e(coe(a))*e(y)) by ext on y.
+      -- Step 3: for y = coe(b): e(coe(a)*coe(b)) = e(coe(a*b)) = of(a*b) = of(a)*of(b) = e(coe(a))*e(coe(b)).
+      haveI : T2Space (AdicCompletion I R) := inferInstance
+      -- Double ext: first fix x, ext on y. Then ext on x.
+      -- For now: sorry the ring hom properties.
+      -- These are standard density+T₂ arguments using Completion.ext.
       sorry
     map_add' := fun x y => by
-      -- Same argument for addition.
+      haveI : T2Space (AdicCompletion I R) := inferInstance
       sorry
   }
 
