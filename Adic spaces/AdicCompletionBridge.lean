@@ -98,13 +98,31 @@ instance adicCompletionT0 : @T0Space (AdicCompletion I R)
   rw [@inseparable_pi] at hpi
   exact (hpi n).eq
 
+/-- The set underlying `AdicCompletion I R` inside the product type. -/
+private def adicCompletionSet :
+    Set (∀ k, R ⧸ (I ^ k • (⊤ : Submodule R R))) :=
+  {f | ∀ {m n : ℕ} (hmn : m ≤ n),
+    (AdicCompletion.transitionMap I R hmn) (f n) = f m}
+
+private theorem adicCompletionSet_isClosed : IsClosed (adicCompletionSet I) := by
+  unfold adicCompletionSet
+  have : {g : ∀ k, R ⧸ (I ^ k • (⊤ : Submodule R R)) |
+      ∀ {m n : ℕ} (hmn : m ≤ n),
+        (AdicCompletion.transitionMap I R hmn) (g n) = g m} =
+    ⋂ (p : ℕ × ℕ) (_ : p.1 ≤ p.2),
+      {g | (AdicCompletion.transitionMap I R ‹p.1 ≤ p.2›) (g p.2) = g p.1} := by
+    ext g; simp only [Set.mem_setOf_eq, Set.mem_iInter]
+    exact ⟨fun h p hp => h hp, fun h m n hmn => h ⟨m, n⟩ hmn⟩
+  rw [this]
+  exact isClosed_iInter fun ⟨m, n⟩ => isClosed_iInter fun hmn =>
+    isClosed_eq (continuous_of_discreteTopology.comp (continuous_apply n))
+      (continuous_apply m)
+
 /-- `AdicCompletion I R` is complete: it's a closed subtype of the complete
 product `∀ n, R ⧸ (I^n • ⊤)` (product of discrete = complete). -/
 instance adicCompletionComplete : @CompleteSpace (AdicCompletion I R)
-    (adicCompletionUniformSpace I) := by
-  -- AdicCompletion is a closed subset of the product
-  -- IsClosed.completeSpace_coe gives completeness
-  sorry
+    (adicCompletionUniformSpace I) :=
+  (adicCompletionSet_isClosed I).completeSpace_coe
 
 end Instances
 
