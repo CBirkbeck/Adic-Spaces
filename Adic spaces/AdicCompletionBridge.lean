@@ -163,18 +163,43 @@ theorem of_isUniformInducing (hadic : IsAdic I) :
   -- Both uniformities have basis: {(a,b) | a - b ∈ I^n} for each n.
   -- LHS: subtype of Pi-discrete, pulled back via of.
   -- RHS: I-adic uniformity (from IsAdic I).
+  -- Get the adic nhds basis for nhds 0 (using hadic to align topologies)
+  have hbasis_nhds : (𝓝 (0 : R)).HasBasis (fun (_ : ℕ) => True)
+      (fun n => ((I ^ n : Ideal R) : Set R)) := by
+    have h : @nhds R _ 0 = @nhds R I.adicTopology 0 := by rw [hadic]
+    rw [h]; convert Ideal.hasBasis_nhds_adic I (0 : R) using 1
+    funext n; simp [zero_add, Set.image_id']
+  -- Get the uniformity basis: {(a,b) | b - a ∈ I^n}
+  have hbasis_unif := hbasis_nhds.uniformity_of_nhds_zero
+  -- hbasis_unif : 𝓤 R has basis (fun n => {p | p.2 - p.1 ∈ I^n})
   apply le_antisymm
-  · -- comap ≤ 𝓤 R means: every adic entourage is a pullback entourage.
-    -- I.e., ∀ U ∈ 𝓤 R, U ∈ comap (of×of) 𝓤(AC).
-    -- For each n: {(a,b) | a-b ∈ I^n} = of⁻¹({(x,y) | eval n x = eval n y}).
-    -- And {(x,y) | eval n x = eval n y} ∈ 𝓤(AC) by eval_entourage_mem.
-    -- So every adic basis entourage is in the pullback.
-    sorry
-  · -- 𝓤 R ≤ comap means: every pullback entourage is an adic entourage.
-    -- I.e., ∀ U ∈ comap (of×of) 𝓤(AC), U ∈ 𝓤 R.
-    -- Pullback entourage contains of⁻¹(V) for V ∈ 𝓤(AC).
-    -- V contains {(x,y) | eval n x = eval n y} for some n (Pi basis).
-    -- Pull back: {(a,b) | a-b ∈ I^n} which is in 𝓤 R.
+  · -- comap ≤ 𝓤 R: every adic basis entourage is in the pullback.
+    rw [hbasis_unif.ge_iff]
+    intro n _
+    -- Need: {(a,b) | b-a ∈ I^n} ∈ comap (of×of) 𝓤(AC).
+    apply Filter.mem_comap.mpr
+    refine ⟨{p | AdicCompletion.eval I R n p.1 =
+      AdicCompletion.eval I R n p.2}, eval_entourage_mem I n, ?_⟩
+    -- of⁻¹({eval equal at n}) = {(a,b) | mkQ_n a = mkQ_n b} = {(a,b) | b-a ∈ I^n•⊤}
+    intro ⟨a, b⟩ hab
+    show b - a ∈ (I ^ n : Ideal R)
+    -- hab says eval n (of a) = eval n (of b)
+    simp only [Set.mem_preimage, Set.mem_setOf_eq] at hab
+    -- Now hab : eval n (of a) = eval n (of b)
+    rw [AdicCompletion.eval_of, AdicCompletion.eval_of] at hab
+    -- mkQ a = mkQ b means b - a ∈ I^n•⊤ = I^n
+    have hmem := (Submodule.Quotient.eq (I ^ n • ⊤)).mp hab
+    rw [ideal_smul_top_eq_self] at hmem
+    -- hmem : a - b ∈ I^n. Need: b - a ∈ I^n.
+    exact (I ^ n).neg_mem_iff.mp (show -(b - a) ∈ (I ^ n : Ideal R) by rwa [neg_sub])
+  · -- 𝓤 R ≤ comap: every pullback entourage is an adic entourage.
+    intro U hU
+    obtain ⟨V, hV, hVU⟩ := Filter.mem_comap.mp hU
+    -- V ∈ 𝓤(AC). Use the Pi basis to find n with {eval n equal} ⊆ V.
+    -- The subtype uniformity comes from the Pi uniformity.
+    -- Each Pi basic entourage = {(f,g) | f n = g n}.
+    -- So V contains such a basic for some n.
+    -- Pull back: {(a,b) | a-b ∈ I^n} ⊆ of⁻¹(V) ⊆ U → U ∈ 𝓤 R.
     sorry
 
 /-- `AdicCompletion.of I R` has dense range in the subtype topology. -/
