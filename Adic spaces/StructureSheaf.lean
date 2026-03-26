@@ -784,6 +784,32 @@ private theorem map_sub_productRestriction (C : RationalCovering A)
         restrictionMap C.base D (C.hsubset D hD) y :=
   map_sub (restrictionMapHom C.base D (C.hsubset D hD)) x y
 
+/-! ### Old direct proof route (QUARANTINED)
+
+The theorems `completionKer_eq_bot_of_locKer_eq_bot`, `localization_isT0`,
+`loc_algebraic_injectivity_of_tate`, and `separation_ofStronglyNoetherianTate`
+form the OLD direct proof of Theorem 8.28 via the Spa-point radical argument.
+This route has fundamental issues:
+
+1. **`localization_isT0` is false in general**: when `locIdeal = ⊤`
+   (e.g., when `s ∈ I`), the localization topology is indiscrete and
+   T0Space fails. Counterexample: take `A = A₀[π⁻¹]` with `s = π`,
+   then `algebraMap(π) · invSelf = 1 ∈ locIdeal`, so `locIdeal = ⊤`.
+
+2. **`completionKer_eq_bot_of_locKer_eq_bot`** requires faithful flatness
+   of the completion, not just density (counterexample: closed subgroups
+   CAN intersect a dense subgroup trivially in a non-trivial way).
+
+3. The non-open prime Spa point placement needs Example 6.38 of Wedhorn.
+
+**The correct proof route** goes through `TopologyComparison.lean`:
+the sorry-free `presheafValueTateQuotientEquiv` gives the isomorphism
+`presheafValue D ≃+* A⟨X⟩/(1-sX)`, from which sheafiness follows
+via the Laurent/refinement chain (Phases 2-5 of the worker plan).
+
+These theorems are kept for backwards compatibility but should be
+replaced by the TopologyComparison route. -/
+
 theorem completionKer_eq_bot_of_locKer_eq_bot
     (C : RationalCovering A) :
     (∀ (a : Localization.Away C.base.s),
@@ -794,77 +820,18 @@ theorem completionKer_eq_bot_of_locKer_eq_bot
       (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
         productRestriction A C z D hD = 0) →
       z = 0 := by
-  intro h_loc_inj z hz_zero
-  -- The kernel of the product restriction map F is a closed subring
-  -- of the T0 completion presheafValue C.base. The hypothesis h_loc_inj
-  -- says the dense subring Localization.Away C.base.s intersects this
-  -- kernel trivially (via coeRingHom). We use the T0 separation axiom
-  -- and density to conclude z = 0.
-  --
-  -- Define F(z) = (restrictionMap z)_D. Then F is continuous and
-  -- ker(F) is closed. By density of coeRingHom, z is the limit of
-  -- coeRingHom(a_n). Since F(z) = 0 and F is continuous,
-  -- F(coeRingHom(a_n)) → 0. By productRestriction_coe_eq,
-  -- F(coeRingHom(a_n)) = (restrictionMapAlg a_n)_D.
-  --
-  -- By h_loc_inj, any a with restrictionMapAlg(a) = 0 for all D
-  -- satisfies coeRingHom(a) = 0. This means ker(F) ∩ range(coeRingHom)
-  -- = {0} as a subset of presheafValue C.base.
-  --
-  -- For the general completion, this does NOT suffice to conclude
-  -- ker(F) = {0} (closed subgroups can intersect a dense set trivially).
-  -- The full proof requires the bridge between UniformSpace.Completion
-  -- and AdicCompletion for noetherian I-adic topologies, where the
-  -- completion is faithfully flat and preserves exactness.
-  -- See TICKET-G2-topo and AdicCompletion.map_injective.
-  sorry
+  sorry -- QUARANTINED: needs AdicCompletion bridge
 
 omit [HasRestrictionMaps A] in
-/-- **T0Space of the localization topology for Tate rings** (Krull intersection).
-
-For a Tate ring `A` with noetherian ring of definition `A₀`, the localization
-`Localization.Away D.s` equipped with the localization topology is T0.
-This follows from the Krull intersection theorem on `locIdeal` in `locSubring`:
-`⋂ (locIdeal)^n = {x : ∃ r ∈ locIdeal, r * x = x}`, and since `locIdeal` is
-topologically nilpotent, `1 - r` is a unit for `r ∈ locIdeal`, giving
-`⋂ (locIdeal)^n = 0`. Hence the localization topology is Hausdorff, and in
-particular T0.
-
-This is the key enabler for `coeRingHom` injectivity via
-`UniformSpace.Completion.coe_injective`, which is used in the Spa-point
-radical argument to extract annihilation data `D.s^k * b = 0`. -/
+/-- QUARANTINED: **False in general** when `locIdeal = ⊤`. -/
 theorem localization_isT0 [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D : RationalLocData A) :
     @T0Space (Localization.Away D.s)
       (@UniformSpace.toTopologicalSpace _ D.uniformSpace) := by
-  -- For our uniform space (additive group with RingSubgroupsBasis topology),
-  -- T0 ↔ T2 ↔ separated uniformity (since uniform spaces are regular/R1).
-  -- This is equivalent to ⋂_n locNhd(n) = {0} in Localization.Away D.s.
-  --
-  -- Proof strategy: if z ∈ ⋂_n locNhd(n), then z = ↑d for a unique
-  -- d ∈ ⋂_n locIdeal^n ⊆ locSubring (injectivity of subring inclusion).
-  -- By Artin-Rees (Ideal.mem_iInf_smul_pow_eq_bot_iff): ∃ r ∈ locIdeal,
-  -- (1-r)*d = 0. Need (1-r) non-zero-divisor in Localization.Away D.s
-  -- to conclude d = 0.
-  --
-  -- Requires: (1) IsNoetherianRing locSubring (Hilbert basis theorem from
-  -- A₀ Noetherian), (2) locIdeal ≤ jacobson ⊥ in locSubring (hardest part:
-  -- needs I ≤ jacobson ⊥ in A₀ from IsAdicComplete, but the Jacobson
-  -- condition doesn't transfer directly to locSubring since locSubring
-  -- contains generators t_i/s not in the image of A₀).
-  sorry
+  sorry -- QUARANTINED: false when locIdeal = ⊤ (e.g., s ∈ I)
 
-/-- **Algebraic injectivity on the localization (Wedhorn Theorem 8.28, Step 1).**
-
-Given a rational covering `C` and T0 localization topologies, the combined
-algebraic restriction map is injective on `Localization.Away C.base.s`:
-if `restrictionMapAlg C.base D h a = 0` for all covering pieces `D`,
-then `C.base.coeRingHom a = 0`.
-
-The proof writes `a = b/s^m`, shows `D.canonicalMap(b) = 0` for each `D`,
-extracts `D.s^k * b = 0` via T0, then uses the Spa-point radical argument
-to get `C.base.s^N * b = 0`, hence `a = 0`. -/
+/-- QUARANTINED: Depends on the false `localization_isT0`. -/
 theorem loc_algebraic_injectivity_of_tate
     [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
@@ -878,119 +845,22 @@ theorem loc_algebraic_injectivity_of_tate
       (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
         restrictionMapAlg C.base D (C.hsubset D hD) a = 0) →
       C.base.coeRingHom a = 0 := by
-  intro a ha_zero
-  -- Write a = b / s^m
-  obtain ⟨b, ⟨_, ⟨m, rfl⟩⟩, ha_eq⟩ := IsLocalization.exists_mk'_eq
-    (Submonoid.powers C.base.s) a
-  -- For each D, restrictionMapAlg(a) = 0. Since restrictionMapAlg = lift(canonicalMap_s_unit),
-  -- and canonicalMap(b) = lift(algebraMap b), we get canonicalMap(b) = 0 after clearing
-  -- the unit factor. By T₀ + completion injectivity: algebraMap(b) = 0 in Localization.Away D.s.
-  -- Hence ∃ k, D.s^k * b = 0.
-  have ha_ann : ∀ (D : RationalLocData A), D ∈ C.covers →
-      ∃ k : ℕ, D.s ^ k * b = 0 := by
-    intro D hD
-    have haz := ha_zero D hD
-    -- restrictionMapAlg = IsLocalization.Away.lift, which sends algebraMap(r) to
-    -- D.canonicalMap(r). So restrictionMapAlg(a) * D.canonicalMap(s^m) = D.canonicalMap(b).
-    have hu := isUnit_canonicalMap_s C.base D (C.hsubset D hD)
-    -- The lift is a ring hom, so it preserves the localization relation.
-    -- From a = mk'(b, s^m) and lift(a) = 0, deduce canonicalMap(b) = 0.
-    have hcb_zero : D.canonicalMap b = 0 := by
-      have hlift : restrictionMapAlg C.base D (C.hsubset D hD) =
-          IsLocalization.Away.lift C.base.s hu := rfl
-      rw [hlift] at haz
-      have hunit_sm : IsUnit (D.canonicalMap (C.base.s ^ m)) := by
-        rw [map_pow]; exact hu.pow m
-      -- lift(a) = 0 and a * algebraMap(s^m) = algebraMap(b)
-      -- So lift(a) * lift(algebraMap(s^m)) = lift(algebraMap(b))
-      -- 0 * canonicalMap(s^m) = canonicalMap(b)
-      have hmul : (IsLocalization.Away.lift (S := Localization.Away C.base.s)
-          C.base.s hu) a *
-          D.canonicalMap (C.base.s ^ m) = D.canonicalMap b := by
-        have hspec := IsLocalization.mk'_spec (Localization.Away C.base.s) b
-          (⟨C.base.s ^ m, m, rfl⟩ : Submonoid.powers C.base.s)
-        -- hspec : mk'(b, s^m) * algebraMap(s^m) = algebraMap(b)
-        -- Since a = mk'(b, s^m) (by ha_eq):
-        -- a * algebraMap(s^m) = algebraMap(b)
-        -- Apply the lift to both sides:
-        -- lift(a) * lift(algebraMap(s^m)) = lift(algebraMap(b))
-        -- lift(a) * canonicalMap(s^m) = canonicalMap(b)
-        have := congr_arg (IsLocalization.Away.lift (S := Localization.Away C.base.s)
-          C.base.s hu) (ha_eq ▸ hspec)
-        rwa [map_mul, IsLocalization.Away.lift_eq, IsLocalization.Away.lift_eq] at this
-      rw [haz, zero_mul] at hmul
-      exact hmul.symm
-    -- D.canonicalMap(b) = D.coeRingHom(algebraMap b) = 0
-    -- By T₀, coeRingHom is injective => algebraMap(b) = 0 in Localization.Away D.s
-    have hinj := @UniformSpace.Completion.coe_injective _ D.uniformSpace (hT0 D hD)
-    have hb_zero : algebraMap A (Localization.Away D.s) b = 0 :=
-      hinj (hcb_zero.trans (map_zero D.coeRingHom).symm)
-    rw [IsLocalization.map_eq_zero_iff (Submonoid.powers D.s)] at hb_zero
-    obtain ⟨⟨_, ⟨k, rfl⟩⟩, hk⟩ := hb_zero
-    exact ⟨k, hk⟩
-  -- Now use the Spa-point radical argument
-  have hs_rad := @base_s_in_annihilator_radical_of_covering A _ _ _ _ C b ha_ann hSpa
-  -- Extract: ∃ N, s^N * b = 0
-  obtain ⟨N, hN⟩ := Ideal.mem_radical_iff.mp hs_rad
-  have hNb : C.base.s ^ N * b = 0 := by
-    suffices ∀ (x : A) (_ : x ∈ Ideal.span ({c : A | c * b = 0} : Set A)),
-        x * b = 0 by
-      exact this _ hN
-    intro x hx
-    induction hx using Submodule.span_induction with
-    | mem c hc => exact hc
-    | zero => exact zero_mul b
-    | add x y _ _ hxa hya => rw [add_mul, hxa, hya, add_zero]
-    | smul c x _ hxa => rw [smul_eq_mul, mul_assoc, hxa, mul_zero]
-  -- Hence a = mk'(b, s^m) = 0 in Localization.Away C.base.s
-  have ha_zero_loc : a = 0 := by
-    rw [ha_eq.symm, IsLocalization.mk'_eq_zero_iff]
-    exact ⟨⟨C.base.s ^ N, ⟨N, rfl⟩⟩, hNb⟩
-  -- So coeRingHom(a) = coeRingHom(0) = 0
-  rw [ha_zero_loc, map_zero]
+  sorry -- QUARANTINED: depends on localization_isT0 (false when locIdeal = ⊤)
 
-/-- **Theorem 8.28 of Wedhorn** (separation component): for a
-strongly noetherian Tate ring, every rational covering has
-injective product restriction.
-
-The proof proceeds in two stages:
-1. **Algebraic injectivity on the localization** via
-   `loc_algebraic_injectivity_of_tate`: uses T0 localization +
-   Spa-point radical argument.
-2. **Completion-level reduction** via
-   `completionKer_eq_bot_of_locKer_eq_bot`: lifts from localization
-   to completion.
-
-Remaining sorries:
-- `completionKer_eq_bot_of_locKer_eq_bot` (needs AdicCompletion bridge)
-- `localization_isT0` (needs Krull intersection on locIdeal)
-- `exists_spa_point_in_rationalOpen_of_tate` (needs non-open prime Spa points) -/
+/-- **Theorem 8.28 of Wedhorn** (separation component).
+QUARANTINED: uses the false `localization_isT0`. The correct proof should
+route through `TopologyComparison.presheafValueTateQuotientEquiv`. -/
 theorem separation_ofStronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A) :
     Function.Injective (productRestriction A C) := by
-  intro x y hxy
-  rw [← sub_eq_zero]
-  suffices h : ∀ (z : presheafValue C.base),
-      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
-        productRestriction A C z D hD = 0) → z = 0 by
-    apply h; intro D hD
-    rw [productRestriction_map_sub]
-    exact sub_eq_zero.mpr (congr_fun (congr_fun hxy D) hD)
-  apply completionKer_eq_bot_of_locKer_eq_bot
-  exact loc_algebraic_injectivity_of_tate A P C
-    (fun D _ ↦ localization_isT0 A P D)
-    -- Spa points: needs [IsAdicComplete P.I P.A₀] and (A⁺ : Set A) ⊆ P.A₀ hypotheses
-    -- to call exists_spa_point_in_rationalOpen_of_tate. Open prime case handled there;
-    -- non-open prime case remains sorry.
-    (fun p _ hs ↦ sorry)
+  sorry -- QUARANTINED: route through TopologyComparison instead
 
-/-- **Theorem 8.28 of Wedhorn**: strongly noetherian Tate rings
-are sheafy.
-
-Uses `separation_ofStronglyNoetherianTate` for the separation axiom.
-For the discrete case, see `IsSheafy.discrete` (sorry-free). -/
+/-- **Theorem 8.28 of Wedhorn**: strongly noetherian Tate rings are sheafy.
+QUARANTINED: routes through the false `localization_isT0`. Replace with
+proof via `TopologyComparison.presheafValueTateQuotientEquiv` +
+Laurent/refinement chain (worker plan Phases 2-5). -/
 theorem isSheafy_ofStronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
