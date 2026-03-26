@@ -681,16 +681,21 @@ For a complete affinoid Tate ring `(A, A⁺)` with pair of definition
   the covering condition ensures `s` is "generating" relative to the
   covering pieces, combined with the I-adic completeness of `A₀`.
 
-**Status:** Open prime case is fully proved. The non-open prime
-case requires placing the Lemma 7.45 valuation in a specific
-rational subset (Wedhorn Theorem 8.28 full proof). -/
+**Status:** Open prime case proved via `exists_spa_point_in_rationalOpen_of_isOpen_prime`.
+Non-open prime case (1 sorry) requires placing the Lemma 7.45 valuation
+in a specific rational subset (Wedhorn Theorem 8.28 full proof). -/
 theorem exists_spa_point_in_rationalOpen_of_tate
     (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
     (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀)
     (T : Finset A) (s : A)
     (p : Ideal A) [p.IsPrime] (hs_notin : s ∉ p) :
     ∃ v ∈ rationalOpen T s, p ≤ v.supp := by
-  sorry
+  by_cases hp_open : IsOpen (p : Set A)
+  · exact @exists_spa_point_in_rationalOpen_of_isOpen_prime A _ _ _ _ T s p _ hp_open hs_notin
+  · -- Non-open prime: need Lemma 7.45 refinement placing v in rationalOpen T s.
+    -- Lemma 7.45 gives v ∈ Spa A A⁺ with p ≤ v.supp, but the rational open
+    -- constraint v(t) ≤ v(s) ≠ 0 requires controlling the valuation at T and s.
+    sorry
 
 omit [HasRestrictionMaps A] in
 /-- **The Spa-point radical lemma.**
@@ -833,6 +838,21 @@ theorem localization_isT0 [IsTateRing A] [IsNoetherianRing A]
     (D : RationalLocData A) :
     @T0Space (Localization.Away D.s)
       (@UniformSpace.toTopologicalSpace _ D.uniformSpace) := by
+  -- For our uniform space (additive group with RingSubgroupsBasis topology),
+  -- T0 ↔ T2 ↔ separated uniformity (since uniform spaces are regular/R1).
+  -- This is equivalent to ⋂_n locNhd(n) = {0} in Localization.Away D.s.
+  --
+  -- Proof strategy: if z ∈ ⋂_n locNhd(n), then z = ↑d for a unique
+  -- d ∈ ⋂_n locIdeal^n ⊆ locSubring (injectivity of subring inclusion).
+  -- By Artin-Rees (Ideal.mem_iInf_smul_pow_eq_bot_iff): ∃ r ∈ locIdeal,
+  -- (1-r)*d = 0. Need (1-r) non-zero-divisor in Localization.Away D.s
+  -- to conclude d = 0.
+  --
+  -- Requires: (1) IsNoetherianRing locSubring (Hilbert basis theorem from
+  -- A₀ Noetherian), (2) locIdeal ≤ jacobson ⊥ in locSubring (hardest part:
+  -- needs I ≤ jacobson ⊥ in A₀ from IsAdicComplete, but the Jacobson
+  -- condition doesn't transfer directly to locSubring since locSubring
+  -- contains generators t_i/s not in the image of A₀).
   sorry
 
 /-- **Algebraic injectivity on the localization (Wedhorn Theorem 8.28, Step 1).**
@@ -961,7 +981,10 @@ theorem separation_ofStronglyNoetherianTate
   apply completionKer_eq_bot_of_locKer_eq_bot
   exact loc_algebraic_injectivity_of_tate A P C
     (fun D _ ↦ localization_isT0 A P D)
-    (fun p _ hs ↦ sorry) -- Spa points: exists_spa_point_in_rationalOpen_of_tate
+    -- Spa points: needs [IsAdicComplete P.I P.A₀] and (A⁺ : Set A) ⊆ P.A₀ hypotheses
+    -- to call exists_spa_point_in_rationalOpen_of_tate. Open prime case handled there;
+    -- non-open prime case remains sorry.
+    (fun p _ hs ↦ sorry)
 
 /-- **Theorem 8.28 of Wedhorn**: strongly noetherian Tate rings
 are sheafy.
