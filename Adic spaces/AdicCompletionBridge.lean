@@ -9,35 +9,27 @@ import Mathlib.Topology.UniformSpace.AbstractCompletion
 import Mathlib.Topology.UniformSpace.Completion
 import Mathlib.Topology.Algebra.UniformRing
 import Mathlib.Topology.Algebra.Nonarchimedean.AdicTopology
+import Mathlib.Topology.Algebra.Module.Basic
 
 /-!
 # Bridge between UniformSpace.Completion and AdicCompletion
 
 For a commutative ring `R` with an ideal `I` such that the topology on `R`
-is the `I`-adic topology (`IsAdic I`), we construct a uniform equivalence
-and ring isomorphism:
+is the `I`-adic topology (`IsAdic I`), we construct a ring isomorphism:
 
-  `UniformSpace.Completion R ≃ᵤ AdicCompletion I R`
   `UniformSpace.Completion R ≃+* AdicCompletion I R`
 
 ## Strategy
 
-We equip `AdicCompletion I R` with the projective limit uniformity (coarsest
-making each `eval n` uniformly continuous to the discrete quotient). Then:
+`AdicCompletion I R` is a subtype of `∀ n, R ⧸ (I^n • ⊤)`. We put the
+discrete uniformity on each quotient and the product uniformity on the Pi
+type. `AdicCompletion` inherits the subtype uniformity. Then:
 
-1. Show the projective limit uniform space is T0 and complete.
-2. Show `AdicCompletion.of I R` is uniform inducing with dense range.
-3. Package as `AbstractCompletion` and use `compareEquiv`.
-4. Multiplicativity by density + T2.
-
-## Key lemma
-
-For `R` as a module over itself: `I^n * top = I^n`, so the quotients
-`R/(I^n * top)` used by `AdicCompletion` are exactly `R/I^n`.
-
-## References
-
-* [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], section 5.6, section 8.1
+1. The product of discrete spaces is T₂ and complete.
+2. `AdicCompletion` is a closed subtype → T₂ and complete.
+3. `AdicCompletion.of I R` is uniform inducing with dense range.
+4. Package as `AbstractCompletion`, use `compareEquiv`.
+5. Multiplicativity by density + T₂.
 -/
 
 universe u
@@ -52,8 +44,7 @@ variable {R : Type u} [CommRing R] (I : Ideal R)
 
 /-! ### The key submodule identity -/
 
-/-- For a ring `R` as a module over itself: `I^n * top = I^n`. This is the
-identity that makes `AdicCompletion I R` use the correct filtration. -/
+/-- For a ring `R` as a module over itself: `I^n • ⊤ = I^n`. -/
 theorem ideal_smul_top_eq_self (n : ℕ) :
     (I ^ n • (⊤ : Submodule R R) : Submodule R R) = ↑(I ^ n) := by
   ext x; constructor
@@ -67,96 +58,98 @@ theorem ideal_smul_top_eq_self (n : ℕ) :
     rw [this]
     exact Submodule.smul_mem_smul hx Submodule.mem_top
 
-/-! ### Uniform structure on AdicCompletion -/
+/-! ### Discrete topology on quotients -/
 
-section UniformStructure
+/-- Discrete topology on `R ⧸ (I^n • ⊤)`. -/
+noncomputable instance quotientDiscreteTopology (n : ℕ) :
+    TopologicalSpace (R ⧸ (I ^ n • (⊤ : Submodule R R))) := ⊥
 
-variable [UniformSpace R] [IsUniformAddGroup R] [IsTopologicalRing R] (hadic : IsAdic I)
+noncomputable instance quotientDiscreteUniformSpace (n : ℕ) :
+    UniformSpace (R ⧸ (I ^ n • (⊤ : Submodule R R))) := ⊥
 
-/-- The uniform structure on `AdicCompletion I R` induced by the projective
-limit: the coarsest uniformity making each evaluation map
-`eval n : AdicCompletion I R -> R/(I^n * top)` uniformly continuous,
-where each quotient carries the discrete uniformity. -/
-noncomputable def adicCompletionUniformSpace :
+instance quotientDiscrete (n : ℕ) :
+    DiscreteTopology (R ⧸ (I ^ n • (⊤ : Submodule R R))) := ⟨rfl⟩
+
+instance quotientDiscreteUnif (n : ℕ) :
+    DiscreteUniformity (R ⧸ (I ^ n • (⊤ : Submodule R R))) := ⟨rfl⟩
+
+/-! ### Topology and uniformity on AdicCompletion via subtype of product -/
+
+section Instances
+
+variable [UniformSpace R] [IsUniformAddGroup R] [IsTopologicalRing R]
+
+/-- The uniform structure on `AdicCompletion I R`: the subtype uniformity
+from the product `∀ n, R ⧸ (I^n • ⊤)` with discrete factors. -/
+noncomputable instance adicCompletionUniformSpace :
     UniformSpace (AdicCompletion I R) :=
-  ⨅ n : ℕ, UniformSpace.comap (AdicCompletion.eval I R n) ⊥
+  instUniformSpaceSubtype
 
-/-! ### T0Space for AdicCompletion -/
+/-- `AdicCompletion I R` is T₀ because elements agreeing at all levels are equal. -/
+instance adicCompletionT0 : @T0Space (AdicCompletion I R)
+    (adicCompletionUniformSpace I).toTopologicalSpace := by
+  constructor
+  intro ⟨f, hf⟩ ⟨g, hg⟩ hinsep
+  ext n
+  -- Inseparable in subtype → inseparable in Pi → pointwise inseparable → equal (discrete)
+  have hpi : @Inseparable _ Pi.topologicalSpace
+      (⟨f, hf⟩ : AdicCompletion I R).val (⟨g, hg⟩ : AdicCompletion I R).val :=
+    Inseparable.map hinsep continuous_subtype_val
+  rw [@inseparable_pi] at hpi
+  exact (hpi n).eq
 
-/-- Two elements of `AdicCompletion I R` in the projective limit uniformity
-are topologically inseparable iff they agree at all levels. Since
-`AdicCompletion.ext` says agreement at all levels implies equality, this
-gives T0. -/
-theorem adicCompletion_t0 :
-    @T0Space (AdicCompletion I R) (adicCompletionUniformSpace I).toTopologicalSpace := by
-  sorry -- T0: elements equal iff equal at all levels (AdicCompletion.ext)
+/-- `AdicCompletion I R` is complete: it's a closed subtype of the complete
+product `∀ n, R ⧸ (I^n • ⊤)` (product of discrete = complete). -/
+instance adicCompletionComplete : @CompleteSpace (AdicCompletion I R)
+    (adicCompletionUniformSpace I) := by
+  -- AdicCompletion is a closed subset of the product
+  -- IsClosed.completeSpace_coe gives completeness
+  sorry
 
-/-! ### CompleteSpace for AdicCompletion -/
+end Instances
 
-/-- The projective limit of discrete quotients is complete. -/
-theorem adicCompletion_completeSpace :
-    @CompleteSpace (AdicCompletion I R) (adicCompletionUniformSpace I) := by
-  letI : UniformSpace (AdicCompletion I R) := adicCompletionUniformSpace I
-  sorry -- needs: projective limit of complete discrete spaces is complete
+section Bridge
 
-/-! ### IsUniformInducing for AdicCompletion.of -/
+variable [UniformSpace R] [IsUniformAddGroup R] [IsTopologicalRing R]
 
-/-- The pullback of the projective limit uniformity on `AdicCompletion I R`
-along `AdicCompletion.of I R` equals the I-adic uniformity on `R`. -/
-theorem of_isUniformInducing (_ : IsAdic I) :
+/-- `AdicCompletion.of I R` is uniform inducing for the I-adic uniformity
+on `R` and the subtype uniformity on `AdicCompletion I R`. -/
+theorem of_isUniformInducing (hadic : IsAdic I) :
     @IsUniformInducing R (AdicCompletion I R) _ (adicCompletionUniformSpace I)
       (AdicCompletion.of I R) := by
   sorry
 
-/-! ### DenseRange for AdicCompletion.of -/
-
-/-- `AdicCompletion.of I R` has dense range in the projective limit topology. -/
-theorem of_denseRange (_ : IsAdic I) :
+/-- `AdicCompletion.of I R` has dense range in the subtype topology. -/
+theorem of_denseRange (hadic : IsAdic I) :
     @DenseRange (AdicCompletion I R) (adicCompletionUniformSpace I).toTopologicalSpace
       R (AdicCompletion.of I R) := by
-  intro x
-  rw [@mem_closure_iff_nhds _ (adicCompletionUniformSpace I).toTopologicalSpace]
-  intro U hU hxU
-  -- U is a neighborhood of x in the projective limit topology.
-  -- The projective limit topology has basis: eval_n⁻¹({eval_n(x)}) for each n.
-  -- Any neighborhood contains such a basic open. Find r ∈ R with of(r) ∈ U.
-  -- For now, use the fact that eval_n is surjective on quotients:
-  -- eval_n(x) is a coset in R/(I^n•⊤), which has a representative r ∈ R.
   sorry
 
-/-! ### AbstractCompletion package -/
-
-/-- The `AdicCompletion I R` with projective limit uniformity, packaged as an
-`AbstractCompletion` of `R`. -/
-noncomputable def adicAbstractCompletion : AbstractCompletion R where
+/-- `AdicCompletion I R` with subtype uniformity as an `AbstractCompletion`. -/
+noncomputable def adicAbstractCompletion (hadic : IsAdic I) : AbstractCompletion R where
   space := AdicCompletion I R
   coe := AdicCompletion.of I R
   uniformStruct := adicCompletionUniformSpace I
-  complete := adicCompletion_completeSpace I
-  separation := adicCompletion_t0 I
+  complete := adicCompletionComplete I
+  separation := adicCompletionT0 I
   isUniformInducing := of_isUniformInducing I hadic
   dense := of_denseRange I hadic
 
-/-! ### The uniform equivalence -/
-
-/-- The uniform equivalence between `UniformSpace.Completion R` (for the
-I-adic uniformity) and `AdicCompletion I R` (projective limit uniformity). -/
-noncomputable def adicCompletionEquiv :
+/-- Forward comparison: `Completion R → AdicCompletion I R`. -/
+noncomputable def adicCompletionEquiv (hadic : IsAdic I) :
     UniformSpace.Completion R → AdicCompletion I R :=
   (UniformSpace.Completion.cPkg (α := R)).compare (adicAbstractCompletion I hadic)
 
-noncomputable def adicCompletionEquivInv :
+/-- Backward comparison: `AdicCompletion I R → Completion R`. -/
+noncomputable def adicCompletionEquivInv (hadic : IsAdic I) :
     AdicCompletion I R → UniformSpace.Completion R :=
   (adicAbstractCompletion I hadic).compare (UniformSpace.Completion.cPkg (α := R))
 
-/-! ### The ring isomorphism -/
-
-/-- The ring isomorphism between `UniformSpace.Completion R` and
-`AdicCompletion I R`. Multiplicativity follows from density + T2. -/
-noncomputable def adicCompletionRingEquiv :
+/-- The ring isomorphism `Completion R ≃+* AdicCompletion I R`. -/
+noncomputable def adicCompletionRingEquiv (hadic : IsAdic I) :
     UniformSpace.Completion R ≃+* AdicCompletion I R := by
   sorry
 
-end UniformStructure
+end Bridge
 
 end AdicCompletionBridge
