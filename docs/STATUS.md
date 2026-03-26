@@ -53,10 +53,12 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 - Sorry-free (proved, depend on `_isBounded` above): `locToQuotientOneSubfX_gen_continuous` (continuity via Submodule.span_induction with strengthened predicate), `presheafToQuotient_comp_tateQuotientToPresheaf` (right inverse via T2 density + round-trip), `tateQuotientToPresheaf_comp_presheafToQuotient` (left inverse).
 - Sorry-free: `quotientTTopology` + ring/nonarchimedean instances, `presheafValueToQuotient` (extension to completion), `presheafValueToQuotient_coe`, `presheafValueTateQuotientEquiv` (packaged as RingEquiv modulo the 1 sorry + external hypotheses), `presheafValueTateQuotientEquiv_canonicalMap`, `_symm_algebraMap`.
 
-**StructureSheaf.lean** — 2 sorry's (restructured 2026-03-25):
-- `completionKer_eq_bot_of_locKer_eq_bot` : Completion-level kernel reduction. If the algebraic product restriction is injective on the dense localization, then the product restriction is injective on the completion. Requires AdicCompletion <-> UniformSpace.Completion bridge (TICKET-G2-topo).
-- `h_loc_inj` (inside `separation_ofStronglyNoetherianTate`) : Algebraic injectivity on the localization for Tate rings. Needs Spa points in specific rational subsets (not just in Spa). For discrete rings, this uses trivial valuations; for Tate rings, requires Lemma 7.45 + rational subset membership.
-- Sorry-free: `base_s_in_annihilator_radical_of_covering` (Spa-point radical lemma, parameterized by hSpa_points), `restrictionMapAlg_factors` (factorization through coeRingHom), `productRestriction_coe_eq`, `productRestriction_comp_canonicalMap`.
+**StructureSheaf.lean** — 4 sorry's (updated 2026-03-26):
+- `localization_isT0` (new, extracted): T0Space of localization topology for Tate rings. Follows from Krull intersection on locIdeal in locSubring. Key enabler for `coeRingHom` injectivity.
+- `completionKer_eq_bot_of_locKer_eq_bot` : Completion-level kernel reduction. Requires AdicCompletion <-> UniformSpace.Completion bridge (TICKET-G2-topo).
+- Non-open prime Spa point (inside `separation_ofStronglyNoetherianTate`): Placing Lemma 7.45 Spa point in a specific rational subset. Needs Example 6.38 (localization is Tate).
+- `exists_spa_point_in_rationalOpen_of_tate` : Standalone version of the non-open prime sorry.
+- Sorry-free: `base_s_in_annihilator_radical_of_covering`, `restrictionMapAlg_factors`, `productRestriction_coe_eq`, `productRestriction_comp_canonicalMap`. The T0Space inline sorry is now replaced by a call to `localization_isT0`.
 
 ## Key Theorems (Adic Morphisms Chain)
 
