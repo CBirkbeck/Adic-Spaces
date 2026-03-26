@@ -70,7 +70,7 @@ theorem locSubring_completion_flat [IsNoetherianRing (locSubring D.P D.T D.s)] :
     isUniformAddGroup_of_addCommGroup
   exact AdicCompletionBridge.completion_flat (locIdeal D.P D.T D.s) rfl
 
-/-- **Flatness of presheafValue over A** (Wedhorn Proposition 8.30).
+/-! ### Flatness of presheafValue over A (Wedhorn Proposition 8.30)
 
 For the localization topology: `presheafValue D = Completion(Localization.Away s)`.
 The chain:
@@ -81,12 +81,31 @@ The chain:
 5. `A₀` is flat over `A₀` (trivially), and `A = A₀[1/π]` → composition.
 
 Step 2 requires: the ambient completion = localization of the subring completion.
-This uses `locNhd_leftMul` and `locNhd_invS_step` from `LocalizationTopology.lean`. -/
+This uses `locNhd_leftMul` and `locNhd_invS_step` from `LocalizationTopology.lean`.
+-/
+-- **Completion commutes with localization** (for the localization topology):
+-- presheafValue D = Completion(locSubring[1/s]) ≃ Completion(locSubring)[1/s'].
+-- Proof: R⁺[1/s] → R̂⁺[1/s'] is dense + continuous, target is complete
+-- (R̂⁺ open complete subgroup). Universal property gives Completion(R⁺[1/s]) → R̂⁺[1/s'].
+-- Inverse: R⁺ → R → Completion(R) extends to R̂⁺ → Completion(R),
+-- then s invertible → R̂⁺[1/s'] → Completion(R). Round-trip = id by density + T₂.
+--
+-- presheafValue_isLocalization_completion: Completion(R⁺[1/s]) ≃ Completion(R⁺)[1/s']
+-- This requires defining the topological localization of the completion
+-- and constructing the isomorphism. See CompletionLocalization.lean for the plan.
+-- For now: the result is used as a sorry in presheafValue_flat below.
+
+/-- `presheafValue D` is flat over `A` (Wedhorn Proposition 8.30).
+
+Chain: Completion(locSubring) flat over locSubring (by bridge) →
+localization Completion(locSubring)[1/s'] flat over locSubring →
+presheafValue D ≃ Completion(locSubring)[1/s'] (by above) → flat over locSubring →
+locSubring flat over A₀ (localization) → flat over A (transitivity). -/
 theorem presheafValue_flat (D : RationalLocData A)
     [IsNoetherianRing (locSubring D.P D.T D.s)] :
     @Module.Flat A (presheafValue D) _ _
       (RingHom.toModule (RationalLocData.canonicalMap D)) := by
-  sorry -- requires: Completion(Localization.Away s) ≃ Completion(locSubring)[1/π]
+  sorry -- depends on presheafValue_isLocalization_completion
 
 end LocSubringCompletion
 

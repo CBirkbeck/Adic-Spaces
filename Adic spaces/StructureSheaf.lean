@@ -1191,13 +1191,15 @@ theorem isSheafy_ofStronglyNoetherianTate_flat
         (RingHom.toModule (RationalLocData.canonicalMap D))) :
     IsSheafy A where
   separation C := by
-    -- Each presheafValue D is flat over A (by hflat).
-    -- The canonicalMap : A → presheafValue C.base is injective
-    -- (since presheafValue C.base is flat and the covering condition
-    -- ensures the product is faithfully flat).
-    -- productRestriction factors through canonicalMap.
-    -- Faithful flatness → injective.
-    sorry
+    -- Proof: each restriction map presheafValue C.base → presheafValue D is flat
+    -- (localization of a flat algebra). The product is faithfully flat because
+    -- the elements D.s generate the unit ideal in presheafValue C.base
+    -- (covering condition). Faithfully flat ring hom is injective.
+    --
+    -- This is standard commutative algebra (Wedhorn Cor 8.32):
+    -- Module.FaithfullyFlat.of_comap_surjective gives faithful flatness
+    -- from flatness + the sₘ generating the unit ideal.
+    sorry -- Assembly: flatness + covering → faithful flatness → injective
 
 /-- **Theorem 8.28 of Wedhorn**: strongly noetherian Tate rings are sheafy.
 

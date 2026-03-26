@@ -1,5 +1,6 @@
 import «Adic spaces».AdicCompletionBridge
 import «Adic spaces».AdicCompletionTransfer
+import «Adic spaces».CompletionLocalization
 import «Adic spaces».PresheafAdicCompletion
 import «Adic spaces».AdicConvergence
 import «Adic spaces».ArtinReesConvergence
