@@ -1131,7 +1131,38 @@ theorem separation_ofStronglyNoetherianTate
       (hdense_cover D hD) a)
     hSpa z hker
 
-/-! ### Alternative proof via faithful flatness
+/-! ### Proof via faithful flatness (correct route)
+
+The flatness route avoids the TopologyComparison isomorphism hypotheses.
+Instead, it uses:
+1. `presheafValue_flat D` : each presheaf value is flat over A
+2. Product of flat is flat
+3. Covering condition → faithfully flat → productRestriction injective
+
+This depends on `presheafValue_flat` which has a single sorry:
+the "localization of completion" step. -/
+
+/-- **Theorem 8.28 of Wedhorn** (via flatness): separation for strongly
+noetherian Tate rings. Each presheaf value is flat over A (by
+`presheafValue_flat`), the product is faithfully flat (by the covering
+condition), and faithfully flat maps are injective.
+
+This is the CORRECT proof route, replacing the quarantined Spa-point
+radical argument. -/
+theorem separation_via_flatness
+    [IsTateRing A] [IsNoetherianRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    -- Noetherianity of locSubring for each piece:
+    [∀ D : RationalLocData A, IsNoetherianRing (locSubring D.P D.T D.s)] :
+    Function.Injective (productRestriction A C) := by
+  -- Each presheafValue D is flat over A (by presheafValue_flat).
+  -- The product ∏ presheafValue D is flat (by Module.Flat.pi or similar).
+  -- The covering condition implies the product is faithfully flat.
+  -- Faithfully flat → productRestriction injective.
+  sorry -- Remaining: faithful flatness assembly
+
+/-! ### Old proof via TopologyComparison (superseded by flatness route)
 
 The correct proof of IsSheafy for strongly noetherian Tate rings uses:
 1. `Completion(locSubring)` is flat over `locSubring` (by `locSubring_completion_flat`)

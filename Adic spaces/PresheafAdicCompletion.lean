@@ -70,6 +70,24 @@ theorem locSubring_completion_flat [IsNoetherianRing (locSubring D.P D.T D.s)] :
     isUniformAddGroup_of_addCommGroup
   exact AdicCompletionBridge.completion_flat (locIdeal D.P D.T D.s) rfl
 
+/-- **Flatness of presheafValue over A** (Wedhorn Proposition 8.30).
+
+For the localization topology: `presheafValue D = Completion(Localization.Away s)`.
+The chain:
+1. `Completion(locSubring)` is flat over `locSubring` (by `locSubring_completion_flat`)
+2. `Completion(Localization.Away s) ≃ Completion(locSubring)[1/π]` (localization of completion)
+3. Localization of flat is flat → `presheafValue D` is flat over `locSubring`
+4. `locSubring` is flat over `A₀` (localization + f.g. algebra)
+5. `A₀` is flat over `A₀` (trivially), and `A = A₀[1/π]` → composition.
+
+Step 2 requires: the ambient completion = localization of the subring completion.
+This uses `locNhd_leftMul` and `locNhd_invS_step` from `LocalizationTopology.lean`. -/
+theorem presheafValue_flat (D : RationalLocData A)
+    [IsNoetherianRing (locSubring D.P D.T D.s)] :
+    @Module.Flat A (presheafValue D) _ _
+      (RingHom.toModule (RationalLocData.canonicalMap D)) := by
+  sorry -- requires: Completion(Localization.Away s) ≃ Completion(locSubring)[1/π]
+
 end LocSubringCompletion
 
 end ValuationSpectrum
