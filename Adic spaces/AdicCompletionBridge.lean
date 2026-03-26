@@ -135,6 +135,12 @@ on `R` and the subtype uniformity on `AdicCompletion I R`. -/
 theorem of_isUniformInducing (hadic : IsAdic I) :
     @IsUniformInducing R (AdicCompletion I R) _ (adicCompletionUniformSpace I)
       (AdicCompletion.of I R) := by
+  rw [isUniformInducing_iff]
+  -- Need: comap (Prod.map of of) 𝓤(AdicCompletion) = 𝓤 R
+  -- The AdicCompletion uniformity (subtype of product of discrete) has
+  -- basis: {(x,y) | eval n x = eval n y} for each n.
+  -- Pulling back: {(a,b) | eval n (of a) = eval n (of b)} = {(a,b) | a-b ∈ I^n•⊤} = {(a,b) | a-b ∈ I^n}.
+  -- Since hadic says topology = I.adicTopology: these are the I-adic entourages.
   sorry
 
 /-- `AdicCompletion.of I R` has dense range in the subtype topology. -/
