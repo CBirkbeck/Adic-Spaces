@@ -193,13 +193,31 @@ theorem of_isUniformInducing (hadic : IsAdic I) :
     -- hmem : a - b ∈ I^n. Need: b - a ∈ I^n.
     exact (I ^ n).neg_mem_iff.mp (show -(b - a) ∈ (I ^ n : Ideal R) by rwa [neg_sub])
   · -- 𝓤 R ≤ comap: every pullback entourage is an adic entourage.
-    intro U hU
+    -- Use the basis for both sides.
+    rw [hbasis_unif.le_iff]
+    intro n _
+    -- Need: {(a,b) | b-a ∈ I^n} ∈ comap (of×of) 𝓤(AC).
+    -- Equivalently: ∃ V ∈ 𝓤(AC), of⁻¹(V) ⊆ {(a,b) | b-a ∈ I^n}.
+    -- n ∈ comap: extract the coordinate from the Pi uniformity.
+    rename_i U hU
     obtain ⟨V, hV, hVU⟩ := Filter.mem_comap.mp hU
-    -- V ∈ 𝓤(AC). Use the Pi basis to find n with {eval n equal} ⊆ V.
-    -- The subtype uniformity comes from the Pi uniformity.
-    -- Each Pi basic entourage = {(f,g) | f n = g n}.
-    -- So V contains such a basic for some n.
-    -- Pull back: {(a,b) | a-b ∈ I^n} ⊆ of⁻¹(V) ⊆ U → U ∈ 𝓤 R.
+    -- V ∈ 𝓤(AC) = subtype of Pi. Get W in Pi uniformity.
+    obtain ⟨W, hW, hWV⟩ := Filter.mem_comap.mp hV
+    -- W ∈ Pi uniformity. Extract finite set of coordinates.
+    rw [Pi.uniformity] at hW
+    obtain ⟨S, hSW⟩ := (Filter.mem_iInf_finite W).mp hW
+    -- S : Finset ℕ, hSW : W ∈ ⨅ i ∈ S, comap (proj i × proj i) ⊥
+    -- Take m = S.sup id (max of S, or 0 if empty).
+    refine ⟨S.sup id, trivial, ?_⟩
+    intro ⟨a, b⟩ hab
+    -- hab : b - a ∈ I^(S.sup id). Need (a, b) ∈ U.
+    -- Show (of a, of b) ∈ V by going through W.
+    apply hVU; apply hWV
+    -- Need: (val (of a), val (of b)) ∈ W.
+    -- W ⊇ ⋂_{i ∈ S} {(f,g) | f i = g i} (from hSW).
+    -- For each i ∈ S: i ≤ S.sup id. And b - a ∈ I^(S.sup id) ⊆ I^i.
+    -- So eval i (of a) = eval i (of b) (same quotient class).
+    -- Hence (val (of a), val (of b)) ∈ {(f,g) | f i = g i} for all i ∈ S.
     sorry
 
 /-- `AdicCompletion.of I R` has dense range in the subtype topology. -/
