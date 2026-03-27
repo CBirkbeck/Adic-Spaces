@@ -27,7 +27,7 @@ We define the structure sheaf `𝒪_X` on `X = Spa(A, A⁺)` following §8.1 of 
 ## Main definitions
 
 * `SpaTop A` : The adic spectrum as an object of `TopCat`.
-* `structureSheaf A` : The structure sheaf valued in `CommRingCat`.
+* `structureSheaf A` : The structure sheaf valued in `CompleteTopCommRingCat`.
 * `VPreObj` / `VObj` : Categories 𝒱^pre and 𝒱 (Definitions 8.5, 8.7, Remark 8.20).
 * `IsSheafy` : Sheaf condition for topological ring presheaves (Definition 8.26).
 
@@ -121,37 +121,16 @@ end StructureSheaf
 
 open StructureSheaf
 
-/-- The structure sheaf of `Spa(A, A⁺)`, valued in `Type`. -/
-def structureSheafInType : Sheaf (Type u) (SpaTop A) :=
-  subsheafToTypes isLocallyFraction
+/-- The structure presheaf of `Spa(A, A⁺)`, valued in `CompleteTopCommRingCat`.
+The presheaf value on a rational subset `R(T/s)` is the completion `Â⟨T/s⟩`
+of the localization with its localization topology (§8.1 of Wedhorn). -/
+noncomputable def structurePresheaf [IsHuberRing A] [PlusSubring A] :
+    Presheaf CompleteTopCommRingCat (SpaTop A) := sorry
 
-instance structureSheafInType.commRing (U : (Opens (SpaTop A))ᵒᵖ) :
-    CommRing ((structureSheafInType A).obj.obj U) :=
-  inferInstanceAs (CommRing (sectionsSubring U.unop))
-
-/-- The structure presheaf of `Spa(A, A⁺)`, valued in `CommRingCat`. -/
-def structurePresheaf : Presheaf CommRingCat (SpaTop A) where
-  obj U := .of ((structureSheafInType A).obj.obj U)
-  map i := CommRingCat.ofHom
-    { toFun := (structureSheafInType A).obj.map i
-      map_zero' := rfl
-      map_one' := rfl
-      map_add' := fun _ _ ↦ rfl
-      map_mul' := fun _ _ ↦ rfl }
-
-/-! ### Lifting to `CommRingCat` -/
-
-/-- `structurePresheaf A ⋙ forget ≅ structureSheafInType A`. -/
-def structurePresheafCompForget :
-    structurePresheaf A ⋙ forget CommRingCat ≅ (structureSheafInType A).obj :=
-  NatIso.ofComponents fun _ ↦ Iso.refl _
-
-/-- The structure sheaf of `Spa(A, A⁺)`, valued in `CommRingCat`. -/
-def structureSheaf : Sheaf CommRingCat (SpaTop A) :=
-  ⟨structurePresheaf A,
-    (TopCat.Presheaf.isSheaf_iff_isSheaf_comp (forget CommRingCat) _).mpr
-      (TopCat.Presheaf.isSheaf_of_iso (structurePresheafCompForget A).symm
-        (structureSheafInType A).property)⟩
+/-- The structure sheaf of `Spa(A, A⁺)`, valued in `CompleteTopCommRingCat`
+(Remark 8.20 of Wedhorn). -/
+noncomputable def structureSheaf [IsHuberRing A] [PlusSubring A] :
+    Sheaf CompleteTopCommRingCat (SpaTop A) := sorry
 
 /-! ### Sheafy affinoid rings (Definition 8.26 of Wedhorn) -/
 
@@ -225,15 +204,10 @@ variable (X : AffinoidAdicSpace.{u})
 /-- The underlying topological space of an affinoid adic space. -/
 def toTopCat : TopCat.{u} := SpaTop X.Ring
 
-/-- The structure sheaf of an affinoid adic space, valued in `CommRingCat`
-(forgetting the topology on presheaf values). -/
-noncomputable def ringSheaf : Sheaf CommRingCat.{u} X.toTopCat :=
-  structureSheaf X.Ring
-
 /-- The structure sheaf of an affinoid adic space, valued in `CompleteTopCommRingCat`
-(Definition 8.21 / Remark 8.20 of Wedhorn). The presheaf values are completions
-of localizations, carrying the localization topology. -/
-noncomputable def sheaf : Sheaf CompleteTopCommRingCat.{u} X.toTopCat := sorry
+(Definition 8.21 / Remark 8.20 of Wedhorn). -/
+noncomputable def sheaf : Sheaf CompleteTopCommRingCat.{u} X.toTopCat :=
+  structureSheaf X.Ring
 
 end AffinoidAdicSpace
 
