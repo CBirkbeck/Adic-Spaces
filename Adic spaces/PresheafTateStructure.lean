@@ -95,7 +95,57 @@ its image under coeRingHom is open in the completion topology (open
 subsets are preserved by dense embeddings for additive subgroups). -/
 theorem presheafValue_ringOfDef_isOpen (D₀ : RationalLocData A) :
     IsOpen ((presheafValue_ringOfDef D₀ : Subring (presheafValue D₀)) : Set (presheafValue D₀)) := by
-  sorry -- locSubring open → closure in completion open
+  -- Strategy: show the topological closure of the image of locSubring contains
+  -- a 0-neighborhood in the completion, then use AddSubgroup.isOpen_of_mem_nhds.
+  letI := D₀.uniformSpace
+  letI := D₀.isUniformAddGroup
+  letI := D₀.isTopologicalRing
+  open Filter Topology in
+  -- The localization topology has a 0-neighborhood basis: locNhd n
+  have hbasis := (locBasis D₀.P D₀.T D₀.s D₀.hopen).hasBasis_nhds_zero
+  -- coe : Localization.Away D₀.s → Completion is a dense inducing
+  have hdi : IsDenseInducing
+      (D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) :=
+    UniformSpace.Completion.isDenseInducing_coe
+  -- In the completion, nhds 0 has basis: closure(coe '' locNhd n)
+  -- (by Bourbaki GT III §3 no.4 Prop 7, using RegularSpace)
+  set f := (D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) with hf_def
+  have hf_zero : f 0 = 0 := map_zero D₀.coeRingHom
+  have hbasis_compl : (nhds (0 : presheafValue D₀)).HasBasis (fun _ : ℕ => True)
+      (fun n => closure (f '' (locNhd D₀.P D₀.T D₀.s n :
+        Set (Localization.Away D₀.s)))) := by
+    rw [← hf_zero]
+    exact hbasis.hasBasis_of_isDenseInducing hdi
+  -- f '' locNhd n ⊆ (coeRingHom ∘ subtype).range (as set)
+  have himage_sub : ∀ n,
+      f '' (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s)) ⊆
+      ((D₀.coeRingHom.comp (locSubring D₀.P D₀.T D₀.s).subtype).range :
+        Set (presheafValue D₀)) := by
+    intro n x hx
+    -- x = f y for some y ∈ locNhd n
+    obtain ⟨y, hy, hyx⟩ := hx
+    -- y ∈ locNhd n means y = (d : Localization.Away D₀.s) for some d ∈ (locIdeal)^n
+    obtain ⟨d, _, hdy⟩ := hy
+    -- x = f y = f (subtype d) = (coeRingHom ∘ subtype) d
+    refine ⟨d, ?_⟩
+    show D₀.coeRingHom ((locSubring D₀.P D₀.T D₀.s).subtype d) = x
+    -- hdy : subtype.toAddMonoidHom d = y, which definitionally = subtype d = y
+    -- hyx : coeRingHom y = x
+    exact show D₀.coeRingHom ((locSubring D₀.P D₀.T D₀.s).subtype d) = x from
+      hdy ▸ hyx
+  -- closure(f '' locNhd n) ⊆ topologicalClosure(range) = presheafValue_ringOfDef
+  have hclosure_sub : ∀ n,
+      closure (f '' (locNhd D₀.P D₀.T D₀.s n :
+        Set (Localization.Away D₀.s))) ⊆
+      (presheafValue_ringOfDef D₀ : Set (presheafValue D₀)) := by
+    intro n; exact closure_mono (himage_sub n)
+  -- presheafValue_ringOfDef contains a 0-neighborhood
+  have hmem_nhds : (presheafValue_ringOfDef D₀ : Set (presheafValue D₀)) ∈
+      nhds (0 : presheafValue D₀) :=
+    Filter.mem_of_superset (hbasis_compl.mem_of_mem (i := 0) trivial) (hclosure_sub 0)
+  -- An additive subgroup containing a 0-neighborhood is open
+  change IsOpen ((presheafValue_ringOfDef D₀).toAddSubgroup : Set (presheafValue D₀))
+  exact AddSubgroup.isOpen_of_mem_nhds _ hmem_nhds
 
 /-- The ideal of definition inside the ring of definition: the closure
 of the image of `locIdeal` in the completion. -/
