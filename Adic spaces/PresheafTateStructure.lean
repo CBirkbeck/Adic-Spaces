@@ -169,31 +169,147 @@ theorem presheafValue_idealOfDef_fg (D₀ : RationalLocData A)
     (presheafValue_idealOfDef D₀).FG :=
   (locIdeal_fg D₀.P D₀.T D₀.s).map _
 
+/-- The val-preimage of `closure(coe '' locNhd n)` in the ring of definition
+contains `presheafValue_idealOfDef^n`. Equivalently: the val-image of
+`idealOfDef^n` lands inside `closure(coe '' locNhd n)`.
+
+This is the "easy direction" showing ideal powers map INTO the corresponding
+completion neighborhoods. -/
+private theorem idealOfDef_pow_sub_val_preimage_closure (D₀ : RationalLocData A) (n : ℕ) :
+    ((presheafValue_idealOfDef D₀ ^ n : Ideal (presheafValue_ringOfDef D₀)) :
+      Set (presheafValue_ringOfDef D₀)) ⊆
+    Subtype.val ⁻¹' closure ((D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) ''
+      (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s))) := by
+  sorry
+
+/-- Corollary: the val-image of `idealOfDef^n` is contained in `closure(coe '' locNhd n)`. -/
+private theorem idealOfDef_pow_val_sub_closure (D₀ : RationalLocData A) (n : ℕ) :
+    Subtype.val '' ((presheafValue_idealOfDef D₀ ^ n : Ideal (presheafValue_ringOfDef D₀)) :
+      Set (presheafValue_ringOfDef D₀)) ⊆
+    closure ((D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) ''
+      (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s))) := by
+  intro x ⟨y, hy, hyx⟩
+  rw [← hyx]
+  exact idealOfDef_pow_sub_val_preimage_closure D₀ n hy
+
+/-- The closure of `coe '' locNhd n` (in the completion), intersected with the ring
+of definition, is contained in `presheafValue_idealOfDef^n`. This is the "hard
+direction" and requires Noetherianness: for a Noetherian ring with I-adic topology,
+the closure of I^n in the completion equals the extended ideal power.
+
+Proof sketch (requires AdicCompletionBridge + Noetherian arguments):
+1. `Completion(locSubring) = AdicCompletion(locIdeal, locSubring)` (bridge)
+2. In AdicCompletion, `image(locIdeal^n) = ker(eval_n)` which is closed
+3. The homeomorphism preserves this filtration
+4. So `closure(image(locIdeal^n)) =` extended ideal power in the completion subring -/
+private theorem closure_locNhd_sub_idealOfDef_pow (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] (n : ℕ) :
+    (closure ((D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) ''
+      (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s)))) ∩
+    (presheafValue_ringOfDef D₀ : Set (presheafValue D₀)) ⊆
+    Subtype.val '' ((presheafValue_idealOfDef D₀ ^ n : Ideal (presheafValue_ringOfDef D₀)) :
+      Set (presheafValue_ringOfDef D₀)) := by
+  sorry
+
 /-- The subspace topology on the ring of definition equals the
 ideal-of-definition-adic topology.
 
 This is the deepest fact needed for Proposition 8.15: the subspace topology
 on the closure of locSubring in the completion equals the adic topology for
-the image of locIdeal. The proof requires the AdicCompletionBridge:
-- Completion(locSubring) = AdicCompletion(locIdeal, locSubring)
-- The adic completion carries the locIdeal-adic topology
-- The embedding into the ambient completion preserves this topology
+the image of locIdeal.
 
-TODO: This requires showing the homeomorphism
-  AdicCompletion(locIdeal, locSubring) ≃ₜ closure(locSubring) ⊆ Completion(Localization.Away s)
-preserves the adic filtration. This is the key topological content of the
-AdicCompletionBridge. -/
+The proof uses `isAdic_iff`, reducing to two conditions:
+1. Each `(presheafValue_idealOfDef)^n` is open in the subspace topology
+2. Each subspace-nhd of 0 contains some `(presheafValue_idealOfDef)^n`
+
+Both follow from the interleaving of ideal powers with the completion nhds
+basis `closure(coe '' locNhd n)`, established by the helper lemmas
+`idealOfDef_pow_val_sub_closure` and `closure_locNhd_sub_idealOfDef_pow`. -/
 theorem presheafValue_isAdic (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
     @IsAdic (presheafValue_ringOfDef D₀) _
       (TopologicalSpace.induced Subtype.val inferInstance)
       (presheafValue_idealOfDef D₀) := by
-  sorry -- Requires: AdicCompletionBridge homeomorphism + topology transfer
-        -- The key steps are:
-        -- 1. locSubring with locIdeal-adic topology is a uniform space
-        -- 2. Its completion = AdicCompletion(locIdeal, locSubring) (bridge)
-        -- 3. The embedding Completion(locSubring) → Completion(Localization) is uniform
-        -- 4. The subspace topology on closure(image) = completion topology = locIdeal-adic
+  -- Use isAdic_iff: show (1) each power is open and (2) powers form nhds basis.
+  -- The subspace topology on ringOfDef is a topological ring (subring of a top ring).
+  letI : TopologicalSpace (presheafValue_ringOfDef D₀) :=
+    TopologicalSpace.induced Subtype.val inferInstance
+  haveI : IsTopologicalRing (presheafValue_ringOfDef D₀) :=
+    Subring.instIsTopologicalRing _
+  rw [isAdic_iff]
+  -- Set up the completion nhds basis from presheafValue_ringOfDef_isOpen proof
+  letI := D₀.uniformSpace
+  letI := D₀.isUniformAddGroup
+  letI := D₀.isTopologicalRing
+  open Filter Topology in
+  set f := (D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) with hf_def
+  have hf_zero : f 0 = 0 := map_zero D₀.coeRingHom
+  have hbasis := (locBasis D₀.P D₀.T D₀.s D₀.hopen).hasBasis_nhds_zero
+  have hdi : IsDenseInducing f := UniformSpace.Completion.isDenseInducing_coe
+  have hbasis_compl : (nhds (0 : presheafValue D₀)).HasBasis (fun _ : ℕ => True)
+      (fun n => closure (f '' (locNhd D₀.P D₀.T D₀.s n :
+        Set (Localization.Away D₀.s)))) := by
+    rw [← hf_zero]; exact hbasis.hasBasis_of_isDenseInducing hdi
+  -- closure(f '' locNhd n) ⊆ ringOfDef (from presheafValue_ringOfDef_isOpen proof)
+  have himage_sub : ∀ n,
+      f '' (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s)) ⊆
+      ((D₀.coeRingHom.comp (locSubring D₀.P D₀.T D₀.s).subtype).range :
+        Set (presheafValue D₀)) := by
+    intro n x hx
+    obtain ⟨y, hy, hyx⟩ := hx
+    obtain ⟨d, _, hdy⟩ := hy
+    refine ⟨d, ?_⟩
+    show D₀.coeRingHom ((locSubring D₀.P D₀.T D₀.s).subtype d) = x
+    exact show D₀.coeRingHom ((locSubring D₀.P D₀.T D₀.s).subtype d) = x from
+      hdy ▸ hyx
+  have hclosure_sub : ∀ n,
+      closure (f '' (locNhd D₀.P D₀.T D₀.s n :
+        Set (Localization.Away D₀.s))) ⊆
+      (presheafValue_ringOfDef D₀ : Set (presheafValue D₀)) :=
+    fun n => closure_mono (himage_sub n)
+  -- Subspace nhds of 0 in ringOfDef: preimage of completion nhds under Subtype.val
+  -- Since closure(f '' locNhd n) ⊆ ringOfDef, the preimage of this set in ringOfDef
+  -- is {x : ringOfDef | val x ∈ closure(f '' locNhd n)} = full preimage.
+  -- The subspace nhds 0 has basis from hbasis_compl + inducing_subtype_val.
+  have hsubspace_basis : (nhds (0 : presheafValue_ringOfDef D₀)).HasBasis
+      (fun _ : ℕ => True) (fun n => Subtype.val ⁻¹'
+        (closure (f '' (locNhd D₀.P D₀.T D₀.s n :
+          Set (Localization.Away D₀.s))))) := by
+    rw [nhds_induced]
+    exact hbasis_compl.comap Subtype.val
+  constructor
+  · -- Condition 1: Each (presheafValue_idealOfDef)^n is open.
+    -- It's an additive subgroup containing a 0-nhd, hence open.
+    intro n
+    apply AddSubgroup.isOpen_of_mem_nhds
+      (((presheafValue_idealOfDef D₀) ^ n).toAddSubgroup)
+    -- Show 0-nhd basis element is contained in idealOfDef^n.
+    apply hsubspace_basis.mem_of_superset (i := n) trivial
+    -- Need: Subtype.val ⁻¹' closure(f '' locNhd n) ⊆ (idealOfDef^n : Set ringOfDef)
+    intro ⟨x, hx_mem⟩ hx_closure
+    -- x ∈ presheafValue_ringOfDef AND x ∈ closure(f '' locNhd n)
+    -- By closure_locNhd_sub_idealOfDef_pow:
+    -- x ∈ closure(...) ∩ ringOfDef → x ∈ val '' (idealOfDef^n)
+    have h_inter : x ∈ closure (f '' (locNhd D₀.P D₀.T D₀.s n :
+        Set (Localization.Away D₀.s))) ∩
+        (presheafValue_ringOfDef D₀ : Set (presheafValue D₀)) :=
+      ⟨hx_closure, hx_mem⟩
+    obtain ⟨y, hy_mem, hy_eq⟩ := closure_locNhd_sub_idealOfDef_pow D₀ n h_inter
+    -- y : presheafValue_ringOfDef D₀, y ∈ idealOfDef^n, val y = x
+    -- So ⟨x, hx_mem⟩ = y (since val is injective on subtypes)
+    have : (⟨x, hx_mem⟩ : presheafValue_ringOfDef D₀) = y :=
+      Subtype.ext hy_eq.symm
+    rw [this]
+    exact hy_mem
+  · -- Condition 2: Every nhd of 0 contains some (presheafValue_idealOfDef)^n.
+    intro s hs
+    -- s ∈ nhds 0 (subspace). By hsubspace_basis: s ⊇ preimage of closure(f '' locNhd m).
+    obtain ⟨m, -, hm⟩ := hsubspace_basis.mem_iff.mp hs
+    -- Take n = m. Show idealOfDef^m ⊆ s.
+    refine ⟨m, fun x hx => hm ?_⟩
+    -- hx : x ∈ (presheafValue_idealOfDef D₀)^m (as element of ringOfDef)
+    -- Need: val x ∈ closure(f '' locNhd m)
+    exact idealOfDef_pow_val_sub_closure D₀ m ⟨x, hx, rfl⟩
 
 /-- **Proposition 8.15 (partial)**: `presheafValue D₀` has a natural
 pair of definition, making it a Huber ring. Combined with
