@@ -164,21 +164,52 @@ NOTE: `1-sX` is NOT prime in general (can be a unit when s is top. nilpotent).
 So presheafValue D₀ is NOT necessarily a domain. The proof uses flatness
 and faithful flatness, NOT the domain/localization argument. -/
 
-/-- **Separation via faithful flatness** (Wedhorn Cor. 8.31).
+-- **Separation via faithful flatness** (Wedhorn Cor. 8.31).
+-- The proof uses: flat restrictions (Prop 8.15) + Spec surjectivity (covering)
+-- → faithful flatness → injective (Mathlib: FaithfullyFlat.injective)
 
-For a strongly noetherian Tate ring, every rational covering has the
-separation property: the product restriction is injective.
+/-- **Prop 8.15 consequence**: each restriction map is flat over the base.
 
-The proof uses:
-1. Each presheafValue D is flat over A (`presheafValue_flat_of_tateQuotient`)
-2. The product of presheafValues for a covering is faithfully flat over A
-   (the covering condition gives surjectivity on Spec)
-3. Faithfully flat → the algebra map A → ∏ presheafValue D is injective
-4. The product restriction from presheafValue C.base factors through this
-5. Prop 8.15 identifies presheafValue D with rational localization of
-   presheafValue C.base, making the restriction faithfully flat over the base
+`presheafValue D` is a flat `presheafValue C.base`-module via the restriction
+ring hom. This follows from Wedhorn Proposition 8.15: `presheafValue D` is
+the rational localization of `presheafValue C.base`, and rational localization
+is flat.
 
-Step 5 requires the localization principle (Prop 8.15). -/
+This is the key consequence of the localization principle. -/
+theorem restrictionMapHom_flat
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    @Module.Flat (presheafValue D₀) (presheafValue D) _ _
+      (RingHom.toModule (restrictionMapHom D₀ D h)) := by
+  sorry -- Wedhorn Prop 8.15: presheafValue D = rational localization of presheafValue D₀
+
+/-- **Covering condition → Spec surjectivity**: for a rational covering,
+the product of restriction maps is surjective on Spec.
+
+For every prime `p` of `presheafValue C.base`, some restriction `φ_D` sends
+`p` to a proper prime of `presheafValue D` (equivalently, `p` is in the
+image of `Spec(presheafValue D) → Spec(presheafValue C.base)`). This
+follows from the covering condition: the denominators `D.s` generate the
+unit ideal in `presheafValue C.base` (relative to the covering). -/
+theorem productRestriction_spec_surjective
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) :
+    -- For every prime of the base, some cover piece dominates it
+    ∀ (p : Ideal (presheafValue C.base)), p.IsPrime →
+      ∃ (D : RationalLocData A) (hD : D ∈ C.covers),
+        (Ideal.comap (restrictionMapHom C.base D (C.hsubset D hD)) ⊥).IsPrime := by
+  sorry -- Covering condition → Spec surjectivity (Prop 8.15 + covering)
+
+/-- **Cor 8.31: product restriction is faithfully flat → injective.**
+
+Separation follows from: each restriction is flat (Prop 8.15) + covering
+gives Spec surjectivity → `Module.FaithfullyFlat.of_comap_surjective` →
+`RingHom.FaithfullyFlat.injective`. -/
 theorem rationalCovering_hasSeparation
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
@@ -188,8 +219,8 @@ theorem rationalCovering_hasSeparation
       (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
         restrictionMap C.base D (C.hsubset D hD) x =
         restrictionMap C.base D (C.hsubset D hD) y) → x = y := by
-  sorry -- Wedhorn Cor 8.31: faithful flatness of product restriction
-        -- Needs: Prop 8.15 (localization principle) + covering → faithfully flat
+  sorry -- Assembly: restrictionMapHom_flat + productRestriction_spec_surjective
+        -- → faithfully flat → injective (Mathlib: FaithfullyFlat.injective)
 
 /-- **Gluing for rational coverings** (Wedhorn Theorem 8.28).
 
