@@ -306,7 +306,18 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
       Ideal (presheafValue_ringOfDef D₀)) :
       Set (presheafValue_ringOfDef D₀)) : Set (presheafValue D₀)) := by
   letI := D₀.uniformSpace; letI := D₀.isUniformAddGroup; letI := D₀.isTopologicalRing
-  sorry
+  -- ringOfDef is a closed subring of presheafValue (it's a topological closure)
+  have hclosed_ring : IsClosed (presheafValue_ringOfDef D₀ : Set (presheafValue D₀)) :=
+    Subring.isClosed_topologicalClosure _
+  -- The subspace topology on ringOfDef makes it a topological ring
+  letI : TopologicalSpace (presheafValue_ringOfDef D₀) :=
+    TopologicalSpace.induced Subtype.val inferInstance
+  haveI : IsTopologicalRing (presheafValue_ringOfDef D₀) :=
+    Subring.instIsTopologicalRing _
+  -- idealOfDef^n is open in the adic topology (by presheafValue_isAdic)
+  -- An open additive subgroup is closed (complement = union of open cosets)
+  -- Image of closed subset of closed subspace under embedding = closed
+  sorry -- idealOfDef^n closed in subspace → val''(idealOfDef^n) closed in presheafValue
 
 private theorem closure_locNhd_sub_idealOfDef_pow (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] (n : ℕ) :
