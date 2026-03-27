@@ -227,7 +227,16 @@ theorem restrictionMapHom_injective
     (D₀ D : RationalLocData A)
     (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
     Function.Injective (restrictionMapHom D₀ D h) := by
-  sorry -- presheafValue D = rational localization of domain presheafValue D₀
+  -- The restriction map makes D₀.canonicalMap(D.s) a unit in presheafValue D.
+  -- By the universal property of localization, it factors through
+  -- (presheafValue D₀)[1/D₀.canonicalMap(D.s)].
+  -- Localization of a domain at a non-zero-divisor is injective.
+  --
+  -- Step 1: D₀.canonicalMap(D.s) maps to a unit under restriction
+  -- (from restrictionMapHom_coe + isUnit_canonicalMap_s)
+  -- Step 2: Factor through localization (IsLocalization.lift)
+  -- Step 3: Domain → localization injective
+  sorry -- Needs: presheafValue_isDomain + localization factoring of restriction
 
 /-- **Product restriction is zero-kernel** (Wedhorn Theorem 8.28(b)).
 
@@ -254,18 +263,18 @@ theorem productRestriction_zero_kernel
   -- The covering must be nonempty: for any v in the base rational open,
   -- some D covers it. So C.covers is nonempty (assuming the base is nonempty).
   -- For the edge case of empty base rational open: presheafValue is trivial.
+  -- Case split: is the covering nonempty?
   by_cases hne : C.covers.Nonempty
-  · obtain ⟨D, hD⟩ := hne
+  · -- Nonempty covering: pick any cover piece, use injectivity of restriction
+    obtain ⟨D, hD⟩ := hne
     exact restrictionMapHom_injective P C.base D (C.hsubset D hD)
       (show restrictionMapHom C.base D (C.hsubset D hD) x =
         restrictionMapHom C.base D (C.hsubset D hD) 0 from by
           rw [map_zero]; exact hx D hD)
-  · -- Empty covering: the base rational open must be empty.
-    -- If the covering is empty but covers the base, the base is empty.
-    rw [Finset.not_nonempty_iff_eq_empty] at hne
-    -- With empty covers, the hypothesis hx is vacuously true.
-    -- We need x = 0, but this requires the base presheafValue to be trivial.
-    sorry -- Edge case: empty covering → base rational open empty → presheafValue trivial
+  · -- Empty covering: vacuously true if presheafValue C.base is subsingleton,
+    -- which happens when the base rational open is empty (locIdeal = ⊤ case).
+    -- For nonempty base rational open: the covering must be nonempty.
+    sorry -- Edge case: empty covering (degenerate)
 
 /-- **Theorem 8.28(b) of Wedhorn**: Every rational covering of a strongly
 noetherian Tate ring has the separation property.
