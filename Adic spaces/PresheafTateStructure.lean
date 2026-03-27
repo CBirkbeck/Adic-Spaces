@@ -261,16 +261,54 @@ private theorem idealOfDef_pow_val_sub_closure (D₀ : RationalLocData A) (n : �
   rw [← hyx]
   exact idealOfDef_pow_sub_val_preimage_closure D₀ n hy
 
-/-- The closure of `coe '' locNhd n` (in the completion), intersected with the ring
-of definition, is contained in `presheafValue_idealOfDef^n`. This is the "hard
-direction" and requires Noetherianness: for a Noetherian ring with I-adic topology,
-the closure of I^n in the completion equals the extended ideal power.
+/-- Helper: `coe '' locNhd n ⊆ val '' idealOfDef^n`. The image of `locIdeal^n` generators
+under `g = locSubringToRingOfDef` produces elements of `idealOfDef^n` whose `val` coincides
+with the corresponding element of `coe '' locNhd n`. -/
+private theorem locNhd_sub_idealOfDef_pow_val (D₀ : RationalLocData A) (n : ℕ) :
+    (D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) ''
+      (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s)) ⊆
+    Subtype.val '' ((presheafValue_idealOfDef D₀ ^ n : Ideal (presheafValue_ringOfDef D₀)) :
+      Set (presheafValue_ringOfDef D₀)) := by
+  letI := D₀.uniformSpace
+  rw [show presheafValue_idealOfDef D₀ = Ideal.map (locSubringToRingOfDef D₀)
+    (locIdeal D₀.P D₀.T D₀.s) from rfl,
+    show (Ideal.map (locSubringToRingOfDef D₀) (locIdeal D₀.P D₀.T D₀.s)) ^ n =
+      Ideal.map (locSubringToRingOfDef D₀) ((locIdeal D₀.P D₀.T D₀.s) ^ n)
+    from (Ideal.map_pow _ _ n).symm]
+  intro x ⟨y, hy, hyx⟩
+  obtain ⟨d, hd, hdy⟩ := hy
+  refine ⟨(locSubringToRingOfDef D₀) d,
+    Ideal.mem_map_of_mem _ hd, ?_⟩
+  show ((locSubringToRingOfDef D₀) d).val = x
+  -- val(g(d)) = coeRingHom(subtype(d)), subtype(d) = y (from hdy), coeRingHom(y) = x (from hyx)
+  exact hyx ▸ congrArg D₀.coeRingHom hdy
 
-Proof sketch (requires AdicCompletionBridge + Noetherian arguments):
-1. `Completion(locSubring) = AdicCompletion(locIdeal, locSubring)` (bridge)
-2. In AdicCompletion, `image(locIdeal^n) = ker(eval_n)` which is closed
-3. The homeomorphism preserves this filtration
-4. So `closure(image(locIdeal^n)) =` extended ideal power in the completion subring -/
+/-- Helper: `val '' idealOfDef^n` is a closed subset of `presheafValue`.
+`val '' idealOfDef^n` is closed in `presheafValue`. Equivalent to:
+`idealOfDef^n` is closed in the subspace topology on `ringOfDef`.
+
+**Proof route** (via AdicCompletionBridge):
+1. The subspace topology on `locSubring ⊆ Localization` = `locIdeal`-adic topology
+   (nhds basis `locNhd m = subtype '' locIdeal^m` restricts to `locIdeal^m`).
+2. `Completion(locSubring) ≃+* AdicCompletion(locIdeal, locSubring)` via bridge.
+3. `ringOfDef ≃ₜ Completion(locSubring) ≃ₜ AdicCompletion(locIdeal, locSubring)`.
+4. Under this homeomorphism, `idealOfDef^n` corresponds to `ker(evalₐ n)`:
+   For Noetherian `locSubring`: `ker(evalₐ n) = Ideal.map of (locIdeal^n)`
+   by `AdicCompletion.map_exact` (`0 → locIdeal^n → locSubring → R/I^n → 0`).
+5. `ker(evalₐ n)` is closed (preimage of `{0}` in discrete `locSubring/locIdeal^n`).
+6. Transfer closedness through the homeomorphism.
+
+**Missing infrastructure**: Steps (3)-(4) require formalizing the homeomorphism
+`ringOfDef ≃ₜ AdicCompletion(locIdeal, locSubring)` and the kernel identification
+`ker(evalₐ n) = Ideal.map of (locIdeal^n)`. See `AdicCompletionBridge.lean`. -/
+private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] (n : ℕ) :
+    IsClosed (Subtype.val '' ((presheafValue_idealOfDef D₀ ^ n :
+      Ideal (presheafValue_ringOfDef D₀)) :
+      Set (presheafValue_ringOfDef D₀)) : Set (presheafValue D₀)) := by
+  letI := D₀.uniformSpace; letI := D₀.isUniformAddGroup; letI := D₀.isTopologicalRing
+  sorry
+
 private theorem closure_locNhd_sub_idealOfDef_pow (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] (n : ℕ) :
     (closure ((D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) ''
@@ -278,44 +316,18 @@ private theorem closure_locNhd_sub_idealOfDef_pow (D₀ : RationalLocData A)
     (presheafValue_ringOfDef D₀ : Set (presheafValue D₀)) ⊆
     Subtype.val '' ((presheafValue_idealOfDef D₀ ^ n : Ideal (presheafValue_ringOfDef D₀)) :
       Set (presheafValue_ringOfDef D₀)) := by
-  -- **Status: requires Noetherian adic completion theory not yet in Mathlib/this project.**
-  --
-  -- The claim: for x in the ring of definition (= closure of locSubring in the completion)
-  -- that is also in the closure of coe(locNhd n) = coe(image of locIdeal^n), x must be
-  -- in the val-image of (presheafValue_idealOfDef)^n = Ideal.map locSubringToRingOfDef (locIdeal^n).
-  --
-  -- This is the "hard direction" of the adic completion filtration identity. The key fact:
-  --
-  -- **Theorem (Atiyah-Macdonald 10.13 / Bourbaki AC III §2.12):**
-  -- For a Noetherian ring R with I-adic topology, the I-adic completion R̂ satisfies:
-  --   closure(image(I^n)) ∩ R̂ = I^n · R̂   (as subsets of R̂)
-  -- where R̂ = AdicCompletion I R ≅ UniformSpace.Completion R (via the bridge).
-  --
-  -- Proof route:
-  -- 1. Via AdicCompletionBridge: Completion(locSubring) ≅ AdicCompletion(locIdeal, locSubring)
-  -- 2. In AdicCompletion: eval_n : AdicCompletion → R/I^n. The kernel of eval_n is exactly
-  --    the image of I^n · AdicCompletion = the extended ideal power.
-  --    For Noetherian rings: AdicCompletion.of is injective (Hausdorff) and
-  --    eval_n ∘ of = quotient map R → R/I^n, so ker(eval_n) ∩ image(of) = of(I^n).
-  -- 3. Since eval_n is continuous (discrete target), ker(eval_n) is closed.
-  --    Hence closure(of(I^n)) ⊆ ker(eval_n).
-  -- 4. For the reverse: use that AdicCompletion is the inverse limit of R/I^n,
-  --    so elements in ker(eval_n) are limits of elements in I^n (by density of of).
-  --    This gives ker(eval_n) = closure(of(I^n)) in the AdicCompletion.
-  -- 5. Transfer via the bridge to UniformSpace.Completion.
-  -- 6. The embedding locSubring → Localization → Completion identifies:
-  --    - closure(coe '' locNhd n) ∩ ringOfDef with the kernel filtration
-  --    - val '' idealOfDef^n with the extended ideal
-  --
-  -- Mathlib prerequisites not yet available:
-  -- (a) ker(AdicCompletion.eval I R n) = Ideal.map (AdicCompletion.of I R) (I^n)
-  --     (for Noetherian R; uses Artin-Rees / exactness of completion)
-  -- (b) The bridge homeomorphism preserves this filtration
-  -- (c) Transfer from the AdicCompletion filtration to the UniformSpace.Completion filtration
-  --
-  -- Once (a)-(c) are formalized (possibly in AdicCompletionBridge or a new file),
-  -- this sorry reduces to composing those results with the locSubring ↪ Localization embedding.
-  sorry
+  letI := D₀.uniformSpace
+  letI := D₀.isUniformAddGroup
+  letI := D₀.isTopologicalRing
+  -- The proof uses the sandwiching:
+  -- (A) coe '' locNhd n ⊆ val '' idealOfDef^n  (locNhd_sub_idealOfDef_pow_val)
+  -- (B) val '' idealOfDef^n ⊆ closure(coe '' locNhd n)  (idealOfDef_pow_val_sub_closure)
+  -- (C) val '' idealOfDef^n is closed  (idealOfDef_pow_val_isClosed)
+  -- From (A): closure(coe '' locNhd n) ⊆ closure(val '' idealOfDef^n) = val '' idealOfDef^n.
+  -- The intersection with ringOfDef is contained since val '' idealOfDef^n ⊆ ringOfDef.
+  intro x ⟨hx_closure, _⟩
+  exact (idealOfDef_pow_val_isClosed D₀ n).closure_subset_iff.mpr
+    (locNhd_sub_idealOfDef_pow_val D₀ n) hx_closure
 
 /-- The subspace topology on the ring of definition equals the
 ideal-of-definition-adic topology.
