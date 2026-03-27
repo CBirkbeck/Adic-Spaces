@@ -163,11 +163,89 @@ The key missing piece is (4): restriction maps are flat over the base
 presheaf value. This requires the localization-of-completion isomorphism
 (CompletionLocalization.lean). -/
 
-/-- **Product restriction is zero-kernel**: the product of restriction maps
-from `presheafValue C.base` to `∏ presheafValue D` is faithfully flat.
+/-- On elements of the dense subring, the restriction map equals the
+algebraic restriction map composed with the completion embedding.
+This is `restrictionMapHom_coe` from Presheaf.lean, re-exported here for convenience. -/
+private theorem restrictionMapHom_coeRingHom_eq
+    (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (a : Localization.Away D.s) :
+    restrictionMapHom D D' h (D.coeRingHom a) = restrictionMapAlg D D' h a := by
+  letI := D.uniformSpace; letI := D.isTopologicalRing; letI := D.isUniformAddGroup
+  letI := D'.uniformSpace; letI := D'.isTopologicalRing; letI := D'.isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom_coe
+    (restrictionMapAlg D D' h) (restrictionMapAlg_continuous D D' h) a
 
-Uses: each restriction is flat (restrictionMap_flat) + covering condition
-gives surjectivity on Spec. -/
+/-- The kernel of the product restriction is closed in `presheafValue C.base`.
+This is the intersection of `ker(restrictionMapHom D)` for D in the covering,
+each of which is closed (preimage of {0} under a continuous map to a T2 space). -/
+private theorem isClosed_productRestriction_kernel
+    (C : RationalCovering A) :
+    IsClosed {x : presheafValue C.base | ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+      restrictionMap C.base D (C.hsubset D hD) x = 0} := by
+  -- The kernel is an intersection of preimages of {0} under continuous maps.
+  -- Each restrictionMapHom is continuous to a T2 space, so each kernel is closed.
+  -- The finite intersection of closed sets is closed.
+  have : {x : presheafValue C.base | ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+      restrictionMap C.base D (C.hsubset D hD) x = 0} =
+    ⋂ (p : { D // D ∈ C.covers }),
+      (restrictionMapHom C.base p.1 (C.hsubset p.1 p.2)) ⁻¹' {0} := by
+    ext x; constructor
+    · intro hx; exact Set.mem_iInter.mpr fun ⟨D, hD⟩ => Set.mem_preimage.mpr (hx D hD)
+    · intro hx D hD; exact Set.mem_preimage.mp (Set.mem_iInter.mp hx ⟨D, hD⟩)
+  rw [this]
+  exact isClosed_iInter fun ⟨D, hD⟩ =>
+    (T1Space.t1 (0 : presheafValue D)).preimage
+      (restrictionMapHom_continuous C.base D (C.hsubset D hD))
+
+/-- On the dense subring, if all algebraic restrictions vanish, then the
+element maps to 0 under the completion embedding.
+
+This is the key algebraic step: for `a : Localization.Away C.base.s`, if
+`restrictionMapAlg(a) = 0` in `presheafValue D` for all covering pieces D,
+then `coeRingHom(a) = 0` in `presheafValue C.base`.
+
+The proof splits into two cases based on whether the localization
+topology is T0 (equivalently, whether `locIdeal` is proper):
+- **Proper `locIdeal`:** The Krull intersection theorem (Noetherian domain)
+  gives `closure({0}) = {0}`, so the completion embedding is injective.
+  Combined with algebraic injectivity of the product restriction
+  (from `productRestriction_injective_discrete`), this gives `a = 0`.
+- **`locIdeal = top`:** The localization topology is indiscrete, the
+  completion quotients everything to 0, so `coeRingHom(a) = 0` trivially. -/
+private theorem productRestriction_zero_kernel_on_dense
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) (a : Localization.Away C.base.s)
+    (halg : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+      restrictionMapAlg C.base D (C.hsubset D hD) a = 0) :
+    C.base.coeRingHom a = 0 := by
+  -- Prove a is in the closure of {0} for the base localization topology.
+  -- For the Hausdorff completion, coeRingHom(a) = 0 iff a is inseparable
+  -- from 0, which in a uniform add group means a is in the closure of {0}
+  -- (the intersection of all neighborhoods of 0).
+  -- The closure of {0} in the localization topology = ⋂_n locNhd(n).
+  -- By the Krull intersection theorem for the Noetherian domain locSubring:
+  -- ⋂_n (locIdeal)^n = {0} when locIdeal is proper.
+  -- When locIdeal = ⊤: ⋂_n ⊤^n = ⊤, and the quotient is trivial.
+  sorry
+
+/-- **Product restriction is zero-kernel** (Wedhorn Theorem 8.28(b)).
+
+If `x ∈ presheafValue C.base` restricts to 0 in every covering piece D,
+then `x = 0`.
+
+**Proof strategy:** The kernel K of the product restriction is a closed
+additive subgroup of `presheafValue C.base` (by `isClosed_productRestriction_kernel`).
+On the dense subring `coeRingHom(Localization.Away s)`, the kernel is {0}
+(by `productRestriction_zero_kernel_on_dense`). Since K is closed and
+contains only {0} from the dense subring, and the completion is a
+nonarchimedean T2 topological group, K = {0}.
+
+The extension from the dense case to the full completion requires
+the **localization-of-completion bridge** or **faithful flatness** of
+the adic completion. See `CompletionLocalization.lean` and the
+discussion in `StructureSheaf.lean` (lines 789-813). -/
 theorem productRestriction_zero_kernel
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
@@ -176,7 +254,10 @@ theorem productRestriction_zero_kernel
     (hx : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
       restrictionMap C.base D (C.hsubset D hD) x = 0) :
     x = 0 := by
-  sorry -- Key: localization-of-completion bridge + density + algebraic injectivity
+  -- The kernel of the product restriction is a closed subgroup.
+  -- On the dense image coe(R), the kernel is {0} (algebraic injectivity).
+  -- Extension to the full completion requires the completion-localization bridge.
+  sorry
 
 /-- **Theorem 8.28(b) of Wedhorn**: Every rational covering of a strongly
 noetherian Tate ring has the separation property.
