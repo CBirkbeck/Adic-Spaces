@@ -175,8 +175,8 @@ theorem locSubring_subspace_eq_adic (D₀ : RationalLocData A) :
     have htag_adic : @IsTopologicalAddGroup (locSubring D₀.P D₀.T D₀.s)
         (locIdeal D₀.P D₀.T D₀.s).adicTopology _ :=
       @IsTopologicalRing.to_topologicalAddGroup _ _ (locIdeal D₀.P D₀.T D₀.s).adicTopology
-        ((locIdeal D₀.P D₀.T D₀.s).adic_basis.toRing_subgroups_basis.toRingFilterBasis
-          .isTopologicalRing)
+        (RingFilterBasis.isTopologicalRing
+          (locIdeal D₀.P D₀.T D₀.s).adic_basis.toRing_subgroups_basis.toRingFilterBasis)
     apply @IsTopologicalAddGroup.ext (locSubring D₀.P D₀.T D₀.s) _ _ _ htag_ind htag_adic
     have hbasis_loc := (locBasis D₀.P D₀.T D₀.s D₀.hopen).hasBasis_nhds_zero
     have hpreimage_eq : ∀ n : ℕ,
@@ -185,7 +185,10 @@ theorem locSubring_subspace_eq_adic (D₀ : RationalLocData A) :
         ((locIdeal D₀.P D₀.T D₀.s ^ n : Ideal (locSubring D₀.P D₀.T D₀.s)) :
           Set (locSubring D₀.P D₀.T D₀.s)) := by
       intro n; ext ⟨x, hx_mem⟩; constructor
-      · rintro ⟨d, hd, hd_eq⟩; exact (Subtype.val_injective hd_eq) ▸ hd
+      · rintro ⟨d, hd, hd_eq⟩
+        have : d = ⟨x, hx_mem⟩ := Subtype.val_injective (by
+          change d.val = x; change d.val = _ at hd_eq; exact hd_eq)
+        exact this ▸ hd
       · intro hx; exact ⟨⟨x, hx_mem⟩, hx, rfl⟩
     have hbasis_ind :
         (@nhds (locSubring D₀.P D₀.T D₀.s)
