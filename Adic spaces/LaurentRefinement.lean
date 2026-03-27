@@ -318,16 +318,41 @@ theorem restrictionMapHom_injective
     (D₀ D : RationalLocData A)
     (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
     Function.Injective (restrictionMapHom D₀ D h) := by
-  -- The restriction map makes D₀.canonicalMap(D.s) a unit in presheafValue D.
-  -- By the universal property of localization, it factors through
-  -- (presheafValue D₀)[1/D₀.canonicalMap(D.s)].
-  -- Localization of a domain at a non-zero-divisor is injective.
+  haveI hdom₀ : IsDomain (presheafValue D₀) := presheafValue_isDomain P D₀
+  -- Step 1: The restriction sends D₀.canonicalMap(D.s) to a unit.
+  -- restrictionMapHom(D₀.coeRingHom(algebraMap D.s)) = restrictionMapAlg(algebraMap D.s)
+  --   = D.canonicalMap D.s (by IsLocalization.Away.lift_eq)
+  -- and D.canonicalMap D.s = D.coeRingHom(algebraMap D.s) is a unit
+  -- (since algebraMap D.s is a unit in Localization.Away D.s).
+  have hunit_res : IsUnit (restrictionMapHom D₀ D h (D₀.canonicalMap D.s)) := by
+    change IsUnit (restrictionMapHom D₀ D h (D₀.coeRingHom (algebraMap A _ D.s)))
+    rw [restrictionMapHom_coeRingHom_eq D₀ D h]
+    show IsUnit (restrictionMapAlg D₀ D h (algebraMap A (Localization.Away D₀.s) D.s))
+    simp only [restrictionMapAlg, IsLocalization.Away.lift_eq]
+    exact (IsLocalization.map_units (Localization.Away D.s)
+      (⟨D.s, 1, pow_one D.s⟩ : Submonoid.powers D.s)).map D.coeRingHom
+  haveI hdom : IsDomain (presheafValue D) := presheafValue_isDomain P D
+  -- Step 2: D₀.canonicalMap(D.s) is nonzero (maps to a unit, hence nonzero).
+  have hne : D₀.canonicalMap D.s ≠ 0 := by
+    intro heq; rw [heq, map_zero] at hunit_res; exact not_isUnit_zero hunit_res
+  -- Step 3: Factor through localization of presheafValue D₀ at D₀.canonicalMap(D.s).
+  -- The algebraMap : presheafValue D₀ → Localization.Away (D₀.canonicalMap D.s)
+  -- is injective because presheafValue D₀ is a domain and D₀.canonicalMap(D.s)
+  -- is a nonzero non-zero-divisor.
+  -- The restriction = (lift from localization) ∘ (algebraMap into localization).
+  -- By IsLocalization.lift_comp: restrictionMapHom = lift ∘ algebraMap.
+  -- By IsLocalization.injective: algebraMap is injective (domain + nonzero element).
+  -- The lift : Localization.Away (D₀.canonicalMap D.s) →+* presheafValue D
+  -- is itself injective because the localization of the domain presheafValue D₀
+  -- at the nonzero element D₀.canonicalMap D.s is isomorphic (via the
+  -- localization-of-completion bridge, Wedhorn Prop. 8.15) to presheafValue D.
+  -- The composition of two injective maps is injective.
   --
-  -- Step 1: D₀.canonicalMap(D.s) maps to a unit under restriction
-  -- (from restrictionMapHom_coe + isUnit_canonicalMap_s)
-  -- Step 2: Factor through localization (IsLocalization.lift)
-  -- Step 3: Domain → localization injective
-  sorry -- Needs: presheafValue_isDomain + localization factoring of restriction
+  -- Steps 1-2 show: D₀.canonicalMap(D.s) maps to a unit and is nonzero.
+  -- The restriction FACTORS through the localization at this element.
+  -- But injectivity requires: presheafValue D IS the localization of
+  -- presheafValue D₀ (not just a further quotient). This is Prop 8.15.
+  sorry -- Wedhorn Prop 8.15: presheafValue D = rational localization of presheafValue D₀
 
 /-- **Product restriction is zero-kernel** (Wedhorn Theorem 8.28(b)).
 
