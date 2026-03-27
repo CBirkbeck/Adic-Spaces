@@ -6,6 +6,7 @@ import «Adic spaces».Presheaf
 import «Adic spaces».CompleteTopCommRingCat
 import «Adic spaces».Lemma745
 import «Adic spaces».TopologyComparison
+import «Adic spaces».LaurentRefinement
 import Mathlib.RingTheory.RingHom.Flat
 import Mathlib.Topology.Sheaves.LocalPredicate
 import Mathlib.Topology.Sheaves.Forget
@@ -1227,7 +1228,9 @@ theorem productRestriction_injective_of_laurentRefinement
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A) :
     Function.Injective (productRestriction A C) := by
-  sorry -- Lemma 8.34: rational covering refined by Laurent covers
+  intro x y hxy
+  exact rationalCovering_hasSeparation P C x y
+    (fun D hD => congr_fun (congr_fun hxy D) hD)
 
 /-- **Theorem 8.28 of Wedhorn**: strongly noetherian Tate rings are sheafy.
 
