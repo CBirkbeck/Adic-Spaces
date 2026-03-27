@@ -214,7 +214,20 @@ theorem tateAcyclicity
   --
   -- What remains: identifying restriction maps as rational localizations of B
   -- (the full content of Prop 8.15), then applying faithful flatness.
-  sorry
+  --
+  -- The restriction B → presheafValue D makes canonicalMap(D.s) a unit
+  -- (by isUnit_canonicalMap_s). If this is a LOCALIZATION at canonicalMap(D.s):
+  -- then it's flat (Localization.flat). The covering condition gives Spec
+  -- surjectivity (not all D.s land in any single prime of B). Then
+  -- FaithfullyFlat.of_comap_surjective gives the result.
+  --
+  -- For gluing: faithfully flat descent gives the Čech complex is exact.
+  -- Alternatively: use the Laurent cover exactness transferred via Prop 8.15.
+  constructor
+  · -- Part 1: Separation (zero kernel)
+    sorry -- Prop 8.15 → flat restrictions → faithfully flat → injective
+  · -- Part 2: Gluing
+    sorry -- Prop 8.15 → Čech descent / Laurent exactness transfer
 
 /-- Separation extracted from `tateAcyclicity`. -/
 theorem rationalCovering_hasSeparation
