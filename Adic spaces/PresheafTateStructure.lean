@@ -196,56 +196,59 @@ private theorem idealOfDef_pow_sub_val_preimage_closure (D₀ : RationalLocData 
   letI := D₀.uniformSpace
   letI := D₀.isUniformAddGroup
   letI := D₀.isTopologicalRing
-  set g := locSubringToRingOfDef D₀
-  -- fh is the ring hom, f is the coerced function
-  set fh := D₀.coeRingHom with hfh_def
-  set f := (fh : Localization.Away D₀.s → presheafValue D₀) with hf_def
-  set T := f '' (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s))
-  -- comp_sub is the ring hom f ∘ subtype : locSubring → presheafValue
-  set comp_sub := fh.comp (locSubring D₀.P D₀.T D₀.s).subtype with hcomp_sub_def
-  -- Rewrite (Ideal.map g locIdeal)^n = Ideal.map g (locIdeal^n) using Ideal.map_pow
+  -- Abbreviations
+  let fh := D₀.coeRingHom
+  let sub := (locSubring D₀.P D₀.T D₀.s).subtype
+  let comp_sub := fh.comp sub
+  let g := locSubringToRingOfDef D₀
+  -- T = coeRingHom '' locNhd n (the set whose closure we target)
+  set T := (fh : Localization.Away D₀.s → presheafValue D₀) ''
+    (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s)) with hT_def
+  -- Rewrite (Ideal.map g locIdeal)^n = Ideal.map g (locIdeal^n)
   rw [show presheafValue_idealOfDef D₀ = Ideal.map g (locIdeal D₀.P D₀.T D₀.s) from rfl,
       show (Ideal.map g (locIdeal D₀.P D₀.T D₀.s)) ^ n =
         Ideal.map g ((locIdeal D₀.P D₀.T D₀.s) ^ n) from (Ideal.map_pow _ _ n).symm]
-  -- S_ring = range of comp_sub (= pre-closure ring of definition)
-  -- Key helper: range(comp_sub) * T ⊆ T (locNhd n is ideal of locSubring)
-  have hact : ∀ c ∈ (comp_sub.range : Set (presheafValue D₀)),
-      ∀ y ∈ T, c * y ∈ T := by
+  -- Key: range(comp_sub) * T ⊆ T (locNhd n is image of an ideal, so stable under locSubring)
+  have hact : ∀ c ∈ (comp_sub.range : Set (presheafValue D₀)), ∀ y ∈ T, c * y ∈ T := by
     rintro c ⟨a, rfl⟩ y ⟨z, hz, rfl⟩
     obtain ⟨d, hd, hdz⟩ := hz
-    exact ⟨(locSubring D₀.P D₀.T D₀.s).subtype (a * d),
-      ⟨a * d, Ideal.mul_mem_left _ a hd, rfl⟩, by simp [map_mul, MulMemClass.coe_mul, hdz]⟩
-  -- r ∈ ringOfDef means r ∈ closure(range(comp_sub))
+    refine ⟨sub (a * d), ⟨a * d, Ideal.mul_mem_left _ a hd, rfl⟩, ?_⟩
+    show fh (sub (a * d)) = comp_sub a * fh z
+    have hsubz : sub d = z := hdz
+    rw [show sub (a * d) = sub a * sub d from map_mul sub a d,
+        map_mul fh, show fh (sub a) = comp_sub a from rfl, hsubz]
+  -- ringOfDef = closure(range(comp_sub)) as sets in presheafValue
   have hringOfDef_eq : (presheafValue_ringOfDef D₀ : Set (presheafValue D₀)) =
       closure (comp_sub.range : Set (presheafValue D₀)) := by
-    simp only [presheafValue_ringOfDef, Subring.topologicalClosure_coe]
+    -- presheafValue_ringOfDef = comp_sub.range.topologicalClosure, whose carrier is closure
+    rfl
   -- Use Submodule.span_induction on x ∈ Ideal.map g (locIdeal^n)
   intro x hx
   show x.val ∈ closure T
   refine Submodule.span_induction (p := fun x _ => x.val ∈ closure T) ?_ ?_ ?_ ?_ hx
-  · -- Generator: x = g d for d ∈ locIdeal^n
+  · -- Generator: x = g(d) for d ∈ locIdeal^n. val(g d) = fh(sub d) ∈ T.
     rintro x ⟨d, hd, rfl⟩
-    exact subset_closure ⟨(locSubring D₀.P D₀.T D₀.s).subtype d, ⟨d, hd, rfl⟩, rfl⟩
-  · -- Zero: 0 ∈ f '' locNhd n since 0 ∈ locNhd n
+    exact subset_closure ⟨sub d, ⟨d, hd, rfl⟩, rfl⟩
+  · -- Zero
     exact subset_closure ⟨0, (locNhd D₀.P D₀.T D₀.s n).zero_mem, map_zero _⟩
-  · -- Addition: closure of image of AddSubgroup is closed under addition
+  · -- Addition: closure T is closed under + (T is image of AddSubgroup)
     intro a b _ _ ha hb
     show (a + b).val ∈ closure T
-    rw [AddSubmonoid.coe_add]
-    have hS_eq : closure T = ((locNhd D₀.P D₀.T D₀.s n).map
-        f.toAddMonoidHom).topologicalClosure := by
-      simp only [AddSubgroup.topologicalClosure_coe,
-        AddSubgroup.coe_map, AddMonoidHom.coe_coe]
-    rw [hS_eq] at ha hb ⊢
+    rw [show (a + b).val = a.val + b.val from rfl]
+    -- T = image of AddSubgroup under AddMonoidHom, so T is an additive subgroup image.
+    -- Its closure is a closed additive subgroup.
     exact ((locNhd D₀.P D₀.T D₀.s n).map
-      f.toAddMonoidHom).topologicalClosure.add_mem ha hb
-  · -- Scalar multiplication by r ∈ ringOfDef
-    -- Need: r * x.val ∈ closure T when r ∈ closure(S_ring) and x.val ∈ closure T
-    -- Use map_mem_closure₂': multiplication is separately continuous, and S_ring * T ⊆ T
+      fh.toAddMonoidHom).topologicalClosure.add_mem
+      (show a.val ∈ ((locNhd D₀.P D₀.T D₀.s n).map
+        fh.toAddMonoidHom).topologicalClosure from ha)
+      (show b.val ∈ ((locNhd D₀.P D₀.T D₀.s n).map
+        fh.toAddMonoidHom).topologicalClosure from hb)
+  · -- Scalar mult by r ∈ ringOfDef: use map_mem_closure₂' with multiplication
+    -- r ∈ closure(range(comp_sub)) and x.val ∈ closure(T), and range(comp_sub) * T ⊆ T
     intro ⟨r, hr⟩ x _ hx_ih
-    show (⟨r, hr⟩ • x).val ∈ closure T
-    simp only [SetLike.val_smul, smul_eq_mul]
-    exact map_mem_closure₂' (fun _ => continuous_mul_left _) (fun _ => continuous_const_mul _)
+    show ((⟨r, hr⟩ : presheafValue_ringOfDef D₀) • x).val ∈ closure T
+    change r * x.val ∈ closure T
+    exact map_mem_closure₂' (fun _ => continuous_const_mul _) (fun _ => continuous_mul_const _)
       (hringOfDef_eq ▸ hr) hx_ih (fun a ha b hb => hact a ha b hb)
 
 /-- Corollary: the val-image of `idealOfDef^n` is contained in `closure(coe '' locNhd n)`. -/
@@ -275,6 +278,43 @@ private theorem closure_locNhd_sub_idealOfDef_pow (D₀ : RationalLocData A)
     (presheafValue_ringOfDef D₀ : Set (presheafValue D₀)) ⊆
     Subtype.val '' ((presheafValue_idealOfDef D₀ ^ n : Ideal (presheafValue_ringOfDef D₀)) :
       Set (presheafValue_ringOfDef D₀)) := by
+  -- **Status: requires Noetherian adic completion theory not yet in Mathlib/this project.**
+  --
+  -- The claim: for x in the ring of definition (= closure of locSubring in the completion)
+  -- that is also in the closure of coe(locNhd n) = coe(image of locIdeal^n), x must be
+  -- in the val-image of (presheafValue_idealOfDef)^n = Ideal.map locSubringToRingOfDef (locIdeal^n).
+  --
+  -- This is the "hard direction" of the adic completion filtration identity. The key fact:
+  --
+  -- **Theorem (Atiyah-Macdonald 10.13 / Bourbaki AC III §2.12):**
+  -- For a Noetherian ring R with I-adic topology, the I-adic completion R̂ satisfies:
+  --   closure(image(I^n)) ∩ R̂ = I^n · R̂   (as subsets of R̂)
+  -- where R̂ = AdicCompletion I R ≅ UniformSpace.Completion R (via the bridge).
+  --
+  -- Proof route:
+  -- 1. Via AdicCompletionBridge: Completion(locSubring) ≅ AdicCompletion(locIdeal, locSubring)
+  -- 2. In AdicCompletion: eval_n : AdicCompletion → R/I^n. The kernel of eval_n is exactly
+  --    the image of I^n · AdicCompletion = the extended ideal power.
+  --    For Noetherian rings: AdicCompletion.of is injective (Hausdorff) and
+  --    eval_n ∘ of = quotient map R → R/I^n, so ker(eval_n) ∩ image(of) = of(I^n).
+  -- 3. Since eval_n is continuous (discrete target), ker(eval_n) is closed.
+  --    Hence closure(of(I^n)) ⊆ ker(eval_n).
+  -- 4. For the reverse: use that AdicCompletion is the inverse limit of R/I^n,
+  --    so elements in ker(eval_n) are limits of elements in I^n (by density of of).
+  --    This gives ker(eval_n) = closure(of(I^n)) in the AdicCompletion.
+  -- 5. Transfer via the bridge to UniformSpace.Completion.
+  -- 6. The embedding locSubring → Localization → Completion identifies:
+  --    - closure(coe '' locNhd n) ∩ ringOfDef with the kernel filtration
+  --    - val '' idealOfDef^n with the extended ideal
+  --
+  -- Mathlib prerequisites not yet available:
+  -- (a) ker(AdicCompletion.eval I R n) = Ideal.map (AdicCompletion.of I R) (I^n)
+  --     (for Noetherian R; uses Artin-Rees / exactness of completion)
+  -- (b) The bridge homeomorphism preserves this filtration
+  -- (c) Transfer from the AdicCompletion filtration to the UniformSpace.Completion filtration
+  --
+  -- Once (a)-(c) are formalized (possibly in AdicCompletionBridge or a new file),
+  -- this sorry reduces to composing those results with the locSubring ↪ Localization embedding.
   sorry
 
 /-- The subspace topology on the ring of definition equals the
