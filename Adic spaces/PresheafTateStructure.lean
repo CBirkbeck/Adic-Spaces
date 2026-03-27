@@ -76,11 +76,55 @@ For a Noetherian locSubring with locIdeal-adic topology:
 
 TODO: Construct and verify this pair of definition. -/
 
--- Placeholder for the pair of definition construction
--- This requires:
--- 1. Embedding the completion of locSubring into presheafValue
--- 2. Showing the embedding has open image
--- 3. Showing the image of locIdeal is finitely generated
--- 4. Showing the subspace topology is I-adic
+/-- The ring of definition inside `presheafValue D₀`: the closure of
+`locSubring` in the completion. This is the image of the AdicCompletion
+of `locSubring` (via the bridge) embedded into the completion of the
+ambient localization.
+
+For Noetherian locSubring with locIdeal-adic topology: the closure
+= Completion(locSubring) = AdicCompletion(locIdeal, locSubring). -/
+noncomputable def presheafValue_ringOfDef (D₀ : RationalLocData A) :
+    Subring (presheafValue D₀) := by
+  letI := D₀.uniformSpace
+  exact (D₀.coeRingHom.comp (locSubring D₀.P D₀.T D₀.s).subtype).range.topologicalClosure
+
+/-- The ring of definition is open in `presheafValue D₀`.
+
+This follows from locSubring being open in the localization topology:
+its image under coeRingHom is open in the completion topology (open
+subsets are preserved by dense embeddings for additive subgroups). -/
+theorem presheafValue_ringOfDef_isOpen (D₀ : RationalLocData A) :
+    IsOpen ((presheafValue_ringOfDef D₀ : Subring (presheafValue D₀)) : Set (presheafValue D₀)) := by
+  sorry -- locSubring open → closure in completion open
+
+/-- The ideal of definition inside the ring of definition: the closure
+of the image of `locIdeal` in the completion. -/
+noncomputable def presheafValue_idealOfDef (D₀ : RationalLocData A) :
+    Ideal (presheafValue_ringOfDef D₀) := by
+  sorry -- Lift locIdeal to an ideal of the closure
+
+/-- The ideal of definition is finitely generated (locIdeal is f.g. and
+Noetherian completion preserves finite generation). -/
+theorem presheafValue_idealOfDef_fg (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
+    (presheafValue_idealOfDef D₀).FG := by
+  sorry -- locIdeal is f.g. → its image in the completion is f.g.
+
+/-- The subspace topology on the ring of definition equals the
+ideal-of-definition-adic topology. -/
+theorem presheafValue_isAdic (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
+    @IsAdic (presheafValue_ringOfDef D₀) _ sorry (presheafValue_idealOfDef D₀) := by
+  sorry -- The I-adic topology on the completion of locSubring = subspace topology
+
+/-- **Proposition 8.15 (partial)**: `presheafValue D₀` has a natural
+pair of definition, making it a Huber ring. Combined with
+`presheafValue_topNilUnit`, this gives `IsTateRing`. -/
+theorem presheafValue_pairOfDefinition [IsTateRing A] [IsNoetherianRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
+    Nonempty (PairOfDefinition (presheafValue D₀)) := by
+  sorry -- Assembly: presheafValue_ringOfDef + presheafValue_idealOfDef
+        -- + openness + f.g. + IsAdic
 
 end ValuationSpectrum
