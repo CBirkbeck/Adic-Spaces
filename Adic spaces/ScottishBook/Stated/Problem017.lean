@@ -39,7 +39,7 @@ such that the contraction `D.canonicalMap⁻¹(m)` is **not** maximal in `A`.
 This witnesses the negative answer to Problem 17 in the strongly noetherian case. -/
 theorem problem17_counterexample :
     ∃ (A : Type) (_ : CommRing A) (_ : TopologicalSpace A) (_ : IsTopologicalRing A)
-      (_ : PlusSubring A) (_ : HasRestrictionMaps A) (D : RationalLocData A)
+      (_ : PlusSubring A) (_ : IsHuberRing A) (D : RationalLocData A)
       (m : Ideal (presheafValue D)),
       m.IsMaximal ∧ ¬(Ideal.comap D.canonicalMap m).IsMaximal := by
   sorry

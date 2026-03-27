@@ -59,7 +59,7 @@ for use in the ScottishBook namespace. -/
 abbrev IsUniform := TopologicalRing.IsUniform A
 
 /-- Alias for `TopologicalRing.IsStablyUniform` in the ScottishBook namespace. -/
-abbrev IsStablyUniform [PlusSubring A] [HasRestrictionMaps A] :=
+abbrev IsStablyUniform [PlusSubring A] [IsHuberRing A] :=
   TopologicalRing.IsStablyUniform A
 
 /-! ### The open problem -/
@@ -69,7 +69,7 @@ abbrev IsStablyUniform [PlusSubring A] [HasRestrictionMaps A] :=
 
 This is an **open problem** — the `sorry` is intentional and represents the open question.
 Formalized here as an axiom-free statement to serve as a target for partial results. -/
-theorem problem7 [PlusSubring A] [HasRestrictionMaps A] [IsSheafy A]
+theorem problem7 [PlusSubring A] [IsHuberRing A] [IsSheafy A]
     [TopologicalRing.IsUniform A] :
     TopologicalRing.IsStablyUniform A := by
   sorry
@@ -82,7 +82,7 @@ In the discrete case, this is immediate because `IsUniform.discrete` gives unifo
 for any discrete ring. The general (non-discrete) case requires identifying `A` with
 its own trivial localization and transferring boundedness through the completion map;
 see `IsStablyUniform.isUniform_general` for the statement. -/
-theorem IsStablyUniform.isUniform_discrete [PlusSubring A] [HasRestrictionMaps A]
+theorem IsStablyUniform.isUniform_discrete [PlusSubring A] [IsHuberRing A]
     [DiscreteTopology A] [TopologicalRing.IsStablyUniform A] :
     TopologicalRing.IsUniform A :=
   TopologicalRing.IsUniform.discrete
@@ -102,7 +102,7 @@ The full formal proof requires:
 
 This infrastructure connects `Bounded.lean`, `Presheaf.lean`, and `LocalizationTopology.lean`
 in a way that is not yet formalized. -/
-theorem IsStablyUniform.isUniform [PlusSubring A] [HasRestrictionMaps A]
+theorem IsStablyUniform.isUniform [PlusSubring A] [IsHuberRing A]
     [TopologicalRing.IsStablyUniform A] : TopologicalRing.IsUniform A := by
   sorry -- needs: identify A with presheafValue (globalLocData P) via Remark 8.3
 
@@ -119,7 +119,7 @@ The argument proceeds by:
 3. Injectivity of the product restriction follows from a patching argument
 
 This is a full research paper result and is beyond the scope of the current formalization. -/
-theorem IsStablyUniform.isSheafy [PlusSubring A] [HasRestrictionMaps A]
+theorem IsStablyUniform.isSheafy [PlusSubring A] [IsHuberRing A]
     [TopologicalRing.IsStablyUniform A] : IsSheafy A := by
   sorry -- needs: Buzzard--Verberkmoes argument (research paper level)
 

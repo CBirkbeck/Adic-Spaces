@@ -43,13 +43,13 @@ together with a homeomorphism `φ : Spa(B, B⁺) ≃ₜ Spa(A, A⁺)` that induc
 isomorphisms on completed residue fields at every point.
 
 The existentially bound instances on `B` equip it with the structure of a commutative
-topological ring with `PlusSubring`, `HasRestrictionMaps`, and `IsStablyUniform`.
+topological ring with `PlusSubring`, `IsHuberRing`, and `IsStablyUniform`.
 
 This is an **open problem** — the `sorry` is intentional and represents the open question. -/
 theorem problem35 (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [PlusSubring A] [IsTateRing A] :
     ∃ (B : Type u) (_ : CommRing B) (_ : TopologicalSpace B) (_ : IsTopologicalRing B)
-      (_ : PlusSubring B) (_ : HasRestrictionMaps B) (_ : IsStablyUniform B)
+      (_ : PlusSubring B) (_ : IsHuberRing B) (_ : IsStablyUniform B)
       (φ : ↥(Spa B PlusSubring.toSubring) ≃ₜ ↥(Spa A A⁺)),
       ∀ (x : ↥(Spa A A⁺)),
         Nonempty (completedResidueField A x ≃+*

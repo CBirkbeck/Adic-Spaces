@@ -41,7 +41,7 @@ open ValuationSpectrum
 namespace CompletionLocalization
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-  [PlusSubring A] [HasRestrictionMaps A]
+  [PlusSubring A] [IsHuberRing A]
 
 /-! ### Step 1: The backward map R̂⁺[1/s'] → R̂
 

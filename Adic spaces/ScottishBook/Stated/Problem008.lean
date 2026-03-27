@@ -39,9 +39,9 @@ variable (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
 /-! ### Independence of A⁺
 
 The key challenge is that `IsSheafy` and `IsStablyUniform` depend on a `PlusSubring A`
-instance (which determines `A⁺`) and a `HasRestrictionMaps A` instance. To state
-"independent of A⁺", we parameterize by two different `PlusSubring` instances and their
-corresponding `HasRestrictionMaps` instances.
+instance (which determines `A⁺`) and an `IsHuberRing A` instance. To state
+"independent of A⁺", we parameterize by two different `PlusSubring` instances.
+Since `IsHuberRing` does not depend on `PlusSubring`, a single instance suffices.
 -/
 
 /-- **Scottish Book Problem 8a** (Kedlaya, resolved by Gabber):
@@ -49,11 +49,10 @@ corresponding `HasRestrictionMaps` instances.
 
 Given two choices of rings of integral elements `A⁺₁` and `A⁺₂` for the same
 topological ring `A`, if `(A, A⁺₁)` is sheafy then so is `(A, A⁺₂)`. -/
-theorem problem8_sheafy
-    (inst₁ : PlusSubring A) (hrm₁ : @HasRestrictionMaps A _ _ _ inst₁)
-    (inst₂ : PlusSubring A) (hrm₂ : @HasRestrictionMaps A _ _ _ inst₂)
-    (h : @IsSheafy A _ _ _ inst₁ hrm₁) :
-    @IsSheafy A _ _ _ inst₂ hrm₂ := by
+theorem problem8_sheafy [IsHuberRing A]
+    (inst₁ : PlusSubring A) (inst₂ : PlusSubring A)
+    (h : @IsSheafy A _ _ _ inst₁ _) :
+    @IsSheafy A _ _ _ inst₂ _ := by
   sorry
 
 /-- **Scottish Book Problem 8b** (Kedlaya, resolved by Hansen):
@@ -61,11 +60,10 @@ theorem problem8_sheafy
 
 Given two choices of rings of integral elements `A⁺₁` and `A⁺₂` for the same
 topological ring `A`, if `(A, A⁺₁)` is stably uniform then so is `(A, A⁺₂)`. -/
-theorem problem8_stablyUniform
-    (inst₁ : PlusSubring A) (hrm₁ : @HasRestrictionMaps A _ _ _ inst₁)
-    (inst₂ : PlusSubring A) (hrm₂ : @HasRestrictionMaps A _ _ _ inst₂)
-    (h : @IsStablyUniform A _ _ _ inst₁ hrm₁) :
-    @IsStablyUniform A _ _ _ inst₂ hrm₂ := by
+theorem problem8_stablyUniform [IsHuberRing A]
+    (inst₁ : PlusSubring A) (inst₂ : PlusSubring A)
+    (h : @IsStablyUniform A _ _ _ inst₁ _) :
+    @IsStablyUniform A _ _ _ inst₂ _ := by
   sorry
 
 end ScottishBook

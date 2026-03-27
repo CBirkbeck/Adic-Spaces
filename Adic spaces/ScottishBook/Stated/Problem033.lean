@@ -54,11 +54,11 @@ theorem problem33
     (R : Type u) [CommRing R] [TopologicalSpace R] [IsTopologicalRing R]
     [UniformSpace R] [IsLinearTopology R R]
     [CharP R p] [IsPerfectoidRing p R]
-    [PlusSubring R] [HasRestrictionMaps R] :
+    [PlusSubring R] [IsHuberRing R] :
     let W := WittVector p ↥(powerBoundedSubring.toSubring R)
     ∃ (τ : TopologicalSpace W) (ps : @PlusSubring W _)
       (h₁ : @IsTopologicalRing W τ _)
-      (h₂ : @HasRestrictionMaps W _ τ h₁ ps),
+      (h₂ : @IsHuberRing W _ τ),
     @IsSheafy W _ τ h₁ ps h₂ := by
   sorry
 

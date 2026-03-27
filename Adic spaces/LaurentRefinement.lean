@@ -62,7 +62,7 @@ theorem rationalOpen_eq_iInter_singleton (T : Finset A) (hT : T.Nonempty) (s : A
 
 /-! ### Laurent cover construction -/
 
-variable [HasRestrictionMaps A]
+variable [IsHuberRing A]
 
 /-- The "plus half" of the Laurent cover at `f` within base `D₀`. -/
 noncomputable def laurentPlusDatum (D₀ : RationalLocData A) (f : A) :

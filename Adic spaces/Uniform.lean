@@ -47,7 +47,7 @@ class IsUniform : Prop where
 /-- A Huber pair `(A, A⁺)` is **stably uniform** if for every rational localization
 `(A, A⁺) → (B, B⁺)`, the localization ring `B` (with the localization topology) is
 uniform (Definition 7.37 of Wedhorn). -/
-class IsStablyUniform [PlusSubring A] [HasRestrictionMaps A] : Prop where
+class IsStablyUniform [PlusSubring A] [IsHuberRing A] : Prop where
   /-- The presheaf value (= completion of the localization) is uniform for every
   rational localization datum `D`. -/
   presheafValue_isUniform :

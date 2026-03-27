@@ -52,9 +52,9 @@ presentation over `A`; `Module.Finite A B` further requires that `B` is finite a
 `A`-module. The `sorry` is intentional — this is an open problem. -/
 theorem problem9
     (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [HasRestrictionMaps A] [IsStablyUniform A]
+    [PlusSubring A] [IsHuberRing A] [IsStablyUniform A]
     (B : Type v) [CommRing B] [TopologicalSpace B] [IsTopologicalRing B]
-    [PlusSubring B] [HasRestrictionMaps B]
+    [PlusSubring B] [IsHuberRing B]
     [Algebra A B] [Algebra.Etale A B] [Module.Finite A B] :
     IsStablyUniform B := by
   sorry

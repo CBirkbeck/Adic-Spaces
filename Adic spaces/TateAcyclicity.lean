@@ -301,7 +301,7 @@ The `IsStronglyNoetherianTate` condition is vacuous for discrete rings (no nontr
 discrete Tate rings exist), so this instance is essentially `IsSheafy.discrete`. -/
 instance IsSheafy.ofStronglyNoetherianTate_discrete
     (A : Type*) [CommRing A] [TopologicalSpace A] [DiscreteTopology A]
-    [IsTopologicalRing A] [PlusSubring A] [HasRestrictionMaps A] :
+    [IsTopologicalRing A] [PlusSubring A] [IsHuberRing A] :
     IsSheafy A where
   isEmbedding_productRestriction C := sorry
   gluing C f hcompat := sorry

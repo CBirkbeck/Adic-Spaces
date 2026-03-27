@@ -49,7 +49,7 @@ the (false) general statement; see `problem2_counterexample` for the negation an
 theorem problem2
     (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [UniformSpace A] [IsLinearTopology A A] [PlusSubring A]
-    [IsTateRing A] [HasRestrictionMaps A]
+    [IsTateRing A]
     (X : AdicSpace.{u}) (hX : IsPerfectoidSpace p X) :
     IsPerfectoidRing p A := by
   sorry
@@ -61,7 +61,7 @@ theorem problem2_counterexample :
       (_ : UniformSpace A) (_ : IsLinearTopology A A) (_ : PlusSubring A)
       (_ : IsTateRing A),
       (∃ (X : AdicSpace.{u}), IsPerfectoidSpace p X) ∧
-      ¬ ∃ (_ : HasRestrictionMaps A), IsPerfectoidRing p A := by
+      ¬ ∃ (_ : IsHuberRing A), IsPerfectoidRing p A := by
   sorry
 
 /-- **Scottish Book Problem 2 (stably uniform case)** (open):
@@ -69,7 +69,7 @@ theorem problem2_counterexample :
 theorem problem2_stablyUniform
     (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [UniformSpace A] [IsLinearTopology A A] [PlusSubring A]
-    [IsTateRing A] [HasRestrictionMaps A] [IsStablyUniform A]
+    [IsTateRing A] [IsStablyUniform A]
     (X : AdicSpace.{u}) (hX : IsPerfectoidSpace p X) :
     IsPerfectoidRing p A := by
   sorry

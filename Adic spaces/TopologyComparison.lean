@@ -27,11 +27,11 @@ strongly noetherian Tate rings.
 namespace ValuationSpectrum
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-  [PlusSubring A] [HasRestrictionMaps A] [NonarchimedeanRing A]
+  [PlusSubring A] [IsHuberRing A] [NonarchimedeanRing A]
 
 section CompletionIsomorphism
 
-omit [PlusSubring A] [HasRestrictionMaps A] in
+omit [PlusSubring A] [IsHuberRing A] in
 /-- The round-trip `Localization → Quotient → presheafValue` equals
 `locLiftToPresheaf = coeRingHom`. -/
 theorem tateQuotient_roundtrip_eq_locLift (D : RationalLocData A)
@@ -44,7 +44,7 @@ theorem tateQuotient_roundtrip_eq_locLift (D : RationalLocData A)
   rw [locToQuotientOneSubfX_gen_algebraMap, tateQuotientToPresheafHom_algebraMap,
     locLiftToPresheaf_algebraMap]
 
-omit [PlusSubring A] [HasRestrictionMaps A] in
+omit [PlusSubring A] [IsHuberRing A] in
 /-- The round-trip pointwise. -/
 theorem tateQuotient_roundtrip_apply (D : RationalLocData A)
     (hb : TopologicalRing.IsPowerBounded (invS D))
@@ -81,7 +81,7 @@ For sorry-elimination in StructureSheaf.lean: if the localization topology
 is T₀ and `coeRingHom(algebraMap b) = 0`, then `∃ k, s^k * b = 0`.
 This reduces deep sorries to a single clean T₀ hypothesis. -/
 
-omit [PlusSubring A] [HasRestrictionMaps A] [NonarchimedeanRing A] in
+omit [PlusSubring A] [IsHuberRing A] [NonarchimedeanRing A] in
 /-- If the localization topology on `Localization.Away D.s` is T₀, then
 `D.coeRingHom (algebraMap b) = 0` implies `∃ k, D.s ^ k * b = 0`.
 
@@ -159,7 +159,7 @@ noncomputable instance quotientTTopology_nonarchimedean (f : A) :
   obtain ⟨y, hy, rfl⟩ := hx
   exact hVU hy
 
-omit [PlusSubring A] [HasRestrictionMaps A] [NonarchimedeanRing A] in
+omit [PlusSubring A] [IsHuberRing A] [NonarchimedeanRing A] in
 /-- Multiplication by `s * t` sends `I^(k+C)` into `I^k` (inside `A₀`):
 for each `t`, continuity of `x ↦ s * t * x` yields `C` with
 `s * t * Im(I^{k+C}) ⊆ Im(I^k)` for all `k`.  This is the Artin-Rees
@@ -203,7 +203,7 @@ private theorem mul_st_ideal_shift (P : PairOfDefinition A) (s t : A) :
         change x'.val + y'.val = _; rw [hx_eq, hy_eq]⟩
 
 -- Helper: `divByS t s = algebraMap t * invSelf s` in `Localization.Away s`.
-omit [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] [HasRestrictionMaps A]
+omit [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] [IsHuberRing A]
   [NonarchimedeanRing A] in
 private theorem divByS_eq_algebraMap_mul_invSelf (t s : A) :
     divByS t s = algebraMap A (Localization.Away s) t *

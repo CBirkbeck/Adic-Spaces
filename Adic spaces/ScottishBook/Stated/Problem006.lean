@@ -61,7 +61,7 @@ are sousperfectoid. -/
 theorem problem6 (p : ℕ) [Fact (Nat.Prime p)] :
     ∃ (A : Type u) (_ : CommRing A) (_ : TopologicalSpace A) (_ : IsTopologicalRing A)
       (_ : UniformSpace A) (_ : IsLinearTopology A A) (_ : PlusSubring A)
-      (_ : HasRestrictionMaps A) (_ : IsStablyUniform A),
+      (_ : IsHuberRing A) (_ : IsStablyUniform A),
     ¬ IsSousperfectoid p A := by
   sorry
 

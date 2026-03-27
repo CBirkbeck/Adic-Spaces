@@ -58,7 +58,7 @@ theorem problem32
     [Algebra K B] :
     -- The completed tensor product A ⊗̂_K B is sheafy
     ∃ (C : Type u) (_ : CommRing C) (τ : TopologicalSpace C) (ps : @PlusSubring C _)
-      (h₁ : @IsTopologicalRing C τ _) (h₂ : @HasRestrictionMaps C _ τ h₁ ps),
+      (h₁ : @IsTopologicalRing C τ _) (h₂ : @IsHuberRing C _ τ),
     @IsSheafy C _ τ h₁ ps h₂ := by
   sorry
 

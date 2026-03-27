@@ -250,32 +250,32 @@ noncomputable def presheafGlobal (P : PairOfDefinition A) : Type _ :=
 
 end GlobalSections
 
-/-! ### Restriction maps data
+/-! ### Restriction maps (Proposition 8.2 of Wedhorn)
 
-A Huber pair `(A, A⁺)` *has restriction maps* if for every inclusion of rational subsets
-`R(T'/s') ⊆ R(T/s)`, the element `s` maps to a unit in `A⟨T'/s'⟩` and the induced
-algebraic restriction map is continuous. These are the key inputs for Proposition 8.2
-of Wedhorn (existence and uniqueness of restriction maps).
+For a Huber ring `A` and every inclusion of rational subsets `R(T'/s') ⊆ R(T/s)`,
+the element `s` maps to a unit in `A⟨T'/s'⟩` and the induced algebraic restriction
+map is continuous. These are the key properties of Proposition 8.2 of Wedhorn.
 
-For discrete rings, these conditions are easy to verify (`HasRestrictionMaps.discrete`).
+For discrete rings, these conditions are easy to verify.
 For general Huber rings, they require the full affinoid ring structure on `A⟨T/s⟩`
 and Proposition 7.52. -/
 
-/-- A Huber pair *has restriction maps* if `s` maps to a unit and the
-algebraic lift is continuous for every rational inclusion
+/-- The image of `s` under `A → A⟨T'/s'⟩` is a unit when `R(T'/s') ⊆ R(T/s)`
+(Proposition 8.2 of Wedhorn). For Huber rings, this uses Lemma 7.45. -/
+theorem isUnit_canonicalMap_s_of_huber {A : Type*} [CommRing A] [TopologicalSpace A]
+    [IsTopologicalRing A] [PlusSubring A] [IsHuberRing A]
+    (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
+    IsUnit (D'.canonicalMap D.s) := sorry
+
+/-- The algebraic restriction map is continuous for Huber rings
 (Proposition 8.2 of Wedhorn). -/
-class HasRestrictionMaps (A : Type*) [CommRing A] [TopologicalSpace A]
-    [IsTopologicalRing A] [PlusSubring A] : Prop where
-  /-- The image of `s` under `A → A⟨T'/s'⟩` is a unit when `R(T'/s') ⊆ R(T/s)`. -/
-  isUnit_canonicalMap_s : ∀ (D D' : RationalLocData A),
-    rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s → IsUnit (D'.canonicalMap D.s)
-  /-- The algebraic restriction map is continuous. -/
-  restrictionMapAlg_continuous : ∀ (D D' : RationalLocData A)
-    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s),
+theorem restrictionMapAlg_continuous_of_huber {A : Type*} [CommRing A]
+    [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] [IsHuberRing A]
+    (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     @Continuous _ _ D.topology
       (@UniformSpace.toTopologicalSpace _
         (@UniformSpace.Completion.uniformSpace _ D'.uniformSpace))
-      (IsLocalization.Away.lift D.s (isUnit_canonicalMap_s D D' h))
+      (IsLocalization.Away.lift D.s (isUnit_canonicalMap_s_of_huber D D' h)) := sorry
 
 /-! ### Restriction maps (Proposition 8.2 of Wedhorn)
 
@@ -289,13 +289,14 @@ on the basis of rational subsets (Proposition 8.2 of Wedhorn). -/
 section RestrictionMaps
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-  [PlusSubring A] [HasRestrictionMaps A]
+  [PlusSubring A] [IsHuberRing A]
 
-/-- The image of `s` under `A → A⟨T'/s'⟩` is a unit when `R(T'/s') ⊆ R(T/s)`. -/
+/-- The image of `s` under `A → A⟨T'/s'⟩` is a unit when `R(T'/s') ⊆ R(T/s)`
+(Proposition 8.2 of Wedhorn). -/
 theorem isUnit_canonicalMap_s (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
-    IsUnit (D'.canonicalMap D.s) :=
-  HasRestrictionMaps.isUnit_canonicalMap_s D D' h
+    IsUnit (D'.canonicalMap D.s) := by
+  exact isUnit_canonicalMap_s_of_huber D D' h
 
 /-- The algebraic part of the restriction map via `IsLocalization.Away.lift`. -/
 noncomputable def restrictionMapAlg (D D' : RationalLocData A)
@@ -303,14 +304,14 @@ noncomputable def restrictionMapAlg (D D' : RationalLocData A)
     Localization.Away D.s →+* presheafValue D' :=
   IsLocalization.Away.lift D.s (isUnit_canonicalMap_s D D' h)
 
-/-- The algebraic restriction map is continuous. -/
+/-- The algebraic restriction map is continuous (Proposition 8.2 of Wedhorn). -/
 theorem restrictionMapAlg_continuous (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     @Continuous _ _ D.topology
       (@UniformSpace.toTopologicalSpace _
         (@UniformSpace.Completion.uniformSpace _ D'.uniformSpace))
-      (restrictionMapAlg D D' h) :=
-  HasRestrictionMaps.restrictionMapAlg_continuous D D' h
+      (restrictionMapAlg D D' h) := by
+  exact restrictionMapAlg_continuous_of_huber D D' h
 
 /-- The restriction map `σ : A⟨T/s⟩ →+* A⟨T'/s'⟩` (Proposition 8.2(1) of Wedhorn). -/
 noncomputable def restrictionMapHom (D D' : RationalLocData A)
@@ -531,41 +532,43 @@ private theorem mem_prime_of_rational_subset_discrete {A : Type*} [CommRing A]
       simp only [hw_Ds, map_zero, le_zero_iff, one_ne_zero, not_false_eq_true, w]
   exact (h hv_rat).2.2 ((v.mem_supp_iff D.s).mp (hv_supp ▸ hDs))
 
-/-- Discrete rings have restriction maps (Proposition 8.2 of Wedhorn, discrete case). -/
-instance HasRestrictionMaps.discrete {A : Type*} [CommRing A] [TopologicalSpace A]
-    [DiscreteTopology A] [IsTopologicalRing A] [PlusSubring A] :
-    HasRestrictionMaps A where
-  isUnit_canonicalMap_s := fun D D' h ↦ by
-    suffices hu : IsUnit (algebraMap A (Localization.Away D'.s) D.s) by
-      change IsUnit (D'.coeRingHom (algebraMap A (Localization.Away D'.s) D.s))
-      exact hu.map D'.coeRingHom
-    have hrad : D'.s ∈ Ideal.radical (Ideal.span {D.s}) := by
-      classical
-      rw [Ideal.radical_eq_sInf, Ideal.mem_sInf]
-      intro p ⟨hsp, hp⟩
-      have hDs : D.s ∈ p := hsp (Ideal.subset_span (Set.mem_singleton D.s))
-      exact mem_prime_of_rational_subset_discrete D D' h p hp hDs
-    obtain ⟨n, hn⟩ := Ideal.mem_radical_iff.mp hrad
-    obtain ⟨a, ha⟩ := Ideal.mem_span_singleton'.mp hn
-    have hunit_pow : IsUnit (algebraMap A (Localization.Away D'.s) D'.s ^ n) :=
-      (IsLocalization.map_units (Localization.Away D'.s)
-        (⟨D'.s, ⟨1, pow_one D'.s⟩⟩ : Submonoid.powers D'.s)).pow n
-    have heq : algebraMap A (Localization.Away D'.s) a *
-        algebraMap A (Localization.Away D'.s) D.s =
-        algebraMap A (Localization.Away D'.s) D'.s ^ n := by
-      rw [← map_mul, ← map_pow, ha]
-    rw [← heq] at hunit_pow
-    exact isUnit_of_mul_isUnit_right hunit_pow
-  restrictionMapAlg_continuous := fun D _ _ ↦ locTopology_eq_bot_of_discrete D ▸ continuous_bot
+/-- The image of `s` under `A → A⟨T'/s'⟩` is a unit when `R(T'/s') ⊆ R(T/s)`
+(Proposition 8.2 of Wedhorn, discrete case). -/
+theorem isUnit_canonicalMap_s_of_discrete {A : Type*} [CommRing A] [TopologicalSpace A]
+    [DiscreteTopology A] [IsTopologicalRing A] [PlusSubring A]
+    (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
+    IsUnit (D'.canonicalMap D.s) := by
+  suffices hu : IsUnit (algebraMap A (Localization.Away D'.s) D.s) by
+    change IsUnit (D'.coeRingHom (algebraMap A (Localization.Away D'.s) D.s))
+    exact hu.map D'.coeRingHom
+  have hrad : D'.s ∈ Ideal.radical (Ideal.span {D.s}) := by
+    classical
+    rw [Ideal.radical_eq_sInf, Ideal.mem_sInf]
+    intro p ⟨hsp, hp⟩
+    have hDs : D.s ∈ p := hsp (Ideal.subset_span (Set.mem_singleton D.s))
+    exact mem_prime_of_rational_subset_discrete D D' h p hp hDs
+  obtain ⟨n, hn⟩ := Ideal.mem_radical_iff.mp hrad
+  obtain ⟨a, ha⟩ := Ideal.mem_span_singleton'.mp hn
+  have hunit_pow : IsUnit (algebraMap A (Localization.Away D'.s) D'.s ^ n) :=
+    (IsLocalization.map_units (Localization.Away D'.s)
+      (⟨D'.s, ⟨1, pow_one D'.s⟩⟩ : Submonoid.powers D'.s)).pow n
+  have heq : algebraMap A (Localization.Away D'.s) a *
+      algebraMap A (Localization.Away D'.s) D.s =
+      algebraMap A (Localization.Away D'.s) D'.s ^ n := by
+    rw [← map_mul, ← map_pow, ha]
+  rw [← heq] at hunit_pow
+  exact isUnit_of_mul_isUnit_right hunit_pow
 
-/-- Huber rings have restriction maps (Proposition 8.2 of Wedhorn).
-The proof uses Lemma 7.45 (every prime supports a Spa point) to show `s` maps
-to a unit, and continuity of the localization topology for the restriction. -/
-instance HasRestrictionMaps.ofHuber {A : Type*} [CommRing A] [TopologicalSpace A]
-    [IsTopologicalRing A] [PlusSubring A] [IsHuberRing A] :
-    HasRestrictionMaps A where
-  isUnit_canonicalMap_s := fun D D' h ↦ sorry
-  restrictionMapAlg_continuous := fun D D' h ↦ sorry
+/-- The algebraic restriction map is continuous for discrete rings
+(Proposition 8.2 of Wedhorn, discrete case). -/
+theorem restrictionMapAlg_continuous_of_discrete {A : Type*} [CommRing A]
+    [TopologicalSpace A] [DiscreteTopology A] [IsTopologicalRing A] [PlusSubring A]
+    (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
+    @Continuous _ _ D.topology
+      (@UniformSpace.toTopologicalSpace _
+        (@UniformSpace.Completion.uniformSpace _ D'.uniformSpace))
+      (IsLocalization.Away.lift D.s (isUnit_canonicalMap_s_of_discrete D D' h)) :=
+  locTopology_eq_bot_of_discrete D ▸ continuous_bot
 
 /-- The completion embedding is bijective for discrete rings. -/
 theorem coeRingHom_bijective_of_discrete {A : Type*} [CommRing A]
@@ -607,6 +610,7 @@ theorem coeRingHom_bijective_of_discrete {A : Type*} [CommRing A]
 localization map (helper for `productRestriction_injective_discrete`). -/
 private theorem lift_map_zero_of_restrictionAlg_zero {A : Type*} [CommRing A]
     [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] [DiscreteTopology A]
+    [IsHuberRing A]
     (C : RationalCovering A) (z : Localization.Away C.base.s)
     (hz_zero : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
       restrictionMapAlg C.base D (C.hsubset D hD) z = 0)
@@ -707,6 +711,7 @@ private theorem base_s_mem_annihilator_radical {A : Type*} [CommRing A]
 /-- Product restriction is injective for discrete rings (Theorem 8.28(c)). -/
 theorem productRestriction_injective_discrete {A : Type*} [CommRing A]
     [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] [DiscreteTopology A]
+    [IsHuberRing A]
     (C : RationalCovering A) :
     Function.Injective (fun x : presheafValue C.base ↦
       fun (D : C.covers) ↦ restrictionMap C.base D (C.hsubset D D.prop) x) := by

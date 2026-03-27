@@ -568,7 +568,7 @@ proof goes through almost mathematics and tilting. -/
 theorem toIsStablyUniform (p : ℕ) [Fact (Nat.Prime p)]
     (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [UniformSpace A] [IsLinearTopology A A] [IsPerfectoidRing p A]
-    [PlusSubring A] [HasRestrictionMaps A] :
+    [PlusSubring A] [IsHuberRing A] :
     IsStablyUniform A := sorry
 
 /-- **Perfectoid rings are sheafy** (Scholze, *Perfectoid Spaces*, Theorem 6.3).
@@ -578,7 +578,7 @@ uniform Tate rings are sheafy. -/
 theorem toIsSheafy (p : ℕ) [Fact (Nat.Prime p)]
     (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [UniformSpace A] [IsLinearTopology A A] [IsPerfectoidRing p A]
-    [PlusSubring A] [HasRestrictionMaps A] :
+    [PlusSubring A] [IsHuberRing A] :
     IsSheafy A := sorry
 
 end IsPerfectoidRing

@@ -155,7 +155,7 @@ def structureSheaf : Sheaf CommRingCat (SpaTop A) :=
 
 /-! ### Sheafy affinoid rings (Definition 8.26 of Wedhorn) -/
 
-variable [IsTopologicalRing A] [HasRestrictionMaps A]
+variable [IsTopologicalRing A] [IsHuberRing A]
 
 /-- The product restriction map for a rational covering. -/
 noncomputable def productRestriction (C : RationalCovering A) :
@@ -175,7 +175,7 @@ By Remark 8.20, this is equivalent to two conditions:
 1. The product restriction is a topological embedding (condition (2)).
 2. Compatible families glue to global sections (condition (1b)). -/
 class IsSheafy (A : Type u) [CommRing A] [TopologicalSpace A]
-    [IsTopologicalRing A] [inst₁ : PlusSubring A] [inst₂ : HasRestrictionMaps A] :
+    [IsTopologicalRing A] [inst₁ : PlusSubring A] [inst₂ : IsHuberRing A] :
     Prop where
   isEmbedding_productRestriction : ∀ (C : RationalCovering A),
     Topology.IsEmbedding (productRestrictionSub A C)
@@ -192,7 +192,7 @@ class IsSheafy (A : Type u) [CommRing A] [TopologicalSpace A]
 
 /-- Sheafy implies separation (injectivity of product restriction). -/
 theorem IsSheafy.separation [IsTopologicalRing A] [PlusSubring A]
-    [HasRestrictionMaps A] [IsSheafy A] (C : RationalCovering A) :
+    [IsHuberRing A] [IsSheafy A] (C : RationalCovering A) :
     Function.Injective (productRestriction A C) := by
   intro x y hxy
   exact (IsSheafy.isEmbedding_productRestriction C).injective
@@ -502,7 +502,7 @@ theorem productRestriction_coe_eq
   letI := D.isUniformAddGroup
   erw [UniformSpace.Completion.extensionHom_coe
     (restrictionMapAlg C.base D (C.hsubset D hD))
-    (HasRestrictionMaps.restrictionMapAlg_continuous
+    (restrictionMapAlg_continuous
       C.base D (C.hsubset D hD))]
 
 /-- Each component of the product restriction is a ring homomorphism.
@@ -563,7 +563,7 @@ valuations (which are always continuous on discrete rings). For
 general Tate rings, this requires constructing continuous
 valuations at primes (Lemma 7.45 of Wedhorn). -/
 
-omit [HasRestrictionMaps A] in
+omit [IsHuberRing A] in
 /-- **Spa points in rational subsets at open primes.**
 
 Given an open prime `p` of a topological ring `A` with `s ∉ p`,
@@ -650,7 +650,7 @@ theorem exists_spa_point_in_rationalOpen_of_isOpen_prime
       simp only [hw_s, map_zero, le_zero_iff, one_ne_zero, not_false_eq_true, w]
   exact ⟨v, hv_rat, hv_supp_eq ▸ le_refl _⟩
 
-omit [HasRestrictionMaps A] in
+omit [IsHuberRing A] in
 /-- **Spa points in rational subsets for Tate rings.**
 
 For a complete affinoid Tate ring `(A, A⁺)` with pair of definition
@@ -685,7 +685,7 @@ theorem exists_spa_point_in_rationalOpen_of_tate
     -- constraint v(t) ≤ v(s) ≠ 0 requires controlling the valuation at T and s.
     sorry
 
-omit [HasRestrictionMaps A] in
+omit [IsHuberRing A] in
 /-- **The Spa-point radical lemma.**
 
 Given a rational covering `C` and an element `a : A` such that
@@ -810,7 +810,7 @@ theorem completionKer_eq_bot_of_locKer_eq_bot
       z = 0 := by
   sorry -- QUARANTINED: needs AdicCompletion bridge
 
-omit [HasRestrictionMaps A] in
+omit [IsHuberRing A] in
 /-- QUARANTINED: **False in general** when `locIdeal = ⊤`. -/
 theorem localization_isT0 [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
@@ -927,7 +927,7 @@ theorem tateQuotientProductRestriction_injective_on_algebraMap
     rw [show C.base.canonicalMap a = C.base.coeRingHom (algebraMap A _ a) from rfl] at hz
     erw [UniformSpace.Completion.extensionHom_coe
       (restrictionMapAlg C.base D (C.hsubset D hD))
-      (HasRestrictionMaps.restrictionMapAlg_continuous
+      (restrictionMapAlg_continuous
         C.base D (C.hsubset D hD))] at hz
     simp only [restrictionMapAlg, IsLocalization.Away.lift_eq] at hz
     exact hz
@@ -1310,7 +1310,7 @@ theorem productRestriction_comp_canonicalMap
   letI := D.isUniformAddGroup
   erw [UniformSpace.Completion.extensionHom_coe
     (restrictionMapAlg C.base D (C.hsubset D hD))
-    (HasRestrictionMaps.restrictionMapAlg_continuous
+    (restrictionMapAlg_continuous
       C.base D (C.hsubset D hD))]
   simp only [restrictionMapAlg, IsLocalization.Away.lift_eq]
 

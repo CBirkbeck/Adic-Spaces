@@ -50,7 +50,7 @@ theorem problem4
     (p : ℕ) [Fact (Nat.Prime p)]
     (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [UniformSpace A] [IsLinearTopology A A]
-    [PlusSubring A] [HasRestrictionMaps A]
+    [PlusSubring A] [IsHuberRing A]
     [IsTateRing A] [IsSheafy A]
     -- There exists an open dense subset that is perfectoid
     (U : TopologicalSpace.Opens (SpaTop A))

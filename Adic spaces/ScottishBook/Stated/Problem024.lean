@@ -73,7 +73,7 @@ the completed localization `A⟨T/s⟩ = presheafValue D` is flat as an `A`-modu
 
 This is the analytic formulation: flatness of the completed localization `A → A⟨T/s⟩`.
 The `sorry` represents the open problem. -/
-theorem problem24' [PlusSubring A] [IsTateRing A] [HasRestrictionMaps A]
+theorem problem24' [PlusSubring A] [IsTateRing A]
     (D : RationalLocData A) :
     @Module.Flat A (presheafValue D)
       _ _ (RingHom.toModule D.canonicalMap) := by
