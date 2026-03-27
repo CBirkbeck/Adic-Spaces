@@ -147,6 +147,24 @@ theorem presheafValue_ringOfDef_isOpen (D₀ : RationalLocData A) :
   change IsOpen ((presheafValue_ringOfDef D₀).toAddSubgroup : Set (presheafValue D₀))
   exact AddSubgroup.isOpen_of_mem_nhds _ hmem_nhds
 
+/-- **Key uniformity identification** (reviewer confirmed):
+The subspace uniformity on `locSubring ⊆ Localization.Away s` equals
+the `locIdeal`-adic uniformity. Since the localization topology is defined
+by the basis `locNhd n = image(locIdeal^n)`, the induced topology on
+locSubring has 0-basis `locIdeal^n` (because the inclusion is injective).
+For additive topological groups, uniformity is determined by nhds 0.
+
+Consequence: `Completion(locSubring, J-adic) ≅ closure(locSubring in presheafValue)`
+as uniform spaces. This is `ringOfDef`. -/
+theorem locSubring_subspace_eq_adic (D₀ : RationalLocData A) :
+    UniformSpace.comap (locSubring D₀.P D₀.T D₀.s).subtype D₀.uniformSpace =
+    @IsTopologicalAddGroup.rightUniformSpace _ _
+      (locIdeal D₀.P D₀.T D₀.s).adicTopology
+      (inferInstance) := by
+  sorry -- Reviewer confirmed: subspace uniformity = J-adic uniformity
+        -- Proof: localization basis locNhd n restricts to locIdeal^n on locSubring
+        -- (because the inclusion is injective and locNhd n = image of locIdeal^n)
+
 /-- The ring hom from `locSubring` into `presheafValue_ringOfDef D₀`: compose `coeRingHom`
 with `subtype`, then lift into the topological closure (which contains the range). -/
 noncomputable def locSubringToRingOfDef (D₀ : RationalLocData A) :
@@ -330,8 +348,18 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
   -- topological ring is closed. Since ringOfDef = Completion(locSubring) is
   -- complete and Noetherian, idealOfDef^n is closed in ringOfDef.
   -- Then val '' (idealOfDef^n) is closed by closed embedding.
-  sorry -- Needs: AdicCompletionBridge homeomorphism for locSubring
-        -- OR: Prop 6.17 (ideals in complete Noetherian rings are closed)
+  -- The non-circular proof goes through the AdicCompletionBridge:
+  -- 1. Completion(locSubring, J-adic) ≅ ringOfDef (reviewer confirmed)
+  -- 2. AdicCompletionBridge: Completion(locSubring) ≃ AdicCompletion(J, locSubring)
+  -- 3. In AdicCompletion: ker(eval_n) = {x | x.val n = 0} is closed
+  -- 4. bridge⁻¹(ker(eval_n)) is closed in Completion(locSubring) = ringOfDef
+  -- 5. bridge⁻¹(ker(eval_n)) = idealOfDef^n (by ideal_smul_top_eq_self + Ideal.map_pow)
+  -- 6. val '' (closed subset of closed subring) = closed
+  --
+  -- The missing Lean infrastructure: the homeomorphism
+  --   ringOfDef ≃ₜ Completion(locSubring, J-adic) ≃ₜ AdicCompletion(J, locSubring)
+  -- and the identification of ker(eval_n) with idealOfDef^n under this homeomorphism.
+  sorry
 
 private theorem closure_locNhd_sub_idealOfDef_pow (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] (n : ℕ) :
