@@ -162,8 +162,10 @@ noncomputable def productRestriction (C : RationalCovering A) :
     presheafValue C.base → ∀ D ∈ C.covers, presheafValue D :=
   fun x D hD ↦ restrictionMap C.base D (C.hsubset D hD) x
 
-/-- An affinoid ring is *sheafy* if the product restriction map is
-injective for every rational covering (Definition 8.26). -/
+/-- An affinoid ring has the *separation property* if the product restriction map is
+injective for every rational covering. This is a consequence of the full sheaf
+condition (Definition 8.26 of Wedhorn), but weaker — it omits the topological
+embedding and gluing conditions. See `IsSheafyTopRing` for the full condition. -/
 class IsSheafy [IsTopologicalRing A] [HasRestrictionMaps A] : Prop where
   /-- For every rational covering, the product restriction map is injective
   (separation / uniqueness of gluing). -/
@@ -177,6 +179,44 @@ instance IsSheafy.discrete [DiscreteTopology A] [IsTopologicalRing A] :
     intro x y hxy; exact productRestriction_injective_discrete C
       (funext fun ⟨D, hD⟩ ↦ congr_fun (congr_fun hxy D) hD)⟩
 
+/-! ### Sheafy affinoid rings (Definition 8.26 / Remark 8.20 of Wedhorn) -/
+
+/-- The product restriction map using a subtype-indexed product. -/
+noncomputable def productRestrictionSub (C : RationalCovering A) :
+    presheafValue C.base → ∀ (D : ↥C.covers), presheafValue D.1 :=
+  fun x ⟨D, hD⟩ ↦ restrictionMap C.base D (C.hsubset D hD) x
+
+/-- The full sheafiness condition (Definition 8.26 of Wedhorn).
+An affinoid ring `(A, A⁺)` is **sheafy** if the structure presheaf `𝒪_X` on
+`Spa(A, A⁺)` is a sheaf of topological rings. By Remark 8.20, this is
+equivalent to two conditions:
+1. The product restriction is a topological embedding (condition (2)).
+2. Compatible families glue to global sections (condition (1b)). -/
+class IsSheafyTopRing (A : Type u) [CommRing A] [TopologicalSpace A]
+    [IsTopologicalRing A] [inst₁ : PlusSubring A] [inst₂ : HasRestrictionMaps A] :
+    Prop where
+  isEmbedding_productRestriction : ∀ (C : RationalCovering A),
+    Topology.IsEmbedding (productRestrictionSub A C)
+  gluing : ∀ (C : RationalCovering A)
+    (f : ∀ (D : ↥C.covers), presheafValue D.1),
+    (∀ (D₁ D₂ : ↥C.covers)
+       (D₃ : RationalLocData A)
+       (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+       (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+       restrictionMap D₁.1 D₃ h₃₁ (f D₁) =
+         restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
+    ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
+      restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D
+
+/-- `IsSheafyTopRing` implies `IsSheafy` (separation follows from embedding). -/
+instance (priority := 100) IsSheafyTopRing.toIsSheafy (A : Type u) [CommRing A]
+    [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] [HasRestrictionMaps A]
+    [IsSheafyTopRing A] : IsSheafy A where
+  separation C := by
+    intro x y hxy
+    exact (IsSheafyTopRing.isEmbedding_productRestriction C).injective
+      (funext fun ⟨D, hD⟩ ↦ congr_fun (congr_fun hxy D) hD)
+
 /-! ### Affinoid adic spaces (Definition 8.21 of Wedhorn) -/
 
 /-- An *affinoid adic space* (Definition 8.21 of Wedhorn). -/
@@ -188,12 +228,12 @@ structure AffinoidAdicSpace where
   [instIsTopologicalRing : IsTopologicalRing Ring]
   [instPlusSubring : PlusSubring Ring]
   [instHasRestrictionMaps : HasRestrictionMaps Ring]
-  [instIsSheafy : IsSheafy Ring]
+  [instIsSheafyTopRing : IsSheafyTopRing Ring]
 
 attribute [instance] AffinoidAdicSpace.instCommRing
   AffinoidAdicSpace.instTopologicalSpace AffinoidAdicSpace.instIsTopologicalRing
   AffinoidAdicSpace.instPlusSubring AffinoidAdicSpace.instHasRestrictionMaps
-  AffinoidAdicSpace.instIsSheafy
+  AffinoidAdicSpace.instIsSheafyTopRing
 
 namespace AffinoidAdicSpace
 
@@ -407,43 +447,6 @@ def VObj.forgetToVPre : VObj.{u} ⥤ VPreObj.{u} where
   map f := f
   map_id _ := rfl
   map_comp _ _ := rfl
-
-/-! ### Sheafy affinoid rings, revisited (Definition 8.26 / Remark 8.20 of Wedhorn) -/
-
-/-- The product restriction map using a subtype-indexed product. -/
-noncomputable def productRestrictionSub (C : RationalCovering A) :
-    presheafValue C.base → ∀ (D : ↥C.covers), presheafValue D.1 :=
-  fun x ⟨D, hD⟩ ↦ restrictionMap C.base D (C.hsubset D hD) x
-
-/-- The full sheafiness condition (Definition 8.26 of Wedhorn). -/
-class IsSheafyTopRing (A : Type u) [CommRing A] [TopologicalSpace A]
-    [IsTopologicalRing A] [inst₁ : PlusSubring A] [inst₂ : HasRestrictionMaps A] :
-    Prop where
-  /-- The product restriction map is a topological embedding
-  (Remark 8.20, condition (2) of Wedhorn). -/
-  isEmbedding_productRestriction : ∀ (C : RationalCovering A),
-    Topology.IsEmbedding (productRestrictionSub A C)
-  /-- Compatible families of sections glue to a global section
-  (Remark 8.20, condition (1b) of Wedhorn). -/
-  gluing : ∀ (C : RationalCovering A)
-    (f : ∀ (D : ↥C.covers), presheafValue D.1),
-    (∀ (D₁ D₂ : ↥C.covers)
-       (D₃ : RationalLocData A)
-       (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
-       (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
-       restrictionMap D₁.1 D₃ h₃₁ (f D₁) =
-         restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
-    ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
-      restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D
-
-/-- `IsSheafyTopRing` implies `IsSheafy`. -/
-instance (priority := 100) IsSheafyTopRing.toIsSheafy (A : Type u) [CommRing A]
-    [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] [HasRestrictionMaps A]
-    [IsSheafyTopRing A] : IsSheafy A where
-  separation C := by
-    intro x y hxy
-    exact (IsSheafyTopRing.isEmbedding_productRestriction C).injective
-      (funext fun ⟨D, hD⟩ ↦ congr_fun (congr_fun hxy D) hD)
 
 /-! ### Sheafiness of strongly noetherian Tate rings (Theorem 8.28 of Wedhorn)
 
