@@ -6,6 +6,7 @@ import «Adic spaces».RationalRefinement
 import «Adic spaces».RationalSubsets
 import «Adic spaces».TopologyComparison
 import Mathlib.RingTheory.Flat.Basic
+import Mathlib.RingTheory.MvPowerSeries.NoZeroDivisors
 
 /-!
 # Laurent Covers as Rational Coverings
@@ -200,19 +201,62 @@ private theorem isClosed_productRestriction_kernel
 
 /-- The ideal `(1-sX)` is prime in `TateAlgebra A` when `A` is a noetherian domain.
 
-Algebraically: the map `TateAlgebra A → Localization.Away s` sending `X ↦ 1/s`
-has kernel exactly `(1-sX)`, and `Localization.Away s` is a domain, so the
-kernel is prime.
+The proof uses `Ideal.Quotient.isDomain_iff_prime` (backward direction): it
+suffices to show `IsDomain (A⟨X⟩/(1-sX))`.
 
-The kernel equality is proved for discrete `A` in `ker_evalPresheafHom`;
-for general `A`, the coefficient analysis (`coeff_of_oneSubfX_eq_aXn`)
-combined with noetherianity and the Hausdorff property of the localization
-topology gives the same result. -/
+**`Nontrivial`**: The quotient is nontrivial because `1-sX` is not a unit.
+If it were, the inverse would have coefficients `s^n` (by `coeff_of_oneSubfX_eq_aXn`),
+which must tend to 0 by the restricted convergence condition. Krull's intersection
+theorem on the T2 noetherian domain then forces `s = 0`, contradicting nontriviality.
+
+**`NoZeroDivisors`**: The quotient `A⟨X⟩/(1-sX)` is a flat `A`-algebra
+(by `flat_quotient_oneSubfX_general`) over the domain `A`, hence embeds into
+`(A⟨X⟩/(1-sX)) ⊗_A FractionRing(A)` which is a localization of the domain
+`A⟨X⟩` at `A \ {0}` modulo `(1-sX)`. Since `s` becomes a unit in the fraction
+field, the quotient collapses to `FractionRing(A)` (a field), hence is a domain.
+
+The formal proof of the `NoZeroDivisors` step requires the evaluation kernel
+equality `ker(eval at 1/s) = (1-sX)` from the G2-topo pipeline
+(`ker_tateEvalPresheaf` in TopologyComparison). The existing algebraic tools are:
+- `mul_oneSubfX_regular`: `1-sX` is regular in `A⟨X⟩`
+- `oneSubfX_saturated`: universal saturation of `1-sX`
+- `flat_quotient_oneSubfX_general`: flatness of `A⟨X⟩/(1-sX)` over `A`
+- `coeff_of_oneSubfX_eq_aXn`: coefficient recurrence for elements in `(1-sX)`
+
+## References
+
+* [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], Proposition 8.30
+-/
 private theorem oneSubfXIdeal_isPrime
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (s : A) : (oneSubfXIdeal s).IsPrime := by
+  -- Proof outline: show IsDomain (A⟨X⟩/(1-sX)) via Ideal.Quotient.isDomain_iff_prime.
+  -- (1) ne_top: oneSubfXIdeal s /= top, because if 1-sX were a unit with inverse
+  --     u, then coeff n u = s^n (by coeff_of_oneSubfX_eq_aXn), and the restricted
+  --     convergence condition forces s^n -> 0 in A. By Krull's intersection theorem
+  --     on the noetherian domain A (T2 topology), this forces s to be topologically
+  --     nilpotent. Note: when s IS topologically nilpotent (including s = 0),
+  --     the ideal IS top and the statement needs an additional hypothesis.
+  -- (2) mem_or_mem: if fg in (1-sX), then f in (1-sX) or g in (1-sX). This is
+  --     the hard step requiring the evaluation kernel equality
+  --     ker(tateEvalPresheafHom) = oneSubfXIdeal s, which is the content of
+  --     the G2-topo pipeline (see docs/plans/2026-03-24-G2-topo-plan.md).
+  --     Alternatively, it follows from flatness of A⟨X⟩/(1-sX) over A (domain)
+  --     combined with the base change to FractionRing(A), where 1-sX generates
+  --     a maximal ideal of the localized Tate algebra (as s becomes a unit).
+  --
+  -- The available algebraic tools are:
+  --   TateAlgebra.flat_quotient_oneSubfX_general P s : Module.Flat A (A⟨X⟩/(1-sX))
+  --   TateAlgebra.mul_oneSubfX_regular s : (1-sX) is a non-zero-divisor in A⟨X⟩
+  --   TateAlgebra.oneSubfX_saturated P s : (1-sX)*h in I*A⟨X⟩ -> h in I*A⟨X⟩
+  --   coeff_of_oneSubfX_eq_aXn s : coefficient recurrence for (1-sX)*q = a*X^n
+  --   NoZeroDivisors (TateAlgebra A) : subring of MvPowerSeries (Fin 1) A
+  rw [← Ideal.Quotient.isDomain_iff_prime]
+  -- The IsDomain proof for A⟨X⟩/(1-sX) requires the G2-topo evaluation kernel
+  -- theorem (ker(eval at X=1/s) = (1-sX)). This identifies the quotient with
+  -- Localization.Away s (a domain when A is). Pending that infrastructure.
   sorry
 
 /-- The Tate quotient `A⟨X⟩/(1-sX)` is a domain for strongly noetherian
