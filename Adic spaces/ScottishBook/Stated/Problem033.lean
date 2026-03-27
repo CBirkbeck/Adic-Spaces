@@ -59,7 +59,7 @@ theorem problem33
     ∃ (τ : TopologicalSpace W) (ps : @PlusSubring W _)
       (h₁ : @IsTopologicalRing W τ _)
       (h₂ : @HasRestrictionMaps W _ τ h₁ ps),
-    @IsSheafy W _ τ ps h₁ h₂ := by
+    @IsSheafy W _ τ h₁ ps h₂ := by
   sorry
 
 end ScottishBook

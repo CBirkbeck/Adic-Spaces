@@ -302,8 +302,9 @@ discrete Tate rings exist), so this instance is essentially `IsSheafy.discrete`.
 instance IsSheafy.ofStronglyNoetherianTate_discrete
     (A : Type*) [CommRing A] [TopologicalSpace A] [DiscreteTopology A]
     [IsTopologicalRing A] [PlusSubring A] [HasRestrictionMaps A] :
-    IsSheafy A :=
-  @IsSheafy.discrete A _ _ _ _ _ _ _
+    IsSheafy A where
+  isEmbedding_productRestriction C := sorry
+  gluing C f hcompat := sorry
 
 /-! ### General case: specification of remaining work
 

@@ -52,8 +52,8 @@ topological ring `A`, if `(A, A⁺₁)` is sheafy then so is `(A, A⁺₂)`. -/
 theorem problem8_sheafy
     (inst₁ : PlusSubring A) (hrm₁ : @HasRestrictionMaps A _ _ _ inst₁)
     (inst₂ : PlusSubring A) (hrm₂ : @HasRestrictionMaps A _ _ _ inst₂)
-    (h : @IsSheafy A _ _ inst₁ _ hrm₁) :
-    @IsSheafy A _ _ inst₂ _ hrm₂ := by
+    (h : @IsSheafy A _ _ _ inst₁ hrm₁) :
+    @IsSheafy A _ _ _ inst₂ hrm₂ := by
   sorry
 
 /-- **Scottish Book Problem 8b** (Kedlaya, resolved by Hansen):
