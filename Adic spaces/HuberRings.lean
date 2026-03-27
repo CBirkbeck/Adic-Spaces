@@ -67,7 +67,8 @@ structure PairOfDefinition (A : Type*) [CommRing A] [TopologicalSpace A] where
 
 /-- A topological ring `A` is a **Huber ring** (or **f-adic ring**) if it admits a
 pair of definition (Definition 6.1 of Wedhorn). -/
-class IsHuberRing (A : Type*) [CommRing A] [TopologicalSpace A] : Prop where
+class IsHuberRing (A : Type*) [CommRing A] [TopologicalSpace A] : Prop
+    extends IsTopologicalRing A where
   /-- There exists a pair of definition. -/
   exists_pairOfDefinition : Nonempty (PairOfDefinition A)
 
