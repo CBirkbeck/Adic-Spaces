@@ -34,6 +34,7 @@ import «Adic spaces».PerfectoidRing
 import «Adic spaces».PerfectoidSpace
 import «Adic spaces».Presheaf
 import «Adic spaces».PresheafIdentification
+import «Adic spaces».PresheafTateStructure
 import «Adic spaces».PseudoUniformizer
 import «Adic spaces».RationalRefinement
 import «Adic spaces».RationalSubsets
