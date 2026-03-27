@@ -164,52 +164,43 @@ NOTE: `1-sX` is NOT prime in general (can be a unit when s is top. nilpotent).
 So presheafValue D₀ is NOT necessarily a domain. The proof uses flatness
 and faithful flatness, NOT the domain/localization argument. -/
 
--- **Separation via faithful flatness** (Wedhorn Cor. 8.31).
--- The proof uses: flat restrictions (Prop 8.15) + Spec surjectivity (covering)
--- → faithful flatness → injective (Mathlib: FaithfullyFlat.injective)
+/-- **Wedhorn Corollary 8.31 + Theorem 8.28**: Tate acyclicity.
 
-/-- **Prop 8.15 consequence**: each restriction map is flat over the base.
+For a finite rational covering of a strongly noetherian Tate ring,
+the product restriction is faithfully flat. This gives both:
+- **Separation** (zero kernel): x restricts to 0 everywhere → x = 0
+- **Gluing**: compatible sections have a global pre-image
 
-`presheafValue D` is a flat `presheafValue C.base`-module via the restriction
-ring hom. This follows from Wedhorn Proposition 8.15: `presheafValue D` is
-the rational localization of `presheafValue C.base`, and rational localization
-is flat.
+**Proof route** (Wedhorn):
+1. By Prop 8.15, B = presheafValue C.base is a strongly noetherian Tate ring
+2. Each presheafValue D is a rational localization of B (Prop 8.15)
+3. Each restriction B → presheafValue D is flat (localization = flat)
+4. Covering condition → Spec surjectivity: for each prime p of B, some D.s ∉ p
+5. Flat + Spec surjective = faithfully flat (Mathlib: `FaithfullyFlat.of_comap_surjective`)
+6. Faithfully flat → zero kernel (Mathlib: `FaithfullyFlat.injective`)
+7. Laurent cover Čech exactness → gluing (discrete: `laurentCover_exact` part 4)
 
-This is the key consequence of the localization principle. -/
-theorem restrictionMapHom_flat
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (D₀ D : RationalLocData A)
-    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
-    @Module.Flat (presheafValue D₀) (presheafValue D) _ _
-      (RingHom.toModule (restrictionMapHom D₀ D h)) := by
-  sorry -- Wedhorn Prop 8.15: presheafValue D = rational localization of presheafValue D₀
-
-/-- **Covering condition → Spec surjectivity**: for a rational covering,
-the product of restriction maps is surjective on Spec.
-
-For every prime `p` of `presheafValue C.base`, some restriction `φ_D` sends
-`p` to a proper prime of `presheafValue D` (equivalently, `p` is in the
-image of `Spec(presheafValue D) → Spec(presheafValue C.base)`). This
-follows from the covering condition: the denominators `D.s` generate the
-unit ideal in `presheafValue C.base` (relative to the covering). -/
-theorem productRestriction_spec_surjective
+The central infrastructure is Prop 8.15 (localization principle). -/
+theorem tateAcyclicity
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A) :
-    -- For every prime of the base, some cover piece dominates it
-    ∀ (p : Ideal (presheafValue C.base)), p.IsPrime →
-      ∃ (D : RationalLocData A) (hD : D ∈ C.covers),
-        (Ideal.comap (restrictionMapHom C.base D (C.hsubset D hD)) ⊥).IsPrime := by
-  sorry -- Covering condition → Spec surjectivity (Prop 8.15 + covering)
+    -- Part 1: Zero kernel (separation)
+    (∀ x : presheafValue C.base,
+      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+        restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0) ∧
+    -- Part 2: Gluing
+    (∀ (f : ∀ (D : ↥C.covers), presheafValue D.1),
+      (∀ (D₁ D₂ : ↥C.covers) (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (f D₁) = restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
+      ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
+        restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D) := by
+  sorry -- Wedhorn Cor 8.31 + Thm 8.28: Prop 8.15 → faithfully flat → both parts
 
-/-- **Cor 8.31: product restriction is faithfully flat → injective.**
-
-Separation follows from: each restriction is flat (Prop 8.15) + covering
-gives Spec surjectivity → `Module.FaithfullyFlat.of_comap_surjective` →
-`RingHom.FaithfullyFlat.injective`. -/
+/-- Separation extracted from `tateAcyclicity`. -/
 theorem rationalCovering_hasSeparation
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
@@ -219,28 +210,26 @@ theorem rationalCovering_hasSeparation
       (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
         restrictionMap C.base D (C.hsubset D hD) x =
         restrictionMap C.base D (C.hsubset D hD) y) → x = y := by
-  sorry -- Assembly: restrictionMapHom_flat + productRestriction_spec_surjective
-        -- → faithfully flat → injective (Mathlib: FaithfullyFlat.injective)
+  intro x y hxy
+  have ⟨hzk, _⟩ := tateAcyclicity P C
+  exact sub_eq_zero.mp (hzk (x - y) fun D hD => by
+    change restrictionMapHom C.base D _ (x - y) = 0
+    rw [map_sub, sub_eq_zero]; exact hxy D hD)
 
-/-- **Gluing for rational coverings** (Wedhorn Theorem 8.28).
-
-Given compatible sections on cover pieces, produce a global section.
-Uses Laurent cover exactness + refinement + Prop 8.15. -/
+/-- Gluing extracted from `tateAcyclicity`. -/
 theorem rationalCovering_hasGluing
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)
     (f : ∀ (D : ↥C.covers), presheafValue D.1)
-    (hcompat : ∀ (D₁ D₂ : ↥C.covers)
-       (D₃ : RationalLocData A)
+    (hcompat : ∀ (D₁ D₂ : ↥C.covers) (D₃ : RationalLocData A)
        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
-       restrictionMap D₁.1 D₃ h₃₁ (f D₁) =
-         restrictionMap D₂.1 D₃ h₃₂ (f D₂)) :
+       restrictionMap D₁.1 D₃ h₃₁ (f D₁) = restrictionMap D₂.1 D₃ h₃₂ (f D₂)) :
     ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
-      restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D := by
-  sorry -- Čech gluing: Laurent exactness + localization principle + refinement
+      restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D :=
+  (tateAcyclicity P C).2 f hcompat
 
 -- The embedding theorem (Topology.IsEmbedding) is stated in StructureSheaf.lean
 -- since it uses `productRestrictionSub` defined there.
