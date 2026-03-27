@@ -314,10 +314,24 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
     TopologicalSpace.induced Subtype.val inferInstance
   haveI : IsTopologicalRing (presheafValue_ringOfDef D₀) :=
     Subring.instIsTopologicalRing _
-  -- idealOfDef^n is open in the adic topology (by presheafValue_isAdic)
-  -- An open additive subgroup is closed (complement = union of open cosets)
-  -- Image of closed subset of closed subspace under embedding = closed
-  sorry -- idealOfDef^n closed in subspace → val''(idealOfDef^n) closed in presheafValue
+  -- Per reviewer: the non-circular route uses the AdicCompletionBridge.
+  --
+  -- Step 1: The subspace uniformity on locSubring ⊆ Localization.Away s
+  --         equals the locIdeal-adic uniformity (reviewer confirmed).
+  -- Step 2: Completion(locSubring, J-adic) ≅ ringOfDef (closure in ambient completion)
+  --         by the standard completion fact for uniform embeddings.
+  -- Step 3: AdicCompletionBridge gives Completion(locSubring) ≃ AdicCompletion(J, locSubring).
+  -- Step 4: In AdicCompletion: ker(eval_n) is closed (preimage of {0} in discrete quotient).
+  -- Step 5: Under the bridge + step 2: ker(eval_n) transfers to a closed subset of ringOfDef.
+  -- Step 6: This closed subset = idealOfDef^n (by ideal_smul_top_eq_self + Ideal.map_pow).
+  -- Step 7: val '' (closed subset of closed subring) is closed in the ambient ring.
+  --
+  -- Alternatively (Wedhorn Prop 6.17): every ideal in a complete Noetherian
+  -- topological ring is closed. Since ringOfDef = Completion(locSubring) is
+  -- complete and Noetherian, idealOfDef^n is closed in ringOfDef.
+  -- Then val '' (idealOfDef^n) is closed by closed embedding.
+  sorry -- Needs: AdicCompletionBridge homeomorphism for locSubring
+        -- OR: Prop 6.17 (ideals in complete Noetherian rings are closed)
 
 private theorem closure_locNhd_sub_idealOfDef_pow (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] (n : ℕ) :
