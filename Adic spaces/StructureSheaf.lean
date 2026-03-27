@@ -1231,8 +1231,13 @@ theorem isSheafy_ofStronglyNoetherianTate_flat
     [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
     IsSheafy A where
-  isEmbedding_productRestriction C := sorry
-  gluing C f hcompat := sorry
+  isEmbedding_productRestriction C := by
+    -- Embedding = injective + inducing.
+    -- Injectivity: from productRestriction_injective_of_laurentRefinement
+    -- Inducing: the product restriction reflects the topology (adic structure)
+    sorry -- Needs: injectivity (domain+localization) + topological inducing
+  gluing C f hcompat := by
+    sorry -- See LaurentRefinement.rationalCovering_hasGluing
 
 /-- **Theorem 8.28 of Wedhorn**: strongly noetherian Tate rings are sheafy.
 

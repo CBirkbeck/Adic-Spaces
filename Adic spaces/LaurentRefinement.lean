@@ -459,6 +459,45 @@ theorem rationalCovering_hasSeparation
     exact hxy D hD)
   exact sub_eq_zero.mp hzero
 
+/-! ### Gluing: compatible families have a global section
+
+This is the SECOND field of IsSheafy (Wedhorn Theorem 8.28, surjectivity part).
+Given compatible sections on each cover piece, construct a global section.
+
+For Laurent covers: the discrete case has `ker_deltaMap_le_range_epsilonHom`
+(LaurentCoverExact.lean). The general case requires extending this to
+non-discrete rings, using the localization principle (Prop 8.15).
+
+For general rational covers: use Laurent refinement + transfer. -/
+
+/-- **Gluing for rational coverings** (Wedhorn Theorem 8.28, surjectivity).
+
+Given compatible sections `f D` on each cover piece D (i.e., restrictions
+agree on overlaps), there exists a global section `x ∈ presheafValue C.base`
+with `restrictionMap(x) = f D` for each D.
+
+The proof uses:
+1. Localization principle (Prop 8.15): reduce to the whole-space case
+2. Laurent cover gluing: `ker_deltaMap_le_range_epsilonHom` (discrete)
+   generalized to the non-discrete case
+3. Laurent refinement: every rational covering is refined by Laurent covers
+4. Refinement transfers gluing (analogue of `separation_of_finer_rational`) -/
+theorem rationalCovering_hasGluing
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    (f : ∀ (D : ↥C.covers), presheafValue D.1)
+    (hcompat : ∀ (D₁ D₂ : ↥C.covers)
+       (D₃ : RationalLocData A)
+       (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+       (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+       restrictionMap D₁.1 D₃ h₃₁ (f D₁) =
+         restrictionMap D₂.1 D₃ h₃₂ (f D₂)) :
+    ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
+      restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D := by
+  sorry -- Čech gluing: localization principle + Laurent exactness + refinement
+
 end ValuationSpectrum
 
 end
