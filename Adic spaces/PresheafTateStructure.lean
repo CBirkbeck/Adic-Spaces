@@ -174,12 +174,36 @@ contains `presheafValue_idealOfDef^n`. Equivalently: the val-image of
 `idealOfDef^n` lands inside `closure(coe '' locNhd n)`.
 
 This is the "easy direction" showing ideal powers map INTO the corresponding
-completion neighborhoods. -/
+completion neighborhoods.
+
+Proof by `Submodule.pow_induction_on_left'`:
+- Base (n=0): `val r ∈ closure(coe '' locSubring) = ringOfDef`.
+  Since `locNhd 0` = image of `locIdeal^0 = whole locSubring`, this holds.
+- Addition: `closure(coe '' locNhd i)` is an additive subgroup (closure of
+  additive subgroup), so closed under addition.
+- Multiplication by `m ∈ idealOfDef`: the key step.
+  `val m ∈ closure(coe '' locNhd 1)` (since idealOfDef = Ideal.map of locIdeal,
+  and locSubring acts on locNhd, so closure absorbs the action).
+  `val(m * x) = val(m) * val(x) ∈ closure(coe '' locNhd 1) * closure(coe '' locNhd i)`.
+  By continuity of mul: `closure(S) * closure(T) ⊆ closure(S * T)`.
+  And `locNhd 1 * locNhd i ⊆ locNhd(i+1)` (ideal multiplication in locSubring).
+  So `val(m * x) ∈ closure(coe '' locNhd(i+1))`. -/
 private theorem idealOfDef_pow_sub_val_preimage_closure (D₀ : RationalLocData A) (n : ℕ) :
     ((presheafValue_idealOfDef D₀ ^ n : Ideal (presheafValue_ringOfDef D₀)) :
       Set (presheafValue_ringOfDef D₀)) ⊆
     Subtype.val ⁻¹' closure ((D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) ''
       (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s))) := by
+  -- The proof uses Submodule.pow_induction_on_left' with
+  -- C n x _ := val x ∈ closure(coe '' locNhd n)
+  -- Three cases: base (algebraMap), addition, and left-multiplication by idealOfDef.
+  -- Each requires significant infrastructure about the localization topology
+  -- and continuity of multiplication in the completion.
+  -- The full formal proof requires:
+  -- (a) locNhd 0 = locSubring (as sets in Localization)
+  -- (b) closure(coe '' locNhd i) is an additive subgroup
+  -- (c) val '' idealOfDef ⊆ closure(coe '' locNhd 1) (locSubring acts on locNhd)
+  -- (d) closure(S) * closure(T) ⊆ closure(S * T) (continuity of multiplication)
+  -- (e) coe '' (locNhd 1 * locNhd i) ⊆ coe '' locNhd(i+1) (ideal multiplication)
   sorry
 
 /-- Corollary: the val-image of `idealOfDef^n` is contained in `closure(coe '' locNhd n)`. -/

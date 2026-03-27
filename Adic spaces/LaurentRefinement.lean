@@ -198,7 +198,23 @@ theorem tateAcyclicity
         restrictionMap D₁.1 D₃ h₃₁ (f D₁) = restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
       ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
         restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D) := by
-  sorry -- Wedhorn Cor 8.31 + Thm 8.28: Prop 8.15 → faithfully flat → both parts
+  -- Prop 8.15: presheafValue C.base is a Tate ring and each cover piece
+  -- is its rational localization. This gives faithful flatness via Cor 8.31.
+  --
+  -- Part 1 (separation): faithfully flat → zero kernel.
+  -- Part 2 (gluing): the Čech complex is exact by faithfully flat descent.
+  --
+  -- Both parts require the localization principle (Prop 8.15) to identify
+  -- restriction maps as rational localizations of the Tate ring
+  -- B = presheafValue C.base.
+  --
+  -- Key infrastructure (from PresheafTateStructure.lean):
+  -- - presheafValue_isTateRing: B is a Tate ring (Prop 8.15, partial)
+  -- - presheafValue_pairOfDefinition: B has a pair of definition
+  --
+  -- What remains: identifying restriction maps as rational localizations of B
+  -- (the full content of Prop 8.15), then applying faithful flatness.
+  sorry
 
 /-- Separation extracted from `tateAcyclicity`. -/
 theorem rationalCovering_hasSeparation
