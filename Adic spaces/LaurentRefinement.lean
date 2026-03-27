@@ -163,39 +163,20 @@ The key missing piece is (4): restriction maps are flat over the base
 presheaf value. This requires the localization-of-completion isomorphism
 (CompletionLocalization.lean). -/
 
-/-- **Restriction maps are flat**: the restriction `presheafValue D₀ →+*
-presheafValue D` is flat as a module map.
-
-This follows from the localization-of-completion bridge:
-`presheafValue D ≅ R̂⁺_D[1/s_D]` and the restriction factors through
-localizations of flat adic completions.
-
-Proved assuming the localization-of-completion theorem
-(`Completion(R⁺[1/s]) ≃+* Completion(R⁺)[1/s']`). -/
-theorem restrictionMap_flat
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (D₀ D : RationalLocData A)
-    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
-    @Module.Flat (presheafValue D₀) (presheafValue D) _ _
-      (RingHom.toModule (restrictionMapHom D₀ D h)) := by
-  sorry -- Needs localization-of-completion: Completion(R⁺[1/s]) ≅ Completion(R⁺)[1/s']
-
-/-- **Product restriction is faithfully flat**: the product of restriction maps
+/-- **Product restriction is zero-kernel**: the product of restriction maps
 from `presheafValue C.base` to `∏ presheafValue D` is faithfully flat.
 
 Uses: each restriction is flat (restrictionMap_flat) + covering condition
 gives surjectivity on Spec. -/
-theorem productRestriction_faithfullyFlat
+theorem productRestriction_zero_kernel
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (C : RationalCovering A) :
-    ∀ x : presheafValue C.base,
-      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
-        restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0 := by
-  sorry -- Faithful flatness: flat restrictions + covering surjectivity on Spec
+    (C : RationalCovering A) (x : presheafValue C.base)
+    (hx : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+      restrictionMap C.base D (C.hsubset D hD) x = 0) :
+    x = 0 := by
+  sorry -- Key: localization-of-completion bridge + density + algebraic injectivity
 
 /-- **Theorem 8.28(b) of Wedhorn**: Every rational covering of a strongly
 noetherian Tate ring has the separation property.
@@ -212,7 +193,7 @@ theorem rationalCovering_hasSeparation
         restrictionMap C.base D (C.hsubset D hD) x =
         restrictionMap C.base D (C.hsubset D hD) y) → x = y := by
   intro x y hxy
-  have hzero := productRestriction_faithfullyFlat P C (x - y) (fun D hD => by
+  have hzero := productRestriction_zero_kernel P C (x - y) (fun D hD => by
     change restrictionMapHom C.base D (C.hsubset D hD) (x - y) = 0
     rw [map_sub, sub_eq_zero]
     exact hxy D hD)
