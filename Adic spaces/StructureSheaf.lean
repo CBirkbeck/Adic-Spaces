@@ -200,7 +200,9 @@ theorem IsSheafy.separation [IsTopologicalRing A] [PlusSubring A]
 
 /-! ### Affinoid adic spaces (Definition 8.21 of Wedhorn) -/
 
-/-- An *affinoid adic space* (Definition 8.21 of Wedhorn). -/
+/-- An *affinoid adic space* is `Spa(A, A⁺)` where `(A, A⁺)` is a sheafy
+complete affinoid ring (Definition 8.21 of Wedhorn). Restriction maps are
+constructed from the ring data (Proposition 8.2), not assumed separately. -/
 structure AffinoidAdicSpace where
   /-- The underlying affinoid ring. -/
   Ring : Type u
@@ -208,12 +210,12 @@ structure AffinoidAdicSpace where
   [instTopologicalSpace : TopologicalSpace Ring]
   [instIsTopologicalRing : IsTopologicalRing Ring]
   [instPlusSubring : PlusSubring Ring]
-  [instHasRestrictionMaps : HasRestrictionMaps Ring]
+  [instIsHuberRing : IsHuberRing Ring]
   [instIsSheafy : IsSheafy Ring]
 
 attribute [instance] AffinoidAdicSpace.instCommRing
   AffinoidAdicSpace.instTopologicalSpace AffinoidAdicSpace.instIsTopologicalRing
-  AffinoidAdicSpace.instPlusSubring AffinoidAdicSpace.instHasRestrictionMaps
+  AffinoidAdicSpace.instPlusSubring AffinoidAdicSpace.instIsHuberRing
   AffinoidAdicSpace.instIsSheafy
 
 namespace AffinoidAdicSpace

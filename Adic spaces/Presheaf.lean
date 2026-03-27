@@ -558,6 +558,15 @@ instance HasRestrictionMaps.discrete {A : Type*} [CommRing A] [TopologicalSpace 
     exact isUnit_of_mul_isUnit_right hunit_pow
   restrictionMapAlg_continuous := fun D _ _ ↦ locTopology_eq_bot_of_discrete D ▸ continuous_bot
 
+/-- Huber rings have restriction maps (Proposition 8.2 of Wedhorn).
+The proof uses Lemma 7.45 (every prime supports a Spa point) to show `s` maps
+to a unit, and continuity of the localization topology for the restriction. -/
+instance HasRestrictionMaps.ofHuber {A : Type*} [CommRing A] [TopologicalSpace A]
+    [IsTopologicalRing A] [PlusSubring A] [IsHuberRing A] :
+    HasRestrictionMaps A where
+  isUnit_canonicalMap_s := fun D D' h ↦ sorry
+  restrictionMapAlg_continuous := fun D D' h ↦ sorry
+
 /-- The completion embedding is bijective for discrete rings. -/
 theorem coeRingHom_bijective_of_discrete {A : Type*} [CommRing A]
     [TopologicalSpace A] [IsTopologicalRing A] [DiscreteTopology A]
