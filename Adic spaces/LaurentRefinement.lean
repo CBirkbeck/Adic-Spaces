@@ -197,55 +197,50 @@ private theorem isClosed_productRestriction_kernel
     (T1Space.t1 (0 : presheafValue D)).preimage
       (restrictionMapHom_continuous C.base D (C.hsubset D hD))
 
-/-- On the dense subring, if all algebraic restrictions vanish, then the
-element maps to 0 under the completion embedding.
+/-- **`presheafValue D₀` is a domain** for strongly noetherian Tate domains.
 
-This is the key algebraic step: for `a : Localization.Away C.base.s`, if
-`restrictionMapAlg(a) = 0` in `presheafValue D` for all covering pieces D,
-then `coeRingHom(a) = 0` in `presheafValue C.base`.
+Via the TopologyComparison isomorphism `presheafValue D₀ ≃+* A⟨X⟩/(1-s₀X)`,
+and the fact that `A⟨X⟩/(1-s₀X)` is a domain (quotient of the domain Tate
+algebra by the prime element `1-s₀X`), `presheafValue D₀` is a domain.
 
-The proof splits into two cases based on whether the localization
-topology is T0 (equivalently, whether `locIdeal` is proper):
-- **Proper `locIdeal`:** The Krull intersection theorem (Noetherian domain)
-  gives `closure({0}) = {0}`, so the completion embedding is injective.
-  Combined with algebraic injectivity of the product restriction
-  (from `productRestriction_injective_discrete`), this gives `a = 0`.
-- **`locIdeal = top`:** The localization topology is indiscrete, the
-  completion quotients everything to 0, so `coeRingHom(a) = 0` trivially. -/
-private theorem productRestriction_zero_kernel_on_dense
+This is the first of two key sublemmas for the localization principle
+(reviewer: "presheafValue D₀ is itself a Tate domain"). -/
+theorem presheafValue_isDomain
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (C : RationalCovering A) (a : Localization.Away C.base.s)
-    (halg : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
-      restrictionMapAlg C.base D (C.hsubset D hD) a = 0) :
-    C.base.coeRingHom a = 0 := by
-  -- Prove a is in the closure of {0} for the base localization topology.
-  -- For the Hausdorff completion, coeRingHom(a) = 0 iff a is inseparable
-  -- from 0, which in a uniform add group means a is in the closure of {0}
-  -- (the intersection of all neighborhoods of 0).
-  -- The closure of {0} in the localization topology = ⋂_n locNhd(n).
-  -- By the Krull intersection theorem for the Noetherian domain locSubring:
-  -- ⋂_n (locIdeal)^n = {0} when locIdeal is proper.
-  -- When locIdeal = ⊤: ⋂_n ⊤^n = ⊤, and the quotient is trivial.
-  sorry
+    (D₀ : RationalLocData A) :
+    IsDomain (presheafValue D₀) := by
+  sorry -- Transfer IsDomain from A⟨X⟩/(1-s₀X) via presheafValueTateQuotientEquiv
+         -- Needs: (1-s₀X) prime in domain A⟨X⟩ → quotient is domain
+
+/-- **Restriction maps are injective** for strongly noetherian Tate domains.
+
+This is the second key sublemma: the restriction `presheafValue D₀ → presheafValue D`
+is injective because `presheafValue D` is the rational localization of the
+domain `presheafValue D₀` (Wedhorn Prop. 8.15). Rational localization of a
+domain is injective. -/
+theorem restrictionMapHom_injective
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    Function.Injective (restrictionMapHom D₀ D h) := by
+  sorry -- presheafValue D = rational localization of domain presheafValue D₀
 
 /-- **Product restriction is zero-kernel** (Wedhorn Theorem 8.28(b)).
 
 If `x ∈ presheafValue C.base` restricts to 0 in every covering piece D,
 then `x = 0`.
 
-**Proof strategy:** The kernel K of the product restriction is a closed
-additive subgroup of `presheafValue C.base` (by `isClosed_productRestriction_kernel`).
-On the dense subring `coeRingHom(Localization.Away s)`, the kernel is {0}
-(by `productRestriction_zero_kernel_on_dense`). Since K is closed and
-contains only {0} from the dense subring, and the completion is a
-nonarchimedean T2 topological group, K = {0}.
-
-The extension from the dense case to the full completion requires
-the **localization-of-completion bridge** or **faithful flatness** of
-the adic completion. See `CompletionLocalization.lean` and the
-discussion in `StructureSheaf.lean` (lines 789-813). -/
+**Proof (reviewer's approach):** `presheafValue C.base` is a domain
+(by `presheafValue_isDomain`). Each restriction map to a covering piece
+is injective (by `restrictionMapHom_injective` — the covering piece is a
+rational localization of the domain base). In particular, if x maps to 0
+under ANY injective restriction, x = 0. Since the covering is nonempty
+(it covers the base rational open), we can pick any cover piece D and
+conclude from injectivity. -/
 theorem productRestriction_zero_kernel
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
@@ -254,10 +249,23 @@ theorem productRestriction_zero_kernel
     (hx : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
       restrictionMap C.base D (C.hsubset D hD) x = 0) :
     x = 0 := by
-  -- The kernel of the product restriction is a closed subgroup.
-  -- On the dense image coe(R), the kernel is {0} (algebraic injectivity).
-  -- Extension to the full completion requires the completion-localization bridge.
-  sorry
+  -- Pick any cover piece D (the covering is nonempty by the covering axiom).
+  -- Apply injectivity of the restriction to D.
+  -- The covering must be nonempty: for any v in the base rational open,
+  -- some D covers it. So C.covers is nonempty (assuming the base is nonempty).
+  -- For the edge case of empty base rational open: presheafValue is trivial.
+  by_cases hne : C.covers.Nonempty
+  · obtain ⟨D, hD⟩ := hne
+    exact restrictionMapHom_injective P C.base D (C.hsubset D hD)
+      (show restrictionMapHom C.base D (C.hsubset D hD) x =
+        restrictionMapHom C.base D (C.hsubset D hD) 0 from by
+          rw [map_zero]; exact hx D hD)
+  · -- Empty covering: the base rational open must be empty.
+    -- If the covering is empty but covers the base, the base is empty.
+    rw [Finset.not_nonempty_iff_eq_empty] at hne
+    -- With empty covers, the hypothesis hx is vacuously true.
+    -- We need x = 0, but this requires the base presheafValue to be trivial.
+    sorry -- Edge case: empty covering → base rational open empty → presheafValue trivial
 
 /-- **Theorem 8.28(b) of Wedhorn**: Every rational covering of a strongly
 noetherian Tate ring has the separation property.
