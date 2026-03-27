@@ -155,7 +155,7 @@ def structureSheaf : Sheaf CommRingCat (SpaTop A) :=
 
 /-! ### Sheafy affinoid rings (Definition 8.26 of Wedhorn) -/
 
-variable [IsTopologicalRing A] [IsHuberRing A]
+variable [IsHuberRing A]
 
 /-- The product restriction map for a rational covering. -/
 noncomputable def productRestriction (C : RationalCovering A) :
@@ -685,13 +685,12 @@ theorem exists_spa_point_in_rationalOpen_of_tate
     (p : Ideal A) [p.IsPrime] (hs_notin : s ∉ p) :
     ∃ v ∈ rationalOpen T s, p ≤ v.supp := by
   by_cases hp_open : IsOpen (p : Set A)
-  · exact @exists_spa_point_in_rationalOpen_of_isOpen_prime A _ _ _ _ T s p _ hp_open hs_notin
+  · exact @exists_spa_point_in_rationalOpen_of_isOpen_prime A _ _ _ T s p _ hp_open hs_notin
   · -- Non-open prime: need Lemma 7.45 refinement placing v in rationalOpen T s.
     -- Lemma 7.45 gives v ∈ Spa A A⁺ with p ≤ v.supp, but the rational open
     -- constraint v(t) ≤ v(s) ≠ 0 requires controlling the valuation at T and s.
     sorry
 
-omit [IsHuberRing A] in
 /-- **The Spa-point radical lemma.**
 
 Given a rational covering `C` and an element `a : A` such that
@@ -816,7 +815,6 @@ theorem completionKer_eq_bot_of_locKer_eq_bot
       z = 0 := by
   sorry -- QUARANTINED: needs AdicCompletion bridge
 
-omit [IsHuberRing A] in
 /-- QUARANTINED: **False in general** when `locIdeal = ⊤`. -/
 theorem localization_isT0 [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]

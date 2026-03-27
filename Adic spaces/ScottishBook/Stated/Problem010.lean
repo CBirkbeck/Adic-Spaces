@@ -84,7 +84,7 @@ theorem IsTrivialValuation.vle_iff {v : Spv A} (hv : IsTrivialValuation v)
 /-- If `v` is a trivial valuation and `v ∈ Spa(A, A⁺)`, then `v` is not analytic in the
 sense of `ValuationSpectrum.IsAnalytic` (i.e., `supp(v)` is open) when `A` is a Huber ring
 with open topological nilradical. -/
-theorem IsTrivialValuation.supp_isOpen_of_isHuberRing [IsTopologicalRing A] [IsHuberRing A]
+theorem IsTrivialValuation.supp_isOpen_of_isHuberRing [IsHuberRing A]
     [IsLinearTopology A A] {v : Spv A} (hv : IsTrivialValuation v) :
     IsOpen (v.supp : Set A) := by
   -- Strategy: use continuity of v to show {a | val(a) < val(1)} = supp(v) is open.

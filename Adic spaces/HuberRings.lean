@@ -249,7 +249,7 @@ end PairOfDefinition
 /-- A Huber ring has a nonarchimedean additive group topology: every neighborhood of `0`
 contains an open additive subgroup (Corollary 6.4(1) of Wedhorn). -/
 instance IsHuberRing.nonarchimedeanAddGroup {A : Type*} [CommRing A] [TopologicalSpace A]
-    [IsTopologicalRing A] [IsHuberRing A] : NonarchimedeanAddGroup A where
+    [IsHuberRing A] : NonarchimedeanAddGroup A where
   is_nonarchimedean := by
     obtain ⟨P⟩ := ‹IsHuberRing A›.exists_pairOfDefinition
     intro U hU
@@ -267,7 +267,7 @@ section TateRing
 open Pointwise
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A]
-  [IsTopologicalRing A] [IsTateRing A] [IsLinearTopology A A]
+  [IsTateRing A] [IsLinearTopology A A]
 
 /-- In a Tate ring with linear topology, the topological nilradical `A°°` is open
 (Proposition 6.13(1) of Wedhorn). -/
@@ -292,7 +292,7 @@ theorem IsTateRing.isOpen_topologicallyNilpotentElements :
     IsOpen (TopologicalRing.topologicallyNilpotentElements A) := by
   convert IsTateRing.isOpen_topologicalNilradical (A := A)
 
-omit [IsTopologicalRing A] [IsLinearTopology A A] in
+omit [IsLinearTopology A A] in
 /-- A continuous ring homomorphism from a Tate ring preserves topologically nilpotent units. -/
 theorem IsTateRing.map_topologicallyNilpotent_unit {B : Type*} [CommRing B] [TopologicalSpace B]
     {φ : A →+* B} (hφ : Continuous φ) : ∃ v : Bˣ, IsTopologicallyNilpotent (v : B) := by
@@ -301,11 +301,11 @@ theorem IsTateRing.map_topologicallyNilpotent_unit {B : Type*} [CommRing B] [Top
   change IsTopologicallyNilpotent (φ u)
   exact hu.map hφ
 
-omit [IsTopologicalRing A] [IsLinearTopology A A] in
+omit [IsLinearTopology A A] in
 /-- A Huber ring that receives a continuous ring hom from a Tate ring is itself
 Tate (Remark 6.11 of Wedhorn). -/
 theorem IsTateRing.of_continuous_map {B : Type*} [CommRing B] [TopologicalSpace B]
-    [IsTopologicalRing B] [IsHuberRing B] {φ : A →+* B} (hφ : Continuous φ) :
+    [IsHuberRing B] {φ : A →+* B} (hφ : Continuous φ) :
     IsTateRing B where
   exists_topologicallyNilpotent_unit := IsTateRing.map_topologicallyNilpotent_unit hφ
 

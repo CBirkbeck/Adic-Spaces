@@ -103,7 +103,7 @@ class HasFiniteProjectiveDescent (A : Type u) [CommRing A]
 /-! ### The open problem -/
 
 variable (A : Type u) [CommRing A] [TopologicalSpace A]
-  [IsTopologicalRing A] [PlusSubring A] [IsHuberRing A]
+  [PlusSubring A] [IsHuberRing A]
 
 /-- **Scottish Book Problem 19a** (Kedlaya, 3 Feb 2016, likely
 resolved by Gabber):

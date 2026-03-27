@@ -263,14 +263,14 @@ and Proposition 7.52. -/
 /-- The image of `s` under `A → A⟨T'/s'⟩` is a unit when `R(T'/s') ⊆ R(T/s)`
 (Proposition 8.2 of Wedhorn). For Huber rings, this uses Lemma 7.45. -/
 theorem isUnit_canonicalMap_s_of_huber {A : Type*} [CommRing A] [TopologicalSpace A]
-    [IsTopologicalRing A] [PlusSubring A] [IsHuberRing A]
+    [PlusSubring A] [IsHuberRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     IsUnit (D'.canonicalMap D.s) := sorry
 
 /-- The algebraic restriction map is continuous for Huber rings
 (Proposition 8.2 of Wedhorn). -/
 theorem restrictionMapAlg_continuous_of_huber {A : Type*} [CommRing A]
-    [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] [IsHuberRing A]
+    [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     @Continuous _ _ D.topology
       (@UniformSpace.toTopologicalSpace _
