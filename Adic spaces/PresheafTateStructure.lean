@@ -147,25 +147,53 @@ theorem presheafValue_ringOfDef_isOpen (D₀ : RationalLocData A) :
   change IsOpen ((presheafValue_ringOfDef D₀).toAddSubgroup : Set (presheafValue D₀))
   exact AddSubgroup.isOpen_of_mem_nhds _ hmem_nhds
 
-/-- The ideal of definition inside the ring of definition: the closure
-of the image of `locIdeal` in the completion. -/
+/-- The ring hom from `locSubring` into `presheafValue_ringOfDef D₀`: compose `coeRingHom`
+with `subtype`, then lift into the topological closure (which contains the range). -/
+noncomputable def locSubringToRingOfDef (D₀ : RationalLocData A) :
+    locSubring D₀.P D₀.T D₀.s →+* presheafValue_ringOfDef D₀ := by
+  letI := D₀.uniformSpace
+  exact (D₀.coeRingHom.comp (locSubring D₀.P D₀.T D₀.s).subtype).codRestrict
+    (presheafValue_ringOfDef D₀) fun d =>
+    subset_closure (RingHom.mem_range.mpr ⟨d, rfl⟩)
+
+/-- The ideal of definition inside the ring of definition: the image of `locIdeal` under
+the natural map `locSubring → presheafValue_ringOfDef`. -/
 noncomputable def presheafValue_idealOfDef (D₀ : RationalLocData A) :
-    Ideal (presheafValue_ringOfDef D₀) := by
-  sorry -- Lift locIdeal to an ideal of the closure
+    Ideal (presheafValue_ringOfDef D₀) :=
+  Ideal.map (locSubringToRingOfDef D₀) (locIdeal D₀.P D₀.T D₀.s)
 
 /-- The ideal of definition is finitely generated (locIdeal is f.g. and
 Noetherian completion preserves finite generation). -/
 theorem presheafValue_idealOfDef_fg (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
-    (presheafValue_idealOfDef D₀).FG := by
-  sorry -- locIdeal is f.g. → its image in the completion is f.g.
+    (presheafValue_idealOfDef D₀).FG :=
+  (locIdeal_fg D₀.P D₀.T D₀.s).map _
 
 /-- The subspace topology on the ring of definition equals the
-ideal-of-definition-adic topology. -/
+ideal-of-definition-adic topology.
+
+This is the deepest fact needed for Proposition 8.15: the subspace topology
+on the closure of locSubring in the completion equals the adic topology for
+the image of locIdeal. The proof requires the AdicCompletionBridge:
+- Completion(locSubring) = AdicCompletion(locIdeal, locSubring)
+- The adic completion carries the locIdeal-adic topology
+- The embedding into the ambient completion preserves this topology
+
+TODO: This requires showing the homeomorphism
+  AdicCompletion(locIdeal, locSubring) ≃ₜ closure(locSubring) ⊆ Completion(Localization.Away s)
+preserves the adic filtration. This is the key topological content of the
+AdicCompletionBridge. -/
 theorem presheafValue_isAdic (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
-    @IsAdic (presheafValue_ringOfDef D₀) _ sorry (presheafValue_idealOfDef D₀) := by
-  sorry -- The I-adic topology on the completion of locSubring = subspace topology
+    @IsAdic (presheafValue_ringOfDef D₀) _
+      (TopologicalSpace.induced Subtype.val inferInstance)
+      (presheafValue_idealOfDef D₀) := by
+  sorry -- Requires: AdicCompletionBridge homeomorphism + topology transfer
+        -- The key steps are:
+        -- 1. locSubring with locIdeal-adic topology is a uniform space
+        -- 2. Its completion = AdicCompletion(locIdeal, locSubring) (bridge)
+        -- 3. The embedding Completion(locSubring) → Completion(Localization) is uniform
+        -- 4. The subspace topology on closure(image) = completion topology = locIdeal-adic
 
 /-- **Proposition 8.15 (partial)**: `presheafValue D₀` has a natural
 pair of definition, making it a Huber ring. Combined with
@@ -173,8 +201,11 @@ pair of definition, making it a Huber ring. Combined with
 theorem presheafValue_pairOfDefinition [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
-    Nonempty (PairOfDefinition (presheafValue D₀)) := by
-  sorry -- Assembly: presheafValue_ringOfDef + presheafValue_idealOfDef
-        -- + openness + f.g. + IsAdic
+    Nonempty (PairOfDefinition (presheafValue D₀)) :=
+  ⟨{ A₀ := presheafValue_ringOfDef D₀
+     I := presheafValue_idealOfDef D₀
+     isOpen := presheafValue_ringOfDef_isOpen D₀
+     fg := presheafValue_idealOfDef_fg D₀
+     isAdic := presheafValue_isAdic D₀ }⟩
 
 end ValuationSpectrum
