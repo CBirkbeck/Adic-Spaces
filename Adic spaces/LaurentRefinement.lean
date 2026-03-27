@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».RationalRefinement
 import «Adic spaces».RationalSubsets
+import «Adic spaces».TopologyComparison
 import Mathlib.RingTheory.Flat.Basic
 
 /-!
@@ -197,6 +198,86 @@ private theorem isClosed_productRestriction_kernel
     (T1Space.t1 (0 : presheafValue D)).preimage
       (restrictionMapHom_continuous C.base D (C.hsubset D hD))
 
+/-- The ideal `(1-sX)` is prime in `TateAlgebra A` when `A` is a noetherian domain.
+
+Algebraically: the map `TateAlgebra A → Localization.Away s` sending `X ↦ 1/s`
+has kernel exactly `(1-sX)`, and `Localization.Away s` is a domain, so the
+kernel is prime.
+
+The kernel equality is proved for discrete `A` in `ker_evalPresheafHom`;
+for general `A`, the coefficient analysis (`coeff_of_oneSubfX_eq_aXn`)
+combined with noetherianity and the Hausdorff property of the localization
+topology gives the same result. -/
+private theorem oneSubfXIdeal_isPrime
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (s : A) : (oneSubfXIdeal s).IsPrime := by
+  sorry
+
+/-- The Tate quotient `A⟨X⟩/(1-sX)` is a domain for strongly noetherian
+Tate domains. Follows from `oneSubfXIdeal_isPrime`. -/
+private theorem isDomain_tateQuotient
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (s : A) : IsDomain (↥(TateAlgebra A) ⧸ oneSubfXIdeal s) :=
+  haveI := oneSubfXIdeal_isPrime P s; inferInstance
+
+/-! #### Topological hypotheses for `presheafValueTateQuotientEquiv`
+
+These five conditions are consequences of the strongly noetherian Tate ring
+structure (Wedhorn Theorem 6.37): the T-topology on `A⟨X⟩/(1-sX)` is I-adic,
+hence complete, T₀, and the evaluation map is continuous with dense image.
+Full proofs require the I-adic characterization of the T-topology (G2-topo),
+which is formalized in the TopologyComparison/TateAlgebraWedhorn pipeline.
+Here we package them as private helpers. -/
+
+private theorem invS_isPowerBounded
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) :
+    TopologicalRing.IsPowerBounded (invS D₀) := by
+  sorry
+
+private theorem quotientT_completeSpace
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) :
+    @CompleteSpace _ (quotientTUniformSpace D₀.s) := by
+  sorry
+
+private theorem quotientT_t0Space
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) :
+    @T0Space _ (quotientTTopology D₀.s) := by
+  sorry
+
+private theorem tateQuotientToPresheaf_continuous
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) :
+    @Continuous _ _
+      (quotientTTopology D₀.s)
+      (inferInstance : TopologicalSpace (presheafValue D₀))
+      (tateQuotientToPresheafHom D₀ (invS_isPowerBounded P D₀)) := by
+  sorry
+
+private theorem locToQuot_denseRange
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) :
+    @DenseRange (↥(TateAlgebra A) ⧸ oneSubfXIdeal D₀.s)
+      (quotientTTopology D₀.s) (Localization.Away D₀.s)
+      (locToQuotientOneSubfX_gen D₀.s) := by
+  sorry
+
 /-- **`presheafValue D₀` is a domain** for strongly noetherian Tate domains.
 
 Via the TopologyComparison isomorphism `presheafValue D₀ ≃+* A⟨X⟩/(1-s₀X)`,
@@ -211,8 +292,18 @@ theorem presheafValue_isDomain
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) :
     IsDomain (presheafValue D₀) := by
-  sorry -- Transfer IsDomain from A⟨X⟩/(1-s₀X) via presheafValueTateQuotientEquiv
-         -- Needs: (1-s₀X) prime in domain A⟨X⟩ → quotient is domain
+  -- Obtain the ring isomorphism presheafValue D₀ ≃+* A⟨X⟩/(1-s₀X)
+  let e := presheafValueTateQuotientEquiv D₀
+    (invS_isPowerBounded P D₀)
+    (quotientT_completeSpace P D₀)
+    (quotientT_t0Space P D₀)
+    (tateQuotientToPresheaf_continuous P D₀)
+    (locToQuot_denseRange P D₀)
+  -- The Tate quotient is a domain
+  haveI : IsDomain (↥(TateAlgebra A) ⧸ oneSubfXIdeal D₀.s) :=
+    isDomain_tateQuotient P D₀.s
+  -- Transfer IsDomain via the ring equivalence
+  exact e.toMulEquiv.isDomain
 
 /-- **Restriction maps are injective** for strongly noetherian Tate domains.
 
