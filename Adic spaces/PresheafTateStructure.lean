@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».Presheaf
+import «Adic spaces».PresheafIdentification
 import «Adic spaces».AdicCompletionBridge
 
 /-!
@@ -59,10 +60,7 @@ theorem presheafValue_topNilUnit [IsTateRing A]
   -- canonicalMap = coeRingHom ∘ algebraMap
   -- Both are continuous, so the composition is continuous
   -- IsTopologicallyNilpotent.map gives the result
-  -- canonicalMap = coeRingHom ∘ algebraMap, need continuity
-  -- coeRingHom is the completion embedding (uniformly continuous → continuous)
-  -- algebraMap : A → Localization.Away s needs continuity for the localization topology
-  sorry -- Needs: continuity of canonicalMap = coeRingHom ∘ algebraMap
+  exact hπ.map (canonicalMap_continuous D₀)
 
 /-! ### Pair of definition in presheafValue
 
