@@ -111,11 +111,10 @@ theorem laurentCover_covers (D₀ : RationalLocData A) (f : A)
         (Finset.mem_insert_self D₀.s D₀.T)
         (Finset.mem_insert_of_mem (Finset.mem_singleton_self f)),
       rationalOpen_insert_s]
-    exact ⟨⟨hvspa, hvT, hvs⟩, hvspa, fun t ht => by
-      rcases Finset.mem_insert.mp ht with rfl | ht'
-      · exact h
-      · exact Finset.mem_singleton.mp ht' ▸ (v.vle_total f f).elim id id,
-      fun hf0 => hvs (v.vle_trans h hf0)⟩
+    refine ⟨⟨hvspa, hvT, hvs⟩, hvspa, fun t ht => ?_, fun hf0 => hvs (v.vle_trans h hf0)⟩
+    rcases Finset.mem_insert.mp ht with rfl | ht'
+    · exact h
+    · rw [Finset.mem_singleton.mp ht']; exact v.vle_refl f
 
 /-- The 2-element Laurent covering of `D₀` at element `f`. -/
 noncomputable def laurentCovering (D₀ : RationalLocData A) (f : A) :
