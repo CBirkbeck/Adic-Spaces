@@ -19,6 +19,7 @@ Also proves Lemma 7.54: `R(T/s) = ⋂_{t ∈ T} R({t}/s)`.
 -/
 
 open Classical
+open scoped Pointwise
 
 noncomputable section
 
@@ -54,7 +55,11 @@ noncomputable def laurentPlusDatum (D₀ : RationalLocData A) (f : A) :
   P := D₀.P
   T := insert f D₀.T
   s := D₀.s
-  hopen := by sorry -- locSubring monotonicity in T (insert f into T₀)
+  hopen := by
+    obtain ⟨N, hN⟩ := D₀.hopen
+    exact ⟨N, fun b hb => Subring.closure_mono (Set.union_subset_union_right _
+      (Set.range_comp_subset_range (fun t : D₀.T => (⟨t, Finset.mem_insert_of_mem t.2⟩ :
+        (insert f D₀.T : Finset A))) (fun t => divByS (t : A) D₀.s))) (hN b hb)⟩
 
 /-- The "minus half" of the Laurent cover at `f` within base `D₀`:
 represents `{v ∈ R(D₀) : v(s₀) ≤ v(f), v(f) ≠ 0}`. -/
@@ -76,7 +81,13 @@ theorem laurentPlus_subset (D₀ : RationalLocData A) (f : A) :
 theorem laurentMinus_subset (D₀ : RationalLocData A) (f : A) :
     rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s := by
-  sorry -- uses rationalOpen_inter + rationalOpen_insert_s
+  have hT : (laurentMinusDatum D₀ f).T = insert D₀.s D₀.T * ({D₀.s, f} : Finset A) :=
+    Finset.image_mul_product.symm
+  rw [show (laurentMinusDatum D₀ f).s = D₀.s * f from rfl, hT,
+    ← rationalOpen_inter (insert D₀.s D₀.T) ({D₀.s, f} : Finset A) D₀.s f
+      (Finset.mem_insert_self D₀.s D₀.T) (Finset.mem_insert_of_mem (Finset.mem_singleton_self f)),
+    rationalOpen_insert_s]
+  exact Set.inter_subset_left
 
 /-- The Laurent halves cover the base (valuation trichotomy). -/
 theorem laurentCover_covers (D₀ : RationalLocData A) (f : A)
@@ -92,7 +103,19 @@ theorem laurentCover_covers (D₀ : RationalLocData A) (f : A)
       · exact h
       · exact hvT t ht', hvs⟩
   · -- Minus half: v(s₀) ≤ v(f)
-    right; sorry -- uses rationalOpen_inter backward + vle transitivity
+    right
+    have hT : (laurentMinusDatum D₀ f).T = insert D₀.s D₀.T * ({D₀.s, f} : Finset A) :=
+      Finset.image_mul_product.symm
+    rw [show (laurentMinusDatum D₀ f).s = D₀.s * f from rfl, hT,
+      ← rationalOpen_inter (insert D₀.s D₀.T) ({D₀.s, f} : Finset A) D₀.s f
+        (Finset.mem_insert_self D₀.s D₀.T)
+        (Finset.mem_insert_of_mem (Finset.mem_singleton_self f)),
+      rationalOpen_insert_s]
+    exact ⟨⟨hvspa, hvT, hvs⟩, hvspa, fun t ht => by
+      rcases Finset.mem_insert.mp ht with rfl | ht'
+      · exact h
+      · exact Finset.mem_singleton.mp ht' ▸ (v.vle_total f f).elim id id,
+      fun hf0 => hvs (v.vle_trans h hf0)⟩
 
 /-- The 2-element Laurent covering of `D₀` at element `f`. -/
 noncomputable def laurentCovering (D₀ : RationalLocData A) (f : A) :
