@@ -208,4 +208,16 @@ theorem presheafValue_pairOfDefinition [IsTateRing A] [IsNoetherianRing A]
      fg := presheafValue_idealOfDef_fg D₀
      isAdic := presheafValue_isAdic D₀ }⟩
 
+/-- **Proposition 8.15**: `presheafValue D₀` is a Tate ring.
+
+Combines:
+- `presheafValue_pairOfDefinition`: the pair of definition exists
+- `presheafValue_topNilUnit`: a topologically nilpotent unit exists -/
+theorem presheafValue_isTateRing [IsTateRing A] [IsNoetherianRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
+    IsTateRing (presheafValue D₀) :=
+  { exists_pairOfDefinition := presheafValue_pairOfDefinition P D₀
+    exists_topologicallyNilpotent_unit := presheafValue_topNilUnit D₀ }
+
 end ValuationSpectrum
