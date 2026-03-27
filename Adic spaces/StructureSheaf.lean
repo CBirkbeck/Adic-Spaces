@@ -225,11 +225,15 @@ variable (X : AffinoidAdicSpace.{u})
 /-- The underlying topological space of an affinoid adic space. -/
 def toTopCat : TopCat.{u} := SpaTop X.Ring
 
-/-- The structure sheaf of an affinoid adic space, valued in `CommRingCat`.
-This is the underlying ring sheaf; the full topological ring sheaf valued in
-`CompleteTopCommRingCat` is constructed via `VObj.presheaf`. -/
-noncomputable def sheaf : Sheaf CommRingCat.{u} X.toTopCat :=
+/-- The structure sheaf of an affinoid adic space, valued in `CommRingCat`
+(forgetting the topology on presheaf values). -/
+noncomputable def ringSheaf : Sheaf CommRingCat.{u} X.toTopCat :=
   structureSheaf X.Ring
+
+/-- The structure sheaf of an affinoid adic space, valued in `CompleteTopCommRingCat`
+(Definition 8.21 / Remark 8.20 of Wedhorn). The presheaf values are completions
+of localizations, carrying the localization topology. -/
+noncomputable def sheaf : Sheaf CompleteTopCommRingCat.{u} X.toTopCat := sorry
 
 end AffinoidAdicSpace
 
