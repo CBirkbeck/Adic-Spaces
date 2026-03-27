@@ -299,6 +299,57 @@ For discrete rings, this follows from `IsSheafy.discrete` which is already prove
 in `StructureSheaf.lean` without requiring the Tate or strongly noetherian hypotheses.
 The `IsStronglyNoetherianTate` condition is vacuous for discrete rings (no nontrivial
 discrete Tate rings exist), so this instance is essentially `IsSheafy.discrete`. -/
+private theorem discreteUniformity_presheafValue {A : Type*} [CommRing A]
+    [TopologicalSpace A] [IsTopologicalRing A] [DiscreteTopology A]
+    [PlusSubring A] (D : RationalLocData A) :
+    D.uniformSpace = ⊥ := by
+  have htop : D.topology = ⊥ := locTopology_eq_bot_of_discrete D
+  suffices h : D.uniformSpace.uniformity = Filter.principal SetRel.id by
+    exact UniformSpace.ext (h.trans bot_uniformity.symm)
+  change Filter.comap (fun p : Localization.Away D.s × Localization.Away D.s ↦
+    p.2 - p.1) (@nhds (Localization.Away D.s) D.topology 0) = Filter.principal SetRel.id
+  have hpure : @nhds (Localization.Away D.s) D.topology 0 = pure 0 := by
+    rw [htop]; letI : TopologicalSpace (Localization.Away D.s) := ⊥
+    haveI : DiscreteTopology (Localization.Away D.s) := ⟨rfl⟩
+    exact congr_fun (nhds_discrete _) 0
+  rw [hpure, Filter.comap_pure]
+  ext s; simp only [Filter.mem_principal]
+  constructor
+  · intro h ⟨a, b⟩ (hab : a = b); exact h (show b - a = 0 by rw [hab, sub_self])
+  · intro h ⟨a, b⟩ (hab : b - a = 0); exact h (sub_eq_zero.mp hab).symm
+
+private theorem discreteTopology_presheafValue {A : Type*} [CommRing A]
+    [TopologicalSpace A] [IsTopologicalRing A] [DiscreteTopology A]
+    [PlusSubring A] (D : RationalLocData A) :
+    @DiscreteTopology (presheafValue D) inferInstance := by
+  have hbot := discreteUniformity_presheafValue D
+  -- The completion of bot uniform space has discrete topology
+  -- Key: coe is bijective (surjective uniform embedding), so it's a homeomorphism
+  have hbij := coeRingHom_bijective_of_discrete D
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  haveI : DiscreteUniformity (Localization.Away D.s) := ⟨hbot⟩
+  -- The source has DiscreteTopology (from DiscreteUniformity)
+  -- coe is a uniform embedding
+  have hue := UniformSpace.Completion.isUniformEmbedding_coe (Localization.Away D.s)
+  -- coe is surjective
+  have hsurj := hbij.2
+  -- A surjective isUniformEmbedding is a homeomorphism → target is discrete
+  have hemb : Topology.IsEmbedding D.coeRingHom := hue.isEmbedding
+  -- isEmbedding + surjective → isOpenEmbedding
+  have hopen := hemb.isOpenEmbedding_of_surjective hsurj
+  -- OpenEmbedding is a homeomorphism when surjective
+  rw [show (inferInstance : TopologicalSpace (presheafValue D)) =
+    @UniformSpace.toTopologicalSpace _ (@UniformSpace.Completion.uniformSpace _ D.uniformSpace)
+    from rfl]
+  constructor
+  apply le_antisymm
+  · -- Target topology ≤ bot: show every set is open
+    intro U _
+    rw [show U = D.coeRingHom '' (D.coeRingHom ⁻¹' U) from by
+      rw [Set.image_preimage_eq _ hsurj]]
+    exact hopen.isOpenMap _ (isOpen_discrete _)
+  · exact @bot_le (TopologicalSpace (presheafValue D)) _ _
+
 instance IsSheafy.ofStronglyNoetherianTate_discrete
     (A : Type*) [CommRing A] [TopologicalSpace A] [DiscreteTopology A]
     [PlusSubring A] [IsHuberRing A] :

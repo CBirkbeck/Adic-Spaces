@@ -161,9 +161,13 @@ theorem locSubring_subspace_eq_adic (D₀ : RationalLocData A) :
     @IsTopologicalAddGroup.rightUniformSpace _ _
       (locIdeal D₀.P D₀.T D₀.s).adicTopology
       (inferInstance) := by
-  sorry -- Reviewer confirmed: subspace uniformity = J-adic uniformity
-        -- Proof: localization basis locNhd n restricts to locIdeal^n on locSubring
-        -- (because the inclusion is injective and locNhd n = image of locIdeal^n)
+  -- Use IsUniformAddGroup.ext: two uniform spaces on an additive group agree
+  -- iff nhds 0 agree. Both have nhds 0 basis = locIdeal^n.
+  -- Subspace: nhds 0 = comap subtype (nhds 0 in Loc) = comap subtype (basis locNhd n)
+  --         = basis (subtype⁻¹(locNhd n)) = basis (locIdeal^n) [injective preimage]
+  -- Adic: nhds 0 = basis (locIdeal^n) [by definition of adic topology]
+  sorry -- Needs: IsUniformAddGroup.ext + nhds 0 basis comparison
+        -- Mathematical content confirmed by reviewer
 
 /-- The ring hom from `locSubring` into `presheafValue_ringOfDef D₀`: compose `coeRingHom`
 with `subtype`, then lift into the topological closure (which contains the range). -/

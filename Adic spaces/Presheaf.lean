@@ -449,7 +449,7 @@ private theorem isNilpotent_of_isTopologicallyNilpotent_discrete {A : Type*} [Co
   exact ⟨N, Set.mem_singleton_iff.mp (hN N le_rfl)⟩
 
 /-- The localization topology is discrete when the base ring is. -/
-private theorem locTopology_eq_bot_of_discrete {A : Type*} [CommRing A] [TopologicalSpace A]
+theorem locTopology_eq_bot_of_discrete {A : Type*} [CommRing A] [TopologicalSpace A]
     [IsTopologicalRing A] [DiscreteTopology A] (D : RationalLocData A) :
     D.topology = ⊥ := by
   have hI_le : D.P.I ≤ nilradical D.P.A₀ := by
