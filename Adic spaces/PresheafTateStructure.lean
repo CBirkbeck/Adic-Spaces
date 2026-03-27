@@ -193,18 +193,107 @@ private theorem idealOfDef_pow_sub_val_preimage_closure (D₀ : RationalLocData 
       Set (presheafValue_ringOfDef D₀)) ⊆
     Subtype.val ⁻¹' closure ((D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) ''
       (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s))) := by
-  -- The proof uses Submodule.pow_induction_on_left' with
-  -- C n x _ := val x ∈ closure(coe '' locNhd n)
-  -- Three cases: base (algebraMap), addition, and left-multiplication by idealOfDef.
-  -- Each requires significant infrastructure about the localization topology
-  -- and continuity of multiplication in the completion.
-  -- The full formal proof requires:
-  -- (a) locNhd 0 = locSubring (as sets in Localization)
-  -- (b) closure(coe '' locNhd i) is an additive subgroup
-  -- (c) val '' idealOfDef ⊆ closure(coe '' locNhd 1) (locSubring acts on locNhd)
-  -- (d) closure(S) * closure(T) ⊆ closure(S * T) (continuity of multiplication)
-  -- (e) coe '' (locNhd 1 * locNhd i) ⊆ coe '' locNhd(i+1) (ideal multiplication)
-  sorry
+  letI := D₀.uniformSpace
+  letI := D₀.isUniformAddGroup
+  letI := D₀.isTopologicalRing
+  set f := (D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) with hf_def
+  set g := locSubringToRingOfDef D₀
+  set S := closure (f '' (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s)))
+  -- Step 1: Ideal.map_pow rewrites idealOfDef^n = Ideal.map g (locIdeal^n)
+  rw [show presheafValue_idealOfDef D₀ = Ideal.map g (locIdeal D₀.P D₀.T D₀.s) from rfl,
+      Ideal.map_pow]
+  -- Step 2: Sufficient to show locIdeal^n ≤ comap g (preimage ideal)
+  -- We use Ideal.map_le_iff_le_comap.
+  -- But first we need to construct the preimage as an ideal.
+  -- Define K as the ideal of ringOfDef given by val⁻¹(S).
+  -- K is an ideal because S ∩ ringOfDef is closed under ring ops.
+  --
+  -- Alternative: use Submodule.span_le directly.
+  -- Ideal.map g (locIdeal^n) = Ideal.span (g '' (locIdeal^n))
+  -- We need: Ideal.span (g '' (locIdeal^n)) ≤ comap val S
+  -- By Submodule.span_le: enough to show g '' (locIdeal^n) ⊆ val⁻¹ S.
+  -- This is immediate: for d ∈ locIdeal^n, val(g d) ∈ f '' locNhd n ⊆ S.
+  --
+  -- Wait: Ideal.map is span as IDEAL (with scalar mult). The span_le for
+  -- Submodule gives: span(S) ≤ T iff S ⊆ T when T is a submodule.
+  -- The preimage val⁻¹(S) needs to be a submodule (= ideal of ringOfDef).
+  -- So I do need to show it's an ideal after all.
+  --
+  -- Actually, Ideal.map f I ≤ J ↔ I ≤ Ideal.comap f J. And comap just needs
+  -- J to be an ideal of the target ring. So I need val⁻¹(S) to be an ideal.
+  -- But val is Subtype.val : ringOfDef → presheafValue, not a ring hom!
+  -- (Subtype.val is the coercion, which IS a ring hom for subrings.)
+  --
+  -- Actually: Subtype.val for a Subring IS a RingHom. So comap works.
+  -- Ideal.comap (Subring.subtype ringOfDef) doesn't directly work here because
+  -- the ideal would be of presheafValue, not ringOfDef.
+  --
+  -- Let me take yet another approach: directly prove the set containment.
+  -- For x ∈ idealOfDef^n = Ideal.map g (locIdeal^n), use span_induction.
+  intro x hx
+  show x.val ∈ S
+  refine Submodule.span_induction (p := fun x _ => x.val ∈ S) ?_ ?_ ?_ ?_ hx
+  · -- Generator: x = g d for d ∈ locIdeal^n
+    rintro x ⟨d, hd, rfl⟩
+    exact subset_closure ⟨(locSubring D₀.P D₀.T D₀.s).subtype d, ⟨d, hd, rfl⟩, rfl⟩
+  · -- Zero
+    exact subset_closure ⟨0, (locNhd D₀.P D₀.T D₀.s n).zero_mem, map_zero _⟩
+  · -- Addition: S is closed under addition (closure of additive subgroup image)
+    intro a b _ _ ha hb
+    show (a + b).val ∈ S
+    rw [AddSubmonoid.coe_add]
+    -- Use that S = closure of image of AddSubgroup, hence an AddSubgroup
+    -- closure(image(H)) for H : AddSubgroup is a closed additive subgroup
+    have : a.val + b.val ∈ S := by
+      -- S is closure of the image of an additive subgroup under f ∘ subtype
+      -- The image is itself an additive subgroup (f is AddMonoidHom, subtype too)
+      -- closure of additive subgroup is additive subgroup
+      -- Need: closure of set S is closed under + when S = image of AddSubgroup
+      -- Use AddSubgroup.topologicalClosure
+      -- The image of locNhd n under f is: f '' locNhd n
+      -- locNhd n is an AddSubgroup. f is a ring hom, hence AddMonoidHom.
+      -- f '' locNhd n is not literally an AddSubgroup (since f is not on locNhd).
+      -- But locNhd n as AddSubgroup maps through f ∘ subtype.
+      -- Actually: locNhd n ⊆ Localization.Away D₀.s, and f : Localization → presheafValue.
+      -- f '' (locNhd n : Set Localization) = image of an additive subgroup under AddMonoidHom
+      -- = AddSubgroup.map f.toAddMonoidHom locNhd
+      -- So closure of this is (AddSubgroup.map ...).topologicalClosure which is additive.
+      have hS_eq : S = ((locNhd D₀.P D₀.T D₀.s n).map
+          f.toAddMonoidHom).topologicalClosure := by
+        simp only [S, AddSubgroup.topologicalClosure_coe,
+          AddSubgroup.coe_map, AddMonoidHom.coe_coe]
+      rw [hS_eq] at ha hb ⊢
+      exact ((locNhd D₀.P D₀.T D₀.s n).map
+        f.toAddMonoidHom).topologicalClosure.add_mem ha hb
+    exact this
+  · -- Scalar multiplication: r ∈ ringOfDef, x has val in S, need (r • x).val ∈ S
+    intro ⟨r, hr⟩ x _ hx_ih
+    show (⟨r, hr⟩ • x).val ∈ S
+    simp only [SetLike.val_smul, smul_eq_mul]
+    -- r ∈ ringOfDef = closure(range(f ∘ subtype)), x.val ∈ S = closure(f '' locNhd n)
+    -- Step A: for c ∈ range(f ∘ subtype) and y ∈ f '' locNhd n: c * y ∈ f '' locNhd n
+    -- (locNhd n is ideal image, so locSubring * locNhd n ⊆ locNhd n)
+    have hact : ∀ c ∈ (f.comp (locSubring D₀.P D₀.T D₀.s).subtype).range,
+        ∀ y ∈ (f '' (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s))),
+        c * y ∈ (f '' (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s))) := by
+      rintro c ⟨a, rfl⟩ y ⟨z, hz, rfl⟩
+      obtain ⟨d, hd, hdz⟩ := hz
+      refine ⟨(locSubring D₀.P D₀.T D₀.s).subtype (a * d), ?_, ?_⟩
+      · exact ⟨a * d, Ideal.mul_mem_left _ a hd, rfl⟩
+      · simp only [map_mul, MulMemClass.coe_mul, hdz]
+    -- Step B: for c ∈ range(f ∘ subtype): c * S ⊆ S
+    -- (c * closure(T) ⊆ closure(c * T) ⊆ closure(T) by Step A)
+    have hc_mul_S : ∀ c ∈ (f.comp (locSubring D₀.P D₀.T D₀.s).subtype).range,
+        ∀ y ∈ S, c * y ∈ S := by
+      intro c hc y hy
+      -- c * · is continuous, so c * closure(T) ⊆ closure(c * T)
+      have hcont : Continuous (c * ·) := continuous_const_mul c
+      have h1 : c * y ∈ closure ((c * ·) '' (f '' (locNhd D₀.P D₀.T D₀.s n :
+          Set (Localization.Away D₀.s)))) :=
+        (hcont.isClosedMap_of_isClosed isClosed_closure).closure_image_subset _ |>.symm ▸
+        sorry -- need: image of closure ⊆ closure of image, but for ·*· this is standard
+      sorry
+    sorry
 
 /-- Corollary: the val-image of `idealOfDef^n` is contained in `closure(coe '' locNhd n)`. -/
 private theorem idealOfDef_pow_val_sub_closure (D₀ : RationalLocData A) (n : ℕ) :
