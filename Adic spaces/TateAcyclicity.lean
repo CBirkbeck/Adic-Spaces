@@ -292,13 +292,8 @@ end FaithfulFlatPerspective
 
 /-! ### Theorem 8.28(b): Strongly noetherian Tate rings are sheafy -/
 
-/-- **Theorem 8.28(b)** of Wedhorn (discrete case): discrete rings with the
-`IsStronglyNoetherianTate` hypothesis are sheafy.
-
-For discrete rings, this follows from `IsSheafy.discrete` which is already proved
-in `StructureSheaf.lean` without requiring the Tate or strongly noetherian hypotheses.
-The `IsStronglyNoetherianTate` condition is vacuous for discrete rings (no nontrivial
-discrete Tate rings exist), so this instance is essentially `IsSheafy.discrete`. -/
+/-- The localization uniform space is `⊥` (discrete) when the base ring is discrete.
+This is extracted from the proof of `coeRingHom_bijective_of_discrete` for reuse. -/
 private theorem discreteUniformity_presheafValue {A : Type*} [CommRing A]
     [TopologicalSpace A] [IsTopologicalRing A] [DiscreteTopology A]
     [PlusSubring A] (D : RationalLocData A) :
@@ -342,19 +337,57 @@ private theorem discreteTopology_presheafValue {A : Type*} [CommRing A]
     @UniformSpace.toTopologicalSpace _ (@UniformSpace.Completion.uniformSpace _ D.uniformSpace)
     from rfl]
   constructor
-  apply le_antisymm
-  · -- Target topology ≤ bot: show every set is open
-    intro U _
+  ext U
+  exact ⟨fun _ ↦ trivial, fun _ ↦ by
     rw [show U = D.coeRingHom '' (D.coeRingHom ⁻¹' U) from by
       rw [Set.image_preimage_eq _ hsurj]]
-    exact hopen.isOpenMap _ (isOpen_discrete _)
-  · exact @bot_le (TopologicalSpace (presheafValue D)) _ _
+    exact hopen.isOpenMap _ (isOpen_discrete _)⟩
 
+/-- **Theorem 8.28(b)** of Wedhorn (discrete case): discrete Huber rings are sheafy.
+
+For the embedding condition, the localization topology is `⊥` (discrete) for discrete
+base rings, so `presheafValue D` is also discrete. The product restriction is injective
+by `productRestriction_injective_discrete`, and an injective map between discrete spaces
+is an embedding.
+
+The gluing condition (existence of a global section from compatible local data) requires
+the Čech complex exactness for rational coverings. -/
 instance IsSheafy.ofStronglyNoetherianTate_discrete
     (A : Type*) [CommRing A] [TopologicalSpace A] [DiscreteTopology A]
     [PlusSubring A] [IsHuberRing A] :
     IsSheafy A where
-  isEmbedding_productRestriction C := sorry
+  isEmbedding_productRestriction C := by
+    -- For discrete rings, presheafValue has discrete topology
+    haveI hbase : DiscreteTopology (presheafValue C.base) :=
+      discreteTopology_presheafValue C.base
+    -- The productRestrictionSub is injective
+    have hinj : Function.Injective (productRestrictionSub A C) := by
+      intro x y hxy
+      exact productRestriction_injective_discrete C
+        (funext fun ⟨D, hD⟩ ↦ congr_fun hxy ⟨D, hD⟩)
+    -- For discrete source topology, any injective map is an embedding
+    refine ⟨⟨?_⟩, hinj⟩
+    -- Need: source topology = induced topology from productRestrictionSub
+    -- Both are discrete, since presheafValue is discrete for discrete A.
+    rw [hbase.eq_bot]
+    have hbl : (⊥ : TopologicalSpace (presheafValue C.base)) ≤
+        TopologicalSpace.induced (productRestrictionSub A C) Pi.topologicalSpace :=
+      fun _ _ ↦ trivial
+    apply le_antisymm hbl
+    -- Need: induced ≤ ⊥, i.e., every ⊥-open set (= every set) is induced-open.
+    -- Since f is injective, every set U = f⁻¹'(f '' U), and f '' U is Pi-open.
+    have hpi_discr : ∀ (D : ↥C.covers), DiscreteTopology (presheafValue D.1) :=
+      fun D ↦ discreteTopology_presheafValue D.1
+    intro U _
+    apply isOpen_induced_iff.mpr
+    refine ⟨(productRestrictionSub A C) '' U ∪
+      (Set.univ \ Set.range (productRestrictionSub A C)),
+      isOpen_discrete _, ?_⟩
+    ext x; constructor
+    · rintro (⟨y, hy, hfxy⟩ | ⟨-, hx⟩)
+      · exact hinj hfxy ▸ hy
+      · exact absurd ⟨x, rfl⟩ hx
+    · exact fun hx ↦ Or.inl ⟨x, hx, rfl⟩
   gluing C f hcompat := sorry
 
 /-! ### General case: specification of remaining work

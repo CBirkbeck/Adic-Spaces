@@ -2,7 +2,7 @@
 
 > **Agents: Read this file before starting work. Update it when you begin or complete a task.**
 >
-> Last updated: 2026-03-26 (separation via TopologyComparison route)
+> Last updated: 2026-03-27 (IsSheafy embedding for discrete rings filled)
 
 ## Module Status
 
@@ -64,6 +64,11 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
   - `isSheafy_ofStronglyNoetherianTate` : Delegates to separation via uniform hypotheses.
   - `tateQuotientProductRestriction_injective` : **1 sorry** — the key algebraic step showing that the product restriction transferred to Tate quotients has trivial kernel. Needs: (1) transfer restrictionMap=0 through cover isomorphisms, (2) interpret at localization level, (3) apply Spa-point radical argument.
 - Sorry-free: `base_s_in_annihilator_radical_of_covering`, `restrictionMapAlg_factors`, `productRestriction_coe_eq`, `productRestriction_comp_canonicalMap`, `exists_spa_point_in_rationalOpen_of_isOpen_prime`.
+
+**TateAcyclicity.lean** — 1 sorry (updated 2026-03-27):
+- `IsSheafy.ofStronglyNoetherianTate_discrete.isEmbedding_productRestriction` : **DONE** (sorry-free). For discrete rings, presheafValue has discrete topology (proved via surjective uniform embedding from discrete localization). Product restriction is injective by `productRestriction_injective_discrete`. Injective map between discrete spaces is an embedding.
+- `IsSheafy.ofStronglyNoetherianTate_discrete.gluing` : **1 sorry**. Needs: given compatible sections in presheafValues of covering pieces, construct a global section. Requires Cech complex exactness for rational coverings of the adic spectrum.
+- Helper lemmas added: `discreteUniformity_presheafValue` (localization uniform space is bot for discrete base), `discreteTopology_presheafValue` (presheafValue has discrete topology for discrete base ring).
 
 ## Key Theorems (Adic Morphisms Chain)
 

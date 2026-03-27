@@ -161,13 +161,58 @@ theorem locSubring_subspace_eq_adic (D₀ : RationalLocData A) :
     @IsTopologicalAddGroup.rightUniformSpace _ _
       (locIdeal D₀.P D₀.T D₀.s).adicTopology
       (inferInstance) := by
-  -- Use IsUniformAddGroup.ext: two uniform spaces on an additive group agree
-  -- iff nhds 0 agree. Both have nhds 0 basis = locIdeal^n.
-  -- Subspace: nhds 0 = comap subtype (nhds 0 in Loc) = comap subtype (basis locNhd n)
-  --         = basis (subtype⁻¹(locNhd n)) = basis (locIdeal^n) [injective preimage]
-  -- Adic: nhds 0 = basis (locIdeal^n) [by definition of adic topology]
-  sorry -- Needs: IsUniformAddGroup.ext + nhds 0 basis comparison
-        -- Mathematical content confirmed by reviewer
+  letI : TopologicalSpace (Localization.Away D₀.s) := D₀.topology
+  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  have key : TopologicalSpace.induced (locSubring D₀.P D₀.T D₀.s).subtype D₀.topology =
+      (locIdeal D₀.P D₀.T D₀.s).adicTopology := by
+    have htag_ind : @IsTopologicalAddGroup (locSubring D₀.P D₀.T D₀.s)
+        (TopologicalSpace.induced (locSubring D₀.P D₀.T D₀.s).subtype D₀.topology) _ :=
+      @IsTopologicalRing.to_topologicalAddGroup _ _
+        (TopologicalSpace.induced (locSubring D₀.P D₀.T D₀.s).subtype D₀.topology)
+        (Subring.instIsTopologicalRing (locSubring D₀.P D₀.T D₀.s))
+    have htag_adic : @IsTopologicalAddGroup (locSubring D₀.P D₀.T D₀.s)
+        (locIdeal D₀.P D₀.T D₀.s).adicTopology _ :=
+      @IsTopologicalRing.to_topologicalAddGroup _ _ (locIdeal D₀.P D₀.T D₀.s).adicTopology
+        ((locIdeal D₀.P D₀.T D₀.s).adic_basis.toRing_subgroups_basis.toRingFilterBasis
+          .isTopologicalRing)
+    apply @IsTopologicalAddGroup.ext (locSubring D₀.P D₀.T D₀.s) _ _ _ htag_ind htag_adic
+    have hbasis_loc := (locBasis D₀.P D₀.T D₀.s D₀.hopen).hasBasis_nhds_zero
+    have hpreimage_eq : ∀ n : ℕ,
+        (locSubring D₀.P D₀.T D₀.s).subtype ⁻¹'
+          (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s)) =
+        ((locIdeal D₀.P D₀.T D₀.s ^ n : Ideal (locSubring D₀.P D₀.T D₀.s)) :
+          Set (locSubring D₀.P D₀.T D₀.s)) := by
+      intro n; ext ⟨x, hx_mem⟩; constructor
+      · rintro ⟨d, hd, hd_eq⟩; exact (Subtype.val_injective hd_eq) ▸ hd
+      · intro hx; exact ⟨⟨x, hx_mem⟩, hx, rfl⟩
+    have hbasis_ind :
+        (@nhds (locSubring D₀.P D₀.T D₀.s)
+          (TopologicalSpace.induced (locSubring D₀.P D₀.T D₀.s).subtype D₀.topology) 0).HasBasis
+        (fun _ : ℕ => True) (fun n => ((locIdeal D₀.P D₀.T D₀.s ^ n :
+          Ideal (locSubring D₀.P D₀.T D₀.s)) : Set (locSubring D₀.P D₀.T D₀.s))) := by
+      rw [nhds_induced, show ((locSubring D₀.P D₀.T D₀.s).subtype :
+          (locSubring D₀.P D₀.T D₀.s) → Localization.Away D₀.s) 0 = 0 from map_zero _]
+      exact (hbasis_loc.comap (locSubring D₀.P D₀.T D₀.s).subtype).congr
+        (fun _ => Iff.rfl) (fun n _ => hpreimage_eq n)
+    ext U; rw [hbasis_ind.mem_iff, (locIdeal D₀.P D₀.T D₀.s).hasBasis_nhds_zero_adic.mem_iff]
+  apply UniformSpace.ext; rw [uniformity_comap]
+  show Filter.comap (Prod.map (locSubring D₀.P D₀.T D₀.s).subtype
+      (locSubring D₀.P D₀.T D₀.s).subtype)
+    (Filter.comap (fun p : _ × _ => p.2 - p.1) (@nhds _ D₀.topology 0)) =
+    Filter.comap (fun p : _ × _ => p.2 - p.1)
+      (@nhds _ (locIdeal D₀.P D₀.T D₀.s).adicTopology 0)
+  have hcomm :
+      (fun p : (Localization.Away D₀.s) × (Localization.Away D₀.s) => p.2 - p.1) ∘
+      (Prod.map (locSubring D₀.P D₀.T D₀.s).subtype (locSubring D₀.P D₀.T D₀.s).subtype) =
+      (locSubring D₀.P D₀.T D₀.s).subtype ∘
+      (fun p : _ × _ => p.2 - p.1) := by
+    ext ⟨a, b⟩; exact (map_sub (locSubring D₀.P D₀.T D₀.s).subtype b a).symm
+  rw [Filter.comap_comap, hcomm, ← Filter.comap_comap]; congr 1
+  conv_lhs => rw [show (0 : Localization.Away D₀.s) =
+    (locSubring D₀.P D₀.T D₀.s).subtype 0 from (map_zero _).symm]
+  rw [← nhds_induced, key]
 
 /-- The ring hom from `locSubring` into `presheafValue_ringOfDef D₀`: compose `coeRingHom`
 with `subtype`, then lift into the topological closure (which contains the range). -/
