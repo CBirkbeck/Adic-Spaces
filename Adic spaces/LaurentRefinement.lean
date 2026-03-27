@@ -263,18 +263,20 @@ theorem productRestriction_zero_kernel
   -- The covering must be nonempty: for any v in the base rational open,
   -- some D covers it. So C.covers is nonempty (assuming the base is nonempty).
   -- For the edge case of empty base rational open: presheafValue is trivial.
-  -- Case split: is the covering nonempty?
-  by_cases hne : C.covers.Nonempty
-  · -- Nonempty covering: pick any cover piece, use injectivity of restriction
-    obtain ⟨D, hD⟩ := hne
-    exact restrictionMapHom_injective P C.base D (C.hsubset D hD)
-      (show restrictionMapHom C.base D (C.hsubset D hD) x =
-        restrictionMapHom C.base D (C.hsubset D hD) 0 from by
-          rw [map_zero]; exact hx D hD)
-  · -- Empty covering: vacuously true if presheafValue C.base is subsingleton,
-    -- which happens when the base rational open is empty (locIdeal = ⊤ case).
-    -- For nonempty base rational open: the covering must be nonempty.
-    sorry -- Edge case: empty covering (degenerate)
+  -- Pick any cover piece and use injectivity of the restriction map.
+  -- The covering must be nonempty (from the covering condition + nonempty base).
+  -- For the degenerate case of empty base rational open: presheafValue = {0}.
+  obtain ⟨D, hD⟩ : C.covers.Nonempty := by
+    by_contra hempty
+    rw [Finset.not_nonempty_iff_eq_empty] at hempty
+    -- Empty covers: the covering condition gives rationalOpen base = ∅
+    -- For a Tate domain: the Spa is nonempty, so some rational opens are nonempty
+    -- This is a degenerate edge case
+    sorry -- Empty covering edge case
+  exact restrictionMapHom_injective P C.base D (C.hsubset D hD)
+    (show restrictionMapHom C.base D (C.hsubset D hD) x =
+      restrictionMapHom C.base D (C.hsubset D hD) 0 from by
+        rw [map_zero]; exact hx D hD)
 
 /-- **Theorem 8.28(b) of Wedhorn**: Every rational covering of a strongly
 noetherian Tate ring has the separation property.
