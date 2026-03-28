@@ -247,10 +247,22 @@ theorem tateAcyclicity
     --     is injective).
     --     [AVAILABLE in Mathlib: faithfully flat ring maps are injective]
     --
-    -- Unblocking: formalize the full localization identification in Prop 8.15,
-    -- i.e., show restrictionMap C.base D is an IsLocalization of presheafValue C.base
-    -- at the image of D.s. This requires extending PresheafTateStructure.lean.
-    sorry
+    -- With restrictionMap_isLocalization (Prop 8.15):
+    -- Each restriction is a localization → injective (non-zero-divisor at a unit).
+    -- So the product restriction is injective.
+    intro x hx
+    -- Pick any cover piece D (covering is nonempty for nontrivial base).
+    by_cases hne : C.covers.Nonempty
+    · obtain ⟨D, hD⟩ := hne
+      -- The restriction to D is injective (localization at non-zero-divisor).
+      have hx_D := hx D hD
+      -- restrictionMap(x) = 0 at D.
+      -- By IsLocalization: restrictionMap is injective (canonicalMap(D.s) is a unit
+      -- in presheafValue D, hence a non-zero-divisor in presheafValue C.base).
+      -- So x = 0.
+      sorry -- Needs: IsLocalization.injective from restrictionMap_isLocalization
+    · -- Empty covering: degenerate case.
+      sorry
   · -- Part 2: Gluing
     sorry -- Prop 8.15 → Čech descent / Laurent exactness transfer
 

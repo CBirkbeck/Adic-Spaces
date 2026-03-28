@@ -606,4 +606,44 @@ theorem presheafValue_isTateRing [IsTateRing A] [IsNoetherianRing A]
   { exists_pairOfDefinition := presheafValue_pairOfDefinition P D₀
     exists_topologicallyNilpotent_unit := presheafValue_topNilUnit D₀ }
 
+/-! ### Proposition 8.15: restriction maps are rational localizations
+
+The core of Prop 8.15: for D ≤ D₀, the restriction map
+`restrictionMapHom D₀ D h : presheafValue D₀ →+* presheafValue D`
+makes `presheafValue D` a localization of `presheafValue D₀` at the
+image of `D.s` under `canonicalMap`.
+
+This identification is the KEY infrastructure for Tate acyclicity:
+- Each restriction is flat (localization = flat)
+- Covering → Spec surjective → faithfully flat → IsSheafy
+
+The proof requires:
+1. presheafValue D₀ is a Tate ring (presheafValue_isTateRing, proved)
+2. The restriction sends canonicalMap(D.s) to a unit (isUnit_canonicalMap_s)
+3. presheafValue D = (presheafValue D₀)[1/canonicalMap(D.s)]
+   (this is the ISOMORPHISM, not just a factoring)
+
+Step 3 is the deepest part. It uses the localization-of-completion theorem:
+Completion(R[1/s]) ≃ Completion(R)[1/s'] where R = locSubring, s = D.s.
+This requires:
+- The subspace uniformity identification (locSubring_subspace_eq_adic, proved)
+- The completion embedding preserving the localization structure
+- The universal property of localization in the completion -/
+
+/-- **Proposition 8.15**: the restriction map is a localization.
+
+`presheafValue D` is the localization of `presheafValue D₀` at
+`D₀.canonicalMap D.s`. This makes each restriction map a localization,
+hence flat (by `Localization.flat`). -/
+theorem restrictionMap_isLocalization
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    @IsLocalization.Away (presheafValue D₀) _ (D₀.canonicalMap D.s)
+      (presheafValue D) _ (restrictionMapHom D₀ D h).toAlgebra := by
+  sorry -- Prop 8.15: the restriction IS a localization at canonicalMap(D.s)
+        -- Proof: localization-of-completion + universal property
+
 end ValuationSpectrum
