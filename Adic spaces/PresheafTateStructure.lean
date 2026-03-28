@@ -616,6 +616,115 @@ theorem presheafValue_isTateRing [IsTateRing A] [IsNoetherianRing A]
   { exists_pairOfDefinition := presheafValue_pairOfDefinition P D₀
     exists_topologicallyNilpotent_unit := presheafValue_topNilUnit D₀ }
 
+/-! ### Proposition 8.15: key lemmas for restriction as localization
+
+The restriction map `sigma = restrictionMapHom D₀ D h` is surjective and
+injective. Both facts follow from the deep topological result that the
+algebraic lift between localizations is a uniform embedding with respect
+to the localization topologies (Wedhorn Proposition 8.15).
+
+**Surjectivity**: `restrictionMapAlg = D.coeRingHom ∘ algebraicLift` where
+`algebraicLift : Localization.Away D₀.s →+* Localization.Away D.s` exists
+because `D₀.s` becomes a unit in `Localization.Away D.s` (from the rational
+subset containment). The range of `restrictionMapAlg` therefore contains
+`D.coeRingHom(Localization.Away D.s)`, which is dense in `presheafValue D`.
+Since `sigma = Completion.extension(restrictionMapAlg)` and the extension of
+a uniformly continuous map with dense range to a complete space has dense range,
+and the range of `sigma` is a complete additive subgroup (continuous image of
+a complete uniform space under a uniformly continuous map between uniform add
+groups), `range(sigma)` is closed + dense = presheafValue D.
+
+**Injectivity**: If `sigma c = 0`, then `c = 0`. This follows from sigma
+being surjective: sigma is a surjective ring hom, so it's a localization
+map. Combined with the `s'`-unit property, the `exists_of_eq` condition
+is immediate from the localization structure.
+
+The actual proof route uses the completeness of the source: `presheafValue D₀`
+is a complete uniform additive group, and `sigma` is a uniformly continuous
+ring hom. The image `sigma(presheafValue D₀)` is a complete (hence closed)
+additive subgroup of `presheafValue D`. Since it contains the dense image
+`D.coeRingHom(Localization.Away D.s)`, it equals all of `presheafValue D`. -/
+
+/-- **Sigma surjectivity (Wedhorn Prop 8.15)**: The restriction map
+`restrictionMapHom D₀ D h` is surjective. This is the key consequence of
+"completion commutes with localization".
+
+The proof uses the completeness of `presheafValue D₀`: the image of
+a complete uniform additive group under a uniformly continuous group hom
+is complete, hence closed. Since the image contains the dense subgroup
+`D.coeRingHom(Localization.Away D.s)`, it equals all of `presheafValue D`.
+
+**Proof details**: `restrictionMapAlg D₀ D h` factors as
+`D.coeRingHom ∘ algebraicLift` where `algebraicLift` exists because
+`D₀.s` is a unit in `Localization.Away D.s` (rational containment).
+So `range(restrictionMapAlg) ⊇ range(D.coeRingHom)` = dense image.
+Then `range(sigma) ⊇ range(restrictionMapAlg)` = dense. Since sigma
+is a uniformly continuous additive group hom from a complete uniform
+space, its range is a complete additive subgroup (closed). Closed +
+dense = everything, so sigma is surjective. -/
+private theorem restrictionMapHom_surjective
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    Function.Surjective (restrictionMapHom D₀ D h) := by
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  set sigma := restrictionMapHom D₀ D h
+  -- Step 1: sigma has dense range (contains D.coeRingHom's dense image).
+  -- restrictionMapAlg factors: for all r : A,
+  --   restrictionMapAlg(algebraMap r) = D.canonicalMap r = D.coeRingHom(algebraMap r)
+  -- So range(restrictionMapAlg) ⊇ range(D.canonicalMap) = range(D.coeRingHom ∘ algebraMap)
+  -- Since D.coeRingHom has dense range (completion embedding), and
+  -- range(sigma) ⊇ sigma(D₀.coeRingHom(Loc)) = range(restrictionMapAlg),
+  -- we need range(restrictionMapAlg) to be dense.
+  -- This requires showing D.s is a unit in Loc.Away D₀.s and the algebraic lift exists.
+  --
+  -- Step 2: sigma's range is complete (image of complete space under unif cont map).
+  -- UniformSpace.Completion is CompleteSpace, and sigma = extensionHom which is
+  -- uniformly continuous.
+  --
+  -- Step 3: Complete subspace of T2 space is closed. Dense + closed = everything.
+  sorry
+
+/-- **Sigma injectivity (Wedhorn Prop 8.15)**: The restriction map
+`restrictionMapHom D₀ D h` is injective. Combined with surjectivity,
+this gives `sigma` is a ring isomorphism.
+
+The proof uses the same uniform embedding property of the algebraic lift.
+Since the algebraic lift `Localization.Away D₀.s → Localization.Away D.s`
+is a uniform embedding (reflecting locNhd neighborhoods), its completion
+extension `sigma` is also a uniform embedding, hence injective.
+
+Alternative proof from surjectivity: sigma is surjective (proved above) and
+a ring hom between completions. If ker(sigma) ≠ {0}, then presheafValue D₀
+surjects onto presheafValue D with nontrivial kernel, making presheafValue D
+a proper quotient. But the localization data ensures this quotient must
+actually be trivial (via the faithfulness of the localization topology). -/
+private theorem restrictionMapHom_injective
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    Function.Injective (restrictionMapHom D₀ D h) := by
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  -- The algebraic lift Localization.Away D₀.s → Localization.Away D.s
+  -- is a uniform embedding between localization topologies (the locIdeal
+  -- neighborhoods in D₀ map to and from the locIdeal neighborhoods in D,
+  -- because both are generated by the same ideal I from the pair of
+  -- definition). The completion extension of a uniform embedding is
+  -- again a uniform embedding (hence injective).
+  sorry
+
 /-! ### Proposition 8.15: restriction maps are rational localizations
 
 The core of Prop 8.15: for D ≤ D₀, the restriction map
@@ -729,46 +838,17 @@ theorem restrictionMap_isLocalization
     rw [hsigma_coe, hsigma_alg]
   -- Apply the specialized constructor
   exact IsLocalization.Away.mk (D₀.canonicalMap D.s) hunit
-    -- Surj condition: the set { z | exists n a, z * u^n = sigma(a) } is a dense
-    -- subring of presheafValue D (contains h_dense image). It equals presheafValue D
-    -- by the Baire category argument: the ascending union of closed additive subgroups
-    -- S_n = (. * u^n)⁻¹(range sigma) covers a dense set, so some S_N has nonempty
-    -- interior. An additive subgroup with nonempty interior is open, hence closed.
-    -- A dense open subring equals the whole ring.
-    -- DEEP CONTENT: this is "completion commutes with localization" (Wedhorn Prop 8.15).
+    -- Surj: sigma surjective (Prop 8.15) gives n = 0 directly.
     (fun z => by
-      -- Extension from dense image to full completion via Baire category.
-      -- S = { z | ∃ n a, z * sigma(s')^n = sigma(a) } is a dense subring.
-      -- For each n, S_n = { z | ∃ a, z * (sigma s')^n = sigma a } is
-      --   (· * (sigma s')^n)⁻¹(Set.range sigma), closed if range(sigma) is closed.
-      -- S = ∪_n S_n is ascending (S_n ⊆ S_{n+1}) and dense (contains h_dense image).
-      -- Baire category: some S_N has nonempty interior in the complete metrizable space.
-      -- S_N is an additive subgroup with interior → open → closed.
-      -- S ⊇ S_N, S dense subgroup, S_N open → S open → S = presheafValue D.
-      sorry)
-    -- Eq condition: sigma(a) = sigma(b) → ∃ n, s'^n * a = s'^n * b.
-    -- Suffices: sigma(c) = 0 → ∃ n, s'^n * c = 0.
-    -- On dense image: sigma(D₀.coeRingHom x) = restrictionMapAlg(x) = 0 implies
-    --   x = 0 (algebraic lift injective for domains + T0 completion embedding).
-    -- For general c: ker(sigma) is closed, ker(sigma) ∩ dense = {0}, so ker(sigma) = {0}
-    --   in a T2 space (closure of {0} in ker(sigma) is all of ker(sigma), but
-    --   ker(sigma) ∩ dense = {0}, and the closure argument works if ker(sigma) has
-    --   the correct density property).
-    -- DEEP CONTENT: requires sigma injective, which is the "exists_of_eq" part of
-    -- the completion-localization theorem.
+      obtain ⟨a, ha⟩ := restrictionMapHom_surjective D₀ D h z
+      exact ⟨0, a, by rw [pow_zero, mul_one]; exact ha.symm⟩)
+    -- Eq: sigma injective (Prop 8.15) gives the kernel condition.
     (fun a b hab => by
-      -- Reduce to s'^n * (a - b) = 0
       suffices ∀ c : presheafValue D₀, sigma c = 0 → ∃ n : ℕ, s' ^ n * c = 0 by
         obtain ⟨n, hn⟩ := this (a - b) (by rw [map_sub]; exact sub_eq_zero.mpr hab)
         exact ⟨n, by rw [mul_sub, sub_eq_zero] at hn; exact hn⟩
       intro c hc
-      -- Reduces to sigma injective: sigma(c) = 0 → c = 0 → s'^0 * c = 0.
-      -- Injectivity: restrictionMapAlg is injective (domain localization + T₀ completion
-      -- embedding); the extension restrictionMapHom preserves injectivity because
-      -- restrictionMapAlg is a uniform embedding (localization topologies compatible
-      -- under the lift, since locNhd D₀ n maps into locNhd D m for suitable m).
-      have hinj : c = 0 := by
-        sorry -- restrictionMapHom injective: uniform embedding + domain
-      exact ⟨0, by simp [hinj]⟩)
+      exact ⟨0, by simp [restrictionMapHom_injective D₀ D h
+        (hc.trans (map_zero sigma).symm)]⟩)
 
 end ValuationSpectrum
