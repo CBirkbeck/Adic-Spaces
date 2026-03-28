@@ -68,9 +68,14 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 - Sorry-free: `base_s_in_annihilator_radical_of_covering`, `restrictionMapAlg_factors`, `productRestriction_coe_eq`, `productRestriction_comp_canonicalMap`, `exists_spa_point_in_rationalOpen_of_isOpen_prime`.
 
 **TateAcyclicity.lean** — 1 sorry (updated 2026-03-28):
-- `IsSheafy.ofStronglyNoetherianTate_discrete.isEmbedding_productRestriction` : **DONE** (sorry-free). For discrete rings, presheafValue has discrete topology (proved via surjective uniform embedding from discrete localization). Product restriction is injective by `productRestriction_injective_discrete`. Injective map between discrete spaces is an embedding.
-- `IsSheafy.ofStronglyNoetherianTate_discrete.gluing` : **1 sorry** (refactored, sorry localized). Now delegates to `discrete_gluing`, which separates the proof into two layers: (A) algebraic core: find `x' : Away C.base.s` with `restrictionMapAlg(x') = f D` for all D, and (B) transport: `restrictionMap(coeRingHom(x')) = restrictionMapAlg(x')` via `extensionHom_coe`. Layer (B) is complete (sorry-free). Layer (A) remains as a single sorry — this is the Cech H^0 exactness for localizations (partition-of-unity construction). Needs: covering condition implies D.s images generate unit ideal in Away C.base.s, then standard Finset.sum construction (~200-300 lines of localization algebra).
-- Helper lemmas added: `discreteUniformity_presheafValue` (localization uniform space is bot for discrete base), `discreteTopology_presheafValue` (presheafValue has discrete topology for discrete base ring), `discrete_gluing` (factored proof with transport layer complete).
+- `IsSheafy.ofStronglyNoetherianTate_discrete.isEmbedding_productRestriction` : **DONE** (sorry-free).
+- `IsSheafy.ofStronglyNoetherianTate_discrete.gluing` : **1 sorry** (refined). Delegates to `discrete_gluing`. Layer (B) transport: sorry-free. Layer (A) algebraic core: 1 sorry for the localization gluing construction. All prerequisites now proved sorry-free:
+  - `isLocAway_of_isUnit`: localization-localization principle (Away D.s is IsLocalization.Away of Away C.base.s)
+  - `hspan_top`: {algebraMap D.s | D in covers} generates unit ideal in Away C.base.s (via covering condition + trivial valuation at primes + Ideal.eq_top_of_isUnit_mem)
+  - `hs_unit`: algebraMap(C.base.s) is a unit in Away D.s for each cover piece
+  - `lift_factor`: restrictionMapAlg = coeRingHom ∘ lift
+  Remaining sorry: connecting the above to `Localization.existsUnique_algebraMap_eq_of_span_eq_top` (instance management for awayToAwayRight/Left compatibility + bridging the Algebra instances). Estimated ~100-150 lines of boilerplate.
+- Helper lemmas: `discreteUniformity_presheafValue`, `discreteTopology_presheafValue`, `discrete_gluing`, `isLocAway_of_isUnit`.
 
 ## Key Theorems (Adic Morphisms Chain)
 

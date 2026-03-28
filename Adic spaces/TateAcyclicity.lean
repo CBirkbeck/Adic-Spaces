@@ -45,11 +45,16 @@ the proof infrastructure for **Theorem 8.28(b)**: strongly noetherian Tate rings
 
 ## Current status
 
-### Discrete case (complete, 0 sorry)
+### Discrete case (1 sorry — localization gluing boilerplate)
 - Laurent cover exactness: `LaurentCoverExact.lean`
 - Flatness: `FlatnessResults.lean`
 - Discrete sheaf condition: `StructureSheaf.lean` (`IsSheafy.discrete`)
 - Separation via refinement: proved below
+- Gluing (`discrete_gluing`): Layer (B) transport sorry-free. Layer (A) algebraic
+  core has 1 sorry: constructing the global section from compatible local data.
+  All prerequisites proved: `isLocAway_of_isUnit` (localization-localization),
+  `hspan_top` (unit ideal in Away C.base.s), `hs_unit` / `lift_factor` (factorization).
+  Remaining: instance management to connect to `existsUnique_algebraMap_eq_of_span_eq_top`.
 
 ### General (non-discrete) case (algebraic foundation complete)
 The algebraic ingredients are all proved:
@@ -293,6 +298,53 @@ end FaithfulFlatPerspective
 
 /-! ### Theorem 8.28(b): Strongly noetherian Tate rings are sheafy -/
 
+/-- If `s` is a unit in `Away t`, then `Away t` is a localization of `Away s` at the
+image of `t`. This is the localization-localization principle: `A[1/t] = A[1/s][1/(image t)]`
+when `s` is already a unit in `A[1/t]`. -/
+private noncomputable def isLocAway_of_isUnit {A : Type*} [CommRing A] {s t : A}
+    (hunit : IsUnit (algebraMap A (Localization.Away t) s)) :
+    letI : Algebra (Localization.Away s) (Localization.Away t) :=
+      (IsLocalization.Away.lift s hunit).toAlgebra
+    IsLocalization.Away (algebraMap A (Localization.Away s) t) (Localization.Away t) := by
+  letI : Algebra (Localization.Away s) (Localization.Away t) :=
+    (IsLocalization.Away.lift s hunit).toAlgebra
+  haveI : IsScalarTower A (Localization.Away s) (Localization.Away t) := by
+    constructor; intro a x y; simp only [Algebra.smul_def]
+    change IsLocalization.Away.lift s hunit (algebraMap A _ a * x) * y =
+      algebraMap A _ a * (IsLocalization.Away.lift s hunit x * y)
+    simp only [map_mul, IsLocalization.Away.lift_eq]; ring
+  apply IsLocalization.Away.mk
+  · change IsUnit (IsLocalization.Away.lift s hunit (algebraMap A _ t))
+    rw [IsLocalization.Away.lift_eq]; exact IsLocalization.Away.algebraMap_isUnit t
+  · intro z; obtain ⟨n, a, h⟩ := IsLocalization.Away.surj t z
+    refine ⟨n, algebraMap A _ a, ?_⟩
+    change z * (IsLocalization.Away.lift s hunit (algebraMap A _ t)) ^ n =
+      IsLocalization.Away.lift s hunit (algebraMap A _ a)
+    simp only [IsLocalization.Away.lift_eq]; exact h
+  · intro a b hab
+    have hdiff : IsLocalization.Away.lift s hunit (a - b) = 0 := by
+      rw [map_sub, sub_eq_zero]; exact hab
+    obtain ⟨⟨r, ⟨_, m, rfl⟩⟩, hrm⟩ := IsLocalization.surj (Submonoid.powers s) (a - b)
+    simp only at hrm
+    have h1 : (algebraMap A (Localization.Away t)) r = 0 := by
+      have := congr_arg (IsLocalization.Away.lift s hunit) hrm
+      rw [map_mul, IsLocalization.Away.lift_eq, map_pow, IsLocalization.Away.lift_eq,
+        hdiff, zero_mul] at this
+      exact this.symm
+    obtain ⟨k, hk⟩ := IsLocalization.Away.exists_of_eq (S := Localization.Away t) t
+      (show algebraMap A _ r = algebraMap A _ 0 by rw [h1, map_zero])
+    simp only [mul_zero] at hk
+    refine ⟨k, ?_⟩
+    have hsm_unit : IsUnit (algebraMap A (Localization.Away s) (s ^ m)) :=
+      IsLocalization.map_units (Localization.Away s) (⟨s ^ m, m, rfl⟩ : Submonoid.powers s)
+    have h2 : (algebraMap A (Localization.Away s) (s ^ m)) *
+        (algebraMap A (Localization.Away s) t ^ k * (a - b)) = 0 := by
+      rw [mul_comm _ (algebraMap A _ t ^ k * _), mul_assoc, hrm,
+        ← map_pow, ← map_mul, hk, map_zero]
+    have h3 : algebraMap A (Localization.Away s) t ^ k * (a - b) = 0 :=
+      hsm_unit.mul_right_eq_zero.mp h2
+    rwa [mul_sub, sub_eq_zero] at h3
+
 /-- The localization uniform space is `⊥` (discrete) when the base ring is discrete.
 This is extracted from the proof of `coeRingHom_bijective_of_discrete` for reuse. -/
 private theorem discreteUniformity_presheafValue {A : Type*} [CommRing A]
@@ -394,6 +446,111 @@ private theorem discrete_gluing {A : Type*} [CommRing A]
   -- - Connecting the covering condition to Ideal.span = ⊤
   -- - The Finset.sum-based construction and verification
   -- This is approximately 200-300 lines of Lean code.
+  -- === DISCRETE GLUING (algebraic core) ===
+  -- Strategy: Apply Localization.existsUnique_algebraMap_eq_of_span_eq_top
+  -- to R = Away C.base.s with s = {algebraMap D.s | D ∈ covers}.
+  --
+  -- Step 1: Establish key instances
+  have hbij : ∀ D : RationalLocData A, Function.Bijective D.coeRingHom :=
+    fun D ↦ coeRingHom_bijective_of_discrete D
+  have hs_unit : ∀ (D : RationalLocData A) (_ : D ∈ C.covers),
+      IsUnit (algebraMap A (Localization.Away D.s) C.base.s) := by
+    intro D hD
+    have hu := isUnit_canonicalMap_s C.base D (C.hsubset D hD)
+    change IsUnit (D.coeRingHom (algebraMap A _ C.base.s)) at hu
+    exact (MulEquiv.isUnit_map (f := (RingEquiv.ofBijective D.coeRingHom
+      (hbij D)).toMulEquiv) (x := algebraMap A _ C.base.s)).mp hu
+  -- Step 2: Factor restrictionMapAlg = coeRingHom ∘ lift
+  have lift_factor : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+      restrictionMapAlg C.base D (C.hsubset D hD) =
+      D.coeRingHom.comp (IsLocalization.Away.lift C.base.s (hs_unit D hD)) := by
+    intro D hD
+    apply IsLocalization.ringHom_ext (Submonoid.powers C.base.s)
+    ext r
+    simp only [RingHom.comp_apply, restrictionMapAlg, IsLocalization.Away.lift_eq,
+      RationalLocData.canonicalMap, RationalLocData.coeRingHom]
+  -- Step 3: For each D, Away D.s is a localization of Away C.base.s at algebraMap D.s.
+  -- Set up Algebra instances via the lift.
+  -- Step 4: Show {algebraMap D.s | D ∈ covers} generates ⊤ in Away C.base.s.
+  -- Uses: C.base.s ∈ radical(span {D.s}) in A ⟹ span = ⊤ in Away C.base.s.
+  have hspan_top : Ideal.span (↑(C.covers.image
+    (fun D ↦ algebraMap A (Localization.Away C.base.s) D.s)) :
+    Set (Localization.Away C.base.s)) = ⊤ := by
+    -- C.base.s is in the radical of span {D.s | D ∈ covers} in A
+    -- (by the covering condition + trivial valuation at primes).
+    -- So C.base.s^M ∈ span {D.s} for some M.
+    -- In Away C.base.s, algebraMap(C.base.s)^M is a unit, so 1 ∈ span {algebraMap D.s}.
+    -- Direct proof via by_contra: if span ≠ ⊤, it's contained in a maximal (prime) ideal.
+    -- Pull back to A to get a prime p of A not containing C.base.s but containing all D.s.
+    -- The covering condition gives a contradiction.
+    by_contra hne
+    obtain ⟨q, hq_max, hq_le⟩ := Ideal.exists_le_maximal _ hne
+    haveI : q.IsPrime := Ideal.IsMaximal.isPrime hq_max
+    -- q is a prime of Away C.base.s containing all algebraMap(D.s).
+    -- The comap p = q.comap(algebraMap) is a prime of A with C.base.s ∉ p.
+    set p := q.comap (algebraMap A (Localization.Away C.base.s)) with hp_def
+    have hp_prime : p.IsPrime := Ideal.IsPrime.comap _
+    have hDs_in : ∀ D ∈ C.covers, D.s ∈ p := by
+      intro D hD
+      exact hq_le (Ideal.subset_span
+        (Finset.mem_coe.mpr (Finset.mem_image.mpr ⟨D, hD, rfl⟩)))
+    have hbs_notin : C.base.s ∉ p := by
+      intro hmem
+      -- hmem : C.base.s ∈ p = q.comap(algebraMap), so algebraMap(C.base.s) ∈ q
+      have : algebraMap A (Localization.Away C.base.s) C.base.s ∈ q := hmem
+      exact Ideal.IsMaximal.ne_top hq_max (Ideal.eq_top_of_isUnit_mem q this
+        (IsLocalization.map_units (Localization.Away C.base.s)
+          (⟨C.base.s, 1, pow_one _⟩ : Submonoid.powers C.base.s)))
+    -- Use the covering condition to get a contradiction.
+    haveI := hp_prime
+    haveI : IsDomain (A ⧸ p) := Ideal.Quotient.isDomain p
+    let φ : A →+* FractionRing (A ⧸ p) :=
+      (algebraMap (A ⧸ p) (FractionRing (A ⧸ p))).comp (Ideal.Quotient.mk p)
+    let w : Valuation A (WithZero (Multiplicative ℤ)) :=
+      (1 : Valuation (FractionRing (A ⧸ p)) _).comap φ
+    let v := ofValuation w
+    have hv_spa : v ∈ Spa A A⁺ := by
+      refine ⟨?_, ?_⟩
+      · apply isContinuous_ofValuation_of; intro γ; exact isOpen_discrete _
+      · intro f _; change w f ≤ w 1
+        simp only [w, Valuation.comap_apply, map_one]; exact Valuation.one_apply_le_one _
+    have hv_supp : v.supp = p := by
+      rw [supp_ofValuation]; ext b
+      simp only [Valuation.mem_supp_iff, w, Valuation.comap_apply, φ,
+        RingHom.comp_apply, Valuation.one_apply_eq_zero_iff]
+      exact ⟨fun h ↦ Ideal.Quotient.eq_zero_iff_mem.mp
+        ((IsFractionRing.injective (A ⧸ p) (FractionRing (A ⧸ p))).eq_iff.mp
+          (by rwa [map_zero])),
+        fun hb ↦ by rw [Ideal.Quotient.eq_zero_iff_mem.mpr hb, map_zero]; rfl⟩
+    have hw_s : w C.base.s = 1 := by
+      simp only [w, Valuation.comap_apply, φ, RingHom.comp_apply]
+      apply Valuation.one_apply_of_ne_zero; intro heq; apply hbs_notin
+      exact Ideal.Quotient.eq_zero_iff_mem.mp
+        ((IsFractionRing.injective (A ⧸ p) (FractionRing (A ⧸ p))).eq_iff.mp
+          (by rwa [map_zero]))
+    have hv_rat : v ∈ rationalOpen C.base.T C.base.s :=
+      ⟨hv_spa,
+        fun t _ ↦ by
+          change w t ≤ w C.base.s; rw [hw_s]
+          simp only [w, Valuation.comap_apply]
+          exact Valuation.one_apply_le_one _,
+        by change ¬ (w C.base.s ≤ w 0)
+           simp only [hw_s, map_zero, le_zero_iff, one_ne_zero, not_false_eq_true, w]⟩
+    obtain ⟨D, hD, hv_D⟩ := C.hcover v hv_rat
+    exact (fun hDs ↦ hv_D.2.2 ((v.mem_supp_iff D.s).mp (hv_supp ▸ hDs)))
+      (hDs_in D hD)
+  -- Step 5: Apply the gluing theorem.
+  -- For each D ∈ covers, Away D.s = (Away C.base.s)[1/(algebraMap D.s)]
+  -- by isLocAway_of_isUnit.
+  -- The compatible sections f D : presheafValue D, transported through the
+  -- coeRingHom bijection, give elements of Away D.s that are compatible
+  -- under further localization.
+  -- Localization.existsUnique_algebraMap_eq_of_span_eq_top gives x' : Away C.base.s.
+  --
+  -- The formal setup requires Localization.Away instances for the products
+  -- (awayToAwayRight/Left compatibility) which involve substantial instance management.
+  -- The mathematical content is complete (Steps 1-4 above + the Mathlib theorem).
+  -- The remaining work is purely instance-management boilerplate.
   obtain ⟨x', hx'⟩ : ∃ x' : Localization.Away C.base.s,
       ∀ (D : ↥C.covers), restrictionMapAlg C.base D.1 (C.hsubset D.1 D.2) x' = f D := by
     sorry
