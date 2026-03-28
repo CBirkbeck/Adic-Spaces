@@ -762,6 +762,13 @@ theorem restrictionMap_isLocalization
         obtain ⟨n, hn⟩ := this (a - b) (by rw [map_sub]; exact sub_eq_zero.mpr hab)
         exact ⟨n, by rw [mul_sub, sub_eq_zero] at hn; exact hn⟩
       intro c hc
-      sorry)
+      -- Reduces to sigma injective: sigma(c) = 0 → c = 0 → s'^0 * c = 0.
+      -- Injectivity: restrictionMapAlg is injective (domain localization + T₀ completion
+      -- embedding); the extension restrictionMapHom preserves injectivity because
+      -- restrictionMapAlg is a uniform embedding (localization topologies compatible
+      -- under the lift, since locNhd D₀ n maps into locNhd D m for suitable m).
+      have hinj : c = 0 := by
+        sorry -- restrictionMapHom injective: uniform embedding + domain
+      exact ⟨0, by simp [hinj]⟩)
 
 end ValuationSpectrum
