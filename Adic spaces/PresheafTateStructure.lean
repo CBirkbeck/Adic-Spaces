@@ -461,13 +461,41 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
       rw [show presheafValue_idealOfDef D₀ = Ideal.map g J from rfl,
           (Ideal.map_pow g J n).symm]
       exact Ideal.mem_map_of_mem g hd
-    -- Step 2: idealOfDef^n is closed (kernel of continuous map to discrete quotient).
-    -- Via AdicCompletionBridge: ringOfDef ≃ AdicCompletion J locSubring,
-    -- and AdicCompletion.pow_smul_top_eq_ker_eval gives
-    -- J^n • ⊤ = ker(eval n), which is closed (discrete target).
+    -- Step 2: idealOfDef^n is closed in the subspace topology on ringOfDef.
+    --
+    -- **Why this is non-trivial**: We showed idealOfDef^n ⊆ closure(gJn) (⊆ direction).
+    -- The closure of gJn equals val⁻¹(closure(coeRingHom '' locNhd n)), which is
+    -- OPEN in ringOfDef (preimage of a basic nhd). So closure(gJn) is an open
+    -- additive subgroup, hence also closed. But idealOfDef^n ⊆ closure(gJn)
+    -- does NOT imply idealOfDef^n is closed.
+    --
+    -- **Why simpler approaches are circular**: To show closure(gJn) ⊆ idealOfDef^n
+    -- (completing the set equality), one needs idealOfDef^n to contain a 0-nhd.
+    -- The natural 0-nhd is val⁻¹(closure(coe '' locNhd n)) ⊆ idealOfDef^n, but
+    -- establishing ⊇ (closure_locNhd_sub_idealOfDef_pow) uses
+    -- idealOfDef_pow_val_isClosed — the very theorem we are proving.
+    --
+    -- **Required approach (AdicCompletion bridge)**:
+    -- 1. locSubring_subspace_eq_adic gives subspace uniformity = J-adic uniformity.
+    -- 2. AdicCompletionBridge.adicCompletionRingEquiv gives
+    --    Completion(locSubring, J-adic) ≃+* AdicCompletion(J, locSubring).
+    -- 3. Identify ringOfDef with Completion(locSubring) via the completion embedding
+    --    locSubring → Localization.Away s → presheafValue.
+    -- 4. AdicCompletion.map_exact (Mathlib, needs IsNoetherianRing + Module.Finite)
+    --    on 0 → J^n → locSubring → locSubring/J^n → 0 gives:
+    --    ker(map I g) = range(map I f) where g is the quotient, f is inclusion.
+    -- 5. Under the bridge, range(map I f) ↔ closure(g(J^n)) = closure(gJn) in ringOfDef,
+    --    and ker(map I g) ↔ ker(evalₐ n) (the kernel of evaluation at level n).
+    -- 6. evalₐ n has discrete target (locSubring / J^n), so ker(evalₐ n) is closed.
+    -- 7. Therefore idealOfDef^n = closure(gJn) = ker(evalₐ n ∘ bridge) is closed.
+    --
+    -- This requires ~150 lines of new infrastructure to formalize the identification
+    -- in step 3 (Completion(locSubring) ≃ ringOfDef as topological rings) and the
+    -- kernel computation in steps 4-5. The AdicCompletionBridge file provides the
+    -- ring isomorphism but not yet the specific composition needed here.
     have hclosed : IsClosed ((presheafValue_idealOfDef D₀ ^ n :
         Ideal (presheafValue_ringOfDef D₀)) : Set (presheafValue_ringOfDef D₀)) := by
-      sorry -- AdicCompletion.pow_smul_top_eq_ker_eval via adicCompletionRingEquiv
+      sorry
     -- Step 3: closure_minimal.
     exact closure_minimal hgJn_sub hclosed
 
@@ -623,45 +651,88 @@ injective. Both facts follow from the deep topological result that the
 algebraic lift between localizations is a uniform embedding with respect
 to the localization topologies (Wedhorn Proposition 8.15).
 
-**Surjectivity**: `restrictionMapAlg = D.coeRingHom ∘ algebraicLift` where
-`algebraicLift : Localization.Away D₀.s →+* Localization.Away D.s` exists
-because `D₀.s` becomes a unit in `Localization.Away D.s` (from the rational
-subset containment). The range of `restrictionMapAlg` therefore contains
-`D.coeRingHom(Localization.Away D.s)`, which is dense in `presheafValue D`.
-Since `sigma = Completion.extension(restrictionMapAlg)` and the extension of
-a uniformly continuous map with dense range to a complete space has dense range,
-and the range of `sigma` is a complete additive subgroup (continuous image of
-a complete uniform space under a uniformly continuous map between uniform add
-groups), `range(sigma)` is closed + dense = presheafValue D.
+**Proof architecture**: `restrictionMapAlg D₀ D h` factors as
+`D.coeRingHom ∘ locLift` where `locLift : Loc.Away D₀.s →+* Loc.Away D.s`
+exists because `D₀.s` becomes a unit in `Loc.Away D.s` (rational containment).
+The key topological input (Wedhorn Prop 8.15) is that `restrictionMapAlg` is
+a `IsUniformInducing` map from `(Loc.Away D₀.s, D₀.uniformSpace)` to
+`(presheafValue D, Completion.uniformSpace)`. Then:
 
-**Injectivity**: If `sigma c = 0`, then `c = 0`. This follows from sigma
-being surjective: sigma is a surjective ring hom, so it's a localization
-map. Combined with the `s'`-unit property, the `exists_of_eq` condition
-is immediate from the localization structure.
+- **Injectivity** of `sigma`: `isUniformInducing_extension` gives sigma is
+  `IsUniformInducing`, hence injective (in T₀ spaces).
+- **Surjectivity** of `sigma`: The range is complete
+  (`IsUniformInducing.isComplete_range` + `CompleteSpace`), hence closed
+  (`IsComplete.isClosed` in T₀). The range is also dense (contains the dense
+  image `restrictionMapAlg(Loc.Away D₀.s)` which contains `D.canonicalMap(A)`).
+  Dense + closed = everything. -/
 
-The actual proof route uses the completeness of the source: `presheafValue D₀`
-is a complete uniform additive group, and `sigma` is a uniformly continuous
-ring hom. The image `sigma(presheafValue D₀)` is a complete (hence closed)
-additive subgroup of `presheafValue D`. Since it contains the dense image
-`D.coeRingHom(Localization.Away D.s)`, it equals all of `presheafValue D`. -/
+/-- **Key topological input (Wedhorn Prop 8.15)**: The algebraic restriction map
+`restrictionMapAlg D₀ D h : Localization.Away D₀.s → presheafValue D` is
+`IsUniformInducing` from `D₀.uniformSpace` to the completion uniformity, AND
+has dense range.
+
+**IsUniformInducing**: The localization topologies on `Loc.Away D₀.s` and
+`Loc.Away D.s` are compatible under the algebraic lift. Concretely, for the
+pair of definition `(A₀, I)`:
+- Source neighborhoods: `locNhd D₀.P D₀.T D₀.s n` (based on `I^n` in `A[1/D₀.s]`)
+- Target neighborhoods: completion of `locNhd D.P D.T D.s n`
+- The composition `D.coeRingHom ∘ algebraicLift` maps source nhds into target nhds
+  and reflects them.
+This factors as `D.coeRingHom ∘ algebraicLift`. `D.coeRingHom` is `IsUniformInducing`
+(by `Completion.isUniformInducing_coe`). The `algebraicLift` between localizations
+preserves the adic uniformity by the Noetherian hypothesis: `I^n·A[1/D₀.s]` maps into
+`I^n·A[1/D.s]` (forward), and the reverse uses the Artin-Rees lemma for Noetherian
+adic filtrations.
+
+**DenseRange**: The image of `Loc.Away D₀.s` under `restrictionMapAlg` is dense in
+`presheafValue D`. Since `restrictionMapAlg(algebraMap a) = D.canonicalMap a` for all
+`a : A`, the image contains `range(D.canonicalMap)` which topologically generates the
+completion.
+
+**Wedhorn reference**: Proposition 8.15 + Lemma 8.5 (Noetherian adic completion). -/
+private theorem restrictionMapAlg_isUniformInducing
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    @IsUniformInducing _ _ D₀.uniformSpace
+      (@UniformSpace.Completion.uniformSpace _ D.uniformSpace)
+      (restrictionMapAlg D₀ D h) := by
+  -- The algebraicLift between localization topologies preserves the adic uniformity.
+  -- Factor as D.coeRingHom ∘ algebraicLift; D.coeRingHom is IsUniformInducing
+  -- by Completion.isUniformInducing_coe; algebraicLift is IsUniformInducing
+  -- by Noetherian adic neighborhood compatibility (Wedhorn Prop 8.15 + Lemma 8.5):
+  -- Forward: algebraicLift sends I^n·A[1/D₀.s] → I^n·A[1/D.s] (fixes algebraMap).
+  -- Reverse: Artin-Rees for Noetherian adic filtrations.
+  sorry
+
+private theorem restrictionMapAlg_denseRange
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    DenseRange (α := Localization.Away D₀.s) (restrictionMapAlg D₀ D h) := by
+  -- range(restrictionMapAlg) ⊇ range(D.canonicalMap) since
+  -- restrictionMapAlg(algebraMap a) = D.canonicalMap a for all a : A.
+  -- D.canonicalMap(A) together with D.coeRingHom(s⁻¹) topologically generates
+  -- presheafValue D. range(restrictionMapAlg) also contains
+    -- D.coeRingHom(algebraicLift(x)) for all x, including D.coeRingHom(D₀.s⁻¹).
+    -- SORRY: Density of the image in the localization topology.
+    -- Requires: algebraMap(A) is dense in Loc.Away D.s with the localization topology,
+    -- or that the localization topology on Loc.Away D.s is generated by
+    -- algebraMap(A)-neighborhoods (Wedhorn §5.51).
+    sorry
 
 /-- **Sigma surjectivity (Wedhorn Prop 8.15)**: The restriction map
 `restrictionMapHom D₀ D h` is surjective. This is the key consequence of
 "completion commutes with localization".
 
-The proof uses the completeness of `presheafValue D₀`: the image of
-a complete uniform additive group under a uniformly continuous group hom
-is complete, hence closed. Since the image contains the dense subgroup
-`D.coeRingHom(Localization.Away D.s)`, it equals all of `presheafValue D`.
-
-**Proof details**: `restrictionMapAlg D₀ D h` factors as
-`D.coeRingHom ∘ algebraicLift` where `algebraicLift` exists because
-`D₀.s` is a unit in `Localization.Away D.s` (rational containment).
-So `range(restrictionMapAlg) ⊇ range(D.coeRingHom)` = dense image.
-Then `range(sigma) ⊇ range(restrictionMapAlg)` = dense. Since sigma
-is a uniformly continuous additive group hom from a complete uniform
-space, its range is a complete additive subgroup (closed). Closed +
-dense = everything, so sigma is surjective. -/
+**Proof**: From `restrictionMapAlg_isUniformInducing` and `restrictionMapAlg_denseRange`:
+1. `sigma` is `IsUniformInducing` (by `isUniformInducing_extension`).
+2. `range(sigma)` is complete (`IsUniformInducing.isComplete_range` + `CompleteSpace`).
+3. `range(sigma)` is closed (`IsComplete.isClosed` in T₀).
+4. `range(sigma)` is dense (by `DenseRange.of_comp` from `restrictionMapAlg` dense range).
+5. Dense + closed = surjective. -/
 theorem restrictionMapHom_surjective
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [FirstCountableTopology A]
@@ -674,37 +745,41 @@ theorem restrictionMapHom_surjective
   letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
   letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
   letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  have hui_alg := restrictionMapAlg_isUniformInducing D₀ D h
+  have hdr_alg := restrictionMapAlg_denseRange D₀ D h
   set sigma := restrictionMapHom D₀ D h
-  -- Step 1: sigma has dense range (contains D.coeRingHom's dense image).
-  -- restrictionMapAlg factors: for all r : A,
-  --   restrictionMapAlg(algebraMap r) = D.canonicalMap r = D.coeRingHom(algebraMap r)
-  -- So range(restrictionMapAlg) ⊇ range(D.canonicalMap) = range(D.coeRingHom ∘ algebraMap)
-  -- Since D.coeRingHom has dense range (completion embedding), and
-  -- range(sigma) ⊇ sigma(D₀.coeRingHom(Loc)) = range(restrictionMapAlg),
-  -- we need range(restrictionMapAlg) to be dense.
-  -- This requires showing D.s is a unit in Loc.Away D₀.s and the algebraic lift exists.
-  --
-  -- Step 2: sigma's range is complete (image of complete space under unif cont map).
-  -- UniformSpace.Completion is CompleteSpace, and sigma = extensionHom which is
-  -- uniformly continuous.
-  --
-  -- Step 3: Complete subspace of T2 space is closed. Dense + closed = everything.
-  sorry
+  -- Step 1: sigma is IsUniformInducing (extension of IsUniformInducing map).
+  have hui_sigma : IsUniformInducing sigma :=
+    UniformSpace.Completion.isUniformInducing_extension hui_alg
+  -- Step 2: range(sigma) is complete, hence closed.
+  have hclosed : IsClosed (Set.range sigma) :=
+    hui_sigma.isComplete_range.isClosed
+  -- Step 3: range(sigma) is dense.
+  -- DenseRange (sigma ∘ D₀.coeRingHom) = DenseRange restrictionMapAlg (by coe agreement).
+  -- Then DenseRange.of_comp gives DenseRange sigma.
+  have hdense : DenseRange sigma := by
+    -- DenseRange.of_comp: DenseRange (f ∘ g) → DenseRange f.
+    -- Here f = sigma, g = D₀.coeRingHom, so f ∘ g = sigma ∘ D₀.coeRingHom.
+    apply DenseRange.of_comp (g := D₀.coeRingHom)
+    show DenseRange (⇑sigma ∘ ⇑D₀.coeRingHom)
+    suffices heq : (⇑sigma ∘ ⇑D₀.coeRingHom) = ⇑(restrictionMapAlg D₀ D h) from
+      heq ▸ hdr_alg
+    exact funext (fun x => UniformSpace.Completion.extensionHom_coe
+      (restrictionMapAlg D₀ D h) (restrictionMapAlg_continuous D₀ D h) x)
+  -- Step 4: Dense + closed = surjective.
+  intro y
+  have hmem : y ∈ closure (Set.range sigma) := hdense y
+  rw [hclosed.closure_eq] at hmem
+  exact hmem
 
 /-- **Sigma injectivity (Wedhorn Prop 8.15)**: The restriction map
-`restrictionMapHom D₀ D h` is injective. Combined with surjectivity,
-this gives `sigma` is a ring isomorphism.
+`restrictionMapHom D₀ D h` is injective.
 
-The proof uses the same uniform embedding property of the algebraic lift.
-Since the algebraic lift `Localization.Away D₀.s → Localization.Away D.s`
-is a uniform embedding (reflecting locNhd neighborhoods), its completion
-extension `sigma` is also a uniform embedding, hence injective.
-
-Alternative proof from surjectivity: sigma is surjective (proved above) and
-a ring hom between completions. If ker(sigma) ≠ {0}, then presheafValue D₀
-surjects onto presheafValue D with nontrivial kernel, making presheafValue D
-a proper quotient. But the localization data ensures this quotient must
-actually be trivial (via the faithfulness of the localization topology). -/
+**Proof**: From `restrictionMapAlg_isUniformInducing`, the extension
+`sigma` is `IsUniformInducing` (by `isUniformInducing_extension`). A
+`IsUniformInducing` map between T₀ spaces is injective: if `sigma(x) = sigma(y)`,
+then `x` and `y` are inseparable in the source (by the inducing property),
+hence equal (by T₀). -/
 theorem restrictionMapHom_injective
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [FirstCountableTopology A]
@@ -717,13 +792,19 @@ theorem restrictionMapHom_injective
   letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
   letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
   letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
-  -- The algebraic lift Localization.Away D₀.s → Localization.Away D.s
-  -- is a uniform embedding between localization topologies (the locIdeal
-  -- neighborhoods in D₀ map to and from the locIdeal neighborhoods in D,
-  -- because both are generated by the same ideal I from the pair of
-  -- definition). The completion extension of a uniform embedding is
-  -- again a uniform embedding (hence injective).
-  sorry
+  have hui_alg := restrictionMapAlg_isUniformInducing D₀ D h
+  -- sigma is IsUniformInducing (extension of IsUniformInducing map).
+  have hui_sigma : IsUniformInducing (restrictionMapHom D₀ D h) :=
+    UniformSpace.Completion.isUniformInducing_extension hui_alg
+  -- IsUniformInducing + T₀ implies injective:
+  -- sigma(x) = sigma(y) => Inseparable (sigma x) (sigma y)
+  -- => Inseparable x y (by IsInducing.inseparable_iff, direction mpr)
+  -- => x = y (by T₀)
+  -- But the mpr direction goes: Inseparable x y => Inseparable (f x) (f y).
+  -- We need the other direction. For IsInducing f:
+  -- Inseparable (f x) (f y) => Inseparable x y. This IS the mp direction.
+  intro x y hxy
+  exact (hui_sigma.isInducing.inseparable_iff.mp (Inseparable.of_eq hxy)).eq
 
 /-! ### Proposition 8.15: restriction maps are rational localizations
 
