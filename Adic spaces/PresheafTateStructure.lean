@@ -467,10 +467,15 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
   -- For the other direction: need that ker generates at most idealOfDef^n.
   -- This follows from density + the fact that mkQ kills exactly J^n.
   --
-  -- For now: the closedness of ker(extensionHom) gives us SOME closed set
-  -- containing idealOfDef^n. We need idealOfDef^n = ker to conclude.
-  -- This last step requires map_exact from Mathlib or a direct argument.
-  sorry
+  -- KEY MATHLIB TOOL: AdicCompletion.map_exact preserves exact sequences.
+  -- Applied to 0 → J^n → locSubring → locSubring/J^n → 0:
+  -- ker(eval_n in AdicCompletion) = Ideal.map of (J^n) = idealOfDef^n.
+  -- ker(eval_n) is closed → idealOfDef^n is closed.
+  --
+  -- The bridge adicCompletionRingEquiv transfers this to ringOfDef.
+  -- But building the full bridge infrastructure requires ~100 lines.
+  -- For now, we leave this as the SINGLE remaining sorry.
+  sorry -- AdicCompletion.map_exact + bridge → idealOfDef^n = ker(eval_n) = closed
 
 private theorem closure_locNhd_sub_idealOfDef_pow (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] (n : ℕ) :

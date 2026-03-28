@@ -94,7 +94,7 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 - [x] **Lemma 7.45** — Analytic point construction for complete affinoid rings. Proved sorry-free in `Lemma745.lean` as `exists_mem_spa_supp_ge_of_nonOpen_prime`.
 - [ ] **Lemma 7.46(2)** — Converse: analytic preservation implies adic (needs 7.45)
 - [ ] **Remove h_map hypothesis from Prop 6.25** — needs Prop 6.4(5) (bounded open subring = ring of definition)
-- [ ] **General (non-discrete) sorry removal** — `isUnit_canonicalMap_s` and `restrictionMapAlg_continuous` currently require `[DiscreteTopology A]`
+- [ ] **General (non-discrete) sorry removal** — `isUnit_canonicalMap_s_of_huber` proof complete modulo `mem_prime_of_rational_subset_nonOpen` (non-open prime case, needs Lemma 7.45 + completeness for `v.supp = p`). Open prime case (`mem_prime_of_rational_subset_open`) sorry-free. `restrictionMapAlg_continuous_of_huber` still sorry.
 - [ ] **Sheaf condition for general Huber rings** — `IsSheafy` stated for Tate rings. Sorry decomposed (2026-03-25) into: (A) `completionKer_eq_bot_of_locKer_eq_bot` (completion kernel reduction, needs AdicCompletion bridge / G2-topo), (B) algebraic injectivity on localization (needs Spa points in specific rational subsets for Tate rings). All algebraic infrastructure sorry-free: `base_s_in_annihilator_radical_of_covering`, `restrictionMapAlg_factors`, `tateQuotientPresheafEquiv`.
 - [ ] **Categories V^pre and V** — see `docs/plans/2026-03-08-complete-top-ring-category.md` Tasks 2-3
 

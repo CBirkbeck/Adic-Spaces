@@ -267,7 +267,7 @@ and Proposition 7.52. -/
 Uses the trivial valuation on `Frac(A/p)`, which is continuous since `p` is open.
 The sublevel sets of this valuation are `∅` (γ = 0), `p` (0 < γ ≤ 1), or `A` (γ > 1). -/
 private theorem mem_prime_of_rational_subset_open {A : Type*} [CommRing A]
-    [TopologicalSpace A] [PlusSubring A]
+    [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
     (p : Ideal A) (hp : p.IsPrime) (hp_open : IsOpen (p : Set A))
     (hDs : D.s ∈ p) : D'.s ∈ p := by
