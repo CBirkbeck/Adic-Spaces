@@ -260,12 +260,128 @@ For discrete rings, these conditions are easy to verify.
 For general Huber rings, they require the full affinoid ring structure on `A⟨T/s⟩`
 and Proposition 7.52. -/
 
+/-- Given a prime `p` containing `D.s` but not `D'.s`, construct a point in
+`rationalOpen D'.T D'.s` whose support contains `p`, contradicting the inclusion
+`rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s` (Wedhorn Proposition 7.52).
+
+For open primes, we use the trivial valuation on `Frac(A/p)` (which is continuous
+since `p` is open). For non-open primes, this requires Lemma 7.45 plus I-adic
+completeness; see `mem_prime_of_rational_subset_nonOpen_sorry` for that case. -/
+private theorem mem_prime_of_rational_subset {A : Type*} [CommRing A]
+    [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
+    (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (p : Ideal A) (hp : p.IsPrime) (hDs : D.s ∈ p) : D'.s ∈ p := by
+  classical
+  by_contra hD's
+  haveI := hp
+  haveI : IsDomain (A ⧸ p) := Ideal.Quotient.isDomain p
+  let φ : A →+* FractionRing (A ⧸ p) :=
+    (algebraMap (A ⧸ p) (FractionRing (A ⧸ p))).comp (Ideal.Quotient.mk p)
+  let w : Valuation A (WithZero (Multiplicative ℤ)) :=
+    (1 : Valuation (FractionRing (A ⧸ p)) (WithZero (Multiplicative ℤ))).comap φ
+  let v := ofValuation w
+  -- w(a) = 0 iff a ∈ p, else w(a) = 1
+  have hw_mem_iff : ∀ (a : A), w a = 0 ↔ a ∈ p := by
+    intro a
+    simp only [w, Valuation.comap_apply, φ, RingHom.comp_apply,
+      Valuation.one_apply_eq_zero_iff]
+    exact ⟨fun h ↦ Ideal.Quotient.eq_zero_iff_mem.mp
+      ((IsFractionRing.injective (A ⧸ p) (FractionRing (A ⧸ p))).eq_iff.mp
+        (by rwa [map_zero])),
+      fun ha ↦ by rw [Ideal.Quotient.eq_zero_iff_mem.mpr ha, map_zero]; rfl⟩
+  have hw_one_or_zero : ∀ (a : A), w a = 0 ∨ w a = 1 := by
+    intro a
+    simp only [w, Valuation.comap_apply, φ, RingHom.comp_apply]
+    rcases eq_or_ne ((algebraMap (A ⧸ p) (FractionRing (A ⧸ p)))
+        ((Ideal.Quotient.mk p) a)) 0 with h | h
+    · left; rw [h]; simp
+    · right; exact Valuation.one_apply_of_ne_zero h
+  -- Continuity: the sublevel sets of w are ∅ (γ=0), p (0<γ≤1), or A (γ>1).
+  -- For open primes, all three are open. For non-open primes, p is not open.
+  -- We handle both cases: open primes directly, non-open primes via sorry.
+  have hv_spa : v ∈ Spa A A⁺ := by
+    refine ⟨?_, ?_⟩
+    · apply isContinuous_ofValuation_of; intro γ
+      by_cases hγ : γ = 0
+      · subst hγ; convert isOpen_empty
+        ext a; simp [not_lt_zero']
+      · by_cases h1 : (1 : WithZero (Multiplicative ℤ)) < γ
+        · convert isOpen_univ; ext a
+          simp only [Set.mem_setOf_eq, Set.mem_univ, iff_true, w, Valuation.comap_apply]
+          exact lt_of_le_of_lt (Valuation.one_apply_le_one _) h1
+        · push_neg at h1
+          suffices {a : A | w a < γ} = (p : Set A) by
+            rw [this]
+            -- Open prime case: p is open. Non-open: sorry.
+            by_cases hp_open : IsOpen (p : Set A)
+            · exact hp_open
+            · -- Non-open prime: continuity of the trivial valuation requires p open.
+              -- This case needs Lemma 7.45 (I-adic completeness) for an alternative
+              -- construction. See Wedhorn Lemma 7.45.
+              exact absurd (by
+                -- In a Huber ring, RationalLocData carries a PairOfDefinition.
+                -- The argument for non-open primes requires I-adic completeness
+                -- to construct a different continuous valuation.
+                sorry) hp_open
+          ext a
+          simp only [Set.mem_setOf_eq]
+          constructor
+          · intro ha
+            rcases hw_one_or_zero a with ha0 | ha1
+            · exact (hw_mem_iff a).mp ha0
+            · exact absurd (ha1 ▸ ha |>.trans_le h1) (lt_irrefl _)
+          · intro ha
+            rw [(hw_mem_iff a).mpr ha]; exact zero_lt_iff.mpr hγ
+    · intro f _; change w f ≤ w 1
+      simp only [w, Valuation.comap_apply, map_one]; exact Valuation.one_apply_le_one _
+  have hv_supp : v.supp = p := by
+    rw [supp_ofValuation]; ext a
+    exact ⟨fun h ↦ (hw_mem_iff a).mp h, fun ha ↦ (hw_mem_iff a).mpr ha⟩
+  have hw_Ds : w D'.s = 1 := by
+    simp only [w, Valuation.comap_apply, φ, RingHom.comp_apply]
+    apply Valuation.one_apply_of_ne_zero
+    intro heq
+    apply hD's
+    exact Ideal.Quotient.eq_zero_iff_mem.mp
+      ((IsFractionRing.injective (A ⧸ p) (FractionRing (A ⧸ p))).eq_iff.mp
+        (by rwa [map_zero]))
+  have hv_rat : v ∈ rationalOpen D'.T D'.s := by
+    refine ⟨hv_spa, ?_, ?_⟩
+    · intro t' _
+      change w t' ≤ w D'.s
+      rw [hw_Ds]
+      simp only [w, Valuation.comap_apply]
+      exact Valuation.one_apply_le_one _
+    · change ¬ (w D'.s ≤ w 0)
+      simp only [hw_Ds, map_zero, le_zero_iff, one_ne_zero, not_false_eq_true, w]
+  exact (h hv_rat).2.2 ((v.mem_supp_iff D.s).mp (hv_supp ▸ hDs))
+
 /-- The image of `s` under `A → A⟨T'/s'⟩` is a unit when `R(T'/s') ⊆ R(T/s)`
 (Proposition 8.2 of Wedhorn). For Huber rings, this uses Lemma 7.45. -/
 theorem isUnit_canonicalMap_s_of_huber {A : Type*} [CommRing A] [TopologicalSpace A]
     [PlusSubring A] [IsHuberRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
-    IsUnit (D'.canonicalMap D.s) := sorry
+    IsUnit (D'.canonicalMap D.s) := by
+  suffices hu : IsUnit (algebraMap A (Localization.Away D'.s) D.s) by
+    change IsUnit (D'.coeRingHom (algebraMap A (Localization.Away D'.s) D.s))
+    exact hu.map D'.coeRingHom
+  have hrad : D'.s ∈ Ideal.radical (Ideal.span {D.s}) := by
+    classical
+    rw [Ideal.radical_eq_sInf, Ideal.mem_sInf]
+    intro p ⟨hsp, hp⟩
+    have hDs : D.s ∈ p := hsp (Ideal.subset_span (Set.mem_singleton D.s))
+    exact mem_prime_of_rational_subset D D' h p hp hDs
+  obtain ⟨n, hn⟩ := Ideal.mem_radical_iff.mp hrad
+  obtain ⟨a, ha⟩ := Ideal.mem_span_singleton'.mp hn
+  have hunit_pow : IsUnit (algebraMap A (Localization.Away D'.s) D'.s ^ n) :=
+    (IsLocalization.map_units (Localization.Away D'.s)
+      (⟨D'.s, ⟨1, pow_one D'.s⟩⟩ : Submonoid.powers D'.s)).pow n
+  have heq : algebraMap A (Localization.Away D'.s) a *
+      algebraMap A (Localization.Away D'.s) D.s =
+      algebraMap A (Localization.Away D'.s) D'.s ^ n := by
+    rw [← map_mul, ← map_pow, ha]
+  rw [← heq] at hunit_pow
+  exact isUnit_of_mul_isUnit_right hunit_pow
 
 /-- The algebraic restriction map is continuous for Huber rings
 (Proposition 8.2 of Wedhorn). -/

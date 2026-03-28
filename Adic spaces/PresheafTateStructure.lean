@@ -435,9 +435,27 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
   -- (which is the completion of locSubring in the presheafValue ambient space)
   -- and show the kernel = idealOfDef^n using map_exact.
   --
-  -- This infrastructure requires building an AbstractCompletion for locSubring
-  -- with space = ringOfDef, showing the comparison maps preserve ideal structure,
-  -- and wiring up the exactness result. Total: ~100 lines of new infrastructure.
+  -- Direct approach: build a continuous surjection
+  --   π : ringOfDef → locSubring / J^n
+  -- whose kernel is idealOfDef^n. Since the target is discrete (finite quotient
+  -- of Noetherian ring), π⁻¹({0}) is closed.
+  --
+  -- Construction of π:
+  -- locSubring →^{locSubringToRingOfDef} ringOfDef (dense image)
+  -- locSubring →^{mkQ J^n} locSubring/J^n (surjective)
+  -- We need: ringOfDef →^{π} locSubring/J^n extending mkQ ∘ locSubringToRingOfDef⁻¹
+  --
+  -- Since locSubring/J^n is DISCRETE (finite quotient of Noetherian + f.g. ideal):
+  -- the map locSubring → locSubring/J^n is continuous.
+  -- The extension π exists by completeness of locSubring/J^n + density of
+  -- locSubringToRingOfDef image + continuity.
+  --
+  -- BUT: extending from a dense subring to the completion requires the target
+  -- to be complete + T₂ and the map to be uniformly continuous. Discrete finite
+  -- rings are complete. So the extension exists.
+  --
+  -- ker(π) = closure(ker(mkQ ∘ g⁻¹)) = closure(g(J^n)) = idealOfDef^n.
+  -- Since discrete target: ker(π) = π⁻¹({0}) is closed.
   sorry
 
 private theorem closure_locNhd_sub_idealOfDef_pow (D₀ : RationalLocData A)
