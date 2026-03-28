@@ -2,7 +2,7 @@
 
 > **Agents: Read this file before starting work. Update it when you begin or complete a task.**
 >
-> Last updated: 2026-03-27 (IsSheafy embedding for discrete rings filled)
+> Last updated: 2026-03-28 (sorry documentation improved, blocking issues identified)
 
 ## Module Status
 
@@ -55,6 +55,7 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 
 **StructureSheaf.lean** — sorry's (updated 2026-03-28):
 - **DONE** `structurePresheaf` : Fully proved (0 sorry). Functor `(Opens (SpaTop A))^op => CompleteTopCommRingCat` using locally-fraction sections with discrete uniformity.
+- `structureSheaf` : **1 sorry**. Needs the sheaf condition for `structurePresheaf`. Route: transfer type-level sheaf condition from `subpresheafToTypes.isSheaf isLocallyFraction` via `isSheaf_iff_isSheaf_comp`. Blocking: `CompleteTopCommRingCat` lacks the limit-preserving forgetful functor infrastructure.
 - **QUARANTINED** (kept for backwards compat, route through TopologyComparison instead):
   - `localization_isT0` : False in general when locIdeal = top.
   - `completionKer_eq_bot_of_locKer_eq_bot` : Needs AdicCompletion bridge.
@@ -95,7 +96,10 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 - [x] **Lemma 7.45** — Analytic point construction for complete affinoid rings. Proved sorry-free in `Lemma745.lean` as `exists_mem_spa_supp_ge_of_nonOpen_prime`.
 - [ ] **Lemma 7.46(2)** — Converse: analytic preservation implies adic (needs 7.45)
 - [ ] **Remove h_map hypothesis from Prop 6.25** — needs Prop 6.4(5) (bounded open subring = ring of definition)
-- [ ] **General (non-discrete) sorry removal** — `isUnit_canonicalMap_s_of_huber` proof complete modulo `mem_prime_of_rational_subset_nonOpen` (non-open prime case, needs Lemma 7.45 + completeness for `v.supp = p`). Open prime case (`mem_prime_of_rational_subset_open`) sorry-free. `restrictionMapAlg_continuous_of_huber` still sorry.
+- [ ] **General (non-discrete) sorry removal** — Two blocking sorries in Presheaf.lean (updated 2026-03-28):
+  - `mem_prime_of_rational_subset_nonOpen` (line 357): Non-open prime case of Prop 7.52. **Blocked by:** `[IsHuberRing A]` does not provide `IsAdicComplete P.I P.A₀` which Lemma 7.45 requires. Moreover, Lemma 7.45 gives `p <= v.supp` (containment), not equality; equality needs `[IsNoetherianRing P.A₀]`. Either add completeness+noetherianness as hypotheses or restructure so this lemma is only invoked for complete affinoid rings.
+  - `restrictionMapAlg_continuous_of_huber` (line 433): Continuity of the algebraic restriction map for localization topologies. **Blocked by:** (1) depends on `isUnit_canonicalMap_s_of_huber` which depends on the non-open prime sorry above; (2) requires analysis of how `locNhd` neighborhoods map under the localization lift, which needs new infrastructure in LocalizationTopology.lean.
+  - Open prime case (`mem_prime_of_rational_subset_open`) sorry-free.
 - [ ] **Sheaf condition for general Huber rings** — `IsSheafy` stated for Tate rings. Sorry decomposed (2026-03-25) into: (A) `completionKer_eq_bot_of_locKer_eq_bot` (completion kernel reduction, needs AdicCompletion bridge / G2-topo), (B) algebraic injectivity on localization (needs Spa points in specific rational subsets for Tate rings). All algebraic infrastructure sorry-free: `base_s_in_annihilator_radical_of_covering`, `restrictionMapAlg_factors`, `tateQuotientPresheafEquiv`.
 - [ ] **Categories V^pre and V** — see `docs/plans/2026-03-08-complete-top-ring-category.md` Tasks 2-3
 

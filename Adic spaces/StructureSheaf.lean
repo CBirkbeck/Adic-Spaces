@@ -203,7 +203,22 @@ noncomputable def structurePresheaf [IsHuberRing A] [PlusSubring A] :
     exact Subtype.ext (funext fun ⟨x, hx⟩ ↦ rfl)
 
 /-- The structure sheaf of `Spa(A, A⁺)`, valued in `CompleteTopCommRingCat`
-(Remark 8.20 of Wedhorn). -/
+(Remark 8.20 of Wedhorn).
+
+**Route to fill:** The type-level sheaf condition is already available
+via `subpresheafToTypes.isSheaf isLocallyFraction` (from Mathlib's
+`Topology.Sheaves.LocalPredicate`), since `isLocallyFraction` is a
+`LocalPredicate` on `Localizations`. The transfer to `CompleteTopCommRingCat`
+requires:
+1. A forgetful functor `CompleteTopCommRingCat ⥤ Type` that preserves
+   limits and reflects isomorphisms.
+2. A natural isomorphism `structurePresheaf ⋙ forget ≅ subpresheafToTypes`.
+3. Application of `isSheaf_iff_isSheaf_comp` to transfer the sheaf condition.
+
+Alternatively, verify the sheaf condition directly by showing that
+`structurePresheaf` satisfies `IsSheafUniqueGluing` in `CompleteTopCommRingCat`.
+Both routes need additional category-theoretic infrastructure for
+`CompleteTopCommRingCat` (limits, concrete category properties). -/
 noncomputable def structureSheaf [IsHuberRing A] [PlusSubring A] :
     Sheaf CompleteTopCommRingCat (SpaTop A) := sorry
 

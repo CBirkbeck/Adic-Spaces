@@ -334,11 +334,30 @@ private theorem mem_prime_of_rational_subset_open {A : Type*} [CommRing A]
 
 /-- For a non-open prime `p` containing `D.s`, if `R(T'/s') ⊆ R(T/s)` then `D'.s ∈ p`.
 
-This is the hard case of Wedhorn Proposition 7.52 for non-open primes. The proof requires
-constructing a continuous valuation `v` with `v.supp = p`, which for non-open primes needs
-Lemma 7.45 (I-adic completeness) combined with a careful choice of valuation to ensure
-support equality (not just containment). The full proof requires the affinoid ring structure
-on the completion `A⟨T'/s'⟩` and is deferred to a future formalization pass. -/
+This is the hard case of Wedhorn Proposition 7.52 for non-open primes.
+
+**Mathematical argument (Wedhorn Lemma 7.45 + Proposition 7.52):**
+By contradiction, assume `D'.s ∉ p`. Since `p` is non-open, Lemma 7.45
+(`PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime`) gives
+`v ∈ Spa(A, A⁺)` with `p ≤ v.supp`. From `D.s ∈ p ≤ v.supp` we get
+`v ∉ R(T/s)` (since `v(D.s) = 0`). For the contradiction, we need
+`v ∈ R(T'/s')`, which requires `D'.s ∉ v.supp`. However, Lemma 7.45
+only gives `p ≤ v.supp` (not equality), so `D'.s ∉ p` does not imply
+`D'.s ∉ v.supp`.
+
+**Blocking issue:** The hypothesis `[IsHuberRing A]` does not provide
+`IsAdicComplete P.I P.A₀`, which Lemma 7.45 requires. Moreover, even
+with completeness, we only get `p ≤ v.supp` (containment, not equality).
+Equality `v.supp = p` requires either:
+(a) `[IsNoetherianRing P.A₀]` (Wedhorn Lemma 7.45 gives a discrete
+    valuation with exact support), or
+(b) The rank-1 domination theorem (Bourbaki), or
+(c) A strengthened hypothesis on the ring (e.g., `[IsTateRing A]`).
+
+**To fill this sorry:** Either add `[IsAdicComplete P.I P.A₀]` and
+`[IsNoetherianRing P.A₀]` to the hypotheses (which changes the API),
+or restructure so that this lemma is only invoked for complete
+affinoid rings where these conditions hold. -/
 private theorem mem_prime_of_rational_subset_nonOpen {A : Type*} [CommRing A]
     [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
@@ -384,7 +403,33 @@ theorem isUnit_canonicalMap_s_of_huber {A : Type*} [CommRing A] [TopologicalSpac
   exact isUnit_of_mul_isUnit_right hunit_pow
 
 /-- The algebraic restriction map is continuous for Huber rings
-(Proposition 8.2 of Wedhorn). -/
+(Proposition 8.2 of Wedhorn).
+
+**Mathematical argument (Wedhorn Proposition 8.2(1)):** The lift
+`IsLocalization.Away.lift D.s` factors as the composition:
+```
+  Localization.Away D.s → Localization.Away D'.s → presheafValue D'
+```
+where the second map is `D'.coeRingHom` (continuous by definition). For the
+first map, continuity follows from the localization topology: `D.topology`
+has neighborhoods `locNhd D.P D.T D.s n` (images of `J_D^n`), and the
+algebraic map sends `locNhd D n` into `locNhd D' m` for suitable `m`,
+because the ideals of definition `J_D` and `J_D'` share the same base
+ideal `I` from `A`. Specifically, for `n ≥ N_D + N_{D'}` (the openness
+constants), the lift maps `locNhd D n` into `locNhd D' (n - N_D)`.
+
+**Blocking issue:** The proof requires showing that the algebraic lift
+between localizations is continuous for the localization topologies.
+This needs:
+1. That `D.s` is a unit in `Localization.Away D'.s` (from
+   `isUnit_canonicalMap_s_of_huber`, which itself depends on the
+   non-open prime sorry above).
+2. An analysis of how `locNhd D.P D.T D.s` maps under the lift to
+   `locNhd D'.P D'.T D'.s`, requiring the localization topology
+   infrastructure to be extended with explicit neighborhood bounds.
+3. That the composition with `D'.coeRingHom` (the completion embedding)
+   is continuous, which follows from the uniform continuity of the
+   first map combined with the universal property of completions. -/
 theorem restrictionMapAlg_continuous_of_huber {A : Type*} [CommRing A]
     [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
