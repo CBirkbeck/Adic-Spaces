@@ -705,12 +705,23 @@ in Presheaf.lean (which is private and hence inaccessible from this file). -/
 private theorem isUnit_algebraMap_s_of_rational_subset
     (D₀ D : RationalLocData A) (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
     IsUnit (algebraMap A (Localization.Away D.s) D₀.s) := by
-  -- By Wedhorn Prop 7.52: D ⊆ D₀ means for every prime p, D₀.s ∈ p → D.s ∈ p.
-  -- Hence D.s ∈ radical(D₀.s), so D.s^n = a * D₀.s, making D₀.s a unit in A[1/D.s].
-  -- The prime criterion is proved in Presheaf.lean (private mem_prime_of_rational_subset).
-  -- SORRY: needs public exposure of the prime ideal argument from Presheaf.lean,
-  -- or duplication of the proof (see isUnit_canonicalMap_s_of_huber in Presheaf.lean).
-  sorry
+  have hrad : D.s ∈ Ideal.radical (Ideal.span {D₀.s}) := by
+    classical
+    rw [Ideal.radical_eq_sInf, Ideal.mem_sInf]
+    intro p ⟨hsp, hp⟩
+    exact mem_prime_of_rational_subset D₀ D h p hp
+      (hsp (Ideal.subset_span (Set.mem_singleton D₀.s)))
+  obtain ⟨n, hn⟩ := Ideal.mem_radical_iff.mp hrad
+  obtain ⟨a, ha⟩ := Ideal.mem_span_singleton'.mp hn
+  have hunit_pow : IsUnit (algebraMap A (Localization.Away D.s) D.s ^ n) :=
+    (IsLocalization.map_units (Localization.Away D.s)
+      (⟨D.s, ⟨1, pow_one D.s⟩⟩ : Submonoid.powers D.s)).pow n
+  have heq : algebraMap A (Localization.Away D.s) a *
+      algebraMap A (Localization.Away D.s) D₀.s =
+      algebraMap A (Localization.Away D.s) D.s ^ n := by
+    rw [← map_mul, ← map_pow, ha]
+  rw [← heq] at hunit_pow
+  exact isUnit_of_mul_isUnit_right hunit_pow
 
 /-- The localization-level lift between localizations: `D₀.s` is a unit in
 `Localization.Away D.s` when `R(D.T/D.s) ⊆ R(D₀.T/D₀.s)`, so

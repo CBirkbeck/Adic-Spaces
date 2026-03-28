@@ -384,7 +384,7 @@ private theorem mem_prime_of_rational_subset_nonOpen {A : Type*} [CommRing A]
 
 /-- Given a prime `p` containing `D.s`, if `R(T'/s') ⊆ R(T/s)` then `D'.s ∈ p`
 (Wedhorn Proposition 7.52). Case-splits on whether `p` is open. -/
-private theorem mem_prime_of_rational_subset {A : Type*} [CommRing A]
+theorem mem_prime_of_rational_subset {A : Type*} [CommRing A]
     [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
     (p : Ideal A) (hp : p.IsPrime) (hDs : D.s ∈ p) : D'.s ∈ p := by
@@ -508,10 +508,18 @@ theorem restrictionMapAlg_continuous_of_huber {A : Type*} [CommRing A]
     exact Filter.mem_of_superset
       ((locBasis D.P D.T D.s D.hopen).hasBasis_nhds_zero.mem_of_mem trivial (i := n))
       (fun x hx ↦ hm (hn x hx))
-  -- SORRY: The neighborhood-mapping property.
-  -- Requires the universal property of the localization topology (Wedhorn §5.51):
-  -- locTopology is the coarsest ring topology making algebraMap continuous with
-  -- s invertible and {t/s} power-bounded. See docstring for resolution paths.
+  -- The neighborhood-mapping property requires the universal property of the
+  -- localization topology (Wedhorn Proposition 5.51 / Section 8.1): the localization
+  -- topology is the coarsest ring topology making algebraMap continuous with s
+  -- invertible and {t/s} power-bounded.
+  --
+  -- The formal proof requires establishing that locLift(locSubring D) is compatible
+  -- with locNhd D', which involves the independence of locTopology from the choice
+  -- of PairOfDefinition (D.P vs D'.P may differ). Specifically:
+  -- (1) The cofinal interleaving of locNhd bases for different pairs D.P, D'.P
+  -- (2) Boundedness of algebraMap(D.P.A₀) in D'.topology (from isBounded_A₀)
+  -- (3) locNhd_leftMul for finitely many locLift(divByS t D.s), t ∈ D.T
+  -- See the docstring for `restrictionMapAlg_continuous_of_huber` for details.
   sorry
 
 /-! ### Restriction maps (Proposition 8.2 of Wedhorn)
