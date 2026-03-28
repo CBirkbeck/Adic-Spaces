@@ -394,26 +394,13 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
   haveI : IsTopologicalRing (presheafValue_ringOfDef D₀) :=
     Subring.instIsTopologicalRing _
   -- Part (A): Show idealOfDef^n is closed in the subspace topology on ringOfDef.
-  -- This requires the AdicCompletionBridge to transfer closedness from
-  -- ker(evalₐ n) in AdicCompletion (which is closed as preimage of {0} under
-  -- continuous map to discrete quotient) through the homeomorphism
-  -- Completion(locSubring) ≃ AdicCompletion(J, locSubring) to ringOfDef.
-  -- See locSubring_subspace_eq_adic and AdicCompletionBridge.lean.
+  -- Strategy: build a continuous ring hom π : ringOfDef → locSubring/J^n whose
+  -- kernel is idealOfDef^n. Since the target is discrete (hence T₁), the
+  -- preimage of {0} is closed, so idealOfDef^n = ker(π) is closed.
   --
-  -- The proof outline:
-  -- 1. locSubring_subspace_eq_adic: subspace uniformity = J-adic
-  -- 2. adicCompletionRingEquiv: Completion ≃+* AdicCompletion (homeomorphism)
-  -- 3. evalₐ n : AdicCompletion → locSubring/J^n continuous, ker closed
-  -- 4. map_exact: ker(evalₐ n) = Ideal.map of (J^n) in AdicCompletion
-  -- 5. Under homeomorphism: Ideal.map of (J^n) ↔ Ideal.map g (J^n) = idealOfDef^n
-  -- 6. idealOfDef^n is closed in ringOfDef
-  --
-  -- We implement this using the IsAdic structure on locSubring (from
-  -- locSubring_subspace_eq_adic), the bridge homeomorphism, and Mathlib's
-  -- AdicCompletion.map_exact for the kernel identification.
-  --
-  -- STEP 1: Extract the IsAdic fact from locSubring_subspace_eq_adic.
-  -- The subspace topology on locSubring = J-adic topology.
+  -- The construction uses the J-adic completion of locSubring and the bridge
+  -- to AdicCompletion, where AdicCompletion.map_exact gives the kernel identity.
+  -- STEP 1: The subspace topology on locSubring = J-adic topology.
   have hadic_eq : TopologicalSpace.induced (locSubring D₀.P D₀.T D₀.s).subtype D₀.topology =
       (locIdeal D₀.P D₀.T D₀.s).adicTopology := by
     have hunif := locSubring_subspace_eq_adic D₀
@@ -425,57 +412,22 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
       congrArg (fun u => @UniformSpace.toTopologicalSpace _ u) hunif
     rw [UniformSpace.toTopologicalSpace_comap] at h1
     exact h1
-  -- STEP 2-6: The bridge-based proof of closedness.
-  -- We construct idealOfDef^n = ker(evalRingOfDef) where evalRingOfDef is continuous.
+  -- The non-circular proof requires the AdicCompletionBridge:
+  -- 1. Build continuous eval_n : ringOfDef → locSubring/J^n
+  --    (extend the quotient map from dense locSubring to the completion)
+  -- 2. ker(eval_n) is closed (preimage of {0} in T₁ discrete target)
+  -- 3. idealOfDef^n ⊆ ker(eval_n) (ring hom kills generators)
+  -- 4. ker(eval_n) ⊆ idealOfDef^n (from AdicCompletion.map_exact via bridge)
+  -- 5. idealOfDef^n = ker(eval_n) → closed
   --
-  -- For the formal implementation: we use the bridge
-  -- Completion(locSubring, J-adic) ≃+* AdicCompletion(J, locSubring)
-  -- composed with evalₐ n to get a continuous ring hom from
-  -- Completion(locSubring) → locSubring / J^n. Then we extend this to ringOfDef
-  -- (which is the completion of locSubring in the presheafValue ambient space)
-  -- and show the kernel = idealOfDef^n using map_exact.
+  -- Steps 1-3 are straightforward. Step 4 uses:
+  -- AdicCompletion.map_exact on 0 → J^n → locSubring → locSubring/J^n → 0
+  -- giving ker(eval) = Ideal.map of (J^n) = idealOfDef^n in the completion.
+  -- The bridge transfers this to ringOfDef.
   --
-  -- Direct approach: build a continuous surjection
-  --   π : ringOfDef → locSubring / J^n
-  -- whose kernel is idealOfDef^n. Since the target is discrete (finite quotient
-  -- of Noetherian ring), π⁻¹({0}) is closed.
-  --
-  -- Construction of π:
-  -- locSubring →^{locSubringToRingOfDef} ringOfDef (dense image)
-  -- locSubring →^{mkQ J^n} locSubring/J^n (surjective)
-  -- We need: ringOfDef →^{π} locSubring/J^n extending mkQ ∘ locSubringToRingOfDef⁻¹
-  --
-  -- Since locSubring/J^n is DISCRETE (finite quotient of Noetherian + f.g. ideal):
-  -- the map locSubring → locSubring/J^n is continuous.
-  -- The extension π exists by completeness of locSubring/J^n + density of
-  -- locSubringToRingOfDef image + continuity.
-  --
-  -- BUT: extending from a dense subring to the completion requires the target
-  -- to be complete + T₂ and the map to be uniformly continuous. Discrete finite
-  -- rings are complete. So the extension exists.
-  --
-  -- ker(π) = closure(ker(mkQ ∘ g⁻¹)) = closure(g(J^n)) = idealOfDef^n.
-  -- Since discrete target: ker(π) = π⁻¹({0}) is closed.
-  --
-  -- Implementation: build eval_n as Completion.extensionHom of the quotient map.
-  -- The quotient map locSubring → locSubring/J^n is continuous for J-adic → discrete.
-  -- By hadic_eq: the subspace topology = J-adic. So it's continuous for subspace → discrete.
-  -- The target is discrete = complete T₂. Dense image = locSubringToRingOfDef.
-  -- So extensionHom exists: ringOfDef → locSubring/J^n.
-  -- ker(extensionHom) is closed (preimage of {0} in T₁ space under continuous map).
-  -- idealOfDef^n ⊆ ker(extensionHom) (ring hom kills generators).
-  -- For the other direction: need that ker generates at most idealOfDef^n.
-  -- This follows from density + the fact that mkQ kills exactly J^n.
-  --
-  -- KEY MATHLIB TOOL: AdicCompletion.map_exact preserves exact sequences.
-  -- Applied to 0 → J^n → locSubring → locSubring/J^n → 0:
-  -- ker(eval_n in AdicCompletion) = Ideal.map of (J^n) = idealOfDef^n.
-  -- ker(eval_n) is closed → idealOfDef^n is closed.
-  --
-  -- The bridge adicCompletionRingEquiv transfers this to ringOfDef.
-  -- But building the full bridge infrastructure requires ~100 lines.
-  -- For now, we leave this as the SINGLE remaining sorry.
-  sorry -- AdicCompletion.map_exact + bridge → idealOfDef^n = ker(eval_n) = closed
+  -- Total: ~100 lines of bridge wiring. The tools exist in Mathlib:
+  -- AdicCompletion.map_exact, adicCompletionRingEquiv, ideal_smul_top_eq_self.
+  sorry
 
 private theorem closure_locNhd_sub_idealOfDef_pow (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] (n : ℕ) :
