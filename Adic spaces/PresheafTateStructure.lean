@@ -456,6 +456,20 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
   --
   -- ker(π) = closure(ker(mkQ ∘ g⁻¹)) = closure(g(J^n)) = idealOfDef^n.
   -- Since discrete target: ker(π) = π⁻¹({0}) is closed.
+  --
+  -- Implementation: build eval_n as Completion.extensionHom of the quotient map.
+  -- The quotient map locSubring → locSubring/J^n is continuous for J-adic → discrete.
+  -- By hadic_eq: the subspace topology = J-adic. So it's continuous for subspace → discrete.
+  -- The target is discrete = complete T₂. Dense image = locSubringToRingOfDef.
+  -- So extensionHom exists: ringOfDef → locSubring/J^n.
+  -- ker(extensionHom) is closed (preimage of {0} in T₁ space under continuous map).
+  -- idealOfDef^n ⊆ ker(extensionHom) (ring hom kills generators).
+  -- For the other direction: need that ker generates at most idealOfDef^n.
+  -- This follows from density + the fact that mkQ kills exactly J^n.
+  --
+  -- For now: the closedness of ker(extensionHom) gives us SOME closed set
+  -- containing idealOfDef^n. We need idealOfDef^n = ker to conclude.
+  -- This last step requires map_exact from Mathlib or a direct argument.
   sorry
 
 private theorem closure_locNhd_sub_idealOfDef_pow (D₀ : RationalLocData A)
