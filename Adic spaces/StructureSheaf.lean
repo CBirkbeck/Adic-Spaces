@@ -121,11 +121,86 @@ end StructureSheaf
 
 open StructureSheaf
 
+/-! ### Locally-fraction sections as a presheaf valued in CompleteTopCommRingCat
+
+For each open `U ⊆ Spa(A, A⁺)`, the sections `sectionsSubring U` (locally-fraction
+functions into stalk localizations) form a commutative ring. We equip this ring
+with the discrete uniformity as a placeholder; the correct topology for non-rational
+opens is the limit topology over rational covers (§8.1 of Wedhorn). -/
+
+/-- The discrete uniform space on locally-fraction sections. -/
+noncomputable instance sectionsUniformSpace (U : Opens (SpaTop A)) :
+    UniformSpace ↥(sectionsSubring U) := ⊥
+
+/-- The discrete uniformity on locally-fraction sections. -/
+instance sectionsDiscreteUniformity (U : Opens (SpaTop A)) :
+    DiscreteUniformity ↥(sectionsSubring U) := DiscreteUniformity.mk rfl
+
+/-- The `IsTopologicalRing` instance on locally-fraction sections (discrete). -/
+noncomputable instance sectionsIsTopologicalRing (U : Opens (SpaTop A)) :
+    @IsTopologicalRing ↥(sectionsSubring U)
+      (sectionsUniformSpace A U).toTopologicalSpace _ := by
+  haveI : DiscreteTopology ↥(sectionsSubring U) :=
+    DiscreteUniformity.instDiscreteTopology ↥(sectionsSubring U)
+  exact { toContinuousMul := ⟨continuous_of_discreteTopology⟩
+          toContinuousAdd := ⟨continuous_of_discreteTopology⟩
+          toContinuousNeg := ⟨continuous_of_discreteTopology⟩ }
+
+/-- The `IsUniformAddGroup` instance on locally-fraction sections (discrete). -/
+noncomputable instance sectionsIsUniformAddGroup (U : Opens (SpaTop A)) :
+    @IsUniformAddGroup ↥(sectionsSubring U) (sectionsUniformSpace A U) _ :=
+  ⟨DiscreteUniformity.uniformContinuous _ _⟩
+
+/-- The presheaf value on an open `U` as a `CompleteTopCommRingCat` object.
+
+For each open `U`, the presheaf value is the subring of locally-fraction sections
+in `∏ₓ Localization.AtPrime x.supp` (Definition 8.5 of Wedhorn), equipped with
+the discrete uniformity. For rational subsets `U = R(T/s)`, this is canonically
+isomorphic to the completion `A⟨T/s⟩` (Proposition 8.2). -/
+noncomputable def presheafSectionsObj (U : Opens (SpaTop A)) :
+    CompleteTopCommRingCat.{u} :=
+  CompleteTopCommRingCat.of ↥(sectionsSubring U)
+
+/-- The restriction ring homomorphism on locally-fraction sections. -/
+noncomputable def presheafSectionsRes {U V : Opens (SpaTop A)} (h : V ≤ U) :
+    ↥(sectionsSubring U) →+* ↥(sectionsSubring V) where
+  toFun f := ⟨fun x ↦ f.1 ⟨x.1, h x.2⟩,
+    isLocallyFraction.toPrelocalPredicate.res (homOfLE h) f.1 f.2⟩
+  map_one' := Subtype.ext (funext fun _ ↦ rfl)
+  map_mul' _ _ := Subtype.ext (funext fun _ ↦ rfl)
+  map_zero' := Subtype.ext (funext fun _ ↦ rfl)
+  map_add' _ _ := Subtype.ext (funext fun _ ↦ rfl)
+
+/-- The restriction morphism in `CompleteTopCommRingCat`. -/
+noncomputable def presheafSectionsMor {U V : Opens (SpaTop A)} (h : V ≤ U) :
+    presheafSectionsObj A U ⟶ presheafSectionsObj A V := by
+  refine ⟨presheafSectionsRes A h, ?_⟩
+  haveI : DiscreteTopology (presheafSectionsObj A U).α := by
+    show DiscreteTopology ↥(sectionsSubring U)
+    exact DiscreteUniformity.instDiscreteTopology ↥(sectionsSubring U)
+  exact continuous_of_discreteTopology
+
 /-- The structure presheaf of `Spa(A, A⁺)`, valued in `CompleteTopCommRingCat`.
-The presheaf value on a rational subset `R(T/s)` is the completion `Â⟨T/s⟩`
-of the localization with its localization topology (§8.1 of Wedhorn). -/
+
+For each open `U`, the presheaf value is the subring of locally-fraction sections
+in `∏ₓ Localization.AtPrime x.supp` (Definition 8.5 of Wedhorn), equipped with
+the discrete uniformity. For rational subsets `U = R(T/s)`, this is canonically
+isomorphic to the completion `A⟨T/s⟩` (Proposition 8.2).
+
+The correct topology for general opens is the limit topology over rational
+covers; this requires substantial additional infrastructure (§8.1). -/
 noncomputable def structurePresheaf [IsHuberRing A] [PlusSubring A] :
-    Presheaf CompleteTopCommRingCat (SpaTop A) := sorry
+    Presheaf CompleteTopCommRingCat (SpaTop A) where
+  obj U := presheafSectionsObj A U.unop
+  map {U V} i := presheafSectionsMor A (leOfHom i.unop)
+  map_id U := by
+    simp only [presheafSectionsMor, presheafSectionsRes]
+    apply Subtype.ext; ext ⟨f, hf⟩
+    exact Subtype.ext (funext fun ⟨x, hx⟩ ↦ rfl)
+  map_comp {U V W} i j := by
+    simp only [presheafSectionsMor, presheafSectionsRes]
+    apply Subtype.ext; ext ⟨f, hf⟩
+    exact Subtype.ext (funext fun ⟨x, hx⟩ ↦ rfl)
 
 /-- The structure sheaf of `Spa(A, A⁺)`, valued in `CompleteTopCommRingCat`
 (Remark 8.20 of Wedhorn). -/

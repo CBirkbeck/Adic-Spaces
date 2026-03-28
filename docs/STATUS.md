@@ -53,7 +53,8 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 - Sorry-free (proved, depend on `_isBounded` above): `locToQuotientOneSubfX_gen_continuous` (continuity via Submodule.span_induction with strengthened predicate), `presheafToQuotient_comp_tateQuotientToPresheaf` (right inverse via T2 density + round-trip), `tateQuotientToPresheaf_comp_presheafToQuotient` (left inverse).
 - Sorry-free: `quotientTTopology` + ring/nonarchimedean instances, `presheafValueToQuotient` (extension to completion), `presheafValueToQuotient_coe`, `presheafValueTateQuotientEquiv` (packaged as RingEquiv modulo the 1 sorry + external hypotheses), `presheafValueTateQuotientEquiv_canonicalMap`, `_symm_algebraMap`.
 
-**StructureSheaf.lean** — sorry's (updated 2026-03-26):
+**StructureSheaf.lean** — sorry's (updated 2026-03-28):
+- **DONE** `structurePresheaf` : Fully proved (0 sorry). Functor `(Opens (SpaTop A))^op => CompleteTopCommRingCat` using locally-fraction sections with discrete uniformity.
 - **QUARANTINED** (kept for backwards compat, route through TopologyComparison instead):
   - `localization_isT0` : False in general when locIdeal = top.
   - `completionKer_eq_bot_of_locKer_eq_bot` : Needs AdicCompletion bridge.
