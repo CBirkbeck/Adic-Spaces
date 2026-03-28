@@ -28,6 +28,18 @@
 | `AdicMorphisms.lean` | 171 | DONE | Lemma 7.46(1)+(2 first part), Tate specializations |
 | `Basic.lean` | 1 | PLACEHOLDER | Empty |
 
+## PresheafTateStructure.lean Sorries
+
+**`idealOfDef_pow_val_isClosed`** (line ~498): `IsClosed (idealOfDef^n)` in the subspace topology on `ringOfDef`. This is the deepest sorry in Proposition 8.15. **Status: STUCK (circular without AdicCompletion bridge).**
+
+Why simpler approaches fail: the natural proof reduces to showing `idealOfDef^n = closure(g(J^n))`. The forward inclusion holds. The reverse requires `closure(g(J^n)) ⊆ idealOfDef^n`, which uses `closure_locNhd_sub_idealOfDef_pow`, which in turn uses `idealOfDef_pow_val_isClosed` -- creating a circular dependency.
+
+Required approach: Use `AdicCompletionBridge.adicCompletionRingEquiv` to identify `ringOfDef` with `AdicCompletion(J, locSubring)`. Then compose with `AdicCompletion.evalₐ n` (continuous to discrete quotient). The key non-trivial step is `AdicCompletion.map_exact` (Mathlib) applied to `0 → J^n → locSubring → locSubring/J^n → 0`, which gives `ker(evalₐ n) = range(map I f)`, breaking the circularity. Infrastructure needed: identify `ringOfDef` with `Completion(locSubring, J-adic)` as a topological ring (~150 lines).
+
+**`restrictionMapHom_surjective`** (line ~751): Surjectivity of the restriction map. Needs: the range of `restrictionMapHom` is complete (image of complete space under uniformly continuous map) and dense (contains `D.coeRingHom` image). Complete + dense in T2 = surjective.
+
+**`restrictionMapHom_injective`** (line ~813): Injectivity of the restriction map. Needs: `restrictionMapAlg` is a uniform embedding between localization topologies.
+
 ## Sorry-Free Status
 
 As of 2026-03-25:
@@ -103,7 +115,7 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 - [ ] **Remove h_map hypothesis from Prop 6.25** — needs Prop 6.4(5) (bounded open subring = ring of definition)
 - [ ] **General (non-discrete) sorry removal** — Two blocking sorries in Presheaf.lean (updated 2026-03-28):
   - `mem_prime_of_rational_subset_nonOpen` (line ~383): Non-open prime case of Prop 7.52. **STUCK.** Three independent obstacles: (1) `[IsHuberRing A]` does not provide `IsAdicComplete P.I P.A₀` needed by Lemma 7.45; (2) Lemma 7.45 gives `p <= v.supp` (not equality) because `restrictToConvex` enlarges support for rank > 1 value groups; (3) cannot add hypotheses to the public API (`isUnit_canonicalMap_s` etc.) because `PresheafTateStructure.lean` uses them with just `[IsHuberRing A]`. Resolution requires one of: (a) formalizing Huber ring completion + Spa invariance (Wedhorn Prop 7.23), (b) a rank-1 domination theorem giving `v.supp = p`, (c) a new algebraic argument.
-  - `restrictionMapAlg_continuous_of_huber` (line ~456): Continuity of the algebraic restriction map for localization topologies. **Blocked by:** (1) depends on `isUnit_canonicalMap_s_of_huber` which depends on the non-open prime sorry above; (2) requires analysis of how `locNhd` neighborhoods map under the localization lift, which needs new infrastructure in LocalizationTopology.lean.
+  - `restrictionMapAlg_continuous_of_huber` (line ~447): Continuity of the algebraic restriction map for localization topologies. **PARTIALLY PROVED.** Factorization through `coeRingHom ∘ locLift` complete (steps 1-6 verified). Remaining sorry: the **neighborhood-mapping property** `∀ m, ∃ n, locLift '' (locNhd D n) ⊆ locNhd D' m`. This requires the universal property of the localization topology (Wedhorn §5.51): formalizing that `locTopology` is the coarsest ring topology making `algebraMap` continuous with `s` invertible and `{t/s}` power-bounded. Infrastructure needed: (a) `locTopology_continuous_lift` theorem in `LocalizationTopology.lean`, (b) interleaving of neighborhood bases from different pairs of definition `D.P`, `D'.P`, (c) boundedness analysis of `locSubring` images.
   - Open prime case (`mem_prime_of_rational_subset_open`) sorry-free.
 - [ ] **Sheaf condition for general Huber rings** — `IsSheafy` stated for Tate rings. Sorry decomposed (2026-03-25) into: (A) `completionKer_eq_bot_of_locKer_eq_bot` (completion kernel reduction, needs AdicCompletion bridge / G2-topo), (B) algebraic injectivity on localization (needs Spa points in specific rational subsets for Tate rings). All algebraic infrastructure sorry-free: `base_s_in_annihilator_radical_of_covering`, `restrictionMapAlg_factors`, `tateQuotientPresheafEquiv`.
 - [ ] **Categories V^pre and V** — see `docs/plans/2026-03-08-complete-top-ring-category.md` Tasks 2-3
