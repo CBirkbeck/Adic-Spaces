@@ -741,6 +741,45 @@ private theorem restrictionMapAlg_eq_comp_locLift
   simp only [RingHom.comp_apply, restrictionMapAlg, IsLocalization.Away.lift_eq,
     RationalLocData.coeRingHom, RationalLocData.canonicalMap, locLift]
 
+/-- **Forward continuity** of locLift: for every target neighborhood level `m`, there
+exists a source level `n` such that `locLift` maps `locNhd D₀ n` into `locNhd D m`.
+
+This follows from the universal property of the localization topology (Wedhorn §5.51):
+the localization topology is the coarsest making `algebraMap` continuous and `s` a unit.
+Since `locLift ∘ algebraMap = algebraMap` and `algebraMap` is continuous into `D.topology`,
+the lift is continuous by the universal property. The neighborhood-level version here is
+the explicit formulation needed for `IsUniformInducing`.
+
+**Wedhorn reference**: Proposition 8.2, §5.51. -/
+private theorem locLift_maps_locNhd
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A]
+    (D₀ D : RationalLocData A) (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    ∀ m : ℕ, ∃ n : ℕ,
+      ∀ x ∈ @locNhd A _ _ D₀.P D₀.T D₀.s n,
+        (locLift D₀ D h) x ∈ @locNhd A _ _ D.P D.T D.s m := by
+  sorry
+
+/-- **Backward inducing** of locLift: for every source neighborhood level `n`, there
+exists a target level `m` such that the preimage of `locNhd D m` under `locLift` is
+contained in `locNhd D₀ n`.
+
+This is the harder direction, using the Noetherian hypothesis and the Artin-Rees lemma
+(or equivalently, the topology-independence of the localization construction for
+Noetherian adic rings). The Artin-Rees lemma controls how the `I`-adic filtration
+on `Localization.Away D.s` restricts to `Localization.Away D₀.s`.
+
+**Wedhorn reference**: Proposition 8.15 + Lemma 8.5. -/
+private theorem locLift_preimage_locNhd
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A]
+    (D₀ D : RationalLocData A) (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    ∀ n : ℕ, ∃ m : ℕ,
+      ∀ x : Localization.Away D₀.s,
+        (locLift D₀ D h) x ∈ @locNhd A _ _ D.P D.T D.s m →
+          x ∈ @locNhd A _ _ D₀.P D₀.T D₀.s n := by
+  sorry
+
 /-- The locLift between localizations is `IsUniformInducing` from `D₀.uniformSpace`
 to `D.uniformSpace`.
 
@@ -754,13 +793,48 @@ private theorem locLift_isUniformInducing
     [NonarchimedeanRing A] [FirstCountableTopology A]
     (D₀ D : RationalLocData A) (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
     @IsUniformInducing _ _ D₀.uniformSpace D.uniformSpace (locLift D₀ D h) := by
-  -- The localization topologies on Loc.Away D₀.s and Loc.Away D.s are both
-  -- defined by the locIdeal neighborhoods. The locLift fixes algebraMap, so:
-  -- Forward: locLift maps locNhd D₀ n into locNhd D n (ideal image containment).
-  -- Reverse: By the Noetherian + Artin-Rees argument, the preimage of locNhd D m
-  -- contains locNhd D₀ n for some n ≥ m.
-  -- Together: comap (locLift) D.uniformity = D₀.uniformity.
-  sorry
+  -- Strategy: reduce IsUniformInducing to IsInducing via the uniform group lemma,
+  -- then reduce IsInducing to nhds 0 equality via IsTopologicalAddGroup.ext.
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  haveI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  haveI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  -- Strategy: show D.uniformSpace.comap locLift = D₀.uniformSpace.
+  -- Both are IsUniformAddGroup, so equal iff nhds 0 agree (IsUniformAddGroup.ext).
+  -- nhds in comap = comap nhds (via nhds_induced).
+  -- The locNhd bases characterize both nhds filters.
+  letI uD₀ : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI uD : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  rw [@isUniformInducing_iff_uniformSpace _ _ uD₀ uD]
+  apply @IsUniformAddGroup.ext (Localization.Away D₀.s) _
+  · exact IsUniformAddGroup.comap (locLift D₀ D h)
+  · exact D₀.isUniformAddGroup
+  · -- nhds 0 in comap uniform space = nhds 0 in D₀.uniformSpace.
+    -- LHS: nhds 0 in (uD.comap locLift).toTopologicalSpace
+    --     = nhds 0 in (induced locLift uD.toTopologicalSpace)
+    --     = comap locLift (nhds_D 0) [by nhds_induced + map_zero]
+    -- RHS: nhds 0 in D₀.topology [= uD₀.toTopologicalSpace]
+    rw [show @UniformSpace.toTopologicalSpace _ (uD.comap (locLift D₀ D h)) =
+      TopologicalSpace.induced (locLift D₀ D h) uD.toTopologicalSpace from
+      UniformSpace.toTopologicalSpace_comap,
+      nhds_induced, show (locLift D₀ D h : Localization.Away D₀.s →
+        Localization.Away D.s) 0 = 0 from map_zero _]
+    have hbasis₀ := (locBasis D₀.P D₀.T D₀.s D₀.hopen).hasBasis_nhds_zero
+    have hbasisD := (locBasis D.P D.T D.s D.hopen).hasBasis_nhds_zero
+    ext S
+    rw [Filter.mem_comap, hbasis₀.mem_iff]
+    constructor
+    · -- S ∈ comap locLift (nhds_D 0) → S ∈ nhds_D₀ 0
+      rintro ⟨V, hV, hVS⟩
+      obtain ⟨m, -, hm⟩ := hbasisD.mem_iff.mp hV
+      obtain ⟨n, hn⟩ := locLift_maps_locNhd D₀ D h m
+      exact ⟨n, trivial, fun x hx => hVS (hm (hn x hx))⟩
+    · -- S ∈ nhds_D₀ 0 → S ∈ comap locLift (nhds_D 0)
+      rintro ⟨n, -, hn⟩
+      obtain ⟨m, hm⟩ := locLift_preimage_locNhd D₀ D h n
+      exact ⟨(locNhd D.P D.T D.s m : Set (Localization.Away D.s)),
+        hbasisD.mem_of_mem trivial (i := m),
+        fun x hx_mem => hn (hm x hx_mem)⟩
 
 private theorem restrictionMapAlg_isUniformInducing
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
