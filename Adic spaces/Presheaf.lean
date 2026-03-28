@@ -336,28 +336,45 @@ private theorem mem_prime_of_rational_subset_open {A : Type*} [CommRing A]
 
 This is the hard case of Wedhorn Proposition 7.52 for non-open primes.
 
-**Mathematical argument (Wedhorn Lemma 7.45 + Proposition 7.52):**
-By contradiction, assume `D'.s ∉ p`. Since `p` is non-open, Lemma 7.45
-(`PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime`) gives
-`v ∈ Spa(A, A⁺)` with `p ≤ v.supp`. From `D.s ∈ p ≤ v.supp` we get
-`v ∉ R(T/s)` (since `v(D.s) = 0`). For the contradiction, we need
-`v ∈ R(T'/s')`, which requires `D'.s ∉ v.supp`. However, Lemma 7.45
-only gives `p ≤ v.supp` (not equality), so `D'.s ∉ p` does not imply
-`D'.s ∉ v.supp`.
+**Desired proof (Wedhorn Prop 7.52):** By contradiction, assume `D'.s ∉ p`.
+Construct a continuous valuation `v ∈ Spa(A, A⁺)` with `v.supp = p` (equality).
+Then `D.s ∈ p = v.supp` gives `v ∉ R(T/s)`, while `D'.s ∉ p = v.supp` and the
+trivial-valuation argument (as in `mem_prime_of_rational_subset_open`) gives
+`v ∈ R(T'/s')`, contradicting `R(T'/s') ⊆ R(T/s)`.
 
-**Blocking issue:** The hypothesis `[IsHuberRing A]` does not provide
-`IsAdicComplete P.I P.A₀`, which Lemma 7.45 requires. Moreover, even
-with completeness, we only get `p ≤ v.supp` (containment, not equality).
-Equality `v.supp = p` requires either:
-(a) `[IsNoetherianRing P.A₀]` (Wedhorn Lemma 7.45 gives a discrete
-    valuation with exact support), or
-(b) The rank-1 domination theorem (Bourbaki), or
-(c) A strengthened hypothesis on the ring (e.g., `[IsTateRing A]`).
+**Why this is blocked (three independent obstacles):**
 
-**To fill this sorry:** Either add `[IsAdicComplete P.I P.A₀]` and
-`[IsNoetherianRing P.A₀]` to the hypotheses (which changes the API),
-or restructure so that this lemma is only invoked for complete
-affinoid rings where these conditions hold. -/
+1. **No completeness.** `[IsHuberRing A]` does not provide `IsAdicComplete P.I P.A₀`,
+   which `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime` (Lemma 7.45)
+   requires for the domination theorem.
+
+2. **Support inequality.** Even with completeness, Lemma 7.45 only gives
+   `p ≤ v.supp` (containment), not equality. The `restrictToConvex` step in the
+   construction projects to a rank-1 value group, sending elements whose value-unit
+   lies outside the convex subgroup `H_gen` to zero. This enlarges the support
+   beyond `p` when the original value group has rank > 1.
+
+3. **API constraint.** The public theorem `isUnit_canonicalMap_s` (used by
+   `PresheafTateStructure.lean` with just `[IsHuberRing A]`) delegates to this lemma
+   through `isUnit_canonicalMap_s_of_huber` and `mem_prime_of_rational_subset`.
+   Adding hypotheses here would require changing the entire call chain, breaking
+   downstream files.
+
+**Resolution paths (any one suffices):**
+
+(a) **Completion theory.** Formalize the completion `Â` of a Huber ring and
+    `Spa(A, A⁺) ≅ Spa(Â, Â⁺)` (Wedhorn Prop 7.23). Then use Lemma 7.45 on
+    the complete ring `Â` and pull back.
+
+(b) **Rank-1 domination.** Prove that every non-open prime is the exact support
+    of a continuous rank-1 valuation. This requires either Bourbaki's domination
+    theorem or a noetherian ring-of-definition argument giving a discrete
+    valuation with `v.supp = p`.
+
+(c) **Alternative algebraic argument.** Find a proof that does not construct
+    a Spa point at all. (No such proof is known to us.)
+
+**References:** Wedhorn, Adic Spaces, Proposition 7.52, Lemma 7.45. -/
 private theorem mem_prime_of_rational_subset_nonOpen {A : Type*} [CommRing A]
     [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
