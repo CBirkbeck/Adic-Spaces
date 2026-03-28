@@ -775,55 +775,6 @@ private theorem restrictionMapAlg_isUniformInducing
   -- iff the inner map is IsUniformInducing.
   exact hcoe_ui.comp (locLift_isUniformInducing D₀ D h)
 
-/-- WARNING: This claim appears to be MATHEMATICALLY FALSE in general.
-
-**The issue:** `restrictionMapAlg D₀ D h` factors as `D.coeRingHom ∘ locLift D₀ D h`,
-where `locLift` maps `Localization.Away D₀.s` into `Localization.Away D.s`.
-The range of `locLift` is the subring `A[1/D₀.s]` inside `A[1/D.s]`.
-
-For `DenseRange restrictionMapAlg`, we need `D.coeRingHom(A[1/D₀.s])` to be dense
-in `presheafValue D = Completion(A[1/D.s])`. Since `D.coeRingHom` is the completion
-embedding (continuous with dense range), this reduces to: `A[1/D₀.s]` is dense in
-`A[1/D.s]` with the localization topology.
-
-**Why this fails:** The localization topology on `A[1/D.s]` has `locSubring D` as
-an open subring. Since open subgroups are also closed, `A[1/D.s]` decomposes into
-clopen cosets of `locSubring D`. For `A[1/D₀.s]` to be dense, it must intersect
-every coset. In particular, the coset `D.s⁻¹ + locSubring D` must contain an
-element of `A[1/D₀.s]`.
-
-However, from the subset hypothesis `h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s`,
-we only get the radical containment `D.s ∈ radical(span{D₀.s})` (i.e., `D.s^n = a * D₀.s`
-for some `n, a`). This makes `D₀.s` a unit in `A[1/D.s]`, but does NOT make `D.s` a
-unit in `A[1/D₀.s]`. Without `D.s` being a unit in `A[1/D₀.s]`, the subring `A[1/D₀.s]`
-does not contain `D.s⁻¹`, and `A[1/D₀.s] ∩ (D.s⁻¹ + locSubring D) = ∅`.
-
-The reverse radical containment `D₀.s ∈ radical(span{D.s})` would require the reverse
-subset inclusion `rationalOpen D₀.T D₀.s ⊆ rationalOpen D.T D.s`, which we do not have.
-
-**Correct approach for Prop 8.15 surjectivity:**
-Wedhorn's proof does NOT use dense range of the algebraic map. Instead, it shows
-"completion commutes with localization" for Noetherian adic rings:
-  `Completion(A[1/s]) ≅ Completion(A)[1/ŝ]`
-This is an algebraic isomorphism from the universal property of localization in the
-completion, combined with the Noetherian hypothesis (Artin-Rees / Lemma 8.5).
-The surjectivity of `sigma` then follows from this isomorphism, not from dense+closed.
-
-**Resolution:** Replace the `DenseRange`-based surjectivity proof
-(`restrictionMapHom_surjective`) with the algebraic "completion commutes with
-localization" approach. This avoids the false density claim entirely. -/
-private theorem restrictionMapAlg_denseRange
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A]
-    (D₀ D : RationalLocData A)
-    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
-    DenseRange (α := Localization.Away D₀.s) (restrictionMapAlg D₀ D h) := by
-  -- BLOCKED: This claim is mathematically false in general.
-  -- See the docstring above for a detailed explanation.
-  -- The surjectivity proof should use the "completion commutes with localization"
-  -- isomorphism (Wedhorn Prop 8.15 / Lemma 8.5) instead of DenseRange.
-  sorry
-
 /-- **Sigma surjectivity (Wedhorn Prop 8.15)**: The restriction map
 `restrictionMapHom D₀ D h` satisfies the `IsLocalization.Away.surj` condition.
 
