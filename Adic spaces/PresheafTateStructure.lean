@@ -412,22 +412,54 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
       congrArg (fun u => @UniformSpace.toTopologicalSpace _ u) hunif
     rw [UniformSpace.toTopologicalSpace_comap] at h1
     exact h1
-  -- The non-circular proof requires the AdicCompletionBridge:
-  -- 1. Build continuous eval_n : ringOfDef → locSubring/J^n
-  --    (extend the quotient map from dense locSubring to the completion)
-  -- 2. ker(eval_n) is closed (preimage of {0} in T₁ discrete target)
-  -- 3. idealOfDef^n ⊆ ker(eval_n) (ring hom kills generators)
-  -- 4. ker(eval_n) ⊆ idealOfDef^n (from AdicCompletion.map_exact via bridge)
-  -- 5. idealOfDef^n = ker(eval_n) → closed
-  --
-  -- Steps 1-3 are straightforward. Step 4 uses:
-  -- AdicCompletion.map_exact on 0 → J^n → locSubring → locSubring/J^n → 0
-  -- giving ker(eval) = Ideal.map of (J^n) = idealOfDef^n in the completion.
-  -- The bridge transfers this to ringOfDef.
-  --
-  -- Total: ~100 lines of bridge wiring. The tools exist in Mathlib:
-  -- AdicCompletion.map_exact, adicCompletionRingEquiv, ideal_smul_top_eq_self.
-  sorry
+  -- STEP 2: Show idealOfDef^n = closure(g(J^n)) in ringOfDef, hence closed.
+  set J := locIdeal D₀.P D₀.T D₀.s with hJ_def
+  set g := locSubringToRingOfDef D₀ with hg_def
+  set gJn := g '' (↑(J ^ n) : Set (locSubring D₀.P D₀.T D₀.s)) with hgJn_def
+  suffices h_eq : ((presheafValue_idealOfDef D₀ ^ n :
+      Ideal (presheafValue_ringOfDef D₀)) : Set (presheafValue_ringOfDef D₀)) =
+      closure gJn by
+    have : IsClosed (closure gJn) := isClosed_closure
+    rwa [← h_eq] at this
+  -- DenseRange g: ringOfDef = topological closure of range(g).
+  have hg_dense : DenseRange g := by
+    intro ⟨z, hz⟩
+    have hval_range : Subtype.val '' Set.range g =
+        ((D₀.coeRingHom.comp (locSubring D₀.P D₀.T D₀.s).subtype).range :
+          Set (presheafValue D₀)) := by
+      ext w; constructor
+      · rintro ⟨y, ⟨d, hd⟩, hw⟩; exact ⟨d, by rw [← hw, ← hd]; rfl⟩
+      · rintro ⟨d, hd⟩; exact ⟨g d, ⟨d, rfl⟩, hd⟩
+    have h1 : z ∈ closure (Subtype.val '' Set.range g) := hval_range ▸ hz
+    -- closure in induced topology = preimage of closure in ambient
+    simp only [closure_subtype, Set.mem_preimage]
+    exact h1
+  -- range(g) * gJn ⊆ gJn (ideal absorption).
+  have hact : ∀ a ∈ Set.range g, ∀ b ∈ gJn, a * b ∈ gJn := by
+    rintro _ ⟨s, rfl⟩ _ ⟨d, hd, rfl⟩
+    exact ⟨s * d, Ideal.mul_mem_left _ s hd, map_mul g s d⟩
+  apply Set.Subset.antisymm
+  · -- ⊆: idealOfDef^n ⊆ closure(gJn)
+    -- span_induction: generators → closure, add → closure, smul → closure (density).
+    rw [show presheafValue_idealOfDef D₀ = Ideal.map g J from rfl,
+        (Ideal.map_pow g J n).symm]
+    intro y hy
+    refine Submodule.span_induction (p := fun y _ => y ∈ closure gJn) ?_ ?_ ?_ ?_ hy
+    · rintro y ⟨d, hd, rfl⟩; exact subset_closure ⟨d, hd, rfl⟩
+    · exact subset_closure ⟨0, (J ^ n).zero_mem, map_zero g⟩
+    · intro a b _ _ ha hb
+      exact ((J ^ n).toAddSubgroup.map g.toAddMonoidHom).topologicalClosure.add_mem ha hb
+    · intro ⟨r, hr_mem⟩ y _ hy
+      exact map_mem_closure₂' (fun _ => continuous_const_mul _)
+        (fun _ => continuous_mul_const _)
+        (hg_dense.closure_eq ▸ Set.mem_univ _) hy hact
+  · -- ⊇: closure(gJn) ⊆ idealOfDef^n
+    -- gJn ⊆ idealOfDef^n trivially. The closure inclusion requires the
+    -- Noetherian algebraic argument (AdicCompletion.map_exact via bridge):
+    -- the adic completion of the exact sequence 0 → J^n → R₀ → R₀/J^n → 0
+    -- identifies idealOfDef^n with the kernel of the continuous eval map,
+    -- which is automatically closed. See AdicCompletionBridge.lean.
+    sorry
 
 private theorem closure_locNhd_sub_idealOfDef_pow (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] (n : ℕ) :
