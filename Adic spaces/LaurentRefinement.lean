@@ -370,7 +370,11 @@ theorem tateAcyclicity
       -- So x = 0.
       sorry -- Needs: IsLocalization.injective from restrictionMap_isLocalization
     · -- Empty covering: degenerate case.
-      sorry
+      -- C.hcover + C.covers = ∅ implies rationalOpen C.base = ∅.
+      -- For a domain Tate ring, this means C.base.s is nilpotent → unit in
+      -- Localization.Away → presheafValue C.base = 0.
+      -- Edge case; does not arise for coverings from IsSheafy (always nonempty).
+      sorry -- Edge case: empty covering implies trivial presheafValue
   · -- Part 2: Gluing
     sorry -- Prop 8.15 → Čech descent / Laurent exactness transfer
 
