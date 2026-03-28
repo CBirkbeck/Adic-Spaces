@@ -344,6 +344,76 @@ private theorem discreteTopology_presheafValue {A : Type*} [CommRing A]
       rw [Set.image_preimage_eq _ hsurj]]
     exact hopen.isOpenMap _ (isOpen_discrete _)⟩
 
+/-- **Discrete gluing lemma**: given compatible sections in presheafValues of cover
+pieces, there exists a global section in the base presheafValue that restricts to
+each given section.
+
+For discrete rings, this is the algebraic sheaf condition: the Čech complex
+`Away C.base.s → ∏ Away D.s ⇒ ∏ Away D₃.s` is exact at `∏ Away D.s`.
+
+**Proof strategy:** Uses the identification `presheafValue D ≅ Away D.s` (discrete),
+the covering-implies-unit-ideal condition, and a direct partition-of-unity construction
+in the localization ring. -/
+private theorem discrete_gluing {A : Type*} [CommRing A]
+    [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] [DiscreteTopology A]
+    [IsHuberRing A] (C : RationalCovering A)
+    (f : ∀ (D : ↥C.covers), presheafValue D.1)
+    (hcompat : ∀ (D₁ D₂ : ↥C.covers) (D₃ : RationalLocData A)
+       (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+       (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+       restrictionMap D₁.1 D₃ h₃₁ (f D₁) = restrictionMap D₂.1 D₃ h₃₂ (f D₂)) :
+    ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
+      restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D := by
+  classical
+  -- OVERVIEW: The proof separates into two layers:
+  -- (A) Find x' : Away C.base.s mapping correctly under restrictionMapAlg
+  -- (B) Transport x' to presheafValue via coeRingHom (verified by extensionHom_coe)
+  --
+  -- Layer (A) is the algebraic content: the Čech H^0 exactness for localizations.
+  -- The covering condition gives that {D.s | D ∈ covers} generate the unit ideal
+  -- in Away C.base.s. For compatible elements in the further localizations
+  -- Away D.s, the standard partition-of-unity argument produces a preimage.
+  --
+  -- Layer (B) uses: restrictionMap(coeRingHom(x')) = restrictionMapAlg(x')
+  -- (the extensionHom_coe property for completions).
+  --
+  -- ALGEBRAIC CORE: Find x' : Away C.base.s with restrictionMapAlg(x') = f D ∀ D.
+  --
+  -- Key mathematical facts (all provable from existing infrastructure):
+  -- (i) restrictionMapAlg C.base D h = IsLocalization.Away.lift C.base.s (unit_of_s)
+  -- (ii) Covering condition ↔ ∀ prime p of Away C.base.s, ∃ D with img(D.s) ∉ p
+  -- (iii) Therefore {img(D.s)} generates ⊤ in Away C.base.s
+  -- (iv) Partition of unity: ∑ c_D * img(D.s)^N = 1 for suitable N and coefficients
+  -- (v) For each D: img(D.s)^N * f_D = img(a_D) in presheafValue D (comes from A)
+  -- (vi) Compatible sections are determined by partition of unity:
+  --      x' = ∑ c_D * algebraMap(a_D) in Away C.base.s
+  -- (vii) Verification uses compatibility + the partition of unity identity.
+  --
+  -- The formalization of this standard commutative algebra requires:
+  -- - Establishing IsLocalization.Away instances for further localizations
+  -- - Connecting the covering condition to Ideal.span = ⊤
+  -- - The Finset.sum-based construction and verification
+  -- This is approximately 200-300 lines of Lean code.
+  obtain ⟨x', hx'⟩ : ∃ x' : Localization.Away C.base.s,
+      ∀ (D : ↥C.covers), restrictionMapAlg C.base D.1 (C.hsubset D.1 D.2) x' = f D := by
+    sorry
+  -- Layer (B): Transport back via coeRingHom.
+  -- restrictionMap base D h (coeRingHom x') = extensionHom(restrictionMapAlg)(coeRingHom x')
+  --   = restrictionMapAlg x'   (by extensionHom_coe)
+  --   = f D                     (by hx')
+  refine ⟨C.base.coeRingHom x', fun D ↦ ?_⟩
+  change restrictionMapHom C.base D.1 (C.hsubset D.1 D.2) (C.base.coeRingHom x') = f D
+  letI := C.base.uniformSpace
+  letI := C.base.isTopologicalRing
+  letI := C.base.isUniformAddGroup
+  letI := D.1.uniformSpace
+  letI := D.1.isTopologicalRing
+  letI := D.1.isUniformAddGroup
+  erw [UniformSpace.Completion.extensionHom_coe
+    (restrictionMapAlg C.base D.1 (C.hsubset D.1 D.2))
+    (restrictionMapAlg_continuous C.base D.1 (C.hsubset D.1 D.2)) x']
+  exact hx' D
+
 /-- **Theorem 8.28(b)** of Wedhorn (discrete case): discrete Huber rings are sheafy.
 
 For the embedding condition, the localization topology is `⊥` (discrete) for discrete
@@ -389,27 +459,7 @@ instance IsSheafy.ofStronglyNoetherianTate_discrete
       · exact hinj hfxy ▸ hy
       · exact absurd ⟨x, rfl⟩ hx
     · exact fun hx ↦ Or.inl ⟨x, hx, rfl⟩
-  gluing C f hcompat := by
-    -- Discrete gluing: The algebraic sheaf condition for rational coverings.
-    -- For discrete rings, presheafValue D ≅ Localization.Away D.s (via the
-    -- bijective completion embedding). The compatible sections transport to
-    -- compatible sections of localizations, which glue by the standard
-    -- algebraic sheaf property of Spec (Mathlib: structureSheafInType).
-    --
-    -- The full formalization requires bridging the adic spectrum framework
-    -- (rationalOpen, presheafValue, restrictionMap) with the Spec framework
-    -- (basicOpen, structureSheafInType, IsLocalization.Away). The algebraic
-    -- content is standard but the categorical plumbing is substantial (~300 lines).
-    --
-    -- Key steps (all individually provable):
-    -- (1) coeRingHom_bijective_of_discrete: presheafValue D ≅ Away D.s
-    -- (2) spec_cover: covering condition gives basicOpen C.base.s ⊆ ⋃ basicOpen D.s
-    --     (via exists_mem_spa_supp_eq_of_prime + covering condition)
-    -- (3) structureSheafInType A A is a sheaf (Mathlib)
-    -- (4) IsLocalization.Away f Γ(A, basicOpen f) (Mathlib)
-    -- (5) Transfer: compatible Away D.s elements → compatible Spec sections → glued
-    --     section in Γ(A, basicOpen C.base.s) ≅ Away C.base.s ≅ presheafValue C.base
-    sorry
+  gluing C f hcompat := discrete_gluing C f hcompat
 
 /-! ### General case: specification of remaining work
 
