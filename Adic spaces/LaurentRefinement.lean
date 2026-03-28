@@ -225,7 +225,32 @@ theorem tateAcyclicity
   -- Alternatively: use the Laurent cover exactness transferred via Prop 8.15.
   constructor
   · -- Part 1: Separation (zero kernel)
-    sorry -- Prop 8.15 → flat restrictions → faithfully flat → injective
+    -- STATUS: BLOCKED on Proposition 8.15 (localization principle).
+    --
+    -- Proof route (Wedhorn Corollary 8.31):
+    -- (a) By Prop 8.15, B := presheafValue C.base is a strongly noetherian Tate ring
+    --     and each restrictionMap B → presheafValue D is a rational localization of B.
+    --     [MISSING: the localization identification. PresheafTateStructure.lean has
+    --     presheafValue_isTateRing (B is Tate) and presheafValue_pairOfDefinition
+    --     (B has a pair of definition), but NOT the identification of restrictionMap
+    --     as an IsLocalization. This is the core of Prop 8.15.]
+    -- (b) Each rational localization is flat over B.
+    --     [AVAILABLE modulo (a): presheafValue_flat_of_tateQuotient in StructureSheaf.lean
+    --     gives flatness of presheafValue D over A with TopologyComparison hypotheses.
+    --     For flatness over B (not A), need the localization identification from (a).]
+    -- (c) Covering condition → Spec surjectivity: for every prime p of B, some
+    --     D.s does not land in p (because the cover pieces cover the base).
+    --     [AVAILABLE once (a) gives the localization identification.]
+    -- (d) Flat + Spec surjective = faithfully flat.
+    --     [AVAILABLE in Mathlib: Module.FaithfullyFlat.of_comap_surjective]
+    -- (e) Faithfully flat → zero kernel (the product algebra map B → ∏ presheafValue D
+    --     is injective).
+    --     [AVAILABLE in Mathlib: faithfully flat ring maps are injective]
+    --
+    -- Unblocking: formalize the full localization identification in Prop 8.15,
+    -- i.e., show restrictionMap C.base D is an IsLocalization of presheafValue C.base
+    -- at the image of D.s. This requires extending PresheafTateStructure.lean.
+    sorry
   · -- Part 2: Gluing
     sorry -- Prop 8.15 → Čech descent / Laurent exactness transfer
 
