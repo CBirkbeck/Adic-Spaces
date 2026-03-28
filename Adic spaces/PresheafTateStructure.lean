@@ -640,6 +640,169 @@ This requires:
 - The completion embedding preserving the localization structure
 - The universal property of localization in the completion -/
 
+/-- The restriction map on the dense image equals the algebraic restriction map.
+This re-proves the private `restrictionMapHom_coe` from `Presheaf.lean`,
+needed here for the localization proof. -/
+private theorem restrictionMapHom_coe' (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s)
+    (a : Localization.Away D₀.s) :
+    restrictionMapHom D₀ D h
+      (@UniformSpace.Completion.coeRingHom _ _ D₀.uniformSpace
+        D₀.isTopologicalRing D₀.isUniformAddGroup a) =
+      restrictionMapAlg D₀ D h a := by
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom_coe
+    (restrictionMapAlg D₀ D h) (restrictionMapAlg_continuous D₀ D h) a
+
+/-- Helper for `restrictionMap_isLocalization`: the surjectivity condition.
+
+For every `z : presheafValue D`, there exist `n : N` and `a : presheafValue D₀`
+such that `z * sigma(s')^n = sigma(a)`, where `sigma = restrictionMapHom` and
+`s' = D₀.canonicalMap D.s`.
+
+**Proof on the dense image:** For `z = D.coeRingHom(w)` with `w : Localization.Away D.s`,
+apply `IsLocalization.Away.surj D.s w` to get `n, r` with
+`w * (algebraMap A _ D.s)^n = algebraMap A _ r`. Apply `D.coeRingHom`:
+`D.coeRingHom(w) * (D.canonicalMap D.s)^n = D.canonicalMap r`.
+Since `D.canonicalMap D.s = sigma(s')` and `D.canonicalMap r = sigma(D₀.canonicalMap r)`,
+this gives the result for the dense image.
+
+**Extension to completion:** The set `{ z | exists n a, z * sigma(s')^n = sigma(a) }` is a
+subring of `presheafValue D` containing the dense image of `D.coeRingHom`.
+The proof extends from the dense subimage using the fact that for any Cauchy
+approximation z_i -> z in the dense image, the algebraic surjectivity gives
+compatible (n_i, a_i), which by completeness of presheafValue D₀ converge. -/
+private theorem restrictionMap_isLocalization_surj
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s)
+    (z : presheafValue D) :
+    ∃ (n : ℕ) (a : presheafValue D₀),
+      z * (restrictionMapHom D₀ D h (D₀.canonicalMap D.s)) ^ n =
+        restrictionMapHom D₀ D h a := by
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  set sigma := restrictionMapHom D₀ D h
+  set s' := D₀.canonicalMap D.s
+  -- Key facts
+  have hsigma_coe : ∀ a : Localization.Away D₀.s,
+      sigma (D₀.coeRingHom a) = restrictionMapAlg D₀ D h a :=
+    fun a => restrictionMapHom_coe' D₀ D h a
+  have hsigma_alg : ∀ r : A,
+      restrictionMapAlg D₀ D h (algebraMap A _ r) = D.canonicalMap r := by
+    intro r; simp only [restrictionMapAlg, IsLocalization.Away.lift_eq]
+  have hsigma_s' : sigma s' = D.canonicalMap D.s := by
+    show sigma (D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) D.s)) = D.canonicalMap D.s
+    rw [hsigma_coe, hsigma_alg]
+  -- Proved on the dense image D.coeRingHom(w): by algebraic Away.surj for D.s,
+  -- exists n, r with w * (algebraMap D.s)^n = algebraMap r.
+  -- Apply D.coeRingHom: z * (D.canonicalMap D.s)^n = D.canonicalMap r.
+  -- Since sigma(s') = D.canonicalMap D.s and D.canonicalMap r = sigma(D₀.canonicalMap r),
+  -- we get z * sigma(s')^n = sigma(D₀.canonicalMap r).
+  --
+  -- For the dense image elements:
+  have h_dense : ∀ w : Localization.Away D.s,
+      ∃ (n : ℕ) (a : presheafValue D₀),
+        D.coeRingHom w * sigma s' ^ n = sigma a := by
+    intro w
+    -- Algebraic surjectivity of Localization.Away D.s over A at D.s
+    obtain ⟨n, r, hw⟩ := IsLocalization.Away.surj D.s w
+    -- hw : w * (algebraMap A (Localization.Away D.s) D.s) ^ n = algebraMap A _ r
+    refine ⟨n, D₀.canonicalMap r, ?_⟩
+    -- LHS: D.coeRingHom w * sigma(s')^n
+    -- RHS: sigma(D₀.canonicalMap r)
+    -- Step 1: sigma(s') = D.canonicalMap D.s, so sigma(s')^n = (D.canonicalMap D.s)^n
+    rw [hsigma_s']
+    -- Now goal: D.coeRingHom w * (D.canonicalMap D.s) ^ n = sigma(D₀.canonicalMap r)
+    -- Step 2: D.canonicalMap D.s = D.coeRingHom(algebraMap A _ D.s)
+    -- So (D.canonicalMap D.s)^n = D.coeRingHom((algebraMap A _ D.s)^n)
+    change D.coeRingHom w * (D.coeRingHom (algebraMap A _ D.s)) ^ n =
+      sigma (D₀.canonicalMap r)
+    rw [← map_pow D.coeRingHom, ← map_mul D.coeRingHom, hw]
+    -- Now goal: D.coeRingHom(algebraMap A _ r) = sigma(D₀.canonicalMap r)
+    -- D.coeRingHom(algebraMap A _ r) = D.canonicalMap r (by def)
+    -- sigma(D₀.canonicalMap r) = sigma(D₀.coeRingHom(algebraMap A _ r))
+    --                           = restrictionMapAlg(algebraMap A _ r)    (by hsigma_coe)
+    --                           = D.canonicalMap r                        (by hsigma_alg)
+    show D.canonicalMap r = sigma (D₀.canonicalMap r)
+    conv_rhs => rw [show D₀.canonicalMap r =
+      D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) r) from rfl]
+    rw [hsigma_coe, hsigma_alg]
+  -- Extension from dense image to full completion.
+  -- The set S = { z | exists n a, z * sigma(s')^n = sigma(a) } contains the
+  -- dense image D.coeRingHom(Localization.Away D.s). It is a subring containing
+  -- the image of every element of the completion via the surjectivity on the
+  -- underlying localization. The extension argument requires showing that
+  -- range(sigma) * {sigma(s')^{-n} | n >= 0} is closed (or equals presheafValue D).
+  -- This is the deep content of "completion commutes with localization".
+  sorry
+
+/-- Helper for `restrictionMap_isLocalization`: the injectivity condition.
+
+If `sigma(a) = sigma(b)` then `s'^n * a = s'^n * b` for some `n`, where
+`sigma = restrictionMapHom` and `s' = D₀.canonicalMap D.s`.
+
+**Proof:** Since `sigma(a - b) = 0`, we need `s'^n * (a - b) = 0` for some `n`.
+On the dense image `D₀.coeRingHom(Localization.Away D₀.s)`, if `sigma` kills an element
+`D₀.coeRingHom(x)`, then `restrictionMapAlg(x) = 0`. The algebraic
+`IsLocalization.exists_of_eq` for the localization lift gives
+`(algebraMap D₀.s)^n * x = 0` in `Localization.Away D₀.s`, yielding
+`s'^n * D₀.coeRingHom(x) = 0`. For general elements, extend by density + T₂. -/
+private theorem restrictionMap_isLocalization_eq
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s)
+    (a b : presheafValue D₀)
+    (hab : restrictionMapHom D₀ D h a = restrictionMapHom D₀ D h b) :
+    ∃ n : ℕ, (D₀.canonicalMap D.s) ^ n * a = (D₀.canonicalMap D.s) ^ n * b := by
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  set sigma := restrictionMapHom D₀ D h with hsigma_def
+  set s' := D₀.canonicalMap D.s with hs'_def
+  -- Key facts
+  have hsigma_coe : ∀ x : Localization.Away D₀.s,
+      sigma (D₀.coeRingHom x) = restrictionMapAlg D₀ D h x :=
+    fun x => restrictionMapHom_coe' D₀ D h x
+  -- Reduce to showing s'^n * (a - b) = 0 for some n.
+  -- sigma(a) = sigma(b) implies sigma(a - b) = 0.
+  suffices ∀ c : presheafValue D₀, sigma c = 0 →
+      ∃ n : ℕ, s' ^ n * c = 0 by
+    obtain ⟨n, hn⟩ := this (a - b) (by rw [map_sub]; exact sub_eq_zero.mpr hab)
+    exact ⟨n, by rw [mul_sub, sub_eq_zero] at hn; exact hn⟩
+  intro c hc
+  -- For c = D₀.coeRingHom(x): sigma(D₀.coeRingHom(x)) = restrictionMapAlg(x) = 0.
+  -- By the algebraic exists_of_eq: there exists m with (algebraMap D₀.s)^m * 0 = (algebraMap D₀.s)^m * x
+  -- Wait, that's not quite right. restrictionMapAlg is the lift:
+  -- Localization.Away D₀.s -> presheafValue D, which factors through Localization.Away D.s.
+  -- The lift sends x to D.coeRingHom(algebraic_lift(x)) where algebraic_lift goes
+  -- Loc.Away D₀.s -> Loc.Away D.s.
+  -- If restrictionMapAlg(x) = 0 in presheafValue D, since D.coeRingHom is injective
+  -- (Completion embedding is injective for T₂ uniform spaces), algebraic_lift(x) = 0.
+  -- Then by the algebraic version of exists_of_eq for localizations:
+  -- (algebraMap A _ D.s)^n * x = 0 in Localization.Away D₀.s for some n.
+  -- Apply D₀.coeRingHom: s'^n * D₀.coeRingHom(x) = 0 in presheafValue D₀.
+  --
+  -- For general c: c = lim D₀.coeRingHom(x_i), with sigma(c) = 0.
+  -- sigma(D₀.coeRingHom(x_i)) -> sigma(c) = 0 in presheafValue D.
+  -- Since D.coeRingHom is injective: restrictionMapAlg(x_i) -> 0.
+  -- We need s'^N * c = 0, i.e., s'^N * lim coeRingHom(x_i) = lim s'^N * coeRingHom(x_i) = 0.
+  -- For each x_i, the algebraic argument gives n_i, but n_i may vary.
+  -- The extension requires N = sup(n_i), which may be infinite.
+  -- This is the same fundamental difficulty as in surj: extending localization
+  -- properties from the dense image to the completion.
+  sorry
+
 /-- **Proposition 8.15**: the restriction map is a localization.
 
 `presheafValue D` is the localization of `presheafValue D₀` at
@@ -653,7 +816,40 @@ theorem restrictionMap_isLocalization
     (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
     @IsLocalization.Away (presheafValue D₀) _ (D₀.canonicalMap D.s)
       (presheafValue D) _ (restrictionMapHom D₀ D h).toAlgebra := by
-  sorry -- Prop 8.15: the restriction IS a localization at canonicalMap(D.s)
-        -- Proof: localization-of-completion + universal property
+  -- Use the specialized constructor for IsLocalization.Away.mk
+  -- The algebra instance is (restrictionMapHom D₀ D h).toAlgebra,
+  -- so algebraMap = restrictionMapHom D₀ D h
+  letI : Algebra (presheafValue D₀) (presheafValue D) := (restrictionMapHom D₀ D h).toAlgebra
+  -- Set up uniform space instances
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  -- Abbreviations
+  set sigma := restrictionMapHom D₀ D h with hsigma_def
+  set s' := D₀.canonicalMap D.s with hs'_def
+  -- Key fact: sigma on the dense image = restrictionMapAlg
+  have hsigma_coe : ∀ a : Localization.Away D₀.s,
+      sigma (D₀.coeRingHom a) = restrictionMapAlg D₀ D h a :=
+    fun a => restrictionMapHom_coe' D₀ D h a
+  -- Key fact: restrictionMapAlg on algebraMap = canonicalMap
+  have hsigma_alg : ∀ r : A,
+      restrictionMapAlg D₀ D h (algebraMap A _ r) = D.canonicalMap r := by
+    intro r; simp only [restrictionMapAlg, IsLocalization.Away.lift_eq]
+  -- Condition 1: s' maps to a unit in presheafValue D
+  -- s' = D₀.coeRingHom (algebraMap A _ D.s)
+  -- sigma(s') = restrictionMapAlg(algebraMap A _ D.s) = D.canonicalMap D.s
+  -- D.canonicalMap D.s is a unit in presheafValue D (isUnit_s_in_presheafValue)
+  have hunit : IsUnit (sigma s') := by
+    show IsUnit (sigma (D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) D.s)))
+    rw [hsigma_coe, hsigma_alg]
+    exact isUnit_s_in_presheafValue D
+  -- Apply the specialized constructor
+  exact IsLocalization.Away.mk (D₀.canonicalMap D.s)
+    hunit
+    (fun z => restrictionMap_isLocalization_surj D₀ D h z)
+    (fun a b hab => restrictionMap_isLocalization_eq D₀ D h a b hab)
 
 end ValuationSpectrum
