@@ -454,12 +454,22 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
         (fun _ => continuous_mul_const _)
         (hg_dense.closure_eq ▸ Set.mem_univ _) hy hact
   · -- ⊇: closure(gJn) ⊆ idealOfDef^n
-    -- gJn ⊆ idealOfDef^n trivially. The closure inclusion requires the
-    -- Noetherian algebraic argument (AdicCompletion.map_exact via bridge):
-    -- the adic completion of the exact sequence 0 → J^n → R₀ → R₀/J^n → 0
-    -- identifies idealOfDef^n with the kernel of the continuous eval map,
-    -- which is automatically closed. See AdicCompletionBridge.lean.
-    sorry
+    -- Step 1: gJn ⊆ idealOfDef^n (trivial: g(J^n) ⊆ Ideal.map g (J^n)).
+    have hgJn_sub : gJn ⊆ ((presheafValue_idealOfDef D₀ ^ n :
+        Ideal (presheafValue_ringOfDef D₀)) : Set (presheafValue_ringOfDef D₀)) := by
+      rintro _ ⟨d, hd, rfl⟩
+      rw [show presheafValue_idealOfDef D₀ = Ideal.map g J from rfl,
+          (Ideal.map_pow g J n).symm]
+      exact Ideal.mem_map_of_mem g hd
+    -- Step 2: idealOfDef^n is closed (kernel of continuous map to discrete quotient).
+    -- Via AdicCompletionBridge: ringOfDef ≃ AdicCompletion J locSubring,
+    -- and AdicCompletion.pow_smul_top_eq_ker_eval gives
+    -- J^n • ⊤ = ker(eval n), which is closed (discrete target).
+    have hclosed : IsClosed ((presheafValue_idealOfDef D₀ ^ n :
+        Ideal (presheafValue_ringOfDef D₀)) : Set (presheafValue_ringOfDef D₀)) := by
+      sorry -- AdicCompletion.pow_smul_top_eq_ker_eval via adicCompletionRingEquiv
+    -- Step 3: closure_minimal.
+    exact closure_minimal hgJn_sub hclosed
 
 private theorem closure_locNhd_sub_idealOfDef_pow (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] (n : ℕ) :

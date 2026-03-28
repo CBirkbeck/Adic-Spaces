@@ -8,6 +8,7 @@ import «Adic spaces».StructureSheaf
 import «Adic spaces».LaurentCoverExact
 import «Adic spaces».FlatnessResults
 import «Adic spaces».CechCohomology
+import Mathlib.AlgebraicGeometry.StructureSheaf
 
 /-!
 # Tate Acyclicity (Wedhorn Theorem 8.28(b))
@@ -388,7 +389,28 @@ instance IsSheafy.ofStronglyNoetherianTate_discrete
       · exact hinj hfxy ▸ hy
       · exact absurd ⟨x, rfl⟩ hx
     · exact fun hx ↦ Or.inl ⟨x, hx, rfl⟩
-  gluing C f hcompat := sorry
+  gluing C f hcompat := by
+    -- For the empty covering case, the conclusion is vacuously true.
+    by_cases hne : C.covers.Nonempty
+    swap
+    · exact ⟨0, fun ⟨_, hD⟩ ↦ absurd (Finset.Nonempty.intro _ hD) hne⟩
+    -- Strategy: Reduce to the sheaf property of the structure sheaf on Spec A
+    -- (Mathlib: AlgebraicGeometry.structureSheafInType). For discrete rings,
+    -- presheafValue D ≅ Localization.Away D.s ≅ Γ(Spec A, basicOpen D.s).
+    -- The compatible sections f D transport to compatible sections of the
+    -- structure sheaf, which glue by Mathlib's sheaf condition.
+    --
+    -- The algebraic sheaf condition for rational coverings of discrete rings
+    -- follows from the structure sheaf on Spec A being a sheaf. This requires:
+    -- (1) Each f D ∈ presheafValue D pulls back to f'_D ∈ Away D.s via coeRingHom_bijective
+    -- (2) The covering condition implies the D.s's cover basicOpen C.base.s
+    -- (3) Compatible sections of the Spec structure sheaf glue uniquely
+    -- (4) The glued section in Away C.base.s maps back to presheafValue C.base
+    --
+    -- This is the standard algebraic content of Wedhorn Theorem 8.28(c) for
+    -- discrete rings. The full formalization requires building the bridge between
+    -- rationalOpen and basicOpen (via the support map), which is future work.
+    sorry
 
 /-! ### General case: specification of remaining work
 

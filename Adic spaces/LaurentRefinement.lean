@@ -64,6 +64,8 @@ theorem rationalOpen_eq_iInter_singleton (T : Finset A) (hT : T.Nonempty) (s : A
 
 variable [IsHuberRing A]
 
+set_option maxHeartbeats 800000
+
 /-- The "plus half" of the Laurent cover at `f` within base `D₀`. -/
 noncomputable def laurentPlusDatum (D₀ : RationalLocData A) (f : A) :
     RationalLocData A where
@@ -76,13 +78,119 @@ noncomputable def laurentPlusDatum (D₀ : RationalLocData A) (f : A) :
       (Set.range_comp_subset_range (fun t : D₀.T => (⟨t, Finset.mem_insert_of_mem t.2⟩ :
         (insert f D₀.T : Finset A))) (fun t => divByS (t : A) D₀.s))) (hN b hb)⟩
 
+/-- `divByS (a * b) (s * f) = divByS (a * f) (s * f) * divByS (b * s) (s * f)`.
+Algebraically: `ab/(sf) = (af/(sf)) * (bs/(sf))` since `af*bs/(sf)^2 = ab/(sf)`. -/
+private theorem divByS_factor' (a b s f : A) :
+    divByS (a * b) (s * f) = divByS (a * f) (s * f) * divByS (b * s) (s * f) := by
+  unfold divByS; rw [← IsLocalization.mk'_mul]
+  exact IsLocalization.mk'_eq_of_eq (by simp only [Submonoid.coe_mul]; ring)
+
+/-- `divByS (b * s) (s * f) = divByS (b * f) (s * f) * divByS (s * s) (s * f)`.
+Both sides equal `b/f` in the localization. -/
+private theorem divByS_factor2' (b s f : A) :
+    divByS (b * s) (s * f) = divByS (b * f) (s * f) * divByS (s * s) (s * f) := by
+  unfold divByS; rw [← IsLocalization.mk'_mul]
+  exact IsLocalization.mk'_eq_of_eq (by simp only [Submonoid.coe_mul]; ring)
+
+/-- `divByS` is additive in the numerator. -/
+private theorem divByS_add' (a b s : A) :
+    divByS (a + b) s = divByS a s + divByS b s := by
+  unfold divByS; rw [← IsLocalization.mk'_add]
+  exact IsLocalization.mk'_eq_of_eq (by simp only [Submonoid.coe_mul]; ring)
+
+/-- The canonical lift `Away s₀ →+* Away (s₀ * f)` sends `divByS b s₀` to
+`divByS (b * f) (s₀ * f)`. Both represent `b/s₀` in their respective localizations. -/
+private theorem lift_divByS_eq' (s₀ f : A)
+    (hs₀ : IsUnit (algebraMap A (Localization.Away (s₀ * f)) s₀)) (b : A) :
+    (IsLocalization.Away.lift (S := Localization.Away s₀) (R := A) s₀ hs₀)
+      (divByS b s₀) = divByS (b * f) (s₀ * f) := by
+  unfold divByS
+  rw [show IsLocalization.Away.lift (S := Localization.Away s₀) (R := A) s₀ hs₀ =
+    IsLocalization.lift (fun (y : Submonoid.powers s₀) => by
+      obtain ⟨n, hn⟩ := y.2; rw [← hn, map_pow]; exact hs₀.pow n) from rfl,
+    IsLocalization.lift_mk'_spec,
+    show (↑(⟨s₀, 1, pow_one s₀⟩ : Submonoid.powers s₀) : A) = s₀ from rfl]
+  set S := Localization.Away (s₀ * f)
+  set v := IsLocalization.mk' S (b * f)
+    (⟨s₀ * f, 1, pow_one _⟩ : Submonoid.powers (s₀ * f))
+  have h := IsLocalization.mk'_spec' S (b * f)
+    (⟨s₀ * f, 1, pow_one _⟩ : Submonoid.powers _)
+  change algebraMap A S (s₀ * f) * v = algebraMap A S (b * f) at h
+  rw [map_mul, map_mul] at h
+  have hf : IsUnit (algebraMap A S f) := by
+    have := IsLocalization.Away.algebraMap_isUnit (R := A) (s₀ * f) (S := S)
+    rw [map_mul] at this; exact isUnit_of_mul_isUnit_right this
+  exact (hf.mul_right_cancel (by calc
+    algebraMap A S s₀ * v * algebraMap A S f
+        = algebraMap A S s₀ * algebraMap A S f * v := by ring
+    _ = algebraMap A S b * algebraMap A S f := h)).symm
+
+/-- For `b ∈ I^N₀`, `divByS (↑b * f) (s₀ * f) ∈ locSubring P T_product (s₀ * f)`.
+
+Uses the canonical lift `φ : Away s₀ →+* Away (s₀ * f)` and `Subring.closure_induction`
+to transfer the membership `divByS ↑b s₀ ∈ locSubring P T₀ s₀` from `D₀.hopen`. The lift
+sends generators `algebraMap a ↦ algebraMap a` and `divByS t s₀ ↦ divByS (t*f) (s₀*f)`,
+where `t*f ∈ T_product` for `t ∈ T₀`. -/
+private theorem divByS_mul_f_mem' {P : PairOfDefinition A} {T₀ : Finset A}
+    {s₀ : A} {N₀ : ℕ}
+    (hN₀ : ∀ b : P.A₀, b ∈ P.I ^ N₀ → divByS (↑b : A) s₀ ∈ locSubring P T₀ s₀)
+    (f : A) {b : P.A₀} (hb : b ∈ P.I ^ N₀) :
+    let T_product := (insert s₀ T₀).product ({s₀, f} : Finset A)
+        |>.image (fun p => p.1 * p.2)
+    divByS ((↑b : A) * f) (s₀ * f) ∈ locSubring P T_product (s₀ * f) := by
+  intro T_product
+  have hs₀ : IsUnit (algebraMap A (Localization.Away (s₀ * f)) s₀) := by
+    have := IsLocalization.Away.algebraMap_isUnit (R := A) (s₀ * f)
+        (S := Localization.Away (s₀ * f))
+    rw [map_mul] at this; exact isUnit_of_mul_isUnit_left this
+  let φ : Localization.Away s₀ →+* Localization.Away (s₀ * f) :=
+    IsLocalization.Away.lift (S := Localization.Away s₀) (R := A) s₀ hs₀
+  rw [← lift_divByS_eq' s₀ f hs₀]
+  refine Subring.closure_induction
+    (p := fun x _ => φ x ∈ locSubring P T_product (s₀ * f)) ?_ ?_ ?_ ?_ ?_ ?_
+    (hN₀ b hb)
+  · intro x hx
+    rcases hx with ⟨a, ha, rfl⟩ | ⟨⟨t, ht⟩, rfl⟩
+    · rw [show φ (algebraMap A _ a) = algebraMap A _ a from
+        IsLocalization.Away.lift_eq (S := Localization.Away s₀) (x := s₀) _ _]
+      exact algebraMap_mem_locSubring P T_product (s₀ * f) ha
+    · rw [lift_divByS_eq' s₀ f hs₀]
+      exact divByS_mem_locSubring P T_product (s₀ * f) (Finset.mem_image.mpr
+        ⟨(t, f), Finset.mem_product.mpr ⟨Finset.mem_insert_of_mem ht,
+          Finset.mem_insert_of_mem (Finset.mem_singleton_self f)⟩, rfl⟩)
+  · simp [map_zero, (locSubring P T_product (s₀ * f)).zero_mem]
+  · simp [map_one, (locSubring P T_product (s₀ * f)).one_mem]
+  · intro x y _ _ hx hy
+    rw [map_add]; exact (locSubring P T_product (s₀ * f)).add_mem hx hy
+  · intro x _ hx
+    rw [map_neg]; exact (locSubring P T_product (s₀ * f)).neg_mem hx
+  · intro x y _ _ hx hy
+    rw [map_mul]; exact (locSubring P T_product (s₀ * f)).mul_mem hx hy
+
 /-- The "minus half" of the Laurent cover at `f` within base `D₀`. -/
 noncomputable def laurentMinusDatum (D₀ : RationalLocData A) (f : A) :
     RationalLocData A where
   P := D₀.P
   T := (insert D₀.s D₀.T).product ({D₀.s, f} : Finset A) |>.image (fun p => p.1 * p.2)
   s := D₀.s * f
-  hopen := by sorry -- locSubring closure for product denominator
+  hopen := by
+    obtain ⟨N₀, hN₀⟩ := D₀.hopen
+    refine ⟨2 * N₀, fun b hb => ?_⟩
+    rw [show 2 * N₀ = N₀ + N₀ from by omega, pow_add] at hb
+    refine Submodule.mul_induction_on hb ?_ ?_
+    · intro c hc d hd
+      change divByS (↑(c * d) : A) _ ∈ _
+      rw [show (c * d : D₀.P.A₀).val = c.val * d.val from rfl,
+        divByS_factor' _ _ D₀.s f, divByS_factor2' _ D₀.s f]
+      exact (locSubring _ _ _).mul_mem (divByS_mul_f_mem' hN₀ f hc)
+        ((locSubring _ _ _).mul_mem (divByS_mul_f_mem' hN₀ f hd)
+          (divByS_mem_locSubring _ _ _ (Finset.mem_image.mpr
+            ⟨(D₀.s, D₀.s), Finset.mem_product.mpr ⟨Finset.mem_insert_self _ _,
+              Finset.mem_insert_self _ _⟩, rfl⟩)))
+    · intro y₁ y₂ hy₁ hy₂
+      rw [show (y₁ + y₂ : D₀.P.A₀).val = y₁.val + y₂.val from rfl,
+        divByS_add' _ _ _]
+      exact (locSubring _ _ _).add_mem hy₁ hy₂
 
 /-- The plus half is contained in the base. -/
 theorem laurentPlus_subset (D₀ : RationalLocData A) (f : A) :

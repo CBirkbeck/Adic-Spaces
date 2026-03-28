@@ -220,7 +220,24 @@ Alternatively, verify the sheaf condition directly by showing that
 Both routes need additional category-theoretic infrastructure for
 `CompleteTopCommRingCat` (limits, concrete category properties). -/
 noncomputable def structureSheaf [IsHuberRing A] [PlusSubring A] :
-    Sheaf CompleteTopCommRingCat (SpaTop A) := sorry
+    Sheaf CompleteTopCommRingCat (SpaTop A) :=
+  ⟨structurePresheaf A,
+    -- The type-level sheaf condition holds: the underlying presheaf of types is
+    -- `subpresheafToTypes isLocallyFraction.toPrelocalPredicate`, and
+    -- `subpresheafToTypes.isSheaf isLocallyFraction` proves it is a sheaf of types.
+    --
+    -- To transfer this to `CompleteTopCommRingCat`, we need:
+    -- (1) `HasLimits CompleteTopCommRingCat` (limits exist)
+    -- (2) `PreservesLimits (forget CompleteTopCommRingCat)` (forgetful functor preserves limits)
+    -- (3) `(forget CompleteTopCommRingCat).ReflectsIsomorphisms`
+    -- With these, `isSheaf_iff_isSheaf_comp (forget CompleteTopCommRingCat)` transfers the
+    -- sheaf condition. See `Mathlib.Topology.Sheaves.Forget` and the `CommRingCat` example
+    -- in `Mathlib.Topology.Sheaves.CommRingCat`.
+    --
+    -- These instances require constructing limits in `CompleteTopCommRingCat` (products,
+    -- equalizers) and showing the forgetful functor preserves them. This is standard
+    -- but requires ~200 lines of categorical boilerplate.
+    sorry⟩
 
 /-! ### Sheafy affinoid rings (Definition 8.26 of Wedhorn) -/
 
@@ -1303,11 +1320,17 @@ theorem isSheafy_ofStronglyNoetherianTate_flat
     IsSheafy A where
   isEmbedding_productRestriction C := by
     -- Embedding = injective + inducing.
-    -- Injectivity: from productRestriction_injective_of_laurentRefinement
-    -- Inducing: the product restriction reflects the topology (adic structure)
-    sorry -- Needs: injectivity (domain+localization) + topological inducing
-  gluing C f hcompat := by
-    sorry -- See LaurentRefinement.rationalCovering_hasGluing
+    -- Injectivity: from productRestriction_injective_of_laurentRefinement (via tateAcyclicity)
+    -- Inducing: faithfully flat product restriction reflects the adic topology (Cor 8.31)
+    constructor
+    · -- Inducing: the product restriction reflects the topology.
+      -- Follows from Prop 8.15 + faithful flatness of the product map.
+      sorry -- Needs: restrictionMap_isLocalization → faithfully flat → inducing
+    · -- Injective: from Laurent refinement separation.
+      intro x y hxy
+      exact rationalCovering_hasSeparation P C x y (fun D hD => congr_fun hxy ⟨D, hD⟩)
+  gluing C f hcompat :=
+    rationalCovering_hasGluing P C f hcompat
 
 /-- **Theorem 8.28 of Wedhorn**: strongly noetherian Tate rings are sheafy.
 
