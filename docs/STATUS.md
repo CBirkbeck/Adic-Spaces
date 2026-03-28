@@ -55,7 +55,7 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 
 **StructureSheaf.lean** — sorry's (updated 2026-03-28):
 - **DONE** `structurePresheaf` : Fully proved (0 sorry). Functor `(Opens (SpaTop A))^op => CompleteTopCommRingCat` using locally-fraction sections with discrete uniformity.
-- `structureSheaf` : **1 sorry**. Needs the sheaf condition for `structurePresheaf`. Route: transfer type-level sheaf condition from `subpresheafToTypes.isSheaf isLocallyFraction` via `isSheaf_iff_isSheaf_comp`. Blocking: `CompleteTopCommRingCat` lacks the limit-preserving forgetful functor infrastructure.
+- `structureSheaf` : **1 sorry** (decomposed into `⟨structurePresheaf A, sorry⟩`). Needs sheaf condition for `structurePresheaf`. Route: transfer type-level sheaf condition from `subpresheafToTypes.isSheaf isLocallyFraction` via `isSheaf_iff_isSheaf_comp`. Blocking: `CompleteTopCommRingCat` lacks `HasLimits`, `PreservesLimits (forget ...)`, and `ReflectsIsomorphisms` instances needed for `isSheaf_iff_isSheaf_comp`. See `Mathlib.Topology.Sheaves.CommRingCat` for the `CommRingCat` analogue.
 - **QUARANTINED** (kept for backwards compat, route through TopologyComparison instead):
   - `localization_isT0` : False in general when locIdeal = top.
   - `completionKer_eq_bot_of_locKer_eq_bot` : Needs AdicCompletion bridge.
@@ -69,7 +69,7 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 
 **TateAcyclicity.lean** — 1 sorry (updated 2026-03-27):
 - `IsSheafy.ofStronglyNoetherianTate_discrete.isEmbedding_productRestriction` : **DONE** (sorry-free). For discrete rings, presheafValue has discrete topology (proved via surjective uniform embedding from discrete localization). Product restriction is injective by `productRestriction_injective_discrete`. Injective map between discrete spaces is an embedding.
-- `IsSheafy.ofStronglyNoetherianTate_discrete.gluing` : **1 sorry**. Needs: given compatible sections in presheafValues of covering pieces, construct a global section. Requires Cech complex exactness for rational coverings of the adic spectrum.
+- `IsSheafy.ofStronglyNoetherianTate_discrete.gluing` : **1 sorry** (documented strategy). Needs: given compatible sections in presheafValues of covering pieces, construct a global section. Strategy: reduce to Mathlib's `structureSheafInType` sheaf property on `Spec A` via support map bridge (`rationalOpen` → `basicOpen`). Key ingredients available: `coeRingHom_bijective_of_discrete`, `exists_mem_spa_supp_eq_of_prime`, Mathlib's `IsLocalization.Away f Γ(R, basicOpen f)`. Blocking: formal bridge between adic spectrum and Spec frameworks (~300 lines of plumbing).
 - Helper lemmas added: `discreteUniformity_presheafValue` (localization uniform space is bot for discrete base), `discreteTopology_presheafValue` (presheafValue has discrete topology for discrete base ring).
 
 ## Key Theorems (Adic Morphisms Chain)

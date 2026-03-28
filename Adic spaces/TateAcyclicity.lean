@@ -390,26 +390,25 @@ instance IsSheafy.ofStronglyNoetherianTate_discrete
       · exact absurd ⟨x, rfl⟩ hx
     · exact fun hx ↦ Or.inl ⟨x, hx, rfl⟩
   gluing C f hcompat := by
-    -- For the empty covering case, the conclusion is vacuously true.
-    by_cases hne : C.covers.Nonempty
-    swap
-    · exact ⟨0, fun ⟨_, hD⟩ ↦ absurd (Finset.Nonempty.intro _ hD) hne⟩
-    -- Strategy: Reduce to the sheaf property of the structure sheaf on Spec A
-    -- (Mathlib: AlgebraicGeometry.structureSheafInType). For discrete rings,
-    -- presheafValue D ≅ Localization.Away D.s ≅ Γ(Spec A, basicOpen D.s).
-    -- The compatible sections f D transport to compatible sections of the
-    -- structure sheaf, which glue by Mathlib's sheaf condition.
+    -- Discrete gluing: The algebraic sheaf condition for rational coverings.
+    -- For discrete rings, presheafValue D ≅ Localization.Away D.s (via the
+    -- bijective completion embedding). The compatible sections transport to
+    -- compatible sections of localizations, which glue by the standard
+    -- algebraic sheaf property of Spec (Mathlib: structureSheafInType).
     --
-    -- The algebraic sheaf condition for rational coverings of discrete rings
-    -- follows from the structure sheaf on Spec A being a sheaf. This requires:
-    -- (1) Each f D ∈ presheafValue D pulls back to f'_D ∈ Away D.s via coeRingHom_bijective
-    -- (2) The covering condition implies the D.s's cover basicOpen C.base.s
-    -- (3) Compatible sections of the Spec structure sheaf glue uniquely
-    -- (4) The glued section in Away C.base.s maps back to presheafValue C.base
+    -- The full formalization requires bridging the adic spectrum framework
+    -- (rationalOpen, presheafValue, restrictionMap) with the Spec framework
+    -- (basicOpen, structureSheafInType, IsLocalization.Away). The algebraic
+    -- content is standard but the categorical plumbing is substantial (~300 lines).
     --
-    -- This is the standard algebraic content of Wedhorn Theorem 8.28(c) for
-    -- discrete rings. The full formalization requires building the bridge between
-    -- rationalOpen and basicOpen (via the support map), which is future work.
+    -- Key steps (all individually provable):
+    -- (1) coeRingHom_bijective_of_discrete: presheafValue D ≅ Away D.s
+    -- (2) spec_cover: covering condition gives basicOpen C.base.s ⊆ ⋃ basicOpen D.s
+    --     (via exists_mem_spa_supp_eq_of_prime + covering condition)
+    -- (3) structureSheafInType A A is a sheaf (Mathlib)
+    -- (4) IsLocalization.Away f Γ(A, basicOpen f) (Mathlib)
+    -- (5) Transfer: compatible Away D.s elements → compatible Spec sections → glued
+    --     section in Γ(A, basicOpen C.base.s) ≅ Away C.base.s ≅ presheafValue C.base
     sorry
 
 /-! ### General case: specification of remaining work
