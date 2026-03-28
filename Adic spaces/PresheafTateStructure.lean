@@ -662,7 +662,7 @@ Then `range(sigma) ⊇ range(restrictionMapAlg)` = dense. Since sigma
 is a uniformly continuous additive group hom from a complete uniform
 space, its range is a complete additive subgroup (closed). Closed +
 dense = everything, so sigma is surjective. -/
-private theorem restrictionMapHom_surjective
+theorem restrictionMapHom_surjective
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [FirstCountableTopology A]
     (D₀ D : RationalLocData A)
@@ -705,7 +705,7 @@ a ring hom between completions. If ker(sigma) ≠ {0}, then presheafValue D₀
 surjects onto presheafValue D with nontrivial kernel, making presheafValue D
 a proper quotient. But the localization data ensures this quotient must
 actually be trivial (via the faithfulness of the localization topology). -/
-private theorem restrictionMapHom_injective
+theorem restrictionMapHom_injective
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [FirstCountableTopology A]
     (D₀ D : RationalLocData A)

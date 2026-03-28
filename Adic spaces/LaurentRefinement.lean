@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import «Adic spaces».RationalRefinement
 import «Adic spaces».RationalSubsets
 import «Adic spaces».TopologyComparison
+import «Adic spaces».PresheafTateStructure
 import Mathlib.RingTheory.Flat.Basic
 import Mathlib.RingTheory.MvPowerSeries.NoZeroDivisors
 
@@ -368,7 +369,8 @@ theorem tateAcyclicity
       -- By IsLocalization: restrictionMap is injective (canonicalMap(D.s) is a unit
       -- in presheafValue D, hence a non-zero-divisor in presheafValue C.base).
       -- So x = 0.
-      sorry -- Needs: IsLocalization.injective from restrictionMap_isLocalization
+      exact ValuationSpectrum.restrictionMapHom_injective C.base D (C.hsubset D hD)
+        (hx_D.trans (map_zero _).symm)
     · -- Empty covering: degenerate case.
       -- C.hcover + C.covers = ∅ implies rationalOpen C.base = ∅.
       -- For a domain Tate ring, this means C.base.s is nilpotent → unit in
