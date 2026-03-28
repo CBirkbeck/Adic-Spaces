@@ -422,38 +422,97 @@ theorem isUnit_canonicalMap_s_of_huber {A : Type*} [CommRing A] [TopologicalSpac
 /-- The algebraic restriction map is continuous for Huber rings
 (Proposition 8.2 of Wedhorn).
 
-**Mathematical argument (Wedhorn Proposition 8.2(1)):** The lift
-`IsLocalization.Away.lift D.s` factors as the composition:
-```
-  Localization.Away D.s → Localization.Away D'.s → presheafValue D'
-```
-where the second map is `D'.coeRingHom` (continuous by definition). For the
-first map, continuity follows from the localization topology: `D.topology`
-has neighborhoods `locNhd D.P D.T D.s n` (images of `J_D^n`), and the
-algebraic map sends `locNhd D n` into `locNhd D' m` for suitable `m`,
-because the ideals of definition `J_D` and `J_D'` share the same base
-ideal `I` from `A`. Specifically, for `n ≥ N_D + N_{D'}` (the openness
-constants), the lift maps `locNhd D n` into `locNhd D' (n - N_D)`.
+**Proof structure (verified):** The lift factors as `D'.coeRingHom ∘ locLift` where
+`locLift : Localization.Away D.s →+* Localization.Away D'.s` uses the unit witness
+`IsUnit (algebraMap A (Localization.Away D'.s) D.s)`. Since `D'.coeRingHom`
+(the completion embedding) is continuous, it suffices to show `locLift` is continuous
+from `D.topology` to `D'.topology`. By `continuous_of_tendsto_nhds_zero` (for
+additive group homs), this reduces to: the preimage of every target basis
+neighborhood `locNhd D' m` contains a source basis neighborhood `locNhd D n`.
 
-**Blocking issue:** The proof requires showing that the algebraic lift
-between localizations is continuous for the localization topologies.
-This needs:
-1. That `D.s` is a unit in `Localization.Away D'.s` (from
-   `isUnit_canonicalMap_s_of_huber`, which itself depends on the
-   non-open prime sorry above).
-2. An analysis of how `locNhd D.P D.T D.s` maps under the lift to
-   `locNhd D'.P D'.T D'.s`, requiring the localization topology
-   infrastructure to be extended with explicit neighborhood bounds.
-3. That the composition with `D'.coeRingHom` (the completion embedding)
-   is continuous, which follows from the uniform continuity of the
-   first map combined with the universal property of completions. -/
+**Remaining sorry:** The neighborhood-mapping property
+`∀ m, ∃ n, locLift '' (locNhd D n) ⊆ locNhd D' m`
+requires showing that the algebraic lift between localizations maps neighborhoods
+into neighborhoods. This needs the **universal property of the localization topology**
+(Wedhorn §5.51, Proposition 8.2): the localization topology on `A(T/s)` is the
+coarsest ring topology making `algebraMap : A → A(T/s)` continuous with `s` invertible
+and `{t/s}` power-bounded. Given that `algebraMap : A → A(T'/s')` is continuous
+(proved as `algebraMap_continuous_loc` in `PresheafIdentification.lean`) and `D.s`
+is a unit, the universal property gives continuity of the induced lift.
+
+Formalizing this universal property requires:
+1. A boundedness/power-boundedness analysis of `locSubring` images under `locLift`
+2. Interleaving of neighborhood bases from different pairs of definition `D.P`, `D'.P`
+3. Extending `LocalizationTopology.lean` with a `locTopology_continuous_lift` theorem -/
 theorem restrictionMapAlg_continuous_of_huber {A : Type*} [CommRing A]
     [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     @Continuous _ _ D.topology
       (@UniformSpace.toTopologicalSpace _
         (@UniformSpace.Completion.uniformSpace _ D'.uniformSpace))
-      (IsLocalization.Away.lift D.s (isUnit_canonicalMap_s_of_huber D D' h)) := sorry
+      (IsLocalization.Away.lift D.s (isUnit_canonicalMap_s_of_huber D D' h)) := by
+  -- Step 1: Extract that D.s is already a unit in Localization.Away D'.s
+  have hu_loc : IsUnit (algebraMap A (Localization.Away D'.s) D.s) := by
+    have hrad : D'.s ∈ Ideal.radical (Ideal.span {D.s}) := by
+      classical
+      rw [Ideal.radical_eq_sInf, Ideal.mem_sInf]
+      intro p ⟨hsp, hp⟩
+      exact mem_prime_of_rational_subset D D' h p hp
+        (hsp (Ideal.subset_span (Set.mem_singleton D.s)))
+    obtain ⟨n, hn⟩ := Ideal.mem_radical_iff.mp hrad
+    obtain ⟨a, ha⟩ := Ideal.mem_span_singleton'.mp hn
+    have hunit_pow : IsUnit (algebraMap A (Localization.Away D'.s) D'.s ^ n) :=
+      (IsLocalization.map_units (Localization.Away D'.s)
+        (⟨D'.s, ⟨1, pow_one D'.s⟩⟩ : Submonoid.powers D'.s)).pow n
+    have heq : algebraMap A (Localization.Away D'.s) a *
+        algebraMap A (Localization.Away D'.s) D.s =
+        algebraMap A (Localization.Away D'.s) D'.s ^ n := by
+      rw [← map_mul, ← map_pow, ha]
+    rw [← heq] at hunit_pow
+    exact isUnit_of_mul_isUnit_right hunit_pow
+  -- Step 2: Factor the full lift as coeRingHom ∘ locLift
+  let locLift : Localization.Away D.s →+* Localization.Away D'.s :=
+    IsLocalization.Away.lift D.s hu_loc
+  have hfactor : IsLocalization.Away.lift D.s (isUnit_canonicalMap_s_of_huber D D' h) =
+      D'.coeRingHom.comp locLift := by
+    apply IsLocalization.ringHom_ext (Submonoid.powers D.s)
+    ext a
+    simp only [RingHom.comp_apply, IsLocalization.Away.lift_eq, RationalLocData.coeRingHom,
+      RationalLocData.canonicalMap, locLift]
+  rw [hfactor]
+  -- Step 3: Set up topological instances from uniform spaces
+  letI := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  letI := D'.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D'.s) := D'.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D'.s) := D'.isUniformAddGroup
+  -- Step 4: coeRingHom (completion embedding) is continuous
+  have hcoe : @Continuous _ _ D'.topology
+      (@UniformSpace.toTopologicalSpace _
+        (@UniformSpace.Completion.uniformSpace _ D'.uniformSpace))
+      D'.coeRingHom :=
+    @UniformSpace.Completion.continuous_coe _ D'.uniformSpace
+  -- Step 5: Reduce to continuity of locLift for localization topologies
+  suffices hlift : Continuous locLift from hcoe.comp hlift
+  -- Step 6: Use continuous_of_tendsto_nhds_zero to reduce to Tendsto at 0
+  apply continuous_of_tendsto_nhds_zero locLift.toAddMonoidHom
+  rw [Filter.tendsto_def]
+  intro V hV
+  obtain ⟨m, -, hm⟩ :=
+    (locBasis D'.P D'.T D'.s D'.hopen).hasBasis_nhds_zero.mem_iff.mp hV
+  -- Step 7: The neighborhood-mapping property (see docstring for what's needed)
+  suffices hcore : ∀ m : ℕ, ∃ n : ℕ,
+      ∀ x ∈ locNhd D.P D.T D.s n, locLift x ∈ locNhd D'.P D'.T D'.s m by
+    obtain ⟨n, hn⟩ := hcore m
+    exact Filter.mem_of_superset
+      ((locBasis D.P D.T D.s D.hopen).hasBasis_nhds_zero.mem_of_mem trivial (i := n))
+      (fun x hx ↦ hm (hn x hx))
+  -- SORRY: The neighborhood-mapping property.
+  -- Requires the universal property of the localization topology (Wedhorn §5.51):
+  -- locTopology is the coarsest ring topology making algebraMap continuous with
+  -- s invertible and {t/s} power-bounded. See docstring for resolution paths.
+  sorry
 
 /-! ### Restriction maps (Proposition 8.2 of Wedhorn)
 
