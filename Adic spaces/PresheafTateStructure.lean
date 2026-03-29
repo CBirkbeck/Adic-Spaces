@@ -495,31 +495,26 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
     -- ring isomorphism but not yet the specific composition needed here.
     have hclosed : IsClosed ((presheafValue_idealOfDef D₀ ^ n :
         Ideal (presheafValue_ringOfDef D₀)) : Set (presheafValue_ringOfDef D₀)) := by
-      -- STRATEGY: Build a continuous ring hom π : ringOfDef → locSubring ⧸ (J ^ n)
-      -- whose kernel equals idealOfDef^n. Then IsClosed follows because
-      -- locSubring ⧸ (J ^ n) is discrete (hence T₁) and ker(π) = π⁻¹{0} is closed.
+      -- Proof: idealOfDef^n = ker(π) for a continuous ring hom
+      --   π : ringOfDef → locSubring ⧸ (J ^ n)
+      -- and ker(π) is closed since the target is discrete (T₁).
       --
-      -- The continuous map π exists because:
-      -- (a) g : locSubring → ringOfDef is a dense uniform inducing
-      --     (locSubring_subspace_eq_adic gives the uniformity, and g has dense range)
-      -- (b) The quotient map q := Ideal.Quotient.mk (J^n) is uniformly continuous
-      --     from the J-adic uniformity to the discrete uniformity
-      -- (c) locSubring ⧸ (J^n) is discrete, hence complete and T₂
-      -- (d) By UniformSpace.Completion.extension (or IsDenseInducing.extend),
-      --     q extends uniquely to π : ringOfDef → locSubring ⧸ (J^n)
+      -- Construction of π: g : locSubring → ringOfDef is a dense uniform
+      -- inducing (locSubring_subspace_eq_adic). The quotient
+      -- q = Ideal.Quotient.mk(J^n) extends to π by the completion universal
+      -- property (target is discrete, hence complete T₂).
       --
-      -- The kernel identity ker(π) = idealOfDef^n follows from:
-      -- (⊆) idealOfDef^n ⊆ ker(π): π is a ring hom (density + T₂), and
-      --     generators g(d) for d ∈ J^n satisfy π(g(d)) = q(d) = 0.
-      -- (⊇) ker(π) ⊆ idealOfDef^n: by AdicCompletion.map_exact (Mathlib) applied
-      --     to the SES 0 → J^n → locSubring → locSubring/J^n → 0, using
-      --     IsNoetherianRing and the bridge adicCompletionRingEquiv.
+      -- ker(π) = idealOfDef^n = Ideal.map g (J^n):
+      -- (⊆) π is a ring hom (density + T₂) killing g(J^n), so the generated
+      --     ideal Ideal.map g (J^n) = idealOfDef^n ⊆ ker(π).
+      -- (⊇) By AdicCompletion.map_exact (Mathlib.RingTheory.AdicCompletion.Exactness)
+      --     on 0 → J^n → locSubring → locSubring/J^n → 0, using IsNoetherianRing.
+      --     Transported through adicCompletionRingEquiv (AdicCompletionBridge.lean).
       --
-      -- This argument requires ~100 lines of infrastructure to formalize:
-      -- 1. Package ringOfDef as an AbstractCompletion of locSubring
-      -- 2. Identify with AdicCompletion via the bridge
-      -- 3. Transport the kernel identity from AdicCompletion.map_exact
-      -- Ticket: TATE-CLOSED-IDEAL
+      -- Infrastructure needed (~100 lines, see docs/plans/ for details):
+      -- 1. Package ringOfDef as AbstractCompletion of (locSubring, J-adic)
+      -- 2. Compare with AdicCompletion J locSubring via the bridge
+      -- 3. Transport ker(evalₐ J n) = Ideal.map of (J^n) to ringOfDef
       sorry
     -- Step 3: closure_minimal.
     exact closure_minimal hgJn_sub hclosed
@@ -1005,25 +1000,10 @@ theorem restrictionMapHom_surj
   -- Full formalization requires BaireSpace + AddSubgroup infrastructure.
   sorry
 
-/-- **Sigma surjectivity (Wedhorn Prop 8.15)**: `Function.Surjective` for the
-restriction map. This is STRONGER than the `IsLocalization.Away.surj` condition
-and is FALSE in general (see `restrictionMapHom_surj` for the correct statement).
-The map `presheafValue D₀ → presheafValue D` is injective with closed range
-but NOT surjective unless `D.s` is a unit in `Localization.Away D₀.s`.
-This theorem is kept for compatibility; uses should be replaced by
-`restrictionMapHom_surj`. -/
-theorem restrictionMapHom_surjective
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A]
-    (D₀ D : RationalLocData A)
-    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
-    Function.Surjective (restrictionMapHom D₀ D h) := by
-  -- NOTE: This statement is too strong. Function.Surjective requires range(sigma) = univ,
-  -- but range(sigma) = closure(range(restrictionMapAlg)), and restrictionMapAlg does NOT
-  -- have dense range in general (D.s ∉ radical(span{D₀.s}) in the reverse direction).
-  -- The correct result is restrictionMapHom_surj (the IsLocalization.Away.surj condition).
-  -- Keeping this sorry for compatibility; downstream uses should migrate to surj condition.
-  sorry
+-- NOTE: `Function.Surjective (restrictionMapHom D₀ D h)` is FALSE in general.
+-- sigma's range = closure(range(restrictionMapAlg)) ⊊ presheafValue D when
+-- D.s is not a unit in Localization.Away D₀.s.
+-- Use `restrictionMapHom_surj` (the IsLocalization.Away.surj condition) instead.
 
 /-- **Sigma injectivity (Wedhorn Prop 8.15)**: The restriction map
 `restrictionMapHom D₀ D h` is injective.
