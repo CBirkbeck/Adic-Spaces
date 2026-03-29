@@ -380,6 +380,14 @@ private theorem mem_prime_of_rational_subset_nonOpen {A : Type*} [CommRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
     (p : Ideal A) (hp : p.IsPrime) (hp_notOpen : ¬IsOpen (p : Set A))
     (hDs : D.s ∈ p) : D'.s ∈ p := by
+  -- BLOCKED: requires Spa point with supp = p for non-open primes.
+  -- Available: `exists_mem_spa_supp_ge_of_nonOpen_prime` (Lemma745.lean) gives
+  --   v ∈ Spa with p ≤ v.supp, but needs [IsAdicComplete P.I P.A₀] and gives ≤, not =.
+  -- Needed sub-fact (any one suffices):
+  --   (a) Spa(A, A⁺) ≅ Spa(Â, Â⁺) to reduce to the complete case, OR
+  --   (b) Rank-1 domination: every non-open prime = supp of a rank-1 valuation, OR
+  --   (c) A purely algebraic proof that s' ∈ radical(s) when R(T'/s') ⊆ R(T/s).
+  -- See docstring above for full analysis.
   sorry
 
 /-- Given a prime `p` containing `D.s`, if `R(T'/s') ⊆ R(T/s)` then `D'.s ∈ p`
