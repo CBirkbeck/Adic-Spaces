@@ -493,34 +493,38 @@ theorem restrictionMapAlg_continuous_of_huber {A : Type*} [CommRing A]
         (@UniformSpace.Completion.uniformSpace _ D'.uniformSpace))
       D'.coeRingHom :=
     @UniformSpace.Completion.continuous_coe _ D'.uniformSpace
-  -- Step 5: Reduce to continuity of locLift for localization topologies
-  suffices hlift : Continuous locLift from hcoe.comp hlift
-  -- Step 6: Use continuous_of_tendsto_nhds_zero to reduce to Tendsto at 0
-  apply continuous_of_tendsto_nhds_zero locLift.toAddMonoidHom
-  rw [Filter.tendsto_def]
-  intro V hV
-  obtain ⟨m, -, hm⟩ :=
-    (locBasis D'.P D'.T D'.s D'.hopen).hasBasis_nhds_zero.mem_iff.mp hV
-  -- Step 7: The neighborhood-mapping property (see docstring for what's needed)
-  suffices hcore : ∀ m : ℕ, ∃ n : ℕ,
-      ∀ x ∈ locNhd D.P D.T D.s n, locLift x ∈ locNhd D'.P D'.T D'.s m by
-    obtain ⟨n, hn⟩ := hcore m
-    exact Filter.mem_of_superset
-      ((locBasis D.P D.T D.s D.hopen).hasBasis_nhds_zero.mem_of_mem trivial (i := n))
-      (fun x hx ↦ hm (hn x hx))
-  -- The neighborhood-mapping property requires the universal property of the
-  -- localization topology (Wedhorn Proposition 5.51 / Section 8.1): the localization
-  -- topology is the coarsest ring topology making algebraMap continuous with s
-  -- invertible and {t/s} power-bounded.
-  --
-  -- The formal proof requires establishing that locLift(locSubring D) is compatible
-  -- with locNhd D', which involves the independence of locTopology from the choice
-  -- of PairOfDefinition (D.P vs D'.P may differ). Specifically:
-  -- (1) The cofinal interleaving of locNhd bases for different pairs D.P, D'.P
-  -- (2) Boundedness of algebraMap(D.P.A₀) in D'.topology (from isBounded_A₀)
-  -- (3) locNhd_leftMul for finitely many locLift(divByS t D.s), t ∈ D.T
-  -- See the docstring for `restrictionMapAlg_continuous_of_huber` for details.
-  sorry
+  -- Step 5: Reduce to continuity of locLift : (D.topology) → (D'.topology)
+  suffices hlift : @Continuous _ _ D.topology D'.topology locLift from hcoe.comp hlift
+  -- Step 6: Apply the universal property of the localization topology (Wedhorn §5.51).
+  -- `locTopology_continuous_lift` states: a ring hom f from (Localization.Away D.s, D.topology)
+  -- to a topological ring B is continuous if f ∘ algebraMap : A → B is continuous.
+  -- Here f = locLift and B = (Localization.Away D'.s, D'.topology).
+  -- The hypothesis: locLift ∘ algebraMap = algebraMap : A → (Loc.Away D'.s, D'.topology)
+  -- is continuous because preimage of locNhd D' n contains val(D'.P.I^n), a nhd of 0 in A.
+  exact locTopology_continuous_lift D.P D.T D.s D.hopen locLift (by
+    -- Goal: Continuous (locLift.comp (algebraMap A (Localization.Away D.s)))
+    -- Since locLift ∘ algebraMap = algebraMap (into D'.s), reduce to continuity of algebraMap.
+    have h_eq : locLift.comp (algebraMap A (Localization.Away D.s)) =
+        algebraMap A (Localization.Away D'.s) := by
+      ext a; simp only [RingHom.comp_apply, IsLocalization.Away.lift_eq, locLift]
+    simp only [h_eq]
+    -- Prove: algebraMap : A → (Localization.Away D'.s, D'.topology) is continuous.
+    -- Use continuous_of_continuousAt_zero for the additive group hom.
+    apply continuous_of_continuousAt_zero
+      (algebraMap A (Localization.Away D'.s)).toAddMonoidHom
+    rw [ContinuousAt, map_zero]
+    rw [Filter.tendsto_def]
+    intro S hS
+    -- S is a neighborhood of 0 in D'.topology. It contains some locNhd D' n.
+    obtain ⟨n, -, hn⟩ :=
+      (locBasis D'.P D'.T D'.s D'.hopen).hasBasis_nhds_zero.mem_iff.mp hS
+    -- The preimage of locNhd D' n under algebraMap contains val(D'.P.I^n).
+    apply Filter.mem_of_superset (D'.P.hasBasis_nhds_zero.mem_of_mem (i := n) trivial)
+    intro a ha
+    obtain ⟨⟨b, hb⟩, hbn, hab⟩ := ha
+    rw [← hab]
+    exact hn ⟨algebraMapD D'.P D'.T D'.s ⟨b, hb⟩,
+      by rw [locIdeal, ← Ideal.map_pow]; exact Ideal.mem_map_of_mem _ hbn, rfl⟩)
 
 /-! ### Restriction maps (Proposition 8.2 of Wedhorn)
 

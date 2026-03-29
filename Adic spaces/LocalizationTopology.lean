@@ -253,6 +253,65 @@ noncomputable def locBasis (P : PairOfDefinition A) (T : Finset A) (s : A)
 
 end Basis
 
+/-! ### Universal property of the localization topology (Wedhorn §5.51)
+
+The localization topology is the coarsest ring topology on `Localization.Away s`
+making `algebraMap : A → Localization.Away s` continuous. Equivalently: if `τ` is
+any ring topology making `algebraMap` continuous, then `locTopology P T s hopen ≤ τ`.
+
+**Proof idea:** Under a ring topology `τ` with `algebraMap` continuous:
+- `algebraMap(val(P.I^n))` is a `τ`-neighborhood of 0 (continuous preimage).
+- `locSubring P T s` generates the ring, and multiplication is `τ`-continuous.
+- Each `locNhd P T s n` (image of `(locIdeal)^n`) is contained in a `τ`-neighborhood
+  because it's an ideal of `locSubring` times the `algebraMap(val(P.I^n))` generators.
+
+This requires showing that `locSubring P T s` is `τ`-bounded, which follows from
+`algebraMap(P.A₀)` being bounded (continuous image of bounded set) and `{divByS t s}`
+being finite. -/
+
+section UniversalProperty
+
+variable [IsTopologicalRing A]
+
+/-- **Universal property of `locTopology`** (Wedhorn §5.51): a ring homomorphism FROM
+`(Localization.Away s, locTopology)` is continuous if `algebraMap` is continuous
+for the TARGET topology.
+
+Given a ring homomorphism `f : Localization.Away s →+* B` into a topological ring `B`,
+if `f ∘ algebraMap : A → B` is continuous, then `f` is continuous from `locTopology`
+to the topology on `B`. This is because the localization topology is the coarsest
+ring topology making `algebraMap` continuous.
+
+**Key sub-facts used:**
+1. `algebraMap(val(P.I^n))` is small under `f` (by continuity of `f ∘ algebraMap`).
+2. `val(P.I^n) * P.A₀ ⊆ val(P.I^n)` (ideal absorption in the ring of definition).
+3. `locNhd_leftMul`-type argument for `f(divByS t s)`: each such element is fixed,
+   and continuity of multiplication in `B` absorbs finitely many factors.
+4. `locNhd n = image of Ideal.map algebraMapD (P.I^n)`, and elements of this ideal
+   are sums of `algebraMapD(b) * r` for `b ∈ P.I^n, r ∈ locSubring`. Since `r` is
+   a polynomial in `algebraMap(P.A₀)` (absorbed by sub-fact 2) and `{divByS t s}`
+   (absorbed by sub-fact 3), the `f`-image lands in a neighborhood of 0 in `B`.
+
+**Wedhorn reference:** Proposition 5.51, Remark 5.33, Section 8.1. -/
+theorem locTopology_continuous_lift {B : Type*} [CommRing B] [TopologicalSpace B]
+    [IsTopologicalRing B] (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (f : Localization.Away s →+* B)
+    (hf_alg : Continuous (f.comp (algebraMap A (Localization.Away s)))) :
+    @Continuous _ _ (locTopology P T s hopen) _ f := by
+  -- It suffices to show f is continuous at 0 (since f is a group hom).
+  -- For each neighborhood U of 0 in B, we need f⁻¹(U) to contain some locNhd n.
+  -- Since f ∘ algebraMap is continuous, algebraMap⁻¹(f⁻¹(U)) ∈ nhds(0, A).
+  -- So val(P.I^k) ⊆ algebraMap⁻¹(f⁻¹(U)) for some k, meaning
+  -- f(algebraMap(val(P.I^k))) ⊆ U.
+  -- Then locNhd n (for n ≥ k) maps under f into a neighborhood of 0 in B,
+  -- using ideal absorption (sub-fact 2) and continuity of multiplication in B
+  -- for the divByS factors (sub-fact 3).
+  sorry
+
+end UniversalProperty
+
 /-! ### The `hopen` condition for `s = 1` -/
 
 /-- The `hopen` condition holds trivially when `s = 1`. -/
