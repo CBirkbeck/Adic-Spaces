@@ -372,13 +372,62 @@ theorem tateAcyclicity
       exact ValuationSpectrum.restrictionMapHom_injective C.base D (C.hsubset D hD)
         (hx_D.trans (map_zero _).symm)
     · -- Empty covering: degenerate case.
-      -- C.hcover + C.covers = ∅ implies rationalOpen C.base = ∅.
-      -- For a domain Tate ring, this means C.base.s is nilpotent → unit in
-      -- Localization.Away → presheafValue C.base = 0.
-      -- Edge case; does not arise for coverings from IsSheafy (always nonempty).
-      sorry -- Edge case: empty covering implies trivial presheafValue
+      -- C.hcover + C.covers = ∅ implies rationalOpen C.base.T C.base.s = ∅.
+      --
+      -- Proof sketch (Wedhorn, implicit in Theorem 8.28):
+      -- (a) C.covers = ∅ and C.hcover together give rationalOpen C.base = ∅.
+      -- (b) In a Tate ring (IsTateRing A), every maximal ideal is open
+      --     (isOpen_of_isMaximal_of_isOpen_topologicallyNilpotent).
+      -- (c) rationalOpen C.base = ∅ means: for all v ∈ Spa A A⁺, either
+      --     some t ∈ T violates v.vle t s, or v.vle s 0.
+      -- (d) For a domain Tate ring, this implies the localization
+      --     Localization.Away C.base.s is trivial (the subsingleton ring),
+      --     hence presheafValue C.base = Completion(trivial ring) = trivial.
+      -- (e) x = 0 in a subsingleton ring.
+      --
+      -- This edge case does not arise for coverings used in IsSheafy
+      -- (the identity covering {1}/{1} always has a nonempty cover set).
+      -- BLOCKED: requires showing rationalOpen = ∅ → localization is trivial
+      -- for domain Tate rings (needs isUnit_of_forall_not_vle_zero + support analysis).
+      sorry
   · -- Part 2: Gluing
-    sorry -- Prop 8.15 → Čech descent / Laurent exactness transfer
+    -- Given: compatible sections f(D) for each cover piece D.
+    -- Goal: find x : presheafValue C.base with restrictionMap x = f(D) for all D.
+    intro f hcompat
+    by_cases hne2 : C.covers.Nonempty
+    · -- Nonempty covering: the main case.
+      -- BLOCKED on Proposition 8.15 (localization principle, Wedhorn).
+      --
+      -- Proof route (Wedhorn Theorem 8.28(b), Corollary 8.31):
+      -- (a) By Prop 8.15, B := presheafValue C.base is a strongly noetherian Tate ring
+      --     and each restrictionMap B → presheafValue D is the rational localization of B
+      --     at canonicalMap(D.s). [MISSING: full Prop 8.15 identification.]
+      -- (b) Each rational localization is flat over B (Localization.flat once (a) gives
+      --     IsLocalization). [AVAILABLE modulo (a).]
+      -- (c) Covering condition → Spec surjectivity: for every prime p of B, some
+      --     canonicalMap(D.s) ∉ p. [AVAILABLE once (a) gives the identification.]
+      -- (d) Flat + Spec surjective = faithfully flat
+      --     [Mathlib: Module.FaithfullyFlat.of_comap_surjective].
+      -- (e) Faithfully flat descent: the Čech complex
+      --       0 → B → ∏ B[1/D.s] → ∏ B[1/(D_i.s · D_j.s)]
+      --     is exact. Exactness at the middle term gives gluing.
+      --     [Mathlib: exact_of_exact for faithfully flat modules, or
+      --     alternatively: transfer from Laurent cover exactness
+      --     (laurentCover_exact) via the Prop 8.15 identification.]
+      --
+      -- Alternatively (Laurent transfer route):
+      -- (a') Refine the covering by a product of Laurent covers (Lemma 8.34).
+      -- (b') Laurent covers have exact Čech complexes (laurentCover_exact).
+      -- (c') Refinement transfers gluing (compatible sections on finer cover
+      --      restrict to compatible sections on coarser cover).
+      --
+      -- Both routes require Prop 8.15 as the fundamental input.
+      sorry
+    · -- Empty covering: vacuously true (no cover pieces to satisfy).
+      -- When C.covers = ∅, the type ↥C.covers is empty, so `∀ D : ↥C.covers, ...`
+      -- is vacuously true. Any x works; we pick 0.
+      exact ⟨0, fun ⟨D, hD⟩ => absurd (⟨D, hD⟩ : ↥C.covers).2
+        (by simp [Finset.not_nonempty_iff_eq_empty.mp hne2])⟩
 
 /-- Separation extracted from `tateAcyclicity`. -/
 theorem rationalCovering_hasSeparation
