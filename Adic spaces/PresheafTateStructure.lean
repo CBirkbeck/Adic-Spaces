@@ -495,6 +495,31 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
     -- ring isomorphism but not yet the specific composition needed here.
     have hclosed : IsClosed ((presheafValue_idealOfDef D₀ ^ n :
         Ideal (presheafValue_ringOfDef D₀)) : Set (presheafValue_ringOfDef D₀)) := by
+      -- STRATEGY: Build a continuous ring hom π : ringOfDef → locSubring ⧸ (J ^ n)
+      -- whose kernel equals idealOfDef^n. Then IsClosed follows because
+      -- locSubring ⧸ (J ^ n) is discrete (hence T₁) and ker(π) = π⁻¹{0} is closed.
+      --
+      -- The continuous map π exists because:
+      -- (a) g : locSubring → ringOfDef is a dense uniform inducing
+      --     (locSubring_subspace_eq_adic gives the uniformity, and g has dense range)
+      -- (b) The quotient map q := Ideal.Quotient.mk (J^n) is uniformly continuous
+      --     from the J-adic uniformity to the discrete uniformity
+      -- (c) locSubring ⧸ (J^n) is discrete, hence complete and T₂
+      -- (d) By UniformSpace.Completion.extension (or IsDenseInducing.extend),
+      --     q extends uniquely to π : ringOfDef → locSubring ⧸ (J^n)
+      --
+      -- The kernel identity ker(π) = idealOfDef^n follows from:
+      -- (⊆) idealOfDef^n ⊆ ker(π): π is a ring hom (density + T₂), and
+      --     generators g(d) for d ∈ J^n satisfy π(g(d)) = q(d) = 0.
+      -- (⊇) ker(π) ⊆ idealOfDef^n: by AdicCompletion.map_exact (Mathlib) applied
+      --     to the SES 0 → J^n → locSubring → locSubring/J^n → 0, using
+      --     IsNoetherianRing and the bridge adicCompletionRingEquiv.
+      --
+      -- This argument requires ~100 lines of infrastructure to formalize:
+      -- 1. Package ringOfDef as an AbstractCompletion of locSubring
+      -- 2. Identify with AdicCompletion via the bridge
+      -- 3. Transport the kernel identity from AdicCompletion.map_exact
+      -- Ticket: TATE-CLOSED-IDEAL
       sorry
     -- Step 3: closure_minimal.
     exact closure_minimal hgJn_sub hclosed
@@ -945,31 +970,59 @@ private theorem restrictionMapAlg_isUniformInducing
   -- iff the inner map is IsUniformInducing.
   exact hcoe_ui.comp (locLift_isUniformInducing D₀ D h)
 
-/-- **Sigma surjectivity (Wedhorn Prop 8.15)**: The restriction map
-`restrictionMapHom D₀ D h` satisfies the `IsLocalization.Away.surj` condition.
+/-- **Sigma surj condition (Wedhorn Prop 8.15)**: The restriction map
+`restrictionMapHom D₀ D h` satisfies the `IsLocalization.Away.surj` condition:
+for every `z`, there exist `n` and `a` with `z * sigma(s')^n = sigma(a)`.
 
-**Note:** `restrictionMapAlg_denseRange` is FALSE — the algebraic map does not
-have dense range because `D.s` is not a unit in `Localization.Away D₀.s`. So we
-cannot use "dense + closed = surjective" for sigma directly.
+**WARNING**: `Function.Surjective sigma` is FALSE in general -- it would require
+`DenseRange locLift` (density of `A[1/D0.s]` in `A[1/D.s]` with the localization
+topology), but `D.s` need not be a unit in `Localization.Away D0.s`.
+Counterexample: the p-adic completion map from p-adic integers to p-adic numbers
+is injective with closed range but NOT surjective.
+The correct result is the surj condition below.
 
-**Correct approach (Baire category)**: Define `S_n = {z | ∃ a, z * u^n = sigma(a)}`
-where `u = sigma(s')`. Each `S_n` is homeomorphic to `range(sigma)` (via the unit `u`),
-hence complete (from `IsUniformInducing` + `CompleteSpace`), hence closed.
-`S = ∪_n S_n` is ascending and dense (contains `D.coeRingHom(Localization.Away D.s)`
-from the `h_dense` proof in the main theorem). By Baire category, some `S_N` has
-nonempty interior. `S_N` is a closed additive subgroup with interior → open → `S`
-contains an open subgroup → `S` is open → dense + open = everything. -/
+**Proof (Baire category)**: Define `S_n = {z | ∃ a, z * u^n = sigma(a)}`.
+Each `S_n` is closed (preimage of closed `range(sigma)` under the homeomorphism
+`z ↦ z * u^n`). `S = ∪_n S_n` is ascending, dense (contains
+`D.coeRingHom(Localization.Away D.s)` from `h_dense`), and an additive subgroup.
+By Baire category (presheafValue D is complete metrizable), some `S_N` has
+nonempty interior, making `S` open. Open + dense subgroup = everything. -/
+theorem restrictionMapHom_surj
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    ∀ z : presheafValue D,
+      ∃ (n : ℕ) (a : presheafValue D₀),
+        z * (restrictionMapHom D₀ D h) (D₀.canonicalMap D.s) ^ n =
+        (restrictionMapHom D₀ D h) a := by
+  -- The surj set S = {z | ∃ n a, z * u^n = sigma(a)} is:
+  --   (1) an additive subgroup of presheafValue D
+  --   (2) dense (contains the image of the dense D.coeRingHom)
+  --   (3) F_sigma (union of closed S_n)
+  -- By the Baire category theorem on the complete metrizable presheafValue D,
+  -- some S_N has nonempty interior, so S is open. Open + dense subgroup = everything.
+  -- Full formalization requires BaireSpace + AddSubgroup infrastructure.
+  sorry
+
+/-- **Sigma surjectivity (Wedhorn Prop 8.15)**: `Function.Surjective` for the
+restriction map. This is STRONGER than the `IsLocalization.Away.surj` condition
+and is FALSE in general (see `restrictionMapHom_surj` for the correct statement).
+The map `presheafValue D₀ → presheafValue D` is injective with closed range
+but NOT surjective unless `D.s` is a unit in `Localization.Away D₀.s`.
+This theorem is kept for compatibility; uses should be replaced by
+`restrictionMapHom_surj`. -/
 theorem restrictionMapHom_surjective
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [FirstCountableTopology A]
     (D₀ D : RationalLocData A)
     (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
     Function.Surjective (restrictionMapHom D₀ D h) := by
-  -- The surjectivity proof uses the Baire category theorem.
-  -- The Baire argument requires: range(sigma) is complete (from IsUniformInducing +
-  -- CompleteSpace), the surj set S = ∪ S_n is dense (from h_dense algebraic argument
-  -- in the main theorem), and the Baire category theorem gives S = everything.
-  -- This avoids the false restrictionMapAlg_denseRange.
+  -- NOTE: This statement is too strong. Function.Surjective requires range(sigma) = univ,
+  -- but range(sigma) = closure(range(restrictionMapAlg)), and restrictionMapAlg does NOT
+  -- have dense range in general (D.s ∉ radical(span{D₀.s}) in the reverse direction).
+  -- The correct result is restrictionMapHom_surj (the IsLocalization.Away.surj condition).
+  -- Keeping this sorry for compatibility; downstream uses should migrate to surj condition.
   sorry
 
 /-- **Sigma injectivity (Wedhorn Prop 8.15)**: The restriction map
@@ -1119,10 +1172,10 @@ theorem restrictionMap_isLocalization
     rw [hsigma_coe, hsigma_alg]
   -- Apply the specialized constructor
   exact IsLocalization.Away.mk (D₀.canonicalMap D.s) hunit
-    -- Surj: sigma surjective (Prop 8.15) gives n = 0 directly.
+    -- Surj: from restrictionMapHom_surj (Baire category argument).
     (fun z => by
-      obtain ⟨a, ha⟩ := restrictionMapHom_surjective D₀ D h z
-      exact ⟨0, a, by rw [pow_zero, mul_one]; exact ha.symm⟩)
+      obtain ⟨n, a, ha⟩ := restrictionMapHom_surj D₀ D h z
+      exact ⟨n, a, ha⟩)
     -- Eq: sigma injective (Prop 8.15) gives the kernel condition.
     (fun a b hab => by
       suffices ∀ c : presheafValue D₀, sigma c = 0 → ∃ n : ℕ, s' ^ n * c = 0 by
