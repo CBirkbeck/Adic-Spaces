@@ -798,12 +798,33 @@ private theorem locLift_maps_locNhd
 exists a target level `m` such that the preimage of `locNhd D m` under `locLift` is
 contained in `locNhd D₀ n`.
 
-This is the harder direction, using the Noetherian hypothesis and the Artin-Rees lemma
-(or equivalently, the topology-independence of the localization construction for
-Noetherian adic rings). The Artin-Rees lemma controls how the `I`-adic filtration
-on `Localization.Away D.s` restricts to `Localization.Away D₀.s`.
+This is the harder direction of the proof that `locLift` is a topological embedding.
+The forward direction (continuity, `locLift_maps_locNhd`) follows from the factoring
+`restrictionMapAlg = D.coeRingHom ∘ locLift`. The backward direction requires the
+Noetherian hypothesis and uses the following key inputs:
 
-**Wedhorn reference**: Proposition 8.15 + Lemma 8.5. -/
+1. **Ideal filtration interleaving**: Both `D₀.P.I` and `D.P.I` define the same
+   topology on `A`, so their filtrations on `A` are cofinal: for every `n`, ∃ `c` with
+   `val '' (D.P.I^c) ⊆ val '' (D₀.P.I^n)` (from `hasBasis_nhds_zero`).
+
+2. **locLift preserves algebraMap**: `locLift ∘ algebraMap = algebraMap` (from
+   `IsLocalization.Away.lift`), so elements of the form `algebraMap(a)` are
+   preserved.
+
+3. **The hopen condition**: For both `D₀` and `D`, high powers of the ideal of
+   definition under `divByS` land in the respective `locSubring`. This ensures
+   that the `s⁻¹`-factors in the Localization can be absorbed.
+
+4. **Artin-Rees (Noetherian control)**: The Artin-Rees lemma for the Noetherian
+   ring `locSubring D` controls the intersection of `(locIdeal D)^n` with the
+   image of `locLift`. Specifically, the image of `locSubring D₀` in
+   `Localization.Away D.s` intersected with the adic filtration of `locSubring D`
+   stabilizes at some depth `k₀` (the Artin-Rees constant).
+
+Together: for `m` large enough (depending on `n` and the interleaving/Artin-Rees
+constants), any `x` with `locLift(x) ∈ locNhd D m` must have `x ∈ locNhd D₀ n`.
+
+**Wedhorn reference**: Proposition 8.15 + Lemma 8.5 (Artin-Rees for adic rings). -/
 private theorem locLift_preimage_locNhd
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [FirstCountableTopology A]
@@ -812,6 +833,36 @@ private theorem locLift_preimage_locNhd
       ∀ x : Localization.Away D₀.s,
         (locLift D₀ D h) x ∈ @locNhd A _ _ D.P D.T D.s m →
           x ∈ @locNhd A _ _ D₀.P D₀.T D₀.s n := by
+  intro n
+  -- Step 1: Establish the ideal interleaving.
+  -- Both D₀.P and D.P are pairs of definition for A, so their ideal
+  -- filtrations are cofinal on A: for every n, ∃ c with
+  -- val '' (D.P.I^c) ⊆ val '' (D₀.P.I^n).
+  have h_interleave : ∀ k : ℕ, ∃ c : ℕ,
+      Subtype.val '' ((D.P.I ^ c : Ideal D.P.A₀) : Set D.P.A₀) ⊆
+        Subtype.val '' ((D₀.P.I ^ k : Ideal D₀.P.A₀) : Set D₀.P.A₀) := by
+    intro k
+    have h_nhd : Subtype.val '' ((D₀.P.I ^ k : Ideal D₀.P.A₀) : Set D₀.P.A₀) ∈
+        nhds (0 : A) :=
+      D₀.P.hasBasis_nhds_zero.mem_of_mem trivial
+    exact (D.P.hasBasis_nhds_zero.mem_iff.mp h_nhd).imp fun c h => h.2
+  -- Step 2: locLift preserves algebraMap.
+  have h_lift_alg : ∀ a : A,
+      (locLift D₀ D h) (algebraMap A (Localization.Away D₀.s) a) =
+        algebraMap A (Localization.Away D.s) a := by
+    intro a; simp only [locLift, IsLocalization.Away.lift_eq]
+  -- Steps 3-4: The backward inclusion using the Artin-Rees lemma.
+  -- The remaining argument requires:
+  -- (a) From h_interleave: algebraMap(D.P.I^c) maps into algebraMap(D₀.P.I^n)
+  --     in any localization. Under locLift, this gives control over the
+  --     algebraMap-components.
+  -- (b) From D₀.hopen + locNhd_invS_step: the (D₀.s)⁻¹ factors are absorbed
+  --     into the locSubring D₀ at the cost of increasing the ideal power.
+  -- (c) From Artin-Rees (via IsNoetherianRing + locSubring Noetherian):
+  --     the intersection of (locIdeal D)^m with the image of locLift
+  --     stabilizes, giving uniform control over the shift constant.
+  -- Combining (a)-(c) gives m = f(n, c, k₀) where c is the interleaving
+  -- constant and k₀ is the Artin-Rees constant.
   sorry
 
 /-- The locLift between localizations is `IsUniformInducing` from `D₀.uniformSpace`
