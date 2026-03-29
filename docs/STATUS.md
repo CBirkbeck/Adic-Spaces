@@ -79,14 +79,9 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
   - `tateQuotientProductRestriction_injective` : **1 sorry** — the key algebraic step showing that the product restriction transferred to Tate quotients has trivial kernel. Needs: (1) transfer restrictionMap=0 through cover isomorphisms, (2) interpret at localization level, (3) apply Spa-point radical argument.
 - Sorry-free: `base_s_in_annihilator_radical_of_covering`, `restrictionMapAlg_factors`, `productRestriction_coe_eq`, `productRestriction_comp_canonicalMap`, `exists_spa_point_in_rationalOpen_of_isOpen_prime`.
 
-**TateAcyclicity.lean** — 1 sorry (updated 2026-03-28):
+**TateAcyclicity.lean** — 0 sorry (updated 2026-03-29):
 - `IsSheafy.ofStronglyNoetherianTate_discrete.isEmbedding_productRestriction` : **DONE** (sorry-free).
-- `IsSheafy.ofStronglyNoetherianTate_discrete.gluing` : **1 sorry** (refined). Delegates to `discrete_gluing`. Layer (B) transport: sorry-free. Layer (A) algebraic core: 1 sorry for the localization gluing construction. All prerequisites now proved sorry-free:
-  - `isLocAway_of_isUnit`: localization-localization principle (Away D.s is IsLocalization.Away of Away C.base.s)
-  - `hspan_top`: {algebraMap D.s | D in covers} generates unit ideal in Away C.base.s (via covering condition + trivial valuation at primes + Ideal.eq_top_of_isUnit_mem)
-  - `hs_unit`: algebraMap(C.base.s) is a unit in Away D.s for each cover piece
-  - `lift_factor`: restrictionMapAlg = coeRingHom ∘ lift
-  Remaining sorry: connecting the above to `Localization.existsUnique_algebraMap_eq_of_span_eq_top` (instance management for awayToAwayRight/Left compatibility + bridging the Algebra instances). Estimated ~100-150 lines of boilerplate.
+- `IsSheafy.ofStronglyNoetherianTate_discrete.gluing` : **DONE** (sorry-free). Delegates to `discrete_gluing`. Numerator compatibility proved via common refinement `D3` with `s3 = D1.s * D2.s` (using `rationalOpen_inter`), power absorption (Mathlib-style), and exact equality in `A`.
 - Helper lemmas: `discreteUniformity_presheafValue`, `discreteTopology_presheafValue`, `discrete_gluing`, `isLocAway_of_isUnit`.
 
 ## Key Theorems (Adic Morphisms Chain)
