@@ -758,7 +758,41 @@ private theorem locLift_maps_locNhd
     ∀ m : ℕ, ∃ n : ℕ,
       ∀ x ∈ @locNhd A _ _ D₀.P D₀.T D₀.s n,
         (locLift D₀ D h) x ∈ @locNhd A _ _ D.P D.T D.s m := by
-  sorry
+  -- locLift is continuous from D₀.topology to D.topology.
+  -- Proof: restrictionMapAlg = D.coeRingHom ∘ locLift is continuous (Presheaf.lean),
+  -- and D.coeRingHom is IsUniformInducing (embedding), so locLift is continuous.
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  haveI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  haveI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  have hcont_alg := restrictionMapAlg_continuous D₀ D h
+  have hfactor := restrictionMapAlg_eq_comp_locLift D₀ D h
+  have hcoe_ui : @IsUniformInducing _ _ D.uniformSpace
+      (@UniformSpace.Completion.uniformSpace _ D.uniformSpace) D.coeRingHom :=
+    UniformSpace.Completion.isUniformInducing_coe _
+  -- From the factoring: locLift is continuous (embedding ∘ locLift = continuous)
+  have hcont_lift : @Continuous _ _ D₀.topology D.topology (locLift D₀ D h) := by
+    have : D.topology = @UniformSpace.toTopologicalSpace _ D.uniformSpace := rfl
+    rw [this]
+    apply hcoe_ui.isInducing.continuous_iff.mpr
+    show @Continuous _ _ D₀.topology _ (D.coeRingHom ∘ locLift D₀ D h)
+    have : (D.coeRingHom ∘ locLift D₀ D h : Localization.Away D₀.s →
+        presheafValue D) = restrictionMapAlg D₀ D h :=
+      congrArg DFunLike.coe hfactor.symm
+    rw [this]; exact hcont_alg
+  -- From continuity of locLift at 0 + locBasis: for every m, ∃ n with locNhd D₀ n ⊆ preimage
+  intro m
+  have hmem : (locNhd D.P D.T D.s m : Set (Localization.Away D.s)) ∈
+      @nhds _ D.topology 0 :=
+    (locBasis D.P D.T D.s D.hopen).hasBasis_nhds_zero.mem_of_mem trivial
+  have hpre : (locLift D₀ D h) ⁻¹' (locNhd D.P D.T D.s m : Set (Localization.Away D.s)) ∈
+      @nhds _ D₀.topology 0 := by
+    have htend : Filter.Tendsto (locLift D₀ D h) (@nhds _ D₀.topology 0)
+        (@nhds _ D.topology 0) :=
+      (map_zero (locLift D₀ D h)) ▸ hcont_lift.continuousAt
+    exact htend hmem
+  obtain ⟨n, -, hn⟩ := (locBasis D₀.P D₀.T D₀.s D₀.hopen).hasBasis_nhds_zero.mem_iff.mp hpre
+  exact ⟨n, fun x hx => hn hx⟩
 
 /-- **Backward inducing** of locLift: for every source neighborhood level `n`, there
 exists a target level `m` such that the preimage of `locNhd D m` under `locLift` is
