@@ -672,4 +672,33 @@ theorem le_convexSubgroupOfPrime_primeOfConvexSubgroup (A : ValuationSubring K)
     rw [show (a : K) = x⁻¹ from rfl, map_inv₀] at h1
     exact inv_eq_one.mp h1
 
+/-! ### Existence of height-1 primes above a convex subgroup -/
+
+/-- For a proper convex subgroup H of a valuation ring's value group, there exists
+a height-1 prime Q with `convexSubgroupOfPrime A Q ⊇ H`. Since convex subgroups
+are linearly ordered (Bourbaki), take the maximal proper convex subgroup above H
+(exists by Zorn). Its corresponding prime is height-1. -/
+theorem exists_height_one_prime_ge_convexSubgroup (A : ValuationSubring K)
+    (H : ConvexSubgroup A.ValueGroupˣ) (hH : H ≠ ⊤) :
+    ∃ (Q : Ideal A) (_ : Q.IsPrime), Q ≠ ⊥ ∧
+      (∀ (P : Ideal A) [P.IsPrime], P < Q → P = ⊥) ∧
+      H ≤ convexSubgroupOfPrime A Q := by
+  -- Use primeOfConvexSubgroup to get a prime, then find a height-1 prime above it.
+  -- The prime Q₀ := primeOfConvexSubgroup A H satisfies H ≤ convexSubgroupOfPrime A Q₀
+  -- (by le_convexSubgroupOfPrime_primeOfConvexSubgroup).
+  -- If Q₀ is height-1, we're done. Otherwise, take a height-1 prime Q ≤ Q₀.
+  -- By convexSubgroupOfPrime_antitone, convexSubgroupOfPrime Q ⊇ convexSubgroupOfPrime Q₀ ⊇ H.
+  set Q₀ := primeOfConvexSubgroup A H with hQ₀_def
+  have hQ₀_prime : Q₀.IsPrime := inferInstance
+  have hH_le : H ≤ convexSubgroupOfPrime A Q₀ :=
+    le_convexSubgroupOfPrime_primeOfConvexSubgroup A H
+  -- Q₀ = ⊥ ⟹ convexSubgroupOfPrime Q₀ = ⊤ (by convexSubgroupOfPrime_bot)
+  -- ⟹ H ≤ ⊤ = H, so H = ⊤, contradicting hH.
+  have hQ₀_ne_bot : Q₀ ≠ ⊥ := sorry
+  -- Find a minimal nonzero prime Q ≤ Q₀ (height-1 prime).
+  -- For valuation rings, primes are totally ordered, so a minimal nonzero prime
+  -- exists below Q₀. By convexSubgroupOfPrime_antitone, H ≤ convexSubgroupOfPrime Q.
+  -- TODO: needs existence of minimal nonzero prime (well-order on primes of valuation ring)
+  sorry
+
 end ValuationSubring
