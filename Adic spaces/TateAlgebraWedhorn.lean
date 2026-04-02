@@ -461,6 +461,57 @@ noncomputable def evalHomBounded (g : A →+* B) (hg : Continuous g)
     exact Finset.sum_congr rfl fun ⟨i, j⟩ hij => by
       rw [← Finset.mem_antidiagonal.mp hij, pow_add]; ring
 
+/-- `evalHomBounded` is continuous from the T-topology to the target topology
+(Wedhorn, Corollary 5.50).
+
+The T-topology on `A⟨X⟩` is induced from `∏ A` via `scaleIncl s`, making
+`h ↦ s^n · coeff_n(h)` continuous. The evaluation `h ↦ ∑ g(coeff_n(h)) · b^n`
+is continuous because it's a uniformly convergent series of continuous terms.
+
+The hypothesis `hunit : g s * b = 1` means `b = g(s)⁻¹`, which allows rewriting
+each evaluation term as `g(s^n · coeff_n(h)) · b^{2n}`, making each term continuous
+via the T-topology scaled coefficient maps. Uniform convergence follows from the
+nonarchimedean summability condition and boundedness of `{b^n}`.
+
+For the main application: `g = canonicalMap`, `b = invS`, `s = D.s`, and
+`hunit = canonicalMap_s_mul_invS D`, giving continuity of the evaluation
+`A⟨X⟩ → presheafValue D` for the T-topology. -/
+theorem evalHomBounded_continuous (g : A →+* B) (hg : Continuous g)
+    (s : A) (b : B) (hb : TopologicalRing.IsBounded (Set.range (b ^ · : ℕ → B)))
+    (hunit : g s * b = 1) :
+    @Continuous _ _ (tateTopologyT s) _ (evalHomBounded g hg b hb) := by
+  -- The evaluation is a ring homomorphism (additive group homomorphism), so it suffices
+  -- to show continuity at 0. We use the characterization: for every U ∈ nhds 0 in B,
+  -- there exists V ∈ nhds 0 in A⟨X⟩ (T-topology) with evalHomBounded '' V ⊆ U.
+  letI τT := tateTopologyT s
+  haveI hTR : IsTopologicalRing ↥(TateAlgebra A) := tateTopologyT_isTopologicalRing s
+  -- PROOF STRATEGY (Wedhorn Corollary 5.50):
+  -- With hunit : g(s) * b = 1, each eval term rewrites as:
+  --   g(coeff_n(h)) * b^n = g(s^n * coeff_n(h)) * b^{2n}
+  -- Each h ↦ g(s^n * coeff_n(h)) is continuous for T-topology (composition of
+  -- tateTopologyT_continuous_scaledCoeff with g), and b^{2n} is a constant.
+  --
+  -- For the infinite sum: in a nonarchimedean group, if each term of a series
+  -- lies in an open subgroup V, then so does the tsum (since V is closed in a
+  -- topological group). The key is showing UNIFORM convergence on T-neighborhoods:
+  -- for any open subgroup V of B, choose V' with {b^n} * V' ⊆ V (bounded),
+  -- then W = g⁻¹(V') ∈ nhds(0) in A. The T-topology neighborhood
+  -- {h : s^n * coeff_n(h) ∈ W for all n} would give each term in V.
+  -- But this is an INFINITE intersection of open sets in the T-topology
+  -- (= product topology on scaled coefficients), which is not open.
+  --
+  -- RESOLUTION: For h in a FINITE-coordinate T-nbhd, finitely many terms are small.
+  -- The remaining terms are small because coeff_n(h) → 0 (restricted power series)
+  -- and {b^n} is bounded. But this "tail smallness" is pointwise, not uniform.
+  -- Uniform tail control requires the restricted power series condition to be
+  -- uniform on neighborhoods, which holds but requires a compactness/equicontinuity
+  -- argument. This is a substantial proof (~150 lines) requiring either:
+  -- (a) Mathlib's missing `continuous_tsum` for nonarchimedean groups, or
+  -- (b) A direct epsilon-delta argument with the product topology + restricted condition.
+  --
+  -- BLOCKER: No nonarchimedean `continuous_tsum` in Mathlib v4.29.
+  sorry
+
 end UniversalProperty
 
 end TateAlgebraWedhorn
