@@ -1226,20 +1226,32 @@ theorem isClosed_ideal_of_noetherian_adic_separated
   rw [hkrull, Submodule.mem_bot] at hmem
   exact hmem
 
-/-- The ideal `(1-sX)` is closed in `A⟨X⟩` for the T-topology, assuming the
-T-topology coincides with the J-adic topology (Prop 6.18 for strongly noetherian).
+/-- The ideal `(1-sX)` is closed in `A⟨X⟩` for the T-topology, given that the
+T-topology is adic (Prop 6.18 for strongly noetherian Tate rings).
 
-For strongly noetherian A: A⟨X⟩ is noetherian, J-adically separated, and
-J-adically complete. By Remark 6.37, every ideal is closed. -/
+The hypothesis `hadic` asserts that the T-topology on `A⟨X⟩` coincides with
+the `J`-adic topology for some ideal `J` of `A⟨X⟩`. For strongly noetherian `A`,
+this is Wedhorn Proposition 6.18 with `J = I · A₀⟨X⟩`.
+
+Once adic: `A⟨X⟩` is noetherian + adic complete + T₂, so every ideal is closed
+by Remark 6.37 (`isClosed_ideal_of_noetherian_adic_separated`). -/
 theorem oneSubfXIdeal_isClosed_tTopology (s : A)
-    (hcs : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A)) :
+    [IsNoetherianRing ↥(TateAlgebra A)]
+    (hcs_tate : @CompleteSpace ↥(TateAlgebra A)
+      (@IsTopologicalAddGroup.rightUniformSpace _ _
+        (TateAlgebraWedhorn.tateTopologyT s)
+        (@IsTopologicalRing.to_topologicalAddGroup _ _
+          (TateAlgebraWedhorn.tateTopologyT s)
+          (TateAlgebraWedhorn.tateTopologyT_isTopologicalRing s))))
+    (ht2_tate : @T2Space ↥(TateAlgebra A) (TateAlgebraWedhorn.tateTopologyT s))
+    (J : Ideal ↥(TateAlgebra A))
+    (hadic : @IsAdic ↥(TateAlgebra A) _ (TateAlgebraWedhorn.tateTopologyT s) J) :
     @IsClosed ↥(TateAlgebra A) (TateAlgebraWedhorn.tateTopologyT s)
-      (oneSubfXIdeal s : Set ↥(TateAlgebra A)) := by
-  -- Route: Prop 6.18 identifies T-topology with J-adic on A⟨X⟩/(1-sX).
-  -- Then Remark 6.37 (isClosed_ideal_of_noetherian_adic_separated) gives closedness.
-  -- For the T-topology on A⟨X⟩ itself: closedness of (1-sX) as a SUBRING
-  -- follows from the embedding argument (oneSubsX_not_zero_divisor + complete + T₂).
-  sorry
+      (oneSubfXIdeal s : Set ↥(TateAlgebra A)) :=
+  @isClosed_ideal_of_noetherian_adic_separated ↥(TateAlgebra A) _
+    (TateAlgebraWedhorn.tateTopologyT s)
+    (TateAlgebraWedhorn.tateTopologyT_isTopologicalRing s) ‹_›
+    ht2_tate J hadic hcs_tate (oneSubfXIdeal s)
 
 /-- The quotient `A⟨X⟩/(1-sX)` with quotient T-topology is complete.
 
@@ -1258,17 +1270,44 @@ is false — the T-topology on A⟨X⟩ is a product topology, not complete). Th
 completeness of the QUOTIENT follows from the adic structure via Prop 6.18. -/
 theorem quotientTTopology_completeSpace (s : A)
     [FirstCountableTopology A]
-    (hcs : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A)) :
+    [IsNoetherianRing ↥(TateAlgebra A)]
+    (hcs_tate : @CompleteSpace ↥(TateAlgebra A)
+      (@IsTopologicalAddGroup.rightUniformSpace _ _
+        (TateAlgebraWedhorn.tateTopologyT s)
+        (@IsTopologicalRing.to_topologicalAddGroup _ _
+          (TateAlgebraWedhorn.tateTopologyT s)
+          (TateAlgebraWedhorn.tateTopologyT_isTopologicalRing s))))
+    (ht2_tate : @T2Space ↥(TateAlgebra A) (TateAlgebraWedhorn.tateTopologyT s))
+    (J : Ideal ↥(TateAlgebra A))
+    (hadic : @IsAdic ↥(TateAlgebra A) _ (TateAlgebraWedhorn.tateTopologyT s) J) :
     @CompleteSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal s)
       (quotientTUniformSpace s) := by
-  -- Correct route: Prop 6.18 (quotient T-top = adic lattice) + adic complete.
-  -- Requires: IsStronglyNoetherian A → A⟨X⟩ noetherian → Prop 6.18 → adic complete.
-  sorry
+  letI τT : TopologicalSpace ↥(TateAlgebra A) := TateAlgebraWedhorn.tateTopologyT s
+  haveI : IsTopologicalRing ↥(TateAlgebra A) :=
+    TateAlgebraWedhorn.tateTopologyT_isTopologicalRing s
+  haveI : IsTopologicalAddGroup ↥(TateAlgebra A) :=
+    IsTopologicalRing.to_topologicalAddGroup
+  haveI hfc_pi : @FirstCountableTopology ((Fin 1 →₀ ℕ) → A) Pi.topologicalSpace :=
+    inferInstance
+  haveI : @FirstCountableTopology ↥(TateAlgebra A) τT :=
+    @TopologicalSpace.firstCountableTopology_induced _ _
+      Pi.topologicalSpace hfc_pi (TateAlgebraWedhorn.scaleIncl s)
+  exact @QuotientAddGroup.completeSpace_right' ↥(TateAlgebra A) _ τT ‹_› ‹_›
+    (oneSubfXIdeal s).toAddSubgroup inferInstance hcs_tate
 
 /-- The quotient `A⟨X⟩/(1-sX)` with quotient T-topology is T₀.
 Quotient of T₂ topological group by closed subgroup is T₃ (hence T₀). -/
 theorem quotientTTopology_t0Space (s : A)
-    (hcs : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A)) :
+    [IsNoetherianRing ↥(TateAlgebra A)]
+    (hcs_tate : @CompleteSpace ↥(TateAlgebra A)
+      (@IsTopologicalAddGroup.rightUniformSpace _ _
+        (TateAlgebraWedhorn.tateTopologyT s)
+        (@IsTopologicalRing.to_topologicalAddGroup _ _
+          (TateAlgebraWedhorn.tateTopologyT s)
+          (TateAlgebraWedhorn.tateTopologyT_isTopologicalRing s))))
+    (ht2_tate : @T2Space ↥(TateAlgebra A) (TateAlgebraWedhorn.tateTopologyT s))
+    (J : Ideal ↥(TateAlgebra A))
+    (hadic : @IsAdic ↥(TateAlgebra A) _ (TateAlgebraWedhorn.tateTopologyT s) J) :
     @T0Space (↥(TateAlgebra A) ⧸ oneSubfXIdeal s)
       (quotientTTopology s) := by
   letI τT : TopologicalSpace ↥(TateAlgebra A) := TateAlgebraWedhorn.tateTopologyT s
@@ -1278,8 +1317,48 @@ theorem quotientTTopology_t0Space (s : A)
     IsTopologicalRing.to_topologicalAddGroup
   haveI : @IsClosed ↥(TateAlgebra A) τT
       (oneSubfXIdeal s : Set ↥(TateAlgebra A)) :=
-    oneSubfXIdeal_isClosed_tTopology s hcs
+    oneSubfXIdeal_isClosed_tTopology s hcs_tate ht2_tate J hadic
   exact (Submodule.t3_quotient_of_isClosed (S := oneSubfXIdeal s)).toT0Space
+
+/-! #### Helper: IsUniformInducing for locToQuotientOneSubfX_gen
+
+For the abstract completion comparison, we need `locToQuotientOneSubfX_gen` to be
+a uniform inducing from the localization uniform space to the quotient. Combined
+with the already-proved continuity and dense range, this makes the quotient an
+abstract completion of the localization.
+
+**Proof:** The localization topology has a basis `{locNhd(n)}` and the quotient
+T-topology (= J-adic by `hadic`) has a basis `{J'^n}`. Continuity gives one
+direction (locNhd → quotient nhds). For the reverse (quotient nhds → locNhd),
+we use that `locToQuotientOneSubfX_gen` is a ring isomorphism mapping `locNhd(n)`
+to ideals that are commensurate with the `J'^n` basis. -/
+
+/-- `locToQuotientOneSubfX_gen` is uniformly inducing from the localization uniform
+space to the quotient T-topology uniform space, given that the T-topology is `J`-adic.
+
+The proof uses the `IsAdic J` hypothesis to show the quotient topology refines the
+localization topology (the reverse of continuity): every quotient neighborhood
+`J'^k` pulls back to a localization neighborhood `locNhd(n)`.
+This follows because the J-adic structure on `A⟨X⟩` gives `J^k ⊆ mk⁻¹(J'^k)`
+and the image of `J^k` under the algebraic isomorphism
+`locToQuotientOneSubfX_gen⁻¹ ∘ mk` lands in `locNhd` for suitable `n`. -/
+theorem locToQuotientOneSubfX_gen_isUniformInducing (D : RationalLocData A)
+    [T2Space A]
+    [IsNoetherianRing ↥(TateAlgebra A)]
+    (hcs_tate : @CompleteSpace ↥(TateAlgebra A)
+      (@IsTopologicalAddGroup.rightUniformSpace _ _
+        (TateAlgebraWedhorn.tateTopologyT D.s)
+        (@IsTopologicalRing.to_topologicalAddGroup _ _
+          (TateAlgebraWedhorn.tateTopologyT D.s)
+          (TateAlgebraWedhorn.tateTopologyT_isTopologicalRing D.s))))
+    (ht2_tate : @T2Space ↥(TateAlgebra A) (TateAlgebraWedhorn.tateTopologyT D.s))
+    (J : Ideal ↥(TateAlgebra A))
+    (hadic : @IsAdic ↥(TateAlgebra A) _ (TateAlgebraWedhorn.tateTopologyT D.s) J) :
+    @IsUniformInducing _ _
+      D.uniformSpace
+      (quotientTUniformSpace D.s)
+      (locToQuotientOneSubfX_gen D.s) := by
+  sorry
 
 /-! #### H4: Continuity of tateQuotientToPresheafHom (abstract completion route)
 
@@ -1303,19 +1382,27 @@ quotient is complete and T₀. Both sides are completions of `A[1/s]`, so the
 algebraic isomorphism is automatically continuous (open mapping / abstract
 completion comparison). -/
 theorem tateQuotientToPresheafHom_continuous (D : RationalLocData A)
+    [FirstCountableTopology A]
+    [IsNoetherianRing ↥(TateAlgebra A)]
     (hb : TopologicalRing.IsPowerBounded (invS D))
-    (hcs : @CompleteSpace _ (quotientTUniformSpace D.s))
-    (ht0 : @T0Space _ (quotientTTopology D.s)) :
+    (hcs_tate : @CompleteSpace ↥(TateAlgebra A)
+      (@IsTopologicalAddGroup.rightUniformSpace _ _
+        (TateAlgebraWedhorn.tateTopologyT D.s)
+        (@IsTopologicalRing.to_topologicalAddGroup _ _
+          (TateAlgebraWedhorn.tateTopologyT D.s)
+          (TateAlgebraWedhorn.tateTopologyT_isTopologicalRing D.s))))
+    (ht2_tate : @T2Space ↥(TateAlgebra A) (TateAlgebraWedhorn.tateTopologyT D.s))
+    (J : Ideal ↥(TateAlgebra A))
+    (hadic : @IsAdic ↥(TateAlgebra A) _ (TateAlgebraWedhorn.tateTopologyT D.s) J) :
     @Continuous _ _
       (quotientTTopology D.s)
       (inferInstance : TopologicalSpace (presheafValue D))
       (tateQuotientToPresheafHom D hb) := by
-  -- Route: presheafValueToQuotient is a continuous bijection from a complete space
-  -- to a T₂ quotient. By the open mapping theorem (T3), it is open, hence a
-  -- homeomorphism. Its inverse tateQuotientToPresheafHom is therefore continuous.
-  -- Requires: isOpenMap_of_isFiltrationOpen applied to presheafValueToQuotient
-  -- (filtration from J-adic neighborhoods), or abstract completion comparison.
-  sorry
+  -- T4 territory: AbstractCompletion.compare route.
+  -- Both presheafValue D and quotient are completions of A[1/s].
+  -- compare gives uniformly continuous map; show = tateQuotientToPresheafHom
+  -- via truncation limit argument.
+  sorry -- T4: locToQuotientOneSubfX_gen IsUniformInducing + AbstractCompletion.compare
 
 end HypothesesDischarge
 

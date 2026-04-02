@@ -1235,6 +1235,28 @@ theorem restrictionMapHom_injective
     (restrictionMapAlg_isUniformInducing D₀ D h)).isInducing.inseparable_iff.mp
       (Inseparable.of_eq hxy)).eq
 
+/-- The restriction map `restrictionMapHom D₀ D h` is topologically inducing
+(Proposition 8.15 of Wedhorn). The topology on `presheafValue D₀` equals the
+pullback of the topology on `presheafValue D` through the restriction map.
+
+**Proof**: `restrictionMapAlg D₀ D h` is `IsUniformInducing` from the localization
+uniform space to the completion uniform space. The completion extension inherits
+`IsUniformInducing` (by `isUniformInducing_extension`), hence `IsInducing`. -/
+theorem restrictionMapHom_isInducing
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    Topology.IsInducing (restrictionMapHom D₀ D h) := by
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  exact (UniformSpace.Completion.isUniformInducing_extension
+    (restrictionMapAlg_isUniformInducing D₀ D h)).isInducing
+
 /-! ### Proposition 8.15: restriction maps are rational localizations
 
 The core of Prop 8.15: for D ≤ D₀, the restriction map

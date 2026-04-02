@@ -961,6 +961,31 @@ theorem productRestriction_injective_of_laurentRefinement
   exact rationalCovering_hasSeparation P C x y
     (fun D hD => congr_fun (congr_fun hxy D) hD)
 
+/-- The product restriction is topologically inducing for nonempty coverings.
+Each restriction map to a covering piece is inducing (Prop 8.15, via
+`restrictionMapHom_isInducing`); the product of inducing maps is inducing. -/
+theorem productRestrictionSub_isInducing
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A]
+    (C : RationalCovering A) (D₀ : RationalLocData A) (hD₀ : D₀ ∈ C.covers) :
+    Topology.IsInducing (productRestrictionSub A C) := by
+  haveI : Nonempty (↥C.covers) := ⟨⟨D₀, hD₀⟩⟩
+  -- The topology on presheafValue C.base = iInf of induced topologies from each
+  -- restriction (because each restriction is inducing).
+  -- The product map is inducing iff the source topology = induced from the product,
+  -- which = iInf of induced topologies from projections (by induced_to_pi).
+  constructor
+  conv_rhs => rw [induced_to_pi]
+  -- Goal: actual_topo = iInf (fun D => induced (component D) (topo D))
+  -- Each induced (component D) (topo D) = actual_topo (restrictionMapHom is inducing)
+  -- Show each induced topology equals the actual one, then use iInf_const
+  suffices h : ∀ D : ↥C.covers,
+      TopologicalSpace.induced (fun x => productRestrictionSub A C x D) inferInstance =
+      instTopologicalSpacePresheafValue C.base by
+    simp_rw [h, iInf_const]
+  intro ⟨D, hD⟩
+  exact (restrictionMapHom_isInducing C.base D (C.hsubset D hD)).eq_induced.symm
+
 /-- Strongly noetherian Tate rings are sheafy (Theorem 8.28 of Wedhorn),
 via Laurent cover refinement (Lemma 8.34). -/
 theorem isSheafy_ofStronglyNoetherianTate_flat
@@ -970,7 +995,26 @@ theorem isSheafy_ofStronglyNoetherianTate_flat
     IsSheafy A where
   isEmbedding_productRestriction C := by
     constructor
-    · sorry
+    · -- Goal: IsInducing (productRestrictionSub A C)
+      -- Strategy: Each restriction map to a covering piece is topologically
+      -- inducing (Prop 8.15, via restrictionMapHom_isInducing). By
+      -- IsInducing.of_comp, if g . f is inducing and both are continuous,
+      -- then f is inducing. We take g = projection to any covering piece.
+      by_cases hne : C.covers.Nonempty
+      · -- Nonempty covering: use productRestrictionSub_isInducing
+        obtain ⟨D₀, hD₀⟩ := hne
+        exact productRestrictionSub_isInducing (A := A) C D₀ hD₀
+      · -- Empty covering: the product is over the empty type.
+        -- The covering condition C.hcover + empty covers forces
+        -- rationalOpen C.base = emptyset, hence presheafValue C.base
+        -- is a completion of a trivial localization (subsingleton).
+        -- IsInducing into the empty product requires the discrete topology,
+        -- which holds on a subsingleton.
+        --
+        -- BLOCKED: requires showing empty covering + Tate domain forces
+        -- presheafValue C.base to be a subsingleton. This is a degenerate
+        -- case that never arises for coverings used in IsSheafy.
+        sorry
     · intro x y hxy
       exact rationalCovering_hasSeparation P C x y (fun D hD => congr_fun hxy ⟨D, hD⟩)
   gluing C f hcompat :=
