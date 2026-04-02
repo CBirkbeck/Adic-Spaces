@@ -787,77 +787,80 @@ private theorem algebraMap_zero_of_radical_ann
   exact (IsUnit.mul_right_eq_zero (IsUnit.pow N hs_unit)).mp hmul
 
 /-- If `z = C.base.canonicalMap a` and the product restriction kills `z`,
-then `e_base z = 0`. -/
+then `e_base z = 0`.
+
+The proof uses `rationalCovering_hasSeparation` from the Laurent refinement route:
+the product restriction being zero on all covering pieces implies the element is zero
+in `presheafValue C.base`, hence its image under `e_base` is zero. -/
 theorem tateQuotientProductRestriction_injective_on_algebraMap
-    [NonarchimedeanRing A]
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)
     (e_base : presheafValue C.base ≃+*
       (↥(TateAlgebra A) ⧸ oneSubfXIdeal C.base.s))
-    (e_cover : ∀ D ∈ C.covers, presheafValue D ≃+*
+    (_e_cover : ∀ D ∈ C.covers, presheafValue D ≃+*
       (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s))
-    (compat_base : ∀ a : A, e_base (C.base.canonicalMap a) =
+    (_compat_base : ∀ a : A, e_base (C.base.canonicalMap a) =
       (Ideal.Quotient.mk _) (algebraMap A _ a))
-    (compat_cover : ∀ (D : RationalLocData A) (hD : D ∈ C.covers) (a : A),
-      (e_cover D hD) (D.canonicalMap a) =
+    (_compat_cover : ∀ (D : RationalLocData A) (hD : D ∈ C.covers) (a : A),
+      (_e_cover D hD) (D.canonicalMap a) =
         (Ideal.Quotient.mk _) (algebraMap A _ a))
-    (hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+    (_hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
       ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp)
     (a : A)
     (hker : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
       productRestriction A C (C.base.canonicalMap a) D hD = 0) :
     e_base (C.base.canonicalMap a) = 0 := by
-  have hcan : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
-      D.canonicalMap a = 0 := by
-    intro D hD
-    have hz := hker D hD
-    change restrictionMap C.base D (C.hsubset D hD) (C.base.canonicalMap a) = 0 at hz
-    unfold restrictionMap restrictionMapHom at hz
-    letI := C.base.uniformSpace
-    letI := C.base.isTopologicalRing
-    letI := C.base.isUniformAddGroup
-    letI := D.uniformSpace
-    letI := D.isTopologicalRing
-    letI := D.isUniformAddGroup
-    rw [show C.base.canonicalMap a = C.base.coeRingHom (algebraMap A _ a) from rfl] at hz
-    erw [UniformSpace.Completion.extensionHom_coe
-      (restrictionMapAlg C.base D (C.hsubset D hD))
-      (restrictionMapAlg_continuous
-        C.base D (C.hsubset D hD))] at hz
-    simp only [restrictionMapAlg, IsLocalization.Away.lift_eq] at hz
-    exact hz
-  have hker_Q : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
-      (Ideal.Quotient.mk (oneSubfXIdeal D.s))
-        (algebraMap A _ a) = 0 := by
-    intro D hD
-    rw [← compat_cover D hD a, hcan D hD, map_zero]
-  sorry
+  have hzero : C.base.canonicalMap a = 0 :=
+    rationalCovering_hasSeparation P C (C.base.canonicalMap a) 0 (fun D hD => by
+      show restrictionMap C.base D (C.hsubset D hD) (C.base.canonicalMap a) =
+        restrictionMap C.base D (C.hsubset D hD) 0
+      rw [show restrictionMap C.base D (C.hsubset D hD) 0 =
+        (0 : presheafValue D) from map_zero (restrictionMapHom C.base D (C.hsubset D hD))]
+      exact hker D hD)
+  rw [hzero, map_zero]
 
 /-- The product restriction, transferred to Tate algebra quotients via the isomorphism,
-has trivial kernel (Theorem 8.28 of Wedhorn). -/
+has trivial kernel (Theorem 8.28 of Wedhorn).
+
+The proof uses `rationalCovering_hasSeparation` from the Laurent refinement route:
+the product restriction being zero on all covering pieces implies the element is zero
+in `presheafValue C.base`, hence its image under `e_base` is zero. -/
 theorem tateQuotientProductRestriction_injective
-    [NonarchimedeanRing A]
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)
-    (e_base : presheafValue C.base ≃+*
+    (_e_base : presheafValue C.base ≃+*
       (↥(TateAlgebra A) ⧸ oneSubfXIdeal C.base.s))
-    (e_cover : ∀ D ∈ C.covers, presheafValue D ≃+*
+    (_e_cover : ∀ D ∈ C.covers, presheafValue D ≃+*
       (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s))
-    (compat_base : ∀ a : A, e_base (C.base.canonicalMap a) =
+    (_compat_base : ∀ a : A, _e_base (C.base.canonicalMap a) =
       (Ideal.Quotient.mk _) (algebraMap A _ a))
-    (compat_cover : ∀ (D : RationalLocData A) (hD : D ∈ C.covers) (a : A),
-      (e_cover D hD) (D.canonicalMap a) =
+    (_compat_cover : ∀ (D : RationalLocData A) (hD : D ∈ C.covers) (a : A),
+      (_e_cover D hD) (D.canonicalMap a) =
         (Ideal.Quotient.mk _) (algebraMap A _ a))
-    (hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+    (_hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
       ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp)
     (z : presheafValue C.base)
     (hker : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
       productRestriction A C z D hD = 0) :
-    e_base z = 0 := by
-  sorry
+    _e_base z = 0 := by
+  have hzero : z = 0 :=
+    rationalCovering_hasSeparation P C z 0 (fun D hD => by
+      show restrictionMap C.base D (C.hsubset D hD) z =
+        restrictionMap C.base D (C.hsubset D hD) 0
+      rw [show restrictionMap C.base D (C.hsubset D hD) 0 =
+        (0 : presheafValue D) from map_zero (restrictionMapHom C.base D (C.hsubset D hD))]
+      exact hker D hD)
+  rw [hzero, map_zero]
 
 /-- The product restriction is injective for strongly noetherian Tate rings
 (Theorem 8.28 of Wedhorn, separation component via TopologyComparison). -/
 theorem separation_ofStronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    [FirstCountableTopology A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)
     (hb_base : TopologicalRing.IsPowerBounded (invS C.base))
@@ -898,7 +901,7 @@ theorem separation_ofStronglyNoetherianTate
   suffices hq : q = 0 by
     have : e_base z = 0 := hq
     exact e_base.injective (this.trans (map_zero e_base.toRingHom).symm)
-  exact tateQuotientProductRestriction_injective (A := A) C e_base
+  exact tateQuotientProductRestriction_injective (A := A) P C e_base
     (fun D hD => presheafValueTateQuotientEquiv D (hb_all D)
       (hcs_cover D hD) (ht0_cover D hD) (hcont_cover D hD) (hdense_cover D hD))
     (fun a => presheafValueTateQuotientEquiv_canonicalMap C.base
@@ -1004,17 +1007,13 @@ theorem isSheafy_ofStronglyNoetherianTate_flat
       · -- Nonempty covering: use productRestrictionSub_isInducing
         obtain ⟨D₀, hD₀⟩ := hne
         exact productRestrictionSub_isInducing (A := A) C D₀ hD₀
-      · -- Empty covering: the product is over the empty type.
-        -- The covering condition C.hcover + empty covers forces
-        -- rationalOpen C.base = emptyset, hence presheafValue C.base
-        -- is a completion of a trivial localization (subsingleton).
-        -- IsInducing into the empty product requires the discrete topology,
-        -- which holds on a subsingleton.
-        --
-        -- BLOCKED: requires showing empty covering + Tate domain forces
-        -- presheafValue C.base to be a subsingleton. This is a degenerate
-        -- case that never arises for coverings used in IsSheafy.
-        sorry
+      · -- Empty covering: presheafValue C.base is a subsingleton.
+        -- When C.covers is empty, rationalCovering_hasSeparation gives
+        -- x = y for all x y (the hypothesis is vacuously true).
+        haveI : Subsingleton (presheafValue C.base) :=
+          ⟨fun x y => rationalCovering_hasSeparation P C x y
+            (fun D hD => absurd ⟨D, hD⟩ hne)⟩
+        exact IsInducing.of_subsingleton _
     · intro x y hxy
       exact rationalCovering_hasSeparation P C x y (fun D hD => congr_fun hxy ⟨D, hD⟩)
   gluing C f hcompat :=
