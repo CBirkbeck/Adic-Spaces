@@ -61,11 +61,11 @@ Check which applies to our completed Tate rings.
 
 | Ticket | Status | Agent | Started | Completed | Notes |
 |--------|--------|-------|---------|-----------|-------|
-| T1 | IN PROGRESS | claude-opus | 2026-04-02 | — | Row 3 infra + diagram chase done. Topology diamond FIXED (htop param). Summability proved. 5 inner sorries: 2 restrictedness, 1 witness, 1 Row 1 surj. All concrete/outlined. |
+| T1 | IN PROGRESS | claude-opus | 2026-04-02 | — | Row 3 + summability + restrictedness done. 2 sorries: (1) witness for (XY-1) membership, (2) Row 1 surjectivity |
 | T2 | DONE | claude | 2026-04-02 | 2026-04-02 | Bridge: completionLocSubringEquiv + range theorem |
 | T3 | DONE | claude | 2026-04-02 | 2026-04-02 | OpenMapping.lean: filtration-open + strict exact package |
-| T4 | IN PROGRESS | claude | 2026-04-02 | — | Reworked: removed false evalHomBounded_continuous (T-top too coarse). 3 sorrys remain, all reduce to Prop 6.18 (T-top = J-adic). TateAlgebraWedhorn 0 sorry. |
-| T5 | NOT STARTED | — | — | — | Strictness + topological embedding. NOTE: T4 no longer blocking — T5 can use filtration route (T3 Route 2) directly with T1+T3. |
+| T4 | IN PROGRESS | claude | 2026-04-02 | — | Remark 6.37 proved. 2 sorrys left: locToQuotientOneSubfX_gen_isInducing (Prop 6.18 reverse continuity, ~200 lines) + tateQuotientToPresheafHom_continuous (depends on first via AbstractCompletion). TateAlgebraWedhorn 0 sorry. |
+| T5 | DONE | claude | 2026-04-02 | 2026-04-02 | IsInducing productRestriction + kernel triviality via Laurent refinement. 3 quarantined sorries (false). |
 | T6 | NOT STARTED | — | — | — | Assembly: Theorem 8.28(b) |
 
 ## Dependency Graph
