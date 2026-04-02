@@ -55,8 +55,7 @@ theorem isContinuous_of_ideal_pow_lt
   intro γ
   by_cases hγ : γ = 0
   · subst hγ; simp [not_lt_zero']
-  · have hγ_pos : (0 : Γ₀) < γ := zero_lt_iff.mpr hγ
-    obtain ⟨n, hn⟩ := h γ hγ_pos
+  · obtain ⟨n, hn⟩ := h γ (zero_lt_iff.mpr hγ)
     have h_sub : P.A₀.subtype '' ((P.I ^ n : Ideal P.A₀) : Set P.A₀) ⊆
         { a | v a < γ } := by
       rintro _ ⟨y, hy, rfl⟩
@@ -71,8 +70,7 @@ theorem isContinuous_of_ideal_pow_lt
 /-- Continuity via cofinal powers of a bound `g < 1`. -/
 theorem isContinuous_of_le_one_and_pow_cofinal
     (P : PairOfDefinition A) (v : Valuation A Γ₀)
-    (h_le : ∀ (a : P.A₀), v (P.A₀.subtype a) ≤ 1)
-    {g : Γ₀}
+    (h_le : ∀ (a : P.A₀), v (P.A₀.subtype a) ≤ 1) {g : Γ₀}
     (h_gen : ∀ (a : P.A₀), a ∈ P.I → v (P.A₀.subtype a) ≤ g)
     (h_cofinal : ∀ (γ : Γ₀), 0 < γ → ∃ n : ℕ, g ^ n < γ) :
     v.IsContinuous := by
@@ -136,15 +134,14 @@ theorem image_I_ne_top (P : PairOfDefinition A)
     {𝔭 : Ideal A} [𝔭.IsPrime] :
     Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I ≠ ⊤ := by
   haveI : (Ideal.comap P.A₀.subtype 𝔭).IsPrime := Ideal.IsPrime.comap P.A₀.subtype
-  have h_ne := P.I_sup_prime_ne_top (𝔭₀ := Ideal.comap P.A₀.subtype 𝔭)
   intro htop
-  apply h_ne; clear h_ne
-  have hsurj := (P.toFractionQuotient 𝔭).rangeRestrict_surjective
+  apply P.I_sup_prime_ne_top (𝔭₀ := Ideal.comap P.A₀.subtype 𝔭)
   have hker : RingHom.ker (P.toFractionQuotient 𝔭).rangeRestrict =
       Ideal.comap P.A₀.subtype 𝔭 := by
     rw [RingHom.ker_rangeRestrict, P.ker_toFractionQuotient]
   rw [← Ideal.map_top (f := (P.toFractionQuotient 𝔭).rangeRestrict),
-    Ideal.map_eq_iff_sup_ker_eq_of_surjective _ hsurj, top_sup_eq, hker] at htop
+    Ideal.map_eq_iff_sup_ker_eq_of_surjective _
+      (P.toFractionQuotient 𝔭).rangeRestrict_surjective, top_sup_eq, hker] at htop
   exact htop
 
 /-! ### The domination theorem applied to non-open primes -/
@@ -161,6 +158,32 @@ theorem exists_valuationSubring_of_prime (P : PairOfDefinition A)
         (Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I : Set _) ⊆ V.nonunits :=
   Ideal.image_subset_nonunits_valuationSubring _ P.image_I_ne_top
 
+/-! ### Enlarged domination with rational-open control -/
+
+omit [IsTopologicalRing A] [IsLinearTopology A A] in
+/-- **Enlarged domination.** Given a subring `R'` of `Frac(A/𝔭)` containing
+`φ(A₀).range`, with the `I`-image ideal proper in `R'`, there exists a
+valuation subring `V ⊇ R'` with `I`-images as nonunits. -/
+theorem exists_valuationSubring_of_prime_enlarged (P : PairOfDefinition A)
+    {𝔭 : Ideal A} [𝔭.IsPrime]
+    {R' : Subring (FractionRing (A ⧸ 𝔭))}
+    (hR' : (P.toFractionQuotient 𝔭).range ≤ R')
+    (hJ : Ideal.map ((P.toFractionQuotient 𝔭).codRestrict R'
+      (fun a ↦ hR' ⟨a, rfl⟩)) P.I ≠ ⊤) :
+    ∃ V : ValuationSubring (FractionRing (A ⧸ 𝔭)),
+      R' ≤ V.toSubring ∧
+      R'.subtype '' (Ideal.map ((P.toFractionQuotient 𝔭).codRestrict R'
+        (fun a ↦ hR' ⟨a, rfl⟩)) P.I : Set _) ⊆ V.nonunits :=
+  Ideal.image_subset_nonunits_valuationSubring _ hJ
+
+omit [TopologicalSpace A] [IsTopologicalRing A] [IsLinearTopology A A] in
+/-- For `x ∈ V.toSubring`, the valuation satisfies `V.valuation x ≤ 1`. -/
+theorem valuation_le_one_of_mem {𝔭 : Ideal A} [𝔭.IsPrime]
+    {V : ValuationSubring (FractionRing (A ⧸ 𝔭))}
+    {x : FractionRing (A ⧸ 𝔭)} (hx : x ∈ V.toSubring) :
+    V.valuation x ≤ 1 :=
+  V.valuation_le_one ⟨x, hx⟩
+
 /-! ### Support computation -/
 
 omit [TopologicalSpace A] [IsTopologicalRing A] [IsLinearTopology A A] in
@@ -176,13 +199,11 @@ theorem supp_comap_quotient_fractionRing {𝔭 : Ideal A} [𝔭.IsPrime]
   constructor
   · intro h
     by_contra ha
-    have hq : (Ideal.Quotient.mk 𝔭) a ≠ 0 :=
-      fun h0 ↦ ha (Ideal.Quotient.eq_zero_iff_mem.mp h0)
     have hk : (algebraMap (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭)))
         ((Ideal.Quotient.mk 𝔭) a) ≠ 0 := by
       rw [ne_eq, map_eq_zero_iff _
         (IsFractionRing.injective (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭)))]
-      exact hq
+      exact fun h0 ↦ ha (Ideal.Quotient.eq_zero_iff_mem.mp h0)
     exact hk (v.zero_iff.mp h)
   · intro h
     simp only [Ideal.Quotient.eq_zero_iff_mem.mpr h, map_zero]
@@ -219,8 +240,7 @@ omit [IsTopologicalRing A] [IsLinearTopology A A] in
 theorem pulledBackValuation_eq_valuation_toFractionQuotient (P : PairOfDefinition A)
     {𝔭 : Ideal A} [𝔭.IsPrime]
     (V : ValuationSubring (FractionRing (A ⧸ 𝔭))) (a : P.A₀) :
-    P.pulledBackValuation V (P.A₀.subtype a) = V.valuation (P.toFractionQuotient 𝔭 a) := by
-  simp only [pulledBackValuation, Valuation.comap_apply]
+    P.pulledBackValuation V (P.A₀.subtype a) = V.valuation (P.toFractionQuotient 𝔭 a) :=
   rfl
 
 omit [IsTopologicalRing A] [IsLinearTopology A A] in
@@ -276,15 +296,10 @@ theorem exists_valuationSubring_and_properties (P : PairOfDefinition A)
 
 /-- Valuation bound on `I` follows from bound on generators. -/
 theorem valuation_le_on_ideal_of_le_on_generators
-    {R : Type*} [CommRing R]
-    {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
-    {A₀ : Subring R} (v : Valuation R Γ₀)
-    (h_le : ∀ (a : A₀), v (A₀.subtype a) ≤ 1)
-    {I : Ideal A₀} {S : Finset A₀}
-    (hS : Ideal.span (↑S : Set A₀) = I)
-    {g : Γ₀}
-    (h_gen : ∀ s ∈ S, v (A₀.subtype s) ≤ g)
-    {a : A₀} (ha : a ∈ I) :
+    {R : Type*} [CommRing R] {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
+    {A₀ : Subring R} (v : Valuation R Γ₀) (h_le : ∀ (a : A₀), v (A₀.subtype a) ≤ 1)
+    {I : Ideal A₀} {S : Finset A₀} (hS : Ideal.span (↑S : Set A₀) = I)
+    {g : Γ₀} (h_gen : ∀ s ∈ S, v (A₀.subtype s) ≤ g) {a : A₀} (ha : a ∈ I) :
     v (A₀.subtype a) ≤ g := by
   rw [← hS] at ha
   induction ha using Submodule.span_induction with
@@ -321,8 +336,9 @@ theorem pulledBackValuation_isContinuous
     rw [Finset.nonempty_iff_ne_empty]
     intro hS_eq
     have hI_bot : P.I = ⊥ := by rw [← hS, hS_eq, Finset.coe_empty, Ideal.span_empty]
-    have ha₀_zero : a₀ = 0 := Ideal.mem_bot.mp (hI_bot ▸ ha₀_I)
-    exact ha₀_notp (by rw [ha₀_zero, map_zero]; exact 𝔭.zero_mem)
+    exact ha₀_notp (by
+      have : a₀ ∈ (⊥ : Ideal P.A₀) := hI_bot ▸ ha₀_I
+      rw [Ideal.mem_bot.mp this, map_zero]; exact 𝔭.zero_mem)
   set g := S.sup' hSne (fun s ↦ v (P.A₀.subtype s)) with hg_def
   have hg1 : g < 1 := (Finset.sup'_lt_iff hSne).mpr fun s hs ↦
     P.pulledBackValuation_lt_one hnonunits
@@ -379,8 +395,7 @@ noncomputable def coarsenMapOfValueGroup
   (WithZero.mapMonoidWithZeroHom (QuotientGroup.mk' H.toSubgroup)).comp
     (OrderMonoidIso.withZeroUnits (α := Γ₀)).symm.toMonoidWithZeroHom
 
-theorem coarsenMapOfValueGroup_monotone
-    (H : ConvexSubgroup Γ₀ˣ) :
+theorem coarsenMapOfValueGroup_monotone (H : ConvexSubgroup Γ₀ˣ) :
     Monotone (coarsenMapOfValueGroup H) := by
   intro a b hab
   unfold coarsenMapOfValueGroup
@@ -428,11 +443,9 @@ theorem coarsenByUnits_supp
   constructor
   · intro h
     by_contra hr
-    have hne : v r ≠ 0 := hr
-    set u := Units.mk0 (v r) hne
-    have : coarsenMapOfValueGroup H (v r) = ↑(QuotientGroup.mk' H.toSubgroup u) :=
-      coarsenMapOfValueGroup_apply_unit H u
-    rw [this] at h
+    set u := Units.mk0 (v r) hr
+    rw [show coarsenMapOfValueGroup H (v r) = coarsenMapOfValueGroup H (u : Γ₀) from rfl,
+      coarsenMapOfValueGroup_apply_unit H u] at h
     exact WithZero.coe_ne_zero h
   · intro h; rw [h, map_zero]
 
@@ -440,42 +453,29 @@ theorem coarsenByUnits_le_one_of_le_one
     (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
     {a : R} (ha : v a ≤ 1) :
     (v.coarsenByUnits H) a ≤ 1 := by
-  rw [coarsenByUnits_apply]
-  have h1 : coarsenMapOfValueGroup H 1 = 1 := map_one _
-  rw [← h1]
-  exact coarsenMapOfValueGroup_monotone H ha
+  have := coarsenMapOfValueGroup_monotone H ha
+  simp only [coarsenByUnits_apply, map_one] at this ⊢
+  exact this
 
-/-- If `v(a) ≠ 0`, `Units.mk0 (v a) ∉ H`, and `v(a) ≤ 1`, then `(v.coarsenByUnits H)(a) < 1`.
-
-The unit part of `v(a)` is not in `H` and `≤ 1`, hence `< 1` (since `1 ∈ H`).
-The quotient projection then sends it strictly below `1`. -/
+/-- If `v(a) ≠ 0`, `Units.mk0 (v a) ∉ H`, and `v(a) ≤ 1`,
+then `(v.coarsenByUnits H)(a) < 1`. -/
 theorem coarsenByUnits_lt_one_of_not_mem
     (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
     {a : R} (ha_ne : v a ≠ 0)
     (ha_not_mem : Units.mk0 (v a) ha_ne ∉ H) (ha_le : v a ≤ 1) :
     v.coarsenByUnits H a < 1 := by
   set u := Units.mk0 (v a) ha_ne with hu_def
-  have hu_ne : u ≠ 1 :=
-    fun h ↦ ha_not_mem (h ▸ H.toSubgroup.one_mem)
-  have hu_lt : u < 1 :=
-    lt_of_le_of_ne (Units.val_le_val.mp ha_le) (fun h ↦ hu_ne h)
-  have hva_eq : v a = (u : Γ₀) := rfl
-  rw [coarsenByUnits_apply, hva_eq, coarsenMapOfValueGroup_apply_unit H u]
+  have hu_lt : u < 1 := lt_of_le_of_ne (Units.val_le_val.mp ha_le)
+    (fun h ↦ ha_not_mem (h ▸ H.toSubgroup.one_mem))
+  rw [coarsenByUnits_apply, show v a = (u : Γ₀) from rfl, coarsenMapOfValueGroup_apply_unit H u]
   exact WithZero.coe_lt_one.mpr (H.quotientMk_lt_one_of_not_mem hu_lt ha_not_mem)
 
 /-! ### Restriction of a valuation to a convex subgroup (Wedhorn's retraction 7.1.2) -/
 
 open Classical in
-/-- **Restriction of a valuation to a convex subgroup.**
-
-For `v : Valuation R Γ₀` with `∀ r, v r ≤ 1` and a convex subgroup `H` of `Γ₀ˣ`,
-the restricted valuation keeps values whose unit part is in `H` and zeros out the rest.
-
-This is Wedhorn's retraction `r(v) = v_{|cΓ_v(I)}` from (7.1.2). Unlike coarsening
-(which quotients by H), restriction KEEPS H as the value group. The cofinal property
-holds automatically when `H = convexGenerated(y)` (by `exists_inv_pow_lt_of_mem_convexGenerated`).
-
-**Requires:** `∀ r, v r ≤ 1` — without this, multiplicativity can fail. -/
+/-- **Restriction of a valuation to a convex subgroup** (Wedhorn 7.1.2).
+The restricted valuation keeps values whose unit part is in `H` and zeros out the rest.
+Requires `∀ r, v r ≤ 1` for multiplicativity. -/
 noncomputable def restrictToConvex
     (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
     (hle : ∀ r : R, v r ≤ 1) :
@@ -489,16 +489,15 @@ noncomputable def restrictToConvex
     simp only [map_one]
     have h1 : (1 : Γ₀) ≠ 0 := one_ne_zero
     have hm : Units.mk0 (1 : Γ₀) h1 ∈ H := by
-      have : Units.mk0 (1 : Γ₀) h1 = 1 := Units.ext rfl
-      rw [this]; exact one_mem H
+      rw [show Units.mk0 (1 : Γ₀) h1 = 1 from Units.ext rfl]; exact one_mem H
     simp only [h1, dite_false, dif_pos hm,
       show (1 : WithZero H.toSubgroup) = ((1 : H.toSubgroup) : WithZero H.toSubgroup) from rfl]
     congr 1; exact Subtype.ext (Units.ext rfl)
   map_mul' x y := by
     have not_mem_of_le' {u w : Γ₀ˣ} (hu : u ∉ H) (hu1 : u ≤ 1) (hw1 : w ≤ u) : w ∉ H :=
-      fun hw_mem => hu (H.convex hw_mem (one_mem H) hw1 hu1)
+      fun hw_mem ↦ hu (H.convex hw_mem (one_mem H) hw1 hu1)
     have unit_le_one' : ∀ (r : R) (hr : v r ≠ 0), Units.mk0 (v r) hr ≤ 1 :=
-      fun r hr => Units.val_le_val.mp (hle r)
+      fun r hr ↦ Units.val_le_val.mp (hle r)
     by_cases hx : v x = 0
     · have hxy : v (x * y) = 0 := by rw [map_mul, hx, zero_mul]
       simp only [hxy, hx, dif_pos, zero_mul]
@@ -529,8 +528,7 @@ noncomputable def restrictToConvex
       simp only [hx, hy, hxy_ne, dif_neg, dif_neg hmx, dif_pos hmy, dif_neg hmxy, not_false_eq_true,
         zero_mul]
     · have hmxy : Units.mk0 (v (x * y)) hxy_ne ∉ H := by
-        rw [huxy_eq]
-        intro hmem
+        rw [huxy_eq]; intro hmem
         have hle_ux : Units.mk0 (v x) hx * Units.mk0 (v y) hy ≤ Units.mk0 (v x) hx :=
           Units.val_le_val.mp (show (v x) * (v y) ≤ v x from by
             calc v x * v y ≤ v x * 1 := mul_le_mul_right (hle y) (v x)
@@ -539,7 +537,7 @@ noncomputable def restrictToConvex
       simp only [hx, hy, hxy_ne, dif_neg, dif_neg hmx, dif_neg hmy, dif_neg hmxy, not_false_eq_true,
         mul_zero]
   map_add_le_max' x y := by
-    set f : R → WithZero H.toSubgroup := fun r =>
+    set f : R → WithZero H.toSubgroup := fun r ↦
       if h : v r = 0 then 0
       else if hm : Units.mk0 (v r) h ∈ H then some ⟨Units.mk0 (v r) h, hm⟩
       else 0
@@ -573,7 +571,7 @@ noncomputable def restrictToConvex
 section RestrictToConvexAPI
 
 open Classical in
--- Unfold `restrictToConvex` application to the underlying `dite` chain.
+/-- Unfold `restrictToConvex` application to the underlying `dite` chain. -/
 theorem restrictToConvex_unfold
     (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
     (hle : ∀ r : R, v r ≤ 1) (r : R) :

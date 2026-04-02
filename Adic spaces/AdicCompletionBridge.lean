@@ -5,6 +5,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import Mathlib.RingTheory.AdicCompletion.Basic
 import Mathlib.RingTheory.AdicCompletion.Topology
 import Mathlib.RingTheory.AdicCompletion.Algebra
+import Mathlib.RingTheory.AdicCompletion.Exactness
+import Mathlib.RingTheory.AdicCompletion.AsTensorProduct
 import Mathlib.Topology.UniformSpace.AbstractCompletion
 import Mathlib.Topology.UniformSpace.Completion
 import Mathlib.Topology.Algebra.UniformRing
@@ -47,16 +49,15 @@ variable {R : Type u} [CommRing R] (I : Ideal R)
 /-- For a ring `R` as a module over itself: `I^n • ⊤ = I^n`. -/
 theorem ideal_smul_top_eq_self (n : ℕ) :
     (I ^ n • (⊤ : Submodule R R) : Submodule R R) = ↑(I ^ n) := by
-  ext x; constructor
+  ext x
+  constructor
   · intro hx
-    refine Submodule.smul_induction_on hx (fun a ha r _ => ?_) (fun _ _ h1 h2 => ?_)
-    · change a * r ∈ (I ^ n : Ideal R)
-      exact Ideal.mul_mem_right r _ ha
-    · exact (I ^ n).add_mem h1 h2
+    exact Submodule.smul_induction_on hx (fun a ha r _ => Ideal.mul_mem_right r _ ha)
+      fun _ _ h1 h2 => (I ^ n).add_mem h1 h2
   · intro hx
-    have : x = x • (1 : R) := (mul_one x).symm
-    rw [this]
-    exact Submodule.smul_mem_smul hx Submodule.mem_top
+    have : x * 1 ∈ (I ^ n • (⊤ : Submodule R R) : Submodule R R) :=
+      Submodule.smul_mem_smul hx Submodule.mem_top
+    rwa [mul_one] at this
 
 /-! ### Discrete topology on quotients -/
 
@@ -114,7 +115,6 @@ instance adicCompletionT0 : @T0Space (AdicCompletion I R)
   constructor
   intro ⟨f, hf⟩ ⟨g, hg⟩ hinsep
   ext n
-  -- Inseparable in subtype → inseparable in Pi → pointwise inseparable → equal (discrete)
   have hpi : @Inseparable _ Pi.topologicalSpace
       (⟨f, hf⟩ : AdicCompletion I R).val (⟨g, hg⟩ : AdicCompletion I R).val :=
     Inseparable.map hinsep continuous_subtype_val
@@ -127,6 +127,7 @@ private def adicCompletionSet :
   {f | ∀ {m n : ℕ} (hmn : m ≤ n),
     (AdicCompletion.transitionMap I R hmn) (f n) = f m}
 
+omit [UniformSpace R] [IsUniformAddGroup R] [IsTopologicalRing R] in
 private theorem adicCompletionSet_isClosed : IsClosed (adicCompletionSet I) := by
   unfold adicCompletionSet
   have : {g : ∀ k, R ⧸ (I ^ k • (⊤ : Submodule R R)) |
@@ -153,205 +154,102 @@ section Bridge
 
 variable [UniformSpace R] [IsUniformAddGroup R] [IsTopologicalRing R]
 
+omit [IsTopologicalRing R] in
 /-- `AdicCompletion.of I R` is uniform inducing for the I-adic uniformity
 on `R` and the subtype uniformity on `AdicCompletion I R`. -/
 theorem of_isUniformInducing (hadic : IsAdic I) :
     @IsUniformInducing R (AdicCompletion I R) _ (adicCompletionUniformSpace I)
       (AdicCompletion.of I R) := by
   constructor
-  -- Need: comap (Prod.map of of) 𝓤(AdicCompletion) = 𝓤 R
-  -- Both uniformities have basis: {(a,b) | a - b ∈ I^n} for each n.
-  -- LHS: subtype of Pi-discrete, pulled back via of.
-  -- RHS: I-adic uniformity (from IsAdic I).
-  -- Get the adic nhds basis for nhds 0 (using hadic to align topologies)
   have hbasis_nhds : (𝓝 (0 : R)).HasBasis (fun (_ : ℕ) => True)
       (fun n => ((I ^ n : Ideal R) : Set R)) := by
     have h : @nhds R _ 0 = @nhds R I.adicTopology 0 := by rw [hadic]
     rw [h]; convert Ideal.hasBasis_nhds_adic I (0 : R) using 1
     funext n; simp [zero_add, Set.image_id']
-  -- Get the uniformity basis: {(a,b) | b - a ∈ I^n}
   have hbasis_unif := hbasis_nhds.uniformity_of_nhds_zero
-  -- hbasis_unif : 𝓤 R has basis (fun n => {p | p.2 - p.1 ∈ I^n})
-  -- Both 𝓤 R and comap have the same basis: {(a,b) | b-a ∈ I^n}.
-  -- Use HasBasis.eq_of_same_basis to conclude equality.
-  -- Step 1: Show the comap has this basis.
   have hbasis_comap : (Filter.comap (fun x =>
       ((AdicCompletion.of I R) x.1, (AdicCompletion.of I R) x.2))
-      (𝓤 (AdicCompletion I R))).HasBasis
-      (fun (_ : ℕ) => True)
+      (𝓤 (AdicCompletion I R))).HasBasis (fun (_ : ℕ) => True)
       (fun n => {x : R × R | x.2 - x.1 ∈ (I ^ n : Ideal R)}) := by
     constructor; intro U; constructor
-    · -- U ∈ comap → ∃ n, True ∧ basis_n ⊆ U
-      intro hU
-      -- Extract V from comap, W from Pi uniformity, S from finite iInf.
+    · intro hU
       obtain ⟨V, hV, hVU⟩ := Filter.mem_comap.mp hU
       obtain ⟨W, hW, hWV⟩ := Filter.mem_comap.mp hV
-      rw [Pi.uniformity] at hW
-      -- W ∈ ⨅ i, F_i. By mem_iInf: ∃ finite I, ∃ V, (∀ i, V i ∈ F_i) ∧ W = ⋂ V.
-      rw [Filter.mem_iInf] at hW
+      rw [Pi.uniformity, Filter.mem_iInf] at hW
       obtain ⟨S, hSfin, V_fn, hV_mem, hW_eq⟩ := hW
-      -- Take n = max of S (or 0 if empty).
-      -- S : Set ℕ, V_fn : S → Set (Pi × Pi), hW_eq : W = ⋂ i, V_fn i
-      -- Each V_fn ⟨i, hi⟩ ∈ comap (proj_i × proj_i) 𝓤(Q_i).
-      -- So V_fn ⟨i, hi⟩ ⊇ {(f,g) | f i = g i}.
-      -- W = ⋂ V_fn ⟨i, hi⟩ ⊇ ⋂_{i ∈ S} {agree at i}.
-      -- On AdicCompletion: {agree at max(S)} ⊆ {agree at i} for i ∈ S.
-      -- So W ⊇ {agree at max(S)}.
-      -- Pull back: U ⊇ {(a,b) | b-a ∈ I^max(S)}.
       refine ⟨hSfin.toFinset.sup id, trivial, ?_⟩
       intro ⟨a, b⟩ (hab : b - a ∈ (I ^ hSfin.toFinset.sup id : Ideal R))
       apply hVU; apply hWV; rw [hW_eq]
-      -- Need: ((of a).val, (of b).val) ∈ ⋂ i, V_fn i
       apply Set.mem_iInter.mpr; intro ⟨i, hi⟩
-      -- Need: ((of a).val, (of b).val) ∈ V_fn ⟨i, hi⟩
-      -- V_fn ⟨i, hi⟩ ∈ comap (proj_i × proj_i) 𝓤(Q_i)
       obtain ⟨D_i, hD_i, hD_V⟩ := Filter.mem_comap.mp (hV_mem ⟨i, hi⟩)
       apply hD_V
-      -- Need: ((of a).val i, (of b).val i) ∈ D_i
-      -- D_i ∈ 𝓤(Q_i) = principal diagonal. So D_i ⊇ diagonal.
-      -- (of a).val i = (of b).val i (from hab + eval_agree_of_le).
       have hle : i ≤ hSfin.toFinset.sup id :=
         Finset.le_sup (f := id) (hSfin.mem_toFinset.mpr hi)
       have hsub : b - a ∈ (I ^ i : Ideal R) := Ideal.pow_le_pow_right hle hab
-      -- Show eval agreement: (of a).val i = (of b).val i
       have heval_eq : (AdicCompletion.of I R a).val i =
           (AdicCompletion.of I R b).val i := by
         change AdicCompletion.eval I R i (AdicCompletion.of I R a) =
           AdicCompletion.eval I R i (AdicCompletion.of I R b)
-        rw [AdicCompletion.eval_of, AdicCompletion.eval_of]
-        rw [← sub_eq_zero, ← map_sub]
+        rw [AdicCompletion.eval_of, AdicCompletion.eval_of, ← sub_eq_zero, ← map_sub]
         apply (Submodule.Quotient.mk_eq_zero _).mpr
         rw [ideal_smul_top_eq_self]
-        exact (I ^ i).neg_mem_iff.mp (show -(a - b) ∈ (I ^ i : Ideal R) by rwa [neg_sub])
-      -- Now show the pair is in (proj_i × proj_i)⁻¹(D_i).
-      show ((AdicCompletion.of I R a).val i, (AdicCompletion.of I R b).val i) ∈ D_i
+        exact (I ^ i).neg_mem_iff.mp (by rwa [neg_sub])
+      change ((AdicCompletion.of I R a).val i, (AdicCompletion.of I R b).val i) ∈ D_i
       rw [heval_eq]; exact refl_mem_uniformity hD_i
-    · -- ∃ n, True ∧ basis_n ⊆ U → U ∈ comap
-      rintro ⟨n, -, hn⟩
+    · rintro ⟨n, -, hn⟩
       apply Filter.mem_comap.mpr
       refine ⟨{p | AdicCompletion.eval I R n p.1 =
         AdicCompletion.eval I R n p.2}, eval_entourage_mem I n, ?_⟩
       intro ⟨a, b⟩ hab
-      apply hn; show b - a ∈ (I ^ n : Ideal R)
+      apply hn; change b - a ∈ (I ^ n : Ideal R)
       simp only [Set.mem_preimage, Set.mem_setOf_eq] at hab
       rw [AdicCompletion.eval_of, AdicCompletion.eval_of] at hab
       have hmem := (Submodule.Quotient.eq (I ^ n • ⊤)).mp hab
       rw [ideal_smul_top_eq_self] at hmem
-      exact (I ^ n).neg_mem_iff.mp (show -(b - a) ∈ (I ^ n : Ideal R) by rwa [neg_sub])
+      exact (I ^ n).neg_mem_iff.mp (by rwa [neg_sub])
   exact hbasis_unif.eq_of_same_basis hbasis_comap |>.symm
 
+omit [IsUniformAddGroup R] [IsTopologicalRing R] in
 /-- `AdicCompletion.of I R` has dense range in the subtype topology. -/
-theorem of_denseRange (hadic : IsAdic I) :
+theorem of_denseRange (_hadic : IsAdic I) :
     @DenseRange (AdicCompletion I R) (adicCompletionUniformSpace I).toTopologicalSpace
       R (AdicCompletion.of I R) := by
-  -- For each x : AdicCompletion, construct a sequence of(r_n) → x.
-  -- r_n = representative of x.val n. Then of(r_n) agrees with x at levels ≤ n.
-  -- Hence of(r_n) → x in the Pi-discrete topology → x ∈ closure(range of).
   intro x
-  -- Choose r_n for each n
   choose r hr using fun n => Submodule.Quotient.mk_surjective (I ^ n • ⊤) (x.val n)
-  -- hr n : (I ^ n • ⊤).mkQ (r n) = x.val n
-  -- U ∈ nhds x (subtype). So val⁻¹(some Pi open) ⊆ U with x in it.
-  -- Decompose using the uniformity basis: U ⊇ ball(x, E) for E ∈ 𝓤.
-  -- E ∈ 𝓤(AC) = subtype of Pi-discrete.
-  -- Ball: {y | (x,y) ∈ E}. E ⊇ {(a,b) | a.val n = b.val n} for some n.
-  -- Ball ⊇ {y | y.val n = x.val n}.
-  -- of(r n) has: (of (r n)).val n = mkQ_n(r n) = x.val n (by hr n + eval_of).
-  -- So of(r n) ∈ ball(x, E) ⊆ U. And of(r n) ∈ range(of). Done.
-  --
-  -- Formalize: extract entourage from nhds, find n, use r n.
-  -- Use eval_entourage_mem: {(a,b) | eval n a = eval n b} ∈ 𝓤(AC).
-  -- Ball(x, this entourage) = {y | eval n y = eval n x} = {y | y.val n = x.val n}.
-  -- This is a nhd of x (entourage ball is always a nhd).
-  -- of(r n) is in this set: (of (r n)).val n = mkQ_n(r n) = x.val n (by hr n + eval_of).
-  -- So of(r n) ∈ ball(x, entourage) and of(r n) ∈ range(of).
-  -- The ball is a nhd ⊆ U for some n... but we need U-specific n.
-  -- Actually: U is already a nhd. We need U ∩ range(of) ≠ ∅.
-  -- If U ⊇ ball(x, E_n) for some n: use r n.
-  -- Since nhds x has basis from uniformity balls:
-  -- U ∈ nhds x means U ⊇ ball(x, E) for some E ∈ 𝓤.
-  -- E ∈ 𝓤(AC). Using the IsUniformInducing proof infrastructure:
-  -- E contains an entourage of the form {(a,b) | ∀ i ∈ S, a.val i = b.val i} for finite S.
-  -- Ball(x, this) = {y | ∀ i ∈ S, y.val i = x.val i}.
-  -- Use r (max S): of(r (max S)).val i = mkQ_i(r(max S)) = transition(x.val (max S)) = x.val i.
-  -- The last step uses x.property and eval_of.
-  -- So of(r (max S)) ∈ ball ⊆ U. Done.
-  --
-  -- But extracting S from E ∈ 𝓤(AC) is the same filter plumbing issue!
-  -- Let me just use the `eval_entourage_mem` directly.
-  -- For each n: ball(x, eval_n_entourage) is a nhd of x.
-  -- So nhds x has basis including these balls.
-  -- If U ∈ nhds x: U ⊇ some ball. But which?
-  --
-  -- SIMPLER: just show {of(r n) | n} has x as a cluster point (limit along atTop).
-  -- of(r n) → x along atTop (in the subtype topology):
-  -- For each basic nhd {y | y.val m = x.val m} of x (at coordinate m):
-  -- For n ≥ m: of(r n).val m = transition(mkQ_n(r n)) = transition(x.val n) = x.val m.
-  -- So eventually (for n ≥ m): of(r n) ∈ the basic nhd.
-  -- Hence of(r n) → x.
-  -- x ∈ closure(range of) because it's a limit of elements in range(of).
-  --
-  -- In Lean: use Filter.Tendsto + mem_closure_of_tendsto.
   have htendsto : Filter.Tendsto (fun n => AdicCompletion.of I R (r n))
       Filter.atTop (@nhds _ (adicCompletionUniformSpace I).toTopologicalSpace x) := by
-    -- Tendsto in subtype = tendsto of val in Pi = pointwise tendsto.
-    -- Use tendsto_subtype_rng: tendsto to subtype iff tendsto of val to Pi.
-    rw [Filter.Tendsto]
-    simp only [Filter.map_le_iff_le_comap]
-    -- Now need: atTop ≤ comap (of ∘ r) (nhds x).
-    -- nhds x in the subtype topology = comap val (nhds (val x)) in Pi.
-    -- Pull back: comap (val ∘ of ∘ r) (nhds (val x)) in Pi.
-    -- In Pi-discrete: this is ⨅ m, comap (eval m ∘ val ∘ of ∘ r) (nhds (val x m)).
-    -- For discrete: nhds = pure. So eventually (of(r n)).val m = x.val m.
-    rw [Filter.le_def]
+    rw [Filter.Tendsto, Filter.map_le_iff_le_comap, Filter.le_def]
     intro U hU
-    -- U ∈ comap (of ∘ r) (nhds x). Need U ∈ atTop.
     rw [Filter.mem_comap] at hU
     obtain ⟨V, hV, hVU⟩ := hU
-    -- V ∈ nhds x (subtype). Decompose using uniformity basis.
-    -- nhds x has basis: ball(x, E) for E ∈ 𝓤.
-    -- E ∈ 𝓤(AC) contains {(a,b) | a.val n = b.val n} for some n (from the iInf).
-    -- ball(x, E) ⊇ {y | y.val n = x.val n}.
-    -- For m ≥ n: (of (r m)).val n = transition(mkQ_m(r m)) = transition(x.val m) = x.val n.
-    -- So of(r m) ∈ ball(x, E) ⊆ V for m ≥ n. Hence of(r m) ⁻¹ ∈ V ⁻¹ ⊆ U for m ≥ n.
-    -- So U ∈ atTop (eventually for m ≥ n).
-    --
-    -- To formalize: extract n from V ∈ nhds x using the uniformity + iInf structure.
-    -- This is the SAME filter extraction as before.
-    -- Let me use nhds_eq_comap_uniformity and then the iInf decomposition.
     rw [@nhds_eq_comap_uniformity _ (adicCompletionUniformSpace I)] at hV
     obtain ⟨E, hE, hEV⟩ := Filter.mem_comap.mp hV
-    -- E ∈ 𝓤(AC). Extract finite coordinate set.
     obtain ⟨W, hW, hWE⟩ := Filter.mem_comap.mp hE
     rw [Pi.uniformity] at hW
     obtain ⟨S, hSfin, V_fn, hV_fn, hW_eq⟩ := (Filter.mem_iInf).mp hW
-    -- Take n = hSfin.toFinset.sup id
     apply Filter.mem_atTop_sets.mpr
     refine ⟨hSfin.toFinset.sup id, fun m hm => hVU ?_⟩
     apply hEV; apply hWE; rw [hW_eq]; apply Set.mem_iInter.mpr
     intro ⟨i, hi⟩
     obtain ⟨D_i, hD_i, hD_V⟩ := Filter.mem_comap.mp (hV_fn ⟨i, hi⟩)
     apply hD_V
-    show (x.val i, (AdicCompletion.of I R (r m)).val i) ∈ D_i
+    change (x.val i, (AdicCompletion.of I R (r m)).val i) ∈ D_i
     have hle : i ≤ hSfin.toFinset.sup id :=
       Finset.le_sup (f := id) (hSfin.mem_toFinset.mpr hi)
     have hle_m : i ≤ m := le_trans hle hm
-    -- (of (r m)).val i = transition(mkQ_m(r m)) = transition(x.val m) = x.val i
     have heval : (AdicCompletion.of I R (r m)).val i = x.val i := by
       have h1 := (AdicCompletion.of I R (r m)).property hle_m
       have h2 := x.property hle_m
       change AdicCompletion.eval I R i (AdicCompletion.of I R (r m)) = x.val i
       rw [show AdicCompletion.eval I R i (AdicCompletion.of I R (r m)) =
         (AdicCompletion.transitionMap I R hle_m)
-          (AdicCompletion.eval I R m (AdicCompletion.of I R (r m))) from h1.symm]
-      rw [AdicCompletion.eval_of]
-      -- mkQ(r m) = x.val m (by hr), then transition gives x.val i (by h2)
-      change (AdicCompletion.transitionMap I R hle_m)
-        (Submodule.Quotient.mk (r m)) = x.val i
+          (AdicCompletion.eval I R m (AdicCompletion.of I R (r m))) from h1.symm,
+        AdicCompletion.eval_of]
+      change (AdicCompletion.transitionMap I R hle_m) (Submodule.Quotient.mk (r m)) = x.val i
       rw [hr m, h2]
     rw [heval]; exact refl_mem_uniformity hD_i
-  exact mem_closure_of_tendsto htendsto (Filter.Eventually.of_forall
-    fun n => Set.mem_range.mpr ⟨r n, rfl⟩)
+  exact mem_closure_of_tendsto htendsto
+    (Filter.Eventually.of_forall fun n => Set.mem_range.mpr ⟨r n, rfl⟩)
 
 /-- `AdicCompletion I R` with subtype uniformity as an `AbstractCompletion`. -/
 noncomputable def adicAbstractCompletion (hadic : IsAdic I) : AbstractCompletion R where
@@ -376,108 +274,146 @@ noncomputable def adicCompletionEquivInv (hadic : IsAdic I) :
 /-- The ring isomorphism `Completion R ≃+* AdicCompletion I R`. -/
 noncomputable def adicCompletionRingEquiv (hadic : IsAdic I) :
     UniformSpace.Completion R ≃+* AdicCompletion I R := by
-  -- The forward map: compare from AbstractCompletion.
   let e := adicCompletionEquiv I hadic
   let e_inv := adicCompletionEquivInv I hadic
-  -- Build ring equiv from the equiv (e is already a homeomorphism from compareEquiv).
-  -- Multiplicativity: two continuous maps agree on dense R → agree everywhere.
-  -- e(coe r) = of r (by AbstractCompletion.compare_coe).
-  -- coe is a ring hom. of is a ring hom (linear map).
-  -- So e(coe r * coe s) = e(coe(r * s)) = of(r * s) = of(r) * of(s)
-  --  = e(coe r) * e(coe s).
-  -- Both (x,y) ↦ e(x*y) and (x,y) ↦ e(x)*e(y) are continuous and agree on dense R×R.
-  -- Target (AdicCompletion) is T₂. So they agree everywhere.
-  let e := adicCompletionEquiv I hadic
-  let e_inv := adicCompletionEquivInv I hadic
+  haveI : T2Space (AdicCompletion I R) := inferInstance
+  haveI : CompleteSpace (AdicCompletion I R) := adicCompletionComplete I
+  haveI : ContinuousMul (AdicCompletion I R) := ⟨by
+    apply Continuous.subtype_mk; apply continuous_pi; intro n
+    change Continuous fun p : AdicCompletion I R × AdicCompletion I R =>
+      p.1.val n * p.2.val n
+    exact ((continuous_apply n).comp (continuous_subtype_val.comp continuous_fst)).mul
+      ((continuous_apply n).comp (continuous_subtype_val.comp continuous_snd))⟩
+  haveI : ContinuousAdd (AdicCompletion I R) := ⟨by
+    apply Continuous.subtype_mk; apply continuous_pi; intro n
+    change Continuous fun p : AdicCompletion I R × AdicCompletion I R =>
+      p.1.val n + p.2.val n
+    exact ((continuous_apply n).comp (continuous_subtype_val.comp continuous_fst)).add
+      ((continuous_apply n).comp (continuous_subtype_val.comp continuous_snd))⟩
+  have he_cont : Continuous e := @UniformSpace.Completion.continuous_extension
+    R _ (AdicCompletion I R) (adicCompletionUniformSpace I)
+    (f := AdicCompletion.of I R) (adicCompletionComplete I)
+  have he_coe : ∀ a : R, e (↑a) = AdicCompletion.of I R a := fun a =>
+    AbstractCompletion.compare_coe
+      UniformSpace.Completion.cPkg (adicAbstractCompletion I hadic) a
   exact {
     toFun := e
     invFun := e_inv
-    left_inv := fun x => by
-      show e_inv (e x) = x
-      exact congr_fun (AbstractCompletion.inverse_compare
-        (adicAbstractCompletion I hadic) UniformSpace.Completion.cPkg) x
-    right_inv := fun x => by
-      show e (e_inv x) = x
-      exact congr_fun (AbstractCompletion.inverse_compare
-        UniformSpace.Completion.cPkg (adicAbstractCompletion I hadic)) x
+    left_inv := fun x => congr_fun (AbstractCompletion.inverse_compare
+      (adicAbstractCompletion I hadic) UniformSpace.Completion.cPkg) x
+    right_inv := fun x => congr_fun (AbstractCompletion.inverse_compare
+      UniformSpace.Completion.cPkg (adicAbstractCompletion I hadic)) x
     map_mul' := fun x y => by
-      -- Double application of Completion.ext (density + T₂).
-      -- Step 1: fix y, show (fun x => e(x*y)) = (fun x => e(x)*e(y)) by ext on x.
-      -- Step 2: for x = coe(a), show (fun y => e(coe(a)*y)) = (fun y => e(coe(a))*e(y)) by ext on y.
-      -- Step 3: for y = coe(b): e(coe(a)*coe(b)) = e(coe(a*b)) = of(a*b) = of(a)*of(b) = e(coe(a))*e(coe(b)).
-      haveI : T2Space (AdicCompletion I R) := inferInstance
-      haveI : CompleteSpace (AdicCompletion I R) := @adicCompletionComplete R _ I _ _ _
-      -- ContinuousMul/Add for the subtype-of-Pi-discrete topology on AdicCompletion.
-      -- This is true (componentwise ops on Pi are continuous, subtype inherits).
-      -- The definitional equality between (x*y).val n and x.val n * y.val n
-      -- requires unfolding the CommRing instance on AdicCompletion.
-      haveI : ContinuousMul (AdicCompletion I R) := ⟨by
-        apply Continuous.subtype_mk; apply continuous_pi; intro n
-        change Continuous (fun p : AdicCompletion I R × AdicCompletion I R =>
-          p.1.val n * p.2.val n)
-        exact ((continuous_apply n).comp (continuous_subtype_val.comp continuous_fst)).mul
-          ((continuous_apply n).comp (continuous_subtype_val.comp continuous_snd))⟩
-      haveI : ContinuousAdd (AdicCompletion I R) := ⟨by
-        apply Continuous.subtype_mk; apply continuous_pi; intro n
-        change Continuous (fun p : AdicCompletion I R × AdicCompletion I R =>
-          p.1.val n + p.2.val n)
-        exact ((continuous_apply n).comp (continuous_subtype_val.comp continuous_fst)).add
-          ((continuous_apply n).comp (continuous_subtype_val.comp continuous_snd))⟩
-      have he_cont : Continuous e := @UniformSpace.Completion.continuous_extension
-        R _ (AdicCompletion I R) (adicCompletionUniformSpace I)
-        (f := AdicCompletion.of I R) (@adicCompletionComplete R _ I _ _ _)
-      have he_coe : ∀ a : R, e (↑a) = AdicCompletion.of I R a :=
-        fun a => AbstractCompletion.compare_coe
-          UniformSpace.Completion.cPkg (adicAbstractCompletion I hadic) a
-      -- map_mul by double ext. The AdicCompletion might not have ContinuousMul.
-      -- But (fun p => e p.1 * e p.2) is continuous since e is continuous and
-      -- multiplication on AdicCompletion (from CommRing) composed with the
-      -- subtype topology... we need ContinuousMul.
-      -- AdicCompletion I R has CommRing from Mathlib. But the topology is ours.
-      -- Multiplication continuity for the subtype-of-Pi-discrete:
-      -- AdicCompletion has mul from CommRing. Is it continuous for our topology?
       refine UniformSpace.Completion.induction_on₂ x y ?_ ?_
       · exact isClosed_eq (he_cont.comp continuous_mul)
           ((he_cont.comp continuous_fst).mul (he_cont.comp continuous_snd))
-      · intro a b; show e (↑a * ↑b) = e ↑a * e ↑b
+      · intro a b
         rw [← UniformSpace.Completion.coe_mul, he_coe, he_coe, he_coe]
-        change algebraMap R (AdicCompletion I R) (a * b) =
-          algebraMap R (AdicCompletion I R) a * algebraMap R (AdicCompletion I R) b
         exact map_mul (algebraMap R (AdicCompletion I R)) a b
     map_add' := fun x y => by
-      haveI : T2Space (AdicCompletion I R) := inferInstance
-      haveI : CompleteSpace (AdicCompletion I R) := @adicCompletionComplete R _ I _ _ _
-      -- ContinuousMul/Add for the subtype-of-Pi-discrete topology on AdicCompletion.
-      -- This is true (componentwise ops on Pi are continuous, subtype inherits).
-      -- The definitional equality between (x*y).val n and x.val n * y.val n
-      -- requires unfolding the CommRing instance on AdicCompletion.
-      haveI : ContinuousMul (AdicCompletion I R) := ⟨by
-        apply Continuous.subtype_mk; apply continuous_pi; intro n
-        change Continuous (fun p : AdicCompletion I R × AdicCompletion I R =>
-          p.1.val n * p.2.val n)
-        exact ((continuous_apply n).comp (continuous_subtype_val.comp continuous_fst)).mul
-          ((continuous_apply n).comp (continuous_subtype_val.comp continuous_snd))⟩
-      haveI : ContinuousAdd (AdicCompletion I R) := ⟨by
-        apply Continuous.subtype_mk; apply continuous_pi; intro n
-        change Continuous (fun p : AdicCompletion I R × AdicCompletion I R =>
-          p.1.val n + p.2.val n)
-        exact ((continuous_apply n).comp (continuous_subtype_val.comp continuous_fst)).add
-          ((continuous_apply n).comp (continuous_subtype_val.comp continuous_snd))⟩
-      have he_cont : Continuous e := @UniformSpace.Completion.continuous_extension
-        R _ (AdicCompletion I R) (adicCompletionUniformSpace I)
-        (f := AdicCompletion.of I R) (@adicCompletionComplete R _ I _ _ _)
-      have he_coe : ∀ a : R, e (↑a) = AdicCompletion.of I R a :=
-        fun a => AbstractCompletion.compare_coe
-          UniformSpace.Completion.cPkg (adicAbstractCompletion I hadic) a
       refine UniformSpace.Completion.induction_on₂ x y ?_ ?_
       · exact isClosed_eq (he_cont.comp continuous_add)
           ((he_cont.comp continuous_fst).add (he_cont.comp continuous_snd))
-      · intro a b; show e (↑a + ↑b) = e ↑a + e ↑b
+      · intro a b
         rw [show (↑a : UniformSpace.Completion R) + ↑b = ↑(a + b) from
           (map_add UniformSpace.Completion.coeRingHom a b).symm,
           he_coe, he_coe, he_coe, map_add (AdicCompletion.of I R)]
   }
 
 end Bridge
+
+/-! ### Ring equivalence for abstract completions -/
+
+/-- A complete T₂ commutative ring S with a dense uniform-inducing ring hom
+from R is ring-isomorphic to `Completion R`. The forward map is `extensionHom g`
+(a ring hom by construction); the inverse is the AbstractCompletion comparison.
+Bijectivity follows from the comparison being a two-sided inverse. -/
+noncomputable def completionRingEquiv
+    {R : Type*} [CommRing R] [UniformSpace R] [IsTopologicalRing R]
+    [IsUniformAddGroup R]
+    {S : Type*} [CommRing S] [UniformSpace S] [IsTopologicalRing S]
+    [IsUniformAddGroup S] [T2Space S] [CompleteSpace S]
+    (g : R →+* S) (hg_cont : Continuous g) (hg_ui : IsUniformInducing g)
+    (hg_dense : DenseRange g) : UniformSpace.Completion R ≃+* S := by
+  let f := UniformSpace.Completion.extensionHom g hg_cont
+  let pkg : AbstractCompletion R :=
+    ⟨S, g, inferInstance, inferInstance, inferInstance, hg_ui, hg_dense⟩
+  letI := (@UniformSpace.Completion.cPkg R _).uniformStruct
+  haveI := (@UniformSpace.Completion.cPkg R _).complete
+  haveI := (@UniformSpace.Completion.cPkg R _).separation
+  let f_inv : S → UniformSpace.Completion R :=
+    pkg.compare UniformSpace.Completion.cPkg
+  have hf_inv_coe : ∀ a : R, f_inv (g a) = (↑a : UniformSpace.Completion R) :=
+    AbstractCompletion.compare_coe pkg UniformSpace.Completion.cPkg
+  have hf_coe : ∀ a : R, f (↑a) = g a :=
+    UniformSpace.Completion.extensionHom_coe _ _
+  have hf_cont : Continuous f := UniformSpace.Completion.continuous_extension
+  have hf_inv_cont : Continuous f_inv :=
+    (AbstractCompletion.uniformContinuous_compare pkg
+      UniformSpace.Completion.cPkg).continuous
+  exact {
+    f with
+    invFun := f_inv
+    left_inv := fun x => by
+      change f_inv (f x) = x
+      refine UniformSpace.Completion.induction_on x ?_ ?_
+      · exact isClosed_eq (hf_inv_cont.comp hf_cont) continuous_id
+      · intro a; rw [hf_coe, hf_inv_coe]
+    right_inv := congr_fun (hg_dense.equalizer (hf_cont.comp hf_inv_cont)
+      continuous_id (funext fun a => by
+        simp [Function.comp, hf_inv_coe, hf_coe]))
+  }
+
+/-! ### Kernel identity for evalₐ -/
+
+/-- In the adic completion of a Noetherian ring, the kernel of the evaluation
+at level `n` equals the ideal generated by the image of `I^n`. -/
+theorem ker_evalₐ_eq {R : Type*} [CommRing R] (I : Ideal R)
+    [IsNoetherianRing R] (n : ℕ) :
+    RingHom.ker (AdicCompletion.evalₐ I n) =
+    Ideal.map (algebraMap R (AdicCompletion I R)) (I ^ n) := by
+  apply le_antisymm
+  · intro x hx; rw [RingHom.mem_ker] at hx
+    have hxn : x.val n = 0 := by
+      unfold AdicCompletion.evalₐ at hx
+      simp only [AlgHom.comp_apply, AlgHom.ofLinearMap_apply] at hx
+      exact (Ideal.quotientEquivAlgOfEq R (ideal_smul_top_eq_self I n)).injective
+        (hx.trans (map_zero _).symm)
+    have hmkQ : AdicCompletion.map I (I ^ n • ⊤ : Submodule R R).mkQ x = 0 := by
+      apply AdicCompletion.ext; intro m
+      change (I ^ n • ⊤ : Submodule R R).mkQ.reduceModIdeal (I ^ m) (x.val m) = 0
+      by_cases hmn : m ≤ n
+      · rw [show x.val m = AdicCompletion.transitionMap I R hmn (x.val n) from
+          (x.property hmn).symm, hxn, map_zero, map_zero]
+      · push_neg at hmn
+        obtain ⟨r, hr_eq⟩ := Submodule.Quotient.mk_surjective _ (x.val m)
+        have hr_mem : r ∈ (I ^ n • ⊤ : Submodule R R) := by
+          rw [← Submodule.Quotient.mk_eq_zero]
+          have : AdicCompletion.transitionMap I R (le_of_lt hmn) (x.val m) = 0 := by
+            rw [x.property (le_of_lt hmn)]; exact hxn
+          rw [← hr_eq] at this; convert this using 1
+        have h1 : (I ^ n • ⊤ : Submodule R R).mkQ r = 0 :=
+          (Submodule.Quotient.mk_eq_zero _).mpr hr_mem
+        rw [show x.val m = Submodule.Quotient.mk r from hr_eq.symm]
+        change Submodule.Quotient.mk ((I ^ n • ⊤ : Submodule R R).mkQ r) = 0
+        rw [h1]; rfl
+    obtain ⟨z, rfl⟩ : x ∈ Set.range
+        (AdicCompletion.map I (I ^ n • ⊤ : Submodule R R).subtype) := by
+      rwa [← AdicCompletion.map_exact (I := I) Subtype.val_injective
+        (LinearMap.exact_subtype_mkQ _) (Submodule.mkQ_surjective _)]
+    obtain ⟨t, rfl⟩ := AdicCompletion.ofTensorProduct_surjective_of_finite I _ z
+    refine TensorProduct.induction_on t ?_ ?_ ?_
+    · simp [map_zero]
+    · intro c a
+      rw [AdicCompletion.ofTensorProduct_tmul, map_smul, AdicCompletion.map_of]
+      have ha_mem : (a : R) ∈ (I ^ n : Ideal R) := by
+        have h := a.2; change (a : R) ∈ (I ^ n • ⊤ : Submodule R R) at h
+        simp only [ideal_smul_top_eq_self] at h; exact h
+      exact Ideal.mul_mem_left _ c (Ideal.mem_map_of_mem _ ha_mem)
+    · intro _ _ h1 h2; simp only [map_add]; exact Ideal.add_mem _ h1 h2
+  · rw [Ideal.map_le_iff_le_comap]; intro a ha
+    simp only [Ideal.mem_comap, RingHom.mem_ker]
+    change (AdicCompletion.evalₐ I n) (AdicCompletion.of I R a) = 0
+    rw [AdicCompletion.evalₐ_of]; exact Ideal.Quotient.eq_zero_iff_mem.mpr ha
 
 end AdicCompletionBridge

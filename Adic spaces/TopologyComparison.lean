@@ -889,4 +889,240 @@ theorem presheafValueTateQuotientEquiv_symm_algebraMap (D : RationalLocData A)
 
 end CompletionIsomorphism
 
+/-! ### Discharging hypotheses for strongly noetherian Tate rings
+
+The conditional `presheafValueTateQuotientEquiv` requires 5 hypotheses.
+We discharge them here, starting with the easiest (density). -/
+
+section HypothesesDischarge
+
+variable [T2Space A]
+
+/-! #### H5: DenseRange of locToQuotientOneSubfX_gen
+
+The localization `A[1/s]` maps densely into `A⟨X⟩/(1-sX)` for the quotient
+T-topology. The image contains `mk(a)` for all `a ∈ A` and `mk(X)` (since
+`1/s ↦ mk(X)`), hence contains all polynomial classes `mk(p)`.
+Polynomials are dense in `A⟨X⟩` for the T-topology because truncations
+converge in the induced product topology. -/
+
+/-- A power series whose coefficients are zero above degree `N` is restricted,
+because only finitely many coefficients are nonzero. -/
+private theorem isRestricted_of_eventually_zero
+    (h : MvPowerSeries (Fin 1) A) (N : ℕ)
+    (hh : ∀ s : Fin 1 →₀ ℕ, N ≤ s 0 → h s = 0) :
+    MvPowerSeries.IsRestricted h := by
+  -- IsRestricted = coefficients tend to 0 along cofinite filter.
+  -- Suffices to show: the set of nonzero coefficients is finite.
+  change Filter.Tendsto (fun s => h s) Filter.cofinite (nhds 0)
+  rw [tendsto_nhds]
+  intro U hU h0U
+  rw [Filter.mem_cofinite]
+  -- {s | h s ∉ U} ⊆ {s | h s ≠ 0} ⊆ {toIndex k | k < N}
+  apply Set.Finite.subset
+    ((Finset.image TateAlgebra.toIndex (Finset.range N)).finite_toSet)
+  intro s hs
+  simp only [Set.mem_compl_iff, Set.mem_preimage, MvPowerSeries.coeff_apply] at hs
+  simp only [Finset.coe_image, Finset.coe_range, Set.mem_image, Set.mem_Iio]
+  refine ⟨s 0, ?_, (TateAlgebra.eq_toIndex s).symm⟩
+  by_contra hge
+  push_neg at hge
+  exact hs (by rw [hh s hge]; exact h0U)
+
+/-- The truncation of `g ∈ A⟨X⟩` at degree `N`: keep coefficients at multi-indices
+with `s 0 < N` and set the rest to zero. The result is restricted (polynomial). -/
+private noncomputable def truncTate (g : ↥(TateAlgebra A)) (N : ℕ) :
+    ↥(TateAlgebra A) :=
+  ⟨fun s => if s 0 < N then g.val s else 0,
+   isRestricted_of_eventually_zero _ N (fun s hs => by simp [show ¬(s 0 < N) from by omega])⟩
+
+private theorem truncTate_val (g : ↥(TateAlgebra A)) (N : ℕ) (s : Fin 1 →₀ ℕ) :
+    (truncTate g N).val s = if s 0 < N then g.val s else 0 := rfl
+
+private theorem truncTate_coeff_high (g : ↥(TateAlgebra A)) (N : ℕ) (s : Fin 1 →₀ ℕ)
+    (hs : N ≤ s 0) : (truncTate g N).val s = 0 := by
+  simp [truncTate_val, show ¬(s 0 < N) from by omega]
+
+private theorem truncTate_coeff_low (g : ↥(TateAlgebra A)) (N : ℕ) (s : Fin 1 →₀ ℕ)
+    (hs : s 0 < N) : (truncTate g N).val s = g.val s := by
+  simp [truncTate_val, hs]
+
+/-- `scaleIncl s (truncTate g N)` agrees with `scaleIncl s g` at any index with `s 0 < N`. -/
+private theorem scaleIncl_truncTate_eq (g : ↥(TateAlgebra A)) (N : ℕ) (s : A)
+    (idx : Fin 1 →₀ ℕ) (h : idx 0 < N) :
+    TateAlgebraWedhorn.scaleIncl s (truncTate g N) idx =
+    TateAlgebraWedhorn.scaleIncl s g idx := by
+  simp only [TateAlgebraWedhorn.scaleIncl_apply, truncTate_coeff_low g N idx h]
+
+/-- Polynomials (elements with finitely many nonzero coefficients) are dense
+in the Tate algebra for the T-topology. The T-topology is induced from the
+product `∏ A` via `scaleIncl`, and in the product topology a sequence of
+truncations converges coordinatewise. -/
+theorem tateAlgebra_polynomials_dense (s : A) :
+    @Dense ↥(TateAlgebra A) (TateAlgebraWedhorn.tateTopologyT s)
+      {g | ∃ N : ℕ, ∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → g.val n = 0} := by
+  -- Unfold Dense: for each g, show g is in the closure.
+  intro g
+  rw [@mem_closure_iff _ (TateAlgebraWedhorn.tateTopologyT s)]
+  -- For each open set O containing g, find a polynomial in O.
+  intro O hO hgO
+  -- O is open in the induced topology, so O = scaleIncl⁻¹(V) for some open V.
+  rw [@isOpen_induced_iff _ _ (MvPowerSeries.WithPiTopology.instTopologicalSpace A)] at hO
+  obtain ⟨V, hV, rfl⟩ := hO
+  -- scaleIncl g ∈ V, and V is product-topology-open.
+  -- By the product topology characterization, there exists a finite set of indices I
+  -- and neighborhoods t_i such that Set.pi I t ⊆ V.
+  rw [Set.mem_preimage] at hgO
+  -- V is open in the product topology, so V ∈ nhds(scaleIncl s g) for that topology.
+  -- By the product topology characterization, there exist finitely many indices
+  -- with neighborhoods whose pi-product is contained in V.
+  -- Use exists_finset_piecewise to get a finite set of coordinates and a piecewise element.
+  -- Alternatively, directly use Filter.mem_pi' on the product-topology nhds.
+  -- V is product-topology-open and contains scaleIncl(g).
+  -- The product topology is Pi.topologicalSpace on (Fin 1 →₀ ℕ) → A.
+  -- By set_pi_mem_nhds, V contains a pi-set based on finitely many coordinates.
+  -- We use the mem_nhds characterization directly.
+  -- First get the pi-filter decomposition.
+  -- V is open in the product topology and scaleIncl(g) ∈ V.
+  -- In the product topology, V contains a finite-coordinate neighborhood.
+  -- We need to access the pi-filter form of nhds.
+  -- nhds_pi : 𝓝 a = Filter.pi (fun i => 𝓝 (a i)) for Pi.topologicalSpace.
+  -- WithPiTopology.instTopologicalSpace = Pi.topologicalSpace (definitionally).
+  -- We use set_pi_mem_nhds_iff to get the finite decomposition.
+  -- First: V contains a basic open set of the form Set.pi I t.
+  -- V is open in the product topology (Pi.topologicalSpace = WithPiTopology).
+  -- scaleIncl(g) ∈ V. By nhds_pi, V contains a finite-coordinate product.
+  -- We use exists_finset_piecewise_mem_of_mem_nhds as the extraction tool.
+  have hV_nhds : V ∈ @nhds _ Pi.topologicalSpace (TateAlgebraWedhorn.scaleIncl s g) := by
+    letI : TopologicalSpace (MvPowerSeries (Fin 1) A) := Pi.topologicalSpace
+    exact hV.mem_nhds hgO
+  -- In the Pi topology, nhds is the pi filter. Extract finite coordinates.
+  rw [nhds_pi] at hV_nhds
+  obtain ⟨I, t, ht_nhds, hIt_sub⟩ := Filter.mem_pi'.mp hV_nhds
+  -- Choose N large enough that all indices in I have idx 0 < N.
+  let N := (I.image (· 0)).sup id + 1
+  -- The truncation at N is our polynomial witness.
+  refine ⟨truncTate g N, ?_, ?_⟩
+  · -- truncTate g N is in scaleIncl⁻¹(V)
+    apply Set.mem_preimage.mpr
+    apply hIt_sub
+    intro idx hidx
+    -- idx ∈ I, so idx 0 < N
+    have hlt : idx 0 < N := by
+      show idx 0 < (I.image (· 0)).sup id + 1
+      have h_le : idx 0 ≤ (I.image (· 0)).sup id := by
+        exact Finset.le_sup (f := id)
+          (Finset.mem_image_of_mem (· 0) hidx)
+      linarith
+    rw [scaleIncl_truncTate_eq g N s idx hlt]
+    exact mem_of_mem_nhds (ht_nhds idx)
+  · -- truncTate g N has finitely many nonzero coefficients
+    exact ⟨N, fun n hn => truncTate_coeff_high g N n hn⟩
+
+/-- Every polynomial element in `A⟨X⟩` (coefficients zero above degree N) has its
+quotient class in the range of `locToQuotientOneSubfX_gen`. By induction on N:
+the image contains `mk(algebraMap a)` and `mk(X)`, hence all finite sums of
+`mk(algebraMap a_k) * mk(X)^k = locToQuotientOneSubfX_gen(a_k / s^k)`. -/
+private theorem polynomial_quotient_in_range (s : A) (g : ↥(TateAlgebra A))
+    (N : ℕ) (hN : ∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → g.val n = 0) :
+    Ideal.Quotient.mk (oneSubfXIdeal s) g ∈
+      Set.range (locToQuotientOneSubfX_gen s) := by
+  -- Generalize g before induction on N so the IH applies to g - gk.
+  revert g
+  induction N with
+  | zero =>
+    intro g hN
+    -- All coefficients are zero, so g = 0.
+    have hg0 : g = 0 := by
+      ext n; exact hN (TateAlgebra.toIndex n)
+        (by simp [TateAlgebra.toIndex, Finsupp.single_eq_same])
+    rw [hg0, map_zero]
+    exact ⟨0, map_zero _⟩
+  | succ k ih =>
+    intro g hN
+    -- g has coefficients zero above degree k+1.
+    -- Let a = coeff k g, and gk = algebraMap(a) * X^k.
+    set a := TateAlgebra.coeff k g with ha_def
+    set gk : ↥(TateAlgebra A) := algebraMap A _ a * TateAlgebra.X ^ k with hgk_def
+    -- mk(gk) is in the range.
+    have hgk_range : Ideal.Quotient.mk (oneSubfXIdeal s) gk ∈
+        Set.range (locToQuotientOneSubfX_gen s) := by
+      exact ⟨algebraMap A _ a *
+        (IsLocalization.Away.invSelf (S := Localization.Away s) s) ^ k, by
+        show locToQuotientOneSubfX_gen s _ = _
+        rw [map_mul, map_pow, locToQuotientOneSubfX_gen_algebraMap,
+          locToQuotientOneSubfX_gen_invSelf, hgk_def, ← map_pow, ← map_mul]⟩
+    -- g - gk has coefficients zero above degree k.
+    -- Helper: coeff m (X ^ j) = δ_{m,j} for TateAlgebra.
+    have hcoeff_X_pow : ∀ m j : ℕ,
+        TateAlgebra.coeff m (TateAlgebra.X ^ j : ↥(TateAlgebra A)) =
+        if m = j then 1 else 0 := by
+      intro m j; revert m; induction j with
+      | zero => intro m; simp [pow_zero, TateAlgebra.coeff, TateAlgebra.toIndex,
+          MvPowerSeries.coeff_one]
+      | succ j ihj =>
+        intro m; rw [pow_succ, mul_comm]
+        cases m with
+        | zero => rw [TateAlgebra.coeff_zero_X_mul, if_neg (by omega)]
+        | succ m => rw [TateAlgebra.coeff_succ_X_mul, ihj m]; simp [Nat.succ_eq_add_one]
+    have hg'_vanish : ∀ n : Fin 1 →₀ ℕ, k ≤ n 0 → (g - gk).val n = 0 := by
+      -- Restate using TateAlgebra.coeff via eq_toIndex.
+      intro n hn
+      rw [TateAlgebra.eq_toIndex n]
+      show TateAlgebra.coeff (n 0) (g - gk) = 0
+      rw [TateAlgebra.coeff_sub, hgk_def, TateAlgebra.coeff_algebraMap_mul,
+        hcoeff_X_pow (n 0) k]
+      by_cases hnk : n 0 = k
+      · -- coeff k g = a and coeff k gk = a, so difference is 0.
+        rw [if_pos hnk, mul_one, ha_def, hnk, sub_self]
+      · -- coeff (n 0) g = 0 (by hN) and coeff (n 0) gk = 0.
+        rw [if_neg hnk, mul_zero, sub_zero]
+        have hn_gt : k + 1 ≤ n 0 := by omega
+        show (MvPowerSeries.coeff (TateAlgebra.toIndex (n 0))) g.val = 0
+        rw [MvPowerSeries.coeff_apply]
+        exact hN _ (by simp [TateAlgebra.toIndex, Finsupp.single_eq_same]; omega)
+    -- By IH, mk(g - gk) is in the range.
+    have hg'_range := ih (g - gk) hg'_vanish
+    -- mk(g) = mk(g - gk) + mk(gk), both in range.
+    rw [show g = (g - gk) + gk from by ring, map_add]
+    obtain ⟨x, hx⟩ := hg'_range
+    obtain ⟨y, hy⟩ := hgk_range
+    exact ⟨x + y, by rw [map_add, hx, hy]⟩
+
+/-- The localization `A[1/s]` maps densely into `A⟨X⟩/(1-sX)` for the quotient
+T-topology (Wedhorn Example 6.38).
+
+The image contains all polynomial quotient classes, and polynomials are
+dense in the Tate algebra for the T-topology. -/
+theorem locToQuotientOneSubfX_gen_denseRange (s : A) :
+    @DenseRange (↥(TateAlgebra A) ⧸ oneSubfXIdeal s)
+      (quotientTTopology s) (Localization.Away s)
+      (locToQuotientOneSubfX_gen s) := by
+  -- DenseRange = Dense (range f).
+  -- Strategy: mk(polynomials) is dense in quotient, and mk(polynomials) ⊆ range.
+  show @Dense _ (quotientTTopology s) (Set.range (locToQuotientOneSubfX_gen s))
+  -- Let P = polynomial set, mk = quotient map.
+  set P : Set ↥(TateAlgebra A) :=
+    {g | ∃ N : ℕ, ∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → g.val n = 0}
+  let mk := Ideal.Quotient.mk (oneSubfXIdeal s)
+  -- Step 1: mk '' P ⊆ range(locToQuotientOneSubfX_gen).
+  have h_sub : mk '' P ⊆ Set.range (locToQuotientOneSubfX_gen s) := by
+    rintro _ ⟨g, ⟨N, hN⟩, rfl⟩
+    exact polynomial_quotient_in_range s g N hN
+  -- Step 2: mk '' P is dense in quotient T-topology.
+  -- P is dense in A⟨X⟩ (by tateAlgebra_polynomials_dense).
+  -- mk is surjective and continuous → DenseRange.
+  -- DenseRange.dense_image gives Dense (mk '' P).
+  have h_dense : @Dense _ (quotientTTopology s) (mk '' P) := by
+    have hP_dense := tateAlgebra_polynomials_dense s
+    have hmk_surj : Function.Surjective mk := Ideal.Quotient.mk_surjective
+    letI := TateAlgebraWedhorn.tateTopologyT s
+    have hmk_dr : @DenseRange (↥(TateAlgebra A) ⧸ oneSubfXIdeal s) (quotientTTopology s)
+        ↥(TateAlgebra A) mk := hmk_surj.denseRange
+    exact hmk_dr.dense_image continuous_quotient_mk' hP_dense
+  -- Step 3: Dense (mk '' P) + mk '' P ⊆ range → Dense range.
+  exact @Dense.mono _ (quotientTTopology s) _ _ h_sub h_dense
+
+end HypothesesDischarge
+
 end ValuationSpectrum
