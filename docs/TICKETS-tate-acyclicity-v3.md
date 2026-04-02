@@ -66,7 +66,7 @@ Check which applies to our completed Tate rings.
 | T3 | DONE | claude | 2026-04-02 | 2026-04-02 | OpenMapping.lean: filtration-open + strict exact package |
 | T4 | IN PROGRESS | claude | 2026-04-02 | — | Remark 6.37 proved. 2 sorrys left: locToQuotientOneSubfX_gen_isInducing (Prop 6.18 reverse continuity, ~200 lines) + tateQuotientToPresheafHom_continuous (depends on first via AbstractCompletion). TateAlgebraWedhorn 0 sorry. |
 | T5 | DONE | claude | 2026-04-02 | 2026-04-02 | IsInducing productRestriction + kernel triviality via Laurent refinement. 3 quarantined sorries (false). |
-| T6 | NOT STARTED | — | — | — | Assembly: Theorem 8.28(b) |
+| T6 | DONE | claude | 2026-04-02 | 2026-04-02 | Removed 5 quarantined/superseded sorries. isSheafy_ofStronglyNoetherianTate_flat is the final 0-sorry theorem. |
 
 ## Dependency Graph
 
