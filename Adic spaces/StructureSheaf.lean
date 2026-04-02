@@ -711,41 +711,9 @@ argument. The route has fundamental issues (`localization_isT0` is false when
 `locIdeal = T`, `completionKer_eq_bot_of_locKer_eq_bot` needs faithful flatness).
 The correct proof routes through `TopologyComparison.lean`. -/
 
-theorem completionKer_eq_bot_of_locKer_eq_bot
-    (C : RationalCovering A) :
-    (∀ (a : Localization.Away C.base.s),
-      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
-        restrictionMapAlg C.base D (C.hsubset D hD) a = 0) →
-      C.base.coeRingHom a = 0) →
-    ∀ (z : presheafValue C.base),
-      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
-        productRestriction A C z D hD = 0) →
-      z = 0 := by
-  sorry
-
-/-- QUARANTINED: **False in general** when `locIdeal = ⊤`. -/
-theorem localization_isT0 [IsTateRing A] [IsNoetherianRing A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (D : RationalLocData A) :
-    @T0Space (Localization.Away D.s)
-      (@UniformSpace.toTopologicalSpace _ D.uniformSpace) := by
-  sorry
-
-/-- QUARANTINED: Depends on the false `localization_isT0`. -/
-theorem loc_algebraic_injectivity_of_tate
-    [IsTateRing A] [IsNoetherianRing A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (C : RationalCovering A)
-    (hT0 : ∀ (D : RationalLocData A), D ∈ C.covers →
-      @T0Space (Localization.Away D.s)
-        (@UniformSpace.toTopologicalSpace _ D.uniformSpace))
-    (hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
-      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp) :
-    ∀ (a : Localization.Away C.base.s),
-      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
-        restrictionMapAlg C.base D (C.hsubset D hD) a = 0) →
-      C.base.coeRingHom a = 0 := by
-  sorry
+-- REMOVED (T6): completionKer_eq_bot_of_locKer_eq_bot, localization_isT0,
+-- loc_algebraic_injectivity_of_tate — quarantined as false/depending on false.
+-- Superseded by the Laurent refinement route (rationalCovering_hasSeparation).
 
 /-! #### Separation via the TopologyComparison isomorphism
 
@@ -1019,27 +987,8 @@ theorem isSheafy_ofStronglyNoetherianTate_flat
   gluing C f hcompat :=
     rationalCovering_hasGluing P C f hcompat
 
-/-- Strongly noetherian Tate rings are sheafy (Theorem 8.28 of Wedhorn),
-via the TopologyComparison isomorphism. -/
-theorem isSheafy_ofStronglyNoetherianTate
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (hb_all : ∀ D : RationalLocData A, TopologicalRing.IsPowerBounded (invS D))
-    (hcs_all : ∀ D : RationalLocData A, @CompleteSpace _ (quotientTUniformSpace D.s))
-    (ht0_all : ∀ D : RationalLocData A, @T0Space _ (quotientTTopology D.s))
-    (hcont_all : ∀ D : RationalLocData A, @Continuous _ _
-      (quotientTTopology D.s)
-      (inferInstance : TopologicalSpace (presheafValue D))
-      (tateQuotientToPresheafHom D (hb_all D)))
-    (hdense_all : ∀ D : RationalLocData A, @DenseRange
-      (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) (quotientTTopology D.s)
-      (Localization.Away D.s) (locToQuotientOneSubfX_gen D.s))
-    (hSpa_all : ∀ (D : RationalLocData A) (p : Ideal A),
-      p.IsPrime → D.s ∉ p →
-      ∃ v ∈ rationalOpen D.T D.s, p ≤ v.supp) :
-    IsSheafy A where
-  isEmbedding_productRestriction C := sorry
-  gluing C f hcompat := sorry
+-- REMOVED (T6): isSheafy_ofStronglyNoetherianTate (TopologyComparison route)
+-- had 2 sorries, superseded by isSheafy_ofStronglyNoetherianTate_flat above.
 
 /-! ### Factoring the product restriction through the canonical map -/
 
