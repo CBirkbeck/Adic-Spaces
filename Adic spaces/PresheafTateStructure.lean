@@ -46,6 +46,7 @@ presheafValue D₀. This is because:
 - canonicalMap is a ring hom, so it preserves units
 - canonicalMap is continuous, so it preserves topological nilpotency -/
 
+omit [PlusSubring A] in
 /-- A topologically nilpotent unit in `A` maps to a topologically nilpotent
 unit in `presheafValue D₀` via `canonicalMap`. -/
 theorem presheafValue_topNilUnit [IsTateRing A] (D₀ : RationalLocData A) :
@@ -77,6 +78,7 @@ noncomputable def presheafValue_ringOfDef (D₀ : RationalLocData A) :
   letI := D₀.uniformSpace
   (D₀.coeRingHom.comp (locSubring D₀.P D₀.T D₀.s).subtype).range.topologicalClosure
 
+omit [PlusSubring A] in
 /-- The ring of definition is open in `presheafValue D₀`. -/
 theorem presheafValue_ringOfDef_isOpen (D₀ : RationalLocData A) :
     IsOpen ((presheafValue_ringOfDef D₀ : Subring (presheafValue D₀)) :
@@ -144,7 +146,9 @@ theorem locSubring_subspace_eq_adic (D₀ : RationalLocData A) :
       · intro hx; exact ⟨⟨x, hx_mem⟩, hx, rfl⟩
     have hbasis_ind :
         (@nhds (locSubring D₀.P D₀.T D₀.s)
-          (TopologicalSpace.induced (locSubring D₀.P D₀.T D₀.s).subtype D₀.topology) 0).HasBasis
+          (TopologicalSpace.induced
+            (locSubring D₀.P D₀.T D₀.s).subtype D₀.topology)
+          0).HasBasis
         (fun _ : ℕ => True) (fun n => ((locIdeal D₀.P D₀.T D₀.s ^ n :
           Ideal (locSubring D₀.P D₀.T D₀.s)) : Set (locSubring D₀.P D₀.T D₀.s))) := by
       rw [nhds_induced, show ((locSubring D₀.P D₀.T D₀.s).subtype :
@@ -159,8 +163,10 @@ theorem locSubring_subspace_eq_adic (D₀ : RationalLocData A) :
     Filter.comap (fun p : _ × _ => p.2 - p.1)
       (@nhds _ (locIdeal D₀.P D₀.T D₀.s).adicTopology 0)
   have hcomm :
-      (fun p : (Localization.Away D₀.s) × (Localization.Away D₀.s) => p.2 - p.1) ∘
-      (Prod.map (locSubring D₀.P D₀.T D₀.s).subtype (locSubring D₀.P D₀.T D₀.s).subtype) =
+      (fun p : (Localization.Away D₀.s) ×
+        (Localization.Away D₀.s) => p.2 - p.1) ∘
+      (Prod.map (locSubring D₀.P D₀.T D₀.s).subtype
+        (locSubring D₀.P D₀.T D₀.s).subtype) =
       (locSubring D₀.P D₀.T D₀.s).subtype ∘
       (fun p : _ × _ => p.2 - p.1) := by
     ext ⟨a, b⟩; exact (map_sub (locSubring D₀.P D₀.T D₀.s).subtype b a).symm
@@ -193,8 +199,11 @@ omit [PlusSubring A] in
 private theorem idealOfDef_pow_sub_val_preimage_closure (D₀ : RationalLocData A) (n : ℕ) :
     ((presheafValue_idealOfDef D₀ ^ n : Ideal (presheafValue_ringOfDef D₀)) :
       Set (presheafValue_ringOfDef D₀)) ⊆
-    Subtype.val ⁻¹' closure ((D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) ''
-      (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s))) := by
+    Subtype.val ⁻¹' closure
+      ((D₀.coeRingHom : Localization.Away D₀.s →
+        presheafValue D₀) ''
+      (locNhd D₀.P D₀.T D₀.s n :
+        Set (Localization.Away D₀.s))) := by
   letI := D₀.uniformSpace
   letI := D₀.isUniformAddGroup
   letI := D₀.isTopologicalRing
@@ -238,6 +247,7 @@ private theorem idealOfDef_pow_sub_val_preimage_closure (D₀ : RationalLocData 
     exact map_mem_closure₂' (fun _ => continuous_const_mul _) (fun _ => continuous_mul_const _)
       (hringOfDef_eq ▸ hr) hx_ih (fun a ha b hb => hact a ha b hb)
 
+omit [PlusSubring A] in
 /-- Corollary: the val-image of `idealOfDef^n` is contained in `closure(coe '' locNhd n)`. -/
 private theorem idealOfDef_pow_val_sub_closure (D₀ : RationalLocData A) (n : ℕ) :
     Subtype.val '' ((presheafValue_idealOfDef D₀ ^ n : Ideal (presheafValue_ringOfDef D₀)) :
@@ -269,8 +279,9 @@ private theorem locNhd_sub_idealOfDef_pow_val (D₀ : RationalLocData A) (n : �
   change ((locSubringToRingOfDef D₀) d).val = x
   exact hyx ▸ congrArg D₀.coeRingHom hdy
 
+set_option maxHeartbeats 4000000 in
 -- The AdicCompletion bridge proof has deep elaboration chains through ring equivs.
-set_option maxHeartbeats 800000 in
+omit [PlusSubring A] in
 /-- `val '' idealOfDef^n` is closed in `presheafValue D₀`.
 
 **Proof strategy** (non-circular, via AdicCompletionBridge):
@@ -580,7 +591,6 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
       -- (This uses ker_evalₐ_eq through the bridge to identify ker πc.)
       have hle : RingHom.ker π ≤ (presheafValue_idealOfDef D₀ ^ n :
           Ideal _) := by
-        set_option maxHeartbeats 4000000 in
         -- Factor πc through the bridge: πc = evalₐ ∘ eAC (by uniqueness).
         -- Then ker(π) = eRE⁻¹(eAC⁻¹(ker(evalₐ))) = idealOfDef^n.
         -- Set up the bridge: Completion(locSubring) ≃+* AdicCompletion(J, locSubring).
@@ -602,7 +612,8 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
         -- And the composition eRE⁻¹ ∘ eAC⁻¹ ∘ of maps r ↦ coe(r) ↦ g(r).
         -- ker(π) = ker(πc ∘ eRE) = Ideal.comap eRE (ker πc).
         -- Step 1: πc = evalₐ ∘ eAC (both extend mk along coe, target T₂).
-        -- Step 2: ker(πc) = Ideal.comap eAC (ker evalₐ) = Ideal.comap eAC (Ideal.map algebraMap (J^n)).
+        -- Step 2: ker(πc) = Ideal.comap eAC (ker evalₐ)
+        --       = Ideal.comap eAC (Ideal.map algebraMap (J^n)).
         -- Step 3: ker(π) = Ideal.comap eRE (Ideal.comap eAC (Ideal.map algebraMap (J^n)))
         --        = Ideal.comap (eAC ∘ eRE) (Ideal.map algebraMap (J^n))
         --        = Ideal.map g (J^n) (since eAC ∘ eRE ∘ g = algebraMap, ring equivs).
@@ -721,15 +732,14 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
               hg_dense).symm.symm (↑a) = g a
             rw [RingEquiv.symm_symm]
             exact UniformSpace.Completion.extensionHom_coe g hg_cont a
-          set_option maxHeartbeats 800000 in rw [h1, h2]
-        set_option maxHeartbeats 800000 in rw [hx_eq, ← h_map_eq]
-        set_option maxHeartbeats 800000 in exact Ideal.mem_map_of_mem _ hmem_ker
+          rw [h1, h2]
+        rw [hx_eq, ← h_map_eq]
+        exact Ideal.mem_map_of_mem _ hmem_ker
       have hset : (↑(presheafValue_idealOfDef D₀ ^ n) :
           Set (presheafValue_ringOfDef D₀)) = ↑(RingHom.ker π) :=
         SetLike.coe_set_eq.mpr (le_antisymm hge hle)
       rw [hset]
       -- IsClosed (ker π): π is continuous to discrete T₁ target.
-      set_option maxHeartbeats 800000 in
       have hπ_cont : Continuous π := by
         change Continuous (πc ∘ eRE)
         -- Install cPkg instances (same pattern as completionRingEquiv):
@@ -754,6 +764,7 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
     -- Step 3: closure_minimal.
     exact closure_minimal hgJn_sub hclosed
 
+omit [PlusSubring A] in
 private theorem closure_locNhd_sub_idealOfDef_pow (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] (n : ℕ) :
     (closure ((D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) ''
@@ -774,6 +785,7 @@ private theorem closure_locNhd_sub_idealOfDef_pow (D₀ : RationalLocData A)
   exact (idealOfDef_pow_val_isClosed D₀ n).closure_subset_iff.mpr
     (locNhd_sub_idealOfDef_pow_val D₀ n) hx_closure
 
+omit [PlusSubring A] in
 /-- The subspace topology on the ring of definition equals the
 ideal-of-definition-adic topology.
 
@@ -846,6 +858,7 @@ theorem presheafValue_isAdic (D₀ : RationalLocData A)
     obtain ⟨m, -, hm⟩ := hsubspace_basis.mem_iff.mp hs
     exact ⟨m, fun x hx => hm (idealOfDef_pow_val_sub_closure D₀ m ⟨x, hx, rfl⟩)⟩
 
+omit [PlusSubring A] in
 /-- **Proposition 8.15 (partial)**: `presheafValue D₀` has a natural
 pair of definition, making it a Huber ring. Combined with
 `presheafValue_topNilUnit`, this gives `IsTateRing`. -/
@@ -859,6 +872,7 @@ theorem presheafValue_pairOfDefinition [IsTateRing A] [IsNoetherianRing A]
      fg := presheafValue_idealOfDef_fg D₀
      isAdic := presheafValue_isAdic D₀ }⟩
 
+omit [PlusSubring A] in
 /-- **Proposition 8.15**: `presheafValue D₀` is a Tate ring.
 
 Combines:
@@ -1001,7 +1015,7 @@ private theorem locLift_maps_locNhd
     have : D.topology = @UniformSpace.toTopologicalSpace _ D.uniformSpace := rfl
     rw [this]
     apply hcoe_ui.isInducing.continuous_iff.mpr
-    show @Continuous _ _ D₀.topology _ (D.coeRingHom ∘ locLift D₀ D h)
+    change @Continuous _ _ D₀.topology _ (D.coeRingHom ∘ locLift D₀ D h)
     have : (D.coeRingHom ∘ locLift D₀ D h : Localization.Away D₀.s →
         presheafValue D) = restrictionMapAlg D₀ D h :=
       congrArg DFunLike.coe hfactor.symm
@@ -1016,7 +1030,9 @@ private theorem locLift_maps_locNhd
         (@nhds _ D.topology 0) :=
       (map_zero (locLift D₀ D h)) ▸ hcont_lift.continuousAt
     exact htend hmem
-  obtain ⟨n, -, hn⟩ := (locBasis D₀.P D₀.T D₀.s D₀.hopen).hasBasis_nhds_zero.mem_iff.mp hpre
+  obtain ⟨n, -, hn⟩ :=
+    (locBasis D₀.P D₀.T D₀.s D₀.hopen).hasBasis_nhds_zero.mem_iff.mp
+      hpre
   exact ⟨n, fun x hx => hn hx⟩
 
 /-- **Backward inducing** of locLift: for every source neighborhood level `n`, there

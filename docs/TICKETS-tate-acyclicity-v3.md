@@ -61,22 +61,22 @@ Check which applies to our completed Tate rings.
 
 | Ticket | Status | Agent | Started | Completed | Notes |
 |--------|--------|-------|---------|-----------|-------|
-| T1 | IN PROGRESS | claude-opus | 2026-04-02 | — | General Row 3 infrastructure done (B₁₂_gen, δ_gen, ε∘δ=0, diagram chase). 2 sorries remain: negLift_surjective, Row 1 surjectivity |
+| T1 | IN PROGRESS | claude-opus | 2026-04-02 | — | Row 3 infra + diagram chase done. Topology diamond FIXED (htop param). Summability proved. 5 inner sorries: 2 restrictedness, 1 witness, 1 Row 1 surj. All concrete/outlined. |
 | T2 | DONE | claude | 2026-04-02 | 2026-04-02 | Bridge: completionLocSubringEquiv + range theorem |
 | T3 | DONE | claude | 2026-04-02 | 2026-04-02 | OpenMapping.lean: filtration-open + strict exact package |
-| T4 | NOT STARTED | — | — | — | Tate quotient topological identification |
-| T5 | NOT STARTED | — | — | — | Strictness + topological embedding |
+| T4 | IN PROGRESS | claude | 2026-04-02 | — | Reworked: removed false evalHomBounded_continuous (T-top too coarse). 3 sorrys remain, all reduce to Prop 6.18 (T-top = J-adic). TateAlgebraWedhorn 0 sorry. |
+| T5 | NOT STARTED | — | — | — | Strictness + topological embedding. NOTE: T4 no longer blocking — T5 can use filtration route (T3 Route 2) directly with T1+T3. |
 | T6 | NOT STARTED | — | — | — | Assembly: Theorem 8.28(b) |
 
 ## Dependency Graph
 
 ```
-WAVE 1 (parallel — 3 agents):
+WAVE 1 (parallel):
   T1 (algebraic exactness)     T2 (bridge)      T3 (open mapping)
        │                           │                  │
        │                           ↓                  │
        │                    T4 (topo identification)   │
-       │                           │                  │
+       │                     (OPTIONAL for T5)         │
        └───────────────────────────┼──────────────────┘
                                    ↓
 WAVE 2:                     T5 (strictness)
@@ -86,7 +86,12 @@ WAVE 3:                     T6 (assembly)
 ```
 
 **Wave 1:** T1, T2, T3 can all run in parallel.
-**Wave 2:** T4 needs T2. T5 needs T1 + T3 + T4.
+**Wave 2:** T5 needs T1 + T3 (critical path). T4 is optional (nice-to-have for
+  IsModuleTopology route, but T5 can use filtration route from T3 directly).
+**Critical path change:** T-topology approach for T4 abandoned — product topology
+  is too coarse for completeness/eval continuity. New approach uses J-adic completion
+  + Tate algebra quotients (Example 6.38) per reviewer feedback.
+**Wave 3:** T6 needs T5.
 **Wave 3:** T6 needs T5.
 
 ---
@@ -244,11 +249,11 @@ By open mapping, `δ` is open, hence strict. Then:
 
 ## TICKET T4: Topological Identification via Tate Quotients (Example 6.38)
 
-**Status:** NOT STARTED
+**Status:** IN PROGRESS (reworked)
 **Estimated:** ~250 lines
-**Blocks:** T5
+**Blocks:** nothing (T5 can bypass via filtration route)
 **Depends on:** T2
-**Files:** `TopologyComparison.lean` or `PresheafIdentification.lean`
+**Files:** `TopologyComparison.lean`, `TateAlgebraWedhorn.lean`
 
 ### Task
 
@@ -258,39 +263,54 @@ presheafValue D ≅_top A⟨ζ⟩/(f-ζ)       for R(f/1)
 presheafValue D ≅_top A⟨η⟩/(1-fη)      for R(1/f)
 ```
 
-### Proof strategy
+### Architecture decision (2026-04-02)
 
-1. **Use the bridge (T2):**
-   `presheafValue D = UniformSpace.Completion(A[1/g]) ≅ (AdicCompletion_J D)[1/π]`
+**The T-topology approach is WRONG for completeness/eval continuity.**
+The T-topology (`tateTopologyT`) is induced from `∏ A` via `scaleIncl` — this
+is the PRODUCT topology, which only constrains finitely many coefficients at a
+time. Consequences:
+- `tateAlgebra_tTopology_completeSpace` is FALSE (c₀ not closed in product)
+- `evalHomBounded_continuous` is FALSE as stated (eval needs all coordinates)
+- The quotient T-topology is NOT complete
 
-2. **Identify `(AdicCompletion_J D)[1/π]` with Tate algebra quotient:**
-   - For `R(f/1)`: `D = A₀[f]`, `J = πD`. The evaluation map
-     `A⟨ζ⟩ → A` sending `ζ ↦ f` has kernel `(f-ζ)`. Since `A⟨ζ⟩` is
-     noetherian (strongly noetherian Tate), `(f-ζ)` is closed.
-     So `A⟨ζ⟩/(f-ζ) ≅ A` as topological rings.
-   - For `R(1/f)`: `D = A₀[1/f]`, `J = πD`. The evaluation map
-     `A⟨η⟩ → A[1/f]` sending `η ↦ 1/f` factors through the quotient
-     `A⟨η⟩/(1-fη)`. Completing gives the identification.
+**Correct approach (Wedhorn Example 6.38 + Remark 6.37):**
+1. For strongly noetherian A, A⟨X⟩ is noetherian and carries the J-adic topology
+   (which COINCIDES with the T-topology by Prop 6.18, but completeness comes from
+   the adic side, not the product side).
+2. In a noetherian Tate ring, every ideal is closed (Remark 6.37: Krull intersection
+   + Artin-Rees). So `(f-ζ)` and `(1-fη)` are closed.
+3. Quotient of J-adically complete by closed ideal → complete.
+4. The bridge `O_X(R(T/g)) ≅ (AdicCompletion_J D)[1/π]` (T2) connects to presheafValue.
 
-3. **Noetherian closed ideal:** In a noetherian Tate ring, every ideal is
-   closed (Wedhorn Remark 6.37). So `(f-ζ)` and `(1-fη)` are closed
-   ideals, and the quotients are complete.
+**Key notation (per reviewer):**
+- `π ∈ A₀` = topologically nilpotent unit, `I = πA₀`
+- `g ∈ A` = denominator of rational subset `R(T/g)`
+- `D = A₀[T/g]` = ring of definition of `A[1/g]`, `J = ID = πD`
+- `presheafValue D ≅ (AdicCompletion_J D)[1/π]` (NOT just AdicCompletion_J D)
 
-### What already exists
+### What already exists (reusable)
 
-- Algebraic isomorphisms: `quotientFSubXEquiv`, `quotientOneSubfXEquiv`
-  in `TateAlgebra.lean` (discrete case)
-- Ring isomorphism `presheafValueTateQuotientEquiv` in `TopologyComparison.lean`
-  (with sorry for continuity)
-- The sorry at `locToQuotientOneSubfX_gen_continuous` (line 519) — this
-  ticket should close it
+- `oneSubsX_not_zero_divisor` — proved, sorry-free
+- `quotientTTopology_t0Space` — proved (conditional on closedness)
+- `locToQuotientOneSubfX_gen_continuous` — proved, sorry-free
+- `locToQuotientOneSubfX_gen_denseRange` — proved, sorry-free
+- `presheafValueTateQuotientEquiv` — conditional RingEquiv (needs hcs, ht0, hcont)
+- Algebraic isomorphisms: `quotientFSubXEquiv`, `quotientOneSubfXEquiv` (discrete)
+
+### What needs to be proved (corrected approach)
+
+1. **Noetherian Tate → ideals closed** (Remark 6.37): via Krull intersection + Artin-Rees
+2. **A⟨X⟩ J-adically complete**: via identification with AdicCompletion_J(A₀[X])
+3. **T-topology = J-adic on A⟨X⟩** (Prop 6.18): for strongly noetherian
+4. **Quotient complete**: from (2) + (1) + quotient of complete by closed
+5. **Discharge `presheafValueTateQuotientEquiv` hypotheses**: using (3)+(4)
 
 ### Acceptance criteria
 
 - Topological ring isomorphisms proved (not just algebraic)
 - Connected to existing `presheafValue` API
-- The sorry in TopologyComparison.lean closed
-- 0 sorry
+- Sorries have correct proof routes documented
+- T5 is NOT blocked (can use filtration route independently)
 
 ---
 

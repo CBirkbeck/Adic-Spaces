@@ -327,8 +327,10 @@ theorem locSubringToPresheafValue_isUniformInducing (D₀ : RationalLocData A) :
 omit [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [FirstCountableTopology A] in
 private theorem locSubringToPresheafValue_continuous (D₀ : RationalLocData A) :
-    @Continuous _ _ (D₀.uniformSpace.comap (locSubring D₀.P D₀.T D₀.s).subtype).toTopologicalSpace
-      (@UniformSpace.toTopologicalSpace _ (@UniformSpace.Completion.uniformSpace _ D₀.uniformSpace))
+    @Continuous _ _
+      (D₀.uniformSpace.comap (locSubring D₀.P D₀.T D₀.s).subtype).toTopologicalSpace
+      (@UniformSpace.toTopologicalSpace _
+        (@UniformSpace.Completion.uniformSpace _ D₀.uniformSpace))
       (locSubringToPresheafValue D₀) := by
   letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
   exact (locSubringToPresheafValue_isUniformInducing D₀).isInducing.continuous
@@ -363,6 +365,8 @@ noncomputable def locSubringCompletionToPresheafValue :
     (locSubringToPresheafValue D₀)
     (locSubringToPresheafValue_continuous D₀)
 
+omit [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] in
 /-- The completed bridge map agrees with `coeRingHom ∘ subtype` on the dense
 image of `locSubring`. -/
 theorem locSubringCompletionToPresheafValue_coe
@@ -380,6 +384,8 @@ noncomputable def locSubringCompletionEquivAdicCompletion :
   AdicCompletionBridge.adicCompletionRingEquiv _
     (locSubring_topology_eq_adic D₀.P D₀.T D₀.s D₀.hopen)
 
+omit [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] in
 /-- On the dense image of `locSubring`, applying `restrictionMapHom` after the bridge
 equals applying `D.coeRingHom ∘ algLift ∘ subtype`. -/
 theorem restrictionMapHom_comp_bridge_coe
@@ -399,24 +405,35 @@ inclusion. -/
 theorem adicCompletion_kernel_transfer
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
     (K : Ideal (locSubring D₀.P D₀.T D₀.s))
-    (x : AdicCompletion (locIdeal D₀.P D₀.T D₀.s) (locSubring D₀.P D₀.T D₀.s))
+    (x : AdicCompletion (locIdeal D₀.P D₀.T D₀.s)
+      (locSubring D₀.P D₀.T D₀.s))
     (hx : AdicCompletion.map (locIdeal D₀.P D₀.T D₀.s)
-      (K : Submodule (locSubring D₀.P D₀.T D₀.s) (locSubring D₀.P D₀.T D₀.s)).mkQ x = 0) :
-    x ∈ LinearMap.range (AdicCompletion.map (locIdeal D₀.P D₀.T D₀.s)
-      (K : Submodule (locSubring D₀.P D₀.T D₀.s) (locSubring D₀.P D₀.T D₀.s)).subtype) :=
-  (adicCompletion_ker_mkQ_eq_range_subtype (locIdeal D₀.P D₀.T D₀.s) K x).mp hx
+      (K : Submodule (locSubring D₀.P D₀.T D₀.s)
+        (locSubring D₀.P D₀.T D₀.s)).mkQ x = 0) :
+    x ∈ LinearMap.range (AdicCompletion.map
+      (locIdeal D₀.P D₀.T D₀.s)
+      (K : Submodule (locSubring D₀.P D₀.T D₀.s)
+        (locSubring D₀.P D₀.T D₀.s)).subtype) :=
+  (adicCompletion_ker_mkQ_eq_range_subtype
+    (locIdeal D₀.P D₀.T D₀.s) K x).mp hx
 
+omit [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] in
 /-- The completed bridge map is injective (IsUniformInducing into T₂ → injective). -/
 theorem locSubringCompletionToPresheafValue_injective :
     Function.Injective (locSubringCompletionToPresheafValue D₀) := by
   letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
   intro x y hxy
-  exact ((UniformSpace.Completion.isUniformInducing_extension
-    ((UniformSpace.Completion.isUniformInducing_coe (α := Localization.Away D₀.s)).comp (⟨rfl⟩ :
+  have hui := (UniformSpace.Completion.isUniformInducing_coe
+    (α := Localization.Away D₀.s)).comp (⟨rfl⟩ :
       @IsUniformInducing _ _ (locSubringUniformSpace D₀) D₀.uniformSpace
-        (locSubring D₀.P D₀.T D₀.s).subtype))).isInducing.inseparable_iff.mp
+        (locSubring D₀.P D₀.T D₀.s).subtype)
+  exact ((UniformSpace.Completion.isUniformInducing_extension
+    hui).isInducing.inseparable_iff.mp
     (Inseparable.of_eq hxy)).eq
 
+omit [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [FirstCountableTopology A] in
 /-- The range of the completed bridge equals `completedLocSubring`. -/
 theorem locSubringCompletionToPresheafValue_range :
     Set.range (locSubringCompletionToPresheafValue D₀) =
@@ -492,8 +509,9 @@ section PrimeExtension
 
 variable {R : Type*} [CommRing R] [IsNoetherianRing R]
 
-/-- For a Noetherian ring `R` with ideal `I` and prime `𝔭` with `I ⊔ 𝔭 ≠ ⊤`, there exists a
-prime of the I-adic completion lying over `𝔭`. -/
+/-- For a Noetherian ring `R` with ideal `I` and prime `𝔭` with
+`I ⊔ 𝔭 ≠ ⊤`, there exists a prime of the I-adic completion
+lying over `𝔭`. -/
 theorem adicCompletion_prime_liesOver (I : Ideal R)
     {𝔭 : Ideal R} [𝔭.IsPrime] (h𝔭 : I ⊔ 𝔭 ≠ ⊤) :
     ∃ (𝔮 : Ideal (AdicCompletion I R)), 𝔮.IsPrime ∧
@@ -539,17 +557,20 @@ formalization's fundamental open problem. -/
 
 section InvSPowerBounded
 
-variable [IsTopologicalRing A]
-
 open Pointwise
 
+omit [PlusSubring A] [IsHuberRing A] [IsTateRing A]
+    [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    [FirstCountableTopology A] in
 /-- The image of `locSubring` under `coeRingHom` is bounded in `presheafValue D`.
 Proof: `locSubring * locNhd k ⊆ locNhd k` (ideal absorption), so
-`(coe '' locSubring) * (coe '' locNhd k) ⊆ coe '' locNhd k` by the ring hom property.
-For `U ∈ nhds 0` in the completion, pick a closed `W ∈ nhds 0` with `W ⊆ U`, pull back
-to get `coe⁻¹'(W) ∈ nhds 0` in the source (by `IsUniformInducing`), use ideal absorption
-to get `locSubring * locNhd k ⊆ locNhd k ⊆ coe⁻¹'(W)` for large `k`, then
-`(coe '' locSubring) * closure(coe '' locNhd k) ⊆ closure(coe '' locNhd k) ⊆ W ⊆ U`. -/
+`(coe '' locSubring) * (coe '' locNhd k) ⊆ coe '' locNhd k` by the ring hom
+property. For `U ∈ nhds 0` in the completion, pick a closed `W ∈ nhds 0`
+with `W ⊆ U`, pull back to get `coe⁻¹'(W) ∈ nhds 0` in the source
+(by `IsUniformInducing`), use ideal absorption to get
+`locSubring * locNhd k ⊆ locNhd k ⊆ coe⁻¹'(W)` for large `k`, then
+`coe '' locSubring * closure(coe '' locNhd k) ⊆ closure(coe '' locNhd k)
+⊆ W ⊆ U`. -/
 private theorem coeRingHom_image_locSubring_isBounded (D : RationalLocData A) :
     @TopologicalRing.IsBounded (presheafValue D) _
       (@UniformSpace.toTopologicalSpace _
@@ -619,13 +640,16 @@ private theorem coeRingHom_image_locSubring_isBounded (D : RationalLocData A) :
   -- a' * v' ∈ locSubring * locNhd k ⊆ locNhd k ⊆ coe⁻¹'(W)
   have hfS_sub_W : f '' S ⊆ W := by
     rintro _ ⟨_, ⟨v', hv', rfl⟩, rfl⟩
-    show D.coeRingHom a' * D.coeRingHom v' ∈ W
+    change D.coeRingHom a' * D.coeRingHom v' ∈ W
     rw [← map_mul]
     apply hkW
     exact habsorb k (Set.mul_mem_mul ha' hv')
   -- closure(f '' S) ⊆ closure(W) = W
   exact hW_closed.closure_subset (closure_mono hfS_sub_W hfb_in_cl)
 
+omit [PlusSubring A] [IsHuberRing A] [IsTateRing A]
+    [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    [FirstCountableTopology A] in
 /-- The element `coeRingHom(divByS 1 D.s)` is power-bounded when `1 ∈ D.T`. -/
 theorem invS_isPowerBounded_of_one_mem_T (D : RationalLocData A)
     (h1 : (1 : A) ∈ D.T) :
@@ -643,7 +667,7 @@ theorem invS_isPowerBounded_of_one_mem_T (D : RationalLocData A)
   have hrange : Set.range ((D.coeRingHom (divByS 1 D.s)) ^ · : ℕ → presheafValue D) ⊆
       D.coeRingHom '' (locSubring D.P D.T D.s : Set (Localization.Away D.s)) := by
     rintro _ ⟨n, rfl⟩
-    show (D.coeRingHom (divByS 1 D.s)) ^ n ∈ _
+    change (D.coeRingHom (divByS 1 D.s)) ^ n ∈ _
     rw [← map_pow]
     exact ⟨(divByS 1 D.s) ^ n, hpow n, rfl⟩
   -- IsBounded.subset + coeRingHom_image_locSubring_isBounded

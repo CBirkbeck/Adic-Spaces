@@ -109,14 +109,16 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 - [ ] **Lemma 7.46(2)** — Converse: analytic preservation implies adic (needs 7.45)
 - [ ] **Remove h_map hypothesis from Prop 6.25** — needs Prop 6.4(5) (bounded open subring = ring of definition)
 - [ ] **General (non-discrete) sorry removal** — Two blocking sorries in Presheaf.lean (updated 2026-03-28):
-  - `mem_prime_of_rational_subset_nonOpen` (line ~383): Non-open prime case of Prop 7.52. **STUCK.** Three independent obstacles: (1) `[IsHuberRing A]` does not provide `IsAdicComplete P.I P.A₀` needed by Lemma 7.45; (2) Lemma 7.45 gives `p <= v.supp` (not equality) because `restrictToConvex` enlarges support for rank > 1 value groups; (3) cannot add hypotheses to the public API (`isUnit_canonicalMap_s` etc.) because `PresheafTateStructure.lean` uses them with just `[IsHuberRing A]`. Resolution requires one of: (a) formalizing Huber ring completion + Spa invariance (Wedhorn Prop 7.23), (b) a rank-1 domination theorem giving `v.supp = p`, (c) a new algebraic argument.
+  - `mem_prime_of_rational_subset_nonOpen` (line ~378): Non-open prime case of Prop 7.52. **REFACTORED (2026-03-30).** The sorry is now isolated to a single existence statement: `∃ v ∈ rationalOpen D'.T D'.s, p ≤ v.supp` for non-open primes. The contradiction step (rationalOpen inclusion + support membership → False) is proved inline. Infrastructure completed in this pass: `ValuationPrimeConvex.lean` sorry-free (prime↔convex correspondence, height-1 → MulArchimedean), `ValuationContinuity.lean` extended with `exists_valuationSubring_of_prime_enlarged` (enlarged domination API) and `valuation_le_one_of_mem` (rationalOpen bridge). Exact-support construction `exists_mem_spa_supp_eq_of_nonOpen_prime_mulArchimedean` is sorry-free but requires both MulArchimedean AND rationalOpen membership; the latter cannot be obtained from the domination theorem alone (enlarged domination makes I-generators units for Tate rings since I·A = A; coarsening does not preserve continuity). Resolution requires: (a) Spa completion invariance Spa(A,A⁺) ≅ Spa(Â,Â⁺) (Wedhorn Prop 7.23), or (b) a rank-1 continuous valuation with support = p (Wedhorn p67-68, DVR via blow-up + Krull-Akizuki on A₀).
   - `restrictionMapAlg_continuous_of_huber` (line ~447): Continuity of the algebraic restriction map for localization topologies. **PARTIALLY PROVED.** Factorization through `coeRingHom ∘ locLift` complete (steps 1-6 verified). Remaining sorry: the **neighborhood-mapping property** `∀ m, ∃ n, locLift '' (locNhd D n) ⊆ locNhd D' m`. This requires the universal property of the localization topology (Wedhorn §5.51): formalizing that `locTopology` is the coarsest ring topology making `algebraMap` continuous with `s` invertible and `{t/s}` power-bounded. Infrastructure needed: (a) `locTopology_continuous_lift` theorem in `LocalizationTopology.lean`, (b) interleaving of neighborhood bases from different pairs of definition `D.P`, `D'.P`, (c) boundedness analysis of `locSubring` images.
   - Open prime case (`mem_prime_of_rational_subset_open`) sorry-free.
 - [ ] **Sheaf condition for general Huber rings** — `IsSheafy` stated for Tate rings. Sorry decomposed (2026-03-25) into: (A) `completionKer_eq_bot_of_locKer_eq_bot` (completion kernel reduction, needs AdicCompletion bridge / G2-topo), (B) algebraic injectivity on localization (needs Spa points in specific rational subsets for Tate rings). All algebraic infrastructure sorry-free: `base_s_in_annihilator_radical_of_covering`, `restrictionMapAlg_factors`, `tateQuotientPresheafEquiv`.
 - [ ] **Categories V^pre and V** — see `docs/plans/2026-03-08-complete-top-ring-category.md` Tasks 2-3
 
+### High Priority — Tate Acyclicity (non-discrete)
+- [ ] **Tate's acyclicity theorem** (Wedhorn Thm 8.28(b)) — algebraic foundation complete. Non-discrete case planned in `docs/TICKETS-tate-acyclicity-v3.md` (2026-04-02). Key approach change from v2: skip T-topology entirely, use bridge formula `O_X(R(T/g)) ≅ (AdicCompletion_J D)[1/π]` + Tate algebra quotients (Example 6.38) + Banach open mapping for strictness. 6 tickets, ~1250 lines. Wave 1 (T1, T2, T3) parallelizable.
+
 ### Low Priority / Future
-- [ ] **Tate's acyclicity theorem** (Wedhorn Thm 8.28) — algebraic foundation complete (Laurent exactness, flatness, Cech refinement). Remaining: topological identification (G2-topo), categorical wrapping, Laurent-to-standard refinement.
 - [ ] **Perfectoid spaces** — long-term goal
 - [ ] **Clean up `Basic.lean`** — currently a placeholder
 
@@ -134,4 +136,4 @@ Detailed implementation plans live in `docs/plans/`:
 
 | Agent | Working On | File(s) | Started |
 |-------|-----------|---------|---------|
-| — | — | — | — |
+| claude-opus | T1: General Row 3 exactness (2 sorries remain) | LaurentCoverExact.lean | 2026-04-02 |

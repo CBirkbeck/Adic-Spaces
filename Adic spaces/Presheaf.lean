@@ -2,11 +2,13 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
-import «Adic spaces».RationalSubsets
-import «Adic spaces».LocalizationTopology
-import «Adic spaces».CompleteTopCommRingCat
 import Mathlib.RingTheory.Localization.Away.Basic
 import Mathlib.RingTheory.Noetherian.Nilpotent
+import «Adic spaces».AdicCompletionBridge
+import «Adic spaces».CompleteTopCommRingCat
+import «Adic spaces».LocalizationTopology
+import «Adic spaces».Prop752
+import «Adic spaces».RationalSubsets
 
 /-!
 # The Presheaf on the Adic Spectrum
@@ -224,6 +226,291 @@ noncomputable def presheafValueObj (D : RationalLocData A) :
 
 end PresheafValue
 
+/-! ### Completion-side pair of definition (Wedhorn §8.1, completion route)
+
+For the non-open prime Spa-point construction (Wedhorn Thm 8.28), we need
+Lemma 7.45 applied to `presheafValue D` (the completion of the localization).
+This requires a `PairOfDefinition` and `PlusSubring` on `presheafValue D`.
+
+The ring of definition is the **topological closure** of `locSubring` in
+`presheafValue D`. It is open (closure of open subgroup in a uniform completion
+is open) and serves as both the ring of definition and the plus-subring. -/
+
+section CompletedPair
+
+variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+
+/-- The ring of definition on the completion: the topological closure
+of the image of `locSubring` under the completion embedding.
+This is the key object for the completion route. -/
+noncomputable def RationalLocData.completedLocSubring (D : RationalLocData A) :
+    Subring (presheafValue D) :=
+  (locSubring D.P D.T D.s |>.map D.coeRingHom).topologicalClosure
+
+/-- The image of `locSubring` under the completion embedding is contained
+in the completed locSubring (the closure contains the image). -/
+theorem RationalLocData.coeRingHom_locSubring_le_completedLocSubring
+    (D : RationalLocData A) :
+    (locSubring D.P D.T D.s).map D.coeRingHom ≤ D.completedLocSubring :=
+  Subring.le_topologicalClosure _
+
+/-- An element of `locSubring` maps into `completedLocSubring`. -/
+theorem RationalLocData.coeRingHom_mem_completedLocSubring
+    (D : RationalLocData A) {x : Localization.Away D.s}
+    (hx : x ∈ locSubring D.P D.T D.s) :
+    D.coeRingHom x ∈ D.completedLocSubring :=
+  D.coeRingHom_locSubring_le_completedLocSubring ⟨x, hx, rfl⟩
+
+/-- The image of `A⁺` under `canonicalMap` lands in `completedLocSubring`
+when `A⁺ ⊆ A₀ = D.P.A₀` (the standard hypothesis for affinoid rings).
+This ensures the `PlusSubring` condition `A⁺ ≤ B⁺.comap(canonicalMap)`. -/
+theorem RationalLocData.canonicalMap_Aplus_le_completedLocSubring
+    (D : RationalLocData A) [PlusSubring A]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ D.P.A₀) :
+    ∀ a ∈ (A⁺ : Set A), D.canonicalMap a ∈ D.completedLocSubring := by
+  intro a ha
+  exact D.coeRingHom_mem_completedLocSubring (algebraMap_mem_locSubring D.P D.T D.s
+    (hAplus_le_A₀ ha))
+
+/-- `completedLocSubring` is open in `presheafValue D`.
+
+**Proof:** `locSubring` is open in `Localization.Away s` (by `locSubring_isOpen`).
+Open sets are nhds-0 sets. In the uniform completion, the closure of a
+nhds-0 set from the dense subspace is a nhds-0 set in the completion.
+An additive subgroup containing a nhds-0 set is open. -/
+theorem RationalLocData.completedLocSubring_isOpen (D : RationalLocData A) :
+    IsOpen (D.completedLocSubring : Set (presheafValue D)) := by
+  apply AddSubgroup.isOpen_of_mem_nhds (H := D.completedLocSubring.toAddSubgroup) (g := 0)
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : TopologicalSpace (Localization.Away D.s) := D.topology
+  have hmem : (locSubring D.P D.T D.s : Set (Localization.Away D.s)) ∈ nhds 0 :=
+    (locSubring_isOpen D.P D.T D.s D.hopen).mem_nhds (locSubring D.P D.T D.s).zero_mem
+  have hcl := (UniformSpace.Completion.isDenseInducing_coe (α := Localization.Away D.s)
+    ).closure_image_mem_nhds hmem
+  rwa [UniformSpace.Completion.coe_zero] at hcl
+
+/-- `PlusSubring` on `presheafValue D`, with `B⁺ = completedLocSubring D`.
+This is the natural plus-subring for the completion route: it contains
+the image of `A⁺` (via `canonicalMap_Aplus_le_completedLocSubring`) and
+is bounded for valuations in `Spa(presheafValue D, completedLocSubring D)`. -/
+noncomputable instance RationalLocData.presheafValuePlusSubring
+    (D : RationalLocData A) : PlusSubring (presheafValue D) where
+  toSubring := D.completedLocSubring
+
+/-- The canonical map `A →+* presheafValue D` sends `A⁺` into `B⁺`. -/
+theorem RationalLocData.canonicalMap_integral (D : RationalLocData A)
+    [PlusSubring A] (hAplus_le_A₀ : (A⁺ : Set A) ⊆ D.P.A₀) :
+    (A⁺ : Subring A) ≤ (PlusSubring.toSubring (A := presheafValue D)).comap
+      D.canonicalMap := by
+  intro a ha
+  exact D.canonicalMap_Aplus_le_completedLocSubring hAplus_le_A₀ a ha
+
+/-- The pullback of a Spa point on the completion satisfies the rational-open
+valuation conditions `v(t) ≤ v(s)` for `t ∈ T` and `v(s) ≠ 0`.
+
+This is the algebraic core of the completion route for Wedhorn Thm 8.28:
+- `v(t) ≤ v(s)`: because `t/s ∈ locSubring ⊆ completedLocSubring` and
+  the Spa condition gives `w(t/s) ≤ 1`, so by multiplicativity `w(t) ≤ w(s)`
+- `v(s) ≠ 0`: because `s` is a unit in `Localization.Away s`, hence
+  `canonicalMap s` is a unit in `presheafValue D` -/
+theorem RationalLocData.comap_canonicalMap_vle (D : RationalLocData A)
+    {w : ValuativeRel (presheafValue D)}
+    (hw_bdd : ∀ d ∈ D.completedLocSubring, w.vle d 1)
+    {t : A} (ht : t ∈ D.T) :
+    w.vle (D.canonicalMap t) (D.canonicalMap D.s) := by
+  have hmem : D.coeRingHom (divByS t D.s) ∈ D.completedLocSubring :=
+    D.coeRingHom_mem_completedLocSubring (divByS_mem_locSubring D.P D.T D.s ht)
+  have hle := hw_bdd _ hmem
+  have hspec : divByS t D.s * algebraMap A (Localization.Away D.s) D.s =
+      algebraMap A (Localization.Away D.s) t :=
+    IsLocalization.mk'_spec _ t ⟨D.s, Submonoid.mem_powers D.s⟩
+  have hspec' : D.coeRingHom (divByS t D.s) * D.canonicalMap D.s = D.canonicalMap t := by
+    rw [show D.canonicalMap = D.coeRingHom.comp (algebraMap A _) from rfl,
+      RingHom.comp_apply, RingHom.comp_apply, ← map_mul, hspec]
+  rw [← hspec']
+  have := w.mul_vle_mul_left hle (D.canonicalMap D.s)
+  rwa [one_mul] at this
+
+/-- `canonicalMap s` is a unit in `presheafValue D` (since `s` is a unit in
+`Localization.Away s` and ring homs preserve units). Hence `¬ v(s) ≤ᵥ 0`. -/
+theorem RationalLocData.canonicalMap_s_isUnit (D : RationalLocData A) :
+    IsUnit (D.canonicalMap D.s) := by
+  have : IsUnit (algebraMap A (Localization.Away D.s) D.s) :=
+    IsLocalization.map_units (Localization.Away D.s) ⟨D.s, Submonoid.mem_powers D.s⟩
+  exact this.map D.coeRingHom
+
+/-- `¬ (comap canonicalMap w).vle s 0` — the pullback valuation does not
+send `s` to zero, because `canonicalMap s` is a unit. -/
+theorem RationalLocData.comap_canonicalMap_not_vle_s_zero (D : RationalLocData A)
+    {w : ValuativeRel (presheafValue D)} :
+    ¬ (ValuativeRel.comap D.canonicalMap w).vle D.s 0 := by
+  rw [ValuativeRel.comap_vle, map_zero]
+  exact ValuativeRel.not_vle_zero_of_isUnit D.canonicalMap_s_isUnit
+
+/-! #### Ideal of definition and pair of definition on the completion -/
+
+/-- The ring homomorphism `locSubring → completedLocSubring` induced by the
+completion embedding. -/
+noncomputable def RationalLocData.locSubringToCompleted (D : RationalLocData A) :
+    locSubring D.P D.T D.s →+* D.completedLocSubring :=
+  (D.coeRingHom.comp (locSubring D.P D.T D.s).subtype).codRestrict
+    D.completedLocSubring
+    (fun x ↦ D.coeRingHom_mem_completedLocSubring x.prop)
+
+/-- The ideal of definition on `completedLocSubring`: image of `locIdeal`
+under the completion embedding. -/
+noncomputable def RationalLocData.completedLocIdeal (D : RationalLocData A) :
+    Ideal D.completedLocSubring :=
+  Ideal.map D.locSubringToCompleted (locIdeal D.P D.T D.s)
+
+/-- The completed ideal of definition is finitely generated. -/
+theorem RationalLocData.completedLocIdeal_fg (D : RationalLocData A) :
+    D.completedLocIdeal.FG :=
+  (locIdeal_fg D.P D.T D.s).map _
+
+/-- The subspace topology on `completedLocSubring` equals the
+`completedLocIdeal`-adic topology. This is the analogue of `locSubring_isAdic`
+for the completed pair.
+
+**Proof route:** The localization satisfies `IsAdic locIdeal` on `locSubring`
+(by `locSubring_isAdic`). In the completion, the nhds-0 basis consists of
+closures of `locIdeal^n`-images (by density), which are the powers of
+`completedLocIdeal`. Hence the subspace topology agrees with the adic topology.
+
+This is the single remaining nontrivial sub-piece for the completion-side
+`PairOfDefinition`. -/
+theorem RationalLocData.completedLocSubring_isAdic (D : RationalLocData A) :
+    @IsAdic D.completedLocSubring _ (TopologicalSpace.induced
+      D.completedLocSubring.subtype inferInstance) D.completedLocIdeal := by
+  have _h_pre := locSubring_topology_eq_adic D.P D.T D.s D.hopen
+  sorry
+
+/-- **Pair of definition on `presheafValue D`** (the completion of the
+localization). Ring of definition = `completedLocSubring`, ideal =
+`completedLocIdeal`. This is the completion-side analogue of
+`locPairOfDefinition` from Prop752.lean. -/
+noncomputable def RationalLocData.completedPairOfDefinition (D : RationalLocData A) :
+    PairOfDefinition (presheafValue D) where
+  A₀ := D.completedLocSubring
+  I := D.completedLocIdeal
+  isOpen := D.completedLocSubring_isOpen
+  fg := D.completedLocIdeal_fg
+  isAdic := D.completedLocSubring_isAdic
+
+/-! #### IsAdicComplete and Lemma 7.45 application infrastructure -/
+
+/-- The underlying function of `locSubringToCompleted`, viewed as
+`completedLocSubring.subtype ∘ locSubringToCompleted = coe ∘ locSubring.subtype`,
+is uniformly inducing for the subspace uniformities from `D.uniformSpace`
+and from the completion. -/
+theorem RationalLocData.locSubringToCompleted_val_isUniformInducing
+    (D : RationalLocData A) :
+    @IsUniformInducing (locSubring D.P D.T D.s) (presheafValue D)
+      (@instUniformSpaceSubtype (Localization.Away D.s) (· ∈ locSubring D.P D.T D.s)
+        D.uniformSpace)
+      (@UniformSpace.Completion.uniformSpace _ D.uniformSpace)
+      (D.completedLocSubring.subtype ∘ D.locSubringToCompleted) := by
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  have hcomp : D.completedLocSubring.subtype ∘ D.locSubringToCompleted =
+      (UniformSpace.Completion.coe' : Localization.Away D.s → presheafValue D) ∘
+      (locSubring D.P D.T D.s).subtype := by ext; rfl
+  rw [hcomp]
+  exact (UniformSpace.Completion.isUniformInducing_coe (α := Localization.Away D.s)).comp
+    isUniformEmbedding_subtype_val.isUniformInducing
+
+/-- `completedLocSubring` as an `AbstractCompletion` of `locSubring`.
+All fields use the subspace uniformities from `D.uniformSpace` (source)
+and `Completion.uniformSpace` (target). -/
+noncomputable def RationalLocData.completedAbstractCompletion (D : RationalLocData A) :
+    @AbstractCompletion (locSubring D.P D.T D.s)
+      (@instUniformSpaceSubtype _ (· ∈ locSubring D.P D.T D.s) D.uniformSpace) := by
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  haveI hclosed : IsClosed (D.completedLocSubring : Set (presheafValue D)) :=
+    Subring.isClosed_topologicalClosure _
+  exact {
+    space := D.completedLocSubring
+    coe := D.locSubringToCompleted
+    uniformStruct := instUniformSpaceSubtype
+    complete := hclosed.completeSpace_coe
+    separation := Subtype.t0Space
+    isUniformInducing :=
+      isUniformEmbedding_subtype_val.isUniformInducing.isUniformInducing_comp_iff.mp
+        D.locSubringToCompleted_val_isUniformInducing
+    dense := by
+      intro ⟨x, hx⟩
+      rw [mem_closure_iff_nhds]
+      intro U hU
+      rw [nhds_induced, Filter.mem_comap] at hU
+      obtain ⟨V, hV, hVU⟩ := hU
+      have hx_cl : x ∈ closure ((locSubring D.P D.T D.s).map D.coeRingHom : Set _) := hx
+      obtain ⟨y, hyV, hy_map⟩ := mem_closure_iff_nhds.mp hx_cl V hV
+      obtain ⟨z, hz, rfl⟩ := Subring.mem_map.mp hy_map
+      exact ⟨⟨D.coeRingHom z, D.coeRingHom_mem_completedLocSubring hz⟩,
+        hVU hyV, ⟨⟨z, hz⟩, rfl⟩⟩
+  }
+
+/-- `completedLocSubring` is `completedLocIdeal`-adically complete.
+Uses the `AbstractCompletion` comparison with `AdicCompletion`. -/
+instance RationalLocData.completedLocSubring_isAdicComplete (D : RationalLocData A) :
+    @IsAdicComplete D.completedLocSubring _ D.completedLocIdeal
+      D.completedLocSubring _ _ := by
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  haveI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  haveI : IsUniformAddGroup (locSubring D.P D.T D.s) := ⟨
+    isUniformEmbedding_subtype_val.isUniformInducing.uniformContinuous_iff.mpr
+      (uniformContinuous_sub.comp
+        (isUniformEmbedding_subtype_val.uniformContinuous.prodMap
+          isUniformEmbedding_subtype_val.uniformContinuous))⟩
+  have _hadic := locSubring_topology_eq_adic D.P D.T D.s D.hopen
+  let _ac₁ := D.completedAbstractCompletion
+  let _ac₂ := AdicCompletionBridge.adicAbstractCompletion (locIdeal D.P D.T D.s) _hadic
+  sorry
+
+/-- The preimage ideal of `p` under `canonicalMap`, as an ideal of `presheafValue D`.
+For the Zorn step, this is the ideal generated by `p` in the completion. -/
+noncomputable def RationalLocData.liftedIdeal (D : RationalLocData A)
+    (p : Ideal A) : Ideal (presheafValue D) :=
+  Ideal.map D.canonicalMap p
+
+/-- The support of the pullback valuation contains `p` when
+`liftedIdeal p ≤ w.supp`. This is how the non-open prime construction
+ensures `p ≤ v.supp` for the pulled-back valuation `v`. -/
+theorem RationalLocData.supp_comap_ge_of_liftedIdeal_le (D : RationalLocData A)
+    {p : Ideal A} {w : Spv (presheafValue D)}
+    (h : D.liftedIdeal p ≤ w.supp) :
+    p ≤ (comap D.canonicalMap w).supp := by
+  intro a ha
+  rw [mem_supp_iff, comap_vle, map_zero]
+  exact (mem_supp_iff w _).mp (h (Ideal.mem_map_of_mem _ ha))
+
+/-- **The completion-transfer theorem for non-open primes** (Wedhorn §7.5 + §8.1).
+
+Given a Spa point `w` on the completion `presheafValue D` whose support contains
+the lifted ideal of a prime `p` (with `D.s ∉ p`), the pullback `comap(canonicalMap, w)`
+is a Spa point on `A` in `rationalOpen D.T D.s` with `p ≤ supp`.
+
+This is the algebraic core of the non-open-prime construction: it converts a
+completion-side Spa point (from Lemma 7.45 applied to the completed pair)
+into the existential needed by `mem_prime_of_rational_subset_nonOpen`.
+
+Assumes `Continuous D.canonicalMap` (proved in PresheafIdentification.lean). -/
+theorem RationalLocData.exists_rationalOpen_of_completion_spa (D : RationalLocData A)
+    [PlusSubring A] (hAplus_le_A₀ : (A⁺ : Set A) ⊆ D.P.A₀)
+    (hcont : Continuous D.canonicalMap)
+    {p : Ideal A} [p.IsPrime] (_hs : D.s ∉ p)
+    {w : Spv (presheafValue D)}
+    (hw : w ∈ Spa (presheafValue D) D.completedLocSubring)
+    (hw_supp : D.liftedIdeal p ≤ w.supp) :
+    ∃ v ∈ rationalOpen D.T D.s, p ≤ v.supp := by
+  refine ⟨comap D.canonicalMap w, ?_, D.supp_comap_ge_of_liftedIdeal_le hw_supp⟩
+  refine ⟨comap_mem_spa hcont (D.canonicalMap_integral hAplus_le_A₀) hw, ?_, ?_⟩
+  · intro t ht
+    rw [comap_vle]
+    exact D.comap_canonicalMap_vle hw.2 ht
+  · exact @RationalLocData.comap_canonicalMap_not_vle_s_zero A _ _ _ D w.toValuativeRel
+
+end CompletedPair
+
 /-! ### Remark 8.3: `𝒪_X(X)` as a concrete type
 
 Remark 8.3 of Wedhorn: since `X = R({1}/1)`, the global sections are
@@ -315,8 +602,7 @@ private theorem mem_prime_of_rational_subset_open {A : Type*} [CommRing A]
     · intro f _; change w f ≤ w 1
       simp only [w, Valuation.comap_apply, map_one]; exact Valuation.one_apply_le_one _
   have hv_supp : v.supp = p := by
-    rw [supp_ofValuation]; ext a
-    exact ⟨fun h ↦ (hw_mem_iff a).mp h, fun ha ↦ (hw_mem_iff a).mpr ha⟩
+    rw [supp_ofValuation]; ext a; exact hw_mem_iff a
   have hw_Ds : w D'.s = 1 := by
     simp only [w, Valuation.comap_apply, φ, RingHom.comp_apply]
     apply Valuation.one_apply_of_ne_zero
@@ -380,14 +666,11 @@ private theorem mem_prime_of_rational_subset_nonOpen {A : Type*} [CommRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
     (p : Ideal A) (hp : p.IsPrime) (hp_notOpen : ¬IsOpen (p : Set A))
     (hDs : D.s ∈ p) : D'.s ∈ p := by
-  -- BLOCKED: requires Spa point with supp = p for non-open primes.
-  -- Available: `exists_mem_spa_supp_ge_of_nonOpen_prime` (Lemma745.lean) gives
-  --   v ∈ Spa with p ≤ v.supp, but needs [IsAdicComplete P.I P.A₀] and gives ≤, not =.
-  -- Needed sub-fact (any one suffices):
-  --   (a) Spa(A, A⁺) ≅ Spa(Â, Â⁺) to reduce to the complete case, OR
-  --   (b) Rank-1 domination: every non-open prime = supp of a rank-1 valuation, OR
-  --   (c) A purely algebraic proof that s' ∈ radical(s) when R(T'/s') ⊆ R(T/s).
-  -- See docstring above for full analysis.
+  haveI := hp
+  by_contra hD's
+  suffices ∃ v ∈ rationalOpen D'.T D'.s, p ≤ v.supp by
+    obtain ⟨v, hv_rat, hv_supp⟩ := this
+    exact (h hv_rat).2.2 ((v.mem_supp_iff D.s).mp (hv_supp hDs))
   sorry
 
 /-- Given a prime `p` containing `D.s`, if `R(T'/s') ⊆ R(T/s)` then `D'.s ∈ p`
@@ -459,7 +742,6 @@ theorem restrictionMapAlg_continuous_of_huber {A : Type*} [CommRing A]
       (@UniformSpace.toTopologicalSpace _
         (@UniformSpace.Completion.uniformSpace _ D'.uniformSpace))
       (IsLocalization.Away.lift D.s (isUnit_canonicalMap_s_of_huber D D' h)) := by
-  -- Step 1: Extract that D.s is already a unit in Localization.Away D'.s
   have hu_loc : IsUnit (algebraMap A (Localization.Away D'.s) D.s) := by
     have hrad : D'.s ∈ Ideal.radical (Ideal.span {D.s}) := by
       classical
@@ -478,7 +760,6 @@ theorem restrictionMapAlg_continuous_of_huber {A : Type*} [CommRing A]
       rw [← map_mul, ← map_pow, ha]
     rw [← heq] at hunit_pow
     exact isUnit_of_mul_isUnit_right hunit_pow
-  -- Step 2: Factor the full lift as coeRingHom ∘ locLift
   let locLift : Localization.Away D.s →+* Localization.Away D'.s :=
     IsLocalization.Away.lift D.s hu_loc
   have hfactor : IsLocalization.Away.lift D.s (isUnit_canonicalMap_s_of_huber D D' h) =
@@ -488,51 +769,42 @@ theorem restrictionMapAlg_continuous_of_huber {A : Type*} [CommRing A]
     simp only [RingHom.comp_apply, IsLocalization.Away.lift_eq, RationalLocData.coeRingHom,
       RationalLocData.canonicalMap, locLift]
   rw [hfactor]
-  -- Step 3: Set up topological instances from uniform spaces
   letI := D.uniformSpace
   letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
   letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
   letI := D'.uniformSpace
   letI : IsTopologicalRing (Localization.Away D'.s) := D'.isTopologicalRing
   letI : IsUniformAddGroup (Localization.Away D'.s) := D'.isUniformAddGroup
-  -- Step 4: coeRingHom (completion embedding) is continuous
   have hcoe : @Continuous _ _ D'.topology
       (@UniformSpace.toTopologicalSpace _
         (@UniformSpace.Completion.uniformSpace _ D'.uniformSpace))
       D'.coeRingHom :=
     @UniformSpace.Completion.continuous_coe _ D'.uniformSpace
-  -- Step 5: Reduce to continuity of locLift : (D.topology) → (D'.topology)
   suffices hlift : @Continuous _ _ D.topology D'.topology locLift from hcoe.comp hlift
-  -- Step 6: Apply the universal property of the localization topology (Wedhorn §5.51).
-  -- `locTopology_continuous_lift` states: a ring hom f from (Localization.Away D.s, D.topology)
-  -- to a topological ring B is continuous if f ∘ algebraMap : A → B is continuous.
-  -- Here f = locLift and B = (Localization.Away D'.s, D'.topology).
-  -- The hypothesis: locLift ∘ algebraMap = algebraMap : A → (Loc.Away D'.s, D'.topology)
-  -- is continuous because preimage of locNhd D' n contains val(D'.P.I^n), a nhd of 0 in A.
-  exact locTopology_continuous_lift D.P D.T D.s D.hopen locLift (by
-    -- Goal: Continuous (locLift.comp (algebraMap A (Localization.Away D.s)))
-    -- Since locLift ∘ algebraMap = algebraMap (into D'.s), reduce to continuity of algebraMap.
+  haveI : @NonarchimedeanRing _ _ D'.topology :=
+    (locBasis D'.P D'.T D'.s D'.hopen).nonarchimedean
+  have hf_alg : @Continuous _ _ _ D'.topology
+      (locLift.comp (algebraMap A (Localization.Away D.s))) := by
     have h_eq : locLift.comp (algebraMap A (Localization.Away D.s)) =
         algebraMap A (Localization.Away D'.s) := by
       ext a; simp only [RingHom.comp_apply, IsLocalization.Away.lift_eq, locLift]
-    simp only [h_eq]
-    -- Prove: algebraMap : A → (Localization.Away D'.s, D'.topology) is continuous.
-    -- Use continuous_of_continuousAt_zero for the additive group hom.
+    rw [show (⇑(locLift.comp (algebraMap A (Localization.Away D.s))) : A → _) =
+      ⇑(algebraMap A (Localization.Away D'.s)) from congr_arg _ h_eq]
     apply continuous_of_continuousAt_zero
       (algebraMap A (Localization.Away D'.s)).toAddMonoidHom
-    rw [ContinuousAt, map_zero]
-    rw [Filter.tendsto_def]
+    rw [ContinuousAt, map_zero, Filter.tendsto_def]
     intro S hS
-    -- S is a neighborhood of 0 in D'.topology. It contains some locNhd D' n.
     obtain ⟨n, -, hn⟩ :=
       (locBasis D'.P D'.T D'.s D'.hopen).hasBasis_nhds_zero.mem_iff.mp hS
-    -- The preimage of locNhd D' n under algebraMap contains val(D'.P.I^n).
     apply Filter.mem_of_superset (D'.P.hasBasis_nhds_zero.mem_of_mem (i := n) trivial)
     intro a ha
     obtain ⟨⟨b, hb⟩, hbn, hab⟩ := ha
     rw [← hab]
     exact hn ⟨algebraMapD D'.P D'.T D'.s ⟨b, hb⟩,
-      by rw [locIdeal, ← Ideal.map_pow]; exact Ideal.mem_map_of_mem _ hbn, rfl⟩)
+      by rw [locIdeal, ← Ideal.map_pow]; exact Ideal.mem_map_of_mem _ hbn, rfl⟩
+  apply locTopology_continuous_lift D.P D.T D.s D.hopen locLift hf_alg
+  intro t ht
+  sorry
 
 /-! ### Restriction maps (Proposition 8.2 of Wedhorn)
 
@@ -552,8 +824,8 @@ variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
 (Proposition 8.2 of Wedhorn). -/
 theorem isUnit_canonicalMap_s (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
-    IsUnit (D'.canonicalMap D.s) := by
-  exact isUnit_canonicalMap_s_of_huber D D' h
+    IsUnit (D'.canonicalMap D.s) :=
+  isUnit_canonicalMap_s_of_huber D D' h
 
 /-- The algebraic part of the restriction map via `IsLocalization.Away.lift`. -/
 noncomputable def restrictionMapAlg (D D' : RationalLocData A)
@@ -567,8 +839,8 @@ theorem restrictionMapAlg_continuous (D D' : RationalLocData A)
     @Continuous _ _ D.topology
       (@UniformSpace.toTopologicalSpace _
         (@UniformSpace.Completion.uniformSpace _ D'.uniformSpace))
-      (restrictionMapAlg D D' h) := by
-  exact restrictionMapAlg_continuous_of_huber D D' h
+      (restrictionMapAlg D D' h) :=
+  restrictionMapAlg_continuous_of_huber D D' h
 
 /-- The restriction map `σ : A⟨T/s⟩ →+* A⟨T'/s'⟩` (Proposition 8.2(1) of Wedhorn). -/
 noncomputable def restrictionMapHom (D D' : RationalLocData A)
@@ -721,9 +993,8 @@ theorem locTopology_eq_bot_of_discrete {A : Type*} [CommRing A] [TopologicalSpac
     simp only [hM, Submodule.zero_eq_bot, Ideal.map_bot]
   have hNhd : ∀ x ∈ locNhd D.P D.T D.s M, x = (0 : Localization.Away D.s) := by
     rintro _ ⟨d, hd, rfl⟩
-    have hd' : d ∈ (locIdeal D.P D.T D.s) ^ M := hd
-    rw [hJ] at hd'
-    simp only [RingHom.toAddMonoidHom_eq_coe, show d = 0 from hd',
+    rw [hJ] at hd
+    simp only [RingHom.toAddMonoidHom_eq_coe, show d = 0 from hd,
       AddMonoidHom.coe_coe, Subring.subtype_apply, ZeroMemClass.coe_zero]
   letI : TopologicalSpace (Localization.Away D.s) := D.topology
   letI := D.isTopologicalRing
@@ -733,13 +1004,11 @@ theorem locTopology_eq_bot_of_discrete {A : Type*} [CommRing A] [TopologicalSpac
     (hbasis.openAddSubgroup M).isOpen
   have hNhd_eq : ((locNhd D.P D.T D.s M : AddSubgroup _) : Set (Localization.Away D.s)) =
       {0} := Set.eq_singleton_iff_unique_mem.mpr ⟨zero_mem_locNhd D.P D.T D.s M, hNhd⟩
-  have hopen_zero : @IsOpen _ D.topology ({0} : Set (Localization.Away D.s)) :=
-    hNhd_eq ▸ hopen_nhd
   apply eq_bot_of_singletons_open
   intro x
   rw [show ({x} : Set (Localization.Away D.s)) = (x + ·) '' {0} from by
     simp only [Set.image_singleton, add_zero]]
-  exact (isOpenMap_add_left x) _ hopen_zero
+  exact (isOpenMap_add_left x) _ (hNhd_eq ▸ hopen_nhd)
 
 /-- Given a prime `p` containing `D.s` but not `D'.s`, construct a point in `rationalOpen D'.T D'.s`
 whose support is `p`, contradicting `rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s`. -/

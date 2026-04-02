@@ -395,6 +395,7 @@ noncomputable def coarsenMapOfValueGroup
   (WithZero.mapMonoidWithZeroHom (QuotientGroup.mk' H.toSubgroup)).comp
     (OrderMonoidIso.withZeroUnits (α := Γ₀)).symm.toMonoidWithZeroHom
 
+/-- The coarsening map `Γ₀ → WithZero(Γ₀ˣ ⧸ H)` is monotone. -/
 theorem coarsenMapOfValueGroup_monotone (H : ConvexSubgroup Γ₀ˣ) :
     Monotone (coarsenMapOfValueGroup H) := by
   intro a b hab
@@ -403,9 +404,11 @@ theorem coarsenMapOfValueGroup_monotone (H : ConvexSubgroup Γ₀ˣ) :
   apply WithZero.mapMonoidWithZeroHom_monotone _ H.quotientMk_monotone
   exact (OrderMonoidIso.withZeroUnits (α := Γ₀)).symm.toOrderIso.monotone hab
 
+/-- The coarsening map sends `0` to `0`. -/
 theorem coarsenMapOfValueGroup_apply_zero (H : ConvexSubgroup Γ₀ˣ) :
     coarsenMapOfValueGroup H 0 = 0 := map_zero _
 
+/-- The coarsening map sends a unit `g : Γ₀ˣ` to its quotient class. -/
 theorem coarsenMapOfValueGroup_apply_unit (H : ConvexSubgroup Γ₀ˣ) (g : Γ₀ˣ) :
     coarsenMapOfValueGroup H (g : Γ₀) =
     ↑(QuotientGroup.mk' H.toSubgroup g) := by
@@ -430,11 +433,13 @@ noncomputable def coarsenByUnits
     Valuation R (WithZero (Γ₀ˣ ⧸ H.toSubgroup)) :=
   v.map (coarsenMapOfValueGroup H) (coarsenMapOfValueGroup_monotone H)
 
+/-- Unfolding lemma: `coarsenByUnits` applies the coarsening map to `v r`. -/
 theorem coarsenByUnits_apply
     (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ) (r : R) :
     v.coarsenByUnits H r = coarsenMapOfValueGroup H (v r) :=
   Valuation.map_apply _ _ _ _
 
+/-- The support of a coarsened valuation equals the support of the original. -/
 theorem coarsenByUnits_supp
     (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ) :
     (v.coarsenByUnits H).supp = v.supp := by
@@ -449,6 +454,7 @@ theorem coarsenByUnits_supp
     exact WithZero.coe_ne_zero h
   · intro h; rw [h, map_zero]
 
+/-- Coarsening preserves the bound `v a ≤ 1`. -/
 theorem coarsenByUnits_le_one_of_le_one
     (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
     {a : R} (ha : v a ≤ 1) :

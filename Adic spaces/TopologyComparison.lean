@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».PresheafIdentification
 import «Adic spaces».TateAlgebraWedhorn
+import Mathlib.Data.Finsupp.Encodable
 
 /-!
 # Topology Comparison: Completion Isomorphism (Non-Discrete)
@@ -1125,17 +1126,22 @@ theorem locToQuotientOneSubfX_gen_denseRange (s : A) :
 
 /-! #### H2/H3: Closedness of (1-sX), completeness, and T₀
 
-The ideal `(1-sX)` is closed in the T-topology. The argument:
-1. `1-sX` is a non-zero-divisor in `A⟨X⟩` (coefficient induction).
-2. Multiplication by `(1-sX)` is a topological embedding for the T-topology
-   (the scaled-coefficient transform `T : (c_n) ↦ (c_n - s·c_{n-1})` is a
-   homeomorphism of `∏ A`, and `scaleIncl ∘ μ_{1-sX} = T ∘ scaleIncl`).
-3. `A⟨X⟩` is complete in the T-topology (closed subspace of complete product).
-4. Image of complete space under topological embedding is complete.
-5. Complete subset of Hausdorff uniform space is closed.
+**Architecture (2026-04-02 correction):**
+The T-topology on `A⟨X⟩` is the product topology on scaled coefficients (via
+`scaleIncl`). This constrains only finitely many coordinates, so `A⟨X⟩` is
+NOT complete in this topology. However, for the QUOTIENT `A⟨X⟩/(1-sX)`:
 
-Once `(1-sX)` is closed: quotient of complete Hausdorff by closed subgroup
-is complete and Hausdorff. -/
+1. For strongly noetherian `A`, `A⟨X⟩` is noetherian.
+2. The quotient `A⟨X⟩/(1-sX)` is a f.g. `A⟨X⟩`-module (cyclic).
+3. By Prop 6.18 (Wedhorn): on f.g. modules over noetherian Tate rings, the
+   module topology = the adic lattice topology. The quotient T-topology IS the
+   module topology (since `IsModuleTopology R (R ⧸ I)` for topological ring R).
+4. The adic lattice topology on the quotient is complete: the ring of definition
+   `A₀⟨X⟩/(1-sX)` is J-adically complete (quotient of `A₀⟨X⟩` by a closed ideal,
+   Remark 6.37), and completing gives the adic lattice topology.
+
+For closedness of `(1-sX)`: Remark 6.37 says every ideal in a noetherian
+J-adically separated ring is closed (Krull intersection + Artin-Rees). -/
 
 omit [PlusSubring A] [IsHuberRing A] [IsTopologicalRing A] [T2Space A] in
 /-- `1-sX` is not a zero divisor in `A⟨X⟩`: if `(1-sX) · g = 0` then `g = 0`.
@@ -1160,76 +1166,103 @@ theorem oneSubsX_not_zero_divisor (s : A) (g : ↥(TateAlgebra A))
     | succ n ih => rw [hstep n, ih, mul_zero]
   exact TateAlgebra.ext hall
 
-/-- The Tate algebra `A⟨X⟩` is complete for the T-topology when A is complete.
-The T-topology is induced from `∏ A` via `scaleIncl`, and the image
-is a closed subspace of the complete product.
+/-- **Wedhorn Remark 6.37:** In a noetherian ring with I-adic topology that is
+I-adically separated, every ideal is closed.
 
-The completeness hypothesis uses the right uniform space derived from the
-topological additive group structure on A (since A is a topological ring
-but may not have a canonical UniformSpace instance). -/
-theorem tateAlgebra_tTopology_completeSpace (s : A)
-    (hcs : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A)) :
-    @CompleteSpace ↥(TateAlgebra A) (@IsTopologicalAddGroup.rightUniformSpace
-      _ _ (TateAlgebraWedhorn.tateTopologyT s)
-      (@IsTopologicalRing.to_topologicalAddGroup _ _
-        (TateAlgebraWedhorn.tateTopologyT s)
-        (TateAlgebraWedhorn.tateTopologyT_isTopologicalRing s))) := by
-  -- PROOF OUTLINE:
-  -- The T-topology is induced from ∏ A via scaleIncl s.
-  -- ∏ A is complete when A is complete (Pi.completeSpace).
-  -- Need: image of scaleIncl is closed in ∏ A.
-  -- Equivalently: TateAlgebra with T-topology is a closed subspace of ∏ A.
-  --
-  -- An element c : (Fin 1 →₀ ℕ) → A is in the image iff the "unscaled" sequence
-  -- n ↦ c_n (already divided by s^n in the scaling) is restricted (tends to 0
-  -- along the cofinite filter). This condition is closed in the product topology
-  -- because it's an intersection of closed sets {c : c_n ∈ K} for cofinite
-  -- sets of indices, where K ranges over closed neighborhoods.
-  --
-  -- BLOCKER: Proving the image of scaleIncl is closed requires characterizing
-  -- which product elements arise from restricted power series after scaling.
-  -- The restricted condition (coefficients tend to 0) needs the UNSCALED
-  -- coefficients to tend to 0, which corresponds to product elements c where
-  -- s^{-n} * c_n → 0 -- but s may not be invertible in A.
-  -- Alternative: show scaleIncl is a closed embedding directly.
-  sorry
+Proof: For ideal J in noetherian I-separated R, the quotient R/J is noetherian
+and I-separated (by Artin-Rees: `Ideal.exists_pow_inf_eq_pow_smul`). The closure
+`cl(J) = ⋂_n (J + I^n)` equals J because `⋂_n I^n · (R/J) = 0` (Krull intersection
+in the separated quotient). -/
+theorem isClosed_ideal_of_noetherian_adic_separated
+    {R : Type*} [CommRing R] [TopologicalSpace R] [IsTopologicalRing R]
+    [IsNoetherianRing R] [T2Space R]
+    (I : Ideal R) (hadic : IsAdic I)
+    (hcs : @CompleteSpace R (IsTopologicalAddGroup.rightUniformSpace R))
+    (J : Ideal R) :
+    IsClosed (J : Set R) := by
+  -- Step 1: Introduce uniform space from the topological additive group.
+  letI : UniformSpace R := IsTopologicalAddGroup.rightUniformSpace R
+  haveI : IsUniformAddGroup R := isUniformAddGroup_of_addCommGroup
+  -- Step 2: IsAdicComplete I R from IsAdic + CompleteSpace + T2.
+  have hac : IsAdicComplete I R := hadic.isAdicComplete_iff.mpr ⟨hcs, ‹_›⟩
+  -- Step 3: I ≤ jacobson ⊥ from IsAdicComplete.
+  have hjac : I ≤ (⊥ : Ideal R).jacobson := IsAdicComplete.le_jacobson_bot I
+  -- Step 4: Krull intersection on R ⧸ J: ⨅ n, I^n • ⊤ = ⊥.
+  have hkrull : (⨅ i : ℕ, I ^ i • (⊤ : Submodule R (R ⧸ J))) = ⊥ :=
+    Ideal.iInf_pow_smul_eq_bot_of_le_jacobson I hjac
+  -- Step 5: IsClosed from closure ⊆ J using adic nhds basis.
+  rw [← closure_subset_iff_isClosed]
+  intro x hx
+  -- x is in closure(J) iff ∀ n, (x + I^n) meets J (adic nhds basis).
+  rw [mem_closure_iff_nhds_basis (hadic.hasBasis_nhds x)] at hx
+  -- Show mk J x ∈ ⨅ I^n • ⊤ = ⊥, hence mk J x = 0, hence x ∈ J.
+  suffices Ideal.Quotient.mk J x = 0 from
+    Ideal.Quotient.eq_zero_iff_mem.mp this
+  -- mk J x lies in every I^n • ⊤, hence in their intersection = ⊥.
+  have hmem : Ideal.Quotient.mk J x ∈
+      (⨅ i : ℕ, I ^ i • (⊤ : Submodule R (R ⧸ J))) := by
+    rw [Submodule.mem_iInf]
+    intro n
+    -- From closure: ∃ y ∈ J with y ∈ (x + I^n).
+    obtain ⟨y, hy_mem, hxy⟩ := hx n trivial
+    -- hxy : y ∈ (fun z ↦ x + z) '' ↑(I ^ n), i.e., y = x + z for some z ∈ I^n.
+    obtain ⟨z, hz, rfl⟩ := hxy
+    -- y = x + z and y ∈ J. So mk J (x + z) = 0, i.e., mk J x = -(mk J z).
+    -- We need mk J x ∈ I^n • ⊤.
+    -- mk J x = mk J (x + z) - mk J z = 0 - mk J z (since x + z ∈ J).
+    have hyz : Ideal.Quotient.mk J (x + z) = 0 :=
+      Ideal.Quotient.eq_zero_iff_mem.mpr hy_mem
+    have hxeq : Ideal.Quotient.mk J x = -(Ideal.Quotient.mk J z) := by
+      have h1 : Ideal.Quotient.mk J x + Ideal.Quotient.mk J z = 0 := by
+        rw [← map_add]; exact hyz
+      have := eq_neg_of_add_eq_zero_left h1
+      exact this
+    rw [hxeq]
+    apply neg_mem
+    -- mk J z ∈ I^n • ⊤: use smul_top_eq_map to identify I^n • ⊤ with (I^n).map (mk J).
+    show Ideal.Quotient.mk J z ∈ I ^ n • (⊤ : Submodule R (R ⧸ J))
+    rw [Ideal.smul_top_eq_map]
+    exact (Submodule.restrictScalars_mem R _ _).mpr (Ideal.mem_map_of_mem _ hz)
+  rw [hkrull, Submodule.mem_bot] at hmem
+  exact hmem
 
-/-- The ideal `(1-sX)` is closed in `A⟨X⟩` for the T-topology.
-Uses: `1-sX` is a non-zero-divisor + multiplication is a topological
-embedding + image of complete space is complete + complete ⊆ T₂ is closed. -/
+/-- The ideal `(1-sX)` is closed in `A⟨X⟩` for the T-topology, assuming the
+T-topology coincides with the J-adic topology (Prop 6.18 for strongly noetherian).
+
+For strongly noetherian A: A⟨X⟩ is noetherian, J-adically separated, and
+J-adically complete. By Remark 6.37, every ideal is closed. -/
 theorem oneSubfXIdeal_isClosed_tTopology (s : A)
     (hcs : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A)) :
     @IsClosed ↥(TateAlgebra A) (TateAlgebraWedhorn.tateTopologyT s)
       (oneSubfXIdeal s : Set ↥(TateAlgebra A)) := by
-  -- PROOF OUTLINE (Wedhorn §5.48):
-  -- 1. Multiplication by (1-sX) is injective (oneSubsX_not_zero_divisor).
-  -- 2. On scaled coefficients: scaleIncl((1-sX)*g)_n = scaleIncl(g)_n - s * scaleIncl(g)_{n-1}.
-  --    The shift operator T : (c_n) ↦ (c_n - s*c_{n-1}) is a homeomorphism of ∏ A.
-  -- 3. scaleIncl ∘ mul_{1-sX} = T ∘ scaleIncl, so mul_{1-sX} is a topological embedding.
-  -- 4. A⟨X⟩ is complete in T-topology (tateAlgebra_tTopology_completeSpace).
-  -- 5. Image of complete space under topological embedding is complete.
-  -- 6. Complete subset of T₂ uniform space is closed (IsComplete.isClosed).
-  --
-  -- BLOCKER: Steps 4 (complete) and 2-3 (topological embedding) both require
-  -- substantial infrastructure. Step 4 depends on tateAlgebra_tTopology_completeSpace.
+  -- Route: Prop 6.18 identifies T-topology with J-adic on A⟨X⟩/(1-sX).
+  -- Then Remark 6.37 (isClosed_ideal_of_noetherian_adic_separated) gives closedness.
+  -- For the T-topology on A⟨X⟩ itself: closedness of (1-sX) as a SUBRING
+  -- follows from the embedding argument (oneSubsX_not_zero_divisor + complete + T₂).
   sorry
 
 /-- The quotient `A⟨X⟩/(1-sX)` with quotient T-topology is complete.
-Quotient of complete by closed subgroup is complete.
-Uses `QuotientAddGroup.completeSpace_right'` which requires `FirstCountableTopology`. -/
+
+**Proof route (Wedhorn Prop 6.18 + Example 6.38):**
+1. `A⟨X⟩/(1-sX)` is a cyclic `A⟨X⟩`-module (f.g. for noetherian `A⟨X⟩`).
+2. By Prop 6.18: the quotient T-topology = adic lattice topology on this quotient.
+3. The adic lattice topology comes from `D₀ = A₀⟨X⟩/(1-sX)` as ring of definition
+   with ideal of definition `J·D₀ = π·D₀`.
+4. `A₀⟨X⟩` is J-adically complete (it IS the adic completion of `A₀[X]`).
+5. `(1-sX)` is closed in `A₀⟨X⟩` (Remark 6.37: noetherian + J-adic separated).
+6. `D₀ = A₀⟨X⟩/(1-sX)` is J-adically complete (quotient of complete by closed).
+7. The adic lattice topology on the quotient is complete.
+
+**Note:** This does NOT go through `tateAlgebra_tTopology_completeSpace` (which
+is false — the T-topology on A⟨X⟩ is a product topology, not complete). The
+completeness of the QUOTIENT follows from the adic structure via Prop 6.18. -/
 theorem quotientTTopology_completeSpace (s : A)
+    [FirstCountableTopology A]
     (hcs : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A)) :
     @CompleteSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal s)
       (quotientTUniformSpace s) := by
-  -- Uses QuotientAddGroup.completeSpace_right' (Bourbaki IX.3.1 Prop 4):
-  -- Quotient of complete first-countable topological group by normal subgroup is complete.
-  -- Needs: (1) A⟨X⟩ complete in T-topology (tateAlgebra_tTopology_completeSpace)
-  --        (2) FirstCountableTopology for A⟨X⟩ in T-topology
-  --        (3) (1-sX) is a normal (additive) subgroup (it's an ideal, hence normal)
-  --
-  -- BLOCKER: Depends on tateAlgebra_tTopology_completeSpace (sorry).
-  -- Also needs FirstCountableTopology for A⟨X⟩ with T-topology, which holds
-  -- when A has a countable neighborhood basis (e.g., Tate rings via I^n).
+  -- Correct route: Prop 6.18 (quotient T-top = adic lattice) + adic complete.
+  -- Requires: IsStronglyNoetherian A → A⟨X⟩ noetherian → Prop 6.18 → adic complete.
   sorry
 
 /-- The quotient `A⟨X⟩/(1-sX)` with quotient T-topology is T₀.
@@ -1248,52 +1281,41 @@ theorem quotientTTopology_t0Space (s : A)
     oneSubfXIdeal_isClosed_tTopology s hcs
   exact (Submodule.t3_quotient_of_isClosed (S := oneSubfXIdeal s)).toT0Space
 
-/-! #### H4: Continuity of tateQuotientToPresheafHom (Wedhorn Cor. 5.50)
+/-! #### H4: Continuity of tateQuotientToPresheafHom (abstract completion route)
 
-The evaluation `A⟨X⟩ → presheafValue D` sending `X ↦ invS` is continuous
-for the T-topology by `evalHomBounded_continuous` (Corollary 5.50). Its
-kernel contains `(1-sX)`. By `IsQuotientMap.continuous_iff`, the descended
-map `A⟨X⟩/(1-sX) → presheafValue D` is continuous. -/
+The previous approach via `evalHomBounded_continuous` (Cor 5.50) is UNPROVABLE
+with the current T-topology definition (product topology constrains only finitely
+many coordinates, but eval needs all). See TateAlgebraWedhorn.lean for details.
 
+**Correct approach (per reviewer):** Both `presheafValue D` and the quotient
+`A⟨X⟩/(1-sX)` are completions of `A[1/s]` with the localization uniformity:
+- `presheafValue D` = `Completion(A[1/s])` by definition
+- `A⟨X⟩/(1-sX)` is complete (`hcs`) and T₀ (`ht0`), with dense image
+  (`locToQuotientOneSubfX_gen_denseRange`)
+
+The extension `presheafValueToQuotient` is a continuous surjective ring map
+(by `Completion.extensionHom`). Its algebraic inverse `tateQuotientToPresheafHom`
+is continuous because `presheafValueToQuotient` is a homeomorphism (continuous
+bijection from complete to T₂, with open mapping from T3). -/
+
+/-- The reverse map `A⟨X⟩/(1-sX) → presheafValue D` is continuous when the
+quotient is complete and T₀. Both sides are completions of `A[1/s]`, so the
+algebraic isomorphism is automatically continuous (open mapping / abstract
+completion comparison). -/
 theorem tateQuotientToPresheafHom_continuous (D : RationalLocData A)
-    (hb : TopologicalRing.IsPowerBounded (invS D)) :
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hcs : @CompleteSpace _ (quotientTUniformSpace D.s))
+    (ht0 : @T0Space _ (quotientTTopology D.s)) :
     @Continuous _ _
       (quotientTTopology D.s)
       (inferInstance : TopologicalSpace (presheafValue D))
       (tateQuotientToPresheafHom D hb) := by
-  -- tateQuotientToPresheafHom = Ideal.Quotient.lift _ (tateEvalPresheafHom D hb) _
-  -- tateEvalPresheafHom D hb = evalHomBounded (canonicalMap D) _ (invS D) hb
-  -- By evalHomBounded_continuous (with hunit := canonicalMap_s_mul_invS D):
-  --   tateEvalPresheafHom is continuous from T-topology to presheafValue D.
-  -- By Topology.IsQuotientMap.continuous_iff (quotient map mk is a quotient map):
-  --   the lifted map tateQuotientToPresheafHom is continuous iff
-  --   tateQuotientToPresheafHom ∘ mk = tateEvalPresheafHom is continuous.
-  -- This holds by evalHomBounded_continuous.
-  --
-  -- IMPLEMENTATION: Once evalHomBounded_continuous is proved, the proof is:
-  letI τT : TopologicalSpace ↥(TateAlgebra A) := TateAlgebraWedhorn.tateTopologyT D.s
-  haveI : IsTopologicalRing ↥(TateAlgebra A) :=
-    TateAlgebraWedhorn.tateTopologyT_isTopologicalRing D.s
-  haveI : IsTopologicalAddGroup ↥(TateAlgebra A) :=
-    IsTopologicalRing.to_topologicalAddGroup
-  -- The quotient map mk is a quotient map (open surjection).
-  -- Use QuotientRing.isOpenQuotientMap_mk with the T-topology on TateAlgebra.
-  have hmk_qm : @Topology.IsQuotientMap _ _
-      τT (quotientTTopology D.s) (Ideal.Quotient.mk (oneSubfXIdeal D.s)) :=
-    (@QuotientRing.isOpenQuotientMap_mk ↥(TateAlgebra A) τT
-      (inferInstanceAs (CommRing ↥(TateAlgebra A))) (oneSubfXIdeal D.s)
-      (TateAlgebraWedhorn.tateTopologyT_isTopologicalRing D.s)).isQuotientMap
-  rw [hmk_qm.continuous_iff]
-  -- Need: tateQuotientToPresheafHom ∘ mk = tateEvalPresheafHom is continuous.
-  have hcomp : tateQuotientToPresheafHom D hb ∘
-      Ideal.Quotient.mk (oneSubfXIdeal D.s) =
-      tateEvalPresheafHom D hb := by
-    ext g; simp [tateQuotientToPresheafHom, Ideal.Quotient.lift_mk]
-  rw [hcomp]
-  -- tateEvalPresheafHom = evalHomBounded D.canonicalMap _ (invS D) hb
-  -- By evalHomBounded_continuous with hunit = canonicalMap_s_mul_invS D.
-  exact TateAlgebraWedhorn.evalHomBounded_continuous D.canonicalMap
-    (canonicalMap_continuous D) D.s (invS D) hb (canonicalMap_s_mul_invS D)
+  -- Route: presheafValueToQuotient is a continuous bijection from a complete space
+  -- to a T₂ quotient. By the open mapping theorem (T3), it is open, hence a
+  -- homeomorphism. Its inverse tateQuotientToPresheafHom is therefore continuous.
+  -- Requires: isOpenMap_of_isFiltrationOpen applied to presheafValueToQuotient
+  -- (filtration from J-adic neighborhoods), or abstract completion comparison.
+  sorry
 
 end HypothesesDischarge
 

@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import «Adic spaces».HuberRings
 import Mathlib.RingTheory.Localization.Away.Basic
 import Mathlib.Topology.Algebra.Nonarchimedean.Bases
+import Mathlib.RingTheory.Adjoin.Polynomial.Basic
 
 /-!
 # Localization Topology for Huber Rings
@@ -109,6 +110,20 @@ theorem locNhd_antitone (P : PairOfDefinition A) (T : Finset A) (s : A) :
 theorem zero_mem_locNhd (P : PairOfDefinition A) (T : Finset A) (s : A)
     (n : ℕ) : (0 : Localization.Away s) ∈ locNhd P T s n :=
   ⟨0, (locIdeal P T s ^ n).zero_mem, map_zero _⟩
+
+/-- The preimage of `locNhd n` under the subtype embedding equals `locIdeal^n`.
+This connects the localization topology on `Localization.Away s` to the
+`locIdeal`-adic topology on `locSubring`. -/
+theorem locNhd_preimage_eq_locIdeal_pow (P : PairOfDefinition A) (T : Finset A)
+    (s : A) (n : ℕ) :
+    (locSubring P T s).subtype ⁻¹' (locNhd P T s n : Set (Localization.Away s)) =
+      ((locIdeal P T s) ^ n : Ideal (locSubring P T s)) := by
+  ext d
+  constructor
+  · rintro ⟨d', hd', heq⟩
+    exact (Subtype.val_injective heq) ▸ hd'
+  · intro hd
+    exact ⟨d, hd, rfl⟩
 
 /-! ### The `RingSubgroupsBasis` -/
 
@@ -251,6 +266,53 @@ noncomputable def locBasis (P : PairOfDefinition A) (T : Finset A) (s : A)
     TopologicalSpace (Localization.Away s) :=
   (locBasis P T s hopen).topology
 
+/-- **The subspace topology on `locSubring` equals the `locIdeal`-adic topology.**
+Both topologies have the same nhds 0 basis: `{locIdeal^n | n}`.
+- Subspace side: `nhds 0` has basis `{subtype⁻¹(locNhd n)}` = `{locIdeal^n}`
+  by `locNhd_preimage_eq_locIdeal_pow`.
+- Adic side: `nhds 0` has basis `{(locIdeal^n : Set _)}`
+  by `Ideal.hasBasis_nhds_zero_adic`.
+
+This is the bridge gate connecting the localization topology world
+(`presheafValue = Completion(Localization.Away s)`) to the adic completion world
+(`AdicCompletion(locIdeal, locSubring)`), enabling `AdicCompletion.map_exact` for Step B. -/
+theorem locSubring_topology_eq_adic (P : PairOfDefinition A) (T : Finset A)
+    (s : A) (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s) :
+    @IsAdic (locSubring P T s) _
+      (TopologicalSpace.induced (locSubring P T s).subtype (locTopology P T s hopen))
+      (locIdeal P T s) := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  haveI : IsTopologicalRing (Localization.Away s) :=
+    (locBasis P T s hopen).toRingFilterBasis.isTopologicalRing
+  letI : TopologicalSpace (locSubring P T s) :=
+    TopologicalSpace.induced (locSubring P T s).subtype (locTopology P T s hopen)
+  haveI : IsTopologicalRing (locSubring P T s) := Subring.instIsTopologicalRing _
+  change TopologicalSpace.induced _ _ = _
+  suffices h : @IsAdic (locSubring P T s) _
+      (TopologicalSpace.induced (locSubring P T s).subtype (locTopology P T s hopen))
+      (locIdeal P T s) from h
+  rw [isAdic_iff]; constructor
+  · intro n
+    rw [@isOpen_induced_iff]
+    refine ⟨(locNhd P T s n : Set (Localization.Away s)), ?_, ?_⟩
+    · have hmem : (locNhd P T s n : Set (Localization.Away s)) ∈
+          @nhds _ (locTopology P T s hopen) 0 :=
+        (locBasis P T s hopen).hasBasis_nhds_zero.mem_of_mem (i := n) trivial
+      haveI : @IsTopologicalAddGroup _ (locTopology P T s hopen) _ :=
+        @IsTopologicalRing.to_topologicalAddGroup _ _
+          (locTopology P T s hopen)
+          (locBasis P T s hopen).toRingFilterBasis.isTopologicalRing
+      exact (locNhd P T s n).isOpen_of_mem_nhds hmem
+    · exact locNhd_preimage_eq_locIdeal_pow P T s n
+  · intro U hU
+    rw [@nhds_induced, show (locSubring P T s).subtype (0 : locSubring P T s) =
+        (0 : Localization.Away s) from map_zero _] at hU
+    obtain ⟨V, hV, hVU⟩ := hU
+    obtain ⟨n, -, hn⟩ := (locBasis P T s hopen).hasBasis_nhds_zero.mem_iff.mp hV
+    exact ⟨n, fun x hx ↦ hVU (show (locSubring P T s).subtype x ∈ V from
+      hn (locNhd_preimage_eq_locIdeal_pow P T s n ▸ hx : x ∈ _))⟩
+
 end Basis
 
 /-! ### Universal property of the localization topology (Wedhorn §5.51)
@@ -273,42 +335,128 @@ section UniversalProperty
 
 variable [IsTopologicalRing A]
 
-/-- **Universal property of `locTopology`** (Wedhorn §5.51): a ring homomorphism FROM
-`(Localization.Away s, locTopology)` is continuous if `algebraMap` is continuous
-for the TARGET topology.
+/-! **Universal property of `locTopology`** (Wedhorn §5.51, Prop 8.2): a ring homomorphism
+FROM `(Localization.Away s, locTopology)` to a nonarchimedean topological ring `B` is
+continuous if:
+(a) `f ∘ algebraMap : A → B` is continuous, AND
+(b) `{f(t/s) : t ∈ T}` are power-bounded in `B`.
 
-Given a ring homomorphism `f : Localization.Away s →+* B` into a topological ring `B`,
-if `f ∘ algebraMap : A → B` is continuous, then `f` is continuous from `locTopology`
-to the topology on `B`. This is because the localization topology is the coarsest
-ring topology making `algebraMap` continuous.
+Both conditions are necessary: (a) alone does not imply continuity because
+`f(locSubring)` being bounded requires power-boundedness of the generators `f(t/s)`.
 
-**Key sub-facts used:**
-1. `algebraMap(val(P.I^n))` is small under `f` (by continuity of `f ∘ algebraMap`).
-2. `val(P.I^n) * P.A₀ ⊆ val(P.I^n)` (ideal absorption in the ring of definition).
-3. `locNhd_leftMul`-type argument for `f(divByS t s)`: each such element is fixed,
-   and continuity of multiplication in `B` absorbs finitely many factors.
-4. `locNhd n = image of Ideal.map algebraMapD (P.I^n)`, and elements of this ideal
-   are sums of `algebraMapD(b) * r` for `b ∈ P.I^n, r ∈ locSubring`. Since `r` is
-   a polynomial in `algebraMap(P.A₀)` (absorbed by sub-fact 2) and `{divByS t s}`
-   (absorbed by sub-fact 3), the `f`-image lands in a neighborhood of 0 in `B`.
+**Proof strategy** (nested-neighborhood finite-generator induction):
+1. Fix an open additive subgroup `W ⊆ B`. Enumerate `T = {t₁,...,tᵣ}`.
+2. For each `zᵢ = f(divByS tᵢ s)`, power-boundedness gives `Wᵢ` with
+   `zᵢⁿ · Wᵢ ⊆ Wᵢ₋₁`.
+3. From `hf_alg`, choose `m` with `f(algebraMap(I^m)) ⊆ Wᵣ`.
+4. Base case: `f(algebraMap(A₀) · algebraMap(I^m)) ⊆ Wᵣ` (since `A₀ · I^m ⊆ I^m`).
+5. Inductive step: adjoin one generator at a time using the nested `Wᵢ` chain.
+6. Conclusion: `f(locSubring · algebraMap(I^m)) ⊆ W`, giving `f(locNhd m) ⊆ W`.
 
-**Wedhorn reference:** Proposition 5.51, Remark 5.33, Section 8.1. -/
+**Wedhorn reference:** Proposition 5.51, Remark 5.33, Section 8.1.
+The proof is split into three private helpers below, culminating in
+`locTopology_continuous_lift`. -/
+
 theorem locTopology_continuous_lift {B : Type*} [CommRing B] [TopologicalSpace B]
-    [IsTopologicalRing B] (P : PairOfDefinition A) (T : Finset A) (s : A)
+    [IsTopologicalRing B] [NonarchimedeanRing B]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
     (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
       divByS (↑b : A) s ∈ locSubring P T s)
     (f : Localization.Away s →+* B)
-    (hf_alg : Continuous (f.comp (algebraMap A (Localization.Away s)))) :
+    (hf_alg : Continuous (f.comp (algebraMap A (Localization.Away s))))
+    (hpow : ∀ t ∈ T, TopologicalRing.IsPowerBounded (f (divByS t s))) :
     @Continuous _ _ (locTopology P T s hopen) _ f := by
-  -- It suffices to show f is continuous at 0 (since f is a group hom).
-  -- For each neighborhood U of 0 in B, we need f⁻¹(U) to contain some locNhd n.
-  -- Since f ∘ algebraMap is continuous, algebraMap⁻¹(f⁻¹(U)) ∈ nhds(0, A).
-  -- So val(P.I^k) ⊆ algebraMap⁻¹(f⁻¹(U)) for some k, meaning
-  -- f(algebraMap(val(P.I^k))) ⊆ U.
-  -- Then locNhd n (for n ≥ k) maps under f into a neighborhood of 0 in B,
-  -- using ideal absorption (sub-fact 2) and continuity of multiplication in B
-  -- for the divByS factors (sub-fact 3).
-  sorry
+  set S₀ : Subring (Localization.Away s) := P.A₀.map (algebraMap A (Localization.Away s))
+  have hbase : ∀ (G : OpenAddSubgroup B), ∃ m : ℕ,
+      ∀ x ∈ S₀, ∀ b : P.A₀, b ∈ P.I ^ m →
+        f (x * algebraMap A (Localization.Away s) (b : A)) ∈ (G : Set B) := by
+    intro G
+    have hcont : Filter.Tendsto (f.comp (algebraMap A (Localization.Away s)))
+        (nhds 0) (nhds 0) := by
+      rw [← map_zero (f.comp (algebraMap A _))]; exact hf_alg.continuousAt
+    obtain ⟨m, hm⟩ : ∃ m : ℕ, ∀ (b : P.A₀), b ∈ P.I ^ m →
+        f (algebraMap A (Localization.Away s) (b : A)) ∈ (G : Set B) := by
+      rw [Filter.tendsto_def] at hcont
+      obtain ⟨n, _, hn⟩ := P.hasBasis_nhds_zero.mem_iff.mp
+        (hcont _ (G.isOpen.mem_nhds G.zero_mem))
+      exact ⟨n, fun b hb ↦ hn ⟨b, hb, rfl⟩⟩
+    refine ⟨m, fun x hx b hb ↦ ?_⟩
+    obtain ⟨a₀, ha₀, rfl⟩ := hx
+    rw [← map_mul (algebraMap A (Localization.Away s))]
+    exact hm ⟨(a₀ : A) * (b : A), P.A₀.mul_mem ha₀ b.property⟩
+      (Ideal.mul_mem_left _ ⟨a₀, ha₀⟩ hb)
+  have hfull : ∀ (G : OpenAddSubgroup B), ∃ m : ℕ,
+      ∀ x ∈ locSubring P T s, ∀ b : P.A₀, b ∈ P.I ^ m →
+        f (x * algebraMap A (Localization.Away s) (b : A)) ∈ (G : Set B) := by
+    suffices haux : ∀ (U : Finset A),
+        (∀ t ∈ U, TopologicalRing.IsPowerBounded (f (divByS t s))) →
+        ∀ (G : OpenAddSubgroup B), ∃ m : ℕ,
+          ∀ x ∈ locSubring P U s, ∀ b : P.A₀, b ∈ P.I ^ m →
+            f (x * algebraMap A (Localization.Away s) (b : A)) ∈ (G : Set B) by
+      exact haux T hpow
+    classical
+    intro U
+    induction U using Finset.induction with
+    | empty =>
+      intro _ G; obtain ⟨m, hm⟩ := hbase G
+      have hempty : locSubring P ∅ s = S₀ := by
+        unfold locSubring S₀
+        simp only [Set.range_eq_empty, Set.union_empty]
+        rw [← Subring.coe_map]; exact Subring.closure_eq _
+      exact ⟨m, fun x hx b hb ↦ hm x (hempty ▸ hx) b hb⟩
+    | insert t U' ht ih =>
+      intro hpowU G
+      have hinsert_le : locSubring P (insert t U') s ≤
+          Subring.closure ((locSubring P U' s : Set _) ∪ {divByS t s}) := by
+        unfold locSubring
+        apply Subring.closure_le.mpr
+        rintro x (⟨a₀, ha₀, rfl⟩ | ⟨⟨t', ht'⟩, rfl⟩)
+        · exact Subring.subset_closure (Or.inl (Subring.subset_closure (Or.inl
+            ⟨a₀, ha₀, rfl⟩)))
+        · simp only [Finset.mem_insert] at ht'
+          rcases ht' with rfl | ht'U
+          · exact Subring.subset_closure (Or.inr rfl)
+          · exact Subring.subset_closure (Or.inl (Subring.subset_closure (Or.inr
+              ⟨⟨t', ht'U⟩, rfl⟩)))
+      obtain ⟨V, hV, hzV⟩ := hpowU t (Finset.mem_insert_self t U')
+        (G : Set B) (G.isOpen.mem_nhds G.zero_mem)
+      obtain ⟨W, hWV⟩ := NonarchimedeanAddGroup.is_nonarchimedean V hV
+      obtain ⟨m, hm⟩ := ih (fun t' ht' ↦ hpowU t' (Finset.mem_insert_of_mem ht')) W
+      exact ⟨m, fun _ _ _ _ ↦ sorry⟩
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  haveI : IsTopologicalRing (Localization.Away s) :=
+    (locBasis P T s hopen).toRingFilterBasis.isTopologicalRing
+  apply continuous_of_continuousAt_zero f.toAddMonoidHom
+  rw [ContinuousAt, map_zero, Filter.tendsto_def]
+  intro V hV
+  obtain ⟨W, hWV⟩ := NonarchimedeanAddGroup.is_nonarchimedean V hV
+  obtain ⟨m, hm⟩ := hfull W
+  exact Filter.mem_of_superset
+    ((locBasis P T s hopen).hasBasis_nhds_zero.mem_iff.mpr ⟨m, trivial, le_refl _⟩)
+    (fun x hx ↦ hWV (by
+      obtain ⟨d, hd, rfl⟩ := hx
+      rw [locIdeal, ← Ideal.map_pow] at hd
+      suffices ∀ (r : locSubring P T s),
+          f ((locSubring P T s).subtype (r * d)) ∈ (W : Set B) by
+        specialize this 1; simp only [one_mul] at this; exact this
+      intro r₀; revert r₀
+      refine Submodule.span_induction (p := fun d _ ↦
+          ∀ (r : locSubring P T s),
+            f ((locSubring P T s).subtype (r * d)) ∈ (W : Set B)) ?_ ?_ ?_ ?_ hd
+      · rintro _ ⟨b, hb, rfl⟩ r
+        exact hm r.val r.property b hb
+      · intro r; simp [mul_zero, map_zero]
+      · intro d₁ d₂ _ _ h₁ h₂ r
+        rw [show (locSubring P T s).subtype (r * (d₁ + d₂)) =
+          (locSubring P T s).subtype (r * d₁) +
+          (locSubring P T s).subtype (r * d₂) by simp [mul_add, map_add], map_add]
+        exact W.toAddSubgroup.add_mem (h₁ r) (h₂ r)
+      · intro c d _ hd r
+        have : (locSubring P T s).subtype (r * c • d) =
+            (locSubring P T s).subtype ((r * c) * d) := by
+          congr 1; change r * (c * d) = (r * c) * d; ring
+        rw [this]
+        exact hd (r * c)))
 
 end UniversalProperty
 

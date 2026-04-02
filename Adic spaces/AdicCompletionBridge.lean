@@ -65,12 +65,15 @@ theorem ideal_smul_top_eq_self (n : ℕ) :
 noncomputable instance quotientDiscreteTopology (n : ℕ) :
     TopologicalSpace (R ⧸ (I ^ n • (⊤ : Submodule R R))) := ⊥
 
+/-- Discrete uniform space on `R ⧸ (I^n • ⊤)`. -/
 noncomputable instance quotientDiscreteUniformSpace (n : ℕ) :
     UniformSpace (R ⧸ (I ^ n • (⊤ : Submodule R R))) := ⊥
 
+/-- The topology on `R ⧸ (I^n • ⊤)` is discrete. -/
 instance quotientDiscrete (n : ℕ) :
     DiscreteTopology (R ⧸ (I ^ n • (⊤ : Submodule R R))) := ⟨rfl⟩
 
+/-- The uniformity on `R ⧸ (I^n • ⊤)` is discrete. -/
 instance quotientDiscreteUnif (n : ℕ) :
     DiscreteUniformity (R ⧸ (I ^ n • (⊤ : Submodule R R))) := ⟨rfl⟩
 

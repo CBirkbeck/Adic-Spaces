@@ -29,11 +29,13 @@ import «Adic spaces».Lemma745
 import «Adic spaces».LocalizationTopology
 import «Adic spaces».NoetherianTateModules
 import «Adic spaces».OpenIdeals
+import «Adic spaces».OpenMapping
 import «Adic spaces».OrderedGroupConvex
 import «Adic spaces».PerfectoidRing
 import «Adic spaces».PerfectoidSpace
 import «Adic spaces».Presheaf
 import «Adic spaces».PresheafIdentification
+import «Adic spaces».Prop752
 import «Adic spaces».PresheafTateStructure
 import «Adic spaces».PseudoUniformizer
 import «Adic spaces».RationalRefinement
