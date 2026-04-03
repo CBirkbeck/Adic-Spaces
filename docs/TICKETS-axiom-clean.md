@@ -49,7 +49,7 @@ but `X^m ∉ pA₀`, so no backward neighborhood inclusion exists.
 | R1 | DONE | claude-opus | 2026-04-03. Quarantined false chain, gave restrictionMapHom_injective a sorry for new proof. |
 | R2 | IN PROGRESS | claude-opus | Banach open mapping theorem stated (1 sorry). R2 lives at presheaf level (StructureSheaf). Needs: open mapping thm + presheaf continuity + completeness. |
 | R3 | NOT STARTED | — | Refactor `IsSheafy` proof to use strict exactness. BLOCKED on R2. |
-| R4 | NOT STARTED | — | Forward continuity: power-bounded from rational containment. PARALLEL with R2. |
+| R4 | IN PROGRESS | claude | HasLocLiftPowerBounded class + API propagation done. Tate instance has 1 sorry: adic Nullstellensatz (Prop 7.14: v≤1 → integral). |
 | R5 | NOT STARTED | — | Remove `[FirstCountableTopology]` (derive from Tate) |
 
 ## Dependency Graph
