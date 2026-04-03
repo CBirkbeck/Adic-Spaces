@@ -69,7 +69,7 @@ abbrev IsStablyUniform [PlusSubring A] [IsHuberRing A] :=
 
 This is an **open problem** — the `sorry` is intentional and represents the open question.
 Formalized here as an axiom-free statement to serve as a target for partial results. -/
-theorem problem7 [PlusSubring A] [IsHuberRing A] [IsSheafy A]
+theorem problem7 [PlusSubring A] [IsHuberRing A] [HasLocLiftPowerBounded A] [IsSheafy A]
     [TopologicalRing.IsUniform A] :
     TopologicalRing.IsStablyUniform A := by
   sorry
@@ -120,7 +120,7 @@ The argument proceeds by:
 
 This is a full research paper result and is beyond the scope of the current formalization. -/
 theorem IsStablyUniform.isSheafy [PlusSubring A] [IsHuberRing A]
-    [TopologicalRing.IsStablyUniform A] : IsSheafy A := by
+    [HasLocLiftPowerBounded A] [TopologicalRing.IsStablyUniform A] : IsSheafy A := by
   sorry -- needs: Buzzard--Verberkmoes argument (research paper level)
 
 end ScottishBook

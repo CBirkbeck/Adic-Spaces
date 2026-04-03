@@ -683,15 +683,15 @@ theorem mem_prime_of_rational_subset {A : Type*} [CommRing A]
   · exact mem_prime_of_rational_subset_open D D' h p hp hp_open hDs
   · exact mem_prime_of_rational_subset_nonOpen D D' h p hp hp_open hDs
 
-/-- The image of `s` under `A → A⟨T'/s'⟩` is a unit when `R(T'/s') ⊆ R(T/s)`
-(Proposition 8.2 of Wedhorn). For Huber rings, this uses Lemma 7.45. -/
-theorem isUnit_canonicalMap_s_of_huber {A : Type*} [CommRing A] [TopologicalSpace A]
+/-- The localization-level unit: `algebraMap A (Localization.Away D'.s) D.s` is a unit
+when `R(D'.T/D'.s) ⊆ R(D.T/D.s)`. This is the key algebraic step used both
+by `isUnit_canonicalMap_s_of_huber` (which maps it to the completion) and
+by `restrictionMapAlg_continuous_of_huber` (which uses it for the localization lift).
+(Proposition 8.2 of Wedhorn, Lemma 7.45.) -/
+theorem isUnit_algebraMap_s_of_huber {A : Type*} [CommRing A] [TopologicalSpace A]
     [PlusSubring A] [IsHuberRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
-    IsUnit (D'.canonicalMap D.s) := by
-  suffices hu : IsUnit (algebraMap A (Localization.Away D'.s) D.s) by
-    change IsUnit (D'.coeRingHom (algebraMap A (Localization.Away D'.s) D.s))
-    exact hu.map D'.coeRingHom
+    IsUnit (algebraMap A (Localization.Away D'.s) D.s) := by
   have hrad : D'.s ∈ Ideal.radical (Ideal.span {D.s}) := by
     classical
     rw [Ideal.radical_eq_sInf, Ideal.mem_sInf]
@@ -709,6 +709,14 @@ theorem isUnit_canonicalMap_s_of_huber {A : Type*} [CommRing A] [TopologicalSpac
     rw [← map_mul, ← map_pow, ha]
   rw [← heq] at hunit_pow
   exact isUnit_of_mul_isUnit_right hunit_pow
+
+theorem isUnit_canonicalMap_s_of_huber {A : Type*} [CommRing A] [TopologicalSpace A]
+    [PlusSubring A] [IsHuberRing A]
+    (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
+    IsUnit (D'.canonicalMap D.s) := by
+  have hu := isUnit_algebraMap_s_of_huber D D' h
+  change IsUnit (D'.coeRingHom (algebraMap A (Localization.Away D'.s) D.s))
+  exact hu.map D'.coeRingHom
 
 /-- Power-boundedness of `locLift(t/s)` in `D'.topology` for `t ∈ D.T`.
 
@@ -735,15 +743,14 @@ See `docs/TICKETS-axiom-clean.md`, ticket R4. -/
 -- See docs/TICKETS-axiom-clean.md R4.
 private theorem locLift_divByS_isPowerBounded {A : Type*} [CommRing A]
     [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
-    (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (D D' : RationalLocData A) (_h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
     (hu_loc : IsUnit (algebraMap A (Localization.Away D'.s) D.s))
-    {t : A} (ht : t ∈ D.T) :
+    {t : A} (ht : t ∈ D.T)
+    (hpb : ∀ t' ∈ D.T, @TopologicalRing.IsPowerBounded (Localization.Away D'.s) _ D'.topology
+      (IsLocalization.Away.lift D.s hu_loc (divByS t' D.s))) :
     @TopologicalRing.IsPowerBounded (Localization.Away D'.s) _ D'.topology
-      (IsLocalization.Away.lift D.s hu_loc (divByS t D.s)) := by
-  letI : TopologicalSpace (Localization.Away D'.s) := D'.topology
-  letI : IsTopologicalRing (Localization.Away D'.s) := D'.isTopologicalRing
-  -- Route: Prop 5.30(4) + 7.14. Blocked on full adic Nullstellensatz formalization.
-  sorry
+      (IsLocalization.Away.lift D.s hu_loc (divByS t D.s)) :=
+  hpb t ht
 
 /-- The algebraic restriction map is continuous for Huber rings
 (Proposition 8.2 of Wedhorn).
@@ -763,29 +770,14 @@ By the universal property of the localization topology
    adic Nullstellensatz — Wedhorn Prop 7.14, ticket R4). -/
 theorem restrictionMapAlg_continuous_of_huber {A : Type*} [CommRing A]
     [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
-    (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
+    (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (hpb : ∀ t ∈ D.T, @TopologicalRing.IsPowerBounded (Localization.Away D'.s) _ D'.topology
+      (IsLocalization.Away.lift D.s (isUnit_algebraMap_s_of_huber D D' h) (divByS t D.s))) :
     @Continuous _ _ D.topology
       (@UniformSpace.toTopologicalSpace _
         (@UniformSpace.Completion.uniformSpace _ D'.uniformSpace))
       (IsLocalization.Away.lift D.s (isUnit_canonicalMap_s_of_huber D D' h)) := by
-  have hu_loc : IsUnit (algebraMap A (Localization.Away D'.s) D.s) := by
-    have hrad : D'.s ∈ Ideal.radical (Ideal.span {D.s}) := by
-      classical
-      rw [Ideal.radical_eq_sInf, Ideal.mem_sInf]
-      intro p ⟨hsp, hp⟩
-      exact mem_prime_of_rational_subset D D' h p hp
-        (hsp (Ideal.subset_span (Set.mem_singleton D.s)))
-    obtain ⟨n, hn⟩ := Ideal.mem_radical_iff.mp hrad
-    obtain ⟨a, ha⟩ := Ideal.mem_span_singleton'.mp hn
-    have hunit_pow : IsUnit (algebraMap A (Localization.Away D'.s) D'.s ^ n) :=
-      (IsLocalization.map_units (Localization.Away D'.s)
-        (⟨D'.s, ⟨1, pow_one D'.s⟩⟩ : Submonoid.powers D'.s)).pow n
-    have heq : algebraMap A (Localization.Away D'.s) a *
-        algebraMap A (Localization.Away D'.s) D.s =
-        algebraMap A (Localization.Away D'.s) D'.s ^ n := by
-      rw [← map_mul, ← map_pow, ha]
-    rw [← heq] at hunit_pow
-    exact isUnit_of_mul_isUnit_right hunit_pow
+  have hu_loc := isUnit_algebraMap_s_of_huber D D' h
   let locLift : Localization.Away D.s →+* Localization.Away D'.s :=
     IsLocalization.Away.lift D.s hu_loc
   have hfactor : IsLocalization.Away.lift D.s (isUnit_canonicalMap_s_of_huber D D' h) =
@@ -830,7 +822,7 @@ theorem restrictionMapAlg_continuous_of_huber {A : Type*} [CommRing A]
       by rw [locIdeal, ← Ideal.map_pow]; exact Ideal.mem_map_of_mem _ hbn, rfl⟩
   apply locTopology_continuous_lift D.P D.T D.s D.hopen locLift hf_alg
   intro t ht
-  exact locLift_divByS_isPowerBounded D D' h hu_loc ht
+  exact locLift_divByS_isPowerBounded D D' h hu_loc ht hpb
 
 /-! ### Restriction maps (Proposition 8.2 of Wedhorn)
 
@@ -840,6 +832,25 @@ continuous ring homomorphism `σ : A⟨T/s⟩ → A⟨T'/s'⟩` such that `σ �
 
 These restriction maps make the assignment `R(T/s) ↦ A⟨T/s⟩` into a presheaf
 on the basis of rational subsets (Proposition 8.2 of Wedhorn). -/
+
+/-- The adic Nullstellensatz hypothesis for the presheaf restriction maps: for any
+rational containment `R(D'.T/D'.s) ⊆ R(D.T/D.s)`, each generator `t/D.s`
+(for `t ∈ D.T`) maps to a power-bounded element in the D'-localization topology
+under the canonical lift `Localization.Away D.s →+* Localization.Away D'.s`.
+
+This is a consequence of Wedhorn Prop 5.30(4) + 7.14 (adic Nullstellensatz):
+the rational containment gives `v(t) ≤ v(D.s)` for all relevant continuous
+valuations, hence `t/D.s` is integral over the ring of definition, hence
+power-bounded.
+
+**Status:** Will be proved as an instance for Tate rings (where the Nullstellensatz
+is available). For now, carried as an explicit hypothesis via this class. -/
+class HasLocLiftPowerBounded (A : Type*) [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsHuberRing A] : Prop where
+  locLift_divByS_isPowerBounded : ∀ (D D' : RationalLocData A)
+    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) (t : A), t ∈ D.T →
+    @TopologicalRing.IsPowerBounded (Localization.Away D'.s) _ D'.topology
+      (IsLocalization.Away.lift D.s (isUnit_algebraMap_s_of_huber D D' h) (divByS t D.s))
 
 section RestrictionMaps
 
@@ -859,17 +870,20 @@ noncomputable def restrictionMapAlg (D D' : RationalLocData A)
     Localization.Away D.s →+* presheafValue D' :=
   IsLocalization.Away.lift D.s (isUnit_canonicalMap_s D D' h)
 
-/-- The algebraic restriction map is continuous (Proposition 8.2 of Wedhorn). -/
-theorem restrictionMapAlg_continuous (D D' : RationalLocData A)
+/-- The algebraic restriction map is continuous (Proposition 8.2 of Wedhorn).
+Requires `[HasLocLiftPowerBounded A]` (the adic Nullstellensatz for power-boundedness
+of localization generators). -/
+theorem restrictionMapAlg_continuous [HasLocLiftPowerBounded A] (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     @Continuous _ _ D.topology
       (@UniformSpace.toTopologicalSpace _
         (@UniformSpace.Completion.uniformSpace _ D'.uniformSpace))
       (restrictionMapAlg D D' h) :=
   restrictionMapAlg_continuous_of_huber D D' h
+    (fun t ht => HasLocLiftPowerBounded.locLift_divByS_isPowerBounded D D' h t ht)
 
 /-- The restriction map `σ : A⟨T/s⟩ →+* A⟨T'/s'⟩` (Proposition 8.2(1) of Wedhorn). -/
-noncomputable def restrictionMapHom (D D' : RationalLocData A)
+noncomputable def restrictionMapHom [HasLocLiftPowerBounded A] (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     presheafValue D →+* presheafValue D' := by
   letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
@@ -882,13 +896,13 @@ noncomputable def restrictionMapHom (D D' : RationalLocData A)
     (restrictionMapAlg D D' h) (restrictionMapAlg_continuous D D' h)
 
 /-- The restriction map `σ : A⟨T/s⟩ → A⟨T'/s'⟩` (Proposition 8.2(1)). -/
-noncomputable def restrictionMap (D D' : RationalLocData A)
+noncomputable def restrictionMap [HasLocLiftPowerBounded A] (D D' : RationalLocData A)
     (_ : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     presheafValue D → presheafValue D' :=
   restrictionMapHom D D' ‹_›
 
 /-- The restriction map on the dense image equals the algebraic map. -/
-private theorem restrictionMapHom_coe (D D' : RationalLocData A)
+private theorem restrictionMapHom_coe [HasLocLiftPowerBounded A] (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
     (a : Localization.Away D.s) :
     restrictionMapHom D D' h
@@ -905,7 +919,7 @@ private theorem restrictionMapHom_coe (D D' : RationalLocData A)
     (restrictionMapAlg D D' h) (restrictionMapAlg_continuous D D' h) a
 
 /-- Restriction maps compose (presheaf functoriality). -/
-theorem restrictionMap_comp (D D' D'' : RationalLocData A)
+theorem restrictionMap_comp [HasLocLiftPowerBounded A] (D D' D'' : RationalLocData A)
     (h₁ : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
     (h₂ : rationalOpen D''.T D''.s ⊆ rationalOpen D'.T D'.s) :
     restrictionMap D' D'' h₂ ∘ restrictionMap D D' h₁ =
@@ -948,7 +962,7 @@ theorem restrictionMap_comp (D D' D'' : RationalLocData A)
   exact congr_fun (congrArg DFunLike.coe alg_comp_eq) a
 
 /-- The restriction map for the identity inclusion is the identity. -/
-theorem restrictionMap_id (D : RationalLocData A) :
+theorem restrictionMap_id [HasLocLiftPowerBounded A] (D : RationalLocData A) :
     restrictionMap D D (le_refl _) = id := by
   letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
   letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
@@ -970,14 +984,14 @@ theorem restrictionMap_id (D : RationalLocData A) :
   exact congr_fun (congrArg DFunLike.coe alg_eq) a
 
 /-- The restriction map is continuous (Proposition 8.2 of Wedhorn). -/
-theorem restrictionMapHom_continuous (D D' : RationalLocData A)
+theorem restrictionMapHom_continuous [HasLocLiftPowerBounded A] (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     Continuous (restrictionMapHom D D' h) := by
   letI := D.uniformSpace
   exact UniformSpace.Completion.continuous_extension
 
 /-- The restriction map as a `CompleteTopCommRingCat` morphism. -/
-noncomputable def restrictionMapMor (D D' : RationalLocData A)
+noncomputable def restrictionMapMor [HasLocLiftPowerBounded A] (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     presheafValueObj D ⟶ presheafValueObj D' :=
   ⟨restrictionMapHom D D' h, restrictionMapHom_continuous D D' h⟩
@@ -1035,6 +1049,25 @@ theorem locTopology_eq_bot_of_discrete {A : Type*} [CommRing A] [TopologicalSpac
   rw [show ({x} : Set (Localization.Away D.s)) = (x + ·) '' {0} from by
     simp only [Set.image_singleton, add_zero]]
   exact (isOpenMap_add_left x) _ (hNhd_eq ▸ hopen_nhd)
+
+/-- For discrete rings, the adic Nullstellensatz hypothesis holds trivially because
+the localization topology is `⊥` (discrete), making every element power-bounded. -/
+instance HasLocLiftPowerBounded.discrete {A : Type*} [CommRing A] [TopologicalSpace A]
+    [DiscreteTopology A] [PlusSubring A] [IsHuberRing A] : HasLocLiftPowerBounded A where
+  locLift_divByS_isPowerBounded D D' _h _t _ht := by
+    have hbot : D'.topology = ⊥ := locTopology_eq_bot_of_discrete D'
+    show @TopologicalRing.IsBounded _ _ D'.topology
+      (Set.range (fun n => (IsLocalization.Away.lift D.s _ (divByS _t D.s)) ^ n))
+    rw [hbot]
+    intro U hU
+    letI : TopologicalSpace (Localization.Away D'.s) := ⊥
+    haveI : DiscreteTopology (Localization.Away D'.s) := ⟨rfl⟩
+    rw [nhds_discrete, Filter.mem_pure] at hU
+    refine ⟨{0}, ?_, ?_⟩
+    · rw [nhds_discrete, Filter.mem_pure]; exact rfl
+    · intro x hx
+      obtain ⟨a, ha, b, hb, rfl⟩ := Set.mem_mul.mp hx
+      rw [Set.mem_singleton_iff.mp hb, mul_zero]; exact hU
 
 /-- Given a prime `p` containing `D.s` but not `D'.s`, construct a point in `rationalOpen D'.T D'.s`
 whose support is `p`, contradicting `rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s`. -/

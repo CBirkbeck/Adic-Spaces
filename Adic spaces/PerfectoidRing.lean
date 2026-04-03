@@ -578,7 +578,7 @@ uniform Tate rings are sheafy. -/
 theorem toIsSheafy (p : ℕ) [Fact (Nat.Prime p)]
     (A : Type u) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [UniformSpace A] [IsLinearTopology A A] [IsPerfectoidRing p A]
-    [PlusSubring A] [IsHuberRing A] :
+    [PlusSubring A] [IsHuberRing A] [HasLocLiftPowerBounded A] :
     IsSheafy A := sorry
 
 end IsPerfectoidRing

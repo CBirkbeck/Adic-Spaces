@@ -36,7 +36,7 @@ subset `R(T/s)` is the structure presheaf of the Tate ring `presheafValue D₀`.
 namespace ValuationSpectrum
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
-  [IsHuberRing A]
+  [IsHuberRing A] [HasLocLiftPowerBounded A]
 
 /-! ### Topologically nilpotent unit in presheafValue
 

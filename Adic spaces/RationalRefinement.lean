@@ -19,7 +19,7 @@ the original covering. This is the concrete version of Proposition A.3 of Wedhor
 namespace ValuationSpectrum
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
-  [IsHuberRing A]
+  [IsHuberRing A] [HasLocLiftPowerBounded A]
 
 /-- A rational covering has the *separation property* if the restriction
 maps to the covering pieces are jointly injective. -/

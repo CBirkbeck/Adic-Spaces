@@ -51,8 +51,10 @@ Given two choices of rings of integral elements `A⁺₁` and `A⁺₂` for the 
 topological ring `A`, if `(A, A⁺₁)` is sheafy then so is `(A, A⁺₂)`. -/
 theorem problem8_sheafy [IsHuberRing A]
     (inst₁ : PlusSubring A) (inst₂ : PlusSubring A)
-    (h : @IsSheafy A _ _ _ inst₁ _) :
-    @IsSheafy A _ _ _ inst₂ _ := by
+    [hNS₁ : @HasLocLiftPowerBounded A _ _ inst₁ _]
+    [hNS₂ : @HasLocLiftPowerBounded A _ _ inst₂ _]
+    (h : @IsSheafy A _ _ _ inst₁ _ hNS₁) :
+    @IsSheafy A _ _ _ inst₂ _ hNS₂ := by
   sorry
 
 /-- **Scottish Book Problem 8b** (Kedlaya, resolved by Hansen):

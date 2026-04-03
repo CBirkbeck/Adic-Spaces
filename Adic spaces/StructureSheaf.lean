@@ -226,7 +226,7 @@ noncomputable def structureSheaf [IsHuberRing A] [PlusSubring A] :
 
 /-! ### Sheafy affinoid rings (Definition 8.26 of Wedhorn) -/
 
-variable [IsHuberRing A]
+variable [IsHuberRing A] [HasLocLiftPowerBounded A]
 
 /-- The product restriction map for a rational covering. -/
 noncomputable def productRestriction (C : RationalCovering A) :
@@ -244,8 +244,8 @@ By Remark 8.20, this is equivalent to two conditions:
 1. The product restriction is a topological embedding (condition (2)).
 2. Compatible families glue to global sections (condition (1b)). -/
 class IsSheafy (A : Type u) [CommRing A] [TopologicalSpace A]
-    [IsTopologicalRing A] [inst₁ : PlusSubring A] [inst₂ : IsHuberRing A] :
-    Prop where
+    [IsTopologicalRing A] [inst₁ : PlusSubring A] [inst₂ : IsHuberRing A]
+    [HasLocLiftPowerBounded A] : Prop where
   separation : ∀ (C : RationalCovering A),
     Function.Injective (productRestrictionSub A C)
   gluing : ∀ (C : RationalCovering A)
@@ -261,7 +261,7 @@ class IsSheafy (A : Type u) [CommRing A] [TopologicalSpace A]
 
 /-- Sheafy implies separation (injectivity of product restriction). -/
 theorem IsSheafy.separation_injective [IsTopologicalRing A] [PlusSubring A]
-    [IsHuberRing A] [IsSheafy A] (C : RationalCovering A) :
+    [IsHuberRing A] [HasLocLiftPowerBounded A] [IsSheafy A] (C : RationalCovering A) :
     Function.Injective (productRestriction A C) := by
   intro x y hxy
   exact IsSheafy.separation C
@@ -280,12 +280,13 @@ structure AffinoidAdicSpace where
   [instIsTopologicalRing : IsTopologicalRing Ring]
   [instPlusSubring : PlusSubring Ring]
   [instIsHuberRing : IsHuberRing Ring]
+  [instHasLocLiftPowerBounded : HasLocLiftPowerBounded Ring]
   [instIsSheafy : IsSheafy Ring]
 
 attribute [instance] AffinoidAdicSpace.instCommRing
   AffinoidAdicSpace.instTopologicalSpace AffinoidAdicSpace.instIsTopologicalRing
   AffinoidAdicSpace.instPlusSubring AffinoidAdicSpace.instIsHuberRing
-  AffinoidAdicSpace.instIsSheafy
+  AffinoidAdicSpace.instHasLocLiftPowerBounded AffinoidAdicSpace.instIsSheafy
 
 namespace AffinoidAdicSpace
 

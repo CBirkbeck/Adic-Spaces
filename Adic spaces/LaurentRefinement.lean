@@ -63,7 +63,7 @@ theorem rationalOpen_eq_iInter_singleton (T : Finset A) (hT : T.Nonempty) (s : A
 
 /-! ### Laurent cover construction -/
 
-variable [IsHuberRing A]
+variable [IsHuberRing A] [HasLocLiftPowerBounded A]
 
 set_option maxHeartbeats 800000
 

@@ -58,8 +58,9 @@ theorem problem33
     let W := WittVector p ↥(powerBoundedSubring.toSubring R)
     ∃ (τ : TopologicalSpace W) (ps : @PlusSubring W _)
       (h₁ : @IsTopologicalRing W τ _)
-      (h₂ : @IsHuberRing W _ τ),
-    @IsSheafy W _ τ h₁ ps h₂ := by
+      (h₂ : @IsHuberRing W _ τ)
+      (h₃ : @HasLocLiftPowerBounded W _ τ ps h₂),
+    @IsSheafy W _ τ h₁ ps h₂ h₃ := by
   sorry
 
 end ScottishBook
