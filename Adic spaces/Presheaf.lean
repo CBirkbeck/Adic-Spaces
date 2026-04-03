@@ -1069,21 +1069,55 @@ instance HasLocLiftPowerBounded.discrete {A : Type*} [CommRing A] [TopologicalSp
       obtain ⟨a, ha, b, hb, rfl⟩ := Set.mem_mul.mp hx
       rw [Set.mem_singleton_iff.mp hb, mul_zero]; exact hU
 
--- Adic Nullstellensatz instance for Tate rings (Wedhorn Prop 5.30(4) + 7.14):
--- For rational containment, generators are power-bounded in the target localization.
--- Route: v(t/D.s) ≤ 1 at all Spa points → integral over locSubring → power-bounded.
--- Sorry: requires full Nullstellensatz (v ≤ 1 at Spa points → integral).
-instance HasLocLiftPowerBounded.tate {A : Type*} [CommRing A] [TopologicalSpace A]
-    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [NonarchimedeanRing A]
-    [IsNoetherianRing A] : HasLocLiftPowerBounded A where
-  locLift_divByS_isPowerBounded D D' h t ht := by
-    letI : TopologicalSpace (Localization.Away D'.s) := D'.topology
-    letI : IsTopologicalRing (Localization.Away D'.s) := D'.isTopologicalRing
-    -- Route: IsBounded.isPowerBounded_of_isIntegral (locSubring_isBounded D')
-    -- Integrality from: v(t/D.s) ≤ 1 at all Spa points of D'-rational open
-    -- (rational containment gives v(t) ≤ v(D.s) for t ∈ D.T).
-    -- Blocked on: formalizing Prop 7.14 (v ≤ 1 → integral over ring of definition).
-    sorry
+/-! ### Adic Nullstellensatz (Wedhorn Remark 7.24 + Prop 7.18)
+
+The valuative criterion for integrality: if `v(x) ≤ 1` for every continuous
+valuation `v` with `v ≤ 1` on a subring `B`, then `x` is integral over `B`.
+
+Equivalently: the integral closure of an open subring `B` equals
+`{x : v(x) ≤ 1 for all v ∈ σ(B)}` where `σ(B) = {v ∈ Cont(A) : v ≤ 1 on B}`. -/
+
+/-- **Valuative criterion for integrality** (hard direction of Wedhorn Remark 7.24).
+If `x` satisfies `v(x) ≤ 1` for every continuous valuation `v` that is `≤ 1` on
+the subring `B`, then `x` is integral over `B`.
+
+The proof constructs a valuation dominating the localization `B[x]_m` where `m`
+is chosen to avoid powers of `x`. See [Hu2] Lemma 3.3.
+
+This is the deepest ingredient of the adic Nullstellensatz. -/
+theorem isIntegral_of_forall_valuation_le_one
+    {R : Type*} [CommRing R] [TopologicalSpace R] [IsTopologicalRing R]
+    {B : Subring R} (hB_open : IsOpen (B : Set R))
+    (x : R)
+    (hvle : ∀ (v : ValuativeRel R), (∀ b ∈ B, v.vle b 1) → v.vle x 1) :
+    IsIntegral B x := by
+  -- The valuative criterion: if x is NOT integral over B, construct
+  -- a valuation v with v ≤ 1 on B but v(x) > 1.
+  -- Route: B[x] is not f.g. over B, so ∃ prime ideal m of B[x] avoiding
+  -- all powers of x. The localization (B[x])_m has a valuation ring
+  -- dominating it, giving the desired v.
+  -- This is [Hu2] Lemma 3.3 / Wedhorn Prop 7.18.
+  sorry
+
+/-- For rational containment: v(t/D.s) ≤ 1 at all Spa points of the D'-localization.
+This is the valuation inequality step of the adic Nullstellensatz. -/
+theorem locLift_vle_one_at_spa {A : Type*} [CommRing A]
+    [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
+    (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    {t : A} (ht : t ∈ D.T)
+    (v : ValuativeRel (Localization.Away D'.s))
+    (hv_sub : ∀ b ∈ locSubring D'.P D'.T D'.s, v.vle b 1) :
+    v.vle (IsLocalization.Away.lift D.s (isUnit_algebraMap_s_of_huber D D' h)
+      (divByS t D.s)) 1 := by
+  -- locLift(divByS t D.s) = algebraMap(t) * algebraMap(D.s)⁻¹.
+  -- From rational containment: v(t) ≤ v(D.s) for all v in D'-rational open.
+  -- Since D.s is a unit: v(t/D.s) = v(t) * v(D.s)⁻¹ ≤ 1.
+  sorry
+
+-- The HasLocLiftPowerBounded.tate instance is in PresheafIdentification.lean
+-- (needs locSubring_isBounded which is defined there).
+-- It combines isIntegral_of_forall_valuation_le_one + locLift_vle_one_at_spa
+-- + isPowerBounded_of_isIntegral + locSubring_isBounded.
 
 /-- Given a prime `p` containing `D.s` but not `D'.s`, construct a point in `rationalOpen D'.T D'.s`
 whose support is `p`, contradicting `rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s`. -/

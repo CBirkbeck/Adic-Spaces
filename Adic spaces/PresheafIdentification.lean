@@ -1119,6 +1119,30 @@ theorem invSelf_eq_divByS (s : A) :
   unfold IsLocalization.Away.invSelf divByS
   simp [IsLocalization.mk']
 
+/-! #### Adic Nullstellensatz instance (Wedhorn Prop 5.30(4) + 7.14) -/
+
+/-- **Tate instance** for `HasLocLiftPowerBounded`: for strongly noetherian Tate rings,
+the localization lift sends generators to power-bounded elements.
+
+Proof route (Wedhorn):
+1. Rational containment gives `v(t/D.s) ≤ 1` at all Spa points (`locLift_vle_one_at_spa`).
+2. Valuative criterion for integrality: `v ≤ 1 → integral` (`isIntegral_of_forall_valuation_le_one`).
+3. Integral over bounded subring → power-bounded (`isPowerBounded_of_isIntegral`). -/
+instance HasLocLiftPowerBounded.tate [PlusSubring A] [IsHuberRing A] [IsTateRing A]
+    [IsNoetherianRing A] : HasLocLiftPowerBounded A where
+  locLift_divByS_isPowerBounded D D' h t ht := by
+    letI : TopologicalSpace (Localization.Away D'.s) := D'.topology
+    letI : IsTopologicalRing (Localization.Away D'.s) := D'.isTopologicalRing
+    -- Step 1: locLift(t/D.s) is integral over locSubring (Nullstellensatz).
+    have hint : IsIntegral (locSubring D'.P D'.T D'.s)
+        (IsLocalization.Away.lift D.s (isUnit_algebraMap_s_of_huber D D' h)
+          (divByS t D.s)) :=
+      isIntegral_of_forall_valuation_le_one
+        (locSubring_isOpen D'.P D'.T D'.s D'.hopen) _
+        (locLift_vle_one_at_spa D D' h ht)
+    -- Step 2: Integral over bounded subring → power-bounded.
+    exact (locSubring_isBounded D').isPowerBounded_of_isIntegral hint
+
 /-! #### The evaluation ring homomorphism -/
 
 /-- The evaluation ring homomorphism `A⟨X⟩ →+* presheafValue D` via
