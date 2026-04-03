@@ -1069,6 +1069,22 @@ instance HasLocLiftPowerBounded.discrete {A : Type*} [CommRing A] [TopologicalSp
       obtain ⟨a, ha, b, hb, rfl⟩ := Set.mem_mul.mp hx
       rw [Set.mem_singleton_iff.mp hb, mul_zero]; exact hU
 
+-- Adic Nullstellensatz instance for Tate rings (Wedhorn Prop 5.30(4) + 7.14):
+-- For rational containment, generators are power-bounded in the target localization.
+-- Route: v(t/D.s) ≤ 1 at all Spa points → integral over locSubring → power-bounded.
+-- Sorry: requires full Nullstellensatz (v ≤ 1 at Spa points → integral).
+instance HasLocLiftPowerBounded.tate {A : Type*} [CommRing A] [TopologicalSpace A]
+    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [NonarchimedeanRing A]
+    [IsNoetherianRing A] : HasLocLiftPowerBounded A where
+  locLift_divByS_isPowerBounded D D' h t ht := by
+    letI : TopologicalSpace (Localization.Away D'.s) := D'.topology
+    letI : IsTopologicalRing (Localization.Away D'.s) := D'.isTopologicalRing
+    -- Route: IsBounded.isPowerBounded_of_isIntegral (locSubring_isBounded D')
+    -- Integrality from: v(t/D.s) ≤ 1 at all Spa points of D'-rational open
+    -- (rational containment gives v(t) ≤ v(D.s) for t ∈ D.T).
+    -- Blocked on: formalizing Prop 7.14 (v ≤ 1 → integral over ring of definition).
+    sorry
+
 /-- Given a prime `p` containing `D.s` but not `D'.s`, construct a point in `rationalOpen D'.T D'.s`
 whose support is `p`, contradicting `rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s`. -/
 private theorem mem_prime_of_rational_subset_discrete {A : Type*} [CommRing A]
