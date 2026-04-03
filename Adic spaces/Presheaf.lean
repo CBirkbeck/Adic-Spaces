@@ -710,31 +710,56 @@ theorem isUnit_canonicalMap_s_of_huber {A : Type*} [CommRing A] [TopologicalSpac
   rw [← heq] at hunit_pow
   exact isUnit_of_mul_isUnit_right hunit_pow
 
+/-- Power-boundedness of `locLift(t/s)` in `D'.topology` for `t ∈ D.T`.
+
+When `R(D'.T/D'.s) ⊆ R(D.T/D.s)`, the lift
+`locLift : Localization.Away D.s →+* Localization.Away D'.s` sends
+each generator `t/D.s` (for `t ∈ D.T`) to a power-bounded element
+of `Localization.Away D'.s` equipped with `D'.topology`.
+
+**Proof outline (Wedhorn, Proposition 7.14 / adic Nullstellensatz):**
+
+The rational containment gives `v(t) ≤ v(D.s)` for every continuous
+valuation `v` with `v(t') ≤ v(D'.s)` for all `t' ∈ D'.T`. Hence
+`v(t/D.s) ≤ 1` for all such `v`, so `t/D.s` lies in the integral closure
+of `locSubring D'.P D'.T D'.s` (which equals `{x : v(x) ≤ 1}` for the
+localization valuations, by Prop 7.14). Since `locSubring` is bounded
+(`locSubring_isBounded`), integrality over a bounded subring gives
+power-boundedness (`IsBounded.isPowerBounded_of_isIntegral`).
+
+**Status:** Requires formalizing the adic Nullstellensatz (Prop 7.14).
+See `docs/TICKETS-axiom-clean.md`, ticket R4. -/
+private theorem locLift_divByS_isPowerBounded {A : Type*} [CommRing A]
+    [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
+    (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (hu_loc : IsUnit (algebraMap A (Localization.Away D'.s) D.s))
+    {t : A} (ht : t ∈ D.T) :
+    @TopologicalRing.IsPowerBounded (Localization.Away D'.s) _ D'.topology
+      (IsLocalization.Away.lift D.s hu_loc (divByS t D.s)) := by
+  letI : TopologicalSpace (Localization.Away D'.s) := D'.topology
+  letI : IsTopologicalRing (Localization.Away D'.s) := D'.isTopologicalRing
+  -- The proof requires: `locLift(t/D.s) ∈ integral closure of locSubring D'`
+  -- which follows from the adic Nullstellensatz (Wedhorn Prop 7.14).
+  -- Once integrality is established, conclude via:
+  --   locSubring_isBounded D' |>.isPowerBounded_of_isIntegral ⟨p, hp_monic, hp_eval⟩
+  sorry
+
 /-- The algebraic restriction map is continuous for Huber rings
 (Proposition 8.2 of Wedhorn).
 
-**Proof structure (verified):** The lift factors as `D'.coeRingHom ∘ locLift` where
+**Proof structure:** The lift factors as `D'.coeRingHom ∘ locLift` where
 `locLift : Localization.Away D.s →+* Localization.Away D'.s` uses the unit witness
 `IsUnit (algebraMap A (Localization.Away D'.s) D.s)`. Since `D'.coeRingHom`
 (the completion embedding) is continuous, it suffices to show `locLift` is continuous
-from `D.topology` to `D'.topology`. By `continuous_of_tendsto_nhds_zero` (for
-additive group homs), this reduces to: the preimage of every target basis
-neighborhood `locNhd D' m` contains a source basis neighborhood `locNhd D n`.
+from `D.topology` to `D'.topology`.
 
-**Remaining sorry:** The neighborhood-mapping property
-`∀ m, ∃ n, locLift '' (locNhd D n) ⊆ locNhd D' m`
-requires showing that the algebraic lift between localizations maps neighborhoods
-into neighborhoods. This needs the **universal property of the localization topology**
-(Wedhorn §5.51, Proposition 8.2): the localization topology on `A(T/s)` is the
-coarsest ring topology making `algebraMap : A → A(T/s)` continuous with `s` invertible
-and `{t/s}` power-bounded. Given that `algebraMap : A → A(T'/s')` is continuous
-(proved as `algebraMap_continuous_loc` in `PresheafIdentification.lean`) and `D.s`
-is a unit, the universal property gives continuity of the induced lift.
-
-Formalizing this universal property requires:
-1. A boundedness/power-boundedness analysis of `locSubring` images under `locLift`
-2. Interleaving of neighborhood bases from different pairs of definition `D.P`, `D'.P`
-3. Extending `LocalizationTopology.lean` with a `locTopology_continuous_lift` theorem -/
+By the universal property of the localization topology
+(`locTopology_continuous_lift`), this reduces to two conditions:
+1. `locLift ∘ algebraMap : A → Loc.Away D'.s` is continuous (proved via the
+   pair-of-definition neighborhood basis).
+2. Each generator `locLift(t/D.s)` for `t ∈ D.T` is power-bounded in
+   `D'.topology` (from `locLift_divByS_isPowerBounded`, which needs the
+   adic Nullstellensatz — Wedhorn Prop 7.14, ticket R4). -/
 theorem restrictionMapAlg_continuous_of_huber {A : Type*} [CommRing A]
     [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
@@ -804,7 +829,7 @@ theorem restrictionMapAlg_continuous_of_huber {A : Type*} [CommRing A]
       by rw [locIdeal, ← Ideal.map_pow]; exact Ideal.mem_map_of_mem _ hbn, rfl⟩
   apply locTopology_continuous_lift D.P D.T D.s D.hopen locLift hf_alg
   intro t ht
-  sorry
+  exact locLift_divByS_isPowerBounded D D' h hu_loc ht
 
 /-! ### Restriction maps (Proposition 8.2 of Wedhorn)
 

@@ -1510,7 +1510,7 @@ theorem tateQuotientToPresheafHom_continuous (D : RationalLocData A)
       (quotientTTopology D.s)
       (inferInstance : TopologicalSpace (presheafValue D))
       (tateQuotientToPresheafHom D hb) := by
-  -- T4: AbstractCompletion compare route. See git history for full proof attempt.
+  -- T4 territory. AbstractCompletion compare route.
   sorry
 
 end HypothesesDischarge
