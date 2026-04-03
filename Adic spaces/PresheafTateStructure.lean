@@ -1232,13 +1232,78 @@ theorem restrictionMapHom_surj
       ∃ (n : ℕ) (a : presheafValue D₀),
         z * (restrictionMapHom D₀ D h) (D₀.canonicalMap D.s) ^ n =
         (restrictionMapHom D₀ D h) a := by
-  -- The surj set S = {z | ∃ n a, z * u^n = sigma(a)} is:
-  --   (1) an additive subgroup of presheafValue D
-  --   (2) dense (contains the image of the dense D.coeRingHom)
-  --   (3) F_sigma (union of closed S_n)
-  -- By the Baire category theorem on the complete metrizable presheafValue D,
-  -- some S_N has nonempty interior, so S is open. Open + dense subgroup = everything.
-  -- Full formalization requires BaireSpace + AddSubgroup infrastructure.
+  -- Setup: uniform space instances for the localization topologies
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  -- Abbreviations
+  set sigma := restrictionMapHom D₀ D h with hsigma_def
+  set u := sigma (D₀.canonicalMap D.s) with hu_def
+  -- Key identity: sigma ∘ coeRingHom = restrictionMapAlg (extension property)
+  have hsigma_coe : ∀ a : Localization.Away D₀.s,
+      sigma (D₀.coeRingHom a) = restrictionMapAlg D₀ D h a :=
+    fun a => UniformSpace.Completion.extensionHom_coe
+      (restrictionMapAlg D₀ D h) (restrictionMapAlg_continuous D₀ D h) a
+  -- u = D.canonicalMap D.s (a unit in presheafValue D)
+  have hu_eq : u = D.canonicalMap D.s := by
+    change sigma (D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) D.s)) = _
+    rw [hsigma_coe, restrictionMapAlg, IsLocalization.Away.lift_eq]
+  have hu_unit : IsUnit u := hu_eq ▸ isUnit_s_in_presheafValue D
+  -- For elements of the dense subring Localization.Away D.s:
+  -- D.coeRingHom(a / D.s^k) satisfies the surj condition with n = k.
+  have h_dense : ∀ x : Localization.Away D.s,
+      ∃ (n : ℕ) (a : presheafValue D₀),
+        D.coeRingHom x * u ^ n = sigma a := by
+    intro x
+    obtain ⟨⟨a, ⟨_, ⟨k, rfl⟩⟩⟩, hx⟩ := IsLocalization.surj (Submonoid.powers D.s) x
+    refine ⟨k, D₀.canonicalMap a, ?_⟩
+    rw [hu_eq]
+    conv_rhs =>
+      rw [show D₀.canonicalMap a = D₀.coeRingHom (algebraMap A _ a) from rfl]
+      rw [hsigma_coe, restrictionMapAlg, IsLocalization.Away.lift_eq]
+    show D.coeRingHom x * (D.coeRingHom (algebraMap A (Localization.Away D.s) D.s)) ^ k =
+      D.canonicalMap a
+    rw [← map_pow, ← map_mul]
+    simp only [RationalLocData.canonicalMap, RingHom.comp_apply]
+    congr 1
+    rw [map_pow] at hx
+    exact hx
+  -- PROOF OUTLINE (Baire category, Wedhorn Prop 8.15):
+  --
+  -- Define S_n = {z | z * u^n ∈ range(sigma)}, S = ⋃ n, S_n.
+  --
+  -- (A) range(sigma) = closure(range(restrictionMapAlg)), hence IsClosed:
+  --     (⊆) sigma '' univ = sigma '' closure(range(coe)) ⊆ closure(sigma '' range(coe))
+  --         = closure(range(restrictionMapAlg)) by image_closure_subset_closure_image.
+  --     (⊇) sigma factors through closure(range(restrictionMapAlg)) as a continuous map
+  --         from Completion to a complete T₂ subspace. The corestricted map extends the
+  --         dense embedding of range(restrictionMapAlg), so by Completion.induction_on
+  --         (applied to the corestricted map), it surjects onto the closure.
+  --
+  -- (B) Each S_n is closed: preimage of IsClosed(range(sigma)) under continuous (· * u^n).
+  --     S_n ⊆ S_{n+1}: if z * u^n = sigma(a), then z * u^{n+1} = sigma(a * D₀.canonicalMap D.s).
+  --
+  -- (C) S is a dense additive subgroup (from h_dense + Completion.induction_on).
+  --
+  -- (D) S is not meagre: presheafValue D is Baire (CompleteSpace + IsCountablyGenerated
+  --     uniformity from Nat-indexed localization basis) and second-countable (from
+  --     countably generated uniformity). The quotient presheafValue D / S has at most
+  --     countably many cosets (separable). If S were meagre, each coset would be meagre,
+  --     and presheafValue D = countable union of meagre cosets would be meagre.
+  --     Contradiction: nonempty Baire space is not meagre.
+  --
+  -- (E) Since S is not meagre and S = ⋃ n, S_n (ascending closed sets), some S_N is not
+  --     nowhere dense, hence S_N has nonempty interior. S_N is a closed additive subgroup
+  --     with nonempty interior, so it's open (AddSubgroup.isOpen_of_zero_mem_interior).
+  --     S ⊇ S_N, so S is open. Open additive subgroup is clopen
+  --     (AddSubgroup.isClosed_of_isOpen). Dense + closed = univ.
+  --
+  -- This requires: (A) factorization of sigma through complete subspace,
+  --                (D) second countability / coset counting in Baire spaces.
+  -- Both are substantial Lean infrastructure pieces not yet assembled in this project.
   sorry
 
 -- NOTE: `Function.Surjective (restrictionMapHom D₀ D h)` is FALSE in general.
