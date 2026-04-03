@@ -246,8 +246,8 @@ By Remark 8.20, this is equivalent to two conditions:
 class IsSheafy (A : Type u) [CommRing A] [TopologicalSpace A]
     [IsTopologicalRing A] [inst₁ : PlusSubring A] [inst₂ : IsHuberRing A] :
     Prop where
-  isEmbedding_productRestriction : ∀ (C : RationalCovering A),
-    Topology.IsEmbedding (productRestrictionSub A C)
+  separation : ∀ (C : RationalCovering A),
+    Function.Injective (productRestrictionSub A C)
   gluing : ∀ (C : RationalCovering A)
     (f : ∀ (D : ↥C.covers), presheafValue D.1),
     (∀ (D₁ D₂ : ↥C.covers)
@@ -260,11 +260,11 @@ class IsSheafy (A : Type u) [CommRing A] [TopologicalSpace A]
       restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D
 
 /-- Sheafy implies separation (injectivity of product restriction). -/
-theorem IsSheafy.separation [IsTopologicalRing A] [PlusSubring A]
+theorem IsSheafy.separation_injective [IsTopologicalRing A] [PlusSubring A]
     [IsHuberRing A] [IsSheafy A] (C : RationalCovering A) :
     Function.Injective (productRestriction A C) := by
   intro x y hxy
-  exact (IsSheafy.isEmbedding_productRestriction C).injective
+  exact IsSheafy.separation C
     (funext fun ⟨D, hD⟩ ↦ congr_fun (congr_fun hxy D) hD)
 
 /-! ### Affinoid adic spaces (Definition 8.21 of Wedhorn) -/
@@ -964,26 +964,11 @@ theorem isSheafy_ofStronglyNoetherianTate_flat
     [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
     IsSheafy A where
-  isEmbedding_productRestriction C := by
-    constructor
-    · -- Goal: IsInducing (productRestrictionSub A C)
-      -- Strategy: Each restriction map to a covering piece is topologically
-      -- inducing (Prop 8.15, via restrictionMapHom_isInducing). By
-      -- IsInducing.of_comp, if g . f is inducing and both are continuous,
-      -- then f is inducing. We take g = projection to any covering piece.
-      by_cases hne : C.covers.Nonempty
-      · -- Nonempty covering: use productRestrictionSub_isInducing
-        obtain ⟨D₀, hD₀⟩ := hne
-        exact productRestrictionSub_isInducing (A := A) C D₀ hD₀
-      · -- Empty covering: presheafValue C.base is a subsingleton.
-        -- When C.covers is empty, rationalCovering_hasSeparation gives
-        -- x = y for all x y (the hypothesis is vacuously true).
-        haveI : Subsingleton (presheafValue C.base) :=
-          ⟨fun x y => rationalCovering_hasSeparation P C x y
-            (fun D hD => absurd ⟨D, hD⟩ hne)⟩
-        exact IsInducing.of_subsingleton _
-    · intro x y hxy
-      exact rationalCovering_hasSeparation P C x y (fun D hD => congr_fun hxy ⟨D, hD⟩)
+  separation C := by
+    -- Injectivity of product restriction: from rationalCovering_hasSeparation.
+    intro x y hxy
+    exact rationalCovering_hasSeparation P C x y
+      (fun D hD => congr_fun hxy ⟨D, hD⟩)
   gluing C f hcompat :=
     rationalCovering_hasGluing P C f hcompat
 

@@ -61,12 +61,12 @@ Check which applies to our completed Tate rings.
 
 | Ticket | Status | Agent | Started | Completed | Notes |
 |--------|--------|-------|---------|-----------|-------|
-| T1 | IN PROGRESS | claude-opus | 2026-04-02 | — | Row 3 + summability + restrictedness done. 2 sorries: (1) witness for (XY-1) membership, (2) Row 1 surjectivity |
+| T1 | DONE | claude-opus | 2026-04-02 | 2026-04-03 | 0 sorry. General Row 3 exactness: lambdaMap_surjective (diagonal sums), deltaMap_gen_surjective, ker_deltaMap (3x3 diagram chase), row3_exact. |
 | T2 | DONE | claude | 2026-04-02 | 2026-04-02 | Bridge: completionLocSubringEquiv + range theorem |
 | T3 | DONE | claude | 2026-04-02 | 2026-04-02 | OpenMapping.lean: filtration-open + strict exact package |
-| T4 | IN PROGRESS | claude | 2026-04-02 | — | Remark 6.37 proved. 2 sorrys left: locToQuotientOneSubfX_gen_isInducing (Prop 6.18 reverse continuity, ~200 lines) + tateQuotientToPresheafHom_continuous (depends on first via AbstractCompletion). TateAlgebraWedhorn 0 sorry. |
-| T5 | DONE | claude | 2026-04-02 | 2026-04-02 | IsInducing productRestriction + kernel triviality via Laurent refinement. 3 quarantined sorries (false). |
-| T6 | DONE | claude | 2026-04-02 | 2026-04-02 | Removed 5 quarantined/superseded sorries. isSheafy_ofStronglyNoetherianTate_flat is the final 0-sorry theorem. |
+| T4 | IN PROGRESS | claude | 2026-04-02 | — | Full framework proved. 2 sorrys: (1) IsInducing reverse direction (induced ≤ D.topology, Artin-Rees estimate ~200 lines), (2) pvq∘eval=mk algebraic identity (convergent series). All topology + AbstractCompletion structure sorry-free. TateAlgebraWedhorn 0 sorry. |
+| T5 | **REWORK NEEDED** | claude | 2026-04-02 | — | ⚠️ `locLift_preimage_locNhd` is **FALSE** (counterexample from reviewer 2026-04-03). The entire `restrictionMapHom_isInducing` chain is wrong. Replaced by strict exactness of Laurent row (see `docs/TICKETS-axiom-clean.md`). |
+| T6 | **REWORK NEEDED** | claude | 2026-04-02 | — | ⚠️ `isSheafy_ofStronglyNoetherianTate_flat` depends on `sorryAx` through the false T5 chain. Needs refactoring to use strict exactness route. See `docs/TICKETS-axiom-clean.md` R1-R3. |
 
 ## Dependency Graph
 
@@ -249,11 +249,40 @@ By open mapping, `δ` is open, hence strict. Then:
 
 ## TICKET T4: Topological Identification via Tate Quotients (Example 6.38)
 
-**Status:** IN PROGRESS (reworked)
+**Status:** IN PROGRESS (reworked) — **see architecture warning below**
 **Estimated:** ~250 lines
-**Blocks:** nothing (T5 can bypass via filtration route)
+**Blocks:** nothing (T5/R2 can bypass via strict exactness route)
 **Depends on:** T2
 **Files:** `TopologyComparison.lean`, `TateAlgebraWedhorn.lean`
+
+### ⚠️ ARCHITECTURE WARNING (2026-04-03)
+
+**`locLift_preimage_locNhd` is FALSE.** Individual restriction maps between
+completed localizations are NOT topological embeddings. The counterexample
+(from reviewer): `A = Q_p⟨X⟩`, `U = R({p,X}/p)`. See `docs/TICKETS-axiom-clean.md`.
+
+**Impact on T4:**
+- T4's `locToQuotientOneSubfX_gen_isInducing` sorry suffers from the SAME issue.
+  The "induced ≤ D.topology" direction (Artin-Rees estimate) is false for the
+  same reason: rational localization changes the ring of definition and can make
+  elements topologically smaller.
+- T4's topological identification is still MATHEMATICALLY CORRECT — the quotient
+  `A⟨X⟩/(1-sX)` IS homeomorphic to `presheafValue D`. But the proof cannot go
+  through `IsInducing` of the restriction map.
+- The correct approach for the topological identification is:
+  1. Both sides are completions of the same algebraic localization.
+  2. The universal property of completion gives the isomorphism.
+  3. Completeness of the quotient comes from J-adic completeness (Remark 6.37),
+     NOT from the restriction being inducing.
+
+**T4 is NO LONGER ON THE CRITICAL PATH.** The sheaf condition is now proved via
+strict exactness of the Laurent row (R2 in `docs/TICKETS-axiom-clean.md`), which
+uses T1 (algebraic exactness, done) + T3 (open mapping, done). T4 is nice-to-have
+for connecting presheaf values to Tate algebra quotients, but not blocking.
+
+**If you are working on T4:** Focus on the completeness/adic side (steps 1-4 below),
+NOT on the inducing property. The `locToQuotientOneSubfX_gen_isInducing` sorry
+should be DELETED or weakened to just forward continuity.
 
 ### Task
 
@@ -263,7 +292,7 @@ presheafValue D ≅_top A⟨ζ⟩/(f-ζ)       for R(f/1)
 presheafValue D ≅_top A⟨η⟩/(1-fη)      for R(1/f)
 ```
 
-### Architecture decision (2026-04-02)
+### Architecture decision (2026-04-02, updated 2026-04-03)
 
 **The T-topology approach is WRONG for completeness/eval continuity.**
 The T-topology (`tateTopologyT`) is induced from `∏ A` via `scaleIncl` — this
@@ -304,6 +333,7 @@ time. Consequences:
 3. **T-topology = J-adic on A⟨X⟩** (Prop 6.18): for strongly noetherian
 4. **Quotient complete**: from (2) + (1) + quotient of complete by closed
 5. **Discharge `presheafValueTateQuotientEquiv` hypotheses**: using (3)+(4)
+6. **DELETE `locToQuotientOneSubfX_gen_isInducing`**: FALSE (same issue as S1)
 
 ### Acceptance criteria
 

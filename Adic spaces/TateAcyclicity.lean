@@ -966,38 +966,10 @@ instance IsSheafy.ofStronglyNoetherianTate_discrete
     (A : Type*) [CommRing A] [TopologicalSpace A] [DiscreteTopology A]
     [PlusSubring A] [IsHuberRing A] :
     IsSheafy A where
-  isEmbedding_productRestriction C := by
-    -- For discrete rings, presheafValue has discrete topology
-    haveI hbase : DiscreteTopology (presheafValue C.base) :=
-      discreteTopology_presheafValue C.base
-    -- The productRestrictionSub is injective
-    have hinj : Function.Injective (productRestrictionSub A C) := by
-      intro x y hxy
-      exact productRestriction_injective_discrete C
-        (funext fun ⟨D, hD⟩ ↦ congr_fun hxy ⟨D, hD⟩)
-    -- For discrete source topology, any injective map is an embedding
-    refine ⟨⟨?_⟩, hinj⟩
-    -- Need: source topology = induced topology from productRestrictionSub
-    -- Both are discrete, since presheafValue is discrete for discrete A.
-    rw [hbase.eq_bot]
-    have hbl : (⊥ : TopologicalSpace (presheafValue C.base)) ≤
-        TopologicalSpace.induced (productRestrictionSub A C) Pi.topologicalSpace :=
-      fun _ _ ↦ trivial
-    apply le_antisymm hbl
-    -- Need: induced ≤ ⊥, i.e., every ⊥-open set (= every set) is induced-open.
-    -- Since f is injective, every set U = f⁻¹'(f '' U), and f '' U is Pi-open.
-    have hpi_discr : ∀ (D : ↥C.covers), DiscreteTopology (presheafValue D.1) :=
-      fun D ↦ discreteTopology_presheafValue D.1
-    intro U _
-    apply isOpen_induced_iff.mpr
-    refine ⟨(productRestrictionSub A C) '' U ∪
-      (Set.univ \ Set.range (productRestrictionSub A C)),
-      isOpen_discrete _, ?_⟩
-    ext x; constructor
-    · rintro (⟨y, hy, hfxy⟩ | ⟨-, hx⟩)
-      · exact hinj hfxy ▸ hy
-      · exact absurd ⟨x, rfl⟩ hx
-    · exact fun hx ↦ Or.inl ⟨x, hx, rfl⟩
+  separation C := by
+    intro x y hxy
+    exact productRestriction_injective_discrete C
+      (funext fun ⟨D, hD⟩ ↦ congr_fun hxy ⟨D, hD⟩)
   gluing C f hcompat := discrete_gluing C f hcompat
 
 /-! ### General case: specification of remaining work

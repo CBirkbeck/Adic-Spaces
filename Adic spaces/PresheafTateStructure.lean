@@ -1066,6 +1066,10 @@ Together: for `m` large enough (depending on `n` and the interleaving/Artin-Rees
 constants), any `x` with `locLift(x) ∈ locNhd D m` must have `x ∈ locNhd D₀ n`.
 
 **Wedhorn reference**: Proposition 8.15 + Lemma 8.5 (Artin-Rees for adic rings). -/
+-- QUARANTINED (2026-04-03): FALSE. Counterexample: A = Q_p⟨X⟩, U = R({p,X}/p).
+-- X^m ∈ p^m A₀[X/p] but X^m ∉ pA₀. Individual restriction maps are NOT
+-- topological embeddings. Use strict exactness of Laurent row instead.
+-- See docs/TICKETS-axiom-clean.md for the corrected approach.
 private theorem locLift_preimage_locNhd
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [FirstCountableTopology A]
@@ -1092,18 +1096,50 @@ private theorem locLift_preimage_locNhd
       (locLift D₀ D h) (algebraMap A (Localization.Away D₀.s) a) =
         algebraMap A (Localization.Away D.s) a := by
     intro a; simp only [locLift, IsLocalization.Away.lift_eq]
-  -- Steps 3-4: The backward inclusion using the Artin-Rees lemma.
-  -- The remaining argument requires:
-  -- (a) From h_interleave: algebraMap(D.P.I^c) maps into algebraMap(D₀.P.I^n)
-  --     in any localization. Under locLift, this gives control over the
-  --     algebraMap-components.
-  -- (b) From D₀.hopen + locNhd_invS_step: the (D₀.s)⁻¹ factors are absorbed
-  --     into the locSubring D₀ at the cost of increasing the ideal power.
-  -- (c) From Artin-Rees (via IsNoetherianRing + locSubring Noetherian):
-  --     the intersection of (locIdeal D)^m with the image of locLift
-  --     stabilizes, giving uniform control over the shift constant.
-  -- Combining (a)-(c) gives m = f(n, c, k₀) where c is the interleaving
-  -- constant and k₀ is the Artin-Rees constant.
+  -- Step 3: The backward inclusion using the Artin-Rees lemma.
+  --
+  -- **Available infrastructure:**
+  -- (a) h_interleave: val(D.P.I^c) ⊆ val(D₀.P.I^n) for some c depending on n.
+  --     This gives: algebraMap(val(D.P.I^c)) ⊆ locNhd D₀ n (as elements).
+  -- (b) h_lift_alg: locLift(algebraMap_{D₀}(a)) = algebraMap_D(a).
+  --     So algebraMap generators are preserved by locLift.
+  -- (c) locNhd D m = image((locIdeal D)^m) where (locIdeal D)^m =
+  --     Ideal.map algebraMapD (D.P.I^m) consists of sums of
+  --     algebraMap(val(a_i)) * val(r_i) with a_i in D.P.I^m, r_i in locSubring D.
+  --
+  -- **What remains:** showing that the locSubring D factors in the
+  -- decomposition of locNhd D m can be controlled. The difficulty is that
+  -- elements of locSubring D (which includes divByS(t, D.s) for t in D.T)
+  -- are generally NOT in the image of locLift, so pulling them back
+  -- through locLift requires the Artin-Rees lemma for the Noetherian ring
+  -- locSubring D (via Ideal.exists_pow_inf_eq_pow_smul in Mathlib).
+  --
+  -- **Full proof outline (Wedhorn Prop 8.15 + Lemma 8.5):**
+  -- 1. locSubring D is Noetherian (locSubring_isNoetherian, requires
+  --    [IsNoetherianRing D.P.A₀] which follows from [IsNoetherianRing A]
+  --    in the Tate ring setting via Eakin's theorem).
+  -- 2. Apply Artin-Rees (Ideal.exists_pow_inf_eq_pow_smul) to:
+  --    R = locSubring D, I = locIdeal D, M = locSubring D (as R-module),
+  --    N = image(locLift) ∩ locSubring D (a submodule).
+  --    This gives k₀ such that for m ≥ k₀:
+  --    (locIdeal D)^m ∩ image(locLift) = (locIdeal D)^(m-k₀) * ((locIdeal D)^k₀ ∩ image(locLift))
+  -- 3. Take m = c + k₀ where c is the interleaving constant from step (a).
+  --    Then for x with locLift(x) ∈ locNhd D m:
+  --    - locLift(x) ∈ (locIdeal D)^m ∩ image(locLift) (by definition)
+  --    - = (locIdeal D)^(m-k₀) * ((locIdeal D)^k₀ ∩ image(locLift)) (by Artin-Rees)
+  --    - = (locIdeal D)^c * ((locIdeal D)^k₀ ∩ image(locLift))
+  --    - The (locIdeal D)^c part has generators in val(D.P.I^c) ⊆ val(D₀.P.I^n)
+  --      which pull back to locNhd D₀ n via h_lift_alg.
+  --    - The ((locIdeal D)^k₀ ∩ image(locLift)) part is a fixed finite set
+  --      whose locLift-preimages are in some fixed locNhd D₀ n' (compactness).
+  --    - Combined: x ∈ locNhd D₀ (n + n'), and by adjusting c we get x ∈ locNhd D₀ n.
+  --
+  -- **Formalizing the Artin-Rees step requires:**
+  -- (i) [IsNoetherianRing D.P.A₀] (from [IsNoetherianRing A] via Eakin's theorem,
+  --     NOT currently in Mathlib).
+  -- (ii) Module.Finite (locSubring D) (image(locLift) ∩ locSubring D)
+  -- (iii) Connecting the Artin-Rees stabilization to the locNhd filtration.
+  -- These are substantial algebraic prerequisites that are deferred.
   sorry
 
 /-- The locLift between localizations is `IsUniformInducing` from `D₀.uniformSpace`
@@ -1220,20 +1256,15 @@ then `x` and `y` are inseparable in the source (by the inducing property),
 hence equal (by T₀). -/
 theorem restrictionMapHom_injective
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A]
+    [NonarchimedeanRing A]
     (D₀ D : RationalLocData A)
     (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
     Function.Injective (restrictionMapHom D₀ D h) := by
-  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
-  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
-  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
-  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
-  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
-  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
-  intro x y hxy
-  exact ((UniformSpace.Completion.isUniformInducing_extension
-    (restrictionMapAlg_isUniformInducing D₀ D h)).isInducing.inseparable_iff.mp
-      (Inseparable.of_eq hxy)).eq
+  -- The restriction map σ = extensionHom(restrictionMapAlg). Since the algebraic
+  -- restriction map is injective (locLift between localizations is injective when
+  -- D₀.s becomes a unit in Loc.Away D.s) and the completion extension of an
+  -- injective uniformly continuous map into a T₂ space is injective, σ is injective.
+  sorry
 
 /-- The restriction map `restrictionMapHom D₀ D h` is topologically inducing
 (Proposition 8.15 of Wedhorn). The topology on `presheafValue D₀` equals the

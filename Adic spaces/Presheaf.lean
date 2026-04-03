@@ -729,6 +729,10 @@ power-boundedness (`IsBounded.isPowerBounded_of_isIntegral`).
 
 **Status:** Requires formalizing the adic Nullstellensatz (Prop 7.14).
 See `docs/TICKETS-axiom-clean.md`, ticket R4. -/
+-- Adic Nullstellensatz (Wedhorn Prop 5.30(4) + 7.14, specialized):
+-- Elements with v(x) ≤ 1 at all Spa points are integral over locSubring.
+-- Route: rational containment → v(t/D.s) ≤ 1 → integral → isPowerBounded.
+-- See docs/TICKETS-axiom-clean.md R4.
 private theorem locLift_divByS_isPowerBounded {A : Type*} [CommRing A]
     [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
@@ -738,10 +742,7 @@ private theorem locLift_divByS_isPowerBounded {A : Type*} [CommRing A]
       (IsLocalization.Away.lift D.s hu_loc (divByS t D.s)) := by
   letI : TopologicalSpace (Localization.Away D'.s) := D'.topology
   letI : IsTopologicalRing (Localization.Away D'.s) := D'.isTopologicalRing
-  -- The proof requires: `locLift(t/D.s) ∈ integral closure of locSubring D'`
-  -- which follows from the adic Nullstellensatz (Wedhorn Prop 7.14).
-  -- Once integrality is established, conclude via:
-  --   locSubring_isBounded D' |>.isPowerBounded_of_isIntegral ⟨p, hp_monic, hp_eval⟩
+  -- Route: Prop 5.30(4) + 7.14. Blocked on full adic Nullstellensatz formalization.
   sorry
 
 /-- The algebraic restriction map is continuous for Huber rings

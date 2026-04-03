@@ -136,4 +136,4 @@ Detailed implementation plans live in `docs/plans/`:
 
 | Agent | Working On | File(s) | Started |
 |-------|-----------|---------|---------|
-| claude-opus | T1: General Row 3 exactness (2 sorries remain) | LaurentCoverExact.lean | 2026-04-02 |
+| — | — | — | — |

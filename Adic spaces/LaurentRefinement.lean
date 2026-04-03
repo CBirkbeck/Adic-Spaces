@@ -369,8 +369,25 @@ theorem tateAcyclicity
     -- Goal: find x : presheafValue C.base with restrictionMap x = f(D) for all D.
     intro f hcompat
     -- Nonempty covering guaranteed by hypothesis hne.
-    -- BLOCKED on Proposition 8.15 (localization principle, Wedhorn).
-    -- Route: faithfully flat descent or Laurent transfer.
+    --
+    -- ⚠️ ARCHITECTURE CHANGE (2026-04-03):
+    -- The old Prop 8.15 route (localization principle → faithful flatness) is blocked
+    -- because `locLift_preimage_locNhd` is FALSE (individual restriction maps are NOT
+    -- topological embeddings). See docs/TICKETS-axiom-clean.md.
+    --
+    -- NEW ROUTE (strict exactness of Laurent row):
+    -- 1. For 2-element Laurent covers {R(f/1), R(1/f)}: use `row3_exact` (T1, sorry-free)
+    --    + open mapping theorem (T3) to get strict exactness.
+    -- 2. Strict exactness gives: ε is a topological embedding (Banach open mapping).
+    -- 3. For general rational covers: refine to products of Laurent covers (Lemma 8.34),
+    --    transfer strict exactness via refinement.
+    -- 4. This gives both separation AND gluing for rational covers.
+    --
+    -- Key ingredients needed:
+    -- (a) Continuity of δ (forward direction, from restrictionMapAlg_continuous)
+    -- (b) Completeness of B₁, B₂, B₁₂ (completed rational localizations)
+    -- (c) Open mapping theorem for complete Tate modules (T3, done)
+    -- (d) Laurent refinement of rational covers (Lemma 8.34)
     sorry
 
 /-- Separation extracted from `tateAcyclicity`. Handles empty coverings

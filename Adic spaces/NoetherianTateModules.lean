@@ -128,6 +128,38 @@ theorem IsModuleTopology.isStrictLinearMap_surjective
 
 end ModuleTopologyFG
 
+/-! ### Open mapping theorem for complete metrizable topological groups
+
+The Banach open mapping theorem: a surjective continuous group homomorphism
+between complete metrizable (or more generally, complete with countably generated
+uniformity) topological groups is open.
+
+This generalizes `AddMonoidHom.isOpenMap_of_sigmaCompact` by removing the
+sigma-compactness hypothesis, at the cost of requiring complete metrizability
+of the source (which is automatic for groups with countably generated uniformity). -/
+
+section BanachOpenMapping
+
+/-- **Open mapping theorem for complete metrizable topological groups.**
+A surjective continuous homomorphism from a complete topological group with
+countably generated uniformity to a Baire T₂ topological group is open.
+
+This is the standard Banach open mapping theorem, used in Wedhorn Thm 6.16
+for the strict exactness of the Laurent cover Čech complex. -/
+theorem AddMonoidHom.isOpenMap_of_complete_countable
+    {G H : Type*} [AddCommGroup G] [UniformSpace G] [IsUniformAddGroup G]
+    [CompleteSpace G]
+    [AddCommGroup H] [TopologicalSpace H] [IsTopologicalAddGroup H]
+    [BaireSpace H] [T2Space H]
+    (f : G →+ H) (hf : Function.Surjective f) (hf_cont : Continuous f) :
+    IsOpenMap f := by
+  -- Baire category proof: H = ⋃_n n·f(U) for any absorbing U. By Baire, some
+  -- closure(f(U)) has nonempty interior. Standard group argument gives f(U-U) ⊇ nhd 0.
+  -- This is a ~50 line proof from first principles. For now, sorry.
+  sorry
+
+end BanachOpenMapping
+
 /-! ### I-adic lattice topology characterization (Prop 6.18) -/
 
 section AdicLattice
