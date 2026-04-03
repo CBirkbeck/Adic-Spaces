@@ -1320,28 +1320,120 @@ theorem quotientTTopology_t0Space (s : A)
     oneSubfXIdeal_isClosed_tTopology s hcs_tate ht2_tate J hadic
   exact (Submodule.t3_quotient_of_isClosed (S := oneSubfXIdeal s)).toT0Space
 
-/-! #### Helper: IsUniformInducing for locToQuotientOneSubfX_gen
+/-! #### Helper: IsInducing for locToQuotientOneSubfX_gen (reverse continuity)
+
+The forward direction (localization topology → quotient T-topology) is
+`locToQuotientOneSubfX_gen_continuous`. The reverse direction requires:
+for each `locNhd(n)`, there exists a quotient T-topology neighborhood `V`
+with `locToQuotientOneSubfX_gen⁻¹(V) ⊆ locNhd(n)`.
+
+The `IsAdic J` hypothesis makes this work: the T-topology on `A⟨X⟩` is
+J-adic, so the quotient T-topology has basis `{mk(J^k)}`. The preimage
+`locToQuotientOneSubfX_gen⁻¹(mk(J^k))` is controlled by the J-adic
+structure: elements in `J^k` have scaled coefficients in `I^{f(k)}`-type
+neighborhoods, which exactly correspond to `locNhd` under the algebraic
+isomorphism `Localization.Away s ≃ A⟨X⟩/(1-sX)`.
+
+This is Wedhorn's Proposition 6.18 + Theorem 8.28(a). -/
+
+/-- The localization topology on `Localization.Away D.s` equals the induced
+topology from the quotient T-topology via `locToQuotientOneSubfX_gen`.
+
+This is the topological inducing property: the localization topology is
+neither finer nor coarser than the pullback of the quotient topology.
+
+**Forward** (≤): `locToQuotientOneSubfX_gen_continuous`.
+**Reverse** (≥): `IsAdic J` gives a J-adic basis for the T-topology.
+The quotient topology has basis `{mk(J^k)}`. For each `locNhd(n)`,
+there exists `k` with `locToQuotientOneSubfX_gen⁻¹(mk(J^k)) ⊆ locNhd(n)`:
+- `J^k` controls scaled coefficients: `s^j · coeff_j(g) ∈ Im(I^{f(k)})` for `g ∈ J^k`.
+- Under the algebraic isomorphism, `locToQuotientOneSubfX_gen(a/s^j) = mk(a·X^j)`,
+  so `mk(a·X^j) ∈ mk(J^k)` means the scaled coefficient `s^j · a ∈ I^{f(k)}`,
+  which gives `a/s^j ∈ locNhd(f(k))`.
+- The general case follows by the locSubring module structure on `locNhd`.
+
+**Status:** The reverse direction requires detailed interaction between the
+J-adic ideal structure and the localization neighborhoods (~200 lines).
+Currently sorry; tracked as T-topology-reverse-continuity. -/
+theorem locToQuotientOneSubfX_gen_isInducing (D : RationalLocData A)
+    [T2Space A]
+    [IsNoetherianRing ↥(TateAlgebra A)]
+    (hcs_tate : @CompleteSpace ↥(TateAlgebra A)
+      (@IsTopologicalAddGroup.rightUniformSpace _ _
+        (TateAlgebraWedhorn.tateTopologyT D.s)
+        (@IsTopologicalRing.to_topologicalAddGroup _ _
+          (TateAlgebraWedhorn.tateTopologyT D.s)
+          (TateAlgebraWedhorn.tateTopologyT_isTopologicalRing D.s))))
+    (ht2_tate : @T2Space ↥(TateAlgebra A) (TateAlgebraWedhorn.tateTopologyT D.s))
+    (J : Ideal ↥(TateAlgebra A))
+    (hadic : @IsAdic ↥(TateAlgebra A) _ (TateAlgebraWedhorn.tateTopologyT D.s) J) :
+    @Topology.IsInducing _ _
+      D.topology
+      (quotientTTopology D.s)
+      (locToQuotientOneSubfX_gen D.s) := by
+  -- Setup local instances.
+  letI : TopologicalSpace (Localization.Away D.s) := D.topology
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsTopologicalAddGroup (Localization.Away D.s) := D.isTopologicalAddGroup
+  letI τQ : TopologicalSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) := quotientTTopology D.s
+  letI : IsTopologicalRing (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientTTopology_isTopologicalRing D.s
+  letI : IsTopologicalAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientTTopology_isTopologicalAddGroup D.s
+  -- eq_induced: D.topology = τQ.induced (locToQuotientOneSubfX_gen D.s).
+  -- Forward (≤): locToQuotientOneSubfX_gen_continuous gives D.topology ≤ τQ.induced f.
+  -- Reverse (≥): τQ.induced f ≤ D.topology, equivalently f is an open map:
+  --   for every n, f(locNhd n) is open in the quotient T-topology.
+  --   Since the quotient is nonarchimedean with nhds 0 basis mk(J^k) (by hadic),
+  --   this means: ∀ n, ∃ k, mk(J^k) ⊆ f(locNhd n).
+  --   The estimate uses hadic + IsNoetherianRing + Artin-Rees shift constants.
+  refine ⟨le_antisymm ((locToQuotientOneSubfX_gen_continuous D).le_induced) ?_⟩
+  -- Reverse direction: τQ.induced f ≤ D.topology.
+  -- Step 1: Reduce to nhds at 0 using IsTopologicalAddGroup characterization.
+  -- For additive group topologies: τ₁ ≤ τ₂ iff ∀ U, U ∈ nhds[τ₂] 0 → U ∈ nhds[τ₁] 0.
+  -- We need: induced ≤ D.topology, i.e., every D.topology-open is induced-open.
+  -- Equivalently: nhds[induced] 0 ≤ nhds[D.topology] 0 (induced nhds is finer).
+  -- nhds[induced] 0 = comap f (nhds[τQ] 0).
+  -- So: ∀ U ∈ nhds[D.topology] 0, U ∈ comap f (nhds[τQ] 0).
+  -- Unfold comap: ∀ U ∈ nhds[D.topology] 0, ∃ V ∈ nhds[τQ] 0, f ⁻¹' V ⊆ U.
+  --
+  -- Step 2: Use the T-topology structure.
+  -- The T-topology on TateAlgebra is J-adic (by hadic).
+  -- The quotient map mk is open, so nhds[τQ] 0 = map mk (nhds[τT] 0).
+  -- nhds[τT] 0 has basis {(J^k : Set TateAlgebra)} by hadic.hasBasis_nhds_zero.
+  --
+  -- Step 3: For the localization topology, nhds 0 has basis {locNhd n}.
+  -- So it suffices to show: ∀ n, ∃ k, f ⁻¹' (mk '' ↑(J ^ k)) ⊆ locNhd D.P D.T D.s n.
+  --
+  -- Step 4: Key estimate (Wedhorn Prop 6.18 + Thm 8.28(a)).
+  -- For g ∈ J^k: the scaled coefficients s^i * coeff_i(g) are controlled by I^{Ψ(k)}.
+  -- Under f, the preimage of mk(g) gives x with corresponding coefficient control,
+  -- which places x in locNhd(Ψ(k)). For k large enough, Ψ(k) ≥ n.
+  -- Goal: induced f τQ ≤ D.topology.
+  -- By le_iff_nhds: ∀ x, nhds (induced f τQ) x ≤ nhds D.topology x.
+  -- Reduces (for additive group hom) to comap f (nhds τQ 0) ≤ nhds D.topology 0.
+  -- Equivalently: ∀ n, ∃ k, f⁻¹(mk(J^k)) ⊆ locNhd(n).
+  -- Requires detailed Tate algebra coefficient analysis (~150 lines).
+  sorry
+
+/-! #### IsUniformInducing for locToQuotientOneSubfX_gen
 
 For the abstract completion comparison, we need `locToQuotientOneSubfX_gen` to be
 a uniform inducing from the localization uniform space to the quotient. Combined
 with the already-proved continuity and dense range, this makes the quotient an
 abstract completion of the localization.
 
-**Proof:** The localization topology has a basis `{locNhd(n)}` and the quotient
-T-topology (= J-adic by `hadic`) has a basis `{J'^n}`. Continuity gives one
-direction (locNhd → quotient nhds). For the reverse (quotient nhds → locNhd),
-we use that `locToQuotientOneSubfX_gen` is a ring isomorphism mapping `locNhd(n)`
-to ideals that are commensurate with the `J'^n` basis. -/
+**Proof:** Reduced to `IsInducing` via `AddMonoidHom.isUniformInducing_of_isInducing`:
+for additive group homomorphisms between uniform groups (both using `rightUniformSpace`
+of additive commutative groups), `IsInducing` implies `IsUniformInducing`. The key
+equality `comap (Prod.map f f) (uniformity β) = uniformity α` follows from
+`uniformity = comap (· - ·) (nhds 0)` and the `IsInducing` property `nhds = comap f nhds`. -/
 
 /-- `locToQuotientOneSubfX_gen` is uniformly inducing from the localization uniform
 space to the quotient T-topology uniform space, given that the T-topology is `J`-adic.
 
-The proof uses the `IsAdic J` hypothesis to show the quotient topology refines the
-localization topology (the reverse of continuity): every quotient neighborhood
-`J'^k` pulls back to a localization neighborhood `locNhd(n)`.
-This follows because the J-adic structure on `A⟨X⟩` gives `J^k ⊆ mk⁻¹(J'^k)`
-and the image of `J^k` under the algebraic isomorphism
-`locToQuotientOneSubfX_gen⁻¹ ∘ mk` lands in `locNhd` for suitable `n`. -/
+Reduced to `locToQuotientOneSubfX_gen_isInducing` via
+`AddMonoidHom.isUniformInducing_of_isInducing`. -/
 theorem locToQuotientOneSubfX_gen_isUniformInducing (D : RationalLocData A)
     [T2Space A]
     [IsNoetherianRing ↥(TateAlgebra A)]
@@ -1358,7 +1450,27 @@ theorem locToQuotientOneSubfX_gen_isUniformInducing (D : RationalLocData A)
       D.uniformSpace
       (quotientTUniformSpace D.s)
       (locToQuotientOneSubfX_gen D.s) := by
-  sorry
+  -- Set up uniform/topological instances.
+  letI τQ : TopologicalSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientTTopology D.s
+  letI : TopologicalSpace (Localization.Away D.s) := D.topology
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsTopologicalAddGroup (Localization.Away D.s) := D.isTopologicalAddGroup
+  letI uQ : UniformSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientTUniformSpace D.s
+  letI : IsTopologicalRing (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientTTopology_isTopologicalRing D.s
+  letI : IsTopologicalAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientTTopology_isTopologicalAddGroup D.s
+  letI : IsUniformAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientTTopology_isUniformAddGroup D.s
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  -- For additive group homs between uniform additive groups:
+  -- IsInducing → IsUniformInducing.
+  exact AddMonoidHom.isUniformInducing_of_isInducing
+    (f := (locToQuotientOneSubfX_gen D.s).toAddMonoidHom)
+    (locToQuotientOneSubfX_gen_isInducing D hcs_tate ht2_tate J hadic)
 
 /-! #### H4: Continuity of tateQuotientToPresheafHom (abstract completion route)
 
@@ -1398,11 +1510,8 @@ theorem tateQuotientToPresheafHom_continuous (D : RationalLocData A)
       (quotientTTopology D.s)
       (inferInstance : TopologicalSpace (presheafValue D))
       (tateQuotientToPresheafHom D hb) := by
-  -- T4 territory: AbstractCompletion.compare route.
-  -- Both presheafValue D and quotient are completions of A[1/s].
-  -- compare gives uniformly continuous map; show = tateQuotientToPresheafHom
-  -- via truncation limit argument.
-  sorry -- T4: locToQuotientOneSubfX_gen IsUniformInducing + AbstractCompletion.compare
+  -- T4: AbstractCompletion compare route. See git history for full proof attempt.
+  sorry
 
 end HypothesesDischarge
 
