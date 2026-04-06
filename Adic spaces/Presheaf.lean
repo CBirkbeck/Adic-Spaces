@@ -1099,8 +1099,29 @@ theorem isIntegral_of_forall_valuation_le_one
   -- This is [Hu2] Lemma 3.3 / Wedhorn Prop 7.18.
   sorry
 
-/-- For rational containment: v(t/D.s) ≤ 1 at all Spa points of the D'-localization.
-This is the valuation inequality step of the adic Nullstellensatz. -/
+/-- A `ValuativeRel` that is `≤ 1` on an open subring of `Localization.Away s` yields
+a `Spv` point for which `algebraMap t ≤ᵥ algebraMap s` for `t ∈ T`, by the
+pattern of `vle_of_locSubring_bounded` adapted to `ValuativeRel`. -/
+private theorem comap_algebraMap_vle_of_locSubring {A : Type*} [CommRing A]
+    [TopologicalSpace A] [IsTopologicalRing A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (_hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (v : ValuativeRel (Localization.Away s))
+    (hv_sub : ∀ b ∈ locSubring P T s, v.vle b 1)
+    {t : A} (ht : t ∈ T) :
+    v.vle (algebraMap A (Localization.Away s) t)
+      (algebraMap A (Localization.Away s) s) := by
+  -- divByS t s ∈ locSubring, so v(divByS t s) ≤ 1
+  have hle : v.vle (divByS t s) 1 := hv_sub _ (divByS_mem_locSubring P T s ht)
+  -- divByS t s * algebraMap s = algebraMap t
+  have hspec : divByS t s * algebraMap A (Localization.Away s) s =
+      algebraMap A (Localization.Away s) t :=
+    IsLocalization.mk'_spec _ t ⟨s, Submonoid.mem_powers s⟩
+  -- v(divByS t s * algebraMap s) ≤ v(1 * algebraMap s) = v(algebraMap s)
+  have hmul := v.mul_vle_mul_left hle (algebraMap A (Localization.Away s) s)
+  rwa [one_mul, hspec] at hmul
+
 theorem locLift_vle_one_at_spa {A : Type*} [CommRing A]
     [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
@@ -1109,11 +1130,97 @@ theorem locLift_vle_one_at_spa {A : Type*} [CommRing A]
     (hv_sub : ∀ b ∈ locSubring D'.P D'.T D'.s, v.vle b 1) :
     v.vle (IsLocalization.Away.lift D.s (isUnit_algebraMap_s_of_huber D D' h)
       (divByS t D.s)) 1 := by
-  -- The proof follows Wedhorn's argument:
-  -- Pull back v to Spv(A) via algebraMap, use rational containment,
-  -- then cancel the unit algebraMap(D.s).
-  -- For now, sorry pending full ValuativeRel ↔ Spv bridge.
-  sorry
+  -- Step 1: Key identity — lift(divByS t D.s) * algebraMap(D.s) = algebraMap(t)
+  -- in Localization.Away D'.s.
+  have hu := isUnit_algebraMap_s_of_huber D D' h
+  let locLift : Localization.Away D.s →+* Localization.Away D'.s :=
+    IsLocalization.Away.lift D.s hu
+  -- Key identity: locLift(divByS t D.s) * algebraMap(D.s) = algebraMap(t)
+  have hspec : locLift (divByS t D.s) * algebraMap A (Localization.Away D'.s) D.s =
+      algebraMap A (Localization.Away D'.s) t := by
+    -- divByS t D.s * algebraMap(D.s) = algebraMap(t) in Localization.Away D.s
+    have h_src : divByS t D.s * algebraMap A (Localization.Away D.s) D.s =
+        algebraMap A (Localization.Away D.s) t :=
+      IsLocalization.mk'_spec _ t ⟨D.s, Submonoid.mem_powers D.s⟩
+    -- Apply locLift (a ring hom) to both sides
+    have h2 := congr_arg locLift h_src
+    rw [map_mul] at h2
+    -- h2 : locLift(divByS t D.s) * locLift(algebraMap D.s) = locLift(algebraMap t)
+    -- Use lift_eq: locLift(algebraMap a) = algebraMap a
+    have h_eq_s : locLift (algebraMap A (Localization.Away D.s) D.s) =
+        algebraMap A (Localization.Away D'.s) D.s :=
+      IsLocalization.Away.lift_eq D.s hu D.s
+    have h_eq_t : locLift (algebraMap A (Localization.Away D.s) t) =
+        algebraMap A (Localization.Away D'.s) t :=
+      IsLocalization.Away.lift_eq D.s hu t
+    rw [h_eq_s, h_eq_t] at h2
+    exact h2
+  -- Step 2: Construct the pullback valuation w on A
+  set w : ValuativeRel A :=
+    ValuativeRel.comap (algebraMap A (Localization.Away D'.s)) v
+  -- Step 3: Show w satisfies rational-open conditions for D'.T/D'.s
+  -- w.vle t' D'.s for t' ∈ D'.T
+  have hw_rat : ∀ t' ∈ D'.T, w.vle t' D'.s := by
+    intro t' ht'
+    show v.vle (algebraMap A _ t') (algebraMap A _ D'.s)
+    exact comap_algebraMap_vle_of_locSubring D'.P D'.T D'.s D'.hopen v hv_sub ht'
+  -- ¬ w.vle D'.s 0
+  have hw_nz : ¬ w.vle D'.s 0 := by
+    show ¬ v.vle (algebraMap A _ D'.s) (algebraMap A _ 0)
+    rw [map_zero]
+    exact ValuativeRel.not_vle_zero_of_isUnit
+      (IsLocalization.map_units (Localization.Away D'.s)
+        ⟨D'.s, Submonoid.mem_powers D'.s⟩)
+  -- w.vle a 1 for a ∈ A₀ (and hence for a ∈ A⁺ since A⁺ ⊆ A₀ for affinoid)
+  have hw_A₀ : ∀ a ∈ D'.P.A₀, w.vle a 1 := by
+    intro a ha
+    show v.vle (algebraMap A _ a) (algebraMap A _ 1)
+    rw [map_one]
+    exact hv_sub _ (algebraMap_mem_locSubring D'.P D'.T D'.s ha)
+  -- Step 4: Show ⟨w⟩ ∈ rationalOpen D'.T D'.s (needs Spa membership, i.e. continuity)
+  -- Construct Spv point
+  let wSpv : Spv A := ⟨w⟩
+  -- Step 4a: Show wSpv ∈ Spa A A⁺ — this requires w.IsContinuous and w ≤ 1 on A⁺
+  -- We use: v ≤ 1 on locSubring (an open subring), so pulled-back v is continuous
+  -- by Wedhorn Lemma 7.22.
+  -- For now, we establish the key conclusion directly:
+  -- Step 5: Use rational containment to get w.vle t D.s
+  -- From h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s
+  -- and wSpv ∈ rationalOpen D'.T D'.s, we get wSpv ∈ rationalOpen D.T D.s
+  -- i.e., w.vle t D.s.
+  -- Step 5': w.vle t D.s means v.vle (algebraMap t) (algebraMap D.s)
+  suffices hkey : v.vle (algebraMap A (Localization.Away D'.s) t)
+      (algebraMap A (Localization.Away D'.s) D.s) by
+    -- Step 6: Cancel the unit algebraMap(D.s) using vle_mul_cancel
+    -- From hspec: f(divByS t D.s) * algebraMap(D.s) = algebraMap(t)
+    -- So v.vle (f(divByS t D.s) * algebraMap D.s) (1 * algebraMap D.s)
+    -- By vle_mul_cancel (with ¬ v.vle (algebraMap D.s) 0): v.vle (f(divByS t D.s)) 1
+    have hDsUnit : ¬ v.vle (algebraMap A (Localization.Away D'.s) D.s) 0 :=
+      ValuativeRel.not_vle_zero_of_isUnit hu
+    apply v.vle_mul_cancel hDsUnit
+    rw [hspec, one_mul]
+    exact hkey
+  -- Step 5: Prove v.vle (algebraMap t) (algebraMap D.s) via Spv pullback.
+  -- Show wSpv ∈ rationalOpen D'.T D'.s
+  have hw_mem_rat : wSpv ∈ rationalOpen D'.T D'.s := by
+    refine ⟨⟨?_, fun f hf ↦ ?_⟩, hw_rat, hw_nz⟩
+    · -- wSpv.IsContinuous: v ≤ 1 on the open subring locSubring, so the
+      -- pullback valuation w is continuous by Wedhorn Lemma 7.22.
+      -- Proof: locSubring is open in locTopology (locSubring_isOpen),
+      -- algebraMap is continuous, so the preimage algebraMap⁻¹(locSubring)
+      -- is open in A. Since w ≤ 1 on algebraMap⁻¹(locSubring) ⊇ A₀,
+      -- the pair-of-definition criterion applies.
+      -- TODO: formalize isContinuous_of_vle_one_on_open_pair (Wedhorn 7.22)
+      sorry
+    · -- w.vle f 1 for f ∈ A⁺: since A⁺ is a subring contained in the
+      -- integral closure, and w ≤ 1 on A₀ which should contain A⁺
+      -- (standard affinoid hypothesis).
+      -- For arbitrary PlusSubring, this needs A⁺ ⊆ A₀.
+      sorry
+  -- Use rational containment: wSpv ∈ rationalOpen D.T D.s
+  have hw_mem_D := h hw_mem_rat
+  -- Extract w.vle t D.s from hw_mem_D
+  exact hw_mem_D.2.1 t ht
 
 -- The HasLocLiftPowerBounded.tate instance is in PresheafIdentification.lean
 -- (needs locSubring_isBounded which is defined there).
