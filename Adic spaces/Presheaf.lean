@@ -1204,19 +1204,17 @@ theorem locLift_vle_one_at_spa {A : Type*} [CommRing A]
   -- Show wSpv ∈ rationalOpen D'.T D'.s
   have hw_mem_rat : wSpv ∈ rationalOpen D'.T D'.s := by
     refine ⟨⟨?_, fun f hf ↦ ?_⟩, hw_rat, hw_nz⟩
-    · -- wSpv.IsContinuous: v ≤ 1 on the open subring locSubring, so the
-      -- pullback valuation w is continuous by Wedhorn Lemma 7.22.
-      -- Proof: locSubring is open in locTopology (locSubring_isOpen),
-      -- algebraMap is continuous, so the preimage algebraMap⁻¹(locSubring)
-      -- is open in A. Since w ≤ 1 on algebraMap⁻¹(locSubring) ⊇ A₀,
-      -- the pair-of-definition criterion applies.
-      -- TODO: formalize isContinuous_of_vle_one_on_open_pair (Wedhorn 7.22)
-      sorry
-    · -- w.vle f 1 for f ∈ A⁺: since A⁺ is a subring contained in the
-      -- integral closure, and w ≤ 1 on A₀ which should contain A⁺
-      -- (standard affinoid hypothesis).
-      -- For arbitrary PlusSubring, this needs A⁺ ⊆ A₀.
-      sorry
+    · -- wSpv.IsContinuous: w ≤ 1 on A₀ (open subring) → continuous.
+      -- This is Wedhorn Lemma 7.22: v ≤ 1 on an open subring → v continuous.
+      -- Proof: for γ < 1, {a : v(a) < γ} ⊇ I^n for large n (since v ≤ 1 on A₀
+      -- and I^n ⊆ A₀). Since I^n is open, {a : v(a) < γ} is open.
+      -- For γ ≥ 1, {a : v(a) < γ} ⊇ A₀ (since v ≤ 1 on A₀) which is open.
+      sorry -- Wedhorn 7.22: isContinuous_of_vle_one_on_open_subring
+    · -- w.vle f 1 for f ∈ A⁺: need A⁺ ⊆ A₀
+      -- In standard affinoid setup: A⁺ ⊆ A₀ (Wedhorn Def 7.14).
+      -- hw_A₀ gives w.vle a 1 for a ∈ D'.P.A₀.
+      -- Since A⁺ ⊆ D'.P.A₀ (standard affinoid hypothesis):
+      exact hw_A₀ f sorry -- needs A⁺ ⊆ D'.P.A₀
   -- Use rational containment: wSpv ∈ rationalOpen D.T D.s
   have hw_mem_D := h hw_mem_rat
   -- Extract w.vle t D.s from hw_mem_D
