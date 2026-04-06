@@ -1109,15 +1109,10 @@ theorem locLift_vle_one_at_spa {A : Type*} [CommRing A]
     (hv_sub : ∀ b ∈ locSubring D'.P D'.T D'.s, v.vle b 1) :
     v.vle (IsLocalization.Away.lift D.s (isUnit_algebraMap_s_of_huber D D' h)
       (divByS t D.s)) 1 := by
-  -- Proof outline:
-  -- 1. Pull back v to w := comap(algebraMap, v) on A.
-  -- 2. hv_sub + divByS_mem_locSubring gives: w(t') ≤ w(D'.s) for t' ∈ D'.T.
-  -- 3. not_vle_zero_of_isUnit on algebraMap(D'.s) gives: ¬w.vle D'.s 0.
-  -- 4. So w ∈ rationalOpen D'.T D'.s.
-  -- 5. By h: w ∈ rationalOpen D.T D.s, giving w(t) ≤ w(D.s).
-  -- 6. Via comap_vle: v(algebraMap t) ≤ v(algebraMap D.s).
-  -- 7. lift(divByS t D.s) = algebraMap(t) * (unit of algebraMap(D.s))⁻¹.
-  -- 8. v(x*u⁻¹) ≤ 1 when v(x) ≤ v(u) and u is a unit (vle_mul_cancel).
+  -- The proof follows Wedhorn's argument:
+  -- Pull back v to Spv(A) via algebraMap, use rational containment,
+  -- then cancel the unit algebraMap(D.s).
+  -- For now, sorry pending full ValuativeRel ↔ Spv bridge.
   sorry
 
 -- The HasLocLiftPowerBounded.tate instance is in PresheafIdentification.lean
