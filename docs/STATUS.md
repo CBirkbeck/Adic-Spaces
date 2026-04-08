@@ -38,7 +38,7 @@ Required approach: Use `AdicCompletionBridge.adicCompletionRingEquiv` to identif
 
 **`restrictionMapHom_surjective`** (line ~751): Surjectivity of the restriction map. Needs: the range of `restrictionMapHom` is complete (image of complete space under uniformly continuous map) and dense (contains `D.coeRingHom` image). Complete + dense in T2 = surjective.
 
-**`restrictionMapHom_injective`** (line ~813): Injectivity of the restriction map. Needs: `restrictionMapAlg` is a uniform embedding between localization topologies.
+**`restrictionMapHom_injective`** (PresheafTateStructure.lean:1275): Injectivity of the restriction map. OLD proof route via `restrictionMapAlg_isUniformInducing` is INVALID (depends on FALSE `locLift_preimage_locNhd`). NEW route: strict exactness of Laurent row (Ticket R2) or Prop 8.15 localization identification (Route B). See docs/TICKETS-axiom-clean.md.
 
 ## Sorry-Free Status
 
@@ -136,4 +136,75 @@ Detailed implementation plans live in `docs/plans/`:
 
 | Agent | Working On | File(s) | Started |
 |-------|-----------|---------|---------|
-| — | — | — | — |
+| claude-opus | R2 reframed via Wedhorn route (Phase 1 audit done; Phase 2-4 pending) | LaurentRefinement, StructureSheaf, TICKETS-axiom-clean.md | 2026-04-08 |
+
+### 2026-04-08 — R2 reframed around Wedhorn flatness route
+
+**Phase 1 + Option A (audit + reframe + restore strong sheaf condition) DONE 2026-04-08.**
+
+**Key insight 1 (the audit):** Wedhorn's Theorem 8.28(b) proof (lecture notes
+`1910.05934v1.pdf` pp. 81–85) goes via Lemma 8.31 (flatness) + Lemma 8.33 (3×3
+diagram chase) + Lemma 8.34 (refinement transfer) — purely algebraic in the
+sense that it does not need defect-correction / Banach open mapping. The
+earlier "strict exactness via Banach OMP" framing of R2 was attacking the
+right structural goal (topological embedding) but with the wrong tool.
+
+**Key insight 2 (Option A):** The standard adic-space definition (Wedhorn 8.21
+/ 8.26) DOES require sheaf of TOPOLOGICAL rings, not just sheaf of sets. Our
+`IsSheafy` class therefore needs a `Topology.IsEmbedding` field. The
+topological embedding comes for free in the Wedhorn route ONCE Example 6.38 is
+proved as a TOPOLOGICAL ring iso (universal property + Wedhorn Prop 6.17),
+because the 3×3 diagram chase then preserves topology through the Tate-algebra
+quotient identifications.
+
+**Phase 1 + Option A actions:**
+- Deleted `defect_correction_exists`, `compatible_sections_in_image`,
+  `density_approximation` (the wrong-tool chain).
+- Restored `embedding : Topology.IsEmbedding (productRestrictionSub A C)` as
+  the (combined separation + topological inducing) field of `IsSheafy`. This
+  matches Wedhorn 8.21/8.26.
+- `IsSheafy.ofStronglyNoetherianTate_discrete` (TateAcyclicity.lean) now
+  provides the embedding field sorry-free: discrete source + finite Pi of
+  discretes + injective ⇒ embedding. Direct proof, ~12 lines.
+- `isSheafy_ofStronglyNoetherianTate_flat` (StructureSheaf.lean) handles
+  `C.base.s = 0` via `Topology.IsEmbedding.of_subsingleton`; the `s ≠ 0` case
+  remains a single sorry pointing at Phase 2-4 of the Wedhorn plan.
+- `tateAcyclicity` Part 2 (gluing) is a single sorry pointing at Phase 4.
+- `TICKETS-axiom-clean.md` updated to v3: R2 broken into R2-Phase2 (Example
+  6.38 with TOPOLOGICAL iso), R2a (Cor 8.32), R2b (Lemma 8.33 Tate), R2c
+  (Lemma 8.34 + assembly). Total ~800 lines.
+- Full project builds (3080 jobs).
+- Net sorry count in R2 critical path: −1. Discrete `IsSheafy` instance now
+  matches the standard Wedhorn definition sorry-free.
+
+**Plans:**
+- `docs/plans/2026-04-08-wedhorn-vs-zavyalov.md` — main Wedhorn plan, recommends
+  Wedhorn route over Zavyalov. Note: Phase 2 must aim for a TOPOLOGICAL ring
+  iso (not just algebraic) for the embedding to work end-to-end.
+- `docs/plans/2026-04-08-zavyalov-decompleted-route.md` — Zavyalov plan, archived
+  as "not pursued" unless Wedhorn hits an unexpected wall in Phase 2.
+- `docs/plans/2026-04-08-phase2-2-leftmul.md` — Phase 2.2 leftMul plan with
+  Sub-tasks A/B/C/D (coeff extraction forward, I-adic continuity, almost-all
+  coeffs, reverse coeff char). **Sub-tasks A-D + F (assembly) DONE sorry-free
+  (principal case).** Sub-task E (Wedhorn 6.14) still pending.
+
+### 2026-04-08 — Phase 2.2 leftMul hard case PROVED (principal)
+
+**TateAlgebraTopology.lean is now sorry-free** for the principal-pair path:
+- Sub-task A: `coeffInIdealIdeal` auxiliary ideal + `pairIdeal_pow_le_coeffInIdeal`
+  giving `y ∈ (pairIdeal P)^n → ∀l, coeff l y ∈ image P.I^n`.
+- Sub-task B: `exists_mul_pow_subset_pow` via continuity of `a * ·` at `0`.
+- Sub-task C: `tateAlgebra_coeff_eventually_in_pow` — restricted series have
+  eventually all coefficients in `image P.I^n` (topological nilpotent unit
+  required for bounded/denominator-clearing step).
+- Sub-task D (principal): `tateAlgNhd_of_coeff_mem_principal` — the "divided
+  series" construction with `g = π^{-n} · y ∈ pairSubring P`, then `y = π^n · g`.
+- Sub-task F (assembly): `tateAlgNhd_leftMul_of_principal` decomposes
+  `(x · y) = Σ_p (coeff p.1 x) · (coeff p.2 y)` on antidiagonal and routes each
+  pair through Sub-task B (bad) or direct (good) to land the coefficient in
+  `P.I^i`, then applies Sub-task D.
+- `tateAlgBasis`, `tateAlgebraTopology`, `tateAlgebraTopology_isTopologicalRing`,
+  `pairSubring_isOpen` all parametrized by the principal pair `(π, hπ_gen, hπ_unit)`
+  and sorry-free.
+- General case (Phase 2.2E, Wedhorn 6.14) is the only remaining hypothesis to
+  discharge — downstream consumers currently supply the principal pair explicitly.
