@@ -1218,16 +1218,68 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
   --   • integralClosure(B) ⊆ V
   --   • image of P.I ⊆ V.nonunits  (for continuity of comap)
   --   • ι x ∉ V                     (for the contradiction)
-  -- Wedhorn Lemma 7.22 produces such V via the LocalSubring version of Stacks 090P
-  -- applied to a suitable local subring containing both `1/x` and image of `P.I`
-  -- in its maximal ideal. This sub-sorry captures the entire Wedhorn 7.22 step.
+  -- We use `Subring.exists_le_valuationSubring_of_isIntegrallyClosedIn` (Stacks 090P
+  -- part 1) to get a raw V₀ containing integralClosure(B) and not containing ι x.
+  -- Then we extract `g_max` = sup of V₀.valuation on P.I generators. Showing
+  -- `g_max < 1` strictly and that `g_max^n` is cofinal are the two remaining
+  -- mathematical gaps (Wedhorn Lemma 7.22 / [Hu2] Lemma 3.3).
   have hV_exists : ∃ V : ValuationSubring (FractionRing R),
       ((integralClosure B (FractionRing R)).toSubring : Subring (FractionRing R)) ≤ V.toSubring ∧
       ι x ∉ V ∧
       ∃ (g : V.ValueGroup) (_hg_lt : g < 1),
         (∀ (a : P.A₀), a ∈ P.I → V.valuation (ι (P.A₀.subtype a)) ≤ g) ∧
         (∀ (γ : V.ValueGroup), 0 < γ → ∃ n : ℕ, g ^ n < γ) := by
-    sorry -- Wedhorn Lemma 7.22 / [Hu2] Lemma 3.3
+    -- Apply Stacks 090P (part 1) to get V₀ ⊇ integralClosure(B), x ∉ V₀.
+    obtain ⟨V₀, hV₀_le, hx_notV₀⟩ :=
+      Subring.exists_le_valuationSubring_of_isIntegrallyClosedIn hx_notin
+    refine ⟨V₀, hV₀_le, hx_notV₀, ?_⟩
+    -- Compute g_max via Finset.sup' over generators of P.I.
+    obtain ⟨S, hS⟩ := P.fg
+    -- Case split: if S is empty, P.I = ⊥, so the bound condition is trivial.
+    by_cases hSne : S.Nonempty
+    · -- Non-empty case: compute g_max as Finset.sup'.
+      let φ : R → FractionRing R := ι
+      set g_max := S.sup' hSne (fun s ↦ V₀.valuation (φ (P.A₀.subtype s)))
+        with g_max_def
+      -- W5: Prove g_max < 1 strictly.
+      -- This is the main GAP: V₀ from Stacks 090P doesn't directly give strict
+      -- inequality on P.I generators. The fix is Wedhorn 7.22's refined construction
+      -- via LocalSubring.exists_le_valuationSubring_of_isIntegrallyClosedIn applied
+      -- to a local subring whose maximal ideal contains image of P.I.
+      have hg_max_lt : g_max < 1 := by
+        -- Sub-sorry W5: strict bound from refined construction.
+        sorry
+      -- W6/W7: cofinal property — needs MulArchimedean or coarsening via
+      -- restrictToConvex with convexGenerated H_gen.
+      have hg_cofinal : ∀ (γ : V₀.ValueGroup), 0 < γ → ∃ n : ℕ, g_max ^ n < γ := by
+        -- Sub-sorry W6/W7: cofinality (requires MulArchimedean or coarsening).
+        sorry
+      have h_le_A₀ : ∀ (a : P.A₀), V₀.valuation (ι (P.A₀.subtype a)) ≤ 1 := fun a => by
+        have hmem : (P.A₀.subtype a : R) ∈ B := hA₀B a.property
+        show V₀.valuation (ι (P.A₀.subtype a : R)) ≤ V₀.valuation 1
+        simp only [map_one, ValuationSubring.valuation_le_one_iff]
+        exact hV₀_le
+          (Subalgebra.algebraMap_mem (integralClosure B (FractionRing R)) ⟨_, hmem⟩)
+      have hg_bound : ∀ (a : P.A₀), a ∈ P.I →
+          V₀.valuation (ι (P.A₀.subtype a)) ≤ g_max := fun a ha =>
+        PairOfDefinition.valuation_le_on_ideal_of_le_on_generators (V₀.valuation.comap ι)
+          h_le_A₀ hS
+          (fun s hs => Finset.le_sup' (f := fun s ↦ V₀.valuation (φ (P.A₀.subtype s))) hs) ha
+      exact ⟨g_max, hg_max_lt, hg_bound, hg_cofinal⟩
+    · -- Empty case: P.I = ⊥, so the bound condition is vacuous.
+      rw [Finset.not_nonempty_iff_eq_empty] at hSne
+      have hI_bot : P.I = ⊥ := by
+        rw [← hS, hSne, Finset.coe_empty, Ideal.span_empty]
+      -- For g, take 0 (the only element < 1 in any value group).
+      refine ⟨0, zero_lt_one, ?_, ?_⟩
+      · intro a ha
+        rw [hI_bot] at ha
+        rw [Ideal.mem_bot.mp ha]
+        simp
+      · intro γ hγ
+        refine ⟨1, ?_⟩
+        rw [pow_one]
+        exact hγ
   obtain ⟨V, hV_le, hx_notV, g, hg_lt, hg_bound, hg_cofinal⟩ := hV_exists
   -- Step 3: Construct the comap valuation w on R.
   let wVal : Valuation R V.ValueGroup := V.valuation.comap ι
