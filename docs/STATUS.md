@@ -188,23 +188,35 @@ quotient identifications.
   coeffs, reverse coeff char). **Sub-tasks A-D + F (assembly) DONE sorry-free
   (principal case).** Sub-task E (Wedhorn 6.14) still pending.
 
-### 2026-04-08 — Phase 2.2 leftMul hard case PROVED (principal)
+### 2026-04-08 — Phase 2.2 COMPLETE sorry-free (leftMul + Wedhorn 6.14)
 
-**TateAlgebraTopology.lean is now sorry-free** for the principal-pair path:
+**Both TateAlgebraTopology.lean and HuberRings.lean are sorry-free.**
+
+**leftMul hard case (Phase 2.2A/B/C/D/F):**
 - Sub-task A: `coeffInIdealIdeal` auxiliary ideal + `pairIdeal_pow_le_coeffInIdeal`
   giving `y ∈ (pairIdeal P)^n → ∀l, coeff l y ∈ image P.I^n`.
 - Sub-task B: `exists_mul_pow_subset_pow` via continuity of `a * ·` at `0`.
 - Sub-task C: `tateAlgebra_coeff_eventually_in_pow` — restricted series have
-  eventually all coefficients in `image P.I^n` (topological nilpotent unit
-  required for bounded/denominator-clearing step).
-- Sub-task D (principal): `tateAlgNhd_of_coeff_mem_principal` — the "divided
-  series" construction with `g = π^{-n} · y ∈ pairSubring P`, then `y = π^n · g`.
+  eventually all coefficients in `image P.I^n`.
+- Sub-task D (principal): `tateAlgNhd_of_coeff_mem_principal` — "divided series"
+  construction with `g = π^{-n} · y ∈ pairSubring P`, then `y = π^n · g`.
 - Sub-task F (assembly): `tateAlgNhd_leftMul_of_principal` decomposes
   `(x · y) = Σ_p (coeff p.1 x) · (coeff p.2 y)` on antidiagonal and routes each
-  pair through Sub-task B (bad) or direct (good) to land the coefficient in
-  `P.I^i`, then applies Sub-task D.
-- `tateAlgBasis`, `tateAlgebraTopology`, `tateAlgebraTopology_isTopologicalRing`,
-  `pairSubring_isOpen` all parametrized by the principal pair `(π, hπ_gen, hπ_unit)`
-  and sorry-free.
-- General case (Phase 2.2E, Wedhorn 6.14) is the only remaining hypothesis to
-  discharge — downstream consumers currently supply the principal pair explicitly.
+  pair through Sub-task B (bad) or direct (good), then applies Sub-task D.
+
+**Wedhorn 6.14 (Phase 2.2E):** `IsTateRing.exists_principal_pairOfDefinition`
+in `HuberRings.lean`: starting from any pair of definition `P`, use that
+`(u : A)^k` lies in `P.A₀` for some `k` (topological nilpotence), then
+`exists_pow_mem_I` gives `(u^k)^N ∈ P.I`, then `exists_pow_I_le_span_unit`
+bounds `P.I^m ≤ span {π}`. Apply `P.withPrincipal`.
+
+**Canonical unparameterized topology:**
+- `PrincipalPairOfDefinition` structure bundles `(P, π, hπ_gen, hπ_unit)`.
+- `IsTateRing.principalPair` = canonical instance via `Classical.choice`.
+- `tateAlgebraTopology'` = canonical natural Tate topology on `TateAlgebra A`
+  for any Tate ring, with NO explicit pair argument.
+- `tateAlgebraTopology'_isTopologicalRing` = it's a ring topology.
+- `pairSubring_principalPair_isOpen'` = the canonical pairSubring is open.
+
+**Phase 2.2 is DONE.** Downstream consumers (Phase 2.3+) can use
+`tateAlgebraTopology'` directly. Net: Phase 2.2 sorry count = 0.
