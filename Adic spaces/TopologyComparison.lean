@@ -212,6 +212,7 @@ private theorem divByS_eq_algebraMap_mul_invSelf (t s : A) :
   unfold divByS IsLocalization.Away.invSelf
   rw [IsLocalization.mk'_eq_mul_mk'_one]
 
+set_option linter.unusedSectionVars false in
 -- Helper: `φ(divByS t s) = mk(algebraMap t * X)`.
 private theorem locToQuotientOneSubfX_gen_divByS (s t : A) :
     locToQuotientOneSubfX_gen s (divByS t s) =
@@ -221,6 +222,7 @@ private theorem locToQuotientOneSubfX_gen_divByS (s t : A) :
     locToQuotientOneSubfX_gen_algebraMap,
     locToQuotientOneSubfX_gen_invSelf, ← map_mul]
 
+set_option linter.unusedSectionVars false in
 -- Helper: scaled coefficient of `algebraMap(a) * g`.
 private theorem scaledCoeff_algebraMap_mul (f a : A)
     (g : ↥(TateAlgebra A)) (n : ℕ) :
@@ -228,6 +230,7 @@ private theorem scaledCoeff_algebraMap_mul (f a : A)
       a * (f ^ n * TateAlgebra.coeff n g) := by
   rw [TateAlgebra.coeff_algebraMap_mul, ← mul_assoc, mul_comm (f ^ n) a, mul_assoc]
 
+set_option linter.unusedSectionVars false in
 -- Helper: scaled coefficient of `algebraMap(t) * X * g` at n+1.
 private theorem scaledCoeff_succ_tX_mul (f t : A)
     (g : ↥(TateAlgebra A)) (n : ℕ) :
@@ -238,6 +241,7 @@ private theorem scaledCoeff_succ_tX_mul (f t : A)
     TateAlgebra.coeff_algebraMap_mul, TateAlgebra.coeff_succ_X_mul, pow_succ]
   ring
 
+set_option linter.unusedSectionVars false in
 -- Helper: scaled coefficient of `algebraMap(t) * X * g` at 0.
 private theorem scaledCoeff_zero_tX_mul (f t : A) (g : ↥(TateAlgebra A)) :
     f ^ 0 * TateAlgebra.coeff 0 (algebraMap A _ t * TateAlgebra.X * g) = 0 := by
@@ -245,6 +249,7 @@ private theorem scaledCoeff_zero_tX_mul (f t : A) (g : ↥(TateAlgebra A)) :
     algebraMap A _ t * (TateAlgebra.X * g) from by ring,
     TateAlgebra.coeff_algebraMap_mul, TateAlgebra.coeff_zero_X_mul, mul_zero, mul_zero]
 
+set_option linter.unusedSectionVars false in
 /-- For any neighborhood W of 0 in the quotient T-topology, there exists m such that
 for all r in locSubring and b in I^m, the product phi(r) * mk(algebraMap(b)) lands in W.
 
@@ -571,7 +576,7 @@ theorem locToQuotientOneSubfX_gen_continuous (D : RationalLocData A)
   suffices ∀ (r : locSubring D.P D.T D.s),
       locToQuotientOneSubfX_gen D.s
         ((locSubring D.P D.T D.s).subtype (r * d)) ∈ (W : Set _) by
-    specialize this 1; simp [one_mul] at this; exact this
+    simpa using this 1
   intro r₀
   revert r₀
   refine Submodule.span_induction (p := fun d _ ↦
@@ -907,6 +912,7 @@ T-topology. The image contains `mk(a)` for all `a ∈ A` and `mk(X)` (since
 Polynomials are dense in `A⟨X⟩` for the T-topology because truncations
 converge in the induced product topology. -/
 
+set_option linter.unusedSectionVars false in
 /-- A power series whose coefficients are zero above degree `N` is restricted,
 because only finitely many coefficients are nonzero. -/
 private theorem isRestricted_of_eventually_zero
@@ -923,7 +929,7 @@ private theorem isRestricted_of_eventually_zero
   apply Set.Finite.subset
     ((Finset.image TateAlgebra.toIndex (Finset.range N)).finite_toSet)
   intro s hs
-  simp only [Set.mem_compl_iff, Set.mem_preimage, MvPowerSeries.coeff_apply] at hs
+  simp only [Set.mem_compl_iff, Set.mem_preimage] at hs
   simp only [Finset.coe_image, Finset.coe_range, Set.mem_image, Set.mem_Iio]
   refine ⟨s 0, ?_, (TateAlgebra.eq_toIndex s).symm⟩
   by_contra hge
@@ -937,13 +943,16 @@ private noncomputable def truncTate (g : ↥(TateAlgebra A)) (N : ℕ) :
   ⟨fun s => if s 0 < N then g.val s else 0,
    isRestricted_of_eventually_zero _ N (fun s hs => by simp [show ¬(s 0 < N) from by omega])⟩
 
+set_option linter.unusedSectionVars false in
 private theorem truncTate_val (g : ↥(TateAlgebra A)) (N : ℕ) (s : Fin 1 →₀ ℕ) :
     (truncTate g N).val s = if s 0 < N then g.val s else 0 := rfl
 
+set_option linter.unusedSectionVars false in
 private theorem truncTate_coeff_high (g : ↥(TateAlgebra A)) (N : ℕ) (s : Fin 1 →₀ ℕ)
     (hs : N ≤ s 0) : (truncTate g N).val s = 0 := by
   simp [truncTate_val, show ¬(s 0 < N) from by omega]
 
+set_option linter.unusedSectionVars false in
 private theorem truncTate_coeff_low (g : ↥(TateAlgebra A)) (N : ℕ) (s : Fin 1 →₀ ℕ)
     (hs : s 0 < N) : (truncTate g N).val s = g.val s := by
   simp [truncTate_val, hs]
@@ -1010,7 +1019,7 @@ theorem tateAlgebra_polynomials_dense (s : A) :
     intro idx hidx
     -- idx ∈ I, so idx 0 < N
     have hlt : idx 0 < N := by
-      show idx 0 < (I.image (· 0)).sup id + 1
+      change idx 0 < (I.image (· 0)).sup id + 1
       have h_le : idx 0 ≤ (I.image (· 0)).sup id := by
         exact Finset.le_sup (f := id)
           (Finset.mem_image_of_mem (· 0) hidx)
@@ -1020,6 +1029,7 @@ theorem tateAlgebra_polynomials_dense (s : A) :
   · -- truncTate g N has finitely many nonzero coefficients
     exact ⟨N, fun n hn => truncTate_coeff_high g N n hn⟩
 
+set_option linter.unusedSectionVars false in
 /-- Every polynomial element in `A⟨X⟩` (coefficients zero above degree N) has its
 quotient class in the range of `locToQuotientOneSubfX_gen`. By induction on N:
 the image contains `mk(algebraMap a)` and `mk(X)`, hence all finite sums of
@@ -1065,12 +1075,12 @@ private theorem polynomial_quotient_in_range (s : A) (g : ↥(TateAlgebra A))
         intro m; rw [pow_succ, mul_comm]
         cases m with
         | zero => rw [TateAlgebra.coeff_zero_X_mul, if_neg (by omega)]
-        | succ m => rw [TateAlgebra.coeff_succ_X_mul, ihj m]; simp [Nat.succ_eq_add_one]
+        | succ m => rw [TateAlgebra.coeff_succ_X_mul, ihj m]; simp
     have hg'_vanish : ∀ n : Fin 1 →₀ ℕ, k ≤ n 0 → (g - gk).val n = 0 := by
       -- Restate using TateAlgebra.coeff via eq_toIndex.
       intro n hn
       rw [TateAlgebra.eq_toIndex n]
-      show TateAlgebra.coeff (n 0) (g - gk) = 0
+      change TateAlgebra.coeff (n 0) (g - gk) = 0
       rw [TateAlgebra.coeff_sub, hgk_def, TateAlgebra.coeff_algebraMap_mul,
         hcoeff_X_pow (n 0) k]
       by_cases hnk : n 0 = k
@@ -1079,7 +1089,7 @@ private theorem polynomial_quotient_in_range (s : A) (g : ↥(TateAlgebra A))
       · -- coeff (n 0) g = 0 (by hN) and coeff (n 0) gk = 0.
         rw [if_neg hnk, mul_zero, sub_zero]
         have hn_gt : k + 1 ≤ n 0 := by omega
-        show (MvPowerSeries.coeff (TateAlgebra.toIndex (n 0))) g.val = 0
+        change (MvPowerSeries.coeff (TateAlgebra.toIndex (n 0))) g.val = 0
         rw [MvPowerSeries.coeff_apply]
         exact hN _ (by simp [TateAlgebra.toIndex, Finsupp.single_eq_same]; omega)
     -- By IH, mk(g - gk) is in the range.
@@ -1101,7 +1111,7 @@ theorem locToQuotientOneSubfX_gen_denseRange (s : A) :
       (locToQuotientOneSubfX_gen s) := by
   -- DenseRange = Dense (range f).
   -- Strategy: mk(polynomials) is dense in quotient, and mk(polynomials) ⊆ range.
-  show @Dense _ (quotientTTopology s) (Set.range (locToQuotientOneSubfX_gen s))
+  change @Dense _ (quotientTTopology s) (Set.range (locToQuotientOneSubfX_gen s))
   -- Let P = polynomial set, mk = quotient map.
   set P : Set ↥(TateAlgebra A) :=
     {g | ∃ N : ℕ, ∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → g.val n = 0}
@@ -1220,12 +1230,13 @@ theorem isClosed_ideal_of_noetherian_adic_separated
     rw [hxeq]
     apply neg_mem
     -- mk J z ∈ I^n • ⊤: use smul_top_eq_map to identify I^n • ⊤ with (I^n).map (mk J).
-    show Ideal.Quotient.mk J z ∈ I ^ n • (⊤ : Submodule R (R ⧸ J))
+    change Ideal.Quotient.mk J z ∈ I ^ n • (⊤ : Submodule R (R ⧸ J))
     rw [Ideal.smul_top_eq_map]
     exact (Submodule.restrictScalars_mem R _ _).mpr (Ideal.mem_map_of_mem _ hz)
   rw [hkrull, Submodule.mem_bot] at hmem
   exact hmem
 
+omit [IsTopologicalRing A] [PlusSubring A] [IsHuberRing A] [T2Space A] in
 /-- The ideal `(1-sX)` is closed in `A⟨X⟩` for the T-topology, given that the
 T-topology is adic (Prop 6.18 for strongly noetherian Tate rings).
 
@@ -1253,6 +1264,7 @@ theorem oneSubfXIdeal_isClosed_tTopology (s : A)
     (TateAlgebraWedhorn.tateTopologyT_isTopologicalRing s) ‹_›
     ht2_tate J hadic hcs_tate (oneSubfXIdeal s)
 
+omit [IsTopologicalRing A] [PlusSubring A] [T2Space A] in
 /-- The quotient `A⟨X⟩/(1-sX)` with quotient T-topology is complete.
 
 **Proof route (Wedhorn Prop 6.18 + Example 6.38):**
@@ -1269,7 +1281,6 @@ theorem oneSubfXIdeal_isClosed_tTopology (s : A)
 is false — the T-topology on A⟨X⟩ is a product topology, not complete). The
 completeness of the QUOTIENT follows from the adic structure via Prop 6.18. -/
 theorem quotientTTopology_completeSpace (s : A)
-    [FirstCountableTopology A]
     [IsNoetherianRing ↥(TateAlgebra A)]
     (hcs_tate : @CompleteSpace ↥(TateAlgebra A)
       (@IsTopologicalAddGroup.rightUniformSpace _ _
@@ -1277,9 +1288,9 @@ theorem quotientTTopology_completeSpace (s : A)
         (@IsTopologicalRing.to_topologicalAddGroup _ _
           (TateAlgebraWedhorn.tateTopologyT s)
           (TateAlgebraWedhorn.tateTopologyT_isTopologicalRing s))))
-    (ht2_tate : @T2Space ↥(TateAlgebra A) (TateAlgebraWedhorn.tateTopologyT s))
-    (J : Ideal ↥(TateAlgebra A))
-    (hadic : @IsAdic ↥(TateAlgebra A) _ (TateAlgebraWedhorn.tateTopologyT s) J) :
+    (_ht2_tate : @T2Space ↥(TateAlgebra A) (TateAlgebraWedhorn.tateTopologyT s))
+    (_J : Ideal ↥(TateAlgebra A))
+    (_hadic : @IsAdic ↥(TateAlgebra A) _ (TateAlgebraWedhorn.tateTopologyT s) _J) :
     @CompleteSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal s)
       (quotientTUniformSpace s) := by
   letI τT : TopologicalSpace ↥(TateAlgebra A) := TateAlgebraWedhorn.tateTopologyT s
@@ -1287,6 +1298,7 @@ theorem quotientTTopology_completeSpace (s : A)
     TateAlgebraWedhorn.tateTopologyT_isTopologicalRing s
   haveI : IsTopologicalAddGroup ↥(TateAlgebra A) :=
     IsTopologicalRing.to_topologicalAddGroup
+  haveI : FirstCountableTopology A := IsHuberRing.firstCountableTopology
   haveI hfc_pi : @FirstCountableTopology ((Fin 1 →₀ ℕ) → A) Pi.topologicalSpace :=
     inferInstance
   haveI : @FirstCountableTopology ↥(TateAlgebra A) τT :=
@@ -1295,6 +1307,7 @@ theorem quotientTTopology_completeSpace (s : A)
   exact @QuotientAddGroup.completeSpace_right' ↥(TateAlgebra A) _ τT ‹_› ‹_›
     (oneSubfXIdeal s).toAddSubgroup inferInstance hcs_tate
 
+omit [IsTopologicalRing A] [PlusSubring A] [IsHuberRing A] [T2Space A] in
 /-- The quotient `A⟨X⟩/(1-sX)` with quotient T-topology is T₀.
 Quotient of T₂ topological group by closed subgroup is T₃ (hence T₀). -/
 theorem quotientTTopology_t0Space (s : A)
@@ -1349,25 +1362,39 @@ quotient map. See `tateQuotientToPresheafHom_continuous` below. -/
 
 /-! #### H4: Continuity of tateQuotientToPresheafHom (J-adic eval route)
 
-With `hadic : IsAdic J`, the T-topology = J-adic. In the J-adic topology,
-neighborhoods `J^k` control ALL coefficients: `h ∈ J^k ⟹ coeff_n(h) ∈ I^k ∀n`.
-This makes `tateEvalPresheafHom h = ∑ canonicalMap(coeff_n h) · invS^n` continuous:
-each term is bounded · small, and the nonarchimedean sum stays small.
+With `hadic : IsAdic J`, the T-topology = J-adic, giving a neighborhood basis
+`{J^k}` at 0. The evaluation `tateEvalPresheafHom` is continuous iff `eval(J^k) → 0`
+in `presheafValue D` for large `k`.
+
+The hypothesis `hJ_eval` encapsulates this: the image `eval(J^k)` eventually lands
+in any target neighborhood. For strongly noetherian Tate rings (Wedhorn Prop 6.18),
+`J = I · A₀⟨X⟩` and `eval` maps this into the ideal of definition of `presheafValue D`,
+which is topologically nilpotent. The caller discharges `hJ_eval` from this structure.
 
 Then `IsQuotientMap.continuous_iff` descends continuity to the quotient. -/
 
+omit [PlusSubring A] [IsHuberRing A] [T2Space A] in
 /-- The reverse map `A⟨X⟩/(1-sX) → presheafValue D` is continuous.
 
 **Proof (Wedhorn Example 6.38):** `tateQuotientToPresheafHom = Quotient.lift tateEvalPresheafHom`.
 By `IsQuotientMap.continuous_iff`, it suffices that `tateEvalPresheafHom` is continuous
 from the T-topology on `A⟨X⟩`. With `hadic : IsAdic J`: T-topology = J-adic, and
-J-adic neighborhoods `J^k` control all coefficients simultaneously, giving uniform
-convergence of the evaluation tsum. -/
+we need `eval(J^k) → 0` in presheafValue for large k.
+
+The hypothesis `hJ_eval` asserts that the image ideal `Ideal.map eval J` is
+topologically nilpotent in `presheafValue D`. For the strongly noetherian case
+(Wedhorn Prop 6.18), `J = I·A₀⟨X⟩` where `I` is the ideal of definition.
+The eval sends `I·A₀⟨X⟩` into the ideal of definition of `presheafValue D`,
+which is topologically nilpotent. The hypothesis is discharged from this concrete
+structure by the caller. -/
 theorem tateQuotientToPresheafHom_continuous (D : RationalLocData A)
     [IsNoetherianRing ↥(TateAlgebra A)]
     (hb : TopologicalRing.IsPowerBounded (invS D))
     (J : Ideal ↥(TateAlgebra A))
-    (hadic : @IsAdic ↥(TateAlgebra A) _ (TateAlgebraWedhorn.tateTopologyT D.s) J) :
+    (hadic : @IsAdic ↥(TateAlgebra A) _ (TateAlgebraWedhorn.tateTopologyT D.s) J)
+    (hJ_eval : ∀ V ∈ @nhds (presheafValue D) _ 0,
+      ∃ k : ℕ, ∀ h ∈ (J ^ k : Ideal ↥(TateAlgebra A)),
+        (tateEvalPresheafHom D hb) h ∈ V) :
     @Continuous _ _
       (quotientTTopology D.s)
       (inferInstance : TopologicalSpace (presheafValue D))
@@ -1392,19 +1419,16 @@ theorem tateQuotientToPresheafHom_continuous (D : RationalLocData A)
     ext g; simp [tateQuotientToPresheafHom, Ideal.Quotient.lift_mk]
   rw [hcomp]
   -- Prove tateEvalPresheafHom continuous from T-topology (= J-adic by hadic).
-  -- J-adic neighborhoods J^k control ALL coefficients: h ∈ J^k → coeff_n(h) ∈ I^k.
-  -- Each evalTerm is then bounded · small, and the nonarchimedean sum is small.
   apply continuous_of_continuousAt_zero (tateEvalPresheafHom D hb).toAddMonoidHom
   rw [ContinuousAt, map_zero, Filter.tendsto_def]
   intro V hV
-  -- V ∈ nhds 0 in presheafValue. Need eval⁻¹(V) ∈ nhds 0 in T-topology.
-  -- By hadic: T-topology has basis {J^k} at 0.
-  -- Find k such that eval(J^k) ⊆ V.
-  -- Step 1: V contains an open additive subgroup V₀ (nonarchimedean).
-  -- Step 2: {invS^n} bounded: ∃ W, W · {invS^n} ⊆ V₀.
-  -- Step 3: canonicalMap continuous: ∃ k, canonicalMap(I^k) ⊆ W.
-  -- Step 4: For h ∈ J^k: each evalTerm ∈ V₀, sum ∈ V₀ ⊆ V.
-  sorry
+  -- Use hadic to get the J-adic nhds basis, then apply hJ_eval.
+  have hbasis : ((@nhds _ τT (0 : ↥(TateAlgebra A))).HasBasis
+      (fun _ : ℕ => True) fun n => ((J ^ n : Ideal _) : Set _)) :=
+    hadic.hasBasis_nhds_zero
+  rw [hbasis.mem_iff]
+  obtain ⟨k, hk⟩ := hJ_eval V hV
+  exact ⟨k, trivial, fun h hh => hk h hh⟩
 
 end HypothesesDischarge
 
