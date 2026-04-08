@@ -918,6 +918,73 @@ theorem pairSubring_principalPair_isOpen' [IsTateRing A] :
   let P := IsTateRing.principalPair A
   pairSubring_isOpen P.toPairOfDefinition P.π P.I_eq_span P.π_isUnit
 
+/-! ### Foundational instances on `TateAlgebra A` -/
+
+/-- `TateAlgebra A` is a noetherian ring whenever `A` is strongly noetherian.
+This is `IsStronglyNoetherian.isNoetherianRing_restricted` specialized to `k = 1`,
+since `TateAlgebra A = restrictedMvPowerSeriesSubring 1 A` by definition. -/
+instance [IsStronglyNoetherian A] : IsNoetherianRing ↥(TateAlgebra A) :=
+  IsStronglyNoetherian.isNoetherianRing_restricted 1
+
+omit [IsTopologicalRing A] [NonarchimedeanRing A] in
+/-- In a Hausdorff adic ring, the intersection of all powers of the ideal is zero. -/
+private theorem pairIdeal_iInter_eq_zero [T2Space A] (P : PairOfDefinition A) :
+    ∀ b : ↥P.A₀, (∀ n : ℕ, b ∈ P.I ^ n) → b = 0 := by
+  have hHausdorff : IsHausdorff P.I ↥P.A₀ :=
+    (IsAdic.isHausdorff_iff P.isAdic).mpr inferInstance
+  intro b hb_all
+  apply hHausdorff.haus'
+  intro n
+  rw [SModEq.zero]
+  show b ∈ P.I ^ n • (⊤ : Submodule ↥P.A₀ ↥P.A₀)
+  rw [Ideal.smul_eq_mul, Ideal.mul_top]
+  exact hb_all n
+
+omit [IsTopologicalRing A] in
+/-- The canonical natural Tate topology on `TateAlgebra A` is T2 whenever `A` is T2.
+Strategy: every nonzero element of `TateAlgebra A` has some nonzero coefficient, and
+the intersection of all `tateAlgNhd P n` (as sets) is `{0}` because the intersection
+of all `P.I^n` is `{0}` in the Hausdorff I-adic topology on `P.A₀`. -/
+theorem tateAlgebraTopology'_t2Space [IsTateRing A] [T2Space A] :
+    @T2Space ↥(TateAlgebra A) tateAlgebraTopology' := by
+  let P := (IsTateRing.principalPair A).toPairOfDefinition
+  letI : TopologicalSpace ↥(TateAlgebra A) := tateAlgebraTopology'
+  haveI : IsTopologicalRing ↥(TateAlgebra A) := tateAlgebraTopology'_isTopologicalRing
+  haveI : IsTopologicalAddGroup ↥(TateAlgebra A) := IsTopologicalRing.to_topologicalAddGroup
+  apply IsTopologicalAddGroup.t2Space_of_zero_sep
+  intro y hy_ne
+  -- Since y ≠ 0, some coefficient is nonzero.
+  obtain ⟨l, hl⟩ : ∃ l, MvPowerSeries.coeff l y.val ≠ 0 := by
+    contrapose! hy_ne
+    apply Subtype.ext
+    apply MvPowerSeries.ext
+    intro l
+    simpa using hy_ne l
+  -- Find n such that `coeff l y.val ∉ image P.I^n`.
+  suffices h : ∃ n, MvPowerSeries.coeff l y.val ∉
+      (Subtype.val '' ((P.I ^ n : Ideal ↥P.A₀) : Set ↥P.A₀) : Set A) by
+    obtain ⟨n, hn⟩ := h
+    refine ⟨(tateAlgNhd P n : Set _),
+      tateAlgBasis'.hasBasis_nhds_zero.mem_of_mem (i := n) trivial, ?_⟩
+    intro hy_mem
+    obtain ⟨b, hb_mem, hb_eq⟩ := tateAlgNhd_coeff_mem P n hy_mem l
+    exact hn ⟨b, hb_mem, hb_eq⟩
+  -- Suppose for contradiction that coeff l y.val ∈ image P.I^n for all n.
+  by_contra hall
+  push_neg at hall
+  -- Extract a common witness b ∈ ⋂ n, P.I^n from the injectivity of Subtype.val.
+  obtain ⟨b, _, hb_eq⟩ := hall 0
+  have hb_all : ∀ n : ℕ, b ∈ P.I ^ n := by
+    intro n
+    obtain ⟨b_n, hb_n_mem, hb_n_eq⟩ := hall n
+    have : b = b_n := Subtype.ext (hb_eq.trans hb_n_eq.symm)
+    rw [this]; exact hb_n_mem
+  -- Apply the Hausdorff intersection lemma.
+  have hb_zero : b = 0 := pairIdeal_iInter_eq_zero P b hb_all
+  rw [hb_zero] at hb_eq
+  simp at hb_eq
+  exact hl hb_eq.symm
+
 end TateAlgebraNaturalTopology
 
 end TateAlgebra
