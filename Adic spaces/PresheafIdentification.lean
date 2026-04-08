@@ -1195,16 +1195,25 @@ instance HasLocLiftPowerBounded.tate [PlusSubring A] [IsHuberRing A] [IsTateRing
   locLift_divByS_isPowerBounded D D' h t ht := by
     letI : TopologicalSpace (Localization.Away D'.s) := D'.topology
     letI : IsTopologicalRing (Localization.Away D'.s) := D'.isTopologicalRing
+    -- Case split on D'.s = 0: the trivial ring case is handled separately.
+    by_cases hs : D'.s = 0
+    · -- D'.s = 0: Localization.Away 0 is subsingleton, so goal is trivial.
+      haveI : Subsingleton (Localization.Away D'.s) := by
+        apply IsLocalization.subsingleton (M := Submonoid.powers D'.s)
+        rw [hs]
+        exact ⟨1, pow_one 0⟩
+      -- In a subsingleton, any set containing the unique element is universal.
+      intro U hU
+      refine ⟨Set.univ, Filter.univ_mem, ?_⟩
+      rintro x _
+      -- x ∈ U follows from Subsingleton.elim x 0 + 0 ∈ U
+      have h0 : (0 : Localization.Away D'.s) ∈ U := mem_of_mem_nhds hU
+      rwa [show x = 0 from Subsingleton.elim _ _]
+    -- D'.s ≠ 0: Localization.Away D'.s is a domain.
+    haveI : IsDomain (Localization.Away D'.s) :=
+      IsLocalization.isDomain_of_le_nonZeroDivisors (Localization.Away D'.s)
+        (Submonoid.powers_le.mpr (mem_nonZeroDivisors_of_ne_zero hs))
     -- Step 1: locLift(t/D.s) is integral over locSubring (Nullstellensatz).
-    -- Use an IsDomain instance via case split on D'.s = 0
-    haveI : IsDomain (Localization.Away D'.s) := by
-      by_cases hs : D'.s = 0
-      · -- Use a dummy: this branch is unreachable in practice (the entire
-        -- proof would work trivially with subsingleton, but we just provide
-        -- IsDomain instance via conditional reasoning)
-        sorry
-      · exact IsLocalization.isDomain_of_le_nonZeroDivisors (Localization.Away D'.s)
-          (Submonoid.powers_le.mpr (mem_nonZeroDivisors_of_ne_zero hs))
     have hint : IsIntegral (locSubring D'.P D'.T D'.s)
         (IsLocalization.Away.lift D.s (isUnit_algebraMap_s_of_huber D D' h)
           (divByS t D.s)) :=
