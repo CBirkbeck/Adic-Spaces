@@ -881,6 +881,43 @@ theorem pairSubring_isOpen [IsTateRing A] (P : PairOfDefinition A)
     ((tateAlgBasis P π hπ_gen hπ_unit).hasBasis_nhds_zero.mem_of_mem (i := 1) trivial) ?_
   exact tateAlgNhd_le_pairSubring P 1
 
+/-! ### Unparameterized canonical natural Tate topology
+
+Using `IsTateRing.principalPair` (via `exists_principal_pairOfDefinition`,
+Wedhorn 6.14), we get a canonical principal pair of definition and hence a
+canonical natural Tate topology on `TateAlgebra A`, without needing to supply
+a pair of definition explicitly. -/
+
+/-- The canonical `RingSubgroupsBasis` for the natural Tate topology on
+`TateAlgebra A`, using `IsTateRing.principalPair` via Wedhorn 6.14. -/
+noncomputable def tateAlgBasis' [IsTateRing A] :
+    RingSubgroupsBasis (tateAlgNhd (IsTateRing.principalPair A).toPairOfDefinition) :=
+  let P := IsTateRing.principalPair A
+  tateAlgBasis P.toPairOfDefinition P.π P.I_eq_span P.π_isUnit
+
+/-- The canonical natural Tate topology on `TateAlgebra A` for any Tate ring `A`.
+Uses the canonical principal pair of definition `IsTateRing.principalPair A`
+supplied by Wedhorn 6.14. -/
+@[reducible] noncomputable def tateAlgebraTopology' [IsTateRing A] :
+    TopologicalSpace ↥(TateAlgebra A) :=
+  tateAlgBasis' (A := A).topology
+
+omit [IsTopologicalRing A] in
+/-- The canonical natural Tate topology is a ring topology. -/
+theorem tateAlgebraTopology'_isTopologicalRing [IsTateRing A] :
+    @IsTopologicalRing ↥(TateAlgebra A) tateAlgebraTopology' _ :=
+  tateAlgBasis'.toRingFilterBasis.isTopologicalRing
+
+omit [IsTopologicalRing A] in
+/-- `pairSubring (IsTateRing.principalPair A).toPairOfDefinition` is open in the
+canonical natural Tate topology. -/
+theorem pairSubring_principalPair_isOpen' [IsTateRing A] :
+    @IsOpen ↥(TateAlgebra A) tateAlgebraTopology'
+      ((pairSubring (IsTateRing.principalPair A).toPairOfDefinition :
+        Subring ↥(TateAlgebra A)) : Set ↥(TateAlgebra A)) :=
+  let P := IsTateRing.principalPair A
+  pairSubring_isOpen P.toPairOfDefinition P.π P.I_eq_span P.π_isUnit
+
 end TateAlgebraNaturalTopology
 
 end TateAlgebra
