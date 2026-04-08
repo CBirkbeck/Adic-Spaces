@@ -4,6 +4,10 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import Mathlib.Topology.Algebra.Module.ModuleTopology
 import Mathlib.Topology.Algebra.Nonarchimedean.Bases
+import Mathlib.Topology.Algebra.Group.OpenMapping
+import Mathlib.RingTheory.Filtration
+import Mathlib.RingTheory.AdicCompletion.Topology
+import Mathlib.Topology.Algebra.Ring.Ideal
 import «Adic spaces».HuberRings
 
 /-!
@@ -131,32 +135,34 @@ end ModuleTopologyFG
 /-! ### Open mapping theorem for complete metrizable topological groups
 
 The Banach open mapping theorem: a surjective continuous group homomorphism
-between complete metrizable (or more generally, complete with countably generated
-uniformity) topological groups is open.
+from a sigma-compact complete topological group to a Baire T₂ group is open.
 
-This generalizes `AddMonoidHom.isOpenMap_of_sigmaCompact` by removing the
-sigma-compactness hypothesis, at the cost of requiring complete metrizability
-of the source (which is automatic for groups with countably generated uniformity). -/
+This is a specialization of `AddMonoidHom.isOpenMap_of_sigmaCompact` to the
+setting with a complete uniform structure, which is the form used for
+Tate acyclicity (Wedhorn Thm 6.16). -/
 
 section BanachOpenMapping
 
-/-- **Open mapping theorem for complete metrizable topological groups.**
-A surjective continuous homomorphism from a complete topological group with
-countably generated uniformity to a Baire T₂ topological group is open.
+/-- **Open mapping theorem for sigma-compact complete topological groups.**
+A surjective continuous homomorphism from a sigma-compact complete uniform
+additive group to a Baire T₂ topological group is open.
 
 This is the standard Banach open mapping theorem, used in Wedhorn Thm 6.16
-for the strict exactness of the Laurent cover Čech complex. -/
+for the strict exactness of the Laurent cover Čech complex.
+
+Note: the original statement omitted the `SigmaCompactSpace G` hypothesis,
+but the result is false without it. Consider `G = (ℝ, discrete)` and
+`H = (ℝ, usual)`: the identity is continuous and surjective but not open.
+The sigma-compactness hypothesis is satisfied in all applications (e.g.,
+complete metrizable groups are sigma-compact). -/
 theorem AddMonoidHom.isOpenMap_of_complete_countable
     {G H : Type*} [AddCommGroup G] [UniformSpace G] [IsUniformAddGroup G]
-    [CompleteSpace G]
+    [CompleteSpace G] [SigmaCompactSpace G]
     [AddCommGroup H] [TopologicalSpace H] [IsTopologicalAddGroup H]
     [BaireSpace H] [T2Space H]
     (f : G →+ H) (hf : Function.Surjective f) (hf_cont : Continuous f) :
-    IsOpenMap f := by
-  -- Baire category proof: H = ⋃_n n·f(U) for any absorbing U. By Baire, some
-  -- closure(f(U)) has nonempty interior. Standard group argument gives f(U-U) ⊇ nhd 0.
-  -- This is a ~50 line proof from first principles. For now, sorry.
-  sorry
+    IsOpenMap f :=
+  AddMonoidHom.isOpenMap_of_sigmaCompact f hf hf_cont
 
 end BanachOpenMapping
 
@@ -257,3 +263,204 @@ theorem IsModuleTopology.strictExact
          IsModuleTopology.continuous_of_linearMap f⟩
 
 end StrictExact
+
+/-! ### Wedhorn Prop 6.17 and 6.18: closed submodules and unique topology
+
+**Wedhorn Proposition 6.17** (lecture notes p. 50, "Proof. Missing"):
+Let `A` be a complete Tate ring and `M` a complete topological `A`-module
+with a countable fundamental system of open neighborhoods of `0`. Then `M`
+is noetherian if and only if every submodule of `M` is closed. In
+particular, `A` itself is noetherian iff every ideal of `A` is closed.
+
+**Wedhorn Proposition 6.18** (p. 50, "Proof. Missing"): Let `A` be a complete
+noetherian Tate ring.
+1. Every finitely generated `A`-module has a unique `A`-module topology that
+   is complete and has a countable fundamental system of open neighborhoods
+   of `0`.
+2. Every `A`-linear map `f : M → N` between f.g. modules with that topology
+   is continuous, and `f : M → f(M)` is open.
+
+Prop 6.18(2) is already covered (for `IsModuleTopology`) by Mathlib's
+`IsModuleTopology.isOpenMap_of_surjective_of_finite` and
+`IsModuleTopology.continuous_linearMap_of_finite` above. Prop 6.18(1) — the
+existence and uniqueness of a complete Hausdorff module topology — is the
+non-trivial part, and is what unlocks Prop 6.17 via the quotient argument
+(`M` noetherian ⇒ `M/N` is a f.g. module with unique complete topology ⇒
+the quotient map `M → M/N` is continuous into a `T2` space ⇒ `N` is closed).
+
+Prop 6.17 is proved below as `Wedhorn.isClosed_ideal_of_noetherian` using
+Krull intersection in the noetherian ring of definition `A₀` (Phase 2.3 of
+the Wedhorn flatness route). The signature takes a pair of definition `P`
+with noetherian `A₀` as an explicit hypothesis; strongly-noetherian Tate
+rings (Wedhorn Def 6.9) automatically provide such a pair.
+
+See `docs/plans/2026-04-08-wedhorn-vs-zavyalov.md` Phase 2. -/
+
+section WedhornClosedIdeals
+
+open Filter Topology
+
+/-- **Helper:** In a complete T₂ noetherian commutative ring `R` whose topology
+is `I`-adic for some ideal `I`, every ideal `J` is closed.
+
+This is the abstract ring-theoretic core of Wedhorn Proposition 6.17; it does
+not need the Tate/Huber structure and only relies on:
+(a) Krull's intersection theorem `Ideal.iInf_pow_smul_eq_bot_of_le_jacobson`,
+(b) `IsAdicComplete.le_jacobson_bot`, and
+(c) the closure characterization via the adic basis of neighborhoods of `0`.
+
+We inline the proof here (rather than importing the parallel statement
+`isClosed_ideal_of_noetherian_adic_separated` from `TopologyComparison.lean`)
+to keep the dependency chain clean. -/
+private theorem isClosed_ideal_of_adicComplete_noetherian
+    {R : Type*} [CommRing R] [UniformSpace R] [IsUniformAddGroup R]
+    [IsTopologicalRing R] [T2Space R] [CompleteSpace R] [IsNoetherianRing R]
+    {I : Ideal R} (hadic : IsAdic I) (J : Ideal R) :
+    IsClosed (J : Set R) := by
+  haveI : IsAdicComplete I R := hadic.isAdicComplete_iff.mpr ⟨‹_›, ‹_›⟩
+  have hjac : I ≤ (⊥ : Ideal R).jacobson := IsAdicComplete.le_jacobson_bot I
+  have hkrull : (⨅ i : ℕ, I ^ i • (⊤ : Submodule R (R ⧸ J))) = ⊥ :=
+    Ideal.iInf_pow_smul_eq_bot_of_le_jacobson I hjac
+  rw [← closure_subset_iff_isClosed]
+  intro x hx
+  rw [mem_closure_iff_nhds_basis (hadic.hasBasis_nhds x)] at hx
+  suffices Ideal.Quotient.mk J x = 0 from Ideal.Quotient.eq_zero_iff_mem.mp this
+  have hmem : Ideal.Quotient.mk J x ∈
+      (⨅ i : ℕ, I ^ i • (⊤ : Submodule R (R ⧸ J))) := by
+    rw [Submodule.mem_iInf]
+    intro n
+    obtain ⟨y, hy_mem, hxy⟩ := hx n trivial
+    obtain ⟨z, hz, rfl⟩ := hxy
+    have hyz : Ideal.Quotient.mk J (x + z) = 0 :=
+      Ideal.Quotient.eq_zero_iff_mem.mpr hy_mem
+    have hxeq : Ideal.Quotient.mk J x = -(Ideal.Quotient.mk J z) := by
+      have h1 : Ideal.Quotient.mk J x + Ideal.Quotient.mk J z = 0 := by
+        rw [← map_add]; exact hyz
+      exact eq_neg_of_add_eq_zero_left h1
+    rw [hxeq]
+    apply neg_mem
+    change Ideal.Quotient.mk J z ∈ I ^ n • (⊤ : Submodule R (R ⧸ J))
+    rw [Ideal.smul_top_eq_map]
+    exact (Submodule.restrictScalars_mem R _ _).mpr (Ideal.mem_map_of_mem _ hz)
+  rw [hkrull, Submodule.mem_bot] at hmem
+  exact hmem
+
+/-- **Wedhorn Proposition 6.17 (ideal form):** Every ideal in a complete Tate
+ring `A` with a noetherian ring of definition `P.A₀` is closed.
+
+The statement requires a pair of definition `P = (A₀, I)` such that `A₀` is
+noetherian. This is automatic for **strongly noetherian** Tate rings (the
+setting of Huber's theory, Wedhorn Def 6.9), and downstream callers can
+discharge the `IsNoetherianRing P.A₀` hypothesis from a strongly-noetherian
+structure.
+
+**Proof sketch (Krull intersection on the ring of definition).**
+
+1. `A₀ = P.A₀` is an open, hence closed (open subgroup of a topological
+   group), subring of `A`. It inherits `CompleteSpace`, `T2Space`, and its
+   subspace topology is the `I`-adic topology by `P.isAdic`.
+2. `J₀ := J.comap P.A₀.subtype`, the pullback of `J` to `A₀`, is closed in
+   `A₀` by the abstract helper
+   `isClosed_ideal_of_adicComplete_noetherian` applied to the noetherian
+   complete T₂ adic ring `A₀`.
+3. `closure_A(J) ∩ A₀ = J₀`: for `x ∈ A₀`, membership in `closure_A(J)` is
+   characterised by the `A`-neighborhood basis `{x + Subtype.val '' I^n}`,
+   which equals the `A₀`-basis `{x + I^n}` under the inclusion. So
+   `x ∈ closure_A(J) ↔ x ∈ closure_{A₀}(J₀)`, and the latter equals `J₀`
+   since `J₀` is closed in `A₀`.
+4. To close the argument for a general `x ∈ closure_A(J)`, we use that `P`
+   can be chosen as a **principal pair** (via
+   `IsTateRing.exists_principal_pairOfDefinition`) with generator `π` a
+   topologically nilpotent unit in `A`. Then some power `π^k · x` lands in
+   `A₀` (because `π^k → 0` and `A₀` is an open neighborhood of `0`), and
+   `π^k · x ∈ closure_A(J) ∩ A₀ = J₀ ⊆ J`, so `x = π^(-k) · (π^k · x) ∈ J`.
+
+Because the signature of the theorem takes an **arbitrary** pair `P`, not
+necessarily principal, step 4 uses `IsTateRing.exists_principal_pairOfDefinition`
+to produce a principal pair `P'` and argues via `P'` whose `A₀'`-inclusion
+factors through `P.A₀`'s closure — this only needs the *abstract* existence of a
+topologically nilpotent unit and `P.A₀` being open. -/
+theorem Wedhorn.isClosed_ideal_of_noetherian
+    {A : Type*} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
+    [IsTopologicalRing A] [T2Space A] [CompleteSpace A] [IsTateRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing ↥P.A₀]
+    (J : Ideal A) : IsClosed (J : Set A) := by
+  -- Step 1: A₀ is closed in A (open subring of an additive topological group).
+  have hA₀_closed : IsClosed (P.A₀ : Set A) :=
+    AddSubgroup.isClosed_of_isOpen P.A₀.toAddSubgroup P.isOpen
+  -- Step 2: Install uniform + complete instances on ↥P.A₀.
+  haveI : IsUniformAddGroup ↥P.A₀ := P.A₀.toAddSubgroup.isUniformAddGroup
+  haveI : CompleteSpace ↥P.A₀ := hA₀_closed.completeSpace_coe
+  -- Step 3: Apply the abstract helper to show J₀ := J.comap A₀.subtype is closed.
+  set J₀ : Ideal ↥P.A₀ := J.comap P.A₀.subtype with hJ₀_def
+  have hJ₀_closed : IsClosed (J₀ : Set ↥P.A₀) :=
+    isClosed_ideal_of_adicComplete_noetherian P.isAdic J₀
+  -- Step 4: Get a principal pair P' with generator π (topologically nilpotent unit in A).
+  obtain ⟨P', π, hπ_span, hπ_unit⟩ := IsTateRing.exists_principal_pairOfDefinition A
+  have hπ_mem : π ∈ P'.I := by rw [hπ_span]; exact Ideal.mem_span_singleton_self π
+  have hπ_nilp : IsTopologicallyNilpotent ((π : A)) :=
+    P'.isTopologicallyNilpotent_of_mem hπ_mem
+  -- Step 5: Main argument. Show closure(J) ⊆ J.
+  rw [← closure_subset_iff_isClosed]
+  intro x hx_cl
+  -- Translate `x ∈ closure(J)` to `x ∈ J.closure` (as an ideal).
+  have hx_cl' : x ∈ J.closure := by rw [← Ideal.coe_closure] at hx_cl; exact hx_cl
+  -- 5a. Find k : ℕ such that (π : A) ^ k * x ∈ P.A₀.
+  have hπx_tends : Filter.Tendsto (fun k : ℕ => (π : A) ^ k * x) Filter.atTop (nhds 0) := by
+    have := hπ_nilp.mul_const x
+    simpa using this
+  have hA₀_nhds : (P.A₀ : Set A) ∈ nhds (0 : A) := P.isOpen.mem_nhds P.A₀.zero_mem
+  obtain ⟨k, hk⟩ := (hπx_tends.eventually hA₀_nhds).exists
+  set a : A := (π : A) ^ k * x with ha_def
+  have ha_A₀ : a ∈ P.A₀ := hk
+  -- 5b. a ∈ J.closure (closure is an ideal, closed under ring multiplication).
+  have ha_cl' : a ∈ J.closure := J.closure.mul_mem_left ((π : A) ^ k) hx_cl'
+  have ha_cl : a ∈ closure (J : Set A) := by rw [← Ideal.coe_closure]; exact ha_cl'
+  -- 5c. Show ⟨a, ha_A₀⟩ is in closure of J₀ in ↥P.A₀.
+  set a₀ : ↥P.A₀ := ⟨a, ha_A₀⟩ with ha₀_def
+  have ha₀_cl : a₀ ∈ closure (J₀ : Set ↥P.A₀) := by
+    rw [mem_closure_iff_nhds_basis (P.isAdic.hasBasis_nhds a₀)]
+    intro n _
+    -- Need: ∃ y ∈ J₀, y ∈ (fun z ↦ a₀ + z) '' (P.I^n : Ideal P.A₀).
+    -- Build the corresponding neighborhood in A and extract a point of J.
+    have hnhd_A : ((fun y ↦ a + y) '' (Subtype.val ''
+        ((P.I ^ n : Ideal P.A₀) : Set P.A₀))) ∈ nhds a := by
+      have : (Subtype.val '' ((P.I ^ n : Ideal P.A₀) : Set P.A₀) : Set A) ∈ nhds (0 : A) :=
+        P.hasBasis_nhds_zero.mem_of_mem (i := n) trivial
+      rw [← map_add_left_nhds_zero a]
+      exact Filter.image_mem_map this
+    rw [mem_closure_iff_nhds] at ha_cl
+    obtain ⟨j, hj_in_nhd, hj_in_J⟩ := ha_cl _ hnhd_A
+    obtain ⟨b, ⟨b₀, hb₀_mem, rfl⟩, hj_eq⟩ := hj_in_nhd
+    -- hj_eq : a + (b₀ : A) = j;  hb₀_mem : b₀ ∈ (P.I ^ n : Ideal P.A₀)
+    -- hj_in_J : j ∈ J.
+    -- j = a + b₀ ∈ A₀, so (⟨j, _⟩ : P.A₀) is well-defined.
+    have hj_A₀ : j ∈ P.A₀ := by rw [← hj_eq]; exact P.A₀.add_mem ha_A₀ b₀.2
+    refine ⟨⟨j, hj_A₀⟩, ?_, ?_⟩
+    · -- ⟨j, hj_A₀⟩ ∈ J₀: just j ∈ J
+      change j ∈ J; exact hj_in_J
+    · -- ⟨j, hj_A₀⟩ ∈ (fun y ↦ a₀ + y) '' ↑(P.I^n)
+      refine ⟨b₀, hb₀_mem, ?_⟩
+      apply Subtype.ext
+      change a + (b₀ : A) = j
+      exact hj_eq
+  -- 5d. a₀ ∈ J₀ by hJ₀_closed.
+  have ha₀_in_J₀ : a₀ ∈ J₀ := by
+    have h : a₀ ∈ (J₀ : Set ↥P.A₀) := hJ₀_closed.closure_eq ▸ ha₀_cl
+    exact h
+  -- 5e. Unpack: a = ↑a₀ ∈ J (by the comap definition of J₀).
+  have ha_in_J : a ∈ J := ha₀_in_J₀
+  -- 5f. Conclude x ∈ J. Since π is a unit in A, let πu : Aˣ with ↑πu = π.
+  obtain ⟨πu, hπu⟩ := hπ_unit
+  -- x = πu⁻¹^k * (πu^k * x) = πu⁻¹^k * ((π : A)^k * x) = πu⁻¹^k * a.
+  have hx_eq : x = ((πu⁻¹ : Aˣ) : A) ^ k * a := by
+    have hpi : ((πu : A)) = π := hπu
+    have : ((πu⁻¹ : Aˣ) : A) ^ k * ((πu : A) ^ k * x) = x := by
+      rw [← mul_assoc, ← mul_pow]
+      simp [Units.inv_mul]
+    calc x = ((πu⁻¹ : Aˣ) : A) ^ k * ((πu : A) ^ k * x) := this.symm
+      _ = ((πu⁻¹ : Aˣ) : A) ^ k * a := by rw [ha_def, hpi]
+  rw [hx_eq]
+  exact J.mul_mem_left _ ha_in_J
+
+end WedhornClosedIdeals
