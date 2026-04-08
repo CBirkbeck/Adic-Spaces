@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import Mathlib.RingTheory.Localization.Away.Basic
 import Mathlib.RingTheory.Noetherian.Nilpotent
+import Mathlib.RingTheory.Valuation.LocalSubring
 import «Adic spaces».AdicCompletionBridge
 import «Adic spaces».CompleteTopCommRingCat
 import «Adic spaces».LocalizationTopology
@@ -1087,17 +1088,40 @@ is chosen to avoid powers of `x`. See [Hu2] Lemma 3.3.
 This is the deepest ingredient of the adic Nullstellensatz. -/
 theorem isIntegral_of_forall_valuation_le_one
     {R : Type*} [CommRing R] [TopologicalSpace R] [IsTopologicalRing R]
+    [IsDomain R]
     {B : Subring R} (hB_open : IsOpen (B : Set R))
     (x : R)
     (hvle : ∀ (v : ValuativeRel R), (∀ b ∈ B, v.vle b 1) → v.vle x 1) :
     IsIntegral B x := by
-  -- The valuative criterion: if x is NOT integral over B, construct
-  -- a valuation v with v ≤ 1 on B but v(x) > 1.
-  -- Route: B[x] is not f.g. over B, so ∃ prime ideal m of B[x] avoiding
-  -- all powers of x. The localization (B[x])_m has a valuation ring
-  -- dominating it, giving the desired v.
-  -- This is [Hu2] Lemma 3.3 / Wedhorn Prop 7.18.
-  sorry
+  -- Proof by contraposition using the field-level Mathlib API
+  -- (Wedhorn Prop 7.18 / [Hu2] Lemma 3.3).
+  by_contra hni
+  -- Pass to fraction field; ι = algebraMap R (FractionRing R)
+  let ι := algebraMap R (FractionRing R)
+  have hι_inj : Function.Injective ι := IsFractionRing.injective R (FractionRing R)
+  -- Step 1: ι x is not integral over B in FractionRing R
+  have hni_K : ¬ IsIntegral B (ι x) :=
+    mt (isIntegral_algebraMap_iff hι_inj).mp hni
+  -- Step 2: ι x ∉ (integralClosure B (FractionRing R)).toSubring
+  have hx_notin : ι x ∉ (integralClosure B (FractionRing R)).toSubring := by
+    rwa [Subalgebra.mem_toSubring, mem_integralClosure_iff]
+  -- Step 3: ∃ V with integralClosure ≤ V and ι x ∉ V (Stacks 090P(1))
+  obtain ⟨V, hV_le, hx_notV⟩ :=
+    Subring.exists_le_valuationSubring_of_isIntegrallyClosedIn hx_notin
+  -- Step 4: Construct ValuativeRel on R by pulling V.valuation back along ι
+  let w := ValuativeRel.ofValuation (V.valuation.comap ι)
+  -- Step 5: w.vle b 1 for all b ∈ B (elements of B land in integralClosure ≤ V)
+  have hw_B : ∀ b ∈ B, w.vle b 1 := by
+    intro b hb
+    show V.valuation (ι b) ≤ V.valuation (ι 1)
+    simp only [map_one, ValuationSubring.valuation_le_one_iff]
+    exact hV_le (Subalgebra.algebraMap_mem (integralClosure B (FractionRing R)) ⟨b, hb⟩)
+  -- Step 6: hvle gives w.vle x 1, i.e. V.valuation (ι x) ≤ V.valuation (ι 1) = 1
+  have hw_x : w.vle x 1 := hvle w hw_B
+  -- Step 7: So ι x ∈ V, contradicting hx_notV
+  apply hx_notV; rw [← V.valuation_le_one_iff]
+  have : V.valuation (ι x) ≤ V.valuation (ι 1) := hw_x
+  simpa only [map_one] using this
 
 /-- A `ValuativeRel` that is `≤ 1` on an open subring of `Localization.Away s` yields
 a `Spv` point for which `algebraMap t ≤ᵥ algebraMap s` for `t ∈ T`, by the

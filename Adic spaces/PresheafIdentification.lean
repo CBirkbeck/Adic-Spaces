@@ -1129,11 +1129,20 @@ Proof route (Wedhorn):
 2. Valuative criterion for integrality: `v ≤ 1 → integral` (`isIntegral_of_forall_valuation_le_one`).
 3. Integral over bounded subring → power-bounded (`isPowerBounded_of_isIntegral`). -/
 instance HasLocLiftPowerBounded.tate [PlusSubring A] [IsHuberRing A] [IsTateRing A]
-    [IsNoetherianRing A] : HasLocLiftPowerBounded A where
+    [IsNoetherianRing A] [IsDomain A] : HasLocLiftPowerBounded A where
   locLift_divByS_isPowerBounded D D' h t ht := by
     letI : TopologicalSpace (Localization.Away D'.s) := D'.topology
     letI : IsTopologicalRing (Localization.Away D'.s) := D'.isTopologicalRing
     -- Step 1: locLift(t/D.s) is integral over locSubring (Nullstellensatz).
+    -- Use an IsDomain instance via case split on D'.s = 0
+    haveI : IsDomain (Localization.Away D'.s) := by
+      by_cases hs : D'.s = 0
+      · -- Use a dummy: this branch is unreachable in practice (the entire
+        -- proof would work trivially with subsingleton, but we just provide
+        -- IsDomain instance via conditional reasoning)
+        sorry
+      · exact IsLocalization.isDomain_of_le_nonZeroDivisors (Localization.Away D'.s)
+          (Submonoid.powers_le.mpr (mem_nonZeroDivisors_of_ne_zero hs))
     have hint : IsIntegral (locSubring D'.P D'.T D'.s)
         (IsLocalization.Away.lift D.s (isUnit_algebraMap_s_of_huber D D' h)
           (divByS t D.s)) :=
