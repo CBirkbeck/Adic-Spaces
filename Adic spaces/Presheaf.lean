@@ -1161,6 +1161,33 @@ theorem isIntegral_of_forall_valuation_le_one
   have : V.valuation (ι x) ≤ V.valuation (ι 1) := hw_x
   simpa only [map_one] using this
 
+/-- **Topology-aware valuative criterion for integrality (Wedhorn Proposition 7.18).**
+For an open subring `B` of a Tate domain `R`, an element `x ∈ R` is integral over `B`
+iff `v(x) ≤ 1` for every **continuous** valuation `v` on `R` with `v(b) ≤ 1` for all
+`b ∈ B`.
+
+This strengthens `isIntegral_of_forall_valuation_le_one` by restricting the hypothesis
+to *continuous* valuations only. The proof uses a careful construction of a continuous
+valuation from the data of a valuation subring of the fraction field (Wedhorn Lemma 7.22
+or the topologically-aware version of Stacks 090P). See [Hu2, Lemma 3.3].
+
+**Status:** Sorry — this is the adic Nullstellensatz in its topology-aware form.
+Planned resolution in `docs/plans/2026-04-08-wedhorn-7-10-plan.md` (M6): direct
+construction via Lemma 7.45 (`Adic spaces/Lemma745.lean`, already sorry-free). -/
+theorem isIntegral_of_forall_continuous_valuation_le_one
+    {R : Type*} [CommRing R] [TopologicalSpace R] [IsTopologicalRing R]
+    [IsDomain R]
+    {B : Subring R} (_hB_open : IsOpen (B : Set R))
+    (x : R)
+    (_hvle : ∀ (v : ValuativeRel R),
+      (⟨v⟩ : Spv R).IsContinuous →
+      (∀ b ∈ B, v.vle b 1) → v.vle x 1) :
+    IsIntegral B x := by
+  -- Proof requires a topology-aware version of
+  -- `Subring.exists_le_valuationSubring_of_isIntegrallyClosedIn` that produces
+  -- a CONTINUOUS valuation on `R` (Wedhorn 7.22 / [Hu2] Lemma 3.3). See plan.
+  sorry
+
 /-- A `ValuativeRel` that is `≤ 1` on an open subring of `Localization.Away s` yields
 a `Spv` point for which `algebraMap t ≤ᵥ algebraMap s` for `t ∈ T`, by the
 pattern of `vle_of_locSubring_bounded` adapted to `ValuativeRel`. -/
@@ -1184,15 +1211,34 @@ private theorem comap_algebraMap_vle_of_locSubring {A : Type*} [CommRing A]
   have hmul := v.mul_vle_mul_left hle (algebraMap A (Localization.Away s) s)
   rwa [one_mul, hspec] at hmul
 
+/-- **Rational containment at Spa points (Wedhorn §8.1).**
+
+Given rational data `D, D'` with `R(D'.T/D'.s) ⊆ R(D.T/D.s)`, a valuation `v` on
+`Localization.Away D'.s` that is `≤ 1` on `locSubring`, and a hypothesis that the
+comap valuation `w := v.comap (algebraMap A _)` on `A` is continuous, we conclude
+`v(lift(t/D.s)) ≤ 1` for `t ∈ D.T`.
+
+The continuity hypothesis on `w` (rather than a universal statement about `v ≤ 1
+on A₀ → continuous`) is the key correction for non-discrete rings: the false
+universal statement fails for the trivial valuation, but the specific comap `w`
+appearing in our application can be made continuous via `comap_isContinuous`
+when `v` itself is continuous on the localization.
+
+**Proof strategy.** Since `w` is continuous and `w ≤ 1` on `A⁺` (by `hAplus_le_A₀`
+and `hv_sub`), we have `⟨w⟩ ∈ Spa A A⁺`. Combined with the rational-open conditions
+derived from `hv_sub`, we get `⟨w⟩ ∈ rationalOpen D'.T D'.s`. Rational containment
+`h` lifts this to `⟨w⟩ ∈ rationalOpen D.T D.s`, giving `w(t) ≤ w(D.s)` for
+`t ∈ D.T`. Unfolding `w` and cancelling the unit `algebraMap(D.s)` yields the
+conclusion. -/
 theorem locLift_vle_one_at_spa {A : Type*} [CommRing A]
     [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
     (hAplus_le_A₀ : (A⁺ : Set A) ⊆ D'.P.A₀)
-    (hv_cont : ∀ (w : ValuativeRel A), (∀ a ∈ D'.P.A₀, w.vle a 1) →
-      (⟨w⟩ : Spv A).IsContinuous)
     {t : A} (ht : t ∈ D.T)
     (v : ValuativeRel (Localization.Away D'.s))
-    (hv_sub : ∀ b ∈ locSubring D'.P D'.T D'.s, v.vle b 1) :
+    (hv_sub : ∀ b ∈ locSubring D'.P D'.T D'.s, v.vle b 1)
+    (hw_cont : (⟨ValuativeRel.comap
+      (algebraMap A (Localization.Away D'.s)) v⟩ : Spv A).IsContinuous) :
     v.vle (IsLocalization.Away.lift D.s (isUnit_algebraMap_s_of_huber D D' h)
       (divByS t D.s)) 1 := by
   -- Step 1: Key identity — lift(divByS t D.s) * algebraMap(D.s) = algebraMap(t)
@@ -1269,8 +1315,8 @@ theorem locLift_vle_one_at_spa {A : Type*} [CommRing A]
   -- Show wSpv ∈ rationalOpen D'.T D'.s
   have hw_mem_rat : wSpv ∈ rationalOpen D'.T D'.s := by
     refine ⟨⟨?_, fun f hf ↦ ?_⟩, hw_rat, hw_nz⟩
-    · -- wSpv.IsContinuous: from hv_cont hypothesis (Wedhorn 7.22).
-      exact hv_cont w hw_A₀
+    · -- wSpv.IsContinuous: from hw_cont hypothesis.
+      exact hw_cont
     · -- w.vle f 1 for f ∈ A⁺: from hAplus_le_A₀ + hw_A₀.
       exact hw_A₀ f (hAplus_le_A₀ hf)
   -- Use rational containment: wSpv ∈ rationalOpen D.T D.s
