@@ -1187,11 +1187,15 @@ instance HasLocLiftPowerBounded.tate [PlusSubring A] [IsHuberRing A] [IsTateRing
       IsLocalization.isDomain_of_le_nonZeroDivisors (Localization.Away D'.s)
         (Submonoid.powers_le.mpr (mem_nonZeroDivisors_of_ne_zero hs))
     -- Step 1: locLift(t/D.s) is integral over locSubring via topology-aware criterion.
+    -- We use the locPairOfDefinition for the topological structure on Localization.Away D'.s,
+    -- whose A₀ equals locSubring (so A₀ ⊆ B is trivially satisfied with B = locSubring).
     have hint : IsIntegral (locSubring D'.P D'.T D'.s)
         (IsLocalization.Away.lift D.s (isUnit_algebraMap_s_of_huber D D' h)
           (divByS t D.s)) := by
       apply isIntegral_of_forall_continuous_valuation_le_one
+        (ValuationSpectrum.locPairOfDefinition D'.P D'.T D'.s D'.hopen)
         (locSubring_isOpen D'.P D'.T D'.s D'.hopen)
+        (Set.Subset.refl _)  -- A₀ = locSubring (= B), so A₀ ⊆ B by reflexivity
       intro v hv_cont hv_sub
       -- The comap valuation on A is continuous by `comap_isContinuous`
       -- + `algebraMap_continuous_loc`. No false universal hypothesis needed.
