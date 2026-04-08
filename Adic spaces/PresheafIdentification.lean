@@ -1121,29 +1121,21 @@ theorem invSelf_eq_divByS (s : A) :
 
 /-! #### Adic Nullstellensatz instance (Wedhorn Prop 5.30(4) + 7.14) -/
 
-/-- **Affinoid pair-of-definition hypothesis (R4 blocker).**
+/-- **Affinoid pair-of-definition hypothesis (resolved via `CompatiblePlusSubring`).**
 For the Tate instance of `HasLocLiftPowerBounded`, we need `(A⁺ : Set A) ⊆ D'.P.A₀`
-for every rational locale `D'`. The `PlusSubring` typeclass only records a subring
-`A⁺` and does NOT bundle this compatibility with any particular ring of definition.
+for every rational locale `D'`. This is supplied by the `[CompatiblePlusSubring A]`
+typeclass (Wedhorn Remark 7.17): in any affinoid ring, one can choose rings of
+definition containing `A⁺`, and the typeclass records that the rational data was
+constructed with such a choice.
 
-In Wedhorn's framework, given an affinoid ring `(A, A⁺)` with `A⁺ ⊆ A°`, one can
-always *choose* a pair of definition `(A₀, I)` with `A⁺ ⊆ A₀` (for example, take
-`A₀` to contain `A⁺`). But this is a choice, not an invariant of `A⁺` alone.
-
-**Resolution requires one of:**
-- A new typeclass `TateAplusInAllPods A` asserting this holds for every `D'.P`,
-  added as an instance requirement to `HasLocLiftPowerBounded.tate`; or
-- A refactoring of `RationalLocData` so that its pair of definition is canonical
-  (e.g., always `A°` when `A` is uniform); or
-- A typeclass `PlusSubring.Compatible P` asserting `A⁺ ⊆ P.A₀` for a specific pair.
-
-For now, we leave this as a tagged sorry so R4 (forward-continuity power-bounded)
-can compile and downstream work can proceed. -/
-private theorem _root_.ValuationSpectrum.tate_aplus_le_A₀_sorry
-    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
-    [IsTateRing A] [IsNoetherianRing A] [IsDomain A] (D' : RationalLocData A) :
-    (A⁺ : Set A) ⊆ D'.P.A₀ := by
-  sorry
+See `CompatiblePlusSubring` in `Presheaf.lean` for the mathematical justification
+(`A⁺` is bounded, so by Wedhorn Proposition 6.4(3) it is contained in some ring
+of definition). -/
+private theorem _root_.ValuationSpectrum.tate_aplus_le_A₀
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [CompatiblePlusSubring A] (D' : RationalLocData A) :
+    (A⁺ : Set A) ⊆ D'.P.A₀ :=
+  CompatiblePlusSubring.aplus_le_A₀ D'
 
 /-- **Wedhorn Lemma 7.22 (R4 blocker).**
 A valuation `v : ValuativeRel A` with `v ≤ 1` on the ring of definition `A₀`
@@ -1196,19 +1188,24 @@ private theorem _root_.ValuationSpectrum.tate_vle_one_on_A₀_isContinuous_sorry
   -- The proof would proceed via Wedhorn 7.10 + Tate ring analysis.
   sorry
 
-/-- **Tate instance** for `HasLocLiftPowerBounded`: for strongly noetherian Tate rings,
-the localization lift sends generators to power-bounded elements.
+/-- **Tate instance** for `HasLocLiftPowerBounded`: for strongly noetherian Tate rings
+with a compatible plus subring, the localization lift sends generators to power-bounded
+elements.
 
 Proof route (Wedhorn):
 1. Rational containment gives `v(t/D.s) ≤ 1` at all Spa points (`locLift_vle_one_at_spa`).
 2. Valuative criterion for integrality: `v ≤ 1 → integral` (`isIntegral_of_forall_valuation_le_one`).
 3. Integral over bounded subring → power-bounded (`isPowerBounded_of_isIntegral`).
 
-**Open sorries (see auxiliary theorems above):**
-- `tate_aplus_le_A₀_sorry`: affinoid hypothesis `A⁺ ⊆ D'.P.A₀` (needs typeclass work).
-- `tate_vle_one_on_A₀_isContinuous_sorry`: Wedhorn 7.22 continuity criterion. -/
+**Typeclass hypothesis:**
+- `[CompatiblePlusSubring A]` supplies `(A⁺ : Set A) ⊆ D'.P.A₀` via Wedhorn Remark 7.17.
+
+**Remaining sorry:**
+- `tate_vle_one_on_A₀_isContinuous_sorry`: Wedhorn 7.10/7.22 continuity criterion
+  (see plan in `docs/plans/2026-04-08-wedhorn-7-10-plan.md`). -/
 instance HasLocLiftPowerBounded.tate [PlusSubring A] [IsHuberRing A] [IsTateRing A]
-    [IsNoetherianRing A] [IsDomain A] : HasLocLiftPowerBounded A where
+    [IsNoetherianRing A] [IsDomain A] [CompatiblePlusSubring A] :
+    HasLocLiftPowerBounded A where
   locLift_divByS_isPowerBounded D D' h t ht := by
     letI : TopologicalSpace (Localization.Away D'.s) := D'.topology
     letI : IsTopologicalRing (Localization.Away D'.s) := D'.isTopologicalRing
@@ -1237,7 +1234,7 @@ instance HasLocLiftPowerBounded.tate [PlusSubring A] [IsHuberRing A] [IsTateRing
       isIntegral_of_forall_valuation_le_one
         (locSubring_isOpen D'.P D'.T D'.s D'.hopen) _
         (locLift_vle_one_at_spa D D' h
-          (ValuationSpectrum.tate_aplus_le_A₀_sorry D')
+          (ValuationSpectrum.tate_aplus_le_A₀ D')
           (ValuationSpectrum.tate_vle_one_on_A₀_isContinuous_sorry D')
           ht)
     -- Step 2: Integral over bounded subring → power-bounded.

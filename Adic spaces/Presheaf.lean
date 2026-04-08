@@ -141,6 +141,44 @@ structure RationalLocData (A : Type*) [CommRing A] [TopologicalSpace A]
   hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
     divByS (↑b : A) s ∈ locSubring P T s
 
+/-- **Compatible plus subring** (Wedhorn Remark 7.17).
+
+An affinoid ring `(A, A⁺)` has a *compatible plus subring* if for every rational
+localization datum, the plus subring `A⁺` is contained in the ring of definition
+`D.P.A₀`.
+
+**Mathematical content.** By Wedhorn Definition 7.14, `A⁺` is an open integrally closed
+subring of the power-bounded subring `A°`. It follows that `A⁺` is bounded
+(Wedhorn Remark 7.17: every open integrally closed subring of `A°` is bounded).
+By Wedhorn Proposition 6.4(3), every bounded subring is contained in some ring of
+definition. Therefore, *for each rational localization datum*, one can always CHOOSE
+the pair of definition so that `A⁺ ⊆ D.P.A₀`.
+
+This choice is not automatic in the Lean formalization because `RationalLocData`
+permits an arbitrary `P : PairOfDefinition`. The typeclass `CompatiblePlusSubring`
+bundles the compatibility constraint: when the user constructs rational localization
+data for an affinoid ring in practice, they choose the pair of definition to contain
+`A⁺`, and this typeclass records that choice.
+
+**Usage.** Instances of `HasLocLiftPowerBounded` that require the adic Nullstellensatz
+(e.g., `HasLocLiftPowerBounded.tate`) need `A⁺ ⊆ D.P.A₀` to apply the valuative
+criterion at Spa points. They take `[CompatiblePlusSubring A]` as a typeclass hypothesis.
+
+**Future work.** For "uniform" affinoid rings with `A⁺ = A°`, this typeclass should be
+derivable automatically. For non-uniform rings, the user provides it based on their
+construction of the rational data. -/
+class CompatiblePlusSubring (A : Type*) [CommRing A] [TopologicalSpace A]
+    [IsTopologicalRing A] [PlusSubring A] : Prop where
+  /-- For every rational localization datum, `A⁺` is contained in the ring of definition. -/
+  aplus_le_pod : ∀ (D : RationalLocData A), (A⁺ : Set A) ⊆ D.P.A₀
+
+/-- The plus subring is contained in the ring of definition of any rational locale
+(Wedhorn Remark 7.17, `CompatiblePlusSubring`-typeclass accessor). -/
+theorem CompatiblePlusSubring.aplus_le_A₀ {A : Type*} [CommRing A] [TopologicalSpace A]
+    [IsTopologicalRing A] [PlusSubring A] [CompatiblePlusSubring A]
+    (D : RationalLocData A) : (A⁺ : Set A) ⊆ D.P.A₀ :=
+  CompatiblePlusSubring.aplus_le_pod D
+
 section PresheafValue
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
