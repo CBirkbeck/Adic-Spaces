@@ -1172,26 +1172,25 @@ to *continuous* valuations only. See Wedhorn Prop 7.18 / [Hu2, Lemma 3.3].
 
 **Proof outline (following Wedhorn):**
 1. Contrapositive: assume `x` is not integral over `B`.
-2. Apply the field-level `Subring.exists_le_valuationSubring_of_isIntegrallyClosedIn`
-   (Stacks 090P) to get a valuation subring `V ⊆ Frac(R)` with `B ⊆ V` (image) and
-   `ι x ∉ V`.
+2. Use a refined Stacks 090P construction (`LocalSubring.exists_le_valuationSubring_of_isIntegrallyClosedIn`)
+   that produces a valuation subring `V ⊆ Frac(R)` with:
+   - `integralClosure(B) ⊆ V` (so `wVal ≤ 1` on `B`),
+   - `V` dominates a local subring `L` whose maximal ideal contains image of `P.I`
+     (so `wVal < 1` strictly on `P.I`),
+   - `ι x ∉ V`.
 3. Construct `w := ValuativeRel.ofValuation (V.valuation.comap ι)` on `R`.
 4. Verify `w(b) ≤ 1` for `b ∈ B` (trivial from `B ⊆ V`).
-5. **Key step (Wedhorn 7.22):** Show `w` is continuous on `R`. For this, we use
-   `Valuation.isContinuous_of_le_one_and_pow_cofinal` with `P.A₀` as the ring of
-   definition. We need:
-   (a) `V.valuation.comap ι ≤ 1` on `P.A₀` — holds since `P.A₀ ⊆ B ⊆ V` (image).
-   (b) Some generator `g < 1` bounds `V.valuation` on `P.I`.
-   (c) `g^n` is cofinal in `V.ValueGroup`.
-   Conditions (b), (c) require the valuation subring `V` to be chosen carefully so
-   that its maximal ideal contains the image of `P.I`. This is the content of
-   Wedhorn Lemma 7.22.
+5. **Continuity:** apply `Valuation.isContinuous_of_le_one_and_pow_cofinal` with
+   `g = max V.valuation` over `P.I` generators. Conditions (a) `wVal ≤ 1 on P.A₀`,
+   (b) `wVal ≤ g on P.I` follow from V's properties; (c) `g^n` cofinal requires
+   `MulArchimedean V.ValueGroup` (or a coarsening trick).
 6. Apply the hypothesis `hvle` to get `w.vle x 1`.
 7. Contradict `ι x ∉ V`.
 
-**Status:** The continuity step (5) requires Wedhorn Lemma 7.22 / [Hu2] Lemma 3.3,
-which is the deepest ingredient of the adic Nullstellensatz. The rest of the proof
-is straightforward. The single remaining sorry is isolated to the continuity step.
+**Status:** The construction in step 2 (refined Stacks 090P producing `V` with
+`I ⊆ V.nonunits`) and the cofinality in step 5(c) together constitute Wedhorn
+Lemma 7.22, which requires substantial additional infrastructure. The current
+proof structure isolates this gap to a single sub-sorry inside the main proof.
 
 See `docs/plans/2026-04-08-wedhorn-7-10-plan.md` for the detailed plan. -/
 theorem isIntegral_of_forall_continuous_valuation_le_one
@@ -1215,9 +1214,21 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
     mt (isIntegral_algebraMap_iff hι_inj).mp hni
   have hx_notin : ι x ∉ (integralClosure B (FractionRing R)).toSubring := by
     rwa [Subalgebra.mem_toSubring, mem_integralClosure_iff]
-  -- Step 2: Stacks 090P gives V ⊇ integralClosure(B), x ∉ V.
-  obtain ⟨V, hV_le, hx_notV⟩ :=
-    Subring.exists_le_valuationSubring_of_isIntegrallyClosedIn hx_notin
+  -- Step 2: REFINED Stacks 090P. We need V with:
+  --   • integralClosure(B) ⊆ V
+  --   • image of P.I ⊆ V.nonunits  (for continuity of comap)
+  --   • ι x ∉ V                     (for the contradiction)
+  -- Wedhorn Lemma 7.22 produces such V via the LocalSubring version of Stacks 090P
+  -- applied to a suitable local subring containing both `1/x` and image of `P.I`
+  -- in its maximal ideal. This sub-sorry captures the entire Wedhorn 7.22 step.
+  have hV_exists : ∃ V : ValuationSubring (FractionRing R),
+      ((integralClosure B (FractionRing R)).toSubring : Subring (FractionRing R)) ≤ V.toSubring ∧
+      ι x ∉ V ∧
+      ∃ (g : V.ValueGroup) (_hg_lt : g < 1),
+        (∀ (a : P.A₀), a ∈ P.I → V.valuation (ι (P.A₀.subtype a)) ≤ g) ∧
+        (∀ (γ : V.ValueGroup), 0 < γ → ∃ n : ℕ, g ^ n < γ) := by
+    sorry -- Wedhorn Lemma 7.22 / [Hu2] Lemma 3.3
+  obtain ⟨V, hV_le, hx_notV, g, hg_lt, hg_bound, hg_cofinal⟩ := hV_exists
   -- Step 3: Construct the comap valuation w on R.
   let wVal : Valuation R V.ValueGroup := V.valuation.comap ι
   let w : ValuativeRel R := ValuativeRel.ofValuation wVal
@@ -1227,22 +1238,16 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
     show V.valuation (ι b) ≤ V.valuation (ι 1)
     simp only [map_one, ValuationSubring.valuation_le_one_iff]
     exact hV_le (Subalgebra.algebraMap_mem (integralClosure B (FractionRing R)) ⟨b, hb⟩)
-  -- Derived facts for continuity:
   -- wVal ≤ 1 on P.A₀ (since P.A₀ ⊆ B ⊆ V image).
-  have hwVal_le_A₀ : ∀ (a : P.A₀), wVal (P.A₀.subtype a) ≤ 1 := by
-    intro a
+  have hwVal_le_A₀ : ∀ (a : P.A₀), wVal (P.A₀.subtype a) ≤ 1 := fun a => by
     show V.valuation (ι ((a : R))) ≤ 1
     rw [ValuationSubring.valuation_le_one_iff]
     exact hV_le (Subalgebra.algebraMap_mem (integralClosure B (FractionRing R))
       ⟨(a : R), hA₀B a.property⟩)
-  -- Step 5: **KEY GAP (Wedhorn 7.22).**
-  -- We need wVal (= V.valuation.comap ι) to be continuous on R.
-  -- By `Valuation.isContinuous_of_le_one_and_pow_cofinal`, it suffices to find
-  -- `g < 1` in `V.ValueGroup` with `wVal ≤ g` on `P.I` and `g^n` cofinal.
-  -- Finding such `g` requires refining V so that its maximal ideal contains
-  -- the image of P.I — this is Wedhorn Lemma 7.22.
-  have hwVal_cont : wVal.IsContinuous := by
-    sorry -- Wedhorn 7.22 / [Hu2] Lemma 3.3: requires V refined with I ⊆ maxIdeal(V)
+  -- Step 5: Continuity of wVal via isContinuous_of_le_one_and_pow_cofinal.
+  -- All three conditions (h_le, h_gen, h_cofinal) come from the refined V.
+  have hwVal_cont : wVal.IsContinuous :=
+    Valuation.isContinuous_of_le_one_and_pow_cofinal P wVal hwVal_le_A₀ hg_bound hg_cofinal
   have hw_cont : (⟨w⟩ : Spv R).IsContinuous :=
     isContinuous_ofValuation_of wVal hwVal_cont
   -- Step 6: Apply the topology-aware hypothesis.
