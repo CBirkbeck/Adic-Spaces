@@ -1374,6 +1374,34 @@ theorem tateAlgebra_isTateRing [IsTateRing A] :
       rw [show (0 : ↥(TateAlgebra A)) = algebraMap A ↥(TateAlgebra A) 0 from (map_zero _).symm]
       exact tateAlgebra_algebraMap_continuous.continuousAt.tendsto.comp hu_nilp)
 
+/-! ### Phase 2.4: Apply Prop 6.17 to get ideals closed in TateAlgebra A
+
+With the `IsTateRing (TateAlgebra A)` instance and `PairOfDefinition` in hand,
+we can apply `Wedhorn.isClosed_ideal_of_noetherian` to show that ANY ideal of
+`TateAlgebra A` is closed under `tateAlgebraTopology'` — in particular,
+`oneSubfXIdeal s = (1 - s·X)` is closed. -/
+
+/-- Every ideal of `TateAlgebra A` is closed under `tateAlgebraTopology'`,
+given that the ring of definition `pairSubring P` is noetherian.
+
+This is Wedhorn Prop 6.17 applied to `A = TateAlgebra A_orig`. -/
+theorem tateAlgebra_isClosed_ideal [IsTateRing A] [T2Space A]
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (J : Ideal ↥(TateAlgebra A)) :
+    letI : TopologicalSpace ↥(TateAlgebra A) := tateAlgebraTopology'
+    IsClosed (J : Set ↥(TateAlgebra A)) := by
+  -- Wedhorn Prop 6.17 applied to TateAlgebra A with tateAlgebraTopology'.
+  -- The math is: A₀ is clopen + complete, J₀ = J ∩ A₀ is closed (adic Krull),
+  -- multiply by topologically nilpotent unit to push closure(J) into A₀,
+  -- conclude J is closed.
+  -- Currently blocked by Lean topology diamond: ↥(TateAlgebra A) has a default
+  -- topology (instTopologicalSpaceSubtype) that conflicts with tateAlgebraTopology'.
+  -- The IsClosed result from Wedhorn.isClosed_ideal_of_noetherian uses the wrong
+  -- topology instance. Needs either a type synonym or explicit topology transport.
+  sorry
+
 end TateAlgebraNaturalTopology
 
 end TateAlgebra
