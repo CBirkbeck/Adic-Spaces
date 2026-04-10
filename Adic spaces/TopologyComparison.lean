@@ -1664,10 +1664,15 @@ theorem locToQuotientOneSubfX_gen_continuous_canonical [IsTateRing A] [T2Space A
   --
   -- The topology equality is the key remaining infrastructure gap (Wedhorn 6.18).
   have h_top_eq : quotientOneSubfXIdealTopology D.s = quotientTTopology D.s := by
+    -- The canonical quotient topology and the T-quotient topology on A⟨X⟩/(1-sX)
+    -- coincide. Both are coinduced topologies via the same surjection `mk`.
+    -- Direction 1 (≥): the canonical topology on A⟨X⟩ is finer than the T-topology
+    -- (it constrains ALL coefficients, not just finitely many scaled ones), so the
+    -- canonical quotient is finer by coinduced monotonicity.
+    -- Direction 2 (≤): the specific structure of (1-sX) collapses the infinitely
+    -- many canonical coefficient constraints to finitely many T-topology constraints
+    -- in the quotient. This is the content of Wedhorn Proposition 6.18.
     -- TODO(wedhorn-6.18): Formalize Wedhorn Proposition 6.18 to remove this sorry.
-    -- For strongly noetherian Tate rings, the module topology on any f.g. module
-    -- equals the adic lattice topology. Applied to the cyclic module A⟨X⟩/(1-sX),
-    -- this gives the equality of the two quotient topologies.
     sorry
   -- With the topology equality, the T-quotient continuity gives the canonical result.
   -- W is an open additive subgroup in the canonical quotient = T-quotient.
