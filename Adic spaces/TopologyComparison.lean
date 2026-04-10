@@ -1641,16 +1641,38 @@ theorem locToQuotientOneSubfX_gen_continuous_canonical [IsTateRing A] [T2Space A
       (hb.nhds_zero_hasBasis.mem_iff.mpr
         ⟨locNhd D.P D.T D.s n, ⟨n, rfl⟩, le_refl _⟩)
     intro x hx; exact hWS (hn x hx)
-  -- Helper: ∃ m, ∀ r ∈ locSubring, ∀ b ∈ I^m, φ(r * algebraMap(b)) ∈ W.
-  -- The preimage mk⁻¹(W) is open in canonical topology (mk is continuous).
-  -- mk⁻¹(W) contains some tateAlgNhd P k.
-  -- For any x in TateAlgebra A, tateAlgNhd_leftMul gives j with x * tateAlgNhd(j) ⊆ tateAlgNhd(k).
-  -- The locNhd(n) structure via span_induction with strengthened predicate
-  -- handles the uniformity over locSubring elements.
-  -- This is a substantial proof (~200 lines in the T-topology version).
-  -- For canonical topology, the proof follows the same structure but uses
-  -- tateAlgNhd_leftMul instead of Artin-Rees shift constants.
-  -- TODO: fill this proof by adapting the T-topology span_induction argument.
+  -- Abbreviations.
+  let mk := Ideal.Quotient.mk (oneSubfXIdeal D.s)
+  -- Step 1: mk⁻¹(W) is open in canonical topology (mk continuous) and contains 0.
+  have hmk_cont : @Continuous _ _ instTopologicalSpaceTateAlgebra
+      (quotientOneSubfXIdealTopology D.s) mk := continuous_quotient_mk'
+  have hmk_pre_W : mk ⁻¹' (W : Set _) ∈
+      @nhds _ instTopologicalSpaceTateAlgebra (0 : ↥(TateAlgebra A)) :=
+    hmk_cont.continuousAt.preimage_mem_nhds (W.isOpen.mem_nhds W.zero_mem)
+  -- Step 2: mk⁻¹(W) contains some tateAlgNhd P' k₀.
+  let P' := (IsTateRing.principalPair A).toPairOfDefinition
+  obtain ⟨k₀, -, hk₀⟩ := tateAlgBasis'.hasBasis_nhds_zero.mem_iff.mp hmk_pre_W
+  -- Step 3: Show locIdeal generators map into mk(tateAlgNhd P' k₀).
+  -- The locIdeal D.P D.T D.s is generated (as an ideal of locSubring) by
+  -- elements of the form algebraMap(t * b) / s for t ∈ D.T, b ∈ D.P.I.
+  -- Under locToQuotientOneSubfX_gen, these map to mk(algebraMap(t*b) * X).
+  -- This element has coefficient t*b at index 1.
+  -- For this to be in tateAlgNhd P' k₀, we need t*b ∈ image P'.I^k₀ in A.
+  --
+  -- Key: P.hasBasis_nhds_zero and P'.hasBasis_nhds_zero both give nhd bases
+  -- of 0 in A. By continuity of (t * ·) at 0, for each t ∈ D.T, ∃ m_t such
+  -- that t * image(P.I^m_t) ⊆ image(P'.I^k₀). Take n = max over T of m_t.
+  -- Then locNhd(n) maps into mk(tateAlgNhd P' k₀) ⊆ W.
+  --
+  -- The multiplicative/additive closure follows from tateAlgNhd P' k₀ being
+  -- an additive subgroup and the quotient map being a ring hom.
+  --
+  -- Infrastructure gap: the span_induction over locIdeal generators requires
+  -- adapting locToQuotient_mul_small_constant_mem for the canonical pair P'.
+  -- The cofinality argument (P vs P') needs ~30 more lines.
+  -- Marking as sorry for now — the math is clear and all prerequisites are
+  -- in place. The remaining work is purely Lean engineering (span_induction
+  -- bookkeeping matching the T-topology proof at lines 438-501).
   sorry
 
 end CanonicalTopologyBridge
