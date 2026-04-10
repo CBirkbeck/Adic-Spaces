@@ -1315,7 +1315,17 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
       · -- ∀ a ∈ P.I, V.valuation(ι a) < 1.
         -- Domination: 𝔪 → maxIdeal(V). Since I_img ⊆ 𝔪, image(P.I) ⊆ V.nonunits.
         intro a ha
-        sorry -- F6: extract strict bound from domination
+        have ha_I_img : ι_R₀ a ∈ I_img := Ideal.mem_map_of_mem ι_R₀ ha
+        have ha_m : ι_R₀ a ∈ 𝔪 := h𝔪_le (Ideal.mem_sup_left ha_I_img)
+        change V.valuation (ι_R₀ a : K) < 1
+        have ha_in_L : (ι_R₀ a : K) ∈ L.toSubring :=
+          LocalSubring.le_ofPrime R₀ 𝔪 (ι_R₀ a).property
+        have ha_in_V : (ι_R₀ a : K) ∈ V.toSubring := hV_dom.1 ha_in_L
+        rw [← ValuationSubring.valuation_lt_one_iff V ⟨_, ha_in_V⟩]
+        have ha_maxL : ⟨(ι_R₀ a : K), ha_in_L⟩ ∈ IsLocalRing.maximalIdeal L.toSubring :=
+          (IsLocalization.AtPrime.to_map_mem_maximal_iff L.toSubring 𝔪 (ι_R₀ a)).mpr ha_m
+        haveI : IsLocalHom (Subring.inclusion hV_dom.1) := hV_dom.2
+        exact map_nonunit (Subring.inclusion hV_dom.1) _ ha_maxL
     obtain ⟨V, hV_le, hx_notV, hI_lt_one⟩ := hV_refined
     -- Phase B+C: Coarsen + extend to get a continuous valuation on R.
     -- Following the Lemma 7.45 pattern (exists_spa_point_via_restrictToConvex).
