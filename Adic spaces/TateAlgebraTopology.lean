@@ -985,6 +985,239 @@ theorem tateAlgebraTopology'_t2Space [IsTateRing A] [T2Space A] :
   simp at hb_eq
   exact hl hb_eq.symm
 
+/-! ### Completeness of `TateAlgebra A` with the natural Tate topology
+
+We prove that `TateAlgebra A` is complete with respect to the canonical natural Tate
+topology `tateAlgebraTopology'`, provided the ground ring `A` is complete and Hausdorff.
+
+The proof uses `UniformSpace.complete_of_cauchySeq_tendsto`: since the uniformity is
+countably generated (the basis `tateAlgNhd P n` is indexed by `ℕ`), it suffices to show
+every Cauchy sequence converges.
+
+Given a Cauchy sequence `u` in `TateAlgebra A`:
+1. Each coefficient sequence `fun n => coeff l (u n)` is Cauchy in `A`.
+2. By completeness of `A`, each coefficient sequence converges to some `c l`.
+3. The limit function `c` is restricted (its coefficients tend to 0 cofinitely).
+4. The sequence `u` converges to `c` in `tateAlgebraTopology'`.
+
+Reference: Wedhorn, §8.
+-/
+
+omit [NonarchimedeanRing A] in
+/-- The image of `P.I^n` under `Subtype.val : P.A₀ → A` is a closed additive subgroup
+(being an open additive subgroup in a topological ring, hence clopen). -/
+private theorem pow_image_isClosed (P : PairOfDefinition A) (n : ℕ) :
+    IsClosed (Subtype.val '' ((P.I ^ n : Ideal ↥P.A₀) : Set ↥P.A₀) : Set A) := by
+  -- The image is open (P.pow_image_isOpen), hence clopen as an additive subgroup.
+  -- First show it's an open set, then use that open subgroups are closed.
+  have hopen := P.pow_image_isOpen n
+  -- It's an additive subgroup: image of an ideal under a ring hom.
+  -- Open additive subgroups of topological groups are closed.
+  rw [show Subtype.val '' ((P.I ^ n : Ideal ↥P.A₀) : Set ↥P.A₀) =
+    (AddSubgroup.map P.A₀.subtype.toAddMonoidHom (P.I ^ n).toAddSubgroup : Set A) from rfl]
+  exact AddSubgroup.isClosed_of_isOpen _ (by
+    rw [show (AddSubgroup.map P.A₀.subtype.toAddMonoidHom (P.I ^ n).toAddSubgroup : Set A) =
+      Subtype.val '' ((P.I ^ n : Ideal ↥P.A₀) : Set ↥P.A₀) from rfl]
+    exact hopen)
+
+/-- The `CompleteSpace` instance for `TateAlgebra A` with the canonical natural Tate topology.
+
+This is the main result: if `A` is a complete Hausdorff Tate ring, then `A⟨X⟩` is complete
+with respect to the natural Tate topology (the `I`-adic topology on coefficients).
+
+See Wedhorn, §8 (completeness of Tate algebras). -/
+theorem tateAlgebraTopology'_completeSpace [IsTateRing A] [T2Space A]
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A)) :
+    @CompleteSpace ↥(TateAlgebra A)
+      (@IsTopologicalAddGroup.rightUniformSpace _ _
+        tateAlgebraTopology'
+        (@IsTopologicalRing.to_topologicalAddGroup _ _
+          tateAlgebraTopology' (tateAlgebraTopology'_isTopologicalRing))) := by
+  let P := (IsTateRing.principalPair A).toPairOfDefinition
+  letI τ : TopologicalSpace ↥(TateAlgebra A) := tateAlgebraTopology'
+  haveI hring : IsTopologicalRing ↥(TateAlgebra A) := tateAlgebraTopology'_isTopologicalRing
+  haveI haddgrp : IsTopologicalAddGroup ↥(TateAlgebra A) :=
+    IsTopologicalRing.to_topologicalAddGroup
+  letI uT : UniformSpace ↥(TateAlgebra A) := IsTopologicalAddGroup.rightUniformSpace _
+  haveI : @IsUniformAddGroup _ uT _ := @isUniformAddGroup_of_addCommGroup _ _ _ haddgrp
+  -- Step 1: The uniformity is countably generated (basis indexed by ℕ).
+  -- Since uT = rightUniformSpace, its topology equals tateAlgebraTopology' definitionally.
+  -- The nhds basis {tateAlgNhd P n}_n is ℕ-indexed, hence countably generated.
+  haveI : (@nhds _ τ (0 : ↥(TateAlgebra A))).IsCountablyGenerated :=
+    tateAlgBasis'.hasBasis_nhds_zero.isCountablyGenerated
+  haveI hcg : (@uniformity _ uT).IsCountablyGenerated :=
+    @IsUniformAddGroup.uniformity_countably_generated _ uT _ _ (by
+      convert ‹(@nhds _ τ (0 : ↥(TateAlgebra A))).IsCountablyGenerated›)
+  -- Step 2: Use the sequential completeness criterion.
+  apply @UniformSpace.complete_of_cauchySeq_tendsto _ uT hcg
+  intro u hu
+  -- Set up the uniform space on A: use the rightUniformSpace from the topology.
+  letI uA : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A
+  haveI : @IsUniformAddGroup A uA _ := isUniformAddGroup_of_addCommGroup
+  -- The uniformity of (TateAlgebra A, uT) has a basis from tateAlgBasis'.
+  -- The uniformity of (A, uA) has a basis from P.hasBasis_nhds_zero.
+  -- hu_basis: the Cauchy condition in terms of tateAlgNhd.
+  have hu_basis : ∀ n : ℕ, ∃ N : ℕ, ∀ m ≥ N, ∀ k ≥ N,
+      u m - u k ∈ tateAlgNhd P n := by
+    intro n
+    -- The set of pairs (x,y) with y - x ∈ tateAlgNhd P n is in the uniformity.
+    have hmem : (fun p : ↥(TateAlgebra A) × ↥(TateAlgebra A) => p.2 - p.1) ⁻¹'
+        (tateAlgNhd P n : Set _) ∈ @uniformity _ uT := by
+      rw [@uniformity_eq_comap_nhds_zero' _ _ _ haddgrp]
+      exact Filter.mem_comap.mpr ⟨(tateAlgNhd P n : Set _),
+        tateAlgBasis'.hasBasis_nhds_zero.mem_of_mem (i := n) trivial,
+        fun p hp => by simp only [Set.mem_preimage, sub_eq_add_neg] at hp ⊢; exact hp⟩
+    obtain ⟨N, hN⟩ := cauchySeq_iff.mp hu _ hmem
+    exact ⟨N, fun m hm k hk => by
+      have h1 := hN m hm k hk
+      simp only [Set.mem_preimage] at h1
+      -- h1 : u k - u m ∈ tateAlgNhd P n (since preimage is p.2 - p.1 and pair is (u m, u k))
+      rw [show u m - u k = -(u k - u m) from by ring]
+      exact neg_mem h1⟩
+  -- Step 3: For each l, the coefficient sequence is Cauchy in (A, uA).
+  -- Since uA is a letI, CauchySeq will use it automatically.
+  have hcoeff_cauchy : ∀ l : Fin 1 →₀ ℕ,
+      CauchySeq (fun n => MvPowerSeries.coeff l (u n).val) := by
+    intro l
+    rw [cauchySeq_iff]
+    intro V hV
+    -- The uniformity on A (= uA = rightUniformSpace) is comap (· - ·) (nhds 0).
+    rw [uniformity_eq_comap_nhds_zero'] at hV
+    obtain ⟨W, hW, hWV⟩ := Filter.mem_comap.mp hV
+    obtain ⟨n, _, hn⟩ := P.hasBasis_nhds_zero.mem_iff.mp hW
+    obtain ⟨N, hN⟩ := hu_basis n
+    refine ⟨N, fun m hm k hk => ?_⟩
+    have hdiff := hN m hm k hk
+    obtain ⟨b, hb_mem, hb_eq⟩ := tateAlgNhd_coeff_mem P n hdiff l
+    -- Goal: (coeff l (u m), coeff l (u k)) ∈ V.
+    -- preimage is p.2 + -p.1, so we need coeff l (u k) - coeff l (u m) ∈ W.
+    -- We have b with b = coeff l (u m - u k) = coeff l (u m) - coeff l (u k).
+    -- Since image P.I^n is a subgroup, -b also has image in P.I^n and -b = coeff l (u k) - coeff l (u m).
+    apply hWV
+    simp only [Set.mem_preimage]
+    apply hn
+    refine ⟨-b, (P.I ^ n).neg_mem hb_mem, ?_⟩
+    simp only [Subring.coe_neg, hb_eq]
+    show -MvPowerSeries.coeff l (u m - u k).val =
+      MvPowerSeries.coeff l (u k).val + -MvPowerSeries.coeff l (u m).val
+    rw [show (u m - u k).val = (u m).val - (u k).val from rfl, map_sub, neg_sub,
+      sub_eq_add_neg]
+  -- Extract coefficient-wise limits using completeness of A.
+  have hcoeff_conv : ∀ l : Fin 1 →₀ ℕ, ∃ a : A,
+      Tendsto (fun n => MvPowerSeries.coeff l (u n).val) atTop (nhds a) :=
+    fun l => cauchySeq_tendsto_of_complete (hcoeff_cauchy l)
+  choose c hc using hcoeff_conv
+  -- Step 4: The limit function c is restricted (coefficients tend to 0 cofinitely).
+  have hc_restricted : MvPowerSeries.IsRestricted (fun l => c l : MvPowerSeries (Fin 1) A) := by
+    -- IsRestricted means: Tendsto (fun l => f l) cofinite (nhds 0),
+    -- where f is viewed as a function (Fin 1 →₀ ℕ) → A.
+    -- Since our f is (fun l => c l), we need Tendsto c cofinite (nhds 0).
+    show Tendsto c cofinite (nhds 0)
+    rw [tendsto_nhds]
+    intro U hU h0U
+    rw [Filter.mem_cofinite]
+    -- Extract n such that image P.I^n ⊆ U.
+    obtain ⟨n, _, hn⟩ := P.hasBasis_nhds_zero.mem_iff.mp (hU.mem_nhds h0U)
+    -- Since u is Cauchy, find N for this n.
+    obtain ⟨N, hN⟩ := hu_basis n
+    -- u N is restricted, so all but finitely many coefficients of u N are in image P.I^n.
+    have hfin : ∀ᶠ l in cofinite,
+        MvPowerSeries.coeff l (u N).val ∈
+          (Subtype.val '' ((P.I ^ n : Ideal ↥P.A₀) : Set ↥P.A₀) : Set A) :=
+      tateAlgebra_coeff_eventually_in_pow P (u N) n
+    -- The "bad" set for u N is finite.
+    set S : Set (Fin 1 →₀ ℕ) := {l |
+      MvPowerSeries.coeff l (u N).val ∉
+        (Subtype.val '' ((P.I ^ n : Ideal ↥P.A₀) : Set ↥P.A₀) : Set A)}
+    have hS_fin : S.Finite := hfin
+    -- The "bad" set for the limit is contained in S.
+    suffices hsub : {l | c l ∉ U} ⊆ S from hS_fin.subset hsub
+    intro l hl
+    simp only [Set.mem_setOf_eq] at hl ⊢
+    -- Suppose coeff l (u N) ∈ image P.I^n. Then c l ∈ image P.I^n ⊆ U, contradiction.
+    intro h_in
+    apply hl; apply hn
+    -- Show c l ∈ image P.I^n using closedness + eventual membership.
+    apply (pow_image_isClosed P n).mem_of_tendsto (hc l)
+    rw [Filter.eventually_atTop]
+    refine ⟨N, fun k hk => ?_⟩
+    -- coeff l (u k) = coeff l (u N) + coeff l (u k - u N).
+    -- Both terms are in image P.I^n (an additive subgroup).
+    obtain ⟨b_diff, hb_diff_mem, hb_diff_eq⟩ := tateAlgNhd_coeff_mem P n (hN k hk N le_rfl) l
+    obtain ⟨b_N, hb_N_mem, hb_N_eq⟩ := h_in
+    refine ⟨b_N + b_diff, (P.I ^ n).add_mem hb_N_mem hb_diff_mem, ?_⟩
+    push_cast
+    rw [hb_N_eq, hb_diff_eq]
+    simp [map_sub]
+  -- Step 5: Construct the limit element of TateAlgebra A.
+  let f : ↥(TateAlgebra A) := ⟨fun l => c l, hc_restricted⟩
+  refine ⟨f, ?_⟩
+  -- Step 6: Show u n → f in tateAlgebraTopology'.
+  -- Use the basis characterization: u n → f iff ∀ k, eventually u n - f ∈ tateAlgNhd P k.
+  rw [(tateAlgBasis'.hasBasis_nhds f).tendsto_right_iff]
+  intro k _
+  -- We need: eventually (fun n => u n ∈ {b | b - f ∈ tateAlgNhd P k}).
+  rw [Filter.eventually_atTop]
+  -- The key: for large enough n, all coefficients of u n - f are in image P.I^k.
+  -- Then by tateAlgNhd_of_coeff_mem_principal, u n - f ∈ tateAlgNhd P k.
+  -- Find N from the Cauchy condition for k.
+  obtain ⟨N, hN⟩ := hu_basis k
+  -- Also, for each l, coeff l (u n) → c l, so eventually coeff l (u n) - c l ∈ image P.I^k.
+  -- But we need a UNIFORM N that works for ALL l simultaneously.
+  -- The trick: for m ≥ N, u m - u N ∈ tateAlgNhd P k, so all coefficients of u m - u N
+  -- are in image P.I^k. Taking m → ∞, all coefficients of f - u N are in image P.I^k
+  -- (by closedness of image P.I^k). Then u n - f = (u n - u N) - (f - u N), and
+  -- both have coefficients in image P.I^k (an additive subgroup).
+  -- Actually, more directly: for n ≥ N, coeff l (u n) - c l is the limit as m → ∞ of
+  -- coeff l (u n) - coeff l (u m) = coeff l (u n - u m), which for m ≥ N is in image P.I^k.
+  -- By closedness, the limit coeff l (u n) - c l is also in image P.I^k.
+  refine ⟨N, fun n hn => ?_⟩
+  show u n - f ∈ tateAlgNhd P k
+  -- First show u n - f ∈ pairSubring P (all coefficients in P.A₀).
+  -- Then show all coefficients of u n - f are in image P.I^k.
+  -- Then apply tateAlgNhd_of_coeff_mem_principal.
+  have hcoeff_diff : ∀ l : Fin 1 →₀ ℕ,
+      ∃ b : ↥P.A₀, b ∈ P.I ^ k ∧ (b : A) = MvPowerSeries.coeff l (u n - f).val := by
+    intro l
+    -- coeff l (u n - f) = coeff l (u n).val - c l.
+    -- This equals lim_{m→∞} (coeff l (u n) - coeff l (u m)) = lim coeff l (u n - u m).
+    -- For m ≥ N, u n - u m ∈ tateAlgNhd P k, so coeff l (u n - u m) ∈ image P.I^k.
+    -- By closedness of image P.I^k, the limit is also in image P.I^k.
+    have hcoeff_val : MvPowerSeries.coeff l (u n - f).val =
+        MvPowerSeries.coeff l (u n).val - c l := by
+      show MvPowerSeries.coeff l ((u n).val - f.val) =
+        MvPowerSeries.coeff l (u n).val - c l
+      rw [map_sub]
+      simp only [MvPowerSeries.coeff_apply, f]
+    -- The sequence (coeff l (u m))_m converges to c l.
+    have htend : Tendsto (fun m => MvPowerSeries.coeff l (u n).val -
+        MvPowerSeries.coeff l (u m).val)
+        atTop (nhds (MvPowerSeries.coeff l (u n).val - c l)) := by
+      exact tendsto_const_nhds.sub (hc l)
+    -- For m ≥ N, the value is in image P.I^k (closed set).
+    have hev : ∀ᶠ m in atTop,
+        MvPowerSeries.coeff l (u n).val - MvPowerSeries.coeff l (u m).val ∈
+          (Subtype.val '' ((P.I ^ k : Ideal ↥P.A₀) : Set ↥P.A₀) : Set A) := by
+      rw [Filter.eventually_atTop]
+      refine ⟨N, fun m hm => ?_⟩
+      obtain ⟨b, hb_mem, hb_eq⟩ := tateAlgNhd_coeff_mem P k (hN n hn m hm) l
+      exact ⟨b, hb_mem, by rw [hb_eq]; simp [map_sub]⟩
+    -- By closedness, the limit is in image P.I^k.
+    have hlim_mem := (pow_image_isClosed P k).mem_of_tendsto htend hev
+    rw [← hcoeff_val] at hlim_mem
+    obtain ⟨b, hb_mem, hb_eq⟩ := hlim_mem
+    exact ⟨b, hb_mem, hb_eq⟩
+  -- Now we have all coefficients of u n - f in image P.I^k.
+  -- Show u n - f ∈ pairSubring P.
+  have hpair : (u n - f) ∈ pairSubring P := by
+    intro s
+    obtain ⟨b, _, hb_eq⟩ := hcoeff_diff s
+    rw [← hb_eq]; exact b.property
+  -- Apply reverse coefficient characterization.
+  let PP := IsTateRing.principalPair A
+  exact tateAlgNhd_of_coeff_mem_principal PP.toPairOfDefinition k PP.π PP.I_eq_span PP.π_isUnit
+    hpair hcoeff_diff
+
 end TateAlgebraNaturalTopology
 
 end TateAlgebra
