@@ -1301,7 +1301,15 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
       -- ι x ∉ L.toSubring: if ι x = a/s with a ∈ R₀, s ∉ 𝔪, then
       -- s · ι x = a ∈ R₀, so s ∈ S_x ⊆ 𝔪, contradiction.
       have hx_notL : ι x ∉ L.toSubring := by
-        sorry -- F6: conductor argument
+        intro hmem
+        obtain ⟨⟨a, ⟨s, hs⟩⟩, heq⟩ := IsLocalization.surj 𝔪.primeCompl (⟨ι x, hmem⟩ : L.toSubring)
+        have h1 := congr_arg Subtype.val heq
+        simp only [Subring.coe_mul] at h1
+        have halg : ∀ (y : R₀), (↑((algebraMap R₀ L.toSubring) y) : K) = (y : K) := fun _ ↦ rfl
+        rw [halg s, halg a] at h1
+        have hs_cond : s ∈ S_x := show (s : K) * ι x ∈ R₀ by
+          rw [mul_comm, h1]; exact a.property
+        exact hs (h𝔪_le (Ideal.mem_sup_right hs_cond))
       -- R₀ is integrally closed in K (it's the integral closure).
       -- Localization preserves integrally closed (standard commutative algebra).
       haveI : IsIntegrallyClosedIn L.toSubring K := by
