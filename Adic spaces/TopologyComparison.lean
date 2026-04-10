@@ -1432,4 +1432,227 @@ theorem tateQuotientToPresheafHom_continuous (D : RationalLocData A)
 
 end HypothesesDischarge
 
+/-! ### Phase 2.6: Canonical topology versions of continuity and dense range
+
+The canonical (natural Tate) topology on `A⟨X⟩` is installed by
+`TateAlgebra.TateAlgebraNaturalTopology.instTopologicalSpaceTateAlgebra` (priority 1000).
+The quotient topology is `quotientOneSubfXIdealTopology`.
+
+These theorems parallel the T-topology versions `locToQuotientOneSubfX_gen_continuous`
+and `locToQuotientOneSubfX_gen_denseRange`, but use the canonical topology instead.
+They cannot live in `TateAlgebraTopology.lean` due to import circularity
+(`PresheafIdentification` imports `TateAlgebraWedhorn` which imports `TateAlgebraTopology`).
+-/
+
+section CanonicalTopologyBridge
+
+variable [T2Space A]
+
+open TateAlgebra
+
+/-- Truncation of `g ∈ A⟨X⟩` at degree `N` for the canonical topology proof:
+keep coefficients at multi-indices with `s 0 < N`, set the rest to zero.
+The result is restricted (polynomial). -/
+private noncomputable def truncTateC (g : ↥(TateAlgebra A)) (N : ℕ) :
+    ↥(TateAlgebra A) :=
+  ⟨fun s => if s 0 < N then g.val s else 0,
+   isRestricted_of_eventually_zero _ N
+    (fun s hs => by simp [show ¬(s 0 < N) from by omega])⟩
+
+private theorem truncTateC_val (g : ↥(TateAlgebra A)) (N : ℕ)
+    (s : Fin 1 →₀ ℕ) :
+    (truncTateC g N).val s = if s 0 < N then g.val s else 0 := rfl
+
+private theorem truncTateC_coeff_high (g : ↥(TateAlgebra A)) (N : ℕ)
+    (s : Fin 1 →₀ ℕ) (hs : N ≤ s 0) :
+    (truncTateC g N).val s = 0 := by
+  simp [truncTateC_val, show ¬(s 0 < N) from by omega]
+
+set_option linter.unusedSectionVars false in
+/-- Polynomials (elements with finitely many nonzero coefficients) are dense
+in the Tate algebra for the canonical (natural Tate) topology.
+
+For a given basic neighborhood `tateAlgNhd P n`, the set of indices whose
+coefficients lie outside `image(I^n)` is finite (by the restricted property).
+So for `N` larger than all such indices, the truncation satisfies
+`g - trunc(g, N) ∈ tateAlgNhd P n`. -/
+private theorem tateAlgebra_polynomials_dense_canonical [IsTateRing A] :
+    @Dense ↥(TateAlgebra A) instTopologicalSpaceTateAlgebra
+      {g | ∃ N : ℕ, ∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → g.val n = 0} := by
+  let P := (IsTateRing.principalPair A).toPairOfDefinition
+  intro g
+  rw [@mem_closure_iff _ instTopologicalSpaceTateAlgebra]
+  intro O hO hgO
+  have hO_nhds : O ∈ @nhds _ instTopologicalSpaceTateAlgebra g := hO.mem_nhds hgO
+  obtain ⟨n, -, hn⟩ := (tateAlgBasis' (A := A)).hasBasis_nhds g |>.mem_iff.mp hO_nhds
+  -- g is restricted: all but finitely many coefficients lie in image(I^n).
+  have hfin : ∀ᶠ (l : Fin 1 →₀ ℕ) in Filter.cofinite,
+      MvPowerSeries.coeff l g.val ∈
+        (Subtype.val '' ((P.I ^ n : Ideal P.A₀) : Set P.A₀) : Set A) :=
+    tateAlgebra_coeff_eventually_in_pow P g n
+  set S : Set (Fin 1 →₀ ℕ) := {l |
+    MvPowerSeries.coeff l g.val ∉
+      (Subtype.val '' ((P.I ^ n : Ideal P.A₀) : Set P.A₀) : Set A)} with hS_def
+  have hS_fin : S.Finite := hfin
+  let N := (hS_fin.toFinset.image (· 0)).sup id + 1
+  refine ⟨truncTateC g N, hn ?_, ⟨N, fun m hm => truncTateC_coeff_high g N m hm⟩⟩
+  -- Need: truncTateC g N - g ∈ tateAlgNhd P n (basis uses b - a ∈ ...).
+  -- This equals -(g - truncTateC g N), so use neg_mem.
+  have hdiff_pair : g - truncTateC g N ∈ pairSubring P := by
+    intro l
+    change (g.val l - (truncTateC g N).val l) ∈ (P.A₀ : Set A)
+    rw [truncTateC_val]
+    by_cases hlt : l 0 < N
+    · rw [if_pos hlt, sub_self]; exact P.A₀.zero_mem
+    · rw [if_neg hlt, sub_zero]
+      have hl_not_bad : l ∉ S := by
+        intro hl
+        have hl_fin : l ∈ hS_fin.toFinset := hS_fin.mem_toFinset.mpr hl
+        have : l 0 ≤ (hS_fin.toFinset.image (· 0)).sup id := by
+          exact Finset.le_sup (f := id) (Finset.mem_image_of_mem (· 0) hl_fin)
+        omega
+      rw [hS_def, Set.mem_setOf_eq, not_not] at hl_not_bad
+      obtain ⟨b, _, hb_eq⟩ := hl_not_bad
+      rw [show g.val l = (b : A) from hb_eq.symm]; exact b.property
+  have hdiff_coeff : ∀ l, ∃ b : P.A₀, b ∈ P.I ^ n ∧
+      (b : A) = MvPowerSeries.coeff l (g - truncTateC g N).val := by
+    intro l
+    change ∃ b : P.A₀, b ∈ P.I ^ n ∧ (b : A) = g.val l - (truncTateC g N).val l
+    rw [truncTateC_val]
+    by_cases hlt : l 0 < N
+    · -- Coefficient agrees: difference is 0.
+      rw [if_pos hlt, sub_self]
+      exact ⟨0, (P.I ^ n).zero_mem, rfl⟩
+    · -- High coefficient: truncation is 0, difference is g.val l.
+      rw [if_neg hlt, sub_zero]
+      have hl_not_bad : l ∉ S := by
+        intro hl
+        have hl_fin : l ∈ hS_fin.toFinset := hS_fin.mem_toFinset.mpr hl
+        have : l 0 ≤ (hS_fin.toFinset.image (· 0)).sup id := by
+          exact Finset.le_sup (f := id) (Finset.mem_image_of_mem (· 0) hl_fin)
+        omega
+      rw [hS_def, Set.mem_setOf_eq, not_not] at hl_not_bad
+      exact hl_not_bad
+  -- g - truncTateC g N ∈ tateAlgNhd P n.
+  have hg_diff_mem : g - truncTateC g N ∈ tateAlgNhd P n :=
+    tateAlgNhd_of_coeff_mem_principal P n
+      (IsTateRing.principalPair A).π
+      (IsTateRing.principalPair A).I_eq_span
+      (IsTateRing.principalPair A).π_isUnit
+      hdiff_pair hdiff_coeff
+  -- truncTateC g N - g = -(g - truncTateC g N), use neg_mem.
+  change truncTateC g N - g ∈ tateAlgNhd P n
+  rw [show truncTateC g N - g = -(g - truncTateC g N) from by ring]
+  exact neg_mem hg_diff_mem
+
+set_option linter.unusedSectionVars false in
+/-- The localization `A[1/s]` maps densely into `A⟨X⟩/(1-sX)` for the canonical
+quotient topology (Wedhorn Example 6.38, canonical topology version).
+
+The image of `locToQuotientOneSubfX_gen` contains all polynomial quotient classes
+`mk(p)` (by `polynomial_quotient_in_range`). Polynomials are dense in `A⟨X⟩`
+for the canonical topology (`tateAlgebra_polynomials_dense_canonical`), and `mk`
+is a continuous surjection, so `mk(polynomials)` is dense in the quotient.
+Since `mk(polynomials) ⊆ range(locToQuotientOneSubfX_gen)`, the range is dense. -/
+theorem locToQuotientOneSubfX_gen_denseRange_canonical [IsTateRing A] [T2Space A]
+    (s : A) :
+    @DenseRange (↥(TateAlgebra A) ⧸ oneSubfXIdeal s)
+      (quotientOneSubfXIdealTopology s) (Localization.Away s)
+      (locToQuotientOneSubfX_gen s) := by
+  change @Dense _ (quotientOneSubfXIdealTopology s) (Set.range (locToQuotientOneSubfX_gen s))
+  set P : Set ↥(TateAlgebra A) :=
+    {g | ∃ N : ℕ, ∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → g.val n = 0}
+  let mk := Ideal.Quotient.mk (oneSubfXIdeal s)
+  -- Step 1: mk '' P ⊆ range(locToQuotientOneSubfX_gen).
+  have h_sub : mk '' P ⊆ Set.range (locToQuotientOneSubfX_gen s) := by
+    rintro _ ⟨g, ⟨N, hN⟩, rfl⟩
+    exact polynomial_quotient_in_range s g N hN
+  -- Step 2: mk '' P is dense in quotient canonical topology.
+  have h_dense : @Dense _ (quotientOneSubfXIdealTopology s) (mk '' P) := by
+    have hP_dense := tateAlgebra_polynomials_dense_canonical (A := A)
+    have hmk_surj : Function.Surjective mk := Ideal.Quotient.mk_surjective
+    letI := instTopologicalSpaceTateAlgebra (A := A)
+    have hmk_dr : @DenseRange (↥(TateAlgebra A) ⧸ oneSubfXIdeal s)
+        (quotientOneSubfXIdealTopology s)
+        ↥(TateAlgebra A) mk := hmk_surj.denseRange
+    exact hmk_dr.dense_image continuous_quotient_mk' hP_dense
+  exact @Dense.mono _ (quotientOneSubfXIdealTopology s) _ _ h_sub h_dense
+
+/-- The map `locToQuotientOneSubfX_gen D.s` is continuous from the localization
+topology on `Localization.Away D.s` to the canonical quotient topology on
+`A⟨X⟩/(1-sX)`.
+
+**Proof sketch:** Reduce to continuity at 0 (additive group hom). Use the
+nonarchimedean property of the canonical quotient topology to extract an open
+additive subgroup `W` of any target neighborhood. Then show that for large `n`,
+`locNhd(n)` maps into `W` via the canonical I-adic structure.
+
+The key ingredient: `mk ∘ algebraMap : A → quotient` is continuous (composition
+of `tateAlgebra_algebraMap_continuous` and `continuous_quotient_mk'`), and
+the localization neighborhoods `locNhd(n)` are generated by elements of the form
+`algebraMap(b) / s^k` with `b ∈ I^n`. -/
+theorem locToQuotientOneSubfX_gen_continuous_canonical [IsTateRing A] [T2Space A]
+    (D : RationalLocData A) :
+    @Continuous _ _ D.topology (quotientOneSubfXIdealTopology D.s)
+      (locToQuotientOneSubfX_gen D.s) := by
+  -- Set up instances.
+  letI : TopologicalSpace (Localization.Away D.s) := D.topology
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsTopologicalAddGroup (Localization.Away D.s) := D.isTopologicalAddGroup
+  letI τC : TopologicalSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology D.s
+  letI : IsTopologicalRing (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology_isTopologicalRing D.s
+  haveI : IsTopologicalAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    @IsTopologicalRing.to_topologicalAddGroup _ _
+      (quotientOneSubfXIdealTopology D.s) (quotientOneSubfXIdealTopology_isTopologicalRing D.s)
+  -- Reduce to continuity at 0.
+  apply continuous_of_continuousAt_zero (locToQuotientOneSubfX_gen D.s)
+  rw [ContinuousAt, map_zero, Filter.tendsto_def]
+  intro S hS
+  have hbasis := locBasis D.P D.T D.s D.hopen
+  let hb := hbasis.toRingFilterBasis.toAddGroupFilterBasis
+  -- TateAlgebra A is nonarchimedean with canonical topology (from RingSubgroupsBasis).
+  haveI hNA_tate : @NonarchimedeanRing ↥(TateAlgebra A) _ instTopologicalSpaceTateAlgebra :=
+    tateAlgBasis'.nonarchimedean
+  -- The canonical quotient topology is nonarchimedean.
+  haveI : @NonarchimedeanRing (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s)
+      _ (quotientOneSubfXIdealTopology D.s) := by
+    constructor; intro U hU
+    have hcont : @Continuous _ _ instTopologicalSpaceTateAlgebra
+        (quotientOneSubfXIdealTopology D.s)
+        (Ideal.Quotient.mk (oneSubfXIdeal D.s)) :=
+      continuous_quotient_mk'
+    have hU' : (Ideal.Quotient.mk (oneSubfXIdeal D.s)) ⁻¹' (U : Set _) ∈
+        @nhds _ instTopologicalSpaceTateAlgebra (0 : ↥(TateAlgebra A)) :=
+      hcont.continuousAt.preimage_mem_nhds hU
+    obtain ⟨V, hVU⟩ := @NonarchimedeanRing.is_nonarchimedean _ _ _ hNA_tate _ hU'
+    exact ⟨{
+      toAddSubgroup := V.toAddSubgroup.map
+        (Ideal.Quotient.mk (oneSubfXIdeal D.s)).toAddMonoidHom
+      isOpen' := @QuotientRing.isOpenMap_coe _ instTopologicalSpaceTateAlgebra _
+        (oneSubfXIdeal D.s) instIsTopologicalRingTateAlgebra _ V.isOpen
+    }, fun x hx => by obtain ⟨y, hy, rfl⟩ := hx; exact hVU hy⟩
+  obtain ⟨W, hWS⟩ := NonarchimedeanRing.is_nonarchimedean S hS
+  suffices ∃ n, ∀ x ∈ locNhd D.P D.T D.s n,
+      locToQuotientOneSubfX_gen D.s x ∈ (W : Set _) by
+    obtain ⟨n, hn⟩ := this
+    apply Filter.mem_of_superset
+      (hb.nhds_zero_hasBasis.mem_iff.mpr
+        ⟨locNhd D.P D.T D.s n, ⟨n, rfl⟩, le_refl _⟩)
+    intro x hx; exact hWS (hn x hx)
+  -- Helper: ∃ m, ∀ r ∈ locSubring, ∀ b ∈ I^m, φ(r * algebraMap(b)) ∈ W.
+  -- The preimage mk⁻¹(W) is open in canonical topology (mk is continuous).
+  -- mk⁻¹(W) contains some tateAlgNhd P k.
+  -- For any x in TateAlgebra A, tateAlgNhd_leftMul gives j with x * tateAlgNhd(j) ⊆ tateAlgNhd(k).
+  -- The locNhd(n) structure via span_induction with strengthened predicate
+  -- handles the uniformity over locSubring elements.
+  -- This is a substantial proof (~200 lines in the T-topology version).
+  -- For canonical topology, the proof follows the same structure but uses
+  -- tateAlgNhd_leftMul instead of Artin-Rees shift constants.
+  -- TODO: fill this proof by adapting the T-topology span_induction argument.
+  sorry
+
+end CanonicalTopologyBridge
+
 end ValuationSpectrum

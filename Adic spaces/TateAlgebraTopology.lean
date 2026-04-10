@@ -1524,22 +1524,54 @@ theorem quotient_oneSubfXIdeal_t2Space [IsTateRing A] [T2Space A]
     oneSubfXIdeal_isClosed hA_complete hnoeth s
   infer_instance
 
--- NOTE: The following theorem is omitted due to Mathlib 4.29.0-rc6 limitations.
--- Mathlib 4.29.0-rc6 does not provide a CompleteSpace instance for quotients of complete
--- spaces by closed subgroups. The proof approach is correct:
--- 1. Establish that oneSubfXIdeal s is closed
--- 2. Lift the complete space structure from TateAlgebra A through the quotient map
--- 3. Use infer_instance to obtain the CompleteSpace instance
--- This would compile in newer Mathlib versions or with manual instance construction.
--- theorem quotient_oneSubfXIdeal_completeSpace [IsTateRing A] [T2Space A]
---     (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
---     (hnoeth : IsNoetherianRing
---       ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
---     (s : A) :
---     CompleteSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal s) := by
---   sorry
+/-- The quotient `A⟨X⟩/(1-sX)` is complete under the canonical quotient topology.
+
+**Proof:** `TateAlgebra A` is complete (`tateAlgebraTopology'_completeSpace`) and
+first-countable (`instFirstCountableTopologyTateAlgebra`). The ideal `(1-sX)` is
+closed (`oneSubfXIdeal_isClosed`). By `QuotientAddGroup.completeSpace_right'`
+(Bourbaki IX.3.1 Prop 4), the quotient of a complete first-countable topological
+group by a closed normal subgroup is complete. -/
+theorem quotient_oneSubfXIdeal_completeSpace [IsTateRing A] [T2Space A]
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (s : A) :
+    @CompleteSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal s)
+      (quotientOneSubfXIdealUniformSpace s) := by
+  -- Set up the canonical topology instances on TateAlgebra A.
+  letI τ : TopologicalSpace ↥(TateAlgebra A) := instTopologicalSpaceTateAlgebra
+  haveI _hring : IsTopologicalRing ↥(TateAlgebra A) := instIsTopologicalRingTateAlgebra
+  haveI haddgrp : IsTopologicalAddGroup ↥(TateAlgebra A) :=
+    IsTopologicalRing.to_topologicalAddGroup
+  -- TateAlgebra A is first-countable (basis indexed by ℕ).
+  haveI : FirstCountableTopology ↥(TateAlgebra A) := instFirstCountableTopologyTateAlgebra
+  -- TateAlgebra A is complete.
+  haveI hCS : @CompleteSpace ↥(TateAlgebra A)
+      (IsTopologicalAddGroup.rightUniformSpace ↥(TateAlgebra A)) :=
+    tateAlgebraTopology'_completeSpace hA_complete
+  -- (1-sX) is closed (uses hnoeth via oneSubfXIdeal_isClosed).
+  haveI : IsClosed ((oneSubfXIdeal s).toAddSubgroup : Set ↥(TateAlgebra A)) :=
+    oneSubfXIdeal_isClosed hA_complete hnoeth s
+  -- Apply QuotientAddGroup.completeSpace_right' (Bourbaki IX.3.1 Prop 4).
+  -- The result gives CompleteSpace for rightUniformSpace on the quotient.
+  exact @QuotientAddGroup.completeSpace_right' ↥(TateAlgebra A) _ τ haddgrp ‹_›
+    (oneSubfXIdeal s).toAddSubgroup inferInstance hCS
 
 end Phase25Quotient
+
+/-! ### Phase 2.6 note
+
+The continuity and dense range theorems for `locToQuotientOneSubfX_gen` with the
+canonical topology cannot live in this file due to import dependencies:
+`locToQuotientOneSubfX_gen` and `RationalLocData` are defined in
+`PresheafIdentification.lean`, which transitively imports this file (via
+`TateAlgebraWedhorn`). These theorems are therefore placed in
+`TopologyComparison.lean`, which already imports `PresheafIdentification`.
+
+See:
+- `locToQuotientOneSubfX_gen_continuous_canonical` in `TopologyComparison.lean`
+- `locToQuotientOneSubfX_gen_denseRange_canonical` in `TopologyComparison.lean`
+-/
 
 end TateAlgebraNaturalTopology
 

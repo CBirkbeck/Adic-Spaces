@@ -220,3 +220,25 @@ bounds `P.I^m ≤ span {π}`. Apply `P.withPrincipal`.
 
 **Phase 2.2 is DONE.** Downstream consumers (Phase 2.3+) can use
 `tateAlgebraTopology'` directly. Net: Phase 2.2 sorry count = 0.
+
+### 2026-04-08 -- Phase 2.6 infrastructure (canonical topology bridge)
+
+**TateAlgebraTopology.lean:**
+- `quotient_oneSubfXIdeal_completeSpace` -- PROVED (sorry-free). Quotient
+  `A⟨X⟩/(1-sX)` is complete under canonical quotient topology, using
+  `QuotientAddGroup.completeSpace_right'` (Bourbaki IX.3.1 Prop 4).
+  Previous agent incorrectly claimed this was a Mathlib limitation.
+
+**TopologyComparison.lean (new section CanonicalTopologyBridge):**
+- `tateAlgebra_polynomials_dense_canonical` -- PROVED (sorry-free).
+  Polynomials dense in canonical topology via truncation argument.
+- `locToQuotientOneSubfX_gen_denseRange_canonical` -- PROVED (sorry-free).
+  Dense range via polynomial density + surjective quotient map.
+- `locToQuotientOneSubfX_gen_continuous_canonical` -- 1 sorry.
+  Continuity from localization topology to canonical quotient topology.
+  Proof structure follows T-topology version but needs adaptation of
+  `locToQuotient_mul_small_constant_mem` for canonical I-adic structure
+  (uses `tateAlgNhd_leftMul` instead of Artin-Rees shift constants).
+
+**Net:** Phase 2.6 sorry count = 1 (continuity of locToQuotientOneSubfX_gen
+for canonical topology).
