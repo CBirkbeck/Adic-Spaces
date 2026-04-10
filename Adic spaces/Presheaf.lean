@@ -1342,7 +1342,37 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
       -- R₀ is integrally closed in K (it's the integral closure).
       -- Localization preserves integrally closed (standard commutative algebra).
       haveI : IsIntegrallyClosedIn L.toSubring K := by
-        sorry -- F6: localization preserves integrally closed
+        -- Localization of R₀ (integrally closed in K) at 𝔪 is still IC in K.
+        rw [Subring.isIntegrallyClosedIn_iff]
+        intro x hx
+        -- Clear denominators: ∃ m ∈ 𝔪.primeCompl, m • x integral over R₀.
+        obtain ⟨⟨m, hm⟩, hmx⟩ :=
+          hx.exists_multiple_integral_of_isLocalization 𝔪.primeCompl x
+        -- Since R₀ is IC in K, m • x ∈ R₀.
+        have hmx_R₀ : m • x ∈ R₀ := Subring.isIntegrallyClosedIn_iff.mp inferInstance hmx
+        -- m • x ∈ R₀ ⊆ L.toSubring.
+        have hmx_L : m • x ∈ L.toSubring := LocalSubring.le_ofPrime R₀ 𝔪 hmx_R₀
+        -- algebraMap R₀ L.toSubring m is a unit (m ∉ 𝔪 → invertible in localization).
+        have hu := IsLocalization.map_units L.toSubring (⟨m, hm⟩ : 𝔪.primeCompl)
+        -- x = (algebraMap R₀ K m)⁻¹ * (m • x), both factors in L.toSubring.
+        -- The inverse of algebraMap m exists in L.toSubring since m maps to a unit.
+        -- x = (algebraMap m)⁻¹ * (m • x), both factors in L.toSubring.
+        -- The smul m • x unfolds to algebraMap R₀ K m * x in the field K.
+        have hsmul : m • x = algebraMap R₀ K m * x := by
+          rw [Algebra.smul_def]
+        -- Coercion compatibility: algebraMap R₀ L.toSubring m coerces to m in K.
+        have halg_coe : (↑(algebraMap R₀ L.toSubring m) : K) = algebraMap R₀ K m := rfl
+        -- Let u_inv be the inverse of the unit algebraMap R₀ L.toSubring m.
+        set u_L := hu.unit
+        have hu_inv_mul : (↑(u_L⁻¹) : L.toSubring) * (algebraMap R₀ L.toSubring m) = 1 := by
+          exact_mod_cast u_L.inv_val
+        have hu_inv_mul_K : (↑(↑(u_L⁻¹) : L.toSubring) : K) *
+            (↑(algebraMap R₀ L.toSubring m) : K) = 1 := by
+          have := congr_arg (↑· : L.toSubring → K) hu_inv_mul
+          simpa [map_mul, map_one] using this
+        have hx_eq : x = (↑(↑(u_L⁻¹) : L.toSubring) : K) * (m • x) := by
+          rw [hsmul, ← halg_coe, ← mul_assoc, hu_inv_mul_K, one_mul]
+        rw [hx_eq]; exact L.toSubring.mul_mem (↑(u_L⁻¹) : L.toSubring).property hmx_L
       -- Apply Stacks 090P part 2.
       obtain ⟨V, hV_dom, hx_notV⟩ :=
         LocalSubring.exists_le_valuationSubring_of_isIntegrallyClosedIn hx_notL
