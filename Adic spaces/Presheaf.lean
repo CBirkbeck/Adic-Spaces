@@ -1225,31 +1225,97 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
   --       valuation with MulArchimedean value group;
   --   (c) Extension via vExtFun from P.A₀ to R.
   -- See docs/plans/2026-04-10-wedhorn-7-18-fill-plan.md for the detailed plan.
-  have hV_exists : ∃ (Γ₀ : Type) (_ : LinearOrderedCommGroupWithZero Γ₀)
+  have hV_exists : ∃ (Γ₀ : Type _) (_ : LinearOrderedCommGroupWithZero Γ₀)
       (wVal : Valuation R Γ₀),
       (∀ b ∈ B, wVal b ≤ 1) ∧ 1 < wVal x ∧ wVal.IsContinuous := by
     -- ============================================================
     -- CONSTRUCTION (Wedhorn 7.18 / [Hu2] Lemma 3.3)
-    -- See docs/plans/2026-04-10-wedhorn-7-18-fill-plan.md
     -- ============================================================
+    -- Phase A: Refined Stacks 090P with P.I in nonunits.
     --
-    -- Phase A: Get a valuation subring V with strict bound on P.I.
-    -- We need a refinement of the raw Stacks 090P that simultaneously:
-    --   (a) contains integralClosure(B)
-    --   (b) excludes ι x
-    --   (c) has P.I generators in its nonunits (strict < 1)
+    -- Let R₀ = integralClosure(B) in K. We need V ⊇ R₀ with ι x ∉ V
+    -- AND image(P.I) ⊆ V.nonunits (for strict bound).
+    -- Strategy: build a LocalSubring from R₀ at a maximal ideal containing
+    -- the conductor of x AND image of P.I, then apply Stacks 090P part 2.
+    let K := FractionRing R
+    let R₀ := (integralClosure B K).toSubring
+    -- The conductor of x: {s ∈ R₀ : s · (ι x) ∈ R₀}.
+    -- This equals Submodule.colon (R₀.toSubmodule viewed in K) {ι x}.
+    -- For simplicity, encode via Ideal.comap of the multiplication-by-x map.
+    -- Since R is a domain and ι is injective, ι x ≠ 0.
+    have hx_ne_zero : ι x ≠ 0 := by
+      intro h; exact hx_notin (h ▸ R₀.zero_mem)
+    -- F3: The conductor S(x) as an ideal of R₀.
+    -- S(x) = { s ∈ R₀ : s * (ι x) ∈ R₀ }
+    -- This is proper because 1 * (ι x) = ι x ∉ R₀.
+    -- F4/F5: Combined with image(P.I), the sum S(x) + I_img is proper.
+    -- This requires P.I generators to be in the Jacobson radical of R₀
+    -- (Wedhorn Lemma 7.22: topologically nilpotent → Jacobson radical for
+    -- bounded subrings, using the geometric series argument).
+    -- F6: Apply LocalSubring.exists_le_valuationSubring_of_isIntegrallyClosedIn.
     --
-    -- Phase B: Coarsen V's valuation to get MulArchimedean value group.
-    -- Use convexGenerated + restrictToConvex (Lemma 7.45 pattern).
-    --
-    -- Phase C: Extend from P.A₀ to all of R via vExtFun.
-    -- Verify: v_ext ≤ 1 on B, v_ext(x) > 1, v_ext continuous.
-    --
-    -- This construction is ~380 lines following the plan (F3-F10).
-    -- The highest-risk sub-step is F4 (Jacobson radical membership of
-    -- P.I generators in integralClosure(B)), which uses the geometric
-    -- series argument in the adic completion.
-    sorry
+    -- For now, we assert the existence of V with the required properties
+    -- as a sub-sorry capturing Phase A:
+    have hV_refined : ∃ V : ValuationSubring K,
+        R₀ ≤ V.toSubring ∧ ι x ∉ V ∧
+        ∀ (a : P.A₀), a ∈ P.I → V.valuation (ι (P.A₀.subtype a)) < 1 := by
+      -- Phase A sub-sorry: refined Stacks 090P (F3-F6).
+      -- The construction uses LocalSubring.ofPrime R₀ 𝔪 where 𝔪 is
+      -- a maximal ideal of R₀ containing conductor(x) + image(P.I),
+      -- followed by LocalSubring.exists_le_valuationSubring_of_isIntegrallyClosedIn.
+      -- Properness of conductor(x) + image(P.I) uses Jacobson radical membership.
+      sorry
+    obtain ⟨V, hV_le, hx_notV, hI_lt_one⟩ := hV_refined
+    -- Phase B+C: Coarsen + extend to get a continuous valuation on R.
+    -- Following the Lemma 7.45 pattern (exists_spa_point_via_restrictToConvex).
+    obtain ⟨S, hS⟩ := P.fg
+    by_cases hSne : S.Nonempty
+    · -- Nonempty P.I: standard case.
+      -- g_max < 1 strictly from hI_lt_one.
+      set g_max := S.sup' hSne (fun s ↦ V.valuation (ι (P.A₀.subtype s)))
+      have hg_lt1 : g_max < 1 := by
+        rw [Finset.sup'_lt_iff]
+        intro s hs
+        exact hI_lt_one s (hS ▸ Ideal.subset_span (Finset.mem_coe.mpr hs))
+      -- Need g_max ≠ 0 for the Units.mk0 construction.
+      -- g_max = 0 iff ALL generators map to support of V. This would mean
+      -- P.I maps entirely to supp(V), so the ideal of definition has no
+      -- "non-trivial" topologically nilpotent element modulo supp(V).
+      -- For now, handle via sorry (minor edge case).
+      by_cases hg_ne0 : g_max = 0
+      · -- Edge case: g_max = 0 means ALL P.I generators have V-value 0.
+        -- This means I ⊆ supp(V), so V.valuation is "trivially continuous".
+        -- Use V.valuation.comap ι directly since I^n ⊆ supp for all n.
+        -- The bound and contradiction are straightforward.
+        -- Minor edge case handled by sorry for brevity.
+        sorry
+      · -- Main case: g_max ≠ 0 and g_max < 1.
+        -- Phase B+C sub-sorry: coarsening + extension (F7-F10).
+        -- Following Lemma 7.45 pattern exactly:
+        -- 1. u_max := Units.mk0 g_max, H_gen := convexGenerated(u_max⁻¹)
+        -- 2. restrictToConvex on P.A₀ to get v_r
+        -- 3. Extend v_r to R via vExtFun (topologically nilpotent element)
+        -- 4. Verify: ≤ 1 on B, > 1 at x, continuous
+        -- This sub-sorry captures F7-F10 (~180 lines).
+        sorry
+    · -- Empty P.I: degenerate case.
+      rw [Finset.not_nonempty_iff_eq_empty] at hSne
+      have hI_bot : P.I = ⊥ := by
+        rw [← hS, hSne, Finset.coe_empty, Ideal.span_empty]
+      -- With I = ⊥, every valuation is trivially continuous.
+      refine ⟨V.ValueGroup, inferInstance, V.valuation.comap ι, ?_, ?_, ?_⟩
+      · intro b hb
+        show V.valuation (ι b) ≤ 1
+        rw [ValuationSubring.valuation_le_one_iff]
+        exact hV_le (Subalgebra.algebraMap_mem (integralClosure B K) ⟨b, hb⟩)
+      · show 1 < V.valuation (ι x)
+        exact not_le.mp (by rw [ValuationSubring.valuation_le_one_iff]; exact hx_notV)
+      · apply Valuation.isContinuous_of_ideal_pow_lt P (V.valuation.comap ι)
+        intro γ hγ; refine ⟨1, fun a ha ↦ ?_⟩
+        rw [pow_one] at ha
+        have : a ∈ (⊥ : Ideal P.A₀) := hI_bot ▸ ha
+        rw [Ideal.mem_bot] at this; subst this
+        simp only [map_zero]; exact hγ
   -- Step 3: Derive contradiction from the continuous valuation.
   obtain ⟨Γ₀, _, wVal, hw_B_val, hx_gt, hwVal_cont⟩ := hV_exists
   let w : ValuativeRel R := ValuativeRel.ofValuation wVal
