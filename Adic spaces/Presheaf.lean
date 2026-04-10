@@ -1214,101 +1214,33 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
     mt (isIntegral_algebraMap_iff hι_inj).mp hni
   have hx_notin : ι x ∉ (integralClosure B (FractionRing R)).toSubring := by
     rwa [Subalgebra.mem_toSubring, mem_integralClosure_iff]
-  -- Step 2: REFINED Stacks 090P. We need V with:
-  --   • integralClosure(B) ⊆ V
-  --   • image of P.I ⊆ V.nonunits  (for continuity of comap)
-  --   • ι x ∉ V                     (for the contradiction)
-  -- We use `Subring.exists_le_valuationSubring_of_isIntegrallyClosedIn` (Stacks 090P
-  -- part 1) to get a raw V₀ containing integralClosure(B) and not containing ι x.
-  -- Then we extract `g_max` = sup of V₀.valuation on P.I generators. Showing
-  -- `g_max < 1` strictly and that `g_max^n` is cofinal are the two remaining
-  -- mathematical gaps (Wedhorn Lemma 7.22 / [Hu2] Lemma 3.3).
-  have hV_exists : ∃ V : ValuationSubring (FractionRing R),
-      ((integralClosure B (FractionRing R)).toSubring : Subring (FractionRing R)) ≤ V.toSubring ∧
-      ι x ∉ V ∧
-      ∃ (g : V.ValueGroup) (_hg_lt : g < 1),
-        (∀ (a : P.A₀), a ∈ P.I → V.valuation (ι (P.A₀.subtype a)) ≤ g) ∧
-        (∀ (γ : V.ValueGroup), 0 < γ → ∃ n : ℕ, g ^ n < γ) := by
-    -- Apply Stacks 090P (part 1) to get V₀ ⊇ integralClosure(B), x ∉ V₀.
-    obtain ⟨V₀, hV₀_le, hx_notV₀⟩ :=
-      Subring.exists_le_valuationSubring_of_isIntegrallyClosedIn hx_notin
-    refine ⟨V₀, hV₀_le, hx_notV₀, ?_⟩
-    -- Compute g_max via Finset.sup' over generators of P.I.
-    obtain ⟨S, hS⟩ := P.fg
-    -- Case split: if S is empty, P.I = ⊥, so the bound condition is trivial.
-    by_cases hSne : S.Nonempty
-    · -- Non-empty case: compute g_max as Finset.sup'.
-      let φ : R → FractionRing R := ι
-      set g_max := S.sup' hSne (fun s ↦ V₀.valuation (φ (P.A₀.subtype s)))
-        with g_max_def
-      -- W5: Prove g_max < 1 strictly.
-      -- This is the main GAP: V₀ from Stacks 090P doesn't directly give strict
-      -- inequality on P.I generators. The fix is Wedhorn 7.22's refined construction
-      -- via LocalSubring.exists_le_valuationSubring_of_isIntegrallyClosedIn applied
-      -- to a local subring whose maximal ideal contains image of P.I.
-      have hg_max_lt : g_max < 1 := by
-        -- Sub-sorry W5: strict bound from refined construction.
-        sorry
-      -- W6/W7: cofinal property — needs MulArchimedean or coarsening via
-      -- restrictToConvex with convexGenerated H_gen.
-      have hg_cofinal : ∀ (γ : V₀.ValueGroup), 0 < γ → ∃ n : ℕ, g_max ^ n < γ := by
-        -- Sub-sorry W6/W7: cofinality (requires MulArchimedean or coarsening).
-        sorry
-      have h_le_A₀ : ∀ (a : P.A₀), V₀.valuation (ι (P.A₀.subtype a)) ≤ 1 := fun a => by
-        have hmem : (P.A₀.subtype a : R) ∈ B := hA₀B a.property
-        show V₀.valuation (ι (P.A₀.subtype a : R)) ≤ V₀.valuation 1
-        simp only [map_one, ValuationSubring.valuation_le_one_iff]
-        exact hV₀_le
-          (Subalgebra.algebraMap_mem (integralClosure B (FractionRing R)) ⟨_, hmem⟩)
-      have hg_bound : ∀ (a : P.A₀), a ∈ P.I →
-          V₀.valuation (ι (P.A₀.subtype a)) ≤ g_max := fun a ha =>
-        PairOfDefinition.valuation_le_on_ideal_of_le_on_generators (V₀.valuation.comap ι)
-          h_le_A₀ hS
-          (fun s hs => Finset.le_sup' (f := fun s ↦ V₀.valuation (φ (P.A₀.subtype s))) hs) ha
-      exact ⟨g_max, hg_max_lt, hg_bound, hg_cofinal⟩
-    · -- Empty case: P.I = ⊥, so the bound condition is vacuous.
-      rw [Finset.not_nonempty_iff_eq_empty] at hSne
-      have hI_bot : P.I = ⊥ := by
-        rw [← hS, hSne, Finset.coe_empty, Ideal.span_empty]
-      -- For g, take 0 (the only element < 1 in any value group).
-      refine ⟨0, zero_lt_one, ?_, ?_⟩
-      · intro a ha
-        rw [hI_bot] at ha
-        rw [Ideal.mem_bot.mp ha]
-        simp
-      · intro γ hγ
-        refine ⟨1, ?_⟩
-        rw [pow_one]
-        exact hγ
-  obtain ⟨V, hV_le, hx_notV, g, hg_lt, hg_bound, hg_cofinal⟩ := hV_exists
-  -- Step 3: Construct the comap valuation w on R.
-  let wVal : Valuation R V.ValueGroup := V.valuation.comap ι
+  -- Step 2: Construct a continuous valuation witnessing v(x) > 1.
+  -- By Wedhorn 7.18 / [Hu2] Lemma 3.3, since x is not integral over B, there exists
+  -- a continuous valuation on R bounded by 1 on B with value > 1 at x.
+  -- The construction uses:
+  --   (a) LocalSubring version of Stacks 090P (part 2) to get V dominating a local
+  --       subring whose maxIdeal contains image(P.I) + conductor(x), giving
+  --       V.valuation < 1 strictly on P.I and ι x ∉ V;
+  --   (b) Coarsening via convexGenerated + restrictToConvex to get a continuous
+  --       valuation with MulArchimedean value group;
+  --   (c) Extension via vExtFun from P.A₀ to R.
+  -- See docs/plans/2026-04-10-wedhorn-7-18-fill-plan.md for the detailed plan.
+  have hV_exists : ∃ (Γ₀ : Type) (_ : LinearOrderedCommGroupWithZero Γ₀)
+      (wVal : Valuation R Γ₀),
+      (∀ b ∈ B, wVal b ≤ 1) ∧ 1 < wVal x ∧ wVal.IsContinuous := by
+    sorry -- Wedhorn 7.18 / [Hu2] Lemma 3.3: see plan F3-F10
+  -- Step 3: Derive contradiction from the continuous valuation.
+  obtain ⟨Γ₀, _, wVal, hw_B_val, hx_gt, hwVal_cont⟩ := hV_exists
   let w : ValuativeRel R := ValuativeRel.ofValuation wVal
-  -- Step 4: w ≤ 1 on B (elements of B land in V via integralClosure).
-  have hw_B : ∀ b ∈ B, w.vle b 1 := by
-    intro b hb
-    show V.valuation (ι b) ≤ V.valuation (ι 1)
-    simp only [map_one, ValuationSubring.valuation_le_one_iff]
-    exact hV_le (Subalgebra.algebraMap_mem (integralClosure B (FractionRing R)) ⟨b, hb⟩)
-  -- wVal ≤ 1 on P.A₀ (since P.A₀ ⊆ B ⊆ V image).
-  have hwVal_le_A₀ : ∀ (a : P.A₀), wVal (P.A₀.subtype a) ≤ 1 := fun a => by
-    show V.valuation (ι ((a : R))) ≤ 1
-    rw [ValuationSubring.valuation_le_one_iff]
-    exact hV_le (Subalgebra.algebraMap_mem (integralClosure B (FractionRing R))
-      ⟨(a : R), hA₀B a.property⟩)
-  -- Step 5: Continuity of wVal via isContinuous_of_le_one_and_pow_cofinal.
-  -- All three conditions (h_le, h_gen, h_cofinal) come from the refined V.
-  have hwVal_cont : wVal.IsContinuous :=
-    Valuation.isContinuous_of_le_one_and_pow_cofinal P wVal hwVal_le_A₀ hg_bound hg_cofinal
   have hw_cont : (⟨w⟩ : Spv R).IsContinuous :=
     isContinuous_ofValuation_of wVal hwVal_cont
-  -- Step 6: Apply the topology-aware hypothesis.
+  have hw_B : ∀ b ∈ B, w.vle b 1 := by
+    intro b hb; show wVal b ≤ wVal 1; rw [map_one]; exact hw_B_val b hb
+  -- Apply topology-aware hypothesis: all continuous v with v ≤ 1 on B have v(x) ≤ 1.
   have hw_x : w.vle x 1 := hvle w hw_cont hw_B
-  -- Step 7: Derive contradiction with x ∉ V.
-  apply hx_notV
-  rw [← V.valuation_le_one_iff]
-  have : V.valuation (ι x) ≤ V.valuation (ι 1) := hw_x
-  simpa only [map_one] using this
+  -- But wVal x > 1, so wVal x ≤ 1 is false. Contradiction.
+  have : wVal x ≤ 1 := by rw [show (1 : Γ₀) = wVal 1 from (map_one wVal).symm]; exact hw_x
+  exact absurd this (not_le.mpr hx_gt)
 
 /-- A `ValuativeRel` that is `≤ 1` on an open subring of `Localization.Away s` yields
 a `Spv` point for which `algebraMap t ≤ᵥ algebraMap s` for `t ∈ T`, by the
