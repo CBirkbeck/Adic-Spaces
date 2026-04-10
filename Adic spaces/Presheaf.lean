@@ -1259,12 +1259,63 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
     have hV_refined : ∃ V : ValuationSubring K,
         R₀ ≤ V.toSubring ∧ ι x ∉ V ∧
         ∀ (a : P.A₀), a ∈ P.I → V.valuation (ι (P.A₀.subtype a)) < 1 := by
-      -- Phase A sub-sorry: refined Stacks 090P (F3-F6).
-      -- The construction uses LocalSubring.ofPrime R₀ 𝔪 where 𝔪 is
-      -- a maximal ideal of R₀ containing conductor(x) + image(P.I),
-      -- followed by LocalSubring.exists_le_valuationSubring_of_isIntegrallyClosedIn.
-      -- Properness of conductor(x) + image(P.I) uses Jacobson radical membership.
-      sorry
+      -- Phase A: Refined Stacks 090P using LocalSubring domination.
+      -- Map P.A₀ into R₀ via ι.
+      have hA₀_to_R₀ : ∀ (a : P.A₀), ι (P.A₀.subtype a) ∈ R₀ := fun a ↦
+        (Subalgebra.algebraMap_mem (integralClosure B K) ⟨P.A₀.subtype a, hA₀B a.property⟩ :
+          ι (P.A₀.subtype a) ∈ (integralClosure B K : Set K))
+      -- F3: Define image of P.I as an ideal of R₀.
+      -- Map P.I generators to R₀ and take the ideal they span.
+      let ι_R₀ : P.A₀ →+* R₀ :=
+        { toFun := fun a ↦ ⟨ι (P.A₀.subtype a), hA₀_to_R₀ a⟩
+          map_one' := Subtype.ext (map_one ι)
+          map_mul' := fun a b ↦ Subtype.ext (map_mul ι _ _)
+          map_zero' := Subtype.ext (map_zero ι)
+          map_add' := fun a b ↦ Subtype.ext (map_add ι _ _) }
+      let I_img : Ideal R₀ := Ideal.map ι_R₀ P.I
+      -- F3: Define conductor of ι x in R₀.
+      -- S(x) = { s ∈ R₀ : (s : K) * (ι x) ∈ R₀ }
+      -- This is proper because 1 · (ι x) = ι x ∉ R₀.
+      let S_x : Ideal R₀ :=
+        { carrier := { s : R₀ | (s : K) * ι x ∈ R₀ }
+          add_mem' := fun {a b} ha hb ↦ by
+            show (↑(a + b) : K) * ι x ∈ R₀
+            rw [Subring.coe_add, add_mul]; exact R₀.add_mem ha hb
+          zero_mem' := by show (0 : K) * ι x ∈ R₀; rw [zero_mul]; exact R₀.zero_mem
+          smul_mem' := fun r s hs ↦ by
+            show (↑(r • s) : K) * ι x ∈ R₀
+            simp only [smul_eq_mul, Subring.coe_mul, mul_assoc]
+            exact R₀.mul_mem r.property hs }
+      -- F4+F5: Show S_x + I_img is proper in R₀.
+      -- This uses Jacobson radical membership: elements of P.I (topologically
+      -- nilpotent) are in the Jacobson radical of R₀, hence 1 - i is a unit for
+      -- i ∈ I_img. If S_x + I_img = ⊤, get 1 = c + i with c ∈ S_x, i ∈ I_img,
+      -- then c = 1 - i is a unit, so ι x = c⁻¹(c · ι x) ∈ R₀, contradiction.
+      have hJ_proper : I_img ⊔ S_x ≠ ⊤ := by
+        sorry -- F4+F5: Jacobson radical → properness
+      -- Find maximal ideal containing the sum.
+      obtain ⟨𝔪, h𝔪_max, h𝔪_le⟩ := (I_img ⊔ S_x).exists_le_maximal hJ_proper
+      haveI : 𝔪.IsPrime := h𝔪_max.isPrime
+      -- F6: Construct local subring at 𝔪.
+      let L := LocalSubring.ofPrime R₀ 𝔪
+      -- ι x ∉ L.toSubring: if ι x = a/s with a ∈ R₀, s ∉ 𝔪, then
+      -- s · ι x = a ∈ R₀, so s ∈ S_x ⊆ 𝔪, contradiction.
+      have hx_notL : ι x ∉ L.toSubring := by
+        sorry -- F6: conductor argument
+      -- R₀ is integrally closed in K (it's the integral closure).
+      -- Localization preserves integrally closed (standard commutative algebra).
+      haveI : IsIntegrallyClosedIn L.toSubring K := by
+        sorry -- F6: localization preserves integrally closed
+      -- Apply Stacks 090P part 2.
+      obtain ⟨V, hV_dom, hx_notV⟩ :=
+        LocalSubring.exists_le_valuationSubring_of_isIntegrallyClosedIn hx_notL
+      refine ⟨V, ?_, hx_notV, ?_⟩
+      · -- R₀ ≤ V: from L ≤ V (domination) and R₀ ≤ L (ofPrime inclusion).
+        exact (LocalSubring.le_ofPrime R₀ 𝔪).trans hV_dom.1
+      · -- ∀ a ∈ P.I, V.valuation(ι a) < 1.
+        -- Domination: 𝔪 → maxIdeal(V). Since I_img ⊆ 𝔪, image(P.I) ⊆ V.nonunits.
+        intro a ha
+        sorry -- F6: extract strict bound from domination
     obtain ⟨V, hV_le, hx_notV, hI_lt_one⟩ := hV_refined
     -- Phase B+C: Coarsen + extend to get a continuous valuation on R.
     -- Following the Lemma 7.45 pattern (exists_spa_point_via_restrictToConvex).
