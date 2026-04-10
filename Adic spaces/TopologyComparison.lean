@@ -1652,28 +1652,59 @@ theorem locToQuotientOneSubfX_gen_continuous_canonical [IsTateRing A] [T2Space A
   -- Step 2: mk⁻¹(W) contains some tateAlgNhd P' k₀.
   let P' := (IsTateRing.principalPair A).toPairOfDefinition
   obtain ⟨k₀, -, hk₀⟩ := tateAlgBasis'.hasBasis_nhds_zero.mem_iff.mp hmk_pre_W
-  -- Step 3: Show locIdeal generators map into mk(tateAlgNhd P' k₀).
-  -- The locIdeal D.P D.T D.s is generated (as an ideal of locSubring) by
-  -- elements of the form algebraMap(t * b) / s for t ∈ D.T, b ∈ D.P.I.
-  -- Under locToQuotientOneSubfX_gen, these map to mk(algebraMap(t*b) * X).
-  -- This element has coefficient t*b at index 1.
-  -- For this to be in tateAlgNhd P' k₀, we need t*b ∈ image P'.I^k₀ in A.
+  -- Step 3: Reduce to the T-topology continuity via topology comparison.
+  -- The canonical quotient topology and the T-quotient topology on A⟨X⟩/(1-sX)
+  -- coincide. This follows from Wedhorn Proposition 6.18: for a f.g. module over
+  -- a strongly noetherian Tate ring, the module topology equals the adic lattice
+  -- topology. Since A⟨X⟩/(1-sX) is a cyclic A⟨X⟩-module, both quotient topologies
+  -- are module topologies for the same structure, hence equal.
   --
-  -- Key: P.hasBasis_nhds_zero and P'.hasBasis_nhds_zero both give nhd bases
-  -- of 0 in A. By continuity of (t * ·) at 0, for each t ∈ D.T, ∃ m_t such
-  -- that t * image(P.I^m_t) ⊆ image(P'.I^k₀). Take n = max over T of m_t.
-  -- Then locNhd(n) maps into mk(tateAlgNhd P' k₀) ⊆ W.
+  -- Given this equality, continuity for the canonical quotient follows directly
+  -- from the already-proved T-topology continuity (locToQuotientOneSubfX_gen_continuous).
   --
-  -- The multiplicative/additive closure follows from tateAlgNhd P' k₀ being
-  -- an additive subgroup and the quotient map being a ring hom.
-  --
-  -- Infrastructure gap: the span_induction over locIdeal generators requires
-  -- adapting locToQuotient_mul_small_constant_mem for the canonical pair P'.
-  -- The cofinality argument (P vs P') needs ~30 more lines.
-  -- Marking as sorry for now — the math is clear and all prerequisites are
-  -- in place. The remaining work is purely Lean engineering (span_induction
-  -- bookkeeping matching the T-topology proof at lines 438-501).
-  sorry
+  -- The topology equality is the key remaining infrastructure gap (Wedhorn 6.18).
+  have h_top_eq : quotientOneSubfXIdealTopology D.s = quotientTTopology D.s := by
+    -- TODO(wedhorn-6.18): Formalize Wedhorn Proposition 6.18 to remove this sorry.
+    -- For strongly noetherian Tate rings, the module topology on any f.g. module
+    -- equals the adic lattice topology. Applied to the cyclic module A⟨X⟩/(1-sX),
+    -- this gives the equality of the two quotient topologies.
+    sorry
+  -- With the topology equality, the T-quotient continuity gives the canonical result.
+  -- W is an open additive subgroup in the canonical quotient = T-quotient.
+  have hW_T : (W : Set _) ∈ @nhds _ (quotientTTopology D.s) 0 := by
+    rw [← h_top_eq]; exact W.isOpen.mem_nhds W.zero_mem
+  -- Apply locToQuotient_mul_small_constant_mem for the T-quotient topology.
+  obtain ⟨m, hm_helper⟩ :=
+    locToQuotient_mul_small_constant_mem D (W : Set _) hW_T
+  -- locNhd(m) maps into W, using the same span_induction as the T-topology proof.
+  refine ⟨m, ?_⟩
+  rintro x ⟨d, hd, rfl⟩
+  rw [locIdeal, ← Ideal.map_pow] at hd
+  suffices ∀ (r : locSubring D.P D.T D.s),
+      locToQuotientOneSubfX_gen D.s
+        ((locSubring D.P D.T D.s).subtype (r * d)) ∈ (W : Set _) by
+    simpa using this 1
+  intro r₀; revert r₀
+  refine Submodule.span_induction (p := fun d _ ↦
+      ∀ (r : locSubring D.P D.T D.s),
+        locToQuotientOneSubfX_gen D.s
+          ((locSubring D.P D.T D.s).subtype (r * d)) ∈
+            (W : Set _)) ?_ ?_ ?_ ?_ hd
+  · -- Generator: d = algebraMapD(b) for b ∈ I^m.
+    rintro d ⟨b, hb, rfl⟩ r; exact hm_helper r b hb
+  · -- Zero
+    intro r; simp [mul_zero, map_zero]
+  · -- Addition: d₁ + d₂
+    intro d₁ d₂ _ _ h₁ h₂ r
+    have : (locSubring D.P D.T D.s).subtype (r * (d₁ + d₂)) =
+        (locSubring D.P D.T D.s).subtype (r * d₁) +
+        (locSubring D.P D.T D.s).subtype (r * d₂) := by simp [mul_add]
+    rw [this, map_add]; exact W.toAddSubgroup.add_mem (h₁ r) (h₂ r)
+  · -- Scalar: s • d for s ∈ locSubring.
+    intro s d _ hd r
+    have : (locSubring D.P D.T D.s).subtype (r * (s • d)) =
+        (locSubring D.P D.T D.s).subtype ((r * s) * d) := by simp [mul_assoc]
+    rw [this]; exact hd (r * s)
 
 end CanonicalTopologyBridge
 
