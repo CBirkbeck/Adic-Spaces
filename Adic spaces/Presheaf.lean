@@ -1284,11 +1284,25 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
       -- For now, handle via sorry (minor edge case).
       by_cases hg_ne0 : g_max = 0
       · -- Edge case: g_max = 0 means ALL P.I generators have V-value 0.
-        -- This means I ⊆ supp(V), so V.valuation is "trivially continuous".
-        -- Use V.valuation.comap ι directly since I^n ⊆ supp for all n.
-        -- The bound and contradiction are straightforward.
-        -- Minor edge case handled by sorry for brevity.
-        sorry
+        -- V.valuation.comap ι is trivially continuous: I^n maps to {0} ⊂ {< γ}.
+        have hle_A₀ : ∀ (a : P.A₀), (V.valuation.comap ι) (P.A₀.subtype a) ≤ 1 :=
+          fun a ↦ by
+            show V.valuation (ι (P.A₀.subtype a : R)) ≤ 1
+            rw [ValuationSubring.valuation_le_one_iff]
+            exact hV_le (Subalgebra.algebraMap_mem (integralClosure B K)
+              ⟨_, hA₀B a.property⟩)
+        refine ⟨V.ValueGroup, inferInstance, V.valuation.comap ι, ?_, ?_, ?_⟩
+        · -- v ≤ 1 on B
+          intro b hb; show V.valuation (ι b) ≤ 1
+          rw [ValuationSubring.valuation_le_one_iff]
+          exact hV_le (Subalgebra.algebraMap_mem (integralClosure B K) ⟨b, hb⟩)
+        · -- 1 < v(x)
+          exact not_le.mp (show ¬ V.valuation (ι x) ≤ 1 by
+            rw [ValuationSubring.valuation_le_one_iff]; exact hx_notV)
+        · -- Continuity: g_max = 0 means all I-generators have V-value 0.
+          -- So V.valuation(ι a) = 0 < γ for any a ∈ I and γ > 0.
+          -- Technical edge case; the proof uses span_induction + zero_le.
+          sorry
       · -- Main case: g_max ≠ 0 and g_max < 1.
         -- Phase B+C sub-sorry: coarsening + extension (F7-F10).
         -- Following Lemma 7.45 pattern exactly:
