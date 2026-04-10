@@ -1228,7 +1228,28 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
   have hV_exists : ∃ (Γ₀ : Type) (_ : LinearOrderedCommGroupWithZero Γ₀)
       (wVal : Valuation R Γ₀),
       (∀ b ∈ B, wVal b ≤ 1) ∧ 1 < wVal x ∧ wVal.IsContinuous := by
-    sorry -- Wedhorn 7.18 / [Hu2] Lemma 3.3: see plan F3-F10
+    -- ============================================================
+    -- CONSTRUCTION (Wedhorn 7.18 / [Hu2] Lemma 3.3)
+    -- See docs/plans/2026-04-10-wedhorn-7-18-fill-plan.md
+    -- ============================================================
+    --
+    -- Phase A: Get a valuation subring V with strict bound on P.I.
+    -- We need a refinement of the raw Stacks 090P that simultaneously:
+    --   (a) contains integralClosure(B)
+    --   (b) excludes ι x
+    --   (c) has P.I generators in its nonunits (strict < 1)
+    --
+    -- Phase B: Coarsen V's valuation to get MulArchimedean value group.
+    -- Use convexGenerated + restrictToConvex (Lemma 7.45 pattern).
+    --
+    -- Phase C: Extend from P.A₀ to all of R via vExtFun.
+    -- Verify: v_ext ≤ 1 on B, v_ext(x) > 1, v_ext continuous.
+    --
+    -- This construction is ~380 lines following the plan (F3-F10).
+    -- The highest-risk sub-step is F4 (Jacobson radical membership of
+    -- P.I generators in integralClosure(B)), which uses the geometric
+    -- series argument in the adic completion.
+    sorry
   -- Step 3: Derive contradiction from the continuous valuation.
   obtain ⟨Γ₀, _, wVal, hw_B_val, hx_gt, hwVal_cont⟩ := hV_exists
   let w : ValuativeRel R := ValuativeRel.ofValuation wVal
