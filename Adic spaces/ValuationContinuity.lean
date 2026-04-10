@@ -659,6 +659,22 @@ theorem restrictToConvex_lt_one_of_val_lt_one
   · exact restrictToConvex_lt_one_of_mem v H hle hr hm hlt
   · exact restrictToConvex_lt_one_of_not_mem v H hle hr hm
 
+/-- `restrictToConvex` is monotone on elements with `v ≤ 1`:
+if `v a ≤ v b`, `v b ≠ 0`, and `Units.mk0 (v b) ∈ H`, then
+`restrictToConvex v H a ≤ restrictToConvex v H b`. -/
+theorem restrictToConvex_mono_of_le_one
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
+    (hle : ∀ r : R, v r ≤ 1) {a b : R} (hab : v a ≤ v b)
+    (hb_ne : v b ≠ 0) (hb_mem : Units.mk0 (v b) hb_ne ∈ H) :
+    v.restrictToConvex H hle a ≤ v.restrictToConvex H hle b := by
+  by_cases ha_ne : v a = 0
+  · rw [restrictToConvex_unfold, dif_pos ha_ne]; exact bot_le
+  · by_cases ha_mem : Units.mk0 (v a) ha_ne ∈ H
+    · rw [restrictToConvex_unfold, dif_neg ha_ne, dif_pos ha_mem,
+          restrictToConvex_unfold, dif_neg hb_ne, dif_pos hb_mem]
+      exact WithZero.coe_le_coe.mpr (Subtype.mk_le_mk.mpr (Units.val_le_val.mp hab))
+    · rw [restrictToConvex_unfold, dif_neg ha_ne, dif_neg ha_mem]; exact bot_le
+
 end RestrictToConvexAPI
 
 end Valuation

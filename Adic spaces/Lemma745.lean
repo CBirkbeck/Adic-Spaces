@@ -240,7 +240,7 @@ The following private lemmas factor out the algebraic steps of the
 They are stated with explicit parameters to keep each proof short. -/
 
 omit [IsTopologicalRing A] in
-private theorem vExtFun_step (P : PairOfDefinition A) {Γ₀ : Type*}
+theorem vExtFun_step (P : PairOfDefinition A) {Γ₀ : Type*}
     [LinearOrderedCommGroupWithZero Γ₀] (v_r : Valuation P.A₀ Γ₀) (v_s : Γ₀)
     {s : A} (hs_A₀ : s ∈ P.A₀) (hv_s : v_s = v_r ⟨s, hs_A₀⟩) (hv_r_s_ne : v_s ≠ 0)
     {a : A} (k j : ℕ) (hk : s ^ k * a ∈ P.A₀) :
@@ -268,7 +268,7 @@ private theorem vExtFun_step (P : PairOfDefinition A) {Γ₀ : Type*}
     ← mul_assoc (v_s ^ j), hc, one_mul]
 
 omit [IsTopologicalRing A] in
-private theorem vExtFun_well_defined (P : PairOfDefinition A) {Γ₀ : Type*}
+theorem vExtFun_well_defined (P : PairOfDefinition A) {Γ₀ : Type*}
     [LinearOrderedCommGroupWithZero Γ₀] (v_r : Valuation P.A₀ Γ₀) (v_s : Γ₀)
     {s : A} (hs_A₀ : s ∈ P.A₀) (hv_s : v_s = v_r ⟨s, hs_A₀⟩) (hv_r_s_ne : v_s ≠ 0)
     {a : A} (n m : ℕ) (hn : s ^ n * a ∈ P.A₀) (hm : s ^ m * a ∈ P.A₀) :
@@ -283,7 +283,7 @@ private theorem vExtFun_well_defined (P : PairOfDefinition A) {Γ₀ : Type*}
       by rw [Nat.add_comm])
 
 omit [IsTopologicalRing A] in
-private theorem vExtFun_map_mul (P : PairOfDefinition A) {Γ₀ : Type*}
+theorem vExtFun_map_mul (P : PairOfDefinition A) {Γ₀ : Type*}
     [LinearOrderedCommGroupWithZero Γ₀] (v_r : Valuation P.A₀ Γ₀) (v_s : Γ₀)
     {s x y : A} {nx ny : ℕ} (hnx : s ^ nx * x ∈ P.A₀) (hny : s ^ ny * y ∈ P.A₀)
     (hprod_mem : s ^ (nx + ny) * (x * y) ∈ P.A₀) :
@@ -305,7 +305,7 @@ private theorem vExtFun_map_mul (P : PairOfDefinition A) {Γ₀ : Type*}
     mul_assoc c b d, ← mul_assoc a c]
 
 omit [IsTopologicalRing A] in
-private theorem vExtFun_map_add_le_max (P : PairOfDefinition A) {Γ₀ : Type*}
+theorem vExtFun_map_add_le_max (P : PairOfDefinition A) {Γ₀ : Type*}
     [LinearOrderedCommGroupWithZero Γ₀] (v_r : Valuation P.A₀ Γ₀) (v_s : Γ₀)
     {s : A} {x y : A} {N : ℕ} (hNx : s ^ N * x ∈ P.A₀) (hNy : s ^ N * y ∈ P.A₀)
     (hNxy : s ^ N * (x + y) ∈ P.A₀) :
@@ -329,6 +329,80 @@ private theorem vExtFun_map_add_le_max (P : PairOfDefinition A) {Γ₀ : Type*}
   · exact le_max_of_le_left (hmr h)
   · exact le_max_of_le_right (hmr h)
 
+/-- **Extension of a valuation from an open subring to the full ring** (Wedhorn Lemma 7.44(3)).
+
+Given a valuation `v_r` on `A₀` and a topologically nilpotent element `s ∈ A₀` with
+`v_r(s) ≠ 0`, constructs a valuation `v_ext` on `A` extending `v_r`. The extension is
+`v_ext(a) = v_r(s^n * a) * v_r(s)^{-n}` where `n` is chosen so `s^n * a ∈ A₀`. -/
+theorem exists_valuation_extension (P : PairOfDefinition A) {Γ₀ : Type*}
+    [LinearOrderedCommGroupWithZero Γ₀] (v_r : Valuation P.A₀ Γ₀)
+    {s : A} (hs_A₀ : s ∈ P.A₀) (hs_nil : IsTopologicallyNilpotent s)
+    (hv_r_s_ne : v_r ⟨s, hs_A₀⟩ ≠ 0) :
+    ∃ (v_ext : Valuation A Γ₀),
+      (∀ a : P.A₀, v_ext (P.A₀.subtype a) = v_r a) ∧
+      (∀ (a : A) (n : ℕ) (hn : s ^ n * a ∈ P.A₀),
+        v_ext a = v_r ⟨s ^ n * a, hn⟩ * (v_r ⟨s, hs_A₀⟩)⁻¹ ^ n) := by
+  classical
+  have h_pow_mul : ∀ a : A, ∃ n : ℕ, s ^ n * a ∈ P.A₀ :=
+    P.exists_pow_mul_mem_A₀ hs_nil
+  set v_s := v_r ⟨s, hs_A₀⟩ with v_s_def
+  let v_ext_fun : A → Γ₀ := fun a =>
+    let n := Nat.find (h_pow_mul a)
+    v_r ⟨s ^ n * a, Nat.find_spec (h_pow_mul a)⟩ * v_s⁻¹ ^ n
+  have v_ext_at : ∀ (a : A) (m : ℕ) (hm : s ^ m * a ∈ P.A₀),
+      v_ext_fun a = v_r ⟨s ^ m * a, hm⟩ * v_s⁻¹ ^ m :=
+    fun a m hm ↦ vExtFun_well_defined P v_r v_s hs_A₀ v_s_def
+      hv_r_s_ne _ m (Nat.find_spec (h_pow_mul a)) hm
+  have h_map_zero : v_ext_fun 0 = 0 := by
+    rw [v_ext_at 0 0 (by simp [P.A₀.zero_mem])]
+    simp only [pow_zero, one_mul, mul_one]
+    have : (⟨(0 : A), P.A₀.zero_mem⟩ : P.A₀) = 0 := Subtype.ext rfl
+    rw [this, map_zero]
+  have h_map_one : v_ext_fun 1 = 1 := by
+    rw [v_ext_at 1 0 (by simp [P.A₀.one_mem])]
+    simp only [pow_zero, mul_one]
+    have : (⟨(1 : A), P.A₀.one_mem⟩ : P.A₀) = 1 := Subtype.ext rfl
+    rw [this, map_one]
+  have h_map_mul : ∀ x y : A,
+      v_ext_fun (x * y) = v_ext_fun x * v_ext_fun y := by
+    intro x y
+    set nx := Nat.find (h_pow_mul x); set ny := Nat.find (h_pow_mul y)
+    have hnx := Nat.find_spec (h_pow_mul x); have hny := Nat.find_spec (h_pow_mul y)
+    have hprod_mem : s ^ (nx + ny) * (x * y) ∈ P.A₀ := by
+      rw [show s ^ (nx + ny) * (x * y) = (s ^ nx * x) * (s ^ ny * y) from by ring]
+      exact P.A₀.mul_mem hnx hny
+    rw [v_ext_at (x * y) (nx + ny) hprod_mem, v_ext_at x nx hnx, v_ext_at y ny hny]
+    exact vExtFun_map_mul P v_r v_s hnx hny hprod_mem
+  have h_map_add_le_max : ∀ x y : A,
+      v_ext_fun (x + y) ≤ max (v_ext_fun x) (v_ext_fun y) := by
+    intro x y
+    set nx := Nat.find (h_pow_mul x); set ny := Nat.find (h_pow_mul y)
+    have hnx := Nat.find_spec (h_pow_mul x); have hny := Nat.find_spec (h_pow_mul y)
+    have hNx : s ^ (nx + ny) * x ∈ P.A₀ := P.pow_mul_mem_A₀_of_le hs_A₀ hnx ny
+    have hNy : s ^ (nx + ny) * y ∈ P.A₀ := by
+      rw [show nx + ny = ny + nx from by omega]
+      exact P.pow_mul_mem_A₀_of_le hs_A₀ hny nx
+    have hNxy : s ^ (nx + ny) * (x + y) ∈ P.A₀ := by
+      rw [show s ^ (nx + ny) * (x + y) = s ^ (nx + ny) * x + s ^ (nx + ny) * y from
+        mul_add _ _ _]
+      exact P.A₀.add_mem hNx hNy
+    rw [v_ext_at (x + y) (nx + ny) hNxy, v_ext_at x (nx + ny) hNx, v_ext_at y (nx + ny) hNy]
+    exact vExtFun_map_add_le_max P v_r v_s hNx hNy hNxy
+  let v_ext : Valuation A Γ₀ :=
+    { toFun := v_ext_fun
+      map_zero' := h_map_zero
+      map_one' := h_map_one
+      map_mul' := h_map_mul
+      map_add_le_max' := h_map_add_le_max }
+  refine ⟨v_ext, fun a ↦ ?_, fun a n hn ↦ ?_⟩
+  · change v_ext_fun (P.A₀.subtype a) = v_r a
+    have hmem : s ^ 0 * (P.A₀.subtype a) ∈ P.A₀ := by
+      simp only [pow_zero, one_mul]; exact Subtype.coe_prop a
+    rw [v_ext_at (P.A₀.subtype a) 0 hmem]
+    simp only [pow_zero, one_mul, mul_one]
+    exact congrArg v_r (Subtype.ext rfl)
+  · exact v_ext_at a n hn
+
 /-- **Rank-1 extension (Wedhorn Lemma 7.45, Steps 3-7).**
 
 Constructs a valuation `v_ext : Valuation A (WithZero H_gen.toSubgroup)` that is
@@ -339,7 +413,7 @@ which yields continuity without requiring `MulArchimedean`.
 The proof uses `restrictToConvex` on `A₀` and extends to `A` via the
 `v_ext(a) = v_r(s^n * a) * v_r(s)^{-n}` construction (Wedhorn Lemma 7.44(3)).
 The algebraic sub-proofs (well-definedness, multiplicativity, ultrametric
-inequality) are factored into the private helpers `vExtFun_step`,
+inequality) are factored into `vExtFun_step`,
 `vExtFun_well_defined`, `vExtFun_map_mul`, `vExtFun_map_add_le_max`. -/
 theorem exists_spa_point_via_restrictToConvex (P : PairOfDefinition A)
     [IsAdicComplete P.I P.A₀] [PlusSubring A] {𝔭 : Ideal A} [𝔭.IsPrime]
