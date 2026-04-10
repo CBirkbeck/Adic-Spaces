@@ -1350,10 +1350,17 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
         · -- 1 < v(x)
           exact not_le.mp (show ¬ V.valuation (ι x) ≤ 1 by
             rw [ValuationSubring.valuation_le_one_iff]; exact hx_notV)
-        · -- Continuity: g_max = 0 means all I-generators have V-value 0.
-          -- So V.valuation(ι a) = 0 < γ for any a ∈ I and γ > 0.
-          -- Technical edge case; the proof uses span_induction + zero_le.
-          sorry
+        · -- Continuity: g_max = 0 means V.valuation(ι(I^n)) ≤ 0 < γ.
+          apply Valuation.isContinuous_of_ideal_pow_lt P (V.valuation.comap ι)
+          intro γ hγ; refine ⟨1, fun a ha ↦ ?_⟩; rw [pow_one] at ha
+          change V.valuation (ι (P.A₀.subtype a)) < γ
+          have h2 : V.valuation (ι (P.A₀.subtype a)) ≤ g_max := by
+            have : (fun s ↦ V.valuation (ι (P.A₀.subtype s))) a ≤ g_max :=
+              PairOfDefinition.valuation_le_on_ideal_of_le_on_generators
+                (V.valuation.comap ι) hle_A₀ hS
+                (fun s hs ↦ Finset.le_sup' (f := fun s ↦ V.valuation (ι (P.A₀.subtype s))) hs) ha
+            exact this
+          rw [hg_ne0] at h2; exact lt_of_le_of_lt h2 hγ
       · -- Main case: g_max ≠ 0 and g_max < 1.
         -- Phase B+C sub-sorry: coarsening + extension (F7-F10).
         -- Following Lemma 7.45 pattern exactly:
