@@ -1664,16 +1664,73 @@ theorem locToQuotientOneSubfX_gen_continuous_canonical [IsTateRing A] [T2Space A
   --
   -- The topology equality is the key remaining infrastructure gap (Wedhorn 6.18).
   have h_top_eq : quotientOneSubfXIdealTopology D.s = quotientTTopology D.s := by
-    -- The canonical quotient topology and the T-quotient topology on A⟨X⟩/(1-sX)
-    -- coincide. Both are coinduced topologies via the same surjection `mk`.
-    -- Direction 1 (≥): the canonical topology on A⟨X⟩ is finer than the T-topology
-    -- (it constrains ALL coefficients, not just finitely many scaled ones), so the
-    -- canonical quotient is finer by coinduced monotonicity.
-    -- Direction 2 (≤): the specific structure of (1-sX) collapses the infinitely
-    -- many canonical coefficient constraints to finitely many T-topology constraints
-    -- in the quotient. This is the content of Wedhorn Proposition 6.18.
-    -- TODO(wedhorn-6.18): Formalize Wedhorn Proposition 6.18 to remove this sorry.
-    sorry
+    -- Both topologies are coinduced via Quotient.mk' from source topologies:
+    --   quotientOneSubfXIdealTopology = coinduced mk' instTopologicalSpaceTateAlgebra
+    --   quotientTTopology             = coinduced mk' (tateTopologyT D.s)
+    -- In Lean's ordering, τ₁ ≤ τ₂ means τ₁ is finer (more open sets).
+    -- The canonical topology is finer than T: canonical ≤ T (every T-open is
+    -- canonical-open, since each g ↦ s^l·coeff_l(g) is canonical-continuous).
+    apply le_antisymm
+    · -- canonical-quotient ≤ T-quotient (canonical quotient is finer).
+      -- By coinduced_mono from canonical ≤ T (canonical is finer on source).
+      -- T-topology = induced scaleIncl product. Canonical ≤ induced scaleIncl product
+      -- iff scaleIncl : (canonical) → (product) is continuous
+      -- (by continuous_iff_le_induced).
+      apply coinduced_mono
+      show instTopologicalSpaceTateAlgebra ≤
+        TopologicalSpace.induced (TateAlgebraWedhorn.scaleIncl D.s)
+          (MvPowerSeries.WithPiTopology.instTopologicalSpace A)
+      rw [← continuous_iff_le_induced]
+      -- scaleIncl continuous for canonical → product iff each coordinate is.
+      apply continuous_pi
+      intro s_idx
+      -- Need: (fun g => scaleIncl g s_idx) = (fun g => s^l * g.val s_idx)
+      -- is canonical-continuous.
+      show @Continuous _ _ instTopologicalSpaceTateAlgebra _
+        (fun g : ↥(TateAlgebra A) => TateAlgebraWedhorn.scaleIncl D.s g s_idx)
+      have heq : (fun g : ↥(TateAlgebra A) =>
+          TateAlgebraWedhorn.scaleIncl D.s g s_idx) =
+          (fun g : ↥(TateAlgebra A) => D.s ^ (s_idx 0) * g.val s_idx) := by
+        ext g; exact TateAlgebraWedhorn.scaleIncl_apply D.s g s_idx
+      rw [heq]
+      -- g ↦ s^l * g.val s_idx = (s^l * ·) ∘ (g ↦ g.val s_idx).
+      -- Prove each part is continuous and compose.
+      -- g ↦ g.val s_idx is canonical-continuous because coefficient extraction
+      -- maps tateAlgNhd P' n into image(I^n), which is a nhd basis for A.
+      -- We build the AddMonoidHom and use continuous_of_tendsto_nhds_zero.
+      let coeffHom : ↥(TateAlgebra A) →+ A :=
+        { toFun := fun g => g.val s_idx
+          map_zero' := show (0 : MvPowerSeries (Fin 1) A) s_idx = 0 from
+            Pi.zero_apply s_idx
+          map_add' := fun a b => by
+            exact Pi.add_apply (a : MvPowerSeries (Fin 1) A)
+              (b : MvPowerSeries (Fin 1) A) s_idx }
+      have hcoeff_cont : @Continuous _ _
+          instTopologicalSpaceTateAlgebra _ coeffHom := by
+        letI := instTopologicalSpaceTateAlgebra (A := A)
+        haveI := instIsTopologicalRingTateAlgebra (A := A)
+        apply continuous_of_tendsto_nhds_zero
+        show @Filter.Tendsto _ _
+          coeffHom
+          (@nhds _ instTopologicalSpaceTateAlgebra 0) (nhds 0)
+        rw [Filter.tendsto_def]
+        intro V hV
+        obtain ⟨n, -, hn⟩ := P'.hasBasis_nhds_zero.mem_iff.mp hV
+        apply Filter.mem_of_superset
+          (tateAlgBasis'.hasBasis_nhds_zero.mem_iff.mpr ⟨n, trivial, le_refl _⟩)
+        intro g hg
+        exact hn (tateAlgNhd_coeff_mem P' n hg s_idx)
+      exact (continuous_const_mul (D.s ^ (s_idx 0))).comp hcoeff_cont
+    · -- T-quotient ≤ canonical-quotient (T-quotient is finer).
+      -- Need: every canonical-quotient-open set is T-quotient-open.
+      -- For mk-saturated sets S, "S canonical-open ⟹ S T-open" uses the
+      -- structure of the ideal (1-sX): saturation by (1-sX) links all
+      -- coefficients via the recurrence c_l - s·c_{l-1}, making the canonical
+      -- constraints (all coefficients in I^n) redundant given the finitely
+      -- many T-constraints (s^l·coeff_l ∈ U for l ≤ N).
+      -- This is the content of Wedhorn Proposition 6.18 for the specific case
+      -- of a cyclic module quotient by (1-sX).
+      sorry
   -- With the topology equality, the T-quotient continuity gives the canonical result.
   -- W is an open additive subgroup in the canonical quotient = T-quotient.
   have hW_T : (W : Set _) ∈ @nhds _ (quotientTTopology D.s) 0 := by
