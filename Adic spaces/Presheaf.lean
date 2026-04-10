@@ -1299,7 +1299,25 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
       -- Then x · I^n ⊆ B, so for any b ∈ I^n: ι_R₀(b) · ι(x) = ι(b · x) ∈ R₀.
       -- Since S_x is an ideal and the generators of I_img^n are in S_x, I_img^n ⊆ S_x.
       have hI_pow_le_Sx : ∃ n : ℕ, I_img ^ n ≤ S_x := by
-        sorry -- Continuity of multiplication by x: ∃ n, x · I^n ⊆ B → I_img^n ⊆ S_x
+        -- Continuity of multiplication by x: μ_x⁻¹(B) is a nbhd of 0.
+        have hcont_mul : Continuous (x * · : R → R) := continuous_const_mul x
+        have h0_mem : (0 : R) ∈ (x * ·) ⁻¹' (B : Set R) := by
+          simp only [Set.mem_preimage, mul_zero]; exact B.zero_mem
+        obtain ⟨n, -, hn⟩ := P.hasBasis_nhds_zero.mem_iff.mp
+          ((_hB_open.preimage hcont_mul).mem_nhds h0_mem)
+        refine ⟨n, ?_⟩
+        -- For a ∈ P.I^n: x * P.A₀.subtype a ∈ B, so ι_R₀ a · ι x ∈ R₀.
+        have hgen : ∀ a ∈ P.I ^ n, ι_R₀ a ∈ S_x := by
+          intro a ha
+          show (ι_R₀ a : K) * ι x ∈ R₀
+          change ι (P.A₀.subtype a) * ι x ∈ R₀
+          rw [← map_mul]
+          have hmem : x * P.A₀.subtype a ∈ B := hn ⟨a, ha, rfl⟩
+          rw [mul_comm] at hmem
+          exact Subalgebra.algebraMap_mem (integralClosure B K) ⟨P.A₀.subtype a * x, hmem⟩
+        -- I_img^n = map ι_R₀ (P.I^n) by Ideal.map_pow. Each element maps into S_x.
+        rw [← Ideal.map_pow]
+        exact Ideal.map_le_iff_le_comap.mpr (fun a ha ↦ hgen a ha)
       -- Find maximal ideal 𝔪 ⊇ S_x (proper since 1 ∉ S_x).
       obtain ⟨𝔪, h𝔪_max, h𝔪_le⟩ := S_x.exists_le_maximal hS_x_proper
       haveI : 𝔪.IsPrime := h𝔪_max.isPrime
