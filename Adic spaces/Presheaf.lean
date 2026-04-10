@@ -1286,16 +1286,27 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
             show (↑(r • s) : K) * ι x ∈ R₀
             simp only [smul_eq_mul, Subring.coe_mul, mul_assoc]
             exact R₀.mul_mem r.property hs }
-      -- F4+F5: Show S_x + I_img is proper in R₀.
-      -- This uses Jacobson radical membership: elements of P.I (topologically
-      -- nilpotent) are in the Jacobson radical of R₀, hence 1 - i is a unit for
-      -- i ∈ I_img. If S_x + I_img = ⊤, get 1 = c + i with c ∈ S_x, i ∈ I_img,
-      -- then c = 1 - i is a unit, so ι x = c⁻¹(c · ι x) ∈ R₀, contradiction.
-      have hJ_proper : I_img ⊔ S_x ≠ ⊤ := by
-        sorry -- F4+F5: Jacobson radical → properness
-      -- Find maximal ideal containing the sum.
-      obtain ⟨𝔪, h𝔪_max, h𝔪_le⟩ := (I_img ⊔ S_x).exists_le_maximal hJ_proper
+      -- S_x is proper (since 1 · ι x = ι x ∉ R₀).
+      have hS_x_proper : S_x ≠ ⊤ := by
+        intro heq
+        have h1 : (1 : R₀) ∈ S_x := heq ▸ Submodule.mem_top
+        have : ((1 : R₀) : K) * ι x ∈ R₀ := h1
+        simp only [Subring.coe_one, one_mul] at this
+        exact hx_notin this
+      -- Key lemma: I_img^n ⊆ S_x for some n (from continuity of multiplication by x).
+      -- Since B is open and multiplication by x is continuous, μ_x⁻¹(B) is a
+      -- neighborhood of 0. By the pair of definition, ∃ n with I^n ⊆ μ_x⁻¹(B).
+      -- Then x · I^n ⊆ B, so for any b ∈ I^n: ι_R₀(b) · ι(x) = ι(b · x) ∈ R₀.
+      -- Since S_x is an ideal and the generators of I_img^n are in S_x, I_img^n ⊆ S_x.
+      have hI_pow_le_Sx : ∃ n : ℕ, I_img ^ n ≤ S_x := by
+        sorry -- Continuity of multiplication by x: ∃ n, x · I^n ⊆ B → I_img^n ⊆ S_x
+      -- Find maximal ideal 𝔪 ⊇ S_x (proper since 1 ∉ S_x).
+      obtain ⟨𝔪, h𝔪_max, h𝔪_le⟩ := S_x.exists_le_maximal hS_x_proper
       haveI : 𝔪.IsPrime := h𝔪_max.isPrime
+      -- Since 𝔪 is prime and I_img^n ⊆ S_x ⊆ 𝔪, we get I_img ⊆ 𝔪.
+      have hI_le_m : I_img ≤ 𝔪 :=
+        have ⟨n, hn⟩ := hI_pow_le_Sx
+        Ideal.IsPrime.le_of_pow_le (hn.trans h𝔪_le)
       -- F6: Construct local subring at 𝔪.
       let L := LocalSubring.ofPrime R₀ 𝔪
       -- ι x ∉ L.toSubring: if ι x = a/s with a ∈ R₀, s ∉ 𝔪, then
@@ -1309,7 +1320,7 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
         rw [halg s, halg a] at h1
         have hs_cond : s ∈ S_x := show (s : K) * ι x ∈ R₀ by
           rw [mul_comm, h1]; exact a.property
-        exact hs (h𝔪_le (Ideal.mem_sup_right hs_cond))
+        exact hs (h𝔪_le hs_cond)
       -- R₀ is integrally closed in K (it's the integral closure).
       -- Localization preserves integrally closed (standard commutative algebra).
       haveI : IsIntegrallyClosedIn L.toSubring K := by
@@ -1324,7 +1335,7 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
         -- Domination: 𝔪 → maxIdeal(V). Since I_img ⊆ 𝔪, image(P.I) ⊆ V.nonunits.
         intro a ha
         have ha_I_img : ι_R₀ a ∈ I_img := Ideal.mem_map_of_mem ι_R₀ ha
-        have ha_m : ι_R₀ a ∈ 𝔪 := h𝔪_le (Ideal.mem_sup_left ha_I_img)
+        have ha_m : ι_R₀ a ∈ 𝔪 := hI_le_m ha_I_img
         change V.valuation (ι_R₀ a : K) < 1
         have ha_in_L : (ι_R₀ a : K) ∈ L.toSubring :=
           LocalSubring.le_ofPrime R₀ 𝔪 (ι_R₀ a).property
