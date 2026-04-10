@@ -1218,6 +1218,162 @@ theorem tateAlgebraTopology'_completeSpace [IsTateRing A] [T2Space A]
   exact tateAlgNhd_of_coeff_mem_principal PP.toPairOfDefinition k PP.π PP.I_eq_span PP.π_isUnit
     hpair hcoeff_diff
 
+/-! ### PairOfDefinition, algebraMap continuity, and IsTateRing for TateAlgebra A
+
+We show that `TateAlgebra A` with `tateAlgebraTopology'` admits a pair of definition
+`(pairSubring P, pairIdeal P)`, that `algebraMap A (TateAlgebra A)` is continuous,
+and that `TateAlgebra A` is itself a Tate ring. -/
+
+omit [IsTopologicalRing A] in
+/-- The preimage of `tateAlgNhd P n` (as a set in `TateAlgebra A`) under the inclusion
+`pairSubring P ↪ TateAlgebra A` equals `(pairIdeal P)^n` (as a set in `pairSubring P`).
+This is because `tateAlgNhd P n` is exactly the image of `(pairIdeal P)^n`. -/
+theorem tateAlgNhd_preimage_eq (P : PairOfDefinition A) (n : ℕ) :
+    (pairSubring P).subtype ⁻¹' (tateAlgNhd P n : Set ↥(TateAlgebra A)) =
+      ((pairIdeal P) ^ n : Ideal ↥(pairSubring P)) := by
+  ext x
+  simp only [Set.mem_preimage, SetLike.mem_coe]
+  constructor
+  · rintro ⟨y, hy, heq⟩
+    have : x = y := by
+      apply_fun (pairSubring P).subtype using Subtype.val_injective
+      exact heq.symm
+    rw [this]; exact hy
+  · exact fun hx => ⟨x, hx, rfl⟩
+
+omit [IsTopologicalRing A] in
+/-- The subspace topology on `pairSubring P` from `tateAlgebraTopology'` equals the
+`pairIdeal P`-adic topology. This is the key `isAdic` result for the pair of definition.
+
+The proof uses `isAdic_iff`: we show that (1) each `(pairIdeal P)^n` is open in the
+subspace topology, and (2) every neighborhood of `0` in the subspace topology contains
+some `(pairIdeal P)^n`. Both follow from the fact that the preimage of `tateAlgNhd P n`
+under the subring inclusion is exactly `(pairIdeal P)^n`. -/
+theorem pairIdeal_isAdic_subspace [IsTateRing A] :
+    @IsAdic ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition) _
+      (@instTopologicalSpaceSubtype ↥(TateAlgebra A)
+        (· ∈ (pairSubring (IsTateRing.principalPair A).toPairOfDefinition :
+          Subring ↥(TateAlgebra A)))
+        tateAlgebraTopology')
+      (pairIdeal (IsTateRing.principalPair A).toPairOfDefinition) := by
+  let P := (IsTateRing.principalPair A).toPairOfDefinition
+  letI τ : TopologicalSpace ↥(TateAlgebra A) := tateAlgebraTopology'
+  haveI hring : IsTopologicalRing ↥(TateAlgebra A) := tateAlgebraTopology'_isTopologicalRing
+  letI τ_sub : TopologicalSpace ↥(pairSubring P) :=
+    instTopologicalSpaceSubtype
+  haveI hring_sub : @IsTopologicalRing ↥(pairSubring P) τ_sub _ :=
+    Subring.instIsTopologicalRing (pairSubring P)
+  rw [@isAdic_iff _ _ _ hring_sub]
+  refine ⟨fun n => ?_, fun s hs => ?_⟩
+  · -- (1) Each (pairIdeal P)^n is open in the subspace topology.
+    -- The preimage of tateAlgNhd P n under subtype is (pairIdeal P)^n.
+    rw [show ((pairIdeal P ^ n : Ideal ↥(pairSubring P)) : Set ↥(pairSubring P)) =
+      (pairSubring P).subtype ⁻¹' (tateAlgNhd P n : Set ↥(TateAlgebra A)) from
+      (tateAlgNhd_preimage_eq P n).symm]
+    -- tateAlgNhd P n is open in tateAlgebraTopology' (it's a basis element).
+    exact isOpen_induced (tateAlgBasis'.openAddSubgroup n).isOpen'
+  · -- (2) Every nhd of 0 in the subspace topology contains some (pairIdeal P)^n.
+    rw [nhds_subtype_eq_comap] at hs
+    obtain ⟨U, hU, hsU⟩ := Filter.mem_comap.mp hs
+    rw [show (0 : ↥(pairSubring P)).val = (0 : ↥(TateAlgebra A)) from rfl] at hU
+    obtain ⟨n, -, hn⟩ := tateAlgBasis'.hasBasis_nhds_zero.mem_iff.mp hU
+    exact ⟨n, (tateAlgNhd_preimage_eq P n ▸ Set.preimage_mono hn).trans hsU⟩
+
+/-- A `PairOfDefinition` for `TateAlgebra A` equipped with `tateAlgebraTopology'`.
+The ring of definition is `pairSubring P = A₀⟨X⟩` and the ideal of definition is
+`pairIdeal P = I · A₀⟨X⟩`, where `P = IsTateRing.principalPair A`. -/
+noncomputable def tateAlgebra_pairOfDefinition [IsTateRing A] :
+    @PairOfDefinition ↥(TateAlgebra A) _
+      tateAlgebraTopology' := by
+  letI : TopologicalSpace ↥(TateAlgebra A) := tateAlgebraTopology'
+  exact {
+    A₀ := pairSubring (IsTateRing.principalPair A).toPairOfDefinition
+    I := pairIdeal (IsTateRing.principalPair A).toPairOfDefinition
+    isOpen := pairSubring_principalPair_isOpen'
+    fg := pairIdeal_fg (IsTateRing.principalPair A).toPairOfDefinition
+    isAdic := pairIdeal_isAdic_subspace
+  }
+
+/-- `algebraMap A (TateAlgebra A)` is continuous from A's topology to `tateAlgebraTopology'`.
+
+Since `algebraMap a` is the constant power series `C(a)`, its `l`-th coefficient is `a`
+(when `l = 0`) or `0` (otherwise). For any basic neighborhood `tateAlgNhd P n`, the
+preimage under `algebraMap` contains the image of `P.I^n` in `A`, which is open. -/
+theorem tateAlgebra_algebraMap_continuous [IsTateRing A] :
+    @Continuous _ _ _ tateAlgebraTopology'
+      (algebraMap A ↥(TateAlgebra A)) := by
+  let P := (IsTateRing.principalPair A).toPairOfDefinition
+  letI τ : TopologicalSpace ↥(TateAlgebra A) := tateAlgebraTopology'
+  haveI hring : IsTopologicalRing ↥(TateAlgebra A) := tateAlgebraTopology'_isTopologicalRing
+  -- It suffices to show continuity at 0 (for an additive group hom).
+  rw [continuous_def]
+  intro U hU
+  -- We need to show (algebraMap A _) ⁻¹' U is open in A.
+  rw [isOpen_iff_mem_nhds]
+  intro a ha
+  -- Since U is open and algebraMap a ∈ U, U ∈ nhds (algebraMap a).
+  have hU_nhds : U ∈ @nhds _ τ (algebraMap A _ a) := hU.mem_nhds ha
+  -- Translate using the basis: there exists n such that {b | b - algebraMap a ∈ tateAlgNhd P n} ⊆ U.
+  obtain ⟨n, -, hn⟩ := (tateAlgBasis'.hasBasis_nhds (algebraMap A _ a)).mem_iff.mp hU_nhds
+  -- Show the preimage contains the translate a + (image of P.I^n).
+  -- For any a' with a' - a ∈ (image of P.I^n under Subtype.val), we have
+  -- algebraMap a' - algebraMap a ∈ tateAlgNhd P n.
+  apply mem_nhds_iff.mpr
+  refine ⟨(fun x => x + a) '' (Subtype.val '' ((P.I ^ n : Ideal P.A₀) : Set P.A₀)), ?_, ?_, ?_⟩
+  · -- Subset: for x ∈ a + image(P.I^n), algebraMap x ∈ U.
+    rintro x ⟨_, ⟨b, hb, rfl⟩, rfl⟩
+    -- Need: algebraMap (↑b + a) ∈ U, i.e., algebraMap (↑b + a) - algebraMap a ∈ tateAlgNhd P n.
+    rw [Set.mem_preimage]
+    apply hn
+    show algebraMap A ↥(TateAlgebra A) ((b : A) + a) -
+      algebraMap A ↥(TateAlgebra A) a ∈ tateAlgNhd P n
+    rw [map_add, add_sub_cancel_right]
+    -- algebraMap (b : A) ∈ tateAlgNhd P n.
+    -- Since b ∈ P.I^n, pairConstantHom P b ∈ (pairIdeal P)^n (by map_pow + mem_map).
+    refine ⟨pairConstantHom P ⟨b, b.property⟩, ?_, ?_⟩
+    · rw [show (pairIdeal P) ^ n = Ideal.map (pairConstantHom P) (P.I ^ n) from by
+        simp only [pairIdeal, ← Ideal.map_pow]]
+      exact Ideal.mem_map_of_mem _ hb
+    · apply Subtype.ext; rfl
+  · -- Open: a + image(P.I^n) is open (image of an open set under translation).
+    have hopen : IsOpen (Subtype.val '' ((P.I ^ n : Ideal P.A₀) : Set P.A₀) : Set A) :=
+      P.pow_image_isOpen n
+    exact (Homeomorph.addRight a).isOpenMap _ hopen
+  · -- Membership: a ∈ a + image(P.I^n).
+    exact ⟨0, ⟨0, (P.I ^ n).zero_mem, rfl⟩, by simp⟩
+
+/-- `TateAlgebra A` with `tateAlgebraTopology'` is a Tate ring.
+
+The Huber ring structure comes from `tateAlgebra_pairOfDefinition`. The topologically
+nilpotent unit is `algebraMap π` where `π` is the generator of the principal pair of `A`:
+`π` is a unit in `A`, so `algebraMap π` is a unit in `TateAlgebra A`, and `π` is
+topologically nilpotent in `A`, so `algebraMap π` is topologically nilpotent in
+`TateAlgebra A` by continuity of `algebraMap`. -/
+theorem tateAlgebra_isTateRing [IsTateRing A] :
+    @IsTateRing ↥(TateAlgebra A) _ tateAlgebraTopology' := by
+  letI τ : TopologicalSpace ↥(TateAlgebra A) := tateAlgebraTopology'
+  haveI hring : IsTopologicalRing ↥(TateAlgebra A) := tateAlgebraTopology'_isTopologicalRing
+  exact @IsTateRing.mk _ _ τ
+    ⟨⟨tateAlgebra_pairOfDefinition⟩⟩
+    (by
+      obtain ⟨u, hu_nilp⟩ := IsTateRing.exists_topologicallyNilpotent_unit (A := A)
+      refine ⟨Units.map (algebraMap A ↥(TateAlgebra A) : A →* ↥(TateAlgebra A)) u, ?_⟩
+      -- IsTopologicallyNilpotent (algebraMap u) in tateAlgebraTopology'.
+      show @IsTopologicallyNilpotent _ _ τ
+        ((Units.map (algebraMap A ↥(TateAlgebra A) : A →* ↥(TateAlgebra A)) u : ↥(TateAlgebra A)))
+      change Tendsto (fun n => ((Units.map (algebraMap A ↥(TateAlgebra A) : A →* ↥(TateAlgebra A))
+        u : ↥(TateAlgebra A)) ^ n)) atTop (@nhds _ τ 0)
+      have hval : ∀ n : ℕ, (Units.map (algebraMap A ↥(TateAlgebra A) : A →* ↥(TateAlgebra A))
+          u : ↥(TateAlgebra A)) ^ n = algebraMap A ↥(TateAlgebra A) ((u : A) ^ n) := by
+        intro n
+        show ((Units.map (algebraMap A ↥(TateAlgebra A) : A →* ↥(TateAlgebra A)) u :
+          ↥(TateAlgebra A)) ^ n) = _
+        rw [show (Units.map (algebraMap A ↥(TateAlgebra A) : A →* ↥(TateAlgebra A)) u :
+          ↥(TateAlgebra A)) = algebraMap A ↥(TateAlgebra A) (u : A) from rfl, map_pow]
+      simp_rw [hval]
+      rw [show (0 : ↥(TateAlgebra A)) = algebraMap A ↥(TateAlgebra A) 0 from (map_zero _).symm]
+      exact tateAlgebra_algebraMap_continuous.continuousAt.tendsto.comp hu_nilp)
+
 end TateAlgebraNaturalTopology
 
 end TateAlgebra
