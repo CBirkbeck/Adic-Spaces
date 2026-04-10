@@ -918,7 +918,41 @@ theorem pairSubring_principalPair_isOpen' [IsTateRing A] :
   let P := IsTateRing.principalPair A
   pairSubring_isOpen P.toPairOfDefinition P.π P.I_eq_span P.π_isUnit
 
-/-! ### Foundational instances on `TateAlgebra A` -/
+/-! ### Canonical topology and foundational instances on `TateAlgebra A`
+
+For a Tate ring `A`, we install `tateAlgebraTopology'` as the **canonical**
+`TopologicalSpace` instance on `↥(TateAlgebra A)` (priority 1000). This
+shadows the default `instTopologicalSpaceSubtype` (the subspace/product
+topology from `MvPowerSeries`) which is too coarse for adic geometry.
+
+The canonical topology makes `TateAlgebra A` a Tate ring: it is a ring topology
+(`IsTopologicalRing`), Hausdorff (`T2Space`), complete (`CompleteSpace`), and
+carries a topologically nilpotent unit (`IsTateRing`). The ring of definition
+is `pairSubring P` (= `A₀⟨X⟩`) with ideal of definition `pairIdeal P`. -/
+
+/-- The canonical topology on `TateAlgebra A` for Tate rings: the natural Tate
+topology from the `RingSubgroupsBasis` construction. This shadows the default
+subspace topology `instTopologicalSpaceSubtype`. -/
+@[reducible, instance 1000]
+noncomputable def instTopologicalSpaceTateAlgebra [IsTateRing A] :
+    TopologicalSpace ↥(TateAlgebra A) := tateAlgebraTopology'
+
+@[reducible, instance 1000]
+noncomputable def instIsTopologicalRingTateAlgebra [IsTateRing A] :
+    IsTopologicalRing ↥(TateAlgebra A) := tateAlgebraTopology'_isTopologicalRing
+
+@[reducible, instance 1000]
+noncomputable def instUniformSpaceTateAlgebra [IsTateRing A] :
+    UniformSpace ↥(TateAlgebra A) :=
+  @IsTopologicalAddGroup.rightUniformSpace _ _
+    instTopologicalSpaceTateAlgebra
+    instIsTopologicalRingTateAlgebra.to_topologicalAddGroup
+
+@[reducible, instance 1000]
+noncomputable def instIsUniformAddGroupTateAlgebra [IsTateRing A] :
+    @IsUniformAddGroup ↥(TateAlgebra A) instUniformSpaceTateAlgebra _ :=
+  @isUniformAddGroup_of_addCommGroup _ _ _
+    instIsTopologicalRingTateAlgebra.to_topologicalAddGroup
 
 /-- `TateAlgebra A` is a noetherian ring whenever `A` is strongly noetherian.
 This is `IsStronglyNoetherian.isNoetherianRing_restricted` specialized to `k = 1`,
@@ -941,12 +975,12 @@ private theorem pairIdeal_iInter_eq_zero [T2Space A] (P : PairOfDefinition A) :
   exact hb_all n
 
 omit [IsTopologicalRing A] in
-/-- The canonical natural Tate topology on `TateAlgebra A` is T2 whenever `A` is T2.
-Strategy: every nonzero element of `TateAlgebra A` has some nonzero coefficient, and
-the intersection of all `tateAlgNhd P n` (as sets) is `{0}` because the intersection
-of all `P.I^n` is `{0}` in the Hausdorff I-adic topology on `P.A₀`. -/
-theorem tateAlgebraTopology'_t2Space [IsTateRing A] [T2Space A] :
-    @T2Space ↥(TateAlgebra A) tateAlgebraTopology' := by
+/-- `TateAlgebra A` is T2 (Hausdorff) whenever `A` is T2. Uses the canonical
+Tate topology via `instTopologicalSpaceTateAlgebra`. -/
+@[reducible, instance 1000]
+noncomputable def instT2SpaceTateAlgebra [IsTateRing A] [T2Space A] :
+    T2Space ↥(TateAlgebra A) := by
+  change @T2Space _ tateAlgebraTopology'
   let P := (IsTateRing.principalPair A).toPairOfDefinition
   letI : TopologicalSpace ↥(TateAlgebra A) := tateAlgebraTopology'
   haveI : IsTopologicalRing ↥(TateAlgebra A) := tateAlgebraTopology'_isTopologicalRing
@@ -1387,20 +1421,35 @@ given that the ring of definition `pairSubring P` is noetherian.
 This is Wedhorn Prop 6.17 applied to `A = TateAlgebra A_orig`. -/
 theorem tateAlgebra_isClosed_ideal [IsTateRing A] [T2Space A]
     (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
-    (hnoeth : IsNoetherianRing
-      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    [IsNoetherianRing ↥(tateAlgebra_pairOfDefinition (A := A)).A₀]
     (J : Ideal ↥(TateAlgebra A)) :
-    letI : TopologicalSpace ↥(TateAlgebra A) := tateAlgebraTopology'
     IsClosed (J : Set ↥(TateAlgebra A)) := by
-  -- Wedhorn Prop 6.17 applied to TateAlgebra A with tateAlgebraTopology'.
-  -- The math is: A₀ is clopen + complete, J₀ = J ∩ A₀ is closed (adic Krull),
-  -- multiply by topologically nilpotent unit to push closure(J) into A₀,
-  -- conclude J is closed.
-  -- Currently blocked by Lean topology diamond: ↥(TateAlgebra A) has a default
-  -- topology (instTopologicalSpaceSubtype) that conflicts with tateAlgebraTopology'.
-  -- The IsClosed result from Wedhorn.isClosed_ideal_of_noetherian uses the wrong
-  -- topology instance. Needs either a type synonym or explicit topology transport.
-  sorry
+  -- Wedhorn Prop 6.17 applied to TateAlgebra A.
+  -- The IsClosed uses instTopologicalSpaceTateAlgebra (= tateAlgebraTopology').
+  -- Prop 6.17 needs [UniformSpace] [IsUniformAddGroup] [IsTopologicalRing] [T2Space]
+  -- [CompleteSpace] [IsTateRing] — all with the Tate topology.
+  -- Use instUniformSpaceTateAlgebra, reconcile via IsUniformAddGroup.toUniformSpace_eq.
+  haveI hCS : @CompleteSpace _ instUniformSpaceTateAlgebra :=
+    tateAlgebraTopology'_completeSpace hA_complete
+  haveI hTR : @IsTateRing ↥(TateAlgebra A) _ instTopologicalSpaceTateAlgebra :=
+    tateAlgebra_isTateRing
+  -- Prop 6.17 returns IsClosed with respect to instUniformSpaceTateAlgebra.toTopologicalSpace.
+  -- This equals instTopologicalSpaceTateAlgebra because instUniformSpaceTateAlgebra was
+  -- built from it via rightUniformSpace.
+  -- Use convert to bridge the topology difference.
+  suffices h : @IsClosed _ instUniformSpaceTateAlgebra.toTopologicalSpace (J : Set _) by
+    convert h using 1
+  exact @Wedhorn.isClosed_ideal_of_noetherian ↥(TateAlgebra A) _
+    instUniformSpaceTateAlgebra instIsUniformAddGroupTateAlgebra
+    (show @IsTopologicalRing _ instUniformSpaceTateAlgebra.toTopologicalSpace _ by
+      convert instIsTopologicalRingTateAlgebra)
+    (show @T2Space _ instUniformSpaceTateAlgebra.toTopologicalSpace by
+      convert instT2SpaceTateAlgebra; exact ‹T2Space A›)
+    hCS
+    (show @IsTateRing _ _ instUniformSpaceTateAlgebra.toTopologicalSpace by
+      convert hTR)
+    (show @PairOfDefinition _ _ instUniformSpaceTateAlgebra.toTopologicalSpace by
+      convert tateAlgebra_pairOfDefinition) ‹_› J
 
 end TateAlgebraNaturalTopology
 
