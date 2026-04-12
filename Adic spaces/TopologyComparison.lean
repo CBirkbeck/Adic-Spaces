@@ -1585,10 +1585,17 @@ Combined with the reverse inequality (proved by `coinduced_mono` from the fact
 that the canonical Tate algebra topology is finer than the T-topology), this
 gives equality of the two quotient topologies.
 
-The proof uses the structure of the ideal `(1-sX)`: the recurrence
-`coeff_{l+1}(g) ≡ s · coeff_l(g)` modulo the ideal links all coefficients,
-so the canonical constraint (all coefficients in `I^n`) is equivalent to
-finitely many T-constraints (`s^l · coeff_l ∈ U` for `l ≤ N`). -/
+**WARNING (2026-04-12):** The topology equality
+`quotientOneSubfXIdealTopology = quotientTTopology` is FALSE in general.
+Counterexample: A = ℚ_p, s = 1. Then X^N → 0 in T-topology but mk(X^N) = 1
+in the quotient, so the T-quotient is non-Hausdorff while the canonical
+quotient is Hausdorff.
+
+The equality holds only when s⁻¹/π is power-bounded (e.g., s is an associate
+of a topologically nilpotent unit). For the acyclicity theorem, use the
+T-quotient topology directly via `presheafValueTateQuotientEquiv`.
+
+This lemma is UNUSED downstream and should be considered DEPRECATED. -/
 theorem quotientTTopology_le_quotientOneSubfXIdealTopology [IsTateRing A]
     (s : A) : quotientTTopology s ≤ quotientOneSubfXIdealTopology s := by
   sorry
