@@ -1663,147 +1663,48 @@ theorem locToQuotientOneSubfX_gen_continuous_canonical [IsTateRing A] [T2Space A
       (hb.nhds_zero_hasBasis.mem_iff.mpr
         ⟨locNhd D.P D.T D.s n, ⟨n, rfl⟩, le_refl _⟩)
     intro x hx; exact hWS (hn x hx)
-  -- Abbreviations.
+  -- ====================================================================
+  -- Direct proof via boundedness of φ(locSubring) in canonical quotient.
+  -- Key insight (from AI reviewer): the topology equality
+  -- quotientOneSubfXIdealTopology = quotientTTopology is FALSE in general
+  -- (counterexample: A = ℚ_p, s = 1). So we prove continuity directly
+  -- without comparing topologies.
+  --
+  -- The argument:
+  -- (1) locNhd n = image of (locIdeal)^n. Since locIdeal = algebraMap(π) · locSubring
+  --     (principal ideal), (locIdeal)^n = algebraMap(π^n) · locSubring.
+  -- (2) φ(locNhd n) ⊆ mk(C(π^n)) · φ(locSubring) (ring hom).
+  -- (3) mk(C(π^n)) → 0 in canonical quotient (continuity of mk ∘ algebraMap + π nilpotent).
+  -- (4) φ(locSubring) is bounded in canonical quotient.
+  -- (5) Bounded · (small nhd) ⊆ W.
+  -- ====================================================================
+  -- Step 1: mk(algebraMap(π^n)) → 0 in canonical quotient.
+  -- mk ∘ algebraMap : A → quotient is continuous for canonical topology.
   let mk := Ideal.Quotient.mk (oneSubfXIdeal D.s)
-  -- Step 1: mk⁻¹(W) is open in canonical topology (mk continuous) and contains 0.
-  have hmk_cont : @Continuous _ _ instTopologicalSpaceTateAlgebra
-      (quotientOneSubfXIdealTopology D.s) mk := continuous_quotient_mk'
-  have hmk_pre_W : mk ⁻¹' (W : Set _) ∈
-      @nhds _ instTopologicalSpaceTateAlgebra (0 : ↥(TateAlgebra A)) :=
-    hmk_cont.continuousAt.preimage_mem_nhds (W.isOpen.mem_nhds W.zero_mem)
-  -- Step 2: mk⁻¹(W) contains some tateAlgNhd P' k₀.
+  have hmk_alg_cont : @Continuous _ _
+      (inferInstance : TopologicalSpace A) τC
+      (mk.comp (algebraMap A ↥(TateAlgebra A))) := by
+    exact continuous_quotient_mk'.comp tateAlgebra_algebraMap_continuous
+  -- π is topologically nilpotent in A.
   let P' := (IsTateRing.principalPair A).toPairOfDefinition
-  obtain ⟨k₀, -, hk₀⟩ := tateAlgBasis'.hasBasis_nhds_zero.mem_iff.mp hmk_pre_W
-  -- Step 3: Reduce to the T-topology continuity via topology comparison.
-  -- The canonical quotient topology and the T-quotient topology on A⟨X⟩/(1-sX)
-  -- coincide. This follows from Wedhorn Proposition 6.18: for a f.g. module over
-  -- a strongly noetherian Tate ring, the module topology equals the adic lattice
-  -- topology. Since A⟨X⟩/(1-sX) is a cyclic A⟨X⟩-module, both quotient topologies
-  -- are module topologies for the same structure, hence equal.
-  --
-  -- Given this equality, continuity for the canonical quotient follows directly
-  -- from the already-proved T-topology continuity (locToQuotientOneSubfX_gen_continuous).
-  --
-  -- The topology equality is the key remaining infrastructure gap (Wedhorn 6.18).
-  have h_top_eq : quotientOneSubfXIdealTopology D.s = quotientTTopology D.s := by
-    -- Both topologies are coinduced via Quotient.mk' from source topologies:
-    --   quotientOneSubfXIdealTopology = coinduced mk' instTopologicalSpaceTateAlgebra
-    --   quotientTTopology             = coinduced mk' (tateTopologyT D.s)
-    -- In Lean's ordering, τ₁ ≤ τ₂ means τ₁ is finer (more open sets).
-    -- The canonical topology is finer than T: canonical ≤ T (every T-open is
-    -- canonical-open, since each g ↦ s^l·coeff_l(g) is canonical-continuous).
-    apply le_antisymm
-    · -- canonical-quotient ≤ T-quotient (canonical quotient is finer).
-      -- By coinduced_mono from canonical ≤ T (canonical is finer on source).
-      -- T-topology = induced scaleIncl product. Canonical ≤ induced scaleIncl product
-      -- iff scaleIncl : (canonical) → (product) is continuous
-      -- (by continuous_iff_le_induced).
-      apply coinduced_mono
-      show instTopologicalSpaceTateAlgebra ≤
-        TopologicalSpace.induced (TateAlgebraWedhorn.scaleIncl D.s)
-          (MvPowerSeries.WithPiTopology.instTopologicalSpace A)
-      rw [← continuous_iff_le_induced]
-      -- scaleIncl continuous for canonical → product iff each coordinate is.
-      apply continuous_pi
-      intro s_idx
-      -- Need: (fun g => scaleIncl g s_idx) = (fun g => s^l * g.val s_idx)
-      -- is canonical-continuous.
-      show @Continuous _ _ instTopologicalSpaceTateAlgebra _
-        (fun g : ↥(TateAlgebra A) => TateAlgebraWedhorn.scaleIncl D.s g s_idx)
-      have heq : (fun g : ↥(TateAlgebra A) =>
-          TateAlgebraWedhorn.scaleIncl D.s g s_idx) =
-          (fun g : ↥(TateAlgebra A) => D.s ^ (s_idx 0) * g.val s_idx) := by
-        ext g; exact TateAlgebraWedhorn.scaleIncl_apply D.s g s_idx
-      rw [heq]
-      -- g ↦ s^l * g.val s_idx = (s^l * ·) ∘ (g ↦ g.val s_idx).
-      -- Prove each part is continuous and compose.
-      -- g ↦ g.val s_idx is canonical-continuous because coefficient extraction
-      -- maps tateAlgNhd P' n into image(I^n), which is a nhd basis for A.
-      -- We build the AddMonoidHom and use continuous_of_tendsto_nhds_zero.
-      let coeffHom : ↥(TateAlgebra A) →+ A :=
-        { toFun := fun g => g.val s_idx
-          map_zero' := show (0 : MvPowerSeries (Fin 1) A) s_idx = 0 from
-            Pi.zero_apply s_idx
-          map_add' := fun a b => by
-            exact Pi.add_apply (a : MvPowerSeries (Fin 1) A)
-              (b : MvPowerSeries (Fin 1) A) s_idx }
-      have hcoeff_cont : @Continuous _ _
-          instTopologicalSpaceTateAlgebra _ coeffHom := by
-        letI := instTopologicalSpaceTateAlgebra (A := A)
-        haveI := instIsTopologicalRingTateAlgebra (A := A)
-        apply continuous_of_tendsto_nhds_zero
-        show @Filter.Tendsto _ _
-          coeffHom
-          (@nhds _ instTopologicalSpaceTateAlgebra 0) (nhds 0)
-        rw [Filter.tendsto_def]
-        intro V hV
-        obtain ⟨n, -, hn⟩ := P'.hasBasis_nhds_zero.mem_iff.mp hV
-        apply Filter.mem_of_superset
-          (tateAlgBasis'.hasBasis_nhds_zero.mem_iff.mpr ⟨n, trivial, le_refl _⟩)
-        intro g hg
-        exact hn (tateAlgNhd_coeff_mem P' n hg s_idx)
-      exact (continuous_const_mul (D.s ^ (s_idx 0))).comp hcoeff_cont
-    · -- T-quotient ≤ canonical-quotient (T-quotient is finer).
-      -- Proved via: canonical ≤ T on source implies canonical-quotient ≤ T-quotient
-      -- by coinduced_mono, combined with the REVERSE coinduced_mono from T ≤ canonical
-      -- on the source. But T ≤ canonical on source fails (T-topology is strictly
-      -- coarser). Instead, use coinduced_le_iff_le_induced: it suffices to show
-      -- τ_T ≤ induced mk (coinduced mk τ_canon). By the Galois connection,
-      -- induced mk (coinduced mk τ_canon) ≥ τ_canon ≥ τ_T... but τ_canon ≥ τ_T
-      -- is the WRONG direction.
-      --
-      -- The correct route (Wedhorn Proposition 6.18): for mk-saturated sets S,
-      -- "S canonical-open ⟹ S T-open" uses the ideal (1-sX) recurrence
-      -- c_{l+1} ≡ s·c_l which links all coefficients, making the canonical
-      -- all-coefficients constraint redundant given finitely many T-constraints.
-      --
-      -- We instead bypass this by showing mk : (TateAlgebra, T-topology) →
-      -- (quotient, canonical-quotient) is continuous. This follows from
-      -- the Galois connection: coinduced mk τ_T ≤ τ_Q_canon iff
-      -- τ_T ≤ induced mk τ_Q_canon. We show the RHS by:
-      -- (a) induced mk τ_Q_canon is mk-saturated τ_canon, and
-      -- (b) for mk-saturated sets, τ_canon-openness implies τ_T-openness
-      --     because any g in the saturated set has g + (1-sX)·q in the set
-      --     for all q, so controlling scaled coefficients s^l · coeff_l(g)
-      --     for finitely many l suffices (the ideal relation propagates
-      --     the constraint to all coefficients).
-      exact quotientTTopology_le_quotientOneSubfXIdealTopology D.s
-  -- With the topology equality, the T-quotient continuity gives the canonical result.
-  -- W is an open additive subgroup in the canonical quotient = T-quotient.
-  have hW_T : (W : Set _) ∈ @nhds _ (quotientTTopology D.s) 0 := by
-    rw [← h_top_eq]; exact W.isOpen.mem_nhds W.zero_mem
-  -- Apply locToQuotient_mul_small_constant_mem for the T-quotient topology.
-  obtain ⟨m, hm_helper⟩ :=
-    locToQuotient_mul_small_constant_mem D (W : Set _) hW_T
-  -- locNhd(m) maps into W, using the same span_induction as the T-topology proof.
-  refine ⟨m, ?_⟩
-  rintro x ⟨d, hd, rfl⟩
-  rw [locIdeal, ← Ideal.map_pow] at hd
-  suffices ∀ (r : locSubring D.P D.T D.s),
-      locToQuotientOneSubfX_gen D.s
-        ((locSubring D.P D.T D.s).subtype (r * d)) ∈ (W : Set _) by
-    simpa using this 1
-  intro r₀; revert r₀
-  refine Submodule.span_induction (p := fun d _ ↦
-      ∀ (r : locSubring D.P D.T D.s),
-        locToQuotientOneSubfX_gen D.s
-          ((locSubring D.P D.T D.s).subtype (r * d)) ∈
-            (W : Set _)) ?_ ?_ ?_ ?_ hd
-  · -- Generator: d = algebraMapD(b) for b ∈ I^m.
-    rintro d ⟨b, hb, rfl⟩ r; exact hm_helper r b hb
-  · -- Zero
-    intro r; simp [mul_zero, map_zero]
-  · -- Addition: d₁ + d₂
-    intro d₁ d₂ _ _ h₁ h₂ r
-    have : (locSubring D.P D.T D.s).subtype (r * (d₁ + d₂)) =
-        (locSubring D.P D.T D.s).subtype (r * d₁) +
-        (locSubring D.P D.T D.s).subtype (r * d₂) := by simp [mul_add]
-    rw [this, map_add]; exact W.toAddSubgroup.add_mem (h₁ r) (h₂ r)
-  · -- Scalar: s • d for s ∈ locSubring.
-    intro s d _ hd r
-    have : (locSubring D.P D.T D.s).subtype (r * (s • d)) =
-        (locSubring D.P D.T D.s).subtype ((r * s) * d) := by simp [mul_assoc]
-    rw [this]; exact hd (r * s)
+  have hπ := P'.isTopologicallyNilpotent_of_mem
+    (show (IsTateRing.principalPair A).π ∈ P'.I from by
+      rw [(IsTateRing.principalPair A).I_eq_span]; exact Ideal.mem_span_singleton_self _)
+  -- mk(algebraMap(π^n)) → 0 in canonical quotient.
+  have hmk_pi_tendsto : Filter.Tendsto
+      (fun n => mk (algebraMap A ↥(TateAlgebra A) ((IsTateRing.principalPair A).π ^ n : A)))
+      Filter.atTop (@nhds _ τC 0) := by
+    have h0 : mk (algebraMap A ↥(TateAlgebra A) 0) = 0 := by simp
+    rw [← h0]
+    exact (hmk_alg_cont.tendsto 0).comp (by
+      change Filter.Tendsto (fun n => ((IsTateRing.principalPair A).π : A) ^ n) _ _
+      exact hπ)
+  -- Step 2: For the target W, find V with mk(algebraMap(π^n)) ∈ V for large n,
+  -- and such that every locSubring generator times V lands in W.
+  -- Since W is an open additive subgroup and the quotient is a topological ring:
+  -- for each x in the quotient, ∃ V_x nhd with x · V_x ⊆ W.
+  -- Use the topological ring structure: multiplication continuous at (0,0).
+  sorry
 
 end CanonicalTopologyBridge
 
