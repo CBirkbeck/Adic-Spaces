@@ -315,47 +315,120 @@ goes through `presheafValueCanonicalQuotientEquiv` from `TopologyComparison.lean
 - Compatibility on the overlap (delta = 0) corresponds to the two sections
   agreeing in `B₁₂_gen f = A⟨ζ, ζ⁻¹⟩/(f-ζ)`. -/
 
-/-- **Laurent cover gluing on presheaf values** (Wedhorn Lemma 8.33, presheaf level).
+/-! ### Helper lemmas for Laurent cover gluing (infrastructure gaps)
 
-For a complete noetherian Tate domain `A` and element `f`, the 2-element Laurent
-cover `{R(f/1), R(1/f)}` of `Spa(A)` satisfies the presheaf gluing condition:
-given compatible sections `u₊ ∈ presheafValue(R(f/1))` and
-`u₋ ∈ presheafValue(R(1/f))`, there exists `x ∈ presheafValue(D₀)` restricting
-to both.
+**Proof strategy** (updated from the original `row3_exact` transport plan):
 
-**Proof strategy** (transport through ring isomorphisms):
+The transport through `row3_exact` requires bridge lemmas identifying
+`presheafValue (laurentPlusDatum D₀ f) ≃+* B₁_gen f` and similarly for the
+minus piece. These bridges depend on nontrivial infrastructure (Phase 2 of the
+Wedhorn plan: Example 6.38 as topological ring iso, Prop 6.17 on closed ideals).
 
-1. **Identify presheaf values with Tate quotients.**
-   - `e₊ : presheafValue(laurentPlusDatum D₀ f) ≃+* B₁_gen f` via
-     `presheafValueCanonicalQuotientEquiv` (the plus piece has `s = D₀.s`,
-     and `B₁_gen f = A⟨X⟩/(f-X)` is the quotient for evaluation at `f`).
-   - `e₋ : presheafValue(laurentMinusDatum D₀ f) ≃+* B₂_gen f` via
-     `presheafValueCanonicalQuotientEquiv` (the minus piece has `s = D₀.s * f`,
-     and `B₂_gen f = A⟨X⟩/(1-fX) = oneSubfXIdeal f`).
+Instead, the proof uses the partition-of-unity approach from `discrete_gluing`:
+1. Find an algebraic preimage `x' : Localization.Away D₀.s` via the partition
+   of unity for the 2-element Laurent cover.
+2. Lift to `presheafValue D₀` via `D₀.coeRingHom` (the completion embedding).
+3. Verify via `extensionHom_coe` (restriction maps commute with completion).
 
-2. **Transport sections.** Set `q₊ := e₊(u₊)` and `q₋ := e₋(u₋)`.
+The proof of `laurentCover_gluing_presheaf` uses the 2-element Laurent covering
+`{R(T ∪ {f} / s), R(T' / s·f)}` of the base `R(T/s)`.
 
-3. **Transport compatibility.** The overlap compatibility condition
-   `restrictionMap (plus) D₃ h₃₊ u₊ = restrictionMap (minus) D₃ h₃₋ u₋`
-   transports to `deltaMap_gen f (q₊, q₋) = 0` via the commutativity of
-   the restriction maps with `posLift` and `negLift`.
+**Architecture**: The partition-of-unity approach (as in `discrete_gluing` from
+`TateAcyclicity.lean`) works at the localization level and lifts to completions.
+For a 2-element cover `{D₊, D₋}`, the proof requires:
+1. Finding `x' : Localization.Away D₀.s` with `restrictionMapAlg D₀ D± _ x' = f±`.
+2. Lifting `x'` to `presheafValue D₀` via `D₀.coeRingHom`.
 
-4. **Apply `row3_exact`.** The kernel condition gives `∃ a : A` with
-   `epsilonHom_gen f a = (q₊, q₋)`.
+Step 1 reduces to the partition-of-unity argument: the elements `D₊.s` and `D₋.s`
+generate the unit ideal in `Localization.Away D₀.s` (from the covering condition
+on the spectrum), so `∑ c_i * s_i^N = 1` gives the global section `x' = ∑ c_i * r_i`.
 
-5. **Transport back.** Set `x := e₀.symm(image of a)` where `e₀` is the
-   identification `presheafValue D₀ ≃+* A` (for complete A with trivial D₀).
+The key infrastructure gaps are:
+- `span_top_of_laurentCover`: the images of `D₊.s` and `D₋.s` generate `⊤` in
+  `Localization.Away D₀.s`.
+- `laurentCover_numerator_compat`: cross-compatibility of numerators after
+  absorbing powers.
+- `laurentCover_restrictionMapAlg_dense_surj`: every element of `presheafValue D±`
+  is in the range of `restrictionMapAlg D₀ D± _` (the algebraic restriction is
+  surjective onto the dense image, then extends).
 
-6. **Verify restrictions.** Using `presheafValueCanonicalQuotientEquiv_canonicalMap`,
-   `restrictionMap D₀ (plus) x = u₊` and `restrictionMap D₀ (minus) x = u₋`.
+**Note**: the plus datum has `(laurentPlusDatum D₀ f).s = D₀.s` (SAME generator),
+so `Localization.Away (laurentPlusDatum D₀ f).s = Localization.Away D₀.s`. Only
+the topology (determined by `T`) differs. The minus datum has
+`(laurentMinusDatum D₀ f).s = D₀.s * f`, a genuinely different localization. -/
 
-**Sorry justification:** Steps 1 and 3 require bridge lemmas:
-- `presheafValue_plus_equiv_B₁_gen`: identification of presheafValue of the
-  plus piece with `B₁_gen f` (needs `quotientFSubXEquiv` generalized beyond
-  discrete topology, or a direct construction via the completion universal
-  property).
-- `restrictionMap_compat_deltaMap`: the restriction maps to the overlap datum
-  correspond to `posLift` and `negLift` under the identifications above. -/
+/-- The images of the Laurent-piece generators span `⊤` in the base localization.
+
+For a Laurent cover `{D₊, D₋}` of `D₀`, the element `D₀.s` is in the radical
+of `Ideal.span {D₊.s, D₋.s}` in `A` (from the covering condition: every point
+of `rationalOpen D₀.T D₀.s` lies in one of the two pieces). Hence the images
+span `⊤` in `Localization.Away D₀.s`. -/
+theorem span_top_of_laurentCover
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
+    (D₀ : RationalLocData A) (f : A) :
+    Ideal.span {algebraMap A (Localization.Away D₀.s) (laurentPlusDatum D₀ f).s,
+      algebraMap A (Localization.Away D₀.s) (laurentMinusDatum D₀ f).s} = ⊤ := by
+  -- (laurentPlusDatum D₀ f).s = D₀.s and (laurentMinusDatum D₀ f).s = D₀.s * f.
+  -- So we need: Ideal.span {algebraMap D₀.s, algebraMap (D₀.s * f)} = ⊤
+  -- in Localization.Away D₀.s.
+  -- Since algebraMap D₀.s is a unit in Localization.Away D₀.s, we have
+  -- 1 ∈ Ideal.span {algebraMap D₀.s, ...} immediately.
+  change Ideal.span {algebraMap A (Localization.Away D₀.s) D₀.s,
+    algebraMap A (Localization.Away D₀.s) (laurentMinusDatum D₀ f).s} = ⊤
+  exact Ideal.eq_top_of_isUnit_mem _
+    (Ideal.subset_span (Set.mem_insert _ _))
+    (IsLocalization.Away.algebraMap_isUnit D₀.s)
+
+/-- **Laurent cover gluing -- algebraic core**: There exists a pre-completion
+element `x' : Localization.Away D₀.s` whose algebraic restrictions match
+the given sections.
+
+This is the heart of the partition-of-unity argument. The proof follows
+the same scheme as `discrete_gluing` in `TateAcyclicity.lean`:
+1. Each section `u±` corresponds (via density + completeness) to an algebraic
+   element in the dense image.
+2. The cross-compatibility of numerators follows from `hcompat`.
+3. The partition of unity `∑ c_i * s_i^N = 1` assembles the global section.
+
+**Sorry justification**: Requires `restrictionMapHom_surj` (Baire category,
+PresheafTateStructure.lean) to lift completion elements back to localizations.
+This is a deep infrastructure gap (Wedhorn Prop 8.15). -/
+theorem laurentCover_algebraic_gluing
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
+    (D₀ : RationalLocData A) (f : A)
+    (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (uplus : presheafValue (laurentPlusDatum D₀ f))
+    (uminus : presheafValue (laurentMinusDatum D₀ f))
+    (hcompat : ∀ (D₃ : RationalLocData A)
+      (h₃p : rationalOpen D₃.T D₃.s ⊆
+        rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s)
+      (h₃m : rationalOpen D₃.T D₃.s ⊆
+        rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s),
+      restrictionMap (laurentPlusDatum D₀ f) D₃ h₃p uplus =
+        restrictionMap (laurentMinusDatum D₀ f) D₃ h₃m uminus) :
+    ∃ x' : Localization.Away D₀.s,
+      restrictionMapAlg D₀ (laurentPlusDatum D₀ f) hplus x' =
+        uplus ∧
+      restrictionMapAlg D₀ (laurentMinusDatum D₀ f) hminus x' =
+        uminus := by
+  -- The partition-of-unity argument:
+  -- 1. span_top_of_laurentCover gives 1 ∈ Ideal.span {s₊, s₋}.
+  -- 2. restrictionMapHom_surj gives fractional preimages of u± in presheafValue D₀.
+  -- 3. Cross-multiply and use hcompat for numerator compatibility.
+  -- 4. Assemble via partition of unity.
+  -- Blocking: restrictionMapHom_surj (PresheafTateStructure.lean, Baire category).
+  sorry
+
+/-- Laurent cover gluing on presheaf values (Wedhorn Lemma 8.33, presheaf level).
+
+Decomposes into:
+1. `laurentCover_algebraic_gluing`: find `x'` at the localization level.
+2. Transport via `D₀.coeRingHom` and `extensionHom_coe`. -/
 theorem laurentCover_gluing_presheaf
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A]
@@ -377,24 +450,36 @@ theorem laurentCover_gluing_presheaf
     ∃ x : presheafValue D₀,
       restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x = uplus ∧
       restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x = uminus := by
-  -- The proof transports through ring isomorphisms:
-  --   presheafValue D ≃+* Tate algebra quotient (via presheafValueCanonicalQuotientEquiv)
-  -- to reduce to the algebraic exact sequence `row3_exact` from LaurentCoverExact.lean.
-  --
-  -- Bridge lemmas needed (not yet formalized):
-  -- (a) presheafValue (laurentPlusDatum D₀ f) ≃+* B₁_gen f
-  --     (for s = D₀.s: needs identifying A⟨X⟩/(1 - D₀.s * X) with A⟨X⟩/(f - X)
-  --      when the plus piece has the same s as D₀)
-  -- (b) presheafValue (laurentMinusDatum D₀ f) ≃+* B₂_gen f
-  --     (for s = D₀.s * f: oneSubfXIdeal (D₀.s * f) vs oneSubfXIdeal f,
-  --      needs the quotient identification)
-  -- (c) Restriction maps commute with the isomorphisms above and match
-  --     the components of epsilonHom_gen f
-  --
-  -- Once (a)-(c) are established, apply:
-  --   LaurentCover.row3_exact f htop |>.2.1 (qp, qm) (transport of hcompat)
-  -- to obtain a : A with epsilonHom_gen f a = (qp, qm), then transport back.
-  sorry
+  -- Step 1: Get the algebraic-level preimage.
+  obtain ⟨x', hx'_plus, hx'_minus⟩ :=
+    laurentCover_algebraic_gluing D₀ f hplus hminus uplus uminus hcompat
+  -- Step 2: Lift to presheafValue via coeRingHom.
+  refine ⟨D₀.coeRingHom x', ?_, ?_⟩
+  · -- restrictionMap D₀ (plus) (coeRingHom x') = uplus
+    -- By extensionHom_coe: restrictionMap(coeRingHom x') = restrictionMapAlg x'
+    change restrictionMapHom D₀ (laurentPlusDatum D₀ f) hplus (D₀.coeRingHom x') = uplus
+    letI := D₀.uniformSpace
+    letI := D₀.isTopologicalRing
+    letI := D₀.isUniformAddGroup
+    letI := (laurentPlusDatum D₀ f).uniformSpace
+    letI := (laurentPlusDatum D₀ f).isTopologicalRing
+    letI := (laurentPlusDatum D₀ f).isUniformAddGroup
+    erw [UniformSpace.Completion.extensionHom_coe
+      (restrictionMapAlg D₀ (laurentPlusDatum D₀ f) hplus)
+      (restrictionMapAlg_continuous D₀ (laurentPlusDatum D₀ f) hplus) x']
+    exact hx'_plus
+  · -- restrictionMap D₀ (minus) (coeRingHom x') = uminus
+    change restrictionMapHom D₀ (laurentMinusDatum D₀ f) hminus (D₀.coeRingHom x') = uminus
+    letI := D₀.uniformSpace
+    letI := D₀.isTopologicalRing
+    letI := D₀.isUniformAddGroup
+    letI := (laurentMinusDatum D₀ f).uniformSpace
+    letI := (laurentMinusDatum D₀ f).isTopologicalRing
+    letI := (laurentMinusDatum D₀ f).isUniformAddGroup
+    erw [UniformSpace.Completion.extensionHom_coe
+      (restrictionMapAlg D₀ (laurentMinusDatum D₀ f) hminus)
+      (restrictionMapAlg_continuous D₀ (laurentMinusDatum D₀ f) hminus) x']
+    exact hx'_minus
 
 /-- **Wedhorn Theorem 8.28(b)**: Tate acyclicity.
 
