@@ -6,6 +6,7 @@ import «Adic spaces».RationalRefinement
 import «Adic spaces».RationalSubsets
 import «Adic spaces».TopologyComparison
 import «Adic spaces».PresheafTateStructure
+import «Adic spaces».LaurentCoverExact
 import Mathlib.RingTheory.Flat.Basic
 import Mathlib.RingTheory.MvPowerSeries.NoZeroDivisors
 
@@ -284,6 +285,116 @@ abelian-groups directly via Lemma 8.31 (flatness) + Lemma 8.33 (3×3 diagram
 chase) + Lemma 8.34 (refinement transfer), with no topology.
 
 See `docs/plans/2026-04-08-wedhorn-vs-zavyalov.md`. -/
+
+/-! ### Laurent cover gluing via `row3_exact` (Wedhorn Lemma 8.33)
+
+For a 2-element Laurent cover of `Spa(A)` at element `f`, the presheaf gluing
+condition follows from the algebraic exact sequence
+
+  `0 → A →ε B₁ × B₂ →δ B₁₂ → 0`
+
+proved in `LaurentCoverExact.row3_exact`. The bridge between the algebraic
+quotients (`B₁_gen f`, `B₂_gen f`) and the presheaf values (`presheafValue D`)
+goes through `presheafValueCanonicalQuotientEquiv` from `TopologyComparison.lean`.
+
+**Type identifications:**
+- `B₁_gen f = A⟨X⟩/(f-X)`: evaluation at `X = f` gives `B₁_gen f ≅ A`
+  (proved as `quotientFSubXEquiv` for discrete A; general case via
+  `presheafValueCanonicalQuotientEquiv` applied to the plus-piece datum
+  with `s = D₀.s`).
+- `B₂_gen f = A⟨X⟩/(1-fX)`: this is definitionally `TateAlgebra A ⧸ oneSubfXIdeal f`,
+  identified with `presheafValue (laurentMinusDatum D₀ f)` via
+  `presheafValueCanonicalQuotientEquiv` (with `s = D₀.s * f`).
+- `presheafValue D₀ ≅ A` when `D₀` is the trivial datum and `A` is complete.
+
+**Restriction map correspondence:**
+- `restrictionMap D₀ (laurentPlusDatum D₀ f)` corresponds to `π₁ ∘ ε` (first
+  projection of the diagonal).
+- `restrictionMap D₀ (laurentMinusDatum D₀ f)` corresponds to `π₂ ∘ ε` (second
+  projection).
+- Compatibility on the overlap (delta = 0) corresponds to the two sections
+  agreeing in `B₁₂_gen f = A⟨ζ, ζ⁻¹⟩/(f-ζ)`. -/
+
+/-- **Laurent cover gluing on presheaf values** (Wedhorn Lemma 8.33, presheaf level).
+
+For a complete noetherian Tate domain `A` and element `f`, the 2-element Laurent
+cover `{R(f/1), R(1/f)}` of `Spa(A)` satisfies the presheaf gluing condition:
+given compatible sections `u₊ ∈ presheafValue(R(f/1))` and
+`u₋ ∈ presheafValue(R(1/f))`, there exists `x ∈ presheafValue(D₀)` restricting
+to both.
+
+**Proof strategy** (transport through ring isomorphisms):
+
+1. **Identify presheaf values with Tate quotients.**
+   - `e₊ : presheafValue(laurentPlusDatum D₀ f) ≃+* B₁_gen f` via
+     `presheafValueCanonicalQuotientEquiv` (the plus piece has `s = D₀.s`,
+     and `B₁_gen f = A⟨X⟩/(f-X)` is the quotient for evaluation at `f`).
+   - `e₋ : presheafValue(laurentMinusDatum D₀ f) ≃+* B₂_gen f` via
+     `presheafValueCanonicalQuotientEquiv` (the minus piece has `s = D₀.s * f`,
+     and `B₂_gen f = A⟨X⟩/(1-fX) = oneSubfXIdeal f`).
+
+2. **Transport sections.** Set `q₊ := e₊(u₊)` and `q₋ := e₋(u₋)`.
+
+3. **Transport compatibility.** The overlap compatibility condition
+   `restrictionMap (plus) D₃ h₃₊ u₊ = restrictionMap (minus) D₃ h₃₋ u₋`
+   transports to `deltaMap_gen f (q₊, q₋) = 0` via the commutativity of
+   the restriction maps with `posLift` and `negLift`.
+
+4. **Apply `row3_exact`.** The kernel condition gives `∃ a : A` with
+   `epsilonHom_gen f a = (q₊, q₋)`.
+
+5. **Transport back.** Set `x := e₀.symm(image of a)` where `e₀` is the
+   identification `presheafValue D₀ ≃+* A` (for complete A with trivial D₀).
+
+6. **Verify restrictions.** Using `presheafValueCanonicalQuotientEquiv_canonicalMap`,
+   `restrictionMap D₀ (plus) x = u₊` and `restrictionMap D₀ (minus) x = u₋`.
+
+**Sorry justification:** Steps 1 and 3 require bridge lemmas:
+- `presheafValue_plus_equiv_B₁_gen`: identification of presheafValue of the
+  plus piece with `B₁_gen f` (needs `quotientFSubXEquiv` generalized beyond
+  discrete topology, or a direct construction via the completion universal
+  property).
+- `restrictionMap_compat_deltaMap`: the restriction maps to the overlap datum
+  correspond to `posLift` and `negLift` under the identifications above. -/
+theorem laurentCover_gluing_presheaf
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
+    (D₀ : RationalLocData A) (f : A)
+    (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (uplus : presheafValue (laurentPlusDatum D₀ f))
+    (uminus : presheafValue (laurentMinusDatum D₀ f))
+    -- Compatibility: the two sections agree on any common refinement
+    (hcompat : ∀ (D₃ : RationalLocData A)
+      (h₃p : rationalOpen D₃.T D₃.s ⊆
+        rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s)
+      (h₃m : rationalOpen D₃.T D₃.s ⊆
+        rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s),
+      restrictionMap (laurentPlusDatum D₀ f) D₃ h₃p uplus =
+        restrictionMap (laurentMinusDatum D₀ f) D₃ h₃m uminus) :
+    ∃ x : presheafValue D₀,
+      restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x = uplus ∧
+      restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x = uminus := by
+  -- The proof transports through ring isomorphisms:
+  --   presheafValue D ≃+* Tate algebra quotient (via presheafValueCanonicalQuotientEquiv)
+  -- to reduce to the algebraic exact sequence `row3_exact` from LaurentCoverExact.lean.
+  --
+  -- Bridge lemmas needed (not yet formalized):
+  -- (a) presheafValue (laurentPlusDatum D₀ f) ≃+* B₁_gen f
+  --     (for s = D₀.s: needs identifying A⟨X⟩/(1 - D₀.s * X) with A⟨X⟩/(f - X)
+  --      when the plus piece has the same s as D₀)
+  -- (b) presheafValue (laurentMinusDatum D₀ f) ≃+* B₂_gen f
+  --     (for s = D₀.s * f: oneSubfXIdeal (D₀.s * f) vs oneSubfXIdeal f,
+  --      needs the quotient identification)
+  -- (c) Restriction maps commute with the isomorphisms above and match
+  --     the components of epsilonHom_gen f
+  --
+  -- Once (a)-(c) are established, apply:
+  --   LaurentCover.row3_exact f htop |>.2.1 (qp, qm) (transport of hcompat)
+  -- to obtain a : A with epsilonHom_gen f a = (qp, qm), then transport back.
+  sorry
 
 /-- **Wedhorn Theorem 8.28(b)**: Tate acyclicity.
 
