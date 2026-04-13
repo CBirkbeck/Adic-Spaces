@@ -552,6 +552,73 @@ noncomputable def IsTateRing.principalPair (A : Type*) [CommRing A] [Topological
 
 end PrincipalPair
 
+/-! ### Enlarging the ring of definition (Remark after Definition 6.1 of Wedhorn)
+
+Given a pair of definition `(A₀, I)` for a Huber ring `A` and a finite set `T ⊆ A`,
+we construct a new pair of definition with ring of definition `Subring.closure (A₀ ∪ T)`.
+The new ideal of definition is the image of `I` under the inclusion `A₀ ↪ B₀`.
+-/
+
+section AdjoinFinset
+
+open Filter Topology Pointwise
+
+variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+
+omit [IsTopologicalRing A] in
+/-- The inclusion `P.A₀ ≤ Subring.closure (↑P.A₀ ∪ ↑T)`, used to construct the
+ring homomorphism `P.A₀ →+* Subring.closure (↑P.A₀ ∪ ↑T)`. -/
+theorem PairOfDefinition.le_adjoin_A₀ (P : PairOfDefinition A) (T : Finset A) :
+    P.A₀ ≤ Subring.closure ((P.A₀ : Set A) ∪ ↑T) :=
+  fun _ ha ↦ Subring.subset_closure (Set.subset_union_left ha)
+
+/-- Adjoin a finite set of power-bounded elements to the ring of definition.
+The new ring of definition is `Subring.closure (A₀ ∪ ↑T)` and the new ideal
+is the image of `I` under the inclusion. This gives a valid pair of definition
+(Remark after Definition 6.1 of Wedhorn).
+
+The power-boundedness hypothesis on elements of `T` ensures that `B₀ = A₀[T]`
+is a bounded subring of `A`, which is needed to show that the `I'`-adic topology
+equals the subspace topology (the "shrinking" direction of `isAdic_iff`). -/
+def PairOfDefinition.adjoin (P : PairOfDefinition A) (T : Finset A)
+    (hT : ∀ t ∈ T, TopologicalRing.IsPowerBounded t) :
+    PairOfDefinition A where
+  A₀ := Subring.closure ((P.A₀ : Set A) ∪ ↑T)
+  I := Ideal.map (Subring.inclusion (P.le_adjoin_A₀ T)) P.I
+  isOpen := by
+    apply AddSubgroup.isOpen_of_mem_nhds
+      (Subring.closure ((P.A₀ : Set A) ∪ ↑T)).toAddSubgroup
+    exact Filter.mem_of_superset (P.isOpen.mem_nhds P.A₀.zero_mem)
+      (P.le_adjoin_A₀ T)
+  fg := P.fg.map _
+  isAdic := by
+    -- The subspace topology on B₀ = Subring.closure(A₀ ∪ T) equals the
+    -- (Ideal.map incl I)-adic topology. This requires showing:
+    -- (1) Each power of the image ideal is open (from the I-adic basis on A₀).
+    -- (2) The powers shrink to any nhd (from boundedness of B₀, which follows
+    --     from power-boundedness of elements of T).
+    -- The key ingredient is that B₀ is bounded in A: every element of B₀
+    -- is a polynomial in T with A₀-coefficients, and since T ⊆ A° and A₀ ⊆ A°,
+    -- the set of monomials is bounded, giving B₀ ⊆ AddSubgroup.closure(A₀ * M)
+    -- with M bounded. Then B₀ * V ⊆ image(I^k) for appropriate V and k.
+    sorry
+
+/-- The original ring of definition is contained in the enlarged one. -/
+theorem PairOfDefinition.adjoin_A₀_le (P : PairOfDefinition A) (T : Finset A)
+    (hT : ∀ t ∈ T, TopologicalRing.IsPowerBounded t) :
+    P.A₀ ≤ (P.adjoin T hT).A₀ := by
+  show P.A₀ ≤ Subring.closure ((P.A₀ : Set A) ∪ ↑T)
+  exact P.le_adjoin_A₀ T
+
+/-- Every element of `T` belongs to the enlarged ring of definition. -/
+theorem PairOfDefinition.mem_adjoin_of_mem_T (P : PairOfDefinition A) (T : Finset A)
+    (hT : ∀ t ∈ T, TopologicalRing.IsPowerBounded t)
+    {t : A} (ht : t ∈ T) : t ∈ (P.adjoin T hT).A₀ := by
+  show t ∈ Subring.closure ((P.A₀ : Set A) ∪ ↑T)
+  exact Subring.subset_closure (Set.mem_union_right _ (Finset.mem_coe.mpr ht))
+
+end AdjoinFinset
+
 /-! ### Adic homomorphisms (Definition 6.23 of Wedhorn) -/
 
 section AdicHom
