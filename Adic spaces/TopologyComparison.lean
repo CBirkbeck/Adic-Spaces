@@ -1700,16 +1700,20 @@ theorem locToQuotientOneSubfX_gen_continuous_canonical [IsTateRing A] [T2Space A
       change Filter.Tendsto (fun n => ((IsTateRing.principalPair A).π : A) ^ n) _ _
       exact hπ)
   -- Step 2: Use D.P.adjoin D.T as common pair (Wedhorn 6.3).
-  -- This pair contains both D.P.A₀ and D.T, so the self-preserving set
-  -- tateAlgNhd(P_common, k) is stable under ALL locSubring generators.
-  -- The continuity estimate ψ(J^n) ⊆ π^n Q₀ then holds with Q₀ = mk(pairSubring P_common).
+  -- Infrastructure status: PairOfDefinition.adjoin is now fully proved
+  -- (isBounded_adjoin + isAdic Part 2 filled in HuberRings.lean).
   --
-  -- For now: the infrastructure (PairOfDefinition.adjoin) exists with 2 small sorries
-  -- (isAdic interleaving + boundedness). The continuity argument using it needs:
-  -- (a) tateAlgNhd P_common cofinal with tateAlgNhd P' (canonical pair) — cofinality
-  -- (b) locSubring generators stable under tateAlgNhd P_common — from T ⊆ P_common.A₀
-  -- (c) locNhd n maps into mk(tateAlgNhd P_common n) — reviewer's estimate
-  -- All hold once adjoin's isAdic sorry is filled.
+  -- Remaining formalization work for this sorry:
+  -- (a) Construct P_common := D.P.adjoin D.T hT_pb (needs IsPowerBounded for D.T elements).
+  -- (b) Show tateAlgNhd P_common cofinal with tateAlgNhd P' (canonical pair) —
+  --     cofinality from isAdic_of_interleaving applied to the radical equality.
+  -- (c) Show locSubring generators stable under tateAlgNhd P_common — from T ⊆ P_common.A₀
+  --     (by PairOfDefinition.mem_adjoin_of_mem_T).
+  -- (d) Show locNhd n maps into mk(tateAlgNhd P_common n) — the generator estimate
+  --     analogous to locToQuotient_mul_small_constant_mem but for canonical topology.
+  -- (e) Assemble via Submodule.span_induction (same structure as T-topology proof).
+  --
+  -- This sorry does NOT block any downstream proofs (verified: full build succeeds).
   sorry
 
 end CanonicalTopologyBridge

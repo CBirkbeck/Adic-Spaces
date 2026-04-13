@@ -572,42 +572,112 @@ theorem PairOfDefinition.le_adjoin_A₀ (P : PairOfDefinition A) (T : Finset A) 
     P.A₀ ≤ Subring.closure ((P.A₀ : Set A) ∪ ↑T) :=
   fun _ ha ↦ Subring.subset_closure (Set.subset_union_left ha)
 
-/-- The ring of definition enlarged by a finite set of power-bounded elements is bounded.
+omit [IsTopologicalRing A] in
+/-- In a nonarchimedean topological ring, `AddSubgroup.closure` of a bounded set is bounded.
+Given open additive subgroup `G ⊆ U` and `V` with `S * V ⊆ G`, we use
+`AddSubgroup.closure_induction` (which has no multiplication case) to show
+`AddSubgroup.closure(S) * V ⊆ G`. -/
+private theorem isBounded_addSubgroup_closure [NonarchimedeanRing A]
+    {S : Set A} (hS : TopologicalRing.IsBounded S) :
+    TopologicalRing.IsBounded (AddSubgroup.closure S : Set A) := by
+  intro U hU
+  obtain ⟨G, hGU⟩ := NonarchimedeanRing.is_nonarchimedean U hU
+  obtain ⟨V, hV, hSV⟩ := hS (G : Set A) (G.isOpen.mem_nhds G.zero_mem)
+  -- Key lemma: ∀ s ∈ AddSubgroup.closure S, ∀ w ∈ V, s * w ∈ G
+  have hcl : ∀ s ∈ AddSubgroup.closure S, ∀ w ∈ V, s * w ∈ (G : Set A) := by
+    intro s hs
+    induction hs using AddSubgroup.closure_induction with
+    | mem x hx => intro w hw; exact hSV (Set.mul_mem_mul hx hw)
+    | zero => intro w _; simp [show (0 : A) ∈ (G : Set A) from G.zero_mem]
+    | add _ _ _ _ h₁ h₂ => intro w hw; rw [add_mul]; exact G.add_mem (h₁ w hw) (h₂ w hw)
+    | neg _ _ h₁ => intro w hw; rw [neg_mul]; exact G.neg_mem (h₁ w hw)
+  exact ⟨V, hV, fun z hz => by
+    obtain ⟨s, hs, v, hv, rfl⟩ := Set.mem_mul.mp hz
+    exact hGU (hcl s hs v hv)⟩
 
-Every element of `B₀ = Subring.closure(A₀ ∪ T)` lies in `AddSubgroup.closure(A₀ * M)`
-where `M = ∏_{t ∈ T} {t^k : k}` is the pointwise product of power-bounded ranges.
-Since `A₀ * M` is bounded, `AddSubgroup.closure_induction` (which has no
-multiplication case) gives `B₀ * V ⊆ G` for an open additive subgroup `G`. -/
 theorem PairOfDefinition.isBounded_adjoin (P : PairOfDefinition A) (T : Finset A)
-    (hT : ∀ t ∈ T, TopologicalRing.IsPowerBounded t) :
+    (hT : ∀ t ∈ T, TopologicalRing.IsPowerBounded t)
+    [NonarchimedeanRing A] :
     TopologicalRing.IsBounded ((Subring.closure ((P.A₀ : Set A) ∪ ↑T)) : Set A) := by
-  set B₀ := Subring.closure ((P.A₀ : Set A) ∪ ↑T)
-  -- Key observation: every element of B₀ is power-bounded
-  -- Proof: A₀ elements are power-bounded (by P.mem_powerBoundedSubring)
-  --        T elements are power-bounded (by hT)
-  --        Power-boundedness is closed under ring operations
-  --        (isPowerBounded_add, isPowerBounded_mul, isPowerBounded_neg)
-  -- Formal proof requires careful induction on Subring.closure_induction
-  have hB₀_pow : ∀ b ∈ B₀, TopologicalRing.IsPowerBounded b := by
-    sorry
-  -- Key fact: every element of B₀ is power-bounded (proved above as hB₀_pow)
-  --
-  -- To show IsBounded B₀, we use the structure of B₀ as Subring.closure(A₀ ∪ T):
-  -- - Every element is a finite sum of products of generators from A₀ ∪ T
-  -- - A₀ is bounded by hypothesis
-  -- - Each element of T is power-bounded by hypothesis
-  -- - We construct V ∩ (⋂ t ∈ T, V_t) where:
-  --   * V comes from the boundedness of A₀
-  --   * Each V_t comes from the power-boundedness of t
-  -- - For generators a ∈ A₀: a * V ⊆ U by boundedness of A₀
-  -- - For generators t ∈ T: {t^n} * V_t ⊆ U by power-boundedness of t
-  -- - For products and sums: we need IsLinearTopology so neighborhoods are additive subgroups
-  --   (i.e., closed under addition), which allows Subring.closure_induction
-  --
-  -- This proof is deferred because it requires either:
-  -- (1) Assuming IsLinearTopology A A locally (Huber rings have this through NonarchimedeanAddGroup)
-  -- (2) Using a more sophisticated decomposition into AddSubgroup.closure(monomials)
-  sorry
+  classical
+  -- Strategy: induction on T. At each step, adding a power-bounded element t
+  -- enlarges the ring to a subset of AddSubgroup.closure(B_old * range(a^·)),
+  -- which is bounded by isBounded_addSubgroup_closure.
+  induction T using Finset.induction with
+  | empty =>
+    have : Subring.closure ((P.A₀ : Set A) ∪ ↑(∅ : Finset A)) = P.A₀ := by
+      simp [Subring.closure_eq]
+    rw [this]; exact P.isBounded_A₀
+  | @insert a S ha ih =>
+    have hT_S : ∀ t ∈ S, TopologicalRing.IsPowerBounded t :=
+      fun t ht => hT t (Finset.mem_insert_of_mem ht)
+    specialize ih hT_S
+    set B_old := Subring.closure ((P.A₀ : Set A) ∪ ↑S)
+    have ha_pb : TopologicalRing.IsPowerBounded a := hT a (Finset.mem_insert_self a S)
+    -- B_old * range(a^·) is bounded (product of bounded sets)
+    have hAM_bounded : TopologicalRing.IsBounded ((B_old : Set A) * Set.range (a ^ · : ℕ → A)) :=
+      ih.mul ha_pb
+    -- Subring.closure(A₀ ∪ insert a S) ⊆ AddSubgroup.closure(B_old * range(a^·))
+    -- This is a subring: AddSubgroup.closure is closed under +, -, 0, and
+    -- mul is handled by distributing products of sums into sums of products.
+    -- We construct an intermediate subring to use Subring.closure_le.
+    -- Define the subring structure on C = AddSubgroup.closure(B_old * range(a^·)).
+    set BM := (B_old : Set A) * Set.range (a ^ · : ℕ → A)
+    -- C is closed under multiplication: products of generators collapse.
+    -- Use closure_induction₂ to handle both arguments simultaneously.
+    have hC_mul : ∀ x ∈ AddSubgroup.closure BM, ∀ y ∈ AddSubgroup.closure BM,
+        x * y ∈ AddSubgroup.closure BM := by
+      intro x hx y hy
+      induction hx, hy using AddSubgroup.closure_induction₂ with
+      | mem u v hu hv =>
+        obtain ⟨b₁, hb₁, _, ⟨k₁, rfl⟩, rfl⟩ := Set.mem_mul.mp hu
+        obtain ⟨b₂, hb₂, _, ⟨k₂, rfl⟩, rfl⟩ := Set.mem_mul.mp hv
+        apply AddSubgroup.subset_closure
+        rw [show b₁ * a ^ k₁ * (b₂ * a ^ k₂) = (b₁ * b₂) * a ^ (k₁ + k₂) by ring]
+        exact Set.mul_mem_mul (B_old.mul_mem hb₁ hb₂) ⟨k₁ + k₂, rfl⟩
+      | zero_left _ _ => simp
+      | zero_right _ _ => simp
+      | add_left _ _ _ _ _ _ ih₁ ih₂ =>
+        rw [add_mul]; exact (AddSubgroup.closure BM).add_mem ih₁ ih₂
+      | add_right _ _ _ _ _ _ ih₁ ih₂ =>
+        rw [mul_add]; exact (AddSubgroup.closure BM).add_mem ih₁ ih₂
+      | neg_left _ _ _ _ ih₁ =>
+        rw [neg_mul]; exact (AddSubgroup.closure BM).neg_mem ih₁
+      | neg_right _ _ _ _ ih₁ =>
+        rw [mul_neg]; exact (AddSubgroup.closure BM).neg_mem ih₁
+    -- Build a Subring from C
+    -- Helper: membership in BM via x = b * a^k
+    have mem_BM (b : A) (hb : b ∈ B_old) (k : ℕ) : b * a ^ k ∈ BM :=
+      Set.mul_mem_mul hb ⟨k, rfl⟩
+    set C_subring : Subring A :=
+      { carrier := AddSubgroup.closure BM
+        mul_mem' := fun {_ _} ha hb => hC_mul _ ha _ hb
+        one_mem' := by
+          rw [show (1 : A) = 1 * a ^ 0 by simp]
+          exact AddSubgroup.subset_closure (mem_BM 1 B_old.one_mem 0)
+        zero_mem' := (AddSubgroup.closure BM).zero_mem
+        add_mem' := fun {_ _} ha hb => (AddSubgroup.closure BM).add_mem ha hb
+        neg_mem' := fun {_} ha => (AddSubgroup.closure BM).neg_mem ha }
+    -- Show generators are in C_subring
+    have h_sub : (P.A₀ : Set A) ∪ ↑(insert a S) ⊆ (C_subring : Set A) := by
+      rw [Finset.coe_insert]
+      intro x hx
+      show x ∈ (AddSubgroup.closure BM : Set A)
+      rcases hx with hx_A₀ | hx_a
+      · -- x ∈ A₀: x ∈ B_old (via A₀ ⊆ A₀ ∪ S), so x = x * a^0
+        rw [show x = x * a ^ 0 by simp]
+        exact AddSubgroup.subset_closure
+          (mem_BM x (Subring.subset_closure (Set.mem_union_left _ hx_A₀)) 0)
+      · rcases Set.mem_insert_iff.mp hx_a with hxa | hx_S
+        · -- x = a = 1 * a^1
+          rw [hxa, show a = 1 * a ^ 1 by simp]
+          exact AddSubgroup.subset_closure (mem_BM 1 B_old.one_mem 1)
+        · -- x ∈ S: x ∈ B_old (via S ⊆ A₀ ∪ S), so x = x * a^0
+          rw [show x = x * a ^ 0 by simp]
+          exact AddSubgroup.subset_closure
+            (mem_BM x (Subring.subset_closure (Set.mem_union_right _ hx_S)) 0)
+    -- Subring.closure ⊆ C_subring ⊆ AddSubgroup.closure BM
+    exact (isBounded_addSubgroup_closure hAM_bounded).subset (Subring.closure_le.mpr h_sub)
 
 /-- Adjoin a finite set of power-bounded elements to the ring of definition.
 The new ring of definition is `Subring.closure (A₀ ∪ ↑T)` and the new ideal
@@ -618,7 +688,8 @@ The power-boundedness hypothesis on elements of `T` ensures that `B₀ = A₀[T]
 is a bounded subring of `A`, which is needed to show that the `I'`-adic topology
 equals the subspace topology (the "shrinking" direction of `isAdic_iff`). -/
 def PairOfDefinition.adjoin (P : PairOfDefinition A) (T : Finset A)
-    (hT : ∀ t ∈ T, TopologicalRing.IsPowerBounded t) :
+    (hT : ∀ t ∈ T, TopologicalRing.IsPowerBounded t)
+    [NonarchimedeanRing A] :
     PairOfDefinition A where
   A₀ := Subring.closure ((P.A₀ : Set A) ∪ ↑T)
   I := Ideal.map (Subring.inclusion (P.le_adjoin_A₀ T)) P.I
@@ -655,22 +726,43 @@ def PairOfDefinition.adjoin (P : PairOfDefinition A) (T : Finset A)
       rw [heq, ← Ideal.map_pow]
       exact Ideal.mem_map_of_mem _ hy_In
     · -- Part 2: The powers I'^n shrink to any nhd of 0 in B₀.
-      -- Strategy: B₀ is bounded (isBounded_adjoin), so B₀ * V ⊆ U for
-      -- small V. Each x ∈ I'^n = Ideal.map incl (I^n) is a B₀-linear
-      -- combination of incl(I^n), and val(incl(a)) ∈ V for a ∈ I^n (large n).
-      -- So val(b * incl(a)) = b.val * a.val ∈ B₀ * V ⊆ U.
-      -- The sum of such terms is in U (since U contains an open additive subgroup).
-      -- Use isBounded_adjoin: B₀ is bounded, so B₀ * V ⊆ U for small V.
-      -- Elements of I'^n = Ideal.map incl (I^n) decompose as ∑ bⱼ * incl(aⱼ)
-      -- with bⱼ ∈ B₀, aⱼ ∈ I^n. Each bⱼ ∈ AddSubgroup.closure(A₀ * M)
-      -- (monomial decomposition). Using AddSubgroup.closure_induction (no mult
-      -- case) on each bⱼ, and image(I^n) ⊆ V, gives bⱼ.val * aⱼ.val ∈ U.
-      -- The sum is in U since U contains an open additive subgroup.
-      sorry
+      -- I'^n = Ideal.map incl (P.I^n). Elements are B₀-linear combinations
+      -- of incl(a) with a ∈ P.I^n. Their A-values lie in B₀ · val''(P.I^n) ⊆ G.
+      intro s hs
+      rw [nhds_induced] at hs
+      obtain ⟨U_A, hU_A, hU_sub⟩ := Filter.mem_comap.mp hs
+      obtain ⟨G, hGU⟩ := NonarchimedeanRing.is_nonarchimedean U_A hU_A
+      obtain ⟨V, hV, hBV⟩ := P.isBounded_adjoin T hT (G : Set A)
+        (G.isOpen.mem_nhds G.zero_mem)
+      obtain ⟨n, _, hn⟩ := P.hasBasis_nhds_zero.mem_iff.mp hV
+      refine ⟨n, fun x hx_In => hU_sub (Set.mem_preimage.mpr (hGU ?_))⟩
+      -- x ∈ I'^n = (Ideal.map incl P.I)^n = Ideal.map incl (P.I^n)
+      have hx_map : x ∈ Ideal.map incl (P.I ^ n) := Ideal.map_pow incl P.I n ▸ hx_In
+      -- Ideal.map f J = Submodule.span _ (f '' J). Use mem_span_set for Finsupp.
+      set img_set := incl '' ((P.I ^ n : Ideal P.A₀) : Set P.A₀)
+      obtain ⟨f, hf_supp, hf_sum⟩ := Submodule.mem_span_set.mp hx_map
+      -- val(x) = val(∑ f(i) • i) = ∑ val(f(i)) * val(i)
+      -- Each term: val(f(i)) ∈ B₀, val(i) ∈ val''(P.I^n) ⊆ V.
+      -- So val(f(i)) * val(i) ∈ B₀ * V ⊆ G. Sum ∈ G (additive subgroup).
+      rw [← hf_sum]
+      show (Finsupp.sum f fun i a => a • i : B₀).val ∈ (G : Set A)
+      simp only [Finsupp.sum, smul_eq_mul]
+      rw [show ((∑ x ∈ f.support, f x * x : B₀) : A) =
+          ∑ x ∈ f.support, ((f x * x : B₀) : A) from map_sum B₀.subtype _ _]
+      apply G.toAddSubgroup.sum_mem
+      intro i hi
+      have hi_img : i ∈ img_set := hf_supp (Finset.mem_coe.mpr hi)
+      obtain ⟨a, ha, rfl⟩ := hi_img
+      -- Goal: ((f (incl a) * incl a : B₀) : A) ∈ G
+      have : ((f (incl a) * incl a : B₀) : A) = (f (incl a) : A) * (a : A) := by
+        rw [MulMemClass.coe_mul, Subring.coe_inclusion]
+      rw [this]
+      exact hBV (Set.mul_mem_mul (f (incl a)).2 (hn ⟨a, ha, rfl⟩))
 
 /-- The original ring of definition is contained in the enlarged one. -/
 theorem PairOfDefinition.adjoin_A₀_le (P : PairOfDefinition A) (T : Finset A)
-    (hT : ∀ t ∈ T, TopologicalRing.IsPowerBounded t) :
+    (hT : ∀ t ∈ T, TopologicalRing.IsPowerBounded t)
+    [NonarchimedeanRing A] :
     P.A₀ ≤ (P.adjoin T hT).A₀ := by
   show P.A₀ ≤ Subring.closure ((P.A₀ : Set A) ∪ ↑T)
   exact P.le_adjoin_A₀ T
@@ -678,6 +770,7 @@ theorem PairOfDefinition.adjoin_A₀_le (P : PairOfDefinition A) (T : Finset A)
 /-- Every element of `T` belongs to the enlarged ring of definition. -/
 theorem PairOfDefinition.mem_adjoin_of_mem_T (P : PairOfDefinition A) (T : Finset A)
     (hT : ∀ t ∈ T, TopologicalRing.IsPowerBounded t)
+    [NonarchimedeanRing A]
     {t : A} (ht : t ∈ T) : t ∈ (P.adjoin T hT).A₀ := by
   show t ∈ Subring.closure ((P.A₀ : Set A) ∪ ↑T)
   exact Subring.subset_closure (Set.mem_union_right _ (Finset.mem_coe.mpr ht))
