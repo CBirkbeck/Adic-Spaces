@@ -582,13 +582,13 @@ theorem PairOfDefinition.isBounded_adjoin (P : PairOfDefinition A) (T : Finset A
     (hT : ∀ t ∈ T, TopologicalRing.IsPowerBounded t) :
     TopologicalRing.IsBounded ((Subring.closure ((P.A₀ : Set A) ∪ ↑T)) : Set A) := by
   set B₀ := Subring.closure ((P.A₀ : Set A) ∪ ↑T)
-  -- Show B₀ ⊆ powerBoundedSubring, so every element is power-bounded
-  -- This is a key step: every element of the closure is power-bounded
+  -- Key observation: every element of B₀ is power-bounded
+  -- Proof: A₀ elements are power-bounded (by P.mem_powerBoundedSubring)
+  --        T elements are power-bounded (by hT)
+  --        Power-boundedness is closed under ring operations
+  --        (isPowerBounded_add, isPowerBounded_mul, isPowerBounded_neg)
+  -- Formal proof requires careful induction on Subring.closure_induction
   have hB₀_pow : ∀ b ∈ B₀, TopologicalRing.IsPowerBounded b := by
-    intro b hb
-    -- For now, we skip the full induction proof since the structure is complex
-    -- The idea: each generator is power-bounded, and power-boundedness is preserved
-    -- under addition, multiplication, and negation
     sorry
   -- Key fact: every element of B₀ is power-bounded (proved above as hB₀_pow)
   --
