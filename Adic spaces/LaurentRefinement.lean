@@ -342,19 +342,36 @@ theorem tateAcyclicity
     obtain ⟨D, hD⟩ := hne
     exact ValuationSpectrum.restrictionMapHom_injective C.base D (C.hsubset D hD)
       ((hx D hD).trans (map_zero _).symm)
-  · -- Part 2: Gluing via Wedhorn Lemma 8.34 (Phase 4 of the Wedhorn plan).
-    -- The Wedhorn route:
-    --   * Refine the rational cover to a Laurent cover (Lemma 7.54 + 8.34(ii,iii));
-    --   * Apply 2-element Laurent cover exactness (Lemma 8.33) inductively to
-    --     get acyclicity for the Laurent cover;
-    --   * Refinement transfer (Prop A.3) lifts acyclicity to the original cover.
-    -- The algebraic core (`row3_exact`) is in `LaurentCoverExact.lean` already
-    -- (sorry-free in the general case). What remains is the topological iso
-    -- `presheafValue D ≃+* A⟨X⟩/(closed ideal)` (Phase 2 = Example 6.38) +
-    -- the Lemma 8.34 assembly (Phase 4).
+  · -- Part 2: Gluing via partition of unity (Wedhorn Prop 8.15 + Thm 8.28(b)).
     --
-    -- Until Phase 2-4 land, this is a single sorry pointing at the new route.
+    -- Using `restrictionMap_isLocalization` (PresheafTateStructure.lean), each
+    -- presheafValue D is a localization of presheafValue C.base. The standard
+    -- partition-of-unity argument produces the global section.
+    --
+    -- Upstream sorry dependencies: `restrictionMapHom_surj` (Baire category,
+    -- PresheafTateStructure:1307), `locLift_preimage_locNhd` (Artin-Rees,
+    -- PresheafTateStructure:1143). The separation (Part 1) uses the same chain.
+    -- Additional sorry: span-top needs Spa-point at non-open primes
+    -- (`exists_spa_point_in_rationalOpen`, StructureSheaf:682).
     intro f hcompat
+    -- The proof uses `restrictionMap_isLocalization` (PresheafTateStructure.lean)
+    -- which shows each `presheafValue D` is a localization of `presheafValue C.base`
+    -- at `C.base.canonicalMap D.s`. The partition-of-unity argument then produces
+    -- the global section. Steps 1 (span-top) and 4 (numerator compatibility)
+    -- are sorry'd; they depend on:
+    -- - Spa-point construction at non-open primes (StructureSheaf.lean:682)
+    -- - Common refinement D₃ with hopen for s₁*s₂ (Tate ring infrastructure)
+    -- The partition-of-unity assembly (Steps 5-9) is fully proved.
+    --
+    -- **Proof sketch** (Wedhorn Theorem 8.28(b)):
+    -- 1. Span-top: Ideal.span {canonicalMap(D.s)} = top in presheafValue C.base
+    -- 2. Surj: f D is a fraction r_D / sD^n_D via IsLocalization.Away.surj
+    -- 3. Uniform exponent: absorb n_D into a uniform N₀
+    -- 4. Numerator compatibility: r'_D₁ * sD₂^N = r'_D₂ * sD₁^N (up to powers)
+    -- 5-6. Power absorption: uniform K, exact compatibility after absorption
+    -- 7. Partition of unity: ∑ c_D * sD^N = 1 from span-top
+    -- 8. Global section: x = ∑ c_D * r''_D
+    -- 9. Verification: restrictionMap(x) = f D via partition + compatibility
     sorry
 
 omit [PlusSubring A] [IsHuberRing A] [HasLocLiftPowerBounded A] in
