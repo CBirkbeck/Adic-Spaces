@@ -994,7 +994,7 @@ the explicit formulation needed for `IsUniformInducing`.
 **Wedhorn reference**: Proposition 8.2, §5.51. -/
 private theorem locLift_maps_locNhd
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A]
+    [NonarchimedeanRing A]
     (D₀ D : RationalLocData A) (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
     ∀ m : ℕ, ∃ n : ℕ,
       ∀ x ∈ @locNhd A _ _ D₀.P D₀.T D₀.s n,
@@ -1072,7 +1072,7 @@ constants), any `x` with `locLift(x) ∈ locNhd D m` must have `x ∈ locNhd D�
 -- See docs/TICKETS-axiom-clean.md for the corrected approach.
 private theorem locLift_preimage_locNhd
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A]
+    [NonarchimedeanRing A]
     (D₀ D : RationalLocData A) (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
     ∀ n : ℕ, ∃ m : ℕ,
       ∀ x : Localization.Away D₀.s,
@@ -1152,7 +1152,7 @@ hypothesis: by the Artin-Rees lemma, `locLift⁻¹(locNhd D m) ⊇ locNhd D₀ n
 **Wedhorn reference**: Proposition 8.15 + Lemma 8.5. -/
 private theorem locLift_isUniformInducing
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A]
+    [NonarchimedeanRing A]
     (D₀ D : RationalLocData A) (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
     @IsUniformInducing _ _ D₀.uniformSpace D.uniformSpace (locLift D₀ D h) := by
   -- Strategy: reduce IsUniformInducing to IsInducing via the uniform group lemma,
@@ -1192,7 +1192,7 @@ private theorem locLift_isUniformInducing
 
 private theorem restrictionMapAlg_isUniformInducing
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A]
+    [NonarchimedeanRing A]
     (D₀ D : RationalLocData A)
     (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
     @IsUniformInducing _ _ D₀.uniformSpace
@@ -1225,7 +1225,7 @@ By Baire category (presheafValue D is complete metrizable), some `S_N` has
 nonempty interior, making `S` open. Open + dense subgroup = everything. -/
 theorem restrictionMapHom_surj
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A]
+    [NonarchimedeanRing A]
     (D₀ D : RationalLocData A)
     (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
     ∀ z : presheafValue D,
@@ -1340,7 +1340,7 @@ uniform space to the completion uniform space. The completion extension inherits
 `IsUniformInducing` (by `isUniformInducing_extension`), hence `IsInducing`. -/
 theorem restrictionMapHom_isInducing
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A]
+    [NonarchimedeanRing A]
     (D₀ D : RationalLocData A)
     (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
     Topology.IsInducing (restrictionMapHom D₀ D h) := by
@@ -1415,7 +1415,7 @@ hence flat (by `Localization.flat`).
    completion embedding). Extension to completion by density + T2. -/
 theorem restrictionMap_isLocalization
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A]
+    [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ D : RationalLocData A)
     (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :

@@ -253,10 +253,10 @@ Taking limits (multiplication is continuous, T₂ limits are unique):
 section EqCondition
 
 variable [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-  [NonarchimedeanRing A] [FirstCountableTopology A]
+  [NonarchimedeanRing A]
 
 omit [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-    [FirstCountableTopology A] in
+    in
 /-- `D₀.s` is a unit in `Localization.Away D.s` when `R(D.T/D.s) ⊆ R(D₀.T/D₀.s)`.
 This is the localization-level unit witness (not the presheafValue-level one). -/
 private theorem isUnit_algebraMap_s_of_subset
@@ -283,7 +283,7 @@ private noncomputable def algLift
   IsLocalization.Away.lift D₀.s (isUnit_algebraMap_s_of_subset D₀ D h)
 
 omit [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-    [FirstCountableTopology A] in
+    in
 /-- The restriction map on the dense image factors through `algLift`. -/
 private theorem restrictionMapHom_coe_eq
     (D₀ D : RationalLocData A) (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s)
@@ -312,7 +312,7 @@ noncomputable def locSubringToPresheafValue (D₀ : RationalLocData A) :
   D₀.coeRingHom.comp (locSubring D₀.P D₀.T D₀.s).subtype
 
 omit [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A] in
+    [NonarchimedeanRing A] in
 /-- `locSubringToPresheafValue` is `IsUniformInducing`: the composition of the
 subtype embedding (uniform inducing by definition of the comap uniform space) with
 `coeRingHom` (uniform inducing as the completion embedding). -/
@@ -325,7 +325,7 @@ theorem locSubringToPresheafValue_isUniformInducing (D₀ : RationalLocData A) :
   exact (UniformSpace.Completion.isUniformInducing_coe _).comp ⟨rfl⟩
 
 omit [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A] in
+    [NonarchimedeanRing A] in
 private theorem locSubringToPresheafValue_continuous (D₀ : RationalLocData A) :
     @Continuous _ _
       (D₀.uniformSpace.comap (locSubring D₀.P D₀.T D₀.s).subtype).toTopologicalSpace
@@ -366,7 +366,7 @@ noncomputable def locSubringCompletionToPresheafValue :
     (locSubringToPresheafValue_continuous D₀)
 
 omit [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A] in
+    [NonarchimedeanRing A] in
 /-- The completed bridge map agrees with `coeRingHom ∘ subtype` on the dense
 image of `locSubring`. -/
 theorem locSubringCompletionToPresheafValue_coe
@@ -385,7 +385,7 @@ noncomputable def locSubringCompletionEquivAdicCompletion :
     (locSubring_topology_eq_adic D₀.P D₀.T D₀.s D₀.hopen)
 
 omit [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A] in
+    [NonarchimedeanRing A] in
 /-- On the dense image of `locSubring`, applying `restrictionMapHom` after the bridge
 equals applying `D.coeRingHom ∘ algLift ∘ subtype`. -/
 theorem restrictionMapHom_comp_bridge_coe
@@ -397,7 +397,7 @@ theorem restrictionMapHom_comp_bridge_coe
   rw [locSubringCompletionToPresheafValue_coe, restrictionMapHom_coe_eq]
 
 omit [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A] in
+    [NonarchimedeanRing A] in
 /-- **Bridge kernel transfer:** In `AdicCompletion(locIdeal, locSubring)`, the
 exactness of `map_exact` gives: for any ideal `K` of `locSubring`, an element
 in the kernel of the completed quotient map is in the range of the completed
@@ -418,7 +418,7 @@ theorem adicCompletion_kernel_transfer
     (locIdeal D₀.P D₀.T D₀.s) K x).mp hx
 
 omit [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A] in
+    [NonarchimedeanRing A] in
 /-- The completed bridge map is injective (IsUniformInducing into T₂ → injective). -/
 theorem locSubringCompletionToPresheafValue_injective :
     Function.Injective (locSubringCompletionToPresheafValue D₀) := by
@@ -433,7 +433,7 @@ theorem locSubringCompletionToPresheafValue_injective :
     (Inseparable.of_eq hxy)).eq
 
 omit [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A] in
+    [NonarchimedeanRing A] in
 /-- The range of the completed bridge equals `completedLocSubring`. -/
 theorem locSubringCompletionToPresheafValue_range :
     Set.range (locSubringCompletionToPresheafValue D₀) =
@@ -561,7 +561,7 @@ open Pointwise
 
 omit [PlusSubring A] [IsHuberRing A] [IsTateRing A]
     [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-    [FirstCountableTopology A] in
+    in
 /-- The image of `locSubring` under `coeRingHom` is bounded in `presheafValue D`.
 Proof: `locSubring * locNhd k ⊆ locNhd k` (ideal absorption), so
 `(coe '' locSubring) * (coe '' locNhd k) ⊆ coe '' locNhd k` by the ring hom
@@ -649,7 +649,7 @@ private theorem coeRingHom_image_locSubring_isBounded (D : RationalLocData A) :
 
 omit [PlusSubring A] [IsHuberRing A] [IsTateRing A]
     [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-    [FirstCountableTopology A] in
+    in
 /-- The element `coeRingHom(divByS 1 D.s)` is power-bounded when `1 ∈ D.T`. -/
 theorem invS_isPowerBounded_of_one_mem_T (D : RationalLocData A)
     (h1 : (1 : A) ∈ D.T) :
@@ -676,7 +676,7 @@ theorem invS_isPowerBounded_of_one_mem_T (D : RationalLocData A)
 end InvSPowerBounded
 
 omit [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-    [FirstCountableTopology A] in
+    in
 /-- Every kernel element of `algLift` times a high enough power of `algebraMap(D₀.s)` lands in
 `algebraMap(A) ∩ ker(algLift)`. -/
 private theorem ker_algLift_denom_clear
@@ -754,7 +754,7 @@ regardless of topology on A). -/
 (Wedhorn Theorem 8.28(b)). -/
 theorem productRestriction_zero_kernel
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    [NonarchimedeanRing A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A) (x : presheafValue C.base)
     (hx : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),

@@ -966,10 +966,30 @@ instance IsSheafy.ofStronglyNoetherianTate_discrete
     (A : Type*) [CommRing A] [TopologicalSpace A] [DiscreteTopology A]
     [PlusSubring A] [IsHuberRing A] :
     IsSheafy A where
-  separation C := by
-    intro x y hxy
-    exact productRestriction_injective_discrete C
-      (funext fun ⟨D, hD⟩ ↦ congr_fun hxy ⟨D, hD⟩)
+  embedding C := by
+    -- For the discrete case both source and target are discrete: `presheafValue`
+    -- of a discrete ring is discrete (`discreteTopology_presheafValue`), and a
+    -- finite Pi of discretes is discrete (`Pi.discreteTopology`). With both
+    -- topologies `= ⊥` and `productRestrictionSub` injective (via
+    -- `productRestriction_injective_discrete`), the embedding follows: every
+    -- subset of the source is the preimage of its image under an injective map
+    -- into a discrete target.
+    haveI := discreteTopology_presheafValue (A := A) C.base
+    haveI : ∀ D : ↑C.covers, DiscreteTopology (presheafValue D.1) :=
+      fun _ => discreteTopology_presheafValue _
+    haveI : DiscreteTopology (∀ D : ↑C.covers, presheafValue D.1) := Pi.discreteTopology
+    have hinj : Function.Injective (productRestrictionSub A C) := by
+      intro x y hxy
+      exact productRestriction_injective_discrete C
+        (funext fun ⟨D, hD⟩ => congr_fun hxy ⟨D, hD⟩)
+    refine ⟨⟨?_⟩, hinj⟩
+    rw [show (instTopologicalSpacePresheafValue C.base : TopologicalSpace _) = ⊥ from
+      DiscreteTopology.eq_bot]
+    refine (TopologicalSpace.ext_iff ..).mpr ?_
+    intro s
+    refine ⟨fun _ => ⟨productRestrictionSub A C '' s, isOpen_discrete _, ?_⟩, fun _ => trivial⟩
+    ext x
+    exact ⟨fun ⟨y, hy, hyx⟩ => hinj hyx ▸ hy, fun hx => ⟨x, hx, rfl⟩⟩
   gluing C f hcompat := discrete_gluing C f hcompat
 
 /-! ### General case: specification of remaining work

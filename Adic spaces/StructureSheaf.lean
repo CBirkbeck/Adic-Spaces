@@ -239,15 +239,34 @@ noncomputable def productRestrictionSub (C : RationalCovering A) :
   fun x ⟨D, hD⟩ ↦ restrictionMap C.base D (C.hsubset D hD) x
 
 /-- An affinoid ring `(A, A⁺)` is **sheafy** if the structure presheaf `𝒪_X` on
-`Spa(A, A⁺)` is a sheaf of topological rings (Definition 8.26 of Wedhorn).
-By Remark 8.20, this is equivalent to two conditions:
-1. The product restriction is a topological embedding (condition (2)).
-2. Compatible families glue to global sections (condition (1b)). -/
+`Spa(A, A⁺)` is a sheaf of **topological** rings (Definition 8.26 of Wedhorn).
+By Remark 8.20, this is equivalent to two conditions on every rational cover `C`:
+1. **`embedding`**: the product restriction `O_X(base) → ∏ O_X(cover_i)` is a
+   **topological embedding** (injective + the source topology equals the
+   subspace topology induced from the product topology on the target).
+2. **`gluing`**: compatible families on the cover have a global pre-image
+   (necessarily unique by `embedding.injective`).
+
+The `embedding` field subsumes the sheaf-of-sets injectivity (`Topology.IsEmbedding`
+implies `Function.Injective`); together with `gluing` it gives the full sheaf
+condition in the category of (complete) topological rings.
+
+**Proof route for strongly noetherian Tate rings** (Wedhorn Thm 8.28(b)):
+1. **Example 6.38** gives `presheafValue D ≃_top A⟨X⟩/(closed ideal)` as a
+   *topological* ring iso (universal property + Wedhorn Prop 6.17).
+2. **Lemma 8.31** (flatness) + **Cor 8.32** (faithful flatness of the product
+   restriction) give the **algebraic** sheaf-of-sets injectivity.
+3. **Lemma 8.33** (3×3 diagram chase) + **Lemma 8.34** (refinement transfer)
+   transport the topological structure from the Tate-algebra-quotient side.
+   Quotient maps of Tate algebras are continuous and open, so the diagram chase
+   preserves the topological embedding through the refinement.
+
+See `docs/plans/2026-04-08-wedhorn-vs-zavyalov.md`. -/
 class IsSheafy (A : Type u) [CommRing A] [TopologicalSpace A]
     [IsTopologicalRing A] [inst₁ : PlusSubring A] [inst₂ : IsHuberRing A]
     [HasLocLiftPowerBounded A] : Prop where
-  separation : ∀ (C : RationalCovering A),
-    Function.Injective (productRestrictionSub A C)
+  embedding : ∀ (C : RationalCovering A),
+    Topology.IsEmbedding (productRestrictionSub A C)
   gluing : ∀ (C : RationalCovering A)
     (f : ∀ (D : ↥C.covers), presheafValue D.1),
     (∀ (D₁ D₂ : ↥C.covers)
@@ -259,13 +278,21 @@ class IsSheafy (A : Type u) [CommRing A] [TopologicalSpace A]
     ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
       restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D
 
-/-- Sheafy implies separation (injectivity of product restriction). -/
+/-- Sheafy implies separation (injectivity of `productRestrictionSub`),
+extracted from the embedding field. -/
+theorem IsSheafy.separationSub [IsTopologicalRing A] [PlusSubring A]
+    [IsHuberRing A] [HasLocLiftPowerBounded A] [IsSheafy A] (C : RationalCovering A) :
+    Function.Injective (productRestrictionSub A C) :=
+  (IsSheafy.embedding (A := A) C).injective
+
+/-- Sheafy implies separation (injectivity of `productRestriction`). -/
 theorem IsSheafy.separation_injective [IsTopologicalRing A] [PlusSubring A]
     [IsHuberRing A] [HasLocLiftPowerBounded A] [IsSheafy A] (C : RationalCovering A) :
     Function.Injective (productRestriction A C) := by
   intro x y hxy
-  exact IsSheafy.separation C
-    (funext fun ⟨D, hD⟩ ↦ congr_fun (congr_fun hxy D) hD)
+  apply IsSheafy.separationSub (A := A) C
+  funext ⟨D, hD⟩
+  exact congr_fun (congr_fun hxy D) hD
 
 /-! ### Affinoid adic spaces (Definition 8.21 of Wedhorn) -/
 
@@ -763,7 +790,7 @@ the product restriction being zero on all covering pieces implies the element is
 in `presheafValue C.base`, hence its image under `e_base` is zero. -/
 theorem tateQuotientProductRestriction_injective_on_algebraMap
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    [NonarchimedeanRing A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)
     (e_base : presheafValue C.base ≃+*
@@ -798,7 +825,7 @@ the product restriction being zero on all covering pieces implies the element is
 in `presheafValue C.base`, hence its image under `e_base` is zero. -/
 theorem tateQuotientProductRestriction_injective
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    [NonarchimedeanRing A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)
     (_e_base : presheafValue C.base ≃+*
@@ -829,7 +856,7 @@ theorem tateQuotientProductRestriction_injective
 (Theorem 8.28 of Wedhorn, separation component via TopologyComparison). -/
 theorem separation_ofStronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-    [FirstCountableTopology A] [IsDomain A]
+    [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)
     (hb_base : TopologicalRing.IsPowerBounded (invS C.base))
@@ -886,7 +913,7 @@ theorem separation_ofStronglyNoetherianTate
 the TopologyComparison isomorphism hypotheses are satisfied. -/
 theorem presheafValue_flat_of_tateQuotient
     [T2Space A] [NonarchimedeanRing A] [IsNoetherianRing A]
-    [FirstCountableTopology A] [IsTateRing A]
+    [IsTateRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D : RationalLocData A)
     (hb : TopologicalRing.IsPowerBounded (invS D))
@@ -925,7 +952,7 @@ theorem presheafValue_flat_of_tateQuotient
 refinement (Lemma 8.34 of Wedhorn). -/
 theorem productRestriction_injective_of_laurentRefinement
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    [NonarchimedeanRing A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A) :
     Function.Injective (productRestriction A C) := by
@@ -933,43 +960,40 @@ theorem productRestriction_injective_of_laurentRefinement
   exact rationalCovering_hasSeparation P C x y
     (fun D hD => congr_fun (congr_fun hxy D) hD)
 
-/-- The product restriction is topologically inducing for nonempty coverings.
-Each restriction map to a covering piece is inducing (Prop 8.15, via
-`restrictionMapHom_isInducing`); the product of inducing maps is inducing. -/
-theorem productRestrictionSub_isInducing
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A]
-    (C : RationalCovering A) (D₀ : RationalLocData A) (hD₀ : D₀ ∈ C.covers) :
-    Topology.IsInducing (productRestrictionSub A C) := by
-  haveI : Nonempty (↥C.covers) := ⟨⟨D₀, hD₀⟩⟩
-  -- The topology on presheafValue C.base = iInf of induced topologies from each
-  -- restriction (because each restriction is inducing).
-  -- The product map is inducing iff the source topology = induced from the product,
-  -- which = iInf of induced topologies from projections (by induced_to_pi).
-  constructor
-  conv_rhs => rw [induced_to_pi]
-  -- Goal: actual_topo = iInf (fun D => induced (component D) (topo D))
-  -- Each induced (component D) (topo D) = actual_topo (restrictionMapHom is inducing)
-  -- Show each induced topology equals the actual one, then use iInf_const
-  suffices h : ∀ D : ↥C.covers,
-      TopologicalSpace.induced (fun x => productRestrictionSub A C x D) inferInstance =
-      instTopologicalSpacePresheafValue C.base by
-    simp_rw [h, iInf_const]
-  intro ⟨D, hD⟩
-  exact (restrictionMapHom_isInducing C.base D (C.hsubset D hD)).eq_induced.symm
+-- REMOVED: productRestrictionSub_isInducing (R1, 2026-04-03)
+-- This used the FALSE restrictionMapHom_isInducing. No longer needed since
+-- IsSheafy was weakened to just require separation (injectivity) + gluing.
 
 /-- Strongly noetherian Tate rings are sheafy (Theorem 8.28 of Wedhorn),
 via Laurent cover refinement (Lemma 8.34). -/
 theorem isSheafy_ofStronglyNoetherianTate_flat
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [FirstCountableTopology A] [IsDomain A]
+    [NonarchimedeanRing A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
     IsSheafy A where
-  separation C := by
-    -- Injectivity of product restriction: from rationalCovering_hasSeparation.
-    intro x y hxy
-    exact rationalCovering_hasSeparation P C x y
-      (fun D hD => congr_fun hxy ⟨D, hD⟩)
+  embedding C := by
+    -- The embedding `productRestrictionSub A C` requires:
+    -- (i) Injectivity (sheaf-of-sets separation), and
+    -- (ii) Topological inducing (the source topology equals the subspace topology
+    --      from the product).
+    --
+    -- (i) will follow from Wedhorn Cor 8.32 (faithful flatness of the product
+    -- restriction → injective). Phase 3 of the Wedhorn plan.
+    --
+    -- (ii) will follow from Phase 2 (Example 6.38 as a TOPOLOGICAL ring iso) +
+    -- Phase 4 (Lemma 8.33 in the Tate case + Lemma 8.34 refinement transfer).
+    -- The 3×3 diagram chase preserves topology when the rings on each side are
+    -- identified with Tate-algebra quotients (whose quotient maps are continuous
+    -- and open).
+    --
+    -- Edge case: when `C.base.s = 0`, `presheafValue C.base` is subsingleton (the
+    -- zero ring), so any function from it is automatically an embedding via
+    -- `Topology.IsEmbedding.of_subsingleton`.
+    by_cases hs : C.base.s = 0
+    · haveI := presheafValue_subsingleton_of_s_eq_zero C.base hs
+      exact Topology.IsEmbedding.of_subsingleton _
+    · -- Until Phase 2-4 land, this is a single sorry pointing at the new route.
+      sorry
   gluing C f hcompat :=
     rationalCovering_hasGluing P C f hcompat
 

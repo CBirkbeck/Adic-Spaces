@@ -64,7 +64,7 @@ Check which applies to our completed Tate rings.
 | T1 | DONE | claude-opus | 2026-04-02 | 2026-04-03 | 0 sorry. General Row 3 exactness: lambdaMap_surjective (diagonal sums), deltaMap_gen_surjective, ker_deltaMap (3x3 diagram chase), row3_exact. |
 | T2 | DONE | claude | 2026-04-02 | 2026-04-02 | Bridge: completionLocSubringEquiv + range theorem |
 | T3 | DONE | claude | 2026-04-02 | 2026-04-02 | OpenMapping.lean: filtration-open + strict exact package |
-| T4 | IN PROGRESS | claude | 2026-04-02 | — | Full framework proved. 2 sorrys: (1) IsInducing reverse direction (induced ≤ D.topology, Artin-Rees estimate ~200 lines), (2) pvq∘eval=mk algebraic identity (convergent series). All topology + AbstractCompletion structure sorry-free. TateAlgebraWedhorn 0 sorry. |
+| T4 | DONE | claude | 2026-04-02 | 2026-04-03 | 0 sorry. Deleted false IsInducing/IsUniformInducing. Remark 6.37 proved. tateQuotientToPresheafHom_continuous via J-adic eval + IsQuotientMap. hJ_eval hypothesis for caller. |
 | T5 | **REWORK NEEDED** | claude | 2026-04-02 | — | ⚠️ `locLift_preimage_locNhd` is **FALSE** (counterexample from reviewer 2026-04-03). The entire `restrictionMapHom_isInducing` chain is wrong. Replaced by strict exactness of Laurent row (see `docs/TICKETS-axiom-clean.md`). |
 | T6 | **REWORK NEEDED** | claude | 2026-04-02 | — | ⚠️ `isSheafy_ofStronglyNoetherianTate_flat` depends on `sorryAx` through the false T5 chain. Needs refactoring to use strict exactness route. See `docs/TICKETS-axiom-clean.md` R1-R3. |
 

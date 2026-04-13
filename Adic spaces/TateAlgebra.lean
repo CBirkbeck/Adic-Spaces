@@ -1630,10 +1630,10 @@ References: [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], Lemma 8.31(1), Remark 
 section TateAlgebraFlat
 
 variable {A : Type u} [CommRing A] [TopologicalSpace A] [NonarchimedeanRing A]
-  [IsTopologicalRing A] [T2Space A] [FirstCountableTopology A] [IsNoetherianRing A]
+  [IsTopologicalRing A] [T2Space A] [IsNoetherianRing A]
   [IsTateRing A]
 
-omit [IsTopologicalRing A] [T2Space A] [FirstCountableTopology A] [IsNoetherianRing A]
+omit [IsTopologicalRing A] [T2Space A] [IsNoetherianRing A]
   [IsTateRing A] in
 /-- Coordinate-wise extraction of a relation in `TateAlgebra A`:
 if `∑ fᵢ • xᵢ = 0` in `A⟨X⟩`, then `∑ fᵢ * xᵢ(s) = 0` in `A` for each
@@ -1667,7 +1667,7 @@ private noncomputable def tateRelMap {l : ℕ}
   map_smul' a r := by simp [smul_eq_mul, mul_left_comm, Finset.mul_sum]
 
 omit [TopologicalSpace A] [NonarchimedeanRing A] [IsTopologicalRing A]
-  [T2Space A] [FirstCountableTopology A] [IsNoetherianRing A] [IsTateRing A] in
+  [T2Space A] [IsNoetherianRing A] [IsTateRing A] in
 /-- Extraction of `Finsupp` coefficients to plain function coefficients
 in the span of a finite family. -/
 private lemma tate_mem_span_range {l : ℕ} {g : Fin l → A} {k : ℕ}
@@ -2305,7 +2305,7 @@ theorem forall_coeff_mem_of_mem_ideal_map (I : Ideal A) (g : ↥(TateAlgebra A))
 
 /-! #### Assembling: quotient flatness (general case) -/
 
-variable [IsTopologicalRing A] [T2Space A] [FirstCountableTopology A] [IsTateRing A]
+variable [IsTopologicalRing A] [T2Space A] [IsTateRing A]
 
 /-- A restricted power series with all coefficients in `I` belongs to `Ideal.map I`
 in the Tate algebra. This is the reverse direction of `forall_coeff_mem_of_mem_ideal_map`.

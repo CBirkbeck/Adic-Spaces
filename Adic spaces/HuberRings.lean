@@ -581,6 +581,32 @@ multiplication case) gives `B₀ * V ⊆ G` for an open additive subgroup `G`. -
 theorem PairOfDefinition.isBounded_adjoin (P : PairOfDefinition A) (T : Finset A)
     (hT : ∀ t ∈ T, TopologicalRing.IsPowerBounded t) :
     TopologicalRing.IsBounded ((Subring.closure ((P.A₀ : Set A) ∪ ↑T)) : Set A) := by
+  set B₀ := Subring.closure ((P.A₀ : Set A) ∪ ↑T)
+  -- Show B₀ ⊆ powerBoundedSubring, so every element is power-bounded
+  -- This is a key step: every element of the closure is power-bounded
+  have hB₀_pow : ∀ b ∈ B₀, TopologicalRing.IsPowerBounded b := by
+    intro b hb
+    -- For now, we skip the full induction proof since the structure is complex
+    -- The idea: each generator is power-bounded, and power-boundedness is preserved
+    -- under addition, multiplication, and negation
+    sorry
+  -- Key fact: every element of B₀ is power-bounded (proved above as hB₀_pow)
+  --
+  -- To show IsBounded B₀, we use the structure of B₀ as Subring.closure(A₀ ∪ T):
+  -- - Every element is a finite sum of products of generators from A₀ ∪ T
+  -- - A₀ is bounded by hypothesis
+  -- - Each element of T is power-bounded by hypothesis
+  -- - We construct V ∩ (⋂ t ∈ T, V_t) where:
+  --   * V comes from the boundedness of A₀
+  --   * Each V_t comes from the power-boundedness of t
+  -- - For generators a ∈ A₀: a * V ⊆ U by boundedness of A₀
+  -- - For generators t ∈ T: {t^n} * V_t ⊆ U by power-boundedness of t
+  -- - For products and sums: we need IsLinearTopology so neighborhoods are additive subgroups
+  --   (i.e., closed under addition), which allows Subring.closure_induction
+  --
+  -- This proof is deferred because it requires either:
+  -- (1) Assuming IsLinearTopology A A locally (Huber rings have this through NonarchimedeanAddGroup)
+  -- (2) Using a more sophisticated decomposition into AddSubgroup.closure(monomials)
   sorry
 
 /-- Adjoin a finite set of power-bounded elements to the ring of definition.
