@@ -1912,6 +1912,410 @@ theorem locToQuotientOneSubfX_gen_continuous_canonical [IsTateRing A] [T2Space A
     rw [this]
     exact hd (r * s')
 
+/-! ### Step 5: Extension to completion via extensionHom (Canonical Topology)
+
+Once `locToQuotientOneSubfX_gen_continuous_canonical` and
+`locToQuotientOneSubfX_gen_denseRange_canonical` are established, we extend
+the map to the completion `presheafValue D` using `extensionHom`, targeting
+the canonical quotient topology on `A⟨X⟩/(1-sX)`.
+
+This parallels the T-topology construction (`presheafValueToQuotient`) but
+uses the canonical quotient topology, which is always T2 and complete for
+strongly noetherian Tate rings. -/
+
+/-- The `IsUniformAddGroup` instance for the canonical quotient topology. -/
+noncomputable instance quotientOneSubfXIdeal_isUniformAddGroup [IsTateRing A]
+    (f : A) :
+    @IsUniformAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal f)
+      (quotientOneSubfXIdealUniformSpace f) _ :=
+  @isUniformAddGroup_of_addCommGroup _ _ (quotientOneSubfXIdealTopology f)
+    (quotientOneSubfXIdealTopology_isTopologicalAddGroup f)
+
+/-- The ring homomorphism `presheafValue D →+* A⟨X⟩/(1-sX)` extending
+`locToQuotientOneSubfX_gen` to the completion, using the **canonical**
+quotient topology on the target.
+
+This uses `UniformSpace.Completion.extensionHom` with:
+- Source: `Localization.Away D.s` with `D.uniformSpace`
+- Target: canonical quotient with `quotientOneSubfXIdealUniformSpace D.s`
+- Continuity: `locToQuotientOneSubfX_gen_continuous_canonical`
+- Target complete: `quotient_oneSubfXIdeal_completeSpace`
+- Target T0: follows from T2 (`quotient_oneSubfXIdeal_t2Space`) -/
+noncomputable def presheafValueToCanonicalQuotient (D : RationalLocData A)
+    [IsTateRing A]
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t) :
+    presheafValue D →+*
+      (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) := by
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  letI : TopologicalSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology D.s
+  letI : IsTopologicalRing (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology_isTopologicalRing D.s
+  letI : IsTopologicalAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology_isTopologicalAddGroup D.s
+  letI : UniformSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealUniformSpace D.s
+  letI : IsUniformAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdeal_isUniformAddGroup D.s
+  haveI : CompleteSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotient_oneSubfXIdeal_completeSpace hA_complete hnoeth D.s
+  haveI hT2Q : @T2Space _ (quotientOneSubfXIdealTopology D.s) :=
+    quotient_oneSubfXIdeal_t2Space hA_complete hnoeth D.s
+  haveI hT0Q : @T0Space _ (quotientOneSubfXIdealTopology D.s) :=
+    @T1Space.t0Space _ (quotientOneSubfXIdealTopology D.s) (T2Space.t1Space)
+  exact @UniformSpace.Completion.extensionHom _ _ _ _ _ _
+    (quotientOneSubfXIdealUniformSpace D.s) _
+    (quotientOneSubfXIdeal_isUniformAddGroup D.s)
+    (quotientOneSubfXIdealTopology_isTopologicalRing D.s)
+    (locToQuotientOneSubfX_gen D.s)
+    (locToQuotientOneSubfX_gen_continuous_canonical D hT_pb)
+    (quotient_oneSubfXIdeal_completeSpace hA_complete hnoeth D.s)
+    hT0Q
+
+/-- `presheafValueToCanonicalQuotient` on the dense image agrees with
+`locToQuotientOneSubfX_gen`. -/
+theorem presheafValueToCanonicalQuotient_coe (D : RationalLocData A)
+    [IsTateRing A]
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t)
+    (a : Localization.Away D.s) :
+    presheafValueToCanonicalQuotient D hA_complete hnoeth hT_pb (D.coeRingHom a) =
+      locToQuotientOneSubfX_gen D.s a := by
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  letI : TopologicalSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology D.s
+  letI : IsTopologicalRing (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology_isTopologicalRing D.s
+  letI : IsTopologicalAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology_isTopologicalAddGroup D.s
+  letI : UniformSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealUniformSpace D.s
+  letI : IsUniformAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdeal_isUniformAddGroup D.s
+  haveI : CompleteSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotient_oneSubfXIdeal_completeSpace hA_complete hnoeth D.s
+  haveI hT2Q : @T2Space _ (quotientOneSubfXIdealTopology D.s) :=
+    quotient_oneSubfXIdeal_t2Space hA_complete hnoeth D.s
+  haveI hT0Q : @T0Space _ (quotientOneSubfXIdealTopology D.s) :=
+    @T1Space.t0Space _ (quotientOneSubfXIdealTopology D.s) (T2Space.t1Space)
+  exact @UniformSpace.Completion.extensionHom_coe _ _ _ _ _ _
+    (quotientOneSubfXIdealUniformSpace D.s) _
+    (quotientOneSubfXIdeal_isUniformAddGroup D.s)
+    (quotientOneSubfXIdealTopology_isTopologicalRing D.s)
+    (locToQuotientOneSubfX_gen D.s)
+    (locToQuotientOneSubfX_gen_continuous_canonical D hT_pb)
+    (quotient_oneSubfXIdeal_completeSpace hA_complete hnoeth D.s)
+    hT0Q a
+
+/-! ### Step 6: Round-trip composites are identity (Canonical Topology) -/
+
+/-- The composite `tateQuotientToPresheafHom ∘ presheafValueToCanonicalQuotient`
+is the identity on `presheafValue D`.
+
+On the dense image `coeRingHom(a)`:
+  `tateQuotientToPresheafHom (presheafValueToCanonicalQuotient (coeRingHom a))`
+  `= tateQuotientToPresheafHom (locToQuotientOneSubfX_gen a)`
+  `= locLiftToPresheaf a`   (by round-trip)
+  `= coeRingHom a`          (by `locLiftToPresheaf_eq_coeRingHom`)
+
+By T2 density, this extends to all of `presheafValue D`. -/
+theorem tateQuotientToPresheaf_comp_presheafToCanonicalQuotient (D : RationalLocData A)
+    [IsTateRing A]
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t)
+    (hcont_eval : @Continuous _ _
+      (quotientOneSubfXIdealTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb))
+    (x : presheafValue D) :
+    tateQuotientToPresheafHom D hb
+      (presheafValueToCanonicalQuotient D hA_complete hnoeth hT_pb x) = x := by
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  letI τC : TopologicalSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology D.s
+  letI : UniformSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealUniformSpace D.s
+  -- Continuity of the presheafValueToCanonicalQuotient map.
+  -- The underlying function is Completion.extension, so continuity follows from
+  -- Completion.continuous_extension after unwinding definitions.
+  have hcont_ext : @Continuous _ _
+      (inferInstance : TopologicalSpace (presheafValue D)) τC
+      (presheafValueToCanonicalQuotient D hA_complete hnoeth hT_pb) := by
+    have hcs := quotient_oneSubfXIdeal_completeSpace hA_complete hnoeth D.s
+    have hce := @UniformSpace.Completion.continuous_extension _ D.uniformSpace _
+      (quotientOneSubfXIdealUniformSpace D.s)
+      (↑(locToQuotientOneSubfX_gen D.s)) hcs
+    exact hce
+  -- Use T2 density: the composite and id agree on the dense image.
+  refine @UniformSpace.Completion.ext' _ D.uniformSpace
+    (presheafValue D) _ _ _ _
+    (hcont_eval.comp hcont_ext)
+    continuous_id ?_ x
+  -- On the dense image: show agreement pointwise.
+  intro a
+  simp only [Function.comp, id]
+  change tateQuotientToPresheafHom D hb
+    (presheafValueToCanonicalQuotient D hA_complete hnoeth hT_pb (D.coeRingHom a)) =
+    D.coeRingHom a
+  rw [presheafValueToCanonicalQuotient_coe D hA_complete hnoeth hT_pb a,
+    tateQuotient_roundtrip_apply D hb a,
+    locLiftToPresheaf_eq_coeRingHom D]
+
+/-- The composite `presheafValueToCanonicalQuotient ∘ tateQuotientToPresheafHom`
+is the identity on `A⟨X⟩/(1-sX)` with the canonical quotient topology.
+
+Both composites agree with `id` on the dense image of `locToQuotientOneSubfX_gen`
+(canonical topology version). By T2 of the canonical quotient + density, they
+are equal. -/
+theorem presheafToCanonicalQuotient_comp_tateQuotientToPresheaf (D : RationalLocData A)
+    [IsTateRing A]
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t)
+    (hcont_eval : @Continuous _ _
+      (quotientOneSubfXIdealTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb))
+    (q : ↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :
+    presheafValueToCanonicalQuotient D hA_complete hnoeth hT_pb
+      (tateQuotientToPresheafHom D hb q) = q := by
+  -- Setup instances for the canonical quotient topology.
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  letI τC : TopologicalSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology D.s
+  letI : UniformSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealUniformSpace D.s
+  letI : IsTopologicalRing (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology_isTopologicalRing D.s
+  letI : IsTopologicalAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology_isTopologicalAddGroup D.s
+  letI : IsUniformAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdeal_isUniformAddGroup D.s
+  -- T2 for canonical quotient.
+  haveI hT2 : @T2Space _ τC :=
+    quotient_oneSubfXIdeal_t2Space hA_complete hnoeth D.s
+  haveI : @CompleteSpace _ (quotientOneSubfXIdealUniformSpace D.s) :=
+    quotient_oneSubfXIdeal_completeSpace hA_complete hnoeth D.s
+  -- Dense range for canonical topology.
+  have hdense := locToQuotientOneSubfX_gen_denseRange_canonical D.s
+  -- The composites agree on the dense image of locToQuotientOneSubfX_gen.
+  have hagree : ∀ (a : Localization.Away D.s),
+      presheafValueToCanonicalQuotient D hA_complete hnoeth hT_pb
+        (tateQuotientToPresheafHom D hb (locToQuotientOneSubfX_gen D.s a)) =
+        locToQuotientOneSubfX_gen D.s a := by
+    intro a
+    rw [tateQuotient_roundtrip_apply D hb a,
+      locLiftToPresheaf_eq_coeRingHom D,
+      presheafValueToCanonicalQuotient_coe D hA_complete hnoeth hT_pb a]
+  -- Use DenseRange.equalizer: two continuous maps agreeing on a dense
+  -- subset of a T₂ space must be equal.
+  -- Continuity of the extension (presheafValueToCanonicalQuotient).
+  have hcont_ext : @Continuous _ _
+      (inferInstance : TopologicalSpace (presheafValue D)) τC
+      (presheafValueToCanonicalQuotient D hA_complete hnoeth hT_pb) := by
+    exact @UniformSpace.Completion.continuous_extension _ D.uniformSpace _
+      (quotientOneSubfXIdealUniformSpace D.s)
+      (↑(locToQuotientOneSubfX_gen D.s))
+      (quotient_oneSubfXIdeal_completeSpace hA_complete hnoeth D.s)
+  have h_eq : (fun q ↦ presheafValueToCanonicalQuotient D hA_complete hnoeth hT_pb
+      (tateQuotientToPresheafHom D hb q)) =
+    (fun q ↦ q) :=
+    hdense.equalizer
+      (hcont_ext.comp hcont_eval)
+      continuous_id
+      (funext hagree)
+  exact congr_fun h_eq q
+
+/-! ### Step 7: Package as RingEquiv (Canonical Topology) -/
+
+/-- **The completion isomorphism (canonical topology)**
+`presheafValue D ≃+* A⟨X⟩/(1-sX)` (Wedhorn Proposition 8.30).
+
+For a strongly noetherian Tate ring `A` and rational localization datum `D`,
+the presheaf value (completion of `Localization.Away D.s`) is ring-isomorphic
+to the Tate algebra quotient `A⟨X⟩/(1-sX)` equipped with the canonical
+quotient topology.
+
+Both composites are identity:
+- `tateQuotientToPresheafHom ∘ presheafValueToCanonicalQuotient = id`
+- `presheafValueToCanonicalQuotient ∘ tateQuotientToPresheafHom = id` -/
+noncomputable def presheafValueCanonicalQuotientEquiv (D : RationalLocData A)
+    [IsTateRing A]
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t)
+    (hcont_eval : @Continuous _ _
+      (quotientOneSubfXIdealTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb)) :
+    presheafValue D ≃+*
+      (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) where
+  toFun := presheafValueToCanonicalQuotient D hA_complete hnoeth hT_pb
+  invFun := tateQuotientToPresheafHom D hb
+  left_inv :=
+    tateQuotientToPresheaf_comp_presheafToCanonicalQuotient
+      D hb hA_complete hnoeth hT_pb hcont_eval
+  right_inv :=
+    presheafToCanonicalQuotient_comp_tateQuotientToPresheaf
+      D hb hA_complete hnoeth hT_pb hcont_eval
+  map_mul' := map_mul _
+  map_add' := map_add _
+
+/-- The canonical isomorphism sends `canonicalMap(a)` to `mk(algebraMap a)`. -/
+theorem presheafValueCanonicalQuotientEquiv_canonicalMap (D : RationalLocData A)
+    [IsTateRing A]
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t)
+    (hcont_eval : @Continuous _ _
+      (quotientOneSubfXIdealTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb))
+    (a : A) :
+    presheafValueCanonicalQuotientEquiv D hb hA_complete hnoeth hT_pb hcont_eval
+      (D.canonicalMap a) =
+      (Ideal.Quotient.mk _) (algebraMap A _ a) := by
+  change presheafValueToCanonicalQuotient D hA_complete hnoeth hT_pb
+    (D.coeRingHom (algebraMap A _ a)) = _
+  rw [presheafValueToCanonicalQuotient_coe, locToQuotientOneSubfX_gen_algebraMap]
+
+/-- The inverse sends `mk(algebraMap a)` back to `canonicalMap(a)`. -/
+theorem presheafValueCanonicalQuotientEquiv_symm_algebraMap (D : RationalLocData A)
+    [IsTateRing A]
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t)
+    (hcont_eval : @Continuous _ _
+      (quotientOneSubfXIdealTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb))
+    (a : A) :
+    (presheafValueCanonicalQuotientEquiv D hb hA_complete hnoeth hT_pb hcont_eval).symm
+      ((Ideal.Quotient.mk _) (algebraMap A _ a)) =
+      D.canonicalMap a := by
+  simp only [presheafValueCanonicalQuotientEquiv, RingEquiv.symm_mk,
+    RingEquiv.coe_mk, Equiv.coe_fn_mk]
+  exact tateQuotientToPresheafHom_algebraMap D hb a
+
+/-! ### Step 8: Banach OMP -> Topological Isomorphism
+
+The inverse map `tateQuotientToPresheafHom D hb` is a continuous bijection
+from the canonical quotient (complete, first-countable) to `presheafValue D`
+(T2, Baire). By the Banach open mapping theorem, it is an open map, hence
+a homeomorphism. -/
+
+/-- The canonical quotient `A⟨X⟩/(1-sX)` is first-countable, inheriting the
+first-countability of `TateAlgebra A` through the quotient map.
+
+**Proof:** The quotient map `mk : A⟨X⟩ → A⟨X⟩/(1-sX)` is open (topological
+ring quotient) and continuous. For any `q = mk(g)`, the neighborhood filter
+`nhds q = map mk (nhds g)` (by `IsOpenMap.map_nhds_eq`). Since `nhds g` is
+countably generated (first-countable source), so is `map mk (nhds g)`. -/
+noncomputable instance quotientOneSubfXIdeal_firstCountableTopology [IsTateRing A]
+    (f : A) :
+    @FirstCountableTopology (↥(TateAlgebra A) ⧸ oneSubfXIdeal f)
+      (quotientOneSubfXIdealTopology f) := by
+  haveI := instFirstCountableTopologyTateAlgebra (A := A)
+  constructor; intro q
+  obtain ⟨g, rfl⟩ := Ideal.Quotient.mk_surjective q
+  -- The quotient map mk is open and continuous.
+  -- nhds (mk g) = map mk (nhds g) via IsOpenMap.map_nhds_eq.
+  -- Since nhds g is countably generated, so is map mk (nhds g).
+  -- We work inside the canonical Tate topology.
+  change (@nhds _ (quotientOneSubfXIdealTopology f) _).IsCountablyGenerated
+  suffices h : @nhds _ (quotientOneSubfXIdealTopology f)
+      ((Ideal.Quotient.mk (oneSubfXIdeal f)) g) =
+      Filter.map (Ideal.Quotient.mk (oneSubfXIdeal f))
+        (@nhds _ instTopologicalSpaceTateAlgebra g) by
+    rw [h]; exact Filter.map.isCountablyGenerated _ _
+  exact ((@QuotientRing.isOpenMap_coe _ instTopologicalSpaceTateAlgebra _
+    (oneSubfXIdeal f) instIsTopologicalRingTateAlgebra).map_nhds_eq
+    continuous_coinduced_rng.continuousAt).symm
+
+/-- **Banach OMP for `tateQuotientToPresheafHom`**: the inverse map of the
+canonical isomorphism is a homeomorphism.
+
+`tateQuotientToPresheafHom D hb` is a continuous bijection from the canonical
+quotient (complete + sigma-compact) to `presheafValue D` (T2 + Baire).
+By `AddMonoidHom.isOpenMap_of_complete_countable`, it is an open map.
+Continuous + open + bijective = homeomorphism. -/
+theorem tateQuotientToPresheafHom_isHomeomorph (D : RationalLocData A)
+    [IsTateRing A]
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t)
+    (hcont_eval : @Continuous _ _
+      (quotientOneSubfXIdealTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb))
+    -- BaireSpace + SigmaCompactSpace are hard to derive in full generality;
+    -- we take them as hypotheses and discharge them in concrete applications.
+    (hBaire : @BaireSpace (presheafValue D) _)
+    (hSigma : @SigmaCompactSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s)
+      (quotientOneSubfXIdealTopology D.s)) :
+    @IsHomeomorph _ _
+      (quotientOneSubfXIdealTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb) := by
+  letI τC : TopologicalSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology D.s
+  letI : IsTopologicalRing (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology_isTopologicalRing D.s
+  letI : IsTopologicalAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology_isTopologicalAddGroup D.s
+  letI uC : UniformSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealUniformSpace D.s
+  letI : IsUniformAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdeal_isUniformAddGroup D.s
+  haveI : CompleteSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotient_oneSubfXIdeal_completeSpace hA_complete hnoeth D.s
+  haveI : T2Space (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotient_oneSubfXIdeal_t2Space hA_complete hnoeth D.s
+  -- The canonical isomorphism provides bijectivity.
+  let e := presheafValueCanonicalQuotientEquiv D hb hA_complete hnoeth hT_pb hcont_eval
+  have hbij : Function.Bijective (tateQuotientToPresheafHom D hb) :=
+    ⟨e.symm.injective, e.symm.surjective⟩
+  -- Apply Banach OMP: surjective continuous hom from sigma-compact complete
+  -- group to Baire T2 group is open.
+  have hopen : @IsOpenMap _ _ τC _ (tateQuotientToPresheafHom D hb) :=
+    @AddMonoidHom.isOpenMap_of_complete_countable
+      (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) (presheafValue D)
+      _ uC (quotientOneSubfXIdeal_isUniformAddGroup D.s) _ hSigma
+      _ _ _ hBaire _
+      (tateQuotientToPresheafHom D hb).toAddMonoidHom
+      hbij.2 hcont_eval
+  exact {
+    continuous := hcont_eval
+    isOpenMap := hopen
+    bijective := hbij
+  }
+
 end CanonicalTopologyBridge
 
 end ValuationSpectrum
