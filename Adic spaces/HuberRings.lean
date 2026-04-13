@@ -572,6 +572,17 @@ theorem PairOfDefinition.le_adjoin_A₀ (P : PairOfDefinition A) (T : Finset A) 
     P.A₀ ≤ Subring.closure ((P.A₀ : Set A) ∪ ↑T) :=
   fun _ ha ↦ Subring.subset_closure (Set.subset_union_left ha)
 
+/-- The ring of definition enlarged by a finite set of power-bounded elements is bounded.
+
+Every element of `B₀ = Subring.closure(A₀ ∪ T)` lies in `AddSubgroup.closure(A₀ * M)`
+where `M = ∏_{t ∈ T} {t^k : k}` is the pointwise product of power-bounded ranges.
+Since `A₀ * M` is bounded, `AddSubgroup.closure_induction` (which has no
+multiplication case) gives `B₀ * V ⊆ G` for an open additive subgroup `G`. -/
+theorem PairOfDefinition.isBounded_adjoin (P : PairOfDefinition A) (T : Finset A)
+    (hT : ∀ t ∈ T, TopologicalRing.IsPowerBounded t) :
+    TopologicalRing.IsBounded ((Subring.closure ((P.A₀ : Set A) ∪ ↑T)) : Set A) := by
+  sorry
+
 /-- Adjoin a finite set of power-bounded elements to the ring of definition.
 The new ring of definition is `Subring.closure (A₀ ∪ ↑T)` and the new ideal
 is the image of `I` under the inclusion. This gives a valid pair of definition
@@ -592,16 +603,44 @@ def PairOfDefinition.adjoin (P : PairOfDefinition A) (T : Finset A)
       (P.le_adjoin_A₀ T)
   fg := P.fg.map _
   isAdic := by
-    -- The subspace topology on B₀ = Subring.closure(A₀ ∪ T) equals the
-    -- (Ideal.map incl I)-adic topology. This requires showing:
-    -- (1) Each power of the image ideal is open (from the I-adic basis on A₀).
-    -- (2) The powers shrink to any nhd (from boundedness of B₀, which follows
-    --     from power-boundedness of elements of T).
-    -- The key ingredient is that B₀ is bounded in A: every element of B₀
-    -- is a polynomial in T with A₀-coefficients, and since T ⊆ A° and A₀ ⊆ A°,
-    -- the set of monomials is bounded, giving B₀ ⊆ AddSubgroup.closure(A₀ * M)
-    -- with M bounded. Then B₀ * V ⊆ image(I^k) for appropriate V and k.
-    sorry
+    set B₀ := Subring.closure ((P.A₀ : Set A) ∪ ↑T)
+    set incl := Subring.inclusion (P.le_adjoin_A₀ T)
+    set I' := Ideal.map incl P.I
+    rw [isAdic_iff]
+    constructor
+    · -- Part 1: Each I'^n is open in B₀ (subspace topology)
+      intro n
+      apply AddSubgroup.isOpen_of_mem_nhds (I' ^ n).toAddSubgroup
+      rw [Submodule.coe_toAddSubgroup]
+      -- I'^n ⊇ incl(I^n), and incl(I^n) maps to an open set in A
+      have h_nhds : Subtype.val ⁻¹' (Subtype.val '' ((P.I ^ n : Ideal P.A₀) : Set P.A₀)) ∈
+          𝓝 (0 : B₀) :=
+        continuous_subtype_val.continuousAt.preimage_mem_nhds
+          (show Subtype.val '' ((P.I ^ n : Ideal P.A₀) : Set P.A₀) ∈ 𝓝 (0 : A) from
+            (P.pow_image_isOpen n).mem_nhds ⟨0, (P.I ^ n).zero_mem, rfl⟩)
+      apply Filter.mem_of_superset h_nhds
+      -- Show val⁻¹'(val '' I^n) ⊆ I'^n
+      intro ⟨x, hx_mem⟩ hx
+      simp only [Set.mem_preimage] at hx
+      obtain ⟨⟨y, hy_A₀⟩, hy_In, hval⟩ := hx
+      -- x = y as elements of A, so incl(⟨y, hy_A₀⟩) corresponds to ⟨x, hx_mem⟩
+      have heq : (⟨x, hx_mem⟩ : B₀) = incl ⟨y, hy_A₀⟩ := by
+        ext; exact hval.symm
+      rw [heq, ← Ideal.map_pow]
+      exact Ideal.mem_map_of_mem _ hy_In
+    · -- Part 2: The powers I'^n shrink to any nhd of 0 in B₀.
+      -- Strategy: B₀ is bounded (isBounded_adjoin), so B₀ * V ⊆ U for
+      -- small V. Each x ∈ I'^n = Ideal.map incl (I^n) is a B₀-linear
+      -- combination of incl(I^n), and val(incl(a)) ∈ V for a ∈ I^n (large n).
+      -- So val(b * incl(a)) = b.val * a.val ∈ B₀ * V ⊆ U.
+      -- The sum of such terms is in U (since U contains an open additive subgroup).
+      -- Use isBounded_adjoin: B₀ is bounded, so B₀ * V ⊆ U for small V.
+      -- Elements of I'^n = Ideal.map incl (I^n) decompose as ∑ bⱼ * incl(aⱼ)
+      -- with bⱼ ∈ B₀, aⱼ ∈ I^n. Each bⱼ ∈ AddSubgroup.closure(A₀ * M)
+      -- (monomial decomposition). Using AddSubgroup.closure_induction (no mult
+      -- case) on each bⱼ, and image(I^n) ⊆ V, gives bⱼ.val * aⱼ.val ∈ U.
+      -- The sum is in U since U contains an open additive subgroup.
+      sorry
 
 /-- The original ring of definition is contained in the enlarged one. -/
 theorem PairOfDefinition.adjoin_A₀_le (P : PairOfDefinition A) (T : Finset A)
