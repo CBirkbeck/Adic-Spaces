@@ -1699,11 +1699,17 @@ theorem locToQuotientOneSubfX_gen_continuous_canonical [IsTateRing A] [T2Space A
     exact (hmk_alg_cont.tendsto 0).comp (by
       change Filter.Tendsto (fun n => ((IsTateRing.principalPair A).π : A) ^ n) _ _
       exact hπ)
-  -- Step 2: For the target W, find V with mk(algebraMap(π^n)) ∈ V for large n,
-  -- and such that every locSubring generator times V lands in W.
-  -- Since W is an open additive subgroup and the quotient is a topological ring:
-  -- for each x in the quotient, ∃ V_x nhd with x · V_x ⊆ W.
-  -- Use the topological ring structure: multiplication continuous at (0,0).
+  -- Step 2: Use D.P.adjoin D.T as common pair (Wedhorn 6.3).
+  -- This pair contains both D.P.A₀ and D.T, so the self-preserving set
+  -- tateAlgNhd(P_common, k) is stable under ALL locSubring generators.
+  -- The continuity estimate ψ(J^n) ⊆ π^n Q₀ then holds with Q₀ = mk(pairSubring P_common).
+  --
+  -- For now: the infrastructure (PairOfDefinition.adjoin) exists with 2 small sorries
+  -- (isAdic interleaving + boundedness). The continuity argument using it needs:
+  -- (a) tateAlgNhd P_common cofinal with tateAlgNhd P' (canonical pair) — cofinality
+  -- (b) locSubring generators stable under tateAlgNhd P_common — from T ⊆ P_common.A₀
+  -- (c) locNhd n maps into mk(tateAlgNhd P_common n) — reviewer's estimate
+  -- All hold once adjoin's isAdic sorry is filled.
   sorry
 
 end CanonicalTopologyBridge
