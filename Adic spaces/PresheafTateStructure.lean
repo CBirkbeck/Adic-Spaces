@@ -1325,11 +1325,14 @@ theorem restrictionMapHom_injective
     (D₀ D : RationalLocData A)
     (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
     Function.Injective (restrictionMapHom D₀ D h) := by
-  -- The restriction map σ = extensionHom(restrictionMapAlg). Since the algebraic
-  -- restriction map is injective (locLift between localizations is injective when
-  -- D₀.s becomes a unit in Loc.Away D.s) and the completion extension of an
-  -- injective uniformly continuous map into a T₂ space is injective, σ is injective.
-  sorry
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  exact (UniformSpace.Completion.isUniformInducing_extension
+    (restrictionMapAlg_isUniformInducing D₀ D h)).injective
 
 /-- The restriction map `restrictionMapHom D₀ D h` is topologically inducing
 (Proposition 8.15 of Wedhorn). The topology on `presheafValue D₀` equals the
