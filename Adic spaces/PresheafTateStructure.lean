@@ -1325,14 +1325,17 @@ theorem restrictionMapHom_injective
     (D₀ D : RationalLocData A)
     (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
     Function.Injective (restrictionMapHom D₀ D h) := by
-  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
-  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
-  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
-  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
-  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
-  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
-  exact (UniformSpace.Completion.isUniformInducing_extension
-    (restrictionMapAlg_isUniformInducing D₀ D h)).injective
+  -- OLD PROOF (via restrictionMapAlg_isUniformInducing — FALSE, quarantined):
+  -- exact (UniformSpace.Completion.isUniformInducing_extension
+  --   (restrictionMapAlg_isUniformInducing D₀ D h)).injective
+  --
+  -- CORRECT PROOF: via faithful flatness (Wedhorn Cor 8.32).
+  -- presheafValue D₀ is flat over A (via presheafValueCanonicalQuotientEquiv
+  -- + flat_quotient_oneSubfX_general). The restriction map is a localization
+  -- map between flat modules, hence injective.
+  -- TODO: implement via the flatness route once the localization algebra
+  -- structure on presheafValue is established.
+  sorry
 
 /-- The restriction map `restrictionMapHom D₀ D h` is topologically inducing
 (Proposition 8.15 of Wedhorn). The topology on `presheafValue D₀` equals the
