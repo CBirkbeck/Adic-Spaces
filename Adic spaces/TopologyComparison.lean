@@ -1578,27 +1578,11 @@ theorem locToQuotientOneSubfX_gen_denseRange_canonical [IsTateRing A] [T2Space A
     exact hmk_dr.dense_image continuous_quotient_mk' hP_dense
   exact @Dense.mono _ (quotientOneSubfXIdealTopology s) _ _ h_sub h_dense
 
-/-- **Wedhorn Proposition 6.18 (quotient case):** The T-quotient topology on
-`A⟨X⟩/(1-sX)` is coarser than (or equal to) the canonical quotient topology.
-
-Combined with the reverse inequality (proved by `coinduced_mono` from the fact
-that the canonical Tate algebra topology is finer than the T-topology), this
-gives equality of the two quotient topologies.
-
-**WARNING (2026-04-12):** The topology equality
-`quotientOneSubfXIdealTopology = quotientTTopology` is FALSE in general.
-Counterexample: A = ℚ_p, s = 1. Then X^N → 0 in T-topology but mk(X^N) = 1
-in the quotient, so the T-quotient is non-Hausdorff while the canonical
-quotient is Hausdorff.
-
-The equality holds only when s⁻¹/π is power-bounded (e.g., s is an associate
-of a topologically nilpotent unit). For the acyclicity theorem, use the
-T-quotient topology directly via `presheafValueTateQuotientEquiv`.
-
-This lemma is UNUSED downstream and should be considered DEPRECATED. -/
-theorem quotientTTopology_le_quotientOneSubfXIdealTopology [IsTateRing A]
-    (s : A) : quotientTTopology s ≤ quotientOneSubfXIdealTopology s := by
-  sorry
+-- REMOVED 2026-04-14: `quotientTTopology_le_quotientOneSubfXIdealTopology`
+-- The 2026-04-12 reviewer note identified this as FALSE in general
+-- (counterexample: A = ℚ_p, s = 1 — T-quotient non-Hausdorff, canonical
+-- quotient Hausdorff, so the ordering ≤ fails). It had no external callers.
+-- The acyclicity theorem uses `presheafValueTateQuotientEquiv` directly.
 
 /-- The map `locToQuotientOneSubfX_gen D.s` is continuous from the localization
 topology on `Localization.Away D.s` to the canonical quotient topology on
