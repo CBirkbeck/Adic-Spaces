@@ -129,3 +129,129 @@ If you only have one session:
 1. **`exists_spa_point_in_rationalOpen` non-open prime case** is the most mathematically delicate piece. The completion route (take A/p completion as a Tate ring, use its Tate unit valuation, pull back) is well-trodden mathematically but needs careful topological bookkeeping. Budget a full session just for this.
 2. **Route B bridges require non-discrete generalization of `tateQuotientFSubXEquiv`** (currently `[DiscreteTopology]` only). The complete-A setting should make this tractable via Phase 2 iso + evaluation at X=f, but the details need care around the T-extension topology.
 3. **Lemma 8.34 may need `CechCohomology.Refinement` extensions** — check existing refinement API before writing new primitives.
+
+---
+
+## 2026-04-14 reviewer addendum — Q1/Q2/Q3 guidance
+
+A full-context AI reviewer revisited the three architectural questions that
+Wave 2 surfaced. The guidance reshapes the critical path below.
+
+### Q1 — `mem_prime_of_rational_subset_nonOpen` (Presheaf.lean:665)
+
+**Reviewer verdict:** the previous statement was unprovably strong. When
+`rationalOpen D'.T D'.s` is empty (e.g., `X(1/π)` in some Tate settings), the
+inclusion hypothesis is vacuous yet the conclusion `D'.s ∈ p` can fail.
+
+**Resolution (commit 51f3332):** the non-open helper now takes an explicit
+fiberwise-nonemptiness premise
+`hnonempty : ∃ v ∈ rationalOpen D'.T D'.s, p ≤ v.supp`. The public wrapper
+`mem_prime_of_rational_subset` threads this conditionally on `¬IsOpen p`.
+Three callers now hold the genuine obligation: Spa-point existence over a
+non-open prime inside a specific rational open — Wedhorn Lemma 7.45 +
+valuation-domination over `Frac(A/p)`.
+
+Callers:
+- `Presheaf.lean` `isUnit_algebraMap_s_of_huber`
+- `CompletionLocalization.lean` `isUnit_algebraMap_s_of_subset`
+- `PresheafTateStructure.lean` `isUnit_algebraMap_s_of_rational_subset`
+
+**Recommended route if re-attempted:** algebraic via `K := Frac(A/p)`. Let
+`R ⊂ K` be the image of `A⁺` plus the fractions `t/s` for `t ∈ D'.T`. If the
+image of the ideal of definition is proper in `R`, pick `q ⊇ I·R`, localize,
+and dominate by a valuation ring (every local subring of a field is dominated
+by a valuation ring — standard, but not in current Mathlib). Pulling back gives
+a continuous valuation of support `p` inside `rationalOpen D'.T D'.s`. Mathlib
+lacks the "dominating valuation ring" existence theorem; that is a small
+Zorn-based addition.
+
+### Q2 — `structureSheaf` sheaf condition (StructureSheaf.lean:225)
+
+**Reviewer verdict:** do not build `HasLimits CompleteTopCommRingCat`. That
+path is a 150–300 line side quest and Zavyalov's theorem only needs the weaker
+topological-ring sheaf formulation.
+
+**Recommended route:** direct sheaf proof.
+1. Existence/uniqueness of the glued section from the Types-level sheaf
+   (`subpresheafToTypes.isSheaf`, Mathlib-provided).
+2. Ring structure of the glued section: addition and multiplication are
+   verified after restriction to the cover, so continuity is inherited.
+3. Topological part: strict Laurent/Čech exactness.
+
+**Status:** not yet attempted. Single-session target once Route B bridges land.
+
+### Q3 — Route B bridges (LaurentRefinement.lean:419–495)
+
+**Reviewer verdict:** the theorem should be generic in the base ring `B`
+(complete strongly noetherian Tate), not bespoke to `presheafValue D₀`.
+Zavyalov's Step 0/1 model: first replace by the completion, then replace a
+rational subdomain by its own affinoid presentation `Spa(B, B⁺)` via
+Lemma 2.13. The bridge theorem should live at a generic `B` and
+`presheafValue D₀` is an instance via `B := presheafValue D₀`. That avoids
+the "non-discrete `quotientFSubXEquiv` parameterised by `D₀`" trap.
+
+**Q3-STEP1 (commit 7091dfb):** stripped spurious `[IsDomain A]` from the
+Laurent-bridge chain (9 theorems). `presheafValueTateQuotientEquiv` itself
+never required it; the annotation was copy-pasted across the bridge stubs
+but never invoked. Krull intersection (the real `[IsDomain A]` dependency)
+is confined to `epsilonHom_gen_injective` in the `General` section of
+`LaurentCoverExact` and is never used by the Laurent-gluing path. The
+bridges' eventual proofs must now work without `[IsDomain A]` on the outer
+ring — correct direction for the generic-B target.
+
+**Q3-STEP2 — iterated rational localization (Wedhorn Lemma 2.13):** the only
+genuinely new primitive required. Precise statements for Q3-STEP3 to compose:
+
+1. **Plus branch iterated-rational equivalence.**
+   For `B := presheafValue D₀` and `b := D₀.canonicalMap f`, the rational open
+   of `laurentPlusDatum D₀ f` in `Spa A` corresponds to the rational open
+   of the "trivial plus datum on B at b" (i.e., `T_B = {b}`, `s_B = 1`) in
+   `Spa B`. At the ring level:
+   ```
+   presheafValue_A(laurentPlusDatum D₀ f)  ≃+*  presheafValue_B(D_B_plus)
+   ```
+   where `D_B_plus : RationalLocData B` is the trivial datum at `b`.
+
+2. **Non-discrete `f - X` quotient equivalence over a generic B.**
+   Once (1) is in hand, we need:
+   ```
+   presheafValue_B(D_B_plus)  ≃+*  B⟨X⟩ ⧸ (algebraMap b − X)
+                              =    LaurentCover.B₁_gen b
+   ```
+   The left side is the completion of `Localization.Away 1 ≃ B` with the
+   topology that forces `b` to be power-bounded. The right side is the Tate
+   algebra quotient forcing `X = b`. These agree because both are the
+   universal complete Tate ring over `B` making `b` power-bounded.
+
+3. **Minus branch symmetry.**
+   For the minus datum `laurentMinusDatum D₀ f` (with `s = D₀.s · f`,
+   `T` extended to force `D₀.s · f` power-bounded with `1/(D₀.s · f)`-relation),
+   the analogous iterated-rational identification over `B` gives a datum
+   `D_B_minus` with `s_B = b`. Then `presheafValueTateQuotientEquiv` at
+   `A := B`, `D := D_B_minus` yields `B⟨X⟩ ⧸ (1 − b·X) = B₂_gen b`.
+
+The minus branch can re-use the existing `presheafValueTateQuotientEquiv`
+directly (no new quotient-equiv primitive needed). The plus branch requires
+a new primitive (the `f − X` analogue of `presheafValueTateQuotientEquiv`) —
+but crucially, this primitive lives **generically at base B**, not
+parameterised by `D₀`.
+
+**Q3-STEP2 line estimate:** ~120 lines for (1)+(2)+(3) statement+proof, with
+proofs of (1) and (2) each comprising a substantive completion-topology
+argument. (3) is a small reduction to existing machinery.
+
+**Q3-STEP3:** compose Q3-STEP2 pieces inside the four `laurent±Bridge` stubs
+in `LaurentRefinement.lean`. Each becomes 5–15 lines once Q3-STEP2 exists.
+
+### Recommended order (post-addendum)
+
+| Priority | Task | Est. lines |
+|---|---|---|
+| 1 | Q3-STEP2 statements + `iteratedRationalMinus` via `presheafValueTateQuotientEquiv` | ~40 |
+| 2 | Q3-STEP2 `iteratedRationalPlus` (requires new f−X quotient equiv over generic B) | ~80 |
+| 3 | Q3-STEP3: close 4 bridge sorries + 1 delta-compat | ~30 |
+| 4 | Q2: direct sheaf proof (existence via Types; ring via pointwise ops; topology via Čech) | ~150 |
+| 5 | Q1: if still on critical path, formalize valuation-ring domination over `Frac(A/p)` | ~120 |
+
+If only one session is available: Q3-STEP2 (1)+(3) alone unlocks the minus
+bridge and documents the plus bridge to a precise sorry.
