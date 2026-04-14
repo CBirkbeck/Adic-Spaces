@@ -409,6 +409,66 @@ with restriction maps factoring through them. Cf. `presheafValueTateQuotientEqui
 
 The statement below captures the target. -/
 
+/-! #### Iterated rational data over `B := presheafValue D₀`
+
+Per the 2026-04-14 reviewer addendum, the Laurent bridges are recovered
+from a single generic identification: `presheafValue_A(laurent±Datum D₀ f)`
+matches a rational localization of `B = presheafValue D₀` at `canonicalMap f`
+(Wedhorn Lemma 2.13 / Prop 8.7 — iterated rational localizations collapse
+to rational localizations of the new base).
+
+The data below packages the target rational datum on `B`. The plus branch
+uses `T = {canonicalMap f}`, `s = 1`; the minus branch uses `T = {1}`,
+`s = canonicalMap f`. In both cases the `hopen` condition is discharged by
+`hopen_away_one` (the plus branch directly; the minus branch via the
+standard "localization-at-1 identity"). -/
+
+/-- The trivial "plus" rational datum on `B := presheafValue D₀` at
+`canonicalMap f`. Carves out `{v_B : v_B(canonicalMap f) ≤ 1}` in `Spa B`,
+which corresponds under Wedhorn Lemma 2.13 to `rationalOpen (laurentPlusDatum D₀ f).T
+(laurentPlusDatum D₀ f).s ⊂ Spa A`. -/
+noncomputable def iteratedPlusDatum_B
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A) : RationalLocData (presheafValue D₀) where
+  P := (presheafValue_pairOfDefinition P D₀).some
+  T := {D₀.canonicalMap f}
+  s := 1
+  hopen := hopen_away_one _ _
+
+/-- The trivial "minus" rational datum on `B := presheafValue D₀` at
+`canonicalMap f`. Carves out `{v_B : v_B(1) ≤ v_B(canonicalMap f)}`
+(equivalently `v_B(canonicalMap f) ≥ 1`) in `Spa B`, which corresponds under
+Wedhorn Lemma 2.13 to `rationalOpen (laurentMinusDatum D₀ f).T
+(laurentMinusDatum D₀ f).s ⊂ Spa A`. -/
+noncomputable def iteratedMinusDatum_B
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A) : RationalLocData (presheafValue D₀) where
+  P := (presheafValue_pairOfDefinition P D₀).some
+  T := {1}
+  s := D₀.canonicalMap f
+  hopen := ⟨0, fun b _ => by
+    -- `divByS b.val (canonicalMap f) = algebraMap b.val * divByS 1 (canonicalMap f)`
+    -- and both factors lie in `locSubring P_B {1} (canonicalMap f)`:
+    -- `algebraMap b.val` via `algebraMap_mem_locSubring` (since `b.val ∈ P_B.A₀`),
+    -- `divByS 1 (canonicalMap f)` via `divByS_mem_locSubring` (since `1 ∈ {1}`).
+    have hmul : algebraMap (presheafValue D₀) _ (b : presheafValue D₀) *
+        divByS (1 : presheafValue D₀) (D₀.canonicalMap f) =
+        divByS (b : presheafValue D₀) (D₀.canonicalMap f) := by
+      unfold divByS
+      rw [← IsLocalization.mk'_one (M := Submonoid.powers (D₀.canonicalMap f))
+            (S := Localization.Away (D₀.canonicalMap f)) (b : presheafValue D₀),
+          ← IsLocalization.mk'_mul, one_mul, mul_one]
+    rw [← hmul]
+    exact (locSubring _ _ _).mul_mem
+      (algebraMap_mem_locSubring _ _ _ b.2)
+      (divByS_mem_locSubring _ _ _ (Finset.mem_singleton_self 1))⟩
+
 /-- **Route B bridge (plus)** (Wedhorn Lemma 8.33 support):
 `presheafValue (laurentPlusDatum D₀ f) ≃+* B₁_gen (D₀.canonicalMap f)`,
 where `B₁_gen f' = (presheafValue D₀)⟨X⟩ ⧸ (f' - X)`.
