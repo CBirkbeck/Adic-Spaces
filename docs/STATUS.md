@@ -138,80 +138,43 @@ Detailed implementation plans live in `docs/plans/`:
 |-------|-----------|---------|---------|
 | claude-opus | R2 reframed via Wedhorn route (Phase 1 audit done; Phase 2-4 pending) | LaurentRefinement, StructureSheaf, TICKETS-axiom-clean.md | 2026-04-08 |
 
-### 2026-04-14 — Route B `laurentCover_gluing_presheaf_viaRow3` sorry-free
+### 2026-04-14 — Laurent gluing rerouted via Route B; Baire blocker eliminated
 
-**Step 1 finding (sound):** `LaurentCover.row3_exact` (LaurentCoverExact.lean:1560)
-instantiates cleanly at `A := presheafValue D₀` with `f' := D₀.canonicalMap f`.
-No `[IsNoetherianRing]` / `[IsDomain]` needed on the instantiated base. Sidesteps
-the Baire blocker (`restrictionMapHom_surj`).
+**Finding:** `LaurentCover.row3_exact` (LaurentCoverExact.lean:1560) instantiates
+cleanly at `A := presheafValue D₀` with `f' := D₀.canonicalMap f`. No
+`[IsNoetherianRing]` / `[IsDomain]` needed on the instantiated base. This
+sidesteps the Baire blocker (`restrictionMapHom_surj`) entirely.
 
-**Step 2 delivery (LaurentRefinement.lean:526):** `laurentCover_gluing_presheaf_viaRow3`
-is now **sorry-free**, packaging the Route B proof pattern as a reusable lemma.
-It takes the two type bridges as explicit hypotheses:
+**Rerouted architecture (LaurentRefinement.lean):**
+- `laurentCover_gluing_presheaf` now delegates to
+  `laurentCover_gluing_presheaf_viaBridges` (Route B assembly).
+- `laurentCover_gluing_presheaf_viaBridges` composes the five named bridge
+  stubs with `laurentCover_gluing_presheaf_viaRow3` (sorry-free core).
+- `laurentCover_gluing_presheaf_viaRow3` applies `row3_exact` at
+  `presheafValue D₀` and uses injectivity of the bridges.
+- `laurentCover_algebraic_gluing` (Route A) removed — its stronger
+  `Localization.Away D₀.s`-level conclusion chained to the Baire blocker
+  and is no longer needed.
 
-  `τ_plus : presheafValue (laurentPlusDatum D₀ f) ≃+* B₁_gen (D₀.canonicalMap f)`
-  `τ_minus : presheafValue (laurentMinusDatum D₀ f) ≃+* B₂_gen (D₀.canonicalMap f)`
+**Five named bridge stubs (the new leafy sorries):**
+- `laurentPlusBridge`                     — `presheafValue(plus)` ≃+* `B₁_gen(canonicalMap f)`
+- `laurentMinusBridge`                    — `presheafValue(minus)` ≃+* `B₂_gen(canonicalMap f)`
+- `laurentPlusBridge_restrictionMap`      — `τ₊ ∘ restrictionMap = π₁ ∘ epsilonHom_gen`
+- `laurentMinusBridge_restrictionMap`     — `τ₋ ∘ restrictionMap = π₂ ∘ epsilonHom_gen`
+- `laurentBridge_delta_eq_zero_of_compat` — compat ⇒ `deltaMap_gen(τ₊ u₊, τ₋ u₋) = 0`
 
-plus compatibility with `epsilonHom_gen` and the `htop` definitional equality
-on topologies. Proof is two lines: apply `key.2.1` (ker δ ⊆ im ε) to the
-pair `(τ_plus uplus, τ_minus uminus)`, then read off `restrictionMap = u±` by
-`τ_plus/τ_minus` injectivity.
+**Sorry accounting (LaurentRefinement.lean):** 3 → 7 (+4). The removed sorry
+chained to the (sorry'd) Baire surjection; the five new stubs are independent
+and don't chain to existing sorries. Net reduction in sorry-depth.
 
-**Sorry delta:** 0 net (the original three Laurent-refinement sorries unchanged;
-the Route B lemma is proven outright and will be used once bridges land). Full
-build green (3080 jobs).
-
-**Remaining Route B work:** build the two bridges as separate lemmas. The minus
+**Next Route B work:** implement any subset of the five bridges. The minus
 bridge should extend `presheafValueTateQuotientEquiv` (TopologyComparison:831)
-to `presheafValue D₀`-coefficients via the `canonicalMap` base-change plus a
-unit-rescaling of `X`. The plus bridge identifies the T-extension (adding `f`
-to `T`) with the `f = X` relation in `B₁_gen`.
+to `presheafValue D₀`-coefficients (base-change + unit rescaling of `X` by
+`canonicalMap D₀.s`). The plus bridge identifies the T-extension (adding `f`
+to `T`) with the `f = X` relation.
 
-### 2026-04-14 (later) — Route B bridges named as stubs; final assembly wired
-
-Decomposed the Route B remainder into five named sorries in
-`LaurentRefinement.lean`:
-
-  `laurentPlusBridge`                    — presheafValue(plus)  ≃+* B₁_gen(canonicalMap f)
-  `laurentMinusBridge`                   — presheafValue(minus) ≃+* B₂_gen(canonicalMap f)
-  `laurentPlusBridge_restrictionMap`     — τ₊ ∘ restrictionMap = π₁ ∘ epsilonHom_gen
-  `laurentMinusBridge_restrictionMap`    — τ₋ ∘ restrictionMap = π₂ ∘ epsilonHom_gen
-  `laurentBridge_delta_eq_zero_of_compat`— compat ⇒ deltaMap_gen(τ₊ u₊, τ₋ u₋) = 0
-
-Added `laurentCover_gluing_presheaf_viaBridges` (sorry-free, line 650): feeds
-these five lemmas into `laurentCover_gluing_presheaf_viaRow3` to deliver the
-Laurent gluing. Any further agent can implement any subset of the five bridges
-and immediately advance the Laurent-gluing dependency chain without touching
-the downstream plumbing.
-
-Full build green (3080 jobs). Sorry count delta: +4 (viaRow3 was already
-sorry-free; now Route A sorry still present at line 413, plus the five named
-bridge stubs). The net trade: one large blocker ("build the two bridges")
-became five small, localized blockers with unambiguous signatures.
-
-### 2026-04-14 (later still) — `laurentCover_gluing_presheaf` rerouted via Route B; Route A dropped
-
-Rerouted `laurentCover_gluing_presheaf` to delegate to
-`laurentCover_gluing_presheaf_viaBridges` (the Route B final assembly). This
-removed the dependency on `laurentCover_algebraic_gluing` (Route A); that
-stub asked for a stronger `Localization.Away D₀.s`-level preimage than the
-presheaf gluing actually needed, and chained to the Baire blocker
-`restrictionMapHom_surj` (itself a sorry).
-
-With Route A now unused, deleted `laurentCover_algebraic_gluing` entirely
-(the mathematical intent is preserved in the section comment at its former
-location + in the Route B discussion).
-
-**LaurentRefinement.lean sorry count:**
-- Before this session: 3 sorries (algebraic_gluing, tateAcyclicity Part 2,
-  hasSeparation empty branch).
-- After this session: 7 sorries (5 Route B bridges, tateAcyclicity Part 2,
-  hasSeparation empty branch).
-- Delta: +4. But: the removed sorry was a downstream dependency on the
-  (also-sorry'd) Baire surjection; the five new stubs do **not** chain to
-  any existing sorry. Net reduction in sorry-depth.
-
-Full build green (3080 jobs).
+Commits (in order): `74fbb81`, `9609e25`, `87c76a6`, `ed35fd3`. Full build
+green throughout (3080 jobs).
 
 ### 2026-04-08 — R2 reframed around Wedhorn flatness route
 
