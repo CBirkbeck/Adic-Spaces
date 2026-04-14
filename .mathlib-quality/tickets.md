@@ -1,8 +1,10 @@
 # Ticket Board — Tate Acyclicity Sessions A+B
 
 ## Summary
-- Total: 10 tickets | Open: 7 | In Progress: 0 | Done: 0 | Blocked: 3
+- Total: 12 tickets | Open: 5 | In Progress: 0 | Done: 3 | Blocked: 3
 - 2026-04-14 Wave 1 dispatch: T-A1, T-B1, T-B2 all returned BLOCKED with concrete diagnoses
+- 2026-04-14 Wave 2 dispatch: T-W2-1 FILLED; T-W2-2 and T-W2-3 BLOCKED; reviewer Q1/Q2/Q3 answers received
+- 2026-04-14 Wave 3: Q1-FIX (statement correction) + Q3-STEP1 (strip spurious [IsDomain A]) FILLED
 - Peak parallel capacity: 3 workers (Wave 1: A1 || B1 || B2)
 - Target deliverable: separation sorry-free end-to-end + `laurentCover_gluing_presheaf` sorry-free
 
@@ -197,3 +199,49 @@ Dispatch three workers simultaneously on independent tickets. Each uses `lean4:l
 ### Wave 3 (after Wave 2): T-A3, T-A4, T-A5, T-B5
 - T-A3, T-A4, T-A5 depend on T-A2.
 - T-B5 depends on T-B1 and T-B2 (ready as soon as Wave 1 done, can overlap with Wave 2).
+
+## Wave 3 executed 2026-04-14 — reviewer Q1/Q3 follow-up
+
+Reviewer responses reshaped the Q1/Q2/Q3 critical path. See
+`docs/plans/2026-04-14-tate-acyclicity-finish-plan.md` "reviewer addendum"
+for the full roadmap.
+
+### [T-W3-Q1] Q1-FIX: correct `mem_prime_of_rational_subset_nonOpen` statement
+- **Status**: DONE (2026-04-14, commit 51f3332)
+- **File**: `Adic spaces/Presheaf.lean:665`
+- **Result**: nonOpen helper now takes `hnonempty : ∃ v ∈ rationalOpen D'.T D'.s, p ≤ v.supp` as explicit hypothesis; public wrapper threads it conditionally on `¬IsOpen p`. Three callers now hold the genuine Spa-point-existence obligation (precise mathematical shape replaces the old unprovably strong sorry).
+- **Net delta**: −1 false sorry, +3 correct sorries (95 → 97).
+
+### [T-W3-Q3-STEP1] Strip spurious `[IsDomain A]` from Laurent-bridge chain
+- **Status**: DONE (2026-04-14, commit 7091dfb)
+- **File**: `Adic spaces/LaurentRefinement.lean`
+- **Result**: removed `[IsDomain A]` from nine theorems (bridges + composites + `tateAcyclicity`). Bridges now specify a generic-in-base statement aligned with the Q3 target. `rationalCovering_hasSeparation` retains `[IsDomain A]` (genuine `Ideal.isPrime_bot` use in empty-cover branch).
+- **Net delta**: 0 sorries (signature-only refactor). Build: 3080 jobs.
+
+### [T-W3-Q3-STEP2] Iterated rational localization (Wedhorn Lemma 2.13)
+- **Status**: open
+- **File**: new, or extend `LaurentRefinement.lean` / `TopologyComparison.lean`
+- **Depends on**: nothing major (`presheafValue_pairOfDefinition`, `IsTateRing (presheafValue D₀)`, etc. all in place)
+- **Description**: three sub-pieces:
+  1. **Plus iterated-rational equiv**: `presheafValue_A(laurentPlusDatum D₀ f) ≃+* presheafValue_B(trivial plus datum on B at canonicalMap f)` where `B := presheafValue D₀`.
+  2. **Non-discrete f−X quotient over generic B**: `presheafValue_B(D_B_plus) ≃+* B⟨X⟩ ⧸ (algebraMap(canonicalMap f) − X)`. This is the generic replacement for the non-discrete `quotientFSubXEquiv` that the reviewer warned against building bespoke over `presheafValue D₀`.
+  3. **Minus branch**: analogous; reduces to the existing `presheafValueTateQuotientEquiv` at `A := B`, `D := D_B_minus`, plus a base-change + unit-rescaling reduction from `A⟨X⟩ ⧸ (1 − (D₀.s · f)X)` to `B⟨X⟩ ⧸ (1 − canonicalMap(f) Y)`.
+- **Est. lines**: ~120 total.
+
+### [T-W3-Q3-STEP3] Close the four `laurent±Bridge` sorries
+- **Status**: open (blocked on T-W3-Q3-STEP2)
+- **File**: `Adic spaces/LaurentRefinement.lean:419, 436, 446, 460, 480`
+- **Description**: compose the Q3-STEP2 pieces into 5–15 lines per bridge.
+- **Est. lines**: ~30 total.
+
+### [T-W3-Q2] Direct sheaf proof for `structureSheaf`
+- **Status**: open (per reviewer, do not pursue `HasLimits CompleteTopCommRingCat`)
+- **File**: `Adic spaces/StructureSheaf.lean:225`
+- **Description**: glued-section existence/uniqueness via Types-level sheaf; ring structure via pointwise restriction; topological part via Laurent/Čech exactness.
+- **Est. lines**: ~150.
+
+### [T-W3-Q1-FOLLOW] Algebraic valuation-ring domination (if still on critical path)
+- **Status**: deferred
+- **File**: new `Lemma745Domination.lean` or extend `Lemma745.lean`
+- **Description**: over `K := Frac(A/p)`, every local subring is dominated by a valuation ring (Zorn/Stacks 00IA). Pull back along `A → A/p → K` to produce the Spa-point witness currently sorry'd at the three callsites of `mem_prime_of_rational_subset`.
+- **Est. lines**: ~120. Only revisit if downstream work shows the three callsites genuinely block the acyclicity endpoint.
