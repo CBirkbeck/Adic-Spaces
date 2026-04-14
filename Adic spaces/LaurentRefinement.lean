@@ -511,48 +511,91 @@ noncomputable def presheafValue_iteratedMinus_equiv
       presheafValue (iteratedMinusDatum_B P D₀ f) := by
   sorry
 
+/-- **Non-discrete `f − X` quotient equivalence over a generic Tate base B**
+(Q3-STEP2D, the primitive the reviewer flagged as genuinely new for Q3).
+
+For the plus datum on `B := presheafValue D₀` at `canonicalMap f`, the
+presheafValue is the completion of `B` (viewed as `Localization.Away (1 : B)`)
+with the topology extending the ring of definition by `canonicalMap f`. This
+completion agrees with `B⟨X⟩ / (algebraMap(canonicalMap f) − X)` — the Tate-
+algebra quotient that "sets X := canonicalMap f". Concretely: both are the
+universal complete nonarchimedean `B`-algebra in which `canonicalMap f` is
+power-bounded.
+
+This is the non-discrete generalisation of `TateAlgebra.quotientFSubXEquiv`
+(currently `[DiscreteTopology]`-only). The reviewer's Q3 guidance was to state
+and prove this once generically at `B`, not bespoke over `presheafValue D₀`. -/
+noncomputable def presheafValue_trivialPlus_fSubX_equiv
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A) :
+    presheafValue (iteratedPlusDatum_B P D₀ f) ≃+*
+      LaurentCover.B₁_gen (D₀.canonicalMap f) := by
+  sorry
+
 /-- **Route B bridge (plus)** (Wedhorn Lemma 8.33 support):
 `presheafValue (laurentPlusDatum D₀ f) ≃+* B₁_gen (D₀.canonicalMap f)`,
 where `B₁_gen f' = (presheafValue D₀)⟨X⟩ ⧸ (f' - X)`.
 
-Mathematical content: the plus piece's T-extension (adding `f` to `T`) forces
-`f/s₀` into the ring of definition, making `f` behave as a root of `X` in the
-Tate algebra over `presheafValue D₀`. -/
+Proof route: compose `presheafValue_iteratedPlus_equiv` (Wedhorn 2.13, iterated
+rational identification with `B := presheafValue D₀`) with a non-discrete
+`f − X` quotient equivalence over the generic Tate base `B`
+(Q3-STEP2D, the one genuinely new primitive flagged by the reviewer). -/
 noncomputable def laurentPlusBridge
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
-    (D₀ : RationalLocData A) (f : A) :
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A) :
     presheafValue (laurentPlusDatum D₀ f) ≃+*
-      LaurentCover.B₁_gen (D₀.canonicalMap f) := by
-  sorry
+      LaurentCover.B₁_gen (D₀.canonicalMap f) :=
+  (presheafValue_iteratedPlus_equiv P D₀ f).trans
+    (presheafValue_trivialPlus_fSubX_equiv P D₀ f)
 
 /-- **Route B bridge (minus)** (Wedhorn Lemma 8.33 support):
 `presheafValue (laurentMinusDatum D₀ f) ≃+* B₂_gen (D₀.canonicalMap f)`,
 where `B₂_gen f' = (presheafValue D₀)⟨X⟩ ⧸ (1 - f' · X)`.
 
-Mathematical content: the minus piece is the Tate localization at `f`, i.e.,
-inverting `D₀.canonicalMap f` in `presheafValue D₀` via the Tate relation
-`1 - f' · X = 0`. Builds on `presheafValueTateQuotientEquiv` lifted to
-`presheafValue D₀`-coefficients (base change + unit rescaling of `X` by
-`canonicalMap D₀.s`). -/
+Proof route (composition): `presheafValue_iteratedMinus_equiv` (Wedhorn 2.13,
+iterated rational identification) composed with
+`presheafValueTateQuotientEquiv` at `A := presheafValue D₀`,
+`D := iteratedMinusDatum_B P D₀ f` (whose `s` is `canonicalMap f`, so the
+quotient equiv yields `B⟨X⟩ / (1 − canonicalMap(f) · X) = B₂_gen (canonicalMap f)`
+directly — by definition `oneSubfXIdeal (canonicalMap f) =
+Ideal.span {1 − algebraMap B _ (canonicalMap f) · X}`). -/
 noncomputable def laurentMinusBridge
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
-    (D₀ : RationalLocData A) (f : A) :
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A) :
     presheafValue (laurentMinusDatum D₀ f) ≃+*
       LaurentCover.B₂_gen (D₀.canonicalMap f) := by
-  sorry
+  haveI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+  -- Step 1: iterated rational identification (Wedhorn Lemma 2.13).
+  refine (presheafValue_iteratedMinus_equiv P D₀ f).trans ?_
+  -- Step 2: Phase 2 iso at B := presheafValue D₀ applied to `iteratedMinusDatum_B`,
+  -- whose `s` is `D₀.canonicalMap f`. The quotient target
+  -- `TateAlgebra B ⧸ oneSubfXIdeal (canonicalMap f)` equals `B₂_gen (canonicalMap f)`
+  -- definitionally.
+  exact presheafValueTateQuotientEquiv (iteratedMinusDatum_B P D₀ f)
+    (hb := sorry) (hcs := sorry) (ht0 := sorry)
+    (hcont_eval := sorry) (hdense := sorry)
 
 /-- **Route B bridge (plus compatibility)**: the plus bridge intertwines
 `restrictionMap` and the first projection of `epsilonHom_gen`. -/
 theorem laurentPlusBridge_restrictionMap
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
-    (D₀ : RationalLocData A) (f : A)
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A)
     (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
     ∀ x : presheafValue D₀,
-      laurentPlusBridge D₀ f
+      laurentPlusBridge P D₀ f
         (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x) =
         (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).1 := by
   sorry
@@ -562,11 +605,13 @@ theorem laurentPlusBridge_restrictionMap
 theorem laurentMinusBridge_restrictionMap
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
-    (D₀ : RationalLocData A) (f : A)
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A)
     (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
     ∀ x : presheafValue D₀,
-      laurentMinusBridge D₀ f
+      laurentMinusBridge P D₀ f
         (restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x) =
         (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).2 := by
   sorry
@@ -582,7 +627,9 @@ and `T` containing both halves), which equals the Laurent overlap. -/
 theorem laurentBridge_delta_eq_zero_of_compat
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
-    (D₀ : RationalLocData A) (f : A)
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A)
     (uplus : presheafValue (laurentPlusDatum D₀ f))
     (uminus : presheafValue (laurentMinusDatum D₀ f))
     (hcompat : ∀ (D₃ : RationalLocData A)
@@ -593,7 +640,7 @@ theorem laurentBridge_delta_eq_zero_of_compat
       restrictionMap (laurentPlusDatum D₀ f) D₃ h₃p uplus =
         restrictionMap (laurentMinusDatum D₀ f) D₃ h₃m uminus) :
     LaurentCover.deltaMap_gen (D₀.canonicalMap f)
-      (laurentPlusBridge D₀ f uplus, laurentMinusBridge D₀ f uminus) = 0 := by
+      (laurentPlusBridge P D₀ f uplus, laurentMinusBridge P D₀ f uminus) = 0 := by
   sorry
 
 /-- **Laurent cover gluing via row3_exact** (Route B, Wedhorn Lemma 8.33),
@@ -657,7 +704,9 @@ without the Baire-category dependency. -/
 theorem laurentCover_gluing_presheaf_viaBridges
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
-    (D₀ : RationalLocData A) (f : A)
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A)
     (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s)
     (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
@@ -675,13 +724,13 @@ theorem laurentCover_gluing_presheaf_viaBridges
       restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x = uplus ∧
       restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x = uminus := by
   exact laurentCover_gluing_presheaf_viaRow3 D₀ f hplus hminus
-    (laurentPlusBridge D₀ f)
-    (laurentMinusBridge D₀ f)
-    (laurentPlusBridge_restrictionMap D₀ f hplus)
-    (laurentMinusBridge_restrictionMap D₀ f hminus)
+    (laurentPlusBridge P D₀ f)
+    (laurentMinusBridge P D₀ f)
+    (laurentPlusBridge_restrictionMap P D₀ f hplus)
+    (laurentMinusBridge_restrictionMap P D₀ f hminus)
     rfl
     uplus uminus
-    (laurentBridge_delta_eq_zero_of_compat D₀ f uplus uminus hcompat)
+    (laurentBridge_delta_eq_zero_of_compat P D₀ f uplus uminus hcompat)
 
 /-- Laurent cover gluing on presheaf values (Wedhorn Lemma 8.33, presheaf level).
 
@@ -691,7 +740,9 @@ through the five named bridge stubs. Avoids the Baire-category blocker
 theorem laurentCover_gluing_presheaf
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
-    (D₀ : RationalLocData A) (f : A)
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A)
     (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s)
     (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
@@ -708,7 +759,7 @@ theorem laurentCover_gluing_presheaf
     ∃ x : presheafValue D₀,
       restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x = uplus ∧
       restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x = uminus :=
-  laurentCover_gluing_presheaf_viaBridges D₀ f hplus hminus uplus uminus hcompat
+  laurentCover_gluing_presheaf_viaBridges P D₀ f hplus hminus uplus uminus hcompat
 
 /-- **Wedhorn Theorem 8.28(b)**: Tate acyclicity.
 
