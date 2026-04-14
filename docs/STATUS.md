@@ -189,6 +189,30 @@ sorry-free; now Route A sorry still present at line 413, plus the five named
 bridge stubs). The net trade: one large blocker ("build the two bridges")
 became five small, localized blockers with unambiguous signatures.
 
+### 2026-04-14 (later still) — `laurentCover_gluing_presheaf` rerouted via Route B; Route A dropped
+
+Rerouted `laurentCover_gluing_presheaf` to delegate to
+`laurentCover_gluing_presheaf_viaBridges` (the Route B final assembly). This
+removed the dependency on `laurentCover_algebraic_gluing` (Route A); that
+stub asked for a stronger `Localization.Away D₀.s`-level preimage than the
+presheaf gluing actually needed, and chained to the Baire blocker
+`restrictionMapHom_surj` (itself a sorry).
+
+With Route A now unused, deleted `laurentCover_algebraic_gluing` entirely
+(the mathematical intent is preserved in the section comment at its former
+location + in the Route B discussion).
+
+**LaurentRefinement.lean sorry count:**
+- Before this session: 3 sorries (algebraic_gluing, tateAcyclicity Part 2,
+  hasSeparation empty branch).
+- After this session: 7 sorries (5 Route B bridges, tateAcyclicity Part 2,
+  hasSeparation empty branch).
+- Delta: +4. But: the removed sorry was a downstream dependency on the
+  (also-sorry'd) Baire surjection; the five new stubs do **not** chain to
+  any existing sorry. Net reduction in sorry-depth.
+
+Full build green (3080 jobs).
+
 ### 2026-04-08 — R2 reframed around Wedhorn flatness route
 
 **Phase 1 + Option A (audit + reframe + restore strong sheaf condition) DONE 2026-04-08.**
