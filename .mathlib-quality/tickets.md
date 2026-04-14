@@ -48,6 +48,36 @@
 - **Estimated**: ~100-200 lines
 - **Unblocks**: T-B1 + T-B2 (eliminates the 5-hypothesis discharge per call)
 
+## Wave 2 — Tractable tate-core tickets (2026-04-14)
+
+These three tickets have concrete recipes using `presheafValue_pairOfDefinition`
+(PresheafTateStructure.lean:865, sorry-free) + `Lemma745.exists_mem_spa_supp_ge_of_nonOpen_prime`
+(Lemma745.lean:691, sorry-free). Can dispatch in parallel.
+
+### [T-W2-1] Fill `rationalCovering_hasSeparation` empty-cover branch
+- **Status**: open
+- **File**: `Adic spaces/LaurentRefinement.lean:716`
+- **Depends on**: nothing (all infrastructure in place)
+- **Description**: When `C.covers = ∅` and `C.base.s ≠ 0` with `[IsDomain A]`: the prime `(0)` is prime, `C.base.s ∉ (0)`, `(0)` may be non-open. Use `presheafValue_pairOfDefinition` + Lemma 7.45 to construct Spa-point in `rationalOpen C.base.T C.base.s`, contradicting `C.hcover` (vacuous since covers empty).
+- **Est. lines**: ~40
+- **Proof path**: Case on `IsOpen ((0) : Set A)`. If open, use `exists_spa_point_in_rationalOpen_of_isOpen_prime`. If not, use `exists_mem_spa_supp_ge_of_nonOpen_prime` on `presheafValue_pairOfDefinition` applied to `D₀.liftedIdeal (0)`, then pull back.
+
+### [T-W2-2] Fill `mem_prime_of_rational_subset_nonOpen`
+- **Status**: open
+- **File**: `Adic spaces/Presheaf.lean:675`
+- **Depends on**: nothing
+- **Description**: Given non-open prime `p`, `D.s ∈ p`, `D'.s ∉ p`, and `R(T'/s') ⊆ R(T/s)`. The sorry requires `∃ v ∈ rationalOpen D'.T D'.s, p ≤ v.supp`. Use the same Spa-point machinery.
+- **Est. lines**: ~30
+- **Caveat**: May need `[IsNoetherianRing P.A₀]` hypothesis added (for `presheafValue_pairOfDefinition`). Check call sites.
+
+### [T-W2-3] Fill `structureSheaf` sheaf condition
+- **Status**: open
+- **File**: `Adic spaces/StructureSheaf.lean:225`
+- **Depends on**: nothing
+- **Description**: Show `structurePresheaf A` satisfies the sheaf condition in `CompleteTopCommRingCat`. Route via `isSheaf_iff_isSheaf_comp` (transfer from the Types-valued sheaf). Requires `CompleteTopCommRingCat` to have `HasLimits` + `PreservesLimits (forget)` + `ReflectsIsomorphisms`.
+- **Est. lines**: ~80-150 (category-theoretic infrastructure; possibly blocked)
+- **Fallback**: If category-theoretic route is blocked, flag for AI reviewer.
+
 ## Tickets
 
 ### [T-A1] Fill `exists_spa_point_in_rationalOpen` non-open prime case

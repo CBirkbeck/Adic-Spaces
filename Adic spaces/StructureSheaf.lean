@@ -799,14 +799,14 @@ theorem tateQuotientProductRestriction_injective_on_algebraMap
     (_compat_cover : ∀ (D : RationalLocData A) (hD : D ∈ C.covers) (a : A),
       (_e_cover D hD) (D.canonicalMap a) =
         (Ideal.Quotient.mk _) (algebraMap A _ a))
-    (_hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+    (hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
       ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp)
     (a : A)
     (hker : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
       productRestriction A C (C.base.canonicalMap a) D hD = 0) :
     e_base (C.base.canonicalMap a) = 0 := by
   have hzero : C.base.canonicalMap a = 0 :=
-    rationalCovering_hasSeparation P C (C.base.canonicalMap a) 0 (fun D hD => by
+    rationalCovering_hasSeparation P C hSpa (C.base.canonicalMap a) 0 (fun D hD => by
       show restrictionMap C.base D (C.hsubset D hD) (C.base.canonicalMap a) =
         restrictionMap C.base D (C.hsubset D hD) 0
       rw [show restrictionMap C.base D (C.hsubset D hD) 0 =
@@ -834,14 +834,14 @@ theorem tateQuotientProductRestriction_injective
     (_compat_cover : ∀ (D : RationalLocData A) (hD : D ∈ C.covers) (a : A),
       (_e_cover D hD) (D.canonicalMap a) =
         (Ideal.Quotient.mk _) (algebraMap A _ a))
-    (_hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+    (hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
       ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp)
     (z : presheafValue C.base)
     (hker : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
       productRestriction A C z D hD = 0) :
     _e_base z = 0 := by
   have hzero : z = 0 :=
-    rationalCovering_hasSeparation P C z 0 (fun D hD => by
+    rationalCovering_hasSeparation P C hSpa z 0 (fun D hD => by
       show restrictionMap C.base D (C.hsubset D hD) z =
         restrictionMap C.base D (C.hsubset D hD) 0
       rw [show restrictionMap C.base D (C.hsubset D hD) 0 =
@@ -946,15 +946,21 @@ theorem presheafValue_flat_of_tateQuotient
 /-! ### Proof via Laurent cover refinement (Wedhorn Lemma 8.34) -/
 
 /-- The product restriction is injective for every rational covering, via Laurent
-refinement (Lemma 8.34 of Wedhorn). -/
+refinement (Lemma 8.34 of Wedhorn).
+
+The `hSpa` hypothesis is the Spa-point existence witness; callers supply it via
+Lemma 7.45 (non-open prime case) or the trivial-valuation construction
+(open prime case), and it is only consumed in the empty-cover edge case. -/
 theorem productRestriction_injective_of_laurentRefinement
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (C : RationalCovering A) :
+    (C : RationalCovering A)
+    (hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp) :
     Function.Injective (productRestriction A C) := by
   intro x y hxy
-  exact rationalCovering_hasSeparation P C x y
+  exact rationalCovering_hasSeparation P C hSpa x y
     (fun D hD => congr_fun (congr_fun hxy D) hD)
 
 -- REMOVED: productRestrictionSub_isInducing (R1, 2026-04-03)

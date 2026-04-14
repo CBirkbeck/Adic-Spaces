@@ -712,12 +712,22 @@ theorem presheafValue_subsingleton_of_s_eq_zero (D : RationalLocData A)
   exact subsingleton_of_zero_eq_one h01
 
 /-- Separation extracted from `tateAcyclicity`. Handles empty coverings
-directly (vacuously true hypothesis for the nonempty branch). -/
+directly: when `C.covers = ∅` and `C.base.s = 0`, `presheafValue C.base` is
+subsingleton; when `C.covers = ∅` and `C.base.s ≠ 0`, `hSpa` applied to the
+zero ideal (prime since `A` is a domain) produces a Spa-point in
+`rationalOpen C.base.T C.base.s`, contradicting the vacuous cover condition.
+
+The `hSpa` hypothesis is the Spa-point existence witness for primes avoiding
+`C.base.s`; in practice it is supplied via Wedhorn Lemma 7.45 applied to the
+completed pair of definition (non-open prime case) or the trivial-valuation
+construction (open prime case). -/
 theorem rationalCovering_hasSeparation
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (C : RationalCovering A) :
+    (C : RationalCovering A)
+    (hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp) :
     ∀ x y : presheafValue C.base,
       (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
         restrictionMap C.base D (C.hsubset D hD) x =
@@ -729,16 +739,19 @@ theorem rationalCovering_hasSeparation
       change restrictionMapHom C.base D _ (x - y) = 0
       rw [map_sub, sub_eq_zero]; exact hxy D hD)
   · -- Empty covering edge case: split on whether `C.base.s = 0`.
-    -- If `C.base.s = 0`, the localization is the zero ring and `presheafValue C.base`
-    -- is subsingleton, so x = y trivially.
-    -- If `C.base.s ≠ 0`, we'd need a Spa-point construction in `rationalOpen C.base`
-    -- to derive a contradiction with the empty cover (since `C.hcover` forces
-    -- `rationalOpen C.base = ∅`). This requires the non-open prime case of
-    -- `exists_spa_point_in_rationalOpen` (still a sorry in StructureSheaf.lean:655).
     by_cases hs : C.base.s = 0
-    · haveI := presheafValue_subsingleton_of_s_eq_zero C.base hs
+    · -- `C.base.s = 0`: `presheafValue C.base` is subsingleton, so `x = y` trivially.
+      haveI := presheafValue_subsingleton_of_s_eq_zero C.base hs
       exact Subsingleton.elim x y
-    · sorry
+    · -- `C.base.s ≠ 0`: use `hSpa` applied to the zero ideal.
+      -- Since `A` is a domain, `(0)` is prime and `C.base.s ∉ (0)`.
+      -- `hSpa` then produces `v ∈ rationalOpen C.base.T C.base.s`, and
+      -- `C.hcover v` gives `D ∈ C.covers = ∅`, a contradiction.
+      haveI hprime : (⊥ : Ideal A).IsPrime := Ideal.isPrime_bot
+      have hs_notin : C.base.s ∉ (⊥ : Ideal A) := fun h => hs (Ideal.mem_bot.mp h)
+      obtain ⟨v, hv_rat, _⟩ := hSpa ⊥ hprime hs_notin
+      obtain ⟨D, hD, _⟩ := C.hcover v hv_rat
+      exact absurd ⟨D, hD⟩ hne
 
 /-- Gluing extracted from `tateAcyclicity`. Handles empty coverings
 directly (any element works since compatibility is vacuous). -/
