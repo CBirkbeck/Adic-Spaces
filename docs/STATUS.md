@@ -167,6 +167,28 @@ to `presheafValue D₀`-coefficients via the `canonicalMap` base-change plus a
 unit-rescaling of `X`. The plus bridge identifies the T-extension (adding `f`
 to `T`) with the `f = X` relation in `B₁_gen`.
 
+### 2026-04-14 (later) — Route B bridges named as stubs; final assembly wired
+
+Decomposed the Route B remainder into five named sorries in
+`LaurentRefinement.lean`:
+
+  `laurentPlusBridge`                    — presheafValue(plus)  ≃+* B₁_gen(canonicalMap f)
+  `laurentMinusBridge`                   — presheafValue(minus) ≃+* B₂_gen(canonicalMap f)
+  `laurentPlusBridge_restrictionMap`     — τ₊ ∘ restrictionMap = π₁ ∘ epsilonHom_gen
+  `laurentMinusBridge_restrictionMap`    — τ₋ ∘ restrictionMap = π₂ ∘ epsilonHom_gen
+  `laurentBridge_delta_eq_zero_of_compat`— compat ⇒ deltaMap_gen(τ₊ u₊, τ₋ u₋) = 0
+
+Added `laurentCover_gluing_presheaf_viaBridges` (sorry-free, line 650): feeds
+these five lemmas into `laurentCover_gluing_presheaf_viaRow3` to deliver the
+Laurent gluing. Any further agent can implement any subset of the five bridges
+and immediately advance the Laurent-gluing dependency chain without touching
+the downstream plumbing.
+
+Full build green (3080 jobs). Sorry count delta: +4 (viaRow3 was already
+sorry-free; now Route A sorry still present at line 413, plus the five named
+bridge stubs). The net trade: one large blocker ("build the two bridges")
+became five small, localized blockers with unambiguous signatures.
+
 ### 2026-04-08 — R2 reframed around Wedhorn flatness route
 
 **Phase 1 + Option A (audit + reframe + restore strong sheaf condition) DONE 2026-04-08.**

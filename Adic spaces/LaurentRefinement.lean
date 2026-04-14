@@ -516,6 +516,91 @@ with restriction maps factoring through them. Cf. `presheafValueTateQuotientEqui
 
 The statement below captures the target. -/
 
+/-- **Route B bridge (plus)** (Wedhorn Lemma 8.33 support):
+`presheafValue (laurentPlusDatum D₀ f) ≃+* B₁_gen (D₀.canonicalMap f)`,
+where `B₁_gen f' = (presheafValue D₀)⟨X⟩ ⧸ (f' - X)`.
+
+Mathematical content: the plus piece's T-extension (adding `f` to `T`) forces
+`f/s₀` into the ring of definition, making `f` behave as a root of `X` in the
+Tate algebra over `presheafValue D₀`. -/
+noncomputable def laurentPlusBridge
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
+    (D₀ : RationalLocData A) (f : A) :
+    presheafValue (laurentPlusDatum D₀ f) ≃+*
+      LaurentCover.B₁_gen (D₀.canonicalMap f) := by
+  sorry
+
+/-- **Route B bridge (minus)** (Wedhorn Lemma 8.33 support):
+`presheafValue (laurentMinusDatum D₀ f) ≃+* B₂_gen (D₀.canonicalMap f)`,
+where `B₂_gen f' = (presheafValue D₀)⟨X⟩ ⧸ (1 - f' · X)`.
+
+Mathematical content: the minus piece is the Tate localization at `f`, i.e.,
+inverting `D₀.canonicalMap f` in `presheafValue D₀` via the Tate relation
+`1 - f' · X = 0`. Builds on `presheafValueTateQuotientEquiv` lifted to
+`presheafValue D₀`-coefficients (base change + unit rescaling of `X` by
+`canonicalMap D₀.s`). -/
+noncomputable def laurentMinusBridge
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
+    (D₀ : RationalLocData A) (f : A) :
+    presheafValue (laurentMinusDatum D₀ f) ≃+*
+      LaurentCover.B₂_gen (D₀.canonicalMap f) := by
+  sorry
+
+/-- **Route B bridge (plus compatibility)**: the plus bridge intertwines
+`restrictionMap` and the first projection of `epsilonHom_gen`. -/
+theorem laurentPlusBridge_restrictionMap
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
+    (D₀ : RationalLocData A) (f : A)
+    (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    ∀ x : presheafValue D₀,
+      laurentPlusBridge D₀ f
+        (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x) =
+        (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).1 := by
+  sorry
+
+/-- **Route B bridge (minus compatibility)**: the minus bridge intertwines
+`restrictionMap` and the second projection of `epsilonHom_gen`. -/
+theorem laurentMinusBridge_restrictionMap
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
+    (D₀ : RationalLocData A) (f : A)
+    (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    ∀ x : presheafValue D₀,
+      laurentMinusBridge D₀ f
+        (restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x) =
+        (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).2 := by
+  sorry
+
+/-- **Route B bridge (delta vanishing on compatible pairs)**: compatibility
+of `(uplus, uminus)` on every common refinement implies that their images
+under the bridges map to a class annihilated by `deltaMap_gen`.
+
+Mathematical content: `deltaMap_gen f'` is the algebraic difference of
+`posLift` and `negLift` in `B₁₂_gen f'`; the compatibility on overlaps is
+exactly the sheaf condition on the doubly-refined datum (with `s = D₀.s · f`
+and `T` containing both halves), which equals the Laurent overlap. -/
+theorem laurentBridge_delta_eq_zero_of_compat
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
+    (D₀ : RationalLocData A) (f : A)
+    (uplus : presheafValue (laurentPlusDatum D₀ f))
+    (uminus : presheafValue (laurentMinusDatum D₀ f))
+    (hcompat : ∀ (D₃ : RationalLocData A)
+      (h₃p : rationalOpen D₃.T D₃.s ⊆
+        rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s)
+      (h₃m : rationalOpen D₃.T D₃.s ⊆
+        rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s),
+      restrictionMap (laurentPlusDatum D₀ f) D₃ h₃p uplus =
+        restrictionMap (laurentMinusDatum D₀ f) D₃ h₃m uminus) :
+    LaurentCover.deltaMap_gen (D₀.canonicalMap f)
+      (laurentPlusBridge D₀ f uplus, laurentMinusBridge D₀ f uminus) = 0 := by
+  sorry
+
 /-- **Laurent cover gluing via row3_exact** (Route B, Wedhorn Lemma 8.33),
 parameterised by the two type bridges.
 
@@ -567,6 +652,41 @@ theorem laurentCover_gluing_presheaf_viaRow3
   · -- `restrictionMap minus a = uminus` via `τ_minus`-injectivity.
     apply τ_minus.injective
     rw [htau_minus a, ha]
+
+/-- **Route B final assembly**: Laurent cover gluing using the named bridges.
+
+Combines `laurentCover_gluing_presheaf_viaRow3` with the four Route B bridges
+(`laurentPlusBridge`, `laurentMinusBridge`, the two compatibility lemmas, and
+`laurentBridge_delta_eq_zero_of_compat`) to deliver the gluing conclusion
+without the Baire-category dependency. -/
+theorem laurentCover_gluing_presheaf_viaBridges
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
+    (D₀ : RationalLocData A) (f : A)
+    (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (uplus : presheafValue (laurentPlusDatum D₀ f))
+    (uminus : presheafValue (laurentMinusDatum D₀ f))
+    (hcompat : ∀ (D₃ : RationalLocData A)
+      (h₃p : rationalOpen D₃.T D₃.s ⊆
+        rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s)
+      (h₃m : rationalOpen D₃.T D₃.s ⊆
+        rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s),
+      restrictionMap (laurentPlusDatum D₀ f) D₃ h₃p uplus =
+        restrictionMap (laurentMinusDatum D₀ f) D₃ h₃m uminus) :
+    ∃ x : presheafValue D₀,
+      restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x = uplus ∧
+      restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x = uminus := by
+  exact laurentCover_gluing_presheaf_viaRow3 D₀ f hplus hminus
+    (laurentPlusBridge D₀ f)
+    (laurentMinusBridge D₀ f)
+    (laurentPlusBridge_restrictionMap D₀ f hplus)
+    (laurentMinusBridge_restrictionMap D₀ f hminus)
+    rfl
+    uplus uminus
+    (laurentBridge_delta_eq_zero_of_compat D₀ f uplus uminus hcompat)
 
 /-- **Wedhorn Theorem 8.28(b)**: Tate acyclicity.
 
