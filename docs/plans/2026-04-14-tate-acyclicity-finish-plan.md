@@ -255,3 +255,59 @@ in `LaurentRefinement.lean`. Each becomes 5–15 lines once Q3-STEP2 exists.
 
 If only one session is available: Q3-STEP2 (1)+(3) alone unlocks the minus
 bridge and documents the plus bridge to a precise sorry.
+
+---
+
+## 2026-04-14 Q3 scaffolding complete
+
+Commits `60802d8`, `8f959bd`, `f1020be` delivered the Q3 scaffolding:
+
+| Commit | Artifact |
+|---|---|
+| `60802d8` | `iteratedPlusDatum_B`, `iteratedMinusDatum_B`: concrete `RationalLocData (presheafValue D₀)` with `hopen` fully discharged. |
+| `8f959bd` | `presheafValue_iteratedPlus_equiv`, `presheafValue_iteratedMinus_equiv`: sorry'd `noncomputable def` stubs with precise signatures (Wedhorn Lemma 2.13). |
+| `f1020be` | `laurent±Bridge` and composites tightened to accept `P : PairOfDefinition A` and noetherian hypotheses. `laurentMinusBridge` is now `iteratedMinus_equiv ≫ presheafValueTateQuotientEquiv at B` (5 hypothesis discharges sorry'd). `laurentPlusBridge` is `iteratedPlus_equiv ≫ presheafValue_trivialPlus_fSubX_equiv` (2 sorry'd factors). |
+
+### Remaining Q3 sorries, organised by content
+
+**Q3-STEP2C** — iterated rational identifications (Wedhorn Lemma 2.13):
+- `presheafValue_iteratedPlus_equiv` at LaurentRefinement.lean.
+- `presheafValue_iteratedMinus_equiv` at LaurentRefinement.lean.
+
+Each identifies a completion-of-localization on `A` with a
+completion-of-localization on `B := presheafValue D₀`. Both are
+completion-theoretic equivalences.
+
+**Q3-STEP2D** — non-discrete `f − X` quotient over generic Tate base B
+(reviewer-flagged as the sole genuinely new primitive):
+- `presheafValue_trivialPlus_fSubX_equiv` at LaurentRefinement.lean.
+
+Identifies `presheafValue (iteratedPlusDatum_B)` with `TateAlgebra B ⧸
+(algebraMap(canonicalMap f) − X)`. Both are universal complete
+nonarchimedean `B`-algebras in which `canonicalMap f` is power-bounded.
+
+**Q3-STEP4** — `presheafValueTateQuotientEquiv` hypothesis discharges
+at `A := presheafValue D₀` (inside `laurentMinusBridge`, 5 sorries):
+`hb`, `hcs`, `ht0`, `hcont_eval`, `hdense` at the B level. Consider
+switching to `presheafValueCanonicalQuotientEquiv` (different 5
+hypotheses) or to the full `tateQuotientToPresheafHom_isHomeomorph`
+(7 hypotheses including BaireSpace and SigmaCompactSpace).
+
+**Q3-STEP5** — compat theorems:
+- `laurentPlusBridge_restrictionMap`, `laurentMinusBridge_restrictionMap`,
+  `laurentBridge_delta_eq_zero_of_compat` at LaurentRefinement.lean.
+
+These three are still sorry'd. They depend on the specific forms of
+iterated rational / quotient equivs, so cannot be discharged until
+Q3-STEP2C/STEP2D/STEP4 land.
+
+### Current sorry count contribution (bridge chain only)
+
+- 2 iterated rational identifications (Q3-STEP2C).
+- 1 non-discrete f−X primitive (Q3-STEP2D).
+- 5 hypothesis discharges in `laurentMinusBridge` (Q3-STEP4).
+- 3 compat theorems (Q3-STEP5).
+- **Total: 11 bridge-related sorries** (out of 103 total project sorries).
+
+Each is targeted at a specific, documented mathematical obligation. No
+sorry in the bridge chain is vague or unprovably strong.
