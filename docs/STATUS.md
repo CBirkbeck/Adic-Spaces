@@ -138,32 +138,34 @@ Detailed implementation plans live in `docs/plans/`:
 |-------|-----------|---------|---------|
 | claude-opus | R2 reframed via Wedhorn route (Phase 1 audit done; Phase 2-4 pending) | LaurentRefinement, StructureSheaf, TICKETS-axiom-clean.md | 2026-04-08 |
 
-### 2026-04-14 — Route B established: `row3_exact` at `presheafValue D₀`
+### 2026-04-14 — Route B `laurentCover_gluing_presheaf_viaRow3` sorry-free
 
-**Finding (sound):** `LaurentCover.row3_exact` (LaurentCoverExact.lean:1560)
+**Step 1 finding (sound):** `LaurentCover.row3_exact` (LaurentCoverExact.lean:1560)
 instantiates cleanly at `A := presheafValue D₀` with `f' := D₀.canonicalMap f`.
-The theorem signature uses `[CommRing]`/`[TopologicalSpace]`/`[NonarchimedeanRing]`
-plus `[UniformSpace]`/`[IsUniformAddGroup]`/`[T2Space]`/`[CompleteSpace]` — and
-`presheafValue D₀` has all of these (verified by `inferInstance` probes). No
-`[IsNoetherianRing]` or `[IsDomain]` needed on the instantiated base. This
-sidesteps the Baire blocker (`restrictionMapHom_surj`).
+No `[IsNoetherianRing]` / `[IsDomain]` needed on the instantiated base. Sidesteps
+the Baire blocker (`restrictionMapHom_surj`).
 
-**New stub (LaurentRefinement.lean:526):** `laurentCover_gluing_presheaf_viaRow3`
-states the presheaf-level gluing goal with the Route B proof sketch. The sorry
-is reduced from "Baire category + uniform subgroup arguments" to "build the two
-type bridges":
+**Step 2 delivery (LaurentRefinement.lean:526):** `laurentCover_gluing_presheaf_viaRow3`
+is now **sorry-free**, packaging the Route B proof pattern as a reusable lemma.
+It takes the two type bridges as explicit hypotheses:
 
-  `presheafValue (laurentPlusDatum D₀ f) ≃+* B₁_gen (D₀.canonicalMap f)`
-  `presheafValue (laurentMinusDatum D₀ f) ≃+* B₂_gen (D₀.canonicalMap f)`
+  `τ_plus : presheafValue (laurentPlusDatum D₀ f) ≃+* B₁_gen (D₀.canonicalMap f)`
+  `τ_minus : presheafValue (laurentMinusDatum D₀ f) ≃+* B₂_gen (D₀.canonicalMap f)`
 
-over `presheafValue D₀`, with restriction maps factoring through them. The
-minus bridge should follow `presheafValueTateQuotientEquiv` (TopologyComparison:831)
-lifted to `presheafValue D₀`-coefficients. The plus bridge identifies the
-T-extension (adding `f` to `T`) with the "`f = X`" relation.
+plus compatibility with `epsilonHom_gen` and the `htop` definitional equality
+on topologies. Proof is two lines: apply `key.2.1` (ker δ ⊆ im ε) to the
+pair `(τ_plus uplus, τ_minus uminus)`, then read off `restrictionMap = u±` by
+`τ_plus/τ_minus` injectivity.
 
-**Sorry delta:** +1 (net; the old `laurentCover_algebraic_gluing` sorry is kept
-since `laurentCover_gluing_presheaf` still calls it, but the new stub gives
-downstream the option to take Route B instead). Full build green (3080 jobs).
+**Sorry delta:** 0 net (the original three Laurent-refinement sorries unchanged;
+the Route B lemma is proven outright and will be used once bridges land). Full
+build green (3080 jobs).
+
+**Remaining Route B work:** build the two bridges as separate lemmas. The minus
+bridge should extend `presheafValueTateQuotientEquiv` (TopologyComparison:831)
+to `presheafValue D₀`-coefficients via the `canonicalMap` base-change plus a
+unit-rescaling of `X`. The plus bridge identifies the T-extension (adding `f`
+to `T`) with the `f = X` relation in `B₁_gen`.
 
 ### 2026-04-08 — R2 reframed around Wedhorn flatness route
 

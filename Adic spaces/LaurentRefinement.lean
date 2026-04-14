@@ -516,13 +516,18 @@ with restriction maps factoring through them. Cf. `presheafValueTateQuotientEqui
 
 The statement below captures the target. -/
 
-/-- **Laurent cover gluing via row3_exact** (Route B, Wedhorn Lemma 8.33).
+/-- **Laurent cover gluing via row3_exact** (Route B, Wedhorn Lemma 8.33),
+parameterised by the two type bridges.
 
-Same statement as `laurentCover_gluing_presheaf`, but the intended proof route
-is via `LaurentCover.row3_exact` instantiated at `A := presheafValue D₀`, not
-via `laurentCover_algebraic_gluing`. Blocked on the bridge
-`presheafValue (laurent±Datum D₀ f) ≃+* B_{1,2}_gen (D₀.canonicalMap f)` over
-`presheafValue D₀`. -/
+Reduces the Laurent gluing to three concrete obligations:
+1. A ring iso `τ₊` identifying `presheafValue(plus)` with `B₁_gen(canonicalMap f)`.
+2. A ring iso `τ₋` identifying `presheafValue(minus)` with `B₂_gen(canonicalMap f)`.
+3. Compatibility of `τ₊, τ₋` with `restrictionMap` and `epsilonHom_gen`.
+4. A "compat → delta = 0" translation: compatible pairs restrict to the same
+   class in `B₁₂_gen`.
+
+Once these are available, the proof is elementary algebra on the `row3_exact`
+exactness at `A := presheafValue D₀`. No Baire category needed. -/
 theorem laurentCover_gluing_presheaf_viaRow3
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A]
@@ -531,39 +536,37 @@ theorem laurentCover_gluing_presheaf_viaRow3
       rationalOpen D₀.T D₀.s)
     (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s)
+    (τ_plus : presheafValue (laurentPlusDatum D₀ f) ≃+*
+      LaurentCover.B₁_gen (D₀.canonicalMap f))
+    (τ_minus : presheafValue (laurentMinusDatum D₀ f) ≃+*
+      LaurentCover.B₂_gen (D₀.canonicalMap f))
+    (htau_plus : ∀ x : presheafValue D₀,
+      τ_plus (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x) =
+        (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).1)
+    (htau_minus : ∀ x : presheafValue D₀,
+      τ_minus (restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x) =
+        (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).2)
+    (htop : (inferInstance : TopologicalSpace (presheafValue D₀)) =
+      UniformSpace.toTopologicalSpace)
     (uplus : presheafValue (laurentPlusDatum D₀ f))
     (uminus : presheafValue (laurentMinusDatum D₀ f))
-    (hcompat : ∀ (D₃ : RationalLocData A)
-      (h₃p : rationalOpen D₃.T D₃.s ⊆
-        rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s)
-      (h₃m : rationalOpen D₃.T D₃.s ⊆
-        rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s),
-      restrictionMap (laurentPlusDatum D₀ f) D₃ h₃p uplus =
-        restrictionMap (laurentMinusDatum D₀ f) D₃ h₃m uminus) :
+    (hdelta : LaurentCover.deltaMap_gen (D₀.canonicalMap f)
+      (τ_plus uplus, τ_minus uminus) = 0) :
     ∃ x : presheafValue D₀,
       restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x = uplus ∧
       restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x = uminus := by
-  -- Proof sketch:
-  -- 1. Set f' := D₀.canonicalMap f : presheafValue D₀.
-  -- 2. Verify htop : (tsA : TopologicalSpace (presheafValue D₀)) =
-  --      UniformSpace.toTopologicalSpace  (definitionally true, `rfl`).
-  -- 3. Let key := LaurentCover.row3_exact (A := presheafValue D₀) f' htop.
-  -- 4. Build bridges:
-  --    τ₊ : presheafValue (laurentPlusDatum D₀ f) →+* B₁_gen f'
-  --    τ₋ : presheafValue (laurentMinusDatum D₀ f) →+* B₂_gen f'
-  --    with restrictionMap D₀ (plus/minus) x = τ₊/₋.symm ((π₁/π₂) (epsilonHom_gen f' x)).
-  -- 5. Translate hcompat into deltaMap_gen f' (τ₊ uplus, τ₋ uminus) = 0
-  --    (compatibility on the overlap <-> agreement in B₁₂_gen).
-  -- 6. Apply key.2.1 to get a : presheafValue D₀ with epsilonHom_gen f' a = (τ₊ u₊, τ₋ u₋).
-  -- 7. Read off restriction equalities via the bridge identities from step 4.
-  --
-  -- The bridge construction (step 4) is the remaining infrastructure.
-  -- Expected shape (cf. presheafValueTateQuotientEquiv):
-  --   τ₋ : uses minus datum has s = D₀.s * f, so classical quotient identification
-  --        presheafValue D ≃+* A⟨X⟩/(1-sX) lifts to presheafValue D₀-coefficients.
-  --   τ₊ : plus datum has s = D₀.s and T extended by f; the T-extension makes
-  --        (algebraMap f)/1 ∈ ring-of-definition, identifying with the "f=X" relation.
-  sorry
+  -- Apply `row3_exact` at `A := presheafValue D₀`, `f' := D₀.canonicalMap f`.
+  have key := LaurentCover.row3_exact (A := presheafValue D₀) (D₀.canonicalMap f) htop
+  -- Extract existence of `a` from the `ker(δ) ⊆ im(ε)` part, at
+  -- `(τ_plus uplus, τ_minus uminus)` (kernel condition from `hdelta`).
+  obtain ⟨a, ha⟩ := key.2.1 (τ_plus uplus, τ_minus uminus) hdelta
+  refine ⟨a, ?_, ?_⟩
+  · -- `restrictionMap plus a = uplus` via `τ_plus`-injectivity.
+    apply τ_plus.injective
+    rw [htau_plus a, ha]
+  · -- `restrictionMap minus a = uminus` via `τ_minus`-injectivity.
+    apply τ_minus.injective
+    rw [htau_minus a, ha]
 
 /-- **Wedhorn Theorem 8.28(b)**: Tate acyclicity.
 
