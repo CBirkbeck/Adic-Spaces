@@ -950,8 +950,12 @@ private theorem isUnit_algebraMap_s_of_rational_subset
     classical
     rw [Ideal.radical_eq_sInf, Ideal.mem_sInf]
     intro p ⟨hsp, hp⟩
-    exact mem_prime_of_rational_subset D₀ D h p hp
-      (hsp (Ideal.subset_span (Set.mem_singleton D₀.s)))
+    refine mem_prime_of_rational_subset D₀ D h p hp
+      (hsp (Ideal.subset_span (Set.mem_singleton D₀.s))) ?_
+    intro _hp_notOpen
+    -- Spa-point existence over a non-open prime inside `R(D.T/D.s)`:
+    -- Wedhorn Lemma 7.45 + valuation-domination over `Frac(A/p)`. Deferred.
+    sorry
   obtain ⟨n, hn⟩ := Ideal.mem_radical_iff.mp hrad
   obtain ⟨a, ha⟩ := Ideal.mem_span_singleton'.mp hn
   have hunit_pow : IsUnit (algebraMap A (Localization.Away D.s) D.s ^ n) :=
