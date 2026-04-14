@@ -365,7 +365,7 @@ of `rationalOpen D₀.T D₀.s` lies in one of the two pieces). Hence the images
 span `⊤` in `Localization.Away D₀.s`. -/
 theorem span_top_of_laurentCover
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
+    [NonarchimedeanRing A]
     (D₀ : RationalLocData A) (f : A) :
     Ideal.span {algebraMap A (Localization.Away D₀.s) (laurentPlusDatum D₀ f).s,
       algebraMap A (Localization.Away D₀.s) (laurentMinusDatum D₀ f).s} = ⊤ := by
@@ -418,7 +418,7 @@ Mathematical content: the plus piece's T-extension (adding `f` to `T`) forces
 Tate algebra over `presheafValue D₀`. -/
 noncomputable def laurentPlusBridge
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
+    [NonarchimedeanRing A]
     (D₀ : RationalLocData A) (f : A) :
     presheafValue (laurentPlusDatum D₀ f) ≃+*
       LaurentCover.B₁_gen (D₀.canonicalMap f) := by
@@ -435,7 +435,7 @@ inverting `D₀.canonicalMap f` in `presheafValue D₀` via the Tate relation
 `canonicalMap D₀.s`). -/
 noncomputable def laurentMinusBridge
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
+    [NonarchimedeanRing A]
     (D₀ : RationalLocData A) (f : A) :
     presheafValue (laurentMinusDatum D₀ f) ≃+*
       LaurentCover.B₂_gen (D₀.canonicalMap f) := by
@@ -445,7 +445,7 @@ noncomputable def laurentMinusBridge
 `restrictionMap` and the first projection of `epsilonHom_gen`. -/
 theorem laurentPlusBridge_restrictionMap
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
+    [NonarchimedeanRing A]
     (D₀ : RationalLocData A) (f : A)
     (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
@@ -459,7 +459,7 @@ theorem laurentPlusBridge_restrictionMap
 `restrictionMap` and the second projection of `epsilonHom_gen`. -/
 theorem laurentMinusBridge_restrictionMap
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
+    [NonarchimedeanRing A]
     (D₀ : RationalLocData A) (f : A)
     (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
@@ -479,7 +479,7 @@ exactly the sheaf condition on the doubly-refined datum (with `s = D₀.s · f`
 and `T` containing both halves), which equals the Laurent overlap. -/
 theorem laurentBridge_delta_eq_zero_of_compat
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
+    [NonarchimedeanRing A]
     (D₀ : RationalLocData A) (f : A)
     (uplus : presheafValue (laurentPlusDatum D₀ f))
     (uminus : presheafValue (laurentMinusDatum D₀ f))
@@ -508,7 +508,7 @@ Once these are available, the proof is elementary algebra on the `row3_exact`
 exactness at `A := presheafValue D₀`. No Baire category needed. -/
 theorem laurentCover_gluing_presheaf_viaRow3
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
+    [NonarchimedeanRing A]
     (D₀ : RationalLocData A) (f : A)
     (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s)
@@ -554,7 +554,7 @@ Combines `laurentCover_gluing_presheaf_viaRow3` with the four Route B bridges
 without the Baire-category dependency. -/
 theorem laurentCover_gluing_presheaf_viaBridges
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
+    [NonarchimedeanRing A]
     (D₀ : RationalLocData A) (f : A)
     (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s)
@@ -588,7 +588,7 @@ through the five named bridge stubs. Avoids the Baire-category blocker
 (`restrictionMapHom_surj`) that the algebraic-core Route A would need. -/
 theorem laurentCover_gluing_presheaf
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
+    [NonarchimedeanRing A]
     (D₀ : RationalLocData A) (f : A)
     (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s)
@@ -641,7 +641,7 @@ red herring: our `IsSheafy` only requires sheaf-of-sets, and Wedhorn's proof
 gives exactly that via flatness — no topological embedding needed. -/
 theorem tateAcyclicity
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
+    [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A) (hne : C.covers.Nonempty) :
     -- Part 1: Zero kernel (separation)
@@ -757,7 +757,7 @@ theorem rationalCovering_hasSeparation
 directly (any element works since compatibility is vacuous). -/
 theorem rationalCovering_hasGluing
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
+    [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)
     (f : ∀ (D : ↥C.covers), presheafValue D.1)
