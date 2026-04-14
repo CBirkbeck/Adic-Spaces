@@ -670,16 +670,13 @@ theorem exists_spa_point_in_rationalOpen_of_isOpen_prime
       simp only [hw_s, map_zero, le_zero_iff, one_ne_zero, not_false_eq_true, w]
   exact ⟨v, hv_rat, hv_supp_eq ▸ le_refl _⟩
 
-/-- Spa points in rational subsets (Wedhorn Thm 8.28, completion route). Open primes use the
-trivial valuation; non-open primes use Lemma 7.45 via the completion. -/
-theorem exists_spa_point_in_rationalOpen (D : RationalLocData A)
-    [IsAdicComplete D.P.I D.P.A₀]
-    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ D.P.A₀)
-    (p : Ideal A) [p.IsPrime] (hs_notin : D.s ∉ p) :
-    ∃ v ∈ rationalOpen D.T D.s, p ≤ v.supp := by
-  by_cases hp_open : IsOpen (p : Set A)
-  · exact @exists_spa_point_in_rationalOpen_of_isOpen_prime A _ _ _ D.T D.s p _ hp_open hs_notin
-  · sorry
+-- `exists_spa_point_in_rationalOpen` (combined version, open + non-open prime) was
+-- removed 2026-04-14: its sole sorry (non-open prime case) had no actual callers,
+-- and downstream (`base_s_in_annihilator_radical_of_covering`, etc.) takes the
+-- Spa-point existence as an explicit hypothesis. Use
+-- `exists_spa_point_in_rationalOpen_of_isOpen_prime` for the open-prime case
+-- directly, or `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime`
+-- (Lemma745.lean:691) on `presheafValue_pairOfDefinition` for the non-open case.
 
 /-- If `D.s^k * a = 0` for each covering piece `D`, then `C.base.s ∈ radical(ann(a))`
 (Wedhorn Theorem 8.28). Uses the Spa-point construction at primes. -/
