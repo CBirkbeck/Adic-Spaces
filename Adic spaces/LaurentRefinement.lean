@@ -469,6 +469,48 @@ noncomputable def iteratedMinusDatum_B
       (algebraMap_mem_locSubring _ _ _ b.2)
       (divByS_mem_locSubring _ _ _ (Finset.mem_singleton_self 1))⟩
 
+/-- **Iterated rational identification, plus branch (Wedhorn Lemma 2.13)**.
+
+The completion of `A` at the Laurent-plus datum equals the completion of
+`B := presheafValue D₀` at the trivial plus datum `{canonicalMap f}/1` on `B`.
+
+Mathematical content: `rationalOpen (laurentPlusDatum D₀ f) ⊂ Spa A` maps
+under the inclusion `Spa A ↔ Spa B` (induced by `canonicalMap`) to exactly
+the rational open `rationalOpen (iteratedPlusDatum_B P D₀ f) ⊂ Spa B`.
+Hence their global sections (presheafValues) agree.
+
+This is the only new primitive the reviewer's Q3 plan requires (besides the
+symmetric minus version). Once proved, composing with
+`presheafValueTateQuotientEquiv` at `B` gives the Laurent-plus bridge. -/
+noncomputable def presheafValue_iteratedPlus_equiv
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A) :
+    presheafValue (laurentPlusDatum D₀ f) ≃+*
+      presheafValue (iteratedPlusDatum_B P D₀ f) := by
+  sorry
+
+/-- **Iterated rational identification, minus branch (Wedhorn Lemma 2.13)**.
+
+The symmetric statement for the minus datum: `rationalOpen (laurentMinusDatum D₀ f)
+⊂ Spa A` equals `rationalOpen (iteratedMinusDatum_B P D₀ f) ⊂ Spa B`,
+and their global sections agree.
+
+Composing with `presheafValueTateQuotientEquiv` at `B` with
+`D := iteratedMinusDatum_B P D₀ f` gives the Laurent-minus bridge (since
+`s_B = canonicalMap f` so the quotient is `B⟨X⟩/(1 − canonicalMap(f)·X) = B₂_gen`). -/
+noncomputable def presheafValue_iteratedMinus_equiv
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A) :
+    presheafValue (laurentMinusDatum D₀ f) ≃+*
+      presheafValue (iteratedMinusDatum_B P D₀ f) := by
+  sorry
+
 /-- **Route B bridge (plus)** (Wedhorn Lemma 8.33 support):
 `presheafValue (laurentPlusDatum D₀ f) ≃+* B₁_gen (D₀.canonicalMap f)`,
 where `B₁_gen f' = (presheafValue D₀)⟨X⟩ ⧸ (f' - X)`.
