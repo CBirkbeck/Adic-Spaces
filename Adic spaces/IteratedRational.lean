@@ -204,6 +204,130 @@ theorem restrictionMap_canonicalMap_f_isUnit
   rw [restrictionMapHom_canonicalMap]
   exact canonicalMap_f_isUnit_in_laurentMinus D₀ f
 
+/-- Backward ring hom at the uncompleted B-localization level:
+`Localization.Away (canonicalMap f) →+* presheafValue (laurentMinusDatum D₀ f)`,
+obtained by applying `IsLocalization.Away.lift` to the composite
+`B → presheafValue (laurentMinusDatum D₀ f)` (via `restrictionMapHom`) after
+establishing that it sends `canonicalMap f` to a unit. -/
+noncomputable def iteratedMinus_backwardLocHom
+    (D₀ : RationalLocData A) (f : A)
+    (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    Localization.Away (D₀.canonicalMap f) →+*
+      presheafValue (laurentMinusDatum D₀ f) :=
+  IsLocalization.Away.lift (S := Localization.Away (D₀.canonicalMap f))
+    (R := presheafValue D₀) (D₀.canonicalMap f)
+    (g := restrictionMapHom D₀ (laurentMinusDatum D₀ f) hsub)
+    (restrictionMap_canonicalMap_f_isUnit D₀ f hsub)
+
+/-- The backward loc hom composed with `algebraMap B` equals `restrictionMapHom`. -/
+theorem iteratedMinus_backwardLocHom_algebraMap
+    (D₀ : RationalLocData A) (f : A)
+    (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (b : presheafValue D₀) :
+    iteratedMinus_backwardLocHom D₀ f hsub
+      (algebraMap (presheafValue D₀) (Localization.Away (D₀.canonicalMap f)) b) =
+      restrictionMapHom D₀ (laurentMinusDatum D₀ f) hsub b :=
+  IsLocalization.Away.lift_eq (D₀.canonicalMap f)
+    (restrictionMap_canonicalMap_f_isUnit D₀ f hsub) b
+
+/-- Continuity of the backward loc hom. **Proof deferred:** uses that the
+universal map from `Localization.Away (canonicalMap f)` (with the
+B-localization topology inherited from `iteratedMinusDatum_B`) into
+`presheafValue (laurentMinusDatum D₀ f)` is continuous because the base
+hom `restrictionMapHom D₀ (laurentMinusDatum D₀ f) : B → presheafValue
+(laurentMinusDatum D₀ f)` is continuous. Concretely: basic neighborhoods
+of 0 in the source (B-topology scaled by inverse powers of canonicalMap f)
+map into basic neighborhoods of 0 in the target. -/
+theorem iteratedMinus_backwardLocHom_continuous
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A)
+    (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    @Continuous _ _ (iteratedMinusDatum_B P D₀ f).topology _
+      (iteratedMinus_backwardLocHom D₀ f hsub) := by
+  sorry
+
+/-- Backward RingHom between the two completions, via
+`UniformSpace.Completion.extensionHom`. -/
+noncomputable def iteratedMinus_backwardHom
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A)
+    (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    presheafValue (iteratedMinusDatum_B P D₀ f) →+*
+      presheafValue (laurentMinusDatum D₀ f) := by
+  letI : UniformSpace (Localization.Away (iteratedMinusDatum_B P D₀ f).s) :=
+    (iteratedMinusDatum_B P D₀ f).uniformSpace
+  letI : IsUniformAddGroup (Localization.Away (iteratedMinusDatum_B P D₀ f).s) :=
+    (iteratedMinusDatum_B P D₀ f).isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away (iteratedMinusDatum_B P D₀ f).s) :=
+    (iteratedMinusDatum_B P D₀ f).isTopologicalRing
+  exact UniformSpace.Completion.extensionHom
+    (iteratedMinus_backwardLocHom D₀ f hsub)
+    (iteratedMinus_backwardLocHom_continuous P D₀ f hsub)
+
 end IteratedMinusBackward
+
+/-! ### Round trip and final assembly for `presheafValue_iteratedMinus_equiv` -/
+
+section IteratedMinusEquiv
+
+variable [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+
+/-- `iteratedMinus_forwardHom ∘ iteratedMinus_backwardHom = id`. **Proof deferred:**
+both composites act as identity on the dense subring `range((iteratedMinusDatum_B).coeRingHom)`,
+and the target is T2, so the identity extends. -/
+theorem iteratedMinus_forward_backward_eq_id
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A)
+    (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    (iteratedMinus_forwardHom P D₀ f).comp
+      (iteratedMinus_backwardHom P D₀ f hsub) =
+      RingHom.id _ := by
+  sorry
+
+/-- `iteratedMinus_backwardHom ∘ iteratedMinus_forwardHom = id`. Dual of above. -/
+theorem iteratedMinus_backward_forward_eq_id
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A)
+    (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    (iteratedMinus_backwardHom P D₀ f hsub).comp
+      (iteratedMinus_forwardHom P D₀ f) =
+      RingHom.id _ := by
+  sorry
+
+/-- **Iterated rational identification, minus branch** (Wedhorn Lemma 2.13):
+assembles the forward/backward homs into a `RingEquiv`.
+
+Requires a subset hypothesis `hsub` witnessing that the minus piece is inside
+the base rational open — this is provided by `laurentMinus_subset` in callsites. -/
+noncomputable def presheafValue_iteratedMinus_equiv_aux
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A)
+    (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    presheafValue (laurentMinusDatum D₀ f) ≃+*
+      presheafValue (iteratedMinusDatum_B P D₀ f) where
+  toFun := iteratedMinus_forwardHom P D₀ f
+  invFun := iteratedMinus_backwardHom P D₀ f hsub
+  left_inv x :=
+    congr_fun (congrArg DFunLike.coe
+      (iteratedMinus_backward_forward_eq_id P D₀ f hsub)) x
+  right_inv y :=
+    congr_fun (congrArg DFunLike.coe
+      (iteratedMinus_forward_backward_eq_id P D₀ f hsub)) y
+  map_mul' := map_mul _
+  map_add' := map_add _
+
+end IteratedMinusEquiv
 
 end ValuationSpectrum
