@@ -174,17 +174,35 @@ theorem canonicalMap_f_isUnit_in_laurentMinus (D₀ : RationalLocData A) (f : A)
   simp only [RingHom.coe_comp, Function.comp_apply]
   exact RingHom.isUnit_map _ (algebraMap_f_isUnit_in_laurentMinus D₀ f)
 
-/-- In `presheafValue (laurentMinusDatum D₀ f)`, the image of `canonicalMap f`
-via the restriction map (from B := presheafValue D₀) is a unit. -/
+/-- Compatibility: `restrictionMapHom D₀ D' hsub ∘ D₀.canonicalMap = D'.canonicalMap`.
+Follows directly from `UniformSpace.Completion.extensionHom_coe` + the
+`IsLocalization.Away.lift_eq` identity for the underlying alg map. -/
+theorem restrictionMapHom_canonicalMap (D₀ D' : RationalLocData A)
+    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D₀.T D₀.s) (a : A) :
+    restrictionMapHom D₀ D' h (D₀.canonicalMap a) = D'.canonicalMap a := by
+  unfold restrictionMapHom RationalLocData.canonicalMap
+  letI := D₀.uniformSpace
+  letI := D₀.isTopologicalRing
+  letI := D₀.isUniformAddGroup
+  letI := D'.uniformSpace
+  letI := D'.isTopologicalRing
+  letI := D'.isUniformAddGroup
+  simp only [RingHom.coe_comp, Function.comp_apply]
+  erw [UniformSpace.Completion.extensionHom_coe (restrictionMapAlg D₀ D' h)
+    (restrictionMapAlg_continuous D₀ D' h)]
+  simp only [restrictionMapAlg, IsLocalization.Away.lift_eq]
+  rfl
+
+/-- In `presheafValue (laurentMinusDatum D₀ f)`, the image of `D₀.canonicalMap f`
+under the restriction map equals `(laurentMinusDatum D₀ f).canonicalMap f`, which
+is a unit. -/
 theorem restrictionMap_canonicalMap_f_isUnit
     (D₀ : RationalLocData A) (f : A)
     (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
     IsUnit (restrictionMapHom D₀ (laurentMinusDatum D₀ f) hsub (D₀.canonicalMap f)) := by
-  -- restrictionMap ∘ D₀.canonicalMap = (laurentMinusDatum D₀ f).canonicalMap by definition
-  -- (both are lifts of the same a ↦ a through the completion tower).
-  -- Hence the image equals (laurentMinusDatum D₀ f).canonicalMap f, which is a unit.
-  sorry -- ~15 lines: use restrictionMap.canonicalMap compatibility
+  rw [restrictionMapHom_canonicalMap]
+  exact canonicalMap_f_isUnit_in_laurentMinus D₀ f
 
 end IteratedMinusBackward
 
