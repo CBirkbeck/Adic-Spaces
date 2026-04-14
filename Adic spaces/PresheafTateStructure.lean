@@ -1035,176 +1035,12 @@ private theorem locLift_maps_locNhd
       hpre
   exact ⟨n, fun x hx => hn hx⟩
 
-/-- **Backward inducing** of locLift: for every source neighborhood level `n`, there
-exists a target level `m` such that the preimage of `locNhd D m` under `locLift` is
-contained in `locNhd D₀ n`.
-
-This is the harder direction of the proof that `locLift` is a topological embedding.
-The forward direction (continuity, `locLift_maps_locNhd`) follows from the factoring
-`restrictionMapAlg = D.coeRingHom ∘ locLift`. The backward direction requires the
-Noetherian hypothesis and uses the following key inputs:
-
-1. **Ideal filtration interleaving**: Both `D₀.P.I` and `D.P.I` define the same
-   topology on `A`, so their filtrations on `A` are cofinal: for every `n`, ∃ `c` with
-   `val '' (D.P.I^c) ⊆ val '' (D₀.P.I^n)` (from `hasBasis_nhds_zero`).
-
-2. **locLift preserves algebraMap**: `locLift ∘ algebraMap = algebraMap` (from
-   `IsLocalization.Away.lift`), so elements of the form `algebraMap(a)` are
-   preserved.
-
-3. **The hopen condition**: For both `D₀` and `D`, high powers of the ideal of
-   definition under `divByS` land in the respective `locSubring`. This ensures
-   that the `s⁻¹`-factors in the Localization can be absorbed.
-
-4. **Artin-Rees (Noetherian control)**: The Artin-Rees lemma for the Noetherian
-   ring `locSubring D` controls the intersection of `(locIdeal D)^n` with the
-   image of `locLift`. Specifically, the image of `locSubring D₀` in
-   `Localization.Away D.s` intersected with the adic filtration of `locSubring D`
-   stabilizes at some depth `k₀` (the Artin-Rees constant).
-
-Together: for `m` large enough (depending on `n` and the interleaving/Artin-Rees
-constants), any `x` with `locLift(x) ∈ locNhd D m` must have `x ∈ locNhd D₀ n`.
-
-**Wedhorn reference**: Proposition 8.15 + Lemma 8.5 (Artin-Rees for adic rings). -/
--- QUARANTINED (2026-04-03): FALSE. Counterexample: A = Q_p⟨X⟩, U = R({p,X}/p).
--- X^m ∈ p^m A₀[X/p] but X^m ∉ pA₀. Individual restriction maps are NOT
--- topological embeddings. Use strict exactness of Laurent row instead.
--- See docs/TICKETS-axiom-clean.md for the corrected approach.
-private theorem locLift_preimage_locNhd
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A]
-    (D₀ D : RationalLocData A) (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
-    ∀ n : ℕ, ∃ m : ℕ,
-      ∀ x : Localization.Away D₀.s,
-        (locLift D₀ D h) x ∈ @locNhd A _ _ D.P D.T D.s m →
-          x ∈ @locNhd A _ _ D₀.P D₀.T D₀.s n := by
-  intro n
-  -- Step 1: Establish the ideal interleaving.
-  -- Both D₀.P and D.P are pairs of definition for A, so their ideal
-  -- filtrations are cofinal on A: for every n, ∃ c with
-  -- val '' (D.P.I^c) ⊆ val '' (D₀.P.I^n).
-  have h_interleave : ∀ k : ℕ, ∃ c : ℕ,
-      Subtype.val '' ((D.P.I ^ c : Ideal D.P.A₀) : Set D.P.A₀) ⊆
-        Subtype.val '' ((D₀.P.I ^ k : Ideal D₀.P.A₀) : Set D₀.P.A₀) := by
-    intro k
-    have h_nhd : Subtype.val '' ((D₀.P.I ^ k : Ideal D₀.P.A₀) : Set D₀.P.A₀) ∈
-        nhds (0 : A) :=
-      D₀.P.hasBasis_nhds_zero.mem_of_mem trivial
-    exact (D.P.hasBasis_nhds_zero.mem_iff.mp h_nhd).imp fun c h => h.2
-  -- Step 2: locLift preserves algebraMap.
-  have h_lift_alg : ∀ a : A,
-      (locLift D₀ D h) (algebraMap A (Localization.Away D₀.s) a) =
-        algebraMap A (Localization.Away D.s) a := by
-    intro a; simp only [locLift, IsLocalization.Away.lift_eq]
-  -- Step 3: The backward inclusion using the Artin-Rees lemma.
-  --
-  -- **Available infrastructure:**
-  -- (a) h_interleave: val(D.P.I^c) ⊆ val(D₀.P.I^n) for some c depending on n.
-  --     This gives: algebraMap(val(D.P.I^c)) ⊆ locNhd D₀ n (as elements).
-  -- (b) h_lift_alg: locLift(algebraMap_{D₀}(a)) = algebraMap_D(a).
-  --     So algebraMap generators are preserved by locLift.
-  -- (c) locNhd D m = image((locIdeal D)^m) where (locIdeal D)^m =
-  --     Ideal.map algebraMapD (D.P.I^m) consists of sums of
-  --     algebraMap(val(a_i)) * val(r_i) with a_i in D.P.I^m, r_i in locSubring D.
-  --
-  -- **What remains:** showing that the locSubring D factors in the
-  -- decomposition of locNhd D m can be controlled. The difficulty is that
-  -- elements of locSubring D (which includes divByS(t, D.s) for t in D.T)
-  -- are generally NOT in the image of locLift, so pulling them back
-  -- through locLift requires the Artin-Rees lemma for the Noetherian ring
-  -- locSubring D (via Ideal.exists_pow_inf_eq_pow_smul in Mathlib).
-  --
-  -- **Full proof outline (Wedhorn Prop 8.15 + Lemma 8.5):**
-  -- 1. locSubring D is Noetherian (locSubring_isNoetherian, requires
-  --    [IsNoetherianRing D.P.A₀] which follows from [IsNoetherianRing A]
-  --    in the Tate ring setting via Eakin's theorem).
-  -- 2. Apply Artin-Rees (Ideal.exists_pow_inf_eq_pow_smul) to:
-  --    R = locSubring D, I = locIdeal D, M = locSubring D (as R-module),
-  --    N = image(locLift) ∩ locSubring D (a submodule).
-  --    This gives k₀ such that for m ≥ k₀:
-  --    (locIdeal D)^m ∩ image(locLift) = (locIdeal D)^(m-k₀) * ((locIdeal D)^k₀ ∩ image(locLift))
-  -- 3. Take m = c + k₀ where c is the interleaving constant from step (a).
-  --    Then for x with locLift(x) ∈ locNhd D m:
-  --    - locLift(x) ∈ (locIdeal D)^m ∩ image(locLift) (by definition)
-  --    - = (locIdeal D)^(m-k₀) * ((locIdeal D)^k₀ ∩ image(locLift)) (by Artin-Rees)
-  --    - = (locIdeal D)^c * ((locIdeal D)^k₀ ∩ image(locLift))
-  --    - The (locIdeal D)^c part has generators in val(D.P.I^c) ⊆ val(D₀.P.I^n)
-  --      which pull back to locNhd D₀ n via h_lift_alg.
-  --    - The ((locIdeal D)^k₀ ∩ image(locLift)) part is a fixed finite set
-  --      whose locLift-preimages are in some fixed locNhd D₀ n' (compactness).
-  --    - Combined: x ∈ locNhd D₀ (n + n'), and by adjusting c we get x ∈ locNhd D₀ n.
-  --
-  -- **Formalizing the Artin-Rees step requires:**
-  -- (i) [IsNoetherianRing D.P.A₀] (from [IsNoetherianRing A] via Eakin's theorem,
-  --     NOT currently in Mathlib).
-  -- (ii) Module.Finite (locSubring D) (image(locLift) ∩ locSubring D)
-  -- (iii) Connecting the Artin-Rees stabilization to the locNhd filtration.
-  -- These are substantial algebraic prerequisites that are deferred.
-  sorry
-
-/-- The locLift between localizations is `IsUniformInducing` from `D₀.uniformSpace`
-to `D.uniformSpace`.
-
-**Proof**: Both localization topologies use the SAME base ideal I from the pair of
-definition. The locLift fixes `algebraMap`, so it maps `I^n·A[1/D₀.s]` into
-`I^n·A[1/D.s]` (forward continuity). The reverse (inducing) uses the Noetherian
-hypothesis: by the Artin-Rees lemma, `locLift⁻¹(locNhd D m) ⊇ locNhd D₀ n` for some n.
-**Wedhorn reference**: Proposition 8.15 + Lemma 8.5. -/
-private theorem locLift_isUniformInducing
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A]
-    (D₀ D : RationalLocData A) (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
-    @IsUniformInducing _ _ D₀.uniformSpace D.uniformSpace (locLift D₀ D h) := by
-  -- Strategy: reduce IsUniformInducing to IsInducing via the uniform group lemma,
-  -- then reduce IsInducing to nhds 0 equality via IsTopologicalAddGroup.ext.
-  letI uD₀ : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
-  letI uD : UniformSpace (Localization.Away D.s) := D.uniformSpace
-  haveI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
-  haveI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
-  rw [@isUniformInducing_iff_uniformSpace _ _ uD₀ uD]
-  apply @IsUniformAddGroup.ext (Localization.Away D₀.s) _
-  · exact IsUniformAddGroup.comap (locLift D₀ D h)
-  · exact D₀.isUniformAddGroup
-  · -- nhds 0 in comap uniform space = nhds 0 in D₀.uniformSpace.
-    -- LHS: nhds 0 in (uD.comap locLift).toTopologicalSpace
-    --     = nhds 0 in (induced locLift uD.toTopologicalSpace)
-    --     = comap locLift (nhds_D 0) [by nhds_induced + map_zero]
-    -- RHS: nhds 0 in D₀.topology [= uD₀.toTopologicalSpace]
-    rw [show @UniformSpace.toTopologicalSpace _ (uD.comap (locLift D₀ D h)) =
-      TopologicalSpace.induced (locLift D₀ D h) uD.toTopologicalSpace from
-      UniformSpace.toTopologicalSpace_comap,
-      nhds_induced, show (locLift D₀ D h : Localization.Away D₀.s →
-        Localization.Away D.s) 0 = 0 from map_zero _]
-    have hbasis₀ := (locBasis D₀.P D₀.T D₀.s D₀.hopen).hasBasis_nhds_zero
-    have hbasisD := (locBasis D.P D.T D.s D.hopen).hasBasis_nhds_zero
-    ext S
-    rw [Filter.mem_comap, hbasis₀.mem_iff]
-    constructor
-    · rintro ⟨V, hV, hVS⟩
-      obtain ⟨m, -, hm⟩ := hbasisD.mem_iff.mp hV
-      obtain ⟨n, hn⟩ := locLift_maps_locNhd D₀ D h m
-      exact ⟨n, trivial, fun x hx => hVS (hm (hn x hx))⟩
-    · rintro ⟨n, -, hn⟩
-      obtain ⟨m, hm⟩ := locLift_preimage_locNhd D₀ D h n
-      exact ⟨(locNhd D.P D.T D.s m : Set (Localization.Away D.s)),
-        hbasisD.mem_of_mem trivial (i := m),
-        fun x hx_mem => hn (hm x hx_mem)⟩
-
-private theorem restrictionMapAlg_isUniformInducing
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A]
-    (D₀ D : RationalLocData A)
-    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
-    @IsUniformInducing _ _ D₀.uniformSpace
-      (@UniformSpace.Completion.uniformSpace _ D.uniformSpace)
-      (restrictionMapAlg D₀ D h) := by
-  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
-  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
-  rw [show (restrictionMapAlg D₀ D h : Localization.Away D₀.s → presheafValue D) =
-    D.coeRingHom ∘ locLift D₀ D h from
-      congrArg DFunLike.coe (restrictionMapAlg_eq_comp_locLift D₀ D h)]
-  exact (UniformSpace.Completion.isUniformInducing_coe _).comp
-    (locLift_isUniformInducing D₀ D h)
+-- REMOVED 2026-04-14: FALSE infrastructure chain (locLift_preimage_locNhd,
+-- locLift_isUniformInducing, restrictionMapAlg_isUniformInducing).
+-- Reviewer 2026-04-03 counterexample to locLift_preimage_locNhd:
+-- A = Q_p⟨X⟩, U = R({p,X}/p): X^m ∈ p^m A₀[X/p] but X^m ∉ pA₀.
+-- Chain had no external callers (restrictionMapHom_isInducing also removed).
+-- Wedhorn flatness route (docs/plans/2026-04-08-*.md) supersedes it.
 
 /-- **Sigma surj condition (Wedhorn Prop 8.15)**: The restriction map
 `restrictionMapHom D₀ D h` satisfies the `IsLocalization.Away.surj` condition:
@@ -1337,27 +1173,9 @@ theorem restrictionMapHom_injective
   -- structure on presheafValue is established.
   sorry
 
-/-- The restriction map `restrictionMapHom D₀ D h` is topologically inducing
-(Proposition 8.15 of Wedhorn). The topology on `presheafValue D₀` equals the
-pullback of the topology on `presheafValue D` through the restriction map.
-
-**Proof**: `restrictionMapAlg D₀ D h` is `IsUniformInducing` from the localization
-uniform space to the completion uniform space. The completion extension inherits
-`IsUniformInducing` (by `isUniformInducing_extension`), hence `IsInducing`. -/
-theorem restrictionMapHom_isInducing
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A]
-    (D₀ D : RationalLocData A)
-    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
-    Topology.IsInducing (restrictionMapHom D₀ D h) := by
-  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
-  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
-  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
-  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
-  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
-  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
-  exact (UniformSpace.Completion.isUniformInducing_extension
-    (restrictionMapAlg_isUniformInducing D₀ D h)).isInducing
+-- REMOVED 2026-04-14: restrictionMapHom_isInducing. Depends on
+-- restrictionMapAlg_isUniformInducing (FALSE, removed above). No external
+-- callers (StructureSheaf.lean already notes this removal at line 961).
 
 /-! ### Proposition 8.15: restriction maps are rational localizations
 
