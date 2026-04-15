@@ -788,6 +788,8 @@ section Example638PlusBackwardTopology
 
 variable [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
 
+open TateAlgebra
+
 /-- The ideal `(algebraMap b − X)` in `TateAlgebra B`. This is the plus-branch
 analog of `oneSubfXIdeal` (which is `(1 − f·X)`). -/
 noncomputable def plusFSubXIdeal (b : B) : Ideal ↥(TateAlgebra B) :=
@@ -797,42 +799,42 @@ noncomputable def plusFSubXIdeal (b : B) : Ideal ↥(TateAlgebra B) :=
 Tate topology on `TateAlgebra B`. -/
 @[reducible]
 noncomputable def quotientPlusFSubXIdealTopology (b : B) :
-    TopologicalSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal b) :=
+    TopologicalSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
   @topologicalRingQuotientTopology _ instTopologicalSpaceTateAlgebra _
-    (plusFSubXIdeal b)
+    (plusFSubXIdeal B b)
 
 /-- The quotient `TateAlgebra B ⧸ plusFSubXIdeal b` is a topological ring. -/
 noncomputable instance quotientPlusFSubXIdealTopology_isTopologicalRing (b : B) :
-    @IsTopologicalRing (↥(TateAlgebra B) ⧸ plusFSubXIdeal b)
-      (quotientPlusFSubXIdealTopology b) _ :=
+    @IsTopologicalRing (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b)
+      (quotientPlusFSubXIdealTopology B b) _ :=
   @topologicalRing_quotient ↥(TateAlgebra B)
     instTopologicalSpaceTateAlgebra _
-    (plusFSubXIdeal b) (instIsTopologicalRingTateAlgebra)
+    (plusFSubXIdeal B b) (instIsTopologicalRingTateAlgebra)
 
 /-- The quotient `TateAlgebra B ⧸ plusFSubXIdeal b` has the `IsTopologicalAddGroup`
 structure. -/
 noncomputable instance quotientPlusFSubXIdealTopology_isTopologicalAddGroup (b : B) :
-    @IsTopologicalAddGroup (↥(TateAlgebra B) ⧸ plusFSubXIdeal b)
-      (quotientPlusFSubXIdealTopology b) _ :=
+    @IsTopologicalAddGroup (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b)
+      (quotientPlusFSubXIdealTopology B b) _ :=
   @IsTopologicalRing.to_topologicalAddGroup _ _
-    (quotientPlusFSubXIdealTopology b)
-    (quotientPlusFSubXIdealTopology_isTopologicalRing b)
+    (quotientPlusFSubXIdealTopology B b)
+    (quotientPlusFSubXIdealTopology_isTopologicalRing B b)
 
 /-- The uniform space on the quotient `TateAlgebra B ⧸ plusFSubXIdeal b`. -/
 @[reducible, instance]
 noncomputable def quotientPlusFSubXIdealUniformSpace (b : B) :
-    UniformSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal b) :=
+    UniformSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
   @IsTopologicalAddGroup.rightUniformSpace _ _
-    (quotientPlusFSubXIdealTopology b)
-    (quotientPlusFSubXIdealTopology_isTopologicalAddGroup b)
+    (quotientPlusFSubXIdealTopology B b)
+    (quotientPlusFSubXIdealTopology_isTopologicalAddGroup B b)
 
 /-- The `IsUniformAddGroup` instance for the canonical quotient topology on
 `TateAlgebra B ⧸ plusFSubXIdeal b`. -/
 noncomputable instance quotientPlusFSubXIdeal_isUniformAddGroup (b : B) :
-    @IsUniformAddGroup (↥(TateAlgebra B) ⧸ plusFSubXIdeal b)
-      (quotientPlusFSubXIdealUniformSpace b) _ :=
-  @isUniformAddGroup_of_addCommGroup _ _ (quotientPlusFSubXIdealTopology b)
-    (quotientPlusFSubXIdealTopology_isTopologicalAddGroup b)
+    @IsUniformAddGroup (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b)
+      (quotientPlusFSubXIdealUniformSpace B b) _ :=
+  @isUniformAddGroup_of_addCommGroup _ _ (quotientPlusFSubXIdealTopology B b)
+    (quotientPlusFSubXIdealTopology_isTopologicalAddGroup B b)
 
 /-- The ideal `(algebraMap b − X)` is closed in `TateAlgebra B` under the canonical
 topology. Corollary of `tateAlgebra_isClosed_ideal` which applies to any ideal
@@ -842,10 +844,10 @@ theorem plusFSubXIdeal_isClosed
     (hnoeth : IsNoetherianRing
       ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
     (b : B) :
-    IsClosed ((plusFSubXIdeal b : Ideal ↥(TateAlgebra B)) :
+    IsClosed ((plusFSubXIdeal B b : Ideal ↥(TateAlgebra B)) :
       Set ↥(TateAlgebra B)) := by
   haveI : IsNoetherianRing ↥(tateAlgebra_pairOfDefinition (A := B)).A₀ := hnoeth
-  exact tateAlgebra_isClosed_ideal hA_complete (plusFSubXIdeal b)
+  exact tateAlgebra_isClosed_ideal hA_complete (plusFSubXIdeal B b)
 
 /-- The quotient `TateAlgebra B ⧸ plusFSubXIdeal b` is T2. -/
 theorem quotient_plusFSubXIdeal_t2Space
@@ -853,9 +855,9 @@ theorem quotient_plusFSubXIdeal_t2Space
     (hnoeth : IsNoetherianRing
       ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
     (b : B) :
-    T2Space (↥(TateAlgebra B) ⧸ plusFSubXIdeal b) := by
-  haveI : IsClosed ((plusFSubXIdeal b).toAddSubgroup : Set ↥(TateAlgebra B)) :=
-    plusFSubXIdeal_isClosed hA_complete hnoeth b
+    T2Space (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) := by
+  haveI : IsClosed ((plusFSubXIdeal B b).toAddSubgroup : Set ↥(TateAlgebra B)) :=
+    plusFSubXIdeal_isClosed B hA_complete hnoeth b
   infer_instance
 
 /-- The quotient `TateAlgebra B ⧸ plusFSubXIdeal b` is complete under the
@@ -865,8 +867,8 @@ theorem quotient_plusFSubXIdeal_completeSpace
     (hnoeth : IsNoetherianRing
       ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
     (b : B) :
-    @CompleteSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal b)
-      (quotientPlusFSubXIdealUniformSpace b) := by
+    @CompleteSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b)
+      (quotientPlusFSubXIdealUniformSpace B b) := by
   letI τ : TopologicalSpace ↥(TateAlgebra B) := instTopologicalSpaceTateAlgebra
   haveI _hring : IsTopologicalRing ↥(TateAlgebra B) := instIsTopologicalRingTateAlgebra
   haveI haddgrp : IsTopologicalAddGroup ↥(TateAlgebra B) :=
@@ -875,10 +877,10 @@ theorem quotient_plusFSubXIdeal_completeSpace
   haveI hCS : @CompleteSpace ↥(TateAlgebra B)
       (IsTopologicalAddGroup.rightUniformSpace ↥(TateAlgebra B)) :=
     tateAlgebraTopology'_completeSpace hA_complete
-  haveI : IsClosed ((plusFSubXIdeal b).toAddSubgroup : Set ↥(TateAlgebra B)) :=
-    plusFSubXIdeal_isClosed hA_complete hnoeth b
+  haveI : IsClosed ((plusFSubXIdeal B b).toAddSubgroup : Set ↥(TateAlgebra B)) :=
+    plusFSubXIdeal_isClosed B hA_complete hnoeth b
   exact @QuotientAddGroup.completeSpace_right' ↥(TateAlgebra B) _ τ haddgrp ‹_›
-    (plusFSubXIdeal b).toAddSubgroup inferInstance hCS
+    (plusFSubXIdeal B b).toAddSubgroup inferInstance hCS
 
 end Example638PlusBackwardTopology
 

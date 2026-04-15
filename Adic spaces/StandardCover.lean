@@ -141,7 +141,52 @@ theorem RationalCovering.refines_by_standard_cover
       -- Each plus-type piece is contained in some piece of the original cover.
       (∀ f ∈ S.elts, ∃ D ∈ C.covers,
         rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen D.T D.s) := by
-  sorry
+  -- Dispatch on whether `A` is subsingleton (zero ring).
+  by_cases hA : Subsingleton A
+  · -- In the zero ring, the unit ideal equals the zero ideal, so the empty set
+    -- spans `⊤`. Both the covering and containment conditions are vacuous.
+    refine ⟨⟨∅, ?_⟩, ?_, ?_⟩
+    · -- `Ideal.span (∅ : Set A) = ⊤` because in a subsingleton ring `⊥ = ⊤`.
+      rw [Finset.coe_empty, Ideal.span_empty]
+      exact Subsingleton.elim _ _
+    · -- Covering: vacuous because we'd need a `v` satisfying `v.vle s 0` being
+      -- false, but `s = 0` in the zero ring.
+      intro v hv
+      -- `v ∈ rationalOpen _ s` requires `¬ v.vle s 0`, but `s = 0`, so
+      -- `v.vle 0 0` holds (reflexivity). Contradiction.
+      exfalso
+      have : C.base.s = 0 := Subsingleton.elim _ _
+      exact hv.2.2 (this ▸ v.vle_refl 0)
+    · -- Containment: vacuous because `S.elts = ∅`.
+      intro f hf
+      simp at hf
+  · -- Nontrivial `A`. The genuine standard-cover reduction goes through
+    -- Wedhorn's adic Nullstellensatz (Prop 7.14 / Lemma 7.44). This is
+    -- documented in the theorem docstring; for now we record it as a single
+    -- targeted sub-sorry.
+    --
+    -- **Proof sketch** (Wedhorn Lemma 7.44 + Cor 8.29 / Zavyalov §2.3):
+    -- 1. For each `D ∈ C.covers`, consider the finite family of "test elements"
+    --    `{D.s} ∪ D.T` that carve out `rationalOpen D.T D.s`. Collect
+    --    `S₀ := ⋃_{D ∈ C.covers} ({D.s} ∪ D.T)` — a finite set.
+    -- 2. By Wedhorn Prop 7.14 / 7.44 (adic Nullstellensatz), the Spa-covering
+    --    condition `∀ v ∈ base, ∃ D, v ∈ rationalOpen D.T D.s` translates into
+    --    `C.base.s ∈ radical(Ideal.span {D.s | D ∈ C.covers})` in `A`. Hence,
+    --    after adjoining `1` or refining via suitable linear combinations,
+    --    `Ideal.span S₀ = ⊤` (the precise form of `S₀` depends on the
+    --    normalisation; cf. `TateAcyclicity.lean:475 hspan_top` for the
+    --    analogue in `Localization.Away C.base.s`).
+    -- 3. The containment `rationalOpen (insert fᵢ C.base.T) C.base.s ⊆
+    --    rationalOpen D.T D.s` follows because the plus-piece at `fᵢ = D.s`
+    --    (or any `t ∈ D.T`) is carved out by the same inequalities as
+    --    `rationalOpen D.T D.s`, up to the unit `D.s` vs `C.base.s`.
+    --
+    -- **Status**: This is the R1 Nullstellensatz blocker. The mathematical
+    -- content is Wedhorn Prop 7.14 (adic Nullstellensatz), which is not
+    -- currently available in the project as a reusable span-top lemma.
+    -- Once that infrastructure lands, this sorry dissolves into the
+    -- construction above.
+    sorry
 
 /-! ### Acyclicity via standard covers -/
 
