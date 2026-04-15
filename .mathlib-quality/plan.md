@@ -1,61 +1,104 @@
-# Development Plan: Tate Acyclicity (non-discrete case) Sessions A + B
+# Development Plan: Close the 10 remaining sorries on `tateAcyclicity` path
 
 ## Goal
 
-Make `tateAcyclicity` sorry-free for the non-discrete strongly noetherian Tate case.
-Specifically, execute Sessions A and B from `docs/plans/2026-04-14-tate-acyclicity-finish-plan.md`:
+Make `ValuationSpectrum.tateAcyclicity` (`Adic spaces/LaurentRefinement.lean:2692`)
+sorry-free in the strongly noetherian Tate setting by closing all 10 remaining
+sorries on its transitive dependency path.
 
-- **Session A**: non-open-prime Spa-point → Cor 8.32 → separation sorry-free (~265 lines)
-- **Session B**: 5 Route B bridges → `laurentCover_gluing_presheaf` sorry-free (~200 lines)
+## Target theorem (Lean)
 
-Both together deliver separation + Laurent-cover gluing; Session C (Lemma 8.34 + final
-assembly) would then finalise `tateAcyclicity` in a follow-up session.
+```lean
+theorem tateAcyclicity
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) (hne : C.covers.Nonempty) :
+    -- Part 1: Zero kernel (separation)
+    (∀ x : presheafValue C.base, ... → x = 0) ∧
+    -- Part 2: Gluing
+    (∀ f : ∀ D : ↥C.covers, presheafValue D.1, ... → ∃ x, ...)
+```
 
 ## References
 
-- `docs/plans/2026-04-08-wedhorn-vs-zavyalov.md` — main Wedhorn-route plan
-- `docs/plans/2026-04-14-tate-acyclicity-finish-plan.md` — concrete dependency map
-- Wedhorn, *Adic Spaces* lecture notes (1910.05934v1.pdf), §8 + Lemma 7.44/7.45
+- **Wedhorn, *Adic Spaces***:
+  - Theorem 8.28(b) — Tate acyclicity (the goal).
+  - Prop 7.14 / Lemma 7.44 — Nullstellensatz for Spa.
+  - Lemma 7.45 — non-open-prime Spa-point via completion.
+  - Prop 8.2 — continuity of restriction map between rational localizations.
+  - Example 6.38 — `A⟨X⟩/(1−sX) ≃ 𝒪_X(R(1/s))` (and its plus/Laurent analogs).
+  - Lemma 2.13 / Prop 8.7 — iterated rational localizations.
+  - Cor 8.32 (retired) — faithful flatness of product restriction.
+- **Zavyalov, §2–3** — standard-cover reduction.
+- Project memory: `project_T001_completion_route.md` — Bourbaki CA III §2.8 blocker.
 
-## Mathlib Inventory
+## The 10 target sorries
 
-| Concept | Status | Action |
-|---------|--------|--------|
-| `presheafValueTateQuotientEquiv` (Phase 2 iso) | `TopologyComparison.lean:831` | USE as building block |
-| `tateQuotientToPresheafHom_isHomeomorph` | `TopologyComparison.lean:2266` | USE for topological iso |
-| `Lemma745.exists_valuation_extension` | `Lemma745.lean:337` | USE for Spa-point at non-open prime |
-| `LaurentCover.row3_exact` (general case) | `LaurentCoverExact.lean:1560` | USE in bridges via instantiation at `presheafValue D₀` |
-| `flat_quotient_oneSubfX_general` | `TateAlgebra.lean` | USE for flatness of presheafValue |
-| `laurentCover_gluing_presheaf_viaRow3` | `LaurentRefinement.lean:588` | USE as sorry-free Route B consumer |
+| # | Ticket | Sorry location | Dependencies |
+|---|---|---|---|
+| 1 | T-ACYC-PART2 | `LaurentRefinement.lean:2758` (Part 2 gluing) | T-NULL, T-CONT-* (via laurentCover_gluing_presheaf), T-OVERLAP |
+| 2 | T-INJ-REROUTE | `PresheafTateStructure.lean:1177` (restrictionMapHom_injective) | T-SEP-NEW (new lemma) |
+| 3 | T-NULL-EMPTY | `StandardCover.lean:223` (empty covers edge) | Statement fix (add Nonempty hypothesis) |
+| 4 | T-NULL-MAIN | `StandardCover.lean:259` (genuine Nullstellensatz) | Lemma 7.44 / 7.45 (existing) |
+| 5 | T-CONT-PLUS-FWD | `LaurentRefinement.lean:743` (plus forward cont.) | Wedhorn Prop 8.2 for canonicalMap |
+| 6 | T-CONT-PLUS-BWD | `LaurentRefinement.lean:753` (plus backward cont.) | restrictionMapHom continuity |
+| 7 | T-PLUS-ROUND | `LaurentRefinement.lean:894` (plus forward∘backward=id) | Density of canonicalMap A in B |
+| 8 | T-CONT-MINUS-FWD | `LaurentRefinement.lean:976` (minus forward cont.) | Wedhorn Prop 8.2 for base change |
+| 9 | T-CONT-MINUS-BWD | `LaurentRefinement.lean:986` (minus backward cont.) | restrictionMapHom continuity |
+| 12 | T-OVERLAP | `LaurentRefinement.lean:2151` (Laurent overlap bridge compatible) | Bivariate `evalHomBounded` for LaurentTateAlgebra |
 
-## File Structure
+Items 10 and 11 (the `_restrictionMap_canonicalMap` atomic sub-sorries) were
+closed during the 2026-04-15 session.
 
-- `Adic spaces/StructureSheaf.lean` — Spa-point at non-open prime, Cor 8.32, rewrite empty separation
-- `Adic spaces/PresheafTateStructure.lean` — rewrite `restrictionMapHom_injective` via Cor 8.32
-- `Adic spaces/LaurentRefinement.lean` — rewrite `tateAcyclicity` Part 1, fill 5 Route B bridges
-
-## Dependency Graph
+## Dependency graph
 
 ```
- T-A1 Spa-point non-open prime   T-B1 laurentMinusBridge   T-B2 laurentPlusBridge
-          │                            │                          │
-          ▼                            ▼                          ▼
- T-A2 Cor 8.32 faithful flat   T-B3 minusBridge_restrictionMap   T-B4 plusBridge_restrictionMap
-          │
-          ▼                            ├────────────┬──────────────┘
- T-A3 restrictionMapHom_injective      ▼            ▼
-          │                    T-B5 delta_eq_zero_of_compat
-          ▼
- T-A4 tateAcyclicity Part 1 rewrite
-          │
-          ▼
- T-A5 hasSeparation empty branch
+T-NULL-EMPTY (statement fix) ──┐
+                               │
+T-NULL-MAIN (Wedhorn 7.44) ────┴─→ StandardCover.refines_by_standard_cover CLOSED
+                                                │
+T-CONT-PLUS-FWD ──┐                            │
+T-CONT-PLUS-BWD ──┤                            │
+T-PLUS-ROUND  ────┤                            ↓
+                  ├──→ W2.13 plus equiv CLOSED ──┐
+T-CONT-MINUS-FWD ─┤                              │
+T-CONT-MINUS-BWD ─┴──→ W2.13 minus equiv CLOSED ─┼──→ laurentCover_gluing_presheaf CLOSED
+                                                 │                   │
+T-OVERLAP ──────────→ overlap bridge CLOSED ─────┘                   │
+                                                                     │
+T-INJ-REROUTE ──→ restrictionMapHom_injective CLOSED                 │
+  (OR reroute Part 1 via standard cover)                             │
+       │                                                             │
+       ↓                                                             │
+   tateAcyclicity Part 1 CLOSED                                      │
+                                                                     ↓
+                                  tateAcyclicity Part 2 CLOSED via T-ACYC-PART2
+                                                                     │
+                                                                     ↓
+                                          tateAcyclicity sorry-free
 ```
 
-Parallel: {A1, B1, B2}, then {A2, B3, B4}, then {A3, A4, A5, B5}.
+## Execution order
 
-## Generality Decisions
+Phase A (parallelisable, independent primitives):
+1. T-NULL-EMPTY (cheap statement fix).
+2. T-CONT-PLUS-FWD (W2.13 plus continuity forward).
+3. T-CONT-PLUS-BWD (W2.13 plus continuity backward).
+4. T-CONT-MINUS-FWD (W2.13 minus continuity forward).
+5. T-CONT-MINUS-BWD (W2.13 minus continuity backward).
+6. T-PLUS-ROUND (W2.13 plus round trip).
+7. T-NULL-MAIN (substantial Wedhorn 7.44).
+8. T-OVERLAP (Laurent bivariate primitive).
 
-- Keep all theorems over `[IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]` (no `[IsDomain A]` unless essential).
-- `IsDomain A` remains an assumption on `tateAcyclicity` (current signature) — do not weaken.
-- Route B bridges are for `RationalLocData` at arbitrary base `D₀`. Phase 2 iso hypotheses are discharged via strongly-noetherian-Tate dispatches in the implementation.
+Phase B (depends on A):
+9. T-INJ-REROUTE (or direct reroute of Part 1).
+10. T-ACYC-PART2 (final assembly).
+
+## Generality decisions
+
+- All new lemmas stated over generic complete strongly noetherian Tate `A`
+  (or `B` for the Example 6.38 generic primitive).
+- Use `PairOfDefinition` + `RationalLocData` framework uniformly.
+- No `[IsDomain]` hypotheses (per reviewer Q3-STEP1).
+- Continuity proofs use the `locBasis` filter basis characterisation.
