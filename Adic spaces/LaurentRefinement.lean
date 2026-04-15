@@ -8,6 +8,7 @@ import «Adic spaces».TopologyComparison
 import «Adic spaces».PresheafTateStructure
 import «Adic spaces».LaurentCoverExact
 import «Adic spaces».CompletionLocalization
+import «Adic spaces».Example638
 import Mathlib.RingTheory.Flat.Basic
 import Mathlib.RingTheory.MvPowerSeries.NoZeroDivisors
 
