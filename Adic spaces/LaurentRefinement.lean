@@ -964,6 +964,164 @@ theorem laurentMinusBridge_restrictionMap
   -- `(epsilonHom_gen (canonicalMap f) x).2 = mk(algebraMap x)` by definition.
   rfl
 
+/-! ### Overlap infrastructure for `laurentBridge_delta_eq_zero_of_compat`
+
+The delta-vanishing theorem below relies on an *overlap bridge* identifying
+the presheaf value at the double-Laurent refinement with the algebraic
+overlap ring `B₁₂_gen`. We expose the residual facts as explicit sub-sorries,
+following the sub-sorry pattern used for the plus/minus bridge compatibility
+lemmas above. -/
+
+/-- The overlap rational datum for the Laurent cover at `f`: the common
+refinement of `laurentPlusDatum` and `laurentMinusDatum`, realised as the
+double refinement `laurentMinusDatum (laurentPlusDatum D₀ f) f`.
+
+Its `s` is `(laurentPlusDatum D₀ f).s · f = D₀.s · f`, and its rational open
+equals `rationalOpen(plus) ∩ rationalOpen(minus)` (Remark 7.30(5)). -/
+noncomputable def laurentOverlapDatum (D₀ : RationalLocData A) (f : A) :
+    RationalLocData A :=
+  laurentMinusDatum (laurentPlusDatum D₀ f) f
+
+/-- The overlap is contained in the plus half. Immediate from
+`laurentMinus_subset` applied to `laurentPlusDatum D₀ f`. -/
+theorem laurentOverlap_subset_plus (D₀ : RationalLocData A) (f : A) :
+    rationalOpen (laurentOverlapDatum D₀ f).T (laurentOverlapDatum D₀ f).s ⊆
+      rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s :=
+  laurentMinus_subset (laurentPlusDatum D₀ f) f
+
+/-- The overlap is contained in the minus half.
+
+Both sides have the same `s = D₀.s · f`, and the overlap's `T` contains the
+minus's `T` (the overlap has `Dp.T = insert f D₀.T` on the left factor,
+whereas the minus has `D₀.T`; both share the right factor `{D₀.s, f}`).
+A bigger `T` imposes more valuation constraints, hence a smaller rational
+open. -/
+theorem laurentOverlap_subset_minus (D₀ : RationalLocData A) (f : A) :
+    rationalOpen (laurentOverlapDatum D₀ f).T (laurentOverlapDatum D₀ f).s ⊆
+      rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s := by
+  -- `D_overlap.s = (laurentPlusDatum D₀ f).s · f = D₀.s · f = (laurentMinusDatum D₀ f).s`
+  -- `D_overlap.T = (insert Dp.s Dp.T) * {Dp.s, f}` with `Dp.s = D₀.s, Dp.T = insert f D₀.T`
+  -- so `D_overlap.T = (insert D₀.s (insert f D₀.T)) * {D₀.s, f}`
+  -- `(laurentMinusDatum D₀ f).T = (insert D₀.s D₀.T) * {D₀.s, f}`
+  -- The overlap T contains the minus T (extra factor `f` in the first factor),
+  -- so the valuation constraint ∀t∈T, v(t) ≤ v(s) on the overlap T implies
+  -- the same constraint on the minus T.
+  intro v hv
+  obtain ⟨hv_spa, hv_T, hv_s⟩ := hv
+  -- Show the `s` parts agree (both = D₀.s * f).
+  refine ⟨hv_spa, fun t ht => ?_, ?_⟩
+  · -- Every `t ∈ (laurentMinusDatum D₀ f).T` is also in `(laurentOverlapDatum D₀ f).T`.
+    -- (laurentMinusDatum D₀ f).T = (insert D₀.s D₀.T).product {D₀.s, f} |>.image (·.1 * ·.2)
+    -- (laurentOverlapDatum D₀ f).T
+    --   = (insert (laurentPlusDatum D₀ f).s (laurentPlusDatum D₀ f).T).product {(laurentPlusDatum D₀ f).s, f} |>.image (·.1 * ·.2)
+    --   = (insert D₀.s (insert f D₀.T)).product {D₀.s, f} |>.image (·.1 * ·.2)
+    -- The insert D₀.s (insert f D₀.T) ⊇ insert D₀.s D₀.T (left factor containment).
+    -- So the overlap T ⊇ minus T.
+    apply hv_T
+    -- Reduce both sides to the image form.
+    rcases Finset.mem_image.mp ht with ⟨⟨t₁, t₂⟩, ht_prod, rfl⟩
+    rcases Finset.mem_product.mp ht_prod with ⟨ht₁, ht₂⟩
+    refine Finset.mem_image.mpr ⟨(t₁, t₂), ?_, rfl⟩
+    refine Finset.mem_product.mpr ⟨?_, ht₂⟩
+    -- t₁ ∈ insert D₀.s D₀.T ⊆ insert D₀.s (insert f D₀.T) = insert (laurentPlusDatum D₀ f).s (laurentPlusDatum D₀ f).T
+    rcases Finset.mem_insert.mp ht₁ with h | h
+    · exact Finset.mem_insert.mpr (Or.inl h)
+    · exact Finset.mem_insert.mpr
+        (Or.inr (Finset.mem_insert.mpr (Or.inr h)))
+  · -- `s` parts are equal: overlap `s = D₀.s * f = (laurentMinusDatum D₀ f).s`.
+    exact hv_s
+
+/-- **Sub-sorry: overlap bridge τ₁₂ existence.**
+
+The ring isomorphism identifying the presheaf value at the Laurent overlap
+with the algebraic overlap ring `B₁₂_gen (D₀.canonicalMap f)`, parallel to
+`laurentPlusBridge` and `laurentMinusBridge` but at the overlap. The
+statement `Nonempty (... ≃+* ...)` is enough for the downstream delta-
+vanishing argument. -/
+theorem laurentOverlapBridge_exists
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A) :
+    Nonempty (presheafValue (laurentOverlapDatum D₀ f) ≃+*
+      LaurentCover.B₁₂_gen (D₀.canonicalMap f)) := by
+  sorry
+
+/-- **Sub-sorry: overlap bridge intertwining with the plus side.**
+
+The overlap bridge `τ₁₂` commutes with the plus restriction map via `posLift`:
+`τ₁₂ ∘ restrictionMap(plus → overlap) = posLift ∘ laurentPlusBridge`. -/
+theorem laurentOverlap_plus_intertwine
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A)
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+    (hA_complete_B : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_forward_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue D₀) :=
+        (presheafValue_pairOfDefinition P D₀).some
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))))
+        (example638Plus_forwardHom (presheafValue D₀) P_B (D₀.canonicalMap f)))
+    (τ₁₂ : presheafValue (laurentOverlapDatum D₀ f) ≃+*
+      LaurentCover.B₁₂_gen (D₀.canonicalMap f))
+    (uplus : presheafValue (laurentPlusDatum D₀ f)) :
+    τ₁₂ (restrictionMap (laurentPlusDatum D₀ f) (laurentOverlapDatum D₀ f)
+          (laurentOverlap_subset_plus D₀ f) uplus) =
+      LaurentCover.posLift (D₀.canonicalMap f)
+        (laurentPlusBridge P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B
+          hnoeth_B hcont_forward_B uplus) := by
+  sorry
+
+/-- **Sub-sorry: overlap bridge intertwining with the minus side.**
+
+The overlap bridge `τ₁₂` commutes with the minus restriction map via `negLift`:
+`τ₁₂ ∘ restrictionMap(minus → overlap) = negLift ∘ laurentMinusBridge`. -/
+theorem laurentOverlap_minus_intertwine
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A)
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
+    (τ₁₂ : presheafValue (laurentOverlapDatum D₀ f) ≃+*
+      LaurentCover.B₁₂_gen (D₀.canonicalMap f))
+    (uminus : presheafValue (laurentMinusDatum D₀ f)) :
+    τ₁₂ (restrictionMap (laurentMinusDatum D₀ f) (laurentOverlapDatum D₀ f)
+          (laurentOverlap_subset_minus D₀ f) uminus) =
+      LaurentCover.negLift (D₀.canonicalMap f)
+        (laurentMinusBridge P D₀ f hnoeth_B hcont_eval_B uminus) := by
+  sorry
+
 /-- **Route B bridge (delta vanishing on compatible pairs)**: compatibility
 of `(uplus, uminus)` on every common refinement implies that their images
 under the bridges map to a class annihilated by `deltaMap_gen`.
@@ -973,23 +1131,12 @@ Mathematical content: `deltaMap_gen f'` is the algebraic difference of
 exactly the sheaf condition on the doubly-refined datum (with `s = D₀.s · f`
 and `T` containing both halves), which equals the Laurent overlap.
 
-**Proof skeleton.** The complete proof requires an *overlap bridge*
-`τ₁₂ : presheafValue(D_overlap) ≃+* B₁₂_gen(canonicalMap f)` together with
-intertwining properties:
-  `τ₁₂ ∘ restrictionMap(plus → overlap) = posLift ∘ laurentPlusBridge`
-  `τ₁₂ ∘ restrictionMap(minus → overlap) = negLift ∘ laurentMinusBridge`
-where `D_overlap` is the common refinement of `laurentPlusDatum` and
-`laurentMinusDatum` (intersection of their rational opens; realized as a
-double-Laurent refinement with `s = D₀.s · f` and appropriate `T`).
-
-Given such `τ₁₂`, apply `hcompat` at `D_overlap`, then transport
-through `τ₁₂` to conclude that `posLift(plus)` and `negLift(minus)` coincide,
-i.e. `deltaMap_gen = 0`.
-
-The overlap bridge `τ₁₂` and its intertwining laws are not yet developed;
-this proof is a targeted stub pending that infrastructure (parallel to the
-individual plus-bridge compat stub `laurentPlusBridge_restrictionMap`; the
-minus side is reduced via `presheafValue_iteratedMinus_equiv_restrictionMap_canonicalMap`). -/
+**Proof.** Apply `hcompat` at `laurentOverlapDatum D₀ f` to obtain equality
+of the plus and minus restrictions in `presheafValue(D_overlap)`. Apply the
+overlap bridge `τ₁₂` (from `laurentOverlapBridge_exists`) to both sides and
+use `laurentOverlap_plus_intertwine` / `laurentOverlap_minus_intertwine` to
+transport the equality into `B₁₂_gen`. Subtracting yields `deltaMap_gen = 0`
+by definition. -/
 theorem laurentBridge_delta_eq_zero_of_compat
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
@@ -1043,47 +1190,33 @@ theorem laurentBridge_delta_eq_zero_of_compat
       (laurentPlusBridge P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B
           hnoeth_B hcont_forward_B uplus,
         laurentMinusBridge P D₀ f hnoeth_B hcont_eval_B uminus) = 0 := by
-  -- **Step 1 — Overlap datum.** The common refinement of `laurentPlusDatum`
-  -- and `laurentMinusDatum` is any rational datum `D₃` whose rational open
-  -- is contained in both halves. The cleanest choice is the doubly-refined
-  -- datum `D_overlap := laurentMinusDatum (laurentPlusDatum D₀ f) f`
-  -- (equivalently `laurentPlusDatum (laurentMinusDatum D₀ f) f`), whose
-  -- rational open equals `rationalOpen(plus) ∩ rationalOpen(minus)` by
-  -- `rationalOpen_inter` (Remark 7.30(5)).
-  -- Its `s` is `D₀.s · f` and `T` is a product finite set containing both halves.
-  --
-  -- **Step 2 — Apply `hcompat`.** Let `h₃p : rationalOpen(D_overlap) ⊆
-  -- rationalOpen(plus)` and `h₃m : rationalOpen(D_overlap) ⊆ rationalOpen(minus)`
-  -- be the two containments. Then `hcompat D_overlap h₃p h₃m` gives
-  --   `restrictionMap plus D_overlap h₃p uplus =
-  --      restrictionMap minus D_overlap h₃m uminus`
-  -- as elements of `presheafValue(D_overlap)`.
-  --
-  -- **Step 3 — Overlap bridge τ₁₂.** The missing infrastructure is a ring
-  -- isomorphism
-  --   `τ₁₂ : presheafValue(D_overlap) ≃+* B₁₂_gen(canonicalMap f)`
-  -- together with intertwining laws:
-  --   `τ₁₂ ∘ restrictionMap(plus → overlap) =
-  --      posLift(canonicalMap f) ∘ laurentPlusBridge`
-  --   `τ₁₂ ∘ restrictionMap(minus → overlap) =
-  --      negLift(canonicalMap f) ∘ laurentMinusBridge`
-  -- These express that the presheaf overlap equals the algebraic overlap,
-  -- compatibly with the two bridge identifications.
-  --
-  -- **Step 4 — Conclude.** Applying `τ₁₂` to the equation from Step 2 gives
-  --   `posLift(laurentPlusBridge uplus) = negLift(laurentMinusBridge uminus)`
-  -- in `B₁₂_gen(canonicalMap f)`, which is exactly `deltaMap_gen = 0` by
-  -- definition of `deltaMap_gen` as the difference.
-  --
-  -- **Status.** Without the overlap bridge τ₁₂ (parallel to
-  -- `presheafValue_iteratedPlus_equiv` and `presheafValue_iteratedMinus_equiv`
-  -- but at the overlap), this reduction cannot be completed here. The stub is
-  -- consistent with the pending sorries in `laurentPlusBridge_restrictionMap`
-  -- and `laurentMinusBridge_restrictionMap` (both in this file): those build
-  -- the top-edge compatibility with `D₀`; the present theorem requires the
-  -- bottom-edge compatibility with the overlap. All three combine in
-  -- `laurentCover_gluing_presheaf_viaBridges`.
-  sorry
+  -- **Step 1 — Extract the overlap bridge τ₁₂.**
+  obtain ⟨τ₁₂⟩ := laurentOverlapBridge_exists P D₀ f
+  -- **Step 2 — Apply `hcompat` at the overlap datum.**
+  have h_restr_eq : restrictionMap (laurentPlusDatum D₀ f) (laurentOverlapDatum D₀ f)
+        (laurentOverlap_subset_plus D₀ f) uplus =
+      restrictionMap (laurentMinusDatum D₀ f) (laurentOverlapDatum D₀ f)
+        (laurentOverlap_subset_minus D₀ f) uminus :=
+    hcompat (laurentOverlapDatum D₀ f)
+      (laurentOverlap_subset_plus D₀ f) (laurentOverlap_subset_minus D₀ f)
+  -- **Step 3 — Transport through τ₁₂.** Apply τ₁₂ to both sides, then rewrite
+  -- each side using the intertwining lemmas.
+  have h_pos_eq_neg :
+      LaurentCover.posLift (D₀.canonicalMap f)
+        (laurentPlusBridge P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B
+          hnoeth_B hcont_forward_B uplus) =
+      LaurentCover.negLift (D₀.canonicalMap f)
+        (laurentMinusBridge P D₀ f hnoeth_B hcont_eval_B uminus) := by
+    have h1 := laurentOverlap_plus_intertwine P D₀ f hNoeth_B hLocLift_B
+      hA₀Noeth_B hA_complete_B hnoeth_B hcont_forward_B τ₁₂ uplus
+    have h2 := laurentOverlap_minus_intertwine P D₀ f hnoeth_B hcont_eval_B
+      τ₁₂ uminus
+    rw [← h1, ← h2, h_restr_eq]
+  -- **Step 4 — Conclude.** `deltaMap_gen (b₁, b₂) = posLift b₁ - negLift b₂`.
+  show LaurentCover.posLift (D₀.canonicalMap f) _ -
+    LaurentCover.negLift (D₀.canonicalMap f) _ = 0
+  rw [h_pos_eq_neg]
+  exact sub_self _
 
 /-- **Laurent cover gluing via row3_exact** (Route B, Wedhorn Lemma 8.33),
 parameterised by the two type bridges.
