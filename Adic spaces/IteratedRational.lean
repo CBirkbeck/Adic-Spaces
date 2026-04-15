@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import «Adic spaces».LaurentRefinement
 import «Adic spaces».PresheafTateStructure
 import «Adic spaces».TopologyComparison
+import «Adic spaces».CompletionLocalization
 
 /-!
 # Iterated Rational Localization (Wedhorn Lemma 2.13)
@@ -649,16 +650,40 @@ variable [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
 
 /-- `canonicalMap b` is power-bounded in `presheafValue (trivialPlusDatum P b)`.
 
-**Proof route (sorry):** in `(trivialPlusDatum P b).topology` on
-`Localization.Away 1`, the element `algebraMap B _ b = divByS b 1` lies in
-`locSubring P {b} 1` (the ring of definition). Ring-of-definition elements
-are power-bounded, and this power-boundedness transfers under `coeRingHom`
-to the completion. -/
+Parallels `invS_isPowerBounded_of_one_mem_T` in `CompletionLocalization.lean`:
+`divByS b 1 = algebraMap B _ b` lies in `locSubring P {b} 1` (since `b ∈ T`),
+its powers stay in `locSubring`, and `coeRingHom_image_locSubring_isBounded`
+gives boundedness of the image in the completion. -/
 theorem canonicalMap_b_isPowerBounded_in_trivialPlus
     (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B) :
     TopologicalRing.IsPowerBounded
       ((trivialPlusDatum B P b).canonicalMap b) := by
-  sorry
+  set D := trivialPlusDatum B P b
+  -- `D.canonicalMap b = D.coeRingHom (algebraMap B (Localization.Away 1) b)`.
+  have hcm : D.canonicalMap b =
+      D.coeRingHom (algebraMap B (Localization.Away D.s) b) := rfl
+  rw [hcm]
+  -- Show `algebraMap b = divByS b 1` lies in `locSubring P {b} 1`.
+  have halg_eq : algebraMap B (Localization.Away D.s) b = divByS b D.s := by
+    show algebraMap B (Localization.Away (1 : B)) b = divByS b 1
+    rw [divByS_eq_algebraMap]
+  rw [halg_eq]
+  -- `divByS b D.s ∈ locSubring D.P D.T D.s` since `b ∈ D.T = {b}`.
+  have hmem : divByS b D.s ∈ locSubring D.P D.T D.s :=
+    divByS_mem_locSubring D.P D.T D.s (Finset.mem_singleton_self b)
+  -- Powers of `divByS b D.s` all lie in `locSubring`.
+  have hpow : ∀ n : ℕ, (divByS b D.s) ^ n ∈ locSubring D.P D.T D.s :=
+    fun n => (locSubring D.P D.T D.s).pow_mem hmem n
+  -- The range of `(D.coeRingHom (divByS b D.s))^·` lies in
+  -- `D.coeRingHom '' locSubring`, which is bounded.
+  have hrange : Set.range
+      ((D.coeRingHom (divByS b D.s)) ^ · : ℕ → presheafValue D) ⊆
+      D.coeRingHom '' (locSubring D.P D.T D.s : Set (Localization.Away D.s)) := by
+    rintro _ ⟨n, rfl⟩
+    change (D.coeRingHom (divByS b D.s)) ^ n ∈ _
+    rw [← map_pow]
+    exact ⟨(divByS b D.s) ^ n, hpow n, rfl⟩
+  exact (CompletionLocalization.coeRingHom_image_locSubring_isBounded D).subset hrange
 
 /-- The generic evaluation hom `TateAlgebra B →+* presheafValue (trivialPlusDatum P b)`
 sending `X ↦ canonicalMap b`, via `evalHomBounded`. -/

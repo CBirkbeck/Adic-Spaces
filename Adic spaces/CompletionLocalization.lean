@@ -575,7 +575,7 @@ with `W ⊆ U`, pull back to get `coe⁻¹'(W) ∈ nhds 0` in the source
 `locSubring * locNhd k ⊆ locNhd k ⊆ coe⁻¹'(W)` for large `k`, then
 `coe '' locSubring * closure(coe '' locNhd k) ⊆ closure(coe '' locNhd k)
 ⊆ W ⊆ U`. -/
-private theorem coeRingHom_image_locSubring_isBounded (D : RationalLocData A) :
+theorem coeRingHom_image_locSubring_isBounded (D : RationalLocData A) :
     @TopologicalRing.IsBounded (presheafValue D) _
       (@UniformSpace.toTopologicalSpace _
         (@UniformSpace.Completion.uniformSpace _ D.uniformSpace))
