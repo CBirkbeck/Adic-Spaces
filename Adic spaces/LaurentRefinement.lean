@@ -510,12 +510,12 @@ noncomputable def presheafValue_iteratedMinus_equiv
     (f : A) :
     presheafValue (laurentMinusDatum D₀ f) ≃+*
       presheafValue (iteratedMinusDatum_B P D₀ f) := by
-  -- Proof lives in `Adic spaces/IteratedRational.lean` as
-  -- `presheafValue_iteratedMinus_equiv_aux` (takes an explicit `hsub`
-  -- supplied here by `laurentMinus_subset`). Current cycle: IteratedRational
-  -- imports LaurentRefinement, so we can't reference the aux here without a
-  -- file move. The aux is structurally complete but has 4 targeted sorries
-  -- pending (continuity × 2 + round trip × 2).
+  -- OPEN (stub): the original route via `IsLocalization.Away.lift` +
+  -- `HasLocLiftPowerBounded` is superseded by the R3 Example 6.38 route
+  -- (evalHomBounded) now used by `laurentMinusBridge` directly. A proper
+  -- proof of this identification (Wedhorn Lemma 2.13) should be derived
+  -- from the R3 minus equiv at `B := presheafValue D₀`; the stub remains
+  -- as a placeholder for the Phase-2 exposition API.
   sorry
 
 /-- **Non-discrete `f − X` quotient equivalence over a generic Tate base B**
