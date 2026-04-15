@@ -278,21 +278,32 @@ section IteratedMinusEquiv
 
 variable [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
 
-/-- `iteratedMinus_forwardHom ∘ iteratedMinus_backwardHom = id`. **Proof deferred:**
-both composites act as identity on the dense subring `range((iteratedMinusDatum_B).coeRingHom)`,
-and the target is T2, so the identity extends. -/
-theorem iteratedMinus_forward_backward_eq_id
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
-    (f : A)
+/-- The composite `backwardLocHom ∘ forwardLocHom` at the algebraic level equals
+`(laurentMinusDatum D₀ f).coeRingHom` (both Loc_A(D₀.s·f) → presheafValue(laurentMinus)
+ring homs agreeing on algebraMap via `restrictionMapHom_canonicalMap`). -/
+private theorem backward_forward_locHom_comp_eq_coeRingHom
+    (D₀ : RationalLocData A) (f : A)
     (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
-    (iteratedMinus_forwardHom P D₀ f).comp
-      (iteratedMinus_backwardHom P D₀ f hsub) =
-      RingHom.id _ := by
-  sorry
+    ((iteratedMinus_backwardLocHom D₀ f hsub).comp
+      (iteratedMinus_forwardLocHom D₀ f)) =
+    (laurentMinusDatum D₀ f).coeRingHom := by
+  apply IsLocalization.ringHom_ext (Submonoid.powers (D₀.s * f))
+  ext a
+  show iteratedMinus_backwardLocHom D₀ f hsub
+    (iteratedMinus_forwardLocHom D₀ f
+      (algebraMap A (Localization.Away (D₀.s * f)) a)) =
+      (laurentMinusDatum D₀ f).coeRingHom (algebraMap A _ a)
+  rw [iteratedMinus_forwardLocHom_algebraMap,
+      iteratedMinus_baseHom, RingHom.comp_apply,
+      iteratedMinus_backwardLocHom_algebraMap,
+      restrictionMapHom_canonicalMap]
+  rfl
 
-/-- `iteratedMinus_backwardHom ∘ iteratedMinus_forwardHom = id`. Dual of above. -/
+/-- `iteratedMinus_backwardHom ∘ iteratedMinus_forwardHom = id`.
+Proved by the Completion.ext' pattern: both continuous ring homs agree on
+the dense `coeRingHom` image, where the check reduces to the uncompleted-level
+identity `backward_forward_locHom_comp_eq_coeRingHom`. -/
 theorem iteratedMinus_backward_forward_eq_id
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
@@ -301,6 +312,63 @@ theorem iteratedMinus_backward_forward_eq_id
       rationalOpen D₀.T D₀.s) :
     (iteratedMinus_backwardHom P D₀ f hsub).comp
       (iteratedMinus_forwardHom P D₀ f) =
+      RingHom.id _ := by
+  letI : UniformSpace (Localization.Away (laurentMinusDatum D₀ f).s) :=
+    (laurentMinusDatum D₀ f).uniformSpace
+  letI : IsUniformAddGroup (Localization.Away (laurentMinusDatum D₀ f).s) :=
+    (laurentMinusDatum D₀ f).isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away (laurentMinusDatum D₀ f).s) :=
+    (laurentMinusDatum D₀ f).isTopologicalRing
+  letI : UniformSpace (Localization.Away (iteratedMinusDatum_B P D₀ f).s) :=
+    (iteratedMinusDatum_B P D₀ f).uniformSpace
+  letI : IsUniformAddGroup (Localization.Away (iteratedMinusDatum_B P D₀ f).s) :=
+    (iteratedMinusDatum_B P D₀ f).isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away (iteratedMinusDatum_B P D₀ f).s) :=
+    (iteratedMinusDatum_B P D₀ f).isTopologicalRing
+  apply RingHom.ext
+  intro x
+  show iteratedMinus_backwardHom P D₀ f hsub
+    (iteratedMinus_forwardHom P D₀ f x) = x
+  refine @UniformSpace.Completion.ext' _ _ _ _ _ _ _
+    ((UniformSpace.Completion.continuous_extension).comp
+      UniformSpace.Completion.continuous_extension)
+    continuous_id ?_ x
+  intro a
+  show iteratedMinus_backwardHom P D₀ f hsub
+    (iteratedMinus_forwardHom P D₀ f
+      (UniformSpace.Completion.coeRingHom a)) = UniformSpace.Completion.coeRingHom a
+  have hfwd : iteratedMinus_forwardHom P D₀ f
+      (UniformSpace.Completion.coeRingHom a) =
+      iteratedMinus_forwardToCompletion P D₀ f a :=
+    UniformSpace.Completion.extensionHom_coe _ _ a
+  rw [hfwd]
+  show iteratedMinus_backwardHom P D₀ f hsub
+    ((iteratedMinusDatum_B P D₀ f).coeRingHom
+      (iteratedMinus_forwardLocHom D₀ f a)) = _
+  have hbwd : iteratedMinus_backwardHom P D₀ f hsub
+      ((iteratedMinusDatum_B P D₀ f).coeRingHom
+        (iteratedMinus_forwardLocHom D₀ f a)) =
+      iteratedMinus_backwardLocHom D₀ f hsub
+        (iteratedMinus_forwardLocHom D₀ f a) :=
+    UniformSpace.Completion.extensionHom_coe _ _ _
+  rw [hbwd]
+  have h := backward_forward_locHom_comp_eq_coeRingHom D₀ f hsub
+  have := congr_fun (congrArg DFunLike.coe h) a
+  simp only [RingHom.comp_apply] at this
+  exact this
+
+/-- Symmetric: `iteratedMinus_forwardHom ∘ iteratedMinus_backwardHom = id`.
+
+**Uncompleted-level dual:** needs `forwardLocHom ∘ restrictionMapHom = algebraMap`
+on the dense subring. Deferred until backward-uncompleted side is fleshed out. -/
+theorem iteratedMinus_forward_backward_eq_id
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A)
+    (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    (iteratedMinus_forwardHom P D₀ f).comp
+      (iteratedMinus_backwardHom P D₀ f hsub) =
       RingHom.id _ := by
   sorry
 
