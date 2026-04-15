@@ -943,51 +943,123 @@ theorem mk_algebraMap_continuous_plusFSubX (b : B) :
     exact continuous_quotient_mk'
   exact h2.comp h1
 
+/-- In the quotient `TateAlgebra B ⧸ plusFSubXIdeal B b`, the classes of
+`algebraMap B _ b` and `X` are equal. (Since `algebraMap b - X ∈ plusFSubXIdeal`.) -/
+theorem quotient_algebraMap_b_eq_X (b : B) :
+    (Ideal.Quotient.mk (plusFSubXIdeal B b))
+        (algebraMap B ↥(TateAlgebra B) b) =
+      (Ideal.Quotient.mk (plusFSubXIdeal B b)) TateAlgebra.X := by
+  rw [Ideal.Quotient.eq]
+  exact Ideal.subset_span (Set.mem_singleton _)
+
+/-- In the quotient `TateAlgebra B ⧸ plusFSubXIdeal B b`, the image of
+`algebraMap b` is power-bounded. This is because `algebraMap b ≡ X (mod plusFSubXIdeal)`,
+and `X` lies in the pair subring (bounded part) of `TateAlgebra B`; bounded things map
+to bounded things through the continuous quotient map. -/
+theorem mk_algebraMap_b_isPowerBounded_in_quotientPlusFSubX
+    (b : B) :
+    @TopologicalRing.IsPowerBounded _ _ (quotientPlusFSubXIdealTopology B b)
+      ((Ideal.Quotient.mk (plusFSubXIdeal B b))
+        (algebraMap B ↥(TateAlgebra B) b)) := by
+  -- Let D = trivialPlusDatum. Then `mk(algebraMap b)` = `mk(X)` in the quotient
+  -- (since algebraMap b - X is in the ideal). `X` is in the pair subring of
+  -- TateAlgebra B — it's `1 · X` and `1 ∈ P.A₀`. The pair subring is bounded by
+  -- construction of `tateAlgebra_pairOfDefinition` (it's the ring of definition
+  -- of a Huber ring structure). So `{X^n : n ∈ ℕ} ⊆ pairSubring`, and under the
+  -- continuous quotient map this is bounded in the quotient.
+  --
+  -- Strategy: rewrite `mk(algebraMap b) = mk(X)` via quotient_algebraMap_b_eq_X,
+  -- then show `mk(X)` is power-bounded via the image of the bounded ring of definition.
+  have heq := quotient_algebraMap_b_eq_X B b
+  rw [heq]
+  -- Now need: mk(X) is power-bounded in the quotient.
+  -- X lives in pairSubring (since X is topologically nilpotent in TateAlgebra B
+  -- via tate_X_top_nilpotent, or equivalently X ∈ ring of definition).
+  -- Actually, X is in the ring of definition pairSubring because X is the generator
+  -- that lies in A₀ of the Tate algebra (see tateAlgebra.pairSubring construction).
+  -- The quotient of power-bounded is power-bounded (via continuous quotient_mk').
+  sorry
+
 /-- `plusLocToQuotient B b` is continuous from the `trivialPlusDatum` localization
 topology on `Localization.Away 1` to the quotient topology on
 `TateAlgebra B ⧸ plusFSubXIdeal B b`.
 
-**Strategy:** Use `continuous_of_continuousAt_zero` after establishing `IsTopologicalAddGroup`
-on both sides. Reduce continuity at 0 to: for any quotient nhd `S` of 0, we need a loc nhd
-mapped into it. Since the loc topology on `Localization.Away 1` at `T = {b}`, `s = 1` is
-bounded by the image of `B`'s topology (via `locTopology_hasBasis_singleton_one`, which
-only handles `T = {1}` — we use `T = {b}` here, but the neighbourhood bases agree via
-`algebraMap B`), and `mk ∘ algebraMap : B → TateAlgebra B ⧸ plusFSubXIdeal B b` is continuous
-(composition of `tateAlgebra_algebraMap_continuous` and `continuous_quotient_mk'`), the
-result follows.
-
-To avoid `locTopology_hasBasis_singleton_one` which assumes `T = {1}`, we argue directly:
-`plusLocToQuotient B b` precomposed with the `Localization.Away 1 ≃ B` equiv is
-`mk ∘ algebraMap`, which is continuous. The equiv is a homeomorphism if the loc
-topology at `T = {b}`, `s = 1` equals the pullback of `B`'s topology. This is
-subtle. Instead, we take a more direct route: use that `plusLocToQuotient =
-mk ∘ algebraMap_lift` and show continuity via factorization. -/
+**Strategy:** Apply `locTopology_continuous_lift`. This reduces to two conditions:
+1. `plusLocToQuotient ∘ algebraMap B (Localization.Away 1) = mk ∘ algebraMap B (TateAlgebra B)`
+   is continuous. Uses `tateAlgebra_algebraMap_continuous` + `continuous_quotient_mk'`.
+2. For each `t ∈ T = {b}`, `plusLocToQuotient(divByS t 1)` is power-bounded in
+   the quotient. Since `divByS b 1 = algebraMap b`, this is
+   `mk(algebraMap b)`, which equals `mk(X)` in the quotient (by
+   `quotient_algebraMap_b_eq_X`). `mk(X)` is power-bounded because `X` lies in
+   the ring of definition `pairSubring`. -/
 theorem plusLocToQuotient_continuous (P : PairOfDefinition B) (b : B) :
     @Continuous _ _ (trivialPlusDatum B P b).topology
       (quotientPlusFSubXIdealTopology B b)
       (plusLocToQuotient B b) := by
-  -- Key observation: `plusLocToQuotient B b (x) = mk(algebraMap a)` when
-  -- `x = algebraMap a`. Since `Localization.Away 1 ≃ B` is a ring iso via
-  -- `IsLocalization.atOne` (every element is `algebraMap a` for some unique `a`),
-  -- we factor: plusLocToQuotient = (mk ∘ algebraMap) ∘ (atOne_equiv).
-  --
-  -- Pragmatic approach: use `IsLocalization.Away.lift` continuity fact
-  -- `IsLocalization.Away.lift_continuous` if it exists, or reduce via the
-  -- nhd-zero basis.
   letI : TopologicalSpace (Localization.Away (1 : B)) := (trivialPlusDatum B P b).topology
   letI : IsTopologicalRing (Localization.Away (1 : B)) := (trivialPlusDatum B P b).isTopologicalRing
   letI : IsTopologicalAddGroup (Localization.Away (1 : B)) :=
     (trivialPlusDatum B P b).isTopologicalAddGroup
   letI : TopologicalSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
     quotientPlusFSubXIdealTopology B b
-  letI : IsTopologicalRing (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+  letI hring : IsTopologicalRing (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
     quotientPlusFSubXIdealTopology_isTopologicalRing B b
-  letI : IsTopologicalAddGroup (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+  letI hadd : IsTopologicalAddGroup (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
     quotientPlusFSubXIdealTopology_isTopologicalAddGroup B b
-  -- Use the ring equiv `Localization.Away 1 ≃ B`.
-  -- Compose: continuity of `B → quotient` via `mk ∘ algebraMap` is already known.
-  -- `plusLocToQuotient B b ∘ algebraMap = mk ∘ algebraMap` (from `plusLocToQuotient_algebraMap`).
-  sorry
+  -- The canonical quotient topology is nonarchimedean (as it is a topological quotient
+  -- of TateAlgebra B which is nonarchimedean). Use NonarchimedeanRing from the quotient
+  -- topology's ring filter basis.
+  haveI hNA_tate : @NonarchimedeanRing ↥(TateAlgebra B) _ instTopologicalSpaceTateAlgebra :=
+    tateAlgBasis'.nonarchimedean
+  haveI : @NonarchimedeanRing (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b)
+      _ (quotientPlusFSubXIdealTopology B b) := by
+    constructor; intro U hU
+    have hcont : @Continuous _ _ instTopologicalSpaceTateAlgebra
+        (quotientPlusFSubXIdealTopology B b)
+        (Ideal.Quotient.mk (plusFSubXIdeal B b)) :=
+      continuous_quotient_mk'
+    have hU' : (Ideal.Quotient.mk (plusFSubXIdeal B b)) ⁻¹' (U : Set _) ∈
+        @nhds _ instTopologicalSpaceTateAlgebra (0 : ↥(TateAlgebra B)) :=
+      hcont.continuousAt.preimage_mem_nhds hU
+    obtain ⟨V, hVU⟩ := @NonarchimedeanRing.is_nonarchimedean _ _ _ hNA_tate _ hU'
+    exact ⟨{
+      toAddSubgroup := V.toAddSubgroup.map
+        (Ideal.Quotient.mk (plusFSubXIdeal B b)).toAddMonoidHom
+      isOpen' := @QuotientRing.isOpenMap_coe _ instTopologicalSpaceTateAlgebra _
+        (plusFSubXIdeal B b) instIsTopologicalRingTateAlgebra _ V.isOpen
+    }, fun x hx => by obtain ⟨y, hy, rfl⟩ := hx; exact hVU hy⟩
+  -- Continuity via locTopology_continuous_lift: needs nonarchimedean target.
+  apply locTopology_continuous_lift (trivialPlusDatum B P b).P (trivialPlusDatum B P b).T
+    (trivialPlusDatum B P b).s (trivialPlusDatum B P b).hopen
+    (plusLocToQuotient B b)
+  · -- Continuity of plusLocToQuotient ∘ algebraMap = mk ∘ algebraMap.
+    show @Continuous _ _ _ (quotientPlusFSubXIdealTopology B b)
+        ((plusLocToQuotient B b).comp (algebraMap B (Localization.Away (1 : B))))
+    -- Rewrite the composite as mk ∘ algebraMap using plusLocToQuotient_algebraMap.
+    have heq : (plusLocToQuotient B b).comp
+        (algebraMap B (Localization.Away (1 : B))) =
+        (Ideal.Quotient.mk (plusFSubXIdeal B b)).comp
+          (algebraMap B ↥(TateAlgebra B)) := by
+      ext a
+      simp only [RingHom.comp_apply]
+      exact plusLocToQuotient_algebraMap B b a
+    rw [show ⇑((plusLocToQuotient B b).comp (algebraMap B (Localization.Away (1 : B)))) =
+          ⇑((Ideal.Quotient.mk (plusFSubXIdeal B b)).comp (algebraMap B ↥(TateAlgebra B)))
+          from congr_arg _ heq]
+    exact mk_algebraMap_continuous_plusFSubX B b
+  · -- Power-boundedness: for each t ∈ {b}, plusLocToQuotient(divByS t 1) is power-bounded.
+    intro t ht
+    -- t = b since T = {b}.
+    have htb : t = b := Finset.mem_singleton.mp ht
+    -- divByS t 1 = algebraMap t.
+    rw [htb]
+    show @TopologicalRing.IsPowerBounded _ _ (quotientPlusFSubXIdealTopology B b)
+      (plusLocToQuotient B b (divByS b (trivialPlusDatum B P b).s))
+    show @TopologicalRing.IsPowerBounded _ _ (quotientPlusFSubXIdealTopology B b)
+      (plusLocToQuotient B b (divByS b (1 : B)))
+    rw [divByS_eq_algebraMap]
+    rw [plusLocToQuotient_algebraMap]
+    exact mk_algebraMap_b_isPowerBounded_in_quotientPlusFSubX B b
 
 end Example638PlusBackwardContinuity
 
@@ -1127,50 +1199,167 @@ variable [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
 
 open TateAlgebra
 
-/-- In the quotient `TateAlgebra B ⧸ plusFSubXIdeal B b`, the classes of
-`algebraMap B _ b` and `X` are equal. (Since `algebraMap b - X ∈ plusFSubXIdeal`.) -/
-theorem quotient_algebraMap_b_eq_X (b : B) :
-    (Ideal.Quotient.mk (plusFSubXIdeal B b))
-        (algebraMap B ↥(TateAlgebra B) b) =
-      (Ideal.Quotient.mk (plusFSubXIdeal B b)) TateAlgebra.X := by
-  rw [Ideal.Quotient.eq]
-  exact Ideal.subset_span (Set.mem_singleton _)
-
 /-- `backward ∘ forward = id` on `TateAlgebra B ⧸ plusFSubXIdeal B b`.
 
-Strategy: use `Ideal.Quotient.ringHom_ext` to reduce to a RingHom equality on
-`TateAlgebra B`; then use `TateAlgebra.ringHom_ext_at_generators` (or a manual
-computation via `evalHomBounded` structure) to check agreement on `algebraMap a`
-and `X`. -/
+**Strategy:** Apply `Ideal.Quotient.ringHom_ext` to reduce to the ring hom
+equality `(backward ∘ forward ∘ mk) = mk : TateAlgebra B →+* quotient`.
+
+Since `forward ∘ mk = evalHom` (by the definition of `example638Plus_forwardHom`
+via `Ideal.Quotient.lift`), this becomes `backward ∘ evalHom = mk`.
+
+Both sides are continuous ring homs `TateAlgebra B →+* quotient`:
+- `backward ∘ evalHom` is continuous since `evalHom = forward ∘ mk` (where `mk`
+  is continuous and `forward` is continuous by `hcont_forward`), and `backward`
+  is continuous (it's an `extensionHom` image).
+- `mk` is continuous by `continuous_quotient_mk'`.
+
+They agree on polynomials in `X` (dense in `TateAlgebra B` via
+`tateAlgebra_polynomials_dense_canonical`):
+- `backward(evalHom(algebraMap a)) = backward(canonicalMap a) =
+   mk(algebraMap a)` (by `example638Plus_backwardHom_canonicalMap`).
+- `backward(evalHom(X)) = backward(canonicalMap b) = mk(algebraMap b) = mk(X)`
+  (by `quotient_algebraMap_b_eq_X`).
+- Extends to polynomials in X by ring hom properties.
+
+Since the quotient is T2 (via `quotient_plusFSubXIdeal_t2Space`), T2 closure +
+density gives the equality. -/
 theorem example638Plus_backward_forward_eq_id
     (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
     (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
     (hnoeth : IsNoetherianRing
-      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition)) :
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_forward : @Continuous _ _
+      (quotientPlusFSubXIdealTopology B b)
+      (inferInstance : TopologicalSpace (presheafValue (trivialPlusDatum B P b)))
+      (example638Plus_forwardHom B P b)) :
     (example638Plus_backwardHom B P b hA_complete hnoeth).comp
       (example638Plus_forwardHom B P b) =
       RingHom.id _ := by
+  letI : TopologicalSpace ↥(TateAlgebra B) := instTopologicalSpaceTateAlgebra
+  letI : TopologicalSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealTopology B b
+  haveI : @T2Space _ (quotientPlusFSubXIdealTopology B b) :=
+    quotient_plusFSubXIdeal_t2Space B hA_complete hnoeth b
+  -- Step 1: reduce via Ideal.Quotient.ringHom_ext.
   apply Ideal.Quotient.ringHom_ext
-  -- Now must show: for any x : TateAlgebra B,
-  -- backward (forward (mk x)) = mk x.
-  -- forward (mk x) = example638Plus_evalHom x (= evalHomBounded at canonicalMap b).
-  -- backward (canonicalMap a) = mk(algebraMap a), backward is continuous.
-  -- We need: backward (evalHom x) = mk x.
-  -- Strategy: induction via Tate algebra generators (algebraMap and X).
-  -- But this requires evalHom-specific lemmas. Here's the direct approach:
-  -- Use continuity on both sides + agreement on dense subring.
+  -- Step 2: show the two ring homs backward ∘ forward ∘ mk and mk are equal
+  -- as functions TateAlgebra B → quotient.
+  -- ((backward ∘ forward).comp mk) = backward ∘ (forward ∘ mk) = backward ∘ evalHom.
+  -- (id).comp mk = mk.
+  -- We need backward ∘ evalHom = mk as ring homs/functions.
+  --
+  -- Both are continuous:
+  -- - backward ∘ evalHom: backward is continuous (extensionHom), evalHom = forward ∘ mk
+  --   where mk is continuous and forward is continuous by hcont_forward.
+  -- - mk is continuous.
+  --
+  -- Strategy: use density of polynomials + T2. On polynomials, the maps agree.
+  -- The proof below is structured via the polynomial subset
+  -- P := {g | ∃ N, ∀ n, N ≤ n 0 → g.val n = 0} which is dense in TateAlgebra
+  -- (tateAlgebra_polynomials_dense_canonical), and both sides of
+  -- `backward ∘ evalHom = mk` are continuous.
+  --
+  -- Agreement on polynomial generators follows from:
+  -- - `example638Plus_evalHom_algebraMap` + `example638Plus_backwardHom_canonicalMap`
+  --   for `algebraMap a`.
+  -- - `example638Plus_evalHom_X` + `example638Plus_backwardHom_canonicalMap` +
+  --   `quotient_algebraMap_b_eq_X` for `X`.
+  -- - Extends to polynomials by ring hom additivity and multiplicativity.
+  --
+  -- Full formalization: polynomial induction analogous to `polynomial_quotient_in_range`
+  -- in TopologyComparison.lean, which handles the minus branch case similarly.
   sorry
 
-/-- `forward ∘ backward = id` on `presheafValue (trivialPlusDatum B P b)`. -/
+/-- `forward ∘ backward = id` on `presheafValue (trivialPlusDatum B P b)`.
+
+**Strategy:** Use `Completion.ext'` on `presheafValue` to reduce to dense image
+agreement on `coeRingHom a` for `a : Localization.Away 1`. On such a point:
+- `backward (coeRingHom a) = plusLocToQuotient a` (by `example638Plus_backwardHom_coe`).
+- Need: `forward (plusLocToQuotient a) = coeRingHom a`.
+
+Both sides are ring homs `Localization.Away 1 →+* presheafValue`. By
+`IsLocalization.ringHom_ext` at `Submonoid.powers 1`, suffices to check on
+`algebraMap a`:
+- `forward(plusLocToQuotient(algebraMap a)) = forward(mk(algebraMap a)) =
+  evalHom(algebraMap a) = canonicalMap a = coeRingHom(algebraMap a)` ✓ -/
 theorem example638Plus_forward_backward_eq_id
     (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
     (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
     (hnoeth : IsNoetherianRing
-      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition)) :
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_forward : @Continuous _ _
+      (quotientPlusFSubXIdealTopology B b)
+      (inferInstance : TopologicalSpace (presheafValue (trivialPlusDatum B P b)))
+      (example638Plus_forwardHom B P b)) :
     (example638Plus_forwardHom B P b).comp
       (example638Plus_backwardHom B P b hA_complete hnoeth) =
       RingHom.id _ := by
-  sorry
+  letI : UniformSpace (Localization.Away (1 : B)) :=
+    (trivialPlusDatum B P b).uniformSpace
+  letI : IsUniformAddGroup (Localization.Away (1 : B)) :=
+    (trivialPlusDatum B P b).isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away (1 : B)) :=
+    (trivialPlusDatum B P b).isTopologicalRing
+  letI : UniformSpace (Localization.Away (trivialPlusDatum B P b).s) :=
+    (trivialPlusDatum B P b).uniformSpace
+  letI : IsUniformAddGroup (Localization.Away (trivialPlusDatum B P b).s) :=
+    (trivialPlusDatum B P b).isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away (trivialPlusDatum B P b).s) :=
+    (trivialPlusDatum B P b).isTopologicalRing
+  letI : TopologicalSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealTopology B b
+  letI : IsTopologicalRing (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealTopology_isTopologicalRing B b
+  letI : IsTopologicalAddGroup (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealTopology_isTopologicalAddGroup B b
+  letI : UniformSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealUniformSpace B b
+  letI : IsUniformAddGroup (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdeal_isUniformAddGroup B b
+  haveI : CompleteSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotient_plusFSubXIdeal_completeSpace B hA_complete hnoeth b
+  apply RingHom.ext
+  intro y
+  show example638Plus_forwardHom B P b
+    (example638Plus_backwardHom B P b hA_complete hnoeth y) = y
+  refine @UniformSpace.Completion.ext' _ _
+    (presheafValue (trivialPlusDatum B P b)) _ _ _ _
+    (hcont_forward.comp
+      UniformSpace.Completion.continuous_extension)
+    continuous_id ?_ y
+  intro a
+  show example638Plus_forwardHom B P b
+    (example638Plus_backwardHom B P b hA_complete hnoeth
+      (UniformSpace.Completion.coeRingHom a)) = UniformSpace.Completion.coeRingHom a
+  -- backward (coeRingHom a) = plusLocToQuotient a
+  have hbwd : example638Plus_backwardHom B P b hA_complete hnoeth
+      (UniformSpace.Completion.coeRingHom a) =
+      plusLocToQuotient B b a :=
+    example638Plus_backwardHom_coe B P b hA_complete hnoeth a
+  rw [hbwd]
+  -- Now need: forward (plusLocToQuotient a) = coeRingHom a.
+  -- Check as a ring hom equality via IsLocalization.ringHom_ext.
+  suffices h : (example638Plus_forwardHom B P b).comp (plusLocToQuotient B b) =
+      (trivialPlusDatum B P b).coeRingHom by
+    have := congr_fun (congrArg DFunLike.coe h) a
+    simp only [RingHom.comp_apply] at this
+    exact this
+  apply IsLocalization.ringHom_ext (Submonoid.powers (1 : B))
+  ext c
+  show example638Plus_forwardHom B P b
+      (plusLocToQuotient B b (algebraMap B (Localization.Away (1 : B)) c)) =
+    (trivialPlusDatum B P b).coeRingHom (algebraMap B _ c)
+  rw [plusLocToQuotient_algebraMap]
+  -- forward(mk(algebraMap c)) = evalHom(algebraMap c) = canonicalMap c.
+  show Ideal.Quotient.lift _ (example638Plus_evalHom B P b) _
+      ((Ideal.Quotient.mk (plusFSubXIdeal B b))
+        (algebraMap B ↥(TateAlgebra B) c)) =
+    (trivialPlusDatum B P b).coeRingHom (algebraMap B _ c)
+  rw [Ideal.Quotient.lift_mk]
+  -- evalHom (algebraMap c) = canonicalMap c
+  rw [example638Plus_evalHom_algebraMap]
+  -- canonicalMap c = coeRingHom (algebraMap c) by definition.
+  rfl
 
 end Example638PlusRoundTrip
 
@@ -1186,24 +1375,98 @@ open TateAlgebra
 Tate ring `B` and `b : B`, the Tate-algebra quotient `B⟨X⟩/(algebraMap b − X)`
 (with canonical quotient topology) is ring-isomorphic to
 `presheafValue (trivialPlusDatum P b)`, the completion of `Localization.Away 1`
-(≃ `B`) with the localization topology. -/
+(≃ `B`) with the localization topology.
+
+The `hcont_forward` hypothesis is needed for the round-trip identities — it
+asserts that `example638Plus_forwardHom` is continuous with the canonical
+quotient topology on its source. This is the plus-branch analogue of the
+continuity hypothesis carried by `example638Minus_equiv`. -/
 noncomputable def example638Plus_equiv
     (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
     (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
     (hnoeth : IsNoetherianRing
-      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition)) :
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_forward : @Continuous _ _
+      (quotientPlusFSubXIdealTopology B b)
+      (inferInstance : TopologicalSpace (presheafValue (trivialPlusDatum B P b)))
+      (example638Plus_forwardHom B P b)) :
     ↥(TateAlgebra B) ⧸ plusFSubXIdeal B b ≃+*
       presheafValue (trivialPlusDatum B P b) where
   toFun := example638Plus_forwardHom B P b
   invFun := example638Plus_backwardHom B P b hA_complete hnoeth
   left_inv x :=
     congr_fun (congrArg DFunLike.coe
-      (example638Plus_backward_forward_eq_id B P b hA_complete hnoeth)) x
+      (example638Plus_backward_forward_eq_id B P b hA_complete hnoeth hcont_forward)) x
   right_inv y :=
     congr_fun (congrArg DFunLike.coe
-      (example638Plus_forward_backward_eq_id B P b hA_complete hnoeth)) y
+      (example638Plus_forward_backward_eq_id B P b hA_complete hnoeth hcont_forward)) y
   map_mul' := map_mul _
   map_add' := map_add _
+
+/-- The forward direction of `example638Plus_equiv` sends `mk(algebraMap a)` to
+`canonicalMap a`. -/
+theorem example638Plus_equiv_mk_algebraMap
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_forward : @Continuous _ _
+      (quotientPlusFSubXIdealTopology B b)
+      (inferInstance : TopologicalSpace (presheafValue (trivialPlusDatum B P b)))
+      (example638Plus_forwardHom B P b))
+    (a : B) :
+    example638Plus_equiv B P b hA_complete hnoeth hcont_forward
+        ((Ideal.Quotient.mk (plusFSubXIdeal B b))
+          (algebraMap B ↥(TateAlgebra B) a)) =
+      (trivialPlusDatum B P b).canonicalMap a := by
+  change example638Plus_forwardHom B P b
+      ((Ideal.Quotient.mk (plusFSubXIdeal B b))
+        (algebraMap B ↥(TateAlgebra B) a)) = _
+  change Ideal.Quotient.lift _ (example638Plus_evalHom B P b) _
+      ((Ideal.Quotient.mk (plusFSubXIdeal B b))
+        (algebraMap B ↥(TateAlgebra B) a)) = _
+  rw [Ideal.Quotient.lift_mk]
+  exact example638Plus_evalHom_algebraMap B P b a
+
+/-- The forward direction of `example638Plus_equiv` sends `mk(X)` to `canonicalMap b`. -/
+theorem example638Plus_equiv_mk_X
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_forward : @Continuous _ _
+      (quotientPlusFSubXIdealTopology B b)
+      (inferInstance : TopologicalSpace (presheafValue (trivialPlusDatum B P b)))
+      (example638Plus_forwardHom B P b)) :
+    example638Plus_equiv B P b hA_complete hnoeth hcont_forward
+        ((Ideal.Quotient.mk (plusFSubXIdeal B b)) TateAlgebra.X) =
+      (trivialPlusDatum B P b).canonicalMap b := by
+  change example638Plus_forwardHom B P b
+      ((Ideal.Quotient.mk (plusFSubXIdeal B b)) TateAlgebra.X) = _
+  change Ideal.Quotient.lift _ (example638Plus_evalHom B P b) _
+      ((Ideal.Quotient.mk (plusFSubXIdeal B b)) TateAlgebra.X) = _
+  rw [Ideal.Quotient.lift_mk]
+  exact example638Plus_evalHom_X B P b
+
+/-- The inverse direction of `example638Plus_equiv` sends `canonicalMap a` to
+`mk(algebraMap a)`. -/
+theorem example638Plus_equiv_symm_canonicalMap
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_forward : @Continuous _ _
+      (quotientPlusFSubXIdealTopology B b)
+      (inferInstance : TopologicalSpace (presheafValue (trivialPlusDatum B P b)))
+      (example638Plus_forwardHom B P b))
+    (a : B) :
+    (example638Plus_equiv B P b hA_complete hnoeth hcont_forward).symm
+        ((trivialPlusDatum B P b).canonicalMap a) =
+      (Ideal.Quotient.mk (plusFSubXIdeal B b))
+        (algebraMap B ↥(TateAlgebra B) a) := by
+  change example638Plus_backwardHom B P b hA_complete hnoeth
+      ((trivialPlusDatum B P b).canonicalMap a) = _
+  exact example638Plus_backwardHom_canonicalMap B P b hA_complete hnoeth a
 
 end Example638PlusEquiv
 
