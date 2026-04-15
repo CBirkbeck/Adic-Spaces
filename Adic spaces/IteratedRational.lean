@@ -776,6 +776,88 @@ noncomputable def example638Plus_forwardHom
 
 end Example638PlusForward
 
+/-! ### Minus branch forward: evaluation at `invS = 1 / canonicalMap b` -/
+
+section Example638MinusForward
+
+variable [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
+
+/-- `invS D = D.coeRingHom (divByS 1 D.s)`: both are the inverse of
+`D.canonicalMap D.s` in `presheafValue D`, hence equal. -/
+theorem invS_eq_coeRingHom_divByS_one (D : RationalLocData A) :
+    invS D = D.coeRingHom (divByS 1 D.s) := by
+  have h1 : D.canonicalMap D.s * invS D = 1 := canonicalMap_s_mul_invS D
+  have halg : algebraMap A (Localization.Away D.s) D.s * divByS 1 D.s = 1 := by
+    rw [← invSelf_eq_divByS, IsLocalization.Away.mul_invSelf]
+  have h2 : D.canonicalMap D.s * D.coeRingHom (divByS 1 D.s) = 1 := by
+    show D.coeRingHom (algebraMap A (Localization.Away D.s) D.s) *
+      D.coeRingHom (divByS 1 D.s) = 1
+    rw [← map_mul, halg, map_one]
+  have hu : IsUnit (D.canonicalMap D.s) := isUnit_s_in_presheafValue D
+  exact hu.mul_left_cancel (h1.trans h2.symm)
+
+/-- `invS` in the trivial minus datum is power-bounded (via `1 ∈ D.T = {1}`). -/
+theorem invS_isPowerBounded_in_trivialMinus
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B) :
+    TopologicalRing.IsPowerBounded (invS (trivialMinusDatum B P b)) := by
+  rw [invS_eq_coeRingHom_divByS_one]
+  exact CompletionLocalization.invS_isPowerBounded_of_one_mem_T
+    (trivialMinusDatum B P b) (Finset.mem_singleton_self 1)
+
+/-- The generic evaluation hom `TateAlgebra B →+* presheafValue (trivialMinusDatum P b)`
+sending `X ↦ invS = 1 / canonicalMap b`, via `tateEvalPresheafHom`. -/
+noncomputable def example638Minus_evalHom
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B) :
+    ↥(TateAlgebra B) →+* presheafValue (trivialMinusDatum B P b) :=
+  tateEvalPresheafHom (trivialMinusDatum B P b)
+    (invS_isPowerBounded_in_trivialMinus B P b)
+
+/-- `example638Minus_evalHom` sends `algebraMap(a)` to `canonicalMap(a)`. -/
+theorem example638Minus_evalHom_algebraMap
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b a : B) :
+    example638Minus_evalHom B P b (algebraMap B _ a) =
+      (trivialMinusDatum B P b).canonicalMap a :=
+  tateEvalPresheafHom_algebraMap (trivialMinusDatum B P b)
+    (invS_isPowerBounded_in_trivialMinus B P b) a
+
+/-- `example638Minus_evalHom` sends `X` to `invS` = `1 / canonicalMap b`. -/
+theorem example638Minus_evalHom_X
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B) :
+    example638Minus_evalHom B P b TateAlgebra.X =
+      invS (trivialMinusDatum B P b) :=
+  tateEvalPresheafHom_X (trivialMinusDatum B P b)
+    (invS_isPowerBounded_in_trivialMinus B P b)
+
+/-- Key identity: `canonicalMap b * invS = 1` in `presheafValue (trivialMinusDatum P b)`.
+Since `(trivialMinusDatum P b).s = b`, this is just `canonicalMap_s_mul_invS`. -/
+theorem canonicalMap_b_mul_invS_eq_one_in_trivialMinus
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B) :
+    (trivialMinusDatum B P b).canonicalMap b *
+      invS (trivialMinusDatum B P b) = 1 :=
+  canonicalMap_s_mul_invS (trivialMinusDatum B P b)
+
+/-- The ideal `(1 - algebraMap b · X)` maps to zero under `example638Minus_evalHom`. -/
+theorem example638Minus_evalHom_oneSubfX_eq_zero
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B) :
+    example638Minus_evalHom B P b
+      (1 - algebraMap B ↥(TateAlgebra B) b * TateAlgebra.X) = 0 := by
+  rw [map_sub, map_one, map_mul, example638Minus_evalHom_algebraMap,
+      example638Minus_evalHom_X,
+      canonicalMap_b_mul_invS_eq_one_in_trivialMinus, sub_self]
+
+/-- Forward ring hom `TateAlgebra B ⧸ (1 − algebraMap b · X) → presheafValue (trivialMinusDatum P b)`,
+obtained by factoring `example638Minus_evalHom` through the quotient. -/
+noncomputable def example638Minus_forwardHom
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B) :
+    ↥(TateAlgebra B) ⧸ oneSubfXIdeal b →+*
+        presheafValue (trivialMinusDatum B P b) :=
+  Ideal.Quotient.lift _ (example638Minus_evalHom B P b) (fun y hy => by
+    rw [oneSubfXIdeal, Ideal.mem_span_singleton'] at hy
+    obtain ⟨c, hc⟩ := hy
+    rw [← hc, map_mul, example638Minus_evalHom_oneSubfX_eq_zero, mul_zero])
+
+end Example638MinusForward
+
 end Example638
 
 end ValuationSpectrum
