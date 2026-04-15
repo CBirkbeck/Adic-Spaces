@@ -88,6 +88,30 @@ Phases 1, 2, and 3 can run in parallel.
 
 ## Phase 1 — Spa-point at non-open prime (Layer A unblocker)
 
+**⚠️ Blocked pending Bourbaki CA III §2.8 formalization.** Per memory
+`project_T001_completion_route.md`: the completion route requires
+`completedLocSubring_isAdicComplete` (Presheaf.lean:476), which itself
+depends on `Submodule.isClosed_of_fg` for complete T2 linearly-topologized
+rings (Bourbaki CA III §2.8) — not in Mathlib. 20+ supporting theorems
+already proved on the way to this blocker.
+
+**Consequence for this plan:** Phase 1 cannot land without upstream
+Mathlib work or an alternative proof route (e.g., valuation-ring
+domination over `Frac(A/p)` from the reviewer's Q1 guidance, which is
+itself a ~120-line Zorn-based addition).
+
+**Downstream consequence:** Phase 5a (Cor 8.32 faithful flatness) depends
+on Phase 1's Spa-point construction. Without Phase 1, Phase 5a remains
+blocked, which leaves `restrictionMapHom_injective` (PresheafTateStructure.lean:1162)
+sorry'd, which leaves `tateAcyclicity` Part 1 blocked.
+
+**Realistic scope for this plan, given the blocker:**
+- Phases 2, 2b, 3, 4 are tractable → `laurentCover_gluing_presheaf` and all
+  11 bridge-chain sorries close.
+- Phase 5b (Lemma 8.34) is tractable and independent of Phase 1.
+- Phase 6.2 (`tateAcyclicity` Part 2) is tractable via Phase 5b.
+- **`tateAcyclicity` Part 1 remains blocked.**
+
 Construct `exists_spa_point_in_rationalOpen_of_nonOpen_prime` via Wedhorn Lemma 7.45 on `presheafValue_pairOfDefinition`. Route: for a non-open prime `p` with `C.base.s ∉ p`, complete `A/p` and use the Tate unit there.
 
 ### Task 1.1: State `exists_spa_point_in_rationalOpen_of_nonOpen_prime`
@@ -984,7 +1008,7 @@ Expected: sorries reduced significantly from 103. Target: ≤ 80 (bridge chain +
 
 ---
 
-## Total effort estimate
+## Total effort estimate (original plan)
 
 | Phase | Est. lines | Est. sessions | Blocks |
 |---|---|---|---|
@@ -1000,3 +1024,91 @@ Expected: sorries reduced significantly from 103. Target: ≤ 80 (bridge chain +
 | **Total** | **~1210** | **~9–11 sessions** | |
 
 Aggressive single-session targets: Phases 2 + 3 alone unlock `laurentMinusBridge` sorry-free. Phase 5b alone (assuming laurentCover_gluing_presheaf is a given) unlocks Part 2.
+
+---
+
+## 2026-04-15 reviewer-guided plan revision
+
+Second reviewer round (2026-04-15) delivered three decisive architectural pivots.
+The plan above is **superseded** on the critical path by the following revised
+sequencing.
+
+### Key directives
+
+**Q1 (Phase 1/5a retirement):** abandon the Spa-point-at-non-open-prime route
+on the critical path. Replace with **standard-cover reduction** — any rational
+covering reduces to a cover by elements `{f₀, ..., fₙ}` with `Ideal.span {fᵢ} = ⊤`.
+Once reduced, the acyclicity proof is algebraic/topological on the Čech complex,
+and no non-open-prime valuation construction is required. This entirely bypasses
+the Bourbaki CA III §2.8 blocker.
+
+**Q2 (hybrid continuity):** for the iterated rational equivs (minus and plus):
+- **Forward** direction — use the universal property: the algebraic generators
+  land as products of visibly power-bounded elements, so continuity follows from
+  existing `locTopology_continuous_lift`-style lemmas.
+- **Backward** direction — a single direct ring-of-definition comparison.
+  Identify a common open ring of definition on the common algebraic localization;
+  the algebraic inverse carries one neighborhood basis into the other.
+- **Round trips** — use `UniformSpace.Completion.extension_unique` /
+  `Completion.ext` / `Completion.map_unique`. Agreement on the dense algebraic
+  subring plus T2 of the target gives equality. No Banach-dense-subring detour.
+
+**Q3 (generic Example 6.38):** the single new primitive to build is
+**Wedhorn Example 6.38** *over an arbitrary complete strongly noetherian Tate
+base `B` and any power-bounded (in the relevant branch) `b ∈ B`*:
+- Plus: `𝒪_X(R(b/1)) ≃+* B⟨X⟩ / (b − X)`.
+- Minus: `𝒪_X(R(1/b)) ≃+* B⟨X⟩ / (1 − b·X)`.
+
+Drop the `[IsDomain]`-based Krull injectivity entirely. The primitive is smaller
+than originally scoped:
+- Forward (TateAlgebra side → presheafValue): `X ↦ b` (plus) / `X ↦ 1/b` (minus);
+  the relation maps to 0, hence factors through the quotient.
+- Backward (dense algebraic localization → TateAlgebra quotient): `f ↦ X` (plus)
+  / `1/f ↦ X` (minus). Continuity via the same coefficient estimate as the
+  existing `(1−sX)` work, over `B` instead of `A`.
+- Extend to completion via `UniformSpace.Completion.extensionHom`.
+- Round trips via the Completion ext-API.
+- Completeness of `B⟨X⟩/(b−X)` comes from "ideals in noetherian Tate rings are
+  closed" (already proved in the project).
+
+Once this primitive exists generically, **Lemma 2.13** (iterated rational) lets
+us instantiate it at `B := presheafValue D₀`, `b := D₀.canonicalMap f` to close
+the Laurent-branch bridges.
+
+### Revised phase order
+
+| Rev | Phase | Est. lines | Replaces |
+|---|---|---|---|
+| R1 | **Standard-cover reduction** — reduce `RationalCovering A` to a cover by `{fᵢ}` with `Ideal.span {fᵢ} = ⊤`, then induct via Laurent-cover gluing to recover acyclicity for the original cover. | ~120 | Phase 5b (Lemma 8.34) and part of Phase 5a |
+| R2 | **Iterated rational minus continuity (hybrid)** — finish the 4 sorries in `IteratedRational.lean` using Q2's hybrid strategy. | ~60 | Phase 2 tail |
+| R3 | **Generic Example 6.38 plus + minus** — Q3's primitive, over arbitrary complete strongly noetherian Tate `B`. | ~200 | Phase 2b + parts of Phase 3 |
+| R4 | **Iterated rational plus continuity** — mirror of R2. | ~60 | Phase 2 mirror |
+| R5 | **Instantiate at `B := presheafValue D₀`** — collapse the 4 `laurent±Bridge` stubs and their compat theorems. | ~50 | Phase 4 |
+| R6 | **`tateAcyclicity` final assembly** — Part 1 via `productRestriction` injectivity (derived from standard-cover reduction), Part 2 via Laurent gluing + R1 refinement transfer. | ~50 | Phase 6 |
+| R7 | **Cleanup** — retire quarantined sorries, remove dead code, update tickets. | ~30 | Phase 7 |
+| **Total revised** | | **~570** | **~5 sessions** |
+
+### Retired / deferred from original plan
+
+- **Phase 1 (Spa-point non-open prime)** — retired from critical path. Revisit
+  only if downstream theorem still needs it after R1–R7 land.
+- **Phase 5a (Cor 8.32 faithful-flatness)** — retired. The standard-cover
+  reduction (R1) gives separation via a more direct route: for each `x ∈
+  presheafValue C.base` with `restrictionMap x = 0` on every cover piece, use
+  the standard-cover unit decomposition to construct `1 · x` as a sum that
+  evaluates to `0`.
+- **Phase 3 (hypothesis discharges for `presheafValueTateQuotientEquiv`)** —
+  subsumed by R3 (the generic Example 6.38 primitive uses its own completion
+  API directly, not via `presheafValueTateQuotientEquiv`).
+
+### Remaining blockers
+
+None on the critical path. R1–R7 are all independent of the Bourbaki CA III §2.8
+blocker.
+
+### Suggested order for the next execution session
+
+1. **R1** first — it's the most structural change and unblocks R5/R6.
+2. **R3** next — the generic Example 6.38 is the load-bearing primitive.
+3. R2 / R4 / R5 can run in parallel once R3 is in place.
+4. R6 / R7 close the plan.
