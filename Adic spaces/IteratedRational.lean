@@ -858,6 +858,297 @@ noncomputable def example638Minus_forwardHom
 
 end Example638MinusForward
 
+/-! ### Minus branch backward: `locToQuotientOneSubfX_gen b` extended to completion
+
+The backward direction starts from
+`locToQuotientOneSubfX_gen b : Localization.Away b →+* TateAlgebra B ⧸ oneSubfXIdeal b`
+(defined in `PresheafIdentification.lean`, continuous by
+`locToQuotientOneSubfX_gen_continuous_canonical` in `TopologyComparison.lean`)
+and extends it to the completion `presheafValue (trivialMinusDatum B P b)` via
+`UniformSpace.Completion.extensionHom`, targeting the canonical quotient
+topology on `TateAlgebra B ⧸ oneSubfXIdeal b`.
+
+Recall `(trivialMinusDatum B P b).s = b`, so the target of this backward hom
+coincides with `TateAlgebra B ⧸ oneSubfXIdeal b`, and we can reuse the
+existing `presheafValueToCanonicalQuotient` infrastructure. -/
+
+section Example638MinusBackward
+
+variable [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
+
+/-- `T = {1}` hypothesis for `trivialMinusDatum`: every `t ∈ {1}` is
+power-bounded, namely `1` itself. -/
+theorem trivialMinusDatum_hT_pb
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B) :
+    ∀ t ∈ (trivialMinusDatum B P b).T, TopologicalRing.IsPowerBounded t := by
+  intro t ht
+  have ht1 : t = 1 := Finset.mem_singleton.mp ht
+  rw [ht1]; exact TopologicalRing.isPowerBounded_one
+
+/-- Backward ring hom `presheafValue (trivialMinusDatum B P b) →+* TateAlgebra B ⧸ oneSubfXIdeal b`,
+obtained by reusing `presheafValueToCanonicalQuotient` at `D = trivialMinusDatum B P b`
+(whose `.s = b`). Uses completeness/T2 of the canonical quotient via
+`quotient_oneSubfXIdeal_completeSpace` and `quotient_oneSubfXIdeal_t2Space`. -/
+noncomputable def example638Minus_backwardHom
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition)) :
+    presheafValue (trivialMinusDatum B P b) →+*
+      ↥(TateAlgebra B) ⧸ oneSubfXIdeal b :=
+  presheafValueToCanonicalQuotient (trivialMinusDatum B P b)
+    hA_complete hnoeth (trivialMinusDatum_hT_pb B P b)
+
+/-- On the dense image `coeRingHom a`, `example638Minus_backwardHom` agrees
+with `locToQuotientOneSubfX_gen b`. -/
+theorem example638Minus_backwardHom_coe
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (a : Localization.Away b) :
+    example638Minus_backwardHom B P b hA_complete hnoeth
+        ((trivialMinusDatum B P b).coeRingHom a) =
+      locToQuotientOneSubfX_gen b a :=
+  presheafValueToCanonicalQuotient_coe (trivialMinusDatum B P b)
+    hA_complete hnoeth (trivialMinusDatum_hT_pb B P b) a
+
+/-- `example638Minus_backwardHom` sends `canonicalMap a` to `mk(algebraMap a)`. -/
+theorem example638Minus_backwardHom_canonicalMap
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (a : B) :
+    example638Minus_backwardHom B P b hA_complete hnoeth
+        ((trivialMinusDatum B P b).canonicalMap a) =
+      (Ideal.Quotient.mk (oneSubfXIdeal b))
+        (algebraMap B ↥(TateAlgebra B) a) := by
+  show example638Minus_backwardHom B P b hA_complete hnoeth
+    ((trivialMinusDatum B P b).coeRingHom
+      (algebraMap B (Localization.Away b) a)) = _
+  rw [example638Minus_backwardHom_coe, locToQuotientOneSubfX_gen_algebraMap]
+
+/-- `example638Minus_backwardHom` sends `invS` to `mk(X)`. -/
+theorem example638Minus_backwardHom_invS
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition)) :
+    example638Minus_backwardHom B P b hA_complete hnoeth
+        (invS (trivialMinusDatum B P b)) =
+      (Ideal.Quotient.mk (oneSubfXIdeal b)) TateAlgebra.X := by
+  rw [invS_eq_coeRingHom_divByS_one]
+  -- `divByS 1 b = invSelf` in `Localization.Away b`.
+  have hdiv : divByS (1 : B) (trivialMinusDatum B P b).s =
+      IsLocalization.Away.invSelf (S := Localization.Away b) b := by
+    show divByS (1 : B) b = IsLocalization.Away.invSelf b
+    rw [← invSelf_eq_divByS]
+  rw [hdiv, example638Minus_backwardHom_coe, locToQuotientOneSubfX_gen_invSelf]
+
+/-- Identification: `example638Minus_forwardHom` equals
+`tateQuotientToPresheafHom` applied at `D = trivialMinusDatum B P b`. -/
+theorem example638Minus_forwardHom_eq_tateQuotientToPresheafHom
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B) :
+    example638Minus_forwardHom B P b =
+      tateQuotientToPresheafHom (trivialMinusDatum B P b)
+        (invS_isPowerBounded_in_trivialMinus B P b) := rfl
+
+/-- Identification: `example638Minus_backwardHom` equals
+`presheafValueToCanonicalQuotient` applied at `D = trivialMinusDatum B P b`. -/
+theorem example638Minus_backwardHom_eq_presheafValueToCanonicalQuotient
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition)) :
+    example638Minus_backwardHom B P b hA_complete hnoeth =
+      presheafValueToCanonicalQuotient (trivialMinusDatum B P b)
+        hA_complete hnoeth (trivialMinusDatum_hT_pb B P b) := rfl
+
+end Example638MinusBackward
+
+/-! ### Minus branch round-trip identities
+
+Both round-trips reduce to `presheafValueCanonicalQuotientEquiv` applied at
+`D = trivialMinusDatum B P b`, which requires the continuity hypothesis
+`hcont_eval` on `tateQuotientToPresheafHom`. We carry this as an explicit
+hypothesis — it matches the shape of the existing infrastructure. -/
+
+section Example638MinusRoundTrip
+
+variable [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
+
+/-- `backward ∘ forward = id` on `TateAlgebra B ⧸ oneSubfXIdeal b`.
+Reduces to `tateQuotientToPresheaf_comp_presheafToCanonicalQuotient`. -/
+theorem example638Minus_backward_forward_eq_id
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_eval : @Continuous _ _
+      (TateAlgebra.quotientOneSubfXIdealTopology b)
+      (inferInstance : TopologicalSpace (presheafValue (trivialMinusDatum B P b)))
+      (tateQuotientToPresheafHom (trivialMinusDatum B P b)
+        (invS_isPowerBounded_in_trivialMinus B P b))) :
+    (example638Minus_backwardHom B P b hA_complete hnoeth).comp
+      (example638Minus_forwardHom B P b) =
+      RingHom.id _ := by
+  -- `backward_forward = presheafValueToCanonicalQuotient ∘ tateQuotientToPresheafHom`.
+  -- This equals `id` by `presheafToCanonicalQuotient_comp_tateQuotientToPresheaf`.
+  rw [example638Minus_forwardHom_eq_tateQuotientToPresheafHom,
+    example638Minus_backwardHom_eq_presheafValueToCanonicalQuotient]
+  apply RingHom.ext
+  intro q
+  show presheafValueToCanonicalQuotient (trivialMinusDatum B P b)
+      hA_complete hnoeth (trivialMinusDatum_hT_pb B P b)
+      (tateQuotientToPresheafHom (trivialMinusDatum B P b)
+        (invS_isPowerBounded_in_trivialMinus B P b) q) = q
+  -- `(trivialMinusDatum B P b).s = b`, so the `oneSubfXIdeal D.s` matches
+  -- `oneSubfXIdeal b` definitionally.
+  exact presheafToCanonicalQuotient_comp_tateQuotientToPresheaf
+    (trivialMinusDatum B P b)
+    (invS_isPowerBounded_in_trivialMinus B P b)
+    hA_complete hnoeth (trivialMinusDatum_hT_pb B P b)
+    hcont_eval q
+
+/-- `forward ∘ backward = id` on `presheafValue (trivialMinusDatum B P b)`.
+Reduces to `tateQuotientToPresheaf_comp_presheafToCanonicalQuotient`. -/
+theorem example638Minus_forward_backward_eq_id
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_eval : @Continuous _ _
+      (TateAlgebra.quotientOneSubfXIdealTopology b)
+      (inferInstance : TopologicalSpace (presheafValue (trivialMinusDatum B P b)))
+      (tateQuotientToPresheafHom (trivialMinusDatum B P b)
+        (invS_isPowerBounded_in_trivialMinus B P b))) :
+    (example638Minus_forwardHom B P b).comp
+      (example638Minus_backwardHom B P b hA_complete hnoeth) =
+      RingHom.id _ := by
+  rw [example638Minus_forwardHom_eq_tateQuotientToPresheafHom,
+    example638Minus_backwardHom_eq_presheafValueToCanonicalQuotient]
+  apply RingHom.ext
+  intro x
+  show tateQuotientToPresheafHom (trivialMinusDatum B P b)
+      (invS_isPowerBounded_in_trivialMinus B P b)
+      (presheafValueToCanonicalQuotient (trivialMinusDatum B P b)
+        hA_complete hnoeth (trivialMinusDatum_hT_pb B P b) x) = x
+  exact tateQuotientToPresheaf_comp_presheafToCanonicalQuotient
+    (trivialMinusDatum B P b)
+    (invS_isPowerBounded_in_trivialMinus B P b)
+    hA_complete hnoeth (trivialMinusDatum_hT_pb B P b)
+    hcont_eval x
+
+end Example638MinusRoundTrip
+
+/-! ### Minus branch RingEquiv -/
+
+section Example638MinusEquiv
+
+variable [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
+
+/-- **R3 minus-branch identification:** for a principal Tate ring `B` and
+`b : B`, the Tate-algebra quotient `B⟨X⟩/(1 − bX)` (with canonical quotient
+topology) is ring-isomorphic to `presheafValue (trivialMinusDatum P b)`, the
+completion of `Localization.Away b` with the localization topology.
+
+This is a direct specialisation of `presheafValueCanonicalQuotientEquiv` at
+`D = trivialMinusDatum B P b` (whose `.s = b`), wrapped in `.symm` to reverse
+the direction and exposed under the R3 primitive names. -/
+noncomputable def example638Minus_equiv
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_eval : @Continuous _ _
+      (TateAlgebra.quotientOneSubfXIdealTopology b)
+      (inferInstance : TopologicalSpace (presheafValue (trivialMinusDatum B P b)))
+      (tateQuotientToPresheafHom (trivialMinusDatum B P b)
+        (invS_isPowerBounded_in_trivialMinus B P b))) :
+    ↥(TateAlgebra B) ⧸ oneSubfXIdeal b ≃+*
+      presheafValue (trivialMinusDatum B P b) where
+  toFun := example638Minus_forwardHom B P b
+  invFun := example638Minus_backwardHom B P b hA_complete hnoeth
+  left_inv x :=
+    congr_fun (congrArg DFunLike.coe
+      (example638Minus_backward_forward_eq_id B P b hA_complete hnoeth hcont_eval)) x
+  right_inv y :=
+    congr_fun (congrArg DFunLike.coe
+      (example638Minus_forward_backward_eq_id B P b hA_complete hnoeth hcont_eval)) y
+  map_mul' := map_mul _
+  map_add' := map_add _
+
+/-- The forward direction of `example638Minus_equiv` sends `mk(algebraMap a)` to
+`canonicalMap a`. -/
+theorem example638Minus_equiv_mk_algebraMap
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_eval : @Continuous _ _
+      (TateAlgebra.quotientOneSubfXIdealTopology b)
+      (inferInstance : TopologicalSpace (presheafValue (trivialMinusDatum B P b)))
+      (tateQuotientToPresheafHom (trivialMinusDatum B P b)
+        (invS_isPowerBounded_in_trivialMinus B P b)))
+    (a : B) :
+    example638Minus_equiv B P b hA_complete hnoeth hcont_eval
+        ((Ideal.Quotient.mk (oneSubfXIdeal b))
+          (algebraMap B ↥(TateAlgebra B) a)) =
+      (trivialMinusDatum B P b).canonicalMap a := by
+  show example638Minus_forwardHom B P b
+      ((Ideal.Quotient.mk (oneSubfXIdeal b))
+        (algebraMap B ↥(TateAlgebra B) a)) = _
+  show Ideal.Quotient.lift _ (example638Minus_evalHom B P b) _
+      ((Ideal.Quotient.mk (oneSubfXIdeal b))
+        (algebraMap B ↥(TateAlgebra B) a)) = _
+  rw [Ideal.Quotient.lift_mk]
+  exact example638Minus_evalHom_algebraMap B P b a
+
+/-- The forward direction of `example638Minus_equiv` sends `mk(X)` to `invS`. -/
+theorem example638Minus_equiv_mk_X
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_eval : @Continuous _ _
+      (TateAlgebra.quotientOneSubfXIdealTopology b)
+      (inferInstance : TopologicalSpace (presheafValue (trivialMinusDatum B P b)))
+      (tateQuotientToPresheafHom (trivialMinusDatum B P b)
+        (invS_isPowerBounded_in_trivialMinus B P b))) :
+    example638Minus_equiv B P b hA_complete hnoeth hcont_eval
+        ((Ideal.Quotient.mk (oneSubfXIdeal b)) TateAlgebra.X) =
+      invS (trivialMinusDatum B P b) := by
+  show example638Minus_forwardHom B P b
+      ((Ideal.Quotient.mk (oneSubfXIdeal b)) TateAlgebra.X) = _
+  show Ideal.Quotient.lift _ (example638Minus_evalHom B P b) _
+      ((Ideal.Quotient.mk (oneSubfXIdeal b)) TateAlgebra.X) = _
+  rw [Ideal.Quotient.lift_mk]
+  exact example638Minus_evalHom_X B P b
+
+/-- The inverse direction of `example638Minus_equiv` sends `canonicalMap a` to
+`mk(algebraMap a)`. -/
+theorem example638Minus_equiv_symm_canonicalMap
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_eval : @Continuous _ _
+      (TateAlgebra.quotientOneSubfXIdealTopology b)
+      (inferInstance : TopologicalSpace (presheafValue (trivialMinusDatum B P b)))
+      (tateQuotientToPresheafHom (trivialMinusDatum B P b)
+        (invS_isPowerBounded_in_trivialMinus B P b)))
+    (a : B) :
+    (example638Minus_equiv B P b hA_complete hnoeth hcont_eval).symm
+        ((trivialMinusDatum B P b).canonicalMap a) =
+      (Ideal.Quotient.mk (oneSubfXIdeal b))
+        (algebraMap B ↥(TateAlgebra B) a) := by
+  change example638Minus_backwardHom B P b hA_complete hnoeth
+      ((trivialMinusDatum B P b).canonicalMap a) = _
+  exact example638Minus_backwardHom_canonicalMap B P b hA_complete hnoeth a
+
+end Example638MinusEquiv
+
 end Example638
 
 end ValuationSpectrum
