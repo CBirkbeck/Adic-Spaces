@@ -235,6 +235,30 @@ the adic Nullstellensatz for rational subsets, which in turn requires either:
 The Nullstellensatz construction combines (a) and (b) with the Zavyalov
 section-2 construction of the `fᵢ` from ratios `tⱼ/Dⱼ.s`.
 
+**2026-04-14 analysis of candidate families.** Three natural candidate
+sets were evaluated; all fail at least one clause:
+
+* `S := C.covers.image (·.s)` — succeeds in the *discrete* case (see
+  `TateAcyclicity.lean:475`) but fails **Clause 2** in the Tate case:
+  `rationalOpen (insert D.s C.base.T) C.base.s ⊆ rationalOpen D.T D.s`
+  is **false in general** — the plus-piece at `D.s` in the *base*
+  needs not land in the cover piece `D`.
+
+* `S := {C.base.s}` — trivially satisfies **Clause 1** (by
+  `rationalOpen_insert_s`) but fails **Clause 3** unless
+  `C.base.s` is a unit, and fails **Clause 2** unless
+  `C.base ∈ C.covers`.
+
+* `S := {1}` — trivially satisfies **Clause 3** but fails
+  **Clause 1**: requires `v(1) = 1 ≤ v(C.base.s)`, i.e.
+  `v(C.base.s) ≥ 1`, which can fail (e.g. when `C.base.s`
+  is a topological nilpotent).
+
+The correct candidate is built by Zavyalov §2.3 from products
+`tⱼ/Dⱼ.s` (via the adic Nullstellensatz, Prop 7.14) so that the
+plus-piece at each `fᵢ` is *designed* to land in a specific
+cover piece `Dⱼ`.
+
 **Caller obligation.** The `hne_rat` hypothesis exposes that the meaningful
 work happens only when the base rational open is nonempty; callers in the
 empty case should use
