@@ -641,6 +641,116 @@ noncomputable def trivialMinusDatum (P : PairOfDefinition B) (b : B) :
       (algebraMap_mem_locSubring _ _ _ c.2)
       (divByS_mem_locSubring _ _ _ (Finset.mem_singleton_self 1))⟩
 
+/-! ### Plus branch forward: evaluation at `canonicalMap b` -/
+
+section Example638PlusForward
+
+variable [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
+
+/-- `canonicalMap b` is power-bounded in `presheafValue (trivialPlusDatum P b)`.
+
+**Proof route (sorry):** in `(trivialPlusDatum P b).topology` on
+`Localization.Away 1`, the element `algebraMap B _ b = divByS b 1` lies in
+`locSubring P {b} 1` (the ring of definition). Ring-of-definition elements
+are power-bounded, and this power-boundedness transfers under `coeRingHom`
+to the completion. -/
+theorem canonicalMap_b_isPowerBounded_in_trivialPlus
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B) :
+    TopologicalRing.IsPowerBounded
+      ((trivialPlusDatum B P b).canonicalMap b) := by
+  sorry
+
+/-- The generic evaluation hom `TateAlgebra B →+* presheafValue (trivialPlusDatum P b)`
+sending `X ↦ canonicalMap b`, via `evalHomBounded`. -/
+noncomputable def example638Plus_evalHom
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B) :
+    ↥(TateAlgebra B) →+* presheafValue (trivialPlusDatum B P b) :=
+  TateAlgebraWedhorn.evalHomBounded
+    (trivialPlusDatum B P b).canonicalMap
+    (canonicalMap_continuous (trivialPlusDatum B P b))
+    ((trivialPlusDatum B P b).canonicalMap b)
+    (canonicalMap_b_isPowerBounded_in_trivialPlus B P b)
+
+/-- `example638Plus_evalHom` sends `algebraMap(a)` to `canonicalMap(a)`. -/
+theorem example638Plus_evalHom_algebraMap
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b a : B) :
+    example638Plus_evalHom B P b (algebraMap B _ a) =
+      (trivialPlusDatum B P b).canonicalMap a := by
+  unfold example638Plus_evalHom
+  simp only [TateAlgebraWedhorn.evalHomBounded, RingHom.coe_mk,
+    MonoidHom.coe_mk, OneHom.coe_mk]
+  rw [tsum_eq_single 0]
+  · unfold TateAlgebraWedhorn.evalTerm TateAlgebra.coeff TateAlgebra.toIndex
+    simp only [Finsupp.single_zero, pow_zero, mul_one]
+    congr 1
+  · intro n hn
+    unfold TateAlgebraWedhorn.evalTerm TateAlgebra.coeff TateAlgebra.toIndex
+    have : (MvPowerSeries.coeff (R := B) (Finsupp.single 0 n))
+        (↑(algebraMap B ↥(TateAlgebra B) a) : MvPowerSeries (Fin 1) B) = 0 := by
+      change (MvPowerSeries.coeff (Finsupp.single 0 n))
+        (MvPowerSeries.C (σ := Fin 1) a) = 0
+      classical
+      rw [MvPowerSeries.coeff_C, if_neg (Finsupp.single_ne_zero.mpr hn)]
+    simp [this]
+
+/-- `example638Plus_evalHom` sends `X` to `canonicalMap b`. -/
+theorem example638Plus_evalHom_X
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B) :
+    example638Plus_evalHom B P b TateAlgebra.X =
+      (trivialPlusDatum B P b).canonicalMap b := by
+  unfold example638Plus_evalHom
+  simp only [TateAlgebraWedhorn.evalHomBounded, RingHom.coe_mk,
+    MonoidHom.coe_mk, OneHom.coe_mk]
+  rw [tsum_eq_single 1]
+  · simp only [TateAlgebraWedhorn.evalTerm, TateAlgebra.coeff,
+      TateAlgebra.toIndex, TateAlgebra.X, pow_one]
+    change (trivialPlusDatum B P b).canonicalMap
+      ((MvPowerSeries.coeff (R := B) (Finsupp.single 0 1))
+        (MvPowerSeries.X 0)) *
+      (trivialPlusDatum B P b).canonicalMap b =
+      (trivialPlusDatum B P b).canonicalMap b
+    rw [MvPowerSeries.coeff_X, if_pos rfl, map_one, one_mul]
+  · intro n hn
+    simp only [TateAlgebraWedhorn.evalTerm, TateAlgebra.coeff,
+      TateAlgebra.toIndex, TateAlgebra.X]
+    change (trivialPlusDatum B P b).canonicalMap
+      ((MvPowerSeries.coeff (R := B) (Finsupp.single 0 n))
+        (MvPowerSeries.X (0 : Fin 1))) *
+      (trivialPlusDatum B P b).canonicalMap b ^ n = 0
+    classical
+    have hcoeff : (MvPowerSeries.coeff (R := B) (Finsupp.single 0 n))
+        (MvPowerSeries.X (σ := Fin 1) 0) = 0 := by
+      rw [MvPowerSeries.coeff_X]
+      apply if_neg
+      intro heq
+      apply hn
+      have : (Finsupp.single 0 n : Fin 1 →₀ ℕ) 0 =
+        (Finsupp.single 0 1 : Fin 1 →₀ ℕ) 0 := by rw [heq]
+      simpa using this
+    simp [hcoeff]
+
+/-- The ideal `(algebraMap b - X)` maps to zero under `example638Plus_evalHom`,
+since the eval sends `algebraMap b ↦ canonicalMap b` and `X ↦ canonicalMap b`. -/
+theorem example638Plus_evalHom_fSubX_eq_zero
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B) :
+    example638Plus_evalHom B P b
+      (algebraMap B ↥(TateAlgebra B) b - TateAlgebra.X) = 0 := by
+  rw [map_sub, example638Plus_evalHom_algebraMap, example638Plus_evalHom_X, sub_self]
+
+/-- Forward ring hom `TateAlgebra B ⧸ (algebraMap b − X) → presheafValue (trivialPlusDatum P b)`,
+obtained by factoring `example638Plus_evalHom` through the quotient. -/
+noncomputable def example638Plus_forwardHom
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B) :
+    ↥(TateAlgebra B) ⧸
+      Ideal.span {algebraMap B ↥(TateAlgebra B) b - TateAlgebra.X} →+*
+        presheafValue (trivialPlusDatum B P b) :=
+  Ideal.Quotient.lift _ (example638Plus_evalHom B P b) (fun y hy => by
+    rw [Ideal.mem_span_singleton'] at hy
+    obtain ⟨c, hc⟩ := hy
+    rw [← hc, map_mul, example638Plus_evalHom_fSubX_eq_zero, mul_zero])
+
+end Example638PlusForward
+
 end Example638
 
 end ValuationSpectrum
