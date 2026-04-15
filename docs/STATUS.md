@@ -138,6 +138,42 @@ Detailed implementation plans live in `docs/plans/`:
 |-------|-----------|---------|---------|
 | claude-opus | R2 reframed via Wedhorn route (Phase 1 audit done; Phase 2-4 pending) | LaurentRefinement, StructureSheaf, TICKETS-axiom-clean.md | 2026-04-08 |
 
+### 2026-04-14 (later) — `laurentMinusBridge` sorries lifted to hypotheses
+
+**Finding:** The two residual sorries inside `laurentMinusBridge`
+(`hnoeth := sorry` at line 648, `hcont_eval := sorry` at line 650) encoded
+genuinely new infrastructure obligations that cannot be discharged from
+the current instance set. Following the precedent of
+`example638Minus_equiv` in `IteratedRational.lean`, these are now exposed
+as explicit `laurentMinusBridge` hypotheses:
+
+- `hnoeth_B` : `IsNoetherianRing ↥(TateAlgebra.pairSubring (IsTateRing.principalPair
+  (presheafValue D₀)).toPairOfDefinition)` — the "strongly noetherian
+  property transfers to rational localisations" direction of Wedhorn
+  Theorem 7.47 / Example 6.38. **Blocker**: needs Wedhorn 7.47 and a
+  concrete identification of `(presheafValue_ringOfDef D₀)` with a
+  noetherian ring (topological closure doesn't preserve noetherianness
+  abstractly).
+- `hcont_eval_B` : canonical-topology continuity of
+  `tateQuotientToPresheafHom (iteratedMinusDatum_B P D₀ f) hb` at
+  `B := presheafValue D₀`. **Blocker**: the canonical-topology version
+  of `tateQuotientToPresheafHom_continuous` (only T-topology is proved
+  in `TopologyComparison.lean:1390`), combined with the strongly-noetherian
+  structure at `presheafValue D₀`.
+
+Both hypotheses are propagated through `laurentMinusBridge_restrictionMap`,
+`laurentBridge_delta_eq_zero_of_compat`, `laurentCover_gluing_presheaf_viaBridges`,
+and `laurentCover_gluing_presheaf`. Downstream callers must supply them
+(or push the obligation further up). The `tateAcyclicity` theorem is
+unaffected (it has its own independent sorry for gluing via partition of
+unity).
+
+**Sorry accounting (LaurentRefinement.lean):** 9 → 7 (−2). The two
+sorries inside `laurentMinusBridge`'s body are replaced by explicit
+hypotheses in the signature.
+
+Commit: `801d8f2`.
+
 ### 2026-04-14 — Laurent gluing rerouted via Route B; Baire blocker eliminated
 
 **Finding:** `LaurentCover.row3_exact` (LaurentCoverExact.lean:1560) instantiates
