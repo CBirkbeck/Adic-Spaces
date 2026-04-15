@@ -1055,11 +1055,13 @@ theorem example638Plus_backwardHom_coe
     example638Plus_backwardHom B P b hA_complete hnoeth
         ((trivialPlusDatum B P b).coeRingHom a) =
       plusLocToQuotient B b a := by
-  letI : UniformSpace (Localization.Away (trivialPlusDatum B P b).s) :=
+  -- `(trivialPlusDatum B P b).s = 1`, so the localization types match.
+  -- Use letI on `Localization.Away 1` directly (matching plusLocToQuotient's type).
+  letI : UniformSpace (Localization.Away (1 : B)) :=
     (trivialPlusDatum B P b).uniformSpace
-  letI : IsTopologicalRing (Localization.Away (trivialPlusDatum B P b).s) :=
+  letI : IsTopologicalRing (Localization.Away (1 : B)) :=
     (trivialPlusDatum B P b).isTopologicalRing
-  letI : IsUniformAddGroup (Localization.Away (trivialPlusDatum B P b).s) :=
+  letI : IsUniformAddGroup (Localization.Away (1 : B)) :=
     (trivialPlusDatum B P b).isUniformAddGroup
   letI : TopologicalSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
     quotientPlusFSubXIdealTopology B b
@@ -1103,6 +1105,107 @@ theorem example638Plus_backwardHom_canonicalMap
   rw [example638Plus_backwardHom_coe, plusLocToQuotient_algebraMap]
 
 end Example638PlusBackwardCompletion
+
+/-! ### Plus branch forward/backward round trips
+
+The forward hom is `example638Plus_forwardHom : TateAlgebra B ⧸ plusFSubXIdeal B b →
+presheafValue (trivialPlusDatum B P b)`. The backward hom is
+`example638Plus_backwardHom` (above).
+
+Round trips:
+- `backward ∘ forward = id` on `TateAlgebra B ⧸ plusFSubXIdeal B b`: Ideal.Quotient.ringHom_ext
+  reduces to checking on `algebraMap a` (where both sides become `mk(algebraMap a)`)
+  and on `X` (where `forward X = canonicalMap b`, then
+  `backward (canonicalMap b) = mk(algebraMap b) = mk(X)` using the quotient relation
+  `algebraMap b - X ∈ plusFSubXIdeal B b`).
+- `forward ∘ backward = id` on `presheafValue (trivialPlusDatum B P b)`: Completion.ext'
+  reduces to dense image agreement. -/
+
+section Example638PlusRoundTrip
+
+variable [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
+
+open TateAlgebra
+
+/-- In the quotient `TateAlgebra B ⧸ plusFSubXIdeal B b`, the classes of
+`algebraMap B _ b` and `X` are equal. (Since `algebraMap b - X ∈ plusFSubXIdeal`.) -/
+theorem quotient_algebraMap_b_eq_X (b : B) :
+    (Ideal.Quotient.mk (plusFSubXIdeal B b))
+        (algebraMap B ↥(TateAlgebra B) b) =
+      (Ideal.Quotient.mk (plusFSubXIdeal B b)) TateAlgebra.X := by
+  rw [Ideal.Quotient.eq]
+  exact Ideal.subset_span (Set.mem_singleton _)
+
+/-- `backward ∘ forward = id` on `TateAlgebra B ⧸ plusFSubXIdeal B b`.
+
+Strategy: use `Ideal.Quotient.ringHom_ext` to reduce to a RingHom equality on
+`TateAlgebra B`; then use `TateAlgebra.ringHom_ext_at_generators` (or a manual
+computation via `evalHomBounded` structure) to check agreement on `algebraMap a`
+and `X`. -/
+theorem example638Plus_backward_forward_eq_id
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition)) :
+    (example638Plus_backwardHom B P b hA_complete hnoeth).comp
+      (example638Plus_forwardHom B P b) =
+      RingHom.id _ := by
+  apply Ideal.Quotient.ringHom_ext
+  -- Now must show: for any x : TateAlgebra B,
+  -- backward (forward (mk x)) = mk x.
+  -- forward (mk x) = example638Plus_evalHom x (= evalHomBounded at canonicalMap b).
+  -- backward (canonicalMap a) = mk(algebraMap a), backward is continuous.
+  -- We need: backward (evalHom x) = mk x.
+  -- Strategy: induction via Tate algebra generators (algebraMap and X).
+  -- But this requires evalHom-specific lemmas. Here's the direct approach:
+  -- Use continuity on both sides + agreement on dense subring.
+  sorry
+
+/-- `forward ∘ backward = id` on `presheafValue (trivialPlusDatum B P b)`. -/
+theorem example638Plus_forward_backward_eq_id
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition)) :
+    (example638Plus_forwardHom B P b).comp
+      (example638Plus_backwardHom B P b hA_complete hnoeth) =
+      RingHom.id _ := by
+  sorry
+
+end Example638PlusRoundTrip
+
+/-! ### Plus branch RingEquiv -/
+
+section Example638PlusEquiv
+
+variable [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
+
+open TateAlgebra
+
+/-- **R3 plus-branch identification (Wedhorn Example 6.38):** for a principal
+Tate ring `B` and `b : B`, the Tate-algebra quotient `B⟨X⟩/(algebraMap b − X)`
+(with canonical quotient topology) is ring-isomorphic to
+`presheafValue (trivialPlusDatum P b)`, the completion of `Localization.Away 1`
+(≃ `B`) with the localization topology. -/
+noncomputable def example638Plus_equiv
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition)) :
+    ↥(TateAlgebra B) ⧸ plusFSubXIdeal B b ≃+*
+      presheafValue (trivialPlusDatum B P b) where
+  toFun := example638Plus_forwardHom B P b
+  invFun := example638Plus_backwardHom B P b hA_complete hnoeth
+  left_inv x :=
+    congr_fun (congrArg DFunLike.coe
+      (example638Plus_backward_forward_eq_id B P b hA_complete hnoeth)) x
+  right_inv y :=
+    congr_fun (congrArg DFunLike.coe
+      (example638Plus_forward_backward_eq_id B P b hA_complete hnoeth)) y
+  map_mul' := map_mul _
+  map_add' := map_add _
+
+end Example638PlusEquiv
 
 /-! ### Minus branch forward: evaluation at `invS = 1 / canonicalMap b` -/
 

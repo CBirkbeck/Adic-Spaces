@@ -123,6 +123,31 @@ reusable span-top lemma, so we record this as a structural sorry.
 Once the Nullstellensatz primitive lands, the main theorem
 `RationalCovering.refines_by_standard_cover` will be a direct application.
 
+**Closely-related proven result.** `TateAcyclicity.lean:475` contains the
+analogous span-top argument at `Localization.Away C.base.s` (producing
+`Ideal.span {algebraMap D.s | D ∈ C.covers} = ⊤` there). That proof is
+discrete-specific because it uses `isOpen_discrete _` to satisfy the
+continuity condition of the trivial-valuation construction (the
+discrete-topology lets every valuation be continuous). For the Tate case,
+the analogous step requires `exists_spa_point_in_rationalOpen_of_nonOpen_prime`
+(per Wedhorn Lemma 7.45, currently tracked by the `project_T001_completion_route`
+memory and blocked on Bourbaki CA III §2.8). The OPEN prime sub-case is
+already available via `exists_spa_point_in_rationalOpen_of_isOpen_prime`.
+
+**Pieces of the helper that ARE available.**
+- **Clause 3** (span-top in `Localization.Away C.base.s`) for the candidate
+  set `S := C.covers.image (·.s)` is mostly provable from the OPEN-prime
+  Spa-point construction; the non-open prime case needs Lemma 7.45.
+- **Clause 1** (cover): follows from `C.hcover v` composed with a "plus-piece
+  at `D.s` contains `rationalOpen D.T D.s` inside the base" lemma. The
+  precise form depends on the normalization and is not yet factored out.
+- **Clause 2** (containment): the hard direction — requires the plus-piece
+  `rationalOpen (insert D.s C.base.T) C.base.s` to be inside `rationalOpen
+  D.T D.s`. This is NOT automatic — it requires a Nullstellensatz-style
+  argument (Zavyalov §2.3) producing the `fᵢ` specifically so that the
+  plus-piece at `fᵢ` is exactly (or inside) some `Dⱼ` piece. This is the
+  genuinely new ingredient.
+
 **Nontriviality hypothesis.** The `[Nontrivial A]` hypothesis is cosmetic:
 when `A` is subsingleton, the main theorem is handled by a separate branch
 using `S.elts = ∅`. Keeping the hypothesis here simplifies the nontrivial

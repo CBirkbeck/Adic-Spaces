@@ -567,11 +567,22 @@ where `B₂_gen f' = (presheafValue D₀)⟨X⟩ ⧸ (1 - f' · X)`.
 
 Proof route (composition): `presheafValue_iteratedMinus_equiv` (Wedhorn 2.13,
 iterated rational identification) composed with
-`presheafValueTateQuotientEquiv` at `A := presheafValue D₀`,
+`presheafValueCanonicalQuotientEquiv` at `A := presheafValue D₀`,
 `D := iteratedMinusDatum_B P D₀ f` (whose `s` is `canonicalMap f`, so the
 quotient equiv yields `B⟨X⟩ / (1 − canonicalMap(f) · X) = B₂_gen (canonicalMap f)`
 directly — by definition `oneSubfXIdeal (canonicalMap f) =
-Ideal.span {1 − algebraMap B _ (canonicalMap f) · X}`). -/
+Ideal.span {1 − algebraMap B _ (canonicalMap f) · X}`).
+
+**Hypotheses discharge.** The three residual hypotheses are the ones baked
+into `example638Minus_equiv` in `IteratedRational.lean` at `B := presheafValue D₀`
+and `b := D₀.canonicalMap f`: `hA_complete`, `hnoeth`, `hcont_eval`.
+The first two are isolated as a local `have` and `sorry`'d explicitly (they
+require R4 infrastructure at `presheafValue D₀`); the continuity hypothesis
+`hcont_eval` is the content of R3's remaining continuity obligation.
+
+The two "automatic" hypotheses (`hb` and `hT_pb`) are discharged in place:
+`T = {1}` so `hT_pb` reduces to `IsPowerBounded 1`; `hb` follows from
+`invS_isPowerBounded_of_one_mem_T` since `1 ∈ T`. -/
 noncomputable def laurentMinusBridge
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
@@ -583,13 +594,44 @@ noncomputable def laurentMinusBridge
   haveI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
   -- Step 1: iterated rational identification (Wedhorn Lemma 2.13).
   refine (presheafValue_iteratedMinus_equiv P D₀ f).trans ?_
-  -- Step 2: Phase 2 iso at B := presheafValue D₀ applied to `iteratedMinusDatum_B`,
-  -- whose `s` is `D₀.canonicalMap f`. The quotient target
+  -- Step 2: Phase 2 canonical-topology iso at B := presheafValue D₀ applied to
+  -- `iteratedMinusDatum_B`, whose `s` is `D₀.canonicalMap f`. The quotient target
   -- `TateAlgebra B ⧸ oneSubfXIdeal (canonicalMap f)` equals `B₂_gen (canonicalMap f)`
   -- definitionally.
-  exact presheafValueTateQuotientEquiv (iteratedMinusDatum_B P D₀ f)
-    (hb := sorry) (hcs := sorry) (ht0 := sorry)
-    (hcont_eval := sorry) (hdense := sorry)
+  -- `hb`: invS is power-bounded because `1 ∈ T = {1}` for `iteratedMinusDatum_B`.
+  -- This requires rewriting `invS = coeRingHom (divByS 1 s)`, which in turn uses
+  -- that `canonicalMap s * invS = 1` and the cancellation property.
+  have hinvS_eq : invS (iteratedMinusDatum_B P D₀ f) =
+      (iteratedMinusDatum_B P D₀ f).coeRingHom
+        (divByS 1 (iteratedMinusDatum_B P D₀ f).s) := by
+    set D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
+    have h1 : D.canonicalMap D.s * invS D = 1 := canonicalMap_s_mul_invS D
+    have halg : algebraMap (presheafValue D₀) (Localization.Away D.s) D.s *
+        divByS 1 D.s = 1 := by
+      rw [← invSelf_eq_divByS, IsLocalization.Away.mul_invSelf]
+    have h2 : D.canonicalMap D.s * D.coeRingHom (divByS 1 D.s) = 1 := by
+      show D.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away D.s) D.s) *
+        D.coeRingHom (divByS 1 D.s) = 1
+      rw [← map_mul, halg, map_one]
+    have hu : IsUnit (D.canonicalMap D.s) := isUnit_s_in_presheafValue D
+    exact hu.mul_left_cancel (h1.trans h2.symm)
+  have hb : TopologicalRing.IsPowerBounded
+      (invS (iteratedMinusDatum_B P D₀ f)) := by
+    rw [hinvS_eq]
+    exact CompletionLocalization.invS_isPowerBounded_of_one_mem_T
+      (iteratedMinusDatum_B P D₀ f) (Finset.mem_singleton_self 1)
+  -- `hT_pb`: T = {1}, so this reduces to `IsPowerBounded 1`.
+  have hT_pb : ∀ t ∈ (iteratedMinusDatum_B P D₀ f).T,
+      TopologicalRing.IsPowerBounded t := by
+    intro t ht
+    rw [Finset.mem_singleton.mp ht]
+    exact TopologicalRing.isPowerBounded_one
+  exact presheafValueCanonicalQuotientEquiv (iteratedMinusDatum_B P D₀ f)
+    (hb := hb)
+    (hA_complete := sorry)
+    (hnoeth := sorry)
+    (hT_pb := hT_pb)
+    (hcont_eval := sorry)
 
 /-- **Route B bridge (plus compatibility)**: the plus bridge intertwines
 `restrictionMap` and the first projection of `epsilonHom_gen`. -/
