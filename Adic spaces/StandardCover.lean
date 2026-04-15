@@ -200,27 +200,18 @@ private theorem exists_nullstellensatz_refinement_of_rationalOpen_empty
     change Ideal.span (({1} : Finset A) : Set A) = ⊤
     rw [Finset.coe_singleton, Ideal.span_singleton_one]
 
-/-- **Pathological edge case**: `C.covers = ∅` together with `[Nontrivial A]`.
-Forces `rationalOpen C.base.T C.base.s = ∅` via `C.hcover`, but then the
-three-clause conclusion is genuinely unprovable:
-
-* Any nonempty `S` fails Clause 2 (needs `D ∈ ∅`).
-* The empty `S` fails Clause 3 (`Ideal.span ∅ = ⊥ ≠ ⊤` in a nontrivial ring).
-
-This edge case is retained as a `sorry` to preserve the statement of
-`RationalCovering.refines_by_standard_cover`. A cleaner fix would be to add
-`hne : C.covers.Nonempty` to `refines_by_standard_cover`, but that would
-change the statement. The downstream consumer
-`tateAcyclicity_via_standard_cover` already requires `hne`.
-
-**Note.** Because the conclusion is genuinely unprovable in this edge case,
-this `sorry` is morally equivalent to an axiom. Callers should avoid this
-configuration (supply `hne` or work outside `Nontrivial`). -/
+/-- **Pathological edge case eliminated**: `C.covers = ∅` together with
+`[Nontrivial A]` and `hne : C.covers.Nonempty` gives an immediate
+contradiction. Retained as a private helper so the main dispatcher
+`exists_nullstellensatz_refinement` can use it uniformly. -/
 private theorem exists_nullstellensatz_refinement_of_empty_covers
     [DecidableEq A] [Nontrivial A]
-    (C : RationalCovering A) (hcov : C.covers = ∅) :
-    ∃ S : Finset A, refines_cover C S ∧ refines_contain C S ∧ refines_span_top S :=
-  sorry
+    (C : RationalCovering A) (hne : C.covers.Nonempty) (hcov : C.covers = ∅) :
+    ∃ S : Finset A, refines_cover C S ∧ refines_contain C S ∧ refines_span_top S := by
+  exfalso
+  obtain ⟨D, hD⟩ := hne
+  rw [hcov] at hD
+  exact Finset.notMem_empty D hD
 
 /-- **The genuine Nullstellensatz obligation**: the *nonempty-rational-open*
 case of `exists_nullstellensatz_refinement`, with `C.covers` nonempty. This
@@ -311,20 +302,16 @@ private theorem exists_nullstellensatz_refinement
     [IsHuberRing A] [HasLocLiftPowerBounded A]
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     [Nontrivial A]
-    (C : RationalCovering A) :
+    (C : RationalCovering A) (hne : C.covers.Nonempty) :
     ∃ S : Finset A, refines_cover C S ∧ refines_contain C S ∧ refines_span_top S := by
-  -- Dispatch on whether `C.covers` is nonempty.
-  by_cases hne : C.covers.Nonempty
-  · -- Standard case. Dispatch on whether the base rational open is empty.
-    by_cases hempty : rationalOpen C.base.T C.base.s = ∅
-    · exact exists_nullstellensatz_refinement_of_rationalOpen_empty C hne hempty
-    · -- Meaningful case: `rationalOpen C.base.T C.base.s` is nonempty.
-      -- This is the genuine Nullstellensatz obligation (Zavyalov §2.3 /
-      -- Wedhorn Prop 7.14 + Lemma 7.44).
-      exact exists_nullstellensatz_refinement_of_rationalOpen_nonempty C hne hempty
-  · -- Pathological edge case: `C.covers = ∅` with `[Nontrivial A]`.
-    exact exists_nullstellensatz_refinement_of_empty_covers C
-      (Finset.not_nonempty_iff_eq_empty.mp hne)
+  -- `hne` eliminates the pathological empty-covers branch; remaining dispatch is
+  -- on whether the base rational open is empty.
+  by_cases hempty : rationalOpen C.base.T C.base.s = ∅
+  · exact exists_nullstellensatz_refinement_of_rationalOpen_empty C hne hempty
+  · -- Meaningful case: `rationalOpen C.base.T C.base.s` is nonempty.
+    -- This is the genuine Nullstellensatz obligation (Zavyalov §2.3 /
+    -- Wedhorn Prop 7.14 + Lemma 7.44).
+    exact exists_nullstellensatz_refinement_of_rationalOpen_nonempty C hne hempty
 
 /-- **Wedhorn / Zavyalov standard-cover reduction** (Theorem 8.28(b) step,
 ticket R1 of the 2026-04-14 plan).
@@ -358,7 +345,7 @@ theorem RationalCovering.refines_by_standard_cover
     [DecidableEq A]
     [IsHuberRing A] [HasLocLiftPowerBounded A]
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-    (C : RationalCovering A) :
+    (C : RationalCovering A) (hne : C.covers.Nonempty) :
     ∃ S : StandardCover A,
       -- The plus-type pieces at elements of `S` cover the base rational open.
       (∀ v ∈ rationalOpen C.base.T C.base.s,
@@ -388,7 +375,7 @@ theorem RationalCovering.refines_by_standard_cover
   · -- Nontrivial `A`. Apply the Nullstellensatz refinement helper directly.
     haveI hNT : Nontrivial A := not_subsingleton_iff_nontrivial.mp hA
     obtain ⟨S, hS_cover, hS_contain, hS_span⟩ :=
-      exists_nullstellensatz_refinement C
+      exists_nullstellensatz_refinement C hne
     exact ⟨⟨S, hS_span⟩, hS_cover, hS_contain⟩
 
 /-! ### Acyclicity via standard covers -/
