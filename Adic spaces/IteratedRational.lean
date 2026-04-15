@@ -1096,10 +1096,10 @@ theorem example638Minus_equiv_mk_algebraMap
         ((Ideal.Quotient.mk (oneSubfXIdeal b))
           (algebraMap B ↥(TateAlgebra B) a)) =
       (trivialMinusDatum B P b).canonicalMap a := by
-  show example638Minus_forwardHom B P b
+  change example638Minus_forwardHom B P b
       ((Ideal.Quotient.mk (oneSubfXIdeal b))
         (algebraMap B ↥(TateAlgebra B) a)) = _
-  show Ideal.Quotient.lift _ (example638Minus_evalHom B P b) _
+  change Ideal.Quotient.lift _ (example638Minus_evalHom B P b) _
       ((Ideal.Quotient.mk (oneSubfXIdeal b))
         (algebraMap B ↥(TateAlgebra B) a)) = _
   rw [Ideal.Quotient.lift_mk]
@@ -1119,9 +1119,9 @@ theorem example638Minus_equiv_mk_X
     example638Minus_equiv B P b hA_complete hnoeth hcont_eval
         ((Ideal.Quotient.mk (oneSubfXIdeal b)) TateAlgebra.X) =
       invS (trivialMinusDatum B P b) := by
-  show example638Minus_forwardHom B P b
+  change example638Minus_forwardHom B P b
       ((Ideal.Quotient.mk (oneSubfXIdeal b)) TateAlgebra.X) = _
-  show Ideal.Quotient.lift _ (example638Minus_evalHom B P b) _
+  change Ideal.Quotient.lift _ (example638Minus_evalHom B P b) _
       ((Ideal.Quotient.mk (oneSubfXIdeal b)) TateAlgebra.X) = _
   rw [Ideal.Quotient.lift_mk]
   exact example638Minus_evalHom_X B P b
