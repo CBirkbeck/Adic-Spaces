@@ -749,7 +749,36 @@ theorem iteratedPlus_forwardToCompletion_continuous
     @Continuous _ _ (laurentPlusDatum D₀ f).topology _
       (iteratedPlus_forwardToCompletion P D₀ f) := sorry
 
-/-- Continuity of the backward uncompleted hom (plus branch). -/
+/-- Continuity of the backward uncompleted hom (plus branch).
+
+**Mathematical content**: `iteratedPlus_backwardLocHom` is `IsLocalization.Away.lift`
+at `1` with `g = restrictionMapHom` as the base `B`-hom. It satisfies
+`lift ∘ algebraMap = restrictionMapHom` (by `iteratedPlus_backwardLocHom_algebraMap`).
+
+The topology on `Loc_B(1)` from `iteratedPlusDatum_B` has `T = {canonicalMap f}`,
+`s = 1`. A basis of `𝓝(0)` in this topology is `locNhd n = algebraMap((P_B.I · B')^n)`
+where `B' = Subring.closure(P_B.A₀ ∪ {canonicalMap f}) ⊂ B`.
+
+Since `restrictionMapHom_continuous` provides continuity of `g` at `0` w.r.t. `B`'s
+native topology (basis `{P_B.I^m}`), and `B' \supsetneq P_B.A₀` in general (when
+`canonicalMap f ∉ P_B.A₀`), the locTopology is STRICTLY COARSER than the image of
+`B`'s native topology under `algebraMap`. Thus naive composition `g ∘ algebraMap⁻¹`
+is NOT continuous.
+
+**The correct proof** (for the topology identification Wedhorn Lemma 2.13)
+requires: show that for each nbhd `V` of `0` in `presheafValue(laurentPlusDatum)`,
+there is some `n` with `g((P_B.I · B')^n) ⊂ V`. Using that `restrictionMapHom(canonicalMap f)
+= (laurentPlus).canonicalMap f` is power-bounded in the target (because
+`f ∈ (laurentPlus).T` so `f/D₀.s ∈ locSubring_{laurentPlus}` and the target ring
+of definition contains the image), the products `g((P_B.I)^n · B')` stay within
+bounded nbhds for `n` large enough. This is a Wedhorn Prop 8.2 analogue with the
+subtle twist of applying Lemma 2.13 to identify the iterated topology.
+
+**Current status**: this is part of the Q3-STEP2C blocker (iterated rational
+identifications / Wedhorn Lemma 2.13). The mathematical content is clear but
+requires careful bookkeeping of power-boundedness of `canonicalMap f` in the
+target and translates to a completion-topology argument that hasn't been
+formalized yet in this repository. -/
 theorem iteratedPlus_backwardLocHom_continuous
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
