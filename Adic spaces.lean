@@ -24,6 +24,7 @@ import «Adic spaces».FlatnessResults
 import «Adic spaces».GeometricSeries
 import «Adic spaces».HuberRings
 import «Adic spaces».IntegralStructureSheaf
+import «Adic spaces».Example638
 import «Adic spaces».IteratedRational
 import «Adic spaces».LaurentCoverExact
 import «Adic spaces».Lemma745
