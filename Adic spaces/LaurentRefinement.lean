@@ -1272,6 +1272,11 @@ theorem presheafValue_iteratedMinus_equiv_restrictionMap_canonicalMap
     presheafValue_iteratedMinus_equiv P D₀ f
         (restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x) =
       (iteratedMinusDatum_B P D₀ f).canonicalMap x := by
+  -- Parallel to the plus branch: reduce to an uncompleted-level identity via
+  -- `Completion.ext'` on `x`, then compute on the dense `coeRingHom` image
+  -- using `iteratedMinus_forwardLocHom_algebraMap` +
+  -- `iteratedMinus_backwardLocHom_algebraMap` + `restrictionMapHom_canonicalMap`.
+  -- Deferred pending the same full algebraic chase as the plus branch.
   sorry
 
 /-- **Route B bridge (minus compatibility)**: the minus bridge intertwines
