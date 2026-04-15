@@ -494,14 +494,16 @@ theorem IsBounded_mk_image_of_IsBounded (b : B) {S : Set ↥(TateAlgebra B)}
   -- Use boundedness of S to find V with S * V ⊆ preimage(U).
   obtain ⟨V, hV, hSV⟩ := hS _ hU_pre
   -- mk(V) is an open nhd of 0 (mk is open). Actually we take a smaller open W ⊆ V with 0 ∈ W.
-  obtain ⟨W, hWV, hW_open, hW_zero⟩ := mem_nhds_iff.mp hV
+  obtain ⟨W, hWV, hW_open, hW_zero⟩ := _root_.mem_nhds_iff.mp hV
   have hmkW_open : IsOpen ((Ideal.Quotient.mk (plusFSubXIdeal B b)) '' W) :=
     @QuotientRing.isOpenMap_coe _ instTopologicalSpaceTateAlgebra _
       (plusFSubXIdeal B b) instIsTopologicalRingTateAlgebra _ hW_open
   refine ⟨(Ideal.Quotient.mk (plusFSubXIdeal B b)) '' W,
-    mem_nhds_iff.mpr ⟨_, le_refl _, hmkW_open, ⟨0, hW_zero, map_zero _⟩⟩, ?_⟩
+    _root_.mem_nhds_iff.mpr ⟨_, le_refl _, hmkW_open, ⟨0, hW_zero, map_zero _⟩⟩, ?_⟩
   -- (mk '' S) * (mk '' W) ⊆ U
   rintro _ ⟨_, ⟨s, hs, rfl⟩, _, ⟨w, hw, rfl⟩, rfl⟩
+  change (Ideal.Quotient.mk (plusFSubXIdeal B b)) s *
+    (Ideal.Quotient.mk (plusFSubXIdeal B b)) w ∈ U
   rw [← map_mul]
   exact hSV ⟨s, hs, w, hWV hw, rfl⟩
 
