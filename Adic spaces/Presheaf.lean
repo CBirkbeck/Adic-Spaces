@@ -676,6 +676,49 @@ theorem mem_prime_of_rational_subset {A : Type*} [CommRing A]
   · exact mem_prime_of_rational_subset_nonOpen D D' h p hp hp_open hDs
       (hnonempty hp_open)
 
+/-- **Shared Spa-point-existence obligation for non-open primes (Q1-FIX helper).**
+
+This is the single mathematical obligation behind the three Q1-FIX callsites
+in `isUnit_algebraMap_s_of_huber` (Presheaf.lean), `isUnit_algebraMap_s_of_subset`
+(CompletionLocalization.lean), and `isUnit_algebraMap_s_of_rational_subset`
+(PresheafTateStructure.lean). All three invoke `mem_prime_of_rational_subset`
+inside an `Ideal.radical`-membership argument and discharge the non-open-prime
+branch through an existential in `rationalOpen D'.T D'.s`.
+
+Given a non-open prime `p` of a Huber ring `A` with `D.s ∈ p`, and an inclusion
+`R(D'.T/D'.s) ⊆ R(D.T/D.s)`, this helper produces `v ∈ rationalOpen D'.T D'.s`
+with `p ≤ v.supp`. The existence of `v` is guaranteed by Wedhorn Lemma 7.45
+applied to the completion `presheafValue D'` (strongly noetherian Tate case)
+combined with the valuation-domination theorem over `Frac(A/p)`.
+
+**Status: sorry'd.** The only route available in the project is via Lemma 7.45
+on `presheafValue D'`, which requires `IsAdicComplete` on `completedLocSubring`,
+which is the Bourbaki CA III §2.8 blocker (`Submodule.isClosed_of_fg`) documented
+in `project_T001_completion_route.md` and
+`docs/plans/2026-04-14-acyclicity-completion.md`.
+
+The algebraic "Option A" route (image ring in `Frac(A/p)`, dominating valuation
+ring) requires properness of `I·R`, which is itself a non-trivial fiber-nonempty
+hypothesis; that route has not been formalized.
+
+**Retirement note (2026-04-15).** This obligation is **retired from the
+critical path** per the Q1 directive in the acyclicity completion plan: the
+standard-cover reduction (`LaurentCover` / `StandardCover`) bypasses it entirely
+by reducing general rational coverings to unit-principal covers where the
+Spa-point construction at a non-open prime is not needed. This helper lemma is
+kept to preserve the signature of `isUnit_algebraMap_s_of_huber` (which is
+consumed by downstream Huber-ring code). -/
+theorem spa_point_nonOpen_of_rational_subset {A : Type*} [CommRing A]
+    [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
+    (D D' : RationalLocData A) (_h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (p : Ideal A) (_hp : p.IsPrime) (_hDs : D.s ∈ p)
+    (_hp_notOpen : ¬IsOpen (p : Set A)) :
+    ∃ v ∈ rationalOpen D'.T D'.s, p ≤ v.supp := by
+  -- Blocked on Bourbaki CA III §2.8 (`Submodule.isClosed_of_fg`) for the completion
+  -- route, or on a formalised rational-ring domination theorem for Option A.
+  -- See docstring.
+  sorry
+
 /-- The localization-level unit: `algebraMap A (Localization.Away D'.s) D.s` is a unit
 when `R(D'.T/D'.s) ⊆ R(D.T/D.s)`. This is the key algebraic step used both
 by `isUnit_canonicalMap_s_of_huber` (which maps it to the completion) and
@@ -691,10 +734,8 @@ theorem isUnit_algebraMap_s_of_huber {A : Type*} [CommRing A] [TopologicalSpace 
     intro p ⟨hsp, hp⟩
     have hDs : D.s ∈ p := hsp (Ideal.subset_span (Set.mem_singleton D.s))
     refine mem_prime_of_rational_subset D D' h p hp hDs ?_
-    intro _hp_notOpen
-    -- Spa-point existence over a non-open prime inside `R(D'.T/D'.s)`:
-    -- Wedhorn Lemma 7.45 + valuation-domination over `Frac(A/p)`. Deferred.
-    sorry
+    intro hp_notOpen
+    exact spa_point_nonOpen_of_rational_subset D D' h p hp hDs hp_notOpen
   obtain ⟨n, hn⟩ := Ideal.mem_radical_iff.mp hrad
   obtain ⟨a, ha⟩ := Ideal.mem_span_singleton'.mp hn
   have hunit_pow : IsUnit (algebraMap A (Localization.Away D'.s) D'.s ^ n) :=
