@@ -1112,3 +1112,92 @@ blocker.
 2. **R3** next — the generic Example 6.38 is the load-bearing primitive.
 3. R2 / R4 / R5 can run in parallel once R3 is in place.
 4. R6 / R7 close the plan.
+
+---
+
+## 2026-04-15 execution progress (50 commits from fc6e61b)
+
+Substantial execution batch across the revised plan. Major deliverables:
+
+### R3 complete (generic Example 6.38 primitives)
+- `example638Plus_equiv` and `example638Minus_equiv` both fully proved in
+  `Adic spaces/Example638.lean` (1500 lines, extracted from IteratedRational to
+  break import cycle).
+- Forward maps via `evalHomBounded` at `b` (plus) / `invS` (minus), backward
+  via dense algebraic localization + completion extension.
+- Round trips via `Completion.ext'` on `coeRingHom` image.
+- Complete `plusFSubXIdeal` topology infrastructure (quotient complete +
+  T2 mirroring `oneSubfXIdeal`).
+
+### R1 scaffolded (standard-cover reduction)
+- `Adic spaces/StandardCover.lean` (~180 lines).
+- `StandardCover` structure + `RationalCovering.refines_by_standard_cover`
+  proved modulo 1 targeted Nullstellensatz helper + 1 pathological edge case.
+- `tateAcyclicity_via_standard_cover` delegates to existing `tateAcyclicity`
+  (circular but consistent; breaking the circularity is R6 work).
+
+### R5 (instantiation of R3 at B := presheafValue D₀)
+- `laurentMinusBridge`: 5 sorries → 2 (hnoeth_B + hcont_eval_B hoisted as
+  explicit hypotheses; body sorry-free via `presheafValueCanonicalQuotientEquiv`).
+- `laurentPlusBridge`: via `presheafValue_trivialPlus_fSubX_equiv` now closed
+  using `example638Plus_equiv.symm` (no sorry in body). Hypotheses hoisted.
+
+### Bridge compatibility theorems (R5 / R6 tail)
+- `laurentPlusBridge_restrictionMap` and `laurentMinusBridge_restrictionMap`:
+  both main theorems fully proved, reduced to 1 atomic sub-sorry each
+  (`_restrictionMap_canonicalMap`, the action of the iterated-rational equiv
+  on canonicalMap values).
+- `laurentBridge_delta_eq_zero_of_compat`: main theorem fully proved via new
+  `LaurentOverlapBridgeCompatible` predicate bundling the 3 original
+  intertwining obligations into one primitive (the Laurent-analog of
+  Example 6.38, capturing a bivariate evalHomBounded-style bridge).
+
+### Wedhorn 2.13 (iterated rational) partial progress
+- `presheafValue_iteratedPlus_equiv` and `presheafValue_iteratedMinus_equiv`:
+  uncompleted-level infrastructure fully built (13 new helper lemmas, 0
+  sorries). Equivs themselves have concrete `toFun` and `invFun`; remaining
+  sorries are: 4 continuity obligations (Wedhorn Prop 8.2 analog A → B) +
+  2 round-trip density obligations.
+
+### Q1 (non-open prime Spa-point) — retired per reviewer
+- 3 Q1-FIX callsites consolidated into 1 shared helper
+  `spa_point_nonOpen_of_rational_subset`, documented as Bourbaki CA III §2.8
+  blocked (unchanged critical-path status — retired per 2026-04-15 reviewer).
+
+### Supporting helpers
+- `gluing_of_finer_rational` and `tateAcyclicity_gluing_via_refinement`
+  (`Adic spaces/RationalRefinement.lean` + `LaurentRefinement.lean`): gluing
+  transfer under refinement — both sorry-free.
+- `restrictionMapHom_canonicalMap`: the key compatibility between
+  `restrictionMap` and canonicalMap (used throughout the compat proofs).
+
+### Cleanup
+- Removed deprecated iteratedMinus infrastructure (~538 lines) superseded by
+  R3. `IteratedRational.lean` trimmed from 1542 lines to 66 lines (just
+  `canonicalMap_s_isUnit` + `restrictionMapHom_canonicalMap` helpers).
+
+### Current sorry distribution (bridge chain + acyclicity)
+
+| Location | Count | Content |
+|---|---|---|
+| `LaurentRefinement.lean` | ~8 | Wedhorn 2.13 continuity + round trip (6) + Laurent overlap bridge (1) + tateAcyclicity Part 2 (1) |
+| `StandardCover.lean` | 2 | Nullstellensatz helper (1) + pathological edge (1) |
+| `Presheaf.lean` (shared Q1) | 1 | Bourbaki-blocked Spa-point helper (retired from critical path) |
+
+Everything else in the bridge chain is now **concretely structured** with
+no vague sorries — all remaining sorries point to specific, named
+mathematical obligations that are individually tractable or documented as
+upstream-Mathlib blockers.
+
+### Critical path to `tateAcyclicity` sorry-free
+
+1. Wedhorn 2.13 equivs: fill 4 continuity + 2 round-trip sorries → closes 2
+   equivs + 2 `_restrictionMap_canonicalMap` sub-sorries cascade.
+2. Laurent-analog of Example 6.38 (the new overlap primitive) → closes
+   `laurentOverlapBridge_exists_compatible` → closes delta-vanishing.
+3. With 1+2 done: `laurentCover_gluing_presheaf` becomes sorry-free.
+4. Fill `tateAcyclicity` Part 2 via `tateAcyclicity_gluing_via_refinement`
+   applied to a Laurent refinement (standard-cover reduction + Laurent gluing).
+
+Estimated remaining effort post-2026-04-15 session: ~3-4 sessions for the
+Wedhorn 2.13 route + ~2 sessions for the Laurent overlap primitive.
