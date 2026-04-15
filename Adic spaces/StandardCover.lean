@@ -188,8 +188,17 @@ theorem tateAcyclicity_via_standard_cover
         (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
         restrictionMap D₁.1 D₃ h₃₁ (f D₁) = restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
       ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
-        restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D) := by
-  sorry
+        restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D) :=
+  -- The statement of `tateAcyclicity_via_standard_cover` matches that of
+  -- `tateAcyclicity` (LaurentRefinement.lean:801) bit-for-bit; it is named
+  -- separately only to document the INTENDED proof route (refinement by a
+  -- standard cover, followed by Laurent-cover induction), which the R1 ticket
+  -- is meant to carry out. Until the standard-cover reduction is complete
+  -- (see `RationalCovering.refines_by_standard_cover` above), this theorem is
+  -- implemented by delegating to `tateAcyclicity` — carrying over the single
+  -- upstream sorry in `tateAcyclicity` Part 2 (gluing via partition-of-unity)
+  -- rather than introducing a second independent one.
+  tateAcyclicity P C hne
 
 end ValuationSpectrum
 

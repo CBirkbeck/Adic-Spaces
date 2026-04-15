@@ -776,6 +776,112 @@ noncomputable def example638Plus_forwardHom
 
 end Example638PlusForward
 
+/-! ### Plus branch backward: topology on `TateAlgebra B ⧸ (algebraMap b − X)`
+
+Unlike the minus branch (where the quotient is `oneSubfXIdeal b` and we can reuse
+`presheafValueCanonicalQuotientEquiv`), the plus branch quotient is
+`TateAlgebra B ⧸ Ideal.span {algebraMap b − X}`, which is different.
+We mirror the `oneSubfXIdeal`/`quotientOneSubfXIdealTopology` infrastructure
+for this new ideal. -/
+
+section Example638PlusBackwardTopology
+
+variable [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
+
+/-- The ideal `(algebraMap b − X)` in `TateAlgebra B`. This is the plus-branch
+analog of `oneSubfXIdeal` (which is `(1 − f·X)`). -/
+noncomputable def plusFSubXIdeal (b : B) : Ideal ↥(TateAlgebra B) :=
+  Ideal.span {algebraMap B ↥(TateAlgebra B) b - TateAlgebra.X}
+
+/-- The quotient topology on `TateAlgebra B ⧸ plusFSubXIdeal b` using the canonical
+Tate topology on `TateAlgebra B`. -/
+@[reducible]
+noncomputable def quotientPlusFSubXIdealTopology (b : B) :
+    TopologicalSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal b) :=
+  @topologicalRingQuotientTopology _ instTopologicalSpaceTateAlgebra _
+    (plusFSubXIdeal b)
+
+/-- The quotient `TateAlgebra B ⧸ plusFSubXIdeal b` is a topological ring. -/
+noncomputable instance quotientPlusFSubXIdealTopology_isTopologicalRing (b : B) :
+    @IsTopologicalRing (↥(TateAlgebra B) ⧸ plusFSubXIdeal b)
+      (quotientPlusFSubXIdealTopology b) _ :=
+  @topologicalRing_quotient ↥(TateAlgebra B)
+    instTopologicalSpaceTateAlgebra _
+    (plusFSubXIdeal b) (instIsTopologicalRingTateAlgebra)
+
+/-- The quotient `TateAlgebra B ⧸ plusFSubXIdeal b` has the `IsTopologicalAddGroup`
+structure. -/
+noncomputable instance quotientPlusFSubXIdealTopology_isTopologicalAddGroup (b : B) :
+    @IsTopologicalAddGroup (↥(TateAlgebra B) ⧸ plusFSubXIdeal b)
+      (quotientPlusFSubXIdealTopology b) _ :=
+  @IsTopologicalRing.to_topologicalAddGroup _ _
+    (quotientPlusFSubXIdealTopology b)
+    (quotientPlusFSubXIdealTopology_isTopologicalRing b)
+
+/-- The uniform space on the quotient `TateAlgebra B ⧸ plusFSubXIdeal b`. -/
+@[reducible, instance]
+noncomputable def quotientPlusFSubXIdealUniformSpace (b : B) :
+    UniformSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal b) :=
+  @IsTopologicalAddGroup.rightUniformSpace _ _
+    (quotientPlusFSubXIdealTopology b)
+    (quotientPlusFSubXIdealTopology_isTopologicalAddGroup b)
+
+/-- The `IsUniformAddGroup` instance for the canonical quotient topology on
+`TateAlgebra B ⧸ plusFSubXIdeal b`. -/
+noncomputable instance quotientPlusFSubXIdeal_isUniformAddGroup (b : B) :
+    @IsUniformAddGroup (↥(TateAlgebra B) ⧸ plusFSubXIdeal b)
+      (quotientPlusFSubXIdealUniformSpace b) _ :=
+  @isUniformAddGroup_of_addCommGroup _ _ (quotientPlusFSubXIdealTopology b)
+    (quotientPlusFSubXIdealTopology_isTopologicalAddGroup b)
+
+/-- The ideal `(algebraMap b − X)` is closed in `TateAlgebra B` under the canonical
+topology. Corollary of `tateAlgebra_isClosed_ideal` which applies to any ideal
+when `pairSubring.A₀` is noetherian. -/
+theorem plusFSubXIdeal_isClosed
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (b : B) :
+    IsClosed ((plusFSubXIdeal b : Ideal ↥(TateAlgebra B)) :
+      Set ↥(TateAlgebra B)) := by
+  haveI : IsNoetherianRing ↥(tateAlgebra_pairOfDefinition (A := B)).A₀ := hnoeth
+  exact tateAlgebra_isClosed_ideal hA_complete (plusFSubXIdeal b)
+
+/-- The quotient `TateAlgebra B ⧸ plusFSubXIdeal b` is T2. -/
+theorem quotient_plusFSubXIdeal_t2Space
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (b : B) :
+    T2Space (↥(TateAlgebra B) ⧸ plusFSubXIdeal b) := by
+  haveI : IsClosed ((plusFSubXIdeal b).toAddSubgroup : Set ↥(TateAlgebra B)) :=
+    plusFSubXIdeal_isClosed hA_complete hnoeth b
+  infer_instance
+
+/-- The quotient `TateAlgebra B ⧸ plusFSubXIdeal b` is complete under the
+canonical quotient topology. Mirror of `quotient_oneSubfXIdeal_completeSpace`. -/
+theorem quotient_plusFSubXIdeal_completeSpace
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (b : B) :
+    @CompleteSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal b)
+      (quotientPlusFSubXIdealUniformSpace b) := by
+  letI τ : TopologicalSpace ↥(TateAlgebra B) := instTopologicalSpaceTateAlgebra
+  haveI _hring : IsTopologicalRing ↥(TateAlgebra B) := instIsTopologicalRingTateAlgebra
+  haveI haddgrp : IsTopologicalAddGroup ↥(TateAlgebra B) :=
+    IsTopologicalRing.to_topologicalAddGroup
+  haveI : FirstCountableTopology ↥(TateAlgebra B) := instFirstCountableTopologyTateAlgebra
+  haveI hCS : @CompleteSpace ↥(TateAlgebra B)
+      (IsTopologicalAddGroup.rightUniformSpace ↥(TateAlgebra B)) :=
+    tateAlgebraTopology'_completeSpace hA_complete
+  haveI : IsClosed ((plusFSubXIdeal b).toAddSubgroup : Set ↥(TateAlgebra B)) :=
+    plusFSubXIdeal_isClosed hA_complete hnoeth b
+  exact @QuotientAddGroup.completeSpace_right' ↥(TateAlgebra B) _ τ haddgrp ‹_›
+    (plusFSubXIdeal b).toAddSubgroup inferInstance hCS
+
+end Example638PlusBackwardTopology
+
 /-! ### Minus branch forward: evaluation at `invS = 1 / canonicalMap b` -/
 
 section Example638MinusForward
