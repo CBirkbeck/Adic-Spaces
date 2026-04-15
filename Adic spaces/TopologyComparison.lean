@@ -1476,7 +1476,7 @@ For a given basic neighborhood `tateAlgNhd P n`, the set of indices whose
 coefficients lie outside `image(I^n)` is finite (by the restricted property).
 So for `N` larger than all such indices, the truncation satisfies
 `g - trunc(g, N) ∈ tateAlgNhd P n`. -/
-private theorem tateAlgebra_polynomials_dense_canonical [IsTateRing A] :
+theorem tateAlgebra_polynomials_dense_canonical [IsTateRing A] :
     @Dense ↥(TateAlgebra A) instTopologicalSpaceTateAlgebra
       {g | ∃ N : ℕ, ∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → g.val n = 0} := by
   let P := (IsTateRing.principalPair A).toPairOfDefinition
