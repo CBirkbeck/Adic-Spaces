@@ -522,32 +522,65 @@ noncomputable def presheafValue_iteratedMinus_equiv
 /-- **Non-discrete `f − X` quotient equivalence over a generic Tate base B**
 (Q3-STEP2D, the primitive the reviewer flagged as genuinely new for Q3).
 
-**IMPLEMENTATION NOTE:** the generic version at arbitrary complete strongly
-noetherian Tate base is fully proved in `IteratedRational.lean` as
-`example638Plus_equiv`. However, `IteratedRational` imports this file, so we
-cannot reference it here without breaking the import cycle. Instantiating
-`example638Plus_equiv` at `B := presheafValue D₀` requires three extra
-hypotheses (hoisted into this stub's signature) which the caller provides.
+The generic version at arbitrary complete strongly noetherian Tate base is
+proved in `Example638.lean` as `example638Plus_equiv`. We instantiate it at
+`B := presheafValue D₀` with `b := D₀.canonicalMap f`. This requires several
+hypotheses on `presheafValue D₀` (noetherianness; HasLocLiftPowerBounded;
+noetherianness of the pair-of-definition subring; completeness in the
+right-uniform-space sense; noetherianness of the Tate-algebra pair subring;
+continuity of the forward quotient hom) which we hoist into the signature —
+the same pattern used by `laurentMinusBridge` for the minus branch.
 
-The reviewer's Q3 guidance was to state and prove this once generically at
-`B`, not bespoke over `presheafValue D₀`. Refactoring this stub to directly
-use `example638Plus_equiv` (e.g. by moving it to a new module downstream of
-both) is tracked as a future cleanup ticket; the present sorry merely wires
-the hypotheses through. -/
+The target equivalence holds up to the definitional identities
+`iteratedPlusDatum_B = trivialPlusDatum` and
+`B₁_gen = TateAlgebra ⧸ plusFSubXIdeal`; both hold by `rfl`. -/
 noncomputable def presheafValue_trivialPlus_fSubX_equiv
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
-    (f : A) :
+    (f : A)
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+    (hA_complete_B : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_forward_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue D₀) :=
+        (presheafValue_pairOfDefinition P D₀).some
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))))
+        (example638Plus_forwardHom (presheafValue D₀) P_B (D₀.canonicalMap f))) :
     presheafValue (iteratedPlusDatum_B P D₀ f) ≃+*
       LaurentCover.B₁_gen (D₀.canonicalMap f) := by
-  -- See `IteratedRational.example638Plus_equiv`. The body is
-  -- `example638Plus_equiv P_B (D₀.canonicalMap f) hA_complete_B hnoeth_B hcont_forward_B`
-  -- at B := presheafValue D₀, up to the definitional equality
-  -- `iteratedPlusDatum_B = trivialPlusDatum` and `B₁_gen = TateAlgebra ⧸ plusFSubXIdeal`.
-  -- Discharging requires moving this def downstream of `IteratedRational` (import cycle).
-  sorry
+  haveI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+  haveI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+  haveI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+  letI P_B : PairOfDefinition (presheafValue D₀) :=
+    (presheafValue_pairOfDefinition P D₀).some
+  haveI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+  -- `iteratedPlusDatum_B P D₀ f = trivialPlusDatum (presheafValue D₀) P_B (canonicalMap f)`
+  -- definitionally (same P, T = {canonicalMap f}, s = 1, hopen = hopen_away_one _ _).
+  -- `B₁_gen (canonicalMap f) = TateAlgebra (presheafValue D₀) ⧸ plusFSubXIdeal _ _`
+  -- definitionally (same quotient ideal structure).
+  -- Use `.symm` of `example638Plus_equiv` at B := presheafValue D₀, b := canonicalMap f.
+  exact (example638Plus_equiv (presheafValue D₀) P_B (D₀.canonicalMap f)
+    hA_complete_B hnoeth_B hcont_forward_B).symm
 
 /-- **Route B bridge (plus)** (Wedhorn Lemma 8.33 support):
 `presheafValue (laurentPlusDatum D₀ f) ≃+* B₁_gen (D₀.canonicalMap f)`,
@@ -556,17 +589,49 @@ where `B₁_gen f' = (presheafValue D₀)⟨X⟩ ⧸ (f' - X)`.
 Proof route: compose `presheafValue_iteratedPlus_equiv` (Wedhorn 2.13, iterated
 rational identification with `B := presheafValue D₀`) with a non-discrete
 `f − X` quotient equivalence over the generic Tate base `B`
-(Q3-STEP2D, the one genuinely new primitive flagged by the reviewer). -/
+(Q3-STEP2D, the one genuinely new primitive flagged by the reviewer).
+
+The six plus-branch hypotheses (`hNoeth_B`, `hLocLift_B`, `hA₀Noeth_B`,
+`hA_complete_B`, `hnoeth_B`, `hcont_forward_B`) propagate from
+`presheafValue_trivialPlus_fSubX_equiv` — they are all about the generic base
+`B := presheafValue D₀` rather than about `A`. -/
 noncomputable def laurentPlusBridge
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
-    (f : A) :
+    (f : A)
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+    (hA_complete_B : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_forward_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue D₀) :=
+        (presheafValue_pairOfDefinition P D₀).some
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))))
+        (example638Plus_forwardHom (presheafValue D₀) P_B (D₀.canonicalMap f))) :
     presheafValue (laurentPlusDatum D₀ f) ≃+*
       LaurentCover.B₁_gen (D₀.canonicalMap f) :=
   (presheafValue_iteratedPlus_equiv P D₀ f).trans
-    (presheafValue_trivialPlus_fSubX_equiv P D₀ f)
+    (presheafValue_trivialPlus_fSubX_equiv P D₀ f
+      hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B hnoeth_B hcont_forward_B)
 
 /-- **Route B bridge (minus)** (Wedhorn Lemma 8.33 support):
 `presheafValue (laurentMinusDatum D₀ f) ≃+* B₂_gen (D₀.canonicalMap f)`,
@@ -668,17 +733,46 @@ noncomputable def laurentMinusBridge
     (hcont_eval := hcont_eval_B hb)
 
 /-- **Route B bridge (plus compatibility)**: the plus bridge intertwines
-`restrictionMap` and the first projection of `epsilonHom_gen`. -/
+`restrictionMap` and the first projection of `epsilonHom_gen`.
+
+Takes the same six `_B` hypotheses as `laurentPlusBridge`. -/
 theorem laurentPlusBridge_restrictionMap
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
     (f : A)
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+    (hA_complete_B : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_forward_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue D₀) :=
+        (presheafValue_pairOfDefinition P D₀).some
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))))
+        (example638Plus_forwardHom (presheafValue D₀) P_B (D₀.canonicalMap f)))
     (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
     ∀ x : presheafValue D₀,
-      laurentPlusBridge P D₀ f
+      laurentPlusBridge P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B
+          hnoeth_B hcont_forward_B
         (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x) =
         (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).1 := by
   sorry
@@ -725,10 +819,32 @@ theorem laurentBridge_delta_eq_zero_of_compat
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
     (f : A)
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+    (hA_complete_B : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       IsNoetherianRing ↥(TateAlgebra.pairSubring
         (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_forward_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue D₀) :=
+        (presheafValue_pairOfDefinition P D₀).some
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))))
+        (example638Plus_forwardHom (presheafValue D₀) P_B (D₀.canonicalMap f)))
     (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
@@ -747,7 +863,8 @@ theorem laurentBridge_delta_eq_zero_of_compat
       restrictionMap (laurentPlusDatum D₀ f) D₃ h₃p uplus =
         restrictionMap (laurentMinusDatum D₀ f) D₃ h₃m uminus) :
     LaurentCover.deltaMap_gen (D₀.canonicalMap f)
-      (laurentPlusBridge P D₀ f uplus,
+      (laurentPlusBridge P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B
+          hnoeth_B hcont_forward_B uplus,
         laurentMinusBridge P D₀ f hnoeth_B hcont_eval_B uminus) = 0 := by
   sorry
 
@@ -819,10 +936,32 @@ theorem laurentCover_gluing_presheaf_viaBridges
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
     (f : A)
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+    (hA_complete_B : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       IsNoetherianRing ↥(TateAlgebra.pairSubring
         (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_forward_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue D₀) :=
+        (presheafValue_pairOfDefinition P D₀).some
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))))
+        (example638Plus_forwardHom (presheafValue D₀) P_B (D₀.canonicalMap f)))
     (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
@@ -848,13 +987,16 @@ theorem laurentCover_gluing_presheaf_viaBridges
       restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x = uplus ∧
       restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x = uminus := by
   exact laurentCover_gluing_presheaf_viaRow3 D₀ f hplus hminus
-    (laurentPlusBridge P D₀ f)
+    (laurentPlusBridge P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B
+        hnoeth_B hcont_forward_B)
     (laurentMinusBridge P D₀ f hnoeth_B hcont_eval_B)
-    (laurentPlusBridge_restrictionMap P D₀ f hplus)
+    (laurentPlusBridge_restrictionMap P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B
+        hA_complete_B hnoeth_B hcont_forward_B hplus)
     (laurentMinusBridge_restrictionMap P D₀ f hnoeth_B hcont_eval_B hminus)
     rfl
     uplus uminus
-    (laurentBridge_delta_eq_zero_of_compat P D₀ f hnoeth_B hcont_eval_B
+    (laurentBridge_delta_eq_zero_of_compat P D₀ f hNoeth_B hLocLift_B
+      hA₀Noeth_B hA_complete_B hnoeth_B hcont_forward_B hcont_eval_B
       uplus uminus hcompat)
 
 /-- Laurent cover gluing on presheaf values (Wedhorn Lemma 8.33, presheaf level).
@@ -871,10 +1013,32 @@ theorem laurentCover_gluing_presheaf
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
     (f : A)
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+    (hA_complete_B : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       IsNoetherianRing ↥(TateAlgebra.pairSubring
         (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_forward_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue D₀) :=
+        (presheafValue_pairOfDefinition P D₀).some
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))))
+        (example638Plus_forwardHom (presheafValue D₀) P_B (D₀.canonicalMap f)))
     (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
@@ -899,7 +1063,8 @@ theorem laurentCover_gluing_presheaf
     ∃ x : presheafValue D₀,
       restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x = uplus ∧
       restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x = uminus :=
-  laurentCover_gluing_presheaf_viaBridges P D₀ f hnoeth_B hcont_eval_B
+  laurentCover_gluing_presheaf_viaBridges P D₀ f hNoeth_B hLocLift_B
+    hA₀Noeth_B hA_complete_B hnoeth_B hcont_forward_B hcont_eval_B
     hplus hminus uplus uminus hcompat
 
 /-- **Wedhorn Theorem 8.28(b)**: Tate acyclicity.
