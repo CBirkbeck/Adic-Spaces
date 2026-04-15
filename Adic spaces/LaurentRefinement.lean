@@ -521,17 +521,18 @@ noncomputable def presheafValue_iteratedMinus_equiv
 /-- **Non-discrete `f − X` quotient equivalence over a generic Tate base B**
 (Q3-STEP2D, the primitive the reviewer flagged as genuinely new for Q3).
 
-For the plus datum on `B := presheafValue D₀` at `canonicalMap f`, the
-presheafValue is the completion of `B` (viewed as `Localization.Away (1 : B)`)
-with the topology extending the ring of definition by `canonicalMap f`. This
-completion agrees with `B⟨X⟩ / (algebraMap(canonicalMap f) − X)` — the Tate-
-algebra quotient that "sets X := canonicalMap f". Concretely: both are the
-universal complete nonarchimedean `B`-algebra in which `canonicalMap f` is
-power-bounded.
+**IMPLEMENTATION NOTE:** the generic version at arbitrary complete strongly
+noetherian Tate base is fully proved in `IteratedRational.lean` as
+`example638Plus_equiv`. However, `IteratedRational` imports this file, so we
+cannot reference it here without breaking the import cycle. Instantiating
+`example638Plus_equiv` at `B := presheafValue D₀` requires three extra
+hypotheses (hoisted into this stub's signature) which the caller provides.
 
-This is the non-discrete generalisation of `TateAlgebra.quotientFSubXEquiv`
-(currently `[DiscreteTopology]`-only). The reviewer's Q3 guidance was to state
-and prove this once generically at `B`, not bespoke over `presheafValue D₀`. -/
+The reviewer's Q3 guidance was to state and prove this once generically at
+`B`, not bespoke over `presheafValue D₀`. Refactoring this stub to directly
+use `example638Plus_equiv` (e.g. by moving it to a new module downstream of
+both) is tracked as a future cleanup ticket; the present sorry merely wires
+the hypotheses through. -/
 noncomputable def presheafValue_trivialPlus_fSubX_equiv
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
@@ -540,6 +541,11 @@ noncomputable def presheafValue_trivialPlus_fSubX_equiv
     (f : A) :
     presheafValue (iteratedPlusDatum_B P D₀ f) ≃+*
       LaurentCover.B₁_gen (D₀.canonicalMap f) := by
+  -- See `IteratedRational.example638Plus_equiv`. The body is
+  -- `example638Plus_equiv P_B (D₀.canonicalMap f) hA_complete_B hnoeth_B hcont_forward_B`
+  -- at B := presheafValue D₀, up to the definitional equality
+  -- `iteratedPlusDatum_B = trivialPlusDatum` and `B₁_gen = TateAlgebra ⧸ plusFSubXIdeal`.
+  -- Discharging requires moving this def downstream of `IteratedRational` (import cycle).
   sorry
 
 /-- **Route B bridge (plus)** (Wedhorn Lemma 8.33 support):
