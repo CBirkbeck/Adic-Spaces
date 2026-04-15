@@ -884,36 +884,73 @@ theorem iteratedPlus_forwardToCompletion_continuous
     (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s
     (laurentPlusDatum D₀ f).hopen (iteratedPlus_forwardLocHom D₀) hf_alg hpow
 
+/-! #### Backward (plus branch): power-boundedness sub-sorry
+
+The backward uncompleted map
+`iteratedPlus_backwardLocHom D₀ f hsub : Loc_B(1) →+*
+presheafValue (laurentPlusDatum D₀ f)` sends the single generator
+`divByS (canonicalMap f) 1` of `(iteratedPlusDatum_B P D₀ f).T = {canonicalMap f}`
+to `(laurentPlusDatum D₀ f).canonicalMap f`, which must be power-bounded
+in `presheafValue (laurentPlusDatum D₀ f)`.
+
+We package this as `iteratedPlus_backwardLocHom_generator_powerBounded`
+(parallels `iteratedMinus_backwardLocHom_generator_powerBounded` in the
+minus direction). -/
+
+/-- **Power-boundedness of the plus backward generator image** (Wedhorn
+Prop 8.2 analogue, plus branch backward generator). The image of
+`divByS (canonicalMap f) 1` (= the unique generator of `T = {canonicalMap f}`
+in `iteratedPlusDatum_B P D₀ f`) under `iteratedPlus_backwardLocHom D₀ f hsub`
+is power-bounded in `presheafValue (laurentPlusDatum D₀ f)`.
+
+**Mathematical content** (Wedhorn §8.2, Lemma 2.13).
+By `iteratedPlus_backwardLocHom_algebraMap` + `restrictionMapHom_canonicalMap`,
+the image equals `(laurentPlusDatum D₀ f).canonicalMap f`, the canonical
+image of `f` in the target. Since `f ∈ (laurentPlusDatum D₀ f).T = insert f D₀.T`,
+we have `divByS f D₀.s ∈ locSubring (laurentPlusDatum D₀ f)` and hence
+`canonicalMap (divByS f D₀.s · D₀.s) = canonicalMap f` lies in the target ring
+of definition, giving power-boundedness directly.
+
+**Proof strategy** (deferred):
+1. By `iteratedPlus_backwardLocHom_algebraMap` and `divByS_eq_algebraMap` (since
+   `s = 1` in `iteratedPlusDatum_B`), the image equals
+   `restrictionMapHom D₀ (laurentPlusDatum D₀ f) hsub (D₀.canonicalMap f)`,
+   which by `restrictionMapHom_canonicalMap` equals `(laurentPlusDatum D₀ f).canonicalMap f`.
+2. `canonicalMap f` in the target: since `f ∈ (laurentPlusDatum).T` (via `Finset.mem_insert_self`),
+   `divByS f D₀.s ∈ locSubring (laurentPlusDatum)`, and multiplication by the unit
+   `canonicalMap D₀.s` gives `canonicalMap f ∈ presheafValue_ringOfDef`.
+3. Elements of `presheafValue_ringOfDef` are power-bounded (Wedhorn Prop 7.14 /
+   standard Nullstellensatz content).
+
+**Status**: deferred as a single sub-sorry (Wedhorn §8.2 base-change
+Nullstellensatz). Parallels `iteratedMinus_backwardLocHom_generator_powerBounded`. -/
+private theorem iteratedPlus_backwardLocHom_generator_powerBounded
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A)
+    (hsub : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    TopologicalRing.IsPowerBounded
+      (iteratedPlus_backwardLocHom D₀ f hsub
+        (divByS (D₀.canonicalMap f) (iteratedPlusDatum_B P D₀ f).s)) := by
+  -- Wedhorn Prop 8.2 / Lemma 2.13 base-change content on `B := presheafValue D₀`,
+  -- applied to the canonical image of `f` in `presheafValue (laurentPlusDatum D₀ f)`.
+  sorry
+
 /-- Continuity of the backward uncompleted hom (plus branch).
 
-**Mathematical content**: `iteratedPlus_backwardLocHom` is `IsLocalization.Away.lift`
-at `1` with `g = restrictionMapHom` as the base `B`-hom. It satisfies
-`lift ∘ algebraMap = restrictionMapHom` (by `iteratedPlus_backwardLocHom_algebraMap`).
+**Proof**: Apply `locTopology_continuous_lift` to `iteratedPlus_backwardLocHom D₀ f hsub`
+with base ring `B = presheafValue D₀`, source data
+`((iteratedPlusDatum_B P D₀ f).P, {canonicalMap f}, 1)`, and target
+`presheafValue (laurentPlusDatum D₀ f)`. Reduces to two conditions:
 
-The topology on `Loc_B(1)` from `iteratedPlusDatum_B` has `T = {canonicalMap f}`,
-`s = 1`. A basis of `𝓝(0)` in this topology is `locNhd n = algebraMap((P_B.I · B')^n)`
-where `B' = Subring.closure(P_B.A₀ ∪ {canonicalMap f}) ⊂ B`.
-
-Since `restrictionMapHom_continuous` provides continuity of `g` at `0` w.r.t. `B`'s
-native topology (basis `{P_B.I^m}`), and `B' \supsetneq P_B.A₀` in general (when
-`canonicalMap f ∉ P_B.A₀`), the locTopology is STRICTLY COARSER than the image of
-`B`'s native topology under `algebraMap`. Thus naive composition `g ∘ algebraMap⁻¹`
-is NOT continuous.
-
-**The correct proof** (for the topology identification Wedhorn Lemma 2.13)
-requires: show that for each nbhd `V` of `0` in `presheafValue(laurentPlusDatum)`,
-there is some `n` with `g((P_B.I · B')^n) ⊂ V`. Using that `restrictionMapHom(canonicalMap f)
-= (laurentPlus).canonicalMap f` is power-bounded in the target (because
-`f ∈ (laurentPlus).T` so `f/D₀.s ∈ locSubring_{laurentPlus}` and the target ring
-of definition contains the image), the products `g((P_B.I)^n · B')` stay within
-bounded nbhds for `n` large enough. This is a Wedhorn Prop 8.2 analogue with the
-subtle twist of applying Lemma 2.13 to identify the iterated topology.
-
-**Current status**: this is part of the Q3-STEP2C blocker (iterated rational
-identifications / Wedhorn Lemma 2.13). The mathematical content is clear but
-requires careful bookkeeping of power-boundedness of `canonicalMap f` in the
-target and translates to a completion-topology argument that hasn't been
-formalized yet in this repository. -/
+(a) `iteratedPlus_backwardLocHom ∘ algebraMap B = restrictionMapHom D₀ (laurentPlusDatum D₀ f) hsub`
+    (by `iteratedPlus_backwardLocHom_algebraMap`), continuous by
+    `restrictionMapHom_continuous`.
+(b) For the single generator `divByS (canonicalMap f) 1`, the image is
+    power-bounded: `iteratedPlus_backwardLocHom_generator_powerBounded`. -/
 theorem iteratedPlus_backwardLocHom_continuous
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
@@ -923,7 +960,56 @@ theorem iteratedPlus_backwardLocHom_continuous
     (hsub : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
     @Continuous _ _ (iteratedPlusDatum_B P D₀ f).topology _
-      (iteratedPlus_backwardLocHom D₀ f hsub) := sorry
+      (iteratedPlus_backwardLocHom D₀ f hsub) := by
+  -- Apply `locTopology_continuous_lift` for the lift on source
+  -- `Loc_B(1)` with `iteratedPlusDatum_B` topology.
+  letI topB : TopologicalSpace (Localization.Away (1 : presheafValue D₀)) :=
+    (iteratedPlusDatum_B P D₀ f).topology
+  letI : TopologicalSpace (Localization.Away (iteratedPlusDatum_B P D₀ f).s) := topB
+  letI : IsTopologicalRing (Localization.Away (1 : presheafValue D₀)) :=
+    (iteratedPlusDatum_B P D₀ f).isTopologicalRing
+  letI : IsTopologicalRing (Localization.Away (iteratedPlusDatum_B P D₀ f).s) :=
+    (iteratedPlusDatum_B P D₀ f).isTopologicalRing
+  -- Target is nonarchimedean ring (for `locTopology_continuous_lift`).
+  haveI : NonarchimedeanRing (presheafValue (laurentPlusDatum D₀ f)) :=
+    presheafValueNonarchimedeanRing (laurentPlusDatum D₀ f)
+  -- Continuity of `backwardLocHom ∘ algebraMap B`: the composite equals
+  -- `restrictionMapHom D₀ (laurentPlusDatum D₀ f) hsub` (by
+  -- `iteratedPlus_backwardLocHom_algebraMap`), which is continuous by
+  -- `restrictionMapHom_continuous`.
+  have hf_alg : @Continuous _ _ _ _
+      ((iteratedPlus_backwardLocHom D₀ f hsub).comp
+        (algebraMap (presheafValue D₀)
+          (Localization.Away (iteratedPlusDatum_B P D₀ f).s))) := by
+    have heq : (iteratedPlus_backwardLocHom D₀ f hsub).comp
+        (algebraMap (presheafValue D₀)
+          (Localization.Away (iteratedPlusDatum_B P D₀ f).s)) =
+        restrictionMapHom D₀ (laurentPlusDatum D₀ f) hsub := by
+      ext b
+      simp only [RingHom.comp_apply]
+      exact iteratedPlus_backwardLocHom_algebraMap D₀ f hsub b
+    rw [show ⇑((iteratedPlus_backwardLocHom D₀ f hsub).comp
+        (algebraMap (presheafValue D₀)
+          (Localization.Away (iteratedPlusDatum_B P D₀ f).s))) =
+      ⇑(restrictionMapHom D₀ (laurentPlusDatum D₀ f) hsub) from
+      congr_arg _ heq]
+    exact restrictionMapHom_continuous D₀ (laurentPlusDatum D₀ f) hsub
+  -- Power-boundedness of the single generator at `t = canonicalMap f`.
+  have hpow : ∀ t ∈ (iteratedPlusDatum_B P D₀ f).T,
+      TopologicalRing.IsPowerBounded
+        (iteratedPlus_backwardLocHom D₀ f hsub
+          (divByS t (iteratedPlusDatum_B P D₀ f).s)) := by
+    intro t ht
+    -- `T = {canonicalMap f}`, so `t = canonicalMap f`.
+    rw [show (iteratedPlusDatum_B P D₀ f).T = {D₀.canonicalMap f} from rfl] at ht
+    rw [Finset.mem_singleton] at ht
+    subst ht
+    exact iteratedPlus_backwardLocHom_generator_powerBounded P D₀ f hsub
+  -- Apply `locTopology_continuous_lift`.
+  exact locTopology_continuous_lift (iteratedPlusDatum_B P D₀ f).P
+    (iteratedPlusDatum_B P D₀ f).T (iteratedPlusDatum_B P D₀ f).s
+    (iteratedPlusDatum_B P D₀ f).hopen
+    (iteratedPlus_backwardLocHom D₀ f hsub) hf_alg hpow
 
 /-- The forward completion hom (plus branch): `extensionHom` of
 `iteratedPlus_forwardToCompletion`. -/
