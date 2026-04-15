@@ -1135,8 +1135,78 @@ structural proofs. Recorded here as named sorries so the downstream
 `presheafValue_iteratedMinus_equiv` can refer to them as concrete theorems
 (enabling the `_restrictionMap_canonicalMap` sub-sorry to be reduced). -/
 
+/-! #### Power-boundedness helpers for the minus-branch forward map
+
+The forward uncompleted map `iteratedMinus_forwardLocHom D₀ f :
+Loc_A(D₀.s · f) → Loc_B(canonicalMap f)` sends each generator
+`divByS t (D₀.s · f)` (for `t ∈ (laurentMinusDatum D₀ f).T`, the product
+`(insert D₀.s D₀.T) × {D₀.s, f}` under `(·.1 * ·.2)`) to an element which
+must be power-bounded in `Loc_B(canonicalMap f)` with
+`(iteratedMinusDatum_B P D₀ f).topology`.
+
+We package this as a single helper lemma
+`iteratedMinus_forwardLocHom_generators_powerBounded`
+(Wedhorn Prop 8.2 / Lemma 2.13 content, deferred). Parallels
+`iteratedPlus_forwardLocHom_generators_powerBounded`. -/
+
+/-- **Power-boundedness of the minus forward generator images** (Wedhorn
+Prop 8.2 analogue, minus branch generator). For each
+`t ∈ (laurentMinusDatum D₀ f).T` (a product Finset of elements of the form
+`a · b` with `a ∈ insert D₀.s D₀.T` and `b ∈ {D₀.s, f}`), the image of
+`divByS t (laurentMinusDatum D₀ f).s` (= `divByS t (D₀.s · f)`) under
+`iteratedMinus_forwardLocHom D₀ f` is power-bounded in
+`Loc_B(canonicalMap f)` with the `(iteratedMinusDatum_B P D₀ f).topology`.
+
+**Mathematical content** (Wedhorn §8.2, Lemma 2.13).
+Under the iterated-rational identification
+`rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊂ Spa A ≃
+ rationalOpen (iteratedMinusDatum_B P D₀ f).T (iteratedMinusDatum_B P D₀ f).s
+ ⊂ Spa B` (Lemma 2.13), the adic Nullstellensatz (Wedhorn Prop 7.14) on
+`B := presheafValue D₀` gives power-boundedness of the generator images. The
+`A`-rational analogue is `HasLocLiftPowerBounded.locLift_divByS_isPowerBounded`
+in `Presheaf.lean`.
+
+**Unfolding the generator image**. For `t = a · b` (with `a ∈ insert D₀.s D₀.T`
+and `b ∈ {D₀.s, f}`):
+- `iteratedMinus_forwardLocHom D₀ f (divByS (a*b) (D₀.s*f))` lies in
+  `Loc_B(canonicalMap f)`;
+- Under Lemma 2.13 it corresponds to an element of the localization subring
+  `locSubring (iteratedMinusDatum_B).P (iteratedMinusDatum_B).T
+  (iteratedMinusDatum_B).s` (using `iteratedMinusDatum_B.T = {1}` and
+  `s = canonicalMap f`).
+
+**Proof strategy** (deferred):
+1. Show membership in the `B`-side localization subring for each of the
+   products `a · b` (`a ∈ insert D₀.s D₀.T`, `b ∈ {D₀.s, f}`), via Wedhorn
+   Lemma 2.13's identification + `canonicalMap_mem_ringOfDef`-type lemmas.
+2. Use the locBasis presentation to conclude power-boundedness.
+
+**Status**: deferred as a single sub-sorry (Wedhorn §8.2 base-change
+Nullstellensatz). This is the last remaining content for
+`iteratedMinus_forwardToCompletion_continuous`. -/
+private theorem iteratedMinus_forwardLocHom_generators_powerBounded
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A) :
+    ∀ t ∈ (laurentMinusDatum D₀ f).T,
+      @TopologicalRing.IsPowerBounded _ _ (iteratedMinusDatum_B P D₀ f).topology
+        (iteratedMinus_forwardLocHom D₀ f
+          (divByS t (laurentMinusDatum D₀ f).s)) := by
+  -- Wedhorn Prop 8.2 / Lemma 2.13 base-change content; see docstring.
+  sorry
+
 /-- Continuity of the forward uncompleted hom to the completion
-(Wedhorn Prop 8.2 analogue, minus branch). -/
+(Wedhorn Prop 8.2 analogue, minus branch).
+
+**Proof**: Factor as `(iteratedMinusDatum_B).coeRingHom ∘
+iteratedMinus_forwardLocHom D₀ f`. The right factor is continuous from
+`(laurentMinusDatum D₀ f).topology` to `(iteratedMinusDatum_B).topology`
+by the universal property of the localization topology
+(`locTopology_continuous_lift`) applied to the generators
+`(laurentMinusDatum D₀ f).T`; the left factor is the completion embedding
+(always continuous). -/
 theorem iteratedMinus_forwardToCompletion_continuous
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
@@ -1144,7 +1214,93 @@ theorem iteratedMinus_forwardToCompletion_continuous
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
     (f : A) :
     @Continuous _ _ (laurentMinusDatum D₀ f).topology _
-      (iteratedMinus_forwardToCompletion P D₀ f) := sorry
+      (iteratedMinus_forwardToCompletion P D₀ f) := by
+  -- Decompose as `coeRingHom ∘ forwardLocHom` and apply
+  -- `locTopology_continuous_lift` for the inner hom, then compose with the
+  -- continuous completion embedding.
+  letI : TopologicalSpace (Localization.Away (laurentMinusDatum D₀ f).s) :=
+    (laurentMinusDatum D₀ f).topology
+  letI : IsTopologicalRing (Localization.Away (laurentMinusDatum D₀ f).s) :=
+    (laurentMinusDatum D₀ f).isTopologicalRing
+  letI : IsTopologicalAddGroup (Localization.Away (laurentMinusDatum D₀ f).s) :=
+    (laurentMinusDatum D₀ f).isTopologicalAddGroup
+  letI topB : TopologicalSpace (Localization.Away (D₀.canonicalMap f)) :=
+    (iteratedMinusDatum_B P D₀ f).topology
+  letI : TopologicalSpace (Localization.Away (iteratedMinusDatum_B P D₀ f).s) := topB
+  letI : IsTopologicalRing (Localization.Away (D₀.canonicalMap f)) :=
+    (iteratedMinusDatum_B P D₀ f).isTopologicalRing
+  letI : IsTopologicalRing (Localization.Away (iteratedMinusDatum_B P D₀ f).s) :=
+    (iteratedMinusDatum_B P D₀ f).isTopologicalRing
+  letI : IsTopologicalAddGroup (Localization.Away (D₀.canonicalMap f)) :=
+    (iteratedMinusDatum_B P D₀ f).isTopologicalAddGroup
+  letI : IsTopologicalAddGroup
+      (Localization.Away (iteratedMinusDatum_B P D₀ f).s) :=
+    (iteratedMinusDatum_B P D₀ f).isTopologicalAddGroup
+  letI usB : UniformSpace (Localization.Away (D₀.canonicalMap f)) :=
+    (iteratedMinusDatum_B P D₀ f).uniformSpace
+  letI : UniformSpace (Localization.Away (iteratedMinusDatum_B P D₀ f).s) := usB
+  letI : IsUniformAddGroup (Localization.Away (D₀.canonicalMap f)) :=
+    (iteratedMinusDatum_B P D₀ f).isUniformAddGroup
+  letI : IsUniformAddGroup (Localization.Away (iteratedMinusDatum_B P D₀ f).s) :=
+    (iteratedMinusDatum_B P D₀ f).isUniformAddGroup
+  -- Target is nonarchimedean ring (for `locTopology_continuous_lift`).
+  haveI naB : @NonarchimedeanRing (Localization.Away (D₀.canonicalMap f)) _
+      (iteratedMinusDatum_B P D₀ f).topology :=
+    (locBasis (iteratedMinusDatum_B P D₀ f).P (iteratedMinusDatum_B P D₀ f).T
+      (iteratedMinusDatum_B P D₀ f).s
+      (iteratedMinusDatum_B P D₀ f).hopen).nonarchimedean
+  haveI : @NonarchimedeanRing (Localization.Away (iteratedMinusDatum_B P D₀ f).s) _
+      (iteratedMinusDatum_B P D₀ f).topology := naB
+  -- Factor `iteratedMinus_forwardToCompletion` as `coeRingHom ∘ forwardLocHom`.
+  change @Continuous _ _ (laurentMinusDatum D₀ f).topology _
+      ((iteratedMinusDatum_B P D₀ f).coeRingHom.comp
+        (iteratedMinus_forwardLocHom D₀ f))
+  -- The completion embedding `coeRingHom` is continuous.
+  have hcoe : @Continuous _ _ (iteratedMinusDatum_B P D₀ f).topology
+      (@UniformSpace.toTopologicalSpace _
+        (@UniformSpace.Completion.uniformSpace _
+          (iteratedMinusDatum_B P D₀ f).uniformSpace))
+      (iteratedMinusDatum_B P D₀ f).coeRingHom :=
+    @UniformSpace.Completion.continuous_coe _
+      (iteratedMinusDatum_B P D₀ f).uniformSpace
+  -- Reduce to continuity of `iteratedMinus_forwardLocHom D₀ f`.
+  suffices hlift : @Continuous _ _ (laurentMinusDatum D₀ f).topology
+      (iteratedMinusDatum_B P D₀ f).topology
+      (iteratedMinus_forwardLocHom D₀ f) by
+    exact hcoe.comp hlift
+  -- Continuity of `forwardLocHom ∘ algebraMap A`: the composite equals
+  -- `algebraMap B _ ∘ D₀.canonicalMap` (by `iteratedMinus_forwardLocHom_algebraMap`
+  -- / `iteratedMinus_baseHom`), both continuous.
+  have hf_alg : @Continuous _ _ _ (iteratedMinusDatum_B P D₀ f).topology
+      ((iteratedMinus_forwardLocHom D₀ f).comp
+        (algebraMap A (Localization.Away (laurentMinusDatum D₀ f).s))) := by
+    have heq : (iteratedMinus_forwardLocHom D₀ f).comp
+        (algebraMap A (Localization.Away (laurentMinusDatum D₀ f).s)) =
+        (algebraMap (presheafValue D₀)
+          (Localization.Away (iteratedMinusDatum_B P D₀ f).s)).comp
+          D₀.canonicalMap := by
+      ext a
+      simp only [RingHom.comp_apply]
+      show iteratedMinus_forwardLocHom D₀ f
+          (algebraMap A (Localization.Away (D₀.s * f)) a) =
+        algebraMap (presheafValue D₀) (Localization.Away (D₀.canonicalMap f))
+          (D₀.canonicalMap a)
+      rw [iteratedMinus_forwardLocHom_algebraMap]
+      rfl
+    rw [show ⇑((iteratedMinus_forwardLocHom D₀ f).comp
+        (algebraMap A (Localization.Away (laurentMinusDatum D₀ f).s))) =
+      ⇑((algebraMap (presheafValue D₀)
+          (Localization.Away (iteratedMinusDatum_B P D₀ f).s)).comp
+          D₀.canonicalMap) from
+      congr_arg _ heq]
+    exact (algebraMap_continuous_loc (iteratedMinusDatum_B P D₀ f)).comp
+      (canonicalMap_continuous D₀)
+  -- Power-boundedness hypothesis: from the packaged helper lemma.
+  have hpow := iteratedMinus_forwardLocHom_generators_powerBounded P D₀ f
+  -- Apply `locTopology_continuous_lift` to the loc-hom.
+  exact locTopology_continuous_lift (laurentMinusDatum D₀ f).P
+    (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s
+    (laurentMinusDatum D₀ f).hopen (iteratedMinus_forwardLocHom D₀ f) hf_alg hpow
 
 /-- Continuity of the backward uncompleted hom (minus branch). -/
 theorem iteratedMinus_backwardLocHom_continuous
