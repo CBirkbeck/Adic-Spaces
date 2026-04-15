@@ -588,4 +588,59 @@ noncomputable def presheafValue_iteratedMinus_equiv_aux
 
 end IteratedMinusEquiv
 
+/-! ## R3 — Generic Wedhorn Example 6.38 primitives
+
+Per the reviewer's 2026-04-15 guidance, the load-bearing primitive for closing
+the Laurent-branch bridges is Wedhorn Example 6.38 generically: for any
+complete strongly noetherian Tate base `B` and any `b ∈ B` power-bounded in
+the relevant branch, the Tate-algebra quotient identifies with the
+presheafValue of a trivial rational datum on `B`.
+
+This avoids the `HasLocLiftPowerBounded [IsDomain]`-gated route entirely:
+the forward map is built from `TateAlgebra B` via evaluation at `b`
+(plus) or `1/b` (minus), which is the standard `evalHomBounded`
+construction — not the `IsLocalization.Away.lift` route.
+
+### Plus branch: `B⟨X⟩ / (algebraMap b − X) ≃+* presheafValue (trivialPlusDatum P b)`
+
+### Minus branch: `B⟨X⟩ / (1 − algebraMap b · X) ≃+* presheafValue (trivialMinusDatum P b)`
+-/
+
+section Example638
+
+variable (B : Type*) [CommRing B] [TopologicalSpace B] [IsTopologicalRing B]
+  [PlusSubring B] [IsHuberRing B] [HasLocLiftPowerBounded B]
+
+/-- Generic trivial plus datum on `B` at `b`: `T = {b}`, `s = 1`.
+`hopen` is trivial via `hopen_away_one` (no constraint on `b`, since the ring of
+definition already contains `b` when we add it to `T`, in the localization at 1). -/
+noncomputable def trivialPlusDatum (P : PairOfDefinition B) (b : B) :
+    RationalLocData B where
+  P := P
+  T := {b}
+  s := 1
+  hopen := hopen_away_one P {b}
+
+/-- Generic trivial minus datum on `B` at `b`: `T = {1}`, `s = b`.
+`hopen` with `N = 0`: for any `c : P.A₀`, `divByS c.val b` factors as
+`algebraMap c.val * divByS 1 b`, both in the `locSubring`. -/
+noncomputable def trivialMinusDatum (P : PairOfDefinition B) (b : B) :
+    RationalLocData B where
+  P := P
+  T := {1}
+  s := b
+  hopen := ⟨0, fun c _ => by
+    have hmul : algebraMap B (Localization.Away b) c.val *
+        divByS (1 : B) b = divByS c.val b := by
+      unfold divByS
+      rw [← IsLocalization.mk'_one (M := Submonoid.powers b)
+            (S := Localization.Away b) c.val,
+          ← IsLocalization.mk'_mul, one_mul, mul_one]
+    rw [← hmul]
+    exact (locSubring _ _ _).mul_mem
+      (algebraMap_mem_locSubring _ _ _ c.2)
+      (divByS_mem_locSubring _ _ _ (Finset.mem_singleton_self 1))⟩
+
+end Example638
+
 end ValuationSpectrum
