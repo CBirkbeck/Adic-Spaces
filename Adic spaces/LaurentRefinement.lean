@@ -626,9 +626,16 @@ noncomputable def laurentMinusBridge
     intro t ht
     rw [Finset.mem_singleton.mp ht]
     exact TopologicalRing.isPowerBounded_one
+  -- `hA_complete`: `presheafValue D₀` is complete via the completion's uniform
+  -- structure, which agrees with the rightUniformSpace by
+  -- `IsUniformAddGroup.rightUniformSpace_eq`.
+  have hA_complete : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)) := by
+    rw [IsUniformAddGroup.rightUniformSpace_eq]
+    infer_instance
   exact presheafValueCanonicalQuotientEquiv (iteratedMinusDatum_B P D₀ f)
     (hb := hb)
-    (hA_complete := sorry)
+    (hA_complete := hA_complete)
     (hnoeth := sorry)
     (hT_pb := hT_pb)
     (hcont_eval := sorry)

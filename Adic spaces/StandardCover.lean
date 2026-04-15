@@ -38,17 +38,40 @@ Wedhorn's Theorem 8.28(b) is proved by the following reduction chain:
 The standard-cover reduction replaces the (much harder) Wedhorn Lemma 8.34 /
 Phase 5a faithful-flatness route, which required a Spa-point construction at
 non-open primes and depended on Bourbaki CA III §2.8 formalization (not in
-Mathlib). The standard-cover route bypasses that blocker entirely; see
+Mathlib). The standard-cover route **aims** to bypass that blocker; in practice
+the Nullstellensatz helper (`exists_nullstellensatz_refinement`) still
+requires the non-open-prime Spa-point construction in at least some sub-cases,
+so the R1 workaround is incremental rather than a clean cut-off. See
 `docs/plans/2026-04-14-acyclicity-completion.md` §"2026-04-15 reviewer-guided
 plan revision" (Q1 directive) for details.
 
-## Status
+## Status (2026-04-14 R1 work)
 
-This file is a **scaffold**: the two main theorems
-(`RationalCovering.refines_by_standard_cover`,
-`tateAcyclicity_via_standard_cover`) are `sorry`'d. Their proofs are
-tracked as ticket R1 of the revised acyclicity plan and are expected to
-follow:
+* **`RationalCovering.refines_by_standard_cover`** — proved modulo a single
+  helper sorry. The subsingleton branch (zero ring) is fully discharged
+  using `S.elts = ∅`; the nontrivial branch delegates to the private
+  helper `exists_nullstellensatz_refinement`, which captures the
+  Zavyalov / Wedhorn Nullstellensatz construction in one clean
+  existential. The helper docstring documents which of its three
+  clauses are covered by existing infrastructure and which is the
+  genuinely new ingredient.
+
+* **`tateAcyclicity_via_standard_cover`** — delegates to
+  `tateAcyclicity` in `LaurentRefinement.lean` (the two statements are
+  identical bit-for-bit). No independent sorry; the upstream sorry in
+  `tateAcyclicity` Part 2 (partition-of-unity gluing) is carried over.
+
+**Remaining blockers** (both tracked as R1 of the 2026-04-14 plan):
+
+1. `exists_nullstellensatz_refinement` — Wedhorn Prop 7.14 + Lemma 7.44
+   applied to the cover condition. The OPEN-prime sub-case is partially
+   accessible via `exists_spa_point_in_rationalOpen_of_isOpen_prime`,
+   but the full non-open case depends on Lemma 7.45 infrastructure.
+2. `tateAcyclicity` Part 2 gluing — partition-of-unity in the presheaf,
+   tracked separately in the 2026-04-14 plan and the
+   `project_T001_completion_route` memory.
+
+## References
 
 * Zavyalov, *Quasicoherent sheaves on rigid-analytic spaces*, §2 —
   standard-cover refinement argument.
