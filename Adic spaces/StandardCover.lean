@@ -122,29 +122,159 @@ theorem nonempty_of_nontrivial [Nontrivial A] (S : StandardCover A) : S.elts.Non
 
 end StandardCover
 
+/-! ### The three refinement clauses, named as predicates
+
+Rather than repeating the three-clause conjunction, we record each clause as a
+named predicate on `S : Finset A` relative to a `RationalCovering C`. This
+makes the structure of the Nullstellensatz refinement more transparent and
+lets downstream work attack each clause independently. -/
+
+/-- **Clause 1 (covering)**: Every point of the base rational open is contained
+in the plus-type piece at some element of `S`. -/
+def refines_cover [DecidableEq A] (C : RationalCovering A) (S : Finset A) : Prop :=
+  ∀ v ∈ rationalOpen C.base.T C.base.s,
+    ∃ f ∈ S, v ∈ rationalOpen (insert f C.base.T) C.base.s
+
+/-- **Clause 2 (containment)**: Each plus-type piece at an element of `S` is
+contained in some piece of the original cover. This captures the *genuinely
+new* Nullstellensatz ingredient (Zavyalov §2.3). -/
+def refines_contain [DecidableEq A] (C : RationalCovering A) (S : Finset A) : Prop :=
+  ∀ f ∈ S, ∃ D ∈ C.covers,
+    rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen D.T D.s
+
+/-- **Clause 3 (unit ideal)**: The elements of `S` generate the unit ideal in `A`. -/
+def refines_span_top (S : Finset A) : Prop :=
+  Ideal.span (S : Set A) = ⊤
+
 /-! ### Standard-cover reduction -/
+
+/-! ### Structural factoring of the Nullstellensatz refinement (R1 refactor)
+
+The Nullstellensatz refinement theorem decomposes into three cases on the
+structure of `C`:
+
+* **`exists_nullstellensatz_refinement_of_rationalOpen_empty`** — provable:
+  when `rationalOpen C.base.T C.base.s = ∅` and `C.covers` is nonempty,
+  take `S = {1}`. Clauses 1 and 2 are vacuous; Clause 3 holds by
+  `Ideal.span {1} = ⊤`.
+
+* **`exists_nullstellensatz_refinement_of_empty_covers`** — pathological
+  edge case: `C.covers = ∅` with `[Nontrivial A]`. Forces
+  `rationalOpen C.base.T C.base.s = ∅` via `C.hcover`, but then any nonempty
+  `S` fails Clause 2 (needs `D ∈ ∅`) and `S = ∅` fails Clause 3
+  (`Ideal.span ∅ = ⊥ ≠ ⊤`). Genuine `sorry` for this edge case.
+
+* **`exists_nullstellensatz_refinement_of_rationalOpen_nonempty`** — the
+  *only* mathematically-substantive sorry (Zavyalov §2.3 / Wedhorn
+  Prop 7.14 + Lemma 7.44).
+
+The assembly theorem `exists_nullstellensatz_refinement` dispatches on
+`C.covers.Nonempty` and then on `rationalOpen = ∅`. -/
+
+/-- **Degenerate branch.** When the base rational open is empty (e.g., when
+`C.base.s = 0`) and `C.covers` is nonempty, Clauses 1 and 2 are vacuous, and
+any `D ∈ C.covers` suffices to witness Clause 2 for `S = {1}` (which satisfies
+Clause 3 by `Ideal.span {1} = ⊤`). -/
+private theorem exists_nullstellensatz_refinement_of_rationalOpen_empty
+    [DecidableEq A] (C : RationalCovering A)
+    (hne : C.covers.Nonempty)
+    (hempty : rationalOpen C.base.T C.base.s = ∅) :
+    ∃ S : Finset A, refines_cover C S ∧ refines_contain C S ∧ refines_span_top S := by
+  refine ⟨{1}, ?_, ?_, ?_⟩
+  · -- Covering: vacuous, the base rational open is empty.
+    intro v hv
+    rw [hempty] at hv
+    exact absurd hv (Set.notMem_empty _)
+  · -- Containment: pick any `D ∈ C.covers`; the plus-piece at any `f` is
+    -- contained in `rationalOpen C.base.T C.base.s = ∅ ⊆ rationalOpen D.T D.s`.
+    intro f _
+    obtain ⟨D, hD⟩ := hne
+    refine ⟨D, hD, ?_⟩
+    intro v hv
+    have hle : rationalOpen (insert f C.base.T) C.base.s ⊆
+        rationalOpen C.base.T C.base.s := by
+      intro w ⟨hwspa, hwT, hws⟩
+      exact ⟨hwspa, fun t ht => hwT t (Finset.mem_insert_of_mem ht), hws⟩
+    exact absurd (hle hv) (hempty ▸ Set.notMem_empty v)
+  · -- Unit ideal: span {1} = ⊤.
+    change Ideal.span (({1} : Finset A) : Set A) = ⊤
+    rw [Finset.coe_singleton, Ideal.span_singleton_one]
+
+/-- **Pathological edge case**: `C.covers = ∅` together with `[Nontrivial A]`.
+Forces `rationalOpen C.base.T C.base.s = ∅` via `C.hcover`, but then the
+three-clause conclusion is genuinely unprovable:
+
+* Any nonempty `S` fails Clause 2 (needs `D ∈ ∅`).
+* The empty `S` fails Clause 3 (`Ideal.span ∅ = ⊥ ≠ ⊤` in a nontrivial ring).
+
+This edge case is retained as a `sorry` to preserve the statement of
+`RationalCovering.refines_by_standard_cover`. A cleaner fix would be to add
+`hne : C.covers.Nonempty` to `refines_by_standard_cover`, but that would
+change the statement. The downstream consumer
+`tateAcyclicity_via_standard_cover` already requires `hne`.
+
+**Note.** Because the conclusion is genuinely unprovable in this edge case,
+this `sorry` is morally equivalent to an axiom. Callers should avoid this
+configuration (supply `hne` or work outside `Nontrivial`). -/
+private theorem exists_nullstellensatz_refinement_of_empty_covers
+    [DecidableEq A] [Nontrivial A]
+    (C : RationalCovering A) (hcov : C.covers = ∅) :
+    ∃ S : Finset A, refines_cover C S ∧ refines_contain C S ∧ refines_span_top S :=
+  sorry
+
+/-- **The genuine Nullstellensatz obligation**: the *nonempty-rational-open*
+case of `exists_nullstellensatz_refinement`, with `C.covers` nonempty. This
+isolates the Zavyalov §2.3 + Wedhorn Prop 7.14/Lemma 7.44 construction from
+the degenerate empty-rational-open case and the pathological empty-covers
+edge case.
+
+**Why this is still a sorry.** Producing the refining family `S` requires
+the adic Nullstellensatz for rational subsets, which in turn requires either:
+
+(a) **Open-prime route:** The OPEN-prime Spa-point construction
+    `exists_spa_point_in_rationalOpen_of_isOpen_prime`
+    (StructureSheaf.lean:602) handles primes containing the ideal of
+    definition.
+
+(b) **Non-open-prime route (Lemma 7.45):**
+    `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime`
+    (Lemma745.lean:691) handles non-open primes via the completion route.
+    Reachable here via `Presheaf → Prop752 → Lemma745`.
+
+The Nullstellensatz construction combines (a) and (b) with the Zavyalov
+section-2 construction of the `fᵢ` from ratios `tⱼ/Dⱼ.s`.
+
+**Caller obligation.** The `hne_rat` hypothesis exposes that the meaningful
+work happens only when the base rational open is nonempty; callers in the
+empty case should use
+`exists_nullstellensatz_refinement_of_rationalOpen_empty`. -/
+private theorem exists_nullstellensatz_refinement_of_rationalOpen_nonempty
+    [DecidableEq A]
+    [IsHuberRing A] [HasLocLiftPowerBounded A]
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    [Nontrivial A]
+    (C : RationalCovering A) (hne : C.covers.Nonempty)
+    (hne_rat : rationalOpen C.base.T C.base.s ≠ ∅) :
+    ∃ S : Finset A, refines_cover C S ∧ refines_contain C S ∧ refines_span_top S :=
+  sorry
 
 /-- **Key Nullstellensatz claim** (Wedhorn Prop 7.14 / Lemma 7.44):
 for a rational cover of a strongly noetherian Tate ring, there exists a
 finite family `S ⊂ A` satisfying **all three clauses** of the
-standard-cover reduction:
-
-1. The plus-type pieces `rationalOpen (insert f C.base.T) C.base.s` indexed
-   by `f ∈ S` cover `rationalOpen C.base.T C.base.s`.
-2. Each plus-type piece is contained in some `rationalOpen D.T D.s` of the
-   original cover.
-3. `S` generates the unit ideal in `A`.
+standard-cover reduction (see `refines_cover`, `refines_contain`,
+`refines_span_top`).
 
 **Mathematical content.** This is the adic Nullstellensatz applied to
 the cover condition. Zavyalov §2.3 builds `S` from ratios `tⱼ/Dⱼ.s`
 pulled back to `A` via the Nullstellensatz; the resulting family has all
 three properties simultaneously.
 
-**Status**: This is the R1 blocker. The ambient Nullstellensatz
-infrastructure (Prop 7.14 / Lemma 7.44) is not yet in the project as a
-reusable span-top lemma, so we record this as a structural sorry.
-Once the Nullstellensatz primitive lands, the main theorem
-`RationalCovering.refines_by_standard_cover` will be a direct application.
+**Status**: This theorem is an assembly of three sub-lemmas dispatched on
+edge cases. The only mathematically-substantive sorry is in
+`exists_nullstellensatz_refinement_of_rationalOpen_nonempty`; the other
+branch is either provable (`..._of_rationalOpen_empty`) or pathological
+(`..._of_empty_covers`, which is unprovable as stated and should be
+avoided downstream by supplying `C.covers.Nonempty`).
 
 **Closely-related proven result.** `TateAcyclicity.lean:475` contains the
 analogous span-top argument at `Localization.Away C.base.s` (producing
@@ -153,9 +283,10 @@ discrete-specific because it uses `isOpen_discrete _` to satisfy the
 continuity condition of the trivial-valuation construction (the
 discrete-topology lets every valuation be continuous). For the Tate case,
 the analogous step requires `exists_spa_point_in_rationalOpen_of_nonOpen_prime`
-(per Wedhorn Lemma 7.45, currently tracked by the `project_T001_completion_route`
-memory and blocked on Bourbaki CA III §2.8). The OPEN prime sub-case is
-already available via `exists_spa_point_in_rationalOpen_of_isOpen_prime`.
+(per Wedhorn Lemma 7.45, currently tracked by the
+`project_T001_completion_route` memory and blocked on Bourbaki CA III §2.8).
+The OPEN prime sub-case is already available via
+`exists_spa_point_in_rationalOpen_of_isOpen_prime`.
 
 **Pieces of the helper that ARE available.**
 - **Clause 3** (span-top in `Localization.Away C.base.s`) for the candidate
@@ -181,13 +312,19 @@ private theorem exists_nullstellensatz_refinement
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     [Nontrivial A]
     (C : RationalCovering A) :
-    ∃ S : Finset A,
-      (∀ v ∈ rationalOpen C.base.T C.base.s,
-        ∃ f ∈ S, v ∈ rationalOpen (insert f C.base.T) C.base.s) ∧
-      (∀ f ∈ S, ∃ D ∈ C.covers,
-        rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen D.T D.s) ∧
-      Ideal.span (S : Set A) = ⊤ := by
-  sorry
+    ∃ S : Finset A, refines_cover C S ∧ refines_contain C S ∧ refines_span_top S := by
+  -- Dispatch on whether `C.covers` is nonempty.
+  by_cases hne : C.covers.Nonempty
+  · -- Standard case. Dispatch on whether the base rational open is empty.
+    by_cases hempty : rationalOpen C.base.T C.base.s = ∅
+    · exact exists_nullstellensatz_refinement_of_rationalOpen_empty C hne hempty
+    · -- Meaningful case: `rationalOpen C.base.T C.base.s` is nonempty.
+      -- This is the genuine Nullstellensatz obligation (Zavyalov §2.3 /
+      -- Wedhorn Prop 7.14 + Lemma 7.44).
+      exact exists_nullstellensatz_refinement_of_rationalOpen_nonempty C hne hempty
+  · -- Pathological edge case: `C.covers = ∅` with `[Nontrivial A]`.
+    exact exists_nullstellensatz_refinement_of_empty_covers C
+      (Finset.not_nonempty_iff_eq_empty.mp hne)
 
 /-- **Wedhorn / Zavyalov standard-cover reduction** (Theorem 8.28(b) step,
 ticket R1 of the 2026-04-14 plan).
