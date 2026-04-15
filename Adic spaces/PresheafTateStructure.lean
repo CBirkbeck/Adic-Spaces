@@ -885,6 +885,44 @@ theorem presheafValue_isTateRing [IsTateRing A] [IsNoetherianRing A]
   { exists_pairOfDefinition := presheafValue_pairOfDefinition P D₀
     exists_topologicallyNilpotent_unit := presheafValue_topNilUnit D₀ }
 
+/-! ### Base-change API for the canonical map (Wedhorn Prop 8.2 analogues)
+
+Helper lemmas translating membership in `D₀.P.A₀` to membership in the
+ring of definition of `presheafValue D₀`. Used to discharge continuity /
+power-boundedness obligations for maps built from `D₀.canonicalMap`.
+
+These lemmas are used by the Laurent-refinement continuity residuals
+(`iteratedPlus_forwardToCompletion_continuous` in `LaurentRefinement.lean`)
+and more generally by the base-change step `A → B := presheafValue D₀`. -/
+
+omit [PlusSubring A] in
+/-- **Canonical map lands in ring of definition (Wedhorn Prop 8.2 base-change)**:
+if `a ∈ D₀.P.A₀`, then `D₀.canonicalMap a ∈ presheafValue_ringOfDef D₀`.
+
+Proof: `algebraMap A _ a ∈ locSubring D₀.P D₀.T D₀.s` (by
+`algebraMap_mem_locSubring`), so `D₀.canonicalMap a =
+D₀.coeRingHom (algebraMap A _ a)` lies in the image of `locSubring` under
+`D₀.coeRingHom`, and hence in `presheafValue_ringOfDef D₀` (the
+topological closure of that image). -/
+theorem canonicalMap_mem_ringOfDef (D₀ : RationalLocData A)
+    {a : A} (ha : a ∈ D₀.P.A₀) :
+    D₀.canonicalMap a ∈ presheafValue_ringOfDef D₀ := by
+  -- Unfold definitions and use that the range contains `canonicalMap a`.
+  refine Subring.le_topologicalClosure _ ?_
+  refine ⟨⟨algebraMap A (Localization.Away D₀.s) a,
+    algebraMap_mem_locSubring D₀.P D₀.T D₀.s ha⟩, ?_⟩
+  rfl
+
+omit [PlusSubring A] in
+/-- The image of `P.A₀` (for the native `A`-pair) lies in
+`presheafValue_ringOfDef D₀` via `D₀.canonicalMap`, provided `P.A₀ ⊆ D₀.P.A₀`.
+Specialised to `P = D₀.P` (the usual choice), this is immediate. -/
+theorem canonicalMap_mem_ringOfDef_of_subset (D₀ : RationalLocData A)
+    (P : PairOfDefinition A) (hsub : (P.A₀ : Set A) ⊆ (D₀.P.A₀ : Set A))
+    {a : A} (ha : a ∈ P.A₀) :
+    D₀.canonicalMap a ∈ presheafValue_ringOfDef D₀ :=
+  canonicalMap_mem_ringOfDef D₀ (hsub ha)
+
 /-! ### Proposition 8.15: key lemmas for restriction as localization
 
 The restriction map `sigma = restrictionMapHom D₀ D h` is surjective and
