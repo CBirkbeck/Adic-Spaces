@@ -633,6 +633,15 @@ noncomputable def laurentMinusBridge
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)) := by
     rw [IsUniformAddGroup.rightUniformSpace_eq]
     infer_instance
+  -- `hnoeth` (OPEN): `pairSubring (IsTateRing.principalPair (presheafValue D₀))`
+  -- is noetherian. This is the "rational localizations preserve strongly
+  -- noetherian" direction of Wedhorn Theorem 7.47 / Example 6.38. Not in
+  -- project infrastructure yet; tracked as R4 / Phase 2.5c blocker.
+  -- `hcont_eval` (OPEN): `tateQuotientToPresheafHom` continuous from
+  -- canonical quotient topology to `presheafValue`. For the base ring `A`,
+  -- this is Phase 2.6 (also dischargeable from the same strongly-noetherian
+  -- structure). At `B := presheafValue D₀` the discharge inherits the same
+  -- obstruction. Tracked as R5's continuity residual.
   exact presheafValueCanonicalQuotientEquiv (iteratedMinusDatum_B P D₀ f)
     (hb := hb)
     (hA_complete := hA_complete)
