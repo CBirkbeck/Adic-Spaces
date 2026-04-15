@@ -101,6 +101,46 @@ end StandardCover
 
 /-! ### Standard-cover reduction -/
 
+/-- **Key Nullstellensatz claim** (Wedhorn Prop 7.14 / Lemma 7.44):
+for a rational cover of a strongly noetherian Tate ring, there exists a
+finite family `S ⊂ A` satisfying **all three clauses** of the
+standard-cover reduction:
+
+1. The plus-type pieces `rationalOpen (insert f C.base.T) C.base.s` indexed
+   by `f ∈ S` cover `rationalOpen C.base.T C.base.s`.
+2. Each plus-type piece is contained in some `rationalOpen D.T D.s` of the
+   original cover.
+3. `S` generates the unit ideal in `A`.
+
+**Mathematical content.** This is the adic Nullstellensatz applied to
+the cover condition. Zavyalov §2.3 builds `S` from ratios `tⱼ/Dⱼ.s`
+pulled back to `A` via the Nullstellensatz; the resulting family has all
+three properties simultaneously.
+
+**Status**: This is the R1 blocker. The ambient Nullstellensatz
+infrastructure (Prop 7.14 / Lemma 7.44) is not yet in the project as a
+reusable span-top lemma, so we record this as a structural sorry.
+Once the Nullstellensatz primitive lands, the main theorem
+`RationalCovering.refines_by_standard_cover` will be a direct application.
+
+**Nontriviality hypothesis.** The `[Nontrivial A]` hypothesis is cosmetic:
+when `A` is subsingleton, the main theorem is handled by a separate branch
+using `S.elts = ∅`. Keeping the hypothesis here simplifies the nontrivial
+branch of the main proof. -/
+private theorem exists_nullstellensatz_refinement
+    [DecidableEq A]
+    [IsHuberRing A] [HasLocLiftPowerBounded A]
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    [Nontrivial A]
+    (C : RationalCovering A) :
+    ∃ S : Finset A,
+      (∀ v ∈ rationalOpen C.base.T C.base.s,
+        ∃ f ∈ S, v ∈ rationalOpen (insert f C.base.T) C.base.s) ∧
+      (∀ f ∈ S, ∃ D ∈ C.covers,
+        rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen D.T D.s) ∧
+      Ideal.span (S : Set A) = ⊤ := by
+  sorry
+
 /-- **Wedhorn / Zavyalov standard-cover reduction** (Theorem 8.28(b) step,
 ticket R1 of the 2026-04-14 plan).
 
@@ -160,33 +200,11 @@ theorem RationalCovering.refines_by_standard_cover
     · -- Containment: vacuous because `S.elts = ∅`.
       intro f hf
       simp at hf
-  · -- Nontrivial `A`. The genuine standard-cover reduction goes through
-    -- Wedhorn's adic Nullstellensatz (Prop 7.14 / Lemma 7.44). This is
-    -- documented in the theorem docstring; for now we record it as a single
-    -- targeted sub-sorry.
-    --
-    -- **Proof sketch** (Wedhorn Lemma 7.44 + Cor 8.29 / Zavyalov §2.3):
-    -- 1. For each `D ∈ C.covers`, consider the finite family of "test elements"
-    --    `{D.s} ∪ D.T` that carve out `rationalOpen D.T D.s`. Collect
-    --    `S₀ := ⋃_{D ∈ C.covers} ({D.s} ∪ D.T)` — a finite set.
-    -- 2. By Wedhorn Prop 7.14 / 7.44 (adic Nullstellensatz), the Spa-covering
-    --    condition `∀ v ∈ base, ∃ D, v ∈ rationalOpen D.T D.s` translates into
-    --    `C.base.s ∈ radical(Ideal.span {D.s | D ∈ C.covers})` in `A`. Hence,
-    --    after adjoining `1` or refining via suitable linear combinations,
-    --    `Ideal.span S₀ = ⊤` (the precise form of `S₀` depends on the
-    --    normalisation; cf. `TateAcyclicity.lean:475 hspan_top` for the
-    --    analogue in `Localization.Away C.base.s`).
-    -- 3. The containment `rationalOpen (insert fᵢ C.base.T) C.base.s ⊆
-    --    rationalOpen D.T D.s` follows because the plus-piece at `fᵢ = D.s`
-    --    (or any `t ∈ D.T`) is carved out by the same inequalities as
-    --    `rationalOpen D.T D.s`, up to the unit `D.s` vs `C.base.s`.
-    --
-    -- **Status**: This is the R1 Nullstellensatz blocker. The mathematical
-    -- content is Wedhorn Prop 7.14 (adic Nullstellensatz), which is not
-    -- currently available in the project as a reusable span-top lemma.
-    -- Once that infrastructure lands, this sorry dissolves into the
-    -- construction above.
-    sorry
+  · -- Nontrivial `A`. Apply the Nullstellensatz refinement helper directly.
+    haveI hNT : Nontrivial A := not_subsingleton_iff_nontrivial.mp hA
+    obtain ⟨S, hS_cover, hS_contain, hS_span⟩ :=
+      exists_nullstellensatz_refinement C
+    exact ⟨⟨S, hS_span⟩, hS_cover, hS_contain⟩
 
 /-! ### Acyclicity via standard covers -/
 

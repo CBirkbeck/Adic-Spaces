@@ -884,6 +884,226 @@ theorem quotient_plusFSubXIdeal_completeSpace
 
 end Example638PlusBackwardTopology
 
+/-! ### Plus branch backward: algebraic hom from `Localization.Away 1` -/
+
+section Example638PlusBackwardAlgebraic
+
+variable [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
+
+open TateAlgebra
+
+/-- In `TateAlgebra B ⧸ plusFSubXIdeal B b`, the canonical image of `1` is a unit
+(it's just `1` itself). This is used to apply `IsLocalization.Away.lift` at
+`1 : B` to build the algebraic backward map. -/
+theorem isUnit_one_in_quotientPlusFSubX (b : B) :
+    IsUnit ((Ideal.Quotient.mk (plusFSubXIdeal B b)).comp
+      (algebraMap B ↥(TateAlgebra B)) (1 : B)) := by
+  rw [RingHom.comp_apply, map_one, map_one]
+  exact isUnit_one
+
+/-- Algebraic backward hom `Localization.Away 1 →+* TateAlgebra B ⧸ plusFSubXIdeal B b`
+using the universal property of `IsLocalization.Away` (since `1` is trivially a unit
+everywhere). Sends `algebraMap a ↦ mk(algebraMap a)`. -/
+noncomputable def plusLocToQuotient (b : B) :
+    Localization.Away (1 : B) →+*
+      ↥(TateAlgebra B) ⧸ plusFSubXIdeal B b :=
+  IsLocalization.Away.lift (x := (1 : B))
+    (isUnit_one_in_quotientPlusFSubX B b)
+
+/-- `plusLocToQuotient` sends `algebraMap a` to `mk(algebraMap a)`. -/
+theorem plusLocToQuotient_algebraMap (b a : B) :
+    plusLocToQuotient B b (algebraMap B _ a) =
+      (Ideal.Quotient.mk (plusFSubXIdeal B b))
+        (algebraMap B ↥(TateAlgebra B) a) := by
+  simp only [plusLocToQuotient, IsLocalization.Away.lift_eq]
+  rfl
+
+end Example638PlusBackwardAlgebraic
+
+/-! ### Plus branch backward: continuity of `plusLocToQuotient` -/
+
+section Example638PlusBackwardContinuity
+
+variable [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
+
+open TateAlgebra
+
+/-- The composite `mk ∘ algebraMap : B → TateAlgebra B ⧸ plusFSubXIdeal B b`
+is continuous. Uses `tateAlgebra_algebraMap_continuous` for the first factor
+and `continuous_quotient_mk'` for the second. -/
+theorem mk_algebraMap_continuous_plusFSubX (b : B) :
+    @Continuous _ _ _ (quotientPlusFSubXIdealTopology B b)
+      (fun a : B => (Ideal.Quotient.mk (plusFSubXIdeal B b))
+        (algebraMap B ↥(TateAlgebra B) a)) := by
+  letI : TopologicalSpace ↥(TateAlgebra B) := instTopologicalSpaceTateAlgebra
+  have h1 : Continuous (algebraMap B ↥(TateAlgebra B)) :=
+    tateAlgebra_algebraMap_continuous
+  have h2 : @Continuous _ _ _ (quotientPlusFSubXIdealTopology B b)
+      (Ideal.Quotient.mk (plusFSubXIdeal B b)) := by
+    exact continuous_quotient_mk'
+  exact h2.comp h1
+
+/-- `plusLocToQuotient B b` is continuous from the `trivialPlusDatum` localization
+topology on `Localization.Away 1` to the quotient topology on
+`TateAlgebra B ⧸ plusFSubXIdeal B b`.
+
+**Strategy:** Use `continuous_of_continuousAt_zero` after establishing `IsTopologicalAddGroup`
+on both sides. Reduce continuity at 0 to: for any quotient nhd `S` of 0, we need a loc nhd
+mapped into it. Since the loc topology on `Localization.Away 1` at `T = {b}`, `s = 1` is
+bounded by the image of `B`'s topology (via `locTopology_hasBasis_singleton_one`, which
+only handles `T = {1}` — we use `T = {b}` here, but the neighbourhood bases agree via
+`algebraMap B`), and `mk ∘ algebraMap : B → TateAlgebra B ⧸ plusFSubXIdeal B b` is continuous
+(composition of `tateAlgebra_algebraMap_continuous` and `continuous_quotient_mk'`), the
+result follows.
+
+To avoid `locTopology_hasBasis_singleton_one` which assumes `T = {1}`, we argue directly:
+`plusLocToQuotient B b` precomposed with the `Localization.Away 1 ≃ B` equiv is
+`mk ∘ algebraMap`, which is continuous. The equiv is a homeomorphism if the loc
+topology at `T = {b}`, `s = 1` equals the pullback of `B`'s topology. This is
+subtle. Instead, we take a more direct route: use that `plusLocToQuotient =
+mk ∘ algebraMap_lift` and show continuity via factorization. -/
+theorem plusLocToQuotient_continuous (P : PairOfDefinition B) (b : B) :
+    @Continuous _ _ (trivialPlusDatum B P b).topology
+      (quotientPlusFSubXIdealTopology B b)
+      (plusLocToQuotient B b) := by
+  -- Key observation: `plusLocToQuotient B b (x) = mk(algebraMap a)` when
+  -- `x = algebraMap a`. Since `Localization.Away 1 ≃ B` is a ring iso via
+  -- `IsLocalization.atOne` (every element is `algebraMap a` for some unique `a`),
+  -- we factor: plusLocToQuotient = (mk ∘ algebraMap) ∘ (atOne_equiv).
+  --
+  -- Pragmatic approach: use `IsLocalization.Away.lift` continuity fact
+  -- `IsLocalization.Away.lift_continuous` if it exists, or reduce via the
+  -- nhd-zero basis.
+  letI : TopologicalSpace (Localization.Away (1 : B)) := (trivialPlusDatum B P b).topology
+  letI : IsTopologicalRing (Localization.Away (1 : B)) := (trivialPlusDatum B P b).isTopologicalRing
+  letI : IsTopologicalAddGroup (Localization.Away (1 : B)) :=
+    (trivialPlusDatum B P b).isTopologicalAddGroup
+  letI : TopologicalSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealTopology B b
+  letI : IsTopologicalRing (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealTopology_isTopologicalRing B b
+  letI : IsTopologicalAddGroup (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealTopology_isTopologicalAddGroup B b
+  -- Use the ring equiv `Localization.Away 1 ≃ B`.
+  -- Compose: continuity of `B → quotient` via `mk ∘ algebraMap` is already known.
+  -- `plusLocToQuotient B b ∘ algebraMap = mk ∘ algebraMap` (from `plusLocToQuotient_algebraMap`).
+  sorry
+
+end Example638PlusBackwardContinuity
+
+/-! ### Plus branch backward: extension to completion -/
+
+section Example638PlusBackwardCompletion
+
+variable [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
+
+open TateAlgebra
+
+/-- Backward ring hom `presheafValue (trivialPlusDatum B P b) →+*
+TateAlgebra B ⧸ plusFSubXIdeal B b`, obtained by extending `plusLocToQuotient`
+to the completion via `UniformSpace.Completion.extensionHom`.
+
+Requires completeness + T0 of the target (the canonical quotient topology), which
+follow from `quotient_plusFSubXIdeal_completeSpace` and `quotient_plusFSubXIdeal_t2Space`. -/
+noncomputable def example638Plus_backwardHom
+    (P : PairOfDefinition B) (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition)) :
+    presheafValue (trivialPlusDatum B P b) →+*
+      ↥(TateAlgebra B) ⧸ plusFSubXIdeal B b := by
+  letI : UniformSpace (Localization.Away (trivialPlusDatum B P b).s) :=
+    (trivialPlusDatum B P b).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (trivialPlusDatum B P b).s) :=
+    (trivialPlusDatum B P b).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (trivialPlusDatum B P b).s) :=
+    (trivialPlusDatum B P b).isUniformAddGroup
+  letI : TopologicalSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealTopology B b
+  letI : IsTopologicalRing (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealTopology_isTopologicalRing B b
+  letI : IsTopologicalAddGroup (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealTopology_isTopologicalAddGroup B b
+  letI : UniformSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealUniformSpace B b
+  letI : IsUniformAddGroup (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdeal_isUniformAddGroup B b
+  haveI : CompleteSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotient_plusFSubXIdeal_completeSpace B hA_complete hnoeth b
+  haveI hT2Q : @T2Space _ (quotientPlusFSubXIdealTopology B b) :=
+    quotient_plusFSubXIdeal_t2Space B hA_complete hnoeth b
+  haveI hT0Q : @T0Space _ (quotientPlusFSubXIdealTopology B b) :=
+    @T1Space.t0Space _ (quotientPlusFSubXIdealTopology B b) (T2Space.t1Space)
+  -- (trivialPlusDatum B P b).s = 1, so these types match.
+  exact @UniformSpace.Completion.extensionHom _ _ _ _ _ _
+    (quotientPlusFSubXIdealUniformSpace B b) _
+    (quotientPlusFSubXIdeal_isUniformAddGroup B b)
+    (quotientPlusFSubXIdealTopology_isTopologicalRing B b)
+    (plusLocToQuotient B b)
+    (plusLocToQuotient_continuous B P b)
+    (quotient_plusFSubXIdeal_completeSpace B hA_complete hnoeth b)
+    hT0Q
+
+/-- On the dense image `coeRingHom a`, `example638Plus_backwardHom` agrees with
+`plusLocToQuotient`. -/
+theorem example638Plus_backwardHom_coe
+    (P : PairOfDefinition B) (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (a : Localization.Away (1 : B)) :
+    example638Plus_backwardHom B P b hA_complete hnoeth
+        ((trivialPlusDatum B P b).coeRingHom a) =
+      plusLocToQuotient B b a := by
+  letI : UniformSpace (Localization.Away (trivialPlusDatum B P b).s) :=
+    (trivialPlusDatum B P b).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (trivialPlusDatum B P b).s) :=
+    (trivialPlusDatum B P b).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (trivialPlusDatum B P b).s) :=
+    (trivialPlusDatum B P b).isUniformAddGroup
+  letI : TopologicalSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealTopology B b
+  letI : IsTopologicalRing (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealTopology_isTopologicalRing B b
+  letI : IsTopologicalAddGroup (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealTopology_isTopologicalAddGroup B b
+  letI : UniformSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealUniformSpace B b
+  letI : IsUniformAddGroup (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdeal_isUniformAddGroup B b
+  haveI : CompleteSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotient_plusFSubXIdeal_completeSpace B hA_complete hnoeth b
+  haveI hT2Q : @T2Space _ (quotientPlusFSubXIdealTopology B b) :=
+    quotient_plusFSubXIdeal_t2Space B hA_complete hnoeth b
+  haveI hT0Q : @T0Space _ (quotientPlusFSubXIdealTopology B b) :=
+    @T1Space.t0Space _ (quotientPlusFSubXIdealTopology B b) (T2Space.t1Space)
+  exact @UniformSpace.Completion.extensionHom_coe _ _ _ _ _ _
+    (quotientPlusFSubXIdealUniformSpace B b) _
+    (quotientPlusFSubXIdeal_isUniformAddGroup B b)
+    (quotientPlusFSubXIdealTopology_isTopologicalRing B b)
+    (plusLocToQuotient B b)
+    (plusLocToQuotient_continuous B P b)
+    (quotient_plusFSubXIdeal_completeSpace B hA_complete hnoeth b)
+    hT0Q a
+
+/-- `example638Plus_backwardHom` sends `canonicalMap a` to `mk(algebraMap a)`. -/
+theorem example638Plus_backwardHom_canonicalMap
+    (P : PairOfDefinition B) (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (a : B) :
+    example638Plus_backwardHom B P b hA_complete hnoeth
+        ((trivialPlusDatum B P b).canonicalMap a) =
+      (Ideal.Quotient.mk (plusFSubXIdeal B b))
+        (algebraMap B ↥(TateAlgebra B) a) := by
+  show example638Plus_backwardHom B P b hA_complete hnoeth
+    ((trivialPlusDatum B P b).coeRingHom
+      (algebraMap B (Localization.Away (1 : B)) a)) = _
+  rw [example638Plus_backwardHom_coe, plusLocToQuotient_algebraMap]
+
+end Example638PlusBackwardCompletion
+
 /-! ### Minus branch forward: evaluation at `invS = 1 / canonicalMap b` -/
 
 section Example638MinusForward
