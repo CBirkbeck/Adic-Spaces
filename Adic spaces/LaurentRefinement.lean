@@ -573,22 +573,41 @@ quotient equiv yields `B⟨X⟩ / (1 − canonicalMap(f) · X) = B₂_gen (canon
 directly — by definition `oneSubfXIdeal (canonicalMap f) =
 Ideal.span {1 − algebraMap B _ (canonicalMap f) · X}`).
 
-**Hypotheses discharge.** The three residual hypotheses are the ones baked
-into `example638Minus_equiv` in `IteratedRational.lean` at `B := presheafValue D₀`
-and `b := D₀.canonicalMap f`: `hA_complete`, `hnoeth`, `hcont_eval`.
-The first two are isolated as a local `have` and `sorry`'d explicitly (they
-require R4 infrastructure at `presheafValue D₀`); the continuity hypothesis
-`hcont_eval` is the content of R3's remaining continuity obligation.
+**Hypothesis design.** Following the `example638Minus_equiv` pattern in
+`IteratedRational.lean`, we expose the two residual structural hypotheses
+as explicit arguments (rather than burying them as `sorry`):
+* `hnoeth_B` : `IsNoetherianRing ↥(TateAlgebra.pairSubring
+  (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition)`.
+  The "rational localizations preserve strongly noetherian" direction of
+  Wedhorn Theorem 7.47 / Example 6.38. Not yet in project infrastructure.
+* `hcont_eval_B` : canonical-quotient-to-presheafValue continuity of
+  `tateQuotientToPresheafHom (iteratedMinusDatum_B P D₀ f) hb` at
+  `B := presheafValue D₀`. This is the Phase 2.6 continuity residual
+  transported to the rational localization.
 
-The two "automatic" hypotheses (`hb` and `hT_pb`) are discharged in place:
-`T = {1}` so `hT_pb` reduces to `IsPowerBounded 1`; `hb` follows from
-`invS_isPowerBounded_of_one_mem_T` since `1 ∈ T`. -/
+The three "automatic" hypotheses (`hb`, `hT_pb`, `hA_complete`) are
+discharged in place: `T = {1}` so `hT_pb` reduces to `IsPowerBounded 1`;
+`hb` follows from `invS_isPowerBounded_of_one_mem_T` since `1 ∈ T`;
+`hA_complete` is `IsUniformAddGroup.rightUniformSpace_eq` + completion
+completeness. -/
 noncomputable def laurentMinusBridge
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
-    (f : A) :
+    (f : A)
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb)) :
     presheafValue (laurentMinusDatum D₀ f) ≃+*
       LaurentCover.B₂_gen (D₀.canonicalMap f) := by
   haveI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
@@ -633,21 +652,13 @@ noncomputable def laurentMinusBridge
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)) := by
     rw [IsUniformAddGroup.rightUniformSpace_eq]
     infer_instance
-  -- `hnoeth` (OPEN): `pairSubring (IsTateRing.principalPair (presheafValue D₀))`
-  -- is noetherian. This is the "rational localizations preserve strongly
-  -- noetherian" direction of Wedhorn Theorem 7.47 / Example 6.38. Not in
-  -- project infrastructure yet; tracked as R4 / Phase 2.5c blocker.
-  -- `hcont_eval` (OPEN): `tateQuotientToPresheafHom` continuous from
-  -- canonical quotient topology to `presheafValue`. For the base ring `A`,
-  -- this is Phase 2.6 (also dischargeable from the same strongly-noetherian
-  -- structure). At `B := presheafValue D₀` the discharge inherits the same
-  -- obstruction. Tracked as R5's continuity residual.
+  -- `hnoeth_B` and `hcont_eval_B` are supplied by the caller.
   exact presheafValueCanonicalQuotientEquiv (iteratedMinusDatum_B P D₀ f)
     (hb := hb)
     (hA_complete := hA_complete)
-    (hnoeth := sorry)
+    (hnoeth := hnoeth_B)
     (hT_pb := hT_pb)
-    (hcont_eval := sorry)
+    (hcont_eval := hcont_eval_B hb)
 
 /-- **Route B bridge (plus compatibility)**: the plus bridge intertwines
 `restrictionMap` and the first projection of `epsilonHom_gen`. -/
@@ -673,10 +684,22 @@ theorem laurentMinusBridge_restrictionMap
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
     (f : A)
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
     (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
     ∀ x : presheafValue D₀,
-      laurentMinusBridge P D₀ f
+      laurentMinusBridge P D₀ f hnoeth_B hcont_eval_B
         (restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x) =
         (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).2 := by
   sorry
@@ -695,6 +718,18 @@ theorem laurentBridge_delta_eq_zero_of_compat
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
     (f : A)
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
     (uplus : presheafValue (laurentPlusDatum D₀ f))
     (uminus : presheafValue (laurentMinusDatum D₀ f))
     (hcompat : ∀ (D₃ : RationalLocData A)
@@ -705,7 +740,8 @@ theorem laurentBridge_delta_eq_zero_of_compat
       restrictionMap (laurentPlusDatum D₀ f) D₃ h₃p uplus =
         restrictionMap (laurentMinusDatum D₀ f) D₃ h₃m uminus) :
     LaurentCover.deltaMap_gen (D₀.canonicalMap f)
-      (laurentPlusBridge P D₀ f uplus, laurentMinusBridge P D₀ f uminus) = 0 := by
+      (laurentPlusBridge P D₀ f uplus,
+        laurentMinusBridge P D₀ f hnoeth_B hcont_eval_B uminus) = 0 := by
   sorry
 
 /-- **Laurent cover gluing via row3_exact** (Route B, Wedhorn Lemma 8.33),
@@ -765,13 +801,29 @@ theorem laurentCover_gluing_presheaf_viaRow3
 Combines `laurentCover_gluing_presheaf_viaRow3` with the four Route B bridges
 (`laurentPlusBridge`, `laurentMinusBridge`, the two compatibility lemmas, and
 `laurentBridge_delta_eq_zero_of_compat`) to deliver the gluing conclusion
-without the Baire-category dependency. -/
+without the Baire-category dependency.
+
+The `hnoeth_B` and `hcont_eval_B` hypotheses pack the Phase 2.5c / Phase 2.6
+infrastructure residues for the rational base `B := presheafValue D₀`; they
+are passed through to `laurentMinusBridge` and its companions. -/
 theorem laurentCover_gluing_presheaf_viaBridges
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
     (f : A)
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
     (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s)
     (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
@@ -790,24 +842,40 @@ theorem laurentCover_gluing_presheaf_viaBridges
       restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x = uminus := by
   exact laurentCover_gluing_presheaf_viaRow3 D₀ f hplus hminus
     (laurentPlusBridge P D₀ f)
-    (laurentMinusBridge P D₀ f)
+    (laurentMinusBridge P D₀ f hnoeth_B hcont_eval_B)
     (laurentPlusBridge_restrictionMap P D₀ f hplus)
-    (laurentMinusBridge_restrictionMap P D₀ f hminus)
+    (laurentMinusBridge_restrictionMap P D₀ f hnoeth_B hcont_eval_B hminus)
     rfl
     uplus uminus
-    (laurentBridge_delta_eq_zero_of_compat P D₀ f uplus uminus hcompat)
+    (laurentBridge_delta_eq_zero_of_compat P D₀ f hnoeth_B hcont_eval_B
+      uplus uminus hcompat)
 
 /-- Laurent cover gluing on presheaf values (Wedhorn Lemma 8.33, presheaf level).
 
 Delegates to `laurentCover_gluing_presheaf_viaBridges` — the Route B path
 through the five named bridge stubs. Avoids the Baire-category blocker
-(`restrictionMapHom_surj`) that the algebraic-core Route A would need. -/
+(`restrictionMapHom_surj`) that the algebraic-core Route A would need.
+
+The `hnoeth_B` and `hcont_eval_B` hypotheses are passed through from the
+bridges (Phase 2.5c / Phase 2.6 infrastructure at `B := presheafValue D₀`). -/
 theorem laurentCover_gluing_presheaf
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
     (f : A)
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
     (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s)
     (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
@@ -824,7 +892,8 @@ theorem laurentCover_gluing_presheaf
     ∃ x : presheafValue D₀,
       restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x = uplus ∧
       restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x = uminus :=
-  laurentCover_gluing_presheaf_viaBridges P D₀ f hplus hminus uplus uminus hcompat
+  laurentCover_gluing_presheaf_viaBridges P D₀ f hnoeth_B hcont_eval_B
+    hplus hminus uplus uminus hcompat
 
 /-- **Wedhorn Theorem 8.28(b)**: Tate acyclicity.
 
