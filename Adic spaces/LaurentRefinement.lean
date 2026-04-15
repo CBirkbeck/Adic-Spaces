@@ -732,10 +732,48 @@ noncomputable def laurentMinusBridge
     (hT_pb := hT_pb)
     (hcont_eval := hcont_eval_B hb)
 
+/-- **Sub-sorry: compatibility of `presheafValue_iteratedPlus_equiv` with
+`canonicalMap`.**
+
+This is the single residual fact blocking `laurentPlusBridge_restrictionMap`.
+Morally, `presheafValue_iteratedPlus_equiv` identifies the two presheaf values
+in a way that respects the canonical maps from `A` (via the tower
+`A → presheafValue D₀ → presheafValue (iteratedPlusDatum_B P D₀ f)`, which
+matches `A → presheafValue (laurentPlusDatum D₀ f)` under the identification).
+
+Currently `presheafValue_iteratedPlus_equiv` is itself a sorry'd `noncomputable
+def`; once it is defined concretely, this compatibility will be a straightforward
+consequence of the definition. We expose it as a separate sub-sorry so that
+`laurentPlusBridge_restrictionMap` can be proved modulo this precise claim
+(parallel to the minus-branch sub-sorry). -/
+theorem presheafValue_iteratedPlus_equiv_restrictionMap_canonicalMap
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A)
+    (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) (x : presheafValue D₀) :
+    presheafValue_iteratedPlus_equiv P D₀ f
+        (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x) =
+      (iteratedPlusDatum_B P D₀ f).canonicalMap x := by
+  sorry
+
 /-- **Route B bridge (plus compatibility)**: the plus bridge intertwines
 `restrictionMap` and the first projection of `epsilonHom_gen`.
 
-Takes the same six `_B` hypotheses as `laurentPlusBridge`. -/
+Proof structure: `laurentPlusBridge` is `(presheafValue_iteratedPlus_equiv).trans
+(presheafValue_trivialPlus_fSubX_equiv ...)`. The second factor is
+`(example638Plus_equiv ...).symm`, which maps
+`(iteratedPlusDatum_B P D₀ f).canonicalMap x ↦ mk(algebraMap x)` by
+`example638Plus_equiv_symm_canonicalMap` (via the definitional equality
+`iteratedPlusDatum_B = trivialPlusDatum`). The first factor's action on
+`restrictionMap ... x` is the content of
+`presheafValue_iteratedPlus_equiv_restrictionMap_canonicalMap` (currently a
+sub-sorry; it is the single residual fact blocking a full proof, parallel
+to the minus-branch sub-sorry).
+
+Modulo that sub-sorry, the theorem reduces by direct computation. -/
 theorem laurentPlusBridge_restrictionMap
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
@@ -775,10 +813,77 @@ theorem laurentPlusBridge_restrictionMap
           hnoeth_B hcont_forward_B
         (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x) =
         (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).1 := by
+  intro x
+  haveI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+  haveI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+  haveI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+  letI P_B : PairOfDefinition (presheafValue D₀) :=
+    (presheafValue_pairOfDefinition P D₀).some
+  haveI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+  -- Step 1: Reduce via the `trans` structure of `laurentPlusBridge`.
+  -- `laurentPlusBridge = (presheafValue_iteratedPlus_equiv).trans
+  --   (presheafValue_trivialPlus_fSubX_equiv ...)`, so applying it amounts to
+  -- applying the trivial-plus `fSubX` equiv to the iterated equiv image.
+  -- Step 2: Use the sub-sorry to rewrite the iterated equiv's output as
+  -- `(iteratedPlusDatum_B P D₀ f).canonicalMap x`.
+  have hstep :
+      presheafValue_iteratedPlus_equiv P D₀ f
+          (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x) =
+        (iteratedPlusDatum_B P D₀ f).canonicalMap x :=
+    presheafValue_iteratedPlus_equiv_restrictionMap_canonicalMap P D₀ f hplus x
+  -- Step 3: Unfold `laurentPlusBridge` as a `trans` composition.
+  change (presheafValue_trivialPlus_fSubX_equiv P D₀ f hNoeth_B hLocLift_B
+      hA₀Noeth_B hA_complete_B hnoeth_B hcont_forward_B)
+    ((presheafValue_iteratedPlus_equiv P D₀ f)
+      (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x)) = _
+  rw [hstep]
+  -- Step 4: `presheafValue_trivialPlus_fSubX_equiv = (example638Plus_equiv _).symm`,
+  -- and `iteratedPlusDatum_B P D₀ f = trivialPlusDatum (presheafValue D₀) P_B
+  -- (D₀.canonicalMap f)` definitionally. So apply `example638Plus_equiv_symm_canonicalMap`.
+  -- The RHS `(epsilonHom_gen (canonicalMap f) x).1` is `mk(algebraMap x)` in
+  -- `B₁_gen = TateAlgebra B ⧸ plusFSubXIdeal B (canonicalMap f)` definitionally.
+  unfold presheafValue_trivialPlus_fSubX_equiv
+  exact example638Plus_equiv_symm_canonicalMap (presheafValue D₀) P_B (D₀.canonicalMap f)
+    hA_complete_B hnoeth_B hcont_forward_B x
+
+/-- **Sub-sorry: compatibility of `presheafValue_iteratedMinus_equiv` with
+`canonicalMap`.**
+
+This is the single residual fact blocking `laurentMinusBridge_restrictionMap`.
+Morally, `presheafValue_iteratedMinus_equiv` identifies the two presheaf values
+in a way that respects the canonical maps from `A` (via the tower
+`A → presheafValue D₀ → presheafValue (iteratedMinusDatum_B P D₀ f)`, which
+matches `A → presheafValue (laurentMinusDatum D₀ f)` under the identification).
+
+Currently `presheafValue_iteratedMinus_equiv` is itself a sorry'd `noncomputable
+def`; once it is defined concretely, this compatibility will be a straightforward
+consequence of the definition. We expose it as a separate sub-sorry so that
+`laurentMinusBridge_restrictionMap` can be proved modulo this precise claim. -/
+theorem presheafValue_iteratedMinus_equiv_restrictionMap_canonicalMap
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (f : A)
+    (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) (x : presheafValue D₀) :
+    presheafValue_iteratedMinus_equiv P D₀ f
+        (restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x) =
+      (iteratedMinusDatum_B P D₀ f).canonicalMap x := by
   sorry
 
 /-- **Route B bridge (minus compatibility)**: the minus bridge intertwines
-`restrictionMap` and the second projection of `epsilonHom_gen`. -/
+`restrictionMap` and the second projection of `epsilonHom_gen`.
+
+Proof structure: `laurentMinusBridge` is `(presheafValue_iteratedMinus_equiv).trans
+(presheafValueCanonicalQuotientEquiv ...)`. The second factor maps
+`(iteratedMinusDatum_B P D₀ f).canonicalMap x ↦ mk(algebraMap x)` by
+`presheafValueCanonicalQuotientEquiv_canonicalMap`. The first factor's action on
+`restrictionMap ... x` is the content of
+`presheafValue_iteratedMinus_equiv_restrictionMap_canonicalMap` (currently a
+sub-sorry; it is the single residual fact blocking a full proof).
+
+Modulo that sub-sorry, the theorem reduces by direct computation. -/
 theorem laurentMinusBridge_restrictionMap
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
@@ -803,7 +908,61 @@ theorem laurentMinusBridge_restrictionMap
       laurentMinusBridge P D₀ f hnoeth_B hcont_eval_B
         (restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x) =
         (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).2 := by
-  sorry
+  intro x
+  haveI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+  -- Step 1: Reduce via the `trans` structure of `laurentMinusBridge`.
+  -- `laurentMinusBridge = (presheafValue_iteratedMinus_equiv).trans
+  --   (presheafValueCanonicalQuotientEquiv ...)`, so applying it amounts to
+  -- applying the canonical quotient equiv to the iterated equiv image.
+  -- Step 2: Use the sub-sorry to rewrite the iterated equiv's output as
+  -- `(iteratedMinusDatum_B P D₀ f).canonicalMap x`.
+  have hstep :
+      presheafValue_iteratedMinus_equiv P D₀ f
+          (restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x) =
+        (iteratedMinusDatum_B P D₀ f).canonicalMap x :=
+    presheafValue_iteratedMinus_equiv_restrictionMap_canonicalMap P D₀ f hminus x
+  -- Step 3: Unfold `laurentMinusBridge` and apply the canonical quotient equiv.
+  -- The inner `have hb`, `have hT_pb`, `have hA_complete` in the bridge
+  -- definition are internal; we recompute them here.
+  have hinvS_eq : invS (iteratedMinusDatum_B P D₀ f) =
+      (iteratedMinusDatum_B P D₀ f).coeRingHom
+        (divByS 1 (iteratedMinusDatum_B P D₀ f).s) := by
+    set D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
+    have h1 : D.canonicalMap D.s * invS D = 1 := canonicalMap_s_mul_invS D
+    have halg : algebraMap (presheafValue D₀) (Localization.Away D.s) D.s *
+        divByS 1 D.s = 1 := by
+      rw [← invSelf_eq_divByS, IsLocalization.Away.mul_invSelf]
+    have h2 : D.canonicalMap D.s * D.coeRingHom (divByS 1 D.s) = 1 := by
+      show D.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away D.s) D.s) *
+        D.coeRingHom (divByS 1 D.s) = 1
+      rw [← map_mul, halg, map_one]
+    have hu : IsUnit (D.canonicalMap D.s) := isUnit_s_in_presheafValue D
+    exact hu.mul_left_cancel (h1.trans h2.symm)
+  have hb : TopologicalRing.IsPowerBounded
+      (invS (iteratedMinusDatum_B P D₀ f)) := by
+    rw [hinvS_eq]
+    exact CompletionLocalization.invS_isPowerBounded_of_one_mem_T
+      (iteratedMinusDatum_B P D₀ f) (Finset.mem_singleton_self 1)
+  have hT_pb : ∀ t ∈ (iteratedMinusDatum_B P D₀ f).T,
+      TopologicalRing.IsPowerBounded t := by
+    intro t ht
+    rw [Finset.mem_singleton.mp ht]
+    exact TopologicalRing.isPowerBounded_one
+  have hA_complete : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)) := by
+    rw [IsUniformAddGroup.rightUniformSpace_eq]
+    infer_instance
+  -- Compute the bridge as the composition of the two equivs.
+  change (presheafValueCanonicalQuotientEquiv (iteratedMinusDatum_B P D₀ f)
+      (hb := hb) (hA_complete := hA_complete) (hnoeth := hnoeth_B)
+      (hT_pb := hT_pb) (hcont_eval := hcont_eval_B hb))
+    ((presheafValue_iteratedMinus_equiv P D₀ f)
+      (restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x)) = _
+  rw [hstep]
+  rw [presheafValueCanonicalQuotientEquiv_canonicalMap (iteratedMinusDatum_B P D₀ f)
+    hb hA_complete hnoeth_B hT_pb (hcont_eval_B hb) x]
+  -- `(epsilonHom_gen (canonicalMap f) x).2 = mk(algebraMap x)` by definition.
+  rfl
 
 /-- **Route B bridge (delta vanishing on compatible pairs)**: compatibility
 of `(uplus, uminus)` on every common refinement implies that their images
@@ -812,7 +971,25 @@ under the bridges map to a class annihilated by `deltaMap_gen`.
 Mathematical content: `deltaMap_gen f'` is the algebraic difference of
 `posLift` and `negLift` in `B₁₂_gen f'`; the compatibility on overlaps is
 exactly the sheaf condition on the doubly-refined datum (with `s = D₀.s · f`
-and `T` containing both halves), which equals the Laurent overlap. -/
+and `T` containing both halves), which equals the Laurent overlap.
+
+**Proof skeleton.** The complete proof requires an *overlap bridge*
+`τ₁₂ : presheafValue(D_overlap) ≃+* B₁₂_gen(canonicalMap f)` together with
+intertwining properties:
+  `τ₁₂ ∘ restrictionMap(plus → overlap) = posLift ∘ laurentPlusBridge`
+  `τ₁₂ ∘ restrictionMap(minus → overlap) = negLift ∘ laurentMinusBridge`
+where `D_overlap` is the common refinement of `laurentPlusDatum` and
+`laurentMinusDatum` (intersection of their rational opens; realized as a
+double-Laurent refinement with `s = D₀.s · f` and appropriate `T`).
+
+Given such `τ₁₂`, apply `hcompat` at `D_overlap`, then transport
+through `τ₁₂` to conclude that `posLift(plus)` and `negLift(minus)` coincide,
+i.e. `deltaMap_gen = 0`.
+
+The overlap bridge `τ₁₂` and its intertwining laws are not yet developed;
+this proof is a targeted stub pending that infrastructure (parallel to the
+individual plus-bridge compat stub `laurentPlusBridge_restrictionMap`; the
+minus side is reduced via `presheafValue_iteratedMinus_equiv_restrictionMap_canonicalMap`). -/
 theorem laurentBridge_delta_eq_zero_of_compat
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
@@ -866,6 +1043,46 @@ theorem laurentBridge_delta_eq_zero_of_compat
       (laurentPlusBridge P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B
           hnoeth_B hcont_forward_B uplus,
         laurentMinusBridge P D₀ f hnoeth_B hcont_eval_B uminus) = 0 := by
+  -- **Step 1 — Overlap datum.** The common refinement of `laurentPlusDatum`
+  -- and `laurentMinusDatum` is any rational datum `D₃` whose rational open
+  -- is contained in both halves. The cleanest choice is the doubly-refined
+  -- datum `D_overlap := laurentMinusDatum (laurentPlusDatum D₀ f) f`
+  -- (equivalently `laurentPlusDatum (laurentMinusDatum D₀ f) f`), whose
+  -- rational open equals `rationalOpen(plus) ∩ rationalOpen(minus)` by
+  -- `rationalOpen_inter` (Remark 7.30(5)).
+  -- Its `s` is `D₀.s · f` and `T` is a product finite set containing both halves.
+  --
+  -- **Step 2 — Apply `hcompat`.** Let `h₃p : rationalOpen(D_overlap) ⊆
+  -- rationalOpen(plus)` and `h₃m : rationalOpen(D_overlap) ⊆ rationalOpen(minus)`
+  -- be the two containments. Then `hcompat D_overlap h₃p h₃m` gives
+  --   `restrictionMap plus D_overlap h₃p uplus =
+  --      restrictionMap minus D_overlap h₃m uminus`
+  -- as elements of `presheafValue(D_overlap)`.
+  --
+  -- **Step 3 — Overlap bridge τ₁₂.** The missing infrastructure is a ring
+  -- isomorphism
+  --   `τ₁₂ : presheafValue(D_overlap) ≃+* B₁₂_gen(canonicalMap f)`
+  -- together with intertwining laws:
+  --   `τ₁₂ ∘ restrictionMap(plus → overlap) =
+  --      posLift(canonicalMap f) ∘ laurentPlusBridge`
+  --   `τ₁₂ ∘ restrictionMap(minus → overlap) =
+  --      negLift(canonicalMap f) ∘ laurentMinusBridge`
+  -- These express that the presheaf overlap equals the algebraic overlap,
+  -- compatibly with the two bridge identifications.
+  --
+  -- **Step 4 — Conclude.** Applying `τ₁₂` to the equation from Step 2 gives
+  --   `posLift(laurentPlusBridge uplus) = negLift(laurentMinusBridge uminus)`
+  -- in `B₁₂_gen(canonicalMap f)`, which is exactly `deltaMap_gen = 0` by
+  -- definition of `deltaMap_gen` as the difference.
+  --
+  -- **Status.** Without the overlap bridge τ₁₂ (parallel to
+  -- `presheafValue_iteratedPlus_equiv` and `presheafValue_iteratedMinus_equiv`
+  -- but at the overlap), this reduction cannot be completed here. The stub is
+  -- consistent with the pending sorries in `laurentPlusBridge_restrictionMap`
+  -- and `laurentMinusBridge_restrictionMap` (both in this file): those build
+  -- the top-edge compatibility with `D₀`; the present theorem requires the
+  -- bottom-edge compatibility with the overlap. All three combine in
+  -- `laurentCover_gluing_presheaf_viaBridges`.
   sorry
 
 /-- **Laurent cover gluing via row3_exact** (Route B, Wedhorn Lemma 8.33),
