@@ -71,14 +71,19 @@ variable [IsHuberRing A] [HasLocLiftPowerBounded A]
 
 set_option maxHeartbeats 800000
 
-/-- **Laurent normalization** (Wedhorn Remark 7.32 / Prop 6.4): every
-element of `insert D₀.s D₀.T` is in the ring of definition `D₀.P.A₀`.
+/-- **Laurent normalization** (Wedhorn Remark 7.32 / Prop 6.4): two bundled
+facts about a rational datum `D₀`:
+- every element of `insert D₀.s D₀.T` is in the ring of definition `D₀.P.A₀`;
+- `1 ∈ D₀.T` (plus-datum convention, giving `1/D₀.s ∈ locSubring`).
 
 This is a strengthening of the open-ideal condition `D₀.hopen` that holds
-whenever we have freely chosen `D₀.P.A₀` to contain the finite set
-`{D₀.s} ∪ D₀.T`. By Wedhorn Proposition 6.4, any bounded subring extends
-to a ring of definition, so for any `RationalLocData` one can always
-arrange this by replacing `D₀.P` with a larger pair of definition.
+whenever we have freely chosen `D₀.P.A₀` to contain `{D₀.s} ∪ D₀.T` and
+added `1` to `T` (which does not shrink the rational subset since
+`v(1) = 1 ≤ v(D₀.s)` is guaranteed after normalizing `D₀.s ∈ A⁺`).
+By Wedhorn Proposition 6.4 any bounded subring extends to a ring of
+definition, so for any `RationalLocData` one can always arrange this by
+replacing `D₀.P` with a larger pair of definition (after normalizing
+`D₀.s` to be power-bounded).
 
 Captured as a typeclass so that instance resolution propagates the
 hypothesis through the iterated-rational bridge infrastructure without
@@ -87,6 +92,8 @@ class LaurentNormalized {A : Type*} [CommRing A] [TopologicalSpace A]
     [IsTopologicalRing A] (D₀ : RationalLocData A) : Prop where
   /-- Every element of `insert D₀.s D₀.T` lies in `D₀.P.A₀`. -/
   insert_s_T_subset_A₀ : ∀ a ∈ insert D₀.s D₀.T, a ∈ D₀.P.A₀
+  /-- `1` lies in `D₀.T` (plus-datum convention). -/
+  one_mem_T : (1 : A) ∈ D₀.T
 
 /-- The "plus half" of the Laurent cover at `f` within base `D₀`. -/
 noncomputable def laurentPlusDatum (D₀ : RationalLocData A) (f : A) :
@@ -765,6 +772,39 @@ in `Loc_B(1)` with `(iteratedPlusDatum_B P D₀ f).topology`.
 We package this as a single helper lemma `iteratedPlus_forwardLocHom_generators_powerBounded`
 (Wedhorn Prop 8.2 / Lemma 2.13 content, deferred). -/
 
+/-- Helper for the plus-forward power-bounded proof: the forward loc-hom
+`Loc_A(D₀.s) → Loc_B(1)` sends `divByS x D₀.s` to
+`algebraMap_B(D₀.coeRingHom(divByS x D₀.s))`. Both sides satisfy the same
+defining equation (after multiplication by the unit `algebraMap_B(canonicalMap D₀.s)`). -/
+private theorem iteratedPlus_forwardLocHom_divByS
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ : RationalLocData A) (x : A) :
+    iteratedPlus_forwardLocHom D₀ (divByS x D₀.s) =
+    algebraMap (presheafValue D₀) (Localization.Away (1 : presheafValue D₀))
+      (D₀.coeRingHom (divByS x D₀.s)) := by
+  set B := presheafValue D₀
+  have hu_s_tgt : IsUnit (algebraMap B (Localization.Away (1 : B))
+      (D₀.canonicalMap D₀.s)) := (isUnit_s_in_presheafValue D₀).map _
+  apply hu_s_tgt.mul_right_cancel
+  have hrel : divByS x D₀.s * algebraMap A (Localization.Away D₀.s) D₀.s =
+      algebraMap A (Localization.Away D₀.s) x := by
+    unfold divByS
+    rw [← IsLocalization.mk'_one (M := Submonoid.powers D₀.s)
+          (S := Localization.Away D₀.s) D₀.s,
+        ← IsLocalization.mk'_mul,
+        ← IsLocalization.mk'_one (M := Submonoid.powers D₀.s)
+          (S := Localization.Away D₀.s) x]
+    exact IsLocalization.mk'_eq_of_eq (by simp only [Submonoid.coe_mul]; ring)
+  have hlhs := congrArg (iteratedPlus_forwardLocHom D₀) hrel
+  rw [map_mul, iteratedPlus_forwardLocHom_algebraMap,
+    iteratedPlus_forwardLocHom_algebraMap] at hlhs
+  rw [hlhs, ← map_mul]
+  congr 1
+  -- Show `D₀.canonicalMap x = D₀.coeRingHom(divByS x D₀.s) * D₀.canonicalMap D₀.s`.
+  change D₀.coeRingHom (algebraMap A _ x) =
+    D₀.coeRingHom (divByS x D₀.s) * D₀.coeRingHom (algebraMap A _ D₀.s)
+  rw [← map_mul, hrel]
+
 /-- **Power-boundedness of the plus forward generator images** (Wedhorn
 Prop 8.2 analogue, plus branch generator). For each `t ∈ (laurentPlusDatum D₀ f).T`
 (= `insert f D₀.T`), the image of `divByS t D₀.s` under
@@ -786,25 +826,57 @@ gives power-boundedness of the generator images. The `A`-rational analogue is
   (`isUnit_s_in_presheafValue D₀`).
 - The claim reduces to: this element is power-bounded in `(iteratedPlusDatum_B).topology`.
 
-**Proof strategy** (deferred):
-1. Show `canonicalMap_mem_ringOfDef`-type membership in `presheafValue_ringOfDef D₀`
-   for `D₀.canonicalMap t` (for `t` in appropriate subring, given rational containment).
-2. Use Wedhorn Lemma 2.13's topological identification to carry power-boundedness
-   across the base-change `A → B`.
-
-**Status**: deferred as a single sub-sorry (Wedhorn §8.2 base-change Nullstellensatz).
-This is the last remaining content for `iteratedPlus_forwardToCompletion_continuous`. -/
+**Proof strategy**: via `iteratedPlus_forwardLocHom_divByS`, reduce to membership
+of `algebraMap_B(coeRingHom(divByS t D₀.s))` in `locSubring (iteratedPlusDatum_B)`.
+For `t ∈ D₀.T`, `divByS t D₀.s ∈ locSubring D₀` → `coeRingHom(...) ∈ A₀`.
+For `t = f`, factor `divByS f D₀.s = algebraMap f * divByS 1 D₀.s` and use
+`LaurentNormalized.one_mem_T` to get `divByS 1 D₀.s ∈ locSubring D₀`. -/
 private theorem iteratedPlus_forwardLocHom_generators_powerBounded
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A) :
     ∀ t ∈ (laurentPlusDatum D₀ f).T,
       @TopologicalRing.IsPowerBounded _ _ (iteratedPlusDatum_B P D₀ f).topology
         (iteratedPlus_forwardLocHom D₀ (divByS t (laurentPlusDatum D₀ f).s)) := by
-  -- Wedhorn Prop 8.2 / Lemma 2.13 base-change content; see docstring.
-  sorry
+  intro t ht
+  set B := presheafValue D₀
+  -- Show forward image lies in `locSubring (iteratedPlusDatum_B)`, a bounded
+  -- subring; then `isPowerBounded_of_mem_locSubring` finishes.
+  apply isPowerBounded_of_mem_locSubring (iteratedPlusDatum_B P D₀ f)
+  -- `(laurentPlusDatum D₀ f).s = D₀.s` definitionally.
+  change iteratedPlus_forwardLocHom D₀ (divByS t D₀.s) ∈ _
+  rcases Finset.mem_insert.mp ht with rfl | ht_orig
+  · -- Case `t = f`. Factor `divByS f D₀.s = algebraMap f * divByS 1 D₀.s`.
+    have hfactor : divByS t D₀.s = algebraMap A (Localization.Away D₀.s) t *
+        divByS 1 D₀.s := by
+      unfold divByS
+      rw [← IsLocalization.mk'_one (M := Submonoid.powers D₀.s)
+            (S := Localization.Away D₀.s) t,
+          ← IsLocalization.mk'_mul, mul_one, one_mul]
+    rw [hfactor, map_mul, iteratedPlus_forwardLocHom_algebraMap,
+      iteratedPlus_forwardLocHom_divByS]
+    refine (locSubring _ _ _).mul_mem ?_ ?_
+    · -- `algebraMap_B(canonicalMap t) = divByS (canonicalMap t) 1 ∈ locSubring`.
+      rw [show algebraMap B (Localization.Away (1 : B)) (D₀.canonicalMap t) =
+          divByS (D₀.canonicalMap t) 1 from (divByS_eq_algebraMap _).symm]
+      exact divByS_mem_locSubring _ _ _ (Finset.mem_singleton_self _)
+    · -- `divByS 1 D₀.s ∈ locSubring D₀` since `1 ∈ D₀.T` (LaurentNormalized).
+      have hdiv_mem : divByS (1 : A) D₀.s ∈ locSubring D₀.P D₀.T D₀.s :=
+        divByS_mem_locSubring _ _ _ LaurentNormalized.one_mem_T
+      have hcoe_mem : D₀.coeRingHom (divByS (1 : A) D₀.s) ∈
+          presheafValue_ringOfDef D₀ :=
+        Subring.le_topologicalClosure _ ⟨⟨divByS 1 D₀.s, hdiv_mem⟩, rfl⟩
+      exact algebraMap_mem_locSubring _ _ _ hcoe_mem
+  · -- Case `t ∈ D₀.T`. `divByS t D₀.s ∈ locSubring D₀` directly.
+    rw [iteratedPlus_forwardLocHom_divByS]
+    have hdiv_mem : divByS t D₀.s ∈ locSubring D₀.P D₀.T D₀.s :=
+      divByS_mem_locSubring _ _ _ ht_orig
+    have hcoe_mem : D₀.coeRingHom (divByS t D₀.s) ∈ presheafValue_ringOfDef D₀ :=
+      Subring.le_topologicalClosure _ ⟨⟨divByS t D₀.s, hdiv_mem⟩, rfl⟩
+    exact algebraMap_mem_locSubring _ _ _ hcoe_mem
 
 /-- Continuity of the forward uncompleted hom to the completion
 (Wedhorn Prop 8.2 analogue, plus branch).
@@ -820,6 +892,7 @@ theorem iteratedPlus_forwardToCompletion_continuous
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A) :
     @Continuous _ _ (laurentPlusDatum D₀ f).topology _
       (iteratedPlus_forwardToCompletion P D₀ f) := by
@@ -1083,6 +1156,7 @@ noncomputable def iteratedPlus_forwardHom
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A) :
     presheafValue (laurentPlusDatum D₀ f) →+*
       presheafValue (iteratedPlusDatum_B P D₀ f) :=
@@ -1126,6 +1200,7 @@ theorem iteratedPlus_forwardHom_coeRingHom
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (a : Localization.Away (laurentPlusDatum D₀ f).s) :
     iteratedPlus_forwardHom P D₀ f ((laurentPlusDatum D₀ f).coeRingHom a) =
@@ -1221,6 +1296,7 @@ theorem iteratedPlus_forwardHom_comp_restrictionMapHom
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hsub : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
@@ -1817,15 +1893,81 @@ private theorem iteratedMinus_backwardLocHom_generator_powerBounded
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
     TopologicalRing.IsPowerBounded
       (iteratedMinus_backwardLocHom D₀ f hsub
         (divByS (1 : presheafValue D₀) (iteratedMinusDatum_B P D₀ f).s)) := by
-  -- Wedhorn Prop 8.2 / Lemma 2.13 base-change content on `B := presheafValue D₀`,
-  -- applied to the inverse of `canonicalMap f` in the target.
-  sorry
+  -- Step 1: Rewrite `backward(divByS 1 (canonicalMap f)) =
+  -- (laurentMinus).coeRingHom(divByS D₀.s (D₀.s * f))`, which is in
+  -- `coeRingHom '' locSubring (laurentMinus)`.
+  -- In `Loc_A(D₀.s * f)`, `divByS D₀.s (D₀.s*f)` is the inverse of `algebraMap f`.
+  have hinv_src : divByS D₀.s (D₀.s * f) *
+      algebraMap A (Localization.Away (D₀.s * f)) f = 1 := by
+    unfold divByS
+    rw [← IsLocalization.mk'_one (M := Submonoid.powers (D₀.s * f))
+          (S := Localization.Away (D₀.s * f)) f,
+        ← IsLocalization.mk'_mul, mul_one]
+    exact IsLocalization.mk'_self _ _
+  -- Apply `(laurentMinus).coeRingHom` to get an inverse of `(laurentMinus).canonicalMap f`.
+  have hinv_target : (laurentMinusDatum D₀ f).coeRingHom
+      (divByS D₀.s (D₀.s * f)) * (laurentMinusDatum D₀ f).canonicalMap f = 1 := by
+    have h : (laurentMinusDatum D₀ f).coeRingHom (divByS D₀.s (D₀.s * f)) *
+        (laurentMinusDatum D₀ f).coeRingHom
+          (algebraMap A (Localization.Away (D₀.s * f)) f) =
+        (laurentMinusDatum D₀ f).coeRingHom 1 := by
+      rw [← map_mul]
+      exact congrArg _ hinv_src
+    rw [map_one] at h
+    exact h
+  have hu_cf : IsUnit ((laurentMinusDatum D₀ f).canonicalMap f) :=
+    canonicalMap_f_isUnit_in_laurentMinus D₀ f
+  -- `backward(divByS 1 (canonicalMap f)) = ((laurentMinus).canonicalMap f)⁻¹`.
+  have hbwd_eq : iteratedMinus_backwardLocHom D₀ f hsub
+      (divByS (1 : presheafValue D₀) (iteratedMinusDatum_B P D₀ f).s) =
+      (laurentMinusDatum D₀ f).coeRingHom (divByS D₀.s (D₀.s * f)) := by
+    -- Both sides, multiplied by `(laurentMinus).canonicalMap f`, give 1.
+    -- For LHS: `backward(divByS 1 (canonicalMap f)) * backward(algebraMap_B(canonicalMap f)) =
+    --   backward(divByS 1 (canonicalMap f) * algebraMap_B(canonicalMap f)) = backward(1) = 1`.
+    -- And `backward(algebraMap_B(canonicalMap f)) = restrictionMapHom(canonicalMap f) =
+    --   (laurentMinus).canonicalMap f`.
+    apply hu_cf.mul_right_cancel
+    rw [hinv_target]
+    have hprod : divByS (1 : presheafValue D₀) (D₀.canonicalMap f) *
+        algebraMap (presheafValue D₀) (Localization.Away (D₀.canonicalMap f))
+          (D₀.canonicalMap f) = 1 := by
+      rw [mul_comm]
+      unfold divByS
+      rw [← IsLocalization.mk'_one (M := Submonoid.powers (D₀.canonicalMap f))
+            (S := Localization.Away (D₀.canonicalMap f)) (D₀.canonicalMap f),
+          ← IsLocalization.mk'_mul, mul_one, one_mul]
+      exact IsLocalization.mk'_self _ _
+    have := congrArg (iteratedMinus_backwardLocHom D₀ f hsub) hprod
+    rw [map_mul, map_one, iteratedMinus_backwardLocHom_algebraMap,
+      restrictionMapHom_canonicalMap] at this
+    exact this
+  rw [hbwd_eq]
+  -- Step 2: `divByS D₀.s (D₀.s * f) ∈ locSubring (laurentMinus)`, because
+  -- `D₀.s = 1 * D₀.s ∈ (laurentMinus).T` (via `LaurentNormalized.one_mem_T`).
+  have hDs_mem : D₀.s ∈ (laurentMinusDatum D₀ f).T := by
+    refine Finset.mem_image.mpr ⟨(1, D₀.s), ?_, by ring⟩
+    refine Finset.mem_product.mpr ⟨?_, ?_⟩
+    · exact Finset.mem_insert_of_mem LaurentNormalized.one_mem_T
+    · exact Finset.mem_insert_self _ _
+  have hdiv_mem : divByS D₀.s (D₀.s * f) ∈
+      locSubring (laurentMinusDatum D₀ f).P (laurentMinusDatum D₀ f).T
+        (laurentMinusDatum D₀ f).s :=
+    divByS_mem_locSubring _ _ _ hDs_mem
+  -- Step 3: `coeRingHom '' locSubring` is bounded; powers stay in it.
+  apply (CompletionLocalization.coeRingHom_image_locSubring_isBounded
+    (laurentMinusDatum D₀ f)).subset
+  rintro _ ⟨n, rfl⟩
+  change ((laurentMinusDatum D₀ f).coeRingHom (divByS D₀.s (D₀.s * f))) ^ n ∈ _
+  rw [← map_pow]
+  exact ⟨(divByS D₀.s (D₀.s * f)) ^ n,
+    (locSubring _ _ _).pow_mem hdiv_mem n, rfl⟩
 
 /-- Continuity of the backward uncompleted hom (minus branch).
 
@@ -1844,6 +1986,7 @@ theorem iteratedMinus_backwardLocHom_continuous
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
@@ -1927,6 +2070,7 @@ noncomputable def iteratedMinus_backwardHom
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
@@ -1968,6 +2112,7 @@ theorem iteratedMinus_backwardHom_coeRingHom
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s)
