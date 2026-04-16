@@ -946,6 +946,7 @@ private theorem iteratedPlus_backwardLocHom_generator_powerBounded
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hsub : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
@@ -954,7 +955,53 @@ private theorem iteratedPlus_backwardLocHom_generator_powerBounded
         (divByS (D₀.canonicalMap f) (iteratedPlusDatum_B P D₀ f).s)) := by
   -- Wedhorn Prop 8.2 / Lemma 2.13 base-change content on `B := presheafValue D₀`,
   -- applied to the canonical image of `f` in `presheafValue (laurentPlusDatum D₀ f)`.
-  sorry
+  -- Step 1: Rewrite the backward image to `(laurentPlusDatum D₀ f).canonicalMap f`.
+  -- Since `s_B = 1`, `divByS (canonicalMap f) 1 = algebraMap B _ (canonicalMap f)`;
+  -- then `backward ∘ algebraMap = restrictionMapHom`; then
+  -- `restrictionMapHom ∘ canonicalMap = (laurentPlus).canonicalMap` at `f`.
+  have hstep1 : iteratedPlus_backwardLocHom D₀ f hsub
+      (divByS (D₀.canonicalMap f) (iteratedPlusDatum_B P D₀ f).s) =
+      (laurentPlusDatum D₀ f).canonicalMap f := by
+    show iteratedPlus_backwardLocHom D₀ f hsub
+        (divByS (D₀.canonicalMap f) (1 : presheafValue D₀)) = _
+    rw [divByS_eq_algebraMap, iteratedPlus_backwardLocHom_algebraMap,
+      restrictionMapHom_canonicalMap]
+  rw [hstep1]
+  -- Step 2: `(laurentPlus).canonicalMap f = coeRingHom (algebraMap A _ f)`.
+  show TopologicalRing.IsPowerBounded
+    ((laurentPlusDatum D₀ f).coeRingHom (algebraMap A _ f))
+  -- Step 3: `algebraMap A _ f ∈ locSubring (laurentPlus)`, since
+  --   `algebraMap A _ f = algebraMap A _ D₀.s * divByS f D₀.s`
+  --   with `D₀.s ∈ D₀.P.A₀` (LaurentNormalized) and `f ∈ insert f D₀.T`.
+  have hs_A₀ : D₀.s ∈ D₀.P.A₀ :=
+    LaurentNormalized.insert_s_T_subset_A₀ D₀.s (Finset.mem_insert_self _ _)
+  have hs_eq : (laurentPlusDatum D₀ f).s = D₀.s := rfl
+  have hprod : algebraMap A (Localization.Away (laurentPlusDatum D₀ f).s)
+      D₀.s * divByS f (laurentPlusDatum D₀ f).s =
+      algebraMap A (Localization.Away (laurentPlusDatum D₀ f).s) f := by
+    rw [hs_eq]
+    unfold divByS
+    rw [← IsLocalization.mk'_one (M := Submonoid.powers D₀.s)
+          (S := Localization.Away D₀.s) D₀.s,
+        ← IsLocalization.mk'_mul,
+        ← IsLocalization.mk'_one (M := Submonoid.powers D₀.s)
+          (S := Localization.Away D₀.s) f]
+    exact IsLocalization.mk'_eq_of_eq (by simp only [Submonoid.coe_mul]; ring)
+  have hmem : algebraMap A (Localization.Away (laurentPlusDatum D₀ f).s) f ∈
+      locSubring (laurentPlusDatum D₀ f).P (laurentPlusDatum D₀ f).T
+        (laurentPlusDatum D₀ f).s := by
+    rw [← hprod]
+    exact (locSubring _ _ _).mul_mem
+      (algebraMap_mem_locSubring _ _ _ hs_A₀)
+      (divByS_mem_locSubring _ _ _ (Finset.mem_insert_self f D₀.T))
+  -- Step 4: powers stay in `coeRingHom '' locSubring`, which is bounded.
+  apply (CompletionLocalization.coeRingHom_image_locSubring_isBounded
+    (laurentPlusDatum D₀ f)).subset
+  rintro _ ⟨n, rfl⟩
+  change ((laurentPlusDatum D₀ f).coeRingHom (algebraMap A _ f)) ^ n ∈ _
+  rw [← map_pow]
+  exact ⟨(algebraMap A _ f) ^ n,
+    (locSubring _ _ _).pow_mem hmem n, rfl⟩
 
 /-- Continuity of the backward uncompleted hom (plus branch).
 
@@ -973,6 +1020,7 @@ theorem iteratedPlus_backwardLocHom_continuous
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hsub : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
@@ -1055,6 +1103,7 @@ noncomputable def iteratedPlus_backwardHom
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hsub : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
@@ -1095,6 +1144,7 @@ theorem iteratedPlus_backwardHom_coeRingHom
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hsub : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s)
@@ -1117,6 +1167,7 @@ theorem iteratedPlus_backwardHom_comp_forwardHom
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hsub : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
@@ -1256,6 +1307,7 @@ theorem iteratedPlus_forwardHom_comp_backwardHom
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hsub : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
@@ -1336,6 +1388,7 @@ noncomputable def presheafValue_iteratedPlus_equiv
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A) :
     presheafValue (laurentPlusDatum D₀ f) ≃+*
       presheafValue (iteratedPlusDatum_B P D₀ f) :=
@@ -1358,6 +1411,7 @@ theorem presheafValue_iteratedPlus_equiv_apply
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A) (x : presheafValue (laurentPlusDatum D₀ f)) :
     presheafValue_iteratedPlus_equiv P D₀ f x =
       iteratedPlus_forwardHom P D₀ f x := rfl
@@ -1369,6 +1423,7 @@ theorem presheafValue_iteratedPlus_equiv_coeRingHom
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (a : Localization.Away (laurentPlusDatum D₀ f).s) :
     presheafValue_iteratedPlus_equiv P D₀ f
@@ -2282,6 +2337,7 @@ noncomputable def laurentPlusBridge
     [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hNoeth_B : IsNoetherianRing (presheafValue D₀))
     (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
@@ -2431,6 +2487,7 @@ theorem presheafValue_iteratedPlus_equiv_restrictionMap_canonicalMap
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) (x : presheafValue D₀) :
@@ -2534,6 +2591,7 @@ theorem laurentPlusBridge_restrictionMap
     [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hNoeth_B : IsNoetherianRing (presheafValue D₀))
     (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
