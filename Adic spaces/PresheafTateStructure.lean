@@ -859,6 +859,33 @@ theorem presheafValue_isAdic (D₀ : RationalLocData A)
     exact ⟨m, fun x hx => hm (idealOfDef_pow_val_sub_closure D₀ m ⟨x, hx, rfl⟩)⟩
 
 omit [PlusSubring A] in
+/-- **Concrete pair of definition for `presheafValue D₀`**. The specific
+pair with `A₀ := presheafValue_ringOfDef D₀` and `I := presheafValue_idealOfDef D₀`,
+giving definitional equality `_.A₀ = presheafValue_ringOfDef D₀` (unlike
+the `Nonempty.some` of `presheafValue_pairOfDefinition` which is opaque). -/
+noncomputable def presheafValue_pairOfDefinition_concrete
+    [IsTateRing A] [IsNoetherianRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
+    PairOfDefinition (presheafValue D₀) :=
+  { A₀ := presheafValue_ringOfDef D₀
+    I := presheafValue_idealOfDef D₀
+    isOpen := presheafValue_ringOfDef_isOpen D₀
+    fg := presheafValue_idealOfDef_fg D₀
+    isAdic := presheafValue_isAdic D₀ }
+
+omit [PlusSubring A] in
+/-- **A₀ of the concrete pair of definition equals `presheafValue_ringOfDef D₀`**
+(definitionally). Used for discharging ring-of-definition membership obligations
+in iterated-rational continuity proofs. -/
+theorem presheafValue_pairOfDefinition_concrete_A₀
+    [IsTateRing A] [IsNoetherianRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
+    (presheafValue_pairOfDefinition_concrete P D₀).A₀ = presheafValue_ringOfDef D₀ :=
+  rfl
+
+omit [PlusSubring A] in
 /-- **Proposition 8.15 (partial)**: `presheafValue D₀` has a natural
 pair of definition, making it a Huber ring. Combined with
 `presheafValue_topNilUnit`, this gives `IsTateRing`. -/
@@ -866,11 +893,7 @@ theorem presheafValue_pairOfDefinition [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
     Nonempty (PairOfDefinition (presheafValue D₀)) :=
-  ⟨{ A₀ := presheafValue_ringOfDef D₀
-     I := presheafValue_idealOfDef D₀
-     isOpen := presheafValue_ringOfDef_isOpen D₀
-     fg := presheafValue_idealOfDef_fg D₀
-     isAdic := presheafValue_isAdic D₀ }⟩
+  ⟨presheafValue_pairOfDefinition_concrete P D₀⟩
 
 omit [PlusSubring A] in
 /-- **Proposition 8.15**: `presheafValue D₀` is a Tate ring.
