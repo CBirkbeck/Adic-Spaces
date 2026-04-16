@@ -2708,39 +2708,11 @@ structure LaurentOverlapBridgeCompatible
       LaurentCover.negLift (D₀.canonicalMap f)
         (laurentMinusBridge P D₀ f hnoeth_B hcont_eval_B uminus)
 
-/-- **Sub-sorry: overlap bridge τ₁₂ existence.**
-
-The ring isomorphism identifying the presheaf value at the Laurent overlap
-with the algebraic overlap ring `B₁₂_gen (D₀.canonicalMap f)`, parallel to
-`laurentPlusBridge` and `laurentMinusBridge` but at the overlap. The
-statement `Nonempty (... ≃+* ...)` is enough for the downstream delta-
-vanishing argument.
-
-**Structural note.** As originally stated, this existence sorry produces an
-arbitrary ring equiv; the intertwining theorems below then take this
-equiv as input and attempt to prove identities about it. That's not
-provable for a generic equiv — the intertwining identities determine the
-equiv up to the image of the plus/minus restrictions, which generate a
-dense subring. To obtain a proof path, one must either (a) replace this
-sorry with the `Nonempty LaurentOverlapBridgeCompatible` variant, so the
-intertwining theorems take the compatibility witness and extract the
-desired identity directly, or (b) provide a CONCRETE construction for
-`τ₁₂` (see the note above about the Laurent analog of Example 6.38).
-
-The required new primitive (Laurent analog of Example 6.38) is: for a
-strongly noetherian complete Tate base `B` with `b : B`, there is a ring
-isomorphism
-`LaurentTateAlgebra B ⧸ (algebraMap b − ζ) ≃+* presheafValue(D_overlap_B)`
-where `D_overlap_B` is the "Laurent overlap datum" on `B`. This is not
-yet available in the project. -/
-theorem laurentOverlapBridge_exists
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
-    (f : A) :
-    Nonempty (presheafValue (laurentOverlapDatum D₀ f) ≃+*
-      LaurentCover.B₁₂_gen (D₀.canonicalMap f)) := by
-  sorry
+-- REMOVED 2026-04-16: `laurentOverlapBridge_exists` — the weak `Nonempty`-returning
+-- variant with no call sites. Superseded by `laurentOverlapBridge_exists_compatible`
+-- below, which produces the bridge together with a compatibility witness
+-- (`LaurentOverlapBridgeCompatible`). The only downstream consumer
+-- (`laurentBridge_delta_eq_zero_of_compat`) already uses the stronger variant.
 
 -- REMOVED 2026-04-16: `laurentOverlap_plus_intertwine`, `laurentOverlap_minus_intertwine`.
 --
