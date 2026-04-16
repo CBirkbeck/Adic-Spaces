@@ -1111,6 +1111,18 @@ theorem locSubring_isBounded (D : RationalLocData A) :
   obtain ⟨jv, hjv, rfl⟩ := hv
   exact ⟨⟨d, hd⟩ * jv, Ideal.mul_mem_left _ _ hjv, MulMemClass.coe_mul ..⟩
 
+omit [NonarchimedeanRing A] in
+/-- Elements of the localization ring of definition are power-bounded in
+`D.topology`: powers stay in `locSubring` (closed under multiplication), and
+`locSubring` is bounded by `locSubring_isBounded`. -/
+theorem isPowerBounded_of_mem_locSubring (D : RationalLocData A)
+    {x : Localization.Away D.s} (hx : x ∈ locSubring D.P D.T D.s) :
+    @TopologicalRing.IsPowerBounded _ _ D.topology x := by
+  letI : TopologicalSpace (Localization.Away D.s) := D.topology
+  apply (locSubring_isBounded D).subset
+  rintro _ ⟨n, rfl⟩
+  exact (locSubring D.P D.T D.s).pow_mem hx n
+
 omit [TopologicalSpace A] [IsTopologicalRing A] [NonarchimedeanRing A] in
 /-- `invSelf s` equals `divByS 1 s` in `Localization.Away s`. -/
 theorem invSelf_eq_divByS (s : A) :

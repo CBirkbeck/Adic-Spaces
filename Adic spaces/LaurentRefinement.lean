@@ -1458,13 +1458,156 @@ private theorem iteratedMinus_forwardLocHom_generators_powerBounded
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A) :
     ∀ t ∈ (laurentMinusDatum D₀ f).T,
       @TopologicalRing.IsPowerBounded _ _ (iteratedMinusDatum_B P D₀ f).topology
         (iteratedMinus_forwardLocHom D₀ f
           (divByS t (laurentMinusDatum D₀ f).s)) := by
-  -- Wedhorn Prop 8.2 / Lemma 2.13 base-change content; see docstring.
-  sorry
+  -- See docstring above for the proof outline.
+  intro t ht
+  -- Unpack `t = a * b` with `a ∈ insert D₀.s D₀.T` and `b ∈ {D₀.s, f}`.
+  obtain ⟨⟨a, b⟩, hab_mem, hab_eq⟩ := Finset.mem_image.mp ht
+  obtain ⟨ha, hb⟩ := Finset.mem_product.mp hab_mem
+  change a ∈ insert D₀.s D₀.T at ha
+  change b ∈ ({D₀.s, f} : Finset A) at hb
+  change a * b = t at hab_eq
+  subst hab_eq
+  change @TopologicalRing.IsPowerBounded _ _ (iteratedMinusDatum_B P D₀ f).topology
+    (iteratedMinus_forwardLocHom D₀ f (divByS (a * b) (D₀.s * f)))
+  -- Show forward image lies in `locSubring` of `iteratedMinusDatum_B`, a
+  -- bounded subring (`locSubring_isBounded`), so power-bounded by
+  -- `isPowerBounded_of_mem_locSubring`.
+  apply isPowerBounded_of_mem_locSubring (iteratedMinusDatum_B P D₀ f)
+  -- Abbreviations for readability.
+  set B := presheafValue D₀
+  -- `a ∈ insert D₀.s D₀.T ⊆ D₀.P.A₀` (via `LaurentNormalized`).
+  have ha_A₀ : a ∈ D₀.P.A₀ := LaurentNormalized.insert_s_T_subset_A₀ a ha
+  have hcan_a : D₀.canonicalMap a ∈ (iteratedMinusDatum_B P D₀ f).P.A₀ :=
+    canonicalMap_mem_ringOfDef D₀ ha_A₀
+  -- Key fact: in `Localization.Away (D₀.s * f)`, both `algebraMap(D₀.s)` and
+  -- `algebraMap(f)` are units. Similarly in the target.
+  have hu_s_src : IsUnit (algebraMap A (Localization.Away (D₀.s * f)) D₀.s) := by
+    have := IsLocalization.Away.algebraMap_isUnit (R := A) (D₀.s * f)
+        (S := Localization.Away (D₀.s * f))
+    rw [map_mul] at this; exact isUnit_of_mul_isUnit_left this
+  have hu_f_src : IsUnit (algebraMap A (Localization.Away (D₀.s * f)) f) := by
+    have := IsLocalization.Away.algebraMap_isUnit (R := A) (D₀.s * f)
+        (S := Localization.Away (D₀.s * f))
+    rw [map_mul] at this; exact isUnit_of_mul_isUnit_right this
+  have hu_s_tgt : IsUnit (algebraMap B (Localization.Away (D₀.canonicalMap f))
+      (D₀.canonicalMap D₀.s)) := (isUnit_s_in_presheafValue D₀).map _
+  have hu_f_tgt : IsUnit (algebraMap B (Localization.Away (D₀.canonicalMap f))
+      (D₀.canonicalMap f)) := IsLocalization.Away.algebraMap_isUnit _
+  -- `forward(algebraMap A _ x) = algebraMap B _ (canonicalMap x)`.
+  have hforward_alg : ∀ x : A, iteratedMinus_forwardLocHom D₀ f
+      (algebraMap A (Localization.Away (D₀.s * f)) x) =
+      algebraMap B (Localization.Away (D₀.canonicalMap f)) (D₀.canonicalMap x) := by
+    intro x; exact iteratedMinus_forwardLocHom_algebraMap D₀ f x
+  -- Split by `b`.
+  simp only [Finset.mem_insert, Finset.mem_singleton] at hb
+  rcases hb with hb_s | hb_f
+  · -- Case `b = D₀.s`. Show `divByS (a * D₀.s) (D₀.s * f) ∈ algebraMap(A) * divByS 1 f` image.
+    subst hb_s
+    -- We have `divByS (a * D₀.s) (D₀.s * f) * algebraMap(f) = algebraMap a` in Loc_A(D₀.s*f).
+    -- By `IsLocalization.Away.lift`, forward of LHS = forward(algebraMap a) * (algebraMap f)⁻¹.
+    -- Let u = forward of divByS (a * D₀.s) (D₀.s * f).
+    -- Show u = algebraMap B (canonicalMap a) * divByS 1 (canonicalMap f).
+    have hrel : divByS (a * D₀.s) (D₀.s * f) *
+        algebraMap A (Localization.Away (D₀.s * f)) f =
+        algebraMap A (Localization.Away (D₀.s * f)) a := by
+      unfold divByS
+      rw [← IsLocalization.mk'_one (M := Submonoid.powers (D₀.s * f))
+            (S := Localization.Away (D₀.s * f)) f,
+          ← IsLocalization.mk'_mul,
+          ← IsLocalization.mk'_one (M := Submonoid.powers (D₀.s * f))
+            (S := Localization.Away (D₀.s * f)) a]
+      exact IsLocalization.mk'_eq_of_eq (by simp only [Submonoid.coe_mul]; ring)
+    -- Apply forward map to hrel.
+    have hforward_rel : iteratedMinus_forwardLocHom D₀ f
+        (divByS (a * D₀.s) (D₀.s * f)) *
+        algebraMap B (Localization.Away (D₀.canonicalMap f)) (D₀.canonicalMap f) =
+        algebraMap B (Localization.Away (D₀.canonicalMap f)) (D₀.canonicalMap a) := by
+      have := congrArg (iteratedMinus_forwardLocHom D₀ f) hrel
+      rw [map_mul, hforward_alg, hforward_alg] at this; exact this
+    -- Multiply both sides by `divByS 1 (canonicalMap f)`, which is the inverse.
+    have hinv_f : algebraMap B (Localization.Away (D₀.canonicalMap f)) (D₀.canonicalMap f) *
+        divByS (1 : B) (D₀.canonicalMap f) = 1 := by
+      unfold divByS
+      rw [← IsLocalization.mk'_one (M := Submonoid.powers (D₀.canonicalMap f))
+            (S := Localization.Away (D₀.canonicalMap f)) (D₀.canonicalMap f),
+          ← IsLocalization.mk'_mul, mul_one, one_mul]
+      exact IsLocalization.mk'_self _ _
+    have hforward_eq : iteratedMinus_forwardLocHom D₀ f (divByS (a * D₀.s) (D₀.s * f)) =
+        algebraMap B (Localization.Away (D₀.canonicalMap f)) (D₀.canonicalMap a) *
+          divByS (1 : B) (D₀.canonicalMap f) := by
+      have := congrArg (· * divByS (1 : B) (D₀.canonicalMap f)) hforward_rel
+      simp only at this
+      rwa [mul_assoc, hinv_f, mul_one] at this
+    rw [hforward_eq]
+    -- Membership: both factors in `locSubring (iteratedMinusDatum_B)`.
+    refine (locSubring _ _ _).mul_mem ?_ ?_
+    · exact algebraMap_mem_locSubring _ _ _ hcan_a
+    · exact divByS_mem_locSubring _ _ _ (Finset.mem_singleton_self 1)
+  · -- Case `b = f`. Use `hb_f : b = f` but keep `f` as the free variable by rewriting.
+    rw [hb_f]
+    -- Now goal is about `divByS (a * f) (D₀.s * f)`.
+    -- `divByS (a * f) (D₀.s * f) * algebraMap(D₀.s) = algebraMap(a)`.
+    have hrel : divByS (a * f) (D₀.s * f) *
+        algebraMap A (Localization.Away (D₀.s * f)) D₀.s =
+        algebraMap A (Localization.Away (D₀.s * f)) a := by
+      unfold divByS
+      rw [← IsLocalization.mk'_one (M := Submonoid.powers (D₀.s * f))
+            (S := Localization.Away (D₀.s * f)) D₀.s,
+          ← IsLocalization.mk'_mul,
+          ← IsLocalization.mk'_one (M := Submonoid.powers (D₀.s * f))
+            (S := Localization.Away (D₀.s * f)) a]
+      exact IsLocalization.mk'_eq_of_eq (by simp only [Submonoid.coe_mul]; ring)
+    have hforward_rel : iteratedMinus_forwardLocHom D₀ f
+        (divByS (a * f) (D₀.s * f)) *
+        algebraMap B (Localization.Away (D₀.canonicalMap f)) (D₀.canonicalMap D₀.s) =
+        algebraMap B (Localization.Away (D₀.canonicalMap f)) (D₀.canonicalMap a) := by
+      have := congrArg (iteratedMinus_forwardLocHom D₀ f) hrel
+      rw [map_mul, hforward_alg, hforward_alg] at this; exact this
+    -- Now: forward = algebraMap(canonicalMap a) * (algebraMap(canonicalMap D₀.s))⁻¹
+    --            = algebraMap(canonicalMap a * (canonicalMap D₀.s)⁻¹)
+    --            = algebraMap(coeRingHom(divByS a D₀.s)).
+    -- Get: canonicalMap D₀.s * coeRingHom(divByS a D₀.s) = canonicalMap a in B.
+    have hcoeB : D₀.canonicalMap D₀.s * D₀.coeRingHom (divByS a D₀.s) =
+        D₀.canonicalMap a := by
+      change D₀.coeRingHom (algebraMap A _ D₀.s) * D₀.coeRingHom (divByS a D₀.s) =
+        D₀.coeRingHom (algebraMap A _ a)
+      rw [← map_mul]
+      congr 1
+      unfold divByS
+      rw [← IsLocalization.mk'_one (M := Submonoid.powers D₀.s)
+            (S := Localization.Away D₀.s) D₀.s,
+          ← IsLocalization.mk'_mul,
+          ← IsLocalization.mk'_one (M := Submonoid.powers D₀.s)
+            (S := Localization.Away D₀.s) a]
+      exact IsLocalization.mk'_eq_of_eq (by simp only [Submonoid.coe_mul]; ring)
+    -- From `hforward_rel`: forward * algebraMap(canonicalMap D₀.s) = algebraMap(canonicalMap a).
+    -- Apply `hu_s_tgt.mul_right_cancel` with target algebraMap(coeRingHom(divByS a D₀.s)).
+    have hforward_eq : iteratedMinus_forwardLocHom D₀ f (divByS (a * f) (D₀.s * f)) =
+        algebraMap B (Localization.Away (D₀.canonicalMap f))
+          (D₀.coeRingHom (divByS a D₀.s)) := by
+      apply hu_s_tgt.mul_right_cancel
+      rw [hforward_rel, ← hcoeB, map_mul]; ring
+    rw [hforward_eq]
+    -- `divByS a D₀.s ∈ locSubring D₀.P D₀.T D₀.s`.
+    have hdiv_mem_loc : divByS a D₀.s ∈ locSubring D₀.P D₀.T D₀.s := by
+      simp only [Finset.mem_insert] at ha
+      rcases ha with rfl | ha'
+      · -- `a = D₀.s`: `divByS D₀.s D₀.s = 1`.
+        have hself : divByS D₀.s D₀.s = 1 := by
+          unfold divByS; exact IsLocalization.mk'_self _ _
+        rw [hself]; exact (locSubring _ _ _).one_mem
+      · exact divByS_mem_locSubring _ _ _ ha'
+    -- `D₀.coeRingHom(divByS a D₀.s) ∈ presheafValue_ringOfDef D₀`.
+    have hcoe_mem : D₀.coeRingHom (divByS a D₀.s) ∈ presheafValue_ringOfDef D₀ := by
+      refine Subring.le_topologicalClosure _ ?_
+      exact ⟨⟨divByS a D₀.s, hdiv_mem_loc⟩, rfl⟩
+    exact algebraMap_mem_locSubring _ _ _ hcoe_mem
 
 /-- Continuity of the forward uncompleted hom to the completion
 (Wedhorn Prop 8.2 analogue, minus branch).
@@ -1481,6 +1624,7 @@ theorem iteratedMinus_forwardToCompletion_continuous
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A) :
     @Continuous _ _ (laurentMinusDatum D₀ f).topology _
       (iteratedMinus_forwardToCompletion P D₀ f) := by
@@ -1707,6 +1851,7 @@ noncomputable def iteratedMinus_forwardHom
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A) :
     presheafValue (laurentMinusDatum D₀ f) →+*
       presheafValue (iteratedMinusDatum_B P D₀ f) :=
@@ -1749,6 +1894,7 @@ theorem iteratedMinus_forwardHom_coeRingHom
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (a : Localization.Away (laurentMinusDatum D₀ f).s) :
     iteratedMinus_forwardHom P D₀ f ((laurentMinusDatum D₀ f).coeRingHom a) =
@@ -1789,6 +1935,7 @@ theorem iteratedMinus_backwardHom_comp_forwardHom
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
@@ -1840,6 +1987,7 @@ theorem iteratedMinus_forwardHom_comp_restrictionMapHom
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
@@ -1931,6 +2079,7 @@ theorem iteratedMinus_forwardHom_comp_backwardHom
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) :
@@ -2007,6 +2156,7 @@ noncomputable def presheafValue_iteratedMinus_equiv
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A) :
     presheafValue (laurentMinusDatum D₀ f) ≃+*
       presheafValue (iteratedMinusDatum_B P D₀ f) :=
@@ -2029,6 +2179,7 @@ theorem presheafValue_iteratedMinus_equiv_apply
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A) (x : presheafValue (laurentMinusDatum D₀ f)) :
     presheafValue_iteratedMinus_equiv P D₀ f x =
       iteratedMinus_forwardHom P D₀ f x := rfl
@@ -2040,6 +2191,7 @@ theorem presheafValue_iteratedMinus_equiv_coeRingHom
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (a : Localization.Away (laurentMinusDatum D₀ f).s) :
     presheafValue_iteratedMinus_equiv P D₀ f
@@ -2197,6 +2349,7 @@ noncomputable def laurentMinusBridge
     [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
@@ -2466,6 +2619,7 @@ theorem presheafValue_iteratedMinus_equiv_restrictionMap_canonicalMap
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
       rationalOpen D₀.T D₀.s) (x : presheafValue D₀) :
@@ -2498,6 +2652,7 @@ theorem laurentMinusBridge_restrictionMap
     [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
@@ -2674,6 +2829,7 @@ structure LaurentOverlapBridgeCompatible
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hNoeth_B : IsNoetherianRing (presheafValue D₀))
     (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
@@ -2766,6 +2922,7 @@ theorem laurentOverlapBridge_exists_compatible
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hNoeth_B : IsNoetherianRing (presheafValue D₀))
     (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
@@ -2820,6 +2977,7 @@ theorem laurentOverlap_plus_intertwine_of_compatible
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hNoeth_B : IsNoetherianRing (presheafValue D₀))
     (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
@@ -2874,6 +3032,7 @@ theorem laurentOverlap_minus_intertwine_of_compatible
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hNoeth_B : IsNoetherianRing (presheafValue D₀))
     (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
@@ -2940,6 +3099,7 @@ theorem laurentBridge_delta_eq_zero_of_compat
     [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hNoeth_B : IsNoetherianRing (presheafValue D₀))
     (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
@@ -3087,6 +3247,7 @@ theorem laurentCover_gluing_presheaf_viaBridges
     [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hNoeth_B : IsNoetherianRing (presheafValue D₀))
     (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
@@ -3164,6 +3325,7 @@ theorem laurentCover_gluing_presheaf
     [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
     (f : A)
     (hNoeth_B : IsNoetherianRing (presheafValue D₀))
     (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
