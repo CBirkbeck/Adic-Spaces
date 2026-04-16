@@ -436,7 +436,7 @@ noncomputable def iteratedPlusDatum_B
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
     (f : A) : RationalLocData (presheafValue D₀) where
-  P := (presheafValue_pairOfDefinition P D₀).some
+  P := presheafValue_pairOfDefinition_concrete P D₀
   T := {D₀.canonicalMap f}
   s := 1
   hopen := hopen_away_one _ _
@@ -452,7 +452,7 @@ noncomputable def iteratedMinusDatum_B
     (D₀ : RationalLocData A)
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
     (f : A) : RationalLocData (presheafValue D₀) where
-  P := (presheafValue_pairOfDefinition P D₀).some
+  P := presheafValue_pairOfDefinition_concrete P D₀
   T := {1}
   s := D₀.canonicalMap f
   hopen := ⟨0, fun b _ => by
@@ -2043,7 +2043,7 @@ noncomputable def presheafValue_trivialPlus_fSubX_equiv
     (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
-      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
     (hA_complete_B : @CompleteSpace (presheafValue D₀)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
@@ -2055,7 +2055,7 @@ noncomputable def presheafValue_trivialPlus_fSubX_equiv
       letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
       letI P_B : PairOfDefinition (presheafValue D₀) :=
-        (presheafValue_pairOfDefinition P D₀).some
+        presheafValue_pairOfDefinition_concrete P D₀
       letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
       @Continuous _ _
         (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
@@ -2068,7 +2068,7 @@ noncomputable def presheafValue_trivialPlus_fSubX_equiv
   haveI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
   haveI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
   letI P_B : PairOfDefinition (presheafValue D₀) :=
-    (presheafValue_pairOfDefinition P D₀).some
+    presheafValue_pairOfDefinition_concrete P D₀
   haveI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
   -- `iteratedPlusDatum_B P D₀ f = trivialPlusDatum (presheafValue D₀) P_B (canonicalMap f)`
   -- definitionally (same P, T = {canonicalMap f}, s = 1, hopen = hopen_away_one _ _).
@@ -2104,7 +2104,7 @@ noncomputable def laurentPlusBridge
     (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
-      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
     (hA_complete_B : @CompleteSpace (presheafValue D₀)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
@@ -2116,7 +2116,7 @@ noncomputable def laurentPlusBridge
       letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
       letI P_B : PairOfDefinition (presheafValue D₀) :=
-        (presheafValue_pairOfDefinition P D₀).some
+        presheafValue_pairOfDefinition_concrete P D₀
       letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
       @Continuous _ _
         (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
@@ -2355,7 +2355,7 @@ theorem laurentPlusBridge_restrictionMap
     (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
-      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
     (hA_complete_B : @CompleteSpace (presheafValue D₀)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
@@ -2367,7 +2367,7 @@ theorem laurentPlusBridge_restrictionMap
       letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
       letI P_B : PairOfDefinition (presheafValue D₀) :=
-        (presheafValue_pairOfDefinition P D₀).some
+        presheafValue_pairOfDefinition_concrete P D₀
       letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
       @Continuous _ _
         (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
@@ -2386,7 +2386,7 @@ theorem laurentPlusBridge_restrictionMap
   haveI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
   haveI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
   letI P_B : PairOfDefinition (presheafValue D₀) :=
-    (presheafValue_pairOfDefinition P D₀).some
+    presheafValue_pairOfDefinition_concrete P D₀
   haveI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
   -- Step 1: Reduce via the `trans` structure of `laurentPlusBridge`.
   -- `laurentPlusBridge = (presheafValue_iteratedPlus_equiv).trans
@@ -2648,7 +2648,7 @@ structure LaurentOverlapBridgeCompatible
     (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
-      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
     (hA_complete_B : @CompleteSpace (presheafValue D₀)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
@@ -2660,7 +2660,7 @@ structure LaurentOverlapBridgeCompatible
       letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
       letI P_B : PairOfDefinition (presheafValue D₀) :=
-        (presheafValue_pairOfDefinition P D₀).some
+        presheafValue_pairOfDefinition_concrete P D₀
       letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
       @Continuous _ _
         (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
@@ -2741,7 +2741,7 @@ theorem laurentOverlap_plus_intertwine
     (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
-      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
     (hA_complete_B : @CompleteSpace (presheafValue D₀)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
@@ -2753,7 +2753,7 @@ theorem laurentOverlap_plus_intertwine
       letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
       letI P_B : PairOfDefinition (presheafValue D₀) :=
-        (presheafValue_pairOfDefinition P D₀).some
+        presheafValue_pairOfDefinition_concrete P D₀
       letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
       @Continuous _ _
         (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
@@ -2832,7 +2832,7 @@ theorem laurentOverlapBridge_exists_compatible
     (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
-      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
     (hA_complete_B : @CompleteSpace (presheafValue D₀)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
@@ -2844,7 +2844,7 @@ theorem laurentOverlapBridge_exists_compatible
       letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
       letI P_B : PairOfDefinition (presheafValue D₀) :=
-        (presheafValue_pairOfDefinition P D₀).some
+        presheafValue_pairOfDefinition_concrete P D₀
       letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
       @Continuous _ _
         (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
@@ -2886,7 +2886,7 @@ theorem laurentOverlap_plus_intertwine_of_compatible
     (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
-      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
     (hA_complete_B : @CompleteSpace (presheafValue D₀)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
@@ -2898,7 +2898,7 @@ theorem laurentOverlap_plus_intertwine_of_compatible
       letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
       letI P_B : PairOfDefinition (presheafValue D₀) :=
-        (presheafValue_pairOfDefinition P D₀).some
+        presheafValue_pairOfDefinition_concrete P D₀
       letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
       @Continuous _ _
         (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
@@ -2940,7 +2940,7 @@ theorem laurentOverlap_minus_intertwine_of_compatible
     (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
-      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
     (hA_complete_B : @CompleteSpace (presheafValue D₀)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
@@ -2952,7 +2952,7 @@ theorem laurentOverlap_minus_intertwine_of_compatible
       letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
       letI P_B : PairOfDefinition (presheafValue D₀) :=
-        (presheafValue_pairOfDefinition P D₀).some
+        presheafValue_pairOfDefinition_concrete P D₀
       letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
       @Continuous _ _
         (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
@@ -3006,7 +3006,7 @@ theorem laurentBridge_delta_eq_zero_of_compat
     (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
-      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
     (hA_complete_B : @CompleteSpace (presheafValue D₀)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
@@ -3018,7 +3018,7 @@ theorem laurentBridge_delta_eq_zero_of_compat
       letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
       letI P_B : PairOfDefinition (presheafValue D₀) :=
-        (presheafValue_pairOfDefinition P D₀).some
+        presheafValue_pairOfDefinition_concrete P D₀
       letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
       @Continuous _ _
         (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
@@ -3153,7 +3153,7 @@ theorem laurentCover_gluing_presheaf_viaBridges
     (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
-      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
     (hA_complete_B : @CompleteSpace (presheafValue D₀)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
@@ -3165,7 +3165,7 @@ theorem laurentCover_gluing_presheaf_viaBridges
       letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
       letI P_B : PairOfDefinition (presheafValue D₀) :=
-        (presheafValue_pairOfDefinition P D₀).some
+        presheafValue_pairOfDefinition_concrete P D₀
       letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
       @Continuous _ _
         (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
@@ -3230,7 +3230,7 @@ theorem laurentCover_gluing_presheaf
     (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
-      IsNoetherianRing ↥((presheafValue_pairOfDefinition P D₀).some.A₀))
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
     (hA_complete_B : @CompleteSpace (presheafValue D₀)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
@@ -3242,7 +3242,7 @@ theorem laurentCover_gluing_presheaf
       letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
       letI P_B : PairOfDefinition (presheafValue D₀) :=
-        (presheafValue_pairOfDefinition P D₀).some
+        presheafValue_pairOfDefinition_concrete P D₀
       letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
       @Continuous _ _
         (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
