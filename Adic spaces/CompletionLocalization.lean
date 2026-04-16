@@ -493,58 +493,8 @@ noncomputable def completionLocSubringEquiv :
 
 end BridgeMap
 
-/-! ### Prime extension to adic completion (Wedhorn §7.23 partial)
-
-For a Noetherian ring `R` with ideal `I` and prime `𝔭` not containing `I`:
-the prime `𝔭` extends to the I-adic completion `Â = AdicCompletion I R`.
-
-**Proof ingredients (all from Mathlib):**
-1. Krull intersection: `⨅ I^n = ⊥` in `R/𝔭` (Noetherian domain, `I̅ ≠ ⊤`)
-2. Injectivity: `R/𝔭 → AdicCompletion(I̅, R/𝔭)` is injective
-3. Nontriviality: `AdicCompletion(I̅, R/𝔭) ≠ 0`
-4. Surjectivity: `AdicCompletion(I, R) → AdicCompletion(I̅, R/𝔭)` surjects
-5. Properness: `𝔭·Â ≠ Â` (quotient is nontrivial)
-6. Prime existence: `∃ 𝔮 ∈ Spec Â, 𝔮 ⊇ 𝔭·Â`
-7. Going-down: flat maps have going-down (`generalizingMap_comap`)
-8. Lying-over: `comap 𝔮' = 𝔭` for some `𝔮' ⊆ 𝔮` -/
-
-section PrimeExtension
-
-variable {R : Type*} [CommRing R] [IsNoetherianRing R]
-
-/-- For a Noetherian ring `R` with ideal `I` and prime `𝔭` with
-`I ⊔ 𝔭 ≠ ⊤`, there exists a prime of the I-adic completion
-lying over `𝔭`. -/
-theorem adicCompletion_prime_liesOver (I : Ideal R)
-    {𝔭 : Ideal R} [𝔭.IsPrime] (h𝔭 : I ⊔ 𝔭 ≠ ⊤) :
-    ∃ (𝔮 : Ideal (AdicCompletion I R)), 𝔮.IsPrime ∧
-      Ideal.comap (algebraMap R (AdicCompletion I R)) 𝔮 = 𝔭 := by
-  have h_proper : Ideal.map (algebraMap R (AdicCompletion I R)) 𝔭 ≠ ⊤ := by
-    intro htop; apply h𝔭
-    have hmap_quot : Ideal.map (Ideal.Quotient.mk I) 𝔭 = ⊤ := by
-      have h1 : Ideal.map ((AdicCompletion.evalₐ I 1).toRingHom)
-          (Ideal.map (algebraMap R _) 𝔭) = ⊤ := by rw [htop, Ideal.map_top]
-      rw [Ideal.map_map] at h1
-      conv at h1 => rw [show (AdicCompletion.evalₐ I 1).toRingHom.comp (algebraMap R _) =
-          Ideal.Quotient.mk (I ^ 1) from by ext; simp [AdicCompletion.evalₐ]]
-      rwa [pow_one] at h1
-    rw [Ideal.eq_top_iff_one] at hmap_quot ⊢
-    obtain ⟨p, hp, hpeq⟩ := (Ideal.mem_map_iff_of_surjective _
-      Ideal.Quotient.mk_surjective).mp hmap_quot
-    have h1p : 1 - p ∈ I := Ideal.mk_ker (I := I) ▸
-      (RingHom.mem_ker.mpr (show (Ideal.Quotient.mk I) (1 - p) = 0 by
-        rw [map_sub, map_one, hpeq]; exact sub_self _))
-    have : (1 : R) = (1 - p) + p := by ring
-    rw [this]; exact Submodule.add_mem_sup h1p hp
-  obtain ⟨𝔮, h𝔮_max, h𝔮_le⟩ := Ideal.exists_le_maximal _ h_proper
-  haveI : 𝔮.IsPrime := Ideal.IsMaximal.isPrime h𝔮_max
-  have h_comap_ge : 𝔭 ≤ Ideal.comap (algebraMap R (AdicCompletion I R)) 𝔮 :=
-    le_trans Ideal.le_comap_map (Ideal.comap_mono h𝔮_le)
-  have h_flat : (algebraMap R (AdicCompletion I R)).Flat := by
-    change Module.Flat R (AdicCompletion I R); infer_instance
-  sorry
-
-end PrimeExtension
+-- REMOVED 2026-04-16: `adicCompletion_prime_liesOver` (no call sites; sorry'd on
+-- Wedhorn §7.23 content — flatness going-down step). Was in `section PrimeExtension`.
 
 /-! ### Power-boundedness of `invS` (Wedhorn §6.2)
 
@@ -696,73 +646,16 @@ private theorem ker_algLift_denom_clear
         algebraMap A _ (D₀.s ^ k) * x from by rw [map_pow]; exact hsurj.symm.trans (mul_comm _ _)]
     rw [map_mul, hx, mul_zero]
 
-/-- The algebraic kernel of `algLift` is dense in the topological kernel of
-`restrictionMapHom` under `coeRingHom`. -/
-theorem presheafValue_ker_from_locSubring_ker
-    (D₀ D : RationalLocData A) (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
-    ∀ c : presheafValue D₀, restrictionMapHom D₀ D h c = 0 →
-      c ∈ closure (D₀.coeRingHom '' {x | algLift D₀ D h x = 0}) :=
-  sorry
-
-/-- If `restrictionMapHom D₀ D h a = restrictionMapHom D₀ D h b` then
-`∃ n, (D₀.canonicalMap D.s) ^ n * a = (D₀.canonicalMap D.s) ^ n * b`. -/
-theorem restrictionMapHom_eq_condition
-    (D₀ D : RationalLocData A) (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
-    ∀ (a b : presheafValue D₀),
-      restrictionMapHom D₀ D h a = restrictionMapHom D₀ D h b →
-        ∃ n : ℕ, (D₀.canonicalMap D.s) ^ n * a =
-          (D₀.canonicalMap D.s) ^ n * b := by
-  intro a b hab
-  suffices hsuff : ∀ c : presheafValue D₀,
-      restrictionMapHom D₀ D h c = 0 → ∃ n : ℕ, (D₀.canonicalMap D.s) ^ n * c = 0 by
-    obtain ⟨n, hn⟩ := hsuff (a - b) (by rw [map_sub, sub_eq_zero]; exact hab)
-    exact ⟨n, by rwa [mul_sub, sub_eq_zero] at hn⟩
-  intro c hc
-  obtain ⟨N₀, hN₀⟩ := away_lift_torsion_bounded (isUnit_algebraMap_s_of_subset D₀ D h)
-  refine ⟨N₀, ?_⟩
-  have hkills : ∀ y ∈ D₀.coeRingHom '' {x | algLift D₀ D h x = 0},
-      (D₀.canonicalMap D.s) ^ N₀ * y = 0 := by
-    rintro y ⟨t, ht, rfl⟩
-    change (D₀.canonicalMap D.s) ^ N₀ * D₀.coeRingHom t = 0
-    rw [show D₀.canonicalMap D.s = D₀.coeRingHom (algebraMap A _ D.s) from rfl,
-        ← map_pow, ← map_mul,
-        show algebraMap A (Localization.Away D₀.s) D.s ^ N₀ * t =
-          algebraMap A (Localization.Away D₀.s) (D.s ^ N₀) * t from by rw [map_pow],
-        hN₀ t ht, map_zero]
-  have hclosed : IsClosed {y : presheafValue D₀ |
-      (D₀.canonicalMap D.s) ^ N₀ * y = 0} :=
-    isClosed_singleton.preimage (continuous_const.mul continuous_id)
-  exact hclosed.closure_subset_iff.mpr (fun y hy => hkills y hy)
-    (presheafValue_ker_from_locSubring_ker D₀ D h c hc)
+-- REMOVED 2026-04-16: `presheafValue_ker_from_locSubring_ker` (sorry'd) and
+-- `restrictionMapHom_eq_condition` (its only caller). Neither had external
+-- users. The T₂-density route these theorems implemented is superseded by the
+-- Wedhorn 8.32 faithful-flatness route planned for `restrictionMapHom_injective`.
 
 end EqCondition
 
-/-! ### Key consequence: the product restriction is faithful
-
-Rather than constructing the full isomorphism (which requires defining the
-localized topology on `Completion(R⁺)[1/s']`), we derive the key consequence
-needed for IsSheafy: the product restriction is faithful (zero-kernel).
-
-The argument uses the T₂ density method:
-1. `coeRingHom : R → R̂` is a dense embedding
-2. On the dense image, the product restriction = algebraic product
-3. The algebraic product on localizations is injective (discrete case argument)
-4. By density + T₂: the kernel of the completion-level product is {0}
-
-Step 3 uses `productRestriction_injective_discrete` applied to the
-localization ring with discrete topology (the algebraic maps are the same
-regardless of topology on A). -/
-
-/-- If `x ∈ presheafValue C.base` restricts to `0` in every covering piece, then `x = 0`
-(Wedhorn Theorem 8.28(b)). -/
-theorem productRestriction_zero_kernel
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (C : RationalCovering A) (x : presheafValue C.base)
-    (hx : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
-      restrictionMap C.base D (C.hsubset D hD) x = 0) :
-    x = 0 := by
-  sorry
+-- REMOVED 2026-04-16: `productRestriction_zero_kernel` (no call sites; sorry'd
+-- on Wedhorn Theorem 8.28(b) Part 1 — T₂ density method). The actual
+-- `tateAcyclicity` Part 1 (LaurentRefinement.lean) uses a different route via
+-- `restrictionMapHom_injective` applied to any single cover element.
 
 end CompletionLocalization
