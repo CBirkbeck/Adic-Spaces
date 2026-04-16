@@ -71,6 +71,23 @@ variable [IsHuberRing A] [HasLocLiftPowerBounded A]
 
 set_option maxHeartbeats 800000
 
+/-- **Laurent normalization** (Wedhorn Remark 7.32 / Prop 6.4): every
+element of `insert D₀.s D₀.T` is in the ring of definition `D₀.P.A₀`.
+
+This is a strengthening of the open-ideal condition `D₀.hopen` that holds
+whenever we have freely chosen `D₀.P.A₀` to contain the finite set
+`{D₀.s} ∪ D₀.T`. By Wedhorn Proposition 6.4, any bounded subring extends
+to a ring of definition, so for any `RationalLocData` one can always
+arrange this by replacing `D₀.P` with a larger pair of definition.
+
+Captured as a typeclass so that instance resolution propagates the
+hypothesis through the iterated-rational bridge infrastructure without
+changing the signatures of individual lemmas. -/
+class LaurentNormalized {A : Type*} [CommRing A] [TopologicalSpace A]
+    [IsTopologicalRing A] (D₀ : RationalLocData A) : Prop where
+  /-- Every element of `insert D₀.s D₀.T` lies in `D₀.P.A₀`. -/
+  insert_s_T_subset_A₀ : ∀ a ∈ insert D₀.s D₀.T, a ∈ D₀.P.A₀
+
 /-- The "plus half" of the Laurent cover at `f` within base `D₀`. -/
 noncomputable def laurentPlusDatum (D₀ : RationalLocData A) (f : A) :
     RationalLocData A where
