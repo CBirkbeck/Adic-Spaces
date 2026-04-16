@@ -1410,15 +1410,32 @@ and `b ∈ {D₀.s, f}`):
   (iteratedMinusDatum_B).s` (using `iteratedMinusDatum_B.T = {1}` and
   `s = canonicalMap f`).
 
-**Proof strategy** (deferred):
-1. Show membership in the `B`-side localization subring for each of the
-   products `a · b` (`a ∈ insert D₀.s D₀.T`, `b ∈ {D₀.s, f}`), via Wedhorn
-   Lemma 2.13's identification + `canonicalMap_mem_ringOfDef`-type lemmas.
-2. Use the locBasis presentation to conclude power-boundedness.
+**Proof strategy** (closable under `hnorm : ∀ a ∈ insert D₀.s D₀.T, a ∈ D₀.P.A₀`):
+Let `B := presheafValue D₀`. Each `t = a * b ∈ T_product` with `a ∈ insert D₀.s D₀.T`,
+`b ∈ {D₀.s, f}`. Show `forward(divByS t (D₀.s*f)) ∈ locSubring (iteratedMinusDatum_B)`
+(a bounded subring by `locSubring_isBounded`, giving power-boundedness directly).
 
-**Status**: deferred as a single sub-sorry (Wedhorn §8.2 base-change
-Nullstellensatz). This is the last remaining content for
-`iteratedMinus_forwardToCompletion_continuous`. -/
+Case `b = D₀.s`: using `IsLocalization.Away.lift` + `iteratedMinus_forwardLocHom_algebraMap`,
+`forward(divByS (a*D₀.s) (D₀.s*f)) = algebraMap B _ (canonicalMap a) * divByS 1 (canonicalMap f)`.
+First factor ∈ `algebraMap '' presheafValue_ringOfDef D₀ ⊆ locSubring` via
+`canonicalMap_mem_ringOfDef` + `a ∈ D₀.P.A₀` (from `hnorm`). Second factor ∈ `locSubring`
+via `divByS_mem_locSubring` with `1 ∈ {1}`.
+
+Case `b = f`: `forward(divByS (a*f) (D₀.s*f)) = algebraMap B _ (coeRingHom(divByS a D₀.s))`.
+Since `divByS a D₀.s ∈ locSubring D₀` (either `= 1` when `a = D₀.s`, or by
+`divByS_mem_locSubring` when `a ∈ D₀.T`), the `coeRingHom` image lies in
+`presheafValue_ringOfDef D₀ = (iteratedMinusDatum_B).P.A₀` (using
+`presheafValue_pairOfDefinition_concrete_A₀`). Hence the `algebraMap` image
+is in `locSubring`. **Does NOT need `hnorm`**.
+
+Both cases yield elements of the subring `locSubring (iteratedMinusDatum_B)`,
+bounded by `locSubring_isBounded`. Powers stay in the subring (closed under
+multiplication), so `IsBounded.subset` gives power-boundedness.
+
+**Status**: currently `sorry` — closing requires threading `hnorm` through 21+ callers
+of `iteratedMinus_forwardHom` downstream, best via a bundled `NormalizedRationalLocData`
+structure. The `presheafValue_pairOfDefinition_concrete` API (`PresheafTateStructure.lean`)
+gives the definitional `.P.A₀ = presheafValue_ringOfDef D₀` needed for the proof. -/
 private theorem iteratedMinus_forwardLocHom_generators_powerBounded
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
@@ -2725,80 +2742,16 @@ theorem laurentOverlapBridge_exists
       LaurentCover.B₁₂_gen (D₀.canonicalMap f)) := by
   sorry
 
-/-- **Sub-sorry: overlap bridge intertwining with the plus side.**
-
-The overlap bridge `τ₁₂` commutes with the plus restriction map via `posLift`:
-`τ₁₂ ∘ restrictionMap(plus → overlap) = posLift ∘ laurentPlusBridge`. -/
-theorem laurentOverlap_plus_intertwine
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
-    (f : A)
-    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
-    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
-        presheafValue_isTateRing P D₀
-      HasLocLiftPowerBounded (presheafValue D₀))
-    (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
-        presheafValue_isTateRing P D₀
-      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
-      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
-    (hA_complete_B : @CompleteSpace (presheafValue D₀)
-      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
-    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
-        presheafValue_isTateRing P D₀
-      IsNoetherianRing ↥(TateAlgebra.pairSubring
-        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
-    (hcont_forward_B : letI : IsTateRing (presheafValue D₀) :=
-        presheafValue_isTateRing P D₀
-      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
-      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
-      letI P_B : PairOfDefinition (presheafValue D₀) :=
-        presheafValue_pairOfDefinition_concrete P D₀
-      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
-      @Continuous _ _
-        (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
-        (inferInstance : TopologicalSpace (presheafValue
-          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))))
-        (example638Plus_forwardHom (presheafValue D₀) P_B (D₀.canonicalMap f)))
-    (τ₁₂ : presheafValue (laurentOverlapDatum D₀ f) ≃+*
-      LaurentCover.B₁₂_gen (D₀.canonicalMap f))
-    (uplus : presheafValue (laurentPlusDatum D₀ f)) :
-    τ₁₂ (restrictionMap (laurentPlusDatum D₀ f) (laurentOverlapDatum D₀ f)
-          (laurentOverlap_subset_plus D₀ f) uplus) =
-      LaurentCover.posLift (D₀.canonicalMap f)
-        (laurentPlusBridge P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B
-          hnoeth_B hcont_forward_B uplus) := by
-  sorry
-
-/-- **Sub-sorry: overlap bridge intertwining with the minus side.**
-
-The overlap bridge `τ₁₂` commutes with the minus restriction map via `negLift`:
-`τ₁₂ ∘ restrictionMap(minus → overlap) = negLift ∘ laurentMinusBridge`. -/
-theorem laurentOverlap_minus_intertwine
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
-    (f : A)
-    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
-        presheafValue_isTateRing P D₀
-      IsNoetherianRing ↥(TateAlgebra.pairSubring
-        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
-    (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
-        presheafValue_isTateRing P D₀
-      let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
-      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
-        @Continuous _ _
-          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
-          (inferInstance : TopologicalSpace (presheafValue D))
-          (tateQuotientToPresheafHom D hb))
-    (τ₁₂ : presheafValue (laurentOverlapDatum D₀ f) ≃+*
-      LaurentCover.B₁₂_gen (D₀.canonicalMap f))
-    (uminus : presheafValue (laurentMinusDatum D₀ f)) :
-    τ₁₂ (restrictionMap (laurentMinusDatum D₀ f) (laurentOverlapDatum D₀ f)
-          (laurentOverlap_subset_minus D₀ f) uminus) =
-      LaurentCover.negLift (D₀.canonicalMap f)
-        (laurentMinusBridge P D₀ f hnoeth_B hcont_eval_B uminus) := by
-  sorry
+-- REMOVED 2026-04-16: `laurentOverlap_plus_intertwine`, `laurentOverlap_minus_intertwine`.
+--
+-- These theorems took an arbitrary `τ₁₂` as input and claimed an intertwining
+-- identity that fails for generic equivs; only the canonical compatible bridge
+-- satisfies it. The proper usage (via `LaurentOverlapBridgeCompatible`) is
+-- captured by `laurentOverlap_plus_intertwine_of_compatible` and
+-- `laurentOverlap_minus_intertwine_of_compatible` below, which directly project
+-- the compatibility structure's fields. No external callers (all downstream
+-- code in `laurentBridge_delta_eq_zero_of_compat` uses the `_of_compatible`
+-- variants via `hcompat_bridge.plus_compat` / `hcompat_bridge.minus_compat`).
 
 /-! #### Strengthened existence: a compatible overlap bridge
 
