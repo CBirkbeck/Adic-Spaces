@@ -324,30 +324,116 @@ theorem range_ιSpv :
   simp only [Set.mem_range, Set.mem_setOf_eq]
   exact (isValuationChar_iff_mem_range r).symm
 
-/-! ### Phase 2 TODO (not proven here)
+/-! ### Sierpinski coordinate sub-basics
 
-The remaining step towards `CompactSpace (Spv A)` is to show
-`IsClosed {r | IsValuationChar r}` in the product topology on `(A × A → Prop)` (each
-factor carrying the Sierpinski topology). Combined with `range_ιSpv` above, Tychonoff,
-and `ιSpv_isEmbedding`, this would give `CompactSpace (Spv A)`.
+Each coordinate evaluation `r ↦ r p : (A × A → Prop) → Prop` is continuous (it is a
+projection in a product topology). Combined with the Sierpinski facts that `{True}` is
+open and `{False}` is closed, this yields two basic topological facts about the product:
 
-The closed-set claim requires showing that each of the seven conditions in the structure
-`IsValuationChar` (the six `ValuativeRel` axioms plus `apply_iff`) cut out a closed
-subset when intersected over all relevant tuples of coordinates. Each individual
-condition is a finite boolean combination of coordinate sub-basics in the Sierpinski
-product. The subtlety is that Sierpinski has `{True}` open and `{False}` closed but the
-complement of `{False}` is not closed, so implications `P → Q` need to be re-expressed
-as `¬ (P ∧ ¬ Q)` (closed) rather than `¬ P ∨ Q` (not obviously closed). The full
-analysis is left to a future file.
+* `{r | r p}` is **open** (sub-basis of the product Sierpinski topology),
+* `{r | ¬ r p}` is **closed** (its complement is the open set above).
 
-```
-lemma isClosed_isValuationChar : IsClosed {r : A × A → Prop | IsValuationChar r} := ...
+These are the only "building blocks" of the product topology (and its closed sets); see
+the asymmetry note at the end of this file. -/
 
-lemma isClosed_range_ιSpv : IsClosed (Set.range (ιSpv : Spv A → (A × A → Prop))) :=
-  range_ιSpv ▸ isClosed_isValuationChar
+omit [CommRing A] in
+/-- The coordinate-evaluation set `{r | r p}` is open in the Sierpinski product. -/
+lemma isOpen_setOf_apply (p : A × A) :
+    IsOpen {r : A × A → Prop | r p} :=
+  continuous_Prop.mp (continuous_apply p)
 
-instance : CompactSpace (Spv A) := ...
-```
+omit [CommRing A] in
+/-- The coordinate-negation set `{r | ¬ r p}` is closed in the Sierpinski product. -/
+lemma isClosed_setOf_not_apply (p : A × A) :
+    IsClosed {r : A × A → Prop | ¬ r p} :=
+  (isOpen_setOf_apply p).isClosed_compl
+
+/-! ### Compactness of the product space
+
+`Prop` is finite and hence compact in every topology (in particular the Sierpinski
+topology `sierpinskiSpace`). Tychonoff (`Pi.compactSpace`) then gives compactness of the
+full function space. This is the target compact ambient space for the Huber embedding. -/
+
+/-- `Prop` with its Sierpinski topology is compact (indeed, `Prop` is finite). -/
+instance : CompactSpace Prop := Finite.compactSpace
+
+/-- **Tychonoff for the Huber ambient space.** The product `A × A → Prop`, with each
+factor in the Sierpinski topology, is compact. -/
+instance : CompactSpace (A × A → Prop) := Pi.compactSpace
+
+/-! ### Phase 2: status note on closedness
+
+The naive Phase 2 plan — "show `IsClosed {r | IsValuationChar r}` in the product
+Sierpinski topology, then conclude `CompactSpace (Spv A)` via `range_ιSpv`,
+`ιSpv_isEmbedding`, and closed-subspace-of-compact-is-compact" — **does not succeed in
+this topology**. The obstruction is intrinsic to the Sierpinski choice and not a matter
+of proof engineering; we record the counterexample and the correct alternative routes.
+
+#### Why the range is generally *not* closed
+
+Sierpinski declares `{True}` open but not closed; equivalently, in the product, the
+only closed sub-basic sets are of the form `{r | ¬ r p}`. Concretely, the closed sets
+in the product are exactly intersections of unions of conditions of the shape
+"some listed coordinate is **False**": every basic open has only `r p = True`
+constraints, so its complement (a closed set) can only forbid combinations of "all
+True" patterns.
+
+In particular, a basic Sierpinski neighbourhood of a point `r₀` is entirely determined
+by the *True*-coordinates of `r₀`: it has the form `{r | r p₁ ∧ ⋯ ∧ r pₙ}` for some
+finite set of coordinates `pᵢ` where `r₀` is `True`. Neighbourhoods never forbid "True"
+at further coordinates.
+
+Now take `s ∈ A` with `s ∉ nilradical A`. Such an `s` exists whenever `A` has a
+non-nilpotent element, i.e. `A` is not a nil ring. Define
+
+  `r₀ : A × A → Prop`,  `r₀ p = (p = (s, s))`,
+
+so `r₀ (s, s) = True` and `r₀ p = False` for all other `p`. Then `r₀` is **not** a
+valuation characteristic: for example, `vle_total` fails at the pair `(f, s)` with
+`f ≠ s` (and `f ≠ 0`) — one checks `vleOf r₀ f s = False` and `vleOf r₀ s f = False`,
+using that all coordinates except `(s, s)` are `False`.
+
+On the other hand, since `s` is not nilpotent there is a prime `𝔭` with `s ∉ 𝔭`, hence
+a valuation `v` with `s ∉ supp v`, so `r_v := ιSpv v` has `r_v (s, s) = True`. The
+basic Sierpinski neighbourhood `U = {r | r (s, s)}` of `r₀` therefore contains the
+valuation characteristic `r_v` — i.e. `U` meets `Set.range ιSpv`. Since `U` is the
+smallest non-trivial Sierpinski neighbourhood of `r₀` (and every finer one is a subset
+of `U`), every neighbourhood of `r₀` meets `Set.range ιSpv`. Hence `r₀` is a limit
+point of the range, and the range is **not** closed.
+
+The same pathology already invalidates the *pointwise* closedness of `vle_total`:
+with `r₀` as above, `r₀` is in the complement of `{r | ∀ f s, vleOf r f s ∨ vleOf r s f}`
+but has no open neighbourhood disjoint from that set. (Closed sub-basic sets of the
+Sierpinski product are intersections of `{r | ¬ r pᵢ}`-families, which can never
+capture the "`r (s, s) = True` forces some other True coordinate" sort of condition
+needed to express `vle_total`.)
+
+#### Correct alternative routes
+
+Three standard routes give `CompactSpace (Spv A)`:
+
+1. **Alexander sub-basis theorem applied to `Spv A` directly** (`isCompact_generateFrom`
+   in `Mathlib.Topology.Compactness.Compact`). Here one does *not* embed: one checks
+   that every sub-basic cover `{basicOpen f_i s_i | i ∈ I}` of `Spv A` admits a finite
+   subcover, using a model-theoretic ultrafilter argument on the family `(f_i, s_i)`.
+
+2. **Embedding into a discrete power `{0, 1}^{A × A}`** (with the discrete topology on
+   each factor, i.e. a Cantor-style topology on the product). There the range is closed
+   because each `vleOf`-axiom becomes a clopen cylinder condition (both `=True` and
+   `=False` are clopen). The resulting (compact) discrete subspace topology on the
+   range is *finer* than the Sierpinski subspace topology, so compactness transfers
+   down to the Sierpinski topology (same set, fewer open sets ⇒ still compact), and
+   `ιSpv_isInducing` identifies that Sierpinski subspace topology with the topology on
+   `Spv A`.
+
+3. **Via `PrimeSpectrum` and a retraction**. One realises `Spv A` as a closed subset of
+   `Spv` of a larger ring where the argument reduces to `PrimeSpectrum.compactSpace`.
+   This is Huber's 1993 approach via the valuation ring of the generic fibre, and is
+   probably the cleanest formalisation but requires a substantial amount of extra
+   infrastructure (the `Γ`-valuation equivalence, valuation rings of quotients).
+
+Route (2) is implemented in standard informal references (e.g. Bhatt's notes, Wedhorn
+§4) and is the lightest lift from the current file. It is left as future work.
 -/
 
 end ValuationSpectrum
