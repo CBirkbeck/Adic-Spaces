@@ -27,6 +27,7 @@
 | `AnalyticPoints.lean` | 112 | DONE | IsAnalytic, Tate => analytic, Jacobson radical, idealOfDef API |
 | `AdicMorphisms.lean` | 171 | DONE | Lemma 7.46(1)+(2 first part), Tate specializations |
 | `SpaCompact.lean` | 460 | DONE | `IsCompact (Spa A A⁺)` + `CompactSpace ↥(Spa A A⁺)` under `[DiscreteTopology A]` (T-NULL-0c, discrete case); Tate pseudo-uniformizer case with `isCompact_spa_of_tate_pseudouniformizer` (hypotheses: `P.A₀ ≤ A⁺`, principal `P.I = (π)`, topologically nilpotent unit π, per-v MulArchimedean). Abstract criterion `isCompact_spa_of_isClosed_image` factors closed-image hypothesis. |
+| `Cor732.lean` | 292 | DONE | **T-NULL-1**: Wedhorn Cor 7.32 (dominating unit extraction). `exists_dominating_unit`: given Tate hypotheses of `SpaCompact` and finite `T ⊆ A` with no common zero on `Spa`, produces `s ∈ Aˣ` with `v(s) < v(t)` strictly for some `t ∈ T` at every `v ∈ Spa`. Proof: open cover `U_n = ⋃_{t ∈ T} basicOpen (π^n) t` is increasing (by `v(π) ≤ 1`) and covers via `exists_pow_lt₀` (MulArchimedean); compactness yields index `N`; `s := π^(N+1)` is the unit. Sorry-free, axiom-clean. Unblocks T-NULL-2..5 (Zavyalov §2.3). |
 | `Basic.lean` | 1 | PLACEHOLDER | Empty |
 
 ## PresheafTateStructure.lean Sorries
