@@ -46,6 +46,7 @@ import «Adic spaces».LaurentRefinement
 import «Adic spaces».RestrictedPowerSeries
 import «Adic spaces».RestrictedModule
 import «Adic spaces».SeminormalRing
+import «Adic spaces».SpaCompact
 import «Adic spaces».StandardCover
 import «Adic spaces».StructureSheaf
 import «Adic spaces».TateAcyclicity

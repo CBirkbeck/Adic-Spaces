@@ -26,6 +26,7 @@
 | `ValuationCoarsening.lean` | 213 | DONE | Valuation coarsening, cofinal property for archimedean (§7.1) |
 | `AnalyticPoints.lean` | 112 | DONE | IsAnalytic, Tate => analytic, Jacobson radical, idealOfDef API |
 | `AdicMorphisms.lean` | 171 | DONE | Lemma 7.46(1)+(2 first part), Tate specializations |
+| `SpaCompact.lean` | 151 | DONE | `IsCompact (Spa A A⁺)` + `CompactSpace ↥(Spa A A⁺)` under `[DiscreteTopology A]` (T-NULL-0c, discrete case) |
 | `Basic.lean` | 1 | PLACEHOLDER | Empty |
 
 ## PresheafTateStructure.lean Sorries
