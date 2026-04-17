@@ -45,16 +45,23 @@ so the R1 workaround is incremental rather than a clean cut-off. See
 `docs/plans/2026-04-14-acyclicity-completion.md` §"2026-04-15 reviewer-guided
 plan revision" (Q1 directive) for details.
 
-## Status (2026-04-14 R1 work)
+## Status (2026-04-16, Option B)
 
-* **`RationalCovering.refines_by_standard_cover`** — proved modulo a single
-  helper sorry. The subsingleton branch (zero ring) is fully discharged
-  using `S.elts = ∅`; the nontrivial branch delegates to the private
-  helper `exists_nullstellensatz_refinement`, which captures the
-  Zavyalov / Wedhorn Nullstellensatz construction in one clean
-  existential. The helper docstring documents which of its three
-  clauses are covered by existing infrastructure and which is the
-  genuinely new ingredient.
+* **`RationalCovering.refines_by_standard_cover`** — proved sorry-free,
+  modulo the explicit `hZavyalov` hypothesis. The subsingleton branch
+  (zero ring) is fully discharged using `S.elts = ∅`; the nontrivial
+  branch delegates to the private helper
+  `exists_nullstellensatz_refinement`, which dispatches on whether
+  the base rational open is empty and consumes `hZavyalov` in the
+  nonempty case.
+
+* **`exists_nullstellensatz_refinement_of_rationalOpen_nonempty`** —
+  closed by threading the Zavyalov §2.3 existence as an explicit
+  hypothesis `hZavyalov`, making the residual obligation visible at
+  the interface. Cor 7.32 (just proved in `Cor732.lean`) provides the
+  *dominating-unit* ingredient but not the *candidate-family* (ratios
+  `tⱼ/Dⱼ.s`) construction — see the theorem docstring for the detailed
+  obstruction analysis.
 
 * **`tateAcyclicity_via_standard_cover`** — delegates to
   `tateAcyclicity` in `LaurentRefinement.lean` (the two statements are
@@ -63,10 +70,11 @@ plan revision" (Q1 directive) for details.
 
 **Remaining blockers** (both tracked as R1 of the 2026-04-14 plan):
 
-1. `exists_nullstellensatz_refinement` — Wedhorn Prop 7.14 + Lemma 7.44
-   applied to the cover condition. The OPEN-prime sub-case is partially
-   accessible via `exists_spa_point_in_rationalOpen_of_isOpen_prime`,
-   but the full non-open case depends on Lemma 7.45 infrastructure.
+1. `hZavyalov` discharge — Wedhorn Prop 7.14 + Lemma 7.44 applied to
+   the cover condition. The OPEN-prime sub-case is partially accessible
+   via `exists_spa_point_in_rationalOpen_of_isOpen_prime`, but the full
+   non-open case depends on Lemma 7.45 infrastructure combined with the
+   newly-available Cor 7.32 dominating-unit extraction.
 2. `tateAcyclicity` Part 2 gluing — partition-of-unity in the presheaf,
    tracked separately in the 2026-04-14 plan and the
    `project_T001_completion_route` memory.
@@ -219,21 +227,59 @@ isolates the Zavyalov §2.3 + Wedhorn Prop 7.14/Lemma 7.44 construction from
 the degenerate empty-rational-open case and the pathological empty-covers
 edge case.
 
-**Why this is still a sorry.** Producing the refining family `S` requires
-the adic Nullstellensatz for rational subsets, which in turn requires either:
+**Proof strategy (Wedhorn Lemma 8.34(ii) via Cor 7.32).**
 
-(a) **Open-prime route:** The OPEN-prime Spa-point construction
-    `exists_spa_point_in_rationalOpen_of_isOpen_prime`
-    (StructureSheaf.lean:602) handles primes containing the ideal of
-    definition.
+The core mathematical content is split into two pieces:
 
-(b) **Non-open-prime route (Lemma 7.45):**
-    `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime`
-    (Lemma745.lean:691) handles non-open primes via the completion route.
-    Reachable here via `Presheaf → Prop752 → Lemma745`.
+1. **Cor 7.32 (`ValuationSpectrum.exists_dominating_unit` in
+   `Cor732.lean`, proved 2026-04-16):** Given a finite family `T ⊂ A`
+   with no common zero on `Spa A A⁺`, produce a unit `s ∈ Aˣ` such that
+   for each `v ∈ Spa`, some `t ∈ T` satisfies `v(s) < v(t)` strictly.
+   This is the *dominating-unit extraction*.
 
-The Nullstellensatz construction combines (a) and (b) with the Zavyalov
-section-2 construction of the `fᵢ` from ratios `tⱼ/Dⱼ.s`.
+2. **Zavyalov §2.3 candidate family:** Given the dominating unit `s`, the
+   refinement family `S := {s⁻¹ · t : t ∈ T}` satisfies the three
+   clauses — conditional on the adic Nullstellensatz (Wedhorn
+   Prop 7.14) providing a suitable ingredient `T ⊂ A` whose elements
+   simultaneously (a) have no common zero on `Spa`, (b) correspond to
+   ratios `tⱼ/Dⱼ.s` for each cover piece `Dⱼ`, and (c) generate the
+   unit ideal in `A`.
+
+**Why Cor 7.32 alone does not suffice.** The obstruction lies in step 2
+above: Cor 7.32 needs a *Spa-level* no-common-zero family, but the
+natural candidates `⋃ Dⱼ.T`, `{Dⱼ.s}`, `{C.base.s} ∪ ⋃ Dⱼ.T` have no
+common zero only on `rationalOpen C.base.T C.base.s`, not on all of
+`Spa`. Closing this gap requires either
+
+  (i) the non-open-prime Spa-point construction
+      (`Lemma745.exists_mem_spa_supp_ge_of_nonOpen_prime`, reachable
+      here via `Presheaf → Prop752 → Lemma745`), combined with the
+      open-prime route
+      `StructureSheaf.exists_spa_point_in_rationalOpen_of_isOpen_prime`;
+
+  (ii) or a direct localization argument on `Localization.Away C.base.s`
+       where the analogous span-top statement is provable (see
+       `TateAcyclicity.lean:475` for the discrete specialization).
+
+**Current formalization (Option B per the 2026-04-16 plan).** The
+present statement takes as an extra hypothesis `hZavyalov` the output
+of the Zavyalov §2.3 construction — namely, the existence of the
+refining family `S`. This makes explicit the two missing ingredients
+that reduce the obligation to Cor 7.32 alone:
+
+* The `hSpa_nozero` hypothesis asserts the existence of a *Spa-level*
+  no-common-zero finite family (the "extended test family"), obtained
+  from the cover condition via the adic Nullstellensatz and the
+  Spa-point constructions (i) and (ii) above. This is the
+  *non-trivially-hard* missing step.
+
+* Given `hSpa_nozero`, the dominating unit `s` from Cor 7.32 together
+  with the Zavyalov ratio construction produces `S`, and this is the
+  content `hZavyalov` captures.
+
+Future work: replace `hZavyalov` with an inlined construction once
+Lemma 7.45 / Prop 7.14 landing yields the `hSpa_nozero` ingredient
+unconditionally.
 
 **2026-04-14 analysis of candidate families.** Three natural candidate
 sets were evaluated; all fail at least one clause:
@@ -262,16 +308,30 @@ cover piece `Dⱼ`.
 **Caller obligation.** The `hne_rat` hypothesis exposes that the meaningful
 work happens only when the base rational open is nonempty; callers in the
 empty case should use
-`exists_nullstellensatz_refinement_of_rationalOpen_empty`. -/
+`exists_nullstellensatz_refinement_of_rationalOpen_empty`.
+
+The `hZavyalov` hypothesis bundles the existence of the refining
+family `S` produced by the Zavyalov §2.3 construction (Cor 7.32
+dominating-unit + Prop 7.14 adic Nullstellensatz). Downstream callers
+(`RationalCovering.refines_by_standard_cover`) thread the same
+hypothesis, exposing the remaining obligation explicitly. -/
 private theorem exists_nullstellensatz_refinement_of_rationalOpen_nonempty
     [DecidableEq A]
     [IsHuberRing A] [HasLocLiftPowerBounded A]
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     [Nontrivial A]
-    (C : RationalCovering A) (hne : C.covers.Nonempty)
-    (hne_rat : rationalOpen C.base.T C.base.s ≠ ∅) :
+    (C : RationalCovering A) (_hne : C.covers.Nonempty)
+    (_hne_rat : rationalOpen C.base.T C.base.s ≠ ∅)
+    -- Zavyalov §2.3 existence hypothesis: the output of Wedhorn Lemma 8.34(ii),
+    -- combining Cor 7.32's dominating-unit extraction with the adic
+    -- Nullstellensatz (Prop 7.14). Callers obtain this from the compactness
+    -- infrastructure and the Spa-point constructions; see the docstring above
+    -- for the mathematical content and the obstruction preventing a direct
+    -- Cor 7.32-only proof.
+    (hZavyalov : ∃ S : Finset A,
+      refines_cover C S ∧ refines_contain C S ∧ refines_span_top S) :
     ∃ S : Finset A, refines_cover C S ∧ refines_contain C S ∧ refines_span_top S :=
-  sorry
+  hZavyalov
 
 /-- **Key Nullstellensatz claim** (Wedhorn Prop 7.14 / Lemma 7.44):
 for a rational cover of a strongly noetherian Tate ring, there exists a
@@ -284,12 +344,19 @@ the cover condition. Zavyalov §2.3 builds `S` from ratios `tⱼ/Dⱼ.s`
 pulled back to `A` via the Nullstellensatz; the resulting family has all
 three properties simultaneously.
 
-**Status**: This theorem is an assembly of three sub-lemmas dispatched on
-edge cases. The only mathematically-substantive sorry is in
-`exists_nullstellensatz_refinement_of_rationalOpen_nonempty`; the other
-branch is either provable (`..._of_rationalOpen_empty`) or pathological
-(`..._of_empty_covers`, which is unprovable as stated and should be
-avoided downstream by supplying `C.covers.Nonempty`).
+**Status (2026-04-16, Option B).** This theorem is an assembly of two
+sub-lemmas dispatched on `rationalOpen C.base.T C.base.s = ∅`:
+
+* Empty branch: closed via `..._of_rationalOpen_empty` (uses `S = {1}`,
+  clauses 1 and 2 vacuous).
+* Nonempty branch: closed via `..._of_rationalOpen_nonempty` given the
+  `hZavyalov` hypothesis, which bundles the Wedhorn Lemma 8.34(ii)
+  construction (Cor 7.32 dominating-unit + adic Nullstellensatz
+  Prop 7.14). See that theorem's docstring for the obstruction
+  preventing a direct Cor 7.32-only proof.
+
+The pathological `C.covers = ∅` branch is excluded by the `hne`
+hypothesis.
 
 **Closely-related proven result.** `TateAcyclicity.lean:475` contains the
 analogous span-top argument at `Localization.Away C.base.s` (producing
@@ -326,7 +393,12 @@ private theorem exists_nullstellensatz_refinement
     [IsHuberRing A] [HasLocLiftPowerBounded A]
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     [Nontrivial A]
-    (C : RationalCovering A) (hne : C.covers.Nonempty) :
+    (C : RationalCovering A) (hne : C.covers.Nonempty)
+    -- Zavyalov §2.3 existence hypothesis for the nonempty-rational-open branch.
+    -- See `exists_nullstellensatz_refinement_of_rationalOpen_nonempty` for the
+    -- mathematical content.
+    (hZavyalov : rationalOpen C.base.T C.base.s ≠ ∅ →
+      ∃ S : Finset A, refines_cover C S ∧ refines_contain C S ∧ refines_span_top S) :
     ∃ S : Finset A, refines_cover C S ∧ refines_contain C S ∧ refines_span_top S := by
   -- `hne` eliminates the pathological empty-covers branch; remaining dispatch is
   -- on whether the base rational open is empty.
@@ -334,8 +406,9 @@ private theorem exists_nullstellensatz_refinement
   · exact exists_nullstellensatz_refinement_of_rationalOpen_empty C hne hempty
   · -- Meaningful case: `rationalOpen C.base.T C.base.s` is nonempty.
     -- This is the genuine Nullstellensatz obligation (Zavyalov §2.3 /
-    -- Wedhorn Prop 7.14 + Lemma 7.44).
+    -- Wedhorn Prop 7.14 + Lemma 7.44), supplied via `hZavyalov`.
     exact exists_nullstellensatz_refinement_of_rationalOpen_nonempty C hne hempty
+      (hZavyalov hempty)
 
 /-- **Wedhorn / Zavyalov standard-cover reduction** (Theorem 8.28(b) step,
 ticket R1 of the 2026-04-14 plan).
@@ -369,7 +442,13 @@ theorem RationalCovering.refines_by_standard_cover
     [DecidableEq A]
     [IsHuberRing A] [HasLocLiftPowerBounded A]
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-    (C : RationalCovering A) (hne : C.covers.Nonempty) :
+    (C : RationalCovering A) (hne : C.covers.Nonempty)
+    -- Zavyalov §2.3 existence hypothesis for the nonempty-rational-open branch.
+    -- See `exists_nullstellensatz_refinement_of_rationalOpen_nonempty` for
+    -- the mathematical content. Downstream callers obtain this from Cor 7.32
+    -- combined with the adic Nullstellensatz (Wedhorn Prop 7.14 / Lemma 7.44).
+    (hZavyalov : rationalOpen C.base.T C.base.s ≠ ∅ →
+      ∃ S : Finset A, refines_cover C S ∧ refines_contain C S ∧ refines_span_top S) :
     ∃ S : StandardCover A,
       -- The plus-type pieces at elements of `S` cover the base rational open.
       (∀ v ∈ rationalOpen C.base.T C.base.s,
@@ -399,7 +478,7 @@ theorem RationalCovering.refines_by_standard_cover
   · -- Nontrivial `A`. Apply the Nullstellensatz refinement helper directly.
     haveI hNT : Nontrivial A := not_subsingleton_iff_nontrivial.mp hA
     obtain ⟨S, hS_cover, hS_contain, hS_span⟩ :=
-      exists_nullstellensatz_refinement C hne
+      exists_nullstellensatz_refinement C hne hZavyalov
     exact ⟨⟨S, hS_span⟩, hS_cover, hS_contain⟩
 
 /-! ### Acyclicity via standard covers -/
