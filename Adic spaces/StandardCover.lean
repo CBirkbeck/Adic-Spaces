@@ -277,6 +277,25 @@ theorem exists_spa_point_with_supp_ge_of_prime
       P.exists_mem_spa_supp_ge_of_nonOpen_prime hp_open hAplus_le_A₀
     exact ⟨v, hv_spa, hv_supp⟩
 
+omit [TopologicalSpace A] [PlusSubring A] [IsTopologicalRing A] in
+/-- **Unit-rescaled family keeps unit-ideal span.** Multiplying a finite family
+by a fixed unit does not change the ideal it generates, so the rescaled family
+spans the unit ideal iff the original does. This is the `refines_span_top`
+clause under the Zavyalov construction `S := T.image (σ⁻¹ * ·)`. -/
+theorem refines_span_top_image_unit_mul [DecidableEq A]
+    (σ : Aˣ) {T : Finset A} (hT : Ideal.span (T : Set A) = ⊤) :
+    Ideal.span ((T.image (fun t => (σ.inv : A) * t) : Finset A) : Set A) = ⊤ := by
+  rw [eq_top_iff, ← hT, Ideal.span_le]
+  intro t ht
+  -- Write `t = σ * (σ.inv * t)`; since `σ.inv * t ∈ image`, `t` lies in the span.
+  have h_eq : t = (σ : A) * ((σ.inv : A) * t) := by
+    rw [← mul_assoc]
+    have : (σ : A) * (σ.inv : A) = 1 := σ.val_inv
+    rw [this, one_mul]
+  rw [h_eq]
+  refine Ideal.mul_mem_left _ (σ : A) (Ideal.subset_span ?_)
+  exact Finset.mem_coe.mpr (Finset.mem_image.mpr ⟨t, ht, rfl⟩)
+
 /-- **Span-top ⟺ no-common-zero on Spa.** Given `exists_spa_point_with_supp_ge_of_prime`
 (which lifts every prime `p` of `A` to a Spa point `v` with `p ≤ supp(v)`), the
 two conditions are equivalent:
