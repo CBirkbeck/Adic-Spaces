@@ -826,4 +826,314 @@ theorem productRestriction_injective_tate_of_all_primes_open
   productRestriction_injective_tate_of_hSpa_points P C hne
     (hSpa_points_of_all_open C h_all_open) x hx
 
+/-! ### Non-open prime discharge via Lemma 7.45 on the completion
+
+For the **non-open prime** subcase, we follow the strategy outlined in
+`project_T001_completion_route` (memory): apply Lemma 7.45 not to `A` (which
+need not be complete) but to the completion `presheafValue C.base`, which IS
+complete by uniform completion, and then pull back via `canonicalMap`.
+
+The key infrastructure assembled below:
+
+1. **`presheafValue_isAdicComplete`** — `IsAdicComplete` for the concrete pair
+   of definition on `presheafValue C.base`. Derived from
+   `IsAdic.isAdicComplete_iff` using:
+   - `IsAdic`: from `presheafValue_isAdic`
+   - `CompleteSpace`: closed subring of complete `presheafValue C.base`
+   - `T2Space`: subspace of T2 `presheafValue C.base`
+
+2. **`tate_proper_ideal_not_open`** — every proper ideal in a Tate ring is
+   non-open, because the topologically nilpotent unit forces any open ideal
+   to contain a unit, hence to be the unit ideal.
+
+3. **`hSpa_points_nonOpen_via_lifted_ideal_proper`** — discharges the
+   non-open prime case CONDITIONAL on the lifted ideal being proper. This
+   isolates the **single remaining residual**: showing
+   `Ideal.map C.base.canonicalMap p ≠ ⊤` in `presheafValue C.base`, for
+   primes `p` of `A` with `C.base.s ∉ p`.
+
+The residual `liftedIdeal_ne_top` is a proper-extension question for
+algebraic completions of Noetherian Tate localizations — Wedhorn's analytic
+input that's orthogonal to the Cor 8.32 spectral route.
+-/
+
+omit [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **Every proper ideal in a Tate ring is non-open**. The topologically
+nilpotent unit `π` of a Tate ring witnesses that an open ideal must contain
+some power `π^n`, hence a unit, hence equal `⊤`. Equivalently, every
+non-trivial ideal is non-open.
+
+This is the structural fact behind Wedhorn Prop 8.36 (every Spv point in a
+Tate ring is analytic), restricted to ideals. -/
+theorem tate_proper_ideal_not_open
+    {R : Type*} [CommRing R] [TopologicalSpace R] [IsTateRing R]
+    {𝔞 : Ideal R} (h𝔞 : 𝔞 ≠ ⊤) : ¬ IsOpen (𝔞 : Set R) := by
+  intro h_open
+  obtain ⟨u, hu_nil⟩ := ‹IsTateRing R›.exists_topologicallyNilpotent_unit
+  -- Topologically nilpotent units lie in the radical of every open ideal.
+  have hu_rad : (u : R) ∈ 𝔞.radical := hu_nil.mem_ideal_radical h_open
+  -- u is a unit, hence u ∈ 𝔞.radical implies 𝔞.radical = ⊤.
+  obtain ⟨n, hn⟩ := Ideal.mem_radical_iff.mp hu_rad
+  -- u^n is also a unit.
+  have hu_n_unit : IsUnit ((u : R) ^ n) := u.isUnit.pow n
+  -- A unit lying in 𝔞 forces 𝔞 = ⊤.
+  exact h𝔞 (Ideal.eq_top_of_isUnit_mem 𝔞 hn hu_n_unit)
+
+omit [HasLocLiftPowerBounded A] [PlusSubring A] in
+/-- **`IsAdicComplete` for the concrete pair of definition on `presheafValue C.base`.**
+
+Derived from `IsAdic.isAdicComplete_iff` applied to the subspace uniformity
+on `presheafValue_ringOfDef C.base` (the closed subring that is the topological
+closure of the image of `locSubring`). The required ingredients:
+- `IsAdic`: `presheafValue_isAdic` (`PresheafTateStructure.lean:804`).
+- `CompleteSpace`: closed subset of complete `presheafValue C.base`.
+- `T2Space`: subspace of T2 `presheafValue C.base`.
+
+This unblocks the application of `Lemma745.exists_mem_spa_supp_ge_of_nonOpen_prime`
+to the pair `presheafValue_pairOfDefinition_concrete P C.base`, which is the
+foundation of the non-open prime case in `hSpa_points`. -/
+theorem presheafValue_isAdicComplete
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
+    IsAdicComplete (presheafValue_idealOfDef D₀) (presheafValue_ringOfDef D₀) := by
+  have hadic : IsAdic (presheafValue_idealOfDef D₀) := presheafValue_isAdic D₀
+  -- Equip `presheafValue_ringOfDef D₀` with the subspace UniformSpace structure
+  -- inherited from `presheafValue D₀` (whose UniformSpace is the completion uniformity).
+  letI : UniformSpace (presheafValue_ringOfDef D₀) :=
+    UniformSpace.comap Subtype.val inferInstance
+  -- Inherit `IsUniformAddGroup` from the ambient `presheafValue D₀`.
+  haveI : IsUniformAddGroup (presheafValue_ringOfDef D₀) :=
+    AddSubgroup.isUniformAddGroup (presheafValue_ringOfDef D₀).toAddSubgroup
+  -- The ring of definition is closed, hence complete (subspace of complete space).
+  haveI : CompleteSpace (presheafValue_ringOfDef D₀) :=
+    (Subring.isClosed_topologicalClosure
+      (D₀.coeRingHom.comp (locSubring D₀.P D₀.T D₀.s).subtype).range).completeSpace_coe
+  -- T2 inherited from ambient T2.
+  haveI : T2Space (presheafValue_ringOfDef D₀) := inferInstance
+  -- Apply the iff: IsAdic ⇒ (IsAdicComplete ↔ CompleteSpace ∧ T2Space).
+  exact hadic.isAdicComplete_iff.mpr ⟨inferInstance, inferInstance⟩
+
+omit [HasLocLiftPowerBounded A] [PlusSubring A] in
+/-- **Subset relation between `D.completedLocSubring` and `presheafValue_ringOfDef D`.**
+Both are topological closures of the same image of `locSubring` (one via
+`Subring.map`, one via `RingHom.range`); as sets they coincide. -/
+private theorem completedLocSubring_eq_presheafValue_ringOfDef (D : RationalLocData A) :
+    (D.completedLocSubring : Set (presheafValue D)) =
+    (presheafValue_ringOfDef D : Set (presheafValue D)) := by
+  -- Both are `topologicalClosure` of the same underlying set:
+  -- `D.coeRingHom '' (locSubring D.P D.T D.s)`.
+  -- The closure operation is set-determined, so once we show the inputs match as sets,
+  -- the closures match as sets.
+  unfold RationalLocData.completedLocSubring presheafValue_ringOfDef
+  -- The underlying sets:
+  --   Subring.map D.coeRingHom (locSubring) = D.coeRingHom '' (locSubring : Set _)
+  --   (D.coeRingHom.comp (locSubring).subtype).range = D.coeRingHom '' (locSubring : Set _)
+  have h_sub_eq : (Subring.map D.coeRingHom (locSubring D.P D.T D.s) :
+      Set (presheafValue D)) =
+    ((D.coeRingHom.comp (locSubring D.P D.T D.s).subtype).range :
+      Set (presheafValue D)) := by
+    ext y
+    simp only [Subring.coe_map, RingHom.coe_range, Set.mem_image,
+      RingHom.comp_apply, Set.mem_range]
+    refine ⟨?_, ?_⟩
+    · rintro ⟨x, hx, rfl⟩; exact ⟨⟨x, hx⟩, rfl⟩
+    · rintro ⟨⟨x, hx⟩, rfl⟩; exact ⟨x, hx, rfl⟩
+  -- topologicalClosure of two subrings with the same underlying set is the same.
+  apply Set.eq_of_subset_of_subset
+  · exact closure_mono h_sub_eq.le
+  · exact closure_mono h_sub_eq.ge
+
+omit [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **Lifting non-open primes from `presheafValue C.base` via Lemma 7.45.**
+
+Given a non-open prime `𝔭` of `presheafValue C.base` (with the standard
+PlusSubring structure `D.completedLocSubring`), Lemma 7.45 applied to the
+concrete pair of definition produces a Spa point `w` with `𝔭 ≤ w.supp`.
+
+This packages `Lemma745.exists_mem_spa_supp_ge_of_nonOpen_prime` for our
+specific completion setting. The `IsAdicComplete` instance is supplied via
+`presheafValue_isAdicComplete`. -/
+theorem exists_spa_point_supp_ge_in_presheafValue
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    {𝔭 : Ideal (presheafValue C.base)} [𝔭.IsPrime]
+    (h𝔭_notOpen : ¬IsOpen (𝔭 : Set (presheafValue C.base))) :
+    ∃ w ∈ Spa (presheafValue C.base) C.base.completedLocSubring,
+      𝔭 ≤ w.supp := by
+  -- Set up: get the concrete pair of definition + IsAdicComplete instance.
+  let PB := presheafValue_pairOfDefinition_concrete P C.base
+  haveI : IsAdicComplete PB.I PB.A₀ := presheafValue_isAdicComplete P C.base
+  -- The PlusSubring is `presheafValuePlusSubring`, which sets `B⁺ = completedLocSubring`.
+  -- The hypothesis `(B⁺ : Set _) ⊆ PB.A₀` becomes `completedLocSubring ⊆ ringOfDef`,
+  -- which holds because the two subrings have the same underlying set.
+  have hBplus_le_B₀ : ((PlusSubring.toSubring (A := presheafValue C.base) :
+      Subring (presheafValue C.base)) : Set (presheafValue C.base)) ⊆
+      (PB.A₀ : Set (presheafValue C.base)) := by
+    change (C.base.completedLocSubring : Set (presheafValue C.base)) ⊆
+      (presheafValue_ringOfDef C.base : Set (presheafValue C.base))
+    rw [completedLocSubring_eq_presheafValue_ringOfDef]
+  obtain ⟨w, hw_spa, hw_supp, _⟩ :=
+    PB.exists_mem_spa_supp_ge_of_nonOpen_prime (𝔭 := 𝔭) h𝔭_notOpen hBplus_le_B₀
+  -- The output Spa is w.r.t. `(presheafValue C.base)⁺ = completedLocSubring`.
+  exact ⟨w, hw_spa, hw_supp⟩
+
+omit [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **Discharge of `hSpa_points` for non-open primes, conditional on
+`liftedIdeal_ne_top`.**
+
+Given:
+- A prime `p` of `A` with `C.base.s ∉ p` (so `Ideal.map C.base.canonicalMap p`
+  is "potentially proper").
+- The hypothesis `liftedIdeal_ne_top`: `Ideal.map C.base.canonicalMap p ≠ ⊤`
+  in `presheafValue C.base`.
+
+This produces the required `v ∈ rationalOpen C.base.T C.base.s` with
+`p ≤ v.supp`, by:
+1. Lifting `liftedIdeal p` to a maximal ideal `𝔭` of `presheafValue C.base`
+   (via `Ideal.exists_le_maximal`).
+2. Using `tate_proper_ideal_not_open` to conclude `𝔭` is non-open
+   (since `presheafValue C.base` is Tate).
+3. Applying `exists_spa_point_supp_ge_in_presheafValue` (Lemma 7.45 on the
+   completion) to get a Spa point of `presheafValue C.base`.
+4. Pulling back via `exists_rationalOpen_of_completion_spa` to get the
+   required Spa point of `A` in `rationalOpen C.base.T C.base.s`.
+
+**Status**: this leaves only `liftedIdeal_ne_top` as the residual algebraic
+input. That hypothesis is Wedhorn's analytic claim that algebraic completion
+of Noetherian Tate localizations preserves properness of finitely generated
+ideal extensions. -/
+theorem hSpa_points_nonOpen_via_lifted_ideal_proper
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ C.base.P.A₀)
+    (hcanonicalMap_cont : Continuous C.base.canonicalMap)
+    (p : Ideal A) [hp : p.IsPrime] (hs_notin : C.base.s ∉ p)
+    (h_lifted_ne_top :
+      (Ideal.map C.base.canonicalMap p : Ideal (presheafValue C.base)) ≠ ⊤) :
+    ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp := by
+  -- Step 1: Lift `liftedIdeal p` to a maximal ideal `𝔭` of `presheafValue C.base`.
+  obtain ⟨𝔭, h𝔭_max, h𝔭_le⟩ :=
+    Ideal.exists_le_maximal (Ideal.map C.base.canonicalMap p) h_lifted_ne_top
+  haveI : 𝔭.IsPrime := h𝔭_max.isPrime
+  -- Step 2: 𝔭 is non-open since `presheafValue C.base` is a Tate ring and 𝔭 is proper.
+  -- The Tate structure on presheafValue C.base via `presheafValue_isTateRing`.
+  haveI : IsTateRing (presheafValue C.base) := presheafValue_isTateRing P C.base
+  have h𝔭_notOpen : ¬IsOpen (𝔭 : Set (presheafValue C.base)) :=
+    tate_proper_ideal_not_open h𝔭_max.ne_top
+  -- Step 3: Apply Lemma 7.45 (via the completion route) to get a Spa point of
+  -- presheafValue C.base with 𝔭 in its support.
+  obtain ⟨w, hw_spa, hw_supp⟩ :=
+    exists_spa_point_supp_ge_in_presheafValue P C h𝔭_notOpen
+  -- Step 4: liftedIdeal p ≤ 𝔭 ≤ w.supp.
+  have hw_supp_lifted :
+      (Ideal.map C.base.canonicalMap p : Ideal (presheafValue C.base)) ≤ w.supp :=
+    h𝔭_le.trans hw_supp
+  -- Step 5: Pull back via exists_rationalOpen_of_completion_spa.
+  exact RationalLocData.exists_rationalOpen_of_completion_spa C.base
+    hAplus_le_A₀ hcanonicalMap_cont hs_notin hw_spa hw_supp_lifted
+
+omit [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **Full `hSpa_points` discharge, conditional on `liftedIdeal_ne_top` for
+non-open primes.**
+
+This combinator unifies the open-prime case (handled unconditionally via
+`hSpa_points_open_prime`) and the non-open-prime case (handled conditionally
+via `hSpa_points_nonOpen_via_lifted_ideal_proper`).
+
+The remaining hypothesis `h_lifted_ne_top_for_nonOpen` is the ONLY residual:
+for every NON-OPEN prime `p` of `A` with `C.base.s ∉ p`, the lifted ideal
+`Ideal.map C.base.canonicalMap p` is proper in `presheafValue C.base`. -/
+theorem hSpa_points_via_lifted_ideal_proper
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ C.base.P.A₀)
+    (hcanonicalMap_cont : Continuous C.base.canonicalMap)
+    (h_lifted_ne_top_for_nonOpen :
+      ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p → ¬IsOpen (p : Set A) →
+        (Ideal.map C.base.canonicalMap p : Ideal (presheafValue C.base)) ≠ ⊤) :
+    ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp := by
+  intro p hp hs
+  by_cases hp_open : IsOpen (p : Set A)
+  · exact hSpa_points_open_prime C p hp_open hs
+  · exact hSpa_points_nonOpen_via_lifted_ideal_proper P C hAplus_le_A₀
+      hcanonicalMap_cont p hs (h_lifted_ne_top_for_nonOpen p hp hs hp_open)
+
+/-- **End-to-end `productRestriction_injective_tate` via the full `hSpa_points`
+discharge, conditional on `liftedIdeal_ne_top` for non-open primes.**
+
+This is the cleanest packaging through the Cor 8.32 route. It requires only:
+- The standard instance bundle `[IsTateRing A] ...`.
+- `(A⁺ : Set A) ⊆ C.base.P.A₀` and `Continuous C.base.canonicalMap` (both
+  standard side conditions for the completion-route Spa pullback).
+- `IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)` — derivable from
+  `[IsNoetherianRing P.A₀]` via `Prop752.locSubring_isNoetherian` for the
+  appropriate `P`; the user supplies the instance directly here.
+- The residual `liftedIdeal_ne_top` hypothesis on non-open primes.
+
+Once the residual is discharged (Wedhorn analytic input on completion of
+Noetherian Tate localizations), `productRestriction_injective_tate` is
+fully closed via the Cor 8.32 route. -/
+theorem productRestriction_injective_tate_via_lifted_ideal_proper
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) (hne : C.covers.Nonempty)
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ C.base.P.A₀)
+    (hcanonicalMap_cont : Continuous C.base.canonicalMap)
+    (h_lifted_ne_top_for_nonOpen :
+      ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p → ¬IsOpen (p : Set A) →
+        (Ideal.map C.base.canonicalMap p : Ideal (presheafValue C.base)) ≠ ⊤)
+    (x : presheafValue C.base)
+    (hx : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+       restrictionMap C.base D (C.hsubset D hD) x = 0) :
+    x = 0 :=
+  productRestriction_injective_tate_of_hSpa_points P C hne
+    (hSpa_points_via_lifted_ideal_proper P C hAplus_le_A₀ hcanonicalMap_cont
+      h_lifted_ne_top_for_nonOpen) x hx
+
+/-! ### Summary of remaining residual
+
+After this file's additions, the chain to fully discharge `hSpa_points`
+unconditionally (under `[IsTateRing A] [IsNoetherianRing A] [T2Space A]
+[NonarchimedeanRing A]`) reduces to a SINGLE algebraic claim:
+
+> For every prime `p` of `A` with `C.base.s ∉ p` and `¬IsOpen (p : Set A)`,
+> the lifted ideal `Ideal.map C.base.canonicalMap p` is proper (≠ ⊤) in
+> `presheafValue C.base`.
+
+This is the "non-degenerate fiber" question for the analytic completion of
+the Noetherian Tate localization `Localization.Away C.base.s`. It is a
+specific instance of the question: when does completion of a Noetherian
+topological ring preserve properness of finitely generated ideal extensions?
+
+The question reduces (via the factorization `canonicalMap = coeRingHom ∘
+algebraMap`) to: for the proper prime `q = Ideal.map algebraMap p` of
+`Localization.Away C.base.s`, is `Ideal.map coeRingHom q ≠ ⊤` in the
+completion `presheafValue C.base`?
+
+For Noetherian Tate localizations equipped with the localization topology,
+the standard answer is YES, because:
+- `Localization.Away C.base.s / q` is a non-zero Noetherian ring with the
+  induced quotient topology.
+- The completion of a non-zero Noetherian topological ring is non-zero
+  (the natural map `R → R̂` is INJECTIVE for Hausdorff `R` of countable
+  type, by Krull intersection in the Noetherian case).
+- The non-zero completion `(Localization.Away s / q)^` quotients
+  `presheafValue C.base` (via the universal property of completion + the
+  surjection `Localization.Away s → Localization.Away s / q`).
+
+A direct proof would require the project's infrastructure for completion
+of Noetherian quotients (Krull intersection, completion-quotient
+compatibility), which is conceptually distinct from the Cor 8.32
+spectral content and currently lives in the Bourbaki CA III §2.8 chain
+(see `project_T001_completion_route` memory). -/
+
 end ValuationSpectrum
