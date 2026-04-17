@@ -906,6 +906,7 @@ theorem separation_ofStronglyNoetherianTate
 
 /-! ### Flatness of presheafValue (Wedhorn Proposition 8.30, via TopologyComparison) -/
 
+omit [HasLocLiftPowerBounded A] in
 /-- `presheafValue D` is flat over `A` (Wedhorn Proposition 8.30), assuming
 the TopologyComparison isomorphism hypotheses are satisfied. -/
 theorem presheafValue_flat_of_tateQuotient
@@ -942,6 +943,102 @@ theorem presheafValue_flat_of_tateQuotient
       invFun := e.symm
       left_inv := e.symm_apply_apply
       right_inv := e.apply_symm_apply }
+
+omit [HasLocLiftPowerBounded A] in
+/-- `presheafValue D` is flat over `A` (Wedhorn Proposition 8.30), proved via the
+**canonical-topology** isomorphism `presheafValueCanonicalQuotientEquiv`.
+
+Compared to `presheafValue_flat_of_tateQuotient`, this version trades the three
+T-topology hypotheses (`hcs`, `ht0`, `hdense`) for the canonical-topology
+hypotheses (`hA_complete`, `hnoeth`, `hT_pb`). The `hA_complete` and `hnoeth`
+inputs are purely Tate structural data that hold unconditionally when `A` is a
+strongly noetherian Tate ring with a chosen pair of definition. The `hT_pb`
+hypothesis is the standard rational-datum condition (all `t ∈ D.T` are
+power-bounded) and `hcont_eval` is the residual continuity of the
+`tateQuotientToPresheafHom` at the canonical topology.
+
+This form feeds into the Laurent refinement faithful-flatness argument for
+Wedhorn Corollary 8.32 without needing to establish the full T-topology
+closedness + completeness infrastructure. -/
+theorem presheafValue_flat_of_canonical
+    [T2Space A] [NonarchimedeanRing A] [IsNoetherianRing A]
+    [IsTateRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t)
+    (hcont_eval : @Continuous _ _
+      (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb)) :
+    @Module.Flat A (presheafValue D) _ _
+      (RingHom.toModule (RationalLocData.canonicalMap D)) := by
+  haveI hflat_quot : Module.Flat A (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    TateAlgebra.flat_quotient_oneSubfX_general P D.s
+  let e := presheafValueCanonicalQuotientEquiv D hb hA_complete hnoeth hT_pb hcont_eval
+  change @Module.Flat A (presheafValue D) _ _
+    (RingHom.toModule (RationalLocData.canonicalMap D))
+  letI : Module A (presheafValue D) := RingHom.toModule (RationalLocData.canonicalMap D)
+  have he_smul : ∀ (a : A) (x : presheafValue D), e (a • x) = a • e x := by
+    intro a x
+    change e (RationalLocData.canonicalMap D a * x) = algebraMap A _ a * e x
+    rw [e.map_mul]; congr 1
+    exact presheafValueCanonicalQuotientEquiv_canonicalMap D hb hA_complete hnoeth
+      hT_pb hcont_eval a
+  exact @Module.Flat.of_linearEquiv A (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) (presheafValue D)
+    inferInstance inferInstance inferInstance inferInstance this hflat_quot
+    { toLinearMap := { toFun := e, map_add' := e.map_add, map_smul' := he_smul }
+      invFun := e.symm
+      left_inv := e.symm_apply_apply
+      right_inv := e.apply_symm_apply }
+
+/-- `presheafValue D` is flat over `A` when `D` is `LaurentNormalized` (`1 ∈ D.T`)
+and when `T = {1}` (the Laurent-minus case — all non-base elements of `D.T` are
+power-bounded).
+
+In this case the five `presheafValueCanonicalQuotientEquiv` hypotheses collapse
+to just `hA_complete`, `hnoeth`, and `hcont_eval`:
+
+* `hb` is discharged via `invS_isPowerBounded_of_one_mem_T` using
+  `LaurentNormalized.one_mem_T`.
+* `hT_pb` is discharged since `T = {1}` makes every `t ∈ T` equal `1`, which is
+  power-bounded by `isPowerBounded_one`.
+
+This shape matches the Laurent refinement `iteratedMinusDatum_B` invocation at
+`LaurentRefinement.lean:2612` where the rational datum over `B := presheafValue D₀`
+has exactly `T = {1}`. -/
+theorem presheafValue_flat_of_laurentMinus
+    [T2Space A] [NonarchimedeanRing A] [IsNoetherianRing A]
+    [IsTateRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D : RationalLocData A) [LaurentNormalized D]
+    (hT_singleton : D.T = {1})
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hcont_eval : ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+      @Continuous _ _
+        (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+        (inferInstance : TopologicalSpace (presheafValue D))
+        (tateQuotientToPresheafHom D hb)) :
+    @Module.Flat A (presheafValue D) _ _
+      (RingHom.toModule (RationalLocData.canonicalMap D)) := by
+  -- `hb` follows from `invS_isPowerBounded_of_one_mem_T` since `1 ∈ D.T`.
+  have hb : TopologicalRing.IsPowerBounded (invS D) := by
+    rw [invS_eq_coeRingHom_divByS_one]
+    exact CompletionLocalization.invS_isPowerBounded_of_one_mem_T D
+      LaurentNormalized.one_mem_T
+  -- `hT_pb`: `T = {1}` collapses `∀ t ∈ T, IsPowerBounded t` to `IsPowerBounded 1`.
+  have hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t := by
+    intro t ht
+    rw [hT_singleton, Finset.mem_singleton] at ht
+    rw [ht]
+    exact TopologicalRing.isPowerBounded_one
+  exact presheafValue_flat_of_canonical A P D hb hA_complete hnoeth hT_pb
+    (hcont_eval hb)
 
 /-! ### Proof via Laurent cover refinement (Wedhorn Lemma 8.34) -/
 

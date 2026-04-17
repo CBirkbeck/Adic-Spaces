@@ -81,18 +81,20 @@ For the localization topology: `presheafValue D = Completion(Localization.Away s
 3. `presheafValue D ≃+* A⟨X⟩/(1-sX)` (TopologyComparison, sorry-free)
 4. Transfer flatness via the A-compatible ring isomorphism
 
-The proof is in `StructureSheaf.lean` as `presheafValue_flat_of_tateQuotient`
-since it requires the TopologyComparison hypotheses.
--/
+The flatness theorems live downstream in `StructureSheaf.lean`, guarded by the
+TopologyComparison hypotheses:
 
-/-- `presheafValue D` is flat over `A` (Wedhorn Proposition 8.30).
-See `presheafValue_flat_of_tateQuotient` in `StructureSheaf.lean`
-for the sorry-free version with TopologyComparison hypotheses. -/
-theorem presheafValue_flat (D : RationalLocData A)
-    [IsNoetherianRing (locSubring D.P D.T D.s)] :
-    @Module.Flat A (presheafValue D) _ _
-      (RingHom.toModule (RationalLocData.canonicalMap D)) := by
-  sorry -- See StructureSheaf.presheafValue_flat_of_tateQuotient for the proof
+* `presheafValue_flat_of_tateQuotient`   — via the T-topology equivalence
+  (5 hypotheses including the T-topology completeness/closedness).
+* `presheafValue_flat_of_canonical`      — via the canonical-topology
+  equivalence `presheafValueCanonicalQuotientEquiv` (5 hypotheses where the
+  T-topology residuals are traded for `hA_complete`, `hnoeth`, `hT_pb`, and
+  `hcont_eval`; the first three hold automatically for strongly noetherian Tate
+  affinoid rings with a chosen pair of definition).
+
+Both statements feed into Wedhorn's Cor 8.32 faithful-flatness argument via the
+Laurent-refinement route in `LaurentRefinement.lean`.
+-/
 
 end LocSubringCompletion
 

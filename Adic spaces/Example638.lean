@@ -1128,6 +1128,7 @@ section Example638MinusForward
 
 variable [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
 
+omit [PlusSubring A] [IsHuberRing A] [HasLocLiftPowerBounded A] in
 /-- `invS D = D.coeRingHom (divByS 1 D.s)`: both are the inverse of
 `D.canonicalMap D.s` in `presheafValue D`, hence equal. -/
 theorem invS_eq_coeRingHom_divByS_one (D : RationalLocData A) :
