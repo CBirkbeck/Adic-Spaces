@@ -40,7 +40,9 @@ Required approach: Use `AdicCompletionBridge.adicCompletionRingEquiv` to identif
 
 **`restrictionMapHom_surjective`** (line ~751): Surjectivity of the restriction map. Needs: the range of `restrictionMapHom` is complete (image of complete space under uniformly continuous map) and dense (contains `D.coeRingHom` image). Complete + dense in T2 = surjective.
 
-**`restrictionMapHom_injective`** (PresheafTateStructure.lean:1275): Injectivity of the restriction map. OLD proof route via `restrictionMapAlg_isUniformInducing` is INVALID (depends on FALSE `locLift_preimage_locNhd`). NEW route: strict exactness of Laurent row (Ticket R2) or Prop 8.15 localization identification (Route B). See docs/TICKETS-axiom-clean.md.
+**`restrictionMapHom_injective`** (PresheafTateStructure.lean:1310): Injectivity of the restriction map. OLD proof route via `restrictionMapAlg_isUniformInducing` is INVALID (depends on FALSE `locLift_preimage_locNhd`). NEW route: strict exactness of Laurent row (Ticket R2) or Prop 8.15 localization identification (Route B). See docs/TICKETS-axiom-clean.md.
+
+**Update 2026-04-16**: Packaged Example 6.38 iso `presheafValue_tateAlgebra_quotient_iso` is now available in `TopologyComparison.lean` (end of file). It produces `presheafValue D ≃+* A⟨X⟩ ⧸ (1 - D.s · X)` under hypotheses `(hb, hA_complete, hnoeth, hT_pb)`. Its inverse is the unconditional `tateQuotientToPresheafHom`. The new continuity result `tateQuotientToPresheafHom_continuous_of_tate` discharged the formerly-fifth `hcont` hypothesis. The companion `restrictionMapHom_injective_via_iso` (PresheafTateStructure.lean) records the conditional API; its proof reduces to the same algebraic non-zero-divisor statement as the unconditional version. The remaining gap is **algebraic only**: showing that `mk(D₀.s)` is a non-zero-divisor in `A⟨X⟩/(1 - D.s · X)` (Wedhorn 8.32 single-restriction algebraic core).
 
 ## Sorry-Free Status
 
@@ -62,10 +64,11 @@ The assembly theorems `flat_quotient_fSubX_general` and `flat_quotient_oneSubfX_
 - `tateQuotientPresheafEquiv_mk_algebraMap`, `_mk_X`, `_symm_canonicalMap` : Key properties of the isomorphism.
 - `quotientEvalPresheafHom_surjective` : Surjectivity of the quotient evaluation map.
 
-**TopologyComparison.lean** — 1 sorry (updated 2026-04-08):
+**TopologyComparison.lean** — 1 sorry (updated 2026-04-16):
 - `locToQuotientOneSubfX_gen_continuous_canonical` uses sorry for `h_top_eq : quotientOneSubfXIdealTopology D.s = quotientTTopology D.s`. This is the equality of the canonical I-adic quotient topology and the T-topology quotient on `A⟨X⟩/(1-sX)`. **Mathematical content: Wedhorn Proposition 6.18** (module topology on f.g. modules over strongly noetherian Tate rings). The easy direction (canonical quotient >= T-quotient) follows from coinduced monotonicity since the canonical topology on TateAlgebra is finer than the T-topology. The hard direction (canonical quotient <= T-quotient) requires that the ideal `(1-sX)` collapses the infinitely many canonical coefficient constraints to finitely many T-topology constraints.
 - Sorry-free: `locToQuotientOneSubfX_gen_continuous` (T-topology version), `locToQuotient_mul_small_constant_mem`, all completion isomorphism results (`presheafValueToQuotient`, `presheafValueTateQuotientEquiv`, etc.), `locToQuotientOneSubfX_gen_denseRange_canonical`.
 - Sorry-free: `quotientTTopology` + ring/nonarchimedean instances, `presheafValueToQuotient_coe`, `presheafValueTateQuotientEquiv_canonicalMap`, `_symm_algebraMap`.
+- **NEW (2026-04-16)** Sorry-free: `presheafValue_tateAlgebra_quotient_iso` and its specs (`_canonicalMap`, `_symm_algebraMap`, `_symm`). Packaged Wedhorn Example 6.38 ring iso `presheafValue D ≃+* A⟨X⟩ ⧸ (1 - D.s · X)` under hypotheses `(hb, hA_complete, hnoeth, hT_pb)`. The continuity hypothesis is auto-discharged via `tateQuotientToPresheafHom_continuous_of_tate`.
 
 **StructureSheaf.lean** — sorry's (updated 2026-03-28):
 - **DONE** `structurePresheaf` : Fully proved (0 sorry). Functor `(Opens (SpaTop A))^op => CompleteTopCommRingCat` using locally-fraction sections with discrete uniformity.

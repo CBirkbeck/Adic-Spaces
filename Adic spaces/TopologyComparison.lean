@@ -2474,6 +2474,86 @@ theorem tateQuotientToPresheafHom_continuous_of_tate
       (tateQuotientToPresheafHom D hb) :=
   tateQuotientToPresheafHom_continuous_canonical D hb
 
+/-! ### Packaged Wedhorn Example 6.38 isomorphism
+
+The packaged form `presheafValue_tateAlgebra_quotient_iso` discharges the
+continuity hypothesis using `tateQuotientToPresheafHom_continuous_of_tate`,
+leaving only four data inputs that must be supplied at the call site:
+
+* `hb`  — `invS D` is power-bounded in `presheafValue D`.
+* `hA_complete` — `A` is complete (relative to its right uniformity).
+* `hnoeth` — the canonical pair-of-definition subring `A₀⟨X⟩` is noetherian.
+* `hT_pb` — every `t ∈ D.T` is power-bounded in `A`.
+
+The iso `e := presheafValue_tateAlgebra_quotient_iso D hb hA_complete hnoeth hT_pb`
+identifies `presheafValue D ≃+* A⟨X⟩ ⧸ (1 - sX)` (canonical Tate quotient
+topology) and intertwines `D.canonicalMap` with the natural map `algebraMap`
+into the quotient. This is the Phase-2 algebraic identification used in the
+Wedhorn faithful-flatness route to Tate acyclicity.
+
+Note: the **shape of the quotient** here is the 1-variable Tate algebra
+`A⟨X⟩ ⧸ (1 - D.s · X)`. The `T`-data only enters via the topology used to
+form `presheafValue` (and via `hT_pb`). This is a slight strengthening of
+the literal Wedhorn 6.38 statement and is **equivalent** under the standard
+identification; see `Example638.lean` for the explicit `|T|+1`-variable
+form in the Laurent plus/minus cases. -/
+noncomputable def presheafValue_tateAlgebra_quotient_iso
+    [IsTateRing A] (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t) :
+    presheafValue D ≃+* (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+  presheafValueCanonicalQuotientEquiv D hb hA_complete hnoeth hT_pb
+    (tateQuotientToPresheafHom_continuous_of_tate D hb)
+
+/-- The packaged Example 6.38 iso sends `D.canonicalMap a` to
+`mk(algebraMap a)`. -/
+theorem presheafValue_tateAlgebra_quotient_iso_canonicalMap
+    [IsTateRing A] (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t) (a : A) :
+    presheafValue_tateAlgebra_quotient_iso D hb hA_complete hnoeth hT_pb
+        (D.canonicalMap a) =
+      (Ideal.Quotient.mk _) (algebraMap A _ a) := by
+  unfold presheafValue_tateAlgebra_quotient_iso
+  exact presheafValueCanonicalQuotientEquiv_canonicalMap D hb hA_complete hnoeth hT_pb
+    (tateQuotientToPresheafHom_continuous_of_tate D hb) a
+
+/-- The packaged Example 6.38 iso, on the inverse direction, sends
+`mk(algebraMap a)` back to `D.canonicalMap a`. -/
+theorem presheafValue_tateAlgebra_quotient_iso_symm_algebraMap
+    [IsTateRing A] (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t) (a : A) :
+    (presheafValue_tateAlgebra_quotient_iso D hb hA_complete hnoeth hT_pb).symm
+        ((Ideal.Quotient.mk _) (algebraMap A _ a)) =
+      D.canonicalMap a := by
+  unfold presheafValue_tateAlgebra_quotient_iso
+  exact presheafValueCanonicalQuotientEquiv_symm_algebraMap D hb hA_complete hnoeth hT_pb
+    (tateQuotientToPresheafHom_continuous_of_tate D hb) a
+
+/-- The inverse of the packaged Example 6.38 iso is `tateQuotientToPresheafHom`. -/
+theorem presheafValue_tateAlgebra_quotient_iso_symm
+    [IsTateRing A] (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t) :
+    ((presheafValue_tateAlgebra_quotient_iso D hb hA_complete hnoeth hT_pb).symm :
+        (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) →+* presheafValue D) =
+      tateQuotientToPresheafHom D hb := by
+  unfold presheafValue_tateAlgebra_quotient_iso presheafValueCanonicalQuotientEquiv
+  rfl
+
 end CanonicalTopologyBridge
 
 end ValuationSpectrum
