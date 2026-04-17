@@ -1260,4 +1260,98 @@ compatibility), which is conceptually distinct from the Cor 8.32
 spectral content and currently lives in the Bourbaki CA III §2.8 chain
 (see `project_T001_completion_route` memory). -/
 
+/-! ### T-IDEAL-1: approximation for `coeRingHom`
+
+Topological approximation lemma. Given
+`1 ∈ Ideal.map D.coeRingHom q`, the unit `1` lies in the topological
+closure of the image of `q` under the completion map `D.coeRingHom`. This
+is the **density step** of the ideal-preservation argument: `q` is
+approximated arbitrarily well from inside `Localization.Away D.s` at the
+cost of passing through the completion map.
+
+Combined with closedness of `q` in `presheafValue D` (T-IDEAL-2), this
+would give `1 ∈ D.coeRingHom '' q` and hence a contradiction with `q ≠ ⊤`
+in the `coeRingHom_preserves_proper` chain. -/
+
+omit [PlusSubring A] [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **T-IDEAL-1 (approximation lemma for `coeRingHom`).** Given an ideal
+`q ⊆ Localization.Away D.s` whose extension to `presheafValue D` contains
+`1`, the element `1 : presheafValue D` lies in the **topological closure**
+of the image `D.coeRingHom '' q`.
+
+**Proof strategy.** The set `S := D.coeRingHom '' q` is a subgroup closed
+under `D.coeRingHom`-image-multiplication. We show `closure S` is an
+`presheafValue D`-submodule by promoting the multiplicative closure from
+`D.coeRingHom '' (Loc.Away D.s)` to all of `presheafValue D` via density
+(`UniformSpace.Completion.denseRange_coe`) and closedness of the
+multiplication-preimage. Once `closure S` is a submodule containing `S`,
+it contains `Ideal.span S = Ideal.map D.coeRingHom q`, hence `1`. -/
+theorem one_mem_closure_coeRingHom_image
+    (D : RationalLocData A) (q : Ideal (Localization.Away D.s))
+    (h : (1 : presheafValue D) ∈ Ideal.map D.coeRingHom q) :
+    (1 : presheafValue D) ∈
+      closure ((D.coeRingHom '' (q : Set (Localization.Away D.s))) :
+        Set (presheafValue D)) := by
+  -- Abbreviate the image set.
+  set S : Set (presheafValue D) := D.coeRingHom '' (q : Set _) with hS_def
+  -- Basic closure properties of `S` as an image of the subgroup `q`.
+  have hS_zero : (0 : presheafValue D) ∈ S :=
+    ⟨0, q.zero_mem, map_zero _⟩
+  have hS_add : ∀ {x y}, x ∈ S → y ∈ S → x + y ∈ S := by
+    rintro _ _ ⟨a, ha, rfl⟩ ⟨b, hb, rfl⟩
+    exact ⟨a + b, q.add_mem ha hb, map_add _ _ _⟩
+  -- For `a ∈ Loc.Away D.s` and `s ∈ S`, `coeRingHom a * s ∈ S` (ideal absorption).
+  have hS_mul_coe : ∀ (a : Localization.Away D.s), ∀ {s}, s ∈ S →
+      D.coeRingHom a * s ∈ S := by
+    rintro a _ ⟨b, hb, rfl⟩
+    exact ⟨a * b, q.mul_mem_left a hb, map_mul _ _ _⟩
+  -- Dense range of the completion map `D.coeRingHom`.
+  have hdense : DenseRange (D.coeRingHom : Localization.Away D.s → presheafValue D) := by
+    intro y
+    -- `D.coeRingHom` is definitionally `UniformSpace.Completion.coeRingHom` which has dense range.
+    have := @UniformSpace.Completion.denseRange_coe (Localization.Away D.s) D.uniformSpace y
+    exact this
+  -- Key step: for all `b ∈ presheafValue D` and all `s ∈ S`, `b * s ∈ closure S`.
+  have hmul_closure : ∀ (b : presheafValue D), ∀ s ∈ S, b * s ∈ closure S := by
+    intro b
+    refine hdense.induction_on (p := fun b => ∀ s ∈ S, b * s ∈ closure S) b ?_ ?_
+    · -- closedness of `{b | ∀ s ∈ S, b * s ∈ closure S}`.
+      rw [show {b | ∀ s ∈ S, b * s ∈ closure S} =
+        ⋂ s ∈ S, (fun b => b * s) ⁻¹' closure S from by ext b; simp]
+      refine isClosed_biInter fun s _ => ?_
+      exact isClosed_closure.preimage (continuous_id.mul continuous_const)
+    · intro a s hs
+      exact subset_closure (hS_mul_coe a hs)
+  -- `closure S` is closed under addition (since `S + S ⊆ S`).
+  have hcl_add : ∀ {x y}, x ∈ closure S → y ∈ closure S → x + y ∈ closure S := by
+    intro x y hx hy
+    have h_add_maps : Set.MapsTo (fun p : presheafValue D × presheafValue D => p.1 + p.2)
+        (S ×ˢ S) S := fun p hp => hS_add hp.1 hp.2
+    have hxy_prod : (x, y) ∈ closure (S ×ˢ S) := by
+      rw [closure_prod_eq]; exact ⟨hx, hy⟩
+    exact map_mem_closure (f := fun p : presheafValue D × presheafValue D => p.1 + p.2)
+      continuous_add hxy_prod h_add_maps
+  -- `closure S` is closed under left-multiplication by `presheafValue D`.
+  have hcl_smul : ∀ (b : presheafValue D), ∀ {x}, x ∈ closure S → b * x ∈ closure S := by
+    intro b x hx
+    have hbS_sub : (fun s => b * s) '' S ⊆ closure S := fun _ ⟨s, hs, hsb⟩ =>
+      hsb ▸ hmul_closure b s hs
+    have : b * x ∈ closure ((fun s => b * s) '' S) :=
+      map_mem_closure (continuous_const.mul continuous_id) hx (fun _ hs => ⟨_, hs, rfl⟩)
+    exact closure_minimal hbS_sub isClosed_closure this
+  -- Assemble `closure S` as an `Ideal (presheafValue D)`.
+  let J : Ideal (presheafValue D) :=
+    { carrier := closure S
+      zero_mem' := subset_closure hS_zero
+      add_mem' := hcl_add
+      smul_mem' := fun b _ hx => hcl_smul b hx }
+  have hS_sub_J : S ⊆ (J : Set (presheafValue D)) := subset_closure
+  -- `Ideal.map D.coeRingHom q ≤ J` since `q = Ideal.span q` and `J` contains `S`.
+  have hmap_le_J : Ideal.map D.coeRingHom q ≤ J := by
+    rw [show (q : Ideal (Localization.Away D.s)) = Ideal.span (q : Set _) from
+      (Ideal.span_eq q).symm, Ideal.map_span]
+    exact Ideal.span_le.mpr hS_sub_J
+  -- Conclude `1 ∈ closure S` by applying `hmap_le_J` to `h`.
+  exact hmap_le_J h
+
 end ValuationSpectrum
