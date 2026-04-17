@@ -593,4 +593,237 @@ theorem productRestriction_injective_tate_of_spanTop
     (hSpa_surj_from_spanTop P C hspan_top)
     x hx
 
+/-! ### Reduction of `hspan_top` from `presheafValue C.base` to `Localization.Away C.base.s`
+
+The `hspan_top` hypothesis is stated at the **completion** level
+`presheafValue C.base`. We reduce it to the simpler **localization** level
+`Localization.Away C.base.s` via the completion map `C.base.coeRingHom`.
+
+The pivot is the identity `C.base.canonicalMap = C.base.coeRingHom ∘ algebraMap
+A (Localization.Away C.base.s)` from the definition of `canonicalMap`; hence if
+`{algebraMap A _ D.s : D ∈ C.covers}` spans `⊤` in the localization, its image
+under `coeRingHom` is `{C.base.canonicalMap D.s}` spanning `⊤` in the
+completion (ring-hom transfer via `Ideal.map_span` + `Ideal.map_top`). -/
+
+/-- **Ring-hom transfer of span-top**: if a finite family spans ⊤ in `R`,
+its image under any ring homomorphism spans ⊤ in `R'`. This is a direct
+consequence of `Ideal.map_span` + `Ideal.map_top`. -/
+theorem span_top_image_of_span_top_of_ringHom
+    {R R' : Type*} [CommSemiring R] [CommSemiring R']
+    (f : R →+* R') (s : Set R) (hs : Ideal.span s = ⊤) :
+    Ideal.span (f '' s) = ⊤ := by
+  rw [← Ideal.map_span, hs, Ideal.map_top]
+
+omit [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **Span-top in the completion from span-top in the localization.** Given the
+span-top condition `Ideal.span {algebraMap A (Localization.Away C.base.s) D.s
+| D ∈ C.covers} = ⊤` at the localization level, the image-span
+`Ideal.span {C.base.canonicalMap D.s | D ∈ C.covers} = ⊤` holds at the
+completion level.
+
+This is the **ring-hom transfer** of span-top along the canonical completion
+map `C.base.coeRingHom : Localization.Away C.base.s →+* presheafValue C.base`.
+The factorization `canonicalMap = coeRingHom ∘ algebraMap` is definitional, so
+the image of `{algebraMap D.s}` under `coeRingHom` is precisely
+`{canonicalMap D.s}`. Stated with `Set.image (· ∘ D.s)` over the set
+`C.covers.toSet` to avoid `DecidableEq` constraints from `Finset.image`. -/
+theorem spanTop_presheafValue_of_localization
+    (C : RationalCovering A)
+    (hspan_loc : Ideal.span ((fun D : RationalLocData A =>
+        algebraMap A (Localization.Away C.base.s) D.s) '' (C.covers : Set _)) = ⊤) :
+    Ideal.span ((fun D : RationalLocData A =>
+      C.base.canonicalMap D.s) '' (C.covers : Set _)) = ⊤ := by
+  -- The image of {algebraMap D.s} under C.base.coeRingHom is {canonicalMap D.s},
+  -- since canonicalMap = coeRingHom.comp (algebraMap A _) by definition.
+  have himg :
+      (C.base.coeRingHom '' ((fun D : RationalLocData A =>
+          algebraMap A (Localization.Away C.base.s) D.s) '' (C.covers : Set _))) =
+      ((fun D : RationalLocData A =>
+          C.base.canonicalMap D.s) '' (C.covers : Set _)) := by
+    rw [Set.image_image]
+    rfl
+  -- Apply `Ideal.map_span` + `Ideal.map_top`: image of span-top under ring hom is span-top.
+  rw [← himg, ← Ideal.map_span, hspan_loc, Ideal.map_top]
+
+omit [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **`hspan_top` form from span-top identity**: if `Ideal.span
+{C.base.canonicalMap D.s | D ∈ C.covers} = ⊤` holds in `presheafValue C.base`,
+then for every prime `p ⊆ presheafValue C.base` there is some `D ∈ C.covers`
+with `C.base.canonicalMap D.1.s ∉ p`.
+
+This is the `Ideal.eq_top_iff_one` ⇔ "no prime contains all generators"
+equivalence, specialized to the subtype formulation of `hspan_top`. -/
+theorem hspan_top_of_spanTop_presheafValue
+    (C : RationalCovering A)
+    (hspan : Ideal.span ((fun D : RationalLocData A =>
+      C.base.canonicalMap D.s) '' (C.covers : Set _)) = ⊤) :
+    ∀ (p : Ideal (presheafValue C.base)), p.IsPrime →
+      ∃ D : { D // D ∈ C.covers }, C.base.canonicalMap D.1.s ∉ p := by
+  intro p hp
+  by_contra hall
+  push_neg at hall
+  -- Every `canonicalMap D.s` lies in p (for D ∈ C.covers).
+  have hsub : ((fun D : RationalLocData A =>
+      C.base.canonicalMap D.s) '' (C.covers : Set _)) ⊆ (p : Set _) := by
+    rintro y ⟨D, hD, rfl⟩
+    exact hall ⟨D, hD⟩
+  have hspan_le : Ideal.span ((fun D : RationalLocData A =>
+      C.base.canonicalMap D.s) '' (C.covers : Set _)) ≤ p :=
+    Ideal.span_le.mpr hsub
+  rw [hspan] at hspan_le
+  exact hp.ne_top (top_le_iff.mp hspan_le)
+
+/-! ### End-to-end `hspan_top` from A-level Spa-point hypothesis
+
+This combinator reduces the completion-level `hspan_top` to a purely A-level
+input: the **Spa-point-in-rational-open hypothesis** `hSpa_points`, which says
+for every prime `p ⊆ A` with `C.base.s ∉ p`, there is `v ∈ rationalOpen
+C.base.T C.base.s` with `p ≤ v.supp`.
+
+This hypothesis is the Wedhorn Prop 7.41 / Lemma 7.45 content for the Tate
+case. The OPEN prime subcase is automatically available via
+`exists_spa_point_in_rationalOpen_of_isOpen_prime` (`StructureSheaf.lean:602`);
+the NON-OPEN subcase requires the specialization-theoretic upgrade
+(`exists_mem_spa_supp_ge_of_nonOpen_prime` + Wedhorn Prop 7.41) to move the
+non-open-prime Spa point into the rational open.
+
+Concretely: the proof argues at the localization `Localization.Away C.base.s`
+level (where the non-open-prime difficulty is equivalent), reducing to the
+A-level via `comap` of the localization map. For every prime `q` of the
+localization, `q.comap(algebraMap A _)` is a prime `p ⊆ A` with
+`C.base.s ∉ p`; by `hSpa_points`, a Spa point `v ∈ rationalOpen C.base.T
+C.base.s` with `p ≤ v.supp` exists, and by `C.hcover v` some cover piece `D`
+has `v ∈ rationalOpen D.T D.s`, giving `v(D.s) ≠ 0` hence `D.s ∉ p` hence
+`algebraMap D.s ∉ q`. -/
+
+omit [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **A-level span-top in `Localization.Away C.base.s` from `hSpa_points`.**
+Given the Spa-point-in-rational-open hypothesis (for primes of `A` avoiding
+`C.base.s`), the images of `D.s` in `Localization.Away C.base.s` span the
+unit ideal. This is the Tate generalization of the discrete-case argument at
+`TateAcyclicity.lean:475`, with `hSpa_points` replacing the trivial-valuation
+continuity (which held automatically in the discrete case). -/
+theorem spanTop_localization_of_hSpa_points
+    (C : RationalCovering A)
+    (hSpa_points : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp) :
+    Ideal.span ((fun D : RationalLocData A =>
+        algebraMap A (Localization.Away C.base.s) D.s) '' (C.covers : Set _)) = ⊤ := by
+  by_contra hne
+  obtain ⟨q, hq_max, hq_le⟩ := Ideal.exists_le_maximal _ hne
+  haveI : q.IsPrime := Ideal.IsMaximal.isPrime hq_max
+  -- Pull back to a prime p of A with C.base.s ∉ p and D.s ∈ p for all D ∈ C.covers.
+  set p := q.comap (algebraMap A (Localization.Away C.base.s)) with hp_def
+  have hp_prime : p.IsPrime := Ideal.IsPrime.comap _
+  have hDs_in : ∀ D ∈ C.covers, D.s ∈ p := by
+    intro D hD
+    exact hq_le (Ideal.subset_span ⟨D, hD, rfl⟩)
+  have hbs_notin : C.base.s ∉ p := by
+    intro hmem
+    have : algebraMap A (Localization.Away C.base.s) C.base.s ∈ q := hmem
+    exact Ideal.IsMaximal.ne_top hq_max (Ideal.eq_top_of_isUnit_mem q this
+      (IsLocalization.map_units (Localization.Away C.base.s)
+        (⟨C.base.s, 1, pow_one _⟩ : Submonoid.powers C.base.s)))
+  -- Produce a Spa point witnessing the contradiction.
+  obtain ⟨v, hv_rat, hv_supp_ge⟩ := hSpa_points p hp_prime hbs_notin
+  obtain ⟨D, hD, hv_D⟩ := C.hcover v hv_rat
+  -- v(D.s) ≠ 0 since v ∈ rationalOpen D.T D.s.
+  have hDs_notin_supp : D.s ∉ v.supp := fun hDs ↦
+    hv_D.2.2 ((v.mem_supp_iff D.s).mp hDs)
+  -- But D.s ∈ p ⊆ v.supp, contradicting the previous line.
+  exact hDs_notin_supp (hv_supp_ge (hDs_in D hD))
+
+omit [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **`hspan_top` at the completion level from `hSpa_points`.** Chains the
+localization-level span-top (via `spanTop_localization_of_hSpa_points`) with
+the ring-hom transfer (via `spanTop_presheafValue_of_localization`) and the
+"no-prime-contains" conversion (via `hspan_top_of_spanTop_presheafValue`),
+yielding the `hspan_top` hypothesis signature exactly. -/
+theorem hspan_top_of_hSpa_points
+    (C : RationalCovering A)
+    (hSpa_points : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp) :
+    ∀ (p : Ideal (presheafValue C.base)), p.IsPrime →
+      ∃ D : { D // D ∈ C.covers }, C.base.canonicalMap D.1.s ∉ p := by
+  have hloc := spanTop_localization_of_hSpa_points C hSpa_points
+  have hpv := spanTop_presheafValue_of_localization C hloc
+  exact hspan_top_of_spanTop_presheafValue C hpv
+
+/-- **`productRestriction_injective_tate` via Cor 8.32 + A-level Spa-points.**
+Given the A-level Spa-point-in-rational-open hypothesis (for primes of `A`
+avoiding `C.base.s`), the full `productRestriction_injective_tate`
+conclusion follows via the Cor 8.32 faithful-flatness route.
+
+This is the **end-to-end** packaging: the Spa-points hypothesis is the sole
+residual A-level input, which is the well-known Wedhorn Prop 7.41 / Lemma
+7.45 content. No extra `hspan_top` hypothesis at the completion level is
+required. -/
+theorem productRestriction_injective_tate_of_hSpa_points
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) (hne : C.covers.Nonempty)
+    (hSpa_points : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp)
+    (x : presheafValue C.base)
+    (hx : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+       restrictionMap C.base D (C.hsubset D hD) x = 0) :
+    x = 0 :=
+  productRestriction_injective_tate_of_spanTop P C hne
+    (hspan_top_of_hSpa_points C hSpa_points) x hx
+
+/-! ### Open-prime discharge of `hSpa_points`
+
+The `hSpa_points` hypothesis for OPEN primes is **unconditionally** discharged
+by `exists_spa_point_in_rationalOpen_of_isOpen_prime`. This reduces the
+residual obligation to the **non-open-prime** subcase, which is the
+Wedhorn Prop 7.41 specialization content still pending.
+
+Callers can dispatch on openness of `p` and only need to supply a proof for
+the non-open-prime case. -/
+
+omit [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **Open-prime discharge**: for an open prime `p` with `C.base.s ∉ p`, the
+Spa-point-in-rational-open hypothesis is automatic via
+`exists_spa_point_in_rationalOpen_of_isOpen_prime`. This fully closes
+the open sub-case of `hSpa_points`. -/
+theorem hSpa_points_open_prime
+    (C : RationalCovering A)
+    (p : Ideal A) [p.IsPrime]
+    (hp_open : IsOpen (p : Set A))
+    (hs_notin : C.base.s ∉ p) :
+    ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp :=
+  ValuationSpectrum.exists_spa_point_in_rationalOpen_of_isOpen_prime
+    (A := A) C.base.T C.base.s p hp_open hs_notin
+
+omit [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **Open-primes-only `hSpa_points`**: if every prime `p ⊆ A` avoiding
+`C.base.s` happens to be open, then `hSpa_points` is unconditional. This
+is the automatic scenario — e.g., for discrete `A`, and more generally when
+the Jacobson radical of the pseudouniformizer controls all `s`-avoiding
+primes. -/
+theorem hSpa_points_of_all_open
+    (C : RationalCovering A)
+    (h_all_open : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      IsOpen (p : Set A)) :
+    ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp := fun p hp hs =>
+  hSpa_points_open_prime C p (h_all_open p hp hs) hs
+
+/-- **End-to-end `productRestriction_injective_tate` under all-primes-open.**
+If every prime of `A` avoiding `C.base.s` is open — which is automatic in
+the discrete case and in other specific settings — the full Cor 8.32 route
+closes unconditionally. -/
+theorem productRestriction_injective_tate_of_all_primes_open
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) (hne : C.covers.Nonempty)
+    (h_all_open : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      IsOpen (p : Set A))
+    (x : presheafValue C.base)
+    (hx : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+       restrictionMap C.base D (C.hsubset D hD) x = 0) :
+    x = 0 :=
+  productRestriction_injective_tate_of_hSpa_points P C hne
+    (hSpa_points_of_all_open C h_all_open) x hx
+
 end ValuationSpectrum
