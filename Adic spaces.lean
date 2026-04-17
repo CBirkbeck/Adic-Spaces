@@ -60,6 +60,7 @@ import «Adic spaces».ValuationCoarsening
 import «Adic spaces».ValuationContinuity
 import «Adic spaces».ValuationPrimeConvex
 import «Adic spaces».ValuationSpectrum
+import «Adic spaces».ValuationSpectrumCompact
 import «Adic spaces».ValuativeRel.Comap
 import «Adic spaces».WittVectorPrimitive
 -- Nonarchimedean Scottish Book (Kedlaya et al., 2015–2022)
