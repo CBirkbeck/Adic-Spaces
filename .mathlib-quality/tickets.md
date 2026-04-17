@@ -157,14 +157,33 @@ Six Tate-core sorries remain (verified via
 - **Unlocks**: T-INJ-1 Route B (via `coeRingHom_preserves_proper`).
 - **Estimated lines**: ~500-800 including Bourbaki port.
 
-### [T-NULL-7] Wedhorn Prop 7.14 (adic Nullstellensatz) — NOT STARTED
+### [T-NULL-7] Wedhorn Prop 7.14 (adic Nullstellensatz) — BLOCKED (shares Bourbaki with T-IDEAL-2)
 
-- **Status**: blocked / not started.
+- **Status**: blocked.
 - **Task**: close `hZavyalov` hypothesis in `refines_by_standard_cover`
   (`StandardCover.lean:640`) unconditionally. Reference: Wedhorn Prop 7.14
   / Lemma 7.44.
+- **Blocker analysis (2026-04-17)**: the dependency chain reduces T-NULL-7
+  to the **same upstream obstruction as T-IDEAL-2**:
+  1. `hZavyalov` needs a finite `S ⊆ A` satisfying the three refinement
+     clauses.
+  2. Zavyalov's construction produces `S := T.image (σ⁻¹ · ·)` via Cor 7.32
+     applied to a no-common-zero family `T ⊆ A` on `Spa A A⁺`.
+  3. For `T` to exist with `Ideal.span T = ⊤` **in `A`**, we need the
+     `spanTop_iff_noCommonZero_spa` equivalence (StandardCover.lean:310),
+     which requires `[IsAdicComplete P.I P.A₀]` on **`A` itself** —
+     not satisfied in general (only `presheafValue` is complete).
+  4. The A-level span-top is available from a completion-level span-top
+     only via `coeRingHom_preserves_proper` transfer — **= T-IDEAL-2**
+     (Bourbaki CA III §2.8).
+  5. Separately, Cor 7.32 (`exists_dominating_unit`) requires
+     `MulArchimedean` on all `Spv A` value groups, an additional
+     signature incompatibility with `tateAcyclicity`.
+- **Consequence**: T-NULL-7 and T-IDEAL-2 are not independent; both are
+  downstream of the Bourbaki port. No parallel leverage between them.
 - **Unlocks**: clean Part 2 closing via T-ACYC-PART2.
-- **Estimated lines**: ~300+.
+- **Estimated lines**: ~300+ **on top of** Bourbaki + MulArchimedean
+  removal.
 
 ### [T-BAIRE] `restrictionMap_isLocalization` / sigma surj — NOT STARTED
 
@@ -217,20 +236,41 @@ Bridge chain status (all 0 sorry apart from the 2 noted above):
 - **T-WEDHORN-1** (`productRestriction_injective_tate` packaging),
   **T-NULL-0/0a/1** (Spa/Spv compactness + Cor 7.32): DONE.
 
+## Parallelism analysis
+
+**Genuinely independent (can run concurrently)**:
+- **T-OV-1** (bivariate Example 6.38) — purely algebraic-topological.
+- **T-INJ-1 Route A** (algebraic NZD) — Krull intersection on source
+  quotient `A⟨X'⟩/(1 − D₀.s · X')`.
+
+**Shared blocker cluster** (all reduce to Bourbaki CA III §2.8):
+- **T-IDEAL-2** — closedness of `Ideal.map algebraMap p` in `Loc.Away s`.
+- **T-NULL-7** — see blocker analysis under its ticket (`hZavyalov`
+  needs span-top in `A`, which lifts to presheafValue via
+  `coeRingHom_preserves_proper` = T-IDEAL-2).
+- **T-INJ-1 Route B** — via `productRestriction_injective_tate_via_coeRingHom_preserves_proper`.
+
+So there are **two independent fronts**, not three:
+- Algebraic front: T-OV-1, T-OVERLAP-COMPAT, T-INJ-1 Route A.
+- Bourbaki front: T-IDEAL-2 ⇒ { T-NULL-7, T-INJ-1 Route B }.
+
+T-ACYC-PART2 needs *both* fronts to close (T-OVERLAP-COMPAT for Route B
+gluing + T-NULL-7 for the standard-cover reduction + T-INJ-1 for the
+refinement-transfer injectivity).
+
 ## Suggested execution order
 
 1. **T-OV-1** (single-focus session, composition route): ~300 lines if
-   infrastructure threading goes smoothly. Biggest single lever remaining.
+   infrastructure threading goes smoothly. Biggest single lever remaining
+   on the algebraic front.
 2. **T-OVERLAP-COMPAT** immediately after T-OV-1 (~80 lines).
-3. **T-NULL-7** (Wedhorn Prop 7.14 port, independent): ~300+ lines,
-   parallelisable with (1).
-4. After T-OV-1 + T-OVERLAP-COMPAT + T-NULL-7 all land:
-   **T-ACYC-PART2** (~50 lines) + **T-INJ-1** (via Route B +
-   hypothetical T-IDEAL-2, OR via Route A NZD work) close out
-   `tateAcyclicity`.
-5. **T-IDEAL-2** is the longest shot — it requires an upstream Mathlib
-   contribution (Bourbaki CA III §2.8) and is currently the blocker for
-   T-INJ-1 Route B. If Route A doesn't yield, this is essential.
+3. **T-INJ-1 Route A** (algebraic NZD on source): in parallel with (1);
+   ~100-200 lines.
+4. **Bourbaki CA III §2.8 port** (upstream Mathlib work): unblocks
+   T-IDEAL-2 → T-NULL-7 → (alternative T-INJ-1 Route B). Multi-session
+   project; see memory `project_T001_completion_route.md`.
+5. After all of the above:
+   **T-ACYC-PART2** (~50 lines) assembly.
 
 ## Notes and reminders
 
