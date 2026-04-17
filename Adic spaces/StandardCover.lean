@@ -3,6 +3,8 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».LaurentRefinement
+import «Adic spaces».StructureSheaf
+import «Adic spaces».Cor732
 
 /-!
 # Standard-Cover Reduction (R1 of 2026-04-14 acyclicity plan)
@@ -45,7 +47,7 @@ so the R1 workaround is incremental rather than a clean cut-off. See
 `docs/plans/2026-04-14-acyclicity-completion.md` §"2026-04-15 reviewer-guided
 plan revision" (Q1 directive) for details.
 
-## Status (2026-04-16, Option B)
+## Status (2026-04-16, Option B with Cor 7.32 + Lemma 7.45 infrastructure)
 
 * **`RationalCovering.refines_by_standard_cover`** — proved sorry-free,
   modulo the explicit `hZavyalov` hypothesis. The subsingleton branch
@@ -58,23 +60,46 @@ plan revision" (Q1 directive) for details.
 * **`exists_nullstellensatz_refinement_of_rationalOpen_nonempty`** —
   closed by threading the Zavyalov §2.3 existence as an explicit
   hypothesis `hZavyalov`, making the residual obligation visible at
-  the interface. Cor 7.32 (just proved in `Cor732.lean`) provides the
-  *dominating-unit* ingredient but not the *candidate-family* (ratios
-  `tⱼ/Dⱼ.s`) construction — see the theorem docstring for the detailed
-  obstruction analysis.
+  the interface. Cor 7.32 (`Cor732.lean`) provides the *dominating-unit*
+  ingredient but not the *candidate-family* (ratios `tⱼ/Dⱼ.s`)
+  construction — see the theorem docstring for the detailed obstruction
+  analysis.
 
 * **`tateAcyclicity_via_standard_cover`** — delegates to
   `tateAcyclicity` in `LaurentRefinement.lean` (the two statements are
   identical bit-for-bit). No independent sorry; the upstream sorry in
   `tateAcyclicity` Part 2 (partition-of-unity gluing) is carried over.
 
+**Infrastructure added 2026-04-16** (Cor 7.32 + Lemma 7.45 interface):
+
+* **`exists_dominating_unit_from_covering`** — wraps Cor 7.32
+  (`ValuationSpectrum.exists_dominating_unit`) for use with a
+  `RationalCovering`: given a finite test family `T ⊆ A` with no common
+  zero on `Spa(A, A⁺)`, produces a unit `σ ∈ Aˣ` strictly dominating
+  some `t ∈ T` at every Spa point.
+
+* **`exists_spa_point_with_supp_ge_of_prime`** — dispatches on openness
+  of a prime `p`:
+  * Open case: `exists_spa_point_in_rationalOpen_of_isOpen_prime`
+    (trivial valuation at `p`).
+  * Non-open case: `exists_mem_spa_supp_ge_of_nonOpen_prime` (Lemma
+    7.45). Produces `v ∈ Spa(A, A⁺)` with `p ≤ supp(v)` unconditionally.
+
+* **`spanTop_iff_noCommonZero_spa`** — the conversion lemma: for a
+  `PairOfDefinition P` with `[IsAdicComplete P.I P.A₀]`, a finite
+  family `T ⊂ A` generates the unit ideal iff `T` has no common zero
+  on `Spa(A, A⁺)`. This is the equivalence that connects the
+  ideal-theoretic `refines_span_top` clause with the Cor 7.32 hypothesis.
+
 **Remaining blockers** (both tracked as R1 of the 2026-04-14 plan):
 
 1. `hZavyalov` discharge — Wedhorn Prop 7.14 + Lemma 7.44 applied to
-   the cover condition. The OPEN-prime sub-case is partially accessible
-   via `exists_spa_point_in_rationalOpen_of_isOpen_prime`, but the full
-   non-open case depends on Lemma 7.45 infrastructure combined with the
-   newly-available Cor 7.32 dominating-unit extraction.
+   the cover condition. The three-clause decomposition is now accessible
+   via the infrastructure above; what remains is the *candidate family
+   construction* (Zavyalov §2.3) — choosing the specific `fᵢ ∈ A` so
+   that the plus-piece at `fᵢ` lands inside a specific cover piece `Dⱼ`.
+   This is the non-trivially-hard Nullstellensatz step (Wedhorn
+   Prop 7.14).
 2. `tateAcyclicity` Part 2 gluing — partition-of-unity in the presheaf,
    tracked separately in the 2026-04-14 plan and the
    `project_T001_completion_route` memory.
@@ -153,6 +178,152 @@ def refines_contain [DecidableEq A] (C : RationalCovering A) (S : Finset A) : Pr
 /-- **Clause 3 (unit ideal)**: The elements of `S` generate the unit ideal in `A`. -/
 def refines_span_top (S : Finset A) : Prop :=
   Ideal.span (S : Set A) = ⊤
+
+/-! ### Internal helpers from Cor 7.32 and Lemma 7.45
+
+The Zavyalov §2.3 construction (Wedhorn Lemma 8.34(ii)) decomposes into three
+ingredients:
+
+1. A **Spa-points witness**: for every prime `p` of `A` with `C.base.s ∉ p`,
+   produce `v ∈ rationalOpen C.base.T C.base.s` with `p ≤ v.supp`.
+   This dispatches on openness of `p`:
+   * **Open `p`**: use `exists_spa_point_in_rationalOpen_of_isOpen_prime`.
+   * **Non-open `p`**: use `exists_mem_spa_supp_ge_of_nonOpen_prime` (Lemma
+     7.45). This gives a Spa point with support containing `p`, but not
+     automatically in the rational open — the containment in
+     `rationalOpen C.base.T C.base.s` requires an additional
+     specialization-theoretic argument (Wedhorn Prop 7.41 / Remark 7.58).
+
+2. A **dominating-unit extraction** (Cor 7.32): given a finite test family
+   `T ⊆ A` with no common zero on `Spa A A⁺`, produce a unit `s ∈ Aˣ` with
+   `v(s) < v(t)` (strictly) for some `t ∈ T`, at every `v ∈ Spa`.
+
+3. A **candidate-family construction** (Zavyalov §2.3): given (1) and (2)
+   plus the adic Nullstellensatz (Wedhorn Prop 7.14), produce the refining
+   family `S`.
+
+The `hZavyalov` hypothesis below packages ingredient (3). Ingredients
+(1)–(2) are available via `exists_spa_point_in_rationalOpen_of_isOpen_prime`,
+`exists_mem_spa_supp_ge_of_nonOpen_prime`, and `exists_dominating_unit`.
+
+The present file demonstrates the invocation pattern via
+`exists_dominating_unit_from_covering` below, which extracts a dominating
+unit from a rational covering under the typeclass assumptions of Cor 7.32.
+This is a stepping stone toward a full internal discharge of `hZavyalov`;
+the remaining obstruction is constructing a Spa-level no-common-zero family
+from the cover condition (requires the adic Nullstellensatz Prop 7.14). -/
+
+/-- **Cor 7.32 invocation for rational coverings.** Given a rational
+covering `C` and a finite test family `T ⊆ A` with no common zero on
+`Spa(A, A⁺)`, Cor 7.32 produces a unit `σ ∈ Aˣ` with `v(σ) < v(t)` for
+some `t ∈ T`, at every Spa point `v`.
+
+This demonstrates the interface between `RationalCovering` data and
+`ValuationSpectrum.exists_dominating_unit` (Cor 7.32). It is a
+building block for the Zavyalov §2.3 candidate-family construction
+referenced by `hZavyalov`; the remaining obstruction is producing the
+no-common-zero hypothesis `hT` from the cover condition (requires the
+adic Nullstellensatz Prop 7.14 and the Spa-points witness from
+`Lemma 7.45` — see the `exists_nullstellensatz_refinement_of_rationalOpen_nonempty`
+docstring below for the full analysis). -/
+theorem exists_dominating_unit_from_covering
+    (P : PairOfDefinition A) (hA₀_le : P.A₀ ≤ A⁺)
+    (π : P.A₀) (hI : P.I = Ideal.span {π})
+    (hπ_tn : IsTopologicallyNilpotent (P.A₀.subtype π))
+    (hπ_unit : IsUnit (P.A₀.subtype π))
+    (hArch : ∀ v : Spv A,
+      letI : ValuativeRel A := v.toValuativeRel
+      MulArchimedean (ValuativeRel.ValueGroupWithZero A))
+    (_C : RationalCovering A) (T : Finset A)
+    (hT : ∀ v ∈ Spa A A⁺, ∃ t ∈ T, ¬ v.vle t 0) :
+    ∃ σ : Aˣ, ∀ v ∈ Spa A A⁺, ∃ t ∈ T,
+      v.vle (σ : A) t ∧ ¬ v.vle t (σ : A) :=
+  exists_dominating_unit P hA₀_le π hI hπ_tn hπ_unit hArch T hT
+
+/-- **Spa-point producer for arbitrary primes** (combining open + non-open
+cases). For a prime `p` of `A` with `s ∉ p`:
+
+* If `p` is open, the trivial-valuation-at-`p` construction
+  (`exists_spa_point_in_rationalOpen_of_isOpen_prime`) gives
+  `v ∈ rationalOpen T s` with `p ≤ v.supp`.
+* If `p` is non-open, `Lemma 7.45`
+  (`exists_mem_spa_supp_ge_of_nonOpen_prime`) gives a Spa point with
+  `p ≤ v.supp`.
+
+The open-prime output lands *in the rational open*; the non-open output
+only lands *in Spa*. Matching these into a single "Spa-point witness in
+the rational open" is the residual obligation that distinguishes the
+discrete-case proof in `TateAcyclicity.lean:475` from the general Tate
+case: the Tate case needs an additional specialization-theoretic step
+(Wedhorn Prop 7.41) to move the non-open-prime Spa point into the
+rational open. -/
+theorem exists_spa_point_with_supp_ge_of_prime
+    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀)
+    {p : Ideal A} [p.IsPrime] :
+    ∃ v ∈ Spa A A⁺, p ≤ v.supp := by
+  by_cases hp_open : IsOpen (p : Set A)
+  · -- Open prime: use the open-prime Spa-point construction.
+    -- Take `T = ∅`, `s = 1`; the rational open is then `Spa A A⁺`.
+    have h1_notin : (1 : A) ∉ p := by
+      intro h
+      exact (Ideal.IsPrime.ne_top inferInstance) (Ideal.eq_top_iff_one p |>.mpr h)
+    have key := ValuationSpectrum.exists_spa_point_in_rationalOpen_of_isOpen_prime
+      (A := A) (∅ : Finset A) (1 : A) p hp_open h1_notin
+    obtain ⟨v, hv_rat, hv_supp⟩ := key
+    exact ⟨v, hv_rat.1, hv_supp⟩
+  · -- Non-open prime: use Lemma 7.45.
+    obtain ⟨v, hv_spa, hv_supp, _⟩ :=
+      P.exists_mem_spa_supp_ge_of_nonOpen_prime hp_open hAplus_le_A₀
+    exact ⟨v, hv_spa, hv_supp⟩
+
+/-- **Span-top ⟺ no-common-zero on Spa.** Given `exists_spa_point_with_supp_ge_of_prime`
+(which lifts every prime `p` of `A` to a Spa point `v` with `p ≤ supp(v)`), the
+two conditions are equivalent:
+
+* `Ideal.span (T : Set A) = ⊤` in `A`.
+* For every `v ∈ Spa(A, A⁺)`, some `t ∈ T` satisfies `v(t) ≠ 0`
+  (equivalently, `¬ v.vle t 0`).
+
+This equivalence is what converts between the ideal-theoretic formulation
+(required for `refines_span_top`) and the Spa-cover-condition formulation
+(required for `exists_dominating_unit` Cor 7.32). -/
+theorem spanTop_iff_noCommonZero_spa
+    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀)
+    (T : Finset A) :
+    Ideal.span (T : Set A) = ⊤ ↔
+      ∀ v ∈ Spa A A⁺, ∃ t ∈ T, ¬ v.vle t 0 := by
+  constructor
+  · intro h_span v hv
+    -- If `span T = ⊤`, then `1 ∈ span T`, so writing `1 = ∑ a_i t_i` we cannot
+    -- have `v(t) = 0` for all `t ∈ T`, else `v(1) = 0`. Since v is a valuation
+    -- with `v(1) ≠ 0`, some `v(t) ≠ 0`.
+    by_contra h_all
+    push_neg at h_all
+    -- `h_all : ∀ t ∈ T, v.vle t 0`. So `T ⊆ v.supp`.
+    have hT_le_supp : (T : Set A) ⊆ (v.supp : Set A) := by
+      intro t ht
+      exact (v.mem_supp_iff t).mpr (h_all t ht)
+    -- Then `span T ⊆ v.supp`.
+    have hspan_le : Ideal.span (T : Set A) ≤ v.supp :=
+      Ideal.span_le.mpr hT_le_supp
+    -- But `span T = ⊤` gives `⊤ ≤ v.supp`, so `v.supp = ⊤` — contradicting `v.supp.IsPrime`.
+    rw [h_span] at hspan_le
+    exact (instIsPrimeSupp v).ne_top (top_le_iff.mp hspan_le)
+  · intro h_spa
+    -- If `span T ≠ ⊤`, there's a prime `p` containing `span T`, hence `T ⊆ p`.
+    -- By `exists_spa_point_with_supp_ge_of_prime`, there's `v ∈ Spa` with `p ≤ supp(v)`.
+    -- Then `T ⊆ p ⊆ supp(v)`, so `v.vle t 0` for all `t ∈ T`, contradicting `h_spa`.
+    by_contra h_ne
+    obtain ⟨q, hq_max, hq_le⟩ := Ideal.exists_le_maximal _ h_ne
+    haveI : q.IsPrime := hq_max.isPrime
+    obtain ⟨v, hv_spa, hv_supp⟩ := exists_spa_point_with_supp_ge_of_prime P hAplus_le_A₀
+      (p := q)
+    obtain ⟨t, htT, htne⟩ := h_spa v hv_spa
+    apply htne
+    refine (v.mem_supp_iff t).mp ?_
+    exact hv_supp (hq_le (Ideal.subset_span htT))
 
 /-! ### Standard-cover reduction -/
 
