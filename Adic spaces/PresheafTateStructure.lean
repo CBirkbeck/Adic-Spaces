@@ -1280,18 +1280,30 @@ is **injective**. Concretely, `Φ` sends:
 This is a **localization-of-Tate-quotient** map. By the universal
 property, it factors through `(A⟨X⟩/(1-D.s X))[1/D₀.s]`, and the
 injectivity of `Φ` is equivalent to: `mk(D₀.s)` is a non-zero-divisor
-in `A⟨X⟩/(1-D.s X)`. **This** is the irreducible algebraic gap.
+in `A⟨X⟩/(1-D.s X)`.
 
-For noetherian (Tate) `A`, `A⟨X⟩/(1-D.s X)` is itself noetherian
-(Wedhorn Cor 5.50 + quotient), and `mk(D₀.s)` being a non-zero-divisor
-follows from primary decomposition + the rational-containment hypothesis
-`R(D) ⊆ R(D₀)` ensuring `D₀.s` is "supported" away from any prime that
-dies under `mk(1 - D.s X)`. This is the algebraic content of Wedhorn
-Cor 8.32 specialized to single restrictions.
+**Status update (2026-04-16)**: The non-zero-divisor step is now
+**closed conditionally** via `mk_D₀s_isUnit` (below), which proves
+the STRONGER statement that `mk(D₀.s)` is a **unit** in
+`A⟨X⟩/(1 - D.s·X)` under the four iso-hypotheses. The proof transports
+the known unit `D.canonicalMap D₀.s ∈ presheafValue D` (from
+`isUnit_canonicalMap_s`) across the Example 6.38 ring iso. Being a
+unit immediately gives non-zero-divisor (`mk_D₀s_mem_nonZeroDivisors`).
 
-The remaining gap is therefore PURELY ALGEBRAIC: a non-zero-divisor
-statement in finitely-generated noetherian Tate algebras. No further
-topological or completion hypotheses are needed.
+**However**, having `mk(D₀.s)` be a unit does NOT by itself close
+`restrictionMapHom_injective` unconditionally. The obstacle: the
+asymmetric containment `R(D) ⊆ R(D₀)` means `D.s` is NOT automatically
+a unit/NZD in `presheafValue D₀` (the source), so the conjugated map
+`Φ` need not factor through its source's localization. Closing the
+injectivity requires either (a) a symmetric NZD argument on `D.s` in
+the source quotient, or (b) a separate faithful-flatness argument for
+the restriction. The `mk(D₀.s)` unit fact is NECESSARY but not
+sufficient.
+
+The remaining gap is therefore STILL ALGEBRAIC, and the ABOVE
+`mk_D₀s_isUnit` discharges half of the original Wedhorn Cor 8.32
+content. No further topological or completion hypotheses are needed
+beyond the four iso-hypotheses.
 
 **Downstream impact**: this sorry blocks `tateAcyclicity` Part 1
 (`LaurentRefinement.lean:3695`) and `restrictionMap_isLocalization`
@@ -1354,6 +1366,71 @@ theorem restrictionMapHom_injective_via_iso
   intro x y hxy
   apply h_composite_inj
   simp only [RingHom.comp_apply, hxy]
+
+/-! ### Algebraic unit lemma: `mk(D₀.s)` in `A⟨X⟩/(1 - D.s·X)`
+
+Under rational containment `R(D.T/D.s) ⊆ R(D₀.T/D₀.s)`, the canonical image
+`Ideal.Quotient.mk (oneSubfXIdeal D.s) (algebraMap A (TateAlgebra A) D₀.s)`
+is a **unit** (hence a non-zero-divisor) in the target Tate quotient.
+
+The proof transports the known unit `D.canonicalMap D₀.s ∈ presheafValue D`
+(witnessed by `isUnit_canonicalMap_s`) across the Example 6.38 ring iso
+`presheafValue_tateAlgebra_quotient_iso` (TopologyComparison.lean). The
+intertwining identity `presheafValue_tateAlgebra_quotient_iso_canonicalMap`
+shows that `D.canonicalMap D₀.s` lands exactly on `mk(algebraMap A _ D₀.s)`.
+
+This lemma is the **algebraic content** needed by the non-zero-divisor step
+of `restrictionMapHom_injective`. Because we obtain the STRONGER `IsUnit`
+conclusion rather than just `IsNonZeroDivisor`, the algebraic blocker noted
+in the doc-block of `restrictionMapHom_injective` is closed at the level of
+the target: `mk(D₀.s)` in `T_D := A⟨X⟩/(1 - D.s·X)` is invertible, which
+(as explained below) permits the composite injectivity reduction. -/
+
+omit [HasLocLiftPowerBounded A] in
+/-- Under rational containment, the element `mk(D₀.s)` in the target Tate
+quotient `A⟨X⟩/(1 - D.s·X)` is a unit. Proof via the packaged Example 6.38
+iso: `mk(D₀.s) = e_D (D.canonicalMap D₀.s)` where `D.canonicalMap D₀.s` is
+a unit by `isUnit_canonicalMap_s`. -/
+theorem mk_D₀s_isUnit
+    [IsTateRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s)
+    (hb_D : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb_D : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t) :
+    IsUnit ((Ideal.Quotient.mk (TateAlgebra.oneSubfXIdeal D.s))
+      (algebraMap A ↥(TateAlgebra A) D₀.s)) := by
+  -- Step 1: In `presheafValue D`, `D.canonicalMap D₀.s` is a unit.
+  have hU_presheaf : IsUnit (D.canonicalMap D₀.s) :=
+    isUnit_canonicalMap_s D₀ D h
+  -- Step 2: The packaged iso carries units to units (RingEquiv preserves IsUnit).
+  have hU_iso : IsUnit
+      ((presheafValue_tateAlgebra_quotient_iso D hb_D hA_complete hnoeth hT_pb_D)
+        (D.canonicalMap D₀.s)) :=
+    hU_presheaf.map (presheafValue_tateAlgebra_quotient_iso D hb_D hA_complete hnoeth hT_pb_D)
+  -- Step 3: The intertwining identity rewrites the image.
+  rwa [presheafValue_tateAlgebra_quotient_iso_canonicalMap D hb_D hA_complete hnoeth
+    hT_pb_D D₀.s] at hU_iso
+
+omit [HasLocLiftPowerBounded A] in
+/-- A unit is a non-zero-divisor. Immediate specialization of `mk_D₀s_isUnit`
+for use in primary-decomposition style kernel arguments. -/
+theorem mk_D₀s_mem_nonZeroDivisors
+    [IsTateRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s)
+    (hb_D : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb_D : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t) :
+    (Ideal.Quotient.mk (TateAlgebra.oneSubfXIdeal D.s))
+        (algebraMap A ↥(TateAlgebra A) D₀.s) ∈
+      nonZeroDivisors (↥(TateAlgebra A) ⧸ TateAlgebra.oneSubfXIdeal D.s) :=
+  IsUnit.mem_nonZeroDivisors
+    (mk_D₀s_isUnit D₀ D h hb_D hA_complete hnoeth hT_pb_D)
 
 -- REMOVED 2026-04-14: restrictionMapHom_isInducing. Depends on
 -- restrictionMapAlg_isUniformInducing (FALSE, removed above). No external
