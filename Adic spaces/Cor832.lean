@@ -1099,25 +1099,149 @@ theorem productRestriction_injective_tate_via_lifted_ideal_proper
     (hSpa_points_via_lifted_ideal_proper P C hAplus_le_A₀ hcanonicalMap_cont
       h_lifted_ne_top_for_nonOpen) x hx
 
+/-! ### Reduction: `liftedIdeal ≠ ⊤` via `coeRingHom` properness
+
+The residual `liftedIdeal_ne_top` factors algebraically through the
+`coeRingHom`-properness question. Using `canonicalMap = coeRingHom ∘
+algebraMap` and `Ideal.map_map`, `Ideal.map canonicalMap p` is literally
+`Ideal.map coeRingHom (Ideal.map algebraMap p)`.
+
+The A-level factor `Ideal.map (algebraMap A (Localization.Away D.s)) p` is
+proper (≠ ⊤) **unconditionally** whenever `D.s ∉ p`, by
+`IsLocalization.map_algebraMap_ne_top_iff_disjoint` (prime ideals are
+radical, so disjointness from `powers D.s` reduces to `D.s ∉ p`).
+
+This reduces the residual to the **completion-level** question: does the
+completion map `coeRingHom : Localization.Away D.s → presheafValue D`
+preserve properness of ideals?
+
+The lemmas below package this reduction explicitly and expose the cleaner
+residual hypothesis `coeRingHom_preserves_proper`. -/
+
+omit [IsHuberRing A] [HasLocLiftPowerBounded A] [PlusSubring A] in
+/-- **Factorization of the lifted ideal.** `Ideal.map canonicalMap p` equals
+`Ideal.map coeRingHom (Ideal.map algebraMap p)`, by `canonicalMap =
+coeRingHom ∘ algebraMap` and `Ideal.map_map`. -/
+theorem liftedIdeal_eq_map_coeRingHom_algebraMap
+    (D : RationalLocData A) (p : Ideal A) :
+    (Ideal.map D.canonicalMap p : Ideal (presheafValue D)) =
+      Ideal.map D.coeRingHom (Ideal.map (algebraMap A (Localization.Away D.s)) p) := by
+  rw [show D.canonicalMap = D.coeRingHom.comp (algebraMap A (Localization.Away D.s))
+    from rfl, ← Ideal.map_map]
+
+omit [IsHuberRing A] [HasLocLiftPowerBounded A] [PlusSubring A] in
+/-- **A-level proper extension** (unconditional): for a prime `p` of `A` with
+`D.s ∉ p`, the extension to `Localization.Away D.s` is proper.
+
+Combines `Ideal.IsPrime.isRadical` (prime ⇒ radical) with
+`Ideal.disjoint_powers_iff_notMem` (`D.s ∉ p ↔ disjoint `powers D.s` from `p`)
+and `IsLocalization.map_algebraMap_ne_top_iff_disjoint` (the localization
+ne-top criterion). -/
+theorem map_algebraMap_ne_top_of_notMem
+    (D : RationalLocData A) {p : Ideal A} (hp : p.IsPrime) (hs : D.s ∉ p) :
+    (Ideal.map (algebraMap A (Localization.Away D.s)) p : Ideal (Localization.Away D.s))
+      ≠ ⊤ := by
+  -- `D.s ∉ p` converts to `Disjoint (powers D.s) p` (prime ideals are radical).
+  have hradical : p.IsRadical := hp.isRadical
+  have hdisj : Disjoint (Submonoid.powers D.s : Set A) (p : Set A) :=
+    (Ideal.disjoint_powers_iff_notMem D.s hradical).mpr hs
+  -- Localization ne-top iff disjoint.
+  exact (IsLocalization.map_algebraMap_ne_top_iff_disjoint
+    (Submonoid.powers D.s) (Localization.Away D.s) p).mpr hdisj
+
+omit [IsHuberRing A] [HasLocLiftPowerBounded A] [PlusSubring A] in
+/-- **Reduction of `lifted_ideal_proper` to the completion-level question.**
+Given the hypothesis that the completion map preserves properness of proper
+ideals of the localization, `lifted_ideal_proper` follows for every prime `p`
+of `A` with `D.s ∉ p`.
+
+The hypothesis `hcoeRingHom_preserves_proper` captures the **sole remaining
+analytic content**: whether the completion of a Noetherian Tate localization
+preserves properness of ideal extensions. It is the cleaner restatement of
+the residual in `coeRingHom`-only terms, orthogonal to the `A`-level input. -/
+theorem liftedIdeal_ne_top_of_coeRingHom_preserves_proper
+    (D : RationalLocData A)
+    (hcoeRingHom_preserves_proper : ∀ (q : Ideal (Localization.Away D.s)),
+      q ≠ ⊤ → Ideal.map D.coeRingHom q ≠ (⊤ : Ideal (presheafValue D)))
+    {p : Ideal A} (hp : p.IsPrime) (hs : D.s ∉ p) :
+    (Ideal.map D.canonicalMap p : Ideal (presheafValue D)) ≠ ⊤ := by
+  rw [liftedIdeal_eq_map_coeRingHom_algebraMap D p]
+  exact hcoeRingHom_preserves_proper _ (map_algebraMap_ne_top_of_notMem D hp hs)
+
+omit [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **End-to-end `hSpa_points` discharge via the `coeRingHom`-level
+residual.** Composes `liftedIdeal_ne_top_of_coeRingHom_preserves_proper`
+with `hSpa_points_via_lifted_ideal_proper`, exposing the **cleaner residual
+hypothesis** `hcoeRingHom_preserves_proper` (properness preservation by the
+completion map, independent of the `A`-level prime structure). -/
+theorem hSpa_points_via_coeRingHom_preserves_proper
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ C.base.P.A₀)
+    (hcanonicalMap_cont : Continuous C.base.canonicalMap)
+    (hcoeRingHom_preserves_proper :
+      ∀ (q : Ideal (Localization.Away C.base.s)),
+        q ≠ ⊤ → Ideal.map C.base.coeRingHom q ≠
+          (⊤ : Ideal (presheafValue C.base))) :
+    ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp :=
+  hSpa_points_via_lifted_ideal_proper P C hAplus_le_A₀ hcanonicalMap_cont
+    (fun _ hp hs _ => liftedIdeal_ne_top_of_coeRingHom_preserves_proper
+      C.base hcoeRingHom_preserves_proper hp hs)
+
+/-- **Final end-to-end `productRestriction_injective_tate` via the
+`coeRingHom`-level residual.** This is the **cleanest packaging** of the
+Cor 8.32 route: the single remaining hypothesis
+`hcoeRingHom_preserves_proper` is the `coeRingHom`-level analytic claim
+(completion of a Noetherian Tate localization preserves properness).
+
+Once this residual is discharged, `productRestriction_injective_tate` is
+fully closed via the Cor 8.32 route. -/
+theorem productRestriction_injective_tate_via_coeRingHom_preserves_proper
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) (hne : C.covers.Nonempty)
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ C.base.P.A₀)
+    (hcanonicalMap_cont : Continuous C.base.canonicalMap)
+    (hcoeRingHom_preserves_proper :
+      ∀ (q : Ideal (Localization.Away C.base.s)),
+        q ≠ ⊤ → Ideal.map C.base.coeRingHom q ≠
+          (⊤ : Ideal (presheafValue C.base)))
+    (x : presheafValue C.base)
+    (hx : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+       restrictionMap C.base D (C.hsubset D hD) x = 0) :
+    x = 0 :=
+  productRestriction_injective_tate_of_hSpa_points P C hne
+    (hSpa_points_via_coeRingHom_preserves_proper P C hAplus_le_A₀
+      hcanonicalMap_cont hcoeRingHom_preserves_proper) x hx
+
 /-! ### Summary of remaining residual
 
 After this file's additions, the chain to fully discharge `hSpa_points`
 unconditionally (under `[IsTateRing A] [IsNoetherianRing A] [T2Space A]
-[NonarchimedeanRing A]`) reduces to a SINGLE algebraic claim:
+[NonarchimedeanRing A]`) reduces to a SINGLE algebraic claim, now restated
+in its cleanest form:
 
-> For every prime `p` of `A` with `C.base.s ∉ p` and `¬IsOpen (p : Set A)`,
-> the lifted ideal `Ideal.map C.base.canonicalMap p` is proper (≠ ⊤) in
-> `presheafValue C.base`.
+> **`coeRingHom_preserves_proper`**: for every proper ideal
+> `q : Ideal (Localization.Away C.base.s)`, the image
+> `Ideal.map C.base.coeRingHom q` is proper in `presheafValue C.base`.
 
 This is the "non-degenerate fiber" question for the analytic completion of
 the Noetherian Tate localization `Localization.Away C.base.s`. It is a
 specific instance of the question: when does completion of a Noetherian
 topological ring preserve properness of finitely generated ideal extensions?
 
-The question reduces (via the factorization `canonicalMap = coeRingHom ∘
-algebraMap`) to: for the proper prime `q = Ideal.map algebraMap p` of
-`Localization.Away C.base.s`, is `Ideal.map coeRingHom q ≠ ⊤` in the
-completion `presheafValue C.base`?
+The reduction `liftedIdeal_ne_top_of_coeRingHom_preserves_proper` shows
+that this cleaner residual **implies** the old residual
+`liftedIdeal_ne_top` for all non-open primes (and indeed for every prime
+`p` with `C.base.s ∉ p`, open or not — the openness hypothesis was a
+side-effect of the reduction through Spa points, not of the algebraic
+content). The A-level part of the factorization
+(`Ideal.map algebraMap p ≠ ⊤`) is **unconditional** and packaged in
+`map_algebraMap_ne_top_of_notMem`.
 
 For Noetherian Tate localizations equipped with the localization topology,
 the standard answer is YES, because:
