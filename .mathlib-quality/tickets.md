@@ -1,48 +1,65 @@
-# Ticket Board — Close tateAcyclicity Part 1 via Cor 8.32 reroute
+# Ticket Board — Close Completion Ideal Properness Claim
 
 ## Summary
-- Total: 3 tickets (renumbered 2026-04-16).
-- Open: 3 | In Progress: 0 | Done: 0.
+- Total: 4 tickets.
+- Open: 4 | In Progress: 0 | Done: 0.
 - See `plan.md` for strategy.
 
 ## Tickets
 
-### [T-WEDHORN-1] productRestriction_injective_tate — Cor 8.32 discharge
+### [T-IDEAL-1] Approximation lemma for coeRingHom
 - **Status**: open
-- **File**: `Adic spaces/Cor832.lean`
-- **Depends on**: Cor 8.32 abstract (done), Example 6.38 iso (done), Lemma 7.45 (done)
-- **Parallel**: no (blocks T-WEDHORN-2)
-- **Description**: Prove `productRestriction_injective_tate`: under `[IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]` + `(P : PairOfDefinition A) [IsNoetherianRing P.A₀]` + `(C : RationalCovering A) hne`, the product restriction is injective. Discharges the two conditional hypotheses of existing `tateAcyclicity_zero_kernel_of_flat_and_lifting`:
-  - `flat_over_base`: each `presheafValue C.base → presheafValue D` is flat. Use Example 6.38 iso + Lemma 8.31 flatness of A⟨X⟩ quotients + appropriate flat-composition.
-  - `hSpa_surj`: Spec surjection from product to base. Use `exists_spa_point_with_supp_ge_of_prime` (StandardCover.lean, already proved) + valuation-restriction to cover piece.
-- **Est. lines**: 150-250.
-- **Risk**: hb_D (invS power-bounded) and other Example 6.38 iso hypotheses may not discharge cleanly. If not, may need to relax via partial approach or find a direct route.
+- **File**: new section in `Adic spaces/Cor832.lean` or new file.
+- **Depends on**: none (uses existing completion infrastructure).
+- **Parallel**: yes.
+- **Description**: Prove that if `1 ∈ Ideal.map D.coeRingHom q`, then there's a sequence in `q` converging to `1` in `Loc.Away D.s`. Uses density of `coeRingHom`'s image + uniform-inducing property.
+- **Est. lines**: 60-100.
+- **Proof approach**: 
+  - From `1 = Σᵢ aᵢ · coeRingHom(bᵢ)` with `bᵢ ∈ q`.
+  - For each aᵢ, use density to approximate `aᵢ,ₙ = coeRingHom(αᵢ,ₙ) + εᵢ,ₙ` with `εᵢ,ₙ → 0`.
+  - Build `xₙ := Σᵢ αᵢ,ₙ · bᵢ ∈ q`.
+  - Show `coeRingHom(xₙ) → 1` in `presheafValue`, hence `xₙ → 1` in `Loc.Away` by uniform-inducing.
 
-### [T-WEDHORN-2] Reroute tateAcyclicity Part 1
+### [T-IDEAL-2] `Ideal.map algebraMap p` closed in `Loc.Away s`
 - **Status**: open
-- **File**: `Adic spaces/LaurentRefinement.lean:3688-3696`
-- **Depends on**: T-WEDHORN-1
-- **Parallel**: no
-- **Description**: Replace the `obtain ⟨D, hD⟩ := hne; exact restrictionMapHom_injective C.base D ...` call at line 3695 with a direct call to `productRestriction_injective_tate` (from T-WEDHORN-1). The hypothesis `hx : ∀ D ∈ C.covers, restriction x = 0` is exactly what the new theorem takes.
-- **Est. lines**: 10-20 (mostly deletion + rename).
+- **File**: new section or new file.
+- **Depends on**: none.
+- **Parallel**: yes.
+- **Description**: For `p` prime of A with `s ∉ p`, show `Ideal.map (algebraMap A (Loc.Away s)) p` is closed in `Loc.Away s` with its Huber topology.
+- **Est. lines**: 80-120.
+- **Proof approach**:
+  - Show quotient `Loc.Away s / Ideal.map algebraMap p ≃ (A/p)_s`.
+  - Since `A/p` is a domain and `s̄ ≠ 0`, `(A/p)_s` is a domain.
+  - For a ring with T₂ quotient topology, ideals are closed (standard).
+  - Alternatively: use Wedhorn Prop 6.17 on A (complete, noetherian), get p closed. Then argue algebraMap is "close" to closed-map preserving.
 
-### [T-WEDHORN-3] (optional) Direct close of restrictionMapHom_injective
+### [T-IDEAL-3] Combined: `Ideal.map coeRingHom q ≠ ⊤` for q from prime of A
 - **Status**: open
-- **File**: `Adic spaces/PresheafTateStructure.lean:1238`
-- **Depends on**: T-WEDHORN-1 (or independent via different route)
-- **Parallel**: yes (independent of T-WEDHORN-2)
-- **Description**: Close single-map injectivity directly. Possible routes:
-  - (a) Via product injectivity + singleton cover extension.
-  - (b) Via explicit NZD argument: prove `D.s` is a non-zero-divisor in `presheafValue D₀`.
-  - (c) Via flat localization + Wedhorn Prop 8.15 structure.
-- **Est. lines**: 100-200.
-- **Note**: NOT required for tateAcyclicity Part 1 closure (T-WEDHORN-2 bypasses it). This is cleanup.
+- **File**: `Cor832.lean`.
+- **Depends on**: T-IDEAL-1, T-IDEAL-2.
+- **Parallel**: no.
+- **Description**: Combine T-IDEAL-1 (approximation) with T-IDEAL-2 (closedness) to show: for `p : Ideal A` prime with `D.s ∉ p`, `Ideal.map D.coeRingHom (Ideal.map algebraMap p) ≠ ⊤`.
+- **Est. lines**: 50-80.
+- **Result**: Discharges the residual hypothesis `coeRingHom preserves proper ideals` for ideals of the specific form `Ideal.map algebraMap p`.
 
-## Execution Plan
+### [T-IDEAL-FINAL] Plug into Cor 8.32 chain and close tateAcyclicity Part 1
+- **Status**: open
+- **File**: `Cor832.lean`, `LaurentRefinement.lean`.
+- **Depends on**: T-IDEAL-3.
+- **Parallel**: no.
+- **Description**: Use T-IDEAL-3 to produce unconditional `productRestriction_injective_tate_clean`. Then replace `tateAcyclicity` Part 1's use of `restrictionMapHom_injective` with the new unconditional closer.
+- **Est. lines**: 30-50.
+- **Result**: `tateAcyclicity` Part 1 UNCONDITIONALLY CLOSED. Major milestone.
 
-**This session**:
-1. **T-WEDHORN-1** (CRITICAL) — 150-250 lines. Dispatch focused agent.
-2. **T-WEDHORN-2** (QUICK) — after T-WEDHORN-1 lands, 10-20 lines.
-3. Verify tateAcyclicity Part 1 sorry-free (would still show `sorryAx` via remaining Part 2).
+## Execution
 
-**T-WEDHORN-3** deferred to future session.
+Phase A (parallel): T-IDEAL-1 + T-IDEAL-2 (independent).
+Phase B (serial): T-IDEAL-3 → T-IDEAL-FINAL.
+
+Total: ~220-350 lines. Single session feasible if T-IDEAL-2 works cleanly.
+
+## Risk
+
+**T-IDEAL-2 is the crux**. If closedness of `Ideal.map algebraMap p` in `Loc.Away s` requires deeper analytical infrastructure (e.g., Huber topology Hausdorffness specifically), we may need to:
+- Use Wedhorn Prop 6.17 on A (already proved) + a closedness-preservation result.
+- Or: use a completely different approach via `Ideal.map coeRingHom` on `presheafValue` using completeness there.
