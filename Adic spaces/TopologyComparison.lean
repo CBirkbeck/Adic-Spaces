@@ -2300,6 +2300,180 @@ theorem tateQuotientToPresheafHom_isHomeomorph (D : RationalLocData A)
     bijective := hbij
   }
 
+/-! ### Phase 2.7: Unconditional canonical-topology continuity (Wedhorn Prop 6.18)
+
+The T-topology theorem `tateQuotientToPresheafHom_continuous` requires two
+hypotheses (`hadic`, `hJ_eval`) that are typically **false** for the T-topology:
+the T-topology on `A⟨X⟩` is the *product* topology on scaled coefficients, and it
+is not J-adic for any ideal J in general.
+
+This section provides an **unconditional** continuity theorem for the *canonical*
+Tate topology `instTopologicalSpaceTateAlgebra`, which has
+`tateAlgNhd P n = image of (pairIdeal P)^n` as nhds basis of 0. The canonical
+topology is J-adic on the open subring `pairSubring P = A₀⟨X⟩`, so Wedhorn 6.18
+applies there. Continuity of `tateEvalPresheafHom` follows from:
+
+1. **Boundedness of `{invS^k}`** (from `hb` power-bounded).
+2. **Continuity of `canonicalMap`** at 0 (well-known).
+3. **Nonarchimedean topology on `presheafValue D`** (open subgroups as basis).
+4. **Coefficient characterization of `tateAlgNhd P n`** (all coefficients in `I^n`).
+
+No `IsNoetherianRing`-on-A⟨X⟩ required; the input is just `IsTateRing A`. -/
+
+open Filter Topology in
+omit [PlusSubring A] [IsHuberRing A] [T2Space A] in
+/-- **Canonical-topology continuity of `tateEvalPresheafHom` (Wedhorn Prop 6.18).**
+
+Under the natural strongly-noetherian Tate setup, the evaluation ring hom
+`tateEvalPresheafHom D hb : A⟨X⟩ →+* presheafValue D` (sending `∑ aₙ Xⁿ` to
+`∑ canonicalMap(aₙ) · invSⁿ`) is continuous for the canonical Tate topology
+`instTopologicalSpaceTateAlgebra` on `A⟨X⟩` (no hypothesis-discharge
+required).
+
+**Proof.** As a ring hom of topological additive groups, continuity reduces to
+continuity at `0`. The canonical topology has basis `{tateAlgNhd P n}` at `0`,
+where `P = (IsTateRing.principalPair A).toPairOfDefinition`. For any target
+neighbourhood `V ∈ nhds 0` we use the following steps:
+
+* `V` contains an open additive subgroup `W ⊆ V` (nonarchimedean).
+* `{(invS D)^k}` is bounded, so there exists `U ∈ nhds 0` with `U · {invS^k} ⊆ W`
+  for all `k`.
+* `canonicalMap : A → presheafValue D` is continuous, so some neighbourhood
+  `image(P.I^N)` of `0` in `A` maps into `U`.
+* For `h ∈ tateAlgNhd P N`, every coefficient `coeff_k h` lies in `image(P.I^N)`,
+  hence `canonicalMap(coeff_k h) · invS^k ∈ W` for every `k`.
+* Each partial sum lies in `W`, so the `tsum` lies in `closure W = W`. -/
+theorem tateEvalPresheafHom_continuous_canonical
+    [IsTateRing A] (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D)) :
+    @Continuous _ _ instTopologicalSpaceTateAlgebra
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateEvalPresheafHom D hb) := by
+  letI τ : TopologicalSpace ↥(TateAlgebra A) := instTopologicalSpaceTateAlgebra
+  -- Reduce to continuity at 0 via `continuous_of_continuousAt_zero` on the
+  -- additive group hom version.
+  apply continuous_of_continuousAt_zero (tateEvalPresheafHom D hb).toAddMonoidHom
+  rw [ContinuousAt, map_zero]
+  -- nhds basis at 0: tateAlgBasis'.hasBasis_nhds_zero.
+  rw [Filter.tendsto_def]
+  intro V hV
+  -- Step 1: extract open additive subgroup W ⊆ V (presheafValue D is nonarch).
+  obtain ⟨W, hWV⟩ := NonarchimedeanRing.is_nonarchimedean V hV
+  have hW_open : IsOpen (W : Set (presheafValue D)) := W.isOpen
+  have hW_closed : IsClosed (W : Set (presheafValue D)) :=
+    AddSubgroup.isClosed_of_isOpen W.toAddSubgroup hW_open
+  have hW_nhds : (W : Set (presheafValue D)) ∈ @nhds (presheafValue D) _ 0 :=
+    hW_open.mem_nhds W.toAddSubgroup.zero_mem
+  -- Step 2: invS is power-bounded, so {invS^k} is bounded. Get U ∈ nhds 0 with
+  -- U * {invS^k} ⊆ W.
+  obtain ⟨U, hU, hUW⟩ := hb (W : Set (presheafValue D)) hW_nhds
+  -- Step 3: Continuity of canonicalMap at 0: preimage of U is nhd of 0 in A.
+  have hcmU : D.canonicalMap ⁻¹' U ∈ @nhds A _ 0 :=
+    (canonicalMap_continuous D).continuousAt.preimage_mem_nhds
+      (by rw [map_zero]; exact hU)
+  -- Step 4: Extract N with image(P.I^N) ⊆ canonicalMap⁻¹(U).
+  let P := (IsTateRing.principalPair A).toPairOfDefinition
+  obtain ⟨N, -, hN⟩ := P.hasBasis_nhds_zero.mem_iff.mp hcmU
+  -- Target: tateAlgNhd P N ⊆ (tateEvalPresheafHom D hb) ⁻¹' V.
+  -- Since W ⊆ V, it suffices to show tateAlgNhd P N ⊆ (eval) ⁻¹' W.
+  -- Use the canonical basis to describe nhds of 0 in A⟨X⟩.
+  have hbasis : ((@nhds _ τ (0 : ↥(TateAlgebra A))).HasBasis
+      (fun _ : ℕ => True) fun n =>
+        (TateAlgebra.tateAlgNhd P n : Set ↥(TateAlgebra A))) :=
+    TateAlgebra.tateAlgBasis'.hasBasis_nhds_zero
+  apply hbasis.mem_iff.mpr
+  refine ⟨N, trivial, fun h hh => ?_⟩
+  -- Goal: (tateEvalPresheafHom D hb).toAddMonoidHom h ∈ V.
+  change tateEvalPresheafHom D hb h ∈ V
+  refine hWV ?_
+  -- Show each evalTerm is in W.
+  have hterm_mem : ∀ k : ℕ,
+      TateAlgebraWedhorn.evalTerm D.canonicalMap (invS D) h k ∈
+        (W : Set (presheafValue D)) := by
+    intro k
+    -- evalTerm = canonicalMap(coeff_k h) * (invS D)^k.
+    change D.canonicalMap (TateAlgebra.coeff k h) * (invS D) ^ k ∈
+      (W : Set (presheafValue D))
+    -- Apply hUW: (Set.range invS^·) * U ⊆ W. Order: range on left, U on right.
+    -- Rewrite via commutativity.
+    rw [mul_comm]
+    apply hUW
+    refine ⟨(invS D) ^ k, ⟨k, rfl⟩, D.canonicalMap (TateAlgebra.coeff k h),
+      ?_, rfl⟩
+    · -- canonicalMap(coeff_k h) ∈ U.
+      apply hN
+      -- Need coeff_k h ∈ image P.I^N.
+      have := TateAlgebra.tateAlgNhd_coeff_mem P N hh (TateAlgebra.toIndex k)
+      obtain ⟨b, hbI, hbeq⟩ := this
+      -- `coeff_k h = MvPowerSeries.coeff (toIndex k) h.val`, which equals (b : A).
+      rw [show (TateAlgebra.coeff k h : A) = (b : A) from hbeq.symm]
+      exact ⟨b, hbI, rfl⟩
+  -- Now, tsum is in W because:
+  --   (a) each partial sum is in W (W is a subgroup),
+  --   (b) partial sums tend to tsum (since summable),
+  --   (c) W is closed (open subgroup).
+  have hsum : Summable
+      (TateAlgebraWedhorn.evalTerm D.canonicalMap (invS D) h) :=
+    TateAlgebraWedhorn.evalTerm_summable D.canonicalMap
+      (canonicalMap_continuous D) (invS D) hb h
+  -- tsum is the limit of partial sums over finite sets (for unconditional summation).
+  have hhs : HasSum (TateAlgebraWedhorn.evalTerm D.canonicalMap (invS D) h)
+      (tateEvalPresheafHom D hb h) := by
+    have hsum_val := hsum.hasSum
+    change HasSum _ (∑' n, TateAlgebraWedhorn.evalTerm D.canonicalMap (invS D) h n)
+    exact hsum_val
+  -- Apply IsClosed.mem_of_tendsto with the HasSum and eventually-in-W.
+  refine hW_closed.mem_of_tendsto hhs.tendsto_sum_nat ?_
+  -- Eventually: partial sums are in W (they are, in fact, always in W by subgroup).
+  refine Filter.Eventually.of_forall fun n => ?_
+  exact W.toAddSubgroup.sum_mem (fun k _ => hterm_mem k)
+
+omit [PlusSubring A] [IsHuberRing A] [T2Space A] in
+/-- **Canonical-topology continuity of `tateQuotientToPresheafHom`
+(Wedhorn Prop 6.18 + Example 6.38).**
+
+Descends from `tateEvalPresheafHom_continuous_canonical` via the ring-quotient
+map `mk : A⟨X⟩ →+* A⟨X⟩/(1-sX)`, which is an open quotient map (topological
+ring quotient). The canonical quotient topology on the target is exactly the
+coinduced topology via `mk`, so `IsQuotientMap.continuous_iff` transports
+continuity. -/
+theorem tateQuotientToPresheafHom_continuous_canonical
+    [IsTateRing A] (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D)) :
+    @Continuous _ _ (quotientOneSubfXIdealTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb) := by
+  letI τ : TopologicalSpace ↥(TateAlgebra A) := instTopologicalSpaceTateAlgebra
+  letI τQ : TopologicalSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology D.s
+  haveI hTR : IsTopologicalRing ↥(TateAlgebra A) := instIsTopologicalRingTateAlgebra
+  have hmk_qm : Topology.IsQuotientMap
+      (Ideal.Quotient.mk (oneSubfXIdeal D.s) :
+        ↥(TateAlgebra A) → ↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    (@QuotientRing.isOpenQuotientMap_mk ↥(TateAlgebra A) τ
+      (inferInstanceAs (CommRing ↥(TateAlgebra A))) (oneSubfXIdeal D.s) hTR).isQuotientMap
+  -- Use continuous_iff: suffices continuity of the composite with the quotient map.
+  refine hmk_qm.continuous_iff.mpr ?_
+  have hcomp : tateQuotientToPresheafHom D hb ∘
+      Ideal.Quotient.mk (oneSubfXIdeal D.s) = tateEvalPresheafHom D hb := by
+    ext g; simp [tateQuotientToPresheafHom, Ideal.Quotient.lift_mk]
+  rw [hcomp]
+  exact tateEvalPresheafHom_continuous_canonical D hb
+
+omit [PlusSubring A] [IsHuberRing A] [T2Space A] in
+/-- **Packaged version: `tateQuotientToPresheafHom_continuous_of_tate`.**
+
+This is the continuity theorem in the exact form required by callers in
+`LaurentRefinement.lean` (e.g. `hcont_eval_B` hypotheses), now proved
+unconditionally under the natural strongly-noetherian Tate setup. -/
+theorem tateQuotientToPresheafHom_continuous_of_tate
+    [IsTateRing A] (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D)) :
+    @Continuous _ _ (quotientOneSubfXIdealTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb) :=
+  tateQuotientToPresheafHom_continuous_canonical D hb
+
 end CanonicalTopologyBridge
 
 end ValuationSpectrum
