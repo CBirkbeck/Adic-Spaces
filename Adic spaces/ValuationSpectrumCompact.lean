@@ -566,24 +566,470 @@ lemma continuous_boolToProp_pi :
     exact continuous_of_discreteTopology
   exact h2.comp h1
 
-/-! **Remaining obligation.** To upgrade the scaffolding above into a full proof of
-`CompactSpace (Spv A)`, one shows:
+/-! ### Closedness of `range ιSpv_bool` in the discrete Bool product
 
-* `hclosed : IsClosed (Set.range ιSpv_bool)` in `(A × A → Bool)` by intersecting the
-  closed cylinder sets that encode the `IsValuationChar` axioms. Each axiom is
-  universally quantified over finitely many coordinates, so each instance is clopen
-  (preimage of a single Bool value under a continuous coordinate projection), and
-  the arbitrary intersection of clopens is closed.
-* `IsCompact (Set.range ιSpv_bool)` follows from `hclosed.isCompact`.
-* `IsCompact (Set.range ιSpv) = IsCompact (boolToProp ∘ · '' range ιSpv_bool)`
-  follows from continuity of the coordinate-wise `boolToProp` map
-  (`continuous_boolToProp_pi`) and the factorisation
-  `ιSpv_eq_boolToProp_comp_ιSpv_bool`.
-* `CompactSpace (Spv A)` follows from `ιSpv_isEmbedding.isCompact_iff` applied to
-  `Set.univ`, together with `IsCompact (Set.range ιSpv)`.
+We now carry out the closed-cylinder argument: each `IsValuationChar` axiom,
+evaluated at `fun p => r p = true` for `r : A × A → Bool`, is an intersection of
+clopen cylinder sets in `(A × A → Bool)` (with the discrete product topology).
+The arbitrary intersection of clopens is closed, so `range ιSpv_bool` is closed.
 
-The concrete closed-cylinder statements for each axiom (e.g. `∀ f s, r (f,s) = true ∨
-r (s,f) = true ∨ (r (f,f) = false ∧ r (s,s) = false)` for `vle_total` after unfolding
-`vleOf`) are left to future work. -/
+Combined with the ambient `CompactSpace (A × A → Bool)` and the factorisation
+`ιSpv = (boolToProp ∘ ·) ∘ ιSpv_bool` plus continuity of the coordinate-wise
+`boolToProp` map, this gives `IsCompact (range ιSpv)`, which via
+`ιSpv_isEmbedding.isCompact_iff Set.univ` yields `CompactSpace (Spv A)`. -/
+
+/-- The **Bool-valued recovered preorder** on `A` associated to `r : A × A → Bool`.
+This is the pointwise Bool image of `vleOf (fun p ↦ r p = true)`; see
+`vleOfBool_iff_vleOf_decide` below. -/
+def vleOfBool (r : A × A → Bool) (f s : A) : Prop :=
+  r (f, s) = true ∨ (r (s, s) = false ∧ r (f, f) = false)
+
+omit [CommRing A] in
+lemma vleOfBool_iff_vleOf_decide (r : A × A → Bool) (f s : A) :
+    vleOfBool r f s ↔ vleOf (fun p => r p = true) f s := by
+  simp only [vleOfBool, vleOf, Bool.not_eq_true]
+
+/-- A `r : A × A → Bool` is a **Bool valuation characteristic** iff the Prop-valued
+function `fun p => r p = true` is a valuation characteristic in the sense of
+`IsValuationChar`. -/
+def IsValuationCharBool (r : A × A → Bool) : Prop :=
+  IsValuationChar (fun p => r p = true)
+
+omit [CommRing A] in
+/-- Coordinate-at-a-point evaluation is continuous on `A × A → Bool`. -/
+lemma continuous_coord_bool (p : A × A) :
+    Continuous (fun r : A × A → Bool => r p) := continuous_apply p
+
+omit [CommRing A] in
+/-- Every singleton in the discrete `Bool` is open; hence `{r | r p = b}` is
+open in the discrete product. -/
+lemma isOpen_coord_eq (p : A × A) (b : Bool) :
+    IsOpen {r : A × A → Bool | r p = b} :=
+  (continuous_coord_bool p).isOpen_preimage {b} (isOpen_discrete {b})
+
+omit [CommRing A] in
+/-- The set `{r | r p = b}` is **closed** in the discrete product. -/
+lemma isClosed_coord_eq (p : A × A) (b : Bool) :
+    IsClosed {r : A × A → Bool | r p = b} :=
+  (isClosed_discrete {b}).preimage (continuous_coord_bool p)
+
+omit [CommRing A] in
+/-- The set `{r | r (f,s) = true}` is closed (and open) in the discrete product. -/
+lemma isClosed_coord_true (p : A × A) :
+    IsClosed {r : A × A → Bool | r p = true} := isClosed_coord_eq p true
+
+omit [CommRing A] in
+/-- The set `{r | r (f,s) = false}` is closed (and open) in the discrete product. -/
+lemma isClosed_coord_false (p : A × A) :
+    IsClosed {r : A × A → Bool | r p = false} := isClosed_coord_eq p false
+
+/-! #### Closedness of the individual `IsValuationChar` axioms (Bool form) -/
+
+omit [CommRing A] in
+/-- The set `{r | vleOfBool r f s}` is closed in the discrete product. -/
+lemma isClosed_vleOfBool (f s : A) :
+    IsClosed {r : A × A → Bool | vleOfBool r f s} := by
+  -- vleOfBool r f s = r (f,s) = true ∨ (r (s,s) = false ∧ r (f,f) = false)
+  have h1 : IsClosed {r : A × A → Bool | r (f, s) = true} := isClosed_coord_true (f, s)
+  have h2 : IsClosed {r : A × A → Bool | r (s, s) = false} := isClosed_coord_false (s, s)
+  have h3 : IsClosed {r : A × A → Bool | r (f, f) = false} := isClosed_coord_false (f, f)
+  -- The target set is h1 ∪ (h2 ∩ h3).
+  have : {r : A × A → Bool | vleOfBool r f s} =
+      {r | r (f, s) = true} ∪ ({r | r (s, s) = false} ∩ {r | r (f, f) = false}) := by
+    ext r; simp [vleOfBool]
+  rw [this]; exact h1.union (h2.inter h3)
+
+omit [CommRing A] in
+/-- The set `{r | ¬ vleOfBool r u v}` is closed in the discrete product. -/
+lemma isClosed_not_vleOfBool (u v : A) :
+    IsClosed {r : A × A → Bool | ¬ vleOfBool r u v} := by
+  -- ¬ vleOfBool r u v = (r (u,v) = false) ∧ (r (v,v) = true ∨ r (u,u) = true)
+  have : {r : A × A → Bool | ¬ vleOfBool r u v} =
+      {r | r (u, v) = false} ∩
+        ({r | r (v, v) = true} ∪ {r | r (u, u) = true}) := by
+    ext r
+    constructor
+    · intro h
+      simp only [vleOfBool, not_or, not_and_or, Bool.not_eq_true, Bool.not_eq_false] at h
+      refine ⟨h.1, ?_⟩
+      rcases h.2 with h2 | h2
+      · exact Or.inl h2
+      · exact Or.inr h2
+    · rintro ⟨h1, h2⟩ hv
+      rcases hv with hv | ⟨hvv, huu⟩
+      · exact absurd hv (by rw [h1]; decide)
+      · rcases h2 with h2 | h2
+        · exact absurd hvv (by rw [h2]; decide)
+        · exact absurd huu (by rw [h2]; decide)
+  rw [this]
+  exact (isClosed_coord_false (u, v)).inter
+    ((isClosed_coord_true (v, v)).union (isClosed_coord_true (u, u)))
+
+omit [CommRing A] in
+/-- **Closedness of `vle_total` in Bool form.** -/
+lemma isClosed_vle_total_bool :
+    IsClosed {r : A × A → Bool | ∀ f s : A, vleOfBool r f s ∨ vleOfBool r s f} := by
+  rw [show {r : A × A → Bool | ∀ f s : A, vleOfBool r f s ∨ vleOfBool r s f} =
+      ⋂ (f : A), ⋂ (s : A), {r | vleOfBool r f s ∨ vleOfBool r s f} by
+    ext r; simp]
+  exact isClosed_iInter fun f => isClosed_iInter fun s =>
+    (isClosed_vleOfBool f s).union (isClosed_vleOfBool s f)
+
+omit [CommRing A] in
+/-- **Closedness of `vle_trans` in Bool form.** A single universally quantified
+implication `A → B` is closed since `{r | A → B} = {r | ¬A} ∪ {r | B}`, and both
+pieces are clopens in the Bool product. -/
+lemma isClosed_vle_trans_bool :
+    IsClosed {r : A × A → Bool |
+      ∀ x y z : A, vleOfBool r x y → vleOfBool r y z → vleOfBool r x z} := by
+  rw [show {r : A × A → Bool |
+      ∀ x y z : A, vleOfBool r x y → vleOfBool r y z → vleOfBool r x z} =
+      ⋂ (x : A), ⋂ (y : A), ⋂ (z : A),
+        {r | vleOfBool r x y → vleOfBool r y z → vleOfBool r x z} by
+    ext r; simp]
+  refine isClosed_iInter fun x => isClosed_iInter fun y => isClosed_iInter fun z => ?_
+  have rewriteEq :
+      {r : A × A → Bool |
+        vleOfBool r x y → vleOfBool r y z → vleOfBool r x z} =
+      {r | ¬ vleOfBool r x y} ∪ {r | ¬ vleOfBool r y z} ∪
+        {r | vleOfBool r x z} := by
+    ext r
+    constructor
+    · intro h
+      by_cases h1 : vleOfBool r x y
+      · by_cases h2 : vleOfBool r y z
+        · exact Or.inr (h h1 h2)
+        · exact Or.inl (Or.inr h2)
+      · exact Or.inl (Or.inl h1)
+    · rintro ((h1 | h2) | h3) hxy hyz
+      · exact absurd hxy h1
+      · exact absurd hyz h2
+      · exact h3
+  rw [rewriteEq]
+  exact ((isClosed_not_vleOfBool x y).union (isClosed_not_vleOfBool y z)).union
+    (isClosed_vleOfBool x z)
+
+/-- **Closedness of `vle_add` in Bool form.** -/
+lemma isClosed_vle_add_bool :
+    IsClosed {r : A × A → Bool |
+      ∀ x y z : A, vleOfBool r x z → vleOfBool r y z → vleOfBool r (x + y) z} := by
+  rw [show {r : A × A → Bool |
+      ∀ x y z : A, vleOfBool r x z → vleOfBool r y z → vleOfBool r (x + y) z} =
+      ⋂ (x : A), ⋂ (y : A), ⋂ (z : A),
+        {r | vleOfBool r x z → vleOfBool r y z → vleOfBool r (x + y) z} by
+    ext r; simp]
+  refine isClosed_iInter fun x => isClosed_iInter fun y => isClosed_iInter fun z => ?_
+  have rewriteEq :
+      {r : A × A → Bool |
+        vleOfBool r x z → vleOfBool r y z → vleOfBool r (x + y) z} =
+      {r | ¬ vleOfBool r x z} ∪ {r | ¬ vleOfBool r y z} ∪
+        {r | vleOfBool r (x + y) z} := by
+    ext r
+    constructor
+    · intro h
+      by_cases h1 : vleOfBool r x z
+      · by_cases h2 : vleOfBool r y z
+        · exact Or.inr (h h1 h2)
+        · exact Or.inl (Or.inr h2)
+      · exact Or.inl (Or.inl h1)
+    · rintro ((h1 | h2) | h3) hxz hyz
+      · exact absurd hxz h1
+      · exact absurd hyz h2
+      · exact h3
+  rw [rewriteEq]
+  exact ((isClosed_not_vleOfBool x z).union (isClosed_not_vleOfBool y z)).union
+    (isClosed_vleOfBool (x + y) z)
+
+/-- **Closedness of `mul_vle_mul_left` in Bool form.** -/
+lemma isClosed_mul_vle_mul_left_bool :
+    IsClosed {r : A × A → Bool |
+      ∀ x y : A, vleOfBool r x y → ∀ z : A, vleOfBool r (x * z) (y * z)} := by
+  rw [show {r : A × A → Bool |
+      ∀ x y : A, vleOfBool r x y → ∀ z : A, vleOfBool r (x * z) (y * z)} =
+      ⋂ (x : A), ⋂ (y : A), ⋂ (z : A),
+        {r | vleOfBool r x y → vleOfBool r (x * z) (y * z)} by
+    ext r; constructor
+    · intro h; simp only [Set.mem_iInter, Set.mem_setOf_eq]
+      intro x y z hxy; exact h x y hxy z
+    · intro h x y hxy z; simp only [Set.mem_iInter, Set.mem_setOf_eq] at h
+      exact h x y z hxy]
+  refine isClosed_iInter fun x => isClosed_iInter fun y => isClosed_iInter fun z => ?_
+  have rewriteEq :
+      {r : A × A → Bool |
+        vleOfBool r x y → vleOfBool r (x * z) (y * z)} =
+      {r | ¬ vleOfBool r x y} ∪ {r | vleOfBool r (x * z) (y * z)} := by
+    ext r
+    constructor
+    · intro h
+      by_cases h1 : vleOfBool r x y
+      · exact Or.inr (h h1)
+      · exact Or.inl h1
+    · rintro (h1 | h2) hxy
+      · exact absurd hxy h1
+      · exact h2
+  rw [rewriteEq]
+  exact (isClosed_not_vleOfBool x y).union (isClosed_vleOfBool (x * z) (y * z))
+
+/-- **Closedness of `vle_mul_cancel` in Bool form.** -/
+lemma isClosed_vle_mul_cancel_bool :
+    IsClosed {r : A × A → Bool |
+      ∀ x y z : A, ¬ vleOfBool r z 0 → vleOfBool r (x * z) (y * z) → vleOfBool r x y} := by
+  rw [show {r : A × A → Bool |
+      ∀ x y z : A, ¬ vleOfBool r z 0 → vleOfBool r (x * z) (y * z) → vleOfBool r x y} =
+      ⋂ (x : A), ⋂ (y : A), ⋂ (z : A),
+        {r | ¬ vleOfBool r z 0 → vleOfBool r (x * z) (y * z) → vleOfBool r x y} by
+    ext r; simp]
+  refine isClosed_iInter fun x => isClosed_iInter fun y => isClosed_iInter fun z => ?_
+  have rewriteEq :
+      {r : A × A → Bool |
+        ¬ vleOfBool r z 0 → vleOfBool r (x * z) (y * z) → vleOfBool r x y} =
+      {r | vleOfBool r z 0} ∪ {r | ¬ vleOfBool r (x * z) (y * z)} ∪
+        {r | vleOfBool r x y} := by
+    ext r
+    constructor
+    · intro h
+      by_cases h1 : vleOfBool r z 0
+      · exact Or.inl (Or.inl h1)
+      · by_cases h2 : vleOfBool r (x * z) (y * z)
+        · exact Or.inr (h h1 h2)
+        · exact Or.inl (Or.inr h2)
+    · rintro ((h1 | h2) | h3) hz hxz
+      · exact absurd h1 hz
+      · exact absurd hxz h2
+      · exact h3
+  rw [rewriteEq]
+  exact ((isClosed_vleOfBool z 0).union (isClosed_not_vleOfBool (x * z) (y * z))).union
+    (isClosed_vleOfBool x y)
+
+/-- **Closedness of `not_vle_one_zero` in Bool form.** A single negated condition. -/
+lemma isClosed_not_vle_one_zero_bool :
+    IsClosed {r : A × A → Bool | ¬ vleOfBool r 1 0} := by
+  have : {r : A × A → Bool | ¬ vleOfBool r 1 0} =
+      {r | r (1, 0) = false} ∩
+        ({r | r (0, 0) = true} ∪ {r | r (1, 1) = true}) := by
+    ext r
+    constructor
+    · intro h
+      simp only [vleOfBool, not_or, not_and_or, Bool.not_eq_true, Bool.not_eq_false] at h
+      refine ⟨h.1, ?_⟩
+      rcases h.2 with h2 | h2
+      · exact Or.inl h2
+      · exact Or.inr h2
+    · rintro ⟨h1, h2⟩ hv
+      rcases hv with hv | ⟨hvv, huu⟩
+      · exact absurd hv (by rw [h1]; decide)
+      · rcases h2 with h2 | h2
+        · exact absurd hvv (by rw [h2]; decide)
+        · exact absurd huu (by rw [h2]; decide)
+  rw [this]
+  exact (isClosed_coord_false (1, 0)).inter
+    ((isClosed_coord_true (0, 0)).union (isClosed_coord_true (1, 1)))
+
+/-- **Closedness of `apply_iff` (consistency) in Bool form.** The condition is
+`r (f,s) = true ↔ vleOfBool r f s ∧ ¬ vleOfBool r s 0`. This is a finite Boolean
+combination of coordinate conditions, hence closed. -/
+lemma isClosed_apply_iff_bool :
+    IsClosed {r : A × A → Bool |
+      ∀ f s : A, (r (f, s) = true) ↔ vleOfBool r f s ∧ ¬ vleOfBool r s 0} := by
+  rw [show {r : A × A → Bool |
+      ∀ f s : A, (r (f, s) = true) ↔ vleOfBool r f s ∧ ¬ vleOfBool r s 0} =
+      ⋂ (f : A), ⋂ (s : A),
+        {r | (r (f, s) = true) ↔ vleOfBool r f s ∧ ¬ vleOfBool r s 0} by
+    ext r; simp]
+  refine isClosed_iInter fun f => isClosed_iInter fun s => ?_
+  -- `P ↔ Q` = `(¬P ∨ Q) ∧ (P ∨ ¬Q)`.
+  have rewriteEq :
+      {r : A × A → Bool | (r (f, s) = true) ↔ vleOfBool r f s ∧ ¬ vleOfBool r s 0} =
+      ({r | r (f, s) = false} ∪
+        ({r | vleOfBool r f s} ∩ {r | ¬ vleOfBool r s 0})) ∩
+      ({r | r (f, s) = true} ∪
+        ({r | ¬ vleOfBool r f s} ∪ {r | vleOfBool r s 0})) := by
+    ext r
+    constructor
+    · intro h
+      refine ⟨?_, ?_⟩
+      · by_cases hrfs : r (f, s) = true
+        · exact Or.inr (h.mp hrfs)
+        · left; exact (Bool.not_eq_true _).mp hrfs
+      · by_cases hrhs : vleOfBool r f s ∧ ¬ vleOfBool r s 0
+        · exact Or.inl (h.mpr hrhs)
+        · right
+          rw [not_and_or] at hrhs
+          rcases hrhs with hrhs | hrhs
+          · exact Or.inl hrhs
+          · exact Or.inr (not_not.mp hrhs)
+    · rintro ⟨h1, h2⟩
+      constructor
+      · intro hrfs
+        rcases h1 with h1 | h1
+        · rw [h1] at hrfs; exact absurd hrfs (by decide)
+        · exact h1
+      · rintro ⟨hlhs1, hlhs2⟩
+        rcases h2 with h2 | h2
+        · exact h2
+        · rcases h2 with h2 | h2
+          · exact absurd hlhs1 h2
+          · exact absurd h2 hlhs2
+  rw [rewriteEq]
+  refine IsClosed.inter ?_ ?_
+  · exact (isClosed_coord_false (f, s)).union
+      ((isClosed_vleOfBool f s).inter (isClosed_not_vleOfBool s 0))
+  · exact (isClosed_coord_true (f, s)).union
+      ((isClosed_not_vleOfBool f s).union (isClosed_vleOfBool s 0))
+
+/-! #### Combined closedness of `IsValuationCharBool` -/
+
+/-- Unfolded description of `IsValuationCharBool` as the conjunction of seven
+universally quantified conditions, each a closed set in the discrete product. -/
+lemma isValuationCharBool_iff (r : A × A → Bool) :
+    IsValuationCharBool r ↔
+      (∀ f s : A, vleOfBool r f s ∨ vleOfBool r s f) ∧
+      (∀ x y z : A, vleOfBool r x y → vleOfBool r y z → vleOfBool r x z) ∧
+      (∀ x y z : A, vleOfBool r x z → vleOfBool r y z → vleOfBool r (x + y) z) ∧
+      (∀ x y : A, vleOfBool r x y → ∀ z : A, vleOfBool r (x * z) (y * z)) ∧
+      (∀ x y z : A, ¬ vleOfBool r z 0 → vleOfBool r (x * z) (y * z) → vleOfBool r x y) ∧
+      (¬ vleOfBool r 1 0) ∧
+      (∀ f s : A, (r (f, s) = true) ↔ vleOfBool r f s ∧ ¬ vleOfBool r s 0) := by
+  simp only [IsValuationCharBool, vleOfBool_iff_vleOf_decide]
+  refine ⟨fun hr => ?_, fun hr => ?_⟩
+  · refine ⟨hr.vle_total, @hr.vle_trans, @hr.vle_add, @hr.mul_vle_mul_left,
+      @hr.vle_mul_cancel, hr.not_vle_one_zero, ?_⟩
+    intro f s
+    have := hr.apply_iff f s
+    -- This unfolds vleOf (fun p => r p = true) f s — already matches.
+    exact this
+  · obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := hr
+    exact {
+      vle_total := h1
+      vle_trans := @h2
+      vle_add := @h3
+      mul_vle_mul_left := @h4
+      vle_mul_cancel := @h5
+      not_vle_one_zero := h6
+      apply_iff := h7
+    }
+
+/-- The set of Bool valuation characteristics is closed in the discrete product. -/
+lemma isClosed_isValuationCharBool :
+    IsClosed {r : A × A → Bool | IsValuationCharBool r} := by
+  -- Unfold IsValuationCharBool to a conjunction of the seven axioms, each closed.
+  have hEq : {r : A × A → Bool | IsValuationCharBool r} =
+      {r : A × A → Bool | ∀ f s : A, vleOfBool r f s ∨ vleOfBool r s f} ∩
+      {r : A × A → Bool |
+        ∀ x y z : A, vleOfBool r x y → vleOfBool r y z → vleOfBool r x z} ∩
+      {r : A × A → Bool |
+        ∀ x y z : A, vleOfBool r x z → vleOfBool r y z → vleOfBool r (x + y) z} ∩
+      {r : A × A → Bool |
+        ∀ x y : A, vleOfBool r x y → ∀ z : A, vleOfBool r (x * z) (y * z)} ∩
+      {r : A × A → Bool |
+        ∀ x y z : A, ¬ vleOfBool r z 0 → vleOfBool r (x * z) (y * z) → vleOfBool r x y} ∩
+      {r : A × A → Bool | ¬ vleOfBool r 1 0} ∩
+      {r : A × A → Bool |
+        ∀ f s : A, (r (f, s) = true) ↔ vleOfBool r f s ∧ ¬ vleOfBool r s 0} := by
+    ext r
+    simp only [Set.mem_setOf_eq, Set.mem_inter_iff]
+    rw [isValuationCharBool_iff]
+    tauto
+  rw [hEq]
+  exact ((((((isClosed_vle_total_bool.inter isClosed_vle_trans_bool).inter
+    isClosed_vle_add_bool).inter isClosed_mul_vle_mul_left_bool).inter
+    isClosed_vle_mul_cancel_bool).inter isClosed_not_vle_one_zero_bool).inter
+    isClosed_apply_iff_bool)
+
+/-! #### Range of `ιSpv_bool` equals the set of Bool valuation characteristics -/
+
+/-- **Main range identity (Bool version).** The image of `ιSpv_bool` is exactly the
+set of Bool valuation characteristics. -/
+theorem range_ιSpv_bool :
+    Set.range (ιSpv_bool : Spv A → (A × A → Bool)) = {r | IsValuationCharBool r} := by
+  ext r
+  constructor
+  · rintro ⟨v, rfl⟩
+    -- ιSpv_bool v is a Bool valuation characteristic: transport IsValuationChar via the
+    -- factorisation ιSpv v = fun p => ιSpv_bool v p = true.
+    change IsValuationCharBool (ιSpv_bool v)
+    change IsValuationChar (fun p => ιSpv_bool v p = true)
+    -- Convert ιSpv v to `fun p => ιSpv_bool v p = true` pointwise.
+    have hconv : (fun p => ιSpv_bool v p = true) = ιSpv v := by
+      funext p
+      have := ιSpv_eq_boolToProp_comp_ιSpv_bool v
+      rw [this]; rfl
+    rw [hconv]
+    exact ιSpv_mem_isValuationChar v
+  · intro hr
+    -- From IsValuationChar (fun p => r p = true), construct v = hr'.toSpv where
+    -- hr' : IsValuationChar (fun p => r p = true). Then ιSpv_bool v = r.
+    have hr' : IsValuationChar (fun p => r p = true) := hr
+    refine ⟨hr'.toSpv, ?_⟩
+    -- Show ιSpv_bool hr'.toSpv = r.
+    have key : ιSpv hr'.toSpv = fun p => r p = true := ιSpv_toSpv hr'
+    funext p
+    show ιSpv_bool hr'.toSpv p = r p
+    simp only [ιSpv_bool]
+    have hιSpv_p : ιSpv hr'.toSpv p = (hr'.toSpv.vle p.1 p.2 ∧ ¬ hr'.toSpv.vle p.2 0) := rfl
+    by_cases hb : r p = true
+    · rw [hb]
+      simp only [decide_eq_true_iff]
+      rw [← hιSpv_p, key]; exact hb
+    · have hbf : r p = false := (Bool.not_eq_true _).mp hb
+      rw [hbf]
+      simp only [decide_eq_false_iff_not]
+      rw [← hιSpv_p, key]; exact hb
+
+/-- **Closedness of the range of `ιSpv_bool`.** -/
+theorem isClosed_range_ιSpv_bool :
+    IsClosed (Set.range (ιSpv_bool : Spv A → (A × A → Bool))) := by
+  rw [range_ιSpv_bool]
+  exact isClosed_isValuationCharBool
+
+/-! ### Conclusion: `CompactSpace (Spv A)` -/
+
+/-- `Set.range ιSpv_bool` is compact (closed subset of the compact space
+`A × A → Bool`). -/
+lemma isCompact_range_ιSpv_bool :
+    IsCompact (Set.range (ιSpv_bool : Spv A → (A × A → Bool))) :=
+  isClosed_range_ιSpv_bool.isCompact
+
+/-- `Set.range ιSpv` equals the image of `range ιSpv_bool` under the pointwise
+`boolToProp` map. -/
+lemma range_ιSpv_eq_image_boolToProp :
+    Set.range (ιSpv : Spv A → (A × A → Prop)) =
+      (fun r : A × A → Bool => fun p => boolToProp (r p)) ''
+        Set.range (ιSpv_bool : Spv A → (A × A → Bool)) := by
+  ext s
+  constructor
+  · rintro ⟨v, rfl⟩
+    refine ⟨ιSpv_bool v, ⟨v, rfl⟩, ?_⟩
+    change (fun p => boolToProp (ιSpv_bool v p)) = _
+    exact (ιSpv_eq_boolToProp_comp_ιSpv_bool v).symm
+  · rintro ⟨r, ⟨v, rfl⟩, rfl⟩
+    refine ⟨v, ?_⟩
+    change _ = (fun p => boolToProp (ιSpv_bool v p))
+    exact ιSpv_eq_boolToProp_comp_ιSpv_bool v
+
+/-- `Set.range ιSpv` is compact in the Sierpinski product topology: it is the
+continuous image of the closed range `range ιSpv_bool` in the discrete Bool
+product. -/
+lemma isCompact_range_ιSpv :
+    IsCompact (Set.range (ιSpv : Spv A → (A × A → Prop))) := by
+  rw [range_ιSpv_eq_image_boolToProp]
+  exact isCompact_range_ιSpv_bool.image continuous_boolToProp_pi
+
+/-- **Capstone theorem: compactness of the valuation spectrum (Wedhorn Thm 4.9;
+Huber 1993, Lemma 2.1 / Thm 3.1).** The valuation spectrum `Spv A` of a
+commutative ring `A` is compact.
+
+Proof: the Bool-valued Huber embedding `ιSpv_bool : Spv A → (A × A → Bool)` has
+closed image (each of the seven `IsValuationChar` axioms is a closed cylinder
+condition; their intersection is closed). `(A × A → Bool)` is compact (Tychonoff +
+`Finite Bool`), so `range ιSpv_bool` is compact. The pointwise conversion map
+`boolToProp : Bool → Prop` is continuous, giving `IsCompact (range ιSpv)`. By
+`ιSpv_isEmbedding.isCompact_iff Set.univ`, this transfers back to compactness of
+`Spv A`. -/
+instance instCompactSpace : CompactSpace (Spv A) := by
+  rw [← isCompact_univ_iff]
+  -- We need: IsCompact (univ : Set (Spv A)). Use ιSpv_isEmbedding.isCompact_iff.
+  rw [ιSpv_isEmbedding.isCompact_iff, Set.image_univ]
+  exact isCompact_range_ιSpv
 
 end ValuationSpectrum
