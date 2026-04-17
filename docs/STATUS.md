@@ -26,7 +26,7 @@
 | `ValuationCoarsening.lean` | 213 | DONE | Valuation coarsening, cofinal property for archimedean (§7.1) |
 | `AnalyticPoints.lean` | 112 | DONE | IsAnalytic, Tate => analytic, Jacobson radical, idealOfDef API |
 | `AdicMorphisms.lean` | 171 | DONE | Lemma 7.46(1)+(2 first part), Tate specializations |
-| `SpaCompact.lean` | 151 | DONE | `IsCompact (Spa A A⁺)` + `CompactSpace ↥(Spa A A⁺)` under `[DiscreteTopology A]` (T-NULL-0c, discrete case) |
+| `SpaCompact.lean` | 460 | DONE | `IsCompact (Spa A A⁺)` + `CompactSpace ↥(Spa A A⁺)` under `[DiscreteTopology A]` (T-NULL-0c, discrete case); Tate pseudo-uniformizer case with `isCompact_spa_of_tate_pseudouniformizer` (hypotheses: `P.A₀ ≤ A⁺`, principal `P.I = (π)`, topologically nilpotent unit π, per-v MulArchimedean). Abstract criterion `isCompact_spa_of_isClosed_image` factors closed-image hypothesis. |
 | `Basic.lean` | 1 | PLACEHOLDER | Empty |
 
 ## PresheafTateStructure.lean Sorries
