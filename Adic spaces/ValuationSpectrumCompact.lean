@@ -183,25 +183,171 @@ theorem ιSpv_isEmbedding : Topology.IsEmbedding (ιSpv : Spv A → (A × A → 
   eq_induced := ιSpv_isInducing.eq_induced
   injective := ιSpv_injective
 
+/-! ### Characterising the image of `ιSpv`
+
+We now capture the **set-theoretic** image of `ιSpv` via a predicate `IsValuationChar`.
+An `r : A × A → Prop` lies in the range of `ιSpv` iff:
+
+* a *recovered* preorder `vleOf r` (built from `vle_iff_ιSpv`) satisfies all six
+  `ValuativeRel` axioms, and
+* `r` itself is the basic-open indicator of that preorder:
+  `r (f, s) ↔ vleOf r f s ∧ ¬ vleOf r s 0`.
+
+The first family of conditions alone is not enough to force `r = ιSpv v` for the
+associated `v`: we also need to know that `r` is the characteristic function of *that*
+preorder's basic opens rather than some unrelated function. The extra `apply_iff`
+field in `IsValuationChar` records that round-trip condition, and as we shall see it is
+automatic for any `r = ιSpv v`.
+
+The **topological** part — showing `{r | IsValuationChar r}` is closed in the product
+Sierpinski topology — is still deferred to a later phase (see the TODO block at the end
+of this file). -/
+
+/-- The preorder on `A` recovered from a characteristic function `r : A × A → Prop`,
+matching `vle_iff_ιSpv`: `v.vle f s ↔ r (f, s) ∨ (¬ r (s, s) ∧ ¬ r (f, f))`. -/
+def vleOf (r : A × A → Prop) (f s : A) : Prop :=
+  r (f, s) ∨ (¬ r (s, s) ∧ ¬ r (f, f))
+
+lemma vleOf_ιSpv (v : Spv A) (f s : A) : vleOf (ιSpv v) f s ↔ v.vle f s :=
+  (vle_iff_ιSpv v f s).symm
+
+/-- A characteristic function `r : A × A → Prop` is a **valuation characteristic**
+iff:
+
+* the recovered preorder `vleOf r` satisfies the six `ValuativeRel` axioms
+  (total, transitive, additive, left-multiplicative, cancellative, and `¬ 1 ≤ 0`);
+* `r` is the basic-open indicator of that preorder — i.e.
+  `r (f, s) ↔ vleOf r f s ∧ ¬ vleOf r s 0` for every `(f, s)`.
+
+By `vle_iff_ιSpv` every `ιSpv v` is a valuation characteristic, and conversely every
+valuation characteristic comes from a unique `v : Spv A` (see
+`ιSpv_mem_isValuationChar` and `exists_spv_of_isValuationChar`). -/
+structure IsValuationChar (r : A × A → Prop) : Prop where
+  /-- Totality: `vleOf r f s ∨ vleOf r s f`. -/
+  vle_total : ∀ f s : A, vleOf r f s ∨ vleOf r s f
+  /-- Transitivity of the recovered preorder. -/
+  vle_trans : ∀ {x y z : A}, vleOf r x y → vleOf r y z → vleOf r x z
+  /-- Additivity: `vleOf r x z → vleOf r y z → vleOf r (x + y) z`. -/
+  vle_add : ∀ {x y z : A}, vleOf r x z → vleOf r y z → vleOf r (x + y) z
+  /-- Left multiplication by a constant preserves the preorder. -/
+  mul_vle_mul_left : ∀ {x y : A} (_ : vleOf r x y) (z : A), vleOf r (x * z) (y * z)
+  /-- Cancellation: a non-zero factor can be removed from both sides. -/
+  vle_mul_cancel : ∀ {x y z : A}, ¬ vleOf r z 0 → vleOf r (x * z) (y * z) → vleOf r x y
+  /-- Non-triviality: `1` is not `≤ 0`. -/
+  not_vle_one_zero : ¬ vleOf r 1 0
+  /-- Consistency: `r` is the basic-open indicator of the recovered preorder. -/
+  apply_iff : ∀ f s : A, r (f, s) ↔ vleOf r f s ∧ ¬ vleOf r s 0
+
+/-- Every point `v : Spv A` gives a valuation characteristic `ιSpv v`. -/
+lemma ιSpv_mem_isValuationChar (v : Spv A) : IsValuationChar (ιSpv v) := by
+  refine
+    { vle_total := ?_, vle_trans := ?_, vle_add := ?_,
+      mul_vle_mul_left := ?_, vle_mul_cancel := ?_, not_vle_one_zero := ?_,
+      apply_iff := ?_ }
+  · intro f s
+    rcases v.vle_total f s with h | h
+    · exact Or.inl ((vleOf_ιSpv v f s).mpr h)
+    · exact Or.inr ((vleOf_ιSpv v s f).mpr h)
+  · intro x y z hxy hyz
+    exact (vleOf_ιSpv v x z).mpr
+      (v.vle_trans ((vleOf_ιSpv v x y).mp hxy) ((vleOf_ιSpv v y z).mp hyz))
+  · intro x y z hxz hyz
+    exact (vleOf_ιSpv v _ _).mpr
+      (v.vle_add ((vleOf_ιSpv v x z).mp hxz) ((vleOf_ιSpv v y z).mp hyz))
+  · intro x y hxy z
+    exact (vleOf_ιSpv v _ _).mpr
+      (v.mul_vle_mul_left ((vleOf_ιSpv v x y).mp hxy) z)
+  · intro x y z hz h
+    refine (vleOf_ιSpv v x y).mpr (v.vle_mul_cancel ?_ ((vleOf_ιSpv v _ _).mp h))
+    intro hz0
+    exact hz ((vleOf_ιSpv v z 0).mpr hz0)
+  · intro h
+    exact v.not_vle_one_zero ((vleOf_ιSpv v 1 0).mp h)
+  · intro f s
+    constructor
+    · intro h
+      refine ⟨(vleOf_ιSpv v f s).mpr h.1, ?_⟩
+      intro hs
+      exact h.2 ((vleOf_ιSpv v s 0).mp hs)
+    · rintro ⟨hfs, hs0⟩
+      exact ⟨(vleOf_ιSpv v f s).mp hfs, fun hs ↦ hs0 ((vleOf_ιSpv v s 0).mpr hs)⟩
+
+/-- A valuation characteristic `r` determines a `ValuativeRel` on `A` with `vle = vleOf r`.
+
+This packages the six axioms carried by `IsValuationChar r` as a `ValuativeRel` record,
+so that the `Spv A` whose underlying relation is `vleOf r` can be formed. -/
+@[implicit_reducible]
+def IsValuationChar.toValuativeRel {r : A × A → Prop} (hr : IsValuationChar r) :
+    ValuativeRel A where
+  vle f s := vleOf r f s
+  vle_total := hr.vle_total
+  vle_trans := hr.vle_trans
+  vle_add := hr.vle_add
+  mul_vle_mul_left := hr.mul_vle_mul_left
+  vle_mul_cancel := hr.vle_mul_cancel
+  not_vle_one_zero := hr.not_vle_one_zero
+
+/-- The `Spv A` point associated to a valuation characteristic `r`. -/
+def IsValuationChar.toSpv {r : A × A → Prop} (hr : IsValuationChar r) : Spv A :=
+  ⟨hr.toValuativeRel⟩
+
+@[simp] lemma IsValuationChar.toSpv_vle {r : A × A → Prop} (hr : IsValuationChar r)
+    (f s : A) : hr.toSpv.vle f s ↔ vleOf r f s := Iff.rfl
+
+/-- **Valuation-characteristic inverse to `ιSpv`.** Every valuation characteristic is in
+the image of `ιSpv`: from `hr : IsValuationChar r`, the point `hr.toSpv` satisfies
+`ιSpv hr.toSpv = r`. -/
+lemma ιSpv_toSpv {r : A × A → Prop} (hr : IsValuationChar r) :
+    ιSpv hr.toSpv = r := by
+  funext p
+  obtain ⟨f, s⟩ := p
+  show (hr.toSpv.vle f s ∧ ¬ hr.toSpv.vle s 0) = r (f, s)
+  rw [hr.toSpv_vle, hr.toSpv_vle]
+  exact propext (hr.apply_iff f s).symm
+
+/-- Existence form of the inverse: every `r` with `IsValuationChar r` lies in the range
+of `ιSpv`. -/
+lemma exists_spv_of_isValuationChar {r : A × A → Prop} (hr : IsValuationChar r) :
+    ∃ v : Spv A, ιSpv v = r :=
+  ⟨hr.toSpv, ιSpv_toSpv hr⟩
+
+/-- **Main characterisation of the range of `ιSpv`.** An `r : A × A → Prop` is in the
+range of `ιSpv` iff it is a valuation characteristic. -/
+theorem isValuationChar_iff_mem_range (r : A × A → Prop) :
+    IsValuationChar r ↔ ∃ v : Spv A, ιSpv v = r :=
+  ⟨exists_spv_of_isValuationChar, fun ⟨v, hv⟩ ↦ hv ▸ ιSpv_mem_isValuationChar v⟩
+
+/-- The image of `ιSpv` as a set equals the set of valuation characteristics. -/
+theorem range_ιSpv :
+    Set.range (ιSpv : Spv A → (A × A → Prop)) = {r | IsValuationChar r} := by
+  ext r
+  simp only [Set.mem_range, Set.mem_setOf_eq]
+  exact (isValuationChar_iff_mem_range r).symm
+
 /-! ### Phase 2 TODO (not proven here)
 
-The remaining step towards `CompactSpace (Spv A)` is to show the image of `ιSpv` is a
-closed subset of `(A × A → Prop)`. This image is cut out by the axioms of a valuation in
-the basic-open form:
+The remaining step towards `CompactSpace (Spv A)` is to show
+`IsClosed {r | IsValuationChar r}` in the product topology on `(A × A → Prop)` (each
+factor carrying the Sierpinski topology). Combined with `range_ιSpv` above, Tychonoff,
+and `ιSpv_isEmbedding`, this would give `CompactSpace (Spv A)`.
+
+The closed-set claim requires showing that each of the seven conditions in the structure
+`IsValuationChar` (the six `ValuativeRel` axioms plus `apply_iff`) cut out a closed
+subset when intersected over all relevant tuples of coordinates. Each individual
+condition is a finite boolean combination of coordinate sub-basics in the Sierpinski
+product. The subtlety is that Sierpinski has `{True}` open and `{False}` closed but the
+complement of `{False}` is not closed, so implications `P → Q` need to be re-expressed
+as `¬ (P ∧ ¬ Q)` (closed) rather than `¬ P ∨ Q` (not obviously closed). The full
+analysis is left to a future file.
 
 ```
-/-- The image of the Huber embedding is closed in the product topology. -/
-lemma isClosed_range_ιSpv : IsClosed (Set.range (ιSpv : Spv A → (A × A → Prop))) := ...
+lemma isClosed_isValuationChar : IsClosed {r : A × A → Prop | IsValuationChar r} := ...
 
-/-- **Huber — Wedhorn Theorem 4.9.** The valuation spectrum is quasi-compact. -/
+lemma isClosed_range_ιSpv : IsClosed (Set.range (ιSpv : Spv A → (A × A → Prop))) :=
+  range_ιSpv ▸ isClosed_isValuationChar
+
 instance : CompactSpace (Spv A) := ...
 ```
-
-The strategy is: Tychonoff gives `CompactSpace ((A × A) → Prop)`; the image of `ιSpv` is
-cut out by closed conditions (each of the six `ValuativeRel` axioms can be re-expressed
-in terms of the basic-open characteristic values, and each expression is a finite boolean
-combination of coordinate sub-basics — hence closed in the Sierpinski product). A closed
-subspace of a compact space is compact, and embeddings transport compactness.
 -/
 
 end ValuationSpectrum
