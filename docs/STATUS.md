@@ -44,6 +44,15 @@ Required approach: Use `AdicCompletionBridge.adicCompletionRingEquiv` to identif
 
 **Update 2026-04-16**: Packaged Example 6.38 iso `presheafValue_tateAlgebra_quotient_iso` is now available in `TopologyComparison.lean` (end of file). It produces `presheafValue D ≃+* A⟨X⟩ ⧸ (1 - D.s · X)` under hypotheses `(hb, hA_complete, hnoeth, hT_pb)`. Its inverse is the unconditional `tateQuotientToPresheafHom`. The new continuity result `tateQuotientToPresheafHom_continuous_of_tate` discharged the formerly-fifth `hcont` hypothesis. The companion `restrictionMapHom_injective_via_iso` (PresheafTateStructure.lean) records the conditional API; its proof reduces to the same algebraic non-zero-divisor statement as the unconditional version. The remaining gap is **algebraic only**: showing that `mk(D₀.s)` is a non-zero-divisor in `A⟨X⟩/(1 - D.s · X)` (Wedhorn 8.32 single-restriction algebraic core).
 
+**Update 2026-04-16 (Cor 8.32)**: `Adic spaces/Cor832.lean` (343 lines) ports Wedhorn Corollary 8.32 **abstractly**. Contributions:
+- `faithfullyFlat_pi_of_prime_surjection` (axiom-clean): For a finite family of flat `R`-algebras `B_i` with joint surjection on `Spec`, the product `∏ B_i` is faithfully flat over `R`.
+- `algebraMap_pi_injective_of_prime_surjection` (axiom-clean): Product injectivity via `FaithfulSMul.algebraMap_injective`.
+- `productRestriction_faithfullyFlat_abstract`: Concrete for `RationalCovering`, taking `flat_over_base` and Spa-point prime-lifting hypotheses.
+- `productRestriction_injective_of_flat_and_lifting`: Product-map injectivity.
+- `tateAcyclicity_zero_kernel_of_flat_and_lifting`: exactly the shape of `tateAcyclicity` Part 1's separation conclusion, consumable without routing through `restrictionMapHom_injective`.
+
+**Key finding**: Cor 8.32's product form CANNOT close single-map `restrictionMapHom_injective` (faithful flatness of product ≠ faithful flatness of each factor). The doc block of `restrictionMapHom_injective` (PresheafTateStructure.lean) correctly identifies this. Part 1 of `tateAcyclicity` remains blocked on `restrictionMapHom_injective`; rerouting through `tateAcyclicity_zero_kernel_of_flat_and_lifting` would require supplying `flat_over_base` (itself blocked by Prop 8.15's circular dependency on single-map injectivity) and Spa-point prime-lifting.
+
 ## Sorry-Free Status
 
 As of 2026-03-25:
