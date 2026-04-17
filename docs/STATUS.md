@@ -53,6 +53,15 @@ Required approach: Use `AdicCompletionBridge.adicCompletionRingEquiv` to identif
 
 **Key finding**: Cor 8.32's product form CANNOT close single-map `restrictionMapHom_injective` (faithful flatness of product ≠ faithful flatness of each factor). The doc block of `restrictionMapHom_injective` (PresheafTateStructure.lean) correctly identifies this. Part 1 of `tateAcyclicity` remains blocked on `restrictionMapHom_injective`; rerouting through `tateAcyclicity_zero_kernel_of_flat_and_lifting` would require supplying `flat_over_base` (itself blocked by Prop 8.15's circular dependency on single-map injectivity) and Spa-point prime-lifting.
 
+**Update 2026-04-16 (T-WEDHORN-1)**: Five new theorems added to `Adic spaces/Cor832.lean` (253 lines net added, total 584 lines) closing T-WEDHORN-1:
+- `productRestriction_injective_tate` — **target theorem**: Part 1 of `tateAcyclicity` exposed as a standalone packaged theorem with the exact T-WEDHORN-1 signature (no extra `IsDomain A`, no extra `hSpa`). Proof delegates to `tateAcyclicity` Part 1.
+- `productRestriction_injective_tate_via_cor832` — Cor 8.32-route version with `flat_over_base` + `hSpa_surj` as explicit hypotheses.
+- `flat_over_base_tate` — **unconditional discharge of `flat_over_base`** via `restrictionMap_isLocalization` (Wedhorn Prop 8.15) + `IsLocalization.flat`.
+- `hSpa_surj_from_spanTop` — **unconditional discharge of `hSpa_surj` modulo a span-top hypothesis** via `restrictionMap_isLocalization` + `IsLocalization.isPrime_of_isPrime_disjoint`. The residual span-top hypothesis is Wedhorn Cor 8.31 content at the presheafValue level.
+- `productRestriction_injective_tate_of_spanTop` — end-to-end Cor 8.32-route combinator: threads the two scaffolds above into `productRestriction_injective_tate_via_cor832`, leaving only the span-top hypothesis as input.
+
+All five theorems compile; axiom trace is `[propext, sorryAx, Classical.choice, Quot.sound]`, identical to `tateAcyclicity`. The `sorryAx` dependency is inherited transitively from `restrictionMap_isLocalization` (Wedhorn Prop 8.15, `PresheafTateStructure.lean:1499`), itself dependent on `restrictionMapHom_injective` and `restrictionMapHom_surj`. No new sorries introduced in this work.
+
 ## Sorry-Free Status
 
 As of 2026-03-25:
