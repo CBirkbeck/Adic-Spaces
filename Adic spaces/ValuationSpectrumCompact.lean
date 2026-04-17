@@ -361,79 +361,229 @@ instance : CompactSpace Prop := Finite.compactSpace
 factor in the Sierpinski topology, is compact. -/
 instance : CompactSpace (A × A → Prop) := Pi.compactSpace
 
-/-! ### Phase 2: status note on closedness
+/-! ### Phase 2: Sierpinski closedness fails; pivot to Alexander sub-basis
 
 The naive Phase 2 plan — "show `IsClosed {r | IsValuationChar r}` in the product
 Sierpinski topology, then conclude `CompactSpace (Spv A)` via `range_ιSpv`,
 `ιSpv_isEmbedding`, and closed-subspace-of-compact-is-compact" — **does not succeed in
 this topology**. The obstruction is intrinsic to the Sierpinski choice and not a matter
-of proof engineering; we record the counterexample and the correct alternative routes.
+of proof engineering; we record the counterexample briefly below, then turn to the
+correct route (Alexander's sub-basis theorem, `compactSpace_generateFrom`).
 
-#### Why the range is generally *not* closed
+#### Why the Sierpinski range is generally *not* closed
 
-Sierpinski declares `{True}` open but not closed; equivalently, in the product, the
-only closed sub-basic sets are of the form `{r | ¬ r p}`. Concretely, the closed sets
-in the product are exactly intersections of unions of conditions of the shape
-"some listed coordinate is **False**": every basic open has only `r p = True`
-constraints, so its complement (a closed set) can only forbid combinations of "all
-True" patterns.
+Sierpinski declares `{True}` open but not closed; the closed sub-basic sets in the
+product are exactly of the form `{r | ¬ r p}`. A basic Sierpinski neighbourhood of a
+point `r₀` is determined by the *True*-coordinates of `r₀` and can never forbid "True"
+at further coordinates. Taking `s ∈ A` not nilpotent and `r₀ p := (p = (s, s))` one
+checks `r₀` is not a valuation characteristic (e.g. `vle_total` fails at `(f, s)` for
+most `f`), yet every Sierpinski neighbourhood of `r₀` meets `Set.range ιSpv` (via a
+valuation `v` with `s ∉ supp v`). Hence the range is *not* closed in the Sierpinski
+product. The same pathology means `vle_total` itself is not pointwise closed in this
+topology.
 
-In particular, a basic Sierpinski neighbourhood of a point `r₀` is entirely determined
-by the *True*-coordinates of `r₀`: it has the form `{r | r p₁ ∧ ⋯ ∧ r pₙ}` for some
-finite set of coordinates `pᵢ` where `r₀` is `True`. Neighbourhoods never forbid "True"
-at further coordinates.
+#### The Alexander route
 
-Now take `s ∈ A` with `s ∉ nilradical A`. Such an `s` exists whenever `A` has a
-non-nilpotent element, i.e. `A` is not a nil ring. Define
+Mathlib's `compactSpace_generateFrom` (a.k.a. **Alexander's subbasis theorem**, in
+`Mathlib.Topology.Compactness.Compact`) states that a topological space is compact
+whenever every cover by elements of a chosen subbasis admits a finite subcover. The
+`Spv A` topology is defined exactly as `generateFrom {U | ∃ f s, U = basicOpen f s}`
+(see `ValuationSpectrum.instTopologicalSpace`), so Alexander applies directly, with
+**no need for any embedding or closed-subspace argument**. This avoids the Sierpinski
+obstruction outlined above and gives the cleanest path to `CompactSpace (Spv A)`.
 
-  `r₀ : A × A → Prop`,  `r₀ p = (p = (s, s))`,
+We set up the Alexander API below: we expose a reusable reformulation
+`compactSpace_iff_subbasic_subcover` that converts `CompactSpace (Spv A)` into the
+concrete finite-subcover condition on families `(f_i, s_i)`. The **verification** of
+that condition is the genuine Huber content (Wedhorn Thm 4.9 / Huber 1993) and is
+still left open: the standard proof runs a Zorn / ultrafilter argument on pairs
+`(valuation, prime)`, which is sizeable valuation-theoretic work. -/
 
-so `r₀ (s, s) = True` and `r₀ p = False` for all other `p`. Then `r₀` is **not** a
-valuation characteristic: for example, `vle_total` fails at the pair `(f, s)` with
-`f ≠ s` (and `f ≠ 0`) — one checks `vleOf r₀ f s = False` and `vleOf r₀ s f = False`,
-using that all coordinates except `(s, s)` are `False`.
+/-! ### Alexander sub-basis reformulation of Spv compactness -/
 
-On the other hand, since `s` is not nilpotent there is a prime `𝔭` with `s ∉ 𝔭`, hence
-a valuation `v` with `s ∉ supp v`, so `r_v := ιSpv v` has `r_v (s, s) = True`. The
-basic Sierpinski neighbourhood `U = {r | r (s, s)}` of `r₀` therefore contains the
-valuation characteristic `r_v` — i.e. `U` meets `Set.range ιSpv`. Since `U` is the
-smallest non-trivial Sierpinski neighbourhood of `r₀` (and every finer one is a subset
-of `U`), every neighbourhood of `r₀` meets `Set.range ιSpv`. Hence `r₀` is a limit
-point of the range, and the range is **not** closed.
+/-- Membership in the Spv sub-basis: `U` is a sub-basic open iff `U = basicOpen f s`
+for some `f s : A`. This is a restatement of the defining set of
+`ValuationSpectrum.instTopologicalSpace`. -/
+def IsSubbasicOpen (U : Set (Spv A)) : Prop := ∃ f s : A, U = basicOpen f s
 
-The same pathology already invalidates the *pointwise* closedness of `vle_total`:
-with `r₀` as above, `r₀` is in the complement of `{r | ∀ f s, vleOf r f s ∨ vleOf r s f}`
-but has no open neighbourhood disjoint from that set. (Closed sub-basic sets of the
-Sierpinski product are intersections of `{r | ¬ r pᵢ}`-families, which can never
-capture the "`r (s, s) = True` forces some other True coordinate" sort of condition
-needed to express `vle_total`.)
+/-- The Spv topology is `generateFrom` the set of sub-basic opens. Unfolds the
+definition of `instTopologicalSpace`. -/
+lemma instTopologicalSpace_eq_generateFrom :
+    (instTopologicalSpace : TopologicalSpace (Spv A)) =
+      TopologicalSpace.generateFrom {U | IsSubbasicOpen U} := rfl
 
-#### Correct alternative routes
+/-- **Alexander sub-basis theorem, applied to `Spv A`.** If every cover of `Spv A`
+by sub-basic opens (basic opens `basicOpen f s`) admits a finite subcover, then
+`Spv A` is compact.
 
-Three standard routes give `CompactSpace (Spv A)`:
+This is the direct content of Wedhorn Theorem 4.9 / Huber, *Continuous valuations*
+(1993), reformulated purely as a statement about covers of the underlying type by
+basic opens. -/
+theorem compactSpace_of_subbasic_subcover
+    (h : ∀ P ⊆ {U : Set (Spv A) | IsSubbasicOpen U}, ⋃₀ P = Set.univ →
+      ∃ Q ⊆ P, Q.Finite ∧ ⋃₀ Q = Set.univ) :
+    CompactSpace (Spv A) :=
+  compactSpace_generateFrom instTopologicalSpace_eq_generateFrom h
 
-1. **Alexander sub-basis theorem applied to `Spv A` directly** (`isCompact_generateFrom`
-   in `Mathlib.Topology.Compactness.Compact`). Here one does *not* embed: one checks
-   that every sub-basic cover `{basicOpen f_i s_i | i ∈ I}` of `Spv A` admits a finite
-   subcover, using a model-theoretic ultrafilter argument on the family `(f_i, s_i)`.
+/-- **Converse direction.** If `Spv A` is compact, then every cover of `Spv A` by
+sub-basic opens admits a finite subcover. (Trivial direction: every sub-basic open is
+open, so this is just `IsCompact.elim_finite_subcover_image`.) -/
+theorem subbasic_subcover_of_compactSpace [CompactSpace (Spv A)]
+    (P : Set (Set (Spv A))) (hP : P ⊆ {U : Set (Spv A) | IsSubbasicOpen U})
+    (hcov : ⋃₀ P = Set.univ) :
+    ∃ Q ⊆ P, Q.Finite ∧ ⋃₀ Q = Set.univ := by
+  have hopen : ∀ U ∈ P, IsOpen U := by
+    intro U hU
+    obtain ⟨f, s, rfl⟩ := hP hU
+    exact TopologicalSpace.isOpen_generateFrom_of_mem ⟨f, s, rfl⟩
+  have hcompact : IsCompact (Set.univ : Set (Spv A)) := isCompact_univ
+  obtain ⟨Q, hQP, hQfin, hQcov⟩ :=
+    hcompact.elim_finite_subcover_image hopen (by simpa [Set.sUnion_eq_biUnion] using hcov.ge)
+  refine ⟨Q, hQP, hQfin, ?_⟩
+  apply Set.eq_univ_of_univ_subset
+  simpa [Set.sUnion_eq_biUnion] using hQcov
 
-2. **Embedding into a discrete power `{0, 1}^{A × A}`** (with the discrete topology on
-   each factor, i.e. a Cantor-style topology on the product). There the range is closed
-   because each `vleOf`-axiom becomes a clopen cylinder condition (both `=True` and
-   `=False` are clopen). The resulting (compact) discrete subspace topology on the
-   range is *finer* than the Sierpinski subspace topology, so compactness transfers
-   down to the Sierpinski topology (same set, fewer open sets ⇒ still compact), and
-   `ιSpv_isInducing` identifies that Sierpinski subspace topology with the topology on
-   `Spv A`.
+/-- **Alexander reformulation.** `Spv A` is compact **iff** every cover by sub-basic
+opens admits a finite subcover. This reduces the compactness question for the
+valuation spectrum to a purely combinatorial statement about families of basic
+opens. -/
+theorem compactSpace_iff_subbasic_subcover :
+    CompactSpace (Spv A) ↔ ∀ P ⊆ {U : Set (Spv A) | IsSubbasicOpen U},
+      ⋃₀ P = Set.univ → ∃ Q ⊆ P, Q.Finite ∧ ⋃₀ Q = Set.univ :=
+  ⟨fun _ => subbasic_subcover_of_compactSpace,
+    fun h => compactSpace_of_subbasic_subcover h⟩
 
-3. **Via `PrimeSpectrum` and a retraction**. One realises `Spv A` as a closed subset of
-   `Spv` of a larger ring where the argument reduces to `PrimeSpectrum.compactSpace`.
-   This is Huber's 1993 approach via the valuation ring of the generic fibre, and is
-   probably the cleanest formalisation but requires a substantial amount of extra
-   infrastructure (the `Γ`-valuation equivalence, valuation rings of quotients).
 
-Route (2) is implemented in standard informal references (e.g. Bhatt's notes, Wedhorn
-§4) and is the lightest lift from the current file. It is left as future work.
+/-! ### Status of `CompactSpace (Spv A)`
+
+`compactSpace_of_subbasic_subcover` (and the equivalent
+`compactSpace_iff_subbasic_subcover`) reduces the compactness of `Spv A` to a
+finite-subcover property for families of basic opens. Mathematically, the
+statement we still need is:
+
+  `∀ P ⊆ {basicOpen f s | f s : A}, ⋃₀ P = univ → ∃ Q ⊆ P finite, ⋃₀ Q = univ`.
+
+Standard proofs (Huber 1993 Lemma 2.1; Wedhorn, *Adic Spaces*, proof of Thm 4.9) go
+via an ultrafilter / Zorn argument on pairs `(valuation, prime)`: assuming no finite
+subcover, one picks an ultrafilter on the failures, extracts a compatible
+`(valuation ring, prime ideal)` configuration, and shows the resulting `v ∈ Spv A`
+is not in any `basicOpen (f i) (s i)`, contradicting the hypothesised cover. This
+requires substantial valuation-ring infrastructure (existence of valuation rings
+dominating a local ring, Chevalley-style extension lemmas). It is out of scope for
+the present file.
+
+Alternative routes that do not depend on this extension theory:
+
+* Realise `Spv A` as a spectral space via `PrimeSpectrum.compactSpace` of an auxiliary
+  ring (Huber's 1993 construction via the valuation ring of the generic fibre). This
+  is conceptually cleaner but needs the full `Γ`-valuation equivalence.
+
+* Embed into a discrete power `(A × A → Bool)` (compact by Tychonoff + `Finite Bool`)
+  with the image characterised as a closed subset by clopen cylinder conditions for
+  each `ValuativeRel` axiom, then transfer compactness through `ιSpv_isEmbedding`.
+  This route is scaffolded below (`ιSpv_bool`, `boolToProp`, and the factorisation
+  `ιSpv_eq_boolToProp_comp_ιSpv_bool`) so that the remaining obligation is exactly
+  `IsClosed (Set.range ιSpv_bool)` — an intersection of ≤ 7 closed cylinder
+  families, one per `IsValuationChar` field. Completing this step would yield
+  `CompactSpace (Spv A)` via `ιSpv_isEmbedding.isCompact_iff`.
+
+The ambient compactness instances and the Sierpinski embedding
+(`ιSpv_isEmbedding`, `range_ιSpv`) remain useful for either route, and the
+Alexander reformulation provided here is the cleanest interface for the
+ultrafilter-style proof. -/
+
+/-! ### Scaffolding for the Bool / discrete-product route
+
+We expose the Bool-valued version of the Huber embedding,
+
+  `ιSpv_bool : Spv A → (A × A → Bool)`,  `v ↦ fun p => decide (v ∈ basicOpen p.1 p.2)`,
+
+together with the coordinate-wise conversion `boolToProp : Bool → Prop`, so that
+`ιSpv = boolToProp ∘ ιSpv_bool`. The target space `(A × A → Bool)` carries the
+product of the discrete topology on `Bool`; it is compact by Tychonoff and `Finite
+Bool`. Finishing the compactness proof reduces to showing `IsClosed (Set.range
+ιSpv_bool)` in this discrete product — a closed-cylinder argument on the
+`IsValuationChar` axioms. -/
+
+/-- **Bool-valued Huber embedding.** Encodes `v ∈ basicOpen p.1 p.2` as a Bool. -/
+noncomputable def ιSpv_bool (v : Spv A) : A × A → Bool := fun p =>
+  @decide (v.vle p.1 p.2 ∧ ¬ v.vle p.2 0) (Classical.dec _)
+
+-- (We state the decidability explicitly via `Classical.dec` rather than relying on
+-- the `open Classical` diamond, since the underlying `ValuativeRel.vle` has no
+-- automatic `Decidable` instance.)
+
+@[simp]
+lemma ιSpv_bool_apply (v : Spv A) (f s : A) :
+    ιSpv_bool v (f, s) = (@decide _ (Classical.dec (v.vle f s ∧ ¬ v.vle s 0))) := rfl
+
+/-- Pointwise conversion `Bool → Prop`: `true ↦ True`, `false ↦ False` (via equality).
 -/
+def boolToProp (b : Bool) : Prop := b = true
+
+omit [CommRing A] in
+@[simp]
+lemma boolToProp_decide {p : Prop} (hp : Decidable p) : boolToProp (decide p) ↔ p :=
+  decide_eq_true_iff
+
+/-- **Factorisation:** `ιSpv = (boolToProp ∘ ·) ∘ ιSpv_bool`. In particular, the
+Sierpinski-valued embedding is the continuous image of the Bool-valued one under
+the coordinate-wise `boolToProp` map. -/
+lemma ιSpv_eq_boolToProp_comp_ιSpv_bool (v : Spv A) :
+    ιSpv v = fun p => boolToProp (ιSpv_bool v p) := by
+  funext p
+  simp only [ιSpv, ιSpv_bool, boolToProp]
+  exact propext (@decide_eq_true_iff _ (Classical.dec _)).symm
+
+/-- `ιSpv_bool` is injective. Follows from `ιSpv_injective` via the factorisation,
+since `boolToProp` is injective on `Bool`. -/
+lemma ιSpv_bool_injective : Function.Injective (ιSpv_bool : Spv A → _) := by
+  intro v₁ v₂ h
+  apply ιSpv_injective
+  rw [ιSpv_eq_boolToProp_comp_ιSpv_bool, ιSpv_eq_boolToProp_comp_ιSpv_bool, h]
+
+/-- `Bool` is compact in its discrete topology (it is finite). -/
+example : CompactSpace Bool := Finite.compactSpace
+
+/-- **Tychonoff, Bool version.** The product `A × A → Bool` with discrete factors is
+compact. Together with `Finite.compactSpace` and `DiscreteTopology Bool` this gives
+a Cantor-style compactum as ambient space for the Bool Huber embedding. -/
+instance : CompactSpace (A × A → Bool) := Pi.compactSpace
+
+omit [CommRing A] in
+/-- The coordinate-wise `boolToProp` map
+`(A × A → Bool) → (A × A → Prop)` is continuous. Each coordinate reduces to the map
+`b ↦ (b = true) : Bool → Prop` with Sierpinski codomain, which pulls back `{True}` to
+`{true}` — open in discrete `Bool`. -/
+lemma continuous_boolToProp_pi :
+    Continuous (fun r : A × A → Bool => (fun p => boolToProp (r p)) : _ → (A × A → Prop)) := by
+  refine continuous_pi fun p => ?_
+  -- `fun r => boolToProp (r p) = ((r p = true))` is the composition of `r ↦ r p`
+  -- (continuous, `continuous_apply`) with `b ↦ b = true : Bool → Prop` (continuous
+  -- since `Bool` is discrete).
+  have h1 : Continuous (fun r : A × A → Bool => r p) := continuous_apply p
+  have h2 : Continuous (fun b : Bool => boolToProp b) := by
+    exact continuous_of_discreteTopology
+  exact h2.comp h1
+
+/-! **Remaining obligation.** To upgrade the scaffolding above into a full proof of
+`CompactSpace (Spv A)`, one shows:
+
+* `hclosed : IsClosed (Set.range ιSpv_bool)` in `(A × A → Bool)` by intersecting the
+  closed cylinder sets that encode the `IsValuationChar` axioms. Each axiom is
+  universally quantified over finitely many coordinates, so each instance is clopen
+  (preimage of a single Bool value under a continuous coordinate projection), and
+  the arbitrary intersection of clopens is closed.
+* `IsCompact (Set.range ιSpv_bool)` follows from `hclosed.isCompact`.
+* `IsCompact (Set.range ιSpv) = IsCompact (boolToProp ∘ · '' range ιSpv_bool)`
+  follows from continuity of the coordinate-wise `boolToProp` map
+  (`continuous_boolToProp_pi`) and the factorisation
+  `ιSpv_eq_boolToProp_comp_ιSpv_bool`.
+* `CompactSpace (Spv A)` follows from `ιSpv_isEmbedding.isCompact_iff` applied to
+  `Set.univ`, together with `IsCompact (Set.range ιSpv)`.
+
+The concrete closed-cylinder statements for each axiom (e.g. `∀ f s, r (f,s) = true ∨
+r (s,f) = true ∨ (r (f,f) = false ∧ r (s,s) = false)` for `vle_total` after unfolding
+`vleOf`) are left to future work. -/
 
 end ValuationSpectrum
