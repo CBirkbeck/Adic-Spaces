@@ -23,12 +23,15 @@ import «Adic spaces».Cor832
 import «Adic spaces».ExcellentRing
 import «Adic spaces».FarguesFontaine
 import «Adic spaces».FlatnessResults
+import «Adic spaces».GeometricReduction
 import «Adic spaces».GeometricSeries
 import «Adic spaces».HuberRings
+import «Adic spaces».IdealClosedness
 import «Adic spaces».IntegralStructureSheaf
 import «Adic spaces».Example638
 import «Adic spaces».IteratedRational
 import «Adic spaces».LaurentCoverExact
+import «Adic spaces».LaurentOverlap
 import «Adic spaces».Lemma745
 import «Adic spaces».LocalizationTopology
 import «Adic spaces».NoetherianTateModules
