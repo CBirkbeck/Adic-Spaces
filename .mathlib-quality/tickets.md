@@ -1,68 +1,7 @@
 # Ticket Board — `tateAcyclicity` Completion
 
-**Last refreshed**: 2026-04-18 (incorporates AI reviewer guidance).
-
-## 2026-04-18 reviewer-guided pivot
-
-The AI reviewer (full transcript in session log) delivered three
-architectural corrections that supersede prior planning:
-
-1. **`T-INJ-1` Route A is structurally wrong** — individual
-   restriction maps `restrictionMapHom D₀ D h` are **not injective in
-   general**. Reviewer's counterexample: `A = k⟨T, U⟩/(TU)`, with
-   `U = R(1/T)`; `𝒪_X(U) ≅ A⟨X⟩/(1 − TX)`, and the class of `U ∈ A`
-   maps to `U = U · (TX) = (UT)·X = 0`, killing a nonzero element.
-   Radical containment of `D.s` in `(D₀.s, D₀.T)` does NOT force
-   regularity. → Route A is **retired**.
-
-2. **`T-INJ-1` → reframe as cover-level injectivity**. The correct
-   injectivity is for the *product* restriction
-   `𝒪_X(base) → ∏ᵢ 𝒪_X(Uᵢ)`, which is faithfully flat hence injective
-   (Wedhorn Cor 8.31 / 8.32). This is what the single-Laurent exact
-   row actually uses. The existing `restrictionMapHom_injective`
-   sorry in `PresheafTateStructure.lean:1322` is **off the critical
-   path** and should stay sorry'd (or be retired if no downstream
-   callers need the false statement).
-
-3. **`T-IDEAL-2` is NOT the Bourbaki CA III §2.8 content**. The
-   reviewer flagged the completion-preimage shortcut
-   (`q̄ = ι⁻¹(closure(ι(q)))`) as circular. The correct route is
-   **Artin–Rees on the ring of definition** `D = A₀[T/s]` with ideal
-   `J = I·D`. Artin–Rees in Mathlib ([Stacks 00IN](https://stacks.math.columbia.edu/tag/00IN))
-   shows f.g. ideals in noetherian adic `D` are `J`-adically closed;
-   passage to `A_s = D[1/π]` is the Tate-specific lift. This avoids
-   Bourbaki entirely.
-
-### New critical path
-
-```
-tateAcyclicity Part 1 (cover-level injectivity, Cor 8.32)
-   └── productRestriction_injective_tate_via_coeRingHom_preserves_proper  ✅ proved (Cor832.lean:1202)
-          └── coeRingHom_preserves_proper                                 ← residual
-                 ├── T-IDEAL-1 (topological approx)            ✅ DONE
-                 └── T-IDEAL-2 (closedness via Artin-Rees)     ← NEW ATTACK SURFACE
-
-tateAcyclicity Part 2 (Laurent refinement induction)
-   └── laurentOverlapBridge_exists_compatible                 ←[T-OVERLAP-COMPAT]
-          └── bivariate Example 6.38 primitive (composition)  ←[T-OV-1, IN PROGRESS]
-   └── geometric reduction (Hübner Lemma 3.8 / Wedhorn 8.33)  ←[T-GEOM-RED, NEW]
-   └── cover-level injectivity                                ← from Part 1 framework
-```
-
-`T-INJ-1` (single-map) is gone. `T-NULL-7` becomes `T-GEOM-RED` — the
-minimal geometric reduction statement needed for the Hübner/Wedhorn
-induction, not the full Wedhorn Prop 7.14 Nullstellensatz.
-
-### Reviewer references
-- Hübner, *Adic spaces* (arXiv 2405.06435), Lemma 3.7, Lemma 3.8 —
-  simple-Laurent covering input suffices for sheafy+acyclic.
-- Wedhorn Prop 6.17 — closed ideals in noetherian Tate rings (for
-  topology transport in T-OV-1).
-- Wedhorn Cor 8.31 / 8.32 — cover-level faithful flatness.
-- Bosch, *Lectures on Formal and Rigid Geometry*, Prop 6.4/8 — model
-  for formal-function/Artin-Rees arguments (cited by Zavyalov App A).
-
----
+**Last refreshed**: 2026-04-18 (post-worker-integration, grounded in
+Wedhorn's proof structure and 2026-04-18 AI reviewer guidance).
 
 **Target**: `ValuationSpectrum.tateAcyclicity`
 (`Adic spaces/LaurentRefinement.lean:3671`) sorry-free, signature unchanged
@@ -70,396 +9,563 @@ induction, not the full Wedhorn Prop 7.14 Nullstellensatz.
 (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
 (C : RationalCovering A) (hne : C.covers.Nonempty)`).
 
-## Current state at a glance
+---
 
-**Superseded by the 2026-04-18 reviewer pivot above.** See new
-critical-path graph there. The `restrictionMapHom_injective` dependency
-in Part 1 is a false lead; real injectivity is cover-level (Cor 8.32).
+## 1. Current state (2026-04-18)
 
-Six Tate-core sorries remain (verified via
-`awk '/^[[:space:]]*sorry[[:space:]]*$/' "Adic spaces"/*.lean`):
+### 1.1 Sorry inventory (Tate-core)
 
-| File:line | Declaration | Ticket | Critical? |
+Six Tate-core sorries remain. Three are on the critical path; the others
+are off-path or retired.
+
+| File:line | Declaration | Ticket | Status |
 |---|---|---|---|
-| `LaurentRefinement.lean:3173` | `laurentOverlapBridge_exists_compatible` | T-OVERLAP-COMPAT | ✅ |
-| `LaurentRefinement.lean:3737` | `tateAcyclicity` Part 2 (gluing) | T-ACYC-PART2 | ✅ |
-| `PresheafTateStructure.lean:1322` | `restrictionMapHom_injective` | T-INJ-1 | ✅ |
-| `PresheafTateStructure.lean:1208` | `restrictionMap_isLocalization` / sigma surj | T-BAIRE | off path |
+| `LaurentRefinement.lean:3173` | `laurentOverlapBridge_exists_compatible` | T-OVERLAP-COMPAT | ⏳ blocked on T-OV-1 Step A |
+| `LaurentRefinement.lean:3737` | `tateAcyclicity` Part 2 (gluing) | T-ACYC-PART2 | ⏳ downstream of all Part 2 tickets |
+| `PresheafTateStructure.lean:1322` | `restrictionMapHom_injective` | (retired) | ⛔ off-path (false in general; reviewer counterexample) |
+| `PresheafTateStructure.lean:1208` | `restrictionMap_isLocalization` | T-BAIRE | off path |
 | `StructureSheaf.lean:1096` | `isSheafy...flat.embedding` | downstream | off path |
-| `Presheaf.lean:720` | `spa_point_nonOpen_of_rational_subset` | retired | off path |
+| `Presheaf.lean:720` | `spa_point_nonOpen_of_rational_subset` | retired | off path (Bourbaki-blocked, not needed) |
 
-## Open tickets (ordered by leverage)
+### 1.2 New files landed (this week, all 0 sorry, axiom-clean)
 
-### [T-OV-1] Bivariate Example 6.38 primitive
+| File | Lines | Purpose |
+|---|---|---|
+| `LaurentOverlap.lean` | 634 | T-OV-1 Step B (algebraic iso) + Step A half-forward homs + foundational lemmas |
+| `IdealClosedness.lean` | 181 | Krull-intersection / Artin-Rees closedness + clopen-subring lift |
+| `GeometricReduction.lean` | 248 | T-GEOM-RED cover-level refinement theorem + V-covers bridge helpers |
 
-- **Status**: IN PROGRESS — scaffold + **Step B closed** 2026-04-17 in
-  `Adic spaces/LaurentOverlap.lean`. Step A remains.
-- **Blocker for**: T-OVERLAP-COMPAT, hence T-ACYC-PART2.
-- **Target file**: `Adic spaces/LaurentOverlap.lean` (new).
-- **Landed (2026-04-17, 0 sorry / 0 warning)**:
-  * `overlapDatum B P b := laurentMinusDatum (trivialPlusDatum B P b) b`;
-    `overlapDatum_s`, `overlapDatum_P`, `overlapDatum_subset_plus`.
-  * **`bivariateOverlap_ideal_eq`** (Wedhorn p.83 key identity):
-    `Ideal.span{b - X, 1 - b·Y} = Ideal.span{b - X, X·Y - 1}` in `TateAlgebra₂ B`.
-  * **`laurentIdeal_sup_bSubX`**: `laurentIdeal B ⊔ span{b - X} = span{b - X, XY - 1}`.
-  * **`bivariateOverlap_equiv_B₁₂gen`** (T-OV-1 Step B, Wedhorn Lemma 8.33
-    pure-algebra core):
-    `TateAlgebra₂ B / (b - X, 1 - b·Y) ≃+* B₁₂_gen b`,
-    via ideal-equality + third-iso-theorem (`DoubleQuot.quotQuotEquivQuotSup`).
-    Axiom-clean (`propext, Classical.choice, Quot.sound` only).
-- **Residual: Step A** (bivariate Example 6.38 — topology): prove
-  `presheafValue (overlapDatum B P b) ≃+* TateAlgebra₂ B / (b - X, 1 - b·Y)`.
-  Requires bivariate analogs of `example638Plus_evalHom` /
-  `example638Minus_evalHom` (evaluation of `TateAlgebra₂ B` at
-  `coeRingHom b` and `invS = coeRingHom (divByS 1 b)` in the overlap
-  completion).
-- **Statement** (target):
-  ```lean
-  noncomputable def example638Bivariate_equiv
-      (B : Type*) [CommRing B] [TopologicalSpace B] [IsTopologicalRing B]
-      [PlusSubring B] [IsHuberRing B] [HasLocLiftPowerBounded B]
-      [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
-      (P : PairOfDefinition B) [IsNoetherianRing P.A₀]
-      (b : B) (hb_pb : TopologicalRing.IsPowerBounded b)
-      (hb_unit_in_overlap : ...) :
-      presheafValue (overlapDatum B P b) ≃+*
-        LaurentCover.B₁₂_gen b
-  ```
-  where `overlapDatum B P b : RationalLocData B` is the bivariate
-  Laurent-overlap datum at `b` over `B`.
-- **Proof strategy (composition route, preferred)**:
-  Leverage existing infrastructure rather than building from scratch:
-  1. **Iteration via Lemma 2.13**: realize `laurentOverlapDatum D₀ f` over
-     `A` as `laurentMinusDatum (laurentPlusDatum D₀ f) f`; apply
-     `presheafValue_iteratedMinus_equiv` at base = `laurentPlusDatum D₀ f`
-     with `f`. Result: iso with
-     `presheafValue(iteratedMinusDatum_B ... (laurentPlusDatum) f)`
-     (rational data over `B_plus := presheafValue (laurentPlusDatum D₀ f)`).
-  2. **Example 6.38 minus at `B_plus`**: the iteratedMinus datum over
-     `B_plus` has `s = canonicalMap_{plus}(f), T = {1}`, so by the generic
-     `example638Minus_equiv` it is ≃ `B_plus⟨X⟩ / (1 − canonicalMap_{plus}(f)·X)`.
-  3. **`laurentPlusBridge` identifies `B_plus` with `B₁_gen(D₀.canonicalMap f)`**
-     (already proved). Under this iso, `canonicalMap_{plus}(f)` becomes
-     the image of `Y` in `B⟨Y⟩/(D₀.canonicalMap f − Y)`, which equals
-     `D₀.canonicalMap f` in that quotient.
-  4. **Algebraic final step**: identify
-     `(B⟨Y⟩/(f_B − Y))⟨X⟩ / (1 − Y·X)` with
-     `LaurentTateAlgebra B / (f_B − ζ) = B₁₂_gen(f_B)`. This is essentially
-     the standard `B⟨ζ, ζ⁻¹⟩ ≃ B⟨Y, X⟩ / (1 − YX)` combined with a shared
-     `/(f_B − ζ)` quotient.
-- **Proof strategy (direct evalHom route, alternative)**:
-  1. Define `evalBivariateHom : LaurentTateAlgebra B →+* presheafValue(overlapDatum B P b)`
-     sending `ζ ↦ coeRingHom_B b` and `ζ⁻¹ ↦ coeRingHom_B (1/b)` (which
-     exists in the overlap completion since `b` is a unit there).
-  2. Show it factors through `laurentFSubZetaIdeal b`, giving
-     `B₁₂_gen b →+* presheafValue(overlapDatum B P b)`.
-  3. Backward via dense algebraic localization + `Completion.extensionHom`.
-  4. Round trips via `Completion.ext'`.
-- **Estimated lines**: ~300 (composition) or ~500 (direct).
-- **Risk**: threading `PairOfDefinition` and `IsNoetherianRing` instances
-  through the `B_plus`-level Example 6.38 invocation (route 1) is
-  mechanically tedious but has no novel content. The final algebraic
-  iso (step 4) is the genuinely new piece.
+Plus substantial additions to `Cor832.lean` (closure combinator +
+`locSubring → Loc.Away` bridge) and retirement of false T-INJ-1 Route A
+scaffolds in `PresheafTateStructure.lean`.
+
+Build succeeds (3090 jobs).
+
+### 1.3 Wedhorn's proof of Theorem 8.28(b) — decomposition and status
+
+| Wedhorn step | Content | Project status |
+|---|---|---|
+| **Lemma 8.31** | Flatness of `A⟨X⟩`, `A⟨X⟩/(f-X)`, `A⟨X⟩/(1-fX)` over `A` | ✅ DONE (`TateAlgebra.lean` / `CompletionLocalization.lean`) |
+| **Example 6.38** | `presheafValue D ≃+* A⟨X⟩/(closed ideal)` (plus/minus) | ✅ DONE generically over `B` (`Example638.lean`) |
+| **Example 6.39** | `presheafValue(R(b/1)∩R(1/b)) ≃+* B⟨ζ,ζ⁻¹⟩/(b-ζ)` | ⏳ T-OV-1: Step B ✅, Step A 50% |
+| **Lemma 8.31** (flat) ∘ **Ex 6.38** ⟹ **Cor 8.32** | product restriction faithfully flat | ✅ framework; residual = `coeRingHom_preserves_proper` |
+| **Cor 8.32** ⟹ Part 1 | via `productRestriction_injective_tate_via_coeRingHom_preserves_proper` | ✅ modulo T-IDEAL-2 |
+| **Lemma 8.33** | Laurent 2-cover exact row | ✅ algebraic core + bridge chain, modulo T-OV-1 |
+| **Lemma 8.34** / **Hübner 3.8** | geometric reduction to arbitrary rational covers | ⏳ T-GEOM-RED: refinement theorem ✅, induction pending |
+| **Theorem 8.28(b)** | Part 1 + Part 2 assembly | ⏳ T-ACYC-PART2 |
+
+### 1.4 2026-04-18 reviewer's architectural corrections (reminder)
+
+1. **T-INJ-1 Route A retired**: single-map `restrictionMapHom_injective`
+   is false in general. Counterexample: `A = k⟨T, U⟩/(TU)`, `U = R(1/T)`;
+   then in `𝒪_X(U) ≅ A⟨X⟩/(1-TX)`, the class of `U` maps to
+   `U = U·(TX) = (UT)·X = 0`. **Part 1 must use cover-level injectivity
+   (Cor 8.32).**
+
+2. **T-IDEAL-2 is Artin-Rees, not Bourbaki CA III §2.8**. Descend to the
+   ring of definition `𝔇 = A₀[T/s]` with ideal `J = I·𝔇`; apply Krull's
+   intersection theorem (Stacks 00IN) to get f.g. ideals closed in `𝔇`;
+   lift to `A_s = 𝔇[1/π]` by clearing π.
+
+3. **T-OV-1 composition route preferred**: reuse Lemma 2.13 (iterated
+   rational) + Example 6.38 minus at B_plus + `laurentPlusBridge`. The
+   only genuinely new content is the quotient-of-quotients iso.
+
+4. **T-OV-1 topology transport via Wedhorn Prop 6.17** (closed ideals in
+   noetherian Tate): prove the algebraic quotient-of-quotients iso first,
+   then transport topology via closed ideals.
+
+5. **Hübner's Lemma 3.8** is the cleanest modern packaging of the
+   geometric reduction: "exactness on simple Laurent covers of every
+   rational open ⟹ sheafy and acyclic." Reduction still runs through
+   standard rational / Laurent refinements.
+
+---
+
+## 2. Critical-path dependency graph (2026-04-18)
+
+```
+tateAcyclicity Part 1 (separation)
+  └── productRestriction_injective_tate_via_coeRingHom_preserves_proper  ✅ proved
+        └── coeRingHom_preserves_proper  ← SINGLE RESIDUAL
+              ├── T-IDEAL-1: topological approximation                   ✅ DONE
+              └── T-IDEAL-2: closedness of proper ideals in Loc.Away D.s
+                    ├── Generic closedness machinery                     ✅ DONE
+                    │     - mem_closure_iff_of_isAdic
+                    │     - Ideal.isClosed_of_le_jacobson (via Krull)
+                    │     - Ideal.isClosed_of_isAdicComplete
+                    │     - IsClosed.of_isClosed_subspace_of_isOpen_subring
+                    ├── Closure combinator                               ✅ DONE
+                    │     coeRingHom_preserves_proper_of_closed
+                    ├── locSubring → Loc.Away subspace bridge (subsets)  ✅ DONE
+                    │     isClosed_image_of_isClosed_subspace_in_locSubring
+                    ├── S-IDEAL-JAC: locIdeal ≤ Jacobson(⊥) in locSubring ⏳ ~30-50 lines
+                    ├── S-IDEAL-LOC: ideal q ⊆ A_s has q = (q∩𝔇)·A_s    ⏳ ~80-150 lines
+                    │     and closedness transfers
+                    └── S-IDEAL-ASM: end-to-end assembly                 ⏳ ~30 lines
+
+tateAcyclicity Part 2 (gluing)
+  ├── laurentOverlapBridge_exists_compatible (= T-OVERLAP-COMPAT)
+  │     └── example638Bivariate_equiv (T-OV-1 main theorem)
+  │           ├── Step A (topological): B₁₂_gen b →+* presheafValue(overlap)
+  │           │     ├── overlap_plus_forwardHom  ✅ DONE
+  │           │     ├── overlap_minus_forwardHom ✅ DONE
+  │           │     └── S-OV-GLUE: assemble via Wedhorn p.84            ⏳ ~200 lines
+  │           │         (Laurent decomposition A⟨ζ,ζ⁻¹⟩ = A⟨ζ⟩ + ζ⁻¹·A⟨ζ⁻¹⟩)
+  │           └── Step B (pure algebra): B⟨ζ,η⟩/(b-X,1-bY) ≃ B₁₂_gen    ✅ DONE
+  │                 (bivariateOverlap_equiv_B₁₂gen)
+  │
+  ├── T-GEOM-RED (geometric reduction)
+  │     ├── tateAcyclicity_gluing_via_refinement_cover_level   ✅ DONE
+  │     ├── standardCoverVCovers + mem + subset_base           ✅ DONE
+  │     ├── S-GEOM-TAU: τ construction + containment           ⏳ ~30 lines
+  │     │     (blocked on minor DecidableEq bridge in LaurentRefinement)
+  │     ├── S-GEOM-BASE: hV_glue for |S.elts| = 1              ⏳ ~60 lines
+  │     ├── S-GEOM-IND: hV_glue induction on |S.elts|          ⏳ ~200 lines
+  │     │     (Wedhorn 8.34 induction, Laurent split at f₀)
+  │     └── S-GEOM-ASM: Part 2 assembly (may include hZavyalov
+  │                      bypass per Hübner 3.8)                 ⏳ ~50 lines
+  │
+  └── Local cover-level injectivity per piece E ∈ C.covers
+        └── (same coeRingHom_preserves_proper as Part 1)
+```
+
+---
+
+## 3. Open tickets — detailed plans
+
+### [T-OV-1] Bivariate Example 6.38 — IN PROGRESS
+
+**Target**: `example638Bivariate_equiv : presheafValue (overlapDatum B P b) ≃+* LaurentCover.B₁₂_gen b`
+where `overlapDatum B P b = laurentMinusDatum (trivialPlusDatum B P b) b`
+is the bivariate rational datum cutting out `{v : v(b) = 1}`.
+
+**Landed** (`Adic spaces/LaurentOverlap.lean`, 634 lines, 0 sorry):
+- `overlapDatum B P b` + basic API (`_s`, `_P`, `_subset_plus`).
+- Step A foundational lemmas: `canonicalMap b` and
+  `invS = canonicalMap (1/b)` power-bounded in `presheafValue(overlap)`;
+  product `= 1` (from `canonicalMap_b_mul_invS_in_overlap`).
+- Step A half-forward homs:
+  - `overlap_plus_evalHom : TateAlgebra B →+* presheafValue(overlap)`
+    (sending `X ↦ canonicalMap b`).
+  - `overlap_minus_evalHom : TateAlgebra B →+* presheafValue(overlap)`
+    (sending `X ↦ invS`).
+  - Factored through plus/minus ideals:
+    - `overlap_plus_forwardHom : B₁_gen b →+* presheafValue(overlap)`.
+    - `overlap_minus_forwardHom : B₂_gen b →+* presheafValue(overlap)`.
+- Step B main (pure algebra): `bivariateOverlap_equiv_B₁₂gen :
+  B⟨ζ,η⟩ / (b - X, 1 - b·Y) ≃+* B₁₂_gen b` via ideal-equality
+  (`bivariateOverlap_ideal_eq`) + third-iso-theorem
+  (`DoubleQuot.quotQuotEquivQuotSup`).
+- Forward + symm-direction action lemmas on Step B (8 lemmas total) for
+  downstream T-OVERLAP-COMPAT consumption.
+
+**Remaining: S-OV-GLUE** (Step A main theorem).
+
+Follow **Wedhorn p.84 identity**: the Laurent Tate algebra
+`A⟨ζ, ζ⁻¹⟩` decomposes as a direct sum of `B`-modules
+`A⟨ζ⟩ ⊕ ζ⁻¹ · A⟨ζ⁻¹⟩`. Build:
+
+```lean
+noncomputable def bivariateOverlap_forwardHom
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B) :
+    LaurentCover.B₁₂_gen b →+* presheafValue (overlapDatum B P b)
+```
+
+by:
+
+1. **Decomposition**: every `x ∈ A⟨ζ, ζ⁻¹⟩` is uniquely
+   `x = x₊ + ζ⁻¹ · x₋` with `x₊ ∈ A⟨ζ⟩, x₋ ∈ ζ⁻¹ · A⟨ζ⁻¹⟩`.
+   (Equivalently: split the Laurent-coefficient sum at degree 0.)
+2. **Map**: send `mk x ↦ overlap_plus_evalHom(x₊) + invS · overlap_minus_evalHom(x₋)`.
+3. **Well-definedness mod (b - ζ)**: use `overlap_plus_evalHom_fSubX_eq_zero`
+   and `canonicalMap_b_mul_invS_in_overlap = 1` to show
+   `(b - ζ) · anything ↦ 0`.
+4. **Multiplicativity + additivity**: Laurent-series multiplication
+   respects this direct-sum decomposition modulo `(b - ζ)`.
+5. **Inverse via Step B**: `bivariateOverlap_equiv_B₁₂gen.symm` composed
+   with the quotient map from `B⟨ζ,η⟩/(b-X, 1-bY)`.
+6. **Round trips** via `UniformSpace.Completion.ext'`: agreement on dense
+   subring (polynomials in ζ, ζ⁻¹) + T2 of `presheafValue(overlap)`.
+
+**Alternative (composition route)**: apply `presheafValue_iteratedMinus_equiv`
+at base `laurentPlusDatum D₀ f` and `f` to get
+`presheafValue(overlap over A) ≃ presheafValue(iteratedMinus over B_plus)`;
+apply `example638Minus_equiv` at `B_plus` to get
+`≃ B_plus⟨X⟩/(1-canonicalMap_plus(f)·X)`; apply `laurentPlusBridge.symm`
+to rewrite `B_plus ≃ B₁_gen(f_B)` and substitute; then algebraic
+identification with `B₁₂_gen(f_B)`. Same estimate.
+
+**Estimated lines**: ~200.
 
 ### [T-OVERLAP-COMPAT] Close `laurentOverlapBridge_exists_compatible`
 
-- **Status**: open, blocked on T-OV-1.
-- **File**: `Adic spaces/LaurentRefinement.lean:3173`.
-- **Task**: once T-OV-1 is available, instantiate it at
-  `B := presheafValue D₀, b := D₀.canonicalMap f` to produce the
-  `τ₁₂ : presheafValue (laurentOverlapDatum D₀ f) ≃+* B₁₂_gen (D₀.canonicalMap f)`.
-  Then verify the two `LaurentOverlapBridgeCompatible` intertwining
-  identities by composition on generators (reduce to `Completion.ext'` +
-  `IsLocalization.ringHom_ext`, as done for
-  `presheafValue_iteratedMinus_equiv_restrictionMap_canonicalMap`).
-- **Estimated lines**: ~80.
+**Target**: `LaurentRefinement.lean:3173`.
 
-### [T-ACYC-PART2] `tateAcyclicity` Part 2 assembly
+**Plan**: instantiate `example638Bivariate_equiv` at
+`B := presheafValue D₀, b := D₀.canonicalMap f`; verify both
+`LaurentOverlapBridgeCompatible` intertwining identities using the
+`_mk`, `_algebraMap`, `_X`, `_Y` action lemmas already landed in
+`LaurentOverlap.lean`, plus `presheafValue_iteratedMinus_equiv_apply`
+and similar reductions on the plus/minus bridge sides.
 
-- **Status**: open, blocked on T-OVERLAP-COMPAT + T-NULL-7.
-- **File**: `Adic spaces/LaurentRefinement.lean:3737`.
-- **Task**: replace the sorry with a composition:
-  1. `hZavyalov`-discharged `refines_by_standard_cover` produces a
-     standard cover `S` refining `C`.
-  2. Induct on `|S.elts|`: base case uses
-     `laurentCover_gluing_presheaf` (sorry-free once T-OVERLAP-COMPAT
-     lands), inductive step splits via a Laurent cover at one element of
-     `S`.
-  3. Use `tateAcyclicity_gluing_via_refinement` +
-     `gluing_of_finer_rational` to transfer gluing back to `C`.
-- **Estimated lines**: ~50 once prerequisites land.
-- **Note**: also uses `restrictionMapHom_injective` (T-INJ-1) inside
-  `tateAcyclicity_gluing_via_refinement`, but that dependency is
-  independent of the T-OV-1 chain.
+**Estimated lines**: ~80. **Blocked on T-OV-1 Step A**.
 
-### [T-INJ-1] `restrictionMapHom_injective` — RETIRED from critical path (2026-04-18)
+### [T-IDEAL-2] Closedness of proper ideals — SUBSTANTIAL PROGRESS
 
-- **Status**: RETIRED per reviewer guidance. The claim is **false in
-  general**: reviewer counterexample `A = k⟨T, U⟩/(TU)`,
-  `U = R(1/T)`, shows that the class of `U ∈ A` maps to `0` in
-  `𝒪_X(U) ≅ A⟨X⟩/(1 − TX)` (via `U = U·(TX) = (UT)·X = 0`).
-- **Route A (algebraic NZD)** is structurally doomed: radical
-  containment of `D.s` in `(D₀.s, D₀.T)` does not force regularity.
-  All `h_Ds_nzd` / `h_ker_torsion` scaffolding landed 2026-04-17 is
-  therefore chasing a false statement for the unconditional form.
-- **Route B (via Cor 8.32)** is still valid but attacks the *product*
-  injectivity, not single-map — so the proper target lives in
-  `Cor832.lean`'s `productRestriction_injective_tate_via_coeRingHom_preserves_proper`
-  (already conditional on `coeRingHom_preserves_proper` = T-IDEAL-2).
-- **Existing sorry at `PresheafTateStructure.lean:1322`**: leave
-  sorry'd; audit callers to ensure they don't rely on the false
-  unconditional form. Part 1 of `tateAcyclicity` currently uses it at
-  line 3695; rewrite Part 1 to invoke
-  `productRestriction_injective_tate_via_coeRingHom_preserves_proper`
-  (product-level, via the Cor 8.32 chain) once T-IDEAL-2 lands.
-- **Estimated lines to rewrite Part 1 via product-level**: ~30.
+**Target**: discharge `coeRingHom_preserves_proper` in
+`Cor832.lean:1202`.
 
-## Blocked tickets
+**Landed** (`IdealClosedness.lean` + `Cor832.lean`, 2026-04-18):
+- **Generic closedness machinery** (0 sorry, axiom-clean):
+  - `mem_closure_iff_of_isAdic`: `x ∈ closure q ↔ ∀ n, x ∈ q + I^n`.
+  - `Ideal.isClosed_of_le_jacobson`: for noetherian `R`, `[IsAdic I]`,
+    `I ≤ Jacobson ⊥` ⟹ every ideal is closed (Krull's intersection
+    theorem via `Ideal.iInf_pow_smul_eq_bot_of_le_jacobson`).
+  - `Ideal.isClosed_of_isAdicComplete`: corollary via
+    `IsAdicComplete.le_jacobson_bot`.
+- **Transfer bridges**:
+  - `IsClosed.of_isClosed_subspace_of_isOpen_subring`: generic
+    subring-to-ambient closedness lift (open subring is clopen).
+  - `isClosed_image_of_isClosed_subspace_in_locSubring` (`Cor832.lean`):
+    Tate-specific specialization to locSubring ⊆ Loc.Away D.s.
+- **Closure combinator**:
+  - `coeRingHom_preserves_proper_of_closed`: given proper `q` closed in
+    `D.topology`, derives `Ideal.map coeRingHom q ≠ ⊤` via T-IDEAL-1 +
+    `IsUniformInducing.isInducing` + `IsInducing.closure_eq_preimage_closure_image`.
 
-### [T-IDEAL-2] Closedness via Artin-Rees (NEW ATTACK SURFACE, 2026-04-18)
+**Remaining sub-tickets** (all Tate-specific, no Bourbaki):
 
-- **Status**: open, **no longer blocked** — reviewer guidance flips
-  this from Bourbaki-dependent to Artin-Rees-tractable.
-- **Target statement**: for `q : Ideal (Localization.Away D.s)` proper
-  (`q ≠ ⊤`), `Ideal.map D.coeRingHom q ≠ ⊤` in `presheafValue D`.
-  Equivalently (via T-IDEAL-1 DONE): f.g. ideals of `Localization.Away D.s`
-  are closed in its localization topology.
-- **Reviewer strategy (Artin-Rees on the ring of definition)**:
-  1. Descend from `A_s = Localization.Away D.s` to the **ring of
-     definition** `𝔇 := D.P.A₀[D.T / D.s]` with ideal `J := D.P.I · 𝔇`.
-     `𝔇` is a topologically finite type algebra over `A₀`, hence also
-     noetherian (Wedhorn's t.f.t. algebras preserve noetherian rings
-     of definition — cited but may need porting).
-  2. Given `q ⊆ A_s` with f.g. generators, its intersection `q_𝔇 := q ∩ 𝔇`
-     is a f.g. `𝔇`-submodule of `𝔇`.
-  3. **Artin-Rees** (Mathlib: `Ideal.isAdic`, `Ideal.isAdic.add_right`,
-     and [Stacks 00IN](https://stacks.math.columbia.edu/tag/00IN))
-     gives that the `J`-adic topology on `𝔇` induces the `J`-adic
-     topology on `q_𝔇` — i.e., `q_𝔇` is `J`-adically closed in `𝔇`.
-  4. Lift to `A_s = 𝔇[1/π]` where `π` is the pseudo-uniformizer: the
-     localization topology on `A_s` has basis `J^m · A_s`, and every
-     element of `A_s` is `π^{-n} · d` with `d ∈ 𝔇`. So closedness of
-     `q_𝔇` in `𝔇` + clearing powers of `π` gives closedness of
-     `q = q_𝔇[1/π]` in `A_s`.
-  5. Apply T-IDEAL-1 (DONE) to get `1 ∉ closure(coeRingHom '' q)` in
-     `presheafValue D`, hence `Ideal.map coeRingHom q ≠ ⊤`.
-- **Scope / unlocked sub-tickets**:
-  - **S-IDEAL-A** — noetherianness of `𝔇 = A₀[T/s]` (topologically
-    finite type over noetherian base). Possibly already in Mathlib via
-    `Algebra.FinitelyGenerated`.
-  - **S-IDEAL-B** — Artin-Rees application: identify Mathlib's
-    `Ideal.iInf_pow_smul_eq_bot_of_le_jacobson_bot` or equivalent.
-  - **S-IDEAL-C** — lift `J`-adic closedness in `𝔇` to localization-
-    topology closedness in `A_s = 𝔇[1/π]`.
-  - **S-IDEAL-D** — assembly: chain (S-IDEAL-A) + (S-IDEAL-B) +
-    (S-IDEAL-C) into `coeRingHom_preserves_proper`.
-- **Unlocks**: Part 1 of `tateAcyclicity` via
-  `productRestriction_injective_tate_via_coeRingHom_preserves_proper`
-  (Cor 8.32 chain, already proved modulo this residual).
-- **Est. lines**: ~200-300 (no Bourbaki port needed).
-- **Key references**: Stacks 00IN (Artin-Rees); Bosch LFRG Prop 6.4/8
-  (formal-function-style arguments, cited by Zavyalov App A); the
-  existing Mathlib `IsAdic` API.
+#### S-IDEAL-JAC: `locIdeal ≤ Jacobson(⊥)` in `locSubring`
 
-### [T-GEOM-RED] Minimal geometric reduction (Hübner Lemma 3.8 / Wedhorn 8.33)
+- **Target statement**:
+  ```lean
+  theorem locIdeal_le_jacobson_bot (P : PairOfDefinition A) (T : Finset A)
+      (s : A) (hopen : ...) :
+    locIdeal P T s ≤ Ideal.jacobson (⊥ : Ideal (locSubring P T s))
+  ```
+- **Mathematical content**:
+  - `locIdeal P T s = P.I · locSubring` (roughly — check exact def at
+    `LocalizationTopology.lean:87`).
+  - Elements of `P.I` are topologically nilpotent in `A` (since `I`
+    generates the ideal of definition for the Tate topology, whose
+    powers form a basis of 0-neighborhoods; equivalently, `π ∈ P.I`
+    topologically nilpotent in A).
+  - The inclusion `locSubring → Loc.Away s` is continuous, so images of
+    topologically nilpotent elements are topologically nilpotent.
+  - Topologically nilpotent elements lie in `Jacobson ⊥` (standard
+    lemma: for `x` top-nilp, `1 - x·y` is a unit for every `y` via
+    geometric series `Σ (x·y)^n`; hence `x ∈ Jacobson`).
+- **Mathlib hooks**:
+  - Search for `IsTopologicallyNilpotent.mem_jacobson` or similar.
+  - If absent: prove from scratch (~15 lines via geometric series).
+- **Lean skeleton**:
+  ```lean
+  intro x hx
+  rw [Ideal.mem_jacobson_iff]
+  intro y
+  -- Goal: ∃ z, z * (1 - x·y) = 1
+  -- Show x is topologically nilpotent in locSubring.
+  have hx_tn : IsTopologicallyNilpotent x := ...
+  -- Apply geometric-series unit lemma.
+  exact (hx_tn.mul y).isUnit_one_sub.exists_left_inv
+  ```
+- **Estimated lines**: 30-50.
+- **Status**: OPEN, immediately actionable.
 
-- **Status**: new ticket (2026-04-18), replacing T-NULL-7 on the
-  critical path.
-- **Reviewer framing**: Hübner's Lemma 3.8 says: if exactness holds
-  for *every* simple Laurent covering of *every* rational open, the
-  pair is sheafy and acyclic. This isolates the decisive local input
-  as what T-OV-1 + T-OVERLAP-COMPAT + `laurentCover_gluing_presheaf`
-  already provide.
-- **Task**: port the minimum geometric reduction from Hübner / Wedhorn
-  8.33. This is **not** the full Wedhorn Prop 7.14 (adic
-  Nullstellensatz) — only the reduction step that converts
-  "exactness on every simple Laurent cover" to "exactness on every
-  finite rational cover."
-- **Reference**: Hübner, *Adic spaces* (arXiv 2405.06435), Lemmas 3.7
-  and 3.8. Note that Lemma 3.8's proof still goes through standard
-  rational / Laurent refinements — the geometric reduction front is
-  not eliminated, just clarified.
-- **Est. lines**: TBD. Likely shorter than a full Prop 7.14 port
-  because the target is weaker.
+#### S-IDEAL-LOC: `q_𝔇 · A_s = q` + closedness transfer
 
-### [T-NULL-7] Wedhorn Prop 7.14 (adic Nullstellensatz) — SUPERSEDED by T-GEOM-RED
+- **Target**: given a proper ideal `q ⊆ Localization.Away D.s`, show
+  `q = (q ∩ locSubring) · Loc.Away D.s` as sets, and that closedness of
+  `q ∩ locSubring` in locSubring's adic topology ⟹ closedness of `q`
+  in Loc.Away D.s's localization topology.
+- **Wedhorn reference**: §8.2 localization topology definition. Every
+  `x ∈ Loc.Away D.s` can be written `x = π^{-n} · d` with `d ∈ locSubring`
+  (via `IsLocalization.mk'` + clearing denominators); this parameterizes
+  the "localization structure" of Loc.Away over locSubring.
+- **Reviewer's route** (Q1 expansion): "every element of `A_s` is
+  `π^{-n} d` with `d ∈ 𝔇`, and the localization topology has basis
+  `J^m · A_s`; so closedness of `q_𝔇` in `𝔇` lifts to closedness of
+  `q = q_𝔇[1/π]` in `A_s` by clearing a power of `π`."
+- **Two sub-claims**:
+  1. **Localization identity**: `q = (q ∩ locSubring) · Loc.Away D.s`
+     (as subsets). One direction is `⊆`: `x ∈ q` ⟹ `∃ n, π^n · x ∈ locSubring`,
+     and `π^n · x ∈ q ∩ locSubring`, so `x = π^{-n} · (π^n · x) ∈
+     (q ∩ locSubring) · Loc.Away D.s`. Other direction: ideal-closure.
+  2. **Topological transfer**: if `q ∩ locSubring` is closed in
+     locSubring (J-adic), the ideal `(q ∩ locSubring) · Loc.Away D.s`
+     is closed in Loc.Away D.s (localization topology).
+     
+     The second sub-claim is the technically subtle piece. Sketch: for
+     `x ∉ q`, write `x = π^{-n} d` with `d ∉ q ∩ locSubring`. Since
+     `q ∩ locSubring` is closed, there's an open `V ∋ d` (in
+     `locSubring` subspace topology) disjoint from `q ∩ locSubring`.
+     Then `π^{-n} · V` is a neighborhood of `x` in Loc.Away D.s,
+     disjoint from `q`.
+- **Mathlib hooks**:
+  - `IsLocalization.Away.lift` / `Localization.Away`.
+  - Subspace topology + multiplication by unit is homeomorphism.
+  - May need to prove that `π^{-n} : Loc.Away → Loc.Away` (left
+    multiplication) is continuous and open — easy since π is a unit.
+- **Estimated lines**: 80-150.
 
-- **Status**: blocked.
-- **Task**: close `hZavyalov` hypothesis in `refines_by_standard_cover`
-  (`StandardCover.lean:640`) unconditionally. Reference: Wedhorn Prop 7.14
-  / Lemma 7.44.
-- **Blocker analysis (2026-04-17)**: the dependency chain reduces T-NULL-7
-  to the **same upstream obstruction as T-IDEAL-2**:
-  1. `hZavyalov` needs a finite `S ⊆ A` satisfying the three refinement
-     clauses.
-  2. Zavyalov's construction produces `S := T.image (σ⁻¹ · ·)` via Cor 7.32
-     applied to a no-common-zero family `T ⊆ A` on `Spa A A⁺`.
-  3. For `T` to exist with `Ideal.span T = ⊤` **in `A`**, we need the
-     `spanTop_iff_noCommonZero_spa` equivalence (StandardCover.lean:310),
-     which requires `[IsAdicComplete P.I P.A₀]` on **`A` itself** —
-     not satisfied in general (only `presheafValue` is complete).
-  4. The A-level span-top is available from a completion-level span-top
-     only via `coeRingHom_preserves_proper` transfer — **= T-IDEAL-2**
-     (Bourbaki CA III §2.8).
-  5. Separately, Cor 7.32 (`exists_dominating_unit`) requires
-     `MulArchimedean` on all `Spv A` value groups, an additional
-     signature incompatibility with `tateAcyclicity`.
-- **Consequence**: T-NULL-7 and T-IDEAL-2 are not independent; both are
-  downstream of the Bourbaki port. No parallel leverage between them.
-- **Unlocks**: clean Part 2 closing via T-ACYC-PART2.
-- **Estimated lines**: ~300+ **on top of** Bourbaki + MulArchimedean
-  removal.
+#### S-IDEAL-ASM: end-to-end assembly
 
-### [T-BAIRE] `restrictionMap_isLocalization` / sigma surj — NOT STARTED
+- **Target**: discharge the `coeRingHom_preserves_proper` hypothesis in
+  `productRestriction_injective_tate_via_coeRingHom_preserves_proper`.
+- **Assembly**:
+  1. Given `q : Ideal (Loc.Away D.s)`, `q ≠ ⊤`.
+  2. Let `q_𝔇 := q ∩ locSubring` (as ideal of locSubring).
+  3. Apply S-IDEAL-JAC + `Ideal.isClosed_of_le_jacobson` on locSubring
+     to conclude `q_𝔇` is closed in locSubring.
+  4. Apply S-IDEAL-LOC to conclude `q` is closed in Loc.Away D.s.
+  5. Apply `coeRingHom_preserves_proper_of_closed` ⟹ result.
+- **Estimated lines**: 30.
 
-- **Status**: off the Route-B critical path (we use bridges, not sigma surj).
-- **File**: `Adic spaces/PresheafTateStructure.lean:1208`.
-- **Task**: Baire-category argument for the sigma surjection, a.k.a.
-  Wedhorn Prop 8.15.
-- **Estimated lines**: ~200+.
+**Total T-IDEAL-2 remaining**: ~140-230 lines. No Bourbaki needed.
 
-## Infrastructure already landed (no sorries)
+### [T-GEOM-RED] Geometric reduction (Hübner Lemma 3.8 / Wedhorn 8.34)
 
-| File | Lines | Content |
+**Target**: build Part 2's `hV_glue` input from
+`laurentCover_gluing_presheaf` by induction on the standard-cover size,
+then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
+
+**Landed** (`GeometricReduction.lean`, 248 lines, 0 sorry):
+- `tateAcyclicity_gluing_via_refinement_cover_level` — corrected variant
+  of the unsound `tateAcyclicity_gluing_via_refinement`, exposing the
+  proper cover-level `hE_sep` hypothesis from `gluing_of_finer_rational`.
+- `RationalCovering.plusDatum C f := laurentPlusDatum C.base f` +
+  `plusDatum_subset_base`.
+- `RationalCovering.standardCoverVCovers C S = S.image C.plusDatum`
+  (uses `Classical.decEq (RationalLocData A)`) +
+  `mem_standardCoverVCovers` + `standardCoverVCovers_subset_base`.
+
+**Remaining sub-tickets**:
+
+#### S-GEOM-TAU: τ refinement map + containment
+
+- **Target**: `RationalCovering.standardCoverVTau` (construct via
+  `Classical.choose` on `hS_contain`) + `standardCoverVTau_subset`.
+- **Current blocker**: Lean 4 `DecidableEq` instance diamond between
+  `Classical.propDecidable` (used implicitly by `noncomputable def
+  laurentPlusDatum`) and explicit `[DecidableEq A]`. `rfl` fails on
+  `(laurentPlusDatum D₀ f).T = insert f D₀.T` even though values agree.
+- **Fix path**: add `@[simp] laurentPlusDatum_T_eq` in
+  `LaurentRefinement.lean` proved via `Finset.ext` on membership
+  (bypasses diamond; see reviewer note below).
+- **Reviewer's alternative**: state τ's subset claim at the
+  `rationalOpen` (Set Spv A) level rather than Finset level, since
+  valuation membership doesn't depend on `Finset.instInsert`.
+- **Estimated lines**: ~30 (once projection helper lands).
+
+#### S-GEOM-BASE: base case `|S.elts| = 1`
+
+- **Target**: when `S.elts = {f}` with `Ideal.span {f} = ⊤` (so
+  `f ∈ Aˣ`), build `hV_glue` for the singleton V-cover `{C.plusDatum f}`.
+- **Mathematical content**: the unique plus-piece
+  `rationalOpen (insert f C.base.T) C.base.s` equals
+  `rationalOpen C.base.T C.base.s` as a set (when `f` is a unit + the
+  usual normalization `1 ∈ C.base.T` makes `v(s) ≥ 1 ≥ v(f)` tractable).
+  Gluing becomes trivial: the compatible family has one element which
+  IS the global section.
+- **Care needed**: the set equality isn't literally immediate; may need
+  a lemma "insert of a unit doesn't restrict rational open" or similar.
+- **Estimated lines**: 40-60.
+
+#### S-GEOM-IND: inductive step
+
+- **Target**: given `hV_glue` for standard covers of size `n`, derive
+  for size `n+1`.
+- **Strategy** (Wedhorn 8.34 / Hübner 3.7):
+  1. Given `S.elts` with `n+1` elements, pick `f₀ ∈ S.elts`. The
+     remaining `S.elts \ {f₀}` has `n` elements but may not span ⊤ in `A`.
+     However, in `A[f₀⁻¹]` (Laurent-minus at f₀) and
+     `A[unit·f₀-boundable]` (Laurent-plus at f₀), the remaining
+     elements DO span appropriately (since `f₀` inverted).
+  2. Laurent-split `rationalOpen C.base.T C.base.s` at `f₀` into
+     `rationalOpen_plus(f₀)` and `rationalOpen_minus(f₀)`.
+  3. Each half is a rational covering `C_±` of a sub-base, refined by
+     `S.elts \ {f₀}` (adjusted).
+  4. Apply the induction hypothesis on each half.
+  5. Apply `laurentCover_gluing_presheaf` (sorry-free modulo T-OV-1) at
+     `f₀` to combine the two half-sections into a global section on
+     `C.base`.
+- **Complications**:
+  - Sub-cover adjustment (step 3) requires the standard-cover span-top
+    property to be preserved under restriction — subtle but handleable.
+  - Compatibility transfer across the Laurent split — mechanical but
+    fiddly.
+- **Estimated lines**: 150-250.
+
+#### S-GEOM-ASM: Part 2 final assembly
+
+- **Target**: close `LaurentRefinement.lean:3737` via:
+  - `RationalCovering.refines_by_standard_cover` to produce standard cover
+    refinement.
+  - S-GEOM-BASE + S-GEOM-IND to produce hV_glue.
+  - S-GEOM-TAU to construct τ.
+  - `tateAcyclicity_gluing_via_refinement_cover_level` with cover-level
+    hE_sep (from T-IDEAL-2 applied locally).
+- **Dependency on T-NULL-7** (adic Nullstellensatz — previously thought
+  needed): `refines_by_standard_cover` takes `hZavyalov` as a
+  hypothesis. **Bypass options**:
+  1. Direct Laurent recursion (no standard-cover reduction — requires a
+     different formulation of the induction).
+  2. Port a minimal version of Prop 7.14 that gives `hZavyalov`
+     unconditionally (this IS T-NULL-7).
+  3. Use Hübner Lemma 3.8's packaging (still requires refinement
+     geometry, but possibly simpler inputs).
+- **Preliminary assessment**: option (1) looks most tractable if we
+  directly iterate Laurent splits rather than go through a global
+  standard cover. Wedhorn 8.34's proof may in fact be doing option
+  (1) implicitly.
+- **Estimated lines**: 50 + (possibly 100-200 more for the hZavyalov
+  bypass).
+
+**Total T-GEOM-RED remaining**: 270-550 lines (depending on hZavyalov
+strategy).
+
+### [T-ACYC-PART2] Final Part 2 assembly
+
+- **Target**: close `LaurentRefinement.lean:3737`.
+- **Depends on**: T-OV-1 + T-OVERLAP-COMPAT + T-GEOM-RED + T-IDEAL-2.
+- **Estimated lines**: 50 (composition).
+
+---
+
+## 4. Retired tickets
+
+### [T-INJ-1] `restrictionMapHom_injective` — RETIRED (2026-04-18)
+
+Reviewer counterexample proves the unconditional form false. The Route A
+NZD scaffolds in `PresheafTateStructure.lean` have been removed (2026-04-18).
+Sorry at `:1322` stays. Part 1 routes through cover-level Cor 8.32.
+
+### [T-NULL-7] Full Wedhorn Prop 7.14 — REDUCED TO S-GEOM-ASM bypass
+
+Full adic Nullstellensatz not needed. Minimal input for S-GEOM-ASM is
+a direct Laurent-recursion bypass (option 1 above) OR a narrow-scope
+`hZavyalov` discharge specific to the induction context.
+
+### [T-BAIRE] `restrictionMap_isLocalization` / Wedhorn Prop 8.15 — OFF CRITICAL PATH
+
+Not needed on the Route-B closure path. Kept sorry'd.
+
+---
+
+## 5. Execution plan — next sessions
+
+### Immediate (session N+1)
+
+Three fully-independent parallel tracks; no shared files:
+
+**Track 1**: T-OV-1 Step A main theorem (S-OV-GLUE). ~200 lines.
+  File: `Adic spaces/LaurentOverlap.lean`.
+
+**Track 2**: T-IDEAL-2 / S-IDEAL-JAC + S-IDEAL-LOC. ~150-200 lines.
+  File: `Adic spaces/IdealClosedness.lean` + `Cor832.lean`.
+
+**Track 3** (me): T-GEOM-RED / S-GEOM-TAU + S-GEOM-BASE. ~90 lines.
+  Files: minor helper in `LaurentRefinement.lean`;
+  main work in `GeometricReduction.lean`.
+
+### Session N+2 (consolidation)
+
+- T-IDEAL-2 / S-IDEAL-ASM (~30 lines): closes Part 1 outright.
+- T-OVERLAP-COMPAT (~80 lines): closes `laurentCover_gluing_presheaf`.
+- T-GEOM-RED / S-GEOM-IND (~200 lines): the heavy induction.
+
+### Session N+3 (endgame)
+
+- T-GEOM-RED / S-GEOM-ASM including hZavyalov bypass (~100-250 lines).
+- T-ACYC-PART2 (~50 lines): final Part 2 assembly.
+- Post-close audit: `#print axioms ValuationSpectrum.tateAcyclicity`
+  must show no `sorryAx` or custom axioms.
+
+**Total remaining**: ~700-1200 lines across three sessions, assuming no
+unexpected blockers.
+
+---
+
+## 6. Infrastructure inventory
+
+All 0 sorry, build-clean:
+
+| File | Lines | Role |
 |---|---|---|
-| `Cor832.lean` | 1357 | Full Cor 8.32 framework, reduced to `coeRingHom_preserves_proper` residual. T-IDEAL-1 (`one_mem_closure_coeRingHom_image`) at `:1289`. |
-| `Example638.lean` | 1501 | Generic Example 6.38 plus + minus equivs (`example638Plus_equiv`, `example638Minus_equiv`). |
-| `StandardCover.lean` | 733 | `refines_by_standard_cover` modulo `hZavyalov` hypothesis. |
+| `Cor832.lean` | 1457 | Cor 8.32 full framework + closure combinator (T-IDEAL-2 additions). |
+| `Example638.lean` | 1501 | Generic Example 6.38 (plus + minus) over any complete strongly noetherian Tate base. |
+| `LaurentOverlap.lean` | 634 | Example 6.39 Step B + Step A infrastructure (T-OV-1 landed parts). |
+| `IdealClosedness.lean` | 181 | Krull-based closedness + clopen-subring lift. |
+| `GeometricReduction.lean` | 248 | Cover-level refinement theorem + V-covers bridge (T-GEOM-RED landed parts). |
+| `StandardCover.lean` | 733 | `refines_by_standard_cover` modulo hZavyalov. |
 | `ValuationSpectrumCompact.lean` | 1035 | `CompactSpace (Spv A)` (Huber port). |
-| `SpaCompact.lean` | 460 | `CompactSpace ↥(Spa A A⁺)` (discrete + Tate cases). |
-| `Cor732.lean` | 292 | Wedhorn Cor 7.32 — dominating unit. |
-| `RationalRefinement.lean` | — | `separation_of_finer_rational`, `gluing_of_finer_rational`. |
-| `LaurentRefinement.lean` | 3819 | Bridge chain (plus, minus, their `_restrictionMap` companions), Lemma 2.13 iterated equivs, `laurentBridge_delta_eq_zero_of_compat`. |
+| `SpaCompact.lean` | 460 | `CompactSpace ↥(Spa A A⁺)` (discrete + Tate). |
+| `Cor732.lean` | 292 | Wedhorn Cor 7.32 dominating unit. |
+| `RationalRefinement.lean` | 172 | `separation_of_finer_rational`, `gluing_of_finer_rational`. |
+| `LaurentRefinement.lean` | 3819 | Bridge chain + Lemma 2.13 + delta-vanishing. |
+| `LaurentCoverExact.lean` | 1650 | `row3_exact` algebraic core. |
 
-Bridge chain status (all 0 sorry apart from the 2 noted above):
-- `laurentPlusBridge`, `laurentMinusBridge`: DONE.
-- `laurentPlusBridge_restrictionMap`, `laurentMinusBridge_restrictionMap`: DONE.
-- `presheafValue_iteratedPlus_equiv`, `presheafValue_iteratedMinus_equiv`: DONE.
-- `laurentCover_gluing_presheaf`: proved modulo `laurentOverlapBridge_exists_compatible` (the T-OVERLAP-COMPAT sorry).
+### Bridge chain (all 0 sorry aside from overlap bridge)
 
-## Recently completed (session log, newest first)
+- `laurentPlusBridge`, `laurentMinusBridge`: ✅ DONE.
+- `laurentPlusBridge_restrictionMap`, `laurentMinusBridge_restrictionMap`: ✅ DONE.
+- `presheafValue_iteratedPlus_equiv`, `presheafValue_iteratedMinus_equiv`: ✅ DONE.
+- `laurentCover_gluing_presheaf`: ✅ modulo `laurentOverlapBridge_exists_compatible`.
 
-- **2026-04-17**: T-OV-1 **Step B closed** (Wedhorn Lemma 8.33 p.83 pure-algebra
-  core): `bivariateOverlap_equiv_B₁₂gen` in `Adic spaces/LaurentOverlap.lean`,
-  giving `TateAlgebra₂ B / (b - X, 1 - b·Y) ≃+* B₁₂_gen b` via ideal-equality
-  (`bivariateOverlap_ideal_eq`) + third-iso-theorem. 0 sorry, axiom-clean
-  (`propext, Classical.choice, Quot.sound` only). Residual for T-OV-1 is Step A
-  (bivariate evalHom from `TateAlgebra₂ B` to `presheafValue(overlap)`).
-- **2026-04-18**: T-INJ-1 Route A presheafValue-level torsion bridge —
-  added `ker_torsion_of_restrictionMapHom_torsion` in
-  `PresheafTateStructure.lean`. Transports the `h_ker_torsion`
-  obligation across the Example 6.38 iso, reducing it to a
-  **presheafValue-level** torsion bound on `restrictionMapHom`
-  (native habitat of `away_lift_torsion_bounded`,
-  `CompletionLocalization.lean:173`). Proof: match
-  `D₀.canonicalMap D.s ↦ mk(algebraMap D.s)` via
-  `presheafValue_tateAlgebra_quotient_iso_canonicalMap` and transport
-  the torsion identity across `e_{D₀}` using `RingEquiv.map_pow` and
-  `map_mul`. Axiom-clean (same trace as existing scaffolds).
-- **2026-04-18**: T-INJ-1 Route A closure — added
-  `restrictionMapHom_injective_via_Ds_nzd_and_ker_torsion` in
-  `PresheafTateStructure.lean` (after
-  `restrictionMapHom_injective_via_Φ_inj`). Closes
-  `restrictionMapHom_injective` conditional on two purely algebraic
-  inputs: (1) `h_Ds_nzd` — `mk(algebraMap D.s) ∈ nonZeroDivisors T_{D₀}`,
-  and (2) `h_ker_torsion` — every element of `ker Φ` is killed by some
-  power of `mk(algebraMap D.s)`. Proof: powers of an NZD remain NZD, so
-  `ker Φ ⊆ r^N·T_{D₀}-torsion = 0`. Axiom trace matches existing
-  infrastructure.
-- **2026-04-17**: T-INJ-1 Route A scaffold — added
-  `restrictionMapHom_injective_via_Φ_inj` in `PresheafTateStructure.lean`
-  (after `mk_D₀s_mem_nonZeroDivisors`). Fully conjugates by the Example
-  6.38 iso on BOTH source (`D₀`) and target (`D`), reducing the sorry to
-  injectivity of the concrete ring hom `Φ : T_{D₀} → T_D` between
-  Tate-algebra quotients. Axiom trace matches
-  `restrictionMapHom_injective_via_iso` (no new dependencies). The
-  residual `h_Φ_inj` is now the purely algebraic target for Route A,
-  standardly reducible to `mk(algebraMap D.s) ∈ nonZeroDivisors T_{D₀}`.
-- **2026-04-17**: T-OV-1 scaffold — created `Adic spaces/LaurentOverlap.lean`
-  with `overlapDatum` definition, basic unfolding lemmas, and composition-route
-  proof roadmap. Integrated into `Adic spaces.lean` import chain. 0 sorry.
-  Ticket status: IN PROGRESS; composition steps 1–4 documented as a roadmap
-  for future sessions.
-- **2026-04-17**: Docs refresh — `plan.md` and `tickets.md` rewritten to
-  match codebase state (commit `e75dd6f`).
-- **2026-04-16**: T-IDEAL-1 closed (`one_mem_closure_coeRingHom_image`,
-  topological approximation, commit `6a5f891`).
-- **2026-04-16**: Cor 8.32 abstract framework + reduction chain to
-  `coeRingHom_preserves_proper`.
-- **2026-04-16**: T-INJ-NZD (`mk(D₀.s)` is unit in `A⟨X⟩/(1-D.s·X)` under
-  iso-hypotheses — half of T-INJ-1 Route A).
-- **2026-04-15/16**: Wedhorn Prop 6.18 port
-  (`tateQuotientToPresheafHom_continuous_of_tate`, unconditional).
-- **2026-04-15**: R3 complete (`example638Plus_equiv`,
-  `example638Minus_equiv` generic). Extracted to `Example638.lean` to
-  break import cycle.
-- **2026-04-15**: R1 scaffolded (`refines_by_standard_cover`,
-  `StandardCover.lean`).
-- **Q3-STEP2/2A/2C/2D**: Wedhorn Lemma 2.13 iterated rational
-  identification — DONE.
-- **T-PLUS/MINUS-FWD/BWD-PB**: all power-boundedness obligations for
-  iterated-rational forward/backward locHoms — DONE.
-- **T-WEDHORN-1** (`productRestriction_injective_tate` packaging),
-  **T-NULL-0/0a/1** (Spa/Spv compactness + Cor 7.32): DONE.
+---
 
-## Parallelism analysis (revised 2026-04-18)
+## 7. Notes and reminders
 
-Three independent fronts, all without the Bourbaki blocker:
+- **Signature of `tateAcyclicity` must NOT change**. No new hypotheses
+  (no `[IsDomain A]`, no `[DiscreteTopology A]`, no `hZavyalov`, no
+  `MulArchimedean`, no `[IsAdicComplete]`).
+- `presheafValue_pairOfDefinition_concrete` (`PresheafTateStructure.lean`)
+  gives the `P_B.A₀ = presheafValue_ringOfDef D₀` definitional equality
+  needed when instantiating Example 6.38 at `B := presheafValue D₀`.
+- `LaurentNormalized` typeclass needs an instance for
+  `laurentPlusDatum D₀ f` when T-OV-1 composition route is used.
+- Historical plans `docs/plans/2026-04-14-*` and
+  `docs/plans/2026-04-16-*` are superseded; current critical-path
+  planning lives in this file.
+- **Key Wedhorn references**:
+  - Prop 6.17: closed ideals in noetherian Tate rings.
+  - Prop 8.2: base-change Nullstellensatz.
+  - Example 6.38: univariate presheaf-value iso.
+  - Example 6.39: bivariate presheaf-value iso (= T-OV-1).
+  - Lemma 8.31: flatness of Tate algebra quotients.
+  - Cor 8.32: product restriction faithfully flat.
+  - Lemma 8.33: Laurent 2-cover exact row.
+  - Lemma 8.34: geometric reduction (= T-GEOM-RED).
+  - Thm 8.28(b): Tate acyclicity (= final target).
+- **Key Hübner references**:
+  - `arXiv 2405.06435`, Lemma 3.7 / 3.8: simple-Laurent input suffices.
 
-1. **Local/simple Laurent algebra front**:
-   - T-OV-1 Step A (IN PROGRESS) → T-OVERLAP-COMPAT →
-     `laurentCover_gluing_presheaf` sorry-free.
-   - Purely algebraic-topological. Composition route confirmed by
-     reviewer.
-2. **Ring-of-definition / Artin-Rees front**:
-   - T-IDEAL-2 via Artin-Rees on `𝔇 = A₀[T/s]` (NEW ATTACK).
-   - Unblocks Part 1 via
-     `productRestriction_injective_tate_via_coeRingHom_preserves_proper`
-     (already proved conditional on `coeRingHom_preserves_proper`).
-   - No Bourbaki dependency; uses Mathlib's existing `IsAdic` /
-     Artin-Rees API.
-3. **Geometric reduction front**:
-   - T-GEOM-RED (Hübner Lemma 3.8 / Wedhorn 8.33) — reduce arbitrary
-     finite rational covers to simple Laurent covers.
-   - Independent of the other two.
+---
 
-**T-ACYC-PART2 (Part 2 assembly)** needs all three fronts.
-**Part 1** needs only front 2.
+## 8. Session log (newest first)
 
-## Retired / superseded tickets (2026-04-18)
-
-- **T-INJ-1 Route A** (algebraic NZD on source): RETIRED. Reviewer
-  counterexample shows single-map injectivity is false.
-- **T-NULL-7** (full Wedhorn Prop 7.14): SUPERSEDED by T-GEOM-RED
-  (only the minimal reduction is needed, not full Nullstellensatz).
-- **Bourbaki CA III §2.8 port**: no longer on critical path — Artin-Rees
-  on the ring of definition supersedes it.
-
-## Suggested execution order (revised 2026-04-18)
-
-1. **T-OV-1 Step A** (in progress, composition route): finish bivariate
-   Example 6.38 — topology. Blocker for T-OVERLAP-COMPAT.
-2. **T-IDEAL-2 via Artin-Rees** (NEW): prove `coeRingHom_preserves_proper`
-   via Artin-Rees on `𝔇 = A₀[T/s]`. Unblocks Part 1.
-3. **T-OVERLAP-COMPAT** (after T-OV-1): ~80 lines.
-4. **T-GEOM-RED** (parallel with 2): Hübner Lemma 3.8 port.
-5. **Part 1 rewrite**: invoke
-   `productRestriction_injective_tate_via_coeRingHom_preserves_proper`
-   at `LaurentRefinement.lean:3695` (after step 2).
-6. **T-ACYC-PART2**: final assembly (after 1-5).
-
-## Notes and reminders
-
-- Signature of `tateAcyclicity` must NOT change (no new hypotheses, no
-  `[IsDomain A]`, no `[DiscreteTopology A]`, no `hZavyalov`,
-  no `MulArchimedean`).
-- `_pairOfDefinition_concrete` API (`PresheafTateStructure.lean`) gives
-  the `P_B.A₀ = presheafValue_ringOfDef D₀` definitional equality needed
-  when threading Example 6.38 at `B := presheafValue D₀`.
-- For T-OV-1 composition route, the `LaurentNormalized` typeclass on
-  `laurentPlusDatum D₀ f` needs an instance; check
-  `LaurentRefinement.lean` for the existing `LaurentNormalized` instances.
-- The historical `docs/plans/2026-04-14-acyclicity-completion.md` is
-  superseded for critical-path planning; see its §"2026-04-15
-  reviewer-guided plan revision" for the R1-R7 roadmap that's now ~80%
-  landed.
+- **2026-04-18** (T-GEOM-RED, me): new file `GeometricReduction.lean`;
+  `tateAcyclicity_gluing_via_refinement_cover_level` (corrected variant) +
+  `plusDatum` + `standardCoverVCovers` + bridge helpers. DecidableEq
+  diamond blocking τ documented with workaround.
+- **2026-04-18** (T-IDEAL-2, worker): major landing —
+  `IdealClosedness.lean` with Krull-based closedness + subring-lift
+  bridge. `coeRingHom_preserves_proper_of_closed` closure combinator +
+  `isClosed_image_of_isClosed_subspace_in_locSubring` Tate-specific
+  bridge added to `Cor832.lean`. T-IDEAL-2 ~80% landed; remaining:
+  S-IDEAL-JAC + S-IDEAL-LOC.
+- **2026-04-18** (T-OV-1, worker): Step A infrastructure — foundational
+  power-boundedness lemmas + half-forward evalHoms
+  (`overlap_plus_forwardHom`, `overlap_minus_forwardHom`) +
+  symm-direction action lemmas for Step B. Main Step A theorem
+  (S-OV-GLUE) still pending.
+- **2026-04-18** (T-INJ-1, retirement): false Route A scaffolds removed
+  per reviewer counterexample.
+- **2026-04-18** (tickets): incorporated AI reviewer's three
+  architectural corrections.
+- **2026-04-17** (T-OV-1): Step B closed (Wedhorn p.83 pure-algebra core).
+- **2026-04-16**: T-IDEAL-1 `one_mem_closure_coeRingHom_image` landed.
+  Cor 8.32 abstract framework. Wedhorn Prop 6.18 port for hcont_eval.
+- **Earlier**: Example 6.38 generic, Lemma 2.13 iterated rational,
+  Cor 7.32, Spa/Spv compactness, bridge chain.
