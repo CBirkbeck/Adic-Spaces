@@ -168,16 +168,20 @@ theorem RationalCovering.standardCoverVCovers_subset_base
 /-! **TODO (next incremental step)**: construct the refinement map
 `τ : standardCoverVCovers → C.covers` from `hS_contain` (clause 2 of
 `refines_by_standard_cover`) and prove it respects rational-open
-containment. The construction is a Classical.choose on `f ∈ S.elts`;
-the containment proof needs bridging the definitional projections from
-`laurentPlusDatum` (i.e. `(laurentPlusDatum D₀ f).T = insert f D₀.T`
-and `(laurentPlusDatum D₀ f).s = D₀.s`), which don't reduce via `rfl`
-even after `unfold` (Lean 4 reducibility of `noncomputable def ... where`
-struct bodies is fragile). Recommended workaround for a follow-up
-session: state these T/s projection equalities in `LaurentRefinement.lean`
-directly (next to `laurentPlusDatum`), tagged `@[simp]`, so they're
-available transparently everywhere downstream. Similarly for
-`laurentMinusDatum`. -/
+containment. Definition via `Classical.choose` is straightforward;
+the containment proof hits a Lean 4 `DecidableEq` instance diamond
+(the `T` field of `laurentPlusDatum` is built using
+`Classical.propDecidable` since `laurentPlusDatum` is `noncomputable`,
+but downstream theorems use explicit `[DecidableEq A]` instances; the
+two `Finset.instInsert` instances aren't syntactically equal, so
+`rfl` fails even where the values agree).
+
+**Recommended workaround for a follow-up session**: prove the `T`
+projection equality `(laurentPlusDatum D₀ f).T = insert f D₀.T` via
+`Finset.ext` on membership (which doesn't depend on `DecidableEq`)
+and tag it `@[simp]`. Alternatively, state the τ subset claim at
+the `rationalOpen` level rather than the `Finset` level (membership
+of valuations doesn't depend on the `insert` DecidableEq either). -/
 
 /-! ## Roadmap: Laurent-cover induction for `hV_glue`
 
