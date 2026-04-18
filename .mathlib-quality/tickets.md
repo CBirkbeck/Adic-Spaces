@@ -455,35 +455,150 @@ Not needed on the Route-B closure path. Kept sorry'd.
 
 ## 5. Execution plan — next sessions
 
-### Immediate (session N+1)
+### 5.1 Parallelism matrix
 
-Three fully-independent parallel tracks; no shared files:
+Each row is a sub-ticket. Columns show which files it touches; rows
+with **disjoint** file sets can run concurrently.
 
-**Track 1**: T-OV-1 Step A main theorem (S-OV-GLUE). ~200 lines.
-  File: `Adic spaces/LaurentOverlap.lean`.
+| Sub-ticket | Primary file(s) touched | Can parallel with | Depends on |
+|---|---|---|---|
+| **S-OV-GLUE** | `LaurentOverlap.lean` | S-IDEAL-JAC, S-IDEAL-LOC, S-GEOM-TAU, S-GEOM-BASE | — |
+| **S-IDEAL-JAC** | `IdealClosedness.lean` | all below (disjoint files) | — |
+| **S-IDEAL-LOC** | `IdealClosedness.lean` or new helper | S-OV-GLUE, S-GEOM-* | — |
+| **S-GEOM-TAU** | `LaurentRefinement.lean` (1-2 projections) + `GeometricReduction.lean` | S-OV-GLUE, S-IDEAL-* | — |
+| **S-GEOM-BASE** | `GeometricReduction.lean` | S-OV-GLUE, S-IDEAL-* | S-GEOM-TAU (shares file; serialize within GeometricReduction.lean) |
+| **S-IDEAL-ASM** | `Cor832.lean` | all Part-2 work | S-IDEAL-JAC + S-IDEAL-LOC |
+| **T-OVERLAP-COMPAT** | `LaurentRefinement.lean:3173` | all (single-site edit) | S-OV-GLUE |
+| **S-GEOM-IND** | `GeometricReduction.lean` | S-IDEAL-*, S-OV-GLUE | S-GEOM-TAU + S-GEOM-BASE + `laurentCover_gluing_presheaf` sorry-free (i.e., T-OVERLAP-COMPAT landed) |
+| **S-GEOM-ASM** | `LaurentRefinement.lean:3737` | — | everything above |
+| **T-ACYC-PART2** | `LaurentRefinement.lean:3737` | — | S-GEOM-ASM |
 
-**Track 2**: T-IDEAL-2 / S-IDEAL-JAC + S-IDEAL-LOC. ~150-200 lines.
-  File: `Adic spaces/IdealClosedness.lean` + `Cor832.lean`.
+**Conflict hazards** to watch when running workers concurrently:
 
-**Track 3** (me): T-GEOM-RED / S-GEOM-TAU + S-GEOM-BASE. ~90 lines.
-  Files: minor helper in `LaurentRefinement.lean`;
-  main work in `GeometricReduction.lean`.
+- Two workers editing `LaurentRefinement.lean` at the same time will
+  collide (it's a 3819-line file shared by many tickets). To safely
+  parallelize, serialise any edit within it. Currently only S-GEOM-TAU
+  needs ~5 lines there (projection simp lemmas next to
+  `laurentPlusDatum`); land that in a focused 1-commit PR first.
+- `Cor832.lean` is similarly shared; S-IDEAL-ASM is the only new
+  insertion, so it goes last.
 
-### Session N+2 (consolidation)
+### 5.2 Suggested session cadence
 
-- T-IDEAL-2 / S-IDEAL-ASM (~30 lines): closes Part 1 outright.
-- T-OVERLAP-COMPAT (~80 lines): closes `laurentCover_gluing_presheaf`.
-- T-GEOM-RED / S-GEOM-IND (~200 lines): the heavy induction.
+### Session N+1 (widest parallelism — 3 concurrent workers)
 
-### Session N+3 (endgame)
+Three fully-independent parallel tracks; **no file conflicts**:
 
-- T-GEOM-RED / S-GEOM-ASM including hZavyalov bypass (~100-250 lines).
-- T-ACYC-PART2 (~50 lines): final Part 2 assembly.
-- Post-close audit: `#print axioms ValuationSpectrum.tateAcyclicity`
-  must show no `sorryAx` or custom axioms.
+- **Track 1 (~200 lines)** — T-OV-1 **S-OV-GLUE**:
+  `Adic spaces/LaurentOverlap.lean` only.
+- **Track 2 (~150-200 lines)** — T-IDEAL-2 **S-IDEAL-JAC + S-IDEAL-LOC**:
+  `Adic spaces/IdealClosedness.lean` (+ possibly a small new helper
+  file). No edits to `Cor832.lean` yet.
+- **Track 3 (~90 lines)** — T-GEOM-RED **S-GEOM-TAU + S-GEOM-BASE**:
+  small `laurentPlusDatum_T_ext` helper in `LaurentRefinement.lean`
+  first, then body work in `GeometricReduction.lean`.
 
-**Total remaining**: ~700-1200 lines across three sessions, assuming no
-unexpected blockers.
+### 🧹 **CLEANUP CHECKPOINT C1** (end of session N+1, before session N+2)
+
+Before starting session N+2, execute a focused cleanup pass:
+
+1. **Audit transitive `sorryAx` dependencies**: after S-OV-GLUE lands,
+   `lean_verify ValuationSpectrum.laurentCover_gluing_presheaf` — should
+   show only upstream sorryAx, no new axioms introduced by the three
+   tracks.
+2. **Rebuild + full test**: `lake build` from clean (`lake clean && lake build`).
+   Fail hard on any new warning in the three touched files.
+3. **Line budget check**: if any of Track 1 / Track 2 / Track 3 exceeded
+   its estimate by >50%, pause and review — the divergence often signals
+   an unrecognized blocker.
+4. **Golf pass on the three new closers** (optional): each new theorem
+   `S-OV-GLUE`, `S-IDEAL-JAC`, `S-IDEAL-LOC` is a candidate for 30-40%
+   compression via `lean4-proof-golfer` — do this before downstream
+   code pins the current form.
+5. **Retire obsolete scaffolding**: if any intermediate "conditional"
+   lemmas landed to unblock the tracks (e.g., an earlier hypothesis
+   form of `coeRingHom_preserves_proper_of_closed`), remove those
+   whose call sites all now use the unconditional form.
+6. **Tickets refresh**: mark S-OV-GLUE, S-IDEAL-JAC, S-IDEAL-LOC,
+   S-GEOM-TAU, S-GEOM-BASE status; update session log.
+
+### Session N+2 (consolidation — 2 concurrent workers)
+
+- **Track A (~30 lines)** — T-IDEAL-2 **S-IDEAL-ASM**:
+  closes Part 1 outright via the Cor 8.32 chain. Sole file: `Cor832.lean`.
+- **Track B (~80 lines)** — **T-OVERLAP-COMPAT**:
+  closes `laurentCover_gluing_presheaf` (sorry at `LaurentRefinement.lean:3173`).
+  Sole file: `LaurentRefinement.lean` (the sorry at :3173).
+- **Serial (~200 lines, after Track B)** — T-GEOM-RED **S-GEOM-IND**:
+  the heavy induction; depends on `laurentCover_gluing_presheaf` being
+  sorry-free, so must start **after** Track B lands. File:
+  `GeometricReduction.lean`.
+
+### 🧹 **CLEANUP CHECKPOINT C2** (end of session N+2)
+
+1. **Part 1 closure audit**: `#print axioms` on the Part 1 conjunct of
+   `tateAcyclicity` via a test lemma. Must show only standard axioms
+   after S-IDEAL-ASM lands — no `sorryAx`.
+2. **Dead-code sweep**: `restrictionMapHom_injective` at
+   `PresheafTateStructure.lean:1322` — now that Part 1 doesn't depend
+   on it, either (a) delete the sorry'd theorem if no callers use it,
+   or (b) add an `opaque`/`axiom` marker explaining it's the
+   retired-false statement kept for historical reference only.
+3. **Test the Laurent-cover gluing path end-to-end**: after
+   T-OVERLAP-COMPAT, write a smoke test invoking
+   `laurentCover_gluing_presheaf` on a concrete small example to
+   confirm it type-checks without sorryAx.
+4. **Docstring refresh**: update docstrings on
+   `laurentCover_gluing_presheaf`, `tateAcyclicity_gluing_via_refinement_cover_level`
+   to remove "modulo T-OV-1" / "unsound variant" language now that
+   these are dischargeable.
+5. **Golf pass on S-GEOM-IND** before it's used by S-GEOM-ASM.
+
+### Session N+3 (endgame — serial)
+
+- T-GEOM-RED **S-GEOM-ASM** including hZavyalov bypass
+  (~100-250 lines). This is the hardest remaining piece; the hZavyalov
+  bypass may require a small Laurent-recursion helper.
+- **T-ACYC-PART2** (~50 lines): final composition into the Part 2
+  closure at `LaurentRefinement.lean:3737`.
+
+### 🧹 **CLEANUP CHECKPOINT C3** (close-out audit)
+
+1. **`lake build`** from clean: must succeed, 0 new warnings.
+2. **`#print axioms ValuationSpectrum.tateAcyclicity`**: must show
+   **only** `propext, Classical.choice, Quot.sound`. Any `sorryAx`
+   means an upstream sorry is transitively depended upon — trace and
+   fix.
+3. **Sorry inventory**: `awk '/^[[:space:]]*sorry[[:space:]]*$/'` must
+   report only off-path sorries (PresheafTateStructure:1208,
+   StructureSheaf:1096, Presheaf:720, Tilting 2). No Tate-core
+   sorries on critical path.
+4. **Retire transitional helpers**: many of the "conditional" theorems
+   in `Cor832.lean` (`productRestriction_injective_tate_of_flat_and_lifting`,
+   `_via_cor832`, `_via_hSpa_points`, `_via_lifted_ideal_proper`,
+   `_via_coeRingHom_preserves_proper`) become redundant once
+   `tateAcyclicity` is unconditional — audit call sites, keep only
+   what's externally consumed.
+5. **Docstring-level documentation pass** across the six new files
+   (`LaurentOverlap`, `IdealClosedness`, `GeometricReduction`,
+   `Example638`, `Cor832` additions, and the bridge chain closures).
+6. **Tickets final archive**: this file moves from "active plan" to
+   "completion log" — mark T-OV-1, T-OVERLAP-COMPAT, T-IDEAL-2,
+   T-GEOM-RED, T-ACYC-PART2 all DONE. Retain the session log as a
+   historical artifact.
+7. **Optional**: `lean4-proof-golfer` pass on the new key theorems
+   (`tateAcyclicity` itself, `coeRingHom_preserves_proper`,
+   `example638Bivariate_equiv`).
+8. **Downstream propagation check**: `isSheafy_ofStronglyNoetherianTate_flat`
+   (`StructureSheaf.lean:1069`) depends on `tateAcyclicity`; verify it
+   now closes (or at least that its remaining sorries are unrelated
+   to the Tate-core critical path).
+
+### 5.3 Total effort
+
+**~700-1200 lines across 3 sessions**, assuming no unexpected blockers.
+Cleanup checkpoints C1 and C2 are budgeted ~1-2 hours each; C3 is a
+half-session audit.
 
 ---
 
