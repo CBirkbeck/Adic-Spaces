@@ -109,6 +109,76 @@ theorem tateAcyclicity_gluing_via_refinement_cover_level
       restrictionMap C.base E.1 (C.hsubset E.1 E.2) x = fC E :=
   gluing_of_finer_rational C V_covers hV_subset τ hτ fC hC_compat hV_glue hE_sep
 
+/-! ### Bridge from `refines_by_standard_cover` to the V_covers data
+
+A `StandardCover A` produced by `refines_by_standard_cover` gives
+`S.elts : Finset A` with span-top plus two existence clauses (covering
+the base, containment in `C.covers`). To feed this into
+`tateAcyclicity_gluing_via_refinement_cover_level` we need to convert
+it into a `V_covers : Finset (RationalLocData A)` together with its
+refinement map `τ`.
+
+The plus-piece at each `f ∈ S.elts` is represented by `laurentPlusDatum
+C.base f : RationalLocData A`, whose rational open equals
+`rationalOpen (insert f C.base.T) C.base.s` by definitional unfold.
+The helpers below package this construction.  -/
+
+/-- The plus-piece rational data for an element `f` relative to a
+rational covering `C`: exactly `laurentPlusDatum C.base f`. Its
+`rationalOpen` equals `rationalOpen (insert f C.base.T) C.base.s`.
+Introduced as an `abbrev` so projections (`.T`, `.s`) reduce transparently. -/
+noncomputable abbrev RationalCovering.plusDatum (C : RationalCovering A)
+    (f : A) : RationalLocData A :=
+  laurentPlusDatum C.base f
+
+/-- Each plus-piece `C.plusDatum f` is contained in `C.base`'s rational
+open — by `laurentPlus_subset`. -/
+theorem RationalCovering.plusDatum_subset_base (C : RationalCovering A) (f : A) :
+    rationalOpen (C.plusDatum f).T (C.plusDatum f).s ⊆
+      rationalOpen C.base.T C.base.s :=
+  laurentPlus_subset C.base f
+
+/-- The V-covers finset built from a standard-cover refinement: the image
+of `S.elts` under `C.plusDatum`. Uses `Classical.decEq` since
+`RationalLocData A` does not carry decidable equality in general. -/
+noncomputable def RationalCovering.standardCoverVCovers
+    (C : RationalCovering A) (S : Finset A) :
+    Finset (RationalLocData A) :=
+  letI : DecidableEq (RationalLocData A) := Classical.decEq _
+  S.image C.plusDatum
+
+omit [HasLocLiftPowerBounded A] in
+/-- Membership in `standardCoverVCovers`: an element `D` is in the V-covers
+iff it equals `C.plusDatum f` for some `f ∈ S`. -/
+theorem RationalCovering.mem_standardCoverVCovers
+    (C : RationalCovering A) (S : Finset A) {D : RationalLocData A} :
+    D ∈ C.standardCoverVCovers S ↔ ∃ f ∈ S, C.plusDatum f = D := by
+  letI : DecidableEq (RationalLocData A) := Classical.decEq _
+  show D ∈ (S.image C.plusDatum) ↔ _
+  exact Finset.mem_image
+
+/-- Each element of `standardCoverVCovers S` is contained in `C.base`. -/
+theorem RationalCovering.standardCoverVCovers_subset_base
+    (C : RationalCovering A) (S : Finset A) (D : RationalLocData A)
+    (hD : D ∈ C.standardCoverVCovers S) :
+    rationalOpen D.T D.s ⊆ rationalOpen C.base.T C.base.s := by
+  obtain ⟨f, _, rfl⟩ := (C.mem_standardCoverVCovers S).mp hD
+  exact C.plusDatum_subset_base f
+
+/-! **TODO (next incremental step)**: construct the refinement map
+`τ : standardCoverVCovers → C.covers` from `hS_contain` (clause 2 of
+`refines_by_standard_cover`) and prove it respects rational-open
+containment. The construction is a Classical.choose on `f ∈ S.elts`;
+the containment proof needs bridging the definitional projections from
+`laurentPlusDatum` (i.e. `(laurentPlusDatum D₀ f).T = insert f D₀.T`
+and `(laurentPlusDatum D₀ f).s = D₀.s`), which don't reduce via `rfl`
+even after `unfold` (Lean 4 reducibility of `noncomputable def ... where`
+struct bodies is fragile). Recommended workaround for a follow-up
+session: state these T/s projection equalities in `LaurentRefinement.lean`
+directly (next to `laurentPlusDatum`), tagged `@[simp]`, so they're
+available transparently everywhere downstream. Similarly for
+`laurentMinusDatum`. -/
+
 /-! ## Roadmap: Laurent-cover induction for `hV_glue`
 
 The next step in closing T-GEOM-RED is to build `hV_glue` for a
