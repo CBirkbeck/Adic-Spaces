@@ -51,7 +51,7 @@ Build succeeds (3090 jobs).
 | **Lemma 8.31** (flat) ∘ **Ex 6.38** ⟹ **Cor 8.32** | product restriction faithfully flat | ✅ framework; residual = `coeRingHom_preserves_proper` |
 | **Cor 8.32** ⟹ Part 1 | via `productRestriction_injective_tate_via_coeRingHom_preserves_proper` | ✅ modulo T-IDEAL-2 |
 | **Lemma 8.33** | Laurent 2-cover exact row | ✅ algebraic core + bridge chain, modulo T-OV-1 |
-| **Lemma 8.34** / **Hübner 3.8** | geometric reduction to arbitrary rational covers | ⏳ T-GEOM-RED: refinement theorem ✅, induction pending |
+| **Lemma 8.34** / **Hübner 3.8** | geometric reduction to arbitrary rational covers | ✅ T-GEOM-RED/S-GEOM-ASM API complete (2026-04-20) modulo Lane A (T-OV-1) + Lane B (T-IDEAL-2) + T-NULL-PER-E general case |
 | **Theorem 8.28(b)** | Part 1 + Part 2 assembly | ⏳ T-ACYC-PART2 |
 
 ### 1.4 2026-04-18 reviewer's architectural corrections (reminder)
@@ -397,33 +397,44 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
     fiddly.
 - **Estimated lines**: 150-250.
 
-#### S-GEOM-ASM: Part 2 final assembly
+#### S-GEOM-ASM: Part 2 final assembly — ✅ API COMPLETE (2026-04-20)
 
-- **Target**: close `LaurentRefinement.lean:3737` via:
-  - `RationalCovering.refines_by_standard_cover` to produce standard cover
-    refinement.
-  - S-GEOM-BASE + S-GEOM-IND to produce hV_glue.
-  - S-GEOM-TAU to construct τ.
-  - `tateAcyclicity_gluing_via_refinement_cover_level` with cover-level
-    hE_sep (from T-IDEAL-2 applied locally).
-- **Dependency on T-NULL-7** (adic Nullstellensatz — previously thought
-  needed): `refines_by_standard_cover` takes `hZavyalov` as a
-  hypothesis. **Bypass options**:
-  1. Direct Laurent recursion (no standard-cover reduction — requires a
-     different formulation of the induction).
-  2. Port a minimal version of Prop 7.14 that gives `hZavyalov`
-     unconditionally (this IS T-NULL-7).
-  3. Use Hübner Lemma 3.8's packaging (still requires refinement
-     geometry, but possibly simpler inputs).
-- **Preliminary assessment**: option (1) looks most tractable if we
-  directly iterate Laurent splits rather than go through a global
-  standard cover. Wedhorn 8.34's proof may in fact be doing option
-  (1) implicitly.
-- **Estimated lines**: 50 + (possibly 100-200 more for the hZavyalov
-  bypass).
-
-**Total T-GEOM-RED remaining**: 270-550 lines (depending on hZavyalov
-strategy).
+- **Status**: the S-GEOM-ASM caller API is fully landed via the
+  **direct per-E route** in `GeometricReduction.lean`:
+  - **Core assembly**: `tateAcyclicity_Part2_direct_per_E` (axiom-clean
+    modulo upstream `sorryAx`) — consumes
+    `StandardCover.refines_cover_per_E C S`, `refines_contain C S`,
+    `hV_glue_refined` (Lane A), and `hE_sep_direct` on the per-E
+    local covering (Lane B).
+  - **Caller wrapper**: `tateAcyclicity_Part2_via_hZavyalov_per_E_direct`
+    — takes `hZavyalov_per_E` + universal Lane A/B suppliers, extracts
+    `S` via `StandardCover.refines_by_standard_cover_per_E`, applies
+    the core assembly.
+  - **Upstream supplier**:
+    `StandardCover.RationalCovering.refines_by_standard_cover_per_E`
+    strengthens `refines_by_standard_cover` to produce
+    `refines_cover_per_E`.
+- **Historical τ-route**: `tateAcyclicity_Part2_assembly`,
+  `tateAcyclicity_Part2_via_refined_geometric_reduction`,
+  `tateAcyclicity_Part2_via_geometric_reduction` — kept for reference,
+  marked superseded in docstrings; new code should use the direct
+  per-E route.
+- **Remaining external blockers** (not in this lane):
+  * **Lane A** = T-OV-1 / T-OVERLAP-COMPAT. Discharges
+    `hV_glue_refined` via `laurentCover_gluing_presheaf`
+    (`LaurentRefinement.lean:3173`).
+  * **Lane B FF residual** = T-IDEAL-2 / per-E Cor 8.32 via
+    `productRestriction_injective_tate_via_prime_extension_closed`
+    (`Cor832.lean:1581`) at each `per_E_local_covering`. Discharges
+    `hE_sep_direct`.
+  * **T-NULL-PER-E general case** = Wedhorn Prop 7.14 / Zavyalov §2.3.
+    Discharges `hZavyalov_per_E` for multi-piece covers (for single-piece
+    covers, `exists_nullstellensatz_refinement_per_E_of_singleton_cover`
+    provides a concrete supplier — landed 2026-04-20).
+- **Lines landed**: ~700 lines in `GeometricReduction.lean` +
+  ~200 lines in `StandardCover.lean` (refined V-cover infrastructure,
+  per-E local covering, direct per-E assembly, caller wrapper,
+  singleton Nullstellensatz discharge, extensive docs).
 
 ### [T-ACYC-PART2] Final Part 2 assembly
 
@@ -441,11 +452,150 @@ Reviewer counterexample proves the unconditional form false. The Route A
 NZD scaffolds in `PresheafTateStructure.lean` have been removed (2026-04-18).
 Sorry at `:1322` stays. Part 1 routes through cover-level Cor 8.32.
 
-### [T-NULL-7] Full Wedhorn Prop 7.14 — REDUCED TO S-GEOM-ASM bypass
+### [T-NULL-7 / T-NULL-PER-E] Wedhorn Prop 7.14 — REDUCED, with decomposition
 
-Full adic Nullstellensatz not needed. Minimal input for S-GEOM-ASM is
-a direct Laurent-recursion bypass (option 1 above) OR a narrow-scope
-`hZavyalov` discharge specific to the induction context.
+Full adic Nullstellensatz not needed for S-GEOM-ASM API: `hZavyalov`
+(and the strengthened `hZavyalov_per_E`) are passed as explicit
+hypotheses to the caller wrapper. The general case is progressively
+reduced via landed Lean infrastructure:
+
+**Prop 7.14 fragments available** (already proved):
+* `spanTop_iff_noCommonZero_spa` (`StandardCover.lean` line ~460) —
+  ✅ the ideal↔Spa-cover equivalence (both directions, under
+  `PairOfDefinition` + `[IsAdicComplete]`). This IS Prop 7.14's
+  content in Lean-usable form.
+* `exists_dominating_unit_from_covering` — ✅ Cor 7.32 wrapper.
+* `exists_spa_point_with_supp_ge_of_prime` — ✅ Lemma 7.45 + open-prime
+  dispatcher.
+* `refines_span_top_image_unit_mul` — ✅ unit-rescaling preserves
+  span-top.
+
+**Landed 2026-04-20 (T-NULL-PER-E session)**:
+* **`exists_refines_cover_per_E_of_per_D_construction`** — decomposition
+  lemma reducing the general case to **per-D data**. Given
+  `mk_S_D : RationalLocData A → Finset A` with per-D local
+  containment + per-D local coverage + combined span-top, produces
+  `refines_cover_per_E C S ∧ refines_contain C S ∧ refines_span_top S`
+  where `S := C.covers.biUnion mk_S_D`. Axiom-clean (only standard
+  Lean constructive axioms).
+* **`hZavyalov_per_E_of_per_D_construction`** — wrapper supplying the
+  `rationalOpen ≠ ∅ → ∃ S, ...` shape for
+  `refines_by_standard_cover_per_E` input. Axiom-clean.
+* **`exists_nullstellensatz_refinement_per_E_of_singleton_cover`** —
+  singleton-cover case: produces `hZavyalov_per_E` from weaker
+  `hZavyalov`. Axiom-clean (landed earlier).
+
+**Remaining external content**: the actual per-D family construction
+`mk_S_D : RationalLocData A → Finset A`.
+
+**Reviewer's C1/C2/C3 decomposition** (2026-04-20):
+
+* **C1 — Local standard neighborhood at `v ∈ D`**: for each
+  `D ∈ C.covers` and each `v ∈ rationalOpen D.T D.s`, produce a
+  single `f ∈ A` with `v ∈ rationalOpen (insert f C.base.T) C.base.s`
+  AND `rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen D.T
+  D.s`. **Status**: PARTIAL — standard-shape case landed 2026-04-20;
+  general case remains Wedhorn §8.34 / Zavyalov §2.3 core content.
+
+  **Landed helpers** (`StandardCover.lean`, axiom-clean):
+  - `exists_single_f_refinement_of_standardShape` — pointwise single-`f`
+    discharge when `D` already has the shape
+    `R(D.T, D.s) = R(insert f₀ C.base.T, C.base.s)`. Base case of the
+    Wedhorn §8.34 reduction.
+  - `rationalOpen_eq_biInter_insert_union` — structural identity
+    `R(F ∪ T, s) = (⋂ f ∈ F, R(insert f T, s)) ∩ R(T, s)`. Records
+    that multi-`F` shape is the joint intersection of plus-pieces.
+  - `per_D_construction_of_standardShape` — assembles per-`D` data
+    `h_in_D`/`h_cover_D` for `exists_refines_cover_per_E_of_per_D_construction`
+    when every `D ∈ C.covers` has standard shape witnessed by
+    `f_D : RationalLocData A → A`.
+  - `exists_refines_cover_per_E_of_standardShape` — full
+    `hZavyalov_per_E` discharge for standard-shape covers. Inputs:
+    `f_D` witness per piece + unit-ideal span of combined family.
+    **This reduces the FULL T-NULL-PER-E obligation to supplying
+    `f_D` per piece plus span-top.**
+
+  **What remains external (arbitrary → standard cover reduction)**:
+  for a general `D ∈ C.covers` with `D.T` of arbitrary size, single-`f`
+  form requires `f ∈ A` such that adding the single inequality
+  `w.vle f C.base.s` encodes ALL the `D.T`-constraints jointly. This
+  cannot be done by product or sum (valuation theory); requires the
+  Cor 7.32 dominating-unit + Prop 7.14 Nullstellensatz candidate-family
+  construction. The multi-`F` shape (several constraints) is achievable
+  from Wedhorn 7.34-style data but does NOT match the single-`f` shape
+  in `refines_cover_per_E`.
+
+  **Escalation packet (PARKED 2026-04-20, awaiting review)**:
+  See `.mathlib-quality/chatgpt-packet-zavyalov-c1.md` for the
+  full-context packet targeting ChatGPT Pro / external reviewer.
+  Contents:
+  - Final Lean goal (`hZavyalov_per_E` shape) and the
+    `refines_cover_per_E` single-`f` obligation.
+  - Complete list of landed infrastructure (assembly, standard-shape
+    helpers, C2, C3, Cor 7.32, rational-open APIs, Nullstellensatz
+    equivalence).
+  - Precise obstruction (why product/sum candidates fail; why multi-`F`
+    does not plug in directly to `refines_cover_per_E`).
+  - Six concrete questions: Zavyalov §2.3 formula for `f_{D, i}`;
+    whether single-`f` is genuinely necessary or multi-`F` + collapse
+    suffices for Hübner/Wedhorn; how Cor 7.32's per-point dominating
+    unit yields uniform global containment; which Prop 7.14 /
+    Nullstellensatz fragments (beyond `spanTop_iff_noCommonZero_spa`)
+    Zavyalov uses; Lean-friendly lemma boundaries (candidate shapes
+    L1/L2/L3); staged approach for `|D.T| = 0, 1, ≥2`.
+
+  **Parked until external review supplies the formula.** Do NOT keep
+  guessing in Lean without a reviewed mathematical plan.
+* **C2 — Finite extraction via quasi-compactness**: ✅ **LANDED
+  2026-04-18** in `SpaCompact.lean` via the Bool-cylinder route.
+
+  **Correction (2026-04-18 audit)**: An earlier version of this
+  ticket claimed C2 follows from `basicOpen_isClopen` + compactness
+  of `Spa`. That was WRONG in this topology. The SpaCompact preamble
+  explicitly states `{v | v.vle a 1} = basicOpen a 1` is OPEN, NOT
+  CLOSED in `Spv A`. The correct route uses clopen CYLINDERS in the
+  Bool product, not closedness of basic opens in Spv.
+
+  **Landed theorems** (`SpaCompact.lean`, no sorries, axiom-clean):
+  - `image_ιSpv_bool_rationalOpen` — the identity
+    `ιSpv_bool '' rationalOpen T s = (range ιSpv_bool ∩ S) ∩
+     ({r | r(s,s) = true} ∩ ⋂_{t ∈ T} {r | r(t,s) = true})`.
+    Key input: `v ∈ basicOpen t s ↔ ιSpv_bool v (t, s) = true`.
+  - `isCompact_rationalOpen_of_isClosed_image` — abstract form
+    parameterised by any closed `S` with
+    `ιSpv_bool '' Spa A A⁺ = range ιSpv_bool ∩ S`.
+  - `isCompact_preimage_rationalOpen_of_isClosed_image` — subtype
+    form `IsCompact (Subtype.val ⁻¹' rationalOpen T s :
+    Set ↥(Spa A A⁺))`, the shape consumed by downstream C2 users.
+  - `isCompact_preimage_rationalOpen_of_tate_pseudouniformizer` —
+    concrete Tate specialisation (matches hypotheses used throughout
+    the `tateAcyclicity` project). This is the C2 supplier for
+    T-NULL-PER-E.
+  - `isCompact_preimage_rationalOpen_of_discreteTopology` — discrete
+    specialisation (matches the project's "discrete case first"
+    design decision).
+
+  **Proof strategy**: (i) compute Bool image via `image_ιSpv_bool_rationalOpen`,
+  (ii) show closed in compact Bool product via `isClosed_coord_true`
+  on each cylinder + `isClosed_range_ιSpv_bool` + given `hS`,
+  (iii) transfer compactness via `continuous_boolToProp_pi` +
+  `ιSpv_isEmbedding.isCompact_iff`, (iv) `Subtype.image_preimage_val`
+  + `Set.inter_eq_right.mpr rationalOpen_subset_spa` for subtype form.
+  Does **not** rely on rational opens being closed in Spv A.
+
+  **Lines landed**: ~85 lines in `SpaCompact.lean` (abstract helper +
+  abstract theorem + subtype form + Tate specialisation + discrete
+  specialisation).
+* **C3 — Span-top via no-common-zero**: combine C1+C2 across all
+  `D ∈ C.covers` and apply `spanTop_iff_noCommonZero_spa`.
+  **Status**: ✅ `spanTop_iff_noCommonZero_spa` already proved
+  in `StandardCover.lean`.
+
+**Exact Lean targets for C1 and C2** documented in
+`StandardCover.lean` near `exists_refines_cover_per_E_of_per_D_construction`
+(in the "T-NULL-PER-E remaining content — reviewer's C1/C2/C3
+decomposition" doc block). C3 is fully discharge-able via existing
+API (`spanTop_iff_noCommonZero_spa`).
 
 ### [T-BAIRE] `restrictionMap_isLocalization` / Wedhorn Prop 8.15 — OFF CRITICAL PATH
 
@@ -660,6 +810,1080 @@ All 0 sorry, build-clean:
 
 ## 8. Session log (newest first)
 
+- **2026-04-20** (Stacks 00MA generic theorem landed, Primary): Land the
+  **Mathlib-compatible generic Stacks 00MA theorem** in a new project file
+  `Adic spaces/AdicCompletionFaithfullyFlat.lean` (99 lines).
+
+  **Landed**: `AdicCompletion.faithfullyFlat_of_le_jacobson_bot`. For any
+  Noetherian ring `R` and ideal `I ⊆ R` with `I ≤ Ideal.jacobson ⊥`,
+  proves `Module.FaithfullyFlat R (AdicCompletion I R)`. Fully sorry-free:
+  axioms `[propext, Classical.choice, Quot.sound]` (standard Mathlib).
+
+  **Proof strategy** (40 lines of pure Mathlib content):
+  1. Flatness via `AdicCompletion.flat_of_isNoetherian` (Mathlib,
+     `AsTensorProduct.lean:346`).
+  2. Maximal-ideal descent via `Ideal.smul_top_eq_map` (Mathlib) +
+     `Submodule.restrictScalars_eq_top_iff` (Mathlib) to reduce to
+     `Ideal.map (algebraMap R (AdicCompletion I R)) m ≠ ⊤`.
+  3. Apply `AdicCompletion.evalₐ I 1 : R^ → R/I` (Mathlib, `Algebra.lean:133`)
+     whose composition with `algebraMap R R^` is `Ideal.Quotient.mk I`
+     (via `AdicCompletion.evalₐ_of`).
+  4. `Ideal.map_map` + `Ideal.map_top` push `hm_top` through the composition
+     to `m.map (Ideal.Quotient.mk I) = ⊤` in `R/I`.
+  5. `Ideal.comap_map_quotientMk I m` (Mathlib, `Operations.lean:790`):
+     `comap (Quotient.mk I) (m.map (Quotient.mk I)) = I ⊔ m`, combined with
+     `Ideal.comap_top` gives `I ⊔ m = ⊤`.
+  6. `I ≤ Ideal.jacobson ⊥ ≤ m` (via `Ideal.jacobson_bot ▸
+     Ring.jacobson_le_of_isMaximal m`) gives `sup_eq_right.mpr hIm :
+     I ⊔ m = m`, so `m = ⊤`, contradicting `hm.ne_top`.
+
+  **Boundary documented in-file** at end of
+  `AdicCompletionFaithfullyFlat.lean`:
+
+  **What the theorem DOES NOT give for free**: the project's Lane B
+  residual needs `Module.FaithfullyFlat locSubring (AdicCompletion locIdeal
+  locSubring)`. Instantiating the generic theorem at
+  `R := locSubring D.P D.T D.s`, `I := locIdeal D.P D.T D.s` would require
+  `locIdeal ≤ Ideal.jacobson ⊥` in `locSubring` — **which is NOT
+  automatic** for uncompleted Tate localization rings (reviewer's explicit
+  warning).
+
+  **Open unconditional residual** (named explicitly, no sorry introduced):
+
+  ```lean
+  theorem locIdeal_le_jacobson_bot_unconditional
+      (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+      (D : RationalLocData A) [IsNoetherianRing (locSubring D.P D.T D.s)] :
+      locIdeal D.P D.T D.s ≤ Ideal.jacobson (⊥ : Ideal (locSubring D.P D.T D.s))
+  ```
+
+  The project has **conditional** versions but none unconditional:
+  * `locIdeal_le_jacobson_bot_of_isAdicComplete` — assumes locSubring
+    adic-complete (false in general).
+  * `locIdeal_le_jacobson_bot_of_ringOfDef_faithfullyFlat` — assumes FF
+    of locSubringToRingOfDef, which via `locSubringToRingOfDef_faithfullyFlat_of_residual`
+    needs Stacks 00MA with `I ≤ Jac` — circular.
+
+  **Circular-dependency diagram** identified this session:
+  ```
+  Stacks 00MA (my generic theorem)
+    + locIdeal ≤ Jac (unconditional, OPEN) → Module.FaithfullyFlat locSubring (AdicCompletion ...)
+       ↓ (locSubringToRingOfDef_faithfullyFlat_of_residual, my T-COMP-FF work)
+  FF of locSubringToRingOfDef
+       ↓ (locIdeal_le_jacobson_bot_of_ringOfDef_faithfullyFlat)
+  locIdeal ≤ Jac (conditional)
+  ```
+
+  All three statements are equivalent; to break the circle, one MUST prove
+  one of them unconditionally. The most plausible route is proving
+  `locIdeal ≤ Jac` directly from the Tate structure (topological nilpotence
+  of `P.I` + bounded-subring of locSubring + geometric-series unit
+  argument), without asserting any completeness or faithful-flatness.
+
+  **Files**: `Adic spaces/AdicCompletionFaithfullyFlat.lean` (new, 99 lines,
+  imported into `Adic spaces.lean` at position 2). No other files touched.
+
+  **Build**: `lake build «Adic spaces».AdicCompletionFaithfullyFlat` → EXIT 0,
+  clean. Full axiom check:
+  `AdicCompletion.faithfullyFlat_of_le_jacobson_bot` depends on
+  `[propext, Classical.choice, Quot.sound]` — **sorry-free**, no T001
+  leak (file doesn't touch `restrictionMap` or `HasLocLiftPowerBounded`).
+
+  **Next-session actionable**: work on `locIdeal_le_jacobson_bot_unconditional`
+  (the remaining Tate-specific ring-theoretic content). Candidate approach:
+  express `locIdeal ⊆ Ring.jacobson locSubring` via topologically nilpotent
+  elements + `Module.exists_topologicallyNilpotent_basis_of_pair_of_definition`
+  (project lemma `locIdeal_forall_isTopologicallyNilpotent` is landed).
+  Geometric series for units of the form `1 + xy` with `x ∈ locIdeal` top-nilp,
+  `y ∈ locSubring` arbitrary — needs convergence in locSubring, which
+  requires care (locSubring is not complete, so direct series argument
+  fails; may need to pass to completion via locSubringToRingOfDef, which
+  is ringOfDef-adic-complete, then pull back — needs FF... circularity
+  again).
+
+- **2026-04-20** (T-IDEAL-2 / S-IDEAL-ASM end-to-end Stacks-00MA wrapper,
+  Primary): Land the **conditional end-to-end `coeRingHom_preserves_proper`
+  via Stacks 00MA**, closing the T-IDEAL-2 assembly picture.
+
+  **Landed** (`Adic spaces/Cor832.lean`, 29 new lines):
+  `coeRingHom_preserves_proper_of_stacks00MA` (Cor832.lean:1861). Given
+  the Stacks 00MA faithful-flatness instance
+  `Module.FaithfullyFlat locSubring (AdicCompletion locIdeal locSubring)`
+  and a proper ideal `q ⊆ Localization.Away D.s`, produces
+  `Ideal.map D.coeRingHom q ≠ ⊤` (the `coeRingHom_preserves_proper`
+  shape). Composes:
+
+  1. `locSubringToRingOfDef_faithfullyFlat_of_residual`
+     (IdealLocalizationCompletion.lean:414, T-COMP-FF conditional):
+     Stacks-00MA → `RingHom.FaithfullyFlat (locSubringToRingOfDef D)`.
+  2. `Ideal.isClosed_in_locTopology_of_ringOfDef_faithfullyFlat`
+     (Cor832.lean:1786, S-IDEAL-JAC + S-IDEAL-LOC via Lane B descent):
+     FF hypothesis → `q` closed in `D.topology`.
+  3. `coeRingHom_preserves_proper_of_closed` (Cor832.lean:1420,
+     T-IDEAL-1 closure combinator): closed proper `q` → image proper.
+
+  **Full T-IDEAL-2 closure now visible in a single named theorem.**
+  Previously the assembly was spread across `productRestriction_injective_tate_of_ringOfDef_faithfullyFlat`
+  (cover-level), `Ideal.isClosed_in_locTopology_of_ringOfDef_faithfullyFlat`
+  (per-ideal closedness), and `coeRingHom_preserves_proper_of_closed`
+  (properness preservation). The new wrapper is the **per-ideal
+  endpoint** directly usable as `coeRingHom_preserves_proper` for any
+  downstream consumer.
+
+  **Audit of the existing T-IDEAL-2 landscape** (pre-existing, verified
+  this session):
+  - **S-IDEAL-JAC (conditional on FF)**: `locIdeal_le_jacobson_bot_of_ringOfDef_faithfullyFlat`
+    landed at Cor832.lean:1736. Pulls back `presheafValue_idealOfDef ≤ Jacobson ⊥`
+    (via `IsAdicComplete.le_jacobson_bot` applied to
+    `presheafValue_isAdicComplete`) through the FF of
+    `locSubringToRingOfDef`. **No `locSubring` adic-completeness asserted.**
+  - **S-IDEAL-JAC (unconditional direct)**: Not attempted — structurally
+    blocked without `locSubring` completeness (Tate topology has 0-nhd
+    basis of ideals of A₀, not of A; Krull witnesses from
+    `Ideal.mem_iInf_smul_pow_eq_bot_iff` are in A not A₀, so iteration
+    doesn't preserve ideal nhds). Same mathematical obstruction as
+    the parked non-domain Hübner H1.
+  - **S-IDEAL-LOC Step 1 (unit decomposition)**: `Localization.Away.exists_unit_locSubring_decomp`
+    (IdealLocalization.lean:81) landed sorry-free.
+  - **S-IDEAL-LOC Step 2 (clearing denominators)**:
+    `Localization.Away.mem_ideal_iff_clearing_denominator`
+    (IdealLocalization.lean:137) landed sorry-free.
+  - **S-IDEAL-LOC Step 3 (topological transfer)**:
+    `Ideal.isClosed_in_locTopology_of_contraction_isClosed_in_locSubring`
+    (IdealLocalization.lean:163) landed sorry-free.
+  - **S-IDEAL-ASM (closedness → properness)**:
+    `coeRingHom_preserves_proper_of_closed` (Cor832.lean:1420) landed
+    sorry-free (baseline axioms `[propext, Classical.choice, Quot.sound]`
+    — no T001 leak).
+
+  **Critical-path status after this session**: T-IDEAL-2 is **fully
+  structurally closed** modulo the single external Stacks 00MA residual.
+  The new `coeRingHom_preserves_proper_of_stacks00MA` is the cleanest
+  end-to-end witness. Any downstream consumer (e.g.,
+  `liftedIdeal_ne_top_of_coeRingHom_preserves_proper` Cor832.lean:1202
+  or `productRestriction_injective_tate_via_coeRingHom_preserves_proper`
+  Cor832.lean:1242) can discharge its `coeRingHom_preserves_proper`
+  hypothesis by providing the Stacks 00MA instance.
+
+  **Axiom hygiene** (ran post-build):
+  - `coeRingHom_preserves_proper_of_stacks00MA`:
+    `[propext, sorryAx, Classical.choice, Quot.sound]`. `sorryAx` is the
+    **pre-existing T001 leak** via `[HasLocLiftPowerBounded A]` →
+    `restrictionMap` → `spa_point_nonOpen_of_rational_subset`
+    (Presheaf.lean:807). Same leak as
+    `productRestriction_injective_tate_of_ringOfDef_faithfullyFlat` and
+    all other file-wide-variable theorems in Cor832.lean. **No new sorry
+    introduced this session.**
+  - `coeRingHom_preserves_proper_of_closed` (sibling, omits HasLocLift):
+    `[propext, Classical.choice, Quot.sound]` (baseline, clean).
+
+  **Files**: `Adic spaces/Cor832.lean` edited (29 new lines at the end,
+  immediately before `end ValuationSpectrum`). No other files touched.
+
+  **Build**: `lake build «Adic spaces».Cor832` → EXIT 0, clean
+  (only the pre-existing unused-variable warning on an unrelated theorem).
+
+- **2026-04-20** (T-OV-1 specialized Laurent-overlap quotient bridge,
+  outer evalHom + forward quotient hom + action lemmas landed, Primary):
+  Completed Steps 3, 4, and 5 of the forward direction for the specialized
+  Laurent-overlap quotient bridge in `Adic spaces/LaurentOverlap.lean`.
+  Focused build passes with zero sorries, only pre-existing unused-section-
+  variable warnings.
+
+  **Landed this increment** (7 new defs/theorems + 2 local instances):
+  1. `B₁_gen_nonarchimedeanRing` — extracted inline construction from
+     `Example638.lean:529` as named reusable theorem: `B₁_gen b` is a
+     nonarchimedean ring under `quotientPlusFSubXIdealTopology`. Uses
+     `NonarchimedeanRing.is_nonarchimedean` on the ambient `TateAlgebra B`
+     plus `QuotientRing.isOpenMap_coe` to push the open subgroup through
+     the quotient map.
+  2. `local instance B₁_gen_topologicalSpace` and
+     `local instance B₁_gen_nonarchimedeanRing_inst` — registered at section
+     level so downstream signatures can mention `TateAlgebra (B₁_gen b)`
+     without explicit `@` annotations or fragile `haveI`-in-type-signature
+     patterns.
+  3. `TA_B₁_gen_to_bivariateOverlap_outer_evalHom` — outer evalHom
+     `TA(B₁_gen b) →+* TA₂ B ⧸ bivariateOverlapIdeal b` built via
+     `TateAlgebraWedhorn.evalHomBounded` with base =
+     `baseHom_B₁_gen_to_bivariateOverlap` and target element =
+     `mk TateAlgebra₂.Y`. Takes `hcont_base` as an explicit hypothesis
+     (mirroring `example638Plus_equiv.hcont_forward` pattern).
+  4. `TA_B₁_gen_to_bivariateOverlap_outer_evalHom_algebraMap` — action on
+     constants: `outer_evalHom (algebraMap α) = baseHom α` for
+     `α : B₁_gen b`. Via `tsum_eq_single 0` + `MvPowerSeries.coeff_C`.
+  5. `TA_B₁_gen_to_bivariateOverlap_outer_evalHom_X` — action on outer
+     `TateAlgebra.X`: equals `mk TateAlgebra₂.Y`. Via `tsum_eq_single 1` +
+     `MvPowerSeries.coeff_X`.
+  6. `TA_B₁_gen_to_bivariateOverlap_outer_evalHom_oneSub_eq_zero` — kernel
+     lemma: the outer ideal generator `1 - Ybar · X_out` maps to 0. Via
+     ring manipulation `X·Y - 1 = -(1 - algMap b · Y) - (-Y)(algMap b - X)`
+     expressing the difference as a linear combination of the two
+     `bivariateOverlapIdeal` generators.
+  7. `outerLaurentOverlapIdeal` — `1 - Ybar · X_out` ideal definition.
+  8. `TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom` — factored forward
+     hom `TA(B₁_gen b) ⧸ outerLaurentOverlapIdeal b →+*
+     TA₂ B ⧸ bivariateOverlapIdeal b`, via `Ideal.Quotient.lift` on the
+     outer evalHom with kernel discharged by lemma (6).
+  9. `TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom_mk_algebraMap_mk_algebraMap`,
+     `_mk_algebraMap_mk_X`, `_mk_X` — three action lemmas describing the
+     forward quotient hom on generators:
+     * `mk_outer(algMap(mk_inner(algMap a)))` ↦ `mk(algMap a)`.
+     * `mk_outer(algMap(mk_inner(TateAlgebra.X)))` ↦ `mk TateAlgebra₂.X`.
+     * `mk_outer(TateAlgebra.X)` ↦ `mk TateAlgebra₂.Y`.
+     Each proved via `change _ = _; rw [Ideal.Quotient.lift_mk, outer_evalHom_...]`
+     — mirroring `example638Bivariate_forwardHom_mk_algebraMap` pattern.
+
+  **Specialized bridge status (updated)**:
+  - First-stage forward: ✅ landed (prior increment).
+  - Factor through `plusFSubXIdeal b`: ✅ landed (prior increment).
+  - Outer `evalHomBounded` on `TA(B₁_gen b)`: ✅ landed.
+  - Factor through outer `(1 - Ybar · X_out)` ideal: ✅ landed.
+  - Forward quotient action lemmas on generators: ✅ landed.
+  - Backward `TA₂ B → TA(B₁_gen b) ⧸ outerLaurentOverlapIdeal b` via
+    `evalHomBounded₂`: pending. Plan: base hom
+    `a ↦ mk_outer(algMap(mk_inner(algMap a)))`, target elements
+    `mk_outer(algMap(mk_inner(X)))` (for TA₂.X) and `mk_outer(TA.X)` (for
+    TA₂.Y). Kernel contains both `algMap b - TA₂.X` (via plusFSubXIdeal
+    relation in B₁_gen) and `1 - algMap b · TA₂.Y` (via outerLaurentOverlapIdeal
+    relation after Ybar = X substitution).
+  - Round trips forward∘backward = id and backward∘forward = id: pending.
+  - Bundle into full `RingEquiv`: pending.
+
+  **Files touched this session**: `Adic spaces/LaurentOverlap.lean`
+  (~2510 → ~2860 lines, ~350 new lines for outer evalHom + forward
+  quotient hom + action lemmas + local instances).
+  Focused check `lake env lean "Adic spaces/LaurentOverlap.lean"` — clean
+  (no errors, no sorries, only pre-existing unused-section-variable
+  warnings on unrelated theorems).
+
+- **2026-04-20** (T-OV-1 specialized Laurent-overlap quotient bridge,
+  forward factor-through landed, Primary): Extended the first-stage evalHom
+  through the `plusFSubXIdeal b` quotient to land `baseHom_B₁_gen_to_bivariateOverlap`
+  plus its action lemmas in `Adic spaces/LaurentOverlap.lean`. Full build passes
+  (2627 jobs), zero sorries. Three new named theorems/defs in addition to the
+  three from the prior increment:
+  4. `TA_B_to_bivariateOverlap_evalHom_plusFSubX_eq_zero` — kernel lemma:
+     the evalHom kills `algebraMap b - X`. Proved via
+     `map_sub` + `_algebraMap` + `_X` + `TateAlgebra.quotient_algebraMap_b_eq_X_bivariate`
+     + `sub_self`.
+  5. `baseHom_B₁_gen_to_bivariateOverlap` — factored
+     `B₁_gen b →+* TA₂ B ⧸ bivariateOverlapIdeal b`. Built via
+     `Ideal.Quotient.lift plusFSubXIdeal (TA_B_to_bivariateOverlap_evalHom) _`
+     with kernel discharged by (4) via `Ideal.span_le`.
+  6. `baseHom_B₁_gen_to_bivariateOverlap_mk_algebraMap` — action on
+     `mk(algebraMap a) ↦ mk(algebraMap a)`.
+  7. `baseHom_B₁_gen_to_bivariateOverlap_mk_X` — action on
+     `mk(TateAlgebra.X) ↦ mk(TateAlgebra₂.X)`.
+
+  **Status on full specialized bridge (updated)**:
+  - First-stage forward (`TA B → TA₂ B ⧸ bivariateOverlapIdeal b`): ✅ landed.
+  - Factor through `plusFSubXIdeal b`: ✅ landed with action lemmas.
+  - Outer `evalHomBounded` on `TA(B₁_gen b)`: pending — requires continuity of
+    `baseHom_B₁_gen_to_bivariateOverlap` and `NonarchimedeanRing B₁_gen b`
+    typeclass. Continuity reduces to continuity of
+    `TA_B_to_bivariateOverlap_evalHom` (which is `evalHomBounded`-based and
+    lacks a general continuity theorem in the project). Path forward: take
+    continuity as a hypothesis (mirroring how `example638Plus_equiv` takes
+    `hcont_forward` as a hypothesis). `NonarchimedeanRing B₁_gen b` is
+    constructed inline in `Example638.lean:529` — extract as named lemma.
+  - Factor through outer `(1 - Ybar · X_out)` ideal: pending.
+  - Backward + round trips: pending.
+
+  **Files touched this session**: `Adic spaces/LaurentOverlap.lean`
+  (2427 → ~2510 lines, ~80 new lines for factor-through + action lemmas).
+  Focused check `lake env lean "Adic spaces/LaurentOverlap.lean"` — clean.
+  Full build `lake build "«Adic spaces».LaurentOverlap"` — passes.
+
+- **2026-04-20** (T-OV-1 specialized Laurent-overlap quotient bridge,
+  first-stage forward landed, Primary): First-stage forward map of the
+  specialized bridge landed in `Adic spaces/LaurentOverlap.lean`. Three new
+  theorems/defs, sorry-free, full build passes (2627 jobs):
+  1. `TA_B_to_bivariateOverlap_evalHom` — `TA B →+* TA₂ B ⧸ bivariateOverlapIdeal b`
+     via `TateAlgebraWedhorn.evalHomBounded`, using:
+     * base map `mk ∘ algebraMap B (TA₂ B)` (continuous via
+       `TateAlgebra.mk_algebraMap_continuous_bivariateOverlap`);
+     * target element `mk TateAlgebra₂.X` (power-bounded via
+       `TateAlgebra.mk_X_isPowerBounded_in_bivariateOverlap`);
+     * all target typeclass instances (`CompleteSpace`, `T0Space`,
+       `NonarchimedeanRing`, `IsUniformAddGroup`) constructed inside via
+       existing T013 lemmas.
+  2. `TA_B_to_bivariateOverlap_evalHom_algebraMap` — action on constants:
+     `evalHom (algebraMap a) = mk (algebraMap a)`. Proof pattern mirrors
+     `example638Plus_evalHom_algebraMap` (unfold + `tsum_eq_single 0` +
+     `MvPowerSeries.coeff_C`).
+  3. `TA_B_to_bivariateOverlap_evalHom_X` — action on X:
+     `evalHom TateAlgebra.X = mk TateAlgebra₂.X`. Via `tsum_eq_single 1` +
+     `MvPowerSeries.coeff_X`.
+
+  **Specialized bridge status**:
+  - First-stage forward (`TA B → TA₂ B ⧸ bivariateOverlapIdeal b`): **landed** ✅.
+  - Next step: factor through `plusFSubXIdeal b = (algebraMap b - X)` to get
+    `B₁_gen b → TA₂ B ⧸ bivariateOverlapIdeal b`. The ideal lies in the kernel
+    because `algMap b - X ↦ mk(algMap b) - mk(X)`, and
+    `mk(algMap b) = mk(X)` via existing
+    `TateAlgebra.quotient_algebraMap_b_eq_X_bivariate`.
+  - Then outer `evalHomBounded` on `TA(B₁_gen b)` with base = previous hom,
+    target elt = `mk TateAlgebra₂.Y` (power-bounded via
+    `TateAlgebra.mk_Y_isPowerBounded_in_bivariateOverlap`). Requires
+    continuity of the base hom (easy: quotient_lift of continuous hom).
+  - Then factor `(1 - Ybar · X_out)` via algebraic identification using
+    `bivariateOverlap_ideal_eq` + negation swap.
+
+  **Remaining work on forward side**: ~80 lines for the two factorization
+  steps + associated action lemmas.
+  **Remaining work on backward side + round trips**: ~200 lines total
+  (analog of `example638Bivariate_backward_forward_eq_id` pattern).
+
+  **Files touched this session**: `Adic spaces/LaurentOverlap.lean`
+  (1965 → ~2427 lines, ~460 new lines — first-stage def + two action
+  lemmas + supporting typeclass wiring).
+  Focused check `lake env lean "Adic spaces/LaurentOverlap.lean"` — zero
+  errors, zero sorries. Full build `lake build "«Adic spaces».LaurentOverlap"`
+  — completed successfully.
+
+- **2026-04-20** (H1 non-domain direct attempt, Tate-topology obstruction,
+  sorry removed, Primary): Reviewer tightened criteria: do not leave a
+  newly imported sorry as landed progress. Attempt to close non-domain
+  H1 directly on Steps 4 & 5; if unsuccessful, remove the sorry theorem.
+
+  **Outcome chosen: sorry removed. H1 domain landed; H1 general target
+  is documentation-only + escalation packet.** Justification: direct
+  attempt uncovered a **fundamental Tate-topology obstruction at Step 5**
+  that cannot be closed with current infrastructure; per reviewer
+  directive, the sorry is removed rather than left in the root import.
+
+  **Obstruction found** (new this session, refining the earlier packet):
+
+  The proposed Hübner proof sketch needs (after general Krull +
+  iteration): from `a = c^N · f^N · a` and `f^N · a → 0` in B's topology,
+  to conclude `a ∈ I^k` for every open nhd `I^k` of 0, hence `a = 0` by
+  Hausdorff. This works IF the 0-nhd basis consists of ideals I^k with
+  `c · I^k ⊆ I^k` for every `c ∈ B` (the Krull witness).
+
+  **But in a Tate ring** B with pair of definition (B₀, I₀):
+  * The 0-nhd basis `{I₀^k}_k` consists of ideals of **B₀**, not of B.
+  * Extending `I₀^k · B` makes them ideals of B, but they become all of
+    B (since the topologically-nilpotent unit `π ∈ I₀` is a unit in B:
+    `I₀ · B = π · B₀ · B = B`).
+  * The iteration step requires `c · I₀^k ⊆ I₀^k`, i.e., `c ∈ B₀`
+    (power-bounded). The Krull witness `c` from Mathlib
+    `Ideal.mem_iInf_smul_pow_eq_bot_iff` is an arbitrary `c ∈ B`, not
+    necessarily in B₀.
+
+  This is a **genuine mathematical obstruction**, not just a
+  formalization detail. The Hübner-route proof via general Krull +
+  iteration + topological Hausdorffness does NOT close Laurent-pair
+  injectivity for non-domain noetherian Tate rings. A different
+  strategy is needed:
+  * **(a)** Refined Krull giving witness `c ∈ B₀`.
+  * **(b)** Different argument (flatness + spectrum, or mapping cone).
+  * **(c)** Stacks 00MA / Cor 8.32 — which is what we were trying to
+    avoid.
+
+  **Work completed**:
+  1. **Kept** `laurentCover_separation_presheaf_viaRow3_domain`
+     (H1-domain, sorry-free).
+  2. **Removed** `laurentCover_separation_presheaf_viaRow3_noetherian`
+     sorry theorem. Replaced with a **documentation comment block**
+     (lines 140-203 in `HubnerSeparation.lean`) stating the target, the
+     obstruction found, and pointing to the escalation packet.
+  3. **Updated** module docstring: "domain H1 landed; non-domain H1
+     documented/pending (not imported as sorry)".
+  4. **Kept** `.mathlib-quality/chatgpt-packet-hubner-nondomain.md`
+     (154 lines) unchanged — the external escalation artifact for the
+     ChatGPT Pro question.
+
+  **Net project sorry delta this session**: 0. No new sorry in
+  HubnerSeparation.lean. Domain H1 remains landed sorry-free; non-domain
+  target is documentation-only.
+
+  **Next-session decision point**:
+  * **(a)** Escalate the packet to ChatGPT Pro / math research and act
+    on the response (closes the open mathematical question).
+  * **(b)** Accept `tateAcyclicity_for_domains` as a domain-only
+    restricted theorem and move forward with H2/H3/H4 under that scope.
+  * **(c)** Concede Hübner decouples only partly and keep Lane B
+    (T-COMP-FF / T-IDEAL-2) / Stacks 00MA on the critical path.
+
+  **Files**: `Adic spaces/HubnerSeparation.lean` edited (202 lines,
+  0 sorry). No other files touched.
+
+  **Build**: `lake build «Adic spaces».HubnerSeparation` → EXIT 0,
+  clean (no sorry warning from HubnerSeparation; the only sorry warning
+  in the build is the pre-existing LaurentRefinement.lean:3671
+  `tateAcyclicity` Part 2 sorry, unchanged).
+
+  **Axiom check**: `laurentCover_separation_presheaf_viaRow3_domain`
+  has axioms `[propext, sorryAx, Classical.choice, Quot.sound]`. The
+  `sorryAx` here is exclusively the **pre-existing T001 leak** via
+  `restrictionMap → HasLocLiftPowerBounded → isUnit_algebraMap_s_of_huber
+  → spa_point_nonOpen_of_rational_subset` (Presheaf.lean:807).
+  HubnerSeparation.lean itself introduces no new sorry.
+
+- **2026-04-20** (T-OV-1 reviewer-driven critical path revision, Primary):
+  Reviewer update: **full TateAlgebra quotient transport deferred; specialized
+  overlap bridge preferred**.
+
+  **Revised plan**: build the specialized Laurent-overlap quotient-of-quotients
+  bridge rather than the full `(R/I)⟨X⟩ ≃+* R⟨X⟩/I⟨X⟩` general theorem.
+
+  **Specialized target theorem** (in project notation):
+  ```lean
+  noncomputable def TA_B₁_gen_quotient_equiv_bivariateOverlap
+      {B : Type u} [CommRing B] [TopologicalSpace B] [IsTopologicalRing B]
+      [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
+      [PlusSubring B] [IsHuberRing B] [HasLocLiftPowerBounded B]
+      (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+      (hA_complete : ...)
+      (hnoeth : ...) :
+      ↥(TateAlgebra (LaurentCover.B₁_gen b)) ⧸ Ideal.span {
+        (1 : ↥(TateAlgebra (LaurentCover.B₁_gen b))) -
+          (algebraMap (LaurentCover.B₁_gen b) ↥(TateAlgebra (LaurentCover.B₁_gen b)))
+            (Ideal.Quotient.mk (plusFSubXIdeal B b) TateAlgebra.X) *
+          TateAlgebra.X
+      } ≃+*
+        ↥(TateAlgebra₂ B) ⧸ TateAlgebra.bivariateOverlapIdeal b
+  ```
+
+  Schematically:
+  `TA(B₁_gen b) ⧸ (1 - Ybar · X_out) ≃+* TA₂ B ⧸ (algMap b - X_{2,1}, 1 - X_{2,1}·X_{2,2})`
+  where `Ybar = mk(TateAlgebra.X) ∈ B₁_gen b`, `X_out` is the outer TateAlgebra variable,
+  and the RHS ideal equals `bivariateOverlapIdeal b` via project's
+  `bivariateOverlap_ideal_eq` (swapping negated generator).
+
+  **Construction plan** (forward direction, ~150 lines):
+  1. Base map `B₁_gen b → TA₂ B ⧸ bivariateOverlapIdeal b` via
+     `Ideal.Quotient.lift` applied to `TA B →+* TA₂ B ⧸ (algMap b - X_{2,1}, ...)`
+     sending `X_{TA B} ↦ X_{2,1}` and `algMap a ↦ algMap a`. Well-defined because
+     `algMap b - X_{TA B}` maps to `algMap b - X_{2,1} ≡ 0` (mod target ideal).
+  2. Continuity via `continuous_quotient_mk'` composed with the TA-level hom's
+     continuity.
+  3. Power-boundedness of `X_{2,2}` image in the quotient — already landed as
+     `TateAlgebra.mk_Y_isPowerBounded_in_bivariateOverlap` (project).
+  4. Apply `evalHomBounded` (from `TateAlgebraWedhorn.lean`) with base map from (1)
+     and element `X_{2,2}` (power-bounded by (3)) to get
+     `TA(B₁_gen b) →+* TA₂ B ⧸ bivariateOverlapIdeal b`.
+  5. Factor through the outer quotient `(1 - Ybar · X_out)`: it maps to
+     `1 - X_{2,1} · X_{2,2} ≡ 0` in `TA₂ B ⧸ bivariateOverlapIdeal b` via the
+     `bivariateOverlap_ideal_eq` identification.
+
+  **Backward direction** (~100 lines): construct
+  `TA₂ B → TA(B₁_gen b) ⧸ (1 - Ybar · X_out)` via `evalHomBounded₂` sending
+  `X_{2,1} ↦ algMap_{TA(B₁_gen b)} Ybar` (power-bounded since it's a unit's image)
+  and `X_{2,2} ↦ X_out`. Factor through the ideal.
+
+  **Round trips** (~100 lines): via `Ideal.Quotient.ringHom_ext` +
+  `polynomial decomposition` (similar to `example638Bivariate_backward_forward_eq_id`).
+
+  **Estimated size**: ~350 lines total for the specialized bridge alone.
+
+  **Unlocks**:
+  - Compose with `bivariateOverlap_equiv_B₁₂gen` → `TA(B₁_gen b) ⧸ (...) ≃+* B₁₂_gen b`.
+  - Compose with `TateAlgebra_mapRingEquiv laurentPlusBridge_{cont,symm_cont}`
+    (landed prior session) → `TA(B_plus) ⧸ (...) ≃+* TA(B₁_gen b) ⧸ (...)`.
+  - Combined: Step 3 of T-OVERLAP-COMPAT composition route becomes available.
+
+  **Fallback plan per reviewer**: if specialized becomes as hard as full, pivot
+  to direct two-variable Example 6.38 proof for the A-side overlap:
+  `presheafValue (laurentOverlapDatum D₀ f) ≃+* A⟨Y,X⟩/...`. However, this
+  requires a new Example 6.38 proof for arbitrary rational-sub-datum
+  (not just `trivialPlusDatum`), structurally at least as large as the
+  specialized quotient approach. Current `example638Bivariate_equiv` only
+  covers `overlapDatum B P b` (with `trivialPlusDatum` base, `s = 1`), not
+  the Laurent `overlapDatum D₀ f` (with `s = D₀.s * f`).
+
+  **Action item**: queue the specialized bridge as the next Lane A work
+  session. Estimated two to three focused sessions for the ~350-line build
+  + integration.
+
+  **Files this session**: `.mathlib-quality/tickets.md` (this entry).
+  Focused check `Adic spaces/LaurentOverlap.lean` — clean (no errors, no sorries).
+  No code changes this session (reviewer revision is a critical-path pivot
+  not a tactical fix).
+
+- **2026-04-20** (Hübner-route audit: Cor 8.32 decoupling feasibility, Primary):
+  Reviewer update: Lane B (T-COMP-FF / T-IDEAL-2 Cor 8.32) is now OPTIONAL
+  infrastructure. New target: audit whether
+  `simple-Laurent-exactness-for-every-rational-open + standard/Laurent refinement
+  ⟹ tateAcyclicity` can bypass Cor 8.32.
+
+  **Audit finding: Cor 8.32 is NOT unavoidable for Part 1 (separation).
+  It IS currently hardwired in Part 2's `lane_B_supplier` but can be
+  replaced by a Hübner-style Laurent route via existing sorry-free pieces.**
+
+  **Current Cor 8.32 touchpoints in the final assembly:**
+  1. `tateAcyclicity` (LaurentRefinement.lean:3671) Part 1 uses
+     `ValuationSpectrum.restrictionMapHom_injective` at line 3695 — a
+     RETIRED-AS-FALSE single-map injectivity (PresheafTateStructure.lean:1322,
+     sorry-carrying; retired 2026-04-18). Replacing with Cor 8.32 cover-level
+     product-injectivity is the documented critical path. Hübner route CAN
+     replace this without Cor 8.32 (see below).
+  2. `tateAcyclicity_Part2_via_hZavyalov_per_E_direct`
+     (GeometricReduction.lean:3412) `lane_B_supplier` (lines 3441–3451) — an
+     explicit hypothesis for per-E injectivity of product restriction to the
+     `per_E_local_covering`. This is Cor 8.32 at each `E ∈ C.covers` and is
+     the principal Cor 8.32 wiring in the Part 2 assembly.
+
+  **Hübner-route pieces ALREADY SORRY-FREE (at algebraic level):**
+  - `LaurentCover.epsilonHom_gen_injective` (LaurentCoverExact.lean:315) —
+    algebraic Laurent-pair injectivity via Krull intersection; axioms
+    `[propext, Classical.choice, Quot.sound]`.
+  - `LaurentCover.row3_exact` (LaurentCoverExact.lean:1560) — full algebraic
+    Laurent row exactness; axioms `[propext, Classical.choice, Quot.sound]`.
+  - `ValuationSpectrum.separation_of_finer_rational`
+    (RationalRefinement.lean:42) — refinement transfer of separation;
+    proof body is sorry-free. (Axiom check shows `sorryAx` but this is
+    pre-existing leak from `[HasLocLiftPowerBounded A]` → `restrictionMap`
+    → `spa_point_nonOpen_of_rational_subset` sorry at Presheaf.lean:807,
+    NOT from the theorem's own proof — fixable by `omit`.)
+
+  **Hübner-route pieces PARAMETERIZED (use-site hypotheses, no sorry body):**
+  - `laurentPlusBridge`, `laurentMinusBridge` (LaurentRefinement.lean:2480,
+    2548) — ring isos `presheafValue(laurent) ≃+* B₁/₂_gen`, unconditional
+    defs with six hypothesis bundle.
+  - `laurentPlusBridge_restrictionMap`, `laurentMinusBridge_restrictionMap`
+    (LaurentRefinement.lean:2734, 2853) — intertwining lemmas.
+
+  **Pre-existing foundational sorry (affects EVERY `restrictionMap` use,
+  not just Cor 8.32):**
+  - `spa_point_nonOpen_of_rational_subset` (Presheaf.lean:807). Hits via
+    `isUnit_algebraMap_s_of_huber` → `HasLocLiftPowerBounded` → `restrictionMap`.
+    **Any route using `restrictionMap` carries this sorry via typeclass leak
+    until T001 closes.** This is orthogonal to Cor 8.32.
+
+  **Theorem boundary to decouple Part 1 from Cor 8.32:** three new theorems,
+  all landable with existing infrastructure modulo pre-existing T001 gap:
+
+  ```lean
+  -- Theorem H1 (new, ~50 lines): Laurent separation at presheafValue level
+  -- via `epsilonHom_gen_injective` + `laurentPlus/MinusBridge_restrictionMap`.
+  theorem laurentCover_separation_presheaf
+      [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+      (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+      (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+      [LaurentNormalized D₀] (f : A) (hf_nonunit : ¬IsUnit (D₀.canonicalMap f))
+      (hNoeth_B ... hcont_eval_B : ...)  -- seven hypothesis bundle (same as gluing)
+      (hplus hminus : ...) (x : presheafValue D₀)
+      (hplus0 : restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x = 0)
+      (hminus0 : restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x = 0) :
+      x = 0
+
+  -- Theorem H2 (new, ~80-150 lines): iterated Laurent separation via induction
+  -- on standard-cover size, using H1 + the standard-cover Laurent splitting
+  -- from S-GEOM-IND (Wedhorn 8.34).
+  theorem laurentIteratedCover_separation_presheaf
+      (D₀ : RationalLocData A) (S : Finset A) (hSpan : Ideal.span S = ⊤) ... :
+      Function.Injective ((productRestriction to laurent-iterated pieces))
+
+  -- Theorem H3 (new, ~30 lines): Hübner Part 1 wrapper, composes H2 with
+  -- `separation_of_finer_rational` via `refines_by_standard_cover`.
+  theorem tateAcyclicity_Part1_via_hübner
+      (C : RationalCovering A) (hne : C.covers.Nonempty)
+      (hNullstellensatz : ...)
+      (h_laurent_hyps : ... seven hypothesis bundle supplied uniformly) :
+      ∀ x : presheafValue C.base,
+        (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+          restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0
+  ```
+
+  **Theorem boundary to decouple Part 2 from Cor 8.32** (per-E separation):
+  Replace `lane_B_supplier` in
+  `tateAcyclicity_Part2_via_hZavyalov_per_E_direct` with a Laurent-route
+  supplier, which requires:
+
+  ```lean
+  -- Theorem H4 (new, ~50-100 lines): iterated Laurent separation at E
+  -- for the per_E_local_covering. Uses H2 at E.1 with the Laurent pieces
+  -- coming from the Nullstellensatz refinement at E.
+  theorem per_E_local_covering_separation_via_laurent
+      (C : RationalCovering A) (S : Finset A) (f₀ : A)
+      (hS_per_E : refines_cover_per_E C S) (hS_contain : refines_contain C S)
+      (E : { E // E ∈ C.covers })
+      (h_laurent_hyps : ... hypothesis package at E) :
+      ∀ a b : presheafValue E.1,
+        (∀ D ∈ (per_E_local_covering S f₀ E hS_per_E).covers,
+          restrictionMap E.1 D _ a = restrictionMap E.1 D _ b) → a = b
+  ```
+
+  If H4 lands, the `lane_B_supplier` hypothesis of
+  `tateAcyclicity_Part2_via_hZavyalov_per_E_direct` is directly discharged
+  by H4 at each E — **eliminating Cor 8.32 from Part 2's critical path**.
+
+  **Feasibility assessment:**
+  - H1 is ~50 lines, directly written by mirroring
+    `laurentCover_gluing_presheaf_viaRow3` but using `epsilonHom_gen_injective`
+    instead of `row3_exact.2.1` — fully feasible with current infrastructure.
+  - H2 is the main content: iterated Laurent induction on |S|. Requires the
+    same Laurent-split machinery as S-GEOM-IND (Wedhorn 8.34), ~80-150 lines.
+  - H3 composes H2 + `refines_by_standard_cover_per_E` + `separation_of_finer_rational`,
+    ~30 lines.
+  - H4 is essentially H2 applied at E with the per-E local covering being
+    identified as a Laurent refinement, ~50-100 lines.
+
+  **Total Hübner-route scope**: ~210–330 lines, all new infrastructure. Does
+  NOT need:
+  - Stacks 00MA faithful-flatness (Cor 8.32 residual).
+  - T-COMP-FF / T-IDEAL-2 Lane B.
+  - The `restrictionMapHom_injective` retired false theorem.
+
+  **Still depends on** (shared with the Cor 8.32 route):
+  - `laurentOverlapBridge_exists_compatible` (T-OV-1, LaurentRefinement.lean:3173)
+    for `laurentCover_gluing_presheaf` (Part 2 only; not for Part 1).
+  - `spa_point_nonOpen_of_rational_subset` (T001, Presheaf.lean:807) — pre-existing
+    foundational gap affecting all `restrictionMap` consumers.
+  - `refines_by_standard_cover_per_E` + Nullstellensatz refinement infrastructure.
+  - The LaurentBridges' seven hypothesis bundle (Phase 2.5c/2.6 continuity residues).
+
+  **Recommendation:**
+  Option A — **Land H1 + H3 immediately** (minimal viable Hübner Part 1 wrapper):
+    ~80 lines, non-conflicting file, demonstrates that Cor 8.32 is NOT on
+    Part 1's critical path.
+
+  Option B — **Full Hübner program**: land H1, H2, H3, H4. Decouples BOTH
+    Parts 1 and 2 from Cor 8.32. Scope ~300 lines.
+
+  **Not recommended**: continuing T-IDEAL-2 Lane B in parallel — if Hübner
+  lands, Lane B becomes optional infrastructure for an already-closed goal.
+
+  **Critical-path update (post-audit):**
+
+  Former critical path (pre-audit):
+  ```
+  tateAcyclicity Part 1 + Part 2
+    ↓
+  Cor 8.32 (productRestriction_injective_tate)
+    ↓
+  T-IDEAL-2 (coeRingHom_preserves_proper)
+    ↓
+  Stacks 00MA (AdicCompletion.faithfullyFlat_of_le_jacobson)
+  ```
+
+  New critical path (Hübner):
+  ```
+  tateAcyclicity Part 1 (via Hübner wrapper H3)
+    ├── H2 (iterated Laurent separation, new)
+    │   └── H1 (simple Laurent separation at presheafValue level, new)
+    │       ├── epsilonHom_gen_injective (sorry-free)
+    │       └── laurentPlus/MinusBridge + intertwinings (sorry-free)
+    ├── separation_of_finer_rational (sorry-free)
+    └── refines_by_standard_cover_per_E (sorry-free)
+
+  tateAcyclicity Part 2 (via hZavyalov_per_E_direct + H4)
+    ├── H4 (iterated per-E Laurent separation) ← replaces Cor 8.32 Lane B
+    ├── Lane A = T-OVERLAP-COMPAT (unchanged, orthogonal to Cor 8.32)
+    └── hZavyalov_per_E (Nullstellensatz multi-piece, unchanged)
+  ```
+
+  Stacks 00MA / Cor 8.32 / T-IDEAL-2 Lane B become OPTIONAL named
+  infrastructure for downstream consumers who want stronger faithful-flatness
+  statements (beyond what Hübner separation provides).
+
+  **This session outputs**: audit report + **H1 landed**.
+
+  **H1 landed**: `ValuationSpectrum.laurentCover_separation_presheaf_viaRow3`
+  in new file `Adic spaces/HubnerSeparation.lean` (152 lines), added to
+  `Adic spaces.lean` root imports. Structure mirrors
+  `laurentCover_gluing_presheaf_viaRow3`: takes `τ_plus`, `τ_minus` ring isos +
+  intertwining conditions `htau_plus`, `htau_minus` + non-unit hypothesis
+  `hf_nonunit : ¬IsUnit (D₀.canonicalMap f)`, and concludes: if
+  `restrictionMap D₀ plus x = 0` and `restrictionMap D₀ minus x = 0` then
+  `x = 0`. Proof directly applies `LaurentCover.epsilonHom_gen_injective`
+  after componentwise reduction of both restriction vanishings via the
+  intertwining conditions. No new sorry introduced. Axiom check:
+  `[propext, sorryAx, Classical.choice, Quot.sound]` where `sorryAx` is
+  the **pre-existing T001 leak** via `restrictionMap` →
+  `HasLocLiftPowerBounded` → `isUnit_algebraMap_s_of_huber` →
+  `spa_point_nonOpen_of_rational_subset` (Presheaf.lean:807) — identical
+  to every other `restrictionMap`-consuming theorem in the project.
+
+  **Domain caveat**: H1 requires `[IsDomain (presheafValue D₀)]` because
+  `LaurentCover.epsilonHom_gen_injective` uses `Ideal.iInf_pow_eq_bot_of_isDomain`
+  (Krull intersection). For non-domain Tate rings the Laurent-pair
+  injectivity requires a different proof (likely Jacobson + adic completeness,
+  which re-encounters the Stacks 00MA territory). This is a genuine math
+  limitation of the direct Hübner route. For downstream use in
+  `tateAcyclicity`, either (i) restrict to domain Tate rings (a common
+  case), or (ii) generalize `epsilonHom_gen_injective` to noetherian Tate
+  rings via a non-domain proof strategy (~80 lines of Jacobson/completeness
+  argument).
+
+  **Next sessions**:
+  1. **H2** iterated Laurent separation (~100-150 lines).
+  2. **H3** final Hübner Part 1 wrapper composing H2 +
+     `separation_of_finer_rational` + `refines_by_standard_cover_per_E`
+     (~30 lines).
+  3. **H4** per-E Laurent separation for Part 2 `lane_B_supplier`
+     (~80-100 lines).
+  4. (Optional) generalize `epsilonHom_gen_injective` to non-domain Tate rings.
+
+  **Builds**: `lake build «Adic spaces».HubnerSeparation` → EXIT 0, clean.
+
+- **2026-04-20** (T-COMP-FF commutativity residual closed, Primary):
+  Closed the routine commutativity lemma `locSubringToRingOfDef_val_eq_symm_comp_of`
+  in `IdealLocalizationCompletion.lean` (line 311). The proof chains through the
+  three bridges forming `presheafValue_ringOfDef_ringEquiv_adicCompletion`:
+  (1) `locSubringCompletionEquivAdicCompletion.symm` on `AdicCompletion.of r`
+  returns `↑r` via a new project lemma `adicCompletionRingEquiv_coe` (added to
+  `AdicCompletionBridge.lean:382`); (2) `completionLocSubringEquiv` on `↑r`
+  returns `D.locSubringToCompleted r` via a new project lemma
+  `completionRingEquiv_coe` (added to `AdicCompletionBridge.lean:370`);
+  (3) `completedLocSubring_ringEquiv_ringOfDef` is identity on `.val`.
+  Combining: both sides reduce to `D.coeRingHom r.val` by `rfl` after the
+  `RingEquiv.symm_trans_apply` + `RingEquiv.symm_symm` rewrites.
+
+  **Collateral unlocks**: `locSubringToPresheafValue_continuous` promoted
+  from `private` to public in `CompletionLocalization.lean:332`.
+
+  **Conditional final interface** `locSubringToRingOfDef_faithfullyFlat_of_residual`
+  (line 405) now sorry-free. Under the explicit hypothesis
+  `Module.FaithfullyFlat locSubring (AdicCompletion locIdeal locSubring)`
+  (Stacks 00MA specialization), it produces
+  `RingHom.FaithfullyFlat (locSubringToRingOfDef D)` via
+  `faithfullyFlat_algebraMap_iff` + `FaithfullyFlat.of_bijective` +
+  `stableUnderComposition` + the new commutativity lemma.
+
+  **Axiom check** (all six theorems):
+  ```
+  locSubringToRingOfDef_val_eq_symm_comp_of:       [propext, Classical.choice, Quot.sound]
+  locSubringToRingOfDef_faithfullyFlat_of_residual: [propext, Classical.choice, Quot.sound]
+  presheafValue_ringOfDef_ringEquiv_adicCompletion: [propext, Classical.choice, Quot.sound]
+  completedLocSubring_eq_ringOfDef_subring:        [propext, Classical.choice, Quot.sound]
+  AdicCompletionBridge.completionRingEquiv_coe:    [propext, Classical.choice, Quot.sound]
+  AdicCompletionBridge.adicCompletionRingEquiv_coe: [propext, Classical.choice, Quot.sound]
+  ```
+
+  **sorryAx hygiene fix**: added `omit [PlusSubring A] [HasLocLiftPowerBounded A] in`
+  before all four `IdealLocalizationCompletion.lean` theorems, because the
+  file-wide `[HasLocLiftPowerBounded A]` scope otherwise pulls in a pre-existing
+  sorry from `isUnit_algebraMap_s_of_huber`→`spa_point_nonOpen_of_rational_subset`
+  (Presheaf.lean:807) via typeclass transitive dependency, even when the
+  typeclass is unused in the proof.
+
+  **Downstream**: once Stacks 00MA lands in Mathlib (or as a project-level
+  residual), compose with `locSubringToRingOfDef_faithfullyFlat_of_residual`
+  to discharge the `RingHom.FaithfullyFlat` hypothesis of the Lane B Cor 8.32
+  assembly theorems in `Cor832.lean`.
+
+  **Builds**: `lake env lean "Adic spaces/IdealLocalizationCompletion.lean"` →
+  EXIT 0, no warnings. `lake env lean "Adic spaces/Cor832.lean"` → EXIT 0
+  (pre-existing unused-variable warning on an unrelated theorem).
+
+- **2026-04-20** (T-OV-1 Step 3 quotient-transport blocker report, Primary):
+  Exhaustive Mathlib + project search for the quotient-transport primitive
+  needed to complete T-OVERLAP-COMPAT Step 3. Produced precise boundary.
+
+  **Search results (negative)**:
+  - `Mathlib/RingTheory/MvPowerSeries/`: no theorem stating
+    `MvPowerSeries (R/I) ≃+* MvPowerSeries R ⧸ (I lifted)`. Only functoriality
+    (`map_C`, `map_X`, `map_comp`) and ideal-interaction helpers
+    (`PowerSeries.map_constantCoeff_le_self_of_X_mem`).
+  - `Mathlib/RingTheory/PowerSeries/Ideal.lean`: no univariate version.
+  - `Mathlib/Algebra/{Mv,}Polynomial/`: no direct quotient-equiv; closest is
+    `MvPolynomial.polynomialQuotientEquivQuotientPolynomial` (different shape).
+  - `Adic spaces/`: no `TateAlgebra`-quotient or
+    `restrictedMvPowerSeriesSubring`-quotient API.
+
+  **Mathematical issue (structural)**: kernel of
+  `MvPowerSeries.map (Ideal.Quotient.mk I) : TA R →+* TA (R/I)` is
+  `{g : TA R | ∀ n, coeff n g ∈ I}` ("all coefficients in I"), while
+  `Ideal.map (algebraMap R (TA R)) I` is the algebraic ideal generated by
+  constants from `I`. For restricted power series the former is generally
+  LARGER — it's the topological closure of the latter. Equality requires
+  closed `I` + `NonarchimedeanRing` density (Wedhorn Prop 6.17 at R side).
+
+  **Precise theorem boundary**:
+
+  Option A — Full general primitive (~200 lines, reusable):
+  ```lean
+  noncomputable def TateAlgebra_of_quotient_equiv
+      {R : Type u} [CommRing R] [TopologicalSpace R] [IsTopologicalRing R]
+      [NonarchimedeanRing R] (I : Ideal R)
+      (hI_closed : IsClosed ((I : Set R)))
+      (hI_fg : I.FG) :
+      ↥(TateAlgebra (R ⧸ I)) ≃+* ↥(TateAlgebra R) ⧸
+        Ideal.map (algebraMap R ↥(TateAlgebra R)) I
+  ```
+  Construction: forward via `TateAlgebra_mapRingHom (Ideal.Quotient.mk I)` +
+  surjectivity on polynomials (dense); kernel identification uses
+  `hI_closed + hI_fg` — ~80 lines.
+
+  Option B — Specialized bivariate primitive (~300 lines):
+  ```lean
+  noncomputable def bivariateOverlap_from_TA_quotient_iterate
+      (B : Type u) [CommRing B] ... (b : B) :
+      ↥(TateAlgebra ↥(TateAlgebra B) ⧸ plusFSubXIdeal B b)) ≃+*
+        ↥(TateAlgebra₂ B) ⧸ Ideal.span {algebraMap B ↥(TateAlgebra₂ B) b - TateAlgebra₂.X}
+  ```
+  Combines `TA(TA B) ≃+* TA₂ B` (iterate identification, ~80 lines) with
+  quotient transport.
+
+  **Both options require a genuinely new structural theorem.** The
+  `TA(TA B) ≃+* TA₂ B` identification alone is ~80 lines of coefficient
+  re-indexing (Finsupp `Fin 1` ↔ `Fin 2 → ℕ`) + `IsRestricted` preservation.
+
+  **Recommendation**: Option A first (reusable). Apply at `R := TA B`,
+  `I := plusFSubXIdeal f_B` to get `TA(TA B ⧸ I) ≃+* TA(TA B) ⧸ (lifted)`,
+  then separate `TA(TA B) ≃+* TA₂ B` finishes Step 3.
+
+  **Composition route checkpoint**:
+  - Step 1 `presheafValue_iteratedOverlap_as_minus_at_plus` ✅ landed.
+  - Step 2 `presheafValue_iteratedOverlap_to_B₂_at_plus` ✅ landed.
+  - Step 3 blocker: `TateAlgebra_of_quotient_equiv` (Option A) +
+    `TA(TA B) ≃+* TA₂ B`, OR `bivariateOverlap_from_TA_quotient_iterate`
+    (Option B).
+  - Supporting primitives landed: `TateAlgebra_mapRingEquiv`,
+    `laurentPlusBridge_continuous/_symm_continuous`,
+    `MvPowerSeries_IsRestricted_map_pub`, `TateAlgebra_mapRingHom`.
+
+  **REFERENCES CHECKED**:
+  - Mathlib `RingTheory/MvPowerSeries/Basic.lean:502-555` — `MvPowerSeries.map`
+    definition + functoriality + `coeff_map`, `map_C`, `map_X`, `map_comp`.
+  - Mathlib `RingTheory/Ideal/Quotient/Operations.lean:67-120, 596-609` —
+    `RingHom.quotientKerEquivOfSurjective`, `Ideal.quotientMap` (templates).
+  - Mathlib `RingTheory/Ideal/Maps.lean:128` — `Ideal.map_quotient_self`.
+  - Mathlib `RingTheory/PowerSeries/Ideal.lean:61-67` — demonstrates
+    non-triviality of ideal functoriality through power series.
+  - Mathlib `RingTheory/Ideal/Quotient/Defs.lean:212` — `Ideal.quotEquivOfEq`.
+  - `Adic spaces/TateAlgebra.lean:75, 135, 170` — `TateAlgebra`,
+    `TateAlgebra₂`, `LaurentTateAlgebra`.
+  - `Adic spaces/RestrictedPowerSeries.lean:203-228` —
+    `MvPowerSeries.IsRestricted_algebraMap`, algebra instance.
+  - Wedhorn Prop 6.17 (closed ideals in noetherian Tate — needed for kernel
+    closure in Option A).
+
+  **Files touched this session**: `.mathlib-quality/tickets.md` (this entry).
+  No code changes — analysis + reporting session given the size of the
+  identified primitives.
+
+- **2026-04-20** (T-OV-1 Step 3 naturality, Primary): landed
+  `laurentPlusBridge_continuous` and `laurentPlusBridge_symm_continuous` in
+  `LaurentOverlap.lean`, removing the Step 3 naturality blocker for
+  `TateAlgebra_mapRingEquiv` composition. Seven supporting continuity
+  primitives, all sorry-free with zero new axioms:
+  1. `iteratedPlus_forwardHom_continuous` — `UniformSpace.Completion.continuous_extension`
+     applied to `iteratedPlus_forwardHom` (extensionHom structural).
+  2. `iteratedPlus_backwardHom_continuous` — same pattern for backward hom.
+  3. `presheafValue_iteratedPlus_equiv_continuous` — equiv wrapper forward.
+  4. `presheafValue_iteratedPlus_equiv_symm_continuous` — equiv wrapper backward.
+  5. `example638Plus_backwardHom_continuous` — extensionHom continuity for
+     `example638Plus_backwardHom`; requires explicit
+     `quotientPlusFSubXIdealTopology` on target and `quotient_plusFSubXIdeal_completeSpace`.
+  6. `presheafValue_trivialPlus_fSubX_equiv_continuous` +
+     `presheafValue_trivialPlus_fSubX_equiv_symm_continuous` — continuity in
+     both directions; `.symm` uses `hcont_forward_B` directly as it equals
+     `example638Plus_forwardHom`.
+  7. `laurentPlusBridge_continuous` = `_trivialPlus_fSubX_equiv_continuous` ∘
+     `_iteratedPlus_equiv_continuous`; no `hcont_forward_B` dependency.
+  8. `laurentPlusBridge_symm_continuous` = `_iteratedPlus_equiv_symm_continuous`
+     ∘ `_trivialPlus_fSubX_equiv_symm_continuous` (uses `hcont_forward_B`).
+
+  Statement style: `letI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀`
+  in the return type to make `quotientPlusFSubXIdealTopology` typecheck at
+  `B := presheafValue D₀`.
+
+  Consumes: `hcont_forward_B` hypothesis already present in `laurentPlusBridge`.
+  Unlocks: direct `TateAlgebra_mapRingEquiv laurentPlusBridge_continuous
+  laurentPlusBridge_symm_continuous` for Step 3 of T-OVERLAP-COMPAT composition
+  route.
+
+  Residual for Step 3: `TateAlgebra_of_quotient_equiv` still needed to identify
+  `TA B_plus` with `TA₂ B ⧸ (algMap f_B - X_1)` as a RING (after the
+  `TateAlgebra_mapRingEquiv` produces `TA B_plus ≃+* TA B₁_gen f_B`). That is
+  the next precise Lean/math primitive.
+
+  Files: `Adic spaces/LaurentOverlap.lean` (~350 lines added, 1965 → 2277),
+  build passes (2627 jobs).
+
+- **2026-04-20** (T-COMP-FF scaffold, claude2): landed the identification
+  `presheafValue_ringOfDef D ≃+* AdicCompletion (locIdeal D.P D.T D.s)
+  (locSubring D.P D.T D.s)` in `IdealLocalizationCompletion.lean`, sorry-free
+  with empty axiom list. Three new theorems/defs:
+  1. `completedLocSubring_eq_ringOfDef_subring` — promotes the existing
+     set-level equality from `Cor832.completedLocSubring_eq_presheafValue_ringOfDef`
+     to a `Subring`-level equality via `SetLike.ext'`. Axioms: `[]`.
+  2. `completedLocSubring_ringEquiv_ringOfDef` — ring isomorphism
+     `D.completedLocSubring ≃+* presheafValue_ringOfDef D` by the Subring
+     equality (identity carrier). Axioms: `[]`.
+  3. `presheafValue_ringOfDef_ringEquiv_adicCompletion` — the main T-COMP-FF
+     identification, composed from `CompletionLocalization.completionLocSubringEquiv`,
+     `CompletionLocalization.locSubringCompletionEquivAdicCompletion`, and (2).
+     Axioms: `[]`.
+
+  **Precise Mathlib residual** (exact minimal missing theorem):
+  ```
+  theorem AdicCompletion.faithfullyFlat_of_le_jacobson
+      {R : Type*} [CommRing R] [IsNoetherianRing R] {I : Ideal R}
+      (hI : I ≤ Ideal.jacobson ⊥) :
+      Module.FaithfullyFlat R (AdicCompletion I R)
+  ```
+  (Stacks 00MA). Named as
+  `AdicCompletion_faithfullyFlat_of_le_jacobson_residual : Prop` in the
+  file. Not yet in Mathlib — current Mathlib only has
+  `AdicCompletion.flat_of_isNoetherian` (flat, no Jacobson/faithful upgrade).
+
+  Focused `lake env lean` on `IdealLocalizationCompletion.lean`: `EXIT: 0`.
+  Focused check on `Cor832.lean` (now imports `IdealLocalizationCompletion`): `EXIT: 0`.
+
+  **Remaining for full T-COMP-FF closure**:
+  - (a) Mathlib lands `AdicCompletion.faithfullyFlat_of_le_jacobson` (Stacks 00MA).
+  - (b) Project lands a short commutativity lemma:
+    `locSubringToRingOfDef D =
+    (presheafValue_ringOfDef_ringEquiv_adicCompletion D).symm ∘ AdicCompletion.of _ _`
+    — routine transport via existing bridges, not attempted in this turn.
+
+  Under (a) + the `locIdeal ≤ Jacobson ⊥ locSubring` hypothesis discharged
+  via already-landed `locIdeal_le_jacobson_bot_of_ringOfDef_faithfullyFlat`
+  (S-IDEAL-JAC), full `RingHom.FaithfullyFlat (locSubringToRingOfDef D)`
+  follows via `RingHom.FaithfullyFlat.of_bijective` + `stableUnderComposition`.
+- **2026-04-20** (T-IDEAL-2 / S-IDEAL-ASM end-to-end via Lane-B, claude2):
+  landed the full Cor 8.32 assembly under the correct Lane-B hypothesis
+  (no `locSubring`-completeness). Four new theorems in `Cor832.lean`, all
+  sorry-free (axioms: `[]`):
+  1. `locIdeal_le_jacobson_bot_of_ringOfDef_faithfullyFlat` — Tate
+     specialization of the generic faithful-flat descent, taking
+     `(locSubringToRingOfDef D).FaithfullyFlat` and using
+     `presheafValue_isAdicComplete` + `IsAdicComplete.le_jacobson_bot`
+     for the target-side Jacobson containment.
+  2. `Ideal.isClosed_in_locSubring_subspace_of_ringOfDef_faithfullyFlat`
+     — closedness of ANY ideal of `locSubring` in subspace topology via
+     `Ideal.isClosed_of_le_jacobson` + (1).
+  3. `Ideal.isClosed_in_locTopology_of_ringOfDef_faithfullyFlat`
+     — closedness in `Localization.Away D.s` via S-IDEAL-LOC main + (2).
+  4. `productRestriction_injective_tate_of_ringOfDef_faithfullyFlat`
+     — end-to-end Cor 8.32 Part-1 injectivity via
+     `productRestriction_injective_tate_via_prime_extension_closed` + (3)
+     + `IsTateRing.exists_topologicallyNilpotent_unit_mem_A₀`.
+
+  Consumes the single concrete residual `(locSubringToRingOfDef C.base).FaithfullyFlat`
+  — the standard Noetherian adic-completion faithful-flatness content
+  (Stacks 00MA). **Does NOT assert `locSubring` adic-complete**, does NOT
+  revive single restriction-map injectivity, does NOT chase global
+  Jacobson/Krull claims.
+
+  New import: `Mathlib.RingTheory.RingHom.FaithfullyFlat` in `Cor832.lean`.
+  Focused `lake env lean` on `Cor832.lean`: `EXIT: 0`, no errors, no new
+  warnings.
+- **2026-04-20** (T-IDEAL-2 / S-IDEAL-JAC faithful-flat descent, claude2):
+  landed `locIdeal_le_jacobson_bot_of_faithfullyFlat` in
+  `IdealLocalization.lean` — **proves `locIdeal ≤ Jacobson ⊥` in
+  `locSubring P T s` without asserting `locSubring` is adic-complete**.
+  Takes `[Module.FaithfullyFlat (locSubring) S]` + `Ideal.map (algebraMap
+  _ S) locIdeal ≤ Jacobson ⊥ S` as hypotheses, proves the Jacobson
+  containment by unit-lifting via the Mathlib FF identity
+  `Ideal.comap_map_eq_self_of_faithfullyFlat` + `Ideal.mem_jacobson_bot`.
+  Added private helper `isUnit_of_algebraMap_isUnit_of_faithfullyFlat`.
+  No `sorry`; axioms `[]` (truly minimal).
+  **Sorry-free T-IDEAL-2 inventory in `IdealLocalization.lean`**:
+  `Localization.Away.exists_unit_locSubring_decomp`,
+  `Localization.Away.mem_ideal_iff_clearing_denominator`,
+  `Ideal.isClosed_in_locTopology_of_contraction_isClosed_in_locSubring`
+  (S-IDEAL-LOC main), `locIdeal_le_jacobson_bot_of_isAdicComplete` (Mathlib
+  1-liner), `locIdeal_le_jacobson_bot_of_faithfullyFlat` (NEW, descent from
+  complete target), `locIdeal_forall_isTopologicallyNilpotent`,
+  `Ideal.isClosed_in_locSubring_subspace_of_isAdicComplete`,
+  `Ideal.isClosed_in_locTopology_of_isAdicComplete`. All with axioms
+  `[propext, Quot.sound, Classical.choice]` only (no `sorryAx`).
+  `lake build` green (3091/3092 jobs).
+- **2026-04-20** (Cor 8.32 upstream dependency cleanup / Prop 8.15 refactor,
+  claude2): removed false single-map injectivity dependency from the
+  Prop 8.15 / Cor 8.32 flatness chain. **Theorem landed**:
+  `restrictionMapHom_ker_isTorsion` (`PresheafTateStructure.lean`, new named
+  residual) — the strictly-weaker `IsLocalization`-equalizer condition:
+  `restrictionMapHom D₀ D h c = 0 → ∃ n, (D₀.canonicalMap D.s)^n * c = 0`.
+  **Refactored**: `restrictionMap_isLocalization` (`PresheafTateStructure.lean:1512`)
+  now closes its `IsLocalization.Away.mk` eq-condition via the new torsion
+  residual, NOT via the retired-false `restrictionMapHom_injective`.
+  Deprecation warning added to `restrictionMapHom_injective` docstring
+  (false in general by reviewer counterexample `A = k⟨T,U⟩/(TU), U = R(1/T)`).
+  Downstream chain: `flat_over_base_tate` → `productRestriction_faithfullyFlat_abstract`
+  → `productRestriction_faithfullyFlat_tate_of_hSpa_points` — now transitively
+  parameterized on the correct residual (`restrictionMapHom_ker_isTorsion`
+  + `restrictionMapHom_surj`) rather than the false one. `lake build`
+  passes (3091/3092 jobs, only unrelated pre-existing sorries in
+  FarguesFontaine/ScottishBook remain). Legacy callers of
+  `restrictionMapHom_injective` in `LaurentRefinement.lean:3638, 3695`
+  preserved but flagged for cover-level Cor 8.32 refactor (separate ticket).
+- **2026-04-19** (T-IDEAL-2 / Cor 8.32 cover-level faithful flatness, claude2):
+  plan reset per ChatGPT Pro — retargeted from ideal-closedness route to
+  **Wedhorn Cor 8.32 as a cover-level faithful-flatness theorem**. Audit
+  found the abstract `productRestriction_faithfullyFlat_abstract`
+  (`Cor832.lean:202`) already proved sorry-free, `flat_over_base_tate`
+  (`Cor832.lean:551`), `hSpa_surj_from_spanTop` (`Cor832.lean:508`), and
+  `hspan_top_of_hSpa_points` (`Cor832.lean:744`) all proved modulo upstream
+  sorries. Landed the explicit theorem-sized faithful-flatness combinator
+  `productRestriction_faithfullyFlat_tate_of_hSpa_points` (Cor832.lean)
+  that chains these: Prop 8.30 flatness + `Module.Flat.pi_of_algebra` +
+  `hSpa_surj_from_spanTop ∘ hspan_top_of_hSpa_points` +
+  `Module.FaithfullyFlat.of_comap_surjective` via
+  `faithfullyFlat_pi_of_prime_surjection`. No new sorry; inherits the SAME
+  upstream `sorryAx` chain as the existing injective variant
+  `productRestriction_injective_tate_of_hSpa_points`.
+  **Upstream blocking sorries (NOT T-IDEAL-2 scope)**:
+  `spa_point_nonOpen_of_rational_subset` (`Presheaf.lean:807`),
+  `restrictionMapHom_injective` (`PresheafTateStructure.lean:1322`),
+  `restrictionMapHom_surj` (`PresheafTateStructure.lean:1208`).
+  Previous locSubring-completion files (`IdealLocalizationCompletion.lean`,
+  generic Jacobson lemmas) retained as valid support machinery but no
+  longer on the Cor-8.32 critical path.
+- **2026-04-19** (T-IDEAL-2 / Route B landing, claude2): unblocked
+  `TateAlgebraTopology.lean:3096` (replaced an incorrect `rw [show … from rfl]`
+  with `rw [(MvPowerSeries.coeff_apply _ _).symm, map_sum]` — the rfl was
+  false because `MvPowerSeries.coeff` is a LinearMap, not the raw
+  evaluation). `lake build` now passes end-to-end. Landed new helper
+  `IdealLocalizationCompletion.lean` with the Route B support lemmas:
+  `Ideal.isClosed_in_ringOfDef_subspace_of_isAdicComplete`,
+  `Ideal.isClosed_in_presheafValue_of_isClosed_in_ringOfDef`,
+  `Ideal.isClosed_in_presheafValue_of_ringOfDef_ideal`, and
+  `IsClosed.preimage_coeRingHom`. All noncontroversial; `IsAdicComplete`
+  is taken as a typeclass hypothesis (so the caller can plug in
+  `Cor832.presheafValue_isAdicComplete` without cycle).
+  **Residual remains S-IDEAL-JAC** (`locIdeal ≤ Jacobson ⊥` in `locSubring`
+  Noetherian) / equivalently faithful flatness of `locSubringToRingOfDef`
+  — see ChatGPT Pro packet in prior report.
+- **2026-04-19** (T-IDEAL-2 / Route B attempt, claude2): attempted to land
+  the completion-level closedness bridge (`Ideal.isClosed_in_ringOfDef_subspace_of_isAdicComplete`,
+  `Ideal.isClosed_in_presheafValue_of_isClosed_in_ringOfDef`,
+  `IsClosed.preimage_coeRingHom`) in a new helper `IdealLocalizationCompletion.lean`.
+  Transitively requires `PresheafTateStructure.lean` which depends on
+  `TateAlgebraTopology.lean` — currently broken (pre-existing failure at
+  line 3096, another agent's work per git status). Rolled back the new file;
+  support lemmas staged in the ChatGPT Pro packet for landing once the
+  unrelated `TateAlgebraTopology` compile is restored.
+  **Math residual on Route B (confirmed)**: the contraction identity
+  `(locSubringToRingOfDef)⁻¹(Ideal.map locSubringToRingOfDef (q ∩ locSubring))
+  = q ∩ locSubring` requires faithful flatness of `locSubringToRingOfDef`,
+  equivalent to `locIdeal ⊆ Jacobson ⊥` in `locSubring` — **still the same
+  S-IDEAL-JAC residual**. The completion route gives the closedness of the
+  **extension** in `presheafValue_ringOfDef`, but *not* of the contraction
+  back in `locSubring` without faithful flatness.
+- **2026-04-19** (T-IDEAL-2 / S-IDEAL-ASM Route B, claude2): end-to-end
+  conditional closure landed as
+  `productRestriction_injective_tate_of_isAdicComplete` in `Cor832.lean`.
+  Composes `productRestriction_injective_tate_via_prime_extension_closed`
+  + `Ideal.isClosed_in_locTopology_of_isAdicComplete` (S-IDEAL-LOC/ASM plug-in
+  from `IdealLocalization.lean`) + `IsTateRing.exists_topologicallyNilpotent_unit_mem_A₀`
+  (new private helper for Tate pseudo-uniformizer in `P.A₀`). Under
+  `[IsAdicComplete (locIdeal) (locSubring)]` + standard Tate hypotheses,
+  discharges `productRestriction_injective_tate` completely. Residual
+  reduced to a **single typeclass instance**: `IsAdicComplete (locIdeal)
+  (locSubring)` — see Route C sketch in the interface report.
+- **2026-04-19** (T-IDEAL-2 / S-IDEAL-JAC, claude2): S-IDEAL-JAC landed as
+  conditional theorem `locIdeal_le_jacobson_bot_of_isAdicComplete`
+  (`IdealLocalization.lean`), one-line application of Mathlib's
+  `IsAdicComplete.le_jacobson_bot`. Generic infrastructure added in
+  `IdealClosedness.lean`: `isTopologicallyNilpotent_of_mem_of_isAdic`
+  (algebraic, no completeness), `Ideal.le_jacobson_bot_of_forall_isTopologicallyNilpotent`
+  (generic t.n. → Jacobson, uses Wedhorn Prop 5.38 geometric series),
+  `Ideal.le_jacobson_bot_of_isAdic_complete` (composition). S-IDEAL-ASM
+  direct plug-ins: `Ideal.isClosed_in_locSubring_subspace_of_isAdicComplete`
+  and end-to-end `Ideal.isClosed_in_locTopology_of_isAdicComplete`.
+  **Remaining blocker**: discharge of `IsAdicComplete (locIdeal) (locSubring)`
+  — not automatic even in Tate case (the project's adic-completeness
+  witness `presheafValue_isAdicComplete` is for the completion, not
+  `locSubring` itself).
+- **2026-04-19** (T-IDEAL-2 / S-IDEAL-LOC, claude2): clearing-denominators
+  transfer landed in `IdealLocalization.lean`: `exists_unit_locSubring_decomp`,
+  `mem_ideal_iff_clearing_denominator`, `isClosed_in_locTopology_of_contraction_isClosed_in_locSubring`.
 - **2026-04-18** (T-GEOM-RED, me): new file `GeometricReduction.lean`;
   `tateAcyclicity_gluing_via_refinement_cover_level` (corrected variant) +
   `plusDatum` + `standardCoverVCovers` + bridge helpers. DecidableEq
