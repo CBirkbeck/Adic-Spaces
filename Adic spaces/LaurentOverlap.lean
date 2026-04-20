@@ -2761,7 +2761,8 @@ noncomputable def TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom
     (TA_B₁_gen_to_bivariateOverlap_outer_evalHom P b hA_complete hnoeth hcont_base)
     (fun y hy => ?_)
   have h_le : outerLaurentOverlapIdeal b ≤
-      RingHom.ker (TA_B₁_gen_to_bivariateOverlap_outer_evalHom P b hA_complete hnoeth hcont_base) := by
+      RingHom.ker (TA_B₁_gen_to_bivariateOverlap_outer_evalHom P b hA_complete hnoeth
+        hcont_base) := by
     unfold outerLaurentOverlapIdeal
     rw [Ideal.span_le]
     rintro z (rfl : _ = _)
