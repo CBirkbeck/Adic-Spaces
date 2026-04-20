@@ -3113,6 +3113,140 @@ theorem TA_B_bivariate_quotient_to_outerQuotient_backwardHom_mk_Y
       (Ideal.Quotient.mk _ _) = _
   rw [Ideal.Quotient.lift_mk, TA_B_bivariate_to_outerQuotient_evalHom₂_Y]
 
+/-! #### Step 9: round-trip forward∘backward = id on `TA₂ B ⧸ bivariateOverlapIdeal b`
+
+Parametric round-trip theorem: takes continuity of `forward` and `backward` as
+explicit hypotheses (following the `example638Bivariate_backward_forward_eq_id`
+pattern), and uses polynomial density of `TA₂ B` via
+`tateAlgebra₂_polynomials_dense_canonical` to extend agreement from monomials
+`algMap c · X^i · Y^j` to all of `TA₂ B`.
+
+The monomial-level agreement reduces to composing the already-landed action
+lemmas: forward is the identity after sending evalHom₂ images back through
+itself, because `forward(mk_outer(algMap(mk_inner(algMap a))))=mk(algMap a)`,
+`forward(Ybar)=mk(TA₂.X)`, and `forward(X_out)=mk(TA₂.Y)`. -/
+set_option maxHeartbeats 800000 in
+theorem TA_B₁_gen_quotient_forward_backward_eq_id
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring₂ (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_base : @Continuous _ _
+      (quotientPlusFSubXIdealTopology B b)
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b)
+      (baseHom_B₁_gen_to_bivariateOverlap P b hA_complete hnoeth))
+    (h : BackwardEvalHypotheses (B := B) b)
+    (hcont_forward : @Continuous _ _ h.topOuter
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b)
+      (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base))
+    (hcont_backward : @Continuous _ _
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b) h.topOuter
+      (TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h)) :
+    (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base).comp
+      (TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h) = RingHom.id _ := by
+  letI := h.topOuter
+  haveI := h.ringOuter
+  letI := h.uOuter
+  haveI := h.uAddOuter
+  haveI := h.cOuter
+  haveI := h.tOuter
+  haveI := h.naOuter
+  letI : TopologicalSpace ↥(TateAlgebra₂ B) := TateAlgebra.instTopologicalSpaceTateAlgebra₂
+  letI : TopologicalSpace (↥(TateAlgebra₂ B) ⧸ TateAlgebra.bivariateOverlapIdeal b) :=
+    TateAlgebra.quotientBivariateOverlapIdealTopology b
+  haveI hT2_biv : @T2Space _
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b) :=
+    TateAlgebra.quotient_bivariateOverlapIdeal_t2Space hA_complete hnoeth b
+  -- Reduce to showing `forward (backward (mk x)) = mk x` for all `x ∈ TA₂ B`.
+  apply Ideal.Quotient.ringHom_ext
+  apply RingHom.ext
+  intro x
+  show (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base)
+    ((TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h)
+      (Ideal.Quotient.mk _ x)) = Ideal.Quotient.mk _ x
+  -- `backward (mk x) = evalHom₂ x`.
+  change TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base
+    (Ideal.Quotient.lift _ (TA_B_bivariate_to_outerQuotient_evalHom₂ b h) _
+      (Ideal.Quotient.mk _ x)) = _
+  rw [Ideal.Quotient.lift_mk]
+  -- Now: `forward (evalHom₂ x) = mk x` as homs of `x : TA₂ B`.
+  -- Prove via polynomial density + continuity.
+  -- LHS continuity: `forward ∘ evalHom₂` is continuous since
+  -- `evalHom₂ = backward ∘ mk_bivariate` (by lift def), and `backward`, `forward`,
+  -- `mk_bivariate` are each continuous.
+  have hevalHom₂_cont : @Continuous _ _
+      TateAlgebra.instTopologicalSpaceTateAlgebra₂ h.topOuter
+      (TA_B_bivariate_to_outerQuotient_evalHom₂ b h) := by
+    have heq : (TA_B_bivariate_to_outerQuotient_evalHom₂ b h : ↥(TateAlgebra₂ B) → _) =
+        (TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h ∘
+          Ideal.Quotient.mk (TateAlgebra.bivariateOverlapIdeal b)) := by
+      ext y
+      show TA_B_bivariate_to_outerQuotient_evalHom₂ b h y =
+        TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h (Ideal.Quotient.mk _ y)
+      change _ = Ideal.Quotient.lift _ (TA_B_bivariate_to_outerQuotient_evalHom₂ b h) _
+        (Ideal.Quotient.mk _ y)
+      rw [Ideal.Quotient.lift_mk]
+    rw [show (TA_B_bivariate_to_outerQuotient_evalHom₂ b h : ↥(TateAlgebra₂ B) → _) =
+      TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h ∘
+        (Ideal.Quotient.mk (TateAlgebra.bivariateOverlapIdeal b) :
+          ↥(TateAlgebra₂ B) → _) from heq]
+    exact hcont_backward.comp continuous_quotient_mk'
+  have hLHS_cont : @Continuous _ _ TateAlgebra.instTopologicalSpaceTateAlgebra₂
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b)
+      ((TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base) ∘
+        (TA_B_bivariate_to_outerQuotient_evalHom₂ b h)) :=
+    hcont_forward.comp hevalHom₂_cont
+  have hRHS_cont : @Continuous _ _ TateAlgebra.instTopologicalSpaceTateAlgebra₂
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b)
+      (Ideal.Quotient.mk (TateAlgebra.bivariateOverlapIdeal b)) :=
+    continuous_quotient_mk'
+  -- Density of bivariate polynomials.
+  have hS_dense : @Dense (↥(TateAlgebra₂ B)) TateAlgebra.instTopologicalSpaceTateAlgebra₂
+      {g : ↥(TateAlgebra₂ B) |
+        ∃ N : ℕ, ∀ n : Fin 2 →₀ ℕ, N ≤ n 0 ∨ N ≤ n 1 → g.val n = 0} :=
+    TateAlgebra.tateAlgebra₂_polynomials_dense_canonical (A := B)
+  -- Agreement on polynomials via monomial-wise decomposition.
+  have hagree : @Set.EqOn _ _
+      ((TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base) ∘
+        (TA_B_bivariate_to_outerQuotient_evalHom₂ b h))
+      (Ideal.Quotient.mk (TateAlgebra.bivariateOverlapIdeal b))
+      {g | ∃ N : ℕ, ∀ n : Fin 2 →₀ ℕ, N ≤ n 0 ∨ N ≤ n 1 → g.val n = 0} := by
+    intro g ⟨N, hN⟩
+    have hg_eq := TateAlgebra.tateAlgebra₂_polynomial_decomp g N hN
+    -- Monomial agreement.
+    have h_mono : ∀ (i j : ℕ) (c : B),
+        (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base)
+          ((TA_B_bivariate_to_outerQuotient_evalHom₂ b h)
+            (algebraMap B ↥(TateAlgebra₂ B) c * TateAlgebra₂.X ^ i *
+              TateAlgebra₂.Y ^ j)) =
+        Ideal.Quotient.mk (TateAlgebra.bivariateOverlapIdeal b)
+          (algebraMap B ↥(TateAlgebra₂ B) c * TateAlgebra₂.X ^ i *
+            TateAlgebra₂.Y ^ j) := by
+      intros i j c
+      rw [map_mul, map_mul, map_pow, map_pow,
+          map_mul, map_mul, map_pow, map_pow,
+          map_mul, map_mul, map_pow, map_pow,
+          TA_B_bivariate_to_outerQuotient_evalHom₂_algebraMap,
+          TA_B_bivariate_to_outerQuotient_evalHom₂_X,
+          TA_B_bivariate_to_outerQuotient_evalHom₂_Y]
+      -- LHS now has forward applied to outerQuotient_baseHom/YbarTgt/XoutTgt.
+      -- Unfold the outer target element defs to match action lemma shapes.
+      unfold outerQuotient_baseHom outerQuotient_YbarTgt outerQuotient_XoutTgt
+      simp only [RingHom.coe_comp, Function.comp_apply]
+      rw [TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom_mk_algebraMap_mk_algebraMap,
+          TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom_mk_algebraMap_mk_X,
+          TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom_mk_X]
+    simp only [Function.comp]
+    rw [hg_eq]
+    rw [map_sum, map_sum, map_sum]
+    apply Finset.sum_congr rfl
+    intros i _
+    rw [map_sum, map_sum, map_sum]
+    apply Finset.sum_congr rfl
+    intros j _
+    exact h_mono i j _
+  exact congr_fun (Continuous.ext_on hS_dense hLHS_cont hRHS_cont hagree) x
+
 end TA_B₁_gen_quotient_bridge
 
 end ValuationSpectrum
