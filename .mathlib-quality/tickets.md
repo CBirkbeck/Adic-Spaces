@@ -810,6 +810,74 @@ All 0 sorry, build-clean:
 
 ## 8. Session log (newest first)
 
+- **2026-04-20** (Unconditional Jacobson residual DISPROVED; packet produced,
+  Primary): Direct attempt to prove
+  `locIdeal ≤ Ideal.jacobson (⊥ : Ideal (locSubring))` unconditionally
+  found a **concrete counterexample**, confirming the unconditional form
+  is FALSE for uncompleted Tate localization rings.
+
+  **Counterexample** (verified in packet):
+  - `A = ℚ_p⟨X⟩` (Tate algebra, complete, `p` top-nilp unit).
+  - `A₀ = ℤ_p⟨X⟩`, `P.I = (p)`.
+  - Rational open datum: `T = {X}`, `s = p`. locSubring = `ℤ_p⟨X⟩[X/p]`
+    (incomplete sub-algebra of `A[1/p] = A`).
+  - `X ∈ locIdeal` (via `X = p · (X/p)`, `p ∈ P.I`, `X/p ∈ locSubring`).
+  - `X` is top-nilp in locSubring (by existing sorry-free lemma
+    `locIdeal_forall_isTopologicallyNilpotent`, IdealLocalization.lean:339).
+  - `1 + X` is NOT a unit in locSubring, because the formal inverse
+    `1 - X + X² - …` has coefficients ±1 that don't tend to 0 in `ℚ_p`,
+    so it isn't a restricted power series; equivalently, `1 + X` vanishes
+    at `X = -1 ∈ ℤ_p`, so it's not a unit on any Tate algebra containing
+    locSubring.
+  - By `Ideal.mem_jacobson_bot` (Mathlib): X ∉ Jacobson ⊥ (take y = 1).
+  - Therefore `locIdeal ⊄ Jacobson ⊥` in locSubring. QED.
+
+  **Root cause**: the geometric-series proof
+  (`IsTopologicallyNilpotent.isUnit_one_sub`, Wedhorn Prop 5.38, project
+  file `GeometricSeries.lean:43`) **explicitly requires `[CompleteSpace A]`**,
+  which locSubring does NOT satisfy. Without completeness, top-nilp
+  elements need not yield units, and the Jacobson condition can fail.
+
+  **Actions taken**:
+  1. **No theorem landed** (per reviewer directive: "no new critical-path
+     sorries" applied to false statements too).
+  2. **Escalation packet produced** at
+     `.mathlib-quality/chatgpt-packet-locIdeal-jacobson-falsity.md`
+     (~180 lines). Documents the full counterexample with 4 claims
+     (X ∈ locIdeal, X top-nilp, 1+X not a unit, X ∉ Jac ⊥), root cause,
+     implications for Lane B, and 5 acceptable response forms from
+     ChatGPT Pro (A-E):
+     - (A) Hidden extra hypothesis ruling out counterexample.
+     - (B) Wedhorn's Cor 8.32 uses the completion's FF not locSubring's.
+     - (C) Different route to `coeRingHom_preserves_proper` avoiding
+       both Jacobson and FF.
+     - (D) Additional hypothesis on A (e.g., affinoid fin-gen, Jacobson
+       ring, bounded Krull dim).
+     - (E) Pivot to Hübner route, Lane B officially parked.
+  3. **Three conditional wrappers from prior session remain valid**; they
+     take the Jacobson hypothesis as caller-supplied and are unaffected
+     by this falsity result.
+
+  **Critical-path status update**:
+  - Lane B's unconditional closure via Jacobson CANNOT be achieved for
+    general Tate localization rings (the route is fundamentally blocked
+    by `ℚ_p⟨X⟩[X/p]` and similar uncompleted sub-algebras).
+  - The three equivalent entry points (`_of_stacks00MA`,
+    `_of_locIdeal_le_jacobson`, `_of_ringOfDef_faithfullyFlat`) all
+    reduce to the same open question: faithful-flatness of the canonical
+    `locSubring → presheafValue_ringOfDef` without circular Jacobson
+    assumption.
+  - Hübner route (parked in prior session): orthogonal, has its own
+    non-domain obstruction documented in
+    `chatgpt-packet-hubner-nondomain.md`.
+
+  **Files**: no Lean code changes. Documentation-only session, producing
+  packet `chatgpt-packet-locIdeal-jacobson-falsity.md` and this log entry.
+
+  **Next session** (pending ChatGPT Pro / reviewer input): cannot
+  proceed on unconditional Jacobson; needs strategic redirection based
+  on response form A-E.
+
 - **2026-04-20** (Stacks 00MA wired into Cor 8.32 / T-COMP-FF bridge,
   Primary): Wire the newly-landed
   `AdicCompletion.faithfullyFlat_of_le_jacobson_bot` through the entire
@@ -1069,6 +1137,58 @@ All 0 sorry, build-clean:
 
   **Build**: `lake build «Adic spaces».Cor832` → EXIT 0, clean
   (only the pre-existing unused-variable warning on an unrelated theorem).
+
+- **2026-04-21** (T-OV-1 specialized Laurent-overlap quotient bridge,
+  forward∘backward round trip landed parametrically, Primary):
+  Proved the first of two round trips for the specialized quotient bridge
+  in `Adic spaces/LaurentOverlap.lean`. Focused build passes with zero sorries.
+
+  **Landed this increment**:
+  - `TA_B₁_gen_quotient_forward_backward_eq_id` — parametric round-trip
+    theorem `forward ∘ backward = id on TA₂ B ⧸ bivariateOverlapIdeal b`.
+    Takes `hcont_forward` and `hcont_backward` as explicit continuity
+    hypotheses (mirrors `example638Bivariate_backward_forward_eq_id` /
+    `example638Plus_equiv` pattern). Proof uses:
+    * `Ideal.Quotient.ringHom_ext` to reduce to `TA₂ B` level.
+    * `tateAlgebra₂_polynomials_dense_canonical` for polynomial density.
+    * `tateAlgebra₂_polynomial_decomp` for finite-sum decomposition.
+    * Monomial-wise agreement via `forwardHom_mk_algebraMap_mk_algebraMap`
+      + `_mk_algebraMap_mk_X` + `_mk_X` action lemmas (forward side) and
+      `evalHom₂_algebraMap` + `_X` + `_Y` action lemmas (backward side).
+    * `Continuous.ext_on` to extend from polynomials to full TA₂ B.
+    * `TateAlgebra.quotient_bivariateOverlapIdeal_t2Space` for T2Space.
+  - Required `set_option maxHeartbeats 800000 in` due to the 12-step
+    `map_mul`/`map_pow` rewrite chain in the monomial agreement lemma.
+
+  **Specialized bridge status (updated)**:
+  - Forward direction + action lemmas: ✅ landed (prior commits).
+  - Backward direction + action lemmas: ✅ landed (prior commits).
+  - Round trip `forward ∘ backward = id`: ✅ landed this increment.
+  - Round trip `backward ∘ forward = id` on TA(B₁_gen) / outer: **blocked**
+    on polynomial density for `TA(B₁_gen b)`.
+  - Full `RingEquiv` bundle: pending (needs both round trips).
+
+  **Density boundary for `backward ∘ forward = id`**: would require
+  `@Dense (↥(TateAlgebra (B₁_gen b))) instTopologicalSpaceTateAlgebra
+  polynomials` — the univariate analog of
+  `tateAlgebra₂_polynomials_dense_canonical`. The existing
+  `tateAlgebra_polynomials_dense_canonical` (in
+  `Adic spaces/TopologyComparison.lean:1479`) requires `[IsTateRing A]`
+  at `A := B₁_gen b`. `IsTateRing (B₁_gen b)` is not obviously automatic:
+  it requires a `PairOfDefinition` on `B₁_gen b` (subring A₀ + top.-nilp.
+  ideal I with `I^n` basis of nbhds of 0). The quotient of `TA B` by
+  `plusFSubXIdeal b` doesn't inherit such a pair without additional work.
+  Two paths:
+  * (a) Prove `IsTateRing (B₁_gen b)` by constructing an explicit
+    `PairOfDefinition` (using e.g. the image of `TA.pairSubring`'s
+    principal pair under the quotient).
+  * (b) Parameterize `backward ∘ forward = id` on `hDense` +
+    `polynomial_decomp` as additional hypotheses, mirroring the
+    `BackwardEvalHypotheses` threading pattern. Strictly weaker but clean.
+
+  **Files touched this session**: `Adic spaces/LaurentOverlap.lean`
+  (~3020 → ~3150 lines, ~134 new lines for round trip).
+  Focused check `lake env lean "Adic spaces/LaurentOverlap.lean"` — clean.
 
 - **2026-04-20** (T-OV-1 specialized Laurent-overlap quotient bridge,
   backward direction scaffolded with hypothesis bundle, Primary):
