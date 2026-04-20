@@ -810,6 +810,93 @@ All 0 sorry, build-clean:
 
 ## 8. Session log (newest first)
 
+- **2026-04-20** (Stacks 00MA wired into Cor 8.32 / T-COMP-FF bridge,
+  Primary): Wire the newly-landed
+  `AdicCompletion.faithfullyFlat_of_le_jacobson_bot` through the entire
+  Cor 8.32 / T-COMP-FF chain, producing three **Jacobson-conditional**
+  wrappers that replace the raw `Module.FaithfullyFlat` hypothesis by
+  the cleaner purely-algebraic hypothesis `locIdeal ≤ Ideal.jacobson ⊥`
+  in `locSubring`.
+
+  **Landed** (three wrappers, sorry-free composition):
+
+  1. **`IdealLocalizationCompletion.lean`, ~15 new lines**:
+     `locSubringToRingOfDef_faithfullyFlat_of_locIdeal_le_jacobson`.
+     Takes `locIdeal ≤ Jacobson ⊥`, produces
+     `RingHom.FaithfullyFlat (locSubringToRingOfDef D)`. Composes
+     `AdicCompletion.faithfullyFlat_of_le_jacobson_bot`
+     (`AdicCompletionFaithfullyFlat.lean`) with the T-COMP-FF residual
+     `locSubringToRingOfDef_faithfullyFlat_of_residual`
+     (`IdealLocalizationCompletion.lean:414`).
+
+  2. **`Cor832.lean`, ~15 new lines**:
+     `coeRingHom_preserves_proper_of_locIdeal_le_jacobson`. Takes
+     `locIdeal ≤ Jacobson ⊥`, produces
+     `Ideal.map D.coeRingHom q ≠ ⊤` for proper `q ⊆ Localization.Away D.s`.
+     Composes the generic Stacks 00MA with
+     `coeRingHom_preserves_proper_of_stacks00MA` (Cor832.lean:1866,
+     prior session).
+
+  3. **`Cor832.lean`, ~22 new lines**:
+     `productRestriction_injective_tate_of_locIdeal_le_jacobson`.
+     Cover-level analog: takes `locIdeal ≤ Jacobson ⊥` at `C.base`,
+     produces Part-1 injectivity of the product restriction for rational
+     covering `C`. Composes through the Jacobson-conditional
+     `locSubringToRingOfDef_faithfullyFlat_of_locIdeal_le_jacobson` +
+     the cover-level theorem
+     `productRestriction_injective_tate_of_ringOfDef_faithfullyFlat`.
+
+  **Reviewer boundary respected**: the Jacobson hypothesis
+  `locIdeal ≤ Ideal.jacobson ⊥` is **not asserted** in any of the three
+  wrappers — it is taken as an explicit caller-supplied argument. The
+  project does NOT assert the Jacobson hypothesis unconditionally for
+  uncompleted Tate localization rings (reviewer's explicit warning,
+  preserved across sessions).
+
+  **Axiom hygiene**:
+  - `locSubringToRingOfDef_faithfullyFlat_of_locIdeal_le_jacobson`:
+    `[propext, Classical.choice, Quot.sound]` — **fully sorry-free**
+    (lives in `IdealLocalizationCompletion.lean` which has
+    `omit [PlusSubring A] [HasLocLiftPowerBounded A]` throughout,
+    avoiding the T001 leak).
+  - `coeRingHom_preserves_proper_of_locIdeal_le_jacobson`:
+    `[propext, sorryAx, Classical.choice, Quot.sound]` — `sorryAx` is the
+    pre-existing T001 leak via Cor832.lean's file-wide
+    `[HasLocLiftPowerBounded A]` variable (same leak as sibling
+    `coeRingHom_preserves_proper_of_stacks00MA`).
+  - `productRestriction_injective_tate_of_locIdeal_le_jacobson`: same
+    T001 leak as (2).
+
+  **No new sorry introduced** in any of the three wrappers; the sorryAx
+  in (2) and (3) is the pre-existing T001 dependency chain
+  (Presheaf.lean:807 via `restrictionMap`'s typeclass closure), shared
+  with all other `restrictionMap`-consuming theorems in Cor832.lean.
+
+  **Interface picture now complete**. Downstream consumers of Cor 8.32
+  have **three equivalent entry points** to choose from:
+
+  * `..._of_stacks00MA`: direct `Module.FaithfullyFlat` instance
+    (matches Mathlib interface style).
+  * `..._of_locIdeal_le_jacobson`: purely algebraic `locIdeal ≤ Jac ⊥`
+    (matches classical Zariski-ring / Stacks-00MA statement style).
+  * `..._of_ringOfDef_faithfullyFlat`: ring-hom faithful-flatness of
+    `locSubringToRingOfDef` (matches T-COMP-FF pipeline style).
+
+  All three forms are interprovable via the landed bridges, and all
+  three reduce to the same **open unconditional residual**: a
+  `locIdeal ≤ Jacobson ⊥`-style proof for uncompleted Tate localization
+  rings (see `AdicCompletionFaithfullyFlat.lean` boundary block).
+
+  **Files**: `Adic spaces/IdealLocalizationCompletion.lean` (+15 lines,
+  added import of `AdicCompletionFaithfullyFlat`),
+  `Adic spaces/Cor832.lean` (+37 lines). No other files touched.
+
+  **Builds**:
+  - `lake build «Adic spaces».IdealLocalizationCompletion` → EXIT 0,
+    clean.
+  - `lake build «Adic spaces».Cor832` → EXIT 0, only pre-existing
+    unrelated unused-variable warning.
+
 - **2026-04-20** (Stacks 00MA generic theorem landed, Primary): Land the
   **Mathlib-compatible generic Stacks 00MA theorem** in a new project file
   `Adic spaces/AdicCompletionFaithfullyFlat.lean` (99 lines).
@@ -982,6 +1069,70 @@ All 0 sorry, build-clean:
 
   **Build**: `lake build «Adic spaces».Cor832` → EXIT 0, clean
   (only the pre-existing unused-variable warning on an unrelated theorem).
+
+- **2026-04-20** (T-OV-1 specialized Laurent-overlap quotient bridge,
+  backward direction scaffolded with hypothesis bundle, Primary):
+  Landed the full backward-direction infrastructure in
+  `Adic spaces/LaurentOverlap.lean`, closing Steps 6-8 of the critical-path
+  plan for T-OV-1 / T-OVERLAP-COMPAT. Focused build passes with zero sorries.
+
+  **Landed this increment** (11 new defs/theorems):
+  1. `outerQuotient_baseHom` — the composition
+     `B → TA B → B₁_gen b → TA(B₁_gen b) → outer quotient` as a ring hom.
+  2. `outerQuotient_YbarTgt` — image of `algMap(mk_inner(TA.X))` in the outer
+     quotient (target for `TA₂.X` under backward).
+  3. `outerQuotient_XoutTgt` — image of outer `TateAlgebra.X` in the outer
+     quotient (target for `TA₂.Y` under backward).
+  4. `BackwardEvalHypotheses` — hypothesis bundle structure with 10 fields:
+     `topOuter`, `ringOuter`, `uOuter`, `uAddOuter`, `cOuter`, `tOuter`,
+     `naOuter` (the outer quotient's topological structure) plus analytic
+     hypotheses `hcont_base`, `hpb_Ybar`, `hpb_Xout` (continuity + power-
+     boundedness). Mirrors the `example638Plus_equiv`/`hcont_forward`
+     pattern where unprovable-at-this-level facts are threaded as hypotheses.
+  5. `TA_B_bivariate_to_outerQuotient_evalHom₂` — backward evaluation hom
+     `TA₂ B →+* outer quotient` built via `evalHomBounded₂` from the
+     hypothesis bundle.
+  6. `_algebraMap`, `_X`, `_Y` action lemmas: evalHom₂ sends `algMap a` to
+     `outerQuotient_baseHom a`, `TA₂.X` to `outerQuotient_YbarTgt`, and
+     `TA₂.Y` to `outerQuotient_XoutTgt` respectively.
+  7. `_algMap_b_sub_X_eq_zero` — kernel lemma: evalHom₂ kills
+     `algMap b - TA₂.X`. Uses `quotient_algebraMap_b_eq_X` in B₁_gen b.
+  8. `_one_sub_algMap_b_Y_eq_zero` — kernel lemma: evalHom₂ kills
+     `1 - algMap b · TA₂.Y`. Uses `quotient_algebraMap_b_eq_X` + the outer
+     ideal relation `1 - Ybar · X_out ∈ outerLaurentOverlapIdeal`.
+  9. `TA_B_bivariate_quotient_to_outerQuotient_backwardHom` — factored
+     backward quotient hom via `Ideal.Quotient.lift` on
+     `bivariateOverlapIdeal`.
+  10. `_mk_algebraMap`, `_mk_X`, `_mk_Y` — three action lemmas on the
+      factored backward quotient hom.
+
+  **Specialized bridge status (updated)**:
+  - First-stage forward: ✅ landed (prior).
+  - Factor through `plusFSubXIdeal b`: ✅ landed (prior).
+  - Outer `evalHomBounded` on `TA(B₁_gen b)`: ✅ landed (prior).
+  - Factor through outer `(1 - Ybar · X_out)` ideal: ✅ landed (prior).
+  - Forward quotient action lemmas: ✅ landed (prior).
+  - Backward `TA₂ B → outer quotient` via `evalHomBounded₂`: ✅ landed.
+  - Backward action lemmas on `algebraMap`/`X`/`Y`: ✅ landed.
+  - Kernel lemmas on both `bivariateOverlapIdeal` generators: ✅ landed.
+  - Factored backward quotient hom: ✅ landed.
+  - Backward quotient action lemmas on `mk`-generators: ✅ landed.
+  - Round trips `forward∘backward = id` and `backward∘forward = id`:
+    pending (needs density/continuity argument; evalHomBounded₂-based homs
+    agree on generators but the underlying rings aren't generated by
+    polynomials finitely — likely requires continuity-based extension).
+  - Full `RingEquiv` bundle: pending (needs round trips first).
+
+  **Discharge of `BackwardEvalHypotheses`**: for the specialized bridge to be
+  USABLE by downstream `laurentOverlapBridge_exists_compatible`, callers must
+  supply (at instantiation points) the outer-quotient topological structure
+  + continuity + power-boundedness. These follow from the localization /
+  completion structure of `presheafValue(overlap)`, but construction of the
+  explicit evidence is downstream work.
+
+  **Files touched this session**: `Adic spaces/LaurentOverlap.lean`
+  (~2860 → ~3020 lines, ~160 new lines for backward direction).
+  Focused check `lake env lean "Adic spaces/LaurentOverlap.lean"` — clean.
 
 - **2026-04-20** (T-OV-1 specialized Laurent-overlap quotient bridge,
   outer evalHom + forward quotient hom + action lemmas landed, Primary):
