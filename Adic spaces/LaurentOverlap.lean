@@ -3647,6 +3647,61 @@ noncomputable def TA_B₁_gen_quotient_to_B₁₂_gen_equiv
   (TA_B₁_gen_quotient_specialized_equiv_of_inputs P b hA_complete hnoeth hcont_base h
     hcont_forward hcont_backward inputs).trans (bivariateOverlap_equiv_B₁₂gen b)
 
+/-- **Single unified hypothesis bundle** for the specialized Laurent-overlap bridge.
+
+Packages all five hypotheses — `BackwardEvalHypotheses`, the three continuity
+hypotheses (`hcont_base`, `hcont_forward`, `hcont_backward`), and
+`ReverseRoundTripInputs` — behind a single named structure. The two fields
+`hA_complete` and `hnoeth` are ambient hypotheses on `B` itself and kept as
+separate arguments.
+
+This is the **single named residual input bundle** that downstream callers
+must construct to instantiate the full specialized bridge. -/
+structure SpecializedOverlapBridgeInputs
+    (P : PairOfDefinition B) (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    [IsNoetherianRing P.A₀]
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring₂ (IsTateRing.principalPair B).toPairOfDefinition)) where
+  /-- Continuity of the algebraic base hom
+  `B₁_gen b →+* TA₂ B ⧸ bivariateOverlapIdeal b` obtained by factoring the
+  first-stage evalHom through `plusFSubXIdeal b`. -/
+  hcont_base : @Continuous _ _
+    (quotientPlusFSubXIdealTopology B b)
+    (TateAlgebra.quotientBivariateOverlapIdealTopology b)
+    (baseHom_B₁_gen_to_bivariateOverlap P b hA_complete hnoeth)
+  /-- The hypothesis bundle for the outer quotient topology + power-boundedness. -/
+  backwardHyps : BackwardEvalHypotheses (B := B) b
+  /-- Continuity of the forward quotient hom. -/
+  hcont_forward : @Continuous _ _ backwardHyps.topOuter
+    (TateAlgebra.quotientBivariateOverlapIdealTopology b)
+    (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base)
+  /-- Continuity of the backward quotient hom. -/
+  hcont_backward : @Continuous _ _
+    (TateAlgebra.quotientBivariateOverlapIdealTopology b) backwardHyps.topOuter
+    (TA_B_bivariate_quotient_to_outerQuotient_backwardHom b backwardHyps)
+  /-- Polynomial density on `TA(B₁_gen b)`. -/
+  reverseInputs : ReverseRoundTripInputs (B := B) b
+
+/-- **Exported final theorem**: the specialized Laurent-overlap bridge packaged
+behind a single `SpecializedOverlapBridgeInputs` input bundle.
+
+This is the canonical caller-ready API: given the ambient hypotheses on `B`
+and one `SpecializedOverlapBridgeInputs` bundle, returns the full
+`RingEquiv` between `TA(B₁_gen b) ⧸ outerLaurentOverlapIdeal b` and
+`LaurentCover.B₁₂_gen b`. The bundle contains exactly the hypotheses
+that are NOT automatic from the ambient type-class environment. -/
+noncomputable def specializedOverlapBridge
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring₂ (IsTateRing.principalPair B).toPairOfDefinition))
+    (inputs : SpecializedOverlapBridgeInputs P b hA_complete hnoeth) :
+    (↥(TateAlgebra (LaurentCover.B₁_gen b)) ⧸ outerLaurentOverlapIdeal b) ≃+*
+      LaurentCover.B₁₂_gen b :=
+  TA_B₁_gen_quotient_to_B₁₂_gen_equiv P b hA_complete hnoeth inputs.hcont_base
+    inputs.backwardHyps inputs.hcont_forward inputs.hcont_backward inputs.reverseInputs
+
 end TA_B₁_gen_quotient_bridge
 
 end ValuationSpectrum
