@@ -3247,6 +3247,53 @@ theorem TA_B₁_gen_quotient_forward_backward_eq_id
     exact h_mono i j _
   exact congr_fun (Continuous.ext_on hS_dense hLHS_cont hRHS_cont hagree) x
 
+/-! #### Step 10: parametric `RingEquiv` bundle for the specialized bridge
+
+The `RingEquiv` between the two quotients, parameterized on the reverse
+round trip `backward ∘ forward = id` as an explicit hypothesis. This is the
+"strongest clean parametric theorem exposing exactly the boundary": the
+forward round trip is discharged automatically using
+`TA_B₁_gen_quotient_forward_backward_eq_id`, and the reverse is threaded
+as an argument.
+
+**Boundary**: the reverse round trip requires polynomial density for
+`TA(LaurentCover.B₁_gen b)`, which the existing
+`tateAlgebra_polynomials_dense_canonical` lemma provides under
+`[IsTateRing (B₁_gen b)]`. Constructing an explicit `IsTateRing` /
+`PairOfDefinition` on `B₁_gen b = TA B / plusFSubXIdeal b` from the ambient
+Tate structure on `TA B` is non-trivial and deferred — see tickets.md. -/
+noncomputable def TA_B₁_gen_quotient_specialized_equiv
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring₂ (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_base : @Continuous _ _
+      (quotientPlusFSubXIdealTopology B b)
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b)
+      (baseHom_B₁_gen_to_bivariateOverlap P b hA_complete hnoeth))
+    (h : BackwardEvalHypotheses (B := B) b)
+    (hcont_forward : @Continuous _ _ h.topOuter
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b)
+      (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base))
+    (hcont_backward : @Continuous _ _
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b) h.topOuter
+      (TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h))
+    (h_bwd_fwd : (TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h).comp
+      (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base) =
+      RingHom.id _) :
+    (↥(TateAlgebra (LaurentCover.B₁_gen b)) ⧸ outerLaurentOverlapIdeal b) ≃+*
+      (↥(TateAlgebra₂ B) ⧸ TateAlgebra.bivariateOverlapIdeal b) where
+  toFun := TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base
+  invFun := TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h
+  left_inv x :=
+    congr_fun (congrArg DFunLike.coe h_bwd_fwd) x
+  right_inv y :=
+    congr_fun (congrArg DFunLike.coe
+      (TA_B₁_gen_quotient_forward_backward_eq_id P b hA_complete hnoeth hcont_base h
+        hcont_forward hcont_backward)) y
+  map_mul' := map_mul _
+  map_add' := map_add _
+
 end TA_B₁_gen_quotient_bridge
 
 end ValuationSpectrum
