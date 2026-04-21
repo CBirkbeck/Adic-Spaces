@@ -810,6 +810,207 @@ All 0 sorry, build-clean:
 
 ## 8. Session log (newest first)
 
+- **2026-04-21** (V-cover Lane-C consumer landed in LaurentRefinement,
+  Primary): Own the downstream integration lane end-to-end. Land the
+  **strongest caller-ready V-cover gluing theorem** in
+  `Adic spaces/LaurentRefinement.lean` (~150 new lines), packaging the
+  Laurent-pair explicit-bridge gluing with the standard
+  plus/minus-refinement dichotomy to produce **V-cover gluing directly**
+  from a single compatible overlap bridge witness.
+
+  **Landed**: `ValuationSpectrum.V_cover_gluing_from_laurentPair_via_compatible_bridge`.
+  Signature:
+
+  ```lean
+  theorem V_cover_gluing_from_laurentPair_via_compatible_bridge
+      -- 7-hypothesis Tate bundle on `presheafValue D₀` (hNoeth_B, hLocLift_B,
+      -- hA₀Noeth_B, hA_complete_B, hnoeth_B, hcont_forward_B, hcont_eval_B)
+      -- + Laurent-pair inputs (D₀, f)
+      -- + explicit compatible overlap bridge
+      (τ₁₂ : presheafValue (laurentOverlapDatum D₀ f) ≃+*
+              LaurentCover.B₁₂_gen (D₀.canonicalMap f))
+      (hcompat_bridge : LaurentOverlapBridgeCompatible … τ₁₂)
+      -- + abstract V-cover (no dependence on standardCoverVCovers)
+      (V_covers : Finset (RationalLocData A))
+      (hV_subset_base : ∀ D ∈ V_covers, rationalOpen D.T D.s ⊆
+        rationalOpen D₀.T D₀.s)
+      (hrefine : ∀ D : { D // D ∈ V_covers }, refines plus ∨ refines minus)
+      (u_plus u_minus) (fV)
+      (hfV_plus hfV_minus hcompat) :
+      ∃ x : presheafValue D₀, ∀ D ∈ V_covers,
+        restrictionMap D₀ D.1 (hV_subset_base D.1 D.2) x = fV D
+  ```
+
+  **What it does**: consumes the **single upstream Lane-A witness**
+  `(τ₁₂, hcompat_bridge)` and produces a **V-cover-level Part-2 gluing
+  result** without the caller needing to unpack the Laurent pair.
+  Internally chains `laurentCover_gluing_presheaf_via_compatible_bridge`
+  (prior session) with the plus/minus-refinement dichotomy via
+  `restrictionMap_comp` — pure structural composition, no new analytic
+  content.
+
+  **Architectural advantage over the attempted
+  `standardCover_gluing_induction_step_via_compatible_bridge`** (which
+  the prior sub-session could not land due to concurrent-agent errors
+  in `GeometricReduction.lean`): this theorem is **parametric in
+  abstract `V_covers`**, so it does NOT depend on
+  `GeometricReduction.standardCoverVCovers` or any other
+  GeometricReduction API. **It compiles cleanly in LaurentRefinement.lean**
+  as a self-contained theorem, completely independent of whatever
+  in-flight state GeometricReduction.lean is in.
+
+  **Usage**: downstream callers (Lane C) who work with standard-cover
+  V-sets instantiate:
+  * `V_covers := C.standardCoverVCovers S`
+  * `hV_subset_base := fun D hD => C.standardCoverVCovers_subset_base S D hD`
+  * `hrefine := fun D => ...` (from `refinedVCovers_plusMinus_dichotomy`,
+    etc.)
+
+  and get V-cover gluing in one call. Consumers who work with
+  **arbitrary V-covers** (e.g., ad-hoc Lane-C variants, Hübner-style
+  direct V-cover constructions) simply supply the Finset directly.
+
+  **Caller-ready interface picture now complete** (all in LaurentRefinement.lean,
+  all sorry-free modulo pre-existing T001 leak, all accept the same
+  single upstream Lane-A witness `(τ₁₂, hcompat_bridge)`):
+
+  | Level | Theorem | Caller supplies |
+  |---|---|---|
+  | delta=0 | `laurentBridge_delta_eq_zero_via_compatible_bridge` | bridge + uplus/uminus + compat |
+  | Laurent pair gluing | `laurentCover_gluing_presheaf_via_compatible_bridge` | bridge + uplus/uminus + compat + hplus/hminus |
+  | V-cover gluing | `V_cover_gluing_from_laurentPair_via_compatible_bridge` (**new**) | bridge + V-cover + plus/minus dichotomy + halves matching |
+
+  Lane C's ultimate downstream call only needs the V-cover version.
+
+  **Scope respected**: edited ONLY `LaurentRefinement.lean`. Did NOT
+  touch `LaurentOverlap.lean` (Primary's file). Did NOT touch
+  `GeometricReduction.lean` (Tertiary's in-flight file with build
+  errors). Did NOT reopen Lane B. The prior sub-session's reverted
+  GeometricReduction.lean addition remains reverted.
+
+  **Axiom hygiene**:
+  `V_cover_gluing_from_laurentPair_via_compatible_bridge` depends on
+  `[propext, sorryAx, Classical.choice, Quot.sound]`. The `sorryAx`
+  is the **pre-existing T001 leak** via `[HasLocLiftPowerBounded A]` →
+  `restrictionMap` → `spa_point_nonOpen_of_rational_subset` — identical
+  axiom pattern to the three sibling `_via_compatible_bridge` theorems.
+  **The new theorem does NOT depend on the Lane-A sorry**
+  (`laurentOverlapBridge_exists_compatible`): proof body uses only
+  `laurentCover_gluing_presheaf_via_compatible_bridge` (which skips the
+  Lane-A `obtain`) and `restrictionMap_comp` (sorry-free).
+
+  **Net project sorry delta**: 0. Pre-existing sorries at
+  `laurentOverlapBridge_exists_compatible` (now at line 3187) and
+  `tateAcyclicity` Part 2 (now at line 4167) unchanged.
+
+  **Builds**:
+  * `lake build «Adic spaces».LaurentRefinement` → EXIT 0, clean.
+  * All sorry warnings in the build output are pre-existing in other
+    upstream files; the only LaurentRefinement warnings are for the two
+    pre-existing sorries above.
+  * Axiom check confirms same T001 footprint as siblings.
+
+  **Downstream impact**: Lane C's entire downstream integration side is
+  now **DONE modulo the single upstream Lane-A witness**
+  `(τ₁₂, hcompat_bridge)`. The final caller needs only:
+  1. Supply the compatible overlap bridge (Lane A, in
+     `LaurentOverlap.lean` — Primary's responsibility).
+  2. Provide the V-cover structure + plus/minus dichotomy at each
+     induction step (standard content, already available via
+     `refinedVCovers_plusMinus_dichotomy` once `GeometricReduction.lean`
+     stabilizes).
+
+- **2026-04-21** (Lane-C V-cover consumer attempt — blocked by concurrent
+  agent's GeometricReduction.lean errors, Secondary): Attempted to land the
+  **next consumer theorem** one level higher: a caller-ready
+  `standardCover_gluing_induction_step_via_compatible_bridge` in
+  `Adic spaces/GeometricReduction.lean` that would chain the
+  `laurentCover_gluing_presheaf_via_compatible_bridge` (prior-session
+  landed) through `standardCover_gluing_induction_step` to give Lane C
+  a V-cover-level Part-2 gluing step taking just the compatible overlap
+  bridge as explicit input.
+
+  **Blocker found**: `Adic spaces/GeometricReduction.lean` has ~4700
+  lines of **concurrent-agent in-flight edits** (not from this session)
+  with six pre-existing build errors at lines 334, 603, 607, 613, 748,
+  829:
+  ```
+  error: Unknown identifier `restrictionMap_bijective_of_rationalOpen_eq`
+  error: Unknown identifier `g`
+  error: Unknown identifier `f₀`
+  error: Application type mismatch: The argument …
+  error: unexpected token ':='; expected '}'
+  error: (deterministic) timeout at `isDefEq`, heartbeats exhausted
+  ```
+  These errors exist in the current uncommitted working state and are
+  independent of this session — they appear whether or not my theorem
+  addition is present. The file does not build.
+
+  **Actions taken**:
+  1. Drafted `standardCover_gluing_induction_step_via_compatible_bridge`
+     (~110 lines) at line 1468 of GeometricReduction.lean. Structurally
+     correct (mirrors `_via_laurentGluing` but routes through the new
+     `_via_compatible_bridge` Laurent variant).
+  2. **Reverted** the addition — since the file is under heavy concurrent
+     editing and cannot build, adding new theorems there is risky and
+     can't be verified.
+  3. **Did not create a downstream file** — would require importing
+     `GeometricReduction.lean` to use `standardCover_gluing_induction_step`,
+     which is currently unbuildable; source-only content with import-cycle
+     workarounds would be heavy-handed for an unverified theorem.
+
+  **Source-only snippet** (ready to drop into GeometricReduction.lean
+  once concurrent errors resolve, or into a downstream file if
+  GeometricReduction.lean stabilizes):
+  ```lean
+  theorem RationalCovering.standardCover_gluing_induction_step_via_compatible_bridge
+      [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+      [DecidableEq A]
+      (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+      (C : RationalCovering A)
+      [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+      [LaurentNormalized C.base]
+      (f₀ : A) (S : Finset A)
+      (u_plus : presheafValue (laurentPlusDatum C.base f₀))
+      (u_minus : presheafValue (laurentMinusDatum C.base f₀))
+      (fV : ∀ D : { D // D ∈ C.standardCoverVCovers S }, presheafValue D.1)
+      (hrefine : …) (hfV_plus : …) (hfV_minus : …) (hcompat : …)
+      (hNoeth_B : …) (hLocLift_B : …) (hA₀Noeth_B : …)
+      (hA_complete_B : …) (hnoeth_B : …)
+      (hcont_forward_B : …) (hcont_eval_B : …)
+      (τ₁₂ : presheafValue (laurentOverlapDatum C.base f₀) ≃+*
+        LaurentCover.B₁₂_gen (C.base.canonicalMap f₀))
+      (hcompat_bridge : LaurentOverlapBridgeCompatible P C.base f₀ … τ₁₂) :
+      ∃ x, ∀ D ∈ C.standardCoverVCovers S, restrictionMap C.base D.1 _ x = fV D :=
+    C.standardCover_gluing_induction_step f₀ S u_plus u_minus fV hrefine
+      hfV_plus hfV_minus
+      (laurentCover_gluing_presheaf_via_compatible_bridge P C.base f₀
+        hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B hnoeth_B
+        hcont_forward_B hcont_eval_B τ₁₂ hcompat_bridge
+        (laurentPlus_subset C.base f₀) (laurentMinus_subset C.base f₀)
+        u_plus u_minus hcompat)
+  ```
+
+  **Current Lane-C consumer state**:
+  * **`laurentCover_gluing_presheaf_via_compatible_bridge`**
+    (LaurentRefinement.lean, prior session, sorry-free modulo T001 leak)
+    — this IS the currently-available caller-ready theorem. Lane C
+    callers consume it at the **Laurent-pair level** (takes `uplus, uminus`
+    directly) rather than at the V-cover level. Slightly lower-level
+    than the attempted `standardCover_gluing_induction_step_via_compatible_bridge`
+    but fully functional.
+
+  **Scope respected**: did NOT edit `LaurentOverlap.lean`. Did NOT
+  reopen Lane B. No new sorries. No new critical-path dependencies.
+  GeometricReduction.lean reverted to pre-session concurrent state.
+
+  **Net sorry delta**: 0. All additions reverted.
+
+  **Next-session actionable**: once concurrent agent resolves
+  GeometricReduction.lean errors (likely targeting unresolved identifiers
+  and the mid-file syntax error around line 748), drop in the source-only
+  snippet above and verify with `lake build «Adic spaces».GeometricReduction`.
+
 - **2026-04-21** (Lane-C consumer theorems landed with explicit bridge
   hypothesis, Secondary): Build the **next consumer theorem** in the
   downstream overlap-compatibility lane: a pair of theorems in
@@ -1362,6 +1563,41 @@ All 0 sorry, build-clean:
 
   **Build**: `lake build «Adic spaces».Cor832` → EXIT 0, clean
   (only the pre-existing unused-variable warning on an unrelated theorem).
+
+- **2026-04-21** (T-OV-1 specialized Laurent-overlap quotient bridge,
+  end-to-end composite bridge + polynomial decomp helper landed, Primary):
+  Finalized the specialized Laurent-overlap quotient bridge with a
+  downstream-consumable composite equivalence and an internal polynomial
+  decomposition helper eliminating two of three residual hypotheses from
+  `ReverseRoundTripInputs`.
+
+  **Landed this increment**:
+  - `TateAlgebra_monomial_val` — univariate monomial value formula.
+  - `Finsupp_fin1_decomp` — `l = Finsupp.single 0 (l 0)` for Fin 1.
+  - `tateAlgebra_polynomial_decomp` — univariate polynomial
+    decomposition for `TA R` — purely algebraic (no IsTateRing required).
+    Discharges BOTH decomp hypotheses previously in
+    `ReverseRoundTripInputs`, reducing residuals from 3 fields to 1.
+  - `TA_B₁_gen_quotient_to_B₁₂_gen_equiv` — caller-ready composite
+    bridge `TA(B₁_gen b) ⧸ outerLaurentOverlapIdeal b ≃+* B₁₂_gen b`.
+    Composes the specialized equiv with `bivariateOverlap_equiv_B₁₂gen`.
+
+  **Specialized bridge final status**:
+  - Forward + backward directions + action lemmas: ✅ landed.
+  - Both round trips: ✅ landed parametrically.
+  - Full RingEquiv bundles (raw / via inputs): ✅ landed.
+  - End-to-end composite `TA(B₁_gen) ⧸ outer ≃+* B₁₂_gen b`: ✅ landed.
+
+  **Single remaining residual**: `ReverseRoundTripInputs.hDense`, the
+  polynomial density on `TA(B₁_gen b)`. Mathematically honest: captures
+  exactly the gap between "quotient of a Tate ring by a general ideal"
+  and the canonical Tate topology. Discharging requires either (a)
+  explicit `PairOfDefinition` on the quotient (then
+  `tateAlgebra_polynomials_dense_canonical` applies), or (b) a direct
+  truncation-based density argument.
+
+  **Files touched**: `Adic spaces/LaurentOverlap.lean` (~3450 → ~3600
+  lines, ~136 new / -24 cleaned). Focused check — clean, zero sorries.
 
 - **2026-04-21** (T-OV-1 specialized Laurent-overlap quotient bridge,
   reverse round trip closed via narrow extensionality, Primary):
