@@ -3310,11 +3310,107 @@ follow from `[IsTateRing (LaurentCover.B₁_gen b)]`; this instance is not
 yet constructed (would require an explicit `PairOfDefinition` on
 `B₁_gen b = TA B / plusFSubXIdeal b`, which is substantial work). -/
 
+/-- **Univariate monomial value**: `algebraMap A _ c * X^i` in `TateAlgebra A`
+has underlying MvPowerSeries equal to `monomial (Finsupp.single 0 i) c`.
+Univariate analog of `TateAlgebra₂_monomial_val`. -/
+theorem TateAlgebra_monomial_val {A : Type*} [CommRing A] [TopologicalSpace A]
+    [NonarchimedeanRing A] (c : A) (i : ℕ) :
+    (algebraMap A ↥(TateAlgebra A) c * TateAlgebra.X ^ i).val =
+      MvPowerSeries.monomial (Finsupp.single (0 : Fin 1) i) c := by
+  have hval : (algebraMap A ↥(TateAlgebra A) c * TateAlgebra.X ^ i).val =
+      (Subring.subtype (TateAlgebra A))
+        (algebraMap A ↥(TateAlgebra A) c * TateAlgebra.X ^ i) := rfl
+  rw [hval, map_mul, map_pow]
+  show MvPowerSeries.C c * MvPowerSeries.X (0 : Fin 1) ^ i = _
+  rw [MvPowerSeries.X_pow_eq,
+      (MvPowerSeries.monomial_zero_eq_C_apply (a := c)).symm,
+      MvPowerSeries.monomial_mul_monomial, zero_add, mul_one]
+
+/-- Any `l : Fin 1 →₀ ℕ` decomposes as `Finsupp.single 0 (l 0)`. -/
+theorem Finsupp_fin1_decomp (l : Fin 1 →₀ ℕ) :
+    l = Finsupp.single (0 : Fin 1) (l 0) := by
+  ext i
+  fin_cases i
+  simp
+
+/-- **Polynomial decomposition (univariate)**: for `g : TateAlgebra A` with
+coefficients vanishing for indices `n 0 ≥ N`, `g` equals the Finset.sum of its
+coefficient-monomials. Univariate analog of `tateAlgebra₂_polynomial_decomp`.
+Purely algebraic — requires only `CommRing A`, `TopologicalSpace A`,
+`NonarchimedeanRing A`. -/
+theorem tateAlgebra_polynomial_decomp
+    {A : Type*} [CommRing A] [TopologicalSpace A] [NonarchimedeanRing A]
+    (g : ↥(TateAlgebra A)) (N : ℕ)
+    (hN : ∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → g.val n = 0) :
+    g = ∑ i ∈ Finset.range N,
+      algebraMap A ↥(TateAlgebra A)
+        (MvPowerSeries.coeff (Finsupp.single 0 i) g.val) * TateAlgebra.X ^ i := by
+  classical
+  apply Subtype.ext
+  funext l
+  have hRHS_val_eq : ((∑ i ∈ Finset.range N,
+        algebraMap A ↥(TateAlgebra A)
+          (MvPowerSeries.coeff (Finsupp.single 0 i) g.val) *
+          TateAlgebra.X ^ i : ↥(TateAlgebra A)).val) =
+      ∑ i ∈ Finset.range N,
+        MvPowerSeries.monomial (Finsupp.single (0 : Fin 1) i)
+          (MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) i) g.val) := by
+    show (Subring.subtype _) _ = _
+    rw [map_sum]
+    apply Finset.sum_congr rfl
+    intros i _
+    exact TateAlgebra_monomial_val _ i
+  rw [hRHS_val_eq]
+  have hsum_val : (∑ i ∈ Finset.range N,
+        MvPowerSeries.monomial (Finsupp.single (0 : Fin 1) i)
+          (MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) i) g.val)) l =
+      ∑ i ∈ Finset.range N,
+        (if l = Finsupp.single (0 : Fin 1) i then
+          MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) i) g.val
+        else 0) := by
+    rw [(MvPowerSeries.coeff_apply (∑ i ∈ Finset.range N,
+          MvPowerSeries.monomial (Finsupp.single (0 : Fin 1) i)
+            (MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) i) g.val)) l).symm, map_sum]
+    apply Finset.sum_congr rfl
+    intros i _
+    exact MvPowerSeries.coeff_monomial _ _ _
+  rw [hsum_val]
+  by_cases hl : l 0 < N
+  · rw [Finset.sum_eq_single (l 0)]
+    · rw [if_pos (Finsupp_fin1_decomp l)]
+      rw [← Finsupp_fin1_decomp l]
+      rfl
+    · intros i _ hi
+      rw [if_neg]
+      intro heq
+      apply hi
+      have := congrArg (fun f : Fin 1 →₀ ℕ => f 0) heq
+      simp at this
+      exact this.symm
+    · intro h
+      exfalso; exact h (Finset.mem_range.mpr hl)
+  · push_neg at hl
+    have hN_apply : g.val l = 0 := hN l (Or.inl hl)
+    rw [hN_apply]
+    symm
+    apply Finset.sum_eq_zero
+    intros i hi
+    rw [if_neg]
+    intro heq
+    have h_l_i : l 0 = i := by
+      have := congrArg (fun f : Fin 1 →₀ ℕ => f 0) heq
+      simp at this
+      exact this
+    have h_i_lt : i < N := Finset.mem_range.mp hi
+    rw [h_l_i] at hl
+    exact absurd hl (Nat.not_le.mpr h_i_lt)
+
 /-- **Inputs to discharge the reverse round trip** `backward ∘ forward = id`.
 
-Bundles the two hypotheses needed on `TA(LaurentCover.B₁_gen b)` that are
-NOT automatic from the ambient hypotheses on `B`: density of polynomials
-and a polynomial decomposition. -/
+Bundles the single remaining hypothesis needed on `TA(LaurentCover.B₁_gen b)`
+that is NOT automatic from the ambient hypotheses on `B`: polynomial density.
+Both the outer and inner polynomial decompositions are now discharged
+internally via `tateAlgebra_polynomial_decomp` (purely algebraic). -/
 structure ReverseRoundTripInputs (b : B) where
   /-- Density of polynomials in `TA(B₁_gen b)` for the canonical Tate topology.
   Equivalent to the conclusion of `tateAlgebra_polynomials_dense_canonical` at
@@ -3322,23 +3418,6 @@ structure ReverseRoundTripInputs (b : B) where
   hDense : @Dense ↥(TateAlgebra (LaurentCover.B₁_gen b)) instTopologicalSpaceTateAlgebra
     {g : ↥(TateAlgebra (LaurentCover.B₁_gen b)) |
       ∃ N : ℕ, ∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → g.val n = 0}
-  /-- Polynomial decomposition (outer): any `g ∈ TA(B₁_gen b)` with support
-  contained in `[0, N)` equals the Finset.sum of its coefficient-monomials.
-  The univariate analog of `tateAlgebra₂_polynomial_decomp`. -/
-  hDecomp : ∀ (g : ↥(TateAlgebra (LaurentCover.B₁_gen b))) (N : ℕ),
-    (∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → g.val n = 0) →
-    g = ∑ i ∈ Finset.range N,
-      algebraMap (LaurentCover.B₁_gen b) ↥(TateAlgebra (LaurentCover.B₁_gen b))
-        (MvPowerSeries.coeff (Finsupp.single 0 i) g.val) * TateAlgebra.X ^ i
-  /-- Polynomial decomposition (inner on `TA B`): any `g ∈ TA B` with support
-  contained in `[0, N)` equals the Finset.sum of its coefficient-monomials.
-  Provided as a hypothesis since it's a purely algebraic fact; downstream can
-  discharge by proving a univariate analog of `tateAlgebra₂_polynomial_decomp`. -/
-  hDecomp_inner : ∀ (g : ↥(TateAlgebra B)) (N : ℕ),
-    (∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → g.val n = 0) →
-    g = ∑ i ∈ Finset.range N,
-      algebraMap B ↥(TateAlgebra B)
-        (MvPowerSeries.coeff (Finsupp.single 0 i) g.val) * TateAlgebra.X ^ i
 
 /-- **Continuous ring hom extensionality on TateAlgebra**: two continuous ring homs
 `f, g : TA R → S` agree on all of `TA R` if they agree on coefficients
@@ -3387,8 +3466,8 @@ as the only remaining hypothesis bundle; the proof applies two layers of
 action lemmas.
 
 Inner-level density is discharged via `tateAlgebra_polynomials_dense_canonical`
-using `[IsTateRing B]`; inner polynomial decomposition is provided via
-`inputs.hDecomp_inner`. -/
+using `[IsTateRing B]`; both polynomial decompositions are discharged internally
+via `tateAlgebra_polynomial_decomp` (purely algebraic). -/
 set_option maxHeartbeats 800000 in
 theorem TA_B₁_gen_quotient_backward_forward_eq_id_of_inputs
     (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
@@ -3428,7 +3507,7 @@ theorem TA_B₁_gen_quotient_backward_forward_eq_id_of_inputs
       (Ideal.Quotient.mk (outerLaurentOverlapIdeal b)) := continuous_quotient_mk'
   -- Apply outer extensionality.
   refine tateAlgebra_continuous_ringHom_ext _ _ hLHS_cont hRHS_cont
-    inputs.hDense inputs.hDecomp ?_ ?_
+    inputs.hDense tateAlgebra_polynomial_decomp ?_ ?_
   · -- Agreement on `algMap α` for all α ∈ B₁_gen.
     intro α
     -- Reduce further: view as ring homs B₁_gen → outer, apply inner Quotient.ringHom_ext.
@@ -3483,7 +3562,7 @@ theorem TA_B₁_gen_quotient_backward_forward_eq_id_of_inputs
             (Ideal.Quotient.mk (plusFSubXIdeal B b))) := by
         apply tateAlgebra_continuous_ringHom_ext _ _ hLHS_inner_cont hRHS_inner_cont
           (TateAlgebra.tateAlgebra_polynomials_dense_canonical (A := B))
-          inputs.hDecomp_inner
+          tateAlgebra_polynomial_decomp
         · -- agreement on algMap_B(b') for b' ∈ B
           intro b'
           simp only [RingHom.coe_comp, Function.comp_apply]
@@ -3534,6 +3613,39 @@ noncomputable def TA_B₁_gen_quotient_specialized_equiv_of_inputs
     hcont_forward hcont_backward
     (TA_B₁_gen_quotient_backward_forward_eq_id_of_inputs P b hA_complete hnoeth hcont_base
       h hcont_forward hcont_backward inputs)
+
+/-- **Caller-ready end-to-end specialized bridge**: composes the specialized
+`TA(B₁_gen b) ⧸ outerLaurentOverlapIdeal b ≃+* TA₂ B ⧸ bivariateOverlapIdeal b`
+equivalence with the pure-algebraic `bivariateOverlap_equiv_B₁₂gen` identification
+to produce a direct `TA(B₁_gen b) ⧸ outerLaurentOverlapIdeal b ≃+* B₁₂_gen b`
+ring equivalence.
+
+This is the downstream-consumable interface: one `RingEquiv` bundling the
+specialized Laurent-overlap quotient bridge with the algebraic Step-B
+identification, reducing the full overlap bridge to a single named input
+bundle (continuity hypotheses + `BackwardEvalHypotheses` + `ReverseRoundTripInputs`)
+plus the existing Primary-side algebraic skeleton. -/
+noncomputable def TA_B₁_gen_quotient_to_B₁₂_gen_equiv
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring₂ (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_base : @Continuous _ _
+      (quotientPlusFSubXIdealTopology B b)
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b)
+      (baseHom_B₁_gen_to_bivariateOverlap P b hA_complete hnoeth))
+    (h : BackwardEvalHypotheses (B := B) b)
+    (hcont_forward : @Continuous _ _ h.topOuter
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b)
+      (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base))
+    (hcont_backward : @Continuous _ _
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b) h.topOuter
+      (TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h))
+    (inputs : ReverseRoundTripInputs (B := B) b) :
+    (↥(TateAlgebra (LaurentCover.B₁_gen b)) ⧸ outerLaurentOverlapIdeal b) ≃+*
+      LaurentCover.B₁₂_gen b :=
+  (TA_B₁_gen_quotient_specialized_equiv_of_inputs P b hA_complete hnoeth hcont_base h
+    hcont_forward hcont_backward inputs).trans (bivariateOverlap_equiv_B₁₂gen b)
 
 end TA_B₁_gen_quotient_bridge
 
