@@ -1139,6 +1139,46 @@ All 0 sorry, build-clean:
   (only the pre-existing unused-variable warning on an unrelated theorem).
 
 - **2026-04-21** (T-OV-1 specialized Laurent-overlap quotient bridge,
+  parametric RingEquiv bundle landed, Primary):
+  Bundled the specialized Laurent-overlap quotient bridge into a
+  `RingEquiv` parametric on the reverse round trip hypothesis.
+  Landed `TA_B₁_gen_quotient_specialized_equiv` in
+  `Adic spaces/LaurentOverlap.lean`. Focused build passes with zero sorries.
+
+  **Landed this increment**:
+  - `TA_B₁_gen_quotient_specialized_equiv` — parametric `RingEquiv`
+    `TA(B₁_gen b) ⧸ outerLaurentOverlapIdeal b ≃+* TA₂ B ⧸
+    bivariateOverlapIdeal b`. Fields:
+    * `toFun` = `TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom`
+    * `invFun` = `TA_B_bivariate_quotient_to_outerQuotient_backwardHom`
+    * `right_inv` = discharged via landed
+      `TA_B₁_gen_quotient_forward_backward_eq_id`
+    * `left_inv` = threaded via explicit `h_bwd_fwd` hypothesis
+  - Takes the full hypothesis menu: `hcont_base`, `h : BackwardEvalHypotheses`,
+    `hcont_forward`, `hcont_backward`, `h_bwd_fwd`.
+
+  **Specialized bridge final status**:
+  - Forward direction + action lemmas: ✅ landed.
+  - Backward direction + action lemmas: ✅ landed.
+  - Round trip `forward ∘ backward = id`: ✅ landed parametrically.
+  - Round trip `backward ∘ forward = id`: exposed as `h_bwd_fwd`
+    hypothesis (boundary documented in prior log entry — requires
+    `IsTateRing (B₁_gen b)` or parameterization on polynomial density).
+  - Full `RingEquiv` bundle: ✅ landed parametrically.
+
+  **Downstream usability**: any caller with the outer-quotient
+  topological structure (via `BackwardEvalHypotheses`), forward+backward
+  continuity, and the reverse round trip can instantiate
+  `TA_B₁_gen_quotient_specialized_equiv` and use it as a concrete
+  `RingEquiv`. This gives an alternative to (or supplements)
+  `example638Bivariate_equiv` for downstream
+  `laurentOverlapBridge_exists_compatible` consumption.
+
+  **Files touched this session**: `Adic spaces/LaurentOverlap.lean`
+  (~3150 → ~3200 lines, ~47 new lines for RingEquiv bundle).
+  Focused check `lake env lean "Adic spaces/LaurentOverlap.lean"` — clean.
+
+- **2026-04-21** (T-OV-1 specialized Laurent-overlap quotient bridge,
   forward∘backward round trip landed parametrically, Primary):
   Proved the first of two round trips for the specialized quotient bridge
   in `Adic spaces/LaurentOverlap.lean`. Focused build passes with zero sorries.
