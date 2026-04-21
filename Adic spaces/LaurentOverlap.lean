@@ -3294,6 +3294,247 @@ noncomputable def TA_B₁_gen_quotient_specialized_equiv
   map_mul' := map_mul _
   map_add' := map_add _
 
+/-! #### Step 11: parametric reverse round trip `backward ∘ forward = id`
+
+The reverse round trip requires polynomial density on `TA(B₁_gen b)`. Since
+`[IsTateRing (B₁_gen b)]` is not automatic for the quotient, we take the
+density + polynomial decomposition on `TA(B₁_gen b)` as explicit hypotheses.
+
+The inner side uses the already-available `[IsTateRing B]` to get density
+and decomposition on `TA B` via `tateAlgebra_polynomials_dense_canonical` —
+which is sufficient for discharging the inner `Ideal.Quotient.ringHom_ext`
+reduction.
+
+**Boundary**: the two hypotheses `hDense_outer` + `hDecomp_outer` would
+follow from `[IsTateRing (LaurentCover.B₁_gen b)]`; this instance is not
+yet constructed (would require an explicit `PairOfDefinition` on
+`B₁_gen b = TA B / plusFSubXIdeal b`, which is substantial work). -/
+
+/-- **Inputs to discharge the reverse round trip** `backward ∘ forward = id`.
+
+Bundles the two hypotheses needed on `TA(LaurentCover.B₁_gen b)` that are
+NOT automatic from the ambient hypotheses on `B`: density of polynomials
+and a polynomial decomposition. -/
+structure ReverseRoundTripInputs (b : B) where
+  /-- Density of polynomials in `TA(B₁_gen b)` for the canonical Tate topology.
+  Equivalent to the conclusion of `tateAlgebra_polynomials_dense_canonical` at
+  `A := LaurentCover.B₁_gen b`. -/
+  hDense : @Dense ↥(TateAlgebra (LaurentCover.B₁_gen b)) instTopologicalSpaceTateAlgebra
+    {g : ↥(TateAlgebra (LaurentCover.B₁_gen b)) |
+      ∃ N : ℕ, ∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → g.val n = 0}
+  /-- Polynomial decomposition (outer): any `g ∈ TA(B₁_gen b)` with support
+  contained in `[0, N)` equals the Finset.sum of its coefficient-monomials.
+  The univariate analog of `tateAlgebra₂_polynomial_decomp`. -/
+  hDecomp : ∀ (g : ↥(TateAlgebra (LaurentCover.B₁_gen b))) (N : ℕ),
+    (∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → g.val n = 0) →
+    g = ∑ i ∈ Finset.range N,
+      algebraMap (LaurentCover.B₁_gen b) ↥(TateAlgebra (LaurentCover.B₁_gen b))
+        (MvPowerSeries.coeff (Finsupp.single 0 i) g.val) * TateAlgebra.X ^ i
+  /-- Polynomial decomposition (inner on `TA B`): any `g ∈ TA B` with support
+  contained in `[0, N)` equals the Finset.sum of its coefficient-monomials.
+  Provided as a hypothesis since it's a purely algebraic fact; downstream can
+  discharge by proving a univariate analog of `tateAlgebra₂_polynomial_decomp`. -/
+  hDecomp_inner : ∀ (g : ↥(TateAlgebra B)) (N : ℕ),
+    (∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → g.val n = 0) →
+    g = ∑ i ∈ Finset.range N,
+      algebraMap B ↥(TateAlgebra B)
+        (MvPowerSeries.coeff (Finsupp.single 0 i) g.val) * TateAlgebra.X ^ i
+
+/-- **Continuous ring hom extensionality on TateAlgebra**: two continuous ring homs
+`f, g : TA R → S` agree on all of `TA R` if they agree on coefficients
+(`algebraMap r` for `r ∈ R`) and on `TateAlgebra.X`, provided polynomials are
+dense in `TA R` and `S` is T2. The narrow-scope helper the reverse round trip
+needs: precompose with the outer quotient map and this lemma reduces the
+problem to generator-level agreement.
+
+This is the "strongest clean extensionality theorem for continuous ring homs
+out of `TateAlgebra`" in the form of the user's directive: a specialized
+`Continuous.ext_on` at the TateAlgebra level, with the polynomial-density +
+polynomial-decomposition hypotheses threaded explicitly. -/
+theorem tateAlgebra_continuous_ringHom_ext
+    {R : Type*} [CommRing R] [TopologicalSpace R] [IsTopologicalRing R]
+    [NonarchimedeanRing R]
+    {S : Type*} [CommRing S] [TopologicalSpace S] [T2Space S]
+    (f g : ↥(TateAlgebra R) →+* S)
+    (hf_cont : Continuous f) (hg_cont : Continuous g)
+    (hdense : @Dense ↥(TateAlgebra R) instTopologicalSpaceTateAlgebra
+      {h : ↥(TateAlgebra R) | ∃ N : ℕ, ∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → h.val n = 0})
+    (hdecomp : ∀ (h : ↥(TateAlgebra R)) (N : ℕ),
+      (∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → h.val n = 0) →
+      h = ∑ i ∈ Finset.range N,
+        algebraMap R ↥(TateAlgebra R)
+          (MvPowerSeries.coeff (Finsupp.single 0 i) h.val) * TateAlgebra.X ^ i)
+    (h_algMap : ∀ r : R, f (algebraMap R _ r) = g (algebraMap R _ r))
+    (h_X : f TateAlgebra.X = g TateAlgebra.X) :
+    f = g := by
+  apply RingHom.ext
+  intro x
+  have hagree : Set.EqOn (f : ↥(TateAlgebra R) → S) (g : ↥(TateAlgebra R) → S)
+      {h | ∃ N : ℕ, ∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → h.val n = 0} := by
+    intro h ⟨N, hN⟩
+    have hh_eq := hdecomp h N hN
+    rw [hh_eq, map_sum, map_sum]
+    apply Finset.sum_congr rfl
+    intro i _
+    rw [map_mul, map_mul, map_pow, map_pow, h_algMap, h_X]
+  exact Continuous.ext_on hdense hf_cont hg_cont hagree x
+
+/-- **Parametric reverse round trip** `backward ∘ forward = id` on
+`TA(B₁_gen b) ⧸ outerLaurentOverlapIdeal b`. Takes `inputs : ReverseRoundTripInputs b`
+as the only remaining hypothesis bundle; the proof applies two layers of
+`tateAlgebra_continuous_ringHom_ext` (outer at `R := B₁_gen b`, inner at
+`R := B`) to reduce to generator-level agreement via the already-landed
+action lemmas.
+
+Inner-level density is discharged via `tateAlgebra_polynomials_dense_canonical`
+using `[IsTateRing B]`; inner polynomial decomposition is provided via
+`inputs.hDecomp_inner`. -/
+set_option maxHeartbeats 800000 in
+theorem TA_B₁_gen_quotient_backward_forward_eq_id_of_inputs
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring₂ (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_base : @Continuous _ _
+      (quotientPlusFSubXIdealTopology B b)
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b)
+      (baseHom_B₁_gen_to_bivariateOverlap P b hA_complete hnoeth))
+    (h : BackwardEvalHypotheses (B := B) b)
+    (hcont_forward : @Continuous _ _ h.topOuter
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b)
+      (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base))
+    (hcont_backward : @Continuous _ _
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b) h.topOuter
+      (TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h))
+    (inputs : ReverseRoundTripInputs (B := B) b) :
+    (TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h).comp
+      (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base) =
+      RingHom.id _ := by
+  letI := h.topOuter
+  haveI := h.ringOuter
+  haveI := h.tOuter
+  haveI := h.naOuter
+  -- Reduce to showing agreement as ring homs `TA(B₁_gen) → outer quotient`
+  -- after precomposing with `mk_outer`.
+  apply Ideal.Quotient.ringHom_ext
+  -- Goal: `((backward ∘ forward) ∘ mk_outer) = mk_outer` as ring homs TA(B₁_gen) → outer.
+  -- Continuity of composite and mk_outer.
+  have hLHS_cont : @Continuous _ _ instTopologicalSpaceTateAlgebra h.topOuter
+      (((TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h).comp
+        (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base)).comp
+      (Ideal.Quotient.mk (outerLaurentOverlapIdeal b))) :=
+    (hcont_backward.comp hcont_forward).comp continuous_quotient_mk'
+  have hRHS_cont : @Continuous _ _ instTopologicalSpaceTateAlgebra h.topOuter
+      (Ideal.Quotient.mk (outerLaurentOverlapIdeal b)) := continuous_quotient_mk'
+  -- Apply outer extensionality.
+  refine tateAlgebra_continuous_ringHom_ext _ _ hLHS_cont hRHS_cont
+    inputs.hDense inputs.hDecomp ?_ ?_
+  · -- Agreement on `algMap α` for all α ∈ B₁_gen.
+    intro α
+    -- Reduce further: view as ring homs B₁_gen → outer, apply inner Quotient.ringHom_ext.
+    -- α ∈ B₁_gen = TA B / plusFSubXIdeal, so α = mk_inner f for some f ∈ TA B.
+    -- Show agreement as homs of α, using plusFSubXIdeal quotient ringHom_ext.
+    have h_inner_eq : ∀ w : ↥(TateAlgebra B),
+        ((TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h).comp
+          (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base)).comp
+          ((Ideal.Quotient.mk (outerLaurentOverlapIdeal b)).comp
+            (algebraMap (LaurentCover.B₁_gen b) _))
+          ((Ideal.Quotient.mk (plusFSubXIdeal B b)) w) =
+        ((Ideal.Quotient.mk (outerLaurentOverlapIdeal b)).comp
+          (algebraMap (LaurentCover.B₁_gen b) _))
+          ((Ideal.Quotient.mk (plusFSubXIdeal B b)) w) := by
+      -- Apply inner extensionality: both sides viewed as ring homs TA B → outer quotient.
+      -- Continuity: forward + backward continuity + mk_inner + algMap + mk_outer continuity.
+      have hLHS_inner_cont : @Continuous _ _ instTopologicalSpaceTateAlgebra h.topOuter
+          (fun w : ↥(TateAlgebra B) =>
+            ((TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h).comp
+              (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base)).comp
+              ((Ideal.Quotient.mk (outerLaurentOverlapIdeal b)).comp
+                (algebraMap (LaurentCover.B₁_gen b) _))
+              ((Ideal.Quotient.mk (plusFSubXIdeal B b)) w)) := by
+        refine hcont_backward.comp (hcont_forward.comp ?_)
+        refine continuous_quotient_mk'.comp ?_
+        -- algebraMap : B₁_gen → TA(B₁_gen) is continuous
+        have halg_cont : @Continuous _ _ _ instTopologicalSpaceTateAlgebra
+            (algebraMap (LaurentCover.B₁_gen b) ↥(TateAlgebra (LaurentCover.B₁_gen b))) :=
+          tateAlgebra_algebraMap_continuous
+        exact halg_cont.comp continuous_quotient_mk'
+      have hRHS_inner_cont : @Continuous _ _ instTopologicalSpaceTateAlgebra h.topOuter
+          (fun w : ↥(TateAlgebra B) =>
+            ((Ideal.Quotient.mk (outerLaurentOverlapIdeal b)).comp
+              (algebraMap (LaurentCover.B₁_gen b) _))
+              ((Ideal.Quotient.mk (plusFSubXIdeal B b)) w)) := by
+        refine continuous_quotient_mk'.comp ?_
+        have halg_cont : @Continuous _ _ _ instTopologicalSpaceTateAlgebra
+            (algebraMap (LaurentCover.B₁_gen b) ↥(TateAlgebra (LaurentCover.B₁_gen b))) :=
+          tateAlgebra_algebraMap_continuous
+        exact halg_cont.comp continuous_quotient_mk'
+      -- Both sides are ring homs TA B → outer quotient (via composition), apply extensionality.
+      have h_ext : (RingHom.comp
+            ((TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h).comp
+              (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base))
+            (RingHom.comp
+              ((Ideal.Quotient.mk (outerLaurentOverlapIdeal b)).comp
+                (algebraMap (LaurentCover.B₁_gen b) _))
+              (Ideal.Quotient.mk (plusFSubXIdeal B b)))) =
+          (RingHom.comp
+            ((Ideal.Quotient.mk (outerLaurentOverlapIdeal b)).comp
+              (algebraMap (LaurentCover.B₁_gen b) _))
+            (Ideal.Quotient.mk (plusFSubXIdeal B b))) := by
+        apply tateAlgebra_continuous_ringHom_ext _ _ hLHS_inner_cont hRHS_inner_cont
+          (TateAlgebra.tateAlgebra_polynomials_dense_canonical (A := B))
+          inputs.hDecomp_inner
+        · -- agreement on algMap_B(b') for b' ∈ B
+          intro b'
+          simp only [RingHom.coe_comp, Function.comp_apply]
+          rw [TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom_mk_algebraMap_mk_algebraMap,
+              TA_B_bivariate_quotient_to_outerQuotient_backwardHom_mk_algebraMap]
+          rfl
+        · -- agreement on TateAlgebra.X_B
+          simp only [RingHom.coe_comp, Function.comp_apply]
+          rw [TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom_mk_algebraMap_mk_X,
+              TA_B_bivariate_quotient_to_outerQuotient_backwardHom_mk_X]
+          rfl
+      exact congr_fun (congrArg DFunLike.coe h_ext) w
+    -- Now α = mk_inner f, use h_inner_eq.
+    obtain ⟨f, rfl⟩ := Ideal.Quotient.mk_surjective α
+    exact h_inner_eq f
+  · -- Agreement on TateAlgebra.X in TA(B₁_gen).
+    simp only [RingHom.coe_comp, Function.comp_apply]
+    rw [TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom_mk_X,
+        TA_B_bivariate_quotient_to_outerQuotient_backwardHom_mk_Y]
+
+/-- **Non-parametric specialized equivalence** — `RingEquiv` between the two
+specialized quotients, with the reverse round trip discharged using
+`ReverseRoundTripInputs` via `TA_B₁_gen_quotient_backward_forward_eq_id_of_inputs`.
+
+This supersedes `TA_B₁_gen_quotient_specialized_equiv` (which required
+`h_bwd_fwd` directly); downstream callers with the required
+`ReverseRoundTripInputs` can use this cleaner version. -/
+noncomputable def TA_B₁_gen_quotient_specialized_equiv_of_inputs
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring₂ (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_base : @Continuous _ _
+      (quotientPlusFSubXIdealTopology B b)
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b)
+      (baseHom_B₁_gen_to_bivariateOverlap P b hA_complete hnoeth))
+    (h : BackwardEvalHypotheses (B := B) b)
+    (hcont_forward : @Continuous _ _ h.topOuter
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b)
+      (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base))
+    (hcont_backward : @Continuous _ _
+      (TateAlgebra.quotientBivariateOverlapIdealTopology b) h.topOuter
+      (TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h))
+    (inputs : ReverseRoundTripInputs (B := B) b) :
+    (↥(TateAlgebra (LaurentCover.B₁_gen b)) ⧸ outerLaurentOverlapIdeal b) ≃+*
+      (↥(TateAlgebra₂ B) ⧸ TateAlgebra.bivariateOverlapIdeal b) :=
+  TA_B₁_gen_quotient_specialized_equiv P b hA_complete hnoeth hcont_base h
+    hcont_forward hcont_backward
+    (TA_B₁_gen_quotient_backward_forward_eq_id_of_inputs P b hA_complete hnoeth hcont_base
+      h hcont_forward hcont_backward inputs)
+
 end TA_B₁_gen_quotient_bridge
 
 end ValuationSpectrum
