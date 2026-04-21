@@ -810,6 +810,96 @@ All 0 sorry, build-clean:
 
 ## 8. Session log (newest first)
 
+- **2026-04-21** (CLEANUP-C2: overlap-consumer tower docstring +
+  end-to-end smoke test, Primary): Own the CLEANUP-C2 closure ticket
+  for the explicit-compatible-bridge caller tower in
+  `Adic spaces/LaurentRefinement.lean`. Two deliverables:
+
+  **1. Docstring cleanup** (~60 lines rewritten):
+  * **Section-level tower docstring** at line 3686 (before
+    `laurentBridge_delta_eq_zero_via_compatible_bridge`): introduces
+    the three-theorem caller tower with an explicit abstraction-level
+    table (algebraic δ → Laurent-pair presheaf gluing → V-cover
+    presheaf gluing), and a concrete "Typical Lane-C usage pattern"
+    code snippet showing the standard
+    `obtain ⟨τ₁₂, hcompat_bridge⟩ := laurentOverlapBridge_exists_compatible …`
+    extraction + single-call V-cover consumer invocation.
+  * **V-cover theorem docstring** (line 3915): removed transient
+    concurrent-agent line-number references (334, 603, 607, 613, 748,
+    829) that were already shifting and distracted from the
+    architectural message. The relevant content — the theorem is
+    parametric in abstract `V_covers` for immunity to in-flight edits
+    in downstream-geometric files — is preserved concisely.
+
+  **2. End-to-end smoke test** (~120 new lines):
+  `ValuationSpectrum.laurentAndVCover_gluing_unified_via_compatible_bridge`.
+  Composes the three-theorem caller tower into a single invocation that
+  returns a **combined existential**:
+
+  ```lean
+  ∃ x : presheafValue D₀,
+    restrictionMap D₀ (laurentPlusDatum D₀ f)
+        (laurentPlus_subset D₀ f) x = u_plus ∧
+    restrictionMap D₀ (laurentMinusDatum D₀ f)
+        (laurentMinus_subset D₀ f) x = u_minus ∧
+    ∀ D : { D // D ∈ V_covers },
+      restrictionMap D₀ D.1 (hV_subset_base D.1 D.2) x = fV D
+  ```
+
+  **Why this is a "smoke test"**: the combined existential verifies the
+  Laurent-pair and V-cover conclusions share a **single witness** `x`
+  (not two different ones) — an inherent property of the tower's
+  factoring that wasn't explicitly exposed by any individual theorem
+  statement. The proof uses the same `x` from
+  `laurentCover_gluing_presheaf_via_compatible_bridge` internally and
+  extracts both conclusions. Sanity-check for callers who need both
+  half-section recoveries AND V-piece restrictions from the same
+  witness.
+
+  **Caller value**: a consumer who needs all three conclusions can call
+  the smoke-test theorem once instead of (a) calling
+  `laurentCover_gluing_presheaf_via_compatible_bridge`, (b) unpacking the
+  Laurent-pair witness, (c) separately calling
+  `V_cover_gluing_from_laurentPair_via_compatible_bridge` (which would
+  give a different existential `x`), (d) manually checking consistency.
+
+  **Scope respected**: edited only `LaurentRefinement.lean`. Did NOT
+  touch `LaurentOverlap.lean`, `GeometricReduction.lean`, or any Lane-B
+  file.
+
+  **Axiom hygiene**:
+  `laurentAndVCover_gluing_unified_via_compatible_bridge` depends on
+  `[propext, sorryAx, Classical.choice, Quot.sound]` — same pre-existing
+  T001 leak pattern as the other three `_via_compatible_bridge`
+  theorems. **No dependency on the Lane-A sorry**
+  (`laurentOverlapBridge_exists_compatible`): proof body uses only
+  `laurentCover_gluing_presheaf_via_compatible_bridge` +
+  `restrictionMap_comp` (both Lane-A-sorry-free).
+
+  **Net project sorry delta**: 0. Pre-existing sorries at lines 3124
+  and 4254 (shifted from 4167 by the ~120-line insertion) unchanged.
+
+  **Caller tower now fully documented** (all in LaurentRefinement.lean,
+  all Lane-A-sorry-free, all consume the same single witness
+  `(τ₁₂, hcompat_bridge)`):
+
+  | Level | Theorem |
+  |---|---|
+  | algebraic δ=0 | `laurentBridge_delta_eq_zero_via_compatible_bridge` |
+  | Laurent-pair gluing | `laurentCover_gluing_presheaf_via_compatible_bridge` |
+  | V-cover gluing | `V_cover_gluing_from_laurentPair_via_compatible_bridge` |
+  | **Combined** (smoke test) | **`laurentAndVCover_gluing_unified_via_compatible_bridge`** |
+
+  **Build**: `lake build «Adic spaces».LaurentRefinement` → EXIT 0 with
+  only pre-existing sorry warnings. Axiom check confirms expected T001
+  footprint for the new smoke-test theorem.
+
+  **Lane-C downstream status**: **DONE modulo the single upstream
+  Lane-A witness** `(τ₁₂, hcompat_bridge)` from
+  `laurentOverlapBridge_exists_compatible`. When Primary lands that
+  existential, downstream callers can plug it into any of the four
+  consumer theorems above — the final Part 2 / gluing wiring is ready.
+
 - **2026-04-21** (V-cover Lane-C consumer landed in LaurentRefinement,
   Primary): Own the downstream integration lane end-to-end. Land the
   **strongest caller-ready V-cover gluing theorem** in
@@ -1563,6 +1653,41 @@ All 0 sorry, build-clean:
 
   **Build**: `lake build «Adic spaces».Cor832` → EXIT 0, clean
   (only the pre-existing unused-variable warning on an unrelated theorem).
+
+- **2026-04-21** (T-OV-1 Lane A close-out: exported finish theorem +
+  unified bundle + public-API docstring, Primary):
+  Finished Lane A end-to-end. `LaurentOverlap.lean` now exposes the
+  specialized Laurent-overlap bridge as a clean caller-facing API with
+  a single mathematical residual.
+
+  **Landed this session (close-out)**:
+  - `SpecializedOverlapBridgeInputs` — unified hypothesis bundle
+    (hcont_base + BackwardEvalHypotheses + hcont_forward + hcont_backward
+    + ReverseRoundTripInputs).
+  - `specializedOverlapBridge` — top-level exported theorem taking the
+    single unified bundle and returning the full `RingEquiv`
+    `TA(B₁_gen b) ⧸ outerLaurentOverlapIdeal b ≃+* LaurentCover.B₁₂_gen b`.
+  - `laurentOverlapBridge_exists_compatible_via_primary` — exported
+    closure theorem specializing
+    `laurentOverlapBridge_exists_compatible_from_bivariate_factorization`
+    by binding `τ_alg` to `bivariateOverlap_equiv_B₁₂gen`. Downstream
+    supplies only `τ_preBiv` + two intertwining witnesses.
+  - Top-level public-API docstring summary documenting the four entry
+    points and the single residual.
+
+  **Caller-facing API (final Lane A state)**:
+  1. `TA_B₁_gen_quotient_specialized_equiv_of_inputs` — raw parametric
+     quotient equiv.
+  2. `TA_B₁_gen_quotient_to_B₁₂_gen_equiv` — composite to `B₁₂_gen b`.
+  3. `specializedOverlapBridge` — single-bundle convenience (recommended).
+  4. `laurentOverlapBridge_exists_compatible_via_primary` — downstream
+     closure theorem.
+
+  **Single remaining mathematical residual**: polynomial density on
+  `TA(B₁_gen b)` (`ReverseRoundTripInputs.hDense`). All decomposition
+  hypotheses discharged internally via `tateAlgebra_polynomial_decomp`.
+
+  **Files**: `Adic spaces/LaurentOverlap.lean` only. Zero sorries. Clean.
 
 - **2026-04-21** (T-OV-1 specialized Laurent-overlap quotient bridge,
   end-to-end composite bridge + polynomial decomp helper landed, Primary):
