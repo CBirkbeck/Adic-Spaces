@@ -2273,7 +2273,40 @@ Forward construction:
 6. Factor through the outer ideal to get the full forward hom.
 
 This session: lands the first-stage evalHom (step 1 above) with its generator
-action lemmas. Remaining steps 2–6 will follow as named reusable API. -/
+action lemmas. Remaining steps 2–6 will follow as named reusable API.
+
+## Public caller-facing API (Lane A finish line, 2026-04-21)
+
+The specialized Laurent-overlap bridge is complete. Downstream callers have
+three entry points, from most specialized to most convenient:
+
+1. **`TA_B₁_gen_quotient_specialized_equiv_of_inputs`** — the core
+   parametric `RingEquiv`
+   `TA(B₁_gen b) ⧸ outerLaurentOverlapIdeal b ≃+* TA₂ B ⧸ bivariateOverlapIdeal b`.
+   Takes all five hypotheses separately.
+
+2. **`TA_B₁_gen_quotient_to_B₁₂_gen_equiv`** — composes (1) with the Primary
+   algebraic identification `bivariateOverlap_equiv_B₁₂gen` to produce
+   `TA(B₁_gen b) ⧸ outerLaurentOverlapIdeal b ≃+* LaurentCover.B₁₂_gen b`.
+   Takes all five hypotheses separately.
+
+3. **`specializedOverlapBridge`** — same equiv as (2) but takes a single
+   `SpecializedOverlapBridgeInputs` bundle. **Recommended for downstream.**
+
+And one exported finish theorem bridging into the downstream consumer API:
+
+4. **`laurentOverlapBridge_exists_compatible_via_primary`** — specializes
+   `laurentOverlapBridge_exists_compatible_from_bivariate_factorization`
+   (LaurentRefinement) by binding `τ_alg := bivariateOverlap_equiv_B₁₂gen`.
+   Caller provides `τ_preBiv` + two intertwining witnesses; this theorem
+   threads them through to produce the `LaurentOverlapBridgeCompatible`
+   witness required by downstream gluing arguments.
+
+**Single remaining mathematical residual**: `ReverseRoundTripInputs.hDense` —
+polynomial density on `TA(B₁_gen b)` (the canonical Tate topology). All
+decomposition hypotheses are now discharged internally via
+`tateAlgebra_polynomial_decomp`.
+-/
 
 section TA_B₁_gen_quotient_bridge
 
