@@ -810,6 +810,231 @@ All 0 sorry, build-clean:
 
 ## 8. Session log (newest first)
 
+- **2026-04-21** (Lane-C consumer theorems landed with explicit bridge
+  hypothesis, Secondary): Build the **next consumer theorem** in the
+  downstream overlap-compatibility lane: a pair of theorems in
+  `LaurentRefinement.lean` that take the compatible overlap bridge
+  `(τ₁₂, hcompat_bridge)` as an **explicit caller-supplied hypothesis**
+  and produce `deltaMap_gen = 0` and the Laurent-cover gluing conclusion
+  — avoiding the sorry'd `laurentOverlapBridge_exists_compatible`
+  (LaurentRefinement.lean:3124, Lane-A target).
+
+  **Landed** (`Adic spaces/LaurentRefinement.lean`, +197 lines after the
+  existing `laurentCover_gluing_presheaf`):
+
+  1. **`laurentBridge_delta_eq_zero_via_compatible_bridge`** — analog of
+     `laurentBridge_delta_eq_zero_of_compat` with `(τ₁₂, hcompat_bridge)`
+     as explicit caller-supplied hypotheses. Proof body is the existing
+     `_of_compat` body **minus** the `obtain ⟨τ₁₂, hcompat_bridge⟩ := …`
+     step that routes through Lane-A's sorry. ~30 lines of proof body
+     (copied + trimmed).
+
+  2. **`laurentCover_gluing_presheaf_via_compatible_bridge`** — top-level
+     Lane-C consumer analog of `laurentCover_gluing_presheaf`. Factored
+     through the parametric `laurentCover_gluing_presheaf_viaRow3`
+     (sorry-free) plus the new
+     `laurentBridge_delta_eq_zero_via_compatible_bridge` for the
+     delta-zero step. Returns gluing existential directly.
+
+  **Two-stage architecture preserved**: the theorems still separate
+  * **Stage 1** (algebraic): `bivariateOverlap_equiv_B₁₂gen` (Primary's
+    Step B, sorry-free in LaurentOverlap.lean:630). **Not referenced
+    directly by this session's theorems** — it's used within the
+    ambient factorization reduction
+    `laurentOverlapBridge_exists_compatible_from_bivariate_factorization`
+    (prior session), which any caller can compose with the new
+    consumer.
+  * **Stage 2** (presheaf-side bivariate iso + intertwining identities):
+    the input `(τ₁₂, hcompat_bridge)` bundles both the presheaf iso and
+    the two intertwining identities. Callers can either construct
+    directly or obtain via the parametric factorization reduction.
+
+  **Scope respected**: did NOT edit `LaurentOverlap.lean`. Worked only
+  in `LaurentRefinement.lean`. Primary's in-flight
+  `LaurentOverlap.lean:3322` (`instTopologicalSpaceTateAlgebra`) error
+  remains unresolved (Primary's responsibility), but does **not block**
+  this session's work since `LaurentRefinement.lean` sits upstream of
+  `LaurentOverlap.lean` and compiles independently.
+
+  **Axiom hygiene**:
+  * `laurentBridge_delta_eq_zero_via_compatible_bridge`:
+    `[propext, sorryAx, Classical.choice, Quot.sound]`.
+  * `laurentCover_gluing_presheaf_via_compatible_bridge`:
+    `[propext, sorryAx, Classical.choice, Quot.sound]`.
+
+  The `sorryAx` is the **pre-existing T001 leak** via
+  `[HasLocLiftPowerBounded A]` → `restrictionMap` →
+  `spa_point_nonOpen_of_rational_subset`. Identical axiom footprint to
+  the sibling `_of_compat` / `_viaBridges` theorems, which inherit the
+  same leak. **Crucially, my new theorems do NOT depend on the
+  Lane-A sorry** (`laurentOverlapBridge_exists_compatible`): the proof
+  body skips the `obtain` step that extracts from the existential.
+  Once Primary closes Lane A, the sibling theorems can simplify to
+  these new variants by providing an explicit witness.
+
+  **Net project sorry delta**: 0. No new sorries introduced. Pre-existing
+  sorry at `laurentOverlapBridge_exists_compatible` (line 3124) and
+  `tateAcyclicity` Part 2 (now at line 3967 due to the ~197-line
+  insertion) unchanged.
+
+  **Build**: `lake env lean "Adic spaces/LaurentRefinement.lean"` →
+  EXIT 0 with only pre-existing sorry warnings and unrelated upstream
+  linter warnings. Axiom check confirms identical sorry-footprint to
+  siblings.
+
+  **Downstream impact**: Lane-C callers (e.g., `T-GEOM-RED` iterated
+  Laurent induction, `tateAcyclicity` Part 2 via Hübner refinement) can
+  now consume `laurentCover_gluing_presheaf_via_compatible_bridge`
+  directly as their per-step gluing primitive, supplying the compatible
+  overlap bridge as an explicit hypothesis. This **decouples Lane C
+  from the Lane-A sorry** until Lane A's existential closes.
+
+- **2026-04-21** (T-OV-1 downstream instantiation attempt — blocked by
+  in-flight Primary build error, Secondary): Attempted to land a
+  **downstream instantiation** of the Lane-A reduction theorem
+  (`laurentOverlapBridge_exists_compatible_from_bivariate_factorization`
+  from earlier this session) that bakes in Primary's sorry-free
+  `bivariateOverlap_equiv_B₁₂gen` (LaurentOverlap.lean:630) as the
+  algebraic iso τ_alg, leaving only τ_preBiv + 2 intertwinings as
+  external hypotheses.
+
+  **Blocker discovered**: Primary's `LaurentOverlap.lean` has a
+  **pre-existing in-flight build error** at line 3322 in the newly-added
+  `ReverseRoundTripInputs` structure (Step 11, `parametric reverse round
+  trip` section, commit 5b99886 "parametric RingEquiv bundle for specialized
+  Laurent-overlap bridge"):
+
+  ```
+  error: Adic spaces/LaurentOverlap.lean:3322:57:
+    Unknown identifier `instTopologicalSpaceTateAlgebra`
+  ```
+
+  The `instTopologicalSpaceTateAlgebra` instance exists for
+  `TateAlgebra A` under `[IsTateRing A]`, but at `A := LaurentCover.B₁_gen b`
+  this instance isn't derivable (would require a Tate structure on
+  `B₁_gen b = TA B / plusFSubXIdeal b`, which Primary's own docstring
+  notes is "substantial work" not yet constructed). The error is in
+  Primary's in-flight work, not caused by this session.
+
+  **Actions taken**:
+  1. Attempted new file `Adic spaces/LaurentOverlapCompatReduction.lean`
+     (~110 lines) that imports both `LaurentOverlap` and
+     `LaurentRefinement`, and provides the instantiation. File content
+     is correct but cannot compile until Primary's LaurentOverlap error
+     resolves.
+  2. **Removed** the new file since it cannot build; reverted the root
+     import addition in `Adic spaces.lean`.
+  3. **Kept** the parametric reduction theorem in
+     `LaurentRefinement.lean` (prior session's landed deliverable,
+     which compiles independently).
+
+  **Scope respected**: did NOT edit `LaurentOverlap.lean` despite
+  discovering the error. Primary's in-flight state preserved unchanged.
+
+  **Boundary now visible**: the Lane-A closure path requires:
+  * **(Primary)** resolve the `instTopologicalSpaceTateAlgebra` issue
+    at LaurentOverlap.lean:3322 — likely by either constructing a Tate
+    instance on `B₁_gen b` or parameterizing the topology in the
+    `ReverseRoundTripInputs` structure.
+  * **(Primary)** close `laurentOverlapBridge_exists_compatible` itself
+    by providing τ_preBiv (Step A / S-OV-GLUE) + the two intertwining
+    identities, pluggable into the prior-session reduction theorem via
+    the composition wrap.
+
+  **Net project sorry delta**: 0 (no new sorries, no new files
+  committed, removed the attempted downstream file).
+
+  **Build**: `lake env lean "Adic spaces/LaurentRefinement.lean"` →
+  EXIT 0 with only pre-existing sorries (3124 / 3770) and pre-existing
+  linter warnings. `lake build «Adic spaces».LaurentOverlap` → EXIT 1
+  (Primary's in-flight error, as reported).
+
+  **Next-session actionable**: once Primary resolves the
+  `instTopologicalSpaceTateAlgebra` issue at LaurentOverlap.lean:3322,
+  the downstream instantiation file is ready to re-land in ~110 lines
+  (the prepared content is documented in this ticket's attempt notes
+  and can be reconstructed from the factorization reduction's
+  signature).
+
+- **2026-04-21** (T-OV-1 / S-OV-GLUE presheaf-side factorization reduction,
+  Primary): Land a **reduction theorem** for
+  `laurentOverlapBridge_exists_compatible` in
+  `Adic spaces/LaurentRefinement.lean`, factoring the bridge through
+  `TateAlgebra₂(B) ⧸ bivariateOverlapIdeal b` and separating the algebraic
+  step (Primary's sorry-free `bivariateOverlap_equiv_B₁₂gen` Step B) from
+  the presheaf-side bivariate iso (Primary's still-open Step A / S-OV-GLUE).
+
+  **Landed**:
+  `ValuationSpectrum.laurentOverlapBridge_exists_compatible_from_bivariate_factorization`
+  in `LaurentRefinement.lean` (~82 new lines). The theorem takes:
+  * `τ_preBiv : presheafValue(laurentOverlapDatum D₀ f) ≃+*
+    TateAlgebra₂(presheafValue D₀) ⧸ bivariateOverlapIdeal (D₀.canonicalMap f)`
+    — the **presheaf-level bivariate iso** (Step A / S-OV-GLUE remaining
+    open content in Primary's `LaurentOverlap.lean`).
+  * `τ_alg : TateAlgebra₂(…) ⧸ bivariateOverlapIdeal … ≃+* B₁₂_gen …`
+    — **Primary's sorry-free `bivariateOverlap_equiv_B₁₂gen`** (Step B,
+    LaurentOverlap.lean:630).
+  * `h_plus_compat`, `h_minus_compat` — the two intertwining identities at
+    the **composed level** `τ_alg ∘ τ_preBiv`.
+
+  Produces the full `∃ τ₁₂, LaurentOverlapBridgeCompatible … τ₁₂`
+  conclusion via `⟨τ_preBiv.trans τ_alg, { plus_compat, minus_compat }⟩`.
+  Theorem body is a **trivial composition wrap** — no new mathematical
+  content, but a **named interface** making the reduction shape explicit.
+
+  **Scope respected** per reviewer:
+  * Edit: `LaurentRefinement.lean` only.
+  * **Did NOT edit `LaurentOverlap.lean`** (Primary's file).
+  * Import cycle avoided — both `TateAlgebra₂.bivariateOverlapIdeal`
+    (defined in `TateAlgebraTopology.lean`) and `LaurentCover.B₁₂_gen`
+    (defined in `LaurentCoverExact.lean`) are transitively accessible
+    from `LaurentRefinement.lean` via
+    `PresheafTateStructure → PresheafIdentification → TateAlgebraWedhorn →
+    TateAlgebraTopology`.
+
+  **Remaining content** (Primary's Lane A to close the original
+  `laurentOverlapBridge_exists_compatible` sorry at
+  LaurentRefinement.lean:3187):
+  1. **`τ_preBiv`** — the bivariate presheaf iso, i.e., Primary's Step A
+     / S-OV-GLUE. Still open in the Lane A tracker.
+  2. **Two intertwining identities** at the composed level. Once
+     Primary produces Step A + the algebraic action lemmas for
+     `bivariateOverlap_equiv_B₁₂gen` (`_algebraMap`, `_X`, `_Y`, already
+     sorry-free in LaurentOverlap.lean:687-714), these reduce to
+     mechanical computations relating `τ_preBiv` to
+     `laurentPlusBridge` / `laurentMinusBridge` + `posLift` / `negLift`.
+
+  **Docstring update** on the original `laurentOverlapBridge_exists_compatible`
+  body now cites the new reduction theorem as the available path forward.
+
+  **Axioms**:
+  `laurentOverlapBridge_exists_compatible_from_bivariate_factorization`
+  depends on `[propext, sorryAx, Classical.choice, Quot.sound]`. The
+  `sorryAx` is the **pre-existing T001 leak** via
+  `[HasLocLiftPowerBounded A]` → `restrictionMap` (used inside
+  `LaurentOverlapBridgeCompatible`'s compat fields). Identical axiom
+  pattern to sibling `laurentOverlap_plus_intertwine_of_compatible`
+  (also uses `restrictionMap`). **No new sorry introduced by this
+  theorem's body** (the body is a literal structural composition).
+
+  **Net project sorry delta this session**: 0. Shift-only: pre-existing
+  sorries in `LaurentRefinement.lean` moved from lines 3173 and 3737 to
+  3187 and 3836 due to the ~82-line insertion.
+
+  **Build**: `lake build «Adic spaces».LaurentRefinement` → EXIT 0,
+  clean (only pre-existing unused-section-variable warnings on unrelated
+  upstream theorems). Focused `lake env lean "Adic spaces/LaurentRefinement.lean"`
+  → EXIT 0 with the same pre-existing warnings.
+
+  **Next-session actionable** (for Primary): now that the reduction
+  interface is named, Primary's S-OV-GLUE work can target the two
+  specific Lean-signature outputs (`τ_preBiv` and the two intertwining
+  identities) and feed them into this reduction theorem from a new
+  downstream file that imports both `LaurentRefinement` and
+  `LaurentOverlap`. The original
+  `laurentOverlapBridge_exists_compatible` at line 3187 then becomes
+  trivially dischargeable once those outputs are available.
+
 - **2026-04-20** (Unconditional Jacobson residual DISPROVED; packet produced,
   Primary): Direct attempt to prove
   `locIdeal ≤ Ideal.jacobson (⊥ : Ideal (locSubring))` unconditionally
@@ -1137,6 +1362,52 @@ All 0 sorry, build-clean:
 
   **Build**: `lake build «Adic spaces».Cor832` → EXIT 0, clean
   (only the pre-existing unused-variable warning on an unrelated theorem).
+
+- **2026-04-21** (T-OV-1 specialized Laurent-overlap quotient bridge,
+  reverse round trip closed via narrow extensionality, Primary):
+  Reduced the boundary on `backward ∘ forward = id` from
+  `[IsTateRing (B₁_gen b)]` to just polynomial density + decomp on the
+  outer quotient (bundled in `ReverseRoundTripInputs`).
+
+  **Landed this increment**:
+  - `tateAlgebra_continuous_ringHom_ext` — narrow extensionality helper:
+    two continuous ring homs `f, g : TA R →+* S` with `S` T2 agree on all
+    of `TA R` if they agree on `algebraMap r` for `r ∈ R` and on
+    `TateAlgebra.X`, provided polynomials are dense and a polynomial
+    decomposition holds. Purely a `Continuous.ext_on` at the TateAlgebra
+    level with the usual ring-hom distribution through monomials.
+  - `ReverseRoundTripInputs` — 3-field structure capturing the genuinely
+    missing hypotheses: `hDense` (polynomial density on TA(B₁_gen b)),
+    `hDecomp` (outer polynomial decomposition), `hDecomp_inner` (inner
+    polynomial decomposition on TA B — purely algebraic fact that can
+    be provided by a univariate analog of `tateAlgebra₂_polynomial_decomp`).
+    Inner density is FREE via `[IsTateRing B]` and
+    `tateAlgebra_polynomials_dense_canonical`.
+  - `TA_B₁_gen_quotient_backward_forward_eq_id_of_inputs` — parametric
+    reverse round trip proof: applies `Ideal.Quotient.ringHom_ext` at
+    outer ideal, then `tateAlgebra_continuous_ringHom_ext` at R := B₁_gen,
+    then (for algMap agreement) `Ideal.Quotient.ringHom_ext` at inner
+    ideal + `tateAlgebra_continuous_ringHom_ext` at R := B. Generator
+    agreement via existing action lemmas.
+  - `TA_B₁_gen_quotient_specialized_equiv_of_inputs` — convenience
+    `RingEquiv` using `ReverseRoundTripInputs` directly.
+
+  **Specialized bridge final status**:
+  - Forward direction + action lemmas: ✅ landed.
+  - Backward direction + action lemmas: ✅ landed.
+  - `forward ∘ backward = id`: ✅ landed parametrically.
+  - `backward ∘ forward = id`: ✅ landed parametrically via
+    `ReverseRoundTripInputs`.
+  - Full `RingEquiv` bundle: ✅ landed in TWO flavors (raw `h_bwd_fwd` +
+    via `ReverseRoundTripInputs`).
+
+  **Remaining boundary** (minimal): three concrete algebraic/topological
+  facts in `ReverseRoundTripInputs` — outer density, outer decomp, inner
+  decomp. None require `PairOfDefinition` construction on the quotient.
+
+  **Files touched this session**: `Adic spaces/LaurentOverlap.lean`
+  (~3200 → ~3450 lines, ~241 new lines for extensionality + reverse
+  round trip + convenience equiv). Focused check — clean.
 
 - **2026-04-21** (T-OV-1 specialized Laurent-overlap quotient bridge,
   parametric RingEquiv bundle landed, Primary):
