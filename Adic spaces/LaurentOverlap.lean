@@ -3060,6 +3060,7 @@ theorem TA_B_bivariate_to_outerQuotient_evalHom₂_Y
 
 /-! #### Step 7: kernel lemmas + factored backward quotient hom -/
 
+set_option synthInstance.maxHeartbeats 400000 in
 /-- Kernel lemma for `bivariateOverlapIdeal` generator `algMap b - TA₂.X`:
 `evalHom₂(algMap b - TA₂.X) = 0`. Uses `quotient_algebraMap_b_eq_X` in
 `B₁_gen b` (image of `algMap b = X` in plusFSubX quotient). -/
@@ -3073,10 +3074,16 @@ theorem TA_B_bivariate_to_outerQuotient_evalHom₂_algMap_b_sub_X_eq_zero
   -- baseHom(b) = mk_outer(algMap(mk_inner(algMap b)))
   -- Ybar = mk_outer(algMap(mk_inner(TA.X)))
   -- Since mk_inner(algMap b) = mk_inner(TA.X), both are equal.
-  unfold outerQuotient_baseHom outerQuotient_YbarTgt
-  simp only [RingHom.coe_comp, Function.comp_apply]
-  rw [quotient_algebraMap_b_eq_X, sub_self]
+  show (Ideal.Quotient.mk (outerLaurentOverlapIdeal b))
+      ((algebraMap (LaurentCover.B₁_gen b) _)
+        ((Ideal.Quotient.mk (plusFSubXIdeal B b))
+          ((algebraMap B ↥(TateAlgebra B)) b))) -
+    outerQuotient_YbarTgt b = 0
+  unfold outerQuotient_YbarTgt
+  rw [quotient_algebraMap_b_eq_X]
+  exact sub_self _
 
+set_option synthInstance.maxHeartbeats 400000 in
 /-- Kernel lemma for `bivariateOverlapIdeal` generator `1 - algMap b · TA₂.Y`:
 `evalHom₂(1 - algMap b · TA₂.Y) = 0`. Uses `quotient_algebraMap_b_eq_X` +
 the outer ideal relation `1 - Ybar · X_out ∈ outerLaurentOverlapIdeal`. -/
@@ -3091,8 +3098,12 @@ theorem TA_B_bivariate_to_outerQuotient_evalHom₂_one_sub_algMap_b_Y_eq_zero
   -- baseHom(b) · X_out = mk_outer(algMap(mk_inner(algMap b)) · TA.X)
   --                    = mk_outer(algMap(mk_inner(TA.X)) · TA.X)  [by plusFSubX relation]
   --                    = mk_outer(1)                              [by outerLaurentOverlap relation]
-  unfold outerQuotient_baseHom outerQuotient_XoutTgt
-  simp only [RingHom.coe_comp, Function.comp_apply]
+  show (1 : _) - (Ideal.Quotient.mk (outerLaurentOverlapIdeal b))
+      ((algebraMap (LaurentCover.B₁_gen b) _)
+        ((Ideal.Quotient.mk (plusFSubXIdeal B b))
+          ((algebraMap B ↥(TateAlgebra B)) b))) *
+    outerQuotient_XoutTgt b = 0
+  unfold outerQuotient_XoutTgt
   rw [quotient_algebraMap_b_eq_X, sub_eq_zero, ← map_mul]
   symm
   refine Ideal.Quotient.eq.mpr ?_
