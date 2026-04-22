@@ -3304,7 +3304,7 @@ theorem TA_B₁_gen_quotient_forward_backward_eq_id
       -- LHS now has forward applied to outerQuotient_baseHom/YbarTgt/XoutTgt.
       -- Unfold the outer target element defs to match action lemma shapes.
       unfold outerQuotient_baseHom outerQuotient_YbarTgt outerQuotient_XoutTgt
-      simp only [RingHom.coe_comp, Function.comp_apply]
+      simp only [RingHom.coe_comp, Function.comp_apply, RingHom.comp_apply]
       rw [TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom_mk_algebraMap_mk_algebraMap,
           TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom_mk_algebraMap_mk_X,
           TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom_mk_X]
