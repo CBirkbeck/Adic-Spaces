@@ -2453,7 +2453,8 @@ theorem TA_B_to_bivariateOverlap_evalHom_X
       have := congrArg (fun f : Fin 1 →₀ ℕ => f 0) h
       simp at this
       exact hn this
-    rw [if_neg hne, RingHom.map_zero, zero_mul]
+    rw [if_neg hne]
+    ring
 
 /-! #### Step 2: factor through `plusFSubXIdeal b` to get `B₁_gen b → target`
 
@@ -2545,33 +2546,33 @@ theorem B₁_gen_nonarchimedeanRing (b : B) :
     quotientPlusFSubXIdealTopology B b
   letI hring : IsTopologicalRing (LaurentCover.B₁_gen b) :=
     quotientPlusFSubXIdealTopology_isTopologicalRing B b
-  haveI hNA_tate : @NonarchimedeanRing ↥(TateAlgebra B) _ instTopologicalSpaceTateAlgebra :=
-    tateAlgBasis'.nonarchimedean
+  haveI hNA_tate : @NonarchimedeanRing ↥(TateAlgebra B) _ TateAlgebra.instTopologicalSpaceTateAlgebra :=
+    TateAlgebra.tateAlgBasis'.nonarchimedean
   constructor; intro U hU
-  have hcont : @Continuous _ _ instTopologicalSpaceTateAlgebra
+  have hcont : @Continuous _ _ TateAlgebra.instTopologicalSpaceTateAlgebra
       (quotientPlusFSubXIdealTopology B b)
       (Ideal.Quotient.mk (plusFSubXIdeal B b)) :=
     continuous_quotient_mk'
   have hU' : (Ideal.Quotient.mk (plusFSubXIdeal B b)) ⁻¹' (U : Set _) ∈
-      @nhds _ instTopologicalSpaceTateAlgebra (0 : ↥(TateAlgebra B)) :=
+      @nhds _ TateAlgebra.instTopologicalSpaceTateAlgebra (0 : ↥(TateAlgebra B)) :=
     hcont.continuousAt.preimage_mem_nhds hU
   obtain ⟨V, hVU⟩ := @NonarchimedeanRing.is_nonarchimedean _ _ _ hNA_tate _ hU'
   exact ⟨{
     toAddSubgroup := V.toAddSubgroup.map
       (Ideal.Quotient.mk (plusFSubXIdeal B b)).toAddMonoidHom
-    isOpen' := @QuotientRing.isOpenMap_coe _ instTopologicalSpaceTateAlgebra _
-      (plusFSubXIdeal B b) instIsTopologicalRingTateAlgebra _ V.isOpen
+    isOpen' := @QuotientRing.isOpenMap_coe _ TateAlgebra.instTopologicalSpaceTateAlgebra _
+      (plusFSubXIdeal B b) TateAlgebra.instIsTopologicalRingTateAlgebra _ V.isOpen
   }, fun x hx => by obtain ⟨y, hy, rfl⟩ := hx; exact hVU hy⟩
 
 /-- Local `TopologicalSpace` instance for `LaurentCover.B₁_gen b`, needed for
 the specialized quotient bridge signatures that mention `TateAlgebra (B₁_gen b)`. -/
-local instance B₁_gen_topologicalSpace (b : B) :
+noncomputable local instance B₁_gen_topologicalSpace (b : B) :
     TopologicalSpace (LaurentCover.B₁_gen b) :=
   quotientPlusFSubXIdealTopology B b
 
 /-- Local `NonarchimedeanRing` instance for `LaurentCover.B₁_gen b`, needed for
 forming `TateAlgebra (B₁_gen b)` in signatures. -/
-local instance B₁_gen_nonarchimedeanRing_inst (b : B) :
+noncomputable local instance B₁_gen_nonarchimedeanRing_inst (b : B) :
     NonarchimedeanRing (LaurentCover.B₁_gen b) :=
   B₁_gen_nonarchimedeanRing b
 
@@ -2669,11 +2670,12 @@ theorem TA_B₁_gen_to_bivariateOverlap_outer_evalHom_algebraMap
     have h0 : (MvPowerSeries.coeff (R := LaurentCover.B₁_gen b) (Finsupp.single 0 n))
         (↑(algebraMap (LaurentCover.B₁_gen b) ↥(TateAlgebra (LaurentCover.B₁_gen b)) α) :
           MvPowerSeries (Fin 1) (LaurentCover.B₁_gen b)) = 0 := by
+      classical
       change (MvPowerSeries.coeff (Finsupp.single 0 n))
         (MvPowerSeries.C (σ := Fin 1) α) = 0
-      classical
-      rw [MvPowerSeries.coeff_C, if_neg (Finsupp.single_ne_zero.mpr hn)]
-    rw [h0, RingHom.map_zero, zero_mul]
+      rw [MvPowerSeries.coeff_C]
+      exact if_neg (Finsupp.single_ne_zero.mpr hn)
+    simp [h0]
 
 /-- Outer evalHom action on `TateAlgebra.X` (the TA variable of `TA(B₁_gen b)`):
 equals `mk TateAlgebra₂.Y`. -/
@@ -2713,10 +2715,12 @@ theorem TA_B₁_gen_to_bivariateOverlap_outer_evalHom_X
       have := congrArg (fun f : Fin 1 →₀ ℕ => f 0) h
       simp at this
       exact hn this
-    rw [if_neg hne, RingHom.map_zero, zero_mul]
+    rw [if_neg hne]
+    ring
 
 /-! #### Step 4: factor through the outer ideal `(1 - Ybar · X_out)` -/
 
+set_option maxHeartbeats 800000 in
 /-- The outer ideal's generator `1 - Ybar · X_out` maps to 0 under the outer
 evalHom, where `Ybar = mk(TateAlgebra.X) ∈ B₁_gen b` and `X_out = TateAlgebra.X`
 is the outer TA variable.
@@ -2942,13 +2946,13 @@ structure BackwardEvalHypotheses (b : B) where
     (↥(TateAlgebra (LaurentCover.B₁_gen b)) ⧸ outerLaurentOverlapIdeal b)
   /-- The outer quotient is a topological ring. -/
   ringOuter : @IsTopologicalRing _ topOuter _
-  /-- Uniform space structure on the outer quotient. -/
-  uOuter : UniformSpace
-    (↥(TateAlgebra (LaurentCover.B₁_gen b)) ⧸ outerLaurentOverlapIdeal b)
-  /-- The uniform structure makes addition a uniform group operation. -/
-  uAddOuter : @IsUniformAddGroup _ uOuter _
-  /-- The outer quotient is complete. -/
-  cOuter : @CompleteSpace _ uOuter
+  /-- The outer quotient's additive structure is a topological add group. -/
+  addOuter : @IsTopologicalAddGroup _ topOuter _
+  /-- The outer quotient is complete in the right-uniform structure induced
+  by `topOuter` + `addOuter`. This avoids a coherence mismatch between the
+  user-supplied uniform space and the topology. -/
+  cOuter : @CompleteSpace _
+    (@IsTopologicalAddGroup.rightUniformSpace _ _ topOuter addOuter)
   /-- The outer quotient is T2. -/
   tOuter : @T2Space _ topOuter
   /-- The outer quotient is nonarchimedean. -/
@@ -2967,13 +2971,18 @@ the hypothesis bundle `BackwardEvalHypotheses`.
 This is the first-stage backward evalHom, which will be factored through
 `bivariateOverlapIdeal b` in the next step. -/
 noncomputable def TA_B_bivariate_to_outerQuotient_evalHom₂
-    (b : B) (h : BackwardEvalHypotheses (B := B) b) :
+    (b : B) (h : BackwardEvalHypotheses b) :
     ↥(TateAlgebra₂ B) →+*
       ↥(TateAlgebra (LaurentCover.B₁_gen b)) ⧸ outerLaurentOverlapIdeal b := by
   letI := h.topOuter
   haveI := h.ringOuter
-  letI := h.uOuter
-  haveI := h.uAddOuter
+  haveI := h.addOuter
+  letI : UniformSpace (↥(TateAlgebra (LaurentCover.B₁_gen b)) ⧸ outerLaurentOverlapIdeal b) :=
+    @IsTopologicalAddGroup.rightUniformSpace _ _ h.topOuter
+      h.addOuter
+  haveI : @IsUniformAddGroup _
+      (@IsTopologicalAddGroup.rightUniformSpace _ _ h.topOuter h.addOuter) _ :=
+    @isUniformAddGroup_of_addCommGroup _ _ h.topOuter h.addOuter
   haveI := h.cOuter
   haveI := h.tOuter
   haveI := h.naOuter
@@ -2986,13 +2995,18 @@ noncomputable def TA_B_bivariate_to_outerQuotient_evalHom₂
 
 /-- Backward evalHom₂ action on `algebraMap a` for `a : B`: equals `baseHom(a)`. -/
 theorem TA_B_bivariate_to_outerQuotient_evalHom₂_algebraMap
-    (b : B) (h : BackwardEvalHypotheses (B := B) b) (a : B) :
+    (b : B) (h : BackwardEvalHypotheses b) (a : B) :
     TA_B_bivariate_to_outerQuotient_evalHom₂ b h (algebraMap B _ a) =
       outerQuotient_baseHom b a := by
   letI := h.topOuter
   haveI := h.ringOuter
-  letI := h.uOuter
-  haveI := h.uAddOuter
+  haveI := h.addOuter
+  letI : UniformSpace (↥(TateAlgebra (LaurentCover.B₁_gen b)) ⧸ outerLaurentOverlapIdeal b) :=
+    @IsTopologicalAddGroup.rightUniformSpace _ _ h.topOuter
+      h.addOuter
+  haveI : @IsUniformAddGroup _
+      (@IsTopologicalAddGroup.rightUniformSpace _ _ h.topOuter h.addOuter) _ :=
+    @isUniformAddGroup_of_addCommGroup _ _ h.topOuter h.addOuter
   haveI := h.cOuter
   haveI := h.tOuter
   haveI := h.naOuter
@@ -3003,13 +3017,18 @@ theorem TA_B_bivariate_to_outerQuotient_evalHom₂_algebraMap
 
 /-- Backward evalHom₂ action on `TA₂.X`: equals `Ybar`. -/
 theorem TA_B_bivariate_to_outerQuotient_evalHom₂_X
-    (b : B) (h : BackwardEvalHypotheses (B := B) b) :
+    (b : B) (h : BackwardEvalHypotheses b) :
     TA_B_bivariate_to_outerQuotient_evalHom₂ b h TateAlgebra₂.X =
       outerQuotient_YbarTgt b := by
   letI := h.topOuter
   haveI := h.ringOuter
-  letI := h.uOuter
-  haveI := h.uAddOuter
+  haveI := h.addOuter
+  letI : UniformSpace (↥(TateAlgebra (LaurentCover.B₁_gen b)) ⧸ outerLaurentOverlapIdeal b) :=
+    @IsTopologicalAddGroup.rightUniformSpace _ _ h.topOuter
+      h.addOuter
+  haveI : @IsUniformAddGroup _
+      (@IsTopologicalAddGroup.rightUniformSpace _ _ h.topOuter h.addOuter) _ :=
+    @isUniformAddGroup_of_addCommGroup _ _ h.topOuter h.addOuter
   haveI := h.cOuter
   haveI := h.tOuter
   haveI := h.naOuter
@@ -3020,13 +3039,18 @@ theorem TA_B_bivariate_to_outerQuotient_evalHom₂_X
 
 /-- Backward evalHom₂ action on `TA₂.Y`: equals `X_out`. -/
 theorem TA_B_bivariate_to_outerQuotient_evalHom₂_Y
-    (b : B) (h : BackwardEvalHypotheses (B := B) b) :
+    (b : B) (h : BackwardEvalHypotheses b) :
     TA_B_bivariate_to_outerQuotient_evalHom₂ b h TateAlgebra₂.Y =
       outerQuotient_XoutTgt b := by
   letI := h.topOuter
   haveI := h.ringOuter
-  letI := h.uOuter
-  haveI := h.uAddOuter
+  haveI := h.addOuter
+  letI : UniformSpace (↥(TateAlgebra (LaurentCover.B₁_gen b)) ⧸ outerLaurentOverlapIdeal b) :=
+    @IsTopologicalAddGroup.rightUniformSpace _ _ h.topOuter
+      h.addOuter
+  haveI : @IsUniformAddGroup _
+      (@IsTopologicalAddGroup.rightUniformSpace _ _ h.topOuter h.addOuter) _ :=
+    @isUniformAddGroup_of_addCommGroup _ _ h.topOuter h.addOuter
   haveI := h.cOuter
   haveI := h.tOuter
   haveI := h.naOuter
@@ -3041,7 +3065,7 @@ theorem TA_B_bivariate_to_outerQuotient_evalHom₂_Y
 `evalHom₂(algMap b - TA₂.X) = 0`. Uses `quotient_algebraMap_b_eq_X` in
 `B₁_gen b` (image of `algMap b = X` in plusFSubX quotient). -/
 theorem TA_B_bivariate_to_outerQuotient_evalHom₂_algMap_b_sub_X_eq_zero
-    (b : B) (h : BackwardEvalHypotheses (B := B) b) :
+    (b : B) (h : BackwardEvalHypotheses b) :
     TA_B_bivariate_to_outerQuotient_evalHom₂ b h
         (algebraMap B ↥(TateAlgebra₂ B) b - TateAlgebra₂.X) = 0 := by
   rw [map_sub, TA_B_bivariate_to_outerQuotient_evalHom₂_algebraMap,
@@ -3058,7 +3082,7 @@ theorem TA_B_bivariate_to_outerQuotient_evalHom₂_algMap_b_sub_X_eq_zero
 `evalHom₂(1 - algMap b · TA₂.Y) = 0`. Uses `quotient_algebraMap_b_eq_X` +
 the outer ideal relation `1 - Ybar · X_out ∈ outerLaurentOverlapIdeal`. -/
 theorem TA_B_bivariate_to_outerQuotient_evalHom₂_one_sub_algMap_b_Y_eq_zero
-    (b : B) (h : BackwardEvalHypotheses (B := B) b) :
+    (b : B) (h : BackwardEvalHypotheses b) :
     TA_B_bivariate_to_outerQuotient_evalHom₂ b h
         (1 - algebraMap B ↥(TateAlgebra₂ B) b * TateAlgebra₂.Y) = 0 := by
   rw [map_sub, map_one, map_mul,
@@ -3092,7 +3116,7 @@ theorem TA_B_bivariate_to_outerQuotient_evalHom₂_one_sub_algMap_b_Y_eq_zero
 Factored from `TA_B_bivariate_to_outerQuotient_evalHom₂` through
 `bivariateOverlapIdeal b` using the two kernel lemmas. -/
 noncomputable def TA_B_bivariate_quotient_to_outerQuotient_backwardHom
-    (b : B) (h : BackwardEvalHypotheses (B := B) b) :
+    (b : B) (h : BackwardEvalHypotheses b) :
     ↥(TateAlgebra₂ B) ⧸ TateAlgebra.bivariateOverlapIdeal b →+*
       ↥(TateAlgebra (LaurentCover.B₁_gen b)) ⧸ outerLaurentOverlapIdeal b := by
   refine Ideal.Quotient.lift _ (TA_B_bivariate_to_outerQuotient_evalHom₂ b h)
@@ -3111,7 +3135,7 @@ noncomputable def TA_B_bivariate_quotient_to_outerQuotient_backwardHom
 
 /-- Backward quotient hom action on `mk(algMap a)`: equals `outerQuotient_baseHom a`. -/
 theorem TA_B_bivariate_quotient_to_outerQuotient_backwardHom_mk_algebraMap
-    (b : B) (h : BackwardEvalHypotheses (B := B) b) (a : B) :
+    (b : B) (h : BackwardEvalHypotheses b) (a : B) :
     TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h
         ((Ideal.Quotient.mk (TateAlgebra.bivariateOverlapIdeal b))
           (algebraMap B ↥(TateAlgebra₂ B) a)) =
@@ -3124,7 +3148,7 @@ theorem TA_B_bivariate_quotient_to_outerQuotient_backwardHom_mk_algebraMap
 
 /-- Backward quotient hom action on `mk TA₂.X`: equals `Ybar`. -/
 theorem TA_B_bivariate_quotient_to_outerQuotient_backwardHom_mk_X
-    (b : B) (h : BackwardEvalHypotheses (B := B) b) :
+    (b : B) (h : BackwardEvalHypotheses b) :
     TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h
         ((Ideal.Quotient.mk (TateAlgebra.bivariateOverlapIdeal b))
           (TateAlgebra₂.X (A := B))) =
@@ -3136,7 +3160,7 @@ theorem TA_B_bivariate_quotient_to_outerQuotient_backwardHom_mk_X
 
 /-- Backward quotient hom action on `mk TA₂.Y`: equals `X_out`. -/
 theorem TA_B_bivariate_quotient_to_outerQuotient_backwardHom_mk_Y
-    (b : B) (h : BackwardEvalHypotheses (B := B) b) :
+    (b : B) (h : BackwardEvalHypotheses b) :
     TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h
         ((Ideal.Quotient.mk (TateAlgebra.bivariateOverlapIdeal b))
           (TateAlgebra₂.Y (A := B))) =
@@ -3168,7 +3192,7 @@ theorem TA_B₁_gen_quotient_forward_backward_eq_id
       (quotientPlusFSubXIdealTopology B b)
       (TateAlgebra.quotientBivariateOverlapIdealTopology b)
       (baseHom_B₁_gen_to_bivariateOverlap P b hA_complete hnoeth))
-    (h : BackwardEvalHypotheses (B := B) b)
+    (h : BackwardEvalHypotheses b)
     (hcont_forward : @Continuous _ _ h.topOuter
       (TateAlgebra.quotientBivariateOverlapIdealTopology b)
       (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base))
@@ -3179,8 +3203,13 @@ theorem TA_B₁_gen_quotient_forward_backward_eq_id
       (TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h) = RingHom.id _ := by
   letI := h.topOuter
   haveI := h.ringOuter
-  letI := h.uOuter
-  haveI := h.uAddOuter
+  haveI := h.addOuter
+  letI : UniformSpace (↥(TateAlgebra (LaurentCover.B₁_gen b)) ⧸ outerLaurentOverlapIdeal b) :=
+    @IsTopologicalAddGroup.rightUniformSpace _ _ h.topOuter
+      h.addOuter
+  haveI : @IsUniformAddGroup _
+      (@IsTopologicalAddGroup.rightUniformSpace _ _ h.topOuter h.addOuter) _ :=
+    @isUniformAddGroup_of_addCommGroup _ _ h.topOuter h.addOuter
   haveI := h.cOuter
   haveI := h.tOuter
   haveI := h.naOuter
@@ -3304,7 +3333,7 @@ noncomputable def TA_B₁_gen_quotient_specialized_equiv
       (quotientPlusFSubXIdealTopology B b)
       (TateAlgebra.quotientBivariateOverlapIdealTopology b)
       (baseHom_B₁_gen_to_bivariateOverlap P b hA_complete hnoeth))
-    (h : BackwardEvalHypotheses (B := B) b)
+    (h : BackwardEvalHypotheses b)
     (hcont_forward : @Continuous _ _ h.topOuter
       (TateAlgebra.quotientBivariateOverlapIdealTopology b)
       (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base))
@@ -3491,17 +3520,13 @@ theorem tateAlgebra_continuous_ringHom_ext
     rw [map_mul, map_mul, map_pow, map_pow, h_algMap, h_X]
   exact Continuous.ext_on hdense hf_cont hg_cont hagree x
 
+set_option maxHeartbeats 800000 in
 /-- **Parametric reverse round trip** `backward ∘ forward = id` on
 `TA(B₁_gen b) ⧸ outerLaurentOverlapIdeal b`. Takes `inputs : ReverseRoundTripInputs b`
 as the only remaining hypothesis bundle; the proof applies two layers of
 `tateAlgebra_continuous_ringHom_ext` (outer at `R := B₁_gen b`, inner at
 `R := B`) to reduce to generator-level agreement via the already-landed
-action lemmas.
-
-Inner-level density is discharged via `tateAlgebra_polynomials_dense_canonical`
-using `[IsTateRing B]`; both polynomial decompositions are discharged internally
-via `tateAlgebra_polynomial_decomp` (purely algebraic). -/
-set_option maxHeartbeats 800000 in
+action lemmas. -/
 theorem TA_B₁_gen_quotient_backward_forward_eq_id_of_inputs
     (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
     (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
@@ -3511,14 +3536,14 @@ theorem TA_B₁_gen_quotient_backward_forward_eq_id_of_inputs
       (quotientPlusFSubXIdealTopology B b)
       (TateAlgebra.quotientBivariateOverlapIdealTopology b)
       (baseHom_B₁_gen_to_bivariateOverlap P b hA_complete hnoeth))
-    (h : BackwardEvalHypotheses (B := B) b)
+    (h : BackwardEvalHypotheses b)
     (hcont_forward : @Continuous _ _ h.topOuter
       (TateAlgebra.quotientBivariateOverlapIdealTopology b)
       (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base))
     (hcont_backward : @Continuous _ _
       (TateAlgebra.quotientBivariateOverlapIdealTopology b) h.topOuter
       (TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h))
-    (inputs : ReverseRoundTripInputs (B := B) b) :
+    (inputs : ReverseRoundTripInputs b) :
     (TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h).comp
       (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base) =
       RingHom.id _ := by
@@ -3632,14 +3657,14 @@ noncomputable def TA_B₁_gen_quotient_specialized_equiv_of_inputs
       (quotientPlusFSubXIdealTopology B b)
       (TateAlgebra.quotientBivariateOverlapIdealTopology b)
       (baseHom_B₁_gen_to_bivariateOverlap P b hA_complete hnoeth))
-    (h : BackwardEvalHypotheses (B := B) b)
+    (h : BackwardEvalHypotheses b)
     (hcont_forward : @Continuous _ _ h.topOuter
       (TateAlgebra.quotientBivariateOverlapIdealTopology b)
       (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base))
     (hcont_backward : @Continuous _ _
       (TateAlgebra.quotientBivariateOverlapIdealTopology b) h.topOuter
       (TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h))
-    (inputs : ReverseRoundTripInputs (B := B) b) :
+    (inputs : ReverseRoundTripInputs b) :
     (↥(TateAlgebra (LaurentCover.B₁_gen b)) ⧸ outerLaurentOverlapIdeal b) ≃+*
       (↥(TateAlgebra₂ B) ⧸ TateAlgebra.bivariateOverlapIdeal b) :=
   TA_B₁_gen_quotient_specialized_equiv P b hA_complete hnoeth hcont_base h
@@ -3667,18 +3692,18 @@ noncomputable def TA_B₁_gen_quotient_to_B₁₂_gen_equiv
       (quotientPlusFSubXIdealTopology B b)
       (TateAlgebra.quotientBivariateOverlapIdealTopology b)
       (baseHom_B₁_gen_to_bivariateOverlap P b hA_complete hnoeth))
-    (h : BackwardEvalHypotheses (B := B) b)
+    (h : BackwardEvalHypotheses b)
     (hcont_forward : @Continuous _ _ h.topOuter
       (TateAlgebra.quotientBivariateOverlapIdealTopology b)
       (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base))
     (hcont_backward : @Continuous _ _
       (TateAlgebra.quotientBivariateOverlapIdealTopology b) h.topOuter
       (TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h))
-    (inputs : ReverseRoundTripInputs (B := B) b) :
+    (inputs : ReverseRoundTripInputs b) :
     (↥(TateAlgebra (LaurentCover.B₁_gen b)) ⧸ outerLaurentOverlapIdeal b) ≃+*
       LaurentCover.B₁₂_gen b :=
   (TA_B₁_gen_quotient_specialized_equiv_of_inputs P b hA_complete hnoeth hcont_base h
-    hcont_forward hcont_backward inputs).trans (bivariateOverlap_equiv_B₁₂gen b)
+    hcont_forward hcont_backward inputs).trans (bivariateOverlap_equiv_B₁₂gen B b)
 
 /-- **Single unified hypothesis bundle** for the specialized Laurent-overlap bridge.
 
@@ -3704,7 +3729,7 @@ structure SpecializedOverlapBridgeInputs
     (TateAlgebra.quotientBivariateOverlapIdealTopology b)
     (baseHom_B₁_gen_to_bivariateOverlap P b hA_complete hnoeth)
   /-- The hypothesis bundle for the outer quotient topology + power-boundedness. -/
-  backwardHyps : BackwardEvalHypotheses (B := B) b
+  backwardHyps : BackwardEvalHypotheses b
   /-- Continuity of the forward quotient hom. -/
   hcont_forward : @Continuous _ _ backwardHyps.topOuter
     (TateAlgebra.quotientBivariateOverlapIdealTopology b)
@@ -3714,7 +3739,7 @@ structure SpecializedOverlapBridgeInputs
     (TateAlgebra.quotientBivariateOverlapIdealTopology b) backwardHyps.topOuter
     (TA_B_bivariate_quotient_to_outerQuotient_backwardHom b backwardHyps)
   /-- Polynomial density on `TA(B₁_gen b)`. -/
-  reverseInputs : ReverseRoundTripInputs (B := B) b
+  reverseInputs : ReverseRoundTripInputs b
 
 /-- **Exported final theorem**: the specialized Laurent-overlap bridge packaged
 behind a single `SpecializedOverlapBridgeInputs` input bundle.
@@ -3759,6 +3784,7 @@ sorry-free algebraic identification). The caller now only needs to supply
 at the composed level. -/
 theorem laurentOverlapBridge_exists_compatible_via_primary
     {A : Type u} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [HasLocLiftPowerBounded A]
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
