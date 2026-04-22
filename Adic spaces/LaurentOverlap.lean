@@ -3083,6 +3083,7 @@ theorem TA_B_bivariate_to_outerQuotient_evalHom₂_algMap_b_sub_X_eq_zero
   rw [quotient_algebraMap_b_eq_X]
   exact sub_self _
 
+set_option maxHeartbeats 800000 in
 set_option synthInstance.maxHeartbeats 400000 in
 /-- Kernel lemma for `bivariateOverlapIdeal` generator `1 - algMap b · TA₂.Y`:
 `evalHom₂(1 - algMap b · TA₂.Y) = 0`. Uses `quotient_algebraMap_b_eq_X` +
@@ -3104,19 +3105,18 @@ theorem TA_B_bivariate_to_outerQuotient_evalHom₂_one_sub_algMap_b_Y_eq_zero
           ((algebraMap B ↥(TateAlgebra B)) b))) *
     outerQuotient_XoutTgt b = 0
   unfold outerQuotient_XoutTgt
-  rw [quotient_algebraMap_b_eq_X, sub_eq_zero, ← map_mul]
-  symm
-  refine Ideal.Quotient.eq.mpr ?_
-  -- Goal: algMap(mk_inner(TA.X)) · TA.X - 1 ∈ outerLaurentOverlapIdeal
-  have h_eq : (algebraMap (LaurentCover.B₁_gen b) ↥(TateAlgebra (LaurentCover.B₁_gen b))
-        ((Ideal.Quotient.mk (plusFSubXIdeal B b)) TateAlgebra.X)) *
-          TateAlgebra.X - (1 : ↥(TateAlgebra (LaurentCover.B₁_gen b))) =
-      -((1 : ↥(TateAlgebra (LaurentCover.B₁_gen b))) -
-        algebraMap (LaurentCover.B₁_gen b) _
-          ((Ideal.Quotient.mk (plusFSubXIdeal B b)) TateAlgebra.X) *
-        TateAlgebra.X) := by ring
+  rw [quotient_algebraMap_b_eq_X, show (1 : _) =
+      Ideal.Quotient.mk (outerLaurentOverlapIdeal b) 1 from rfl,
+    ← map_mul, ← map_sub, Ideal.Quotient.eq_zero_iff_mem]
+  have h_eq : (1 : ↥(TateAlgebra (LaurentCover.B₁_gen b))) -
+      algebraMap (LaurentCover.B₁_gen b) ↥(TateAlgebra (LaurentCover.B₁_gen b))
+        ((Ideal.Quotient.mk (plusFSubXIdeal B b)) TateAlgebra.X) *
+      TateAlgebra.X =
+        (1 : ↥(TateAlgebra (LaurentCover.B₁_gen b))) -
+          algebraMap (LaurentCover.B₁_gen b) ↥(TateAlgebra (LaurentCover.B₁_gen b))
+            ((Ideal.Quotient.mk (plusFSubXIdeal B b)) TateAlgebra.X) *
+          TateAlgebra.X := rfl
   rw [h_eq]
-  refine neg_mem ?_
   unfold outerLaurentOverlapIdeal
   exact Ideal.subset_span rfl
 
@@ -3462,7 +3462,7 @@ theorem tateAlgebra_polynomial_decomp
     · intro h
       exfalso; exact h (Finset.mem_range.mpr hl)
   · push_neg at hl
-    have hN_apply : g.val l = 0 := hN l (Or.inl hl)
+    have hN_apply : g.val l = 0 := hN l hl
     rw [hN_apply]
     symm
     apply Finset.sum_eq_zero
@@ -3566,12 +3566,12 @@ theorem TA_B₁_gen_quotient_backward_forward_eq_id_of_inputs
   apply Ideal.Quotient.ringHom_ext
   -- Goal: `((backward ∘ forward) ∘ mk_outer) = mk_outer` as ring homs TA(B₁_gen) → outer.
   -- Continuity of composite and mk_outer.
-  have hLHS_cont : @Continuous _ _ instTopologicalSpaceTateAlgebra h.topOuter
+  have hLHS_cont : @Continuous _ _ TateAlgebra.instTopologicalSpaceTateAlgebra h.topOuter
       (((TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h).comp
         (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base)).comp
       (Ideal.Quotient.mk (outerLaurentOverlapIdeal b))) :=
     (hcont_backward.comp hcont_forward).comp continuous_quotient_mk'
-  have hRHS_cont : @Continuous _ _ instTopologicalSpaceTateAlgebra h.topOuter
+  have hRHS_cont : @Continuous _ _ TateAlgebra.instTopologicalSpaceTateAlgebra h.topOuter
       (Ideal.Quotient.mk (outerLaurentOverlapIdeal b)) := continuous_quotient_mk'
   -- Apply outer extensionality.
   refine tateAlgebra_continuous_ringHom_ext _ _ hLHS_cont hRHS_cont
@@ -3592,7 +3592,7 @@ theorem TA_B₁_gen_quotient_backward_forward_eq_id_of_inputs
           ((Ideal.Quotient.mk (plusFSubXIdeal B b)) w) := by
       -- Apply inner extensionality: both sides viewed as ring homs TA B → outer quotient.
       -- Continuity: forward + backward continuity + mk_inner + algMap + mk_outer continuity.
-      have hLHS_inner_cont : @Continuous _ _ instTopologicalSpaceTateAlgebra h.topOuter
+      have hLHS_inner_cont : @Continuous _ _ TateAlgebra.instTopologicalSpaceTateAlgebra h.topOuter
           (fun w : ↥(TateAlgebra B) =>
             ((TA_B_bivariate_quotient_to_outerQuotient_backwardHom b h).comp
               (TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom P b hA_complete hnoeth hcont_base)).comp
@@ -3606,7 +3606,7 @@ theorem TA_B₁_gen_quotient_backward_forward_eq_id_of_inputs
             (algebraMap (LaurentCover.B₁_gen b) ↥(TateAlgebra (LaurentCover.B₁_gen b))) :=
           tateAlgebra_algebraMap_continuous
         exact halg_cont.comp continuous_quotient_mk'
-      have hRHS_inner_cont : @Continuous _ _ instTopologicalSpaceTateAlgebra h.topOuter
+      have hRHS_inner_cont : @Continuous _ _ TateAlgebra.instTopologicalSpaceTateAlgebra h.topOuter
           (fun w : ↥(TateAlgebra B) =>
             ((Ideal.Quotient.mk (outerLaurentOverlapIdeal b)).comp
               (algebraMap (LaurentCover.B₁_gen b) _))
@@ -3788,7 +3788,7 @@ witnesses; all other structure is fixed. -/
 
 /-- **Exported caller-ready overlap bridge with Primary's `τ_alg` bound**:
 specializes `laurentOverlapBridge_exists_compatible_from_bivariate_factorization`
-by fixing `τ_alg := bivariateOverlap_equiv_B₁₂gen (D₀.canonicalMap f)` (Primary's
+by fixing `τ_alg := bivariateOverlap_equiv_B₁₂gen (presheafValue D₀) (D₀.canonicalMap f)` (Primary's
 sorry-free algebraic identification). The caller now only needs to supply
 `τ_preBiv` (the presheaf-level bivariate iso) and the two intertwining witnesses
 at the composed level. -/
@@ -3838,7 +3838,7 @@ theorem laurentOverlapBridge_exists_compatible_via_primary
       (↥(TateAlgebra₂ (presheafValue D₀)) ⧸
         TateAlgebra.bivariateOverlapIdeal (D₀.canonicalMap f)))
     (h_plus_compat : ∀ uplus : presheafValue (laurentPlusDatum D₀ f),
-      (bivariateOverlap_equiv_B₁₂gen (D₀.canonicalMap f))
+      (bivariateOverlap_equiv_B₁₂gen (presheafValue D₀) (D₀.canonicalMap f))
           (τ_preBiv (restrictionMap (laurentPlusDatum D₀ f)
               (laurentOverlapDatum D₀ f)
               (laurentOverlap_subset_plus D₀ f) uplus)) =
@@ -3846,7 +3846,7 @@ theorem laurentOverlapBridge_exists_compatible_via_primary
           (laurentPlusBridge P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B
             hnoeth_B hcont_forward_B uplus))
     (h_minus_compat : ∀ uminus : presheafValue (laurentMinusDatum D₀ f),
-      (bivariateOverlap_equiv_B₁₂gen (D₀.canonicalMap f))
+      (bivariateOverlap_equiv_B₁₂gen (presheafValue D₀) (D₀.canonicalMap f))
           (τ_preBiv (restrictionMap (laurentMinusDatum D₀ f)
               (laurentOverlapDatum D₀ f)
               (laurentOverlap_subset_minus D₀ f) uminus)) =
@@ -3858,7 +3858,7 @@ theorem laurentOverlapBridge_exists_compatible_via_primary
         hA₀Noeth_B hA_complete_B hnoeth_B hcont_forward_B hcont_eval_B τ₁₂ :=
   laurentOverlapBridge_exists_compatible_from_bivariate_factorization
     P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B hnoeth_B hcont_forward_B
-    hcont_eval_B τ_preBiv (bivariateOverlap_equiv_B₁₂gen (D₀.canonicalMap f))
+    hcont_eval_B τ_preBiv (bivariateOverlap_equiv_B₁₂gen (presheafValue D₀) (D₀.canonicalMap f))
     h_plus_compat h_minus_compat
 
 end ValuationSpectrum
