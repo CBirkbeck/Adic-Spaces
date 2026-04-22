@@ -2453,8 +2453,8 @@ theorem TA_B_to_bivariateOverlap_evalHom_X
       have := congrArg (fun f : Fin 1 →₀ ℕ => f 0) h
       simp at this
       exact hn this
-    rw [if_neg hne]
-    ring
+    simp only [if_neg hne, RingHom.comp_apply, map_zero]
+    exact zero_mul _
 
 /-! #### Step 2: factor through `plusFSubXIdeal b` to get `B₁_gen b → target`
 
@@ -2675,7 +2675,8 @@ theorem TA_B₁_gen_to_bivariateOverlap_outer_evalHom_algebraMap
         (MvPowerSeries.C (σ := Fin 1) α) = 0
       rw [MvPowerSeries.coeff_C]
       exact if_neg (Finsupp.single_ne_zero.mpr hn)
-    simp [h0]
+    rw [h0, map_zero]
+    exact zero_mul _
 
 /-- Outer evalHom action on `TateAlgebra.X` (the TA variable of `TA(B₁_gen b)`):
 equals `mk TateAlgebra₂.Y`. -/
@@ -2715,12 +2716,13 @@ theorem TA_B₁_gen_to_bivariateOverlap_outer_evalHom_X
       have := congrArg (fun f : Fin 1 →₀ ℕ => f 0) h
       simp at this
       exact hn this
-    rw [if_neg hne]
-    ring
+    simp only [if_neg hne, RingHom.comp_apply, map_zero]
+    exact zero_mul _
 
 /-! #### Step 4: factor through the outer ideal `(1 - Ybar · X_out)` -/
 
 set_option maxHeartbeats 800000 in
+set_option synthInstance.maxHeartbeats 400000 in
 /-- The outer ideal's generator `1 - Ybar · X_out` maps to 0 under the outer
 evalHom, where `Ybar = mk(TateAlgebra.X) ∈ B₁_gen b` and `X_out = TateAlgebra.X`
 is the outer TA variable.
@@ -2749,20 +2751,17 @@ theorem TA_B₁_gen_to_bivariateOverlap_outer_evalHom_oneSub_eq_zero
       TA_B₁_gen_to_bivariateOverlap_outer_evalHom_X,
       baseHom_B₁_gen_to_bivariateOverlap_mk_X]
   -- Goal: 1 - mk X * mk Y = 0 in TA₂ B ⧸ bivariateOverlapIdeal b.
-  -- Equivalent to 1 = mk(X · Y) = mk(algMap b · Y) (via quotient_algebraMap_b_eq_X_bivariate)
-  -- = mk(1) by `1 - algMap b · Y ∈ bivariateOverlapIdeal b`.
-  rw [sub_eq_zero, ← map_mul]
-  -- Need: mk(1) = mk(TateAlgebra₂.X * TateAlgebra₂.Y).
-  symm
-  refine Ideal.Quotient.eq.mpr ?_
-  -- `X · Y - 1 = -(1 - X · Y)` and `1 - X · Y ≡ 1 - algMap b · Y` mod `algMap b - X`.
-  -- So `X · Y - 1 ∈ bivariateOverlapIdeal b`.
-  have h_eq : TateAlgebra₂.X * TateAlgebra₂.Y - (1 : ↥(TateAlgebra₂ B)) =
-      -(1 - algebraMap B ↥(TateAlgebra₂ B) b * TateAlgebra₂.Y) -
-        (-TateAlgebra₂.Y) * (algebraMap B ↥(TateAlgebra₂ B) b - TateAlgebra₂.X) := by
+  -- Rewrite 1 = mk 1 and mk X * mk Y = mk (X * Y), then use eq_zero_iff_mem.
+  rw [show (1 : ↥(TateAlgebra₂ B) ⧸ TateAlgebra.bivariateOverlapIdeal b) =
+      Ideal.Quotient.mk (TateAlgebra.bivariateOverlapIdeal b) 1 from rfl,
+    ← map_mul, ← map_sub, Ideal.Quotient.eq_zero_iff_mem]
+  -- Goal: 1 - TA₂.X * TA₂.Y ∈ bivariateOverlapIdeal b
+  have h_eq : (1 : ↥(TateAlgebra₂ B)) - TateAlgebra₂.X * TateAlgebra₂.Y =
+      (1 - algebraMap B ↥(TateAlgebra₂ B) b * TateAlgebra₂.Y) +
+        TateAlgebra₂.Y * (algebraMap B ↥(TateAlgebra₂ B) b - TateAlgebra₂.X) := by
     ring
   rw [h_eq]
-  refine sub_mem (neg_mem ?_) ?_
+  refine add_mem ?_ ?_
   · exact Ideal.subset_span (Set.mem_insert_of_mem _ rfl)
   · exact Ideal.mul_mem_left _ _ (Ideal.subset_span (Set.mem_insert _ _))
 
