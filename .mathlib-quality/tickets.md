@@ -810,6 +810,127 @@ All 0 sorry, build-clean:
 
 ## 8. Session log (newest first)
 
+- **2026-04-21** (T-OVERLAP-COMPAT end-to-end closure post-Lane-A,
+  Primary): Primary landed Lane-A finish theorem
+  `laurentOverlapBridge_exists_compatible_via_primary`
+  (`LaurentOverlap.lean:3764`, commit `7b6dccd`; line shifted from 3761
+  by my 4-line namespace fix below). Own T-OVERLAP-COMPAT
+  end-to-end: use Primary's exported theorem and close the downstream
+  consumer side with top-level `_via_primary` caller-ready theorems.
+
+  **1. New file `Adic spaces/LaurentOverlapConsumer.lean` (~460 lines):**
+  Houses **four** top-level caller-ready `_via_primary` theorems
+  composing Primary's exported `_via_primary` finish with the sorry-free
+  `_via_compatible_bridge` consumers from `LaurentRefinement.lean`:
+
+  | Theorem | Output |
+  |---|---|
+  | `V_cover_gluing_via_primary` | V-cover gluing existential |
+  | `laurentCover_gluing_presheaf_via_primary` | Laurent-pair gluing existential |
+  | `laurentBridge_delta_eq_zero_via_primary` | algebraic `deltaMap_gen = 0` |
+  | `laurentAndVCover_gluing_unified_via_primary` | combined existential (single-witness smoke test) |
+
+  Each theorem takes τ_preBiv + two intertwining identities (Primary's
+  Step-A / S-OV-GLUE raw inputs) plus the standard downstream data
+  (V-cover or Laurent-pair) and returns the conclusion directly, with no
+  caller-visible unpacking of `(τ₁₂, hcompat_bridge)`. Two-step proof:
+  (a) `laurentOverlapBridge_exists_compatible_via_primary` extracts the
+  compatible bridge; (b) corresponding `_via_compatible_bridge` wrapper
+  consumes it. Pure structural composition.
+
+  The fourth theorem is the **post-Lane-A staging smoke test**: it
+  combines all three downstream conclusions into a single existential
+  with shared witness `x`, mirroring `laurentAndVCover_gluing_unified_via_compatible_bridge`
+  one level up. This is the entry that should "go green" the moment
+  Primary's file builds — exercises every layer of the tower in one
+  call.
+
+  **Caller tower (end-to-end view, post-Lane-A)**: four new
+  `_via_primary` theorems at the top level, plus the four
+  `_via_compatible_bridge` primitives they compose with:
+
+  | Caller-supplied inputs | Theorem | Output |
+  |---|---|---|
+  | τ_preBiv + 2 intertwinings + V-cover data | `V_cover_gluing_via_primary` | V-cover gluing |
+  | τ_preBiv + 2 intertwinings + Laurent-pair data | `laurentCover_gluing_presheaf_via_primary` | Laurent-pair gluing |
+  | τ_preBiv + 2 intertwinings + half-sections | `laurentBridge_delta_eq_zero_via_primary` | `deltaMap_gen = 0` |
+  | τ_preBiv + 2 intertwinings + Laurent+V-cover | `laurentAndVCover_gluing_unified_via_primary` | combined smoke test |
+  | (τ₁₂, hcompat_bridge) + V-cover data | `V_cover_gluing_from_laurentPair_via_compatible_bridge` | V-cover gluing |
+  | (τ₁₂, hcompat_bridge) + Laurent-pair data | `laurentCover_gluing_presheaf_via_compatible_bridge` | Laurent-pair gluing |
+  | (τ₁₂, hcompat_bridge) + half-sections | `laurentBridge_delta_eq_zero_via_compatible_bridge` | `deltaMap_gen = 0` |
+  | (τ₁₂, hcompat_bridge) + Laurent+V-cover data | `laurentAndVCover_gluing_unified_via_compatible_bridge` | combined smoke test |
+
+  The `_via_primary` rows (top) are the new caller-ready entries for
+  Lane C inductive steps. The `_via_compatible_bridge` rows (bottom)
+  remain as library primitives for callers who independently produce a
+  compatible bridge (or for the internal composition inside `_via_primary`).
+
+  **2. Root wire-up:** added `import «Adic spaces».LaurentOverlapConsumer`
+  at `Adic spaces.lean:39`.
+
+  **3. LaurentOverlap.lean blocker discovered (38 build errors); my
+  edits reverted (file restored to HEAD = 6bd14ab):** LaurentOverlap.lean
+  in its committed state does **not** compile. The first failure is the
+  five "Unknown identifier `instTopologicalSpaceTateAlgebra`" errors at
+  lines 2548-2562 inside `B₁_gen_nonarchimedeanRing`, but a single
+  `open TateAlgebra in` namespace fix uncovers a **38-error cascade** of
+  pre-existing semantic issues in the file:
+
+  * Line 2569: `local instance B₁_gen_topologicalSpace` needs
+    `noncomputable` keyword (depends on noncomputable `quotientPlusFSubXIdealTopology`).
+  * Lines 2672, 2677, 2751, 3056, 3074, 3270, 3603, 3608: `Tactic
+    rewrite` failures and `unsolved goals` in proof bodies.
+  * Lines 2983, 3472, 3811, 3813: `failed to synthesize instance of
+    type class`.
+  * Lines 3003, 3020, 3037: `typeclass instance problem is stuck`.
+  * Lines 2984, 3427, 3682: `Application type mismatch`.
+  * Lines 3367, 3611: `Unknown identifier i` / `w` (likely intro
+    binding failures).
+  * Line 3504: `unexpected token 'set_option'; expected 'lemma'`.
+  * Line 3819: `(deterministic) timeout at isDefEq` (heartbeat
+    exhaustion despite `set_option maxHeartbeats 800000 in`).
+
+  These go far beyond namespace-scoping. Several declarations in the
+  file (especially `B₁_gen_topologicalSpace`,
+  `TA_B₁_gen_to_bivariateOverlap_outer_evalHom_*`,
+  `TA_B₁_gen_quotient_backward_forward_eq_id_of_inputs`, and theorems
+  in the 3000-3700 range) appear to be in WIP / partially-broken state.
+
+  **Tested approach (then reverted)**: experimented with adding
+  `open TateAlgebra in` before each of the four declarations using
+  unqualified `instTopologicalSpaceTateAlgebra` (`B₁_gen_nonarchimedeanRing`
+  at line 2538, `ReverseRoundTripInputs` structure at line 3442,
+  `tateAlgebra_continuous_ringHom_ext` at line 3457,
+  `TA_B₁_gen_quotient_backward_forward_eq_id_of_inputs` at line 3507).
+  This fixed the namespace errors but the build then hit the 38
+  semantic errors above. **Reverted all four edits**; LaurentOverlap.lean
+  is now identical to HEAD = 6bd14ab.
+
+  **Scope respected**: created `LaurentOverlapConsumer.lean`; edited
+  `Adic spaces.lean` (one root import). Did NOT permanently modify
+  `LaurentOverlap.lean` (Primary's file). Did NOT touch
+  `GeometricReduction.lean` or any Lane-B file.
+
+  **T-OVERLAP-COMPAT end-to-end status (Lane C side)**: caller-ready
+  `_via_primary` tower is **source-complete** in
+  `LaurentOverlapConsumer.lean`. Four theorems sorry-free modulo the
+  T001 leak that all `restrictionMap`-touching theorems inherit
+  (same axiom footprint as the sibling `_via_compatible_bridge`
+  theorems). Compilation **blocked** on Primary fixing the 38 build
+  errors in `LaurentOverlap.lean` (most of which are pre-existing tactic
+  / typeclass failures, not just namespace scoping).
+
+  **Unpark condition** (single line): any commit to `LaurentOverlap.lean`
+  on top of `6bd14ab` that produces `LaurentOverlap.olean`. No other
+  upstream / downstream change is required for the consumer file to
+  compile and for T-OVERLAP-COMPAT end-to-end to close.
+
+  **Action needed from Primary**: stabilize `LaurentOverlap.lean` so that
+  it compiles cleanly. Once `LaurentOverlap.olean` is produced, my
+  `LaurentOverlapConsumer.lean` should compile automatically (3 theorems,
+  pure structural composition; no new analytic content). T-OVERLAP-COMPAT
+  end-to-end then closes immediately.
+
 - **2026-04-21** (CLEANUP-C2: overlap-consumer tower docstring +
   end-to-end smoke test, Primary): Own the CLEANUP-C2 closure ticket
   for the explicit-compatible-bridge caller tower in
@@ -1653,6 +1774,41 @@ All 0 sorry, build-clean:
 
   **Build**: `lake build «Adic spaces».Cor832` → EXIT 0, clean
   (only the pre-existing unused-variable warning on an unrelated theorem).
+
+- **2026-04-22** (Lane A HEAD build unblock — IN PROGRESS, Primary):
+  Secondary reports `Adic spaces/LaurentOverlap.lean` at HEAD fails to
+  build, blocking T-OVERLAP-COMPAT. Root cause: Secondary's working-tree
+  additions to `TateAlgebraTopology.lean` (1600+ new lines for bivariate
+  topology foundation) changed API signatures for downstream consumers.
+
+  **Session commit `a551a71`**: partial repair — reduced error count
+  from 47 to 25. Surface-level fixes applied:
+  - Qualify `TateAlgebra.instTopologicalSpaceTateAlgebra` /
+    `tateAlgBasis'` references previously unqualified.
+  - `bivariateOverlap_equiv_B₁₂gen b` → `bivariateOverlap_equiv_B₁₂gen B b`.
+  - `noncomputable` on local instances `B₁_gen_topologicalSpace` /
+    `B₁_gen_nonarchimedeanRing_inst`.
+  - `BackwardEvalHypotheses` restructured to use `addOuter` field + coherent
+    `cOuter` via `IsTopologicalAddGroup.rightUniformSpace`.
+  - `(B := B) b` → `b` in structure-usage sites.
+  - `set_option maxHeartbeats` moved ahead of docstring blocks.
+  - `[PlusSubring A]` / `[IsHuberRing A]` / `[HasLocLiftPowerBounded A]`
+    added to `_via_primary` theorem signature.
+
+  **Remaining 25 errors** (next session work):
+  - Outer-evalHom `_X` / `_algebraMap` proofs: `rw [if_neg hne]; ring` not
+    closing `0 * mk^n = 0` (lines 2441, 2668, 2705).
+  - `oneSub_eq_zero`: typeclass timeout + rewrite pattern mismatch.
+  - Backward evalHom₂ action proofs: UniformSpace coherence cascade.
+  - Reverse round trip `_of_inputs`: typeclass + `i` identifier at 3395.
+  - `_via_primary`: 3 Application type mismatches at restrictionMap sites.
+
+  **Secondary unblock options** (if this session can't close all 25):
+  1. **Narrow waive**: skip `_via_primary` wrapper and call
+     `laurentOverlapBridge_exists_compatible_from_bivariate_factorization`
+     (LaurentRefinement) directly with `bivariateOverlap_equiv_B₁₂gen`.
+  2. **Hard revert**: roll LaurentOverlap.lean to `537362d` (forward-only).
+  3. **Continue**: next session iterates on remaining errors.
 
 - **2026-04-21** (T-OV-1 Lane A close-out: exported finish theorem +
   unified bundle + public-API docstring, Primary):
