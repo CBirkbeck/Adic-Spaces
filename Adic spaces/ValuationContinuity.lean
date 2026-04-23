@@ -879,4 +879,106 @@ theorem exists_mem_spa_supp_eq_of_nonOpen_prime_via_heightOne_ofPrime
   exact P.exists_mem_spa_supp_eq_of_nonOpen_prime_mulArchimedean
     h𝔭 hrange' hnonunits' hAplus'
 
+/-! ### `hrat_compat` supplier from enlarged-domination data
+
+The rational-compatibility hypothesis `hrat_compat` of
+`exists_mem_rationalOpen_supp_ge_of_nonOpen_prime_mulArchimedean` is
+engineered into `V` by including the quotients `φ(t) * (φ(s))⁻¹` for
+`t ∈ T` in the subring that `V` dominates. The supplier below extracts
+this rational compatibility as a **pure algebraic consequence** of the
+membership hypothesis `φ(t) * (φ(s))⁻¹ ∈ V.toSubring` together with
+`s ∉ 𝔭`.
+
+Composition with `exists_valuationSubring_of_prime_enlarged` (applied to
+an `R' := Subring.closure ((P.toFractionQuotient 𝔭).range ∪ {(φ s)⁻¹})`
+or similar enlargement) produces `hrat_compat` directly, with the single
+remaining residual being the **properness of the I-image inside that
+enlarged subring**; see
+`exists_valuationSubring_with_rational_compat` below for the composed
+statement. -/
+
+omit [IsTopologicalRing A] [IsLinearTopology A A] in
+/-- **Supplier for `hrat_compat` from membership**: if `V` contains
+`φ(t) * (φ(s))⁻¹` in its underlying subring for every `t ∈ T`, and
+`s ∉ 𝔭` (so `φ(s)` is nonzero in `Frac(A ⧸ 𝔭)`), then the pulled-back
+valuation satisfies the rational-compatibility bound
+`P.pulledBackValuation V t ≤ P.pulledBackValuation V s`.
+
+Pure algebraic derivation via `ValuationSubring.valuation_le_iff`. -/
+theorem hrat_compat_of_mem_enlarged_domination (P : PairOfDefinition A)
+    {𝔭 : Ideal A} [𝔭.IsPrime]
+    (T : Finset A) (s : A) (hs : s ∉ 𝔭)
+    {V : ValuationSubring (FractionRing (A ⧸ 𝔭))}
+    (hdom : ∀ t ∈ T,
+      ((algebraMap (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭))).comp
+        (Ideal.Quotient.mk 𝔭)) t *
+      (((algebraMap (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭))).comp
+        (Ideal.Quotient.mk 𝔭)) s)⁻¹ ∈ V.toSubring) :
+    ∀ t ∈ T, P.pulledBackValuation V t ≤ P.pulledBackValuation V s := by
+  intro t ht
+  haveI : IsDomain (A ⧸ 𝔭) := Ideal.Quotient.isDomain 𝔭
+  set φ : A →+* FractionRing (A ⧸ 𝔭) :=
+    (algebraMap (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭))).comp (Ideal.Quotient.mk 𝔭) with hφ_def
+  -- `φ s ≠ 0` from `s ∉ 𝔭` via injectivity of `algebraMap` on the domain quotient.
+  have hφs_ne : φ s ≠ 0 := by
+    intro hsz
+    apply hs
+    have hinj := IsFractionRing.injective (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭))
+    have hsz' : algebraMap (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭)) ((Ideal.Quotient.mk 𝔭) s) = 0 := hsz
+    have := hinj (hsz'.trans (map_zero _).symm)
+    exact Ideal.Quotient.eq_zero_iff_mem.mp this
+  -- Membership of the quotient in V.
+  have h_in_V : φ t * (φ s)⁻¹ ∈ V.toSubring := hdom t ht
+  -- Use `valuation_le_iff`: V.valuation x ≤ V.valuation y ↔ ∃ a : V, (a : K) * y = x.
+  change V.valuation (φ t) ≤ V.valuation (φ s)
+  rw [V.valuation_le_iff]
+  refine ⟨⟨φ t * (φ s)⁻¹, h_in_V⟩, ?_⟩
+  show (φ t * (φ s)⁻¹) * φ s = φ t
+  rw [mul_assoc, inv_mul_cancel₀ hφs_ne, mul_one]
+
+/-! ### Packaged caller-ready residual for `Presheaf.spa_point_nonOpen_of_rational_subset`
+
+Combining the `hrat_compat` supplier with the existing rational-open
+bridge `exists_mem_rationalOpen_supp_ge_of_nonOpen_prime_mulArchimedean`
+gives the packaged theorem below. The **single remaining caller residual**
+is the existence of a dominating valuation subring `V` with the full
+"rational-enlarged" content: domination range, I-image nonunits,
+MulArchimedean value group, `A⁺` bound, AND `φ(t) * (φ(s))⁻¹ ∈ V.toSubring`
+for each `t ∈ T`.
+
+This packaged statement is what a downstream caller (e.g., Primary's
+`Presheaf.spa_point_nonOpen_of_rational_subset` chain) needs to supply.
+See the module docblock for the residual map. -/
+
+omit [IsLinearTopology A A] in
+/-- **Packaged caller-ready rational-open Spa point** from enlarged
+domination with rational quotients.
+
+Consumes the single packaged existence statement
+`∃ V, (domination + MulArchimedean + A⁺ bound + rational-quotient
+membership)` and produces the exact `∃ v ∈ rationalOpen T s, 𝔭 ≤ v.supp`
+shape required by `Presheaf.mem_prime_of_rational_subset_nonOpen`. -/
+theorem exists_mem_rationalOpen_supp_ge_of_enlarged_domination
+    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
+    {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
+    (T : Finset A) (s : A) (hs : s ∉ 𝔭)
+    (hsupplier : ∃ V : ValuationSubring (FractionRing (A ⧸ 𝔭)),
+      (P.toFractionQuotient 𝔭).range ≤ V.toSubring ∧
+      (P.toFractionQuotient 𝔭).range.subtype ''
+        (Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I : Set _) ⊆
+        V.nonunits ∧
+      Nonempty (MulArchimedean V.ValueGroup) ∧
+      (∀ f ∈ (A⁺ : Set A), P.pulledBackValuation V f ≤ 1) ∧
+      (∀ t ∈ T,
+        ((algebraMap (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭))).comp
+          (Ideal.Quotient.mk 𝔭)) t *
+        (((algebraMap (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭))).comp
+          (Ideal.Quotient.mk 𝔭)) s)⁻¹ ∈ V.toSubring)) :
+    ∃ v ∈ rationalOpen T s, 𝔭 ≤ v.supp := by
+  obtain ⟨V, hrange, hnonunits, ⟨hmarch⟩, hAplus, hdom⟩ := hsupplier
+  haveI := hmarch
+  exact P.exists_mem_rationalOpen_supp_ge_of_nonOpen_prime_mulArchimedean
+    h𝔭 T s hs hrange hnonunits hAplus
+    (P.hrat_compat_of_mem_enlarged_domination T s hs hdom)
+
 end PairOfDefinition
