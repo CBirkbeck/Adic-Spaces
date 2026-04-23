@@ -678,3 +678,205 @@ theorem restrictToConvex_mono_of_le_one
 end RestrictToConvexAPI
 
 end Valuation
+
+/-! ### Section 7: Exact-support Spa-point bridge via ofPrime coarsening
+
+Given a non-open prime `𝔭` of a Huber ring `A` and domination data
+`V₀ : ValuationSubring (FractionRing (A ⧸ 𝔭))` (from
+`exists_valuationSubring_of_prime`), if there exists a height-1 prime `Q` of
+`V₀` that contains all `I`-image nonunits, then `V₀.ofPrime Q` supplies the
+`MulArchimedean` upgrade needed by
+`exists_mem_spa_supp_eq_of_nonOpen_prime_mulArchimedean` and yields a Spa
+point of `A` with **exact support** `v.supp = 𝔭`.
+
+The single remaining input is the **existence of the height-1 prime `Q` of
+`V₀` containing all `I`-images**. That is the narrow "maximal convex
+subgroup / MulArchimedean exact-support" lemma; the bridge below isolates
+it as an explicit named caller hypothesis.
+
+This route **bypasses** `Cor832.liftedIdeal_ne_top_claim` when applicable —
+the exact-support conclusion `v.supp = 𝔭` is strictly stronger than the
+`p ≤ v.supp` output of the completion route, and it is obtained without
+ever touching `presheafValue`-level properness.
+
+**Caveat**: the exact-support Spa point produced here does NOT
+automatically satisfy the rational-open constraint `v ∈ rationalOpen D'.T
+D'.s` required by `spa_point_nonOpen_of_rational_subset` in
+`Presheaf.lean`. Adding that rational-open constraint is a separate task
+(caller-supplied or a further bridge). The bridge below closes the
+`exists_mem_spa_supp_eq` shape in `ValuationContinuity.lean`, not the
+rational-open-restricted variant. -/
+
+namespace PairOfDefinition
+
+open ValuationSpectrum
+
+variable {A : Type*} [CommRing A] [TopologicalSpace A]
+  [IsTopologicalRing A] [IsLinearTopology A A]
+
+omit [IsTopologicalRing A] [IsLinearTopology A A] in
+/-- Monotonicity of `pulledBackValuation` under `V ≤ W`: if the pulled-back
+valuation via `V` is `≤ 1` on `f`, then so is the pulled-back valuation via
+any coarsening `W ≥ V`. Direct consequence of `mapOfLE`-monotonicity and
+`mapOfLE_valuation_apply`. -/
+theorem pulledBackValuation_le_one_of_le (P : PairOfDefinition A)
+    {𝔭 : Ideal A} [𝔭.IsPrime]
+    {V W : ValuationSubring (FractionRing (A ⧸ 𝔭))} (hVW : V ≤ W)
+    {f : A} (hf : P.pulledBackValuation V f ≤ 1) :
+    P.pulledBackValuation W f ≤ 1 := by
+  haveI : IsDomain (A ⧸ 𝔭) := Ideal.Quotient.isDomain 𝔭
+  have hmono := V.monotone_mapOfLE W hVW hf
+  rw [map_one] at hmono
+  change W.valuation _ ≤ 1
+  rw [← V.mapOfLE_valuation_apply W hVW]
+  exact hmono
+
+omit [IsTopologicalRing A] [IsLinearTopology A A] in
+/-- Transfer of nonunit-membership through `ofPrime`: if `x ∈ V₀.nonunits`
+and its lift `⟨x, _⟩ : V₀` sits in a prime `Q : Ideal V₀`, then the same
+`x` is a nonunit of the coarsening `V₀.ofPrime Q`.
+
+Proof: `idealOfLE V₀ (V₀.ofPrime Q) _` equals `Q` (by
+`idealOfLE_ofPrime`), which transfers `Q`-membership on `V₀` to
+`maximalIdeal`-membership on `V₀.ofPrime Q`; `coe_mem_nonunits_iff` then
+finishes. -/
+theorem _root_.ValuationSubring.mem_nonunits_ofPrime_of_val_mem_prime
+    {K : Type*} [Field K] (V₀ : ValuationSubring K) (Q : Ideal V₀) [Q.IsPrime]
+    {x : K} (hx_V₀ : x ∈ V₀.toSubring)
+    (hx_Q : (⟨x, hx_V₀⟩ : V₀) ∈ Q) :
+    x ∈ ((V₀.ofPrime Q).nonunits : Set K) := by
+  have hle : V₀ ≤ V₀.ofPrime Q := V₀.le_ofPrime Q
+  -- Transport `Q`-membership to `idealOfLE`-membership via `idealOfLE_ofPrime`.
+  have h_idealOfLE : (⟨x, hx_V₀⟩ : V₀) ∈
+      ValuationSubring.idealOfLE V₀ (V₀.ofPrime Q) hle := by
+    rw [show ValuationSubring.idealOfLE V₀ (V₀.ofPrime Q) hle = Q from
+      ValuationSubring.idealOfLE_ofPrime V₀ Q]
+    exact hx_Q
+  -- `idealOfLE = (maximalIdeal).comap inclusion` unfolds the membership.
+  have h_maxIdeal : V₀.inclusion (V₀.ofPrime Q) hle ⟨x, hx_V₀⟩ ∈
+      IsLocalRing.maximalIdeal (V₀.ofPrime Q) := h_idealOfLE
+  -- `coe_mem_nonunits_iff` converts maximal-ideal membership to nonunits.
+  have : ((V₀.inclusion (V₀.ofPrime Q) hle ⟨x, hx_V₀⟩ : V₀.ofPrime Q) : K) ∈
+      (V₀.ofPrime Q).nonunits :=
+    (V₀.ofPrime Q).coe_mem_nonunits_iff.mpr h_maxIdeal
+  exact this
+
+omit [IsLinearTopology A A] in
+/-- **Rational-open refinement of Lemma 7.45 via domination.**
+
+Packages `exists_mem_spa_supp_eq_of_nonOpen_prime_mulArchimedean` with the
+extra rational-compatibility hypothesis `hrat_compat` (pulled-back
+valuation bounds `t` by `D'.s` for each `t ∈ D'.T`) to produce a Spa
+point `v` with both `v ∈ rationalOpen D'.T D'.s` AND `𝔭 ≤ v.supp`
+(actually `v.supp = 𝔭`). This is the **rational-open-restricted**
+version of the exact-support construction, feeding directly into the
+`∃ v ∈ rationalOpen D'.T D'.s, p ≤ v.supp` obligation in
+`Presheaf.mem_prime_of_rational_subset_nonOpen`.
+
+The rational-compatibility hypothesis is exactly the one residual that
+the dominating valuation subring must satisfy to produce a rational-open
+Spa point. It asks that, over the pulled-back valuation, every generator
+`t ∈ D'.T` is bounded by `D'.s`. In the enlarged-domination route this is
+engineered into the subring `V` by including the quotients
+`φ(t) * (φ(D'.s))⁻¹` for each `t`, but the bridge is agnostic about
+how `V` is produced. -/
+theorem exists_mem_rationalOpen_supp_ge_of_nonOpen_prime_mulArchimedean
+    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
+    {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
+    (T : Finset A) (s : A) (hs : s ∉ 𝔭)
+    {V : ValuationSubring (FractionRing (A ⧸ 𝔭))}
+    (hrange : (P.toFractionQuotient 𝔭).range ≤ V.toSubring)
+    (hnonunits : (P.toFractionQuotient 𝔭).range.subtype ''
+      (Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I : Set _) ⊆ V.nonunits)
+    [MulArchimedean V.ValueGroup]
+    (hAplus : ∀ f ∈ (A⁺ : Set A), P.pulledBackValuation V f ≤ 1)
+    (hrat_compat : ∀ t ∈ T,
+      P.pulledBackValuation V t ≤ P.pulledBackValuation V s) :
+    ∃ v ∈ rationalOpen T s, 𝔭 ≤ v.supp := by
+  haveI : IsDomain (A ⧸ 𝔭) := Ideal.Quotient.isDomain 𝔭
+  set w := P.pulledBackValuation V with hw_def
+  refine ⟨ofValuation w, ⟨⟨?_, ?_⟩, ?_, ?_⟩, ?_⟩
+  · -- ofValuation w is continuous.
+    exact isContinuous_ofValuation_of w
+      (P.pulledBackValuation_isContinuous h𝔭 hrange hnonunits)
+  · -- (ofValuation w).vle f 1 for f ∈ A⁺.
+    intro f hf
+    change w f ≤ w 1
+    rw [map_one]
+    exact hAplus f hf
+  · -- ∀ t ∈ T, (ofValuation w).vle t s.
+    intro t ht
+    exact hrat_compat t ht
+  · -- ¬ (ofValuation w).vle s 0.
+    change ¬ w s ≤ w 0
+    rw [map_zero, le_zero_iff]
+    -- `w s ≠ 0 ↔ s ∉ w.supp ↔ s ∉ 𝔭` (the latter is our hypothesis).
+    intro hzero
+    apply hs
+    rw [← P.pulledBackValuation_supp V]
+    exact (Valuation.mem_supp_iff w s).mpr hzero
+  · -- 𝔭 ≤ (ofValuation w).supp.
+    rw [supp_ofValuation]
+    exact (P.pulledBackValuation_supp V).ge
+
+omit [IsLinearTopology A A] in
+/-- **Exact-support Spa point via height-1 `ofPrime` coarsening.**
+
+Given a non-open prime `𝔭` of `A`, domination data `V₀` (with
+`hrange` and `hnonunits` as in `exists_valuationSubring_of_prime`), a
+height-1 prime `Q` of `V₀` containing all `I`-image nonunits, and the
+standard `A⁺`-boundedness hypothesis on the pulled-back valuation of `V₀`,
+this theorem produces a Spa point `v ∈ Spa A A⁺` with **exact support**
+`v.supp = 𝔭`.
+
+The coarsening `V₀.ofPrime Q` supplies the `MulArchimedean` value group
+via `mulArchimedean_ofPrime_of_height_one`; `V ≤ ofPrime V Q` transfers
+the range inclusion and `A⁺` bound by monotonicity; the I-image nonunits
+transfer by
+`ValuationSubring.mem_nonunits_ofPrime_of_val_mem_prime`.
+
+**Missing narrow lemma (caller-supplied)**: existence of the height-1
+prime `Q` of `V₀` with `I`-images ⊆ `Q`. For strongly-noetherian Huber
+rings this reduces to the "minimal prime above `J := φ(I)` in a
+finite-rank valuation ring is height-1" question; see the docblock in
+`2026-03-18-valuation-prime-convex.md`. -/
+theorem exists_mem_spa_supp_eq_of_nonOpen_prime_via_heightOne_ofPrime
+    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀] [PlusSubring A]
+    {𝔭 : Ideal A} [𝔭.IsPrime] (h𝔭 : ¬IsOpen (𝔭 : Set A))
+    {V₀ : ValuationSubring (FractionRing (A ⧸ 𝔭))}
+    (hrange : (P.toFractionQuotient 𝔭).range ≤ V₀.toSubring)
+    (hnonunits : (P.toFractionQuotient 𝔭).range.subtype ''
+      (Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I : Set _) ⊆ V₀.nonunits)
+    (Q : Ideal V₀) [Q.IsPrime] (hQ : Q ≠ ⊥)
+    (hht1 : ∀ (P' : Ideal V₀) [P'.IsPrime], P' < Q → P' = ⊥)
+    (hJ_le_Q : ∀ (x : FractionRing (A ⧸ 𝔭)),
+      x ∈ (P.toFractionQuotient 𝔭).range.subtype ''
+        (Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I : Set _) →
+      ∀ (hx_V₀ : x ∈ V₀.toSubring), (⟨x, hx_V₀⟩ : V₀) ∈ Q)
+    (hAplus : ∀ f ∈ (A⁺ : Set A), P.pulledBackValuation V₀ f ≤ 1) :
+    ∃ v ∈ Spa A A⁺, v.supp = 𝔭 := by
+  -- Set up the coarsened valuation subring.
+  haveI : MulArchimedean (V₀.ofPrime Q).ValueGroup :=
+    ValuationSubring.mulArchimedean_ofPrime_of_height_one V₀ Q hQ hht1
+  have hle : V₀ ≤ V₀.ofPrime Q := V₀.le_ofPrime Q
+  -- Transfer of `hrange` through `V₀ ≤ V₀.ofPrime Q`.
+  have hrange' : (P.toFractionQuotient 𝔭).range ≤ (V₀.ofPrime Q).toSubring :=
+    hrange.trans hle
+  -- Transfer of `hnonunits`: each I-image sits in `V₀.ofPrime Q.nonunits`
+  -- using the `I-images ⊆ Q` hypothesis.
+  have hnonunits' : (P.toFractionQuotient 𝔭).range.subtype ''
+      (Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I : Set _) ⊆
+      (V₀.ofPrime Q).nonunits := by
+    intro x hx_image
+    have hx_V₀ : x ∈ V₀.toSubring := V₀.nonunits_subset (hnonunits hx_image)
+    exact ValuationSubring.mem_nonunits_ofPrime_of_val_mem_prime
+      V₀ Q hx_V₀ (hJ_le_Q x hx_image hx_V₀)
+  -- Transfer of `hAplus` through `V₀ ≤ V₀.ofPrime Q`.
+  have hAplus' : ∀ f ∈ (A⁺ : Set A),
+      P.pulledBackValuation (V₀.ofPrime Q) f ≤ 1 :=
+    fun f hf => P.pulledBackValuation_le_one_of_le hle (hAplus f hf)
+  -- Apply the MulArchimedean Lemma 7.45.
+  exact P.exists_mem_spa_supp_eq_of_nonOpen_prime_mulArchimedean
+    h𝔭 hrange' hnonunits' hAplus'
+
+end PairOfDefinition
