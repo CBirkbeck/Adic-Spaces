@@ -6,6 +6,7 @@ import «Adic spaces».Presheaf
 import «Adic spaces».PresheafIdentification
 import «Adic spaces».AdicCompletionBridge
 import «Adic spaces».TopologyComparison
+import «Adic spaces».CompletionLocalization
 import Mathlib.RingTheory.AdicCompletion.Exactness
 import Mathlib.RingTheory.AdicCompletion.AsTensorProduct
 
@@ -1014,9 +1015,9 @@ private theorem isUnit_algebraMap_s_of_rational_subset
     intro p ⟨hsp, hp⟩
     refine mem_prime_of_rational_subset D₀ D h p hp
       (hsp (Ideal.subset_span (Set.mem_singleton D₀.s))) ?_
-    intro hp_notOpen
+    intro hp_notOpen hD's
     exact spa_point_nonOpen_of_rational_subset D₀ D h p hp
-      (hsp (Ideal.subset_span (Set.mem_singleton D₀.s))) hp_notOpen
+      (hsp (Ideal.subset_span (Set.mem_singleton D₀.s))) hD's hp_notOpen
   obtain ⟨n, hn⟩ := Ideal.mem_radical_iff.mp hrad
   obtain ⟨a, ha⟩ := Ideal.mem_span_singleton'.mp hn
   have hunit_pow : IsUnit (algebraMap A (Localization.Away D.s) D.s ^ n) :=
@@ -1151,7 +1152,9 @@ theorem restrictionMapHom_surj
   -- u = D.canonicalMap D.s (a unit in presheafValue D)
   have hu_eq : u = D.canonicalMap D.s := by
     change sigma (D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) D.s)) = _
-    rw [hsigma_coe, restrictionMapAlg, IsLocalization.Away.lift_eq]
+    rw [hsigma_coe]
+    simp only [RingHom.comp_apply, restrictionMapAlg, IsLocalization.Away.lift_eq,
+      RationalLocData.canonicalMap]
   have hu_unit : IsUnit u := hu_eq ▸ isUnit_s_in_presheafValue D
   -- For elements of the dense subring Localization.Away D.s:
   -- D.coeRingHom(a / D.s^k) satisfies the surj condition with n = k.
@@ -1164,7 +1167,9 @@ theorem restrictionMapHom_surj
     rw [hu_eq]
     conv_rhs =>
       rw [show D₀.canonicalMap a = D₀.coeRingHom (algebraMap A _ a) from rfl]
-      rw [hsigma_coe, restrictionMapAlg, IsLocalization.Away.lift_eq]
+      rw [hsigma_coe]
+      simp only [RingHom.comp_apply, restrictionMapAlg, IsLocalization.Away.lift_eq,
+        RationalLocData.canonicalMap]
     show D.coeRingHom x * (D.coeRingHom (algebraMap A (Localization.Away D.s) D.s)) ^ k =
       D.canonicalMap a
     rw [← map_pow, ← map_mul]
@@ -1305,20 +1310,29 @@ The remaining gap is therefore STILL ALGEBRAIC, and the ABOVE
 content. No further topological or completion hypotheses are needed
 beyond the four iso-hypotheses.
 
-**Downstream impact**: this sorry blocks `tateAcyclicity` Part 1
-(`LaurentRefinement.lean:3695`) and `restrictionMap_isLocalization`
-(`PresheafTateStructure.lean:1336`). The quoted gluing route through
-`tateAcyclicity_gluing_via_refinement` (`LaurentRefinement.lean:3638`)
-also routes through this lemma. -/
+**⚠ RETIRED / FALSE IN GENERAL (2026-04-20)**: single-map injectivity of
+`restrictionMapHom` fails by the reviewer counterexample
+`A = k⟨T, U⟩/(TU), U = R(1/T)` (cf. retired-scaffold note above at line 1435).
+
+**Do not add new uses**. For `restrictionMap_isLocalization` (Prop 8.15),
+use the strictly-weaker `restrictionMapHom_ker_isTorsion` below — the
+`IsLocalization`-equalizer condition admits any `n ≥ 0`, whereas
+injectivity forces `n = 0`. For cover-level content use
+`productRestriction_faithfullyFlat_tate_of_hSpa_points` (`Cor832.lean`).
+
+Existing legacy callers in `LaurentRefinement.lean:3638, 3695` carry
+the resulting `sorry` transitively and should be refactored to the
+Cor 8.32 route in a separate ticket. -/
 theorem restrictionMapHom_injective
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
     (D₀ D : RationalLocData A)
     (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
     Function.Injective (restrictionMapHom D₀ D h) := by
-  -- BLOCKED on the algebraic non-zero-divisor statement; see preceding
-  -- doc-block. The conditional companion `restrictionMapHom_injective_via_iso`
-  -- below produces the result under the four standard hypotheses.
+  -- ⚠ RETIRED: false in general. Statement preserved as a named sorry only
+  -- to keep legacy callers compiling; see docstring above. New code should
+  -- consume `restrictionMapHom_ker_isTorsion` or the cover-level Cor 8.32
+  -- machinery in `Cor832.lean`.
   sorry
 
 /-- **Reduction of `restrictionMapHom_injective` to a Tate-quotient
@@ -1386,7 +1400,6 @@ in the doc-block of `restrictionMapHom_injective` is closed at the level of
 the target: `mk(D₀.s)` in `T_D := A⟨X⟩/(1 - D.s·X)` is invertible, which
 (as explained below) permits the composite injectivity reduction. -/
 
-omit [HasLocLiftPowerBounded A] in
 /-- Under rational containment, the element `mk(D₀.s)` in the target Tate
 quotient `A⟨X⟩/(1 - D.s·X)` is a unit. Proof via the packaged Example 6.38
 iso: `mk(D₀.s) = e_D (D.canonicalMap D₀.s)` where `D.canonicalMap D₀.s` is
@@ -1414,7 +1427,6 @@ theorem mk_D₀s_isUnit
   rwa [presheafValue_tateAlgebra_quotient_iso_canonicalMap D hb_D hA_complete hnoeth
     hT_pb_D D₀.s] at hU_iso
 
-omit [HasLocLiftPowerBounded A] in
 /-- A unit is a non-zero-divisor. Immediate specialization of `mk_D₀s_isUnit`
 for use in primary-decomposition style kernel arguments. -/
 theorem mk_D₀s_mem_nonZeroDivisors
@@ -1431,6 +1443,19 @@ theorem mk_D₀s_mem_nonZeroDivisors
       nonZeroDivisors (↥(TateAlgebra A) ⧸ TateAlgebra.oneSubfXIdeal D.s) :=
   IsUnit.mem_nonZeroDivisors
     (mk_D₀s_isUnit D₀ D h hb_D hA_complete hnoeth hT_pb_D)
+
+-- RETIRED 2026-04-18: Route A reduction scaffolds
+-- (`restrictionMapHom_injective_via_Φ_inj`,
+-- `restrictionMapHom_injective_via_Ds_nzd_and_ker_torsion`,
+-- `ker_torsion_of_restrictionMapHom_torsion`) landed 2026-04-17/18 have been
+-- removed. Reviewer counterexample (`A = k⟨T, U⟩/(TU)`, `U = R(1/T)`)
+-- shows individual `restrictionMapHom_injective` is false in general, so
+-- the NZD / kernel-torsion scaffolds were chasing an unattainable target.
+-- The correct injectivity for `tateAcyclicity` Part 1 is cover-level
+-- (Wedhorn Cor 8.32) via
+-- `productRestriction_injective_tate_via_coeRingHom_preserves_proper`
+-- in `Cor832.lean:1202`, conditional on `coeRingHom_preserves_proper`
+-- (= T-IDEAL-2, to be discharged via Artin-Rees on the ring of definition).
 
 -- REMOVED 2026-04-14: restrictionMapHom_isInducing. Depends on
 -- restrictionMapAlg_isUniformInducing (FALSE, removed above). No external
@@ -1479,6 +1504,265 @@ private theorem restrictionMapHom_coe' (D₀ D : RationalLocData A)
   exact UniformSpace.Completion.extensionHom_coe
     (restrictionMapAlg D₀ D h) (restrictionMapAlg_continuous D₀ D h) a
 
+/-! ### Reusable closed-annihilator lemma
+
+For any topological commutative ring `R` with `[T2Space R]`, the annihilator
+`{c : R | r * c = 0}` of a fixed `r : R` is closed — as the preimage of
+`{0}` under the continuous map `c ↦ r * c`. This is the underlying
+closedness fact used to lift algebraic torsion of a kernel through a
+continuous ring homomorphism. -/
+
+omit [PlusSubring A] [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **Closed annihilator (reusable)**: `{c : R | r * c = 0}` is a closed
+subset of any `T2Space` topological ring `R`. -/
+theorem isClosed_setOf_mul_eq_zero {R : Type*} [CommRing R]
+    [TopologicalSpace R] [T2Space R] [ContinuousMul R]
+    (r : R) : IsClosed {c : R | r * c = 0} :=
+  isClosed_eq (continuous_const.mul continuous_id) continuous_const
+
+/-! ### S-PROP815-KER: kernel-is-torsion for `restrictionMapHom`
+
+The correct equalizer content of Prop 8.15: elements of the kernel of the
+restriction map are annihilated by a power of `D₀.canonicalMap D.s`.
+
+The proof decomposes into:
+* **Algebraic torsion** — `CompletionLocalization.away_lift_torsion_bounded`
+  gives a uniform `N₀` such that every algebraic kernel element of `locLift`
+  (the `Localization.Away D₀.s → Localization.Away D.s` localization map)
+  is killed by `algebraMap(D.s^N₀)`. Pushed through `D₀.coeRingHom`, this
+  shows `D₀.coeRingHom(ker(locLift)) ⊆ Ann((D₀.canonicalMap D.s)^N₀)`.
+* **Topological closure of the algebraic kernel** —
+  `ker(restrictionMapHom) ⊆ closure(D₀.coeRingHom '' ker(locLift))`. This
+  is the **named residual** `ker_restrictionMapHom_subset_closure_algLift`
+  below. Combined with closedness of the annihilator (the lemma above),
+  the torsion result follows. -/
+
+/-- **Strictly narrower named residual (pure localization level)**:
+"quantitative openness on image" of `locLift` at 0 with respect to the
+two localization topologies. For every neighborhood `V` of 0 in
+`Localization.Away D₀.s` there exists a neighborhood `W` of 0 in
+`Localization.Away D.s` such that every `a` with `locLift a ∈ W` admits a
+`b ∈ V` with `locLift b = locLift a` (so `a - b ∈ ker(locLift)` is close
+to `a`).
+
+**Strictly narrower** than the old
+`ker_restrictionMapHom_subset_closure_algLift` (now below): no completion
+is involved in source or target, only the localization topologies on
+`Localization.Away D₀.s` and `Localization.Away D.s`. The closure
+statement below reduces to this residual together with standard
+completion machinery (density of `D₀.coeRingHom`, uniform-inducing of
+`D.coeRingHom`, continuity of `restrictionMapHom`, algebraic
+factorization through `locLift`).
+
+**Consumer chain**: feeds
+`ker_restrictionMapHom_subset_closure_algLift` →
+`restrictionMapHom_ker_isTorsion` → `restrictionMap_isLocalization`
+(Wedhorn Prop 8.15 Eq-clause). -/
+private theorem locLift_open_on_image_at_zero
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    ∀ V ∈ @nhds _ D₀.topology (0 : Localization.Away D₀.s),
+      ∃ W ∈ @nhds _ D.topology (0 : Localization.Away D.s),
+        ∀ a : Localization.Away D₀.s, locLift D₀ D h a ∈ W →
+          ∃ b : Localization.Away D₀.s, b ∈ V ∧ locLift D₀ D h b = locLift D₀ D h a := by
+  sorry
+
+/-- **Step B ⊆ (closure form, sorry-free modulo narrower residual)**: every
+kernel element of the restriction map lies in the closure of the image,
+under `D₀.coeRingHom`, of the algebraic kernel of the localization-level
+lift.
+
+**2026-04-23 refactor**: the body below is fully proved modulo the
+strictly-narrower pure-localization residual
+`locLift_open_on_image_at_zero` (above). It uses (i) density of
+`D₀.coeRingHom`, (ii) uniform-inducing of `D.coeRingHom`, (iii) continuity
+of `restrictionMapHom`, (iv) the factorization
+`restrictionMapHom ∘ D₀.coeRingHom = D.coeRingHom ∘ locLift`, and (v) the
+narrower residual above to discharge the only pre-completion content. -/
+theorem ker_restrictionMapHom_subset_closure_algLift
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s)
+    (c : presheafValue D₀) (hc : restrictionMapHom D₀ D h c = 0) :
+    c ∈ closure (D₀.coeRingHom ''
+      { x : Localization.Away D₀.s | locLift D₀ D h x = 0 }) := by
+  classical
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : TopologicalSpace (Localization.Away D₀.s) := D₀.topology
+  haveI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  haveI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : TopologicalSpace (Localization.Away D.s) := D.topology
+  haveI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  haveI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  rw [mem_closure_iff_nhds]
+  intro U hU
+  -- Pick a sub-nbhd `U₀` of 0 and compatible `Uc` of `c` with `Uc - U₀ ⊆ U`.
+  have h_cont_sub : Continuous fun p : presheafValue D₀ × presheafValue D₀ => p.1 - p.2 :=
+    continuous_sub
+  have h_sub_c0 : (fun p : presheafValue D₀ × presheafValue D₀ => p.1 - p.2)
+      (c, (0 : presheafValue D₀)) = c := by
+    simp
+  have h_preimage_nhd : (fun p : presheafValue D₀ × presheafValue D₀ => p.1 - p.2) ⁻¹' U ∈
+      nhds ((c, (0 : presheafValue D₀)) : presheafValue D₀ × presheafValue D₀) := by
+    have : U ∈ nhds ((fun p : presheafValue D₀ × presheafValue D₀ => p.1 - p.2)
+        (c, (0 : presheafValue D₀))) := by
+      rw [h_sub_c0]; exact hU
+    exact h_cont_sub.continuousAt.preimage_mem_nhds this
+  rw [nhds_prod_eq] at h_preimage_nhd
+  obtain ⟨Uc, hUc, U0, hU0, hUcU0⟩ := Filter.mem_prod_iff.mp h_preimage_nhd
+  -- `U0` at 0 in presheafValue D₀; its preimage under `D₀.coeRingHom` is a nhd of 0.
+  have hcoe_cont : @Continuous _ _ D₀.topology
+      (@UniformSpace.toTopologicalSpace _
+        (@UniformSpace.Completion.uniformSpace _ D₀.uniformSpace))
+      (D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) :=
+    @UniformSpace.Completion.continuous_coe _ D₀.uniformSpace
+  have hV_nhd : (D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) ⁻¹' U0 ∈
+      @nhds _ D₀.topology (0 : Localization.Away D₀.s) := by
+    have h00 : (D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) 0 = 0 :=
+      map_zero _
+    have : U0 ∈ nhds ((D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) 0) := by
+      rw [h00]; exact hU0
+    exact hcoe_cont.continuousAt.preimage_mem_nhds this
+  -- Narrower residual ⇒ nbhd `W` of 0 in D.topology matches.
+  obtain ⟨W, hW_nhd, hW_lift⟩ :=
+    locLift_open_on_image_at_zero D₀ D h _ hV_nhd
+  -- Pull `W` through uniform inducing of `D.coeRingHom` to a nbhd `W'` of 0 in presheafValue D.
+  have hD_ui : @IsUniformInducing _ _ D.uniformSpace
+      (@UniformSpace.Completion.uniformSpace _ D.uniformSpace)
+      (D.coeRingHom : Localization.Away D.s → presheafValue D) :=
+    UniformSpace.Completion.isUniformInducing_coe _
+  have h_nhd_D_comap : @nhds _ D.topology (0 : Localization.Away D.s) =
+      Filter.comap (D.coeRingHom : Localization.Away D.s → presheafValue D)
+        (nhds (0 : presheafValue D)) := by
+    have h00_D : (D.coeRingHom : Localization.Away D.s → presheafValue D) 0 = 0 :=
+      map_zero _
+    have := hD_ui.isInducing.nhds_eq_comap (0 : Localization.Away D.s)
+    rw [h00_D] at this; exact this
+  obtain ⟨W', hW'_nhd, hW'_sub⟩ : ∃ W' : Set (presheafValue D),
+      W' ∈ nhds (0 : presheafValue D) ∧
+      (D.coeRingHom : Localization.Away D.s → presheafValue D) ⁻¹' W' ⊆ W := by
+    rw [h_nhd_D_comap, Filter.mem_comap] at hW_nhd
+    exact hW_nhd
+  -- Uc' := Uc ∩ restrictionMapHom⁻¹' W' is still a nbhd of c.
+  have hrestr_cont : Continuous (restrictionMapHom D₀ D h :
+      presheafValue D₀ → presheafValue D) :=
+    restrictionMapHom_continuous D₀ D h
+  have hW'_pre_c : (restrictionMapHom D₀ D h) ⁻¹' W' ∈ nhds c := by
+    have h_restrc : restrictionMapHom D₀ D h c ∈ W' := by
+      rw [hc]; exact mem_of_mem_nhds hW'_nhd
+    exact hrestr_cont.continuousAt.preimage_mem_nhds
+      (show W' ∈ nhds (restrictionMapHom D₀ D h c) by rw [hc]; exact hW'_nhd)
+  have hUc' : Uc ∩ (restrictionMapHom D₀ D h) ⁻¹' W' ∈ nhds c :=
+    Filter.inter_mem hUc hW'_pre_c
+  -- Use density to pick `a₀ ∈ Localization.Away D₀.s` with `D₀.coeRingHom a₀ ∈ Uc'`.
+  have hdense : DenseRange (D₀.coeRingHom :
+      Localization.Away D₀.s → presheafValue D₀) := by
+    change DenseRange (UniformSpace.Completion.coeRingHom :
+      Localization.Away D₀.s → presheafValue D₀)
+    exact UniformSpace.Completion.denseRange_coe
+  obtain ⟨y₀, hy₀_Uc', a₀, ha₀_eq⟩ :=
+    mem_closure_iff_nhds.mp
+      (by rw [hdense.closure_range]; trivial : c ∈ closure (Set.range D₀.coeRingHom))
+      (Uc ∩ (restrictionMapHom D₀ D h) ⁻¹' W') hUc'
+  -- Now `D₀.coeRingHom a₀ ∈ Uc` and `restrictionMapHom (D₀.coeRingHom a₀) ∈ W'`.
+  have ha₀_Uc : D₀.coeRingHom a₀ ∈ Uc := (ha₀_eq ▸ hy₀_Uc').1
+  have ha₀_W' : restrictionMapHom D₀ D h (D₀.coeRingHom a₀) ∈ W' := (ha₀_eq ▸ hy₀_Uc').2
+  -- Transport through factorization `restrictionMapHom ∘ D₀.coeRingHom = D.coeRingHom ∘ locLift`.
+  have h_factor : restrictionMapHom D₀ D h (D₀.coeRingHom a₀) =
+      D.coeRingHom (locLift D₀ D h a₀) := by
+    -- `D₀.coeRingHom = UniformSpace.Completion.coeRingHom` definitionally (via
+    -- `RationalLocData.coeRingHom` definition). Use `show` to bridge the two forms.
+    change restrictionMapHom D₀ D h
+      (@UniformSpace.Completion.coeRingHom _ _ D₀.uniformSpace
+        D₀.isTopologicalRing D₀.isUniformAddGroup a₀) = _
+    rw [restrictionMapHom_coe' D₀ D h a₀, restrictionMapAlg_eq_comp_locLift]
+    rfl
+  have ha₀_lift_W' : D.coeRingHom (locLift D₀ D h a₀) ∈ W' := h_factor ▸ ha₀_W'
+  have ha₀_lift_W : locLift D₀ D h a₀ ∈ W := hW'_sub ha₀_lift_W'
+  -- Apply narrower residual: find `b ∈ V = D₀.coeRingHom⁻¹' U0` with same image.
+  obtain ⟨b, hb_V, hb_eq⟩ := hW_lift a₀ ha₀_lift_W
+  -- `D₀.coeRingHom b ∈ U0`.
+  have hb_coe_U0 : D₀.coeRingHom b ∈ U0 := hb_V
+  -- `(a₀ - b) ∈ ker(locLift)`.
+  have hab_ker : locLift D₀ D h (a₀ - b) = 0 := by
+    rw [map_sub, hb_eq, sub_self]
+  -- `D₀.coeRingHom (a₀ - b) = D₀.coeRingHom a₀ - D₀.coeRingHom b`.
+  have h_coe_sub : D₀.coeRingHom (a₀ - b) =
+      D₀.coeRingHom a₀ - D₀.coeRingHom b := by
+    rw [map_sub]
+  -- The pair `(D₀.coeRingHom a₀, D₀.coeRingHom b) ∈ Uc ×ˢ U0`.
+  have h_pair_in : (D₀.coeRingHom a₀, D₀.coeRingHom b) ∈ Uc ×ˢ U0 :=
+    ⟨ha₀_Uc, hb_coe_U0⟩
+  -- Hence the difference lies in `U`.
+  have h_diff_in_U : D₀.coeRingHom a₀ - D₀.coeRingHom b ∈ U := hUcU0 h_pair_in
+  refine ⟨D₀.coeRingHom (a₀ - b), ?_, a₀ - b, hab_ker, rfl⟩
+  rw [h_coe_sub]
+  exact h_diff_in_U
+
+/-- **CORRECT residual for `restrictionMap_isLocalization` (Prop 8.15).**
+
+The kernel of the restriction map is **torsion at `D₀.canonicalMap D.s`**:
+for every `c : presheafValue D₀` with `restrictionMapHom D₀ D h c = 0`,
+some power of `D₀.canonicalMap D.s` annihilates `c`.
+
+This is the `IsLocalization`-equalizer condition (third clause of
+`IsLocalization.Away.mk`) specialized to zero RHS. It is the **weakest**
+content sufficient for `restrictionMap_isLocalization`.
+
+**STRICTLY WEAKER than `restrictionMapHom_injective`**: the latter takes
+`n = 0` (pointwise injectivity) and is **FALSE in general** by the
+reviewer counterexample `A = k⟨T, U⟩/(TU), U = R(1/T)` (cf. retired-scaffold
+note above at line 1435). The torsion form allows any `n`, and is TRUE in
+that example: every `u ∈ (U)` satisfies `T · u = TU = 0`.
+
+**Proof structure**: combines the algebraic `away_lift_torsion_bounded`
+(uniform torsion bound from `CompletionLocalization.lean`, fully proved)
+with the named topological residual
+`ker_restrictionMapHom_subset_closure_algLift` (Step B ⊆), via the
+closed-annihilator lemma `isClosed_setOf_mul_eq_zero`. The single `sorry`
+in this chain is precisely in `ker_restrictionMapHom_subset_closure_algLift`. -/
+theorem restrictionMapHom_ker_isTorsion
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s)
+    (c : presheafValue D₀)
+    (hc : restrictionMapHom D₀ D h c = 0) :
+    ∃ n : ℕ, (D₀.canonicalMap D.s) ^ n * c = 0 := by
+  -- Step A (algebraic torsion bound, fully proved).
+  obtain ⟨N₀, hN₀⟩ := CompletionLocalization.away_lift_torsion_bounded
+    (isUnit_algebraMap_s_of_rational_subset D₀ D h)
+  refine ⟨N₀, ?_⟩
+  -- Annihilator of (D₀.canonicalMap D.s)^N₀ in presheafValue D₀ is closed.
+  have h_closed : IsClosed {c' : presheafValue D₀ |
+      (D₀.canonicalMap D.s) ^ N₀ * c' = 0} :=
+    isClosed_setOf_mul_eq_zero _
+  -- Algebraic kernel maps into the annihilator.
+  have h_alg_ann : D₀.coeRingHom ''
+      { x : Localization.Away D₀.s | locLift D₀ D h x = 0 } ⊆
+        {c' : presheafValue D₀ | (D₀.canonicalMap D.s) ^ N₀ * c' = 0} := by
+    rintro _ ⟨a, ha, rfl⟩
+    -- `hN₀` gives `algebraMap A (Loc.Away D₀.s) (D.s^N₀) * a = 0`.
+    have hkilled : algebraMap A (Localization.Away D₀.s) (D.s ^ N₀) * a = 0 := hN₀ a ha
+    -- Push through `D₀.coeRingHom` and unfold `D₀.canonicalMap`.
+    show (D₀.canonicalMap D.s) ^ N₀ * D₀.coeRingHom a = 0
+    have h_canon : (D₀.canonicalMap D.s) ^ N₀ =
+        D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) (D.s ^ N₀)) := by
+      change (D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) D.s)) ^ N₀ = _
+      rw [map_pow, ← map_pow]
+    rw [h_canon, ← map_mul, hkilled, map_zero]
+  -- Closure of the algebraic kernel is in the annihilator (closure of subset
+  -- of closed set stays in the closed set).
+  have h_closure_ann : closure (D₀.coeRingHom ''
+      { x : Localization.Away D₀.s | locLift D₀ D h x = 0 }) ⊆
+        {c' : presheafValue D₀ | (D₀.canonicalMap D.s) ^ N₀ * c' = 0} :=
+    closure_minimal h_alg_ann h_closed
+  -- Step B (⊆): `c` is in the closure of the algebraic kernel.
+  exact h_closure_ann
+    (ker_restrictionMapHom_subset_closure_algLift D₀ D h c hc)
+
 /-- **Proposition 8.15**: the restriction map is a localization.
 
 `presheafValue D` is the localization of `presheafValue D₀` at
@@ -1492,10 +1776,9 @@ hence flat (by `Localization.flat`).
    completion via the subring argument: the set S = {z | exists n a, ...} is a
    dense subring of presheafValue D, and by the Baire category theorem on the
    complete metrizable space, S is open hence closed hence everything.
-3. **Eq**: If `sigma(a) = sigma(b)`, exists `n` with `s'^n * a = s'^n * b`.
-   For n=0 this is injectivity of sigma. On the dense image, injectivity follows
-   from injectivity of the algebraic restriction map (domain assumption + T0
-   completion embedding). Extension to completion by density + T2. -/
+3. **Eq (torsion kernel)**: `c ∈ ker(sigma) ⟹ ∃ n, s'^n * c = 0`. Discharged
+   via `restrictionMapHom_ker_isTorsion` (named residual above, weaker than
+   the retired-false `restrictionMapHom_injective`). -/
 theorem restrictionMap_isLocalization
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
@@ -1519,16 +1802,15 @@ theorem restrictionMap_isLocalization
   have hunit : IsUnit (sigma s') := by
     change IsUnit (sigma (D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) D.s)))
     rw [hsigma_coe]
-    simp only [restrictionMapAlg, IsLocalization.Away.lift_eq]
-    exact isUnit_s_in_presheafValue D
+    simpa only [RingHom.comp_apply, restrictionMapAlg, IsLocalization.Away.lift_eq,
+      RationalLocData.canonicalMap] using isUnit_s_in_presheafValue D
   exact IsLocalization.Away.mk (D₀.canonicalMap D.s) hunit
     (restrictionMapHom_surj D₀ D h)
     (fun a b hab => by
-      suffices ∀ c : presheafValue D₀, sigma c = 0 → ∃ n : ℕ, s' ^ n * c = 0 by
-        obtain ⟨n, hn⟩ := this (a - b) (by rw [map_sub]; exact sub_eq_zero.mpr hab)
-        exact ⟨n, by rw [mul_sub, sub_eq_zero] at hn; exact hn⟩
-      intro c hc
-      exact ⟨0, by simp [restrictionMapHom_injective D₀ D h
-        (hc.trans (map_zero sigma).symm)]⟩)
+      -- Reduce to the kernel-torsion form: for `c` in the kernel of `sigma`,
+      -- some power of `s' = D₀.canonicalMap D.s` annihilates `c`.
+      obtain ⟨n, hn⟩ := restrictionMapHom_ker_isTorsion D₀ D h (a - b)
+        (by rw [map_sub]; exact sub_eq_zero.mpr hab)
+      exact ⟨n, by rw [mul_sub, sub_eq_zero] at hn; exact hn⟩)
 
 end ValuationSpectrum
