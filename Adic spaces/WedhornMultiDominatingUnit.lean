@@ -169,76 +169,144 @@ theorem rationalOpen_subset_via_strict_sigma_domination
   -- Conclude w ∈ R(D.T, D.s).
   exact ⟨hw_spa, hwD, hwDs⟩
 
-/-! ## Remaining obligation: discharging `hT_test_compat`
+/-- **Strict-domination forces non-degeneracy** (smallest valuation
+arithmetic helper toward multi-element σ-clearing).
 
-`rationalOpen_subset_via_strict_sigma_domination` reduces the multi-element
-σ-clearing problem to a single concrete obligation:
+For any `w : Spv A` and any `x, y : A`, if `w` strictly dominates
+`x` by `y` (i.e., `¬ w.vle x y`), then `x` is non-degenerate at `w`
+(`¬ w.vle x 0`).
 
-* Choose a test family `T_test ⊆ A` with no common zero on `Spa(A, A⁺)`
-  (so that `Cor732.exists_dominating_unit` supplies the σ-domination
-  hypothesis `hσ`).
-* Discharge `hT_test_compat`: prove that at every `w ∈ Spa(A, A⁺)`, the
-  conjunction of `w.vle ((σ : A) * (∏ t ∈ D.T, t)) C.base.s` (the
-  f-membership) and `w.vle (σ : A) τ ∧ ¬ w.vle τ (σ : A)` (the strict
-  σ-domination at τ) implies the per-`t'` inequalities and the
-  non-degeneracy clause for `D.s`.
+**Proof (contrapositive)**: if `w.vle x 0`, then by `≤ᵥ` transitivity
+against the always-true `0 ≤ᵥ y` (i.e., `ValuativeRel.zero_vle`), we
+get `w.vle x y`, contradicting the strict hypothesis.
 
-### Wedhorn's canonical choice
+**Use case in σ-clearing**: Cor 7.32's σ-strict-domination output
+`w.vle (σ : A) τ ∧ ¬ w.vle τ (σ : A)` produces `¬ w.vle τ (σ : A)`,
+which by this lemma yields `¬ w.vle τ 0` — i.e., `τ` is non-degenerate
+at `w`. With `τ := D.s` (when `D.s ∈ T_test` is the σ-witness at `w`),
+this discharges the **non-degeneracy half** of the multi-element
+σ-clearing conjunction `(∀ t' ∈ D.T, w.vle t' D.s) ∧ ¬ w.vle D.s 0`. -/
+lemma not_vle_zero_of_strict_dominator
+    {w : Spv A} {x y : A} (h_strict : ¬ w.vle x y) :
+    ¬ w.vle x 0 := by
+  intro hw_x0
+  apply h_strict
+  letI : ValuativeRel A := w.toValuativeRel
+  exact ValuativeRel.vle_trans hw_x0 (ValuativeRel.zero_vle y)
 
+/-- **Discharge of `hT_test_compat` for the empty `D.T` case** with
+`T_test := {D.s}`.
+
+The `D.T = ∅` case is the simplest non-trivial cover-piece shape: it
+captures basic-open-at-`D.s` cover pieces `D` with no test elements.
+The conjunction `(∀ t' ∈ ∅, ...) ∧ ¬ w.vle D.s 0` reduces to just
+`¬ w.vle D.s 0`, which is discharged by `not_vle_zero_of_strict_dominator`
+applied to the σ-strict-domination by `D.s`.
+
+**Plug-in callsite**: feed this into `rationalOpen_subset_via_strict_sigma_domination`
+with `T_test := {D.s}` to obtain
 ```
-T_test := D.T.image (· * C.base.s) ∪ {D.s * C.base.s}
-       (or a power-product variant: ∪ {D.s ^ N * C.base.s})
+rationalOpen (insert (σ : A) C.base.T) C.base.s ⊆ rationalOpen ∅ D.s
 ```
+(noting `(σ : A) * (∏ t ∈ ∅, t) = (σ : A)` after `Finset.prod_empty`).
 
-The τ-case-analysis splits into two cases at each `w`:
-
-**Case `τ = t' * C.base.s` for some `t' ∈ D.T`**: σ-strict-domination
-gives `w.vle (σ : A) (t' * C.base.s)` with strict, i.e.
-`w(σ) ≤ w(t') * w(C.base.s)`. Combined with the f-membership
-`w(σ) * w(∏ t ∈ D.T, t) ≤ w(C.base.s)` and the non-degeneracy of
-`C.base.s` (carried by `hw_spa`/`hwCs` if needed), one derives
-`w.vle t' D.s` for every `t' ∈ D.T` via `Spv.vle_mul_cancel` at
-`C.base.s` plus `Spv.vle_prod_of_pointwise` (landed above) for the
-multi-element factor. The non-degeneracy clause `¬ w.vle D.s 0`
-follows from σ-domination's strict component.
-
-**Case `τ = D.s * C.base.s` (or power-variant)**: σ-strict-domination
-gives `w.vle (σ : A) (D.s * C.base.s)` with strict. Combined with the
-f-membership, this case directly gives the non-degeneracy clause and
-the per-`t'` inequalities through a parallel cancellation argument.
-
-### What is the next formalisation target
-
-```
-lemma hT_test_compat_of_canonical_choice
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+The σ supplier is `Cor732.exists_dominating_unit` applied to
+`T := {D.s}`, requiring the no-common-zero hypothesis
+`∀ v ∈ Spa A A⁺, ¬ v.vle D.s 0` (a non-degeneracy precondition on the
+cover-piece denominator that holds when the cover is non-trivially
+contained in the basic open at `D.s`). -/
+lemma hT_test_compat_of_empty_D_T
     [DecidableEq A] [TopologicalSpace A] [IsTopologicalRing A]
     [PlusSubring A] (C : RationalCovering A) (D : RationalLocData A)
-    (σ : Aˣ) :
-    let T_test : Finset A :=
-      D.T.image (· * C.base.s) ∪ {D.s * C.base.s}
-    ∀ τ ∈ T_test, ∀ w ∈ Spa A A⁺,
+    (hD_empty : D.T = ∅) (σ : Aˣ) :
+    ∀ τ ∈ ({D.s} : Finset A), ∀ w ∈ Spa A A⁺,
       w.vle ((σ : A) * (∏ t ∈ D.T, t)) C.base.s →
       (w.vle (σ : A) τ ∧ ¬ w.vle τ (σ : A)) →
-        (∀ t' ∈ D.T, w.vle t' D.s) ∧ ¬ w.vle D.s 0
-```
+        (∀ t' ∈ D.T, w.vle t' D.s) ∧ ¬ w.vle D.s 0 := by
+  intro τ hτ w _hw_spa _hw_f hστ
+  rw [Finset.mem_singleton] at hτ
+  subst hτ
+  refine ⟨?_, not_vle_zero_of_strict_dominator hστ.2⟩
+  intro t' ht'
+  rw [hD_empty] at ht'
+  exact absurd ht' (Finset.notMem_empty t')
 
-This is the genuinely Wedhorn-specific content. Its proof is a careful
-case analysis on `τ ∈ T_test` followed by `Spv.vle_mul_cancel` at the
-unit factor `C.base.s` (using `¬ w.vle C.base.s 0` from `w` lying in a
-plus-piece over `C.base.s`) plus `Spv.vle_prod_of_pointwise` to handle
-the multi-element factor. No new mathematical input beyond the
-σ-domination and basic valuation arithmetic; the difficulty is the
-length and case-management of the proof.
+/-! ## Remaining obligation: per-`t'` inequalities for arbitrary `D.T`
 
-### Why this is genuinely Wedhorn-content
+### Status of the canonical T_test choice (CORRECTED)
 
-The τ-case-analysis is precisely Wedhorn's "dominating unit clears the
-multi-element denominator" lemma (Wedhorn 8.34(ii) / Hübner 3.7). It is
-purely a valuation-inequality manipulation using σ's `Cor732`-supplied
-strict domination plus the `Spv.vle_prod_of_pointwise` building block
-landed above.
+The earlier docblock proposed `T_test := D.T.image (· * C.base.s) ∪
+{D.s * C.base.s}` as a "canonical choice" that would discharge
+`hT_test_compat` uniformly. **This choice does not work** for the
+per-`t'` half of the conjunction:
 
-No faithful-flatness / Cor 8.32 / Jacobson / T001 content is invoked. -/
+* In the case `τ = t₀ * C.base.s` for `t₀ ∈ D.T`, σ-strict-domination
+  gives only `w(σ) ≤ w(t₀) * w(C.base.s)` — i.e., information about a
+  single `t₀`, not all `t' ∈ D.T`. There is no algebraic route from
+  this single-`t₀` bound and the f-membership to the uniform per-`t'`
+  conclusion `∀ t' ∈ D.T, w.vle t' D.s`.
+
+* In the case `τ = D.s * C.base.s`, σ-strict-domination gives
+  `w(σ) ≤ w(D.s) * w(C.base.s)`. Combined with the f-membership
+  `w(σ) * (∏ t ∈ D.T, w(t)) ≤ w(C.base.s)`, one cannot derive
+  `w(t') ≤ w(D.s)` without additional information about
+  `w(C.base.s) / (w(σ) * ∏_{t ≠ t'} w(t))` versus `w(D.s)`.
+
+The genuine Wedhorn 8.34(ii) approach almost certainly requires
+**pre-localisation at `C.base.s`** (treating `R(C.base.T, C.base.s)`
+as a Spa over a localised ring `A_loc`) so that the σ-construction
+operates on the localised space rather than `Spa A A⁺` directly. This
+is structural, not a simple test-family-choice question.
+
+### What this file currently provides
+
+* `not_vle_zero_of_strict_dominator` — generic helper extracting
+  non-degeneracy from a strict `≤ᵥ` inequality. Single-line proof via
+  `vle_trans` against `zero_vle`.
+
+* `hT_test_compat_of_empty_D_T` — concrete discharge of `hT_test_compat`
+  in the trivial `D.T = ∅` case (basic-open-at-`D.s` cover pieces),
+  using `T_test := {D.s}`. Plugged into
+  `rationalOpen_subset_via_strict_sigma_domination`, this discharges
+  the C1 single-`f` containment for the `D.T = ∅` subcase.
+
+### Smallest missing valuation arithmetic lemma
+
+The remaining obligation — the per-`t'` inequality discharge for
+`|D.T| ≥ 1` — admits TWO possible routes; both are open:
+
+**Route A (direct, valuation arithmetic only)**: identify a test family
+`T_test` and an f-shape `f := σ * (something involving D.T, D.s,
+C.base.s, exponents)` such that, at every `w ∈ Spa A A⁺`, the
+combination of f-membership and σ-strict-domination by some `τ ∈ T_test`
+forces `w.vle t' D.s` for every `t' ∈ D.T`. **This appears to fail**
+under the natural canonical choices (see analysis above) and likely
+requires a non-uniform (per-`w`) argument outside the scope of the
+present `hT_test_compat` shape.
+
+**Route B (structural / pre-localisation)**: pre-localise `A` at
+`C.base.s` to obtain `A_loc`, then apply Cor 7.32 / σ-construction
+inside `Spa(A_loc, A_loc⁺)`. The standard Wedhorn 8.34(ii) proof
+follows this route. The smallest missing lemma is then a **transfer
+lemma** `rationalOpen_subset_localisation_transfer` between
+rational opens of `A` and `A_loc` along the localisation map; its
+precise signature involves the `Localization.Away C.base.s` ring
+structure plus the comap behaviour of Spa-points across this map.
+
+### Status
+
+* The reducer `rationalOpen_subset_via_strict_sigma_domination` provides
+  the right **callsite shape** for either route.
+* The `D.T = ∅` discharge above is a concrete sanity-check that the
+  reducer integrates correctly with the σ-strict-domination output.
+* The `|D.T| ≥ 1` per-`t'` discharge remains the genuine Wedhorn
+  content; the present file does not claim a "canonical choice" without
+  a verified discharge.
+
+### Why this is still Wedhorn-route
+
+No faithful-flatness / Cor 8.32 / Jacobson / T001 content is invoked
+anywhere in this file. The framework is purely Wedhorn 8.34(ii) /
+Cor 7.32 σ-domination. -/
 
 end ValuationSpectrum
