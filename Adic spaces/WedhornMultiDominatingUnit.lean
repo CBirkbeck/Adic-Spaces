@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».Cor732
+import «Adic spaces».Presheaf
 import «Adic spaces».RationalSubsets
 
 /-!
@@ -112,73 +113,131 @@ lemma Spv.vle_prod_of_pointwise
     exact ValuativeRel.mul_vle_mul (h a (Finset.mem_insert_self a T'))
       (ih (fun t ht => h t (Finset.mem_insert_of_mem ht)))
 
-/-! ## Target signature: full multi-element σ-clearing
+/-- **Logical reducer: rational-open containment from `T_test`-compatibility
+of σ-strict-domination**.
 
-The **next missing layer** above `Spv.vle_prod_of_pointwise`. It packages
-the Wedhorn 8.34(ii) σ-domination cancellation at every Spa point into
-the rational-open containment
-
-```
-rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen D.T D.s
-```
-
-for an arbitrary finite `D.T`, where `f` is constructed from the σ
-output of `Cor732.exists_dominating_unit` applied to a carefully chosen
-test family `T_test`.
-
-### Target signature
+This is the **callsite shape** of the multi-element σ-clearing step: it
+takes Cor 7.32-style σ-domination of a test family `T_test` plus an
+**explicit τ-case-analysis hypothesis** `hT_test_compat` and produces
+the rational-open subset conclusion
 
 ```
+R(insert ((σ : A) * (∏ t ∈ D.T, t)) C.base.T, C.base.s) ⊆ R(D.T, D.s)
+```
+
+for arbitrary finite `D.T`. The reducer itself contains no genuinely
+new Wedhorn content: it is purely the logical step from the per-Spa-point
+existential `hσ` plus the per-τ algebraic transfer `hT_test_compat` to
+the membership-of-rational-open conclusion at every `w` in the LHS
+plus-piece.
+
+**The genuine Wedhorn 8.34(ii) content** is now isolated as the
+discharge of `hT_test_compat` for a specific test family `T_test`. The
+canonical Wedhorn choice — `T_test := D.T.image (· * C.base.s) ∪ {D.s}`
+with the power-product f-shape `(σ : A) * (∏ t ∈ D.T, t) * D.s ^ N` —
+is the next concrete formalisation target; the present reducer fixes
+the callsite shape so that the τ-case-analysis discharge can be
+attempted in isolation. Detailed obligation pinned in the docblock at
+the end of this file.
+
+**Proof**: pointwise on the LHS plus-piece: extract the `f`-membership
+inequality from the `insert`-clause, apply `hσ` at `w` to pick a
+witness `τ`, then apply `hT_test_compat` at `τ` to extract the per-`t'`
+inequalities and non-degeneracy clause comprising the RHS rational-open
+membership. -/
 theorem rationalOpen_subset_via_strict_sigma_domination
     [DecidableEq A] [TopologicalSpace A] [IsTopologicalRing A]
     [PlusSubring A] (C : RationalCovering A) (D : RationalLocData A)
-    (σ : Aˣ)
-    -- σ-domination over the test family `T_test`:
-    (T_test : Finset A)
-    (hσ : ∀ w ∈ Spa A A⁺, ∃ τ ∈ T_test, w.vle (σ : A) τ ∧ ¬ w.vle τ (σ : A))
-    -- T_test is "C1-compatible" with D and C.base — the precise shape
-    -- of the test family that makes the σ-clearing succeed:
+    (σ : Aˣ) (T_test : Finset A)
+    (hσ : ∀ w ∈ Spa A A⁺, ∃ τ ∈ T_test,
+      w.vle (σ : A) τ ∧ ¬ w.vle τ (σ : A))
     (hT_test_compat : ∀ τ ∈ T_test, ∀ w ∈ Spa A A⁺,
       w.vle ((σ : A) * (∏ t ∈ D.T, t)) C.base.s →
       (w.vle (σ : A) τ ∧ ¬ w.vle τ (σ : A)) →
         (∀ t' ∈ D.T, w.vle t' D.s) ∧ ¬ w.vle D.s 0) :
     rationalOpen (insert ((σ : A) * (∏ t ∈ D.T, t)) C.base.T) C.base.s ⊆
-      rationalOpen D.T D.s
+      rationalOpen D.T D.s := by
+  intro w hw
+  obtain ⟨hw_spa, hwIns, _hwCs⟩ := hw
+  -- Extract f-membership at w from the `insert`-clause.
+  have hw_f : w.vle ((σ : A) * (∏ t ∈ D.T, t)) C.base.s :=
+    hwIns _ (Finset.mem_insert_self _ _)
+  -- Apply σ-domination at w to pick the witnessing τ.
+  obtain ⟨τ, hτ_mem, hστ⟩ := hσ w hw_spa
+  -- Apply the τ-case-analysis hypothesis to extract D.T inequalities + non-degeneracy.
+  obtain ⟨hwD, hwDs⟩ := hT_test_compat τ hτ_mem w hw_spa hw_f hστ
+  -- Conclude w ∈ R(D.T, D.s).
+  exact ⟨hw_spa, hwD, hwDs⟩
+
+/-! ## Remaining obligation: discharging `hT_test_compat`
+
+`rationalOpen_subset_via_strict_sigma_domination` reduces the multi-element
+σ-clearing problem to a single concrete obligation:
+
+* Choose a test family `T_test ⊆ A` with no common zero on `Spa(A, A⁺)`
+  (so that `Cor732.exists_dominating_unit` supplies the σ-domination
+  hypothesis `hσ`).
+* Discharge `hT_test_compat`: prove that at every `w ∈ Spa(A, A⁺)`, the
+  conjunction of `w.vle ((σ : A) * (∏ t ∈ D.T, t)) C.base.s` (the
+  f-membership) and `w.vle (σ : A) τ ∧ ¬ w.vle τ (σ : A)` (the strict
+  σ-domination at τ) implies the per-`t'` inequalities and the
+  non-degeneracy clause for `D.s`.
+
+### Wedhorn's canonical choice
+
+```
+T_test := D.T.image (· * C.base.s) ∪ {D.s * C.base.s}
+       (or a power-product variant: ∪ {D.s ^ N * C.base.s})
 ```
 
-### Status of the target
+The τ-case-analysis splits into two cases at each `w`:
 
-* The σ supplier `Cor732.exists_dominating_unit` is available.
-* The Finset.prod propagation building block `Spv.vle_prod_of_pointwise`
-  is landed in this file.
-* The **case analysis** captured in `hT_test_compat` is the genuinely
-  Wedhorn-specific content: it specifies which `τ ∈ T_test` admits which
-  algebraic transfer, and is the next concrete formalisation target.
-  Without supplying `hT_test_compat`, the lemma reduces to a tautology;
-  the *reduction* `hT_test_compat → conclusion` is purely logical.
-* The **discharge** of `hT_test_compat` from a concrete choice of
-  `T_test` (Wedhorn's choice: `T_test := D.T.image (· * C.base.s) ∪
-  {D.s}`, plus a power product) is the genuinely missing case-analysis
-  content. It uses `mul_vle_mul_iff_left` at `σ` (a unit) plus the
-  arithmetic of `≤ᵥ` over a `Finset.prod` (the building block landed
-  above) plus careful disjunction over the τ-cases.
+**Case `τ = t' * C.base.s` for some `t' ∈ D.T`**: σ-strict-domination
+gives `w.vle (σ : A) (t' * C.base.s)` with strict, i.e.
+`w(σ) ≤ w(t') * w(C.base.s)`. Combined with the f-membership
+`w(σ) * w(∏ t ∈ D.T, t) ≤ w(C.base.s)` and the non-degeneracy of
+`C.base.s` (carried by `hw_spa`/`hwCs` if needed), one derives
+`w.vle t' D.s` for every `t' ∈ D.T` via `Spv.vle_mul_cancel` at
+`C.base.s` plus `Spv.vle_prod_of_pointwise` (landed above) for the
+multi-element factor. The non-degeneracy clause `¬ w.vle D.s 0`
+follows from σ-domination's strict component.
 
-### Where it slots in
+**Case `τ = D.s * C.base.s` (or power-variant)**: σ-strict-domination
+gives `w.vle (σ : A) (D.s * C.base.s)` with strict. Combined with the
+f-membership, this case directly gives the non-degeneracy clause and
+the per-`t'` inequalities through a parallel cancellation argument.
 
-After `rationalOpen_subset_via_strict_sigma_domination` lands, combined
-with `WedhornStandardCoverRefinement.exists_single_f_refinement_at_t_of_singleton_unit_rescaled`
-(the `|D.T| = 1` discharge), the full
-`exists_single_f_refinement_at_t_via_dominating_unit` target signature
-discharges by case-splitting on `|D.T|` and using `Cor732.exists_dominating_unit`
-to supply σ.
+### What is the next formalisation target
+
+```
+lemma hT_test_compat_of_canonical_choice
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    [DecidableEq A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] (C : RationalCovering A) (D : RationalLocData A)
+    (σ : Aˣ) :
+    let T_test : Finset A :=
+      D.T.image (· * C.base.s) ∪ {D.s * C.base.s}
+    ∀ τ ∈ T_test, ∀ w ∈ Spa A A⁺,
+      w.vle ((σ : A) * (∏ t ∈ D.T, t)) C.base.s →
+      (w.vle (σ : A) τ ∧ ¬ w.vle τ (σ : A)) →
+        (∀ t' ∈ D.T, w.vle t' D.s) ∧ ¬ w.vle D.s 0
+```
+
+This is the genuinely Wedhorn-specific content. Its proof is a careful
+case analysis on `τ ∈ T_test` followed by `Spv.vle_mul_cancel` at the
+unit factor `C.base.s` (using `¬ w.vle C.base.s 0` from `w` lying in a
+plus-piece over `C.base.s`) plus `Spv.vle_prod_of_pointwise` to handle
+the multi-element factor. No new mathematical input beyond the
+σ-domination and basic valuation arithmetic; the difficulty is the
+length and case-management of the proof.
 
 ### Why this is genuinely Wedhorn-content
 
-The case-analysis content of `hT_test_compat` is precisely Wedhorn's
-"dominating unit clears the multi-element denominator" lemma (Wedhorn
-8.34(ii) / Hübner 3.7). It is purely a valuation-inequality manipulation
-using σ's `Cor732`-supplied strict domination plus the
-`Spv.vle_prod_of_pointwise` building block landed above.
+The τ-case-analysis is precisely Wedhorn's "dominating unit clears the
+multi-element denominator" lemma (Wedhorn 8.34(ii) / Hübner 3.7). It is
+purely a valuation-inequality manipulation using σ's `Cor732`-supplied
+strict domination plus the `Spv.vle_prod_of_pointwise` building block
+landed above.
 
 No faithful-flatness / Cor 8.32 / Jacobson / T001 content is invoked. -/
 
