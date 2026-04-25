@@ -116,4 +116,79 @@ theorem laurentCover_separation_presheaf_viaRow3
     have hb := htau_minus b
     rw [← ha, ← hb, h_minus]
 
+/-- **Caller-friendly companion** to `laurentCover_separation_presheaf_viaRow3`
+that constructs the `(τ_plus, τ_minus, htau_plus, htau_minus)` bridge
+arguments from the existing `laurentPlusBridge` / `laurentMinusBridge`
+infrastructure (`LaurentRefinement.lean:2480, :2548, :2734`).
+
+Mirrors the structure of
+`laurentCover_gluing_presheaf_via_compatible_bridge`
+(`LaurentRefinement.lean:3911`) on the gluing side, exposing only the
+standard Tate bundle plus the explicit Krull-intersection hypothesis
+`hInf` to the caller.
+
+The `hInf` hypothesis is **not discharged** in this wrapper — it
+remains the single explicit residual at the manager-target shape. -/
+theorem laurentCover_separation_presheaf_via_compatible_bridge
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
+    (hA_complete_B : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_forward_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue D₀) :=
+        presheafValue_pairOfDefinition_concrete P D₀
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))))
+        (example638Plus_forwardHom (presheafValue D₀) P_B (D₀.canonicalMap f)))
+    (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
+    (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (hInf : (⨅ n : ℕ,
+        Ideal.span ({D₀.canonicalMap f} : Set (presheafValue D₀)) ^ n) = ⊥)
+    {a b : presheafValue D₀}
+    (h_plus : restrictionMap D₀ (laurentPlusDatum D₀ f) hplus a =
+      restrictionMap D₀ (laurentPlusDatum D₀ f) hplus b)
+    (h_minus : restrictionMap D₀ (laurentMinusDatum D₀ f) hminus a =
+      restrictionMap D₀ (laurentMinusDatum D₀ f) hminus b) :
+    a = b :=
+  laurentCover_separation_presheaf_viaRow3 D₀ f hplus hminus
+    (laurentPlusBridge P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B
+        hnoeth_B hcont_forward_B)
+    (laurentMinusBridge P D₀ f hnoeth_B hcont_eval_B)
+    (laurentPlusBridge_restrictionMap P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B
+        hA_complete_B hnoeth_B hcont_forward_B hplus)
+    (laurentMinusBridge_restrictionMap P D₀ f hnoeth_B hcont_eval_B hminus)
+    hInf h_plus h_minus
+
 end ValuationSpectrum
