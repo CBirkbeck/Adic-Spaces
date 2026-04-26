@@ -255,4 +255,203 @@ theorem h_α_s_D_factored_via_Wedhorn_structural
     (h_Wedhorn_α_s_D_supplier w hw_spa hw_f hστ)
     t' ht'
 
+omit [PlusSubring A] in
+/-- **Assembled `α_T_D`-branch hypothesis** matching the input shape of
+`h_T_test_compat_loc_canonical_via_factored_chains` (commit `83f2964`).
+
+Parallel to `h_α_s_D_factored_via_Wedhorn_structural` but for the
+`α_T_D` branches (`τ ∈ T_D.image algebraMap`). The per-`t'` factored
+chain is branch-independent at the proof level — `per_t_factored_chain_α_s_D_branch`
+applies regardless of which `τ` supplies σ-strict-domination — so the
+α_T_D branch shares the same proof skeleton, with the σ-strict-domination
+hypothesis `hστ` parameterised by `τ ∈ T_D.image algebraMap` rather than
+fixed at `algebraMap s_D`. -/
+theorem h_α_T_D_factored_via_Wedhorn_structural
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_T_D_ne_supplier :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ τ ∈ T_D.image (algebraMap A (Localization.Away s)),
+        ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+          w.vle ((σ_loc : Localization.Away s) *
+              (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+            (algebraMap A (Localization.Away s) s) →
+          w.vle (σ_loc : Localization.Away s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away s) →
+          ∀ t'' ∈ T_D.image (algebraMap A (Localization.Away s)),
+            ¬ w.vle t'' 0)
+    (h_Wedhorn_α_T_D_supplier :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ τ ∈ T_D.image (algebraMap A (Localization.Away s)),
+        ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+          w.vle ((σ_loc : Localization.Away s) *
+              (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+            (algebraMap A (Localization.Away s) s) →
+          w.vle (σ_loc : Localization.Away s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away s) →
+          ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+            w.vle (algebraMap A (Localization.Away s) s)
+              (algebraMap A (Localization.Away s) s_D *
+                (σ_loc : Localization.Away s) *
+                (∏ t ∈ (T_D.image
+                  (algebraMap A (Localization.Away s))).erase t', t))) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    ∀ τ ∈ T_D.image (algebraMap A (Localization.Away s)),
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w.vle (σ_loc : Localization.Away s) τ ∧
+          ¬ w.vle τ (σ_loc : Localization.Away s) →
+        ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w.vle (t' * (σ_loc : Localization.Away s))
+            (algebraMap A (Localization.Away s) s_D *
+              (σ_loc : Localization.Away s)) := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro τ hτ w hw_spa hw_f hστ t' ht'
+  exact per_t_factored_chain_α_s_D_branch s T_D s_D σ_loc w
+    (h_T_D_ne_supplier τ hτ w hw_spa hw_f hστ)
+    hw_f
+    (h_Wedhorn_α_T_D_supplier τ hτ w hw_spa hw_f hστ)
+    t' ht'
+
+omit [PlusSubring A] in
+/-- **Full canonical compatibility theorem via Wedhorn structural
+inequalities**.
+
+Composes `h_α_s_D_factored_via_Wedhorn_structural` and
+`h_α_T_D_factored_via_Wedhorn_structural` with the explicit
+`α_T_D`-branch `s_D` non-degeneracy supplier into a single
+`h_T_test_compat_loc_canonical`-shape output for the canonical test
+family `localizedTestFamily s T_D s_D`, ready for direct consumption
+by `rationalOpen_subset_base_via_local_Cor732_chain`.
+
+Both per-branch chains use the SAME structural inequality
+`h_Wedhorn_α_T_D_supplier` (parameterised by `τ`); the α_s_D branch
+reuses the same shape with τ specialised to `algebraMap s_D`. -/
+theorem h_T_test_compat_loc_canonical_via_Wedhorn_structural
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    -- α_s_D branch suppliers (specialised to τ = algebraMap s_D):
+    (h_T_D_ne_supplier_α_s_D :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w.vle (σ_loc : Localization.Away s)
+            (algebraMap A (Localization.Away s) s_D) ∧
+          ¬ w.vle (algebraMap A (Localization.Away s) s_D)
+            (σ_loc : Localization.Away s) →
+        ∀ t'' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          ¬ w.vle t'' 0)
+    (h_Wedhorn_α_s_D_supplier :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w.vle (σ_loc : Localization.Away s)
+            (algebraMap A (Localization.Away s) s_D) ∧
+          ¬ w.vle (algebraMap A (Localization.Away s) s_D)
+            (σ_loc : Localization.Away s) →
+        ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w.vle (algebraMap A (Localization.Away s) s)
+            (algebraMap A (Localization.Away s) s_D *
+              (σ_loc : Localization.Away s) *
+              (∏ t ∈ (T_D.image
+                (algebraMap A (Localization.Away s))).erase t', t)))
+    -- α_T_D branch suppliers (parameterised over τ ∈ T_D.image):
+    (h_T_D_ne_supplier_α_T_D :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ τ ∈ T_D.image (algebraMap A (Localization.Away s)),
+        ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+          w.vle ((σ_loc : Localization.Away s) *
+              (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+            (algebraMap A (Localization.Away s) s) →
+          w.vle (σ_loc : Localization.Away s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away s) →
+          ∀ t'' ∈ T_D.image (algebraMap A (Localization.Away s)),
+            ¬ w.vle t'' 0)
+    (h_Wedhorn_α_T_D_supplier :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ τ ∈ T_D.image (algebraMap A (Localization.Away s)),
+        ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+          w.vle ((σ_loc : Localization.Away s) *
+              (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+            (algebraMap A (Localization.Away s) s) →
+          w.vle (σ_loc : Localization.Away s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away s) →
+          ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+            w.vle (algebraMap A (Localization.Away s) s)
+              (algebraMap A (Localization.Away s) s_D *
+                (σ_loc : Localization.Away s) *
+                (∏ t ∈ (T_D.image
+                  (algebraMap A (Localization.Away s))).erase t', t)))
+    (h_α_T_D_s_D_ne_supplier :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ τ ∈ T_D.image (algebraMap A (Localization.Away s)),
+        ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+          w.vle ((σ_loc : Localization.Away s) *
+              (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+            (algebraMap A (Localization.Away s) s) →
+          w.vle (σ_loc : Localization.Away s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away s) →
+          ¬ w.vle (algebraMap A (Localization.Away s) s_D) 0) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    ∀ τ ∈ localizedTestFamily s T_D s_D,
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w.vle (σ_loc : Localization.Away s) τ ∧
+          ¬ w.vle τ (σ_loc : Localization.Away s) →
+          (∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+              w.vle t' (algebraMap A (Localization.Away s) s_D)) ∧
+            ¬ w.vle (algebraMap A (Localization.Away s) s_D) 0 :=
+  h_T_test_compat_loc_canonical_via_factored_chains P T s hopen T_D s_D σ_loc
+    (h_α_s_D_factored_via_Wedhorn_structural P T s hopen T_D s_D σ_loc
+      h_T_D_ne_supplier_α_s_D h_Wedhorn_α_s_D_supplier)
+    (h_α_T_D_factored_via_Wedhorn_structural P T s hopen T_D s_D σ_loc
+      h_T_D_ne_supplier_α_T_D h_Wedhorn_α_T_D_supplier)
+    h_α_T_D_s_D_ne_supplier
+
 end ValuationSpectrum
