@@ -21,11 +21,15 @@ With the local plus subring `localizationLocSubringPlusSubring P T s`
 * `(locPairOfDefinition P T s hopen).A₀ = locSubring P T s = (Localization.Away s)⁺`,
   so the `A₀ ≤ B⁺` Cor732 hypothesis is `le_refl _`.
 * The remaining Cor732 hypotheses (`π_loc`, `hI_loc`, `hπ_loc_tn`,
-  `hπ_loc_unit`, `hArch_loc`, `T_loc`, `hT_loc`) plus the
-  `IsLinearTopology` typeclass on `(Localization.Away s, locTopology)`
-  are taken as **explicit hypotheses**: this file does NOT derive them
-  from `A`'s Wedhorn-Tate hypotheses (that is the deferred
-  Tate-preservation lane).
+  `hπ_loc_unit`, `hArch_loc`, `T_loc`, `hT_loc`) are taken as
+  **explicit hypotheses**: this file does NOT derive them from `A`'s
+  Wedhorn-Tate hypotheses (that is the deferred Tate-preservation lane).
+* `IsLinearTopology (Localization.Away s) (Localization.Away s)` is
+  **NOT required**: `Cor732.exists_dominating_unit` invokes
+  `instCompactSpace_spa_of_tate_pseudouniformizer` which has explicit
+  `omit [IsLinearTopology A A] in`. The Cor 7.32 capstone via
+  pseudo-uniformizer compactness does not need linear topology
+  structure on the ambient ring.
 
 ## What this file provides
 
@@ -46,7 +50,6 @@ setup:
 * `hπ_loc_unit` — `π_loc` is a unit in `Localization.Away s`.
 * `hArch_loc` — MulArchimedean value groups for points in
   `Spa(Localization.Away s, locSubring P T s)`.
-* `IsLinearTopology` instance on `(Localization.Away s, locTopology P T s hopen)`.
 * `hT_loc` — no common zero of the test family on the localized Spa.
 
 These collectively form a `Localization.Away.IsTateRing`-style
@@ -88,8 +91,7 @@ theorem exists_dominating_unit_in_localization
     letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
     letI : PlusSubring (Localization.Away s) :=
       localizationLocSubringPlusSubring P T s
-    ∀ (_hLin : IsLinearTopology (Localization.Away s) (Localization.Away s))
-      (π_loc : (locPairOfDefinition P T s hopen).A₀)
+    ∀ (π_loc : (locPairOfDefinition P T s hopen).A₀)
       (_hI_loc : (locPairOfDefinition P T s hopen).I = Ideal.span {π_loc})
       (_hπ_loc_tn : IsTopologicallyNilpotent
         ((locPairOfDefinition P T s hopen).A₀.subtype π_loc))
@@ -109,8 +111,7 @@ theorem exists_dominating_unit_in_localization
   haveI : IsTopologicalRing (Localization.Away s) :=
     (locBasis P T s hopen).toRingFilterBasis.isTopologicalRing
   letI : PlusSubring (Localization.Away s) := localizationLocSubringPlusSubring P T s
-  intro hLin π_loc hI_loc hπ_loc_tn hπ_loc_unit hArch_loc T_loc hT_loc
-  haveI : IsLinearTopology (Localization.Away s) (Localization.Away s) := hLin
+  intro π_loc hI_loc hπ_loc_tn hπ_loc_unit hArch_loc T_loc hT_loc
   -- locPairOfDefinition.A₀ = locSubring P T s = (Localization.Away s)⁺ by construction.
   have hA₀_le_loc : (locPairOfDefinition P T s hopen).A₀ ≤
       PlusSubring.toSubring (A := Localization.Away s) := le_refl _
