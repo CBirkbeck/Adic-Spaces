@@ -117,6 +117,67 @@ namespace ValuationSpectrum
 
 variable {A : Type*} [CommRing A]
 
+/-! ## Surjectivity residual (with explicit witness formula)
+
+The single remaining piece for the full chain to `MulArchimedean` transfer:
+
+```lean
+theorem mapValueGroupWithZero_surjective_of_localization
+    {A : Type*} [CommRing A] (s : A)
+    (w : Spv (Localization.Away s))
+    (hws : ¬ w.vle (algebraMap A (Localization.Away s) s) 0) :
+    letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+    letI : ValuativeRel A :=
+      (comap (algebraMap A (Localization.Away s)) w).toValuativeRel
+    Function.Surjective
+      (ValuativeExtension.mapValueGroupWithZero A (Localization.Away s))
+```
+
+### Proof outline (with explicit witness)
+
+Take `[b]_B ∈ ValueGroupWithZero (Localization.Away s)`. By
+`ValueGroupWithZero.ind`, `[b]_B = ValueGroupWithZero.mk b₁ b₂` for
+some `b₁ ∈ Localization.Away s` and `b₂ ∈ posSubmonoid (Localization.Away s)`
+(i.e., `0 <ᵥ b₂` under `w.toValuativeRel`).
+
+By `IsLocalization.surj` (Mathlib):
+* `∃ a₁ ∈ A, k₁ : ℕ, b₁ * (algebraMap s)^k₁ = algebraMap a₁`.
+* `∃ a₂ ∈ A, k₂ : ℕ, b₂ * (algebraMap s)^k₂ = algebraMap a₂`.
+
+(With `a₂ ∈ A` having `0 <ᵥ algebraMap a₂` in B, hence `0 <ᵥ a₂` in A
+under `comap w`'s ValuativeRel — so `a₂ ∈ posSubmonoid A`.)
+
+The **explicit witness** for surjectivity:
+* `a := a₁ * s^k₂ ∈ A`.
+* `c := a₂ * s^k₁` with `c ∈ posSubmonoid A` (since `a₂ ∈ posSubmonoid A`
+  by above and `s^k₁ ∈ posSubmonoid A` from `hws` via `comap`).
+
+Computation:
+* `algebraMap a · b₂ = algebraMap (a₁ * s^k₂) · b₂ = algebraMap a₁ ·
+  algebraMap s^k₂ · b₂ = algebraMap a₁ · algebraMap a₂ = algebraMap (a₁ * a₂)`.
+* `b₁ · algebraMap c = b₁ · algebraMap (a₂ * s^k₁) = b₁ · algebraMap s^k₁ ·
+  algebraMap a₂ = algebraMap a₁ · algebraMap a₂ = algebraMap (a₁ * a₂)`.
+
+Both equal `algebraMap (a₁ * a₂)`, so `mk (algebraMap a) (mapPosSubmonoid c) =
+mk b₁ b₂` by `ValueGroupWithZero.mk_eq_mk` (via `vle_refl` from equal
+representatives). Then `mapValueGroupWithZero_mk` gives
+`mapValueGroupWithZero (mk a c) = mk (algebraMap a) (mapPosSubmonoid c) = mk b₁ b₂`. ✓
+
+### Why this file does NOT prove the residual directly
+
+The proof requires:
+* Careful manipulation of `IsLocalization.surj` to extract `(a₁, k₁)` and
+  `(a₂, k₂)` from `b₁` and `b₂`.
+* `posSubmonoid A` membership for `c = a₂ * s^k₁` (combining `a₂ ∈
+  posSubmonoid A` with `s^k₁ ∈ posSubmonoid A` from `hws`).
+* `ValueGroupWithZero.sound` application with the equality of representatives.
+
+This is multi-step Mathlib-level manipulation. The next concrete sub-target
+is the surjectivity proof above, which when combined with
+`mapValueGroupWithZero_strictMono` and `strictMonoHom_inverse_of_bijective`
+(below) closes the full chain to `MulArchimedean.comap` and thence
+`hArch_loc`. -/
+
 /-- **Strict-mono hom `VG(B) →* VG(A)` from a strict-mono surjection
 the OTHER way**.
 
