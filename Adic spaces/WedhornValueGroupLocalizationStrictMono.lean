@@ -226,4 +226,139 @@ theorem strictMonoHom_inverse_of_bijective
   rw [hinv_left, hinv_left] at h_g_le
   exact absurd h_g_le (not_le.mpr hxy)
 
+/-- **Surjectivity of `mapValueGroupWithZero` for `Localization.Away s`**.
+
+For `w : Spv (Localization.Away s)` with `algebraMap s` non-zero at `w`,
+the Mathlib `ValuativeExtension.mapValueGroupWithZero A (Localization.Away s)`
+is surjective. Combined with `mapValueGroupWithZero_strictMono`
+(injectivity), this gives the bijectivity needed by
+`strictMonoHom_inverse_of_bijective` to invert into the
+`B → A` direction for the MulArchimedean transfer.
+
+**Proof**: induct on `γ ∈ ValueGroupWithZero (Localization.Away s)`. For
+`γ = mk b₁ b₂`, decompose via `IsLocalization.Away.sec`:
+* `b₁ * algebraMap (s^k₁) = algebraMap a₁`.
+* `b₂ * algebraMap (s^k₂) = algebraMap a₂`.
+
+Take witness `(a := a₁ * s^k₂, c := a₂ * s^k₁)` with `c ∈ posSubmonoid A`
+(from `b₂.property`, `hws`, and `zero_vlt_mul`). Verify equality via
+`mapValueGroupWithZero_mk` + `ValueGroupWithZero.sound`: both sides
+equal `algebraMap (a₁ * a₂)` after cross-multiplication and `sec_spec`
+substitution. -/
+theorem mapValueGroupWithZero_surjective_of_localization
+    (s : A) (w : Spv (Localization.Away s))
+    (hws : ¬ w.vle (algebraMap A (Localization.Away s) s) 0) :
+    letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+    letI : ValuativeRel A :=
+      (comap (algebraMap A (Localization.Away s)) w).toValuativeRel
+    letI : ValuativeExtension A (Localization.Away s) :=
+      ⟨fun _ _ => Iff.rfl⟩
+    Function.Surjective
+      (ValuativeExtension.mapValueGroupWithZero A (Localization.Away s)) := by
+  letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+  letI : ValuativeRel A :=
+    (comap (algebraMap A (Localization.Away s)) w).toValuativeRel
+  letI : ValuativeExtension A (Localization.Away s) := ⟨fun _ _ => Iff.rfl⟩
+  -- Positivity of algebraMap s in B = Localization.Away s.
+  have hs_alg_pos : (0 : Localization.Away s) <ᵥ
+      algebraMap A (Localization.Away s) s := hws
+  -- Positivity of s in A under comap (uses ValuativeExtension's Iff.rfl).
+  have hs_A_pos : (0 : A) <ᵥ s := by
+    change ¬ s ≤ᵥ (0 : A)
+    rw [(ValuativeExtension.vle_iff_vle (A := A) (B := Localization.Away s) s 0).symm]
+    rw [map_zero]
+    exact hws
+  -- Positivity of s^k in A:
+  have hs_A_pow_pos : ∀ k : ℕ, (0 : A) <ᵥ s ^ k := by
+    intro k
+    induction k with
+    | zero => rw [pow_zero]; exact (ValuativeRel.posSubmonoid A).one_mem
+    | succ n ih => rw [pow_succ]; exact ValuativeRel.zero_vlt_mul ih hs_A_pos
+  -- Positivity of (algebraMap s)^k in B:
+  have hs_alg_pow_pos : ∀ k : ℕ, (0 : Localization.Away s) <ᵥ
+      (algebraMap A (Localization.Away s) s) ^ k := by
+    intro k
+    induction k with
+    | zero => rw [pow_zero]; exact (ValuativeRel.posSubmonoid (Localization.Away s)).one_mem
+    | succ n ih => rw [pow_succ]; exact ValuativeRel.zero_vlt_mul ih hs_alg_pos
+  intro γ
+  induction γ using ValuativeRel.ValueGroupWithZero.ind with
+  | mk b₁ b₂ =>
+    set rec1 := IsLocalization.Away.sec s b₁ with hrec1_def
+    set rec2 := IsLocalization.Away.sec s (b₂ : Localization.Away s) with hrec2_def
+    have h1 : b₁ * algebraMap A (Localization.Away s) (s ^ rec1.2) =
+        algebraMap A (Localization.Away s) rec1.1 :=
+      IsLocalization.Away.sec_spec s b₁
+    have h2 : (b₂ : Localization.Away s) *
+        algebraMap A (Localization.Away s) (s ^ rec2.2) =
+        algebraMap A (Localization.Away s) rec2.1 :=
+      IsLocalization.Away.sec_spec s _
+    -- Positivity of rec2.1 = a₂ in A: from b₂.property + hs positivity + h2.
+    have hrec2_pos : (0 : A) <ᵥ rec2.1 := by
+      -- Goal in A: ¬ rec2.1 ≤ᵥ 0. Via ValuativeExtension: ¬ algebraMap rec2.1 ≤ᵥ 0 in B.
+      change ¬ rec2.1 ≤ᵥ (0 : A)
+      rw [(ValuativeExtension.vle_iff_vle
+        (A := A) (B := Localization.Away s) rec2.1 0).symm]
+      rw [map_zero, ← h2, map_pow]
+      -- Goal: ¬ b₂ * (algebraMap s)^rec2.2 ≤ᵥ 0 in B.
+      exact ValuativeRel.zero_vlt_mul b₂.property (hs_alg_pow_pos rec2.2)
+    -- c := rec2.1 * s^rec1.2 ∈ posSubmonoid A.
+    have hc_pos : (0 : A) <ᵥ rec2.1 * s ^ rec1.2 :=
+      ValuativeRel.zero_vlt_mul hrec2_pos (hs_A_pow_pos rec1.2)
+    -- Build the preimage: mk a c with a := rec1.1 * s^rec2.2, c := ⟨rec2.1 * s^rec1.2, hc_pos⟩.
+    refine ⟨ValuativeRel.ValueGroupWithZero.mk
+      (rec1.1 * s ^ rec2.2) ⟨rec2.1 * s ^ rec1.2, hc_pos⟩, ?_⟩
+    -- Apply mapValueGroupWithZero_mk and reduce to mk equality.
+    rw [ValuativeExtension.mapValueGroupWithZero_mk]
+    apply ValuativeRel.ValueGroupWithZero.sound
+    · -- algebraMap (rec1.1 * s^rec2.2) * b₂ ≤ᵥ b₁ * (mapPosSubmonoid ⟨rec2.1 * s^rec1.2, _⟩).val
+      show algebraMap A (Localization.Away s) (rec1.1 * s ^ rec2.2) *
+          (b₂ : Localization.Away s) ≤ᵥ b₁ *
+        algebraMap A (Localization.Away s) (rec2.1 * s ^ rec1.2)
+      -- Both sides equal algebraMap (rec1.1 * rec2.1).
+      have hLHS : algebraMap A (Localization.Away s) (rec1.1 * s ^ rec2.2) *
+          (b₂ : Localization.Away s) =
+          algebraMap A (Localization.Away s) (rec1.1 * rec2.1) := by
+        rw [map_mul]
+        rw [show algebraMap A (Localization.Away s) rec1.1 *
+            algebraMap A (Localization.Away s) (s ^ rec2.2) *
+            (b₂ : Localization.Away s) =
+          algebraMap A (Localization.Away s) rec1.1 *
+            ((b₂ : Localization.Away s) *
+              algebraMap A (Localization.Away s) (s ^ rec2.2)) from by ring]
+        rw [h2, ← map_mul]
+      have hRHS : b₁ * algebraMap A (Localization.Away s) (rec2.1 * s ^ rec1.2) =
+          algebraMap A (Localization.Away s) (rec1.1 * rec2.1) := by
+        rw [map_mul]
+        rw [show b₁ * (algebraMap A (Localization.Away s) rec2.1 *
+            algebraMap A (Localization.Away s) (s ^ rec1.2)) =
+          (b₁ * algebraMap A (Localization.Away s) (s ^ rec1.2)) *
+            algebraMap A (Localization.Away s) rec2.1 from by ring]
+        rw [h1, ← map_mul]
+      rw [hLHS, hRHS]
+    · -- The other direction by the same equality.
+      show b₁ * algebraMap A (Localization.Away s) (rec2.1 * s ^ rec1.2) ≤ᵥ
+        algebraMap A (Localization.Away s) (rec1.1 * s ^ rec2.2) *
+        (b₂ : Localization.Away s)
+      have hLHS : algebraMap A (Localization.Away s) (rec1.1 * s ^ rec2.2) *
+          (b₂ : Localization.Away s) =
+          algebraMap A (Localization.Away s) (rec1.1 * rec2.1) := by
+        rw [map_mul]
+        rw [show algebraMap A (Localization.Away s) rec1.1 *
+            algebraMap A (Localization.Away s) (s ^ rec2.2) *
+            (b₂ : Localization.Away s) =
+          algebraMap A (Localization.Away s) rec1.1 *
+            ((b₂ : Localization.Away s) *
+              algebraMap A (Localization.Away s) (s ^ rec2.2)) from by ring]
+        rw [h2, ← map_mul]
+      have hRHS : b₁ * algebraMap A (Localization.Away s) (rec2.1 * s ^ rec1.2) =
+          algebraMap A (Localization.Away s) (rec1.1 * rec2.1) := by
+        rw [map_mul]
+        rw [show b₁ * (algebraMap A (Localization.Away s) rec2.1 *
+            algebraMap A (Localization.Away s) (s ^ rec1.2)) =
+          (b₁ * algebraMap A (Localization.Away s) (s ^ rec1.2)) *
+            algebraMap A (Localization.Away s) rec2.1 from by ring]
+        rw [h1, ← map_mul]
+      rw [hLHS, hRHS]
+
 end ValuationSpectrum
