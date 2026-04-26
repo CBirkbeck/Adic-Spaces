@@ -139,4 +139,50 @@ Without `mulArchimedean_localization_comap_transfer`, the wrapper
 reduction available in this file. The next concrete sub-target is
 the value-group iso lemma. -/
 
+omit [TopologicalSpace A] [IsTopologicalRing A] in
+/-- **Reduction via `MulArchimedean.comap`**: given a strictly monotonic
+monoid homomorphism `f : ValueGroupWithZero (Localization.Away s) →*
+ValueGroupWithZero A` (under the appropriate ValuativeRels), the
+MulArchimedean transfer follows from `MulArchimedean.comap` (Mathlib's
+`Algebra.Order.Archimedean.Basic`).
+
+This packages the residual `mulArchimedean_localization_comap_transfer`
+into a clean monoid-hom-based form. The genuine missing piece becomes
+**just the construction of `f` and its strict monotonicity**, which
+splits into:
+
+* `f := the natural projection ValueGroupWithZero(B) → ValueGroupWithZero(A)`
+  arising from the comap structure (b = a/s^k in B has class
+  v(a)/v(s)^k in A's value group).
+* `StrictMono f`: order-preservation under the comap-induced map.
+
+Both pieces follow from the Mathlib `IsLocalization` × `extendToLocalization`
+infrastructure once the right name is excavated. The proof is then
+one line: `MulArchimedean.comap f hf hArch_A`. -/
+theorem mulArchimedean_localization_comap_via_strictMono_hom
+    (s : A) (w : Spv (Localization.Away s))
+    (hArch_A :
+      letI : ValuativeRel A :=
+        (comap (algebraMap A (Localization.Away s)) w).toValuativeRel
+      MulArchimedean (ValuativeRel.ValueGroupWithZero A))
+    (f :
+      letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+      letI : ValuativeRel A :=
+        (comap (algebraMap A (Localization.Away s)) w).toValuativeRel
+      ValuativeRel.ValueGroupWithZero (Localization.Away s) →*
+        ValuativeRel.ValueGroupWithZero A)
+    (hf :
+      letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+      letI : ValuativeRel A :=
+        (comap (algebraMap A (Localization.Away s)) w).toValuativeRel
+      StrictMono f) :
+    letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+    MulArchimedean
+      (ValuativeRel.ValueGroupWithZero (Localization.Away s)) := by
+  letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+  letI : ValuativeRel A :=
+    (comap (algebraMap A (Localization.Away s)) w).toValuativeRel
+  haveI : MulArchimedean (ValuativeRel.ValueGroupWithZero A) := hArch_A
+  exact MulArchimedean.comap f hf
+
 end ValuationSpectrum
