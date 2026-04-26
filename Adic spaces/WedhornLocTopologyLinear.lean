@@ -137,4 +137,74 @@ theorem locNhd_span_isOpen
   intro x hx
   exact Submodule.subset_span hx
 
+/-! ## Multiplication-taming step (per-element)
+
+The `Submodule.span B (locNhd n)`-as-basis property requires for each
+`m`, an `n` with `Submodule.span B (locNhd n) ⊆ locNhd m`. That `n`
+must work UNIFORMLY across all `b ∈ B` (since the span is a B-module).
+
+The available per-element multiplication-taming
+(`locNhd_leftMul`, `Adic spaces/LocalizationTopology.lean:222`):
+```
+theorem locNhd_leftMul ... (x : Localization.Away s) (i : ℕ) :
+    ∃ j, (locNhd P T s j : Set _) ⊆ (x * ·) ⁻¹' (locNhd P T s i : Set _)
+```
+gives `j_x` for each `x : B` and `i : ℕ`. But `j_x` depends on `x`, and
+since `B = Localization.Away s` contains `1/s^k` for arbitrary `k : ℕ`,
+the `j_x` is unbounded as `x` varies.
+
+**Conclusion of audit**: the uniform multiplication-taming required for
+`Submodule.span B (locNhd n) ⊆ locNhd m` does not follow from
+`locNhd_leftMul` alone — that gives only per-element taming. A uniform
+bound would require the topology to have additional structure (e.g.,
+`Localization.Away s` being a Tate ring with a pseudo-uniformizer
+absorbing all denominators).
+
+## Single residual
+
+The full uniform-multiplication-taming theorem:
+
+```lean
+theorem locNhd_span_subset_locNhd
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    -- Likely needs: a Tate-ring / pseudo-uniformizer hypothesis on
+    -- `(Localization.Away s, locTopology P T s hopen)` to bound the
+    -- denominator-power growth uniformly.
+    (m : ℕ) :
+    ∃ n : ℕ,
+      ((Submodule.span (Localization.Away s)
+        (locNhd P T s n : Set (Localization.Away s))) :
+        Set (Localization.Away s)) ⊆
+        (locNhd P T s m : Set (Localization.Away s))
+```
+
+**Proof obstruction**: take `b = 1/s^k ∈ B`. For `b · y ∈ locNhd m`
+with `y ∈ locNhd n`: need `(1/s)^k · y ∈ locNhd m`. This requires `y`
+to have at least `k * N + m` `P.I`-content (where N is from `hopen`).
+For uniform `n` over all `k`, no such `n` exists. The theorem requires
+either:
+
+* An additional hypothesis bounding the denominator powers (e.g., via
+  a topologically-nilpotent unit absorbing `1/s`), OR
+* A structural theorem that `locTopology` is the Huber topology on
+  `(Localization.Away s, locSubring, locIdeal)`, which has a known
+  linear topology characterization (probably via Mathlib's existing
+  Huber-ring API).
+
+Either route is genuinely deeper than the smaller multiplication-taming
+target the manager outlined; this audit identifies the precise reason
+the smaller form does not directly close `IsLinearTopology` for
+`locTopology`.
+
+## Smaller building block (per-element multiplication-taming)
+
+Already exists in Mathlib via `RingFilterBasis.toAddGroupFilterBasis`
+plus the `RingSubgroupsBasis` infrastructure used by `locBasis`. The
+gap is specifically the UNIFORM uplift to `Submodule.span B`.
+
+-/
+
 end ValuationSpectrum
