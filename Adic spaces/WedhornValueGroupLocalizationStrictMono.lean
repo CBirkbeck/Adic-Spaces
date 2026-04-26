@@ -407,4 +407,23 @@ theorem mulArchimedean_localization_comap_transfer_concrete
   -- Apply MulArchimedean.comap.
   exact MulArchimedean.comap f hf
 
+/-- **No-`hws` wrapper for the MulArchimedean transfer**.
+
+`hws : ¬ w.vle (algebraMap A (Localization.Away s) s) 0` is automatic
+since `algebraMap A (Localization.Away s) s` is a unit in the away
+localization (`IsLocalization.Away.algebraMap_isUnit`), and units are
+non-zero at any valuation (`not_vle_zero_of_isUnit`).
+
+This wrapper is the callsite-ready form: just takes `w` and produces
+the MulArchimedean transfer. -/
+theorem mulArchimedean_localization_comap_transfer_unit
+    (s : A) (w : Spv (Localization.Away s)) :
+    letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+    letI : ValuativeRel A :=
+      (comap (algebraMap A (Localization.Away s)) w).toValuativeRel
+    MulArchimedean (ValuativeRel.ValueGroupWithZero A) →
+      MulArchimedean (ValuativeRel.ValueGroupWithZero (Localization.Away s)) := by
+  apply mulArchimedean_localization_comap_transfer_concrete s w
+  exact not_vle_zero_of_isUnit (IsLocalization.Away.algebraMap_isUnit _) w
+
 end ValuationSpectrum
