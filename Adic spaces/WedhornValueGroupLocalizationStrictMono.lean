@@ -361,4 +361,50 @@ theorem mapValueGroupWithZero_surjective_of_localization
         rw [h1, ← map_mul]
       rw [hLHS, hRHS]
 
+/-- **Concrete MulArchimedean transfer for the localization** (T019).
+
+Composes the surjectivity (`mapValueGroupWithZero_surjective_of_localization`)
++ Mathlib's strict monotonicity (`mapValueGroupWithZero_strictMono`) +
+the inversion lemma (`strictMonoHom_inverse_of_bijective`) +
+`MulArchimedean.comap` (Mathlib) to produce the per-`w` MulArchimedean
+transfer `MulArchimedean (VG A) → MulArchimedean (VG (Localization.Away s))`.
+
+**Coercion choice**: `mapValueGroupWithZero` returns `→*₀`
+(`MonoidWithZeroHom`); we extract the underlying `→*` via the
+`.toMonoidHom` projection (since `MonoidWithZeroHom` extends `MonoidHom`).
+The strict-mono property carries over since the underlying function
+is the same.
+
+This is the per-`w` discharger needed by
+`mulArchimedean_localization_comap_via_strictMono_hom` (commit
+`fa682a5`). -/
+theorem mulArchimedean_localization_comap_transfer_concrete
+    (s : A) (w : Spv (Localization.Away s))
+    (hws : ¬ w.vle (algebraMap A (Localization.Away s) s) 0) :
+    letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+    letI : ValuativeRel A :=
+      (comap (algebraMap A (Localization.Away s)) w).toValuativeRel
+    MulArchimedean (ValuativeRel.ValueGroupWithZero A) →
+      MulArchimedean (ValuativeRel.ValueGroupWithZero (Localization.Away s)) := by
+  letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+  letI : ValuativeRel A :=
+    (comap (algebraMap A (Localization.Away s)) w).toValuativeRel
+  letI : ValuativeExtension A (Localization.Away s) := ⟨fun _ _ => Iff.rfl⟩
+  intro hArch_A
+  -- Get the forward map and its strict monotonicity from Mathlib.
+  let g_full : ValuativeRel.ValueGroupWithZero A →*₀
+      ValuativeRel.ValueGroupWithZero (Localization.Away s) :=
+    ValuativeExtension.mapValueGroupWithZero A (Localization.Away s)
+  let g : ValuativeRel.ValueGroupWithZero A →*
+      ValuativeRel.ValueGroupWithZero (Localization.Away s) := g_full.toMonoidHom
+  have hg_strictMono : StrictMono g :=
+    ValuativeExtension.mapValueGroupWithZero_strictMono
+  -- Surjectivity from this file's previous theorem.
+  have hg_surj : Function.Surjective g :=
+    mapValueGroupWithZero_surjective_of_localization s w hws
+  -- Apply the inversion lemma to get the B → A strict-mono hom.
+  obtain ⟨f, hf⟩ := strictMonoHom_inverse_of_bijective g hg_strictMono hg_surj
+  -- Apply MulArchimedean.comap.
+  exact MulArchimedean.comap f hf
+
 end ValuationSpectrum
