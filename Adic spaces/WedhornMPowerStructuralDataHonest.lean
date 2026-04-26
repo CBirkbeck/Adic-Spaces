@@ -190,4 +190,52 @@ theorem h_M_power_decay_from_honest_structural_data
       -- Contradicts strict-domination.
       exact not_vle_zero_of_strict_dominator hστ.2 h3
 
+/-- **Caller-facing bridge from the honest supplier to rational-open
+containment**.
+
+From the honest σ-factored supplier `WedhornMPowerStructuralDataHonest`,
+the localized Cor 7.32 σ-strict-domination output (over the canonical
+test family `localizedTestFamily`), and the denominator-cleared
+algebraic identity, derive the base rational-open inclusion
+`rationalOpen (insert f T_base) s ⊆ rationalOpen T_D s_D`.
+
+**No `T_D` non-vanishing in the public interface.** This is the
+honest-supplier counterpart to `rationalOpen_subset_base_via_M_power_decay`
+(commit `ab55d85`): it bypasses the old M-power-decay shape entirely,
+feeding `h_M_power_decay_from_honest_structural_data` directly into
+`rationalOpen_subset_base_via_local_Cor732_chain` since the bridge's
+output already coincides with the chain's `_h_T_test_compat_loc`
+canonical compat input. -/
+theorem rationalOpen_subset_base_via_honest_structural_data
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (hA₀_le : P.A₀ ≤ A⁺)
+    (T_base T_D : Finset A) (s_D : A)
+    (h_T_le_T_base : T ⊆ T_base)
+    (f : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_alg :
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      algebraMap A (Localization.Away s) f =
+        (σ_loc : Localization.Away s) *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+    (hσ_loc_dominates :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ localizedTestFamily s T_D s_D,
+          w.vle (σ_loc : Localization.Away s) τ ∧
+          ¬ w.vle τ (σ_loc : Localization.Away s))
+    (h_honest : WedhornMPowerStructuralDataHonest P T s hopen T_D s_D σ_loc) :
+    rationalOpen (insert f T_base) s ⊆ rationalOpen T_D s_D :=
+  rationalOpen_subset_base_via_local_Cor732_chain P T s hopen hA₀_le
+    T_base T_D s_D h_T_le_T_base f σ_loc h_alg
+    (localizedTestFamily s T_D s_D) hσ_loc_dominates
+    (h_M_power_decay_from_honest_structural_data P T s hopen T_D s_D
+      σ_loc h_honest)
+
 end ValuationSpectrum
