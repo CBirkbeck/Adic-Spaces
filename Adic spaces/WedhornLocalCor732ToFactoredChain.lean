@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».WedhornPerTFactoredBranchLink
 import «Adic spaces».WedhornLocalizedCor732Application
+import «Adic spaces».WedhornStandardCoverRefinement
 
 /-!
 # Wedhorn local Cor 7.32 → factored chain bridge
@@ -274,5 +275,116 @@ Route B content; it does not reduce to σ-strict-domination alone.
 
 This file's bridge is the caller-ready packaging that consumes the
 residual once it lands. -/
+
+/-! ### Localized Cor 7.32 Laurent piece membership (T027)
+
+Localized variant of T026's
+`cor732_laurent_piece_membership_at` (in `WedhornStandardCoverRefinement.lean`),
+specialised at `A := Localization.Away s` with the localized topology
+and plus-subring instances, using `localizedTestFamily s T_D s_D` as
+the test family.
+
+This is the **per-`w` Laurent piece membership supplier** for the
+localized Wedhorn 8.34(ii) chain, replacing the parked
+σ-power-decay branch suppliers from T021 with Wedhorn's actual
+Laurent cover refinement (PDF page 84). At each
+`w ∈ Spa(Localization.Away s, locSubring P T s)`, given the localized
+Cor 7.32 σ-strict-domination output over `localizedTestFamily s T_D s_D`,
+there exists `τ ∈ localizedTestFamily s T_D s_D` such that `w` lies in
+the σ_loc-rescaled Laurent piece
+`rationalOpen ({(1 : Localization.Away s)} : Finset _) (σ_loc⁻¹ * τ)`. -/
+
+omit [PlusSubring A] in
+/-- **Localized Cor 7.32 Laurent piece membership at `w`** (T027 main
+theorem). At every `w ∈ Spa(Localization.Away s, locSubring P T s)`,
+given a localized σ-strict-domination over `localizedTestFamily s T_D s_D`
+(the existential output of `exists_dominating_unit_in_localization`
+specialised at `T_loc := localizedTestFamily s T_D s_D`), there exists
+`τ ∈ localizedTestFamily s T_D s_D` such that `w` lies in the σ_loc-
+rescaled Laurent piece. Direct instantiation of T026's
+`cor732_laurent_piece_membership_at` at `A := Localization.Away s` with
+the localized instances.
+
+This theorem replaces the **σ-power-decay-shaped** branch supplier in
+T021's parked chain (`AlphaS_DBranchPerTSigmaPowerDecay`,
+`AlphaT_DBranchPerTSigmaPowerDecay`) with the **Laurent-piece
+membership** form, matching Wedhorn 8.34(ii)'s actual proof
+mechanism (PDF page 84 / Lemma 8.33 cover-level acyclicity). -/
+theorem localized_cor732_laurent_piece_membership_at
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (hσ_loc_dom :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ localizedTestFamily s T_D s_D,
+          w.vle (σ_loc : Localization.Away s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away s)) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      ∃ τ ∈ localizedTestFamily s T_D s_D,
+        w ∈ rationalOpen
+          ({(1 : Localization.Away s)} : Finset (Localization.Away s))
+          (((σ_loc⁻¹ : (Localization.Away s)ˣ) : Localization.Away s) *
+            τ) := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  intro w hw
+  exact cor732_laurent_piece_membership_at hσ_loc_dom hw
+
+omit [PlusSubring A] in
+/-- **Existential localized Cor 7.32 Laurent piece membership** —
+combines `exists_dominating_unit_in_localization` (the localized
+Cor 7.32 σ-supplier) with `localized_cor732_laurent_piece_membership_at`
+to expose the per-`w` Laurent piece membership directly from the
+localized Tate / pseudouniformizer hypotheses, without an explicit
+σ_loc parameter.
+
+Output: ∃ σ_loc : (Localization.Away s)ˣ, ∀ w ∈ Spa, ∃ τ ∈ localizedTestFamily,
+w ∈ rationalOpen {1} (σ_loc⁻¹ * τ). -/
+theorem exists_localized_cor732_laurent_piece_membership
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    ∀ (π_loc : (locPairOfDefinition P T s hopen).A₀)
+      (_hI_loc : (locPairOfDefinition P T s hopen).I = Ideal.span {π_loc})
+      (_hπ_loc_tn : IsTopologicallyNilpotent
+        ((locPairOfDefinition P T s hopen).A₀.subtype π_loc))
+      (_hπ_loc_unit : IsUnit
+        ((locPairOfDefinition P T s hopen).A₀.subtype π_loc))
+      (_hArch_loc : ∀ w : Spv (Localization.Away s),
+        letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+        MulArchimedean (ValuativeRel.ValueGroupWithZero (Localization.Away s)))
+      (T_D : Finset A) (s_D : A)
+      (_hT_loc : ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ localizedTestFamily s T_D s_D, ¬ w.vle τ 0),
+    ∃ σ_loc : (Localization.Away s)ˣ,
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ localizedTestFamily s T_D s_D,
+          w ∈ rationalOpen
+            ({(1 : Localization.Away s)} : Finset (Localization.Away s))
+            (((σ_loc⁻¹ : (Localization.Away s)ˣ) : Localization.Away s) *
+              τ) := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  intro π_loc hI_loc hπ_loc_tn hπ_loc_unit hArch_loc T_D s_D hT_loc
+  obtain ⟨σ_loc, hσ_loc_dom⟩ :=
+    exists_dominating_unit_in_localization P T s hopen
+      π_loc hI_loc hπ_loc_tn hπ_loc_unit hArch_loc
+      (localizedTestFamily s T_D s_D) hT_loc
+  refine ⟨σ_loc, ?_⟩
+  exact localized_cor732_laurent_piece_membership_at P T s hopen
+    T_D s_D σ_loc hσ_loc_dom
 
 end ValuationSpectrum
