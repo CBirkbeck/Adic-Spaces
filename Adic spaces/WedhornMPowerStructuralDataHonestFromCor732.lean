@@ -187,6 +187,93 @@ theorem WedhornMPowerStructuralDataHonest_via_unfactored_chain
     (algebraMap A (Localization.Away s) s_D)).mpr
     (h_per_t_chain w hw_spa hw_f τ hτ hστ t' ht')
 
+/-- **α_s_D-branch unfactored per-`t'` chain target**. Specialises
+`UnfactoredPerTChainTarget` to the `τ = algebraMap s_D` branch of the
+canonical localized test family. Matches the `h_per_t_chain` shape
+consumed by `h_T_test_compat_loc_branch_α_s_D`
+(`WedhornLocalCompatFromTestFamily.lean`). -/
+def UnfactoredPerTChainBranchAlphaS_D
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+    w.vle ((σ_loc : Localization.Away s) *
+        (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+      (algebraMap A (Localization.Away s) s) →
+    w.vle (σ_loc : Localization.Away s)
+        (algebraMap A (Localization.Away s) s_D) ∧
+      ¬ w.vle (algebraMap A (Localization.Away s) s_D)
+        (σ_loc : Localization.Away s) →
+    ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+      w.vle t' (algebraMap A (Localization.Away s) s_D)
+
+/-- **α_T_D-branch unfactored per-`t'` chain target**. Specialises
+`UnfactoredPerTChainTarget` to the `τ ∈ T_D.image algebraMap` branch
+of the canonical localized test family. Matches the per-τ shape
+needed by `h_T_test_compat_loc_branch_α_T_D`
+(`WedhornLocalCompatFromTestFamily.lean`). -/
+def UnfactoredPerTChainBranchAlphaT_D
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  ∀ τ ∈ T_D.image (algebraMap A (Localization.Away s)),
+    ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      w.vle ((σ_loc : Localization.Away s) *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+        (algebraMap A (Localization.Away s) s) →
+      w.vle (σ_loc : Localization.Away s) τ ∧
+        ¬ w.vle τ (σ_loc : Localization.Away s) →
+      ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+        w.vle t' (algebraMap A (Localization.Away s) s_D)
+
+omit [PlusSubring A] in
+/-- **Combiner: `UnfactoredPerTChainTarget` from per-branch chains**.
+
+Discharges the unified `UnfactoredPerTChainTarget` from the two
+per-branch chain hypotheses (α_s_D and α_T_D) by case-splitting on
+`mem_localizedTestFamily_iff`.
+
+Each branch's chain consumes the same `(w, hf, hστ_at_τ)` data with
+τ-specialised σ-strict-domination, and outputs the per-`t'`
+inequality `w.vle t' (algebraMap s_D)` for every t' ∈ T_D.image. The
+combiner unifies them into the named target. -/
+theorem UnfactoredPerTChainTarget_via_branches
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_α_s_D : UnfactoredPerTChainBranchAlphaS_D P T s hopen T_D s_D σ_loc)
+    (h_α_T_D : UnfactoredPerTChainBranchAlphaT_D P T s hopen T_D s_D σ_loc) :
+    UnfactoredPerTChainTarget P T s hopen T_D s_D σ_loc := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro w hw_spa hw_f τ hτ hστ t' ht'
+  -- Case-split on τ ∈ localizedTestFamily.
+  rw [mem_localizedTestFamily_iff] at hτ
+  rcases hτ with rfl | hτ_in_T_D
+  · -- α_s_D branch.
+    exact h_α_s_D w hw_spa hw_f hστ t' ht'
+  · -- α_T_D branch.
+    exact h_α_T_D τ hτ_in_T_D w hw_spa hw_f hστ t' ht'
+
 omit [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] in
 /-- **Trivial subcase: `t' = algebraMap s_D`**.
 
