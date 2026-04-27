@@ -274,6 +274,97 @@ theorem UnfactoredPerTChainTarget_via_branches
   · -- α_T_D branch.
     exact h_α_T_D τ hτ_in_T_D w hw_spa hw_f hστ t' ht'
 
+/-- **Per-`t'` α_s_D-branch fact** — single-`t'` slice of
+`UnfactoredPerTChainBranchAlphaS_D`.
+
+Carries the single Wedhorn-content fact for one specific `t' ∈
+T_D.image algebraMap`. The full branch chain is the conjunction of
+this fact across all `t' ∈ T_D.image`. Used to break the residual
+into per-`t'` pieces with explicit naming. -/
+def UnfactoredPerTChainBranchAlphaS_DPerTFact
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (t' : Localization.Away s) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+    w.vle ((σ_loc : Localization.Away s) *
+        (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+      (algebraMap A (Localization.Away s) s) →
+    w.vle (σ_loc : Localization.Away s)
+        (algebraMap A (Localization.Away s) s_D) ∧
+      ¬ w.vle (algebraMap A (Localization.Away s) s_D)
+        (σ_loc : Localization.Away s) →
+    w.vle t' (algebraMap A (Localization.Away s) s_D)
+
+omit [PlusSubring A] in
+/-- **α_s_D branch trivial closure at `t' = algebraMap s_D`**.
+
+The per-`t'` α_s_D-branch fact closes trivially at `t' = algebraMap s_D`
+by `vle_total` reflexivity (regardless of `(w, hf, hστ)`).
+
+This closes the `t' = algebraMap s_D` sub-piece of
+`UnfactoredPerTChainBranchAlphaS_D` whenever `algebraMap s_D ∈
+T_D.image algebraMap` (i.e., `s_D ∈ T_D` in the typical
+`insertDenom`-normalised setup). -/
+theorem UnfactoredPerTChainBranchAlphaS_DPerTFact_at_algebraMap_s_D
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) :
+    UnfactoredPerTChainBranchAlphaS_DPerTFact
+      P T s hopen T_D s_D σ_loc
+      (algebraMap A (Localization.Away s) s_D) := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro w _hw_spa _hw_f _hστ
+  exact (w.vle_total _ _).elim id id
+
+omit [PlusSubring A] in
+/-- **α_s_D branch chain via per-`t'` facts**.
+
+Combines per-`t'` α_s_D-branch facts (one for each `t' ∈ T_D.image
+algebraMap`) into the full `UnfactoredPerTChainBranchAlphaS_D` branch
+chain.
+
+This is the per-`t'` decomposition: the branch chain is the
+conjunction across all `t'` of the per-`t'` fact. The discharger
+exposes per-`t'` granularity to the caller, which can then close
+specific `t'`s (e.g., `t' = algebraMap s_D` via the trivial closure
+above) and leave only the genuinely-residual `t'`s. -/
+theorem UnfactoredPerTChainBranchAlphaS_D_via_per_t_facts
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_per_t :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+        UnfactoredPerTChainBranchAlphaS_DPerTFact
+          P T s hopen T_D s_D σ_loc t') :
+    UnfactoredPerTChainBranchAlphaS_D P T s hopen T_D s_D σ_loc := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro w hw_spa hw_f hστ t' ht'
+  exact h_per_t t' ht' w hw_spa hw_f hστ
+
 omit [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] in
 /-- **Trivial subcase: `t' = algebraMap s_D`**.
 
