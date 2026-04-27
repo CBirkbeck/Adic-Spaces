@@ -786,4 +786,112 @@ theorem WedhornMPowerStructuralDataHonest_t_eq_s_D_branch
         (σ_loc : Localization.Away s)) :=
   (w.vle_total _ _).elim id id
 
+/-- **Per-`t'` Wedhorn σ-power-decay residual at the `α s_D`
+specialisation**. Bundled named residual carrying the genuinely-new
+Wedhorn 8.34(ii) Route B content for the α_s_D branch in the
+**classical Wedhorn shape** (single-`t'` candidate `σ_loc * t' *
+(α s_D)^N`).
+
+For each `(w, t')` with `w ∈ Spa(Loc s, ⁺)` and
+`t' ∈ T_D.image (algebraMap A (Loc s))`:
+
+* the per-`t'` Wedhorn chain through `α s`:
+  `w.vle ((σ_loc : Loc s) * t' * (algebraMap A (Loc s) s_D)^N) (algebraMap A (Loc s) s)`;
+* the σ-power-decay at `α s` (Wedhorn's Spa-quasi-compactness M-choice):
+  `w.vle (algebraMap A (Loc s) s) ((σ_loc : Loc s) * (algebraMap A (Loc s) s_D)^(N+1))`.
+
+Both pieces follow Wedhorn's joint σ + N construction (Cor 7.32 σ +
+compactness N-choice). The exponent `N : ℕ` is the Wedhorn N parameter,
+chosen via Spa-quasi-compactness so that `σ_loc * (algMap s_D)^(N+1)`
+uniformly bounds `algMap s` from above on Spa.
+
+## Why localized Cor 7.32 strict domination is insufficient
+
+Cor 7.32 (`exists_dominating_unit`) outputs only the σ-strict-domination
+shape `w(σ_loc) ≤ w(τ_w)` strict — see the explicit warning at
+`WedhornSigmaPowerDecay.lean:14-22` flagging that the σ-power-decay
+shape requires the OPPOSITE valuation orientation
+(`w(α s) ≤ w(σ_loc * (α s_D)^(N+1))`, σ "large from below" times an
+`α s_D`-power). The Wedhorn discharge route uses σ_loc as a π-power
+(internal to `Cor732.exists_dominating_unit`'s `s := π^(N+1)` at
+`Cor732.lean:225`), N chosen via `exists_dominatedBy_cover` for
+Spa-quasi-compactness, plus topological-nilpotence of π. None of this
+is exposed by Cor 7.32's output type. -/
+def AlphaS_DBranchPerTSigmaPowerDecay
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+    ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+      w.vle ((σ_loc : Localization.Away s) * t' *
+          (algebraMap A (Localization.Away s) s_D) ^ N)
+        (algebraMap A (Localization.Away s) s) ∧
+      w.vle (algebraMap A (Localization.Away s) s)
+        ((σ_loc : Localization.Away s) *
+          (algebraMap A (Localization.Away s) s_D) ^ (N + 1))
+
+omit [PlusSubring A] in
+/-- **Sharper alternative path to `UnfactoredPerTChainBranchAlphaS_D`
+via the abstract Wedhorn algebraic core**.
+
+Bypasses the M-power-decay structural form (`AlphaS_DMPowerDecayTarget`
++ `AlphaS_DProdEraseLowerBound`) and consumes the SINGLE bundled
+per-`t'` Wedhorn σ-power-decay residual `AlphaS_DBranchPerTSigmaPowerDecay`,
+proving `UnfactoredPerTChainBranchAlphaS_D` directly via the abstract
+algebraic core `vle_t_D_s_of_sigma_decay_chain_at` from
+`WedhornMultiBranchSubsetInequality.lean`.
+
+The α s_D non-vanishing premise is auto-derived from σ-strict-domination
+via `not_vle_zero_of_strict_dominator` (the strict half of
+α_s_D-branch σ-strict-domination forces `α s_D` to not vanish at `w`).
+
+**This leaves exactly ONE named residual**:
+`AlphaS_DBranchPerTSigmaPowerDecay P T s hopen T_D s_D σ_loc N`,
+the Wedhorn 8.34(ii) Route B per-`t'` σ-power-decay content (with N
+chosen via Spa-quasi-compactness / topological-nilpotence of σ_loc).
+
+## Valuation-orientation handoff
+
+The localized Cor 7.32 σ-strict-domination output (per
+`WedhornLocalizedCor732Consumer.lean`) supplies σ_loc with
+σ-strict-domination over `localizedTestFamily s T_D s_D`. It does
+**not** supply `AlphaS_DBranchPerTSigmaPowerDecay`:
+
+* The σ-power-decay component requires the OPPOSITE orientation
+  `w(α s) ≤ w(σ_loc * (α s_D)^(N+1))` from Cor 7.32's σ-strict-dom
+  `w(σ_loc) ≤ w(τ_w)` strict — see `WedhornSigmaPowerDecay.lean:14-22`.
+* The per-`t'` chain `w(σ_loc * t' * (α s_D)^N) ≤ w(α s)` is the
+  per-`t'` slice of Wedhorn 8.34(ii) Step 2's denominator-clearing
+  ratio choice, also outside Cor 7.32's output.
+* Wedhorn's discharge uses Spa-quasi-compactness M-choice for
+  topologically-nilpotent π_loc with σ_loc = π_loc^(M+1), per
+  `Cor732.lean:225` and `WedhornFactorExtractionPowerDecay.lean:144-163`. -/
+theorem UnfactoredPerTChainBranchAlphaS_D_via_classical_sigma_decay
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (h_residual :
+      AlphaS_DBranchPerTSigmaPowerDecay P T s hopen T_D s_D σ_loc N) :
+    UnfactoredPerTChainBranchAlphaS_D P T s hopen T_D s_D σ_loc := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro w hw_spa _hw_f hστ t' ht'
+  have hα_s_D_ne :
+      ¬ w.vle (algebraMap A (Localization.Away s) s_D) 0 :=
+    not_vle_zero_of_strict_dominator hστ.2
+  obtain ⟨h_chain_t', h_C_decay⟩ := h_residual w hw_spa t' ht'
+  exact vle_t_D_s_of_sigma_decay_chain_at w N hα_s_D_ne h_chain_t' h_C_decay
+
 end ValuationSpectrum
