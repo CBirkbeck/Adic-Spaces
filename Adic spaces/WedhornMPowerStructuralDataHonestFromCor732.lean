@@ -433,6 +433,136 @@ def AlphaS_DProdEraseNonVanishTarget
       ¬ w.vle (∏ t ∈ (T_D.image
         (algebraMap A (Localization.Away s))).erase t', t) 0
 
+/-- **Spa-uniform σ-power-decay** for the localized α_s_D branch.
+
+Captures the genuine Wedhorn 8.34(ii) σ-power-decay output in its
+natural shape: a single power of `algebraMap s_D` controlled by the
+cardinality of the `algebraMap`-image of `T_D`. Concretely:
+
+`∀ w ∈ Spa, w.vle (algebraMap s) (σ_loc * (algebraMap s_D) ^ |T_D.image|)`.
+
+This is the natural Cor 7.32 + `Spa`-compactness M-choice output (cf.
+`WedhornFactorExtractionPowerDecay.lean:144-163` and
+`WedhornSigmaPowerDecay.lean:51-78`); it is **strictly closer to
+Cor 7.32** than `AlphaS_DMPowerDecayTarget` since the RHS is a single
+power, not a per-`t'` `∏ erase` product. -/
+def AlphaS_DUniformSigmaPowerDecay
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+    w.vle (algebraMap A (Localization.Away s) s)
+      ((σ_loc : Localization.Away s) *
+        (algebraMap A (Localization.Away s) s_D) ^
+          (T_D.image (algebraMap A (Localization.Away s))).card)
+
+/-- **`s_D`-lower-bound on `T_D.image \ {t'}`** — algebraic cancellation
+premise needed to exchange a single `(algebraMap s_D)`-power for the
+per-`t'` `∏ erase t'` shape.
+
+For each `(w, t', t'')` with `t' ∈ T_D.image` and `t'' ∈ erase t'`,
+asserts `w.vle (algebraMap s_D) t''`. Lifting pointwise via
+`Spv.vle_prod_of_pointwise` then yields
+`w.vle ((algebraMap s_D)^|erase t'|) (∏ erase t')`, the cancellation
+step that bridges the σ-power-decay shape to the M-power-decay target. -/
+def AlphaS_DProdEraseLowerBound
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+    ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+      ∀ t'' ∈ (T_D.image (algebraMap A (Localization.Away s))).erase t',
+        w.vle (algebraMap A (Localization.Away s) s_D) t''
+
+omit [PlusSubring A] in
+/-- **`AlphaS_DMPowerDecayTarget` via Spa-uniform σ-power-decay +
+`s_D`-lower-bound**. The genuine sharper reducer.
+
+Takes two SEPARATED inputs strictly closer to Cor 7.32:
+
+1. `AlphaS_DUniformSigmaPowerDecay` — Spa-uniform σ-power-decay shape
+   `w.vle (algebraMap s) (σ_loc * (algebraMap s_D) ^ |T_D.image|)`,
+   matching the natural Cor 7.32 σ-construction + Spa-compactness
+   M-choice output (single power form).
+2. `AlphaS_DProdEraseLowerBound` — pointwise `w.vle (algebraMap s_D) t''`
+   for `t'' ∈ T_D.image.erase t'`, the algebraic cancellation premise.
+
+The proof:
+* Lift the lower bound via `Spv.vle_prod_of_pointwise`:
+  `w.vle ((algebraMap s_D) ^ (|T_D.image| - 1)) (∏ erase t')`.
+* Multiply by `algebraMap s_D * σ_loc` on the left:
+  `w.vle (σ_loc * (algebraMap s_D) ^ |T_D.image|)
+    (algebraMap s_D * σ_loc * ∏ erase t')`
+  (using `s_D * s_D^(c-1) = s_D^c` and ring commutativity).
+* Chain through the σ-power-decay via `vle_trans`. -/
+theorem AlphaS_DMPowerDecayTarget_via_uniform_decay_and_lower_bound
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_decay : AlphaS_DUniformSigmaPowerDecay P T s hopen T_D s_D σ_loc)
+    (h_lower : AlphaS_DProdEraseLowerBound P T s hopen T_D s_D) :
+    AlphaS_DMPowerDecayTarget P T s hopen T_D s_D σ_loc := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro w hw_spa _hw_f _hστ t' ht'
+  letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+  -- Local notation for the carriers in `Localization.Away s`.
+  set imgT := T_D.image (algebraMap A (Localization.Away s)) with himgT_def
+  set sD : Localization.Away s := algebraMap A (Localization.Away s) s_D
+    with hsD_def
+  set σL : Localization.Away s := (σ_loc : Localization.Away s) with hσL_def
+  -- Step 1: Lift `h_lower` to a product lower bound on `imgT.erase t'`.
+  have h_lower_at : ∀ t'' ∈ imgT.erase t', w.vle sD t'' :=
+    h_lower w hw_spa t' ht'
+  have h_prod_lift :
+      w.vle (∏ _t ∈ imgT.erase t', sD) (∏ t ∈ imgT.erase t', t) :=
+    Spv.vle_prod_of_pointwise w (imgT.erase t') h_lower_at
+  -- Replace the constant product by a power and the cardinality by `c - 1`.
+  have h_const_prod :
+      (∏ _t ∈ imgT.erase t', sD) = sD ^ (imgT.erase t').card := by
+    simp [Finset.prod_const]
+  have h_card_erase : (imgT.erase t').card = imgT.card - 1 :=
+    Finset.card_erase_of_mem ht'
+  rw [h_const_prod, h_card_erase] at h_prod_lift
+  -- Step 2: Multiply both sides by `sD * σL` on the LEFT.
+  have h_prod_mul :
+      w.vle ((sD * σL) * sD ^ (imgT.card - 1))
+            ((sD * σL) * (∏ t ∈ imgT.erase t', t)) :=
+    ValuativeRel.mul_vle_mul_right h_prod_lift (sD * σL)
+  -- Step 3: Rewrite LHS as `σL * sD ^ imgT.card` using `pow_succ'` + `ring`.
+  have h_card_pos : 1 ≤ imgT.card := Finset.card_pos.mpr ⟨t', ht'⟩
+  have h_pow_split : sD ^ imgT.card = sD * sD ^ (imgT.card - 1) := by
+    conv_lhs =>
+      rw [show imgT.card = imgT.card - 1 + 1 from
+        (Nat.sub_add_cancel h_card_pos).symm]
+    exact pow_succ' sD (imgT.card - 1)
+  have h_lhs_eq : (sD * σL) * sD ^ (imgT.card - 1) = σL * sD ^ imgT.card := by
+    rw [h_pow_split]; ring
+  rw [h_lhs_eq] at h_prod_mul
+  -- Step 4: Chain `h_decay` (giving `s ≤ σL * sD ^ imgT.card`) through `h_prod_mul`.
+  have h_decay_at :
+      w.vle (algebraMap A (Localization.Away s) s)
+        (σL * sD ^ imgT.card) := h_decay w hw_spa
+  exact w.vle_trans h_decay_at h_prod_mul
+
 /-- **σ-factored α_s_D-branch chain target** — the genuine Wedhorn
 8.34(ii) Route B σ-power-decay residual for the α_s_D branch.
 
