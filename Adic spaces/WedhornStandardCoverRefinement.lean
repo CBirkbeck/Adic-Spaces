@@ -313,6 +313,95 @@ theorem exists_one_vle_inv_unit_mul_at_of_cor732_strict_dom
   intro h_τ_zero
   exact hστ_right (w.vle_trans h_τ_zero (ValuativeRel.zero_vle (σ : A)))
 
+/-! ### Cor 7.32-based Laurent cover formation (T026)
+
+Bridges T025's σ-inversion primitives to the existing `rationalOpen` /
+Wedhorn rational-subset API: at every `w ∈ Spa A A⁺` with Cor 7.32
+σ-strict-domination over a finite generating family `T`, the σ-rescaled
+Laurent piece `rationalOpen ({(1 : A)} : Finset A) ((σ⁻¹ : Aˣ) * τ)`
+contains `w` for some `τ ∈ T`. The collection
+`{rationalOpen {1} (σ⁻¹ * τ) | τ ∈ T}` is a Laurent cover of
+`Spa A A⁺` matching Wedhorn 8.34(ii)'s actual proof on PDF page 84:
+the rescaled elements `σ⁻¹ * τ` become units on their respective
+Laurent pieces, and the cover `{V_τ}` is the natural target of
+Wedhorn's Lemma 8.33 (binary Laurent cover acyclicity) for cover-level
+acyclicity.
+
+These bridges intentionally avoid the **full `RationalCovering`
+packaging**: each per-piece `RationalLocData A` would require a
+non-trivial `hopen` verification (the localization at `σ⁻¹ * τ` having
+the right openness data — which depends on whether `τ` is a unit,
+generally NOT the case for arbitrary `τ ∈ T` in Wedhorn 8.34(ii)).
+The lighter cover-membership theorem suffices for downstream
+acyclicity arguments. -/
+
+omit [IsTopologicalRing A] in
+/-- **Cor 7.32 Laurent piece membership at `w`** (σ-rescaled form).
+
+At any `w ∈ Spa A A⁺`, given Cor 7.32 σ-strict-domination over a
+finite family `T` (the existential output of
+`Cor732.exists_dominating_unit`), there exists `τ ∈ T` such that `w`
+lies in the σ-rescaled Laurent piece
+`rationalOpen ({(1 : A)} : Finset A) (((σ⁻¹ : Aˣ) : A) * τ)`.
+
+This Laurent piece corresponds to the "≥ 1" half-space
+`{v ∈ Spa A A⁺ | v.vle 1 (σ⁻¹ * τ) ∧ ¬ v.vle (σ⁻¹ * τ) 0}` for the
+single rescaled element `σ⁻¹ * τ`. It is exactly the Laurent piece
+where `σ⁻¹ * τ` is a "valuation-≥-1" element (and hence becomes a
+unit on the localized adic spectrum on this piece). Wedhorn 8.34(ii)
+(PDF page 84) uses precisely this piece structure for the Laurent
+cover refinement.
+
+Proof: T025's `exists_one_vle_inv_unit_mul_at_of_cor732_strict_dom`
+provides `τ ∈ T` with `w.vle 1 (σ⁻¹ * τ)` and `¬ w.vle τ 0`. We then
+verify the `rationalOpen` membership: the singleton `{1}` membership
+condition unfolds to the first inequality, and the non-vanishing of
+`σ⁻¹ * τ` follows from `¬ w.vle τ 0` by left-multiplying by `σ` (which
+maps the hypothetical `w.vle (σ⁻¹ * τ) 0` to `w.vle τ 0`). -/
+theorem cor732_laurent_piece_membership_at
+    {σ : Aˣ} {T : Finset A}
+    (hσ_dom :
+      ∀ v ∈ Spa A A⁺, ∃ τ ∈ T, v.vle (σ : A) τ ∧ ¬ v.vle τ (σ : A))
+    {w : Spv A} (hw : w ∈ Spa A A⁺) :
+    ∃ τ ∈ T,
+      w ∈ rationalOpen ({(1 : A)} : Finset A) (((σ⁻¹ : Aˣ) : A) * τ) := by
+  letI : ValuativeRel A := w.toValuativeRel
+  obtain ⟨τ, hτ, h_one_le, h_τ_ne⟩ :=
+    exists_one_vle_inv_unit_mul_at_of_cor732_strict_dom (hσ_dom w hw)
+  refine ⟨τ, hτ, hw, ?_, ?_⟩
+  · intro t ht
+    rw [Finset.mem_singleton] at ht
+    subst ht
+    exact h_one_le
+  · intro h_inv_τ_zero
+    apply h_τ_ne
+    have h_mul :
+        w.vle ((σ : A) * (((σ⁻¹ : Aˣ) : A) * τ)) ((σ : A) * 0) :=
+      ValuativeRel.mul_vle_mul_right h_inv_τ_zero (σ : A)
+    have h_lhs : (σ : A) * (((σ⁻¹ : Aˣ) : A) * τ) = τ := by
+      rw [← mul_assoc, Units.mul_inv, one_mul]
+    rw [h_lhs, mul_zero] at h_mul
+    exact h_mul
+
+omit [IsTopologicalRing A] in
+/-- **Spa is covered by the Cor 7.32 σ-rescaled Laurent pieces**
+(set-level cover statement).
+
+Existential per-`w` form of `cor732_laurent_piece_membership_at`,
+phrased as a set-level cover-membership: every `w ∈ Spa A A⁺` lies in
+some σ-rescaled Laurent piece `rationalOpen {1} (σ⁻¹ * τ)` for `τ ∈ T`.
+
+The set-level statement
+`Spa A A⁺ ⊆ ⋃ τ ∈ T, rationalOpen {1} (σ⁻¹ * τ)` follows from this by
+`Set.subset_def` + `Set.mem_iUnion₂` unfolding (no extra content). -/
+theorem cor732_laurent_cover_covers_spa
+    {σ : Aˣ} {T : Finset A}
+    (hσ_dom :
+      ∀ v ∈ Spa A A⁺, ∃ τ ∈ T, v.vle (σ : A) τ ∧ ¬ v.vle τ (σ : A)) :
+    ∀ w ∈ Spa A A⁺, ∃ τ ∈ T,
+      w ∈ rationalOpen ({(1 : A)} : Finset A) (((σ⁻¹ : Aˣ) : A) * τ) :=
+  fun _ hw => cor732_laurent_piece_membership_at hσ_dom hw
+
 /-! ## Precise missing API for the truly general non-standard branch
 
 The `_of_singleton_unit_rescaled` helper above covers the **two
