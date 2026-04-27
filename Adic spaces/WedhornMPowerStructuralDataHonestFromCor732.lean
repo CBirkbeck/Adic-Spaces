@@ -365,6 +365,64 @@ theorem UnfactoredPerTChainBranchAlphaS_D_via_per_t_facts
   intro w hw_spa hw_f hστ t' ht'
   exact h_per_t t' ht' w hw_spa hw_f hστ
 
+/-- **σ-factored α_s_D-branch chain target** — the genuine Wedhorn
+8.34(ii) Route B σ-power-decay residual for the α_s_D branch.
+
+Matches the `h_factored` parameter shape of
+`h_α_s_D_per_t_via_factored_chain` (`WedhornLocalArithmeticPerTChain.lean`):
+the per-`t'` σ-factored inequality
+`w.vle (t' * σ_loc) (algebraMap s_D * σ_loc)`
+under f-membership and σ-strict-domination by `algebraMap s_D`. Carries
+the genuine Wedhorn-content per-`t'` arithmetic; equivalent under
+σ-cancellation to the unfactored α_s_D-branch chain. -/
+def AlphaS_DFactoredChainTarget
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+    w.vle ((σ_loc : Localization.Away s) *
+        (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+      (algebraMap A (Localization.Away s) s) →
+    w.vle (σ_loc : Localization.Away s)
+        (algebraMap A (Localization.Away s) s_D) ∧
+      ¬ w.vle (algebraMap A (Localization.Away s) s_D)
+        (σ_loc : Localization.Away s) →
+    ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+      w.vle (t' * (σ_loc : Localization.Away s))
+        ((algebraMap A (Localization.Away s) s_D) *
+          (σ_loc : Localization.Away s))
+
+omit [PlusSubring A] in
+/-- **α_s_D-branch chain via σ-factored chain residual**.
+
+Closes `UnfactoredPerTChainBranchAlphaS_D` from the named σ-factored
+chain residual `AlphaS_DFactoredChainTarget` via the existing
+σ-cancellation reducer
+`h_α_s_D_per_t_via_factored_chain` (`WedhornLocalArithmeticPerTChain.lean`).
+
+This is the **strongest reduction** of the α_s_D branch chain
+achievable from the existing σ-factored API: the residual hypothesis
+is the genuine Wedhorn 8.34(ii) Route B per-`t'` σ-power-decay content,
+in the canonical σ-factored form matching Wedhorn's natural candidate
+shape `f := σ_loc * (∏ T_D.image algebraMap)`. -/
+theorem UnfactoredPerTChainBranchAlphaS_D_via_factored_chain
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_factored : AlphaS_DFactoredChainTarget P T s hopen T_D s_D σ_loc) :
+    UnfactoredPerTChainBranchAlphaS_D P T s hopen T_D s_D σ_loc :=
+  h_α_s_D_per_t_via_factored_chain P T s hopen T_D s_D σ_loc h_factored
+
 omit [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] in
 /-- **Trivial subcase: `t' = algebraMap s_D`**.
 
