@@ -365,6 +365,74 @@ theorem UnfactoredPerTChainBranchAlphaS_D_via_per_t_facts
   intro w hw_spa hw_f hστ t' ht'
   exact h_per_t t' ht' w hw_spa hw_f hστ
 
+/-- **α_s_D M-power-decay structural target** — the per-`t'` Wedhorn
+8.34(ii) M-power-decay structural fact for the α_s_D branch.
+
+For each `(w, hf, hστ_α_s_D, t')`, gives the structural inequality
+`w.vle (algebraMap s) (algebraMap s_D * σ_loc * ∏ erase t')`. This is
+the natural shape of Wedhorn 8.34(ii)'s σ-power-decay output (cf.
+the documented `subset_inequality_target` at
+`WedhornDominatingBranchInequality.lean:104`); it carries the genuine
+Wedhorn σ-power decay content but is **distinct** from
+`AlphaS_DFactoredChainTarget`: the M-power-decay form is the inequality
+chain through `algebraMap s`, whereas `AlphaS_DFactoredChainTarget`
+is the σ-factored per-`t'` form. The two differ by cancellation of
+`∏ erase t'` (per-`t'` non-vanishing condition). -/
+def AlphaS_DMPowerDecayTarget
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+    w.vle ((σ_loc : Localization.Away s) *
+        (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+      (algebraMap A (Localization.Away s) s) →
+    w.vle (σ_loc : Localization.Away s)
+        (algebraMap A (Localization.Away s) s_D) ∧
+      ¬ w.vle (algebraMap A (Localization.Away s) s_D)
+        (σ_loc : Localization.Away s) →
+    ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+      w.vle (algebraMap A (Localization.Away s) s)
+        (algebraMap A (Localization.Away s) s_D *
+          (σ_loc : Localization.Away s) *
+          (∏ t ∈ (T_D.image (algebraMap A (Localization.Away s))).erase t', t))
+
+/-- **α_s_D per-`t'` `∏ erase t'` non-vanishing target** — the algebraic
+companion residual to `AlphaS_DMPowerDecayTarget`.
+
+For each `(w, hf, hστ_α_s_D, t')`, asserts non-vanishing of
+`∏ T_D.image α \ {t'}` at `w`. This is the cancellation condition
+needed to extract the σ-factored chain from the M-power decay (via
+`ValuativeRel.mul_vle_mul_iff_left`). -/
+def AlphaS_DProdEraseNonVanishTarget
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+    w.vle ((σ_loc : Localization.Away s) *
+        (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+      (algebraMap A (Localization.Away s) s) →
+    w.vle (σ_loc : Localization.Away s)
+        (algebraMap A (Localization.Away s) s_D) ∧
+      ¬ w.vle (algebraMap A (Localization.Away s) s_D)
+        (σ_loc : Localization.Away s) →
+    ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+      ¬ w.vle (∏ t ∈ (T_D.image
+        (algebraMap A (Localization.Away s))).erase t', t) 0
+
 /-- **σ-factored α_s_D-branch chain target** — the genuine Wedhorn
 8.34(ii) Route B σ-power-decay residual for the α_s_D branch.
 
@@ -422,6 +490,64 @@ theorem UnfactoredPerTChainBranchAlphaS_D_via_factored_chain
     (h_factored : AlphaS_DFactoredChainTarget P T s hopen T_D s_D σ_loc) :
     UnfactoredPerTChainBranchAlphaS_D P T s hopen T_D s_D σ_loc :=
   h_α_s_D_per_t_via_factored_chain P T s hopen T_D s_D σ_loc h_factored
+
+omit [PlusSubring A] in
+/-- **α_s_D factored chain via M-power decay + ∏-erase non-vanishing**.
+
+Sharper reducer: closes `AlphaS_DFactoredChainTarget` from two
+SEPARATED genuine Wedhorn-content residuals:
+
+1. `AlphaS_DMPowerDecayTarget` — the σ-power-decay structural
+   inequality chain through `algebraMap s` (the natural Cor 7.32 +
+   compactness output).
+2. `AlphaS_DProdEraseNonVanishTarget` — per-`t'` non-vanishing of
+   `∏ T_D.image α \ {t'}` (the algebraic cancellation premise).
+
+The proof chains f-membership through the M-power decay then cancels
+`∏ erase t'` via `ValuativeRel.mul_vle_mul_iff_left`, after rewriting
+products to expose the cancelled factor on both sides. -/
+theorem AlphaS_DFactoredChainTarget_via_M_power_decay
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_decay : AlphaS_DMPowerDecayTarget P T s hopen T_D s_D σ_loc)
+    (h_erase_ne :
+      AlphaS_DProdEraseNonVanishTarget P T s hopen T_D s_D σ_loc) :
+    AlphaS_DFactoredChainTarget P T s hopen T_D s_D σ_loc := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro w hw_spa hw_f hστ t' ht'
+  have h_struct := h_decay w hw_spa hw_f hστ t' ht'
+  have h_erase := h_erase_ne w hw_spa hw_f hστ t' ht'
+  -- Notation shorthand.
+  set α_s_D : Localization.Away s := algebraMap A (Localization.Away s) s_D
+  set σ : Localization.Away s := (σ_loc : Localization.Away s)
+  set Pi_full : Localization.Away s :=
+    ∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t
+  set Pi_erase : Localization.Away s :=
+    ∏ t ∈ (T_D.image (algebraMap A (Localization.Away s))).erase t', t
+  -- Product split via `Finset.mul_prod_erase`.
+  have h_prod_split : Pi_full = t' * Pi_erase :=
+    (Finset.mul_prod_erase _ _ ht').symm
+  -- Chain f-membership through the structural decay.
+  have h_chain : w.vle (σ * Pi_full) (α_s_D * σ * Pi_erase) :=
+    w.vle_trans hw_f h_struct
+  -- Rewrite LHS with product split: σ * Pi_full = σ * (t' * Pi_erase) = (t' * σ) * Pi_erase.
+  have h_LHS_eq : σ * Pi_full = (t' * σ) * Pi_erase := by
+    rw [h_prod_split]; ring
+  -- Rewrite RHS to expose Pi_erase factor on the right.
+  have h_RHS_eq : α_s_D * σ * Pi_erase = (α_s_D * σ) * Pi_erase := by
+    rw [mul_assoc]
+  -- Apply rewrites.
+  rw [h_LHS_eq, h_RHS_eq] at h_chain
+  -- Cancel Pi_erase via mul_vle_mul_iff_left.
+  letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+  exact (ValuativeRel.mul_vle_mul_iff_left (z := Pi_erase) h_erase).mp h_chain
 
 omit [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] in
 /-- **Trivial subcase: `t' = algebraMap s_D`**.
