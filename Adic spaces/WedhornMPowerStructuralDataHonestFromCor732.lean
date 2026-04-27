@@ -894,4 +894,144 @@ theorem UnfactoredPerTChainBranchAlphaS_D_via_classical_sigma_decay
   obtain ⟨h_chain_t', h_C_decay⟩ := h_residual w hw_spa t' ht'
   exact vle_t_D_s_of_sigma_decay_chain_at w N hα_s_D_ne h_chain_t' h_C_decay
 
+/-- **Per-(τ, t') Wedhorn σ-power-decay residual at the `α_T_D`
+specialisation**. Bundled named residual analogous to
+`AlphaS_DBranchPerTSigmaPowerDecay`, indexed by the dominating
+`τ ∈ T_D.image (algebraMap A (Localization.Away s))` (the α_T_D
+branch's σ-strict-dominator).
+
+For each `(τ, w, t')` with `τ, t' ∈ T_D.image (algebraMap)` and
+`w ∈ Spa(Loc s, ⁺)`:
+
+* `α s_D` non-vanishing at `w`:
+  `¬ w.vle (algebraMap A (Loc s) s_D) 0` — this is **not** auto-derivable
+  from `hστ` in the α_T_D branch (since the strict dominator is `τ`,
+  not `α s_D`), so it is included as part of the bundled residual;
+* the per-`t'` Wedhorn chain through `α s`:
+  `w.vle ((σ_loc : Loc s) * t' * (algebraMap A (Loc s) s_D)^N) (algebraMap A (Loc s) s)`;
+* the σ-power-decay at `α s`:
+  `w.vle (algebraMap A (Loc s) s) ((σ_loc : Loc s) * (algebraMap A (Loc s) s_D)^(N+1))`.
+
+The chain and decay components are τ-independent algebraically (they
+involve only `σ_loc`, `t'`, `α s`, `α s_D`) but the residual is
+τ-indexed for symmetry with `UnfactoredPerTChainBranchAlphaT_D`'s
+per-τ structure: the user may discharge the conjunction at each τ
+independently if needed.
+
+## Why localized Cor 7.32 strict domination is insufficient
+
+Same valuation-orientation considerations as
+`AlphaS_DBranchPerTSigmaPowerDecay`: σ-power-decay requires the
+OPPOSITE orientation to Cor 7.32's σ-strict-domination (per
+`WedhornSigmaPowerDecay.lean:14-22`); discharge requires
+Spa-quasicompactness M-choice for topologically-nilpotent π_loc with
+σ_loc = π_loc^(M+1). Additionally, the α_T_D branch needs explicit
+`α s_D` non-vanishing data since the branch's σ-strict-dominator is
+some `τ ∈ T_D.image`, not `α s_D` itself. -/
+def AlphaT_DBranchPerTSigmaPowerDecay
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  ∀ τ ∈ T_D.image (algebraMap A (Localization.Away s)),
+    ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      ¬ w.vle (algebraMap A (Localization.Away s) s_D) 0 ∧
+      ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+        w.vle ((σ_loc : Localization.Away s) * t' *
+            (algebraMap A (Localization.Away s) s_D) ^ N)
+          (algebraMap A (Localization.Away s) s) ∧
+        w.vle (algebraMap A (Localization.Away s) s)
+          ((σ_loc : Localization.Away s) *
+            (algebraMap A (Localization.Away s) s_D) ^ (N + 1))
+
+omit [PlusSubring A] in
+/-- **`UnfactoredPerTChainBranchAlphaT_D` via the abstract Wedhorn
+algebraic core**. Symmetric counterpart to
+`UnfactoredPerTChainBranchAlphaS_D_via_classical_sigma_decay` for the
+α_T_D branch.
+
+Consumes the bundled `AlphaT_DBranchPerTSigmaPowerDecay` residual
+(carrying per-(τ, w, t') the chain + decay + α s_D non-vanishing) and
+applies the abstract algebraic core `vle_t_D_s_of_sigma_decay_chain_at`
+per `t'` for each branch dominator τ.
+
+Unlike the α_s_D path, α s_D non-vanishing is **not** auto-derived from
+σ-strict-domination here (since the strict dominator is some
+`τ ∈ T_D.image`, not `α s_D`); it is read off the bundled residual.
+
+**Leaves exactly ONE named residual**:
+`AlphaT_DBranchPerTSigmaPowerDecay P T s hopen T_D s_D σ_loc N`. -/
+theorem UnfactoredPerTChainBranchAlphaT_D_via_classical_sigma_decay
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (h_residual :
+      AlphaT_DBranchPerTSigmaPowerDecay P T s hopen T_D s_D σ_loc N) :
+    UnfactoredPerTChainBranchAlphaT_D P T s hopen T_D s_D σ_loc := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro τ hτ_mem w hw_spa _hw_f _hστ t' ht'
+  obtain ⟨hα_s_D_ne, h_per_t⟩ := h_residual τ hτ_mem w hw_spa
+  obtain ⟨h_chain_t', h_C_decay⟩ := h_per_t t' ht'
+  exact vle_t_D_s_of_sigma_decay_chain_at w N hα_s_D_ne h_chain_t' h_C_decay
+
+omit [PlusSubring A] in
+/-- **Top-level honest-supplier wrapper via classical σ-decay residuals
+for both branches**.
+
+Composes the two branch theorems:
+
+* `UnfactoredPerTChainBranchAlphaS_D_via_classical_sigma_decay` for
+  the α_s_D branch (consuming `AlphaS_DBranchPerTSigmaPowerDecay`);
+* `UnfactoredPerTChainBranchAlphaT_D_via_classical_sigma_decay` for
+  the α_T_D branch (consuming `AlphaT_DBranchPerTSigmaPowerDecay`);
+
+with the existing combiners
+`UnfactoredPerTChainTarget_via_branches` and
+`WedhornMPowerStructuralDataHonest_via_unfactored_chain`, producing
+the top-level honest σ-factored structural supplier
+`WedhornMPowerStructuralDataHonest` from the two bundled per-branch
+σ-power-decay residuals (sharing a common Wedhorn N).
+
+**Leaves exactly TWO named residuals** (one per branch of the localized
+canonical test family):
+
+* `AlphaS_DBranchPerTSigmaPowerDecay P T s hopen T_D s_D σ_loc N`
+* `AlphaT_DBranchPerTSigmaPowerDecay P T s hopen T_D s_D σ_loc N`
+
+Both are the genuine Wedhorn 8.34(ii) Route B per-`t'` σ-power-decay
+content; see the per-branch theorems' docstrings for the
+valuation-orientation handoff explaining why localized Cor 7.32
+σ-strict-domination is insufficient. -/
+theorem WedhornMPowerStructuralDataHonest_via_classical_sigma_decay
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (h_α_s_D :
+      AlphaS_DBranchPerTSigmaPowerDecay P T s hopen T_D s_D σ_loc N)
+    (h_α_T_D :
+      AlphaT_DBranchPerTSigmaPowerDecay P T s hopen T_D s_D σ_loc N) :
+    WedhornMPowerStructuralDataHonest P T s hopen T_D s_D σ_loc :=
+  WedhornMPowerStructuralDataHonest_via_unfactored_chain P T s hopen
+    T_D s_D σ_loc
+    (UnfactoredPerTChainTarget_via_branches P T s hopen T_D s_D σ_loc
+      (UnfactoredPerTChainBranchAlphaS_D_via_classical_sigma_decay
+        P T s hopen T_D s_D σ_loc N h_α_s_D)
+      (UnfactoredPerTChainBranchAlphaT_D_via_classical_sigma_decay
+        P T s hopen T_D s_D σ_loc N h_α_T_D))
+
 end ValuationSpectrum
