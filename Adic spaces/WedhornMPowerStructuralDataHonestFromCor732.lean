@@ -563,6 +563,93 @@ theorem AlphaS_DMPowerDecayTarget_via_uniform_decay_and_lower_bound
         (σL * sD ^ imgT.card) := h_decay w hw_spa
   exact w.vle_trans h_decay_at h_prod_mul
 
+/-- **Spa-uniform π-power-decay** — the Cor 7.32-internal, π-power form
+of `AlphaS_DUniformSigmaPowerDecay`. Captures the natural pseudo-
+uniformizer-power output of `Cor732.exists_dominating_unit` (whose
+internal construction sets `s := π^(N+1)` per `Cor732.lean:225`):
+
+`∀ w ∈ Spa, w.vle (algMap s)
+  ((π_loc : Localization.Away s) ^ (M+1) * (algMap s_D) ^ |T_D.image|)`.
+
+The element `π_loc : locSubring P T s` is a member of the localized
+ring of definition `D = A₀[t₁/s, …, tₙ/s]`, definitionally equal to
+`(locPairOfDefinition P T s hopen).A₀`; its image
+`(π_loc : Localization.Away s)` plays the role of the pseudo-
+uniformizer-power-base. The interpretation as a pseudo-uniformizer is
+conveyed by the companion σ-as-π-power equation
+`(σ_loc : Localization.Away s) = (π_loc : Localization.Away s) ^ (M + 1)`
+(see `AlphaS_DUniformSigmaPowerDecay_via_pi_power`).
+
+This is **strictly closer to Cor 7.32** than `AlphaS_DUniformSigmaPowerDecay`
+since it expresses the σ-factor as an explicit pseudo-uniformizer power
+`π_loc^(M+1)`, exposing the σ-as-π-power identification internal to
+Cor 7.32's construction. The genuine Wedhorn 8.34(ii) M-choice content
+is now isolated as the Spa-uniform inequality with `π_loc^(M+1) * s_D^k`
+on the RHS, ready for a Spa-quasicompactness + topological-nilpotence
+discharge in a future ticket. -/
+def AlphaS_DUniformPiPowerDecay
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (π_loc : locSubring P T s) (M : ℕ) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+    w.vle (algebraMap A (Localization.Away s) s)
+      ((π_loc : Localization.Away s) ^ (M + 1) *
+        (algebraMap A (Localization.Away s) s_D) ^
+          (T_D.image (algebraMap A (Localization.Away s))).card)
+
+omit [PlusSubring A] in
+/-- **`AlphaS_DUniformSigmaPowerDecay` via π-power decay + σ-as-π-power
+identification**. Sharper supplier whose remaining assumptions are
+exactly the **exposed Cor 7.32 σ-construction data**:
+
+* `hσ_loc_eq_pow` — σ-as-π-power identification:
+  `(σ_loc : Localization.Away s) = (π_loc : Localization.Away s) ^ (M + 1)`,
+  the σ-construction internal to `Cor732.exists_dominating_unit`
+  (where `s := π^(N+1)` per `Cor732.lean:225`); the natural choice
+  for `π_loc : locSubring P T s` is the lift `algebraMapD P T s π̃` of
+  a global pseudo-uniformizer `π̃ : P.A₀`.
+* `AlphaS_DUniformPiPowerDecay P T s hopen T_D s_D π_loc M` — Spa-uniform
+  M-choice in π-power form, the Spa-quasicompactness +
+  topological-nilpotence input residual.
+
+The π_loc parameter is `locSubring P T s` (which is definitionally
+`(locPairOfDefinition P T s hopen).A₀`); using `locSubring` directly
+keeps the binder type free of `TopologicalSpace`-instance dependencies.
+
+The proof: substitute `(σ_loc : Localization.Away s)` by
+`(π_loc : Localization.Away s) ^ (M + 1)` in the goal via `hσ_loc_eq_pow`,
+then apply the π-power decay residual at `w`. The genuine Cor 7.32
+σ-construction data is now decomposed into the algebraic σ-as-π-power
+equation (internal to Cor 7.32) and the analytic π-power Spa-uniform
+decay (the next-step residual). -/
+theorem AlphaS_DUniformSigmaPowerDecay_via_pi_power
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (π_loc : locSubring P T s) (M : ℕ)
+    (hσ_loc_eq_pow :
+      (σ_loc : Localization.Away s) =
+        (π_loc : Localization.Away s) ^ (M + 1))
+    (h_pi_decay : AlphaS_DUniformPiPowerDecay P T s hopen T_D s_D π_loc M) :
+    AlphaS_DUniformSigmaPowerDecay P T s hopen T_D s_D σ_loc := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro w hw_spa
+  rw [hσ_loc_eq_pow]
+  exact h_pi_decay w hw_spa
+
 /-- **σ-factored α_s_D-branch chain target** — the genuine Wedhorn
 8.34(ii) Route B σ-power-decay residual for the α_s_D branch.
 
