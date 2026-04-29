@@ -322,6 +322,185 @@ def LaurentCoverPresheafLemma833Assembly
       w ∈ R τ) →
     w ∈ R_target)
 
+/-! ### T058 — Discharges of `LaurentCoverPresheafLemma833Assembly`
+
+This section provides reusable discharges of the structured blocker
+`LaurentCoverPresheafLemma833Assembly` named in T057. Two layers:
+
+* **Layer 1**: simple set-theoretic sufficient conditions
+  (`R τ ⊆ R_target`, `⋃ R τ ⊆ R_target`, vacuous and singleton special
+  cases). These are mathlib-style, fully provable, and apply whenever
+  the per-piece RHS embeds straightforwardly into the target.
+
+* **Layer 2**: substantive σ-rescaled image discharge. The Wedhorn
+  8.34(ii) C1 supplier has per-piece RHS `R τ := rationalOpen
+  ({σ⁻¹ * τ}) D_s` whose union does **not** sit inside the target
+  `R(D_T, D_s)` for unrelated `D_T`. The substantive theorem
+  `laurentCoverPresheafLemma833Assembly_via_sigma_rescaled_image` shows
+  that **for the natural target**
+  `R_target := rationalOpen (T_test.image (σ⁻¹ * ·)) D_s`
+  the predicate **is** dischargeable via per-`w` valuation arithmetic
+  (no extra Wedhorn hypotheses needed). This advances the structured
+  blocker into a fully proven theorem at the σ-rescaled image case.
+
+The **single remaining sub-residual** beyond T058 is the alignment of
+the C1 supplier's actual `D_T` (e.g., `localizedTestFamily ...`) with
+the σ-rescaled image `T_test.image (σ⁻¹ * ·)`: when these agree (or are
+related by a subset relation), the C1 supplier's clause 2 is fully
+dischargeable; otherwise an additional alignment lemma is needed. -/
+
+omit [IsTopologicalRing A] in
+/-- **Discharge via uniform per-piece subset of target** (T058 Layer 1
+sufficient condition).
+
+If every per-piece RHS `R τ` is contained in `R_target`, the structured
+blocker `LaurentCoverPresheafLemma833Assembly` holds: the cover gives
+some `τ_0` with `w ∈ V_{τ_0}`; per-piece data gives `w ∈ R τ_0`; the
+subset gives `w ∈ R_target`.
+
+Mathlib-style minimum hypothesis. Not directly applicable to the C1
+supplier specialisation (where per-piece RHS varies with `τ`), but a
+clean reusable building block. -/
+theorem laurentCoverPresheafLemma833Assembly_via_per_piece_target_subset
+    {σ : Aˣ} {T_test : Finset A} {R : A → Set (Spv A)}
+    {R_target : Set (Spv A)}
+    (h_subset : ∀ τ ∈ T_test, R τ ⊆ R_target) :
+    LaurentCoverPresheafLemma833Assembly (σ := σ) T_test R R_target := by
+  intro w _ hw_cover hw_per_piece
+  obtain ⟨τ, hτ_mem, hw_in_V⟩ := hw_cover
+  exact h_subset τ hτ_mem (hw_per_piece τ hτ_mem hw_in_V)
+
+omit [IsTopologicalRing A] in
+/-- **Discharge via union subset of target** (T058 Layer 1 sufficient
+condition, iUnion form).
+
+If `⋃ τ ∈ T_test, R τ ⊆ R_target`, the structured blocker holds. -/
+theorem laurentCoverPresheafLemma833Assembly_via_iUnion_subset
+    {σ : Aˣ} {T_test : Finset A} {R : A → Set (Spv A)}
+    {R_target : Set (Spv A)}
+    (h_subset : (⋃ τ ∈ T_test, R τ) ⊆ R_target) :
+    LaurentCoverPresheafLemma833Assembly (σ := σ) T_test R R_target := by
+  refine laurentCoverPresheafLemma833Assembly_via_per_piece_target_subset ?_
+  intro τ hτ_mem w hw
+  apply h_subset
+  refine Set.mem_iUnion.mpr ⟨τ, ?_⟩
+  exact Set.mem_iUnion.mpr ⟨hτ_mem, hw⟩
+
+omit [IsTopologicalRing A] in
+/-- **Empty-cover discharge** (T058 Layer 1 vacuous case).
+
+When `T_test = ∅`, the cover hypothesis is vacuously false, so the
+structured blocker holds trivially. -/
+theorem laurentCoverPresheafLemma833Assembly_empty
+    {σ : Aˣ} {R : A → Set (Spv A)} {R_target : Set (Spv A)} :
+    LaurentCoverPresheafLemma833Assembly
+      (σ := σ) (∅ : Finset A) R R_target := by
+  intro w _ hw_cover _
+  obtain ⟨τ, hτ_mem, _⟩ := hw_cover
+  exact (Finset.notMem_empty τ hτ_mem).elim
+
+omit [IsTopologicalRing A] in
+/-- **Singleton-cover discharge** (T058 Layer 1 base case).
+
+When `T_test = {τ_0}` is a singleton, the structured blocker reduces to
+`R τ_0 ⊆ R_target` (the only per-piece data available). -/
+theorem laurentCoverPresheafLemma833Assembly_singleton
+    {σ : Aˣ} {R : A → Set (Spv A)} {R_target : Set (Spv A)} (τ_0 : A)
+    (h_subset : R τ_0 ⊆ R_target) :
+    LaurentCoverPresheafLemma833Assembly
+      (σ := σ) ({τ_0} : Finset A) R R_target := by
+  refine laurentCoverPresheafLemma833Assembly_via_per_piece_target_subset ?_
+  intro τ hτ_mem
+  rw [Finset.mem_singleton] at hτ_mem
+  subst hτ_mem
+  exact h_subset
+
+omit [IsTopologicalRing A] in
+/-- **Substantive discharge via σ-rescaled image target** (T058 Layer 2
+main theorem — materially advances the structured blocker).
+
+For the **σ-rescaled image target**
+`R_target := rationalOpen (T_test.image (σ⁻¹ * ·)) D_s`
+and per-piece RHS `R τ := rationalOpen ({σ⁻¹ * τ}) D_s` (the natural
+T056-shape), the structured blocker `LaurentCoverPresheafLemma833Assembly`
+**holds unconditionally** — proven directly via per-`w` valuation
+arithmetic on the σ-rescaled Laurent cover, no auxiliary Wedhorn
+hypotheses required.
+
+**Proof structure**: at any `w ∈ Spa`, the cover gives `τ_0 ∈ T_test`
+with `w ∈ V_{τ_0}` (Laurent piece). Per-piece data at `τ_0` gives
+`w.vle (σ⁻¹ * τ_0) D_s` and `¬ w.vle D_s 0`. The Laurent piece
+membership gives `w.vle 1 (σ⁻¹ * τ_0)`. For each other element
+`σ⁻¹ * τ' ∈ image` (`τ' ∈ T_test`), case-split on whether `w ∈ V_{τ'}`:
+
+* If yes, per-piece data at `τ'` directly gives `w.vle (σ⁻¹ * τ') D_s`.
+* If no, either `w.vle (σ⁻¹ * τ') 0` (then chain through `0 ≤ D_s`) or
+  `¬ w.vle 1 (σ⁻¹ * τ')` (then by Spv totality
+  `w.vle (σ⁻¹ * τ') 1`, chain through
+  `1 ≤ σ⁻¹ * τ_0 ≤ D_s` from the winning piece's data).
+
+**Substantive content** — uses Spv totality (`Spv.vle_total`), Spv
+transitivity (`Spv.vle_trans`), and `ValuativeRel.zero_vle` to bridge
+the per-piece data at the winning τ_0 to per-element bounds at every
+σ-rescaled τ' in the image.
+
+**Why this advances Lemma 8.33's content**: the multi-piece collapse
+asks for a single global RHS `R_target` capturing the per-piece
+data; the σ-rescaled image target is **the natural choice** matching
+the Wedhorn 8.34(ii) construction (the C1 supplier's `f` is
+constructed precisely so that `D_T` becomes the σ-rescaled image of
+the σ-strict-domination test family). Discharging the structured
+blocker for this target is the genuine Lemma 8.33 multi-piece
+collapse content. -/
+theorem laurentCoverPresheafLemma833Assembly_via_sigma_rescaled_image
+    [DecidableEq A]
+    {σ : Aˣ} (T_test : Finset A) (D_s : A) :
+    LaurentCoverPresheafLemma833Assembly (σ := σ) T_test
+      (fun τ => rationalOpen ({((σ⁻¹ : Aˣ) : A) * τ} : Finset A) D_s)
+      (rationalOpen
+        (T_test.image (fun τ => ((σ⁻¹ : Aˣ) : A) * τ)) D_s) := by
+  intro w hw_spa hw_cover hw_per_piece
+  obtain ⟨τ_0, hτ_0_mem, hw_V_τ_0⟩ := hw_cover
+  -- Per-piece data at τ_0 (the cover-winning piece).
+  have hw_R_τ_0 := hw_per_piece τ_0 hτ_0_mem hw_V_τ_0
+  obtain ⟨_, h_per_one_τ_0, _⟩ := hw_V_τ_0
+  have h_one_le_τ_0 : w.vle (1 : A) (((σ⁻¹ : Aˣ) : A) * τ_0) :=
+    h_per_one_τ_0 (1 : A) (Finset.mem_singleton.mpr rfl)
+  obtain ⟨_, h_per_τ_0_D_s, h_D_s_ne⟩ := hw_R_τ_0
+  have h_τ_0_le_D_s : w.vle (((σ⁻¹ : Aˣ) : A) * τ_0) D_s :=
+    h_per_τ_0_D_s _ (Finset.mem_singleton.mpr rfl)
+  refine ⟨hw_spa, ?_, h_D_s_ne⟩
+  intro d hd_image
+  obtain ⟨τ', hτ'_mem, hτ'_eq⟩ := Finset.mem_image.mp hd_image
+  subst hτ'_eq
+  by_cases hτ'_in_V :
+      w ∈ rationalOpen ({(1 : A)} : Finset A)
+        (((σ⁻¹ : Aˣ) : A) * τ')
+  · -- w ∈ V_τ': per-piece data at τ' gives the bound directly.
+    have hw_R_τ' := hw_per_piece τ' hτ'_mem hτ'_in_V
+    exact hw_R_τ'.2.1 _ (Finset.mem_singleton.mpr rfl)
+  · -- w ∉ V_τ': split on `w.vle (σ⁻¹ * τ') 0`.
+    by_cases h_τ'_zero : w.vle (((σ⁻¹ : Aˣ) : A) * τ') 0
+    · -- Chain σ⁻¹ * τ' ≤ 0 ≤ D_s.
+      letI : ValuativeRel A := w.toValuativeRel
+      exact w.vle_trans h_τ'_zero (ValuativeRel.zero_vle D_s)
+    · -- ¬ w.vle (σ⁻¹ * τ') 0 ⇒ must have ¬ w.vle 1 (σ⁻¹ * τ')
+      -- (else w would lie in V_τ', contradicting `hτ'_in_V`).
+      have h_not_one_le : ¬ w.vle (1 : A) (((σ⁻¹ : Aˣ) : A) * τ') := by
+        intro h
+        apply hτ'_in_V
+        refine ⟨hw_spa, ?_, h_τ'_zero⟩
+        intro t ht
+        rw [Finset.mem_singleton] at ht
+        subst ht
+        exact h
+      -- By Spv totality, w.vle (σ⁻¹ * τ') 1; chain through τ_0.
+      have h_τ'_le_one : w.vle (((σ⁻¹ : Aˣ) : A) * τ') (1 : A) :=
+        (w.vle_total (1 : A)
+          (((σ⁻¹ : Aˣ) : A) * τ')).resolve_left h_not_one_le
+      exact w.vle_trans (w.vle_trans h_τ'_le_one h_one_le_τ_0)
+        h_τ_0_le_D_s
+
 omit [IsTopologicalRing A] in
 /-- **`⋃`-form covering implies single-target covering under
 Lemma 8.33 collapse** (T057 substantive bridge to single-subset form).
@@ -445,5 +624,87 @@ theorem rationalOpen_global_subset_via_lemma833_assembly
     (fun τ => rationalOpen ({((σ⁻¹ : Aˣ) : A) * τ} : Finset A) D_s)
     (rationalOpen D_T D_s) h_lemma833 h_source_subset_spa
     h_cover h_per_piece_at_w
+
+omit [IsTopologicalRing A] in
+/-- **Unconditional global subset for the σ-rescaled image target**
+(T058 fully discharged consumer for the natural σ-rescaled image case).
+
+Specialisation of `rationalOpen_global_subset_via_lemma833_assembly` to
+the σ-rescaled image target
+`D_T := T_test.image (σ⁻¹ * ·)`. Discharges
+`LaurentCoverPresheafLemma833Assembly` automatically via
+`laurentCoverPresheafLemma833Assembly_via_sigma_rescaled_image`,
+yielding a clean result: from per-piece subsets + the σ-rescaled
+Laurent cover hypothesis alone (no external Lemma 8.33 input
+required), derive
+`rationalOpen (insert f T_base) s ⊆ rationalOpen
+  (T_test.image (σ⁻¹ * ·)) D_s`.
+
+**This is the natural Wedhorn 8.34(ii) C1 supplier clause 2 conclusion**
+when the C1 supplier's `D_T` is itself the σ-rescaled image of the
+σ-strict-dom test family — the case directly produced by the Wedhorn
+construction (see Wedhorn pp. 81–85). For the case where the C1
+supplier's `D_T` differs from the σ-rescaled image, an additional
+alignment subset relation `D_T ⊆ T_test.image (σ⁻¹ * ·)` (or the
+reverse, depending on direction) bridges the gap. -/
+theorem rationalOpen_global_subset_via_sigma_rescaled_image
+    [DecidableEq A]
+    {σ : Aˣ} (T_test : Finset A) (T_base : Finset A) (s D_s f : A)
+    (h_per_piece_subset :
+      ∀ τ ∈ T_test,
+        rationalOpen (insert f T_base) s ∩
+            rationalOpen ({(1 : A)} : Finset A) (((σ⁻¹ : Aˣ) : A) * τ) ⊆
+          rationalOpen ({((σ⁻¹ : Aˣ) : A) * τ} : Finset A) D_s)
+    (h_cover :
+      ∀ w ∈ rationalOpen (insert f T_base) s, ∃ τ ∈ T_test,
+        w ∈ rationalOpen ({(1 : A)} : Finset A) (((σ⁻¹ : Aˣ) : A) * τ)) :
+    rationalOpen (insert f T_base) s ⊆
+      rationalOpen
+        (T_test.image (fun τ => ((σ⁻¹ : Aˣ) : A) * τ)) D_s :=
+  rationalOpen_global_subset_via_lemma833_assembly T_test T_base
+    (T_test.image (fun τ => ((σ⁻¹ : Aˣ) : A) * τ)) s D_s f
+    (laurentCoverPresheafLemma833Assembly_via_sigma_rescaled_image
+      T_test D_s)
+    h_per_piece_subset h_cover
+
+omit [IsTopologicalRing A] in
+/-- **Unconditional global subset via T054's `MultiPieceLaurentCoverRefinementOutput`**
+(T058 fully closed consumer with cover hypothesis discharged from T054).
+
+Combines `rationalOpen_global_subset_via_sigma_rescaled_image` with
+T054's `MultiPieceLaurentCoverRefinementOutput`-derived cover hypothesis:
+takes only T054's refinement output + per-piece subsets, no external
+cover or Lemma 8.33 input required.
+
+This is the **end-to-end consumer** showing that the Wedhorn 8.34(ii)
+C1 supplier clause 2 conclusion (`R(insert f T_base, s) ⊆ R(image,
+D_s)`) follows from:
+
+* Cor 7.32 σ-strict-domination output (which gives
+  `MultiPieceLaurentCoverRefinementOutput` via T054), and
+* per-piece subsets on each σ-rescaled Laurent piece (which T056's
+  `per_piece_singleton_subset_via_laurent_membership` supplies),
+
+with **no remaining structural blocker** for the σ-rescaled image
+target. -/
+theorem rationalOpen_global_subset_via_t054_refinement
+    [DecidableEq A]
+    {σ : Aˣ} {T_test : Finset A} (T_base : Finset A) (s D_s f : A)
+    (h_refinement :
+      MultiPieceLaurentCoverRefinementOutput (σ := σ) T_test)
+    (h_per_piece_subset :
+      ∀ τ ∈ T_test,
+        rationalOpen (insert f T_base) s ∩
+            rationalOpen ({(1 : A)} : Finset A) (((σ⁻¹ : Aˣ) : A) * τ) ⊆
+          rationalOpen ({((σ⁻¹ : Aˣ) : A) * τ} : Finset A) D_s) :
+    rationalOpen (insert f T_base) s ⊆
+      rationalOpen
+        (T_test.image (fun τ => ((σ⁻¹ : Aˣ) : A) * τ)) D_s := by
+  refine rationalOpen_global_subset_via_sigma_rescaled_image T_test T_base
+    s D_s f h_per_piece_subset ?_
+  intro w hw_source
+  have hw_spa : w ∈ Spa A A⁺ := rationalOpen_subset_spa hw_source
+  obtain ⟨τ, hτ_mem, hw_piece, _⟩ := h_refinement w hw_spa
+  exact ⟨τ, hτ_mem, hw_piece⟩
 
 end ValuationSpectrum
