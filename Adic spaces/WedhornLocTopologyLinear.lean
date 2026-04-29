@@ -1232,4 +1232,168 @@ theorem Jfull_pow_shift_inter_le_pow_mul [IsNoetherianRing A]
   have h := hk (n + k₀) hge
   rwa [show n + k₀ - k₀ = n by omega] at h
 
+/-! ## Public denominator-shift / iterated `divByS 1 s` lemmas (T095)
+
+Public reusable variants of `LocalizationTopology.locNhd_invS_mem` and
+`LocalizationTopology.locNhd_invS_step` (both `private` in the source
+file). Multiplying by `divByS 1 s` (the inverse of `algebraMap s` in
+`Localization.Away s`) drops `locNhd P T s` depth by `N`, where `N` is
+the "open-ideal" exponent from `hopen` (i.e., `∀ b : P.A₀, b ∈ P.I^N
+→ divByS (b : A) s ∈ locSubring P T s`).
+
+These public versions, plus the iterated power form, are what
+Primary's T089 cross-localization assembly consumes when threading
+target-side `divByS 1 D₀.s` factors back through the kernel-filtration
+arguments.
+
+**Deliverables**:
+
+* `locNhd_invS_mem_of_hopen` — public reproof of
+  `LocalizationTopology.locNhd_invS_mem`.
+
+* `locNhd_invS_step_of_hopen` — public reproof of
+  `LocalizationTopology.locNhd_invS_step`. One-step depth-shift:
+  `y ∈ locNhd P T s (n + N) → divByS 1 s * y ∈ locNhd P T s n`.
+
+* `locNhd_invS_pow_step_of_hopen` — iterated power form: for any
+  `k : ℕ`, `y ∈ locNhd P T s (n + k * N) → (divByS 1 s)^k * y ∈
+  locNhd P T s n`. Proven by induction on `k` using
+  `locNhd_invS_step_of_hopen` at each level.
+
+**Consumer instantiation (T089)**: Primary instantiates `(P, T, s) :=
+(D₀.P, D₀.T, D₀.s)`. The `hN` hypothesis is exactly Primary's
+`D₀.hopen` (existential `∃ N, ...`), which gives the witness `(N,
+hN)` directly via `obtain ⟨N, hN⟩ := D₀.hopen`. Apply
+`locNhd_invS_pow_step_of_hopen D₀.P D₀.T D₀.s N hN n k hy` to clear
+`k` factors of `divByS 1 D₀.s` from a depth-`(n + k*N)` `locNhd`
+element. -/
+
+omit [IsTopologicalRing A] in
+/-- **Public reproof of `locNhd_invS_mem`** (T095 reusable primitive).
+
+Multiplying `divByS 1 s` by an element of `locIdeal P T s ^ N` (viewed
+in `Localization.Away s` via the subtype embedding) lands back in
+`locSubring P T s`. The hypothesis `hN : ∀ b : P.A₀, b ∈ P.I ^ N →
+divByS (b : A) s ∈ locSubring P T s` is the standard "open-ideal"
+witness from `D.hopen` in the Wedhorn setup.
+
+**Mathematical content**: by `Submodule.span_induction` on the ideal-
+power, reduce to the base case `algebraMap b` for `b ∈ P.I^N`. There
+`divByS 1 s * algebraMap b = divByS b s ∈ locSubring P T s` directly
+from `hN`. Closure under sum and `locSubring`-multiplication is
+automatic.
+
+**Use**: building block for `locNhd_invS_step_of_hopen` and its
+iterated form. -/
+theorem locNhd_invS_mem_of_hopen
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (N : ℕ) (hN : ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    {d : locSubring P T s} (hd : d ∈ locIdeal P T s ^ N) :
+    divByS 1 s * ↑d ∈ locSubring P T s := by
+  rw [locIdeal, ← Ideal.map_pow, ← Ideal.span_eq (P.I ^ N),
+    Ideal.map_span] at hd
+  refine Submodule.span_induction
+    (p := fun d _ ↦ divByS 1 s * ↑d ∈ locSubring P T s)
+    ?_ ?_ ?_ ?_ hd
+  · rintro d ⟨b, hb, rfl⟩
+    change divByS 1 s * algebraMap A _ ↑b ∈ _
+    rw [show divByS 1 s * algebraMap A (Localization.Away s) ↑b =
+        divByS (↑b) s from by
+      unfold divByS
+      rw [← IsLocalization.mk'_one (M := Submonoid.powers s)
+            (S := Localization.Away s) (↑b : A),
+          ← IsLocalization.mk'_mul, one_mul, mul_one]]
+    exact hN b hb
+  · simp [(locSubring P T s).zero_mem]
+  · intro d1 d2 _ _ h1 h2
+    simp only [AddMemClass.coe_add, mul_add]
+    exact (locSubring P T s).add_mem h1 h2
+  · intro r d1 _ h1
+    rw [show (↑(r • d1) : Localization.Away s) = ↑r * ↑d1 from
+        MulMemClass.coe_mul .., mul_left_comm]
+    exact (locSubring P T s).mul_mem r.property h1
+
+omit [IsTopologicalRing A] in
+/-- **Public reproof of `locNhd_invS_step` (one-step depth-shift)**
+(T095 ticket-named theorem).
+
+If `y ∈ locNhd P T s (n + N)`, then `divByS 1 s * y ∈ locNhd P T s n`.
+Multiplication by `divByS 1 s` (the inverse of `algebraMap s` in
+`Localization.Away s`) drops `locNhd` depth by `N`.
+
+**Mathematical content**: from `y = (d : Loc)` for `d ∈ locIdeal^(n+N)`
+and the factorisation `locIdeal^(n+N) = locIdeal^N * locIdeal^n`,
+apply `Submodule.mul_induction_on` to reduce to the base case `y =
+(a : Loc) * (b : Loc)` with `a ∈ locIdeal^N`, `b ∈ locIdeal^n`. Then
+`divByS 1 s * y = (divByS 1 s * a) * b`. By `locNhd_invS_mem_of_hopen`,
+`divByS 1 s * a ∈ locSubring`. Hence `(divByS 1 s * a) * b ∈
+locSubring * locIdeal^n ⊆ locIdeal^n` (image in Loc = `locNhd n`).
+
+**Use**: Primary's basis-form residual uses this to translate
+target-side `divByS 1 D₀.s` factors into source-side `locNhd`-depth
+shifts when assembling a representative `b ∈ locNhd D₀ n` from a
+target-depth element. -/
+theorem locNhd_invS_step_of_hopen
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (N : ℕ) (hN : ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (n : ℕ) (y : Localization.Away s)
+    (hy : y ∈ locNhd P T s (n + N)) :
+    divByS 1 s * y ∈ locNhd P T s n := by
+  obtain ⟨d, hd, rfl⟩ := hy
+  change divByS 1 s * (d : Localization.Away s) ∈ locNhd P T s n
+  rw [Nat.add_comm, pow_add] at hd
+  refine Submodule.mul_induction_on hd ?_ ?_
+  · intro a ha b hb
+    change divByS 1 s * ((a : Localization.Away s) * b) ∈ locNhd P T s n
+    rw [← mul_assoc]
+    exact ⟨⟨divByS 1 s * (a : Localization.Away s),
+      locNhd_invS_mem_of_hopen P T s N hN ha⟩ * b,
+      Ideal.mul_mem_left _ _ hb, MulMemClass.coe_mul ..⟩
+  · intro y1 y2 h1 h2
+    simp only [AddMemClass.coe_add, mul_add]
+    exact (locNhd P T s n).add_mem h1 h2
+
+omit [IsTopologicalRing A] in
+/-- **Iterated denominator-shift `(divByS 1 s)^k * y ∈ locNhd P T s n`**
+(T095 strong general theorem — iterated form).
+
+For any `k : ℕ`, multiplying by the `k`-th power of `divByS 1 s` drops
+`locNhd P T s` depth by `k * N`: if `y ∈ locNhd P T s (n + k * N)`,
+then `(divByS 1 s)^k * y ∈ locNhd P T s n`.
+
+**Proof**: induction on `k` using `locNhd_invS_step_of_hopen` at each
+step. The base case `k = 0` is `y ∈ locNhd n → 1 * y = y ∈ locNhd n`.
+The inductive step factors `(divByS 1 s)^(k+1) * y = (divByS 1 s)^k *
+(divByS 1 s * y)` and applies the IH to `divByS 1 s * y ∈ locNhd
+(n + k*N)` (provided by the one-step shift on
+`y ∈ locNhd (n + (k+1)*N) = locNhd ((n + k*N) + N)`).
+
+**Use**: Primary's basis-form residual can clear arbitrary powers of
+`divByS 1 D₀.s` from a depth-`(n + k*N)` `locNhd`-element in one
+shot. The target depth `n + k*N` parametrises the natural source-depth
+shift required when threading T092's denominator-lifting identity
+through the cross-localization assembly. -/
+theorem locNhd_invS_pow_step_of_hopen
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (N : ℕ) (hN : ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (n k : ℕ) {y : Localization.Away s}
+    (hy : y ∈ locNhd P T s (n + k * N)) :
+    (divByS 1 s) ^ k * y ∈ locNhd P T s n := by
+  induction k generalizing y with
+  | zero =>
+    rw [pow_zero, one_mul]
+    rwa [show n + 0 * N = n by omega] at hy
+  | succ k IH =>
+    have hy' : y ∈ locNhd P T s ((n + k * N) + N) := by
+      rwa [show n + (k + 1) * N = (n + k * N) + N by ring] at hy
+    have h_step : divByS 1 s * y ∈ locNhd P T s (n + k * N) :=
+      locNhd_invS_step_of_hopen P T s N hN (n + k * N) y hy'
+    have h_IH : (divByS 1 s) ^ k * (divByS 1 s * y) ∈ locNhd P T s n :=
+      IH h_step
+    rw [pow_succ, mul_assoc]
+    exact h_IH
+
 end ValuationSpectrum
