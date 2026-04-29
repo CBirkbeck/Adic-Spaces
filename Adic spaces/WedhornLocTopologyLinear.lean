@@ -1396,4 +1396,116 @@ theorem locNhd_invS_pow_step_of_hopen
     rw [pow_succ, mul_assoc]
     exact h_IH
 
+/-! ## Public `algebraMap` multiplication depth-shift lemmas (T096)
+
+Public reusable variants of `LocalizationTopology.locNhd_algMap_step`
+(`private` in the source file). Multiplication by `algebraMap A
+(Localization.Away s) a` (for `a : A`) shifts `locNhd P T s` depth by
+some `j` depending on `a`. `LocalizationTopology` already publicly
+proves `locNhd_leftMul` (the general left-multiplication-by-any-`x`
+shift); this section provides the algebraMap-specialised public form
+that matches Primary's basis-form residual usage shape.
+
+These lemmas, plus T095's iterated `divByS 1 s` shift, are exactly the
+algebraic moves needed by Primary's T089 cross-localization assembly
+when threading T092's inverse formula
+`(algebraMap s_0)⁻¹ = algebraMap e * (divByS 1 s)^N` through `locNhd`
+filtrations.
+
+**Deliverables**:
+
+* `locNhd_algMap_mul_step_of_hopen` — public reproof equivalent to
+  `LocalizationTopology.locNhd_algMap_step`: for any `a : A` and
+  target depth `i`, there exists a source depth `j` such that for
+  all `y ∈ locNhd P T s j`, `algebraMap a * y ∈ locNhd P T s i`.
+  Wraps the existing public `locNhd_leftMul` specialised to
+  `x := algebraMap a`.
+
+* `locNhd_algMap_mul_invS_pow_step_of_hopen` — combined form: for any
+  `a : A`, target depth `i`, and number of `divByS 1 s`-factors `k`,
+  there exists a source depth `j` such that for all `y ∈ locNhd P T s
+  (j + k * N)`, `algebraMap a * (divByS 1 s)^k * y ∈ locNhd P T s i`.
+  Combines `locNhd_algMap_mul_step_of_hopen` with T095's
+  `locNhd_invS_pow_step_of_hopen`. The exact algebraic shape Primary
+  needs for T092's `(algebraMap s_0)⁻¹ = algebraMap e * (divByS 1
+  s)^N` inverse formula. -/
+
+/-- **Public reproof of `locNhd_algMap_step`** (T096 ticket-named
+theorem).
+
+For any `a : A` and target depth `i`, there exists a source depth `j`
+such that for all `y ∈ locNhd P T s j`,
+`algebraMap A (Localization.Away s) a * y ∈ locNhd P T s i`.
+
+**Mathematical content**: direct specialisation of the existing public
+`locNhd_leftMul` (`Adic spaces/LocalizationTopology.lean:222`) at
+`x := algebraMap A (Localization.Away s) a`. The `locNhd_leftMul`
+theorem provides the general left-multiplication-by-any-`x` shift; this
+form repackages it for the algebraMap case as a clean
+∀-quantified version (matching the private `locNhd_algMap_step`'s
+shape).
+
+**Use**: Primary's T089 assembly applies this with `a := e_rad` (the
+radical-relation witness) to control the `algebraMap e_rad` factor in
+T092's inverse formula `algebraMap e_rad * (divByS 1 D.s)^{N_rad}`. -/
+theorem locNhd_algMap_mul_step_of_hopen
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (i : ℕ) (a : A) :
+    ∃ j : ℕ, ∀ y ∈ locNhd P T s j,
+      algebraMap A (Localization.Away s) a * y ∈ locNhd P T s i := by
+  obtain ⟨j, hj⟩ :=
+    locNhd_leftMul P T s hopen
+      (algebraMap A (Localization.Away s) a) i
+  exact ⟨j, fun y hy => hj hy⟩
+
+/-- **Iterated multiplication-and-divByS-power shift** (T096 strong
+combined theorem).
+
+Combines T096's `locNhd_algMap_mul_step_of_hopen` with T095's
+`locNhd_invS_pow_step_of_hopen` into the single algebraic move Primary's
+T089 cross-localization assembly needs when threading T092's inverse
+formula `(algebraMap s_0)⁻¹ = algebraMap e * (divByS 1 s)^N` through
+the `locNhd` filtration.
+
+For any `a : A`, target depth `i`, and number of `divByS 1 s`-factors
+`k : ℕ`, given the open-ideal exponent witness `(N, hN)` from `hopen`,
+there exists a source depth `j` such that for all `y ∈ locNhd P T s
+(j + k * N)`,
+
+```
+algebraMap a * (divByS 1 s)^k * y ∈ locNhd P T s i.
+```
+
+**Mathematical content**: factor the multiplication as `(algebraMap a)
+* ((divByS 1 s)^k * y)`. Apply T095's iterated divByS-shift to push
+`(divByS 1 s)^k * y` from depth `j + k*N` down to depth `j`. Apply
+T096's algebraMap-shift to push `algebraMap a * (depth-`j` element)`
+down to depth `i`.
+
+**Use**: instantiated with `a := e_rad`, `k := N_rad`,
+`(N, hN)` from `D₀.hopen`, this is the exact composed shift Primary
+applies to translate target-side `locNhd D m` membership of `locLift
+a` (multiplied by the inverse formula factors) back to source-side
+`locNhd D₀ n` membership. -/
+theorem locNhd_algMap_mul_invS_pow_step_of_hopen
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (N : ℕ) (hN : ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (i : ℕ) (a : A) (k : ℕ) :
+    ∃ j : ℕ, ∀ y ∈ locNhd P T s (j + k * N),
+      algebraMap A (Localization.Away s) a * (divByS 1 s) ^ k * y ∈
+        locNhd P T s i := by
+  obtain ⟨j, hj⟩ :=
+    locNhd_algMap_mul_step_of_hopen P T s ⟨N, hN⟩ i a
+  refine ⟨j, fun y hy => ?_⟩
+  have h_step : (divByS 1 s) ^ k * y ∈ locNhd P T s j :=
+    locNhd_invS_pow_step_of_hopen P T s N hN j k hy
+  have h_algMap :
+      algebraMap A (Localization.Away s) a * ((divByS 1 s) ^ k * y) ∈
+        locNhd P T s i :=
+    hj _ h_step
+  rwa [← mul_assoc] at h_algMap
+
 end ValuationSpectrum
