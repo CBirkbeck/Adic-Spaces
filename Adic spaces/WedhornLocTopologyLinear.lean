@@ -2097,4 +2097,182 @@ theorem locNhd_exists_decomp_of_preimage_subset_sup_ker
       b ∈ locNhd P T s n ∧ k ∈ f.toAddMonoidHom.ker ∧ a = b + k :=
   locNhd_exists_decomp_of_mem_sup_ker P T s n f (hpre a hfa)
 
+/-! ## RingHom-kernel decomposition wrappers and form bridges (T102)
+
+T101 returns kernel elements `k ∈ f.toAddMonoidHom.ker` (the
+AddSubgroup form). Primary's T089 hard-lemma interface uses the
+**Ideal-level** kernel `RingHom.ker f`. Both are propositionally
+equivalent (`k ∈ ker ↔ f k = 0` either way), but the type-level
+distinction means callers need a bridge.
+
+This section provides:
+
+* **RingHom-kernel decomposition wrappers** — direct variants of T101
+  returning `k ∈ RingHom.ker f` (Ideal-level) instead of
+  `k ∈ f.toAddMonoidHom.ker` (AddSubgroup-level).
+
+* **Form bridges (iff)** — equivalence between two natural shapes for
+  Primary's T089 hard lemma:
+  - membership form: `∀ a, f a ∈ W → a ∈ U ⊔ f.toAddMonoidHom.ker`,
+  - small-representative form: `∀ a, f a ∈ W → ∃ b ∈ U, f b = f a`.
+  The reverse direction `small-repr → membership` uses `k := a - b`,
+  proves `f k = 0` from `f b = f a`, and repackages.
+
+These let the T089 consumer pick whichever form is most convenient
+without extra boilerplate. -/
+
+omit [IsTopologicalRing A] in
+/-- **Explicit `b + k` decomposition with `RingHom.ker`-witness** (T102
+RingHom variant).
+
+For any RingHom `f : R →+* S` between rings (with `R` a Ring giving
+AddCommGroup) and AddSubgroup `U ≤ R`, if `a ∈ U ⊔
+f.toAddMonoidHom.ker`, then there exist `b, k : R` with `b ∈ U`,
+`k ∈ RingHom.ker f`, and `a = b + k`.
+
+The kernel witness here is in **Ideal form** (`RingHom.ker f`), the
+shape Primary's T089 interface uses, rather than the AddSubgroup form
+of T101. -/
+theorem RingHom.exists_decomp_of_mem_sup_ker
+    {R S : Type*} [Ring R] [Ring S] (f : R →+* S) (U : AddSubgroup R)
+    {a : R} (ha : a ∈ U ⊔ f.toAddMonoidHom.ker) :
+    ∃ b k : R, b ∈ U ∧ k ∈ RingHom.ker f ∧ a = b + k := by
+  obtain ⟨b, k, hb, hk, hbk⟩ :=
+    AddSubgroup.exists_decomp_of_mem_sup_ker f.toAddMonoidHom U ha
+  exact ⟨b, k, hb, RingHom.mem_ker.mpr (AddMonoidHom.mem_ker.mp hk), hbk⟩
+
+omit [IsTopologicalRing A] in
+/-- **Preimage-subset → explicit decomposition with `RingHom.ker`-witness**
+(T102 RingHom preimage variant).
+
+For any RingHom `f : R →+* S`, AddSubgroup `U ≤ R`, target set `W ⊆ S`,
+and preimage-subset hypothesis `hpre : ∀ a, f a ∈ W → a ∈ U ⊔
+f.toAddMonoidHom.ker`, every `a` with `f a ∈ W` admits explicit
+decomposition `a = b + k` with `b ∈ U` and **`k ∈ RingHom.ker f`**. -/
+theorem RingHom.exists_decomp_of_preimage_subset_sup_ker
+    {R S : Type*} [Ring R] [Ring S] (f : R →+* S) (U : AddSubgroup R)
+    (W : Set S)
+    (hpre : ∀ a : R, f a ∈ W → a ∈ U ⊔ f.toAddMonoidHom.ker)
+    {a : R} (hfa : f a ∈ W) :
+    ∃ b k : R, b ∈ U ∧ k ∈ RingHom.ker f ∧ a = b + k :=
+  RingHom.exists_decomp_of_mem_sup_ker f U (hpre a hfa)
+
+omit [IsTopologicalRing A] in
+/-- **`locNhd` explicit decomposition with `RingHom.ker`-witness**
+(T102 locNhd-specialised, membership form).
+
+For `f : Localization.Away s →+* S`, source `locNhd` depth `n`, if
+`a ∈ locNhd P T s n ⊔ f.toAddMonoidHom.ker`, then there exist `b, k :
+Localization.Away s` with `b ∈ locNhd P T s n`, `k ∈ RingHom.ker f`,
+and `a = b + k`. Returns the kernel element directly in `RingHom.ker
+f` form. -/
+theorem locNhd_exists_decomp_of_mem_sup_ker_ringHom
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (n : ℕ)
+    {S : Type*} [Ring S] (f : Localization.Away s →+* S)
+    {a : Localization.Away s}
+    (ha : a ∈ locNhd P T s n ⊔ f.toAddMonoidHom.ker) :
+    ∃ b k : Localization.Away s,
+      b ∈ locNhd P T s n ∧ k ∈ RingHom.ker f ∧ a = b + k :=
+  RingHom.exists_decomp_of_mem_sup_ker f (locNhd P T s n) ha
+
+omit [IsTopologicalRing A] in
+/-- **`locNhd` preimage-subset → explicit decomposition with
+`RingHom.ker`-witness** (T102 ticket-named theorem; the exact shape
+Primary's `cross_localization_preimage_in_sum` consumes).
+
+For `f : Localization.Away s →+* S`, source `locNhd` depth `n`, target
+set `W ⊆ S`, and preimage-subset hypothesis `hpre : ∀ a, f a ∈ W →
+a ∈ locNhd P T s n ⊔ f.toAddMonoidHom.ker`, every `a` with `f a ∈ W`
+admits explicit decomposition `a = b + k` with `b ∈ locNhd P T s n`
+and `k ∈ RingHom.ker f`.
+
+**Consumer usage** (T089, one-line):
+```
+obtain ⟨b, k, hb, hk, hbk⟩ :=
+  locNhd_exists_decomp_of_preimage_subset_sup_ker_ringHom D₀.P D₀.T
+    D₀.s n (locLift D₀ D h) W hpre hfa
+```
+where `hpre : ∀ a, locLift D₀ D h a ∈ W → a ∈ locNhd D₀.P D₀.T D₀.s n
+⊔ (locLift D₀ D h).toAddMonoidHom.ker`, `hfa : locLift D₀ D h a ∈ W`,
+and `W := locNhd D.P D.T D.s m`. Result: `b ∈ locNhd D₀.P D₀.T D₀.s
+n` (source-small), `k ∈ RingHom.ker (locLift D₀ D h)` (Ideal-form
+kernel element), `a = b + k`. Lets Primary skip the local conversion
+from `toAddMonoidHom.ker` to `RingHom.ker`. -/
+theorem locNhd_exists_decomp_of_preimage_subset_sup_ker_ringHom
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (n : ℕ)
+    {S : Type*} [Ring S] (f : Localization.Away s →+* S)
+    (W : Set S)
+    (hpre : ∀ a : Localization.Away s, f a ∈ W →
+      a ∈ locNhd P T s n ⊔ f.toAddMonoidHom.ker)
+    {a : Localization.Away s} (hfa : f a ∈ W) :
+    ∃ b k : Localization.Away s,
+      b ∈ locNhd P T s n ∧ k ∈ RingHom.ker f ∧ a = b + k :=
+  locNhd_exists_decomp_of_mem_sup_ker_ringHom P T s n f (hpre a hfa)
+
+omit [IsTopologicalRing A] in
+/-- **Iff bridge: `mem_sup_ker ↔ ∃ small representative`** (T102 bridge,
+generic AddMonoidHom form).
+
+For any AddMonoidHom `f : G →+ H` between AddCommGroups and
+AddSubgroup `U ≤ G`, the membership `a ∈ U ⊔ f.ker` is equivalent to
+the existence of a small representative `b ∈ U` with `f b = f a`.
+
+**Forward direction** (`mem_sup_ker → ∃ small repr`): T099's
+`AddSubgroup.exists_mem_of_mem_sup_ker`.
+**Reverse direction** (`∃ small repr → mem_sup_ker`): take `k := a -
+b`; `f k = f a - f b = 0` (from `f b = f a`), so `k ∈ f.ker`; and `a
+= b + (a - b)` by `abel`. -/
+theorem AddSubgroup.mem_sup_ker_iff_exists_small_repr
+    {G H : Type*} [AddCommGroup G] [AddCommGroup H]
+    (f : G →+ H) (U : AddSubgroup G) (a : G) :
+    a ∈ U ⊔ f.ker ↔ ∃ b ∈ U, f b = f a := by
+  refine ⟨AddSubgroup.exists_mem_of_mem_sup_ker f U, ?_⟩
+  rintro ⟨b, hb, hfb⟩
+  rw [AddSubgroup.mem_sup']
+  have hk : a - b ∈ f.ker := by
+    rw [AddMonoidHom.mem_ker, map_sub, hfb, sub_self]
+  exact ⟨⟨b, hb⟩, ⟨a - b, hk⟩, by simp [add_sub_cancel]⟩
+
+omit [IsTopologicalRing A] in
+/-- **Iff bridge: preimage-subset form ↔ small-representative form**
+(T102 bridge, generic AddMonoidHom preimage form).
+
+For any AddMonoidHom `f : G →+ H` between AddCommGroups, AddSubgroup
+`U ≤ G`, and target set `W ⊆ H`, the preimage-subset statement
+`∀ a, f a ∈ W → a ∈ U ⊔ f.ker` is equivalent to the per-`a` small-
+representative statement `∀ a, f a ∈ W → ∃ b ∈ U, f b = f a`.
+
+Direct ∀-quantification of `mem_sup_ker_iff_exists_small_repr`. -/
+theorem AddSubgroup.preimage_subset_sup_ker_iff_small_repr
+    {G H : Type*} [AddCommGroup G] [AddCommGroup H]
+    (f : G →+ H) (U : AddSubgroup G) (W : Set H) :
+    (∀ a : G, f a ∈ W → a ∈ U ⊔ f.ker) ↔
+      (∀ a : G, f a ∈ W → ∃ b ∈ U, f b = f a) := by
+  refine forall_congr' (fun a => ?_)
+  refine imp_congr_right (fun _ => ?_)
+  exact AddSubgroup.mem_sup_ker_iff_exists_small_repr f U a
+
+omit [IsTopologicalRing A] in
+/-- **Iff bridge for `locNhd`: preimage-subset ↔ small-representative**
+(T102 locNhd-specialised bridge).
+
+For `f : Localization.Away s →+* S`, source `locNhd` depth `n`, and
+target set `W ⊆ S`, the preimage-subset form
+`∀ a, f a ∈ W → a ∈ locNhd P T s n ⊔ f.toAddMonoidHom.ker` is
+equivalent to the small-representative form
+`∀ a, f a ∈ W → ∃ b ∈ locNhd P T s n, f b = f a`.
+
+Lets Primary's T089 hard-lemma interface use whichever shape is
+cleaner; both are equivalent. -/
+theorem locNhd_preimage_subset_sup_ker_iff_small_repr
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (n : ℕ)
+    {S : Type*} [Ring S] (f : Localization.Away s →+* S)
+    (W : Set S) :
+    (∀ a : Localization.Away s, f a ∈ W →
+        a ∈ locNhd P T s n ⊔ f.toAddMonoidHom.ker) ↔
+      (∀ a : Localization.Away s, f a ∈ W →
+        ∃ b ∈ locNhd P T s n, f b = f a) :=
+  AddSubgroup.preimage_subset_sup_ker_iff_small_repr f.toAddMonoidHom
+    (locNhd P T s n) W
+
 end ValuationSpectrum
