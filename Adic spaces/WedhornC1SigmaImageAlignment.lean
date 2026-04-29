@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».WedhornPerPieceLaurentCoverAssembly
+import «Adic spaces».WedhornLocalCompatFromTestFamily
 
 /-!
 # Wedhorn 8.34(ii) — C1 D_T ↔ σ-rescaled image alignment (T062)
@@ -64,6 +65,33 @@ data over `D_T`, no σ-rescaling needed.
   cover data over `D_T` (per-piece subsets `R(insert f, s) ∩ R({1}, t)
   ⊆ R({t}, D_s)` and a Laurent cover `∀ w, ∃ t ∈ D_T, w ∈ R({1}, t)`)
   — no σ-rescaling visible in the user-facing statement.
+
+* `localizedTestFamily_sigma_rescaled_image_bridge` — abstract version
+  of the bridge phrased over `D_T_loc : Finset A` (no `localizedTestFamily`
+  reference); kept as a thin alias for callers operating on a generic
+  ambient ring.
+
+* `image_sigma_image_sigma_inv_localizedTestFamily` —
+  σ-shift cancellation specialised to
+  `localizedTestFamily s T_D s_D`: the supplier-natural choice
+  `T_test := (localizedTestFamily s T_D s_D).image (σ_loc * ·)` makes
+  the σ-rescaled image cancel back to the original
+  `localizedTestFamily ...` exactly.
+
+* `LaurentCoverPresheafLemma833Assembly_at_localizedTestFamily` —
+  σ-shift exact-alignment discharge at the **actual** C1 cover-piece
+  denominator target `rationalOpen (localizedTestFamily s T_D s_D)
+  D_s` on `Localization.Away s`. Closes the theorem-level bridge from
+  T058's σ-rescaled image discharge to the actual `localizedTestFamily
+  ...` target.
+
+* `rationalOpen_global_subset_at_localizedTestFamily_via_sigma_shift_t_indexed`
+  — clean σ-free t-indexed end-to-end consumer at the actual
+  `localizedTestFamily s T_D s_D` target. From per-piece subsets and a
+  t-indexed Laurent cover over `localizedTestFamily ...` (no σ-
+  rescaling visible), derive the C1 supplier's clause 2 conclusion
+  `rationalOpen (insert f_loc T_base_loc) s_base_loc ⊆ rationalOpen
+  (localizedTestFamily s T_D s_D) D_s`.
 
 ## Why the σ-shifted choice closes the actual C1 chain
 
@@ -349,5 +377,237 @@ theorem localizedTestFamily_sigma_rescaled_image_bridge
           ({((σ_loc⁻¹ : Aˣ) : A) * τ} : Finset A) D_s)
       (rationalOpen T_D_loc D_s) :=
   LaurentCoverPresheafLemma833Assembly_via_sigma_shift T_D_loc D_s
+
+/-! ### Threading the actual `localizedTestFamily s T_D s_D` target
+
+The C1 supplier chain on the localized base operates on
+`Localization.Away s` with the canonical test family
+`localizedTestFamily s T_D s_D
+  := insert (algebraMap s_D) (T_D.image algebraMap)`
+defined in `WedhornLocalCompatFromTestFamily`. The σ-shift discharge of
+this file is fully general in `D_T : Finset A`, so instantiating
+`A := Localization.Away s` and `D_T := localizedTestFamily s T_D s_D`
+gives the predicate at the **actual** C1 cover-piece denominator
+target `rationalOpen (localizedTestFamily s T_D s_D) D_s`
+unconditionally.
+
+This section lands the explicit named bridges threading
+`localizedTestFamily` so the C1 supplier consumer reads off the
+discharge at the actual target without the abstract-`D_T`
+instantiation step. Three theorems:
+
+* `image_sigma_image_sigma_inv_localizedTestFamily` — supplier-natural
+  σ-shift cancellation specialised to `localizedTestFamily s T_D s_D`:
+  `((localizedTestFamily ...).image (σ_loc * ·)).image (σ_loc⁻¹ * ·)
+    = localizedTestFamily ...`. Direct instance of
+  `image_sigma_inv_image_sigma_eq_self`; named for the localized case
+  because the subsequent bridge theorem references this identity in
+  its docstring as the structural reason the alignment is exact.
+
+* `LaurentCoverPresheafLemma833Assembly_at_localizedTestFamily` —
+  σ-shift exact-alignment discharge at the actual `localizedTestFamily`
+  target. For `T_test := (localizedTestFamily s T_D s_D).image
+  (σ_loc * ·)`, the structured Lemma 8.33 predicate holds at
+  `rationalOpen (localizedTestFamily s T_D s_D) D_s` unconditionally.
+  Direct instance of `LaurentCoverPresheafLemma833Assembly_via_sigma_shift`.
+
+* `rationalOpen_global_subset_at_localizedTestFamily_via_sigma_shift_t_indexed`
+  — clean σ-free t-indexed consumer at the actual `localizedTestFamily`
+  target: from per-piece subsets and a t-indexed Laurent cover over
+  `localizedTestFamily s T_D s_D` (no σ-rescaling visible), derive the
+  C1 supplier's clause 2 conclusion
+  `rationalOpen (insert f_loc T_base_loc) s_base_loc ⊆
+    rationalOpen (localizedTestFamily s T_D s_D) D_s`.
+
+These three theorems make the `localizedTestFamily ↔ σ-rescaled image
+alignment` content of T062 visible at the actual C1 supplier call
+shape on `Localization.Away s`. The σ_loc and per-piece data are
+supplied externally (typically from
+`exists_dominating_unit_in_localization` for σ_loc and from
+`per_piece_singleton_subset_via_laurent_membership` for per-piece
+subsets); this file's job is the **alignment**, not the supplier
+discharge.
+-/
+
+omit [TopologicalSpace A] [PlusSubring A] [IsTopologicalRing A] in
+/-- **σ-shift cancellation specialised to `localizedTestFamily`** (T062
+localized-side reusable primitive).
+
+For any `s : A`, `T_D : Finset A`, `s_D : A`, and `σ_loc :
+(Localization.Away s)ˣ`:
+```
+((localizedTestFamily s T_D s_D).image (σ_loc * ·)).image
+  (σ_loc⁻¹ * ·) = localizedTestFamily s T_D s_D
+```
+
+Direct instance of the abstract `image_sigma_inv_image_sigma_eq_self`,
+named for the localized case because the C1 supplier's σ-shifted
+T_test choice is precisely `(localizedTestFamily ...).image (σ_loc *
+·)`, and this identity is the structural reason the alignment with
+the σ-rescaled image at `localizedTestFamily ...` is **exact** (not
+merely a subset). -/
+theorem image_sigma_image_sigma_inv_localizedTestFamily
+    (s : A) (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) :
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    ((localizedTestFamily s T_D s_D).image
+        (fun t => (σ_loc : Localization.Away s) * t)).image
+        (fun τ => ((σ_loc⁻¹ : (Localization.Away s)ˣ) :
+          Localization.Away s) * τ) =
+      localizedTestFamily s T_D s_D := by
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  exact image_sigma_inv_image_sigma_eq_self σ_loc
+    (localizedTestFamily s T_D s_D)
+
+omit [PlusSubring A] in
+/-- **σ-shift exact-alignment discharge at `localizedTestFamily`** (T062
+ticket-named bridge theorem).
+
+For the supplier-natural σ-shifted choice
+`T_test := (localizedTestFamily s T_D s_D).image (σ_loc * ·)`, the
+structured Lemma 8.33 multi-piece cover-acyclicity collapse predicate
+holds at the **actual C1 cover-piece denominator target**
+`rationalOpen (localizedTestFamily s T_D s_D) D_s` unconditionally.
+
+**Why this is the right target**: the C1 supplier's clause 2
+conclusion on the localized base is at `rationalOpen
+(localizedTestFamily s T_D s_D) D_s`, which is the canonical
+`rationalOpen` for the test family
+`insert (algebraMap s_D) (T_D.image algebraMap)` on
+`Localization.Away s`. The σ-shift discharge applied with `D_T :=
+localizedTestFamily s T_D s_D` (and `A := Localization.Away s`)
+yields the predicate exactly at this target — completing the
+theorem-level bridge from T058's σ-rescaled image discharge to the
+actual C1 cover-piece denominator target.
+
+**Mechanism**: the σ-shift discharge
+`LaurentCoverPresheafLemma833Assembly_via_sigma_shift D_T D_s` is
+fully general in `D_T`. Specialising `D_T := localizedTestFamily s T_D
+s_D` gives the predicate at `rationalOpen (localizedTestFamily ...)
+D_s` directly. The σ-shift cancellation
+`image_sigma_image_sigma_inv_localizedTestFamily` is the structural
+identity behind this exact-alignment.
+
+The `letI` block sets up the localization-side topology / plus-
+subring / `DecidableEq` instances needed for `Spa (Localization.Away
+s) (Localization.Away s)⁺` and `Finset.image` to typecheck. -/
+theorem LaurentCoverPresheafLemma833Assembly_at_localizedTestFamily
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A) (D_s : Localization.Away s)
+    (σ_loc : (Localization.Away s)ˣ) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    LaurentCoverPresheafLemma833Assembly (σ := σ_loc)
+      ((localizedTestFamily s T_D s_D).image
+        (fun t => (σ_loc : Localization.Away s) * t))
+      (fun τ =>
+        rationalOpen
+          ({((σ_loc⁻¹ : (Localization.Away s)ˣ) :
+            Localization.Away s) * τ} :
+            Finset (Localization.Away s)) D_s)
+      (rationalOpen (localizedTestFamily s T_D s_D) D_s) := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  exact LaurentCoverPresheafLemma833Assembly_via_sigma_shift
+    (localizedTestFamily s T_D s_D) D_s
+
+omit [PlusSubring A] in
+/-- **Clean σ-free t-indexed consumer at the actual `localizedTestFamily`
+target** (T062 end-to-end localized C1 consumer).
+
+End-to-end consumer for the C1 supplier's clause 2 conclusion at the
+actual `localizedTestFamily ...` target on the localized base. The
+user-facing inputs are **purely t-indexed over `localizedTestFamily s
+T_D s_D`** (no σ-rescaling visible):
+
+* per-piece subsets `R(insert f_loc T_base_loc, s_base_loc) ∩
+  R({1}, t) ⊆ R({t}, D_s)` for each `t ∈ localizedTestFamily s T_D
+  s_D`,
+* a Laurent cover hypothesis
+  `∀ w ∈ R(insert f_loc T_base_loc, s_base_loc),
+    ∃ t ∈ localizedTestFamily s T_D s_D, w ∈ R({1}, t)`.
+
+**Output**: `R(insert f_loc T_base_loc, s_base_loc) ⊆
+R(localizedTestFamily s T_D s_D, D_s)` — the C1 supplier's clause 2
+conclusion at the actual cover-piece denominator target.
+
+**Internal mechanism**: the σ_loc enters only via
+`rationalOpen_global_subset_via_sigma_shift_t_indexed`'s internal
+σ-shift; the user supplies σ-free t-indexed data over the actual
+`localizedTestFamily ...` target. Composes T062's
+`rationalOpen_global_subset_via_sigma_shift_t_indexed` with the
+specialisation to `D_T := localizedTestFamily s T_D s_D` (and `A :=
+Localization.Away s`).
+
+**Significance**: makes the σ-rescaled-image ↔ `localizedTestFamily`
+alignment explicit at the localized C1 call site. Callers wanting
+the C1 supplier's clause 2 conclusion at the actual `localizedTestFamily
+...` target plug their σ-free t-indexed data directly into this
+theorem; the alignment is consumed internally.
+
+**Note on cover hypothesis source**: this theorem's user-facing cover
+hypothesis is `∀ w, ∃ t ∈ localizedTestFamily ..., w ∈ R({1}) t` —
+**not** the σ_loc⁻¹-rescaled form
+`∀ w, ∃ τ ∈ localizedTestFamily ..., w ∈ R({1}) (σ_loc⁻¹ * τ)`
+delivered by `cor732_laurent_piece_membership_at`. The two cover
+shapes correspond to two different `D_T` instantiations of the
+σ-shift discharge: this theorem instantiates `D_T :=
+localizedTestFamily s T_D s_D` directly, whereas
+`rationalOpen_global_subset_via_localizedCor732_sigma_supplier`
+instantiates `D_T := (localizedTestFamily ...).image (σ_loc⁻¹ * ·)`
+to match Cor 7.32's σ-rescaled output. Both are valid bridges; this
+theorem is the one whose conclusion target is exactly
+`localizedTestFamily ...` (i.e., the target the user sees as "the
+actual localized target"). -/
+theorem rationalOpen_global_subset_at_localizedTestFamily_via_sigma_shift_t_indexed
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A) (D_s : Localization.Away s)
+    (σ_loc : (Localization.Away s)ˣ)
+    (T_base_loc : Finset (Localization.Away s))
+    (s_base_loc f_loc : Localization.Away s)
+    (h_per_piece :
+      letI : TopologicalSpace (Localization.Away s) :=
+        locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ t ∈ localizedTestFamily s T_D s_D,
+        rationalOpen (insert f_loc T_base_loc) s_base_loc ∩
+            rationalOpen ({(1 : Localization.Away s)} :
+              Finset (Localization.Away s)) t ⊆
+          rationalOpen ({t} : Finset (Localization.Away s)) D_s)
+    (h_cover :
+      letI : TopologicalSpace (Localization.Away s) :=
+        locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ rationalOpen (insert f_loc T_base_loc) s_base_loc,
+        ∃ t ∈ localizedTestFamily s T_D s_D,
+          w ∈ rationalOpen ({(1 : Localization.Away s)} :
+            Finset (Localization.Away s)) t) :
+    letI : TopologicalSpace (Localization.Away s) :=
+      locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    rationalOpen (insert f_loc T_base_loc) s_base_loc ⊆
+      rationalOpen (localizedTestFamily s T_D s_D) D_s := by
+  letI : TopologicalSpace (Localization.Away s) :=
+    locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  exact rationalOpen_global_subset_via_sigma_shift_t_indexed σ_loc
+    (localizedTestFamily s T_D s_D) T_base_loc s_base_loc D_s f_loc
+    h_per_piece h_cover
 
 end ValuationSpectrum
