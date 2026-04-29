@@ -1508,4 +1508,100 @@ theorem locNhd_algMap_mul_invS_pow_step_of_hopen
     hj _ h_step
   rwa [← mul_assoc] at h_algMap
 
+/-! ## Radical inverse factor `locNhd` package (T097)
+
+Combine T092's target-side denominator-lifting identity with T095/T096's
+`locNhd` depth-shift API into a single mathlib-style package for the
+**radical inverse factor** `algebraMap e * (divByS 1 s)^N` arising in
+T089's cross-localization assembly. The relation `e * s_0 = s^N`
+(typically from `rad_relation_of_rational_subset`) makes
+`algebraMap e * (divByS 1 s)^N` the explicit inverse of `algebraMap
+s_0` in `Localization.Away s`. This section packages the two shapes
+Primary needs:
+
+* **Apply-form left-cancellation** — for any `y : Localization.Away s`,
+  `algebraMap s_0 * (algebraMap e * (divByS 1 s)^N * y) = y`. The
+  associativity-explicit form of T092's
+  `algebraMap_mul_pow_divByS_eq_one_of_radical_relation` for direct
+  use as a substitution.
+
+* **`locNhd` depth-shift for the radical inverse factor** — `∃ j, ∀ y ∈
+  locNhd P T s (j + N * Nopen), (algebraMap e * (divByS 1 s)^N) * y
+  ∈ locNhd P T s i`. Direct specialisation of T096's
+  `locNhd_algMap_mul_invS_pow_step_of_hopen` at `(a, k) := (e, N)`.
+
+Both deliverables consume only existing T092/T095/T096 API (no new
+proofs needed beyond associativity rewriting and direct
+specialisation). -/
+
+omit [IsTopologicalRing A] in
+/-- **Apply-form radical inverse cancellation** (T097 reusable
+primitive).
+
+For `s_0, s, e : A` with `e * s_0 = s^N` and any `y : Localization.Away
+s`, the product `algebraMap s_0 * (algebraMap e * (divByS 1 s)^N * y)`
+equals `y`.
+
+**Mathematical content**: from T092's
+`algebraMap_mul_pow_divByS_eq_one_of_radical_relation`,
+`algebraMap s_0 * (algebraMap e * (divByS 1 s)^N) = 1`. By
+associativity, `algebraMap s_0 * (algebraMap e * (divByS 1 s)^N * y) =
+(algebraMap s_0 * (algebraMap e * (divByS 1 s)^N)) * y = 1 * y = y`.
+
+**Use**: this is the precise apply-form Primary substitutes when an
+expression contains `(algebraMap s_0)⁻¹ · y` (i.e., the
+denominator-clearing of a Localization.Away s_0 element after `locLift`
+has been applied) and the consumer wants to recover `y`. -/
+theorem algebraMap_mul_radInverseFactor_mul_eq
+    {R : Type*} [CommRing R] {s_0 s e : R} {N : ℕ}
+    (h_rad : e * s_0 = s ^ N) (y : Localization.Away s) :
+    algebraMap R (Localization.Away s) s_0 *
+        ((algebraMap R (Localization.Away s) e * (divByS 1 s) ^ N) * y) = y := by
+  have h_inv := algebraMap_mul_pow_divByS_eq_one_of_radical_relation
+    (s_0 := s_0) (s := s) (e := e) (N := N) h_rad
+  calc algebraMap R (Localization.Away s) s_0 *
+        ((algebraMap R (Localization.Away s) e * (divByS 1 s) ^ N) * y)
+      = (algebraMap R (Localization.Away s) s_0 *
+          (algebraMap R (Localization.Away s) e * (divByS 1 s) ^ N)) * y := by
+        ring
+    _ = 1 * y := by rw [h_inv]
+    _ = y := one_mul y
+
+/-- **`locNhd` depth-shift for the radical inverse factor** (T097
+ticket-named theorem).
+
+For `(s, e : A)` and `(N : ℕ)` (the radical-relation exponent), given
+the open-ideal exponent witness `(Nopen, hN)` from `hopen`, target
+depth `i` and any source-side data, there exists a source depth `j`
+such that for all `y ∈ locNhd P T s (j + N * Nopen)`,
+
+```
+(algebraMap A (Localization.Away s) e * (divByS 1 s)^N) * y ∈
+  locNhd P T s i.
+```
+
+**Mathematical content**: direct specialisation of T096's
+`locNhd_algMap_mul_invS_pow_step_of_hopen` at `(a, k) := (e, N)`. The
+combined factor `algebraMap e * (divByS 1 s)^N` is exactly the radical
+inverse factor (the inverse of `algebraMap s_0` in
+`Localization.Away s` given the radical relation `e * s_0 = s^N`).
+
+**Consumer instantiation hint** (T089): Primary applies this with
+`(P, T, s) := (D₀.P, D₀.T, D₀.s)` (i.e., on the **source** side; despite
+the radical relation involving target's `D.s`, the `locNhd` depth-shift
+operates on the source `Localization.Away D₀.s`). From `obtain
+⟨Nopen, hN⟩ := D₀.hopen`, instantiate at `e := e_rad`, `N := N_rad`
+(both from `rad_relation_of_rational_subset D₀ D h`). The resulting
+shift controls the depth of the multiplied-by-radical-inverse-factor
+element in the source `locNhd D₀` filtration. -/
+theorem locNhd_radInverseFactor_mul_step_of_hopen
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (Nopen : ℕ) (hN : ∀ b : P.A₀, b ∈ P.I ^ Nopen →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (i : ℕ) (e : A) (N : ℕ) :
+    ∃ j : ℕ, ∀ y ∈ locNhd P T s (j + N * Nopen),
+      (algebraMap A (Localization.Away s) e * (divByS 1 s) ^ N) * y ∈
+        locNhd P T s i :=
+  locNhd_algMap_mul_invS_pow_step_of_hopen P T s Nopen hN i e N
+
 end ValuationSpectrum
