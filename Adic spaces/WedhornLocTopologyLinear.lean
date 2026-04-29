@@ -1885,4 +1885,94 @@ theorem locNhd_exists_small_repr_of_mem_sup_ker
     ∃ b ∈ locNhd P T s n, f b = f a :=
   RingHom.exists_mem_of_mem_sup_ker f (locNhd P T s n) ha
 
+/-! ## Preimage-subset → small representative wrapper (T100)
+
+Thin public wrapper over T099 for T089's cross-localization basis-form
+residual. Primary's corrected route consists of two steps:
+
+1. Prove the **preimage-subset** statement
+   `∀ a, f a ∈ W → a ∈ locNhd P T s n ⊔ f.toAddMonoidHom.ker`
+   (the algebraic content delivered by T091/T094 Artin-Rees + T097/T098
+   radical-rewrite + T095/T096 depth-shift packages).
+
+2. Apply T099 at each point `a` to extract the small representative.
+
+This section bundles step 2 into a single named theorem so the T089
+consumer doesn't need to thread the per-`a` extraction manually.
+
+**Deliverables**:
+
+* `AddSubgroup.exists_mem_of_preimage_subset_sup_ker` — generic
+  AddMonoidHom form: from a preimage-subset hypothesis (mapping any
+  `a ∈ f⁻¹(W)` into `U ⊔ f.ker`), derive the per-`a` small
+  representative.
+
+* `locNhd_exists_small_repr_of_preimage_subset_sup_ker` (T100 ticket-
+  named) — `locNhd`-specialised wrapper Primary can drop into the
+  basis-form residual: from `hpre : ∀ a, f a ∈ W → a ∈ locNhd P T s
+  n ⊔ f.toAddMonoidHom.ker` and `hfa : f a ∈ W`, obtain `b ∈ locNhd
+  P T s n` with `f b = f a`. -/
+
+omit [IsTopologicalRing A] in
+/-- **Preimage-subset → small-mod-kernel representative** (T100 generic
+form).
+
+For any AddMonoidHom `f : G →+ H` between AddCommGroups, AddSubgroup
+`U ≤ G`, target set `W ⊆ H`, and **preimage-subset** hypothesis
+`hpre : ∀ a, f a ∈ W → a ∈ U ⊔ f.ker`, every `a` with `f a ∈ W`
+admits a representative `b ∈ U` with `f b = f a`.
+
+Direct combination of `hpre` (giving the membership in `U ⊔ f.ker`)
+with T099's `AddSubgroup.exists_mem_of_mem_sup_ker` (extracting the
+small representative). -/
+theorem AddSubgroup.exists_mem_of_preimage_subset_sup_ker
+    {G H : Type*} [AddCommGroup G] [AddCommGroup H]
+    (f : G →+ H) (U : AddSubgroup G) (W : Set H)
+    (hpre : ∀ a : G, f a ∈ W → a ∈ U ⊔ f.ker)
+    {a : G} (hfa : f a ∈ W) :
+    ∃ b ∈ U, f b = f a :=
+  AddSubgroup.exists_mem_of_mem_sup_ker f U (hpre a hfa)
+
+omit [IsTopologicalRing A] in
+/-- **Preimage-subset → small `locNhd` representative** (T100 ticket-
+named theorem, locNhd-specialised wrapper for Primary's T089 quotient/
+sum residual).
+
+For `f : Localization.Away s →+* S`, source `locNhd` depth `n`, target
+set `W ⊆ S`, and **preimage-subset** hypothesis `hpre : ∀ a, f a ∈
+W → a ∈ locNhd P T s n ⊔ f.toAddMonoidHom.ker`, every `a` with `f a ∈
+W` admits a representative `b ∈ locNhd P T s n` with `f b = f a`.
+
+Direct specialisation of
+`AddSubgroup.exists_mem_of_preimage_subset_sup_ker` at `U := locNhd P
+T s n` and `f := f.toAddMonoidHom`. The kernel of a RingHom out of
+`Localization.Away s` is automatically an AddSubgroup via
+`f.toAddMonoidHom.ker`.
+
+**Consumer usage** (T089, one-line):
+```
+obtain ⟨b, hb, hfb⟩ :=
+  locNhd_exists_small_repr_of_preimage_subset_sup_ker D₀.P D₀.T D₀.s n
+    (locLift D₀ D h) W hpre hfa
+```
+where `hpre` is the preimage-subset statement (delivered by Primary's
+basis-form residual via T091/T094 + T097/T098 + T095/T096) and `hfa
+: locLift D₀ D h a ∈ W` (typically `W := locNhd D.P D.T D.s m`). The
+result `b ∈ locNhd D₀.P D₀.T D₀.s n` is the source-small
+representative; `hfb : locLift D₀ D h b = locLift D₀ D h a` confirms
+the same `locLift`-image.
+
+**Mathematical content**: `hpre a hfa : a ∈ locNhd ... ⊔
+f.toAddMonoidHom.ker`, then `locNhd_exists_small_repr_of_mem_sup_ker`
+yields the representative. -/
+theorem locNhd_exists_small_repr_of_preimage_subset_sup_ker
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (n : ℕ)
+    {S : Type*} [Ring S] (f : Localization.Away s →+* S)
+    (W : Set S)
+    (hpre : ∀ a : Localization.Away s, f a ∈ W →
+      a ∈ locNhd P T s n ⊔ f.toAddMonoidHom.ker)
+    {a : Localization.Away s} (hfa : f a ∈ W) :
+    ∃ b ∈ locNhd P T s n, f b = f a :=
+  locNhd_exists_small_repr_of_mem_sup_ker P T s n f (hpre a hfa)
+
 end ValuationSpectrum
