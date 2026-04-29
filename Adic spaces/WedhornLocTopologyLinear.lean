@@ -1484,11 +1484,17 @@ algebraMap a * (divByS 1 s)^k * y ∈ locNhd P T s i.
 T096's algebraMap-shift to push `algebraMap a * (depth-`j` element)`
 down to depth `i`.
 
-**Use**: instantiated with `a := e_rad`, `k := N_rad`,
-`(N, hN)` from `D₀.hopen`, this is the exact composed shift Primary
-applies to translate target-side `locNhd D m` membership of `locLift
-a` (multiplied by the inverse formula factors) back to source-side
-`locNhd D₀ n` membership. -/
+**Use**: this is a generic combined depth-shift over an arbitrary
+`(P, T, s, N, hN)`. For Primary's T089 cross-localization assembly,
+the relevant **radical inverse factor** instantiation
+(`a := e_rad`, `k := N_rad`) operates on the **target** side, where
+`algebraMap e_rad * (divByS 1 D.s)^{N_rad}` is the inverse of
+`algebraMap D₀.s` in `Localization.Away D.s` (cf. T097 below); the
+`(P, T, s, Nopen, hN)` in that consumer call is `(D.P, D.T, D.s,
+Nopen, hN)` from `D.hopen`, **not** `D₀.hopen`. The source-side
+counterparts (multiplication by `divByS 1 D₀.s` or `algebraMap a` in
+`Localization.Away D₀.s`) use `(D₀.P, D₀.T, D₀.s, Nopen, hN)` from
+`D₀.hopen` and don't involve the radical relation. -/
 theorem locNhd_algMap_mul_invS_pow_step_of_hopen
     (P : PairOfDefinition A) (T : Finset A) (s : A)
     (N : ℕ) (hN : ∀ b : P.A₀, b ∈ P.I ^ N →
@@ -1512,12 +1518,21 @@ theorem locNhd_algMap_mul_invS_pow_step_of_hopen
 
 Combine T092's target-side denominator-lifting identity with T095/T096's
 `locNhd` depth-shift API into a single mathlib-style package for the
-**radical inverse factor** `algebraMap e * (divByS 1 s)^N` arising in
-T089's cross-localization assembly. The relation `e * s_0 = s^N`
-(typically from `rad_relation_of_rational_subset`) makes
-`algebraMap e * (divByS 1 s)^N` the explicit inverse of `algebraMap
-s_0` in `Localization.Away s`. This section packages the two shapes
-Primary needs:
+**radical inverse factor** `algebraMap e * (divByS 1 s)^N`.
+
+**Side discipline (important)**: the radical relation `e * s_0 = s^N`
+(from `rad_relation_of_rational_subset D₀ D h`, with `s_0 := D₀.s`,
+`s := D.s`) makes `algebraMap e * (divByS 1 s)^N` the explicit inverse
+of `algebraMap s_0` in **`Localization.Away s` (target)** — the
+factor `divByS 1 s` lives in the *target* localization, and its
+`locNhd` depth control needs the *target's* open-ideal exponent, i.e.
+`(D.P, D.T, D.s, Nopen, hN)` from `D.hopen`, **not** `D₀.hopen`. There
+is no source-side analogue of this radical inverse factor: in
+`Localization.Away s_0` the inverse of `algebraMap s_0` is simply
+`divByS 1 s_0` (definitionally), with no radical relation involved.
+
+This section packages the two shapes Primary needs (both **target-
+side**):
 
 * **Apply-form left-cancellation** — for any `y : Localization.Away s`,
   `algebraMap s_0 * (algebraMap e * (divByS 1 s)^N * y) = y`. The
@@ -1528,7 +1543,9 @@ Primary needs:
 * **`locNhd` depth-shift for the radical inverse factor** — `∃ j, ∀ y ∈
   locNhd P T s (j + N * Nopen), (algebraMap e * (divByS 1 s)^N) * y
   ∈ locNhd P T s i`. Direct specialisation of T096's
-  `locNhd_algMap_mul_invS_pow_step_of_hopen` at `(a, k) := (e, N)`.
+  `locNhd_algMap_mul_invS_pow_step_of_hopen` at `(a, k) := (e, N)`,
+  with the target-side `(P, T, s, Nopen, hN) := (D.P, D.T, D.s, Nopen,
+  hN)` and `(Nopen, hN)` from `D.hopen`.
 
 Both deliverables consume only existing T092/T095/T096 API (no new
 proofs needed beyond associativity rewriting and direct
@@ -1549,9 +1566,13 @@ associativity, `algebraMap s_0 * (algebraMap e * (divByS 1 s)^N * y) =
 (algebraMap s_0 * (algebraMap e * (divByS 1 s)^N)) * y = 1 * y = y`.
 
 **Use**: this is the precise apply-form Primary substitutes when an
-expression contains `(algebraMap s_0)⁻¹ · y` (i.e., the
-denominator-clearing of a Localization.Away s_0 element after `locLift`
-has been applied) and the consumer wants to recover `y`. -/
+expression in **target** `Localization.Away s` (= `Localization.Away
+D.s`) contains a `(algebraMap s_0)⁻¹`-style factor (e.g., after
+applying `locLift` and threading the inverse formula). The
+cancellation recovers `y` from `algebraMap s_0 * (radical inverse
+factor * y)`. The cancellation lives in target Loc; on the source
+side, `(algebraMap s_0)⁻¹` is just `divByS 1 s_0` directly and no
+radical relation is needed. -/
 theorem algebraMap_mul_radInverseFactor_mul_eq
     {R : Type*} [CommRing R] {s_0 s e : R} {N : ℕ}
     (h_rad : e * s_0 = s ^ N) (y : Localization.Away s) :
@@ -1586,14 +1607,20 @@ combined factor `algebraMap e * (divByS 1 s)^N` is exactly the radical
 inverse factor (the inverse of `algebraMap s_0` in
 `Localization.Away s` given the radical relation `e * s_0 = s^N`).
 
+**Side discipline**: the factor `divByS 1 s` lives in the **target**
+`Localization.Away s`, so the `(P, T, s, Nopen, hN)` here must be the
+**target's** localization data. The theorem itself is generic — but
+the radical-inverse-factor instantiation is *target-side only*.
+
 **Consumer instantiation hint** (T089): Primary applies this with
-`(P, T, s) := (D₀.P, D₀.T, D₀.s)` (i.e., on the **source** side; despite
-the radical relation involving target's `D.s`, the `locNhd` depth-shift
-operates on the source `Localization.Away D₀.s`). From `obtain
-⟨Nopen, hN⟩ := D₀.hopen`, instantiate at `e := e_rad`, `N := N_rad`
-(both from `rad_relation_of_rational_subset D₀ D h`). The resulting
-shift controls the depth of the multiplied-by-radical-inverse-factor
-element in the source `locNhd D₀` filtration. -/
+`(P, T, s) := (D.P, D.T, D.s)` (i.e., on the **target** side: `s = D.s`,
+`Localization.Away s = Localization.Away D.s`). From `obtain ⟨Nopen,
+hN⟩ := D.hopen` (the **target's** open-ideal exponent), instantiate
+at `e := e_rad`, `N := N_rad` (both from
+`rad_relation_of_rational_subset D₀ D h`, which gives `e_rad * D₀.s
+= D.s ^ N_rad`). The resulting shift controls the depth of the
+multiplied-by-radical-inverse-factor element in the **target** `locNhd
+D` filtration. -/
 theorem locNhd_radInverseFactor_mul_step_of_hopen
     (P : PairOfDefinition A) (T : Finset A) (s : A)
     (Nopen : ℕ) (hN : ∀ b : P.A₀, b ∈ P.I ^ Nopen →
