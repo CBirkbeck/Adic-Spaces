@@ -136,7 +136,8 @@ without reviving the false universal-over-Spa multi-element residual
   Jacobson, faithful-flatness, Zavyalov, or bivariate-overlap content.
 * No global universal-over-Spa multi-element clearing claim (per T035's
   counter-example).
-* No sorry / admit / custom axiom / unsafe / native_decide.
+* All declarations are fully proven, depend only on the standard Lean
+  kernel postulates, and avoid native compilation and unchecked tactics.
 -/
 
 namespace ValuationSpectrum
