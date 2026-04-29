@@ -1975,4 +1975,126 @@ theorem locNhd_exists_small_repr_of_preimage_subset_sup_ker
     ∃ b ∈ locNhd P T s n, f b = f a :=
   locNhd_exists_small_repr_of_mem_sup_ker P T s n f (hpre a hfa)
 
+/-! ## Explicit `b + k` decomposition wrappers (T101)
+
+T099/T100 give the small-representative shape `∃ b ∈ U, f b = f a`.
+Primary's current T089 helper consumes the **explicit decomposition**
+shape `∃ b k, b ∈ U ∧ k ∈ ker ∧ a = b + k` directly. This section
+lands public wrappers over `AddSubgroup.mem_sup'` (the underlying
+mathlib decomposition) tailored to that exact shape, so the T089
+consumer doesn't need to unfold the decomposition manually.
+
+**Deliverables**:
+
+* `AddSubgroup.exists_decomp_of_mem_sup_ker` — generic AddMonoidHom
+  form: from `a ∈ U ⊔ f.ker`, obtain `b k, b ∈ U, k ∈ f.ker, a = b
+  + k`.
+
+* `AddSubgroup.exists_decomp_of_preimage_subset_sup_ker` — preimage-
+  subset variant: from `hpre : ∀ a, f a ∈ W → a ∈ U ⊔ f.ker` and
+  `hfa : f a ∈ W`, obtain the same decomposition.
+
+* `locNhd_exists_decomp_of_mem_sup_ker` — `locNhd`-specialised
+  membership form for ring homs out of `Localization.Away s`.
+
+* `locNhd_exists_decomp_of_preimage_subset_sup_ker` (T101 ticket-named)
+  — `locNhd`-specialised preimage-subset form, the exact shape
+  Primary's helper consumes. -/
+
+omit [IsTopologicalRing A] in
+/-- **Explicit `b + k` decomposition from `mem_sup_ker`** (T101 generic
+form).
+
+For any AddMonoidHom `f : G →+ H` between AddCommGroups and AddSubgroup
+`U ≤ G`, if `a ∈ U ⊔ f.ker`, then there exist `b, k : G` with `b ∈ U`,
+`k ∈ f.ker`, and `a = b + k`.
+
+Direct unfolding of `AddSubgroup.mem_sup'` plus repackaging into the
+explicit decomposition shape (rather than the small-representative
+shape of T099). -/
+theorem AddSubgroup.exists_decomp_of_mem_sup_ker
+    {G H : Type*} [AddCommGroup G] [AddCommGroup H]
+    (f : G →+ H) (U : AddSubgroup G) {a : G}
+    (ha : a ∈ U ⊔ f.ker) :
+    ∃ b k : G, b ∈ U ∧ k ∈ f.ker ∧ a = b + k := by
+  obtain ⟨u, k, h_eq⟩ := AddSubgroup.mem_sup'.mp ha
+  exact ⟨u, k, u.property, k.property, h_eq.symm⟩
+
+omit [IsTopologicalRing A] in
+/-- **Preimage-subset → explicit `b + k` decomposition** (T101 generic
+preimage-subset form).
+
+For any AddMonoidHom `f : G →+ H` between AddCommGroups, AddSubgroup
+`U ≤ G`, target set `W ⊆ H`, and preimage-subset hypothesis `hpre :
+∀ a, f a ∈ W → a ∈ U ⊔ f.ker`, every `a` with `f a ∈ W` admits an
+explicit decomposition `a = b + k` with `b ∈ U` and `k ∈ f.ker`.
+
+Direct combination of `hpre a hfa` (giving the membership in `U ⊔
+f.ker`) with `AddSubgroup.exists_decomp_of_mem_sup_ker` (extracting
+the decomposition). -/
+theorem AddSubgroup.exists_decomp_of_preimage_subset_sup_ker
+    {G H : Type*} [AddCommGroup G] [AddCommGroup H]
+    (f : G →+ H) (U : AddSubgroup G) (W : Set H)
+    (hpre : ∀ a : G, f a ∈ W → a ∈ U ⊔ f.ker)
+    {a : G} (hfa : f a ∈ W) :
+    ∃ b k : G, b ∈ U ∧ k ∈ f.ker ∧ a = b + k :=
+  AddSubgroup.exists_decomp_of_mem_sup_ker f U (hpre a hfa)
+
+omit [IsTopologicalRing A] in
+/-- **`locNhd` explicit `b + k` decomposition (membership form)** (T101
+locNhd-specialised).
+
+For `f : Localization.Away s →+* S`, source `locNhd` depth `n`, if `a
+∈ locNhd P T s n ⊔ f.toAddMonoidHom.ker`, then there exist `b, k :
+Localization.Away s` with `b ∈ locNhd P T s n`,
+`k ∈ f.toAddMonoidHom.ker`, and `a = b + k`.
+
+Direct specialisation of `AddSubgroup.exists_decomp_of_mem_sup_ker`
+at `f := f.toAddMonoidHom`, `U := locNhd P T s n`. -/
+theorem locNhd_exists_decomp_of_mem_sup_ker
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (n : ℕ)
+    {S : Type*} [Ring S] (f : Localization.Away s →+* S)
+    {a : Localization.Away s}
+    (ha : a ∈ locNhd P T s n ⊔ f.toAddMonoidHom.ker) :
+    ∃ b k : Localization.Away s,
+      b ∈ locNhd P T s n ∧ k ∈ f.toAddMonoidHom.ker ∧ a = b + k :=
+  AddSubgroup.exists_decomp_of_mem_sup_ker f.toAddMonoidHom
+    (locNhd P T s n) ha
+
+omit [IsTopologicalRing A] in
+/-- **Preimage-subset → explicit `b + k` decomposition for `locNhd`**
+(T101 ticket-named theorem, shape Primary's helper consumes directly).
+
+For `f : Localization.Away s →+* S`, source `locNhd` depth `n`, target
+set `W ⊆ S`, and preimage-subset hypothesis `hpre : ∀ a, f a ∈ W →
+a ∈ locNhd P T s n ⊔ f.toAddMonoidHom.ker`, every `a` with `f a ∈ W`
+admits an explicit decomposition `a = b + k` with `b ∈ locNhd P T s n`
+and `k ∈ f.toAddMonoidHom.ker`.
+
+Direct specialisation of
+`AddSubgroup.exists_decomp_of_preimage_subset_sup_ker` at `U := locNhd
+P T s n`.
+
+**Consumer usage** (T089, one-line):
+```
+obtain ⟨b, k, hb, hk, hbk⟩ :=
+  locNhd_exists_decomp_of_preimage_subset_sup_ker D₀.P D₀.T D₀.s n
+    (locLift D₀ D h) W hpre hfa
+```
+where `hpre` is the preimage-subset statement (delivered by T091/T094
++ T097/T098 + T095/T096) and `hfa : locLift D₀ D h a ∈ W`. The result:
+`b ∈ locNhd D₀.P D₀.T D₀.s n` (source-small), `k ∈ (locLift D₀ D
+h).toAddMonoidHom.ker` (kernel element), and `a = b + k` (explicit
+decomposition). -/
+theorem locNhd_exists_decomp_of_preimage_subset_sup_ker
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (n : ℕ)
+    {S : Type*} [Ring S] (f : Localization.Away s →+* S)
+    (W : Set S)
+    (hpre : ∀ a : Localization.Away s, f a ∈ W →
+      a ∈ locNhd P T s n ⊔ f.toAddMonoidHom.ker)
+    {a : Localization.Away s} (hfa : f a ∈ W) :
+    ∃ b k : Localization.Away s,
+      b ∈ locNhd P T s n ∧ k ∈ f.toAddMonoidHom.ker ∧ a = b + k :=
+  locNhd_exists_decomp_of_mem_sup_ker P T s n f (hpre a hfa)
+
 end ValuationSpectrum
