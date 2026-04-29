@@ -616,26 +616,24 @@ filtration shifts.
   s_0` (the inverse of `algebraMap s_0` in `Localization.Away s_0`)
   via `algebraMap` of `e` and `s`.
 
-* **Cross-localization inverse formula**
-  (`unit_inv_eq_of_radical_relation`): for any commutative ring `B`
-  with `f : A →+* B` and `f s` a unit, the inverse `(f s_0)⁻¹` (which
-  exists by the unit transfer) equals `f e * (f s)⁻ᴺ`. This is the
-  "denominator-lifting" identity: it expresses the inverse of `f s_0`
-  using only `f e` and powers of `(f s)⁻¹`. When applied to `f =
-  algebraMap A (Localization.Away s)` (the target localization), this
-  gives `(algebraMap s_0)⁻¹ = algebraMap e * (divByS 1 s)^N` in
-  `Localization.Away s` — the precise formula Primary's basis-form
-  residual exploits to translate target-side `divByS 1 s_0` factors
-  into source-side `(divByS 1 s)^N` factors.
+* **Target-side denominator-lifting identity**
+  (`algebraMap_mul_pow_divByS_eq_one_of_radical_relation`): in
+  `Localization.Away s`, the radical relation gives
+  `algebraMap s_0 * (algebraMap e * (divByS 1 s)^N) = 1`, exhibiting
+  `algebraMap e * (divByS 1 s)^N` as the explicit inverse of
+  `algebraMap s_0` in target. This is the "denominator-lifting"
+  identity Primary's basis-form residual exploits to translate
+  target-side `divByS 1 s_0` factors into source-side `(divByS 1 s)^N`
+  factors.
 
 **Consumer instantiation** (T089 hint): Primary's basis-form residual
-takes `f := algebraMap A (Localization.Away D.s)` and `(s_0, s, e, N)
-:= (D₀.s, D.s, e_rad, N_rad)` (from `rad_relation_of_rational_subset`).
-The `unit_inv_eq_of_radical_relation` then gives `(algebraMap D₀.s)⁻¹
-= algebraMap e_rad * (divByS 1 D.s)^{N_rad}` in `Localization.Away
-D.s`. Composing with `IsLocalization.Away.lift D₀.s` (the locLift
-construction) yields the target-side formula for `locLift (divByS 1
-D₀.s)`. -/
+takes `s_0 := D₀.s`, `s := D.s`, `(e, N) := (e_rad, N_rad)` from
+`rad_relation_of_rational_subset D₀ D h`. The target-side identity
+then gives `algebraMap D₀.s * (algebraMap e_rad * (divByS 1 D.s)^{N_rad})
+= 1` in `Localization.Away D.s` — the precise formula Primary's
+basis-form residual hint mentions in `PresheafTateStructure.lean:1698`,
+combining with `IsLocalization.Away.lift D₀.s` to give the target-side
+formula for `locLift (divByS 1 D₀.s)`. -/
 
 omit [IsTopologicalRing A] in
 /-- **Lifted radical relation** (T092 reusable mathlib-style primitive).
@@ -804,5 +802,214 @@ theorem algebraMap_mul_pow_divByS_eq_one_of_radical_relation
         rw [mul_pow]
     _ = 1 ^ N := by rw [h_inv]
     _ = 1 := one_pow N
+
+/-! ## locLift-style subring restriction support (T093)
+
+This section lands the **subring-restriction API** for ring homs out of
+`Localization.Away s_0` whose images on the canonical generators of
+`locSubring P T s_0` (i.e., `algebraMap '' A₀` and `divByS t s_0` for
+`t ∈ T`) lie in a target subring `R`. The universal property of
+`Subring.closure` then forces the entire `locSubring P T s_0` to map
+into `R`, and the restricted ring hom `locSubring P T s_0 →+* R` is
+the natural data primary's basis-form residual builds on.
+
+**Consumer use case (T089)**: Primary's
+`locLift_open_on_image_at_zero_of_source_pair_noetherian`
+(`PresheafTateStructure.lean`) defines
+
+```
+K : Ideal (locSubring D₀.P D₀.T D₀.s) :=
+  RingHom.ker ((locLift D₀ D h).comp (locSubring D₀.P D₀.T D₀.s).subtype)
+```
+
+and applies T091's Artin-Rees on `(locIdeal D₀, K)`. The kernel ideal
+`K` is well-defined as a kernel of a `RingHom` (no new API needed).
+The constructions in this section provide the **mathlib-style
+generic** version of the restricted-to-locSubring ring hom: any ring
+hom whose generator images lie in a target subring `R` factors
+canonically through `locSubring P T s_0 →+* R`.
+
+**General theorems**:
+
+* `locSubring_image_subset_of_generators` — universal property:
+  `f x ∈ R` for all `x ∈ locSubring P T s_0`, given the generator-
+  image hypotheses. Direct application of `Subring.closure_le`.
+
+* `locSubringHom` — restricted ring hom
+  `locSubring P T s_0 →+* R`, via `RingHom.codRestrict` on the
+  composition `f ∘ subtype`.
+
+* `locSubringHom_apply_val` — compatibility lemma: for `d : locSubring
+  P T s_0`, `((locSubringHom f P T R h_alg h_divByS d) : R).val =
+  f d.val`. Confirms `locSubringHom` is a genuine restriction.
+
+* `locSubringHom_algebraMapD` — algebraMap compatibility: for `b :
+  P.A₀`, `locSubringHom f P T R h_alg h_divByS (algebraMapD P T s_0 b)
+  = ⟨f (algebraMap A (Localization.Away s_0) b.val), h_alg b.val
+  b.property⟩`. The restricted hom respects the natural P.A₀-algebra
+  structure on `locSubring`. -/
+
+omit [IsTopologicalRing A] in
+/-- **Universal property: image of `locSubring` under a generator-
+compatible ring hom** (T093 main lemma).
+
+For any commutative ring `B` and ring hom `f : Localization.Away s_0
+→+* B`, if the canonical generators of `locSubring P T s_0` map under
+`f` into a target subring `R ⊆ B` (i.e., the `algebraMap` images of
+`P.A₀` and the `divByS · s_0` images of `T` are all in `R`), then the
+entire `locSubring P T s_0` maps under `f` into `R`.
+
+**Mathematical content**: `locSubring P T s_0 = Subring.closure
+(algebraMap '' A₀ ∪ {divByS t s_0 : t ∈ T})`. By the universal
+property of `Subring.closure` (`Subring.closure_le`), it suffices to
+check that the generators map into `R`, which is exactly the
+hypothesis.
+
+**Use**: building block for the restricted ring hom `locSubringHom`
+below. Reusable as a subring-mapping primitive whenever the locSubring
+generators map into a target subring. -/
+theorem locSubring_image_subset_of_generators
+    {B : Type*} [CommRing B]
+    (P : PairOfDefinition A) (T : Finset A) {s_0 : A}
+    (f : Localization.Away s_0 →+* B) {R : Subring B}
+    (h_alg : ∀ a ∈ P.A₀,
+      f (algebraMap A (Localization.Away s_0) a) ∈ R)
+    (h_divByS : ∀ t ∈ T, f (divByS t s_0) ∈ R)
+    {x : Localization.Away s_0} (hx : x ∈ locSubring P T s_0) :
+    f x ∈ R := by
+  have h_le :
+      Subring.closure
+        ((algebraMap A (Localization.Away s_0)) '' (P.A₀ : Set A) ∪
+          Set.range (fun t : T ↦ divByS (t : A) s_0)) ≤
+        Subring.comap f R := by
+    rw [Subring.closure_le]
+    rintro y (⟨a, ha, rfl⟩ | ⟨⟨t, ht⟩, rfl⟩)
+    · exact h_alg a ha
+    · exact h_divByS t ht
+  exact h_le hx
+
+omit [IsTopologicalRing A] in
+/-- **Restricted ring hom `locSubring P T s_0 →+* R`** (T093 deliverable).
+
+For any commutative ring `B` and ring hom `f : Localization.Away s_0
+→+* B` with generator images contained in a target subring `R`, the
+restriction-and-codRestriction of `f` along the locSubring inclusion
+yields a ring hom `locSubring P T s_0 →+* R`.
+
+**Mathematical content**: combine the locSubring inclusion `subtype :
+locSubring P T s_0 → Localization.Away s_0` with `f`, then apply
+`RingHom.codRestrict` using `locSubring_image_subset_of_generators` to
+witness the codomain restriction.
+
+**Use**: the natural restricted-ring-hom view of `f.comp subtype`,
+useful for kernel-ideal arguments (`RingHom.ker locSubringHom : Ideal
+(locSubring P T s_0)`) and image-of-locIdeal arguments
+(`Ideal.map (locSubringHom f P T R ...) (locIdeal P T s_0) : Ideal
+R`). Combined with T091's Artin-Rees on the kernel ideal, this gives
+the algebraic backbone of T089's basis-form residual.
+
+**Consumer instantiation hint** (T089): Primary takes `B :=
+Localization.Away D.s`, `f := locLift D₀ D h`, and `R :=
+locSubring D.P D.T D.s` (the target locSubring). The generator-image
+hypotheses then become:
+* `∀ a ∈ D₀.P.A₀, locLift (algebraMap a) ∈ locSubring D` — provable
+  if `D₀.P.A₀ ⊆ D.P.A₀` and `algebraMap` is the natural inclusion.
+* `∀ t ∈ D₀.T, locLift (divByS t D₀.s) ∈ locSubring D` — provable via
+  the radical-relation identity from T092 applied at `t`. -/
+noncomputable def locSubringHom
+    {B : Type*} [CommRing B]
+    (P : PairOfDefinition A) (T : Finset A) {s_0 : A}
+    (f : Localization.Away s_0 →+* B) (R : Subring B)
+    (h_alg : ∀ a ∈ P.A₀,
+      f (algebraMap A (Localization.Away s_0) a) ∈ R)
+    (h_divByS : ∀ t ∈ T, f (divByS t s_0) ∈ R) :
+    locSubring P T s_0 →+* R :=
+  (f.comp (locSubring P T s_0).subtype).codRestrict R
+    (fun x => locSubring_image_subset_of_generators P T f h_alg h_divByS x.property)
+
+omit [IsTopologicalRing A] in
+/-- **`locSubringHom` value compatibility** (T093 reusable lemma).
+
+For the restricted ring hom `locSubringHom f P T R h_alg h_divByS`
+constructed from `f : Localization.Away s_0 →+* B` and a generator-
+compatible target subring `R`, the value of `locSubringHom ... d` (as
+an element of `R ⊆ B`) equals `f d.val` (the original `f` applied to
+the underlying element of `locSubring P T s_0` viewed in
+`Localization.Away s_0`).
+
+**Use**: connects the abstract restricted ring hom to its underlying
+ring-hom-on-`B` shape. Useful when reasoning about images of locIdeal
+elements that live in `locSubring P T s_0` via their underlying
+representation in `Localization.Away s_0`. -/
+theorem locSubringHom_apply_val
+    {B : Type*} [CommRing B]
+    (P : PairOfDefinition A) (T : Finset A) {s_0 : A}
+    (f : Localization.Away s_0 →+* B) (R : Subring B)
+    (h_alg : ∀ a ∈ P.A₀,
+      f (algebraMap A (Localization.Away s_0) a) ∈ R)
+    (h_divByS : ∀ t ∈ T, f (divByS t s_0) ∈ R)
+    (d : locSubring P T s_0) :
+    ((locSubringHom P T f R h_alg h_divByS d) : B) = f (d : Localization.Away s_0) :=
+  rfl
+
+omit [IsTopologicalRing A] in
+/-- **`locSubringHom` agrees with `f` on `algebraMapD` images** (T093
+A₀-algebra compatibility).
+
+For `b : P.A₀`, the restricted ring hom `locSubringHom` sends
+`algebraMapD P T s_0 b ∈ locSubring P T s_0` to the element of `R`
+represented by `f (algebraMap A (Localization.Away s_0) b.val)`. This
+confirms that `locSubringHom` is the canonical lift of `f` along the
+P.A₀-algebra structure on `locSubring`.
+
+**Mathematical content**: by definition `algebraMapD P T s_0 b =
+⟨algebraMap A (Localization.Away s_0) b.val, _⟩ ∈ locSubring`. The
+underlying value is `algebraMap b.val`, and `locSubringHom` is the
+codRestriction of `f.comp subtype`, so the underlying value in `B`
+is `f (algebraMap b.val)`. -/
+theorem locSubringHom_algebraMapD
+    {B : Type*} [CommRing B]
+    (P : PairOfDefinition A) (T : Finset A) {s_0 : A}
+    (f : Localization.Away s_0 →+* B) (R : Subring B)
+    (h_alg : ∀ a ∈ P.A₀,
+      f (algebraMap A (Localization.Away s_0) a) ∈ R)
+    (h_divByS : ∀ t ∈ T, f (divByS t s_0) ∈ R)
+    (b : P.A₀) :
+    ((locSubringHom P T f R h_alg h_divByS (algebraMapD P T s_0 b)) : B) =
+      f (algebraMap A (Localization.Away s_0) (b : A)) :=
+  rfl
+
+omit [IsTopologicalRing A] in
+/-- **Image of `locIdeal` under `locSubringHom`** (T093 image-containment
+theorem).
+
+For the restricted ring hom `φ := locSubringHom f P T R h_alg
+h_divByS`, the `Ideal.map φ` of `locIdeal P T s_0` equals the
+`Ideal.map` of `P.I` under `φ ∘ algebraMapD P T s_0`. Combined with
+the source-side identity `locIdeal_pow_eq` (T090), this gives the
+explicit shape of the image of `(locIdeal P T s_0) ^ n` under the
+restricted hom.
+
+**Mathematical content**: `locIdeal P T s_0 = Ideal.map (algebraMapD P
+T s_0) P.I` (definition). Applying `Ideal.map φ` and composing with
+`Ideal.map_map` gives `Ideal.map φ (locIdeal P T s_0) = Ideal.map
+(φ.comp (algebraMapD P T s_0)) P.I`.
+
+**Use**: lets the consumer compute the image of `locIdeal D₀^n` under
+the restricted `locLift` and identify it with `locIdeal D^?` (modulo
+generator-compatibility). Useful for relating source-side and target-
+side filtrations. -/
+theorem locSubringHom_map_locIdeal
+    {B : Type*} [CommRing B]
+    (P : PairOfDefinition A) (T : Finset A) {s_0 : A}
+    (f : Localization.Away s_0 →+* B) (R : Subring B)
+    (h_alg : ∀ a ∈ P.A₀,
+      f (algebraMap A (Localization.Away s_0) a) ∈ R)
+    (h_divByS : ∀ t ∈ T, f (divByS t s_0) ∈ R) :
+    Ideal.map (locSubringHom P T f R h_alg h_divByS) (locIdeal P T s_0) =
+      Ideal.map ((locSubringHom P T f R h_alg h_divByS).comp
+        (algebraMapD P T s_0)) P.I := by
+  unfold locIdeal
+  rw [Ideal.map_map]
 
 end ValuationSpectrum
