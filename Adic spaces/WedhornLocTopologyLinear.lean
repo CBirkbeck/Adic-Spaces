@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import «Adic spaces».LocalizationTopology
 import Mathlib.Topology.Algebra.LinearTopology
 import Mathlib.RingTheory.Filtration
+import Mathlib.RingTheory.Localization.Submodule
 
 /-!
 # `IsLinearTopology` for `locTopology` (audit + minimal building block)
@@ -1011,5 +1012,224 @@ theorem locSubringHom_map_locIdeal
         (algebraMapD P T s_0)) P.I := by
   unfold locIdeal
   rw [Ideal.map_map]
+
+/-! ## Full source localization ideal / Artin-Rees bridge (T094)
+
+This section lands the **full-localization Artin-Rees** alternative
+route for T089's basis-form residual: rather than working in the
+Noetherian source-side `locSubring P T s` (the T091 route), one works
+directly in the full localization `Localization.Away s`, with the
+Artin-Rees lemma applied to the **extended** ideal
+`Jfull P T s := Ideal.map (locSubring P T s).subtype (locIdeal P T s)`
+(an ideal of `Localization.Away s`).
+
+**Why this alternative**: `Localization.Away s` is itself Noetherian
+when `A` is (via Mathlib's `IsLocalization.instIsNoetherianRingLocalization`
+instance). Artin-Rees in the larger ring lets the consumer take the
+kernel ideal `K := RingHom.ker (locLift D₀ D h)` directly as an ideal
+of `Localization.Away D₀.s`, without restricting to `locSubring`. The
+trade-off: `Jfull^n` is generally larger than `locNhd P T s n` (it is
+the ideal **generated** by the subtype-image of `locIdeal^n`, allowing
+arbitrary `Localization.Away s`-coefficients), so the consumer needs
+the forward inclusion `locNhd^n ⊆ Jfull^n` plus the Artin-Rees output
+in the larger ring.
+
+**Connection to T091**: T091 proves Artin-Rees in `locSubring P T s`
+for `(locIdeal, K)` with `K : Ideal (locSubring)`. T094 proves
+Artin-Rees in `Localization.Away s` for `(Jfull, K')` with `K' : Ideal
+(Localization.Away s)`. The two routes give the consumer flexibility
+in choosing where the kernel ideal lives.
+
+**Deliverables**:
+
+* `Jfull` (def) — the full-source ideal, the `subtype`-extension of
+  `locIdeal P T s` to `Localization.Away s`.
+
+* `Jfull_pow_eq_map` — the `n`-th power equals the
+  `subtype`-extension of `(locIdeal)^n`. Direct from `Ideal.map_pow`.
+
+* `locNhd_subset_Jfull_pow` — set-level forward inclusion: `(locNhd P
+  T s n : Set _) ⊆ ((Jfull P T s)^n : Set _)`. Uses T090's
+  `locNhd_eq_subtype_image` + `Submodule.subset_span` (the underlying
+  set of an ideal contains its generators).
+
+* `Jfull_artinRees` — Artin-Rees in Loc s for `(Jfull, K)` and
+  arbitrary `K : Ideal (Localization.Away s)`. Requires
+  `[IsNoetherianRing A]` so that
+  `IsLocalization.instIsNoetherianRingLocalization` provides
+  `[IsNoetherianRing (Localization.Away s)]`.
+
+* `Jfull_pow_inter_le_pow_mul` — subset form `Jfull^n ∩ K ≤
+  Jfull^(n-k₀) * K`.
+
+* `Jfull_pow_shift_inter_le_pow_mul` — depth-shifted form `Jfull^(n+k₀)
+  ∩ K ≤ Jfull^n * K`.
+
+**Consumer instantiation hint** (T089 Option B): Primary takes `K :=
+RingHom.ker (locLift D₀ D h) : Ideal (Localization.Away D₀.s)` (the
+full-localization kernel — well-defined as `RingHom.ker` of a ring hom
+out of the localization). Apply `Jfull_pow_shift_inter_le_pow_mul` to
+get the Artin-Rees factorisation in `Localization.Away D₀.s`. For
+input `a : Localization.Away D₀.s` with `locLift a ∈ locNhd D m`,
+the inclusion `locNhd D₀ n ⊆ (Jfull D₀.P D₀.T D₀.s)^n` and the
+Artin-Rees factorisation give the source-depth representative modulo
+the kernel. -/
+
+omit [IsTopologicalRing A] in
+/-- **Full-source localization ideal `Jfull`** (T094 deliverable, def).
+
+The ideal `Jfull P T s` of `Localization.Away s` is the
+`subtype`-extension of the source-side ideal of definition `locIdeal
+P T s` (which lives in `locSubring P T s`). Defined as `Ideal.map
+(locSubring P T s).subtype (locIdeal P T s)`.
+
+**Mathematical content**: this is the **extended ideal** `locIdeal ·
+Localization.Away s` — the smallest ideal of `Localization.Away s`
+containing the subtype-image of `locIdeal`. Generated as a
+`Localization.Away s`-module by the elements of `locIdeal` viewed in
+`Localization.Away s` via the subtype embedding.
+
+**Use**: the natural ambient ideal for an Artin-Rees argument working
+in the full Noetherian localization `Localization.Away s` (via
+`IsLocalization.instIsNoetherianRingLocalization`). Combined with the
+`locNhd ⊆ Jfull^n` set inclusion, this gives an alternative route to
+T089's basis-form residual that avoids working in the
+finitely-generated subalgebra `locSubring`. -/
+noncomputable def Jfull (P : PairOfDefinition A) (T : Finset A)
+    (s : A) : Ideal (Localization.Away s) :=
+  Ideal.map (locSubring P T s).subtype (locIdeal P T s)
+
+omit [IsTopologicalRing A] in
+/-- **Power identity for `Jfull`** (T094 reusable primitive).
+
+The `n`-th power of the full-source ideal equals the subtype-extension
+of the `n`-th power of `locIdeal`:
+`Jfull P T s ^ n = Ideal.map subtype (locIdeal P T s ^ n)`. Direct
+from `Ideal.map_pow`. -/
+theorem Jfull_pow_eq_map (P : PairOfDefinition A) (T : Finset A)
+    (s : A) (n : ℕ) :
+    (Jfull P T s) ^ n =
+      Ideal.map (locSubring P T s).subtype ((locIdeal P T s) ^ n) := by
+  unfold Jfull
+  rw [← Ideal.map_pow]
+
+omit [IsTopologicalRing A] in
+/-- **`locNhd ⊆ Jfull^n` set inclusion** (T094 forward bridge).
+
+The set underlying `locNhd P T s n` (the subtype image of
+`(locIdeal)^n`) is contained in the set underlying `(Jfull P T s)^n`
+(the ideal in `Localization.Away s` generated by that image).
+
+**Mathematical content**: by T090's `locNhd_eq_subtype_image`, `locNhd
+P T s n = subtype '' (locIdeal^n)`. The set `subtype '' (locIdeal^n)`
+is contained in any submodule (or ideal) of `Localization.Away s`
+containing it; in particular in `Submodule.span Loc (subtype '' (locIdeal^n))`,
+which equals `(Jfull)^n` by `Jfull_pow_eq_map` and the definition of
+`Ideal.map`.
+
+**Use**: lets the consumer translate the topological filtration
+`locNhd P T s n` into the algebraic filtration `(Jfull)^n` for
+Artin-Rees purposes in `Localization.Away s`. -/
+theorem locNhd_subset_Jfull_pow (P : PairOfDefinition A) (T : Finset A)
+    (s : A) (n : ℕ) :
+    (locNhd P T s n : Set (Localization.Away s)) ⊆
+      ((Jfull P T s) ^ n : Ideal (Localization.Away s)) := by
+  rw [Jfull_pow_eq_map]
+  intro y hy
+  obtain ⟨d, hd, rfl⟩ := hy
+  exact Ideal.mem_map_of_mem _ hd
+
+omit [IsTopologicalRing A] in
+/-- **Artin-Rees for `Jfull` and arbitrary kernel ideal in
+`Localization.Away s`** (T094 main deliverable).
+
+For `[IsNoetherianRing A]` (which provides
+`[IsNoetherianRing (Localization.Away s)]` via
+`IsLocalization.instIsNoetherianRingLocalization`), and any ideal `K`
+of `Localization.Away s`, the `Jfull`-filtration on `K` is `Jfull`-
+stable: there exists `k₀` such that for all `n ≥ k₀`,
+
+```
+(Jfull P T s)^n ⊓ K = (Jfull P T s)^(n - k₀) * ((Jfull P T s)^k₀ ⊓ K).
+```
+
+Direct application of the Mathlib Artin-Rees lemma to
+`(Jfull P T s)` and `K` in the Noetherian ring `Localization.Away s`,
+followed by the `smul ↔ mul`/`mul_top` translation
+(cf. `locIdeal_artinRees_ideal` for the analogous translation in
+`locSubring`).
+
+**Use**: the algebraic engine for Option B's full-source Artin-Rees
+route. Primary instantiates `K := RingHom.ker (locLift D₀ D h)` (the
+full-localization kernel) and obtains the Artin-Rees factorisation
+in `Localization.Away D₀.s`. -/
+theorem Jfull_artinRees [IsNoetherianRing A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (K : Ideal (Localization.Away s)) :
+    ∃ k₀ : ℕ, ∀ n : ℕ, k₀ ≤ n →
+      (Jfull P T s) ^ n ⊓ K =
+        (Jfull P T s) ^ (n - k₀) * ((Jfull P T s) ^ k₀ ⊓ K) := by
+  haveI : IsNoetherianRing (Localization.Away s) :=
+    IsLocalization.isNoetherianRing (Submonoid.powers s) _ inferInstance
+  obtain ⟨k₀, hk⟩ := Ideal.exists_pow_inf_eq_pow_smul (Jfull P T s) K
+  refine ⟨k₀, fun n hn => ?_⟩
+  have h := hk n hn
+  rwa [show (Jfull P T s) ^ n • (⊤ : Submodule _ _) =
+        ((Jfull P T s) ^ n : Ideal _) from by
+          rw [Ideal.smul_eq_mul, Ideal.mul_top],
+       show (Jfull P T s) ^ k₀ • (⊤ : Submodule _ _) =
+        ((Jfull P T s) ^ k₀ : Ideal _) from by
+          rw [Ideal.smul_eq_mul, Ideal.mul_top],
+       Ideal.smul_eq_mul] at h
+
+omit [IsTopologicalRing A] in
+/-- **Subset form of Artin-Rees for `Jfull`** (T094 directly consumable
+form).
+
+For `[IsNoetherianRing A]` and any ideal `K` of `Localization.Away s`,
+there exists `k₀` such that for all `n ≥ k₀`,
+
+```
+(Jfull P T s)^n ⊓ K ≤ (Jfull P T s)^(n - k₀) * K.
+```
+
+Subset analogue of `Jfull_artinRees`, weaker but more directly useful
+for kernel-filtration consumers. -/
+theorem Jfull_pow_inter_le_pow_mul [IsNoetherianRing A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (K : Ideal (Localization.Away s)) :
+    ∃ k₀ : ℕ, ∀ n : ℕ, k₀ ≤ n →
+      (Jfull P T s) ^ n ⊓ K ≤ (Jfull P T s) ^ (n - k₀) * K := by
+  obtain ⟨k₀, hk⟩ := Jfull_artinRees P T s K
+  refine ⟨k₀, fun n hn => ?_⟩
+  rw [hk n hn]
+  exact Ideal.mul_mono_right inf_le_right
+
+omit [IsTopologicalRing A] in
+/-- **Depth-shifted form of Artin-Rees for `Jfull`** (T094 directly
+consumable form).
+
+Re-indexed `n + k₀` form of `Jfull_pow_inter_le_pow_mul`: for
+`[IsNoetherianRing A]` and any ideal `K` of `Localization.Away s`,
+there exists `k₀` such that for any source depth `n : ℕ`,
+
+```
+(Jfull P T s)^(n + k₀) ⊓ K ≤ (Jfull P T s)^n * K.
+```
+
+**Use**: this is the form consumers parameterise by source depth `n`,
+computing the corresponding target depth as `n + k₀`. Directly usable
+as the algebraic kernel of T089's basis-form residual under Option B
+(full-localization Artin-Rees). -/
+theorem Jfull_pow_shift_inter_le_pow_mul [IsNoetherianRing A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (K : Ideal (Localization.Away s)) :
+    ∃ k₀ : ℕ, ∀ n : ℕ,
+      (Jfull P T s) ^ (n + k₀) ⊓ K ≤ (Jfull P T s) ^ n * K := by
+  obtain ⟨k₀, hk⟩ := Jfull_pow_inter_le_pow_mul P T s K
+  refine ⟨k₀, fun n => ?_⟩
+  have hge : k₀ ≤ n + k₀ := Nat.le_add_left k₀ n
+  have h := hk (n + k₀) hge
+  rwa [show n + k₀ - k₀ = n by omega] at h
 
 end ValuationSpectrum
