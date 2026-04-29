@@ -1631,4 +1631,137 @@ theorem locNhd_radInverseFactor_mul_step_of_hopen
         locNhd P T s i :=
   locNhd_algMap_mul_invS_pow_step_of_hopen P T s Nopen hN i e N
 
+/-! ## Source-side radical rewrite `locNhd` package (T098)
+
+Source-side complement to T097. T097 packages the **target-side**
+radical inverse factor `algebraMap e * (divByS 1 s)^N` in
+`Localization.Away s` (= `Localization.Away D.s`), which is the
+inverse of `algebraMap s_0` there given `e * s_0 = s^N`. T098
+packages the complementary **source-side** rewrite from T092's
+`algebraMap_eq_pow_mul_divByS_of_radical_relation` in
+`Localization.Away s_0` (= `Localization.Away D₀.s`):
+
+```
+algebraMap e = (algebraMap s)^N * divByS 1 s_0   (in Localization.Away s_0)
+```
+
+The factor `divByS 1 s_0` here lives in the **source** localization
+`Localization.Away s_0`, and its `locNhd` depth control needs the
+**source's** open-ideal exponent `(D₀.P, D₀.T, D₀.s, Nopen, hN)` from
+`D₀.hopen` — entirely distinct from T097's target-side
+`(D.P, D.T, D.s, Nopen, hN)` / `D.hopen` instantiation.
+
+**Side discipline (important)**: T097's `algebraMap e * (divByS 1
+s)^N` factor has `divByS 1 s` (target s, exponent N matching the
+relation) and lives in target Loc. T098's `(algebraMap s)^N * divByS 1
+s_0` factor has `divByS 1 s_0` (source s_0, single factor) and lives
+in source Loc. The two are dual rewrites of the same algebraic
+relation `e * s_0 = s^N` but apply to different localizations and
+need different open-ideal data.
+
+**Deliverables**:
+
+* **Apply-form source rewrite** (`algebraMap_radSourceFactor_mul_eq`)
+  — for any `y : Localization.Away s_0`,
+  `algebraMap e * y = ((algebraMap s)^N * divByS 1 s_0) * y`. Direct
+  rewrite via T092's source-side identity; lets the consumer
+  substitute `algebraMap e` (in source) by the explicit factor form
+  involving `divByS 1 s_0`.
+
+* **`locNhd` depth-shift for the source factor**
+  (`locNhd_radSourceFactor_mul_step_of_hopen`) — `∃ j, ∀ y ∈ locNhd
+  P T s_0 (j + Nopen), ((algebraMap s)^N * divByS 1 s_0) * y ∈ locNhd
+  P T s_0 i`. Composes T095's one-step `divByS 1 s_0` shift with
+  T096's `algebraMap (s^N)` shift. The single source-side `Nopen`
+  shift contrasts with T097's `N * Nopen` target-side shift (since
+  T097 uses `(divByS 1 s)^N`, while T098 uses just `divByS 1 s_0`
+  once).
+
+Both deliverables consume only existing T092/T095/T096 API. -/
+
+omit [IsTopologicalRing A] in
+/-- **Apply-form source-side radical rewrite** (T098 reusable
+primitive).
+
+In `Localization.Away s_0`, given `e * s_0 = s^N`, multiplication by
+`algebraMap e` rewrites as multiplication by `(algebraMap s)^N *
+divByS 1 s_0`:
+
+```
+algebraMap e * y = ((algebraMap s)^N * divByS 1 s_0) * y.
+```
+
+**Mathematical content**: direct multiplication-by-`y` of T092's
+source-side identity
+`algebraMap_eq_pow_mul_divByS_of_radical_relation`
+(`algebraMap e = (algebraMap s)^N * divByS 1 s_0`).
+
+**Use**: when an expression in source `Localization.Away s_0` (=
+`Localization.Away D₀.s`) contains `algebraMap e_rad * y` and the
+consumer needs to expose the `divByS 1 D₀.s` factor (e.g., to apply
+the source-side `locNhd` depth-shift below), this apply-form does the
+substitution in one step. -/
+theorem algebraMap_radSourceFactor_mul_eq
+    {R : Type*} [CommRing R] {s_0 s e : R} {N : ℕ}
+    (h_rad : e * s_0 = s ^ N) (y : Localization.Away s_0) :
+    algebraMap R (Localization.Away s_0) e * y =
+      ((algebraMap R (Localization.Away s_0) s) ^ N * divByS 1 s_0) * y := by
+  rw [algebraMap_eq_pow_mul_divByS_of_radical_relation h_rad]
+
+/-- **`locNhd` depth-shift for the source-side rewrite factor** (T098
+ticket-named theorem).
+
+For `(s_0, s : A)` and `(N : ℕ)` (the radical-relation exponent), given
+the source open-ideal exponent witness `(Nopen, hN)` from the source
+`hopen` (i.e., `(P, T, s_0, Nopen, hN)`), target depth `i`, there
+exists a source depth `j` such that for all `y ∈ locNhd P T s_0 (j +
+Nopen)`,
+
+```
+((algebraMap A (Localization.Away s_0) s)^N * divByS 1 s_0) * y ∈
+  locNhd P T s_0 i.
+```
+
+**Mathematical content**: factor the multiplication as `(algebraMap
+s^N) * (divByS 1 s_0 * y)`. Apply T095's one-step `divByS 1 s_0`
+shift to push `divByS 1 s_0 * y` from depth `j' + Nopen` to depth
+`j'`. Apply T096's `algebraMap` shift at `a := s^N` to push
+`algebraMap s^N * (depth-`j'` element)` to depth `i`. Combined: a
+single `+ Nopen` shift suffices.
+
+**Side discipline**: this is the **source-side** counterpart to T097's
+`locNhd_radInverseFactor_mul_step_of_hopen`. The factor `divByS 1
+s_0` here lives in source Loc and needs the **source's** open-ideal
+exponent `(P, T, s_0, Nopen, hN)`. **Do not confuse** with T097's
+target-side `(P, T, s, Nopen, hN)` instantiation.
+
+**Consumer instantiation hint** (T089): Primary applies this with
+`(P, T, s_0) := (D₀.P, D₀.T, D₀.s)`. From `obtain ⟨Nopen, hN⟩ :=
+D₀.hopen` (the **source's** open-ideal exponent), instantiate at
+`s := D.s` and `N := N_rad` (from `rad_relation_of_rational_subset
+D₀ D h`, which gives `e_rad * D₀.s = D.s ^ N_rad`). The resulting
+shift controls the depth of the multiplied-by-source-rewrite-factor
+element in the **source** `locNhd D₀` filtration. -/
+theorem locNhd_radSourceFactor_mul_step_of_hopen
+    (P : PairOfDefinition A) (T : Finset A) (s_0 : A)
+    (Nopen : ℕ) (hN : ∀ b : P.A₀, b ∈ P.I ^ Nopen →
+      divByS (↑b : A) s_0 ∈ locSubring P T s_0)
+    (i : ℕ) (s : A) (N : ℕ) :
+    ∃ j : ℕ, ∀ y ∈ locNhd P T s_0 (j + Nopen),
+      ((algebraMap A (Localization.Away s_0) s) ^ N *
+        divByS 1 s_0) * y ∈ locNhd P T s_0 i := by
+  -- algebraMap (s^N) = (algebraMap s)^N, so multiplication by the
+  -- source factor reduces to T096 algebraMap shift at `a := s^N`
+  -- composed with T095 one-step divByS shift.
+  obtain ⟨j, hj⟩ :=
+    locNhd_algMap_mul_step_of_hopen P T s_0 ⟨Nopen, hN⟩ i (s ^ N)
+  refine ⟨j, fun y hy => ?_⟩
+  have h_step : divByS 1 s_0 * y ∈ locNhd P T s_0 j :=
+    locNhd_invS_step_of_hopen P T s_0 Nopen hN j y hy
+  have h_algMap :
+      algebraMap A (Localization.Away s_0) (s ^ N) *
+        (divByS 1 s_0 * y) ∈ locNhd P T s_0 i :=
+    hj _ h_step
+  rwa [map_pow, ← mul_assoc] at h_algMap
+
 end ValuationSpectrum
