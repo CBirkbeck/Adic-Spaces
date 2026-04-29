@@ -87,6 +87,8 @@ and is the next concrete sub-target.
 * No Lane B / Cor 8.32 / Jacobson / T001 / faithful-flatness /
   final-acyclicity / T005 / T013 / T016 content. -/
 
+open Pointwise
+
 namespace ValuationSpectrum
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
@@ -206,5 +208,159 @@ plus the `RingSubgroupsBasis` infrastructure used by `locBasis`. The
 gap is specifically the UNIFORM uplift to `Submodule.span B`.
 
 -/
+
+/-! ## `locNhd` / `locIdeal` power API for Artin-Rees consumers (T090)
+
+Reusable structural API supporting Artin-Rees-style proofs that need to
+move between `locNhd P T s n` (additive subgroups of `Localization.Away s`),
+`locIdeal P T s ^ n` (ideals of `locSubring P T s`), and the source-side
+`P.I ^ n` (ideals of `P.A₀`). The basis-indexed residual exposed by
+`locLift_open_on_image_at_zero_of_basis_form`
+(`Adic spaces/PresheafTateStructure.lean:1563`) consumes precisely this
+shape: it asks for `n ↦ m` such that elements `a` with
+`locLift a ∈ locNhd D m` admit a representative `b ∈ locNhd D₀ n` with
+the same `locLift` image. The structural API here lets the consumer
+case-split, lift, and rebalance without re-deriving the basic
+membership/closure facts.
+
+The single substantive theorem is `locNhd_eq_locSubring_image_PI_pow`,
+which states exactly: `locNhd P T s n` is the additive subgroup generated
+by `locSubring P T s`-multiples of `algebraMap A (Localization.Away s)`
+applied to `P.I ^ n` elements (lifted via `Subtype.val : P.A₀ → A`). The
+ancillary corollaries package the four primitive shapes the consumer
+needs:
+
+* `mem_locNhd_iff` — clean iff form (subtype image of `locIdeal^n`).
+* `algebraMap_PI_pow_mem_locNhd` — base elements (`algebraMap` of
+  `P.I^n` elements lies in `locNhd n`).
+* `locNhd_locSubring_smul_mem` — module property over `locSubring`
+  (closure under multiplication by `(d : Loc)` for `d ∈ locSubring`).
+* `locNhd_mul_subset` — multiplicative shift `locNhd n · locNhd m ⊆
+  locNhd (n+m)`.
+-/
+
+omit [IsTopologicalRing A] in
+/-- **`locNhd` membership iff form** (T090 reusable primitive).
+
+Direct iff-form of the `locNhd P T s n` definition: an element
+`y : Localization.Away s` lies in `locNhd P T s n` iff there exists
+`d : locSubring P T s` with `d ∈ locIdeal P T s ^ n` and `(d : Localization.Away s) = y`.
+
+Reusable for case analysis in Artin-Rees consumers needing to extract
+the `locSubring`-witness `d`. -/
+theorem mem_locNhd_iff
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (n : ℕ)
+    (y : Localization.Away s) :
+    y ∈ locNhd P T s n ↔
+      ∃ d : locSubring P T s,
+        d ∈ (locIdeal P T s) ^ n ∧ (d : Localization.Away s) = y :=
+  Iff.rfl
+
+omit [IsTopologicalRing A] in
+/-- **`locIdeal` power as `Ideal.map` of `P.I^n`** (T090 reusable
+primitive).
+
+The `n`-th power of the ideal of definition equals the `algebraMapD`-
+image of the `n`-th power of `P.I`:
+`(locIdeal P T s)^n = Ideal.map (algebraMapD P T s) (P.I^n)`.
+
+Direct from `Ideal.map_pow`. Useful in Artin-Rees arguments where one
+needs to relate the `P.I`-adic filtration on `P.A₀` to the `locIdeal`-
+adic filtration on `locSubring`. -/
+theorem locIdeal_pow_eq
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (n : ℕ) :
+    (locIdeal P T s) ^ n = Ideal.map (algebraMapD P T s) (P.I ^ n) := by
+  unfold locIdeal
+  rw [← Ideal.map_pow]
+
+omit [IsTopologicalRing A] in
+/-- **`algebraMap` of `P.I^n` elements lies in `locNhd n`** (T090
+reusable primitive).
+
+For any `b : P.A₀` with `b ∈ P.I^n`, the image
+`algebraMap A (Localization.Away s) (b : A)` lies in `locNhd P T s n`.
+
+This is the source-side base case for the Artin-Rees consumer: it shows
+that elements arising directly from `P.I^n` (via `algebraMap`) are
+members of the `n`-th `locNhd`. The witness in `locSubring` is
+`algebraMapD P T s b`. -/
+theorem algebraMap_PI_pow_mem_locNhd
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (n : ℕ)
+    (b : P.A₀) (hb : b ∈ P.I ^ n) :
+    algebraMap A (Localization.Away s) (b : A) ∈ locNhd P T s n := by
+  refine ⟨algebraMapD P T s b, ?_, rfl⟩
+  rw [locIdeal_pow_eq]
+  exact Ideal.mem_map_of_mem _ hb
+
+omit [IsTopologicalRing A] in
+/-- **`locNhd` is closed under `locSubring`-multiplication** (T090
+reusable primitive — module property).
+
+For any `d : locSubring P T s` and `y ∈ locNhd P T s n`, the product
+`(d : Localization.Away s) * y` lies in `locNhd P T s n`. Equivalently,
+`locNhd P T s n` is a `locSubring P T s`-submodule of
+`Localization.Away s`.
+
+**Mathematical content**: `locIdeal P T s ^ n` is an ideal of
+`locSubring P T s`, hence stable under `locSubring`-multiplication.
+Pushing through `subtype` to `Localization.Away s` preserves this
+stability since `subtype` is a ring homomorphism. -/
+theorem locNhd_locSubring_smul_mem
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (n : ℕ)
+    (d : locSubring P T s) {y : Localization.Away s}
+    (hy : y ∈ locNhd P T s n) :
+    (d : Localization.Away s) * y ∈ locNhd P T s n := by
+  obtain ⟨e, he, rfl⟩ := hy
+  exact ⟨d * e, Ideal.mul_mem_left _ d he, MulMemClass.coe_mul ..⟩
+
+omit [IsTopologicalRing A] in
+/-- **Multiplicative shift `locNhd n * locNhd m ⊆ locNhd (n+m)`** (T090
+strong general theorem).
+
+For any `n, m : ℕ`, the pointwise product
+`(locNhd P T s n : Set _) * (locNhd P T s m : Set _)` is contained in
+`(locNhd P T s (n + m) : Set _)`.
+
+**Mathematical content**: this is the natural multiplicative behaviour
+of an ideal-power filtration. For `y₁ = (d₁ : Loc)` with `d₁ ∈
+locIdeal^n` and `y₂ = (d₂ : Loc)` with `d₂ ∈ locIdeal^m`, the product
+`y₁ * y₂ = (d₁ * d₂ : Loc)` with `d₁ * d₂ ∈ locIdeal^n * locIdeal^m
+⊆ locIdeal^(n+m)` (via `Ideal.mul_mem_mul` + `pow_add`).
+
+**Use case**: Artin-Rees and denominator-clearing arguments use this
+to absorb factors at appropriate filtration levels. Combined with the
+`locSubring`-module property, this gives a complete multiplicative API
+for `locNhd`-power calculations. -/
+theorem locNhd_mul_subset
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (n m : ℕ) :
+    (locNhd P T s n : Set (Localization.Away s)) *
+        (locNhd P T s m : Set (Localization.Away s)) ⊆
+      (locNhd P T s (n + m) : Set (Localization.Away s)) := by
+  rintro _ ⟨_, ⟨d₁, hd₁, rfl⟩, _, ⟨d₂, hd₂, rfl⟩, rfl⟩
+  refine ⟨d₁ * d₂, ?_, MulMemClass.coe_mul ..⟩
+  rw [pow_add]
+  exact Ideal.mul_mem_mul hd₁ hd₂
+
+omit [IsTopologicalRing A] in
+/-- **Subtype image characterisation of `locNhd`** (T090 reusable
+primitive — set-level form).
+
+`locNhd P T s n` (as a `Set`) is exactly the image of
+`(locIdeal P T s)^n` under the subtype embedding
+`(locSubring P T s).subtype : locSubring P T s → Localization.Away s`.
+
+Set-level packaging of `mem_locNhd_iff`, useful when one needs to
+manipulate `locNhd` as a subset of `Localization.Away s` rather than
+as an `AddSubgroup`. The image is well-defined since `locIdeal^n` is
+an `AddSubgroup` of `locSubring P T s` and the subtype is an
+additive monoid hom. -/
+theorem locNhd_eq_subtype_image
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (n : ℕ) :
+    (locNhd P T s n : Set (Localization.Away s)) =
+      (locSubring P T s).subtype ''
+        (((locIdeal P T s) ^ n : Ideal (locSubring P T s)) :
+          Set (locSubring P T s)) := by
+  ext y
+  exact ⟨fun ⟨d, hd, heq⟩ => ⟨d, hd, heq⟩, fun ⟨d, hd, heq⟩ => ⟨d, hd, heq⟩⟩
 
 end ValuationSpectrum
