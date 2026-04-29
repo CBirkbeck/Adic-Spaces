@@ -218,40 +218,85 @@ theorem SigmaProductClearedInequalitySupplier_via_sigma_factored_supplier_named
     D_T s D_s f h_supplier
 
 omit [PlusSubring A] in
-/-- **σ-factored supplier from localized Cor 7.32 σ + named factored
-inequality** (T076 ticket-named main theorem).
+/-- **`σ_loc` is a localized Cor 7.32 σ-output for `(P, T, s, T_D, s_D)`**
+(T076 named predicate restricting σ to T065-style outputs).
+
+Captures the σ-rescaled Laurent cover property of σ_loc on the
+localized adic spectrum: at every `w ∈ Spa(Localization.Away s, …)`,
+some test element `τ ∈ localizedTestFamily s T_D s_D` rescaled by
+`σ_loc⁻¹` lies in the canonical Laurent piece `R({1}) (σ_loc⁻¹ * τ)`
+containing `w`.
+
+This is **exactly the cover-property output** of T065's
+`localizedCor732_sigma_supplier_for_actual_C1` at the named σ_loc,
+extracted as a Prop predicate. Quantifying over σ_loc satisfying this
+predicate restricts to T065-style outputs (rather than all units of
+the localization). -/
+def IsLocalizedCor732SigmaLocOutput
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+    ∃ t ∈ (localizedTestFamily s T_D s_D).image
+      (fun τ => ((σ_loc⁻¹ : (Localization.Away s)ˣ) :
+        Localization.Away s) * τ),
+      w ∈ rationalOpen
+        ({(1 : Localization.Away s)} :
+          Finset (Localization.Away s)) t
+
+omit [PlusSubring A] in
+/-- **σ-factored supplier from localized Cor 7.32 σ + factored
+inequality at the T065-produced σ_loc** (T076 ticket-named main
+theorem, revised).
 
 End-to-end packaging on the localization side: T065's localized
-Cor 7.32 supplier provides σ_loc : (Localization.Away s)ˣ (and a
-σ-rescaled Laurent cover, used elsewhere). Given the named per-
-`(v, t')` σ-factored inequality hypothesis at σ_loc, this theorem
-produces the σ-factored supplier on the localization side, which
-chains via T073 / T072 to the C1 supplier endgame.
+Cor 7.32 supplier produces some `σ_loc` together with the σ-rescaled
+Laurent cover property
+`IsLocalizedCor732SigmaLocOutput P T s hopen T_D s_D σ_loc`. T076's
+revised theorem takes the residual as a **function depending on the
+specific `σ_loc` together with its T065 cover-property witness** —
+not as a universal-over-all-units claim. The residual quantifier
+ranges only over σ_loc that are valid T065 outputs.
 
 **Inputs**:
 
-* The standard localized Cor 7.32 hypotheses (`P, T, s, hopen, π_loc,
-  hI_loc, hπ_loc_tn, hπ_loc_unit, hArch_loc, T_D, s_D, hT_loc`) — the
-  same shape as T065's
-  `localizedCor732_sigma_supplier_for_actual_C1`.
+* Standard localized Cor 7.32 hypotheses (`P, T, s, hopen, π_loc,
+  hI_loc, hπ_loc_tn, hπ_loc_unit, hArch_loc, T_D, s_D, hT_loc`).
 
-* `T_base_loc, s_base_loc, D_s_loc, f_loc : Localization.Away s` — the
-  C1 source-side rationalOpen data on the localization.
+* `D_T_loc, T_base_loc, s_base_loc, D_s_loc, f_loc` — the
+  localization-side rationalOpen data.
 
-* `D_T_loc : Finset (Localization.Away s)` — the cover-piece
-  denominator family (e.g., `T_D.image algebraMap`).
-
-* `_h_factored_inequality_at_sigma_loc` — **the named per-`(v, t')`
-  source-restricted σ-factored inequality hypothesis** at any σ_loc
-  supplied by T065. This is the genuine Wedhorn 8.34(ii)
-  σ-construction algebraic content.
+* `_h_factored_inequality_at_T065_sigma_loc` — **the named source-
+  restricted residual**: a function `(σ_loc, h_cover) ↦ factored
+  inequality at σ_loc`, where `h_cover` witnesses
+  `IsLocalizedCor732SigmaLocOutput … σ_loc`. The residual is supplied
+  only for σ_loc that satisfy the T065 cover-property; it is **not**
+  a universal-over-all-units claim. The residual depends explicitly
+  on the same σ_loc that T065 will produce.
 
 **Output**: ∃ σ_loc : (Localization.Away s)ˣ,
-`SigmaFactoredSupplier D_T_loc s_base_loc D_s_loc f_loc` (i.e., the
-σ-factored supplier holds with σ supplied by T065).
+`SigmaFactoredSupplier D_T_loc s_base_loc D_s_loc f_loc` — i.e., the
+σ-factored supplier holds with σ supplied by T065.
 
-**Substantive composition**: T065's σ_loc → uniform σ for the σ-
-factored supplier via `sigma_factored_supplier_via_uniform_sigma`. -/
+**Composition in the proof body**: extract `(σ_loc, h_cover_t)` from
+T065's `localizedCor732_sigma_supplier_for_actual_C1`, apply the
+residual function at this specific `(σ_loc, h_cover_t)` to get the
+factored inequality at this σ_loc, then package via
+`sigma_factored_supplier_via_uniform_sigma`. The residual function
+is consumed at exactly one input — the T065-produced `(σ_loc,
+h_cover_t)` pair.
+
+**Why this revised shape**: the previous revision quantified over all
+units of the localization, which is too strong for the Wedhorn
+8.34(ii) interface — only the σ_loc supplied by T065 matters. The
+revised shape ties the residual to the T065-produced σ_loc through
+the explicit `IsLocalizedCor732SigmaLocOutput` precondition. -/
 theorem sigma_factored_supplier_via_localized_cor732
     (P : PairOfDefinition A) (T : Finset A) (s : A)
     (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
@@ -274,8 +319,9 @@ theorem sigma_factored_supplier_via_localized_cor732
         ∃ τ ∈ localizedTestFamily s T_D s_D, ¬ w.vle τ 0)
       (D_T_loc : Finset (Localization.Away s))
       (s_base_loc D_s_loc f_loc : Localization.Away s)
-      (_h_factored_inequality_at_sigma_loc :
+      (_h_factored_inequality_at_T065_sigma_loc :
         ∀ (σ_loc : (Localization.Away s)ˣ),
+          IsLocalizedCor732SigmaLocOutput P T s hopen T_D s_D σ_loc →
           ∀ t' ∈ D_T_loc,
             ∀ v ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
               v.vle f_loc s_base_loc →
@@ -293,15 +339,18 @@ theorem sigma_factored_supplier_via_localized_cor732
     localizationLocSubringPlusSubring P T s
   letI : DecidableEq (Localization.Away s) := Classical.decEq _
   intro π_loc hI_loc hπ_loc_tn hπ_loc_unit hArch_loc T_D s_D hT_loc
-    D_T_loc s_base_loc D_s_loc f_loc h_factored_inequality_at_sigma_loc
-  -- Extract σ_loc via T065's localized Cor 7.32 supplier (ignoring the
-  -- Laurent cover output here; it is consumed elsewhere in the chain).
-  obtain ⟨σ_loc, _h_cover_t⟩ :=
+    D_T_loc s_base_loc D_s_loc f_loc h_factored_inequality_at_T065_sigma_loc
+  -- Extract (σ_loc, h_cover_t) from T065. h_cover_t witnesses the
+  -- IsLocalizedCor732SigmaLocOutput predicate at this specific σ_loc.
+  obtain ⟨σ_loc, h_cover_t⟩ :=
     localizedCor732_sigma_supplier_for_actual_C1 P T s hopen
       π_loc hI_loc hπ_loc_tn hπ_loc_unit hArch_loc T_D s_D hT_loc
   refine ⟨σ_loc, ?_⟩
-  -- Apply the uniform-σ packaging with σ := σ_loc.
+  -- Apply the residual function at the T065-produced (σ_loc, h_cover_t)
+  -- pair. The residual is consumed at exactly one input — the
+  -- T065-produced σ_loc with its cover-property witness.
   exact sigma_factored_supplier_via_uniform_sigma D_T_loc s_base_loc D_s_loc
-    f_loc σ_loc (h_factored_inequality_at_sigma_loc σ_loc)
+    f_loc σ_loc
+    (h_factored_inequality_at_T065_sigma_loc σ_loc h_cover_t)
 
 end ValuationSpectrum
