@@ -1764,4 +1764,125 @@ theorem locNhd_radSourceFactor_mul_step_of_hopen
     hj _ h_step
   rwa [map_pow, ← mul_assoc] at h_algMap
 
+/-! ## Generic small-mod-kernel representative bridge (T099)
+
+Reusable algebraic bridge for T089's corrected residual: extracting a
+"small" representative `b` modulo `ker(locLift)` from a sum decomposition
+`a ∈ sourceSmall + ker(locLift)`. The general statement is:
+
+```
+For any AddMonoidHom `f : G →+ H` between AddCommGroups and any
+AddSubgroup `U ≤ G`, if `a ∈ U ⊔ f.ker` then ∃ b ∈ U, f b = f a.
+```
+
+The proof is a one-liner: `a ∈ U ⊔ f.ker` unfolds (via
+`AddSubgroup.mem_sup'`) to `a = u + k` with `u ∈ U`, `k ∈ f.ker`, then
+`b := u` works since `f a = f u + f k = f u + 0 = f u`.
+
+**Deliverables**:
+
+* `AddSubgroup.exists_mem_of_mem_sup_ker` — generic AddMonoidHom form
+  on AddCommGroups.
+
+* `RingHom.exists_mem_of_mem_sup_ker` — RingHom wrapper using
+  `f.toAddMonoidHom.ker`. Convenient when working with ring-hom
+  kernels in the AddSubgroup setting.
+
+* `locNhd_exists_small_repr_of_mem_sup_ker` — `locNhd`-specialised
+  wrapper: from `a ∈ locNhd P T s n ⊔ f.toAddMonoidHom.ker`, obtain
+  `b ∈ locNhd P T s n` with `f b = f a`. Direct specialisation of
+  the RingHom version at `U := locNhd P T s n` (which is an
+  `AddSubgroup (Localization.Away s)`).
+
+**Consumer usage** (T089): from `a ∈ sourceSmall + ker(locLift)`
+(typically `sourceSmall := locNhd D₀.P D₀.T D₀.s n` and `ker(locLift)
+:= (locLift D₀ D h).toAddMonoidHom.ker`), obtain `b ∈ sourceSmall`
+with `locLift b = locLift a` via
+`locNhd_exists_small_repr_of_mem_sup_ker D₀.P D₀.T D₀.s n (locLift D₀
+D h) ha`.
+
+**Mathlib precedent**: the underlying combinator
+`AddSubgroup.mem_sup'` (`x ∈ s ⊔ t ↔ ∃ y z, ↑y + ↑z = x`) is the
+standard mathlib characterisation; the small-representative theorem
+just composes it with the kernel-membership unfolding. Mathlib doesn't
+seem to have this exact composed form, so we land it here as a
+public reusable lemma. -/
+
+omit [IsTopologicalRing A] in
+/-- **Generic small representative mod kernel** (T099 reusable
+mathlib-style primitive).
+
+For any `AddMonoidHom f : G →+ H` between AddCommGroups and any
+AddSubgroup `U ≤ G`, if `a ∈ U ⊔ f.ker`, then there exists `b ∈ U`
+with `f b = f a`.
+
+**Mathematical content**: `a ∈ U ⊔ f.ker` decomposes as `a = u + k`
+with `u ∈ U` and `k ∈ f.ker` (via `AddSubgroup.mem_sup'`). Setting
+`b := u` gives `f b = f u = f u + f k = f (u + k) = f a` (using `f k =
+0` from the kernel membership).
+
+**Use**: lets a consumer extract a "small" representative (in `U`)
+sharing the `f`-image with `a`, mod the kernel of `f`. This is the
+reusable algebraic engine behind T089's
+"locLift⁻¹(target locNhd) ⊆ source locNhd + ker(locLift) ⇒ small
+representative" assembly. -/
+theorem AddSubgroup.exists_mem_of_mem_sup_ker
+    {G H : Type*} [AddCommGroup G] [AddCommGroup H]
+    (f : G →+ H) (U : AddSubgroup G) {a : G}
+    (ha : a ∈ U ⊔ f.ker) :
+    ∃ b ∈ U, f b = f a := by
+  obtain ⟨u, k, rfl⟩ := AddSubgroup.mem_sup'.mp ha
+  refine ⟨u, u.property, ?_⟩
+  rw [map_add, AddMonoidHom.mem_ker.mp k.property, add_zero]
+
+omit [IsTopologicalRing A] in
+/-- **RingHom small representative mod kernel** (T099 ring-hom wrapper).
+
+For any RingHom `f : R →+* S` between rings (with `R` a Ring giving an
+AddCommGroup structure) and any AddSubgroup `U ≤ R`, if `a ∈ U ⊔
+f.toAddMonoidHom.ker`, then there exists `b ∈ U` with `f b = f a`.
+
+Direct wrapper of `AddSubgroup.exists_mem_of_mem_sup_ker` for the ring-
+hom case. The kernel here is `f.toAddMonoidHom.ker : AddSubgroup R`,
+not `RingHom.ker f : Ideal R`; for the Ideal-level form, callers can
+use `Submodule.toAddSubgroup` to pass through.
+
+**Use**: ring-hom version of the small-mod-kernel extraction; the
+`toAddMonoidHom.ker` gives us the AddSubgroup form needed for the
+underlying lemma. -/
+theorem RingHom.exists_mem_of_mem_sup_ker
+    {R S : Type*} [Ring R] [Ring S] (f : R →+* S) (U : AddSubgroup R)
+    {a : R} (ha : a ∈ U ⊔ f.toAddMonoidHom.ker) :
+    ∃ b ∈ U, f b = f a :=
+  AddSubgroup.exists_mem_of_mem_sup_ker f.toAddMonoidHom U ha
+
+omit [IsTopologicalRing A] in
+/-- **`locNhd` small representative mod kernel** (T099 ticket-named
+locNhd-specialised wrapper).
+
+For any RingHom `f : Localization.Away s →+* S` and any source `locNhd`
+depth `n`, if `a ∈ locNhd P T s n ⊔ f.toAddMonoidHom.ker`, then there
+exists `b ∈ locNhd P T s n` with `f b = f a`.
+
+Direct specialisation of `RingHom.exists_mem_of_mem_sup_ker` at `U :=
+locNhd P T s n` (which is an `AddSubgroup (Localization.Away s)`).
+
+**Consumer usage** (T089, one-line):
+```
+obtain ⟨b, hb, hfb⟩ :=
+  locNhd_exists_small_repr_of_mem_sup_ker D₀.P D₀.T D₀.s n
+    (locLift D₀ D h) ha
+```
+where `ha : a ∈ locNhd D₀.P D₀.T D₀.s n ⊔
+(locLift D₀ D h).toAddMonoidHom.ker`. The result `b ∈ locNhd D₀.P
+D₀.T D₀.s n` is the source-small representative; `hfb : locLift D₀ D
+h b = locLift D₀ D h a` confirms the same `locLift`-image. -/
+theorem locNhd_exists_small_repr_of_mem_sup_ker
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (n : ℕ)
+    {S : Type*} [Ring S] (f : Localization.Away s →+* S)
+    {a : Localization.Away s}
+    (ha : a ∈ locNhd P T s n ⊔ f.toAddMonoidHom.ker) :
+    ∃ b ∈ locNhd P T s n, f b = f a :=
+  RingHom.exists_mem_of_mem_sup_ker f (locNhd P T s n) ha
+
 end ValuationSpectrum
