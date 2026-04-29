@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».LocalizationTopology
 import Mathlib.Topology.Algebra.LinearTopology
+import Mathlib.RingTheory.Filtration
 
 /-!
 # `IsLinearTopology` for `locTopology` (audit + minimal building block)
@@ -362,5 +363,222 @@ theorem locNhd_eq_subtype_image
           Set (locSubring P T s)) := by
   ext y
   exact ⟨fun ⟨d, hd, heq⟩ => ⟨d, hd, heq⟩, fun ⟨d, hd, heq⟩ => ⟨d, hd, heq⟩⟩
+
+/-! ## Artin-Rees / kernel-filtration support (T091)
+
+This section lands the **strong general Artin-Rees theorem** for the
+ideal of definition `locIdeal P T s` of the Noetherian localization
+subring `locSubring P T s`. It is the algebraic engine the T089
+basis-form residual
+(`locLift_open_on_image_at_zero_of_basis_form` in
+`PresheafTateStructure.lean`) consumes when relating powers of
+`locIdeal D₀` to powers of `locIdeal D` modulo a kernel of source-side
+operations.
+
+**Strategy (Artin-Rees lemma)**: in a Noetherian ring `R`, given an
+ideal `I` and an arbitrary submodule (or ideal) `K`, the filtration
+`{I^n ⊓ K}` is `I`-stable: there exists `k₀` such that for all `n ≥
+k₀`, `I^n ⊓ K = I^(n-k₀) • (I^k₀ ⊓ K)`. Mathlib provides this directly
+via `Ideal.exists_pow_inf_eq_pow_smul` (for any module `M` with
+`Module.Finite R M`); for `M = R` (so submodules are ideals), it
+yields the classical Artin-Rees statement on intersection of ideal
+powers.
+
+The deliverable is the **strongest general theorem** for arbitrary
+submodule/ideal `K`, available in three equivalent forms:
+
+* **Submodule form** (`locIdeal_artinRees`) — direct invocation of
+  Mathlib's lemma at `R := locSubring P T s`.
+* **Ideal form** (`locIdeal_artinRees_ideal`) — translated via
+  `Ideal.smul_eq_mul` and `I.mul_top` into the natural ideal-product
+  equation `I^n ⊓ K = I^(n-k₀) * (I^k₀ ⊓ K)`.
+* **Subset form** (`locIdeal_pow_inter_le_pow_mul`) — the directly
+  consumable statement `I^n ⊓ K ≤ I^(n-k₀) * K`, the form that turns
+  target-depth membership into a source-depth representative modulo
+  the kernel `K`.
+
+**Consumer instantiation (T089 hint)**: Primary's basis-form residual
+takes `K := { d : locSubring D₀ | locLift D₀ D h (subtype d) ∈
+ker(target embedding) }` (the kernel of the localization-level lift
+intersected with the source localization subring). Combined with the
+radical relation `D.s^{m_rel} = e · D₀.s` from
+`isUnit_algebraMap_s_of_rational_subset`, the Artin-Rees output gives
+the source-depth representative for any target-depth element.
+
+**Noetherian hypothesis**: takes `[IsNoetherianRing (locSubring P T
+s)]` as an instance argument; this is provided by the existing
+`locSubring_isNoetherian` (`Adic spaces/Prop752.lean:146`) when
+`[IsNoetherianRing P.A₀]` is available, via Hilbert basis on the
+finitely-generated A₀-algebra structure of `locSubring`. -/
+
+omit [IsTopologicalRing A] in
+/-- **Strong Artin-Rees theorem for `locIdeal`** (T091 main deliverable,
+Submodule form).
+
+For any submodule `K` of `locSubring P T s` (as a self-module), the
+`locIdeal`-filtration on `K` is `locIdeal`-stable: there exists `k₀`
+such that for all `n ≥ k₀`,
+
+```
+(locIdeal P T s)^n • ⊤ ⊓ K = (locIdeal P T s)^(n-k₀) •
+  ((locIdeal P T s)^k₀ • ⊤ ⊓ K).
+```
+
+Direct application of Mathlib's `Ideal.exists_pow_inf_eq_pow_smul` to
+the Noetherian ring `locSubring P T s`. Specialised to the
+self-module case, where the submodule `K` plays the role of the
+kernel/relevant submodule the consumer cares about.
+
+The `K`-quantifier is **fully general**: any `Submodule (locSubring P T
+s) (locSubring P T s)` works, including the kernel-style submodule
+shape Primary's basis-form residual consumes. -/
+theorem locIdeal_artinRees
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    [IsNoetherianRing (locSubring P T s)]
+    (K : Submodule (locSubring P T s) (locSubring P T s)) :
+    ∃ k₀ : ℕ, ∀ n : ℕ, k₀ ≤ n →
+      (locIdeal P T s) ^ n • (⊤ : Submodule _ _) ⊓ K =
+        (locIdeal P T s) ^ (n - k₀) •
+          ((locIdeal P T s) ^ k₀ • (⊤ : Submodule _ _) ⊓ K) :=
+  Ideal.exists_pow_inf_eq_pow_smul (locIdeal P T s) K
+
+omit [IsTopologicalRing A] in
+/-- **Artin-Rees theorem for `locIdeal` in Ideal form** (T091 ticket-
+named theorem).
+
+Specialisation of `locIdeal_artinRees` to ideal-multiplication form:
+for any ideal `K` of `locSubring P T s`, there exists `k₀` such that
+for all `n ≥ k₀`,
+
+```
+(locIdeal P T s)^n ⊓ K = (locIdeal P T s)^(n-k₀) * ((locIdeal P T s)^k₀ ⊓ K).
+```
+
+**Translation from the Submodule form**: `I^n • ⊤ = I^n * ⊤ = I^n` by
+`Ideal.mul_top` (using `I.IsTwoSided`, automatic for `CommRing`); `I •
+J = I * J` by `Ideal.smul_eq_mul`. Both rewrites apply cleanly since
+`Submodule R R = Ideal R` definitionally.
+
+**Why this is the right form for consumers**: the kernel-filtration
+arguments in T089 work with `Ideal (locSubring P T s)` directly (the
+kernel of `locLift` restricted to `locSubring D₀` is an ideal). The
+Ideal-multiplication form `I^(n-k₀) * (I^k₀ ⊓ K)` is the natural
+algebraic shape for further calculation (e.g., reducing modulo the
+kernel ideal). -/
+theorem locIdeal_artinRees_ideal
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    [IsNoetherianRing (locSubring P T s)]
+    (K : Ideal (locSubring P T s)) :
+    ∃ k₀ : ℕ, ∀ n : ℕ, k₀ ≤ n →
+      (locIdeal P T s) ^ n ⊓ K =
+        (locIdeal P T s) ^ (n - k₀) * ((locIdeal P T s) ^ k₀ ⊓ K) := by
+  obtain ⟨k₀, hk⟩ := locIdeal_artinRees P T s K
+  refine ⟨k₀, fun n hn => ?_⟩
+  have h := hk n hn
+  rwa [show (locIdeal P T s) ^ n • (⊤ : Submodule _ _) =
+        ((locIdeal P T s) ^ n : Ideal _) from by
+          rw [Ideal.smul_eq_mul, Ideal.mul_top],
+       show (locIdeal P T s) ^ k₀ • (⊤ : Submodule _ _) =
+        ((locIdeal P T s) ^ k₀ : Ideal _) from by
+          rw [Ideal.smul_eq_mul, Ideal.mul_top],
+       Ideal.smul_eq_mul] at h
+
+omit [IsTopologicalRing A] in
+/-- **Subset form of Artin-Rees for `locIdeal`** (T091 directly
+consumable form).
+
+The most directly useful corollary of `locIdeal_artinRees_ideal` for
+kernel-filtration consumers: for any ideal `K` of `locSubring P T s`,
+there exists `k₀` such that for all `n ≥ k₀`,
+
+```
+(locIdeal P T s)^n ⊓ K ≤ (locIdeal P T s)^(n-k₀) * K.
+```
+
+**Mathematical content**: every element of `(locIdeal^n) ⊓ K` (a
+target-depth element living in the kernel ideal) admits a
+factorisation `∑ i_j * k_j` with `i_j ∈ locIdeal^(n-k₀)` (source-depth
+elements) and `k_j ∈ K`. This is precisely the "source-depth
+representative modulo kernel" shape consumed by T089's basis-form
+residual.
+
+**Use**: combine with the radical relation `D.s^{m_rel} = e · D₀.s` to
+turn target-side `locNhd D m` membership of `locLift a` into
+source-side `locNhd D₀ n` membership of a representative `b ≡ a (mod
+ker(locLift))`. -/
+theorem locIdeal_pow_inter_le_pow_mul
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    [IsNoetherianRing (locSubring P T s)]
+    (K : Ideal (locSubring P T s)) :
+    ∃ k₀ : ℕ, ∀ n : ℕ, k₀ ≤ n →
+      (locIdeal P T s) ^ n ⊓ K ≤ (locIdeal P T s) ^ (n - k₀) * K := by
+  obtain ⟨k₀, hk⟩ := locIdeal_artinRees_ideal P T s K
+  refine ⟨k₀, fun n hn => ?_⟩
+  rw [hk n hn]
+  exact Ideal.mul_mono_right inf_le_right
+
+omit [IsTopologicalRing A] in
+/-- **Containment form: `K ∩ I^n` shrinks past `n - k₀`** (T091
+quantitative depth-shifting form).
+
+A pointwise-membership repackaging of `locIdeal_pow_inter_le_pow_mul`:
+for any ideal `K`, there exists `k₀` such that for any depth shift `s
+: ℕ`, every element of `(locIdeal^(s + k₀)) ⊓ K` lies in `(locIdeal^s)
+* K` (i.e., admits a factorisation with one factor of depth `s`).
+
+This phrasing makes the depth-shifting explicit: input depth `s + k₀`,
+output depth `s`. Useful when the consumer parameterises by the source
+depth `n` (= `s`) and computes the target depth (= `s + k₀`).
+
+**Comparison with `locIdeal_pow_inter_le_pow_mul`**: identical content,
+re-indexed to emphasise the shift `(n + k₀) → n`. -/
+theorem locIdeal_pow_shift_inter_le_pow_mul
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    [IsNoetherianRing (locSubring P T s)]
+    (K : Ideal (locSubring P T s)) :
+    ∃ k₀ : ℕ, ∀ n : ℕ,
+      (locIdeal P T s) ^ (n + k₀) ⊓ K ≤
+        (locIdeal P T s) ^ n * K := by
+  obtain ⟨k₀, hk⟩ := locIdeal_pow_inter_le_pow_mul P T s K
+  refine ⟨k₀, fun n => ?_⟩
+  have hge : k₀ ≤ n + k₀ := Nat.le_add_left k₀ n
+  have h := hk (n + k₀) hge
+  rwa [show n + k₀ - k₀ = n by omega] at h
+
+omit [IsTopologicalRing A] in
+/-- **`locNhd`-image translation of the Artin-Rees subset form** (T091
+locNhd-side consumer bridge).
+
+Translates `locIdeal_pow_inter_le_pow_mul` from
+`Ideal (locSubring P T s)` form to a `locNhd`-image form on
+`Set (Localization.Away s)`: for any ideal `K`, there exists `k₀` such
+that for all `n ≥ k₀`, the subtype-image of `(locIdeal^n) ⊓ K` is
+contained in the subtype-image of `(locIdeal^(n-k₀)) * K`.
+
+**Mathematical content**: composes `locIdeal_pow_inter_le_pow_mul`
+with the subtype-image set-monotonicity, lifting the Artin-Rees
+intersection-subset result to a statement about `locNhd P T s n`
+intersected with the subtype-image of the kernel ideal `K`.
+
+**Why this form**: the Primary consumer (`locLift_open_on_image_at_zero_of_basis_form`)
+operates at the `Localization.Away s` level via `locNhd P T s n`
+membership. This `locNhd`-image form is the natural bridge between
+the Artin-Rees algebraic decomposition (in `locSubring`) and the
+topological filtration (in `Localization.Away s`). -/
+theorem locNhd_inter_subtype_image_kernel_le_pow_mul
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    [IsNoetherianRing (locSubring P T s)]
+    (K : Ideal (locSubring P T s)) :
+    ∃ k₀ : ℕ, ∀ n : ℕ, k₀ ≤ n →
+      ((locSubring P T s).subtype ''
+          (((locIdeal P T s) ^ n ⊓ K : Ideal _) :
+            Set (locSubring P T s)) :
+          Set (Localization.Away s)) ⊆
+        (locSubring P T s).subtype ''
+          (((locIdeal P T s) ^ (n - k₀) * K : Ideal _) :
+            Set (locSubring P T s)) := by
+  obtain ⟨k₀, hk⟩ := locIdeal_pow_inter_le_pow_mul P T s K
+  refine ⟨k₀, fun n hn => ?_⟩
+  exact Set.image_mono (hk n hn)
 
 end ValuationSpectrum
