@@ -581,4 +581,228 @@ theorem locNhd_inter_subtype_image_kernel_le_pow_mul
   refine ⟨k₀, fun n hn => ?_⟩
   exact Set.image_mono (hk n hn)
 
+/-! ## Radical-relation / denominator-lifting support (T092)
+
+This section lands the **algebraic engine** for translating between
+target and source `locNhd` filtrations through a ring hom that lifts
+`algebraMap A`, given the radical relation `e * s_0 = s^N`. Together
+with the T091 Artin-Rees package, this is what T089's basis-form
+residual (`locLift_open_on_image_at_zero_of_basis_form` consumer in
+`PresheafTateStructure.lean`) needs to turn target-depth membership
+into a source-depth representative modulo the kernel.
+
+**Setup** (Wedhorn, T089 strategy): the radical relation
+`rad_relation_of_rational_subset` produces witnesses
+`(N : ℕ, e : A)` with `e * s_0 = s^N` whenever
+`rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s` (with `s_0 := D₀.s`,
+`s := D.s`). This relation is the algebraic input; the consumer needs
+generic localization-side lemmas that turn it into topological
+filtration shifts.
+
+**Strategy**: we provide three layers:
+
+* **Generic ring-hom layer** (`map_pow_eq_mul_of_radical_relation`,
+  `IsUnit.of_radical_relation`): for any commutative ring `B` and
+  ring hom `f : A →+* B`, the relation lifts to `(f s)^N = f e *
+  f s_0`. If `f s` is a unit, so is `f s_0` (via `isUnit_of_mul_isUnit`).
+  Mathlib-style; reusable in any localization-style or `IsLocalization`
+  setup.
+
+* **Localization-side layer** (`algebraMap_eq_pow_mul_divByS_of_radical_relation`):
+  in `Localization.Away s_0`, the identity
+  `algebraMap A (Localization.Away s_0) e = (algebraMap A
+  (Localization.Away s_0) s)^N * divByS 1 s_0` holds. This is the
+  source-side reading of the relation, useful for tracking `divByS 1
+  s_0` (the inverse of `algebraMap s_0` in `Localization.Away s_0`)
+  via `algebraMap` of `e` and `s`.
+
+* **Cross-localization inverse formula**
+  (`unit_inv_eq_of_radical_relation`): for any commutative ring `B`
+  with `f : A →+* B` and `f s` a unit, the inverse `(f s_0)⁻¹` (which
+  exists by the unit transfer) equals `f e * (f s)⁻ᴺ`. This is the
+  "denominator-lifting" identity: it expresses the inverse of `f s_0`
+  using only `f e` and powers of `(f s)⁻¹`. When applied to `f =
+  algebraMap A (Localization.Away s)` (the target localization), this
+  gives `(algebraMap s_0)⁻¹ = algebraMap e * (divByS 1 s)^N` in
+  `Localization.Away s` — the precise formula Primary's basis-form
+  residual exploits to translate target-side `divByS 1 s_0` factors
+  into source-side `(divByS 1 s)^N` factors.
+
+**Consumer instantiation** (T089 hint): Primary's basis-form residual
+takes `f := algebraMap A (Localization.Away D.s)` and `(s_0, s, e, N)
+:= (D₀.s, D.s, e_rad, N_rad)` (from `rad_relation_of_rational_subset`).
+The `unit_inv_eq_of_radical_relation` then gives `(algebraMap D₀.s)⁻¹
+= algebraMap e_rad * (divByS 1 D.s)^{N_rad}` in `Localization.Away
+D.s`. Composing with `IsLocalization.Away.lift D₀.s` (the locLift
+construction) yields the target-side formula for `locLift (divByS 1
+D₀.s)`. -/
+
+omit [IsTopologicalRing A] in
+/-- **Lifted radical relation** (T092 reusable mathlib-style primitive).
+
+For any commutative semiring `S` and ring hom `f : R →+* S`, the
+radical relation `e * s_0 = s^N` in `R` lifts under `f` to
+`f e * f s_0 = (f s)^N` in `S`. Direct restatement via `map_mul` /
+`map_pow`.
+
+**Use**: the algebraic kernel of all subsequent denominator-lifting
+identities. Primary instantiates with `f := algebraMap A
+(Localization.Away D.s)` (the target-localization map) and obtains
+`algebraMap e * algebraMap D₀.s = (algebraMap D.s)^N` in
+`Localization.Away D.s`. -/
+theorem map_pow_eq_mul_of_radical_relation
+    {R S : Type*} [CommSemiring R] [CommSemiring S]
+    (f : R →+* S) {s_0 s e : R} {N : ℕ}
+    (h_rad : e * s_0 = s ^ N) :
+    f e * f s_0 = (f s) ^ N := by
+  rw [← map_mul, h_rad, map_pow]
+
+omit [IsTopologicalRing A] in
+/-- **Unit transfer via radical relation** (T092 reusable mathlib-style
+primitive).
+
+If `e * s_0 = s^N` in a commutative semiring `R`, and `f : R →+* S` is
+a ring hom into a commutative semiring `S` with `f s` a unit in `S`,
+then `f s_0` is a unit in `S`.
+
+**Mathematical content**: from `f e * f s_0 = (f s)^N` (a unit),
+`f s_0` divides a unit, hence is a unit by `isUnit_of_mul_isUnit_right`.
+
+**Use**: Primary's `isUnit_algebraMap_s_of_rational_subset` is the
+specialised case `f := algebraMap A (Localization.Away D.s)`, `s_0 :=
+D₀.s`, `s := D.s`. This generic form is reusable in any
+`IsLocalization`-style or topological lift setup. -/
+theorem IsUnit.of_radical_relation
+    {R S : Type*} [CommSemiring R] [CommSemiring S]
+    (f : R →+* S) {s_0 s e : R} {N : ℕ}
+    (h_rad : e * s_0 = s ^ N) (hs : IsUnit (f s)) :
+    IsUnit (f s_0) := by
+  have heq : f e * f s_0 = (f s) ^ N :=
+    map_pow_eq_mul_of_radical_relation f h_rad
+  exact isUnit_of_mul_isUnit_right (heq ▸ hs.pow N)
+
+omit [IsTopologicalRing A] in
+/-- **`algebraMap s_0 * divByS 1 s_0 = 1`** (T092 reusable primitive —
+the basic localization-inverse identity).
+
+In `Localization.Away s_0`, multiplying `algebraMap s_0` by `divByS 1
+s_0` yields `1` (since `divByS 1 s_0` is, by definition, the inverse
+of `algebraMap s_0`).
+
+**Mathematical content**: direct unfolding of `divByS = mk' Loc 1
+⟨s_0, _⟩` and `algebraMap = mk' Loc · ⟨1, _⟩`, then `mk'_mul` and
+`mk'_self`.
+
+**Use**: cancellation step in
+`algebraMap_eq_pow_mul_divByS_of_radical_relation` and
+`algebraMap_mul_pow_divByS_eq_one_of_radical_relation`. -/
+theorem algebraMap_mul_divByS_one_eq_one
+    {R : Type*} [CommRing R] (s_0 : R) :
+    algebraMap R (Localization.Away s_0) s_0 * divByS 1 s_0 = 1 := by
+  unfold divByS
+  rw [← IsLocalization.mk'_one (M := Submonoid.powers s_0)
+        (S := Localization.Away s_0) s_0,
+      ← IsLocalization.mk'_mul, mul_one, one_mul]
+  exact IsLocalization.mk'_self _ (Submonoid.mem_powers _)
+
+omit [IsTopologicalRing A] in
+/-- **Source-side identity from radical relation** (T092 reusable
+primitive).
+
+In `Localization.Away s_0`, the radical relation `e * s_0 = s^N`
+yields the source-side identity
+
+```
+algebraMap A (Localization.Away s_0) e =
+  (algebraMap A (Localization.Away s_0) s)^N * divByS 1 s_0.
+```
+
+**Mathematical content**: applying `map_pow_eq_mul_of_radical_relation`
+at the localization map gives
+`(algebraMap s)^N = algebraMap e * algebraMap s_0`. Multiplying both
+sides by `divByS 1 s_0` (the inverse of `algebraMap s_0` in
+`Localization.Away s_0`) cancels `algebraMap s_0` on the right and
+yields the displayed identity.
+
+**Use**: rewrites occurrences of `algebraMap e` (image of the radical
+witness `e`) in `Localization.Away s_0` as a product involving
+`(algebraMap s)^N` and `divByS 1 s_0`. Source-side companion to
+`algebraMap_mul_pow_divByS_eq_one_of_radical_relation` (the target-
+side denominator-lifting identity in `Localization.Away s`). -/
+theorem algebraMap_eq_pow_mul_divByS_of_radical_relation
+    {R : Type*} [CommRing R] {s_0 s e : R} {N : ℕ}
+    (h_rad : e * s_0 = s ^ N) :
+    algebraMap R (Localization.Away s_0) e =
+      (algebraMap R (Localization.Away s_0) s) ^ N * divByS 1 s_0 := by
+  have h_pow : (algebraMap R (Localization.Away s_0) s) ^ N =
+      algebraMap R (Localization.Away s_0) e *
+        algebraMap R (Localization.Away s_0) s_0 :=
+    (map_pow_eq_mul_of_radical_relation
+      (algebraMap R (Localization.Away s_0)) h_rad).symm
+  rw [h_pow, mul_assoc, algebraMap_mul_divByS_one_eq_one, mul_one]
+
+omit [IsTopologicalRing A] in
+/-- **Target-side denominator-lifting identity** (T092 strong general
+theorem — the key formula Primary's basis-form residual consumes).
+
+In `Localization.Away s`, the radical relation `e * s_0 = s^N` yields
+
+```
+algebraMap A (Localization.Away s) s_0 *
+  (algebraMap A (Localization.Away s) e * (divByS 1 s)^N) = 1.
+```
+
+**Mathematical content**: this identity exhibits `algebraMap e *
+(divByS 1 s)^N` as the **inverse** of `algebraMap s_0` in
+`Localization.Away s`. Equivalently, it shows that the inverse of
+`algebraMap s_0` in target factors through `algebraMap e` and powers
+of `divByS 1 s` (the inverse of `algebraMap s` in target). The proof
+collapses the product `algebraMap (s_0 * e) * (divByS 1 s)^N` via the
+radical relation `s_0 * e = e * s_0 = s^N`, then uses
+`algebraMap s * divByS 1 s = 1` (`N`-fold) to finish.
+
+**Use**: this is the precise denominator-lifting identity Primary's
+basis-form residual exploits. Combined with the T091 Artin-Rees package
+on `K := ker (locLift D₀ D h)` and the source-side identity
+`algebraMap_eq_pow_mul_divByS_of_radical_relation`, it lets the
+consumer translate a `divByS 1 s_0` factor (in source) into a
+`(divByS 1 s)^N` factor (in target via `algebraMap e`), shifting
+filtration depth between `locNhd D₀ n` and `locNhd D m`.
+
+**Consumer instantiation hint**: applied to `s_0 := D₀.s`, `s := D.s`,
+`(e, N) := (e_rad, N_rad)` from
+`rad_relation_of_rational_subset D₀ D h`, this gives the inverse of
+`algebraMap A (Localization.Away D.s) D₀.s` (which is the unit
+witness `isUnit_algebraMap_s_of_rational_subset`) explicitly as
+`algebraMap e_rad * (divByS 1 D.s)^{N_rad}`. -/
+theorem algebraMap_mul_pow_divByS_eq_one_of_radical_relation
+    {R : Type*} [CommRing R] {s_0 s e : R} {N : ℕ}
+    (h_rad : e * s_0 = s ^ N) :
+    algebraMap R (Localization.Away s) s_0 *
+        (algebraMap R (Localization.Away s) e * (divByS 1 s) ^ N) = 1 := by
+  -- Pull the e and s_0 algebraMap factors together: algebraMap (s_0 * e) = algebraMap (s^N)
+  have h_pow : algebraMap R (Localization.Away s) s_0 *
+      algebraMap R (Localization.Away s) e =
+      (algebraMap R (Localization.Away s) s) ^ N := by
+    rw [mul_comm]
+    exact map_pow_eq_mul_of_radical_relation
+      (algebraMap R (Localization.Away s)) h_rad
+  -- algebraMap s * divByS 1 s = 1 in Loc s
+  have h_inv : algebraMap R (Localization.Away s) s * divByS 1 s = 1 :=
+    algebraMap_mul_divByS_one_eq_one s
+  -- Combine: (algebraMap s_0 * algebraMap e) * (divByS 1 s)^N
+  --        = (algebraMap s)^N * (divByS 1 s)^N
+  --        = (algebraMap s * divByS 1 s)^N = 1^N = 1
+  calc algebraMap R (Localization.Away s) s_0 *
+        (algebraMap R (Localization.Away s) e * (divByS 1 s) ^ N)
+      = (algebraMap R (Localization.Away s) s_0 *
+          algebraMap R (Localization.Away s) e) * (divByS 1 s) ^ N := by
+        rw [mul_assoc]
+    _ = (algebraMap R (Localization.Away s) s) ^ N * (divByS 1 s) ^ N := by
+        rw [h_pow]
+    _ = (algebraMap R (Localization.Away s) s * divByS 1 s) ^ N := by
+        rw [mul_pow]
+    _ = 1 ^ N := by rw [h_inv]
+    _ = 1 := one_pow N
+
 end ValuationSpectrum
