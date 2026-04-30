@@ -140,4 +140,198 @@ theorem RationalCovering.insertDenom_base_open
 
 end RationalCoveringSection
 
+/-! ## Integrality and pair-pinning support API (T118)
+
+Reusable `Prop` wrappers for the integrality / shared-pair side conditions
+that the corrected T089 locNhd-form witness residual chain requires when
+operating on arbitrary `RationalLocData`. After T117's blocker audit, the
+private chain `locLift_preimage_target_witness_existence` →
+`restrictionMapHom_ker_isTorsion` is provable only with three local
+hypotheses on the rational data:
+
+* `D.s ∈ D.P.A₀` and `∀ t ∈ D.T, t ∈ D.P.A₀` — packaged here as
+  `RationalLocData.IntegralInPair`.
+* `D.P = D₀.P` — packaged as `RationalLocData.SamePair`.
+* (Cover-level): all pieces of a `RationalCovering` carry the same pair as
+  the base — packaged as `RationalCovering.PinnedTo`.
+
+Together with the existing `PairOfDefinition.mem_powerBoundedSubring`
+(`HuberRings.lean:188`), the integrality assumption gives A-level
+`TopologicalRing.IsPowerBounded` for `D.s` and elements of `D.T`, which is
+exactly what `PairOfDefinition.adjoin` needs (Wedhorn 6.1 ring-of-definition
+enlargement).
+
+This API is non-overlapping with Secondary's `WedhornAwayMapSaturation`
+denominator-clearing lane (T114): it concerns the *side-condition packaging*
+that any ultimate discharge route must consume, not the algebraic core.
+
+## Construction lemmas
+
+* `globalLocData_integralInPair` — the global rational datum (`T = {1}, s = 1`)
+  is integral in any pair.
+* `RationalLocData.IntegralInPair.insertDenom` — the `insertDenom` transform
+  preserves `IntegralInPair` (since `D.insertDenom.P = D.P` and
+  `D.insertDenom.T = insert D.s D.T`).
+* `RationalLocData.SamePair.insertDenom` — the transform preserves `SamePair`.
+* `RationalCovering.PinnedTo.insertDenom` — the cover-level transform preserves
+  `PinnedTo`.
+* `RationalCovering.insertDenom_integralInPair_each` — preservation of
+  per-piece `IntegralInPair` under the cover-level transform.
+-/
+
+/-- A rational localization datum is **integral in its pair** if the
+denominator `D.s` and every tray element `t ∈ D.T` lie in the ring of
+definition `D.P.A₀`.
+
+This is the local side condition needed by the corrected T089 saturation
+chain (T117 blocker B1) so that the structural extraction `γ ∈ D.P.I^m`
+of T114 step 3 lands in `D.P.A₀` and integer powers `D.s^k` of the
+denominator stay in `D.P.A₀` (needed for common-denominator collection
+inside the natural extraction route). -/
+structure RationalLocData.IntegralInPair (D : RationalLocData A) : Prop where
+  /-- The denominator `D.s` lies in the ring of definition `D.P.A₀`. -/
+  s_in_A₀ : D.s ∈ D.P.A₀
+  /-- Every tray element lies in the ring of definition `D.P.A₀`. -/
+  T_in_A₀ : ∀ t ∈ D.T, t ∈ D.P.A₀
+
+omit [DecidableEq A] in
+/-- The denominator of an integral rational datum is power-bounded in `A`.
+Direct combination of `IntegralInPair.s_in_A₀` and
+`PairOfDefinition.mem_powerBoundedSubring`. -/
+theorem RationalLocData.IntegralInPair.isPowerBounded_s
+    {D : RationalLocData A} (hD : D.IntegralInPair) :
+    TopologicalRing.IsPowerBounded D.s :=
+  D.P.mem_powerBoundedSubring hD.s_in_A₀
+
+omit [DecidableEq A] in
+/-- Every tray element of an integral rational datum is power-bounded in `A`. -/
+theorem RationalLocData.IntegralInPair.isPowerBounded_T
+    {D : RationalLocData A} (hD : D.IntegralInPair)
+    {t : A} (ht : t ∈ D.T) :
+    TopologicalRing.IsPowerBounded t :=
+  D.P.mem_powerBoundedSubring (hD.T_in_A₀ t ht)
+
+/-- Two rational localization data **share the same pair of definition**.
+
+This is the local side condition needed by the corrected T089 saturation
+chain (T117 blocker B2) so that source `D₀.P.I^?` and target `D.P.I^m`
+data live in a common `D.P.A₀ = D₀.P.A₀` and become directly comparable
+as ideals of the same subring. The trivial proof when the relation holds
+is `rfl`. -/
+def RationalLocData.SamePair (D₀ D : RationalLocData A) : Prop := D.P = D₀.P
+
+omit [DecidableEq A] in
+/-- `SamePair` is reflexive. -/
+theorem RationalLocData.SamePair.refl (D : RationalLocData A) : D.SamePair D := rfl
+
+omit [DecidableEq A] in
+/-- `SamePair` is symmetric. -/
+theorem RationalLocData.SamePair.symm {D₀ D : RationalLocData A}
+    (h : D₀.SamePair D) : D.SamePair D₀ := Eq.symm h
+
+omit [DecidableEq A] in
+/-- `SamePair` is transitive. -/
+theorem RationalLocData.SamePair.trans {D₀ D₁ D₂ : RationalLocData A}
+    (h₁ : D₀.SamePair D₁) (h₂ : D₁.SamePair D₂) : D₀.SamePair D₂ :=
+  Eq.trans h₂ h₁
+
+omit [DecidableEq A] in
+/-- The global rational localization datum (`T = {1}, s = 1`) is integral
+in any pair `P`. Direct: `1 ∈ P.A₀` for any subring `P.A₀`. -/
+theorem globalLocData_integralInPair (P : PairOfDefinition A) :
+    (globalLocData P).IntegralInPair where
+  s_in_A₀ := P.A₀.one_mem
+  T_in_A₀ := by
+    intro t ht
+    rw [show (globalLocData P).T = {(1 : A)} from rfl, Finset.mem_singleton] at ht
+    exact ht ▸ P.A₀.one_mem
+
+/-- The `insertDenom` transform preserves `IntegralInPair`: since
+`D.insertDenom.s = D.s`, `D.insertDenom.T = insert D.s D.T`, and
+`D.insertDenom.P = D.P`, integrality of the new tray follows from
+integrality of `D.T ∪ {D.s}` in `D.P.A₀`. -/
+theorem RationalLocData.IntegralInPair.insertDenom
+    {D : RationalLocData A} (hD : D.IntegralInPair) :
+    D.insertDenom.IntegralInPair where
+  s_in_A₀ := by
+    show D.insertDenom.s ∈ D.insertDenom.P.A₀
+    rw [RationalLocData.insertDenom_s, RationalLocData.insertDenom_P]
+    exact hD.s_in_A₀
+  T_in_A₀ := by
+    intro t ht
+    rw [RationalLocData.insertDenom_P]
+    rw [RationalLocData.insertDenom_T, Finset.mem_insert] at ht
+    rcases ht with rfl | h
+    · exact hD.s_in_A₀
+    · exact hD.T_in_A₀ t h
+
+/-- The `insertDenom` transform preserves `SamePair` (in either argument). -/
+theorem RationalLocData.SamePair.insertDenom
+    {D₀ D : RationalLocData A} (h : D₀.SamePair D) :
+    D₀.insertDenom.SamePair D.insertDenom := by
+  unfold RationalLocData.SamePair at *
+  rw [RationalLocData.insertDenom_P, RationalLocData.insertDenom_P]
+  exact h
+
+section RationalCoveringSection2
+
+variable [PlusSubring A]
+
+/-- A rational covering is **pinned to an ambient pair** `P` if both its
+base and every cover piece carry that pair as their pair of definition.
+
+This is the cover-level analogue of `SamePair`: it globally discharges
+the `D.P = base.P = P` side condition for every restriction map within
+the covering, so the corrected T089 chain can run uniformly. -/
+structure RationalCovering.PinnedTo (P : PairOfDefinition A)
+    (C : RationalCovering A) : Prop where
+  /-- The base carries the ambient pair. -/
+  base_pair : C.base.P = P
+  /-- Every cover piece carries the ambient pair. -/
+  covers_pair : ∀ D ∈ C.covers, D.P = P
+
+omit [DecidableEq A] in
+/-- If a cover is pinned to a pair, every cover piece is `SamePair` to
+the base. Direct from transitivity through the ambient pair. -/
+theorem RationalCovering.PinnedTo.samePair_base
+    {P : PairOfDefinition A} {C : RationalCovering A} (hC : C.PinnedTo P)
+    {D : RationalLocData A} (hD : D ∈ C.covers) :
+    C.base.SamePair D := by
+  show D.P = C.base.P
+  rw [hC.covers_pair D hD, hC.base_pair]
+
+/-- The cover-level `insertDenom` transform preserves `PinnedTo`: the
+piece-level `insertDenom` keeps `P` unchanged. -/
+theorem RationalCovering.PinnedTo.insertDenom
+    {P : PairOfDefinition A} {C : RationalCovering A} (hC : C.PinnedTo P) :
+    C.insertDenom.PinnedTo P where
+  base_pair := by
+    show C.insertDenom.base.P = P
+    show C.base.insertDenom.P = P
+    rw [RationalLocData.insertDenom_P]
+    exact hC.base_pair
+  covers_pair := by
+    classical
+    intro D hD
+    show D.P = P
+    obtain ⟨D', hD', rfl⟩ := Finset.mem_image.mp hD
+    rw [RationalLocData.insertDenom_P]
+    exact hC.covers_pair D' hD'
+
+/-- The cover-level `insertDenom` transform preserves per-piece (and
+base-level) `IntegralInPair`. -/
+theorem RationalCovering.insertDenom_integralInPair_each
+    {C : RationalCovering A}
+    (h_base : C.base.IntegralInPair)
+    (h_covers : ∀ D ∈ C.covers, D.IntegralInPair) :
+    C.insertDenom.base.IntegralInPair ∧
+    ∀ D ∈ C.insertDenom.covers, D.IntegralInPair := by
+  classical
+  refine ⟨RationalLocData.IntegralInPair.insertDenom h_base, ?_⟩
+  intro D hD
+  obtain ⟨D', hD', rfl⟩ := Finset.mem_image.mp hD
+  exact RationalLocData.IntegralInPair.insertDenom (h_covers D' hD')
+
+end RationalCoveringSection2
+
 end ValuationSpectrum
