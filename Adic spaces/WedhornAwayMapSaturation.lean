@@ -584,4 +584,106 @@ theorem algebraMap_image_mem_Jfull_pow_of_awayLift_image_in_locNhd
   rw [h_unit_cancel]
   exact Ideal.mul_mem_right _ _ h_in_Jfull
 
+/-! ## Source-side denominator-clearing for `locSubring` (T114)
+
+A reusable structural primitive needed by Primary's saturation chain
+to extract `A`-element witnesses from a `locSubring`-side polynomial
+expression. Given explicit integral-data hypotheses `s ∈ P.A₀` and
+`T ⊆ P.A₀`, every element of `locSubring P T s ⊆ Localization.Away s`
+is, after multiplication by some power of `algebraMap A _ s`, the
+`algebraMap`-image of a single `P.A₀`-element. This is the
+`Subring.closure_induction` companion to T106's
+`algebraMap_image_mem_Jfull_pow_of_awayLift_image_in_locNhd`. -/
+
+/-- **Denominator-clearing for `locSubring` elements** (T114 reusable
+primitive).
+
+For a pair of definition `(P.A₀, P.I)`, finite `T : Finset A` with
+`T ⊆ P.A₀`, and `s ∈ P.A₀`, every `x ∈ locSubring P T s` admits
+`β : P.A₀` and `E : ℕ` with
+
+```
+x * algebraMap A (Localization.Away s) (s ^ E) =
+  algebraMap A (Localization.Away s) ((β : A))
+```
+
+i.e., `x = algebraMap β / algebraMap s ^ E` after clearing denominators
+inside `Localization.Away s`.
+
+**Proof shape**: `Subring.closure_induction` on
+`locSubring P T s = Subring.closure ((algebraMap '' P.A₀) ∪
+(divByS '' T))`.
+* Generators `algebraMap a` (a ∈ P.A₀): `(β, E) := (a, 0)`.
+* Generators `divByS t s` (t ∈ T): `(β, E) := (t, 1)` via
+  `IsLocalization.mk'_spec` (`divByS t s · algebraMap s = algebraMap
+  t`); `t ∈ P.A₀` comes from `hT`.
+* Closure under `0, 1, +, *, -`: ring algebra in `P.A₀` (closed under
+  `s`-multiplication via `hs`), with denominator exponents combining
+  by addition.
+
+**Use** (T114 / T089 corrected residual): produces the `P.A₀`-form
+needed to apply `IsLocalization.eq_iff_exists` and bridge a `locNhd`
+membership to an `A`-side relation, the prerequisite for Primary's
+source-witness extraction. -/
+theorem locSubring_exists_denominator_clearance
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hs : s ∈ P.A₀) (hT : ∀ t ∈ T, t ∈ P.A₀)
+    {x : Localization.Away s} (hx : x ∈ locSubring P T s) :
+    ∃ (β : P.A₀) (E : ℕ),
+      x * algebraMap A (Localization.Away s) (s ^ E) =
+        algebraMap A (Localization.Away s) ((β : A)) := by
+  unfold locSubring at hx
+  induction hx using Subring.closure_induction with
+  | mem y hy =>
+    rcases hy with ⟨a, ha, rfl⟩ | ⟨t, rfl⟩
+    · -- Generator `algebraMap a`, `a ∈ P.A₀`: take `(β, E) := (a, 0)`.
+      exact ⟨⟨a, ha⟩, 0, by rw [pow_zero, map_one, mul_one]⟩
+    · -- Generator `divByS t.val s`, `t : ↥T`: take `(β, E) := (t.val, 1)`.
+      refine ⟨⟨t.val, hT t.val t.property⟩, 1, ?_⟩
+      rw [pow_one]
+      exact IsLocalization.mk'_spec (Localization.Away s) (t.val : A)
+        ⟨s, Submonoid.mem_powers s⟩
+  | zero =>
+    exact ⟨0, 0, by simp⟩
+  | one =>
+    exact ⟨1, 0, by simp⟩
+  | add y z _ _ hy hz =>
+    obtain ⟨β₁, E₁, h₁⟩ := hy
+    obtain ⟨β₂, E₂, h₂⟩ := hz
+    refine ⟨⟨(β₁ : A) * s ^ E₂ + (β₂ : A) * s ^ E₁,
+            P.A₀.add_mem (P.A₀.mul_mem β₁.property (P.A₀.pow_mem hs _))
+              (P.A₀.mul_mem β₂.property (P.A₀.pow_mem hs _))⟩,
+           E₁ + E₂, ?_⟩
+    have h1' : y * algebraMap A (Localization.Away s) (s ^ (E₁ + E₂)) =
+        algebraMap A (Localization.Away s) ((β₁ : A) * s ^ E₂) := by
+      rw [pow_add, map_mul, ← mul_assoc, h₁, ← map_mul]
+    have h2' : z * algebraMap A (Localization.Away s) (s ^ (E₁ + E₂)) =
+        algebraMap A (Localization.Away s) ((β₂ : A) * s ^ E₁) := by
+      rw [show E₁ + E₂ = E₂ + E₁ from by omega, pow_add, map_mul,
+          ← mul_assoc, h₂, ← map_mul]
+    show (y + z) * algebraMap A (Localization.Away s) (s ^ (E₁ + E₂)) =
+        algebraMap A (Localization.Away s)
+          ((β₁ : A) * s ^ E₂ + (β₂ : A) * s ^ E₁)
+    rw [add_mul, h1', h2', ← map_add]
+  | mul y z _ _ hy hz =>
+    obtain ⟨β₁, E₁, h₁⟩ := hy
+    obtain ⟨β₂, E₂, h₂⟩ := hz
+    refine ⟨β₁ * β₂, E₁ + E₂, ?_⟩
+    show (y * z) * algebraMap A (Localization.Away s) (s ^ (E₁ + E₂)) =
+        algebraMap A (Localization.Away s) (((β₁ * β₂ : P.A₀) : A))
+    rw [show ((β₁ * β₂ : P.A₀) : A) = (β₁ : A) * (β₂ : A) from rfl,
+        map_mul, pow_add, map_mul]
+    calc (y * z) * (algebraMap A (Localization.Away s) (s ^ E₁) *
+                    algebraMap A (Localization.Away s) (s ^ E₂))
+        = (y * algebraMap A (Localization.Away s) (s ^ E₁)) *
+          (z * algebraMap A (Localization.Away s) (s ^ E₂)) := by ring
+      _ = algebraMap A (Localization.Away s) ((β₁ : A)) *
+          algebraMap A (Localization.Away s) ((β₂ : A)) := by rw [h₁, h₂]
+  | neg y _ hy =>
+    obtain ⟨β, E, h⟩ := hy
+    refine ⟨-β, E, ?_⟩
+    show (-y) * algebraMap A (Localization.Away s) (s ^ E) =
+        algebraMap A (Localization.Away s) (((-β : P.A₀) : A))
+    rw [show ((-β : P.A₀) : A) = -((β : A)) from rfl, map_neg, neg_mul, h]
+
 end ValuationSpectrum
