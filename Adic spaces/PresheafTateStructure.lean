@@ -8,6 +8,7 @@ import «Adic spaces».AdicCompletionBridge
 import «Adic spaces».TopologyComparison
 import «Adic spaces».CompletionLocalization
 import «Adic spaces».WedhornLocTopologyLinear
+import «Adic spaces».WedhornAwayMapSaturation
 import Mathlib.RingTheory.AdicCompletion.Exactness
 import Mathlib.RingTheory.AdicCompletion.AsTensorProduct
 
@@ -1738,57 +1739,71 @@ private theorem away_eq_algebraMap_mul_invS_pow
     _ = algebraMap A (Localization.Away s) α *
         (divByS (1 : A) s) ^ k := by rw [hsec]
 
-/-- **Witness-existence residual for T089 saturation** (T108
-strictly smaller named private residual; replaces the kernel-difference
-content of `locLift_preimage_target_locNhd_saturation` with the
-matching-`algebraMap` content in target `Localization.Away D.s`).
+/-! ### T089 saturation witness-existence residuals
 
-Given the canonical away-lift hypothesis `locLift(algebraMap α ·
-(divByS 1 D₀.s)^k_a) ∈ locNhd D m`, find `α' : D₀.P.A₀` at depth `n +
-k_a * N₀` in the source ideal of definition `D₀.P.I` with matching
-target image:
+The chain `locLift_preimage_target_locNhd_saturation` (T089 saturation)
+→ `locLift_preimage_target_witness_existence` (T108 reduction; matching
+`algebraMap` in target replaces kernel-difference) →
+`locLift_preimage_jfull_witness_existence` (T110 reduction; T107
+applies to extract `algebraMap (α * e_rad^k_a) ∈ (Jfull D.P D.T D.s)^m`
+from the locNhd hypothesis) progressively isolates the genuine
+algebraic content of the saturation step into ever-smaller named
+private residuals.
 
-```
-algebraMap A (Localization.Away D.s) α =
-  algebraMap A (Localization.Away D.s) ((α' : D₀.P.A₀) : A).
-```
+The kernel-difference → matching-`algebraMap` reduction (T108) is
+purely mechanical (`map_sub`, `IsLocalization.Away.lift_eq`,
+unit-cancellation of the `(divByS 1 D₀.s)^k_a` factor). The
+locNhd → `(Jfull D)^m` reduction (T110) is provided by T107
+(`algebraMap_image_mem_Jfull_pow_of_awayLift_image_in_locNhd`).
+The remaining content
+(`locLift_preimage_jfull_witness_existence`) is the structural source
+α'-extraction from a target `(Jfull D)^m` membership, which is the
+genuine commutative-algebra content (depth translation between target
+`D.P.I^m` and source `D₀.P.I^(n + k_a * N₀)` via the radical relation,
+combined with Artin-Rees absorption). -/
 
-**Why strictly smaller than the saturation theorem**: the original
-saturation conclusion is the kernel-difference
+/-- **Source-side α'-witness extraction from `(Jfull D.P D.T D.s)^m`
+membership** (T110 strictly smaller named private residual).
 
-```
-algebraMap α · (divByS 1 D₀.s)^k_a -
-  algebraMap ((α' : A)) · (divByS 1 D₀.s)^k_a ∈ ker(locLift D₀ D h).
-```
+Given the target `algebraMap`-image membership `algebraMap A
+(Localization.Away D.s) (α * e_rad ^ k_a) ∈ (Jfull D.P D.T D.s)^m`
+(the radical-translated form of the original `locLift`/`locNhd` data
+extracted via T107), produce a source-side witness `α' : D₀.P.A₀` at
+depth `n + k_a * N₀` in `D₀.P.I` matching `α` modulo `D.s`-torsion in
+the target localization `Localization.Away D.s`.
 
-For our specific element shape (a single common factor `(divByS 1
-D₀.s)^k_a`), this kernel-difference reduces to the
-matching-`algebraMap` condition above by routine algebra:
-* `map_sub` collapses the difference to
-  `algebraMap (α - α') · (divByS 1 D₀.s)^k_a`.
-* `IsLocalization.Away.lift_eq` evaluates `locLift` on the algebraMap
-  factor, producing `algebraMap A (Loc D.s) (α - α')`.
-* The remaining `(locLift (divByS 1 D₀.s))^k_a` factor is a unit
-  (inverse of `(algebraMap D₀.s)^k_a` in target), so the product is
-  zero iff the algebraMap factor is zero, iff `algebraMap A (Loc D.s)
-  α = algebraMap A (Loc D.s) α'`.
+**Why strictly smaller than `locLift_preimage_target_witness_existence`**:
+the hypothesis is a pure A-algebra/A-localization condition (no
+`locLift` wrapper, no `divByS 1 D₀.s` denominator factor, no
+multiplication by inverse-of-`D₀.s` in target). T107
+(`algebraMap_image_mem_Jfull_pow_of_awayLift_image_in_locNhd`)
+mechanically reduces the locNhd hypothesis to this `(Jfull D)^m`
+form — the structural extraction step from `(Jfull D)^m` to a source
+`α' ∈ D₀.P.I^(n + k_a * N₀)` is the genuine algebraic content.
 
-The kernel-difference reduction is **purely mechanical**; the
-genuine algebraic content of T089's saturation step is the witness
-existence + depth control above, captured precisely in this
-residual.
+**Proof obligation isolated**: from `algebraMap (α * e_rad^k_a) ∈
+(Jfull D.P D.T D.s)^m` (an ideal in `Localization.Away D.s` generated
+by `subtype '' (locIdeal D.P D.T D.s)^m`), produce
+`α' : D₀.P.A₀ ∩ D₀.P.I^(n + k_a * N₀)` matching `α` modulo
+`D.s`-torsion. This involves the structural translation between target
+`D.P.I^m` data and source `D₀.P.I^?` data via the radical relation
+`e_rad * D₀.s = D.s ^ N_rad`, plus T104's source-side
+`locNhd ∩ K_full ⊆ Jfull^n * K_full` Artin-Rees absorption applied to
+the source-side analogue of the target locNhd witness. -/
+private theorem locLift_preimage_jfull_witness_existence
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    [IsNoetherianRing D₀.P.A₀]
+    {N_rad : ℕ} {e_rad : A} (h_rad : e_rad * D₀.s = D.s ^ N_rad) :
+    ∀ n : ℕ, ∃ m : ℕ, ∀ (α : A) (k_a : ℕ),
+      algebraMap A (Localization.Away D.s) (α * e_rad ^ k_a) ∈
+        (Jfull D.P D.T D.s) ^ m →
+      ∃ α' : D₀.P.A₀,
+        (α' : D₀.P.A₀) ∈ D₀.P.I ^ (n + k_a * (D₀.hopen.choose)) ∧
+        algebraMap A (Localization.Away D.s) α =
+          algebraMap A (Localization.Away D.s) ((α' : D₀.P.A₀) : A) := by
+  sorry
 
-**Proof obligation isolated** (genuine algebraic content): given the
-target `locNhd D m` constraint on the away-lift image, find
-`α' : D₀.P.A₀ ∩ D₀.P.I^(n + k_a * N₀)` matching `α` modulo target
-`Loc D.s` (equivalently, modulo `D.s`-torsion in `A`, via
-`IsLocalization.eq_iff_exists`). The construction combines T097's
-target-side radical inverse factor identity, T098's source-side
-radical rewrite, and T104's source `locNhd ∩ K_full ⊆ Jfull^n *
-K_full` Artin-Rees absorption.
-
-**Caller**: `locLift_preimage_target_locNhd_saturation` immediately
-below. -/
 private theorem locLift_preimage_target_witness_existence
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     (D₀ D : RationalLocData A)
@@ -1803,7 +1818,24 @@ private theorem locLift_preimage_target_witness_existence
         (α' : D₀.P.A₀) ∈ D₀.P.I ^ (n + k_a * (D₀.hopen.choose)) ∧
         algebraMap A (Localization.Away D.s) α =
           algebraMap A (Localization.Away D.s) ((α' : D₀.P.A₀) : A) := by
-  sorry
+  -- Extract the radical relation `(N_rad, e_rad)` from the rational-subset
+  -- containment `h`.
+  obtain ⟨N_rad, e_rad, h_rad⟩ := rad_relation_of_rational_subset D₀ D h
+  intro n
+  -- Reduce to the strictly smaller `(Jfull D)^m`-form residual via T107.
+  obtain ⟨m, hm⟩ := locLift_preimage_jfull_witness_existence D₀ D h_rad n
+  refine ⟨m, ?_⟩
+  intro α k_a hα
+  -- Apply T107 (`algebraMap_image_mem_Jfull_pow_of_awayLift_image_in_locNhd`)
+  -- to convert `locLift X ∈ locNhd D m` to `algebraMap (α * e_rad^k_a) ∈
+  -- (Jfull D.P D.T D.s)^m`.
+  have h_jfull : algebraMap A (Localization.Away D.s) (α * e_rad ^ k_a) ∈
+      (Jfull D.P D.T D.s) ^ m :=
+    algebraMap_image_mem_Jfull_pow_of_awayLift_image_in_locNhd
+      D.P D.T h_rad (isUnit_algebraMap_s_of_rational_subset D₀ D h)
+      α k_a m hα
+  -- Apply the smaller residual to extract the source α' witness.
+  exact hm α k_a h_jfull
 
 /-- **Saturation helper for the cross-localization preimage** (T089
 private saturation helper, T108 reduction to witness existence).
