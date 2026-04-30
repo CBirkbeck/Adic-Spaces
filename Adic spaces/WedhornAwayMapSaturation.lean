@@ -586,17 +586,63 @@ theorem algebraMap_image_mem_Jfull_pow_of_awayLift_image_in_locNhd
 
 /-! ## Source-side denominator-clearing for `locSubring` (T114)
 
-A reusable structural primitive needed by Primary's saturation chain
-to extract `A`-element witnesses from a `locSubring`-side polynomial
-expression. Given explicit integral-data hypotheses `s ∈ P.A₀` and
-`T ⊆ P.A₀`, every element of `locSubring P T s ⊆ Localization.Away s`
-is, after multiplication by some power of `algebraMap A _ s`, the
-`algebraMap`-image of a single `P.A₀`-element. This is the
-`Subring.closure_induction` companion to T106's
-`algebraMap_image_mem_Jfull_pow_of_awayLift_image_in_locNhd`. -/
+Reusable structural primitives in this section:
+
+* `locSubring_exists_denominator_clearance` — every `x ∈ locSubring P
+  T s` is of the form `algebraMap β / algebraMap s ^ E` for
+  `β : P.A₀, E : ℕ`. **An E-shift lemma**: produces a clearing of the
+  denominator power, NOT a raw `algebraMap`-image equality of `x`
+  with `algebraMap β`. Lands per T114 step 1.
+
+**Integration boundary (E-shift residual, T115/T116 territory)**: the
+denominator-clearing helper above produces an `s^E` denominator that
+the consumer (Primary's `cross_localization_preimage_in_sup_ker` in
+`PresheafTateStructure.lean`) cannot directly absorb. In the consumer
+chain, after applying the helper one gets — for any
+`a : A` whose `algebraMap` lies in `locNhd P T s m` — an A-equation
+
+```
+∃ γ : P.A₀, γ ∈ P.I^m, ∃ j E : ℕ,
+  s^(j + E) * a = s^j * (γ : A)
+```
+
+i.e., `algebraMap a = algebraMap γ / algebraMap s^E` in
+`Localization.Away s`, equivalently `a = γ / s^E` modulo
+`s`-torsion. **This is NOT** the saturation conclusion `algebraMap a
+= algebraMap α'` for some `α' ∈ P.I^?`. The remaining gap is the
+colon-saturation / Artin-Rees absorption of the `s^E` factor:
+
+```
+-- T114-COLON-SATURATION (PROPOSED, NOT YET PROVED).
+-- For Noetherian P.A₀, ideal P.I : Ideal P.A₀, s ∈ P.A₀,
+-- ∃ k₀ : ℕ, ∀ m ≥ k₀ + E, ∀ a ∈ A, ∀ j E : ℕ, ∀ γ : P.A₀,
+--   γ ∈ P.I^m →
+--   s^(j + E) * a = s^j * (γ : A) →
+--   ∃ α' : P.A₀, α' ∈ P.I^(m - k₀ - E) ∧
+--     ∃ k : ℕ, s^k * (a - (α' : A)) = 0.
+```
+
+This is the **first exact missing statement** for Primary's T113 to
+land. It is a colon-stabilization fact in the Noetherian commutative
+ring `P.A₀` — equivalent to the assertion that in `P.A₀`, the colon
+chain `(P.I^m : ⟨s⟩^E)` stabilizes after a fixed Artin-Rees-style
+shift `k₀ = k₀(P.I, s)` independent of `m, E`. Mathlib provides:
+
+* `Ideal.exists_pow_inf_eq_pow_smul` (the standard Artin-Rees lemma
+  on `(P.I, ⟨s⟩)`) — supplies the `k₀` constant.
+* `Submodule.colon` and `Ideal.mem_colon_span_singleton`
+  (`Mathlib/RingTheory/Ideal/Colon.lean`) — supply the colon-ideal
+  formalism.
+* `Ideal.iInf_pow_smul = ⊥` for Noetherian rings (Krull intersection)
+  — controls the `s`-torsion stabilization.
+
+Composing these into the `T114-COLON-SATURATION` lemma above would
+discharge the integration shift, but the composition itself is an
+Artin-Rees + colon-saturation argument requiring a separate
+substantial pass. Reported here as the explicit blocker for T113. -/
 
 /-- **Denominator-clearing for `locSubring` elements** (T114 reusable
-primitive).
+primitive — an `E`-shift lemma).
 
 For a pair of definition `(P.A₀, P.I)`, finite `T : Finset A` with
 `T ⊆ P.A₀`, and `s ∈ P.A₀`, every `x ∈ locSubring P T s` admits
@@ -607,8 +653,27 @@ x * algebraMap A (Localization.Away s) (s ^ E) =
   algebraMap A (Localization.Away s) ((β : A))
 ```
 
-i.e., `x = algebraMap β / algebraMap s ^ E` after clearing denominators
-inside `Localization.Away s`.
+i.e., `x = algebraMap β / algebraMap s ^ E` after clearing
+denominators inside `Localization.Away s`.
+
+**⚠ E-shift caveat**: this lemma supplies the `s^E` clearing factor
+unavoidably — the conclusion is **NOT** `x = algebraMap β` directly.
+Composing this helper with `IsLocalization.eq_iff_exists` and the
+locNhd-unfolding of an `algebraMap a ∈ locNhd P T s m` hypothesis
+yields the A-equation
+
+```
+∃ γ : P.A₀, γ ∈ P.I^m, ∃ j E : ℕ,
+  s^(j + E) * a = s^j * (γ : A)
+```
+
+— equivalently `a = γ / s^E` modulo `s`-torsion. Absorbing the
+`s^E` shift into a raw `algebraMap a = algebraMap α'` form requires
+the **colon-saturation residual** documented in the section
+docstring above (`T114-COLON-SATURATION`). Consumers should plumb
+the explicit `(j, E)` data through downstream and discharge the
+shift via that colon-saturation lemma, not assume this helper does
+it.
 
 **Proof shape**: `Subring.closure_induction` on
 `locSubring P T s = Subring.closure ((algebraMap '' P.A₀) ∪
@@ -621,10 +686,9 @@ inside `Localization.Away s`.
   `s`-multiplication via `hs`), with denominator exponents combining
   by addition.
 
-**Use** (T114 / T089 corrected residual): produces the `P.A₀`-form
-needed to apply `IsLocalization.eq_iff_exists` and bridge a `locNhd`
-membership to an `A`-side relation, the prerequisite for Primary's
-source-witness extraction. -/
+**Use** (T114): the denominator-clearing prerequisite for any
+A-side reasoning about `locSubring`-side polynomial expressions,
+including the unfinished `T114-COLON-SATURATION` discharge above. -/
 theorem locSubring_exists_denominator_clearance
     (P : PairOfDefinition A) (T : Finset A) (s : A)
     (hs : s ∈ P.A₀) (hT : ∀ t ∈ T, t ∈ P.A₀)
