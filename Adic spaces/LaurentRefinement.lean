@@ -2401,6 +2401,30 @@ theorem presheafValue_iteratedMinus_equiv_coeRingHom
   rw [presheafValue_iteratedMinus_equiv_apply, iteratedMinus_forwardHom_coeRingHom]
   rfl
 
+omit [PlusSubring A] [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **Right-uniform-space `CompleteSpace` bridge for `presheafValue`** (T129).
+
+The Route B Laurent bridge calls (e.g.,
+`presheafValue_trivialPlus_fSubX_equiv` below) require a
+`CompleteSpace` instance with respect to the **right-uniform-space**
+structure on `presheafValue D` (the form Mathlib's
+`UniformSpace.Completion`-style equivs ask for). The built-in
+`CompleteSpace (presheafValue D)` instance from `Presheaf.lean` uses
+the ambient `UniformSpace.Completion.uniformSpace` form, which agrees
+with the right-uniform-space by `IsUniformAddGroup.rightUniformSpace_eq`.
+
+This helper packages that two-line bridge so downstream Route B
+ticket consumers can avoid open-coding it (cf. the explicit
+`have hA_complete := …; rw [IsUniformAddGroup.rightUniformSpace_eq];
+infer_instance` at the existing call sites in this file, e.g.
+`presheafValue_iteratedMinus_fSubX_equiv` ~line 2607). -/
+theorem CompleteSpace_presheafValue_rightUniformSpace
+    (D : RationalLocData A) :
+    @CompleteSpace (presheafValue D)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D)) := by
+  rw [IsUniformAddGroup.rightUniformSpace_eq]
+  infer_instance
+
 /-- **Non-discrete `f − X` quotient equivalence over a generic Tate base B**
 (Q3-STEP2D, the primitive the reviewer flagged as genuinely new for Q3).
 
