@@ -904,3 +904,78 @@ theorem Ideal.exists_factor_pow_of_mem_inter_pow_singleton
     rw [hαx_eq, hαy_eq]; ring
 
 end ValuationSpectrum
+
+/-! ## Principal pair π-clearing API (T124)
+
+A small denominator-clearing API for the principal pair of definition
+of a Tate ring (see `IsTateRing.principalPair` /
+`PrincipalPairOfDefinition` in `HuberRings.lean`). This is the **valid
+π-specific** counterpart to the (invalid) generic `D.s` localization
+bridge: it captures only the canonical fact that the chosen
+generator `π : P.A₀` of a principal pair is topologically nilpotent in
+`A`, lies in `P.I`, and clears any `a : A` into `P.A₀` after a
+sufficient `π`-power.
+
+* `PrincipalPairOfDefinition.pi_mem_I` — `P.π ∈ P.toPairOfDefinition.I`,
+  immediate from `P.I_eq_span` and `Ideal.mem_span_singleton_self`.
+* `PrincipalPairOfDefinition.pi_topologicallyNilpotent` — `(P.π : A)`
+  is topologically nilpotent in `A`, via
+  `PairOfDefinition.isTopologicallyNilpotent_of_mem`.
+* `PrincipalPairOfDefinition.exists_pow_mul_mem_A₀` — for every
+  `a : A`, some `π^n * a ∈ P.A₀`. Inlined from the same proof template
+  as `PairOfDefinition.exists_pow_mul_mem_A₀` in `Lemma745.lean`
+  (verbatim continuity-of-multiplication argument); inlined rather
+  than imported to avoid pulling the heavier `Lemma745`/`ValuationContinuity`
+  dependency into this file.
+* `PrincipalPairOfDefinition.exists_pow_mul_eq_A₀` — explicit
+  `(n, a₀ : P.A₀)` witness shape useful for downstream source-bridge
+  reasoning. -/
+
+/-- The generator `π` of a principal pair lies in its ideal of
+definition `I`. -/
+theorem PrincipalPairOfDefinition.pi_mem_I {A : Type*}
+    [CommRing A] [TopologicalSpace A]
+    (P : PrincipalPairOfDefinition A) :
+    P.π ∈ P.toPairOfDefinition.I := by
+  rw [P.I_eq_span]
+  exact Ideal.mem_span_singleton_self _
+
+/-- The generator `π` of a principal pair is topologically nilpotent
+in `A`. -/
+theorem PrincipalPairOfDefinition.pi_topologicallyNilpotent
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    (P : PrincipalPairOfDefinition A) :
+    IsTopologicallyNilpotent ((P.π : A)) :=
+  P.toPairOfDefinition.isTopologicallyNilpotent_of_mem P.pi_mem_I
+
+/-- Every `a : A` admits a `π`-power that clears it into the ring of
+definition `P.A₀`.
+
+Inlined from `PairOfDefinition.exists_pow_mul_mem_A₀`
+(`Lemma745.lean`) to avoid the heavier
+`Lemma745`/`ValuationContinuity` import in this file. -/
+theorem PrincipalPairOfDefinition.exists_pow_mul_mem_A₀
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    (P : PrincipalPairOfDefinition A) (a : A) :
+    ∃ n : ℕ, ((P.π : A) ^ n) * a ∈ P.toPairOfDefinition.A₀ := by
+  have h_cont : Continuous (· * a : A → A) := continuous_mul_const a
+  have h_open : IsOpen {x : A | x * a ∈ P.toPairOfDefinition.A₀} :=
+    P.toPairOfDefinition.isOpen.preimage h_cont
+  have h_zero : (0 : A) ∈ {x : A | x * a ∈ P.toPairOfDefinition.A₀} := by
+    simp only [Set.mem_setOf_eq, zero_mul, P.toPairOfDefinition.A₀.zero_mem]
+  have h_nhds : {x : A | x * a ∈ P.toPairOfDefinition.A₀} ∈
+      nhds (0 : A) :=
+    h_open.mem_nhds h_zero
+  obtain ⟨n, hn⟩ := (P.pi_topologicallyNilpotent.eventually h_nhds).exists
+  exact ⟨n, hn⟩
+
+/-- Subtype/witness version of `exists_pow_mul_mem_A₀`: produces an
+explicit `a₀ : P.A₀` with `(P.π : A) ^ n * a = (a₀ : A)`. The shape
+downstream source-bridge reasoning consumes. -/
+theorem PrincipalPairOfDefinition.exists_pow_mul_eq_A₀
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    (P : PrincipalPairOfDefinition A) (a : A) :
+    ∃ (n : ℕ) (a₀ : P.toPairOfDefinition.A₀),
+      ((P.π : A) ^ n) * a = (a₀ : A) := by
+  obtain ⟨n, hn⟩ := P.exists_pow_mul_mem_A₀ a
+  exact ⟨n, ⟨_, hn⟩, rfl⟩
