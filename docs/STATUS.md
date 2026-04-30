@@ -62,6 +62,17 @@ Required approach: Use `AdicCompletionBridge.adicCompletionRingEquiv` to identif
 
 All five theorems compile; axiom trace is `[propext, sorryAx, Classical.choice, Quot.sound]`, identical to `tateAcyclicity`. The `sorryAx` dependency is inherited transitively from `restrictionMap_isLocalization` (Wedhorn Prop 8.15, `PresheafTateStructure.lean:1499`), itself dependent on `restrictionMapHom_injective` and `restrictionMapHom_surj`. No new sorries introduced in this work.
 
+**Update 2026-04-30 (T125 route-pivot decision; T113/T119 lane parked)**: After the T123 audit identified a hidden-hypothesis obstruction in any generic `D.s` colon/source bridge, T125's read-only route audit confirmed the pivot to the v3 strict-exactness route. Decisions:
+
+- **T113/T119 colon-saturation lane is PARKED** (not narrowed). A principal-pair-only narrowing does not reach the actual consumers in `Cor832.flat_over_base_tate` / `hSpa_surj_from_spanTop`, which use arbitrary `RationalCovering` data. Future workers should not revive the `D.s`-localization-base bridge for `cross_localization_preimage_in_sup_ker` / `locLift_preimage_target_witness_existence` until explicitly reassigned.
+- **Forbidden shape**: any theorem that would push a generic `D.s ∈ D.P.A₀` (or analogous `D.s`-localization-base) hypothesis into `ValuationSpectrum.tateAcyclicity`, Part 2, or final acyclicity. The no-extra-final-hypotheses rule remains in force.
+- **Accepted reusable support kept (parked, not reverted)**: the colon-saturation chain primitives are mathlib-style and reusable in future work (e.g., for an alternative Prop 8.15 route or Cor 8.32 scaffolding):
+  - T114 `locSubring_exists_denominator_clearance` (commit 6076e80, then 7b8123b docstring refactor flagging the E-shift caveat) in `WedhornAwayMapSaturation.lean`.
+  - T119 `Ideal.exists_factor_of_mem_inter_singleton` (commit 7cb7bc8) — single-step Artin-Rees `s`-absorption, no torsion/NZD hypotheses.
+  - T122 `Ideal.exists_factor_pow_of_mem_inter_pow_singleton` (commit b7baef1) — E-dependent `s^E`-absorption, no torsion/NZD hypotheses.
+  - T124 `PrincipalPairOfDefinition.{pi_mem_I, pi_topologicallyNilpotent, exists_pow_mul_mem_A₀, exists_pow_mul_eq_A₀}` (commit 8508857) — π-specific clearing API for the principal Tate pair, without the invalid generic `D.s` bridge.
+- **Active critical path**: v3 strict-exactness route in `docs/TICKETS-tate-acyclicity-v3.md` (Wedhorn Lemma 8.31 flatness + Lemma 8.33 Laurent 3×3 chase + Lemma 8.34 refinement transfer + Banach OMP). T126 verifies the v3 route; the next implementation tickets after T126 (T127/T128/T129) work that lane. Wedhorn Prop 8.15 / `restrictionMap_isLocalization` is **not** required by the v3 route.
+
 ## Sorry-Free Status
 
 As of 2026-03-25:
