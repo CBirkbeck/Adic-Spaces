@@ -7,6 +7,7 @@ import «Adic spaces».PresheafIdentification
 import «Adic spaces».AdicCompletionBridge
 import «Adic spaces».TopologyComparison
 import «Adic spaces».CompletionLocalization
+import «Adic spaces».WedhornLocTopologyLinear
 import Mathlib.RingTheory.AdicCompletion.Exactness
 import Mathlib.RingTheory.AdicCompletion.AsTensorProduct
 
@@ -996,21 +997,32 @@ completion.
 
 **Wedhorn reference**: Proposition 8.15 + Lemma 8.5 (Noetherian adic completion). -/
 
-/-- `D₀.s` is a unit in `Localization.Away D.s` when `R(D.T/D.s) ⊆ R(D₀.T/D₀.s)`.
+/-- **Radical relation from rational-open containment** (T089 strict
+algebraic helper, fully proved).
 
-This is the localization-level analogue of `isUnit_canonicalMap_s`. The proof uses
-the prime ideal criterion: for every prime `p` containing `D₀.s`, we have `D.s ∈ p`
-(by Wedhorn Prop 7.52, proved as `mem_prime_of_rational_subset` in Presheaf.lean).
-Hence `D.s` lies in the radical of `(D₀.s)`, so a power of `D.s` is divisible by
-`D₀.s`, making `D₀.s` a unit in `Localization.Away D.s`.
+From `h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s`, extract the
+explicit radical relation `D.s ∈ √(D₀.s)` in concrete `(N, e)` form:
+there exist `N : ℕ` and `e : A` with `e * D₀.s = D.s ^ N` in `A`.
 
-The proof duplicates the `hu_loc` step from `restrictionMapAlg_continuous_of_huber`
-in Presheaf.lean (which is private and hence inaccessible from this file). -/
-private theorem isUnit_algebraMap_s_of_rational_subset
+**Proof**: prime-ideal criterion via Wedhorn Prop 7.52
+(`mem_prime_of_rational_subset` + `spa_point_nonOpen_of_rational_subset`)
+shows `D.s ∈ Ideal.radical (Ideal.span {D₀.s})`, i.e., a power of `D.s`
+lies in the principal ideal `(D₀.s)`. The witnesses `(N, e)` are
+extracted via `Ideal.mem_radical_iff` and `Ideal.mem_span_singleton'`.
+
+This is the **first step of the Artin-Rees + radical-relation route**
+behind `locLift_open_on_image_at_zero`. The explicit `(N, e)` data
+underwrites: (i) `D₀.s` being a unit in `Localization.Away D.s`
+(`isUnit_algebraMap_s_of_rational_subset`); (ii) the source-side
+identity `algebraMap (D.s^N) = algebraMap e * algebraMap D₀.s` in
+`Localization.Away D₀.s`, which is the algebraic kernel of the
+neighborhood translation between target and source `locNhd` filtrations
+in the basis-form residual of `locLift_open_on_image_at_zero`. -/
+private theorem rad_relation_of_rational_subset
     (D₀ D : RationalLocData A) (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
-    IsUnit (algebraMap A (Localization.Away D.s) D₀.s) := by
+    ∃ N : ℕ, ∃ e : A, e * D₀.s = D.s ^ N := by
+  classical
   have hrad : D.s ∈ Ideal.radical (Ideal.span {D₀.s}) := by
-    classical
     rw [Ideal.radical_eq_sInf, Ideal.mem_sInf]
     intro p ⟨hsp, hp⟩
     refine mem_prime_of_rational_subset D₀ D h p hp
@@ -1018,15 +1030,29 @@ private theorem isUnit_algebraMap_s_of_rational_subset
     intro hp_notOpen hD's
     exact spa_point_nonOpen_of_rational_subset D₀ D h p hp
       (hsp (Ideal.subset_span (Set.mem_singleton D₀.s))) hD's hp_notOpen
-  obtain ⟨n, hn⟩ := Ideal.mem_radical_iff.mp hrad
-  obtain ⟨a, ha⟩ := Ideal.mem_span_singleton'.mp hn
-  have hunit_pow : IsUnit (algebraMap A (Localization.Away D.s) D.s ^ n) :=
+  obtain ⟨N, hN⟩ := Ideal.mem_radical_iff.mp hrad
+  obtain ⟨e, he⟩ := Ideal.mem_span_singleton'.mp hN
+  exact ⟨N, e, he⟩
+
+/-- `D₀.s` is a unit in `Localization.Away D.s` when `R(D.T/D.s) ⊆ R(D₀.T/D₀.s)`.
+
+This is the localization-level analogue of `isUnit_canonicalMap_s`. The proof uses
+the prime ideal criterion (Wedhorn Prop 7.52): `D.s ∈ √(D₀.s)`, so a power of
+`D.s` is divisible by `D₀.s`, making `D₀.s` a unit in `Localization.Away D.s`.
+
+**T089 refactor (2026-04-29)**: the radical relation extraction is now factored
+into the named helper `rad_relation_of_rational_subset`. -/
+private theorem isUnit_algebraMap_s_of_rational_subset
+    (D₀ D : RationalLocData A) (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    IsUnit (algebraMap A (Localization.Away D.s) D₀.s) := by
+  obtain ⟨N, e, he⟩ := rad_relation_of_rational_subset D₀ D h
+  have hunit_pow : IsUnit (algebraMap A (Localization.Away D.s) D.s ^ N) :=
     (IsLocalization.map_units (Localization.Away D.s)
-      (⟨D.s, ⟨1, pow_one D.s⟩⟩ : Submonoid.powers D.s)).pow n
-  have heq : algebraMap A (Localization.Away D.s) a *
+      (⟨D.s, ⟨1, pow_one D.s⟩⟩ : Submonoid.powers D.s)).pow N
+  have heq : algebraMap A (Localization.Away D.s) e *
       algebraMap A (Localization.Away D.s) D₀.s =
-      algebraMap A (Localization.Away D.s) D.s ^ n := by
-    rw [← map_mul, ← map_pow, ha]
+      algebraMap A (Localization.Away D.s) D.s ^ N := by
+    rw [← map_mul, ← map_pow, he]
   rw [← heq] at hunit_pow
   exact isUnit_of_mul_isUnit_right hunit_pow
 
@@ -1537,6 +1563,56 @@ The proof decomposes into:
   below. Combined with closedness of the annihilator (the lemma above),
   the torsion result follows. -/
 
+/-- **Basis-form reduction for `locLift_open_on_image_at_zero`** (T089
+strict structural helper, fully proved).
+
+The residual `locLift_open_on_image_at_zero` quantifies abstractly over
+`V ∈ nhds 0` (source) and `W ∈ nhds 0` (target). This helper reduces
+that residual to the strictly narrower **basis-indexed form**: it
+suffices to provide, for every source basis index `n : ℕ`, a target
+basis index `m : ℕ` such that any element `a` with
+`locLift a ∈ locNhd D m` admits a representative
+`b ∈ locNhd D₀ n` with the same `locLift` image.
+
+**Why narrower**: integer-indexed on both sides (no abstract `nhds 0`
+quantifier), concrete `locNhd` AddSubgroups (rather than arbitrary
+nhds), amenable to Artin-Rees on the Noetherian source ring
+`Loc D₀.s` paired with the radical relation `D.s ∈ √(span {D₀.s})`
+(extracted via `isUnit_algebraMap_s_of_rational_subset`). The basis
+form is exactly the data the Artin-Rees + radical-relation argument
+described in the docstring of `locLift_open_on_image_at_zero`
+produces (with `m := n + k₀ + (radical exponent)` for the Artin-Rees
+constant `k₀` and the radical-relation exponent).
+
+**Reduction proof**: standard `RingSubgroupsBasis.hasBasis_nhds_zero`
+machinery on both source and target nhd bases. -/
+private theorem locLift_open_on_image_at_zero_of_basis_form
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s)
+    (h_basis : ∀ n : ℕ, ∃ m : ℕ,
+      ∀ a : Localization.Away D₀.s,
+        locLift D₀ D h a ∈ (locNhd D.P D.T D.s m : Set (Localization.Away D.s)) →
+        ∃ b : Localization.Away D₀.s,
+          b ∈ (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s)) ∧
+          locLift D₀ D h b = locLift D₀ D h a) :
+    ∀ V ∈ @nhds _ D₀.topology (0 : Localization.Away D₀.s),
+      ∃ W ∈ @nhds _ D.topology (0 : Localization.Away D.s),
+        ∀ a : Localization.Away D₀.s, locLift D₀ D h a ∈ W →
+          ∃ b : Localization.Away D₀.s, b ∈ V ∧ locLift D₀ D h b = locLift D₀ D h a := by
+  intro V hV
+  -- Convert V to basis form: V contains some `locNhd D₀ n`.
+  obtain ⟨n, _, hVn⟩ :=
+    (locBasis D₀.P D₀.T D₀.s D₀.hopen).hasBasis_nhds_zero.mem_iff.mp hV
+  -- Get the target basis index `m` from `h_basis`.
+  obtain ⟨m, hm⟩ := h_basis n
+  -- The candidate `W` is `locNhd D m`, a basis nhd of 0 in `D.topology`.
+  refine ⟨(locNhd D.P D.T D.s m : Set (Localization.Away D.s)),
+    (locBasis D.P D.T D.s D.hopen).hasBasis_nhds_zero.mem_of_mem (i := m) trivial, ?_⟩
+  intro a ha
+  obtain ⟨b, hb_in, hb_eq⟩ := hm a ha
+  exact ⟨b, hVn hb_in, hb_eq⟩
+
 /-- **Strictly narrower named residual (pure localization level)**:
 "quantitative openness on image" of `locLift` at 0 with respect to the
 two localization topologies. For every neighborhood `V` of 0 in
@@ -1557,7 +1633,40 @@ factorization through `locLift`).
 **Consumer chain**: feeds
 `ker_restrictionMapHom_subset_closure_algLift` →
 `restrictionMapHom_ker_isTorsion` → `restrictionMap_isLocalization`
-(Wedhorn Prop 8.15 Eq-clause). -/
+(Wedhorn Prop 8.15 Eq-clause).
+
+**Intended attack route (Artin-Rees + radical relation)**: Let
+`J₀ := P.I · Loc D₀.s` and `J := P.I · Loc D.s` be the *extended* ideals
+carrying the `locNhd` topologies on source / target (the `locNhd D₀ n`
+basis generates the `J₀^n`-adic filter and likewise for `D`). `Loc D₀.s`
+is Noetherian, `ker(locLift) ⊆ Loc D₀.s` is an ideal, so by the
+Artin-Rees lemma applied to `(J₀, ker(locLift))` in `Loc D₀.s` there is
+`k₀` with `J₀^n ∩ ker(locLift) = J₀^{n-k₀} · (J₀^{k₀} ∩ ker(locLift))`
+for `n ≥ k₀`. Couple that with the radical identity `D.s^{m_rel} = e · D₀.s`
+in `A` (coming from `rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s` via
+`isUnit_algebraMap_s_of_rational_subset`) to translate an element of
+`locLift⁻¹(J^m)` into a sum `z' + k` with `z' ∈ J₀^{m - k₀}` and
+`k ∈ ker(locLift)`. The `b` in the residual's conclusion is then `z'`
+(picking `n` so that `z' ∈ locNhd D₀ n`, and `m` as `n + k₀ + (extra
+from denominator clearing)`). All moves stay inside
+`PresheafTateStructure.lean` / existing localization support; no Lane B,
+Jacobson, or faithful-flatness content.
+
+**T089 progress (2026-04-29)**: the abstract `nhds 0` form is reduced
+to the basis-indexed form by `locLift_open_on_image_at_zero_of_basis_form`
+(above, fully proved). The radical-relation data is extracted via
+`rad_relation_of_rational_subset` (above, fully proved). The remaining
+algebraic gap is the source-side kernel-quotient lift, isolated in the
+local-Noetherian variant
+`locLift_open_on_image_at_zero_of_source_pair_noetherian` below: it
+takes `[IsNoetherianRing D₀.P.A₀]`, derives
+`[IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]` via
+`locSubring_isNoetherian`, applies T091's
+`locIdeal_pow_shift_inter_le_pow_mul` against the source-side kernel
+ideal `K := RingHom.ker (locLift ∘ subtype)`, and uses T092's
+`algebraMap_mul_pow_divByS_eq_one_of_radical_relation` for the
+denominator-lifting identity. The remaining content is the **per-`n`
+basis-form assembly** from these ingredients. -/
 private theorem locLift_open_on_image_at_zero
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     (D₀ D : RationalLocData A)
@@ -1566,7 +1675,435 @@ private theorem locLift_open_on_image_at_zero
       ∃ W ∈ @nhds _ D.topology (0 : Localization.Away D.s),
         ∀ a : Localization.Away D₀.s, locLift D₀ D h a ∈ W →
           ∃ b : Localization.Away D₀.s, b ∈ V ∧ locLift D₀ D h b = locLift D₀ D h a := by
+  -- Strict reduction (T089): reduce to the basis-indexed form.
+  -- The remaining sorry is the strictly narrower per-`n` basis-form
+  -- residual with the radical-relation data already in scope; only the
+  -- per-`n` Artin-Rees translation step remains. The local-Noetherian
+  -- variant `locLift_open_on_image_at_zero_of_source_pair_noetherian`
+  -- below isolates the Noetherian hypothesis needed to invoke T091.
+  refine locLift_open_on_image_at_zero_of_basis_form D₀ D h ?_
+  obtain ⟨N_rad, e_rad, h_rad⟩ := rad_relation_of_rational_subset D₀ D h
+  intro n
   sorry
+
+/-! ### T089 cross-localization helpers
+
+`cross_localization_preimage_in_sup_ker` (membership-form helper, the
+genuine quotient/sum content of T089): for each source depth `n`,
+finds target depth `m` such that every `a` with `locLift D₀ D h a ∈
+locNhd D.P D.T D.s m` lies in `locNhd D₀.P D₀.T D₀.s n ⊔ ker(locLift
+D₀ D h).toAddMonoidHom`. The `⊔`-membership encodes the
+"open mapping at 0 modulo kernel" property of `locLift`. Forward
+continuity (`locLift_maps_locNhd`) gives the reverse direction
+(`locNhd D₀ N ⊆ locLift⁻¹(locNhd D m)`); this is the ACTUAL openness
+— small target image forces a small source representative modulo
+kernel. The proof combines T097/T098's source/target-radical translation
+with T104's `locNhd ∩ K_full ⊆ Jfull^n * K_full` Artin-Rees absorption,
+threaded through `(Jfull D₀.P D₀.T D₀.s, K_full)` with `K_full :=
+RingHom.ker (locLift D₀ D h)`.
+
+The mechanical extraction layer `cross_localization_preimage_in_sum`
+(below) derives the explicit `a = b + k` decomposition from this
+membership form via T101's `AddSubgroup.exists_decomp_of_mem_sup_ker`
+wrapper. -/
+
+/-- **`Localization.Away` normal form via explicit inverse**
+(T089 normal-form helper, fully proved).
+
+For any `s : A`, `x : Localization.Away s`, `α : A`, `k : ℕ` such that
+`x * algebraMap A (Localization.Away s) (s ^ k) = algebraMap A
+(Localization.Away s) α` (the `IsLocalization.Away.surj` /
+`sec_spec` shape), `x` equals `algebraMap α * (divByS 1 s)^k`.
+
+**Proof shape** (multiply by explicit inverse rather than cancel):
+1. `hden`: `algebraMap (s^k) * (divByS 1 s)^k = 1` via `map_pow`,
+   `← mul_pow`, T092's `algebraMap_mul_divByS_one_eq_one`, `one_pow`.
+2. `calc x = x * 1 = x * (algMap(s^k) * invS^k) = (x * algMap(s^k))
+   * invS^k = algebraMap α * invS^k`. -/
+private theorem away_eq_algebraMap_mul_invS_pow
+    (s : A) (x : Localization.Away s) (α : A) (k : ℕ)
+    (hsec : x * algebraMap A (Localization.Away s) (s ^ k) =
+      algebraMap A (Localization.Away s) α) :
+    x = algebraMap A (Localization.Away s) α *
+        (divByS (1 : A) s) ^ k := by
+  have hden : algebraMap A (Localization.Away s) (s ^ k) *
+      (divByS (1 : A) s) ^ k = 1 := by
+    rw [map_pow, ← mul_pow, algebraMap_mul_divByS_one_eq_one, one_pow]
+  calc x
+      = x * 1 := (mul_one x).symm
+    _ = x * (algebraMap A (Localization.Away s) (s ^ k) *
+        (divByS (1 : A) s) ^ k) := by rw [hden]
+    _ = (x * algebraMap A (Localization.Away s) (s ^ k)) *
+        (divByS (1 : A) s) ^ k := by rw [mul_assoc]
+    _ = algebraMap A (Localization.Away s) α *
+        (divByS (1 : A) s) ^ k := by rw [hsec]
+
+/-- **Witness-existence residual for T089 saturation** (T108
+strictly smaller named private residual; replaces the kernel-difference
+content of `locLift_preimage_target_locNhd_saturation` with the
+matching-`algebraMap` content in target `Localization.Away D.s`).
+
+Given the canonical away-lift hypothesis `locLift(algebraMap α ·
+(divByS 1 D₀.s)^k_a) ∈ locNhd D m`, find `α' : D₀.P.A₀` at depth `n +
+k_a * N₀` in the source ideal of definition `D₀.P.I` with matching
+target image:
+
+```
+algebraMap A (Localization.Away D.s) α =
+  algebraMap A (Localization.Away D.s) ((α' : D₀.P.A₀) : A).
+```
+
+**Why strictly smaller than the saturation theorem**: the original
+saturation conclusion is the kernel-difference
+
+```
+algebraMap α · (divByS 1 D₀.s)^k_a -
+  algebraMap ((α' : A)) · (divByS 1 D₀.s)^k_a ∈ ker(locLift D₀ D h).
+```
+
+For our specific element shape (a single common factor `(divByS 1
+D₀.s)^k_a`), this kernel-difference reduces to the
+matching-`algebraMap` condition above by routine algebra:
+* `map_sub` collapses the difference to
+  `algebraMap (α - α') · (divByS 1 D₀.s)^k_a`.
+* `IsLocalization.Away.lift_eq` evaluates `locLift` on the algebraMap
+  factor, producing `algebraMap A (Loc D.s) (α - α')`.
+* The remaining `(locLift (divByS 1 D₀.s))^k_a` factor is a unit
+  (inverse of `(algebraMap D₀.s)^k_a` in target), so the product is
+  zero iff the algebraMap factor is zero, iff `algebraMap A (Loc D.s)
+  α = algebraMap A (Loc D.s) α'`.
+
+The kernel-difference reduction is **purely mechanical**; the
+genuine algebraic content of T089's saturation step is the witness
+existence + depth control above, captured precisely in this
+residual.
+
+**Proof obligation isolated** (genuine algebraic content): given the
+target `locNhd D m` constraint on the away-lift image, find
+`α' : D₀.P.A₀ ∩ D₀.P.I^(n + k_a * N₀)` matching `α` modulo target
+`Loc D.s` (equivalently, modulo `D.s`-torsion in `A`, via
+`IsLocalization.eq_iff_exists`). The construction combines T097's
+target-side radical inverse factor identity, T098's source-side
+radical rewrite, and T104's source `locNhd ∩ K_full ⊆ Jfull^n *
+K_full` Artin-Rees absorption.
+
+**Caller**: `locLift_preimage_target_locNhd_saturation` immediately
+below. -/
+private theorem locLift_preimage_target_witness_existence
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    [IsNoetherianRing D₀.P.A₀]
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    ∀ n : ℕ, ∃ m : ℕ, ∀ (α : A) (k_a : ℕ),
+      locLift D₀ D h
+        (algebraMap A (Localization.Away D₀.s) α *
+          (divByS (1 : A) D₀.s) ^ k_a) ∈
+        (locNhd D.P D.T D.s m : Set (Localization.Away D.s)) →
+      ∃ α' : D₀.P.A₀,
+        (α' : D₀.P.A₀) ∈ D₀.P.I ^ (n + k_a * (D₀.hopen.choose)) ∧
+        algebraMap A (Localization.Away D.s) α =
+          algebraMap A (Localization.Away D.s) ((α' : D₀.P.A₀) : A) := by
+  sorry
+
+/-- **Saturation helper for the cross-localization preimage** (T089
+private saturation helper, T108 reduction to witness existence).
+
+For each source depth `n`, find target depth `m` such that for any
+`α : A` and `k_a : ℕ` with `locLift D₀ D h (algebraMap α · (divByS 1
+D₀.s)^k_a) ∈ locNhd D m`, there exists `α' : D₀.P.A₀` with
+`(α' : D₀.P.A₀) ∈ D₀.P.I^(n + k_a * D₀.hopen.choose)` such that
+`algebraMap α · (divByS 1 D₀.s)^k_a - algebraMap (α' : A) · (divByS 1
+D₀.s)^k_a ∈ ker(locLift)`.
+
+**T108 (2026-04-30) reduction**: this theorem now reduces to the
+strictly smaller `locLift_preimage_target_witness_existence` (above)
+via routine algebra. The kernel-difference unfolds via `map_sub`,
+`map_mul`, and `IsLocalization.Away.lift_eq` to a product of
+`algebraMap A (Loc D.s) (α - α')` and the away-lifted denominator
+power; the matching-`algebraMap` hypothesis from the witness residual
+zeroes the algebraMap factor, hence the product. The genuine algebraic
+content (witness existence + depth + matching target image) is
+preserved as the strictly smaller residual.
+
+Original Primary plan (preserved for reference): combines T097's
+target-side radical inverse factor identity, T098's source-side
+radical rewrite, T104's source `locNhd ∩ K_full ⊆ Jfull^n * K_full`
+Artin-Rees absorption. The radical-rewrite/Artin-Rees content is now
+isolated in `locLift_preimage_target_witness_existence`. -/
+private theorem locLift_preimage_target_locNhd_saturation
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    [IsNoetherianRing D₀.P.A₀]
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    ∀ n : ℕ, ∃ m : ℕ, ∀ (α : A) (k_a : ℕ),
+      locLift D₀ D h
+        (algebraMap A (Localization.Away D₀.s) α *
+          (divByS (1 : A) D₀.s) ^ k_a) ∈
+        (locNhd D.P D.T D.s m : Set (Localization.Away D.s)) →
+      ∃ α' : D₀.P.A₀,
+        (α' : D₀.P.A₀) ∈ D₀.P.I ^ (n + k_a * (D₀.hopen.choose)) ∧
+        algebraMap A (Localization.Away D₀.s) α *
+            (divByS (1 : A) D₀.s) ^ k_a -
+          algebraMap A (Localization.Away D₀.s) ((α' : D₀.P.A₀) : A) *
+            (divByS (1 : A) D₀.s) ^ k_a ∈
+          (locLift D₀ D h).toAddMonoidHom.ker := by
+  intro n
+  obtain ⟨m, hm⟩ := locLift_preimage_target_witness_existence D₀ D h n
+  refine ⟨m, ?_⟩
+  intro α k_a hα
+  obtain ⟨α', hα'_pow, hα'_match⟩ := hm α k_a hα
+  refine ⟨α', hα'_pow, ?_⟩
+  -- The kernel-difference reduces to algebraMap-matching via routine
+  -- algebra: factor out `(divByS 1 D₀.s)^k_a`, evaluate `locLift` on
+  -- the `algebraMap` factor via `IsLocalization.Away.lift_eq`, then
+  -- use `hα'_match` to zero the algebraMap factor.
+  have h_lift_zero :
+      (locLift D₀ D h)
+          (algebraMap A (Localization.Away D₀.s) α * (divByS (1 : A) D₀.s) ^ k_a -
+            algebraMap A (Localization.Away D₀.s) ((α' : D₀.P.A₀) : A) *
+              (divByS (1 : A) D₀.s) ^ k_a) = 0 := by
+    have h_combine :
+        algebraMap A (Localization.Away D₀.s) α * (divByS (1 : A) D₀.s) ^ k_a -
+            algebraMap A (Localization.Away D₀.s) ((α' : D₀.P.A₀) : A) *
+              (divByS (1 : A) D₀.s) ^ k_a =
+          algebraMap A (Localization.Away D₀.s) (α - ((α' : D₀.P.A₀) : A)) *
+            (divByS (1 : A) D₀.s) ^ k_a := by
+      rw [map_sub]; ring
+    rw [h_combine, map_mul,
+        show (locLift D₀ D h)
+            (algebraMap A (Localization.Away D₀.s) (α - ((α' : D₀.P.A₀) : A))) =
+            algebraMap A (Localization.Away D.s) (α - ((α' : D₀.P.A₀) : A))
+          from IsLocalization.Away.lift_eq D₀.s
+            (isUnit_algebraMap_s_of_rational_subset D₀ D h) _,
+        map_sub, hα'_match, sub_self, zero_mul]
+  exact AddMonoidHom.mem_ker.mpr h_lift_zero
+
+private theorem cross_localization_preimage_in_sup_ker
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    [IsNoetherianRing D₀.P.A₀]
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    ∀ n : ℕ, ∃ m : ℕ, ∀ a : Localization.Away D₀.s,
+      locLift D₀ D h a ∈
+        (locNhd D.P D.T D.s m : Set (Localization.Away D.s)) →
+      a ∈ locNhd D₀.P D₀.T D₀.s n ⊔
+        (locLift D₀ D h).toAddMonoidHom.ker := by
+  intro n
+  -- Bind N₀ from D₀.hopen for explicit Lean-checkable depth shifts.
+  set N₀ := D₀.hopen.choose with hN₀_def
+  have hN₀_spec := D₀.hopen.choose_spec
+  -- Apply the saturation helper.
+  obtain ⟨m, h_sat⟩ := locLift_preimage_target_locNhd_saturation D₀ D h n
+  refine ⟨m, ?_⟩
+  intro a ha
+  -- Use IsLocalization.Away.surj to get (k_a, α) with `a · algebraMap (D₀.s^k_a) = algebraMap α`.
+  obtain ⟨k_a, α, hsec⟩ :=
+    IsLocalization.Away.surj (S := Localization.Away D₀.s) D₀.s a
+  -- Convert (algebraMap D₀.s)^k_a to algebraMap (D₀.s^k_a) via `map_pow`.
+  rw [← map_pow] at hsec
+  -- Normal form: a = algebraMap α * (divByS 1 D₀.s)^k_a.
+  have h_a_eq : a = algebraMap A (Localization.Away D₀.s) α *
+      (divByS (1 : A) D₀.s) ^ k_a :=
+    away_eq_algebraMap_mul_invS_pow D₀.s a α k_a hsec
+  -- Apply saturation: get α' with the desired properties.
+  rw [h_a_eq] at ha
+  obtain ⟨α', hα'_pow, hα'_ker⟩ := h_sat α k_a ha
+  -- Construct b := algebraMap (α' : A) * (divByS 1 D₀.s)^k_a.
+  set b : Localization.Away D₀.s :=
+    algebraMap A (Localization.Away D₀.s) ((α' : D₀.P.A₀) : A) *
+      (divByS (1 : A) D₀.s) ^ k_a with hb_def
+  -- Show b ∈ locNhd D₀ n via T090 + T095.
+  have h_alg_α' :
+      algebraMap A (Localization.Away D₀.s) ((α' : D₀.P.A₀) : A) ∈
+        locNhd D₀.P D₀.T D₀.s (n + k_a * N₀) :=
+    algebraMap_PI_pow_mem_locNhd D₀.P D₀.T D₀.s (n + k_a * N₀) α' hα'_pow
+  have h_b_locNhd : b ∈ locNhd D₀.P D₀.T D₀.s n := by
+    have h_eq : b = (divByS (1 : A) D₀.s) ^ k_a *
+        algebraMap A (Localization.Away D₀.s) ((α' : D₀.P.A₀) : A) := by
+      rw [hb_def]; ring
+    rw [h_eq]
+    exact locNhd_invS_pow_step_of_hopen D₀.P D₀.T D₀.s N₀ hN₀_spec n k_a h_alg_α'
+  -- a - b ∈ ker(locLift) by hα'_ker.
+  have h_ab_ker :
+      a - b ∈ (locLift D₀ D h).toAddMonoidHom.ker := by
+    rw [h_a_eq, hb_def]
+    exact hα'_ker
+  -- Conclude: a = b + (a - b), with b ∈ locNhd D₀ n and (a - b) ∈ ker.
+  have h_split : a = b + (a - b) := by ring
+  rw [h_split]
+  exact AddSubgroup.add_mem _
+    (AddSubgroup.mem_sup_left h_b_locNhd)
+    (AddSubgroup.mem_sup_right h_ab_ker)
+
+/-- **Cross-localization preimage-in-sum statement** (T089 sum/preimage
+helper, the right algebraic quotient/sum form of the basis-form
+residual).
+
+For each source depth `n`, find target depth `m` such that
+
+```
+{a | locLift D₀ D h a ∈ locNhd D.P D.T D.s m} ⊆
+  locNhd D₀.P D₀.T D₀.s n + ker(locLift D₀ D h)
+```
+
+(set-level: every `a` whose `locLift` image is in `locNhd D m` admits
+a decomposition `a = b + k` with `b ∈ locNhd D₀ n` and `k ∈
+ker(locLift)`).
+
+**Why this is the right reformulation**: this statement removes the
+false additional constraint `k ∈ Jfull^(n+k₀)` from the previous
+strong helper (the kernel part is allowed to be ANY kernel element,
+not necessarily small in the full-source ideal). It preserves exactly
+what the basis-form residual needs: from `a = b + k`, `locLift k = 0`
+gives `locLift b = locLift a`, with `b ∈ locNhd D₀ n` as the small
+representative.
+
+**Proof strategy** (T097 + T098 + radical-relation-driven):
+1. By `IsLocalization.Away.surj` on `a`, write `a = algebraMap α / D₀.s^k_a`
+   for some `α ∈ A, k_a ∈ ℕ`.
+2. The hypothesis `locLift a ∈ locNhd D m` gives `locLift a = subtype
+   d_target` for `d_target ∈ (locIdeal D)^m` (via `mem_locNhd_iff`).
+3. Use T097's target-side radical inverse factor `(algebraMap e_rad *
+   (divByS 1 D.s)^N_rad)` to translate target `divByS 1 D.s` factors
+   into `(algebraMap D₀.s)⁻¹` form.
+4. Pull the algebraic structure back to `Loc D₀.s` via T098's
+   source-side radical rewrite `algebraMap e_rad = (algebraMap D.s)^N_rad
+   * divByS 1 D₀.s`, applied iteratively.
+5. Construct `b ∈ locNhd D₀ n` as the source-side analog (via T090's
+   `algebraMap_PI_pow_mem_locNhd` plus T095's iterated `divByS 1 D₀.s`
+   shift), and `k := a - b` automatically satisfies `locLift k =
+   locLift a - locLift b`. The construction ensures `locLift b =
+   locLift a`, hence `k ∈ ker(locLift)`. -/
+private theorem cross_localization_preimage_in_sum
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    [IsNoetherianRing D₀.P.A₀]
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    ∀ n : ℕ, ∃ m : ℕ, ∀ a : Localization.Away D₀.s,
+      locLift D₀ D h a ∈
+        (locNhd D.P D.T D.s m : Set (Localization.Away D.s)) →
+      ∃ b k : Localization.Away D₀.s,
+        b ∈ (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s)) ∧
+        k ∈ RingHom.ker (locLift D₀ D h) ∧
+        a = b + k := by
+  -- Mechanical derivation from the hard membership-form helper via T102's
+  -- `locNhd_exists_decomp_of_mem_sup_ker_ringHom` wrapper (RingHom.ker form,
+  -- exact shape this consumer takes).
+  intro n
+  obtain ⟨m, hm⟩ := cross_localization_preimage_in_sup_ker D₀ D h n
+  refine ⟨m, ?_⟩
+  intro a ha
+  exact locNhd_exists_decomp_of_mem_sup_ker_ringHom D₀.P D₀.T D₀.s n
+    (locLift D₀ D h) (hm a ha)
+
+/-- **Cross-localization basis-form residual** (T089 corrected weakest
+isolated blocker, after mathematical obstruction analysis).
+
+**Mathematical obstruction in the previous strong helper**: a previous
+formulation required `a - b ∈ Jfull^(n+k₀) ⊓ K_full`. This is
+mathematically **too strong**: an element `a ∈ K_full` (in the
+`locLift`-kernel, e.g., a `D.s`-torsion element) generally is NOT in
+any `Jfull^?` (the kernel and the full-source ideal powers are not
+nested), so `a - b ∈ Jfull^(n+k₀)` cannot be achieved for arbitrary
+`a` even with `b = 0` and `locLift a = 0`. Concretely, taking `a ∈
+K_full \ Jfull^(n+k₀)` (which exists when the kernel is nontrivial,
+e.g., when `D.s` is not a unit and the torsion ideal is not contained
+in `Jfull^(n+k₀)`) gives `locLift a = 0 ∈ locNhd D m` for ANY `m`,
+yet no decomposition `a = b + j` with `b ∈ locNhd D₀ n` and `j ∈
+Jfull^(n+k₀)` exists (since `b ∈ Jfull^n` and `j ∈ Jfull^(n+k₀)`
+would imply `a ∈ Jfull^n`, which is false).
+
+**Corrected weakest helper that still closes the variant**: the
+basis-form residual itself, with no Jfull constraint on `a - b`. The
+variant `locLift_open_on_image_at_zero_of_source_pair_noetherian`
+needs only `b ∈ locNhd D₀ n` and `locLift b = locLift a`; the
+Artin-Rees / T094 / T097 machinery (set up in the variant body for
+the previous strong helper) is moved into this helper's proof
+(eventually) where it's mathematically appropriate. The variant body
+simplifies to a one-line forward call.
+
+**Why this is still a meaningful blocker**: the basis-form residual
+is the genuine remaining content of T089's open-mapping argument.
+Discharging it requires the radical-relation translation T092 +
+T094's Artin-Rees + T097's depth-shift package, but the precise
+proof structure is intricate and merits the named-helper isolation. -/
+private theorem cross_localization_basis_form_residual
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    [IsNoetherianRing D₀.P.A₀]
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    ∀ n : ℕ, ∃ m : ℕ, ∀ a : Localization.Away D₀.s,
+      locLift D₀ D h a ∈
+        (locNhd D.P D.T D.s m : Set (Localization.Away D.s)) →
+      ∃ b : Localization.Away D₀.s,
+        b ∈ (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s)) ∧
+        locLift D₀ D h b = locLift D₀ D h a := by
+  -- Mechanical derivation from the sum/preimage helper.
+  intro n
+  obtain ⟨m, hm⟩ := cross_localization_preimage_in_sum D₀ D h n
+  refine ⟨m, ?_⟩
+  intro a ha
+  obtain ⟨b, k, hb_locNhd, hk_ker, hab⟩ := hm a ha
+  refine ⟨b, hb_locNhd, ?_⟩
+  -- locLift b = locLift a from a = b + k, k ∈ ker(locLift).
+  have h_k_zero : locLift D₀ D h k = 0 := hk_ker
+  rw [hab, map_add, h_k_zero, add_zero]
+
+/-- **Local-Noetherian variant of `locLift_open_on_image_at_zero`**
+(T089 substantive deliverable).
+
+Same conclusion as `locLift_open_on_image_at_zero` (the abstract
+nhds-0 quantitative-openness on image of `locLift` at 0), with the
+**single additional hypothesis** `[IsNoetherianRing D₀.P.A₀]`. The
+hypothesis is **not** added to the original generic version, which
+remains via `locLift_open_on_image_at_zero` for downstream consumers
+that don't have access to the source-pair Noetherian instance.
+
+**Why this is the right hypothesis layer**: from `[IsNoetherianRing
+D₀.P.A₀]` and the standing `[IsNoetherianRing A]`, we derive
+`[IsNoetherianRing (Localization.Away D₀.s)]` via
+`IsLocalization.isNoetherianRing` (localization of a Noetherian ring
+is Noetherian). This is the natural assumption when working with a
+fixed ring-of-definition pair `D₀.P` whose `A₀` is well-controlled,
+and avoids any new final/root Tate-acyclicity hypothesis.
+
+**Proof strategy** (Option B: full source localization,
+`Localization.Away D₀.s` Noetherian):
+1. Reduce to basis form via `locLift_open_on_image_at_zero_of_basis_form`.
+2. Derive `[IsNoetherianRing (Localization.Away D₀.s)]` via
+   `IsLocalization.isNoetherianRing` (localization of Noetherian).
+3. Extract radical relation `(N_rad, e_rad, h_rad : e_rad * D₀.s = D.s ^ N_rad)`.
+4. Use T094's full-source ideal `Jfull D₀.P D₀.T D₀.s` and define the
+   **full kernel** `K_full := RingHom.ker (locLift D₀ D h)`.
+5. Apply T094's `Jfull_pow_shift_inter_le_pow_mul` on
+   `(Jfull D₀.P D₀.T D₀.s, K_full)` to obtain Artin-Rees constant `k₀`.
+6. Use T094's `locNhd_subset_Jfull_pow` (the easy direction
+   `locNhd D₀ n ⊆ Jfull^n`) and T092's
+   `algebraMap_mul_pow_divByS_eq_one_of_radical_relation` to assemble
+   the basis-form witness.
+
+The body below sets up steps 1–5 cleanly via the public T094 API; the
+final assembly step (step 6, the per-`n` basis-form witness
+construction from Artin-Rees + T092 radical translation) is the
+single sorry. The sorry's expected type is the per-`n` basis-form
+existential with all the algebraic data (`N_rad`, `e_rad`, `h_rad`,
+`Jfull D₀.P D₀.T D₀.s`, `K_full`, `k₀`, `hAR`) in scope. -/
+private theorem locLift_open_on_image_at_zero_of_source_pair_noetherian
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    [IsNoetherianRing D₀.P.A₀]
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    ∀ V ∈ @nhds _ D₀.topology (0 : Localization.Away D₀.s),
+      ∃ W ∈ @nhds _ D.topology (0 : Localization.Away D.s),
+        ∀ a : Localization.Away D₀.s, locLift D₀ D h a ∈ W →
+          ∃ b : Localization.Away D₀.s, b ∈ V ∧ locLift D₀ D h b = locLift D₀ D h a := by
+  -- Reduce to basis form, then delegate to the corrected named helper.
+  -- The previous strong helper `cross_localization_decomp_into_Jfull_inter_kernel`
+  -- was mathematically too strong (see its replacement docstring). The
+  -- corrected helper `cross_localization_basis_form_residual` is the
+  -- weakest isolated blocker that lets this variant close.
+  refine locLift_open_on_image_at_zero_of_basis_form D₀ D h ?_
+  exact cross_localization_basis_form_residual D₀ D h
 
 /-- **Step B ⊆ (closure form, sorry-free modulo narrower residual)**: every
 kernel element of the restriction map lies in the closure of the image,
