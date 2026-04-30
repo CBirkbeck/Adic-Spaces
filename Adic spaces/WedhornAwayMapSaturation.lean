@@ -82,8 +82,9 @@ Primary's saturation proof unfolds at each algebraic step.
 
 namespace ValuationSpectrum
 
-variable {A : Type*} [CommRing A]
+variable {A : Type*} [CommRing A] [TopologicalSpace A]
 
+omit [TopologicalSpace A] in
 /-- **`IsLocalization.Away.lift` value on `divByS 1 s_0`** (T105
 reusable primitive — Mathlib-style identity).
 
@@ -126,6 +127,7 @@ theorem awayLift_divByS_one_eq_unit_inv
   -- Now h_lift_one : ↑hg.unit * (Away.lift hg) (divByS 1 s_0) = 1
   exact (Units.mul_eq_one_iff_inv_eq.mp h_lift_one).symm
 
+omit [TopologicalSpace A] in
 /-- **Radical-relation form of `awayLift` on `divByS 1 s_0`** (T105
 ticket-named theorem).
 
@@ -164,6 +166,7 @@ theorem awayLift_divByS_one_eq_via_radical
   -- h_inv : ↑hg.unit * (algebraMap e * (divByS 1 s)^N) = 1
   exact (Units.mul_eq_one_iff_inv_eq.mp h_inv)
 
+omit [TopologicalSpace A] in
 /-- **`awayLift` on `divByS t s_0` via radical relation** (T105 reusable
 identity).
 
@@ -195,6 +198,7 @@ theorem awayLift_divByS_eq_via_radical
       awayLift_divByS_one_eq_via_radical h_rad hg, map_mul]
   ring
 
+omit [TopologicalSpace A] in
 /-- **`awayLift` on `(divByS 1 s_0)^k` via radical relation** (T105
 iterated form).
 
@@ -216,6 +220,7 @@ theorem awayLift_pow_divByS_one_eq_via_radical
   rw [map_pow, awayLift_divByS_one_eq_via_radical h_rad hg, mul_pow,
       ← pow_mul, mul_comm N k]
 
+omit [TopologicalSpace A] in
 /-- **Generic algebraMap saturation form for `awayLift` images** (T105
 saturation prefix — strongest compiling form expressible without
 `locLift`).
@@ -249,5 +254,201 @@ theorem awayLift_algebraMap_mul_pow_divByS_one_eq_via_radical
   rw [map_mul, IsLocalization.Away.lift_eq s_0 hg α,
       awayLift_pow_divByS_one_eq_via_radical h_rad hg, map_mul, map_pow]
   ring
+
+/-! ## Public source-side saturation prefix (T106)
+
+Building on T105's explicit `Away.lift` formulas, T106 lands the
+**source-side construction theorem** for the small representative of
+T089's saturation step plus the **kernel-difference repackaging**
+that turns image equality into the explicit `b + k` decomposition.
+Together with T097/T098/T091/T094, these are the public saturation
+prefix Primary's hard lemma directly consumes.
+
+**Deliverables**:
+
+* `algebraMap_mul_pow_divByS_one_mem_locNhd_of_PI_pow` — for `α' :
+  P₀.A₀` with `α' ∈ P₀.I^(n + k * N₀)` (where `N₀` is the source
+  open-ideal exponent), the explicit element `algebraMap (α' : A) *
+  (divByS 1 s₀)^k` lies in `locNhd P₀ T₀ s₀ n`. Direct composition
+  of T090's `algebraMap_PI_pow_mem_locNhd` with T095's
+  `locNhd_invS_pow_step_of_hopen`. The **explicit construction** of
+  Primary's source-small representative.
+
+* `kernel_diff_of_algebraMap_eq` — for any RingHom `f : R →+* B`, if
+  `f a = f b` then `a - b ∈ RingHom.ker f`. Trivial but named-
+  reusable.
+
+* `away_saturation_prefix_via_algebraMap_match` (T106 main public
+  saturation prefix) — combines the source-side construction with
+  the kernel-difference repackaging into the exact shape Primary's
+  `cross_localization_preimage_in_sup_ker` needs:
+
+  Given source pair `(P₀, T₀, s₀)` with `[IsNoetherianRing P₀.A₀]`,
+  target pair `(P, T, s)`, radical relation `e * s₀ = s^N`, source
+  `hopen`-witness `(N₀, hN₀)`, source/target depths `(n, k)`, and
+  `α : A`, `α' : P₀.A₀` with `α' ∈ P₀.I^(n + k * N₀)` and
+  `algebraMap A (Localization.Away s) α =
+    algebraMap A (Localization.Away s) α'`
+  (i.e., the target images of `α` and `α'` agree in `Loc s`):
+  the explicit decomposition
+
+  ```
+  algebraMap α * (divByS 1 s₀)^k =
+    (algebraMap α' * (divByS 1 s₀)^k)  -- ∈ locNhd P₀ T₀ s₀ n
+      + (algebraMap (α - α') * (divByS 1 s₀)^k)  -- ∈ ker F
+  ```
+
+  follows directly. **The remaining residual for Primary** is the
+  saturation step itself: given `F (algebraMap α * (divByS 1 s₀)^k)
+  ∈ locNhd P T s m`, **find** such `α' ∈ P₀.A₀ ∩ P₀.I^(n + k*N₀)`
+  with `algebraMap_A→Loc_s α = algebraMap_A→Loc_s α'`. This step
+  requires the radical-relation translation + Artin-Rees + image
+  characterisation in target — the genuine algebraic content of the
+  saturation, which is the same difficulty regardless of where it's
+  proved. T106 packages every algebraic move *around* the saturation
+  step into clean public theorems; the saturation step itself is
+  the irreducible content. -/
+
+/-- **Source-side construction of the small representative**
+(T106 reusable substantive primitive).
+
+For source `[IsNoetherianRing P₀.A₀]`-style data with open-ideal
+witness `(N₀, hN₀)`, source depth `n`, denominator power `k`, and
+`α' : P₀.A₀` with `α' ∈ P₀.I^(n + k * N₀)`:
+
+```
+algebraMap A (Localization.Away s₀) (α' : A) * (divByS 1 s₀)^k ∈
+  locNhd P₀ T₀ s₀ n.
+```
+
+**Mathematical content**: by T090's `algebraMap_PI_pow_mem_locNhd`
+applied to `α' ∈ P₀.I^(n + k * N₀)`, we get `algebraMap (α' : A) ∈
+locNhd P₀ T₀ s₀ (n + k * N₀)`. By T095's
+`locNhd_invS_pow_step_of_hopen` applied to `(divByS 1 s₀)^k`, this
+shifts down to `(divByS 1 s₀)^k * algebraMap (α' : A) ∈ locNhd P₀
+T₀ s₀ n`. By commutativity in `Localization.Away s₀`, this equals
+`algebraMap (α' : A) * (divByS 1 s₀)^k`.
+
+**Use** (T089): explicit construction of Primary's source-small
+representative. Once Primary identifies an `α' : P₀.A₀` in
+`P₀.I^(n + k * N₀)` matching `α` modulo target-kernel, this lemma
+witnesses the source `locNhd` membership. -/
+theorem algebraMap_mul_pow_divByS_one_mem_locNhd_of_PI_pow
+    (P₀ : PairOfDefinition A) (T₀ : Finset A) (s₀ : A)
+    (N₀ : ℕ) (hN₀ : ∀ b : P₀.A₀, b ∈ P₀.I ^ N₀ →
+      divByS (↑b : A) s₀ ∈ locSubring P₀ T₀ s₀)
+    (n k : ℕ) (α' : P₀.A₀) (h_α' : α' ∈ P₀.I ^ (n + k * N₀)) :
+    algebraMap A (Localization.Away s₀) (α' : A) * (divByS 1 s₀) ^ k ∈
+      locNhd P₀ T₀ s₀ n := by
+  -- algebraMap (α' : A) ∈ locNhd P₀ T₀ s₀ (n + k * N₀) by T090.
+  have h_alg : algebraMap A (Localization.Away s₀) (α' : A) ∈
+      locNhd P₀ T₀ s₀ (n + k * N₀) :=
+    algebraMap_PI_pow_mem_locNhd P₀ T₀ s₀ (n + k * N₀) α' h_α'
+  -- (divByS 1 s₀)^k * algebraMap (α' : A) ∈ locNhd P₀ T₀ s₀ n by T095.
+  have h_shift : (divByS 1 s₀) ^ k *
+      algebraMap A (Localization.Away s₀) (α' : A) ∈
+      locNhd P₀ T₀ s₀ n :=
+    locNhd_invS_pow_step_of_hopen P₀ T₀ s₀ N₀ hN₀ n k h_alg
+  -- Commute: algebraMap (α' : A) * (divByS 1 s₀)^k = (divByS 1 s₀)^k * algebraMap (α' : A)
+  rwa [mul_comm]
+
+/-- **Kernel difference from `algebraMap` image equality** (T106 reusable
+primitive).
+
+For any RingHom `f : R →+* B` between commutative rings and `α α' : R`
+with `f α = f α'`, the difference `α - α'` lies in `RingHom.ker f`.
+
+**Mathematical content**: `f (α - α') = f α - f α' = 0` since `f α =
+f α'`. Direct from `RingHom.mem_ker.mpr` + `map_sub`.
+
+**Use**: the algebraic content of the kernel-difference step in
+Primary's saturation. -/
+theorem kernel_diff_of_algebraMap_eq
+    {R B : Type*} [CommRing R] [CommRing B] (f : R →+* B)
+    {α α' : R} (h : f α = f α') :
+    α - α' ∈ RingHom.ker f := by
+  rw [RingHom.mem_ker, map_sub, h, sub_self]
+
+/-- **Public saturation prefix: explicit `b + k` decomposition from
+matching `algebraMap` images** (T106 main ticket-named theorem).
+
+For source pair `(P₀, T₀, s₀)`, target pair `(P, T, s)`, source
+open-ideal witness `(N₀, hN₀)`, source/target depths `(n, k)`, and
+`α : A`, `α' : P₀.A₀` with:
+- `α' ∈ P₀.I^(n + k * N₀)` (small in source filtration), and
+- `algebraMap A (Localization.Away s) α =
+   algebraMap A (Localization.Away s) α'` (matching target images),
+
+the source element `algebraMap α * (divByS 1 s₀)^k` decomposes
+explicitly as
+
+```
+algebraMap α * (divByS 1 s₀)^k =
+  (algebraMap (α' : A) * (divByS 1 s₀)^k)        -- in locNhd P₀ T₀ s₀ n
+    + (algebraMap (α - α') * (divByS 1 s₀)^k)    -- in RingHom.ker F
+```
+
+where `F := IsLocalization.Away.lift s_0 hg : Localization.Away s_0
+→+* Localization.Away s` is the canonical away-lift parameterised by
+the unit witness `hg`.
+
+**Mathematical content**: pure algebra plus T106's
+`algebraMap_mul_pow_divByS_one_mem_locNhd_of_PI_pow` (witnessing the
+source-`locNhd` membership of the `b`-component) plus
+`kernel_diff_of_algebraMap_eq` (giving the `k`-component is in
+`RingHom.ker F`). The decomposition equation `α = α' + (α - α')`
+lifts via `algebraMap` and `(divByS 1 s₀)^k` distributivity.
+
+**Use** (T089 saturation): once Primary identifies `α' ∈ P₀.A₀ ∩
+P₀.I^(n + k * N₀)` with matching target image (the genuine
+saturation/depth-finding step), this theorem packages the resulting
+explicit decomposition as the `b + k` form Primary's hard lemma
+returns.
+
+**Saturation residual not addressed here**: the existence of `α'`
+satisfying both conditions is the irreducible algebraic content of
+the saturation. T106 provides the explicit decomposition WHEN such
+`α'` exists; it does NOT prove existence. Primary's hard lemma
+proves existence by combining T097/T098 (radical-rewrite) +
+T091/T094 (Artin-Rees on the kernel ideal) + radical-relation
+translation. The existence proof is consumer-specific (depends on
+target locNhd structure and kernel of locLift), which is why it
+must run in Primary's private context. -/
+theorem away_saturation_prefix_via_algebraMap_match
+    {B : Type*} [CommRing B]
+    (P₀ : PairOfDefinition A) (T₀ : Finset A) (s₀ : A)
+    (N₀ : ℕ) (hN₀ : ∀ b : P₀.A₀, b ∈ P₀.I ^ N₀ →
+      divByS (↑b : A) s₀ ∈ locSubring P₀ T₀ s₀)
+    (n k : ℕ) {g : A →+* B} (hg : IsUnit (g s₀))
+    (α : A) (α' : P₀.A₀) (h_α' : α' ∈ P₀.I ^ (n + k * N₀))
+    (h_match : g α = g (α' : A)) :
+    ∃ b k_elem : Localization.Away s₀,
+      b ∈ locNhd P₀ T₀ s₀ n ∧
+      k_elem ∈ RingHom.ker (IsLocalization.Away.lift
+        (S := Localization.Away s₀) s₀ hg) ∧
+      algebraMap A (Localization.Away s₀) α * (divByS 1 s₀) ^ k =
+        b + k_elem := by
+  -- b := algebraMap (α' : A) * (divByS 1 s₀)^k, in locNhd by T106 #1.
+  refine ⟨algebraMap A (Localization.Away s₀) (α' : A) * (divByS 1 s₀) ^ k,
+    algebraMap A (Localization.Away s₀) (α - α') * (divByS 1 s₀) ^ k,
+    ?_, ?_, ?_⟩
+  · -- b ∈ locNhd
+    exact algebraMap_mul_pow_divByS_one_mem_locNhd_of_PI_pow
+      P₀ T₀ s₀ N₀ hN₀ n k α' h_α'
+  · -- k_elem ∈ RingHom.ker F
+    -- Apply F to algebraMap (α - α') * (divByS 1 s₀)^k:
+    -- F (algebraMap (α - α') * (divByS 1 s₀)^k) =
+    --   F (algebraMap (α - α')) * F ((divByS 1 s₀)^k)
+    -- F (algebraMap (α - α')) = g (α - α') = g α - g α' = 0
+    -- so the product is 0.
+    rw [RingHom.mem_ker, map_mul,
+        IsLocalization.Away.lift_eq s₀ hg (α - α'),
+        map_sub g, h_match, sub_self, zero_mul]
+  · -- a = b + k_elem: pure algebra.
+    rw [← add_mul, ← map_add]
+    -- Now: algebraMap α * (divByS 1 s₀)^k =
+    --   algebraMap ((α' : A) + (α - α')) * (divByS 1 s₀)^k
+    congr 1
+    rw [show ((α' : A) + (α - α') : A) = α from by ring]
 
 end ValuationSpectrum
