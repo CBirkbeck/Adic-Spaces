@@ -839,4 +839,68 @@ theorem Ideal.exists_factor_of_mem_inter_singleton
     refine ⟨αx + αy, (I ^ (m - k₀)).add_mem hαx_mem hαy_mem, ?_⟩
     rw [hαx_eq, hαy_eq]; ring
 
+omit [TopologicalSpace A] in
+/-- **`s^E`-absorption in an `I`-power, via Artin-Rees**
+(T122 reusable primitive — E-dependent constant).
+
+For a Noetherian commutative ring `R`, ideal `I : Ideal R`, element
+`s : R`, and a fixed exponent `E : ℕ`, every element simultaneously
+in a deep `I`-power `I^m` and in the principal ideal `⟨s^E⟩`
+factors as `s^E * α` with `α ∈ I^(m - k_E)`, where `k_E` is the
+Artin-Rees shift for the pair `(I, ⟨s^E⟩)` (and depends on `E`).
+
+This is the **E-dependent variant** of T119's
+`Ideal.exists_factor_of_mem_inter_singleton`. The proof template is
+identical: apply `Ideal.exists_pow_inf_eq_pow_smul` directly with
+`N := Ideal.span {s^E}`, then unwind via
+`Submodule.smul_induction_on` and `Ideal.mem_span_singleton'`. The
+`E = 0` case is handled by the same statement: `s^0 = 1`, so the
+factorization is by `1` and `k_0` is the Artin-Rees constant for
+`(I, ⟨1⟩) = (I, ⊤)` (which is `0`).
+
+**Note** (per T120 audit): the constant `k_E` is **E-dependent** by
+design — Mathlib's Artin-Rees gives a per-`N` constant, and we
+deliberately do NOT try to extract a uniform-in-`E` constant in this
+primitive. The iteration to a uniform/linear constant requires
+additional torsion or filtration hypotheses and is left to a
+follow-up ticket.
+
+**Use** (T119/T113 chain): converts a `γ ∈ I^m ⊓ ⟨s^E⟩` membership
+into the explicit `s^E · α` factorization in one Artin-Rees step.
+The Tate/source bridge (from the consumer's A-side relation
+`s^(j+E) * a = s^j * (γ : A)` to `γ ∈ ⟨s^E⟩` in `P.A₀`) is the
+remaining structural input. -/
+theorem Ideal.exists_factor_pow_of_mem_inter_pow_singleton
+    {R : Type*} [CommRing R] [IsNoetherianRing R]
+    (I : Ideal R) (s : R) (E : ℕ) :
+    ∃ k_E : ℕ, ∀ m : ℕ, m ≥ k_E →
+      ∀ γ : R, γ ∈ I ^ m → γ ∈ Ideal.span ({s ^ E} : Set R) →
+        ∃ α : R, α ∈ I ^ (m - k_E) ∧ γ = s ^ E * α := by
+  obtain ⟨k_E, hk_E⟩ := Ideal.exists_pow_inf_eq_pow_smul I
+    (Ideal.span ({s ^ E} : Set R))
+  refine ⟨k_E, fun m hm γ hγ_pow hγ_sE => ?_⟩
+  -- γ ∈ I^m • ⊤ ⊓ ⟨s^E⟩ via smul/mul translation.
+  have h_smul_eq : I ^ m • (⊤ : Submodule R R) = I ^ m := by
+    rw [Ideal.smul_eq_mul, Ideal.mul_top]
+  have h_inf : γ ∈ I ^ m • (⊤ : Submodule R R) ⊓
+      (Ideal.span ({s ^ E} : Set R) : Submodule R R) := by
+    refine ⟨?_, hγ_sE⟩
+    rw [h_smul_eq]; exact hγ_pow
+  rw [hk_E m hm] at h_inf
+  -- h_inf : γ ∈ I^(m-k_E) • (I^k_E • ⊤ ⊓ ⟨s^E⟩).
+  refine Submodule.smul_induction_on h_inf ?mem ?add
+  case mem =>
+    intro a ha b hb_inter
+    obtain ⟨c, hc_eq⟩ := Ideal.mem_span_singleton'.mp hb_inter.2
+    refine ⟨a * c, (I ^ (m - k_E)).mul_mem_right c ha, ?_⟩
+    -- a • b = a * b = a * (c * s^E) = s^E * (a * c)
+    show a • b = s ^ E * (a * c)
+    rw [smul_eq_mul, ← hc_eq]; ring
+  case add =>
+    intro x y hx hy
+    obtain ⟨αx, hαx_mem, hαx_eq⟩ := hx
+    obtain ⟨αy, hαy_mem, hαy_eq⟩ := hy
+    refine ⟨αx + αy, (I ^ (m - k_E)).add_mem hαx_mem hαy_mem, ?_⟩
+    rw [hαx_eq, hαy_eq]; ring
+
 end ValuationSpectrum
