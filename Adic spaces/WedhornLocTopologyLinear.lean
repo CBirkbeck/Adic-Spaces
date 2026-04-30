@@ -2275,4 +2275,86 @@ theorem locNhd_preimage_subset_sup_ker_iff_small_repr
   AddSubgroup.preimage_subset_sup_ker_iff_small_repr f.toAddMonoidHom
     (locNhd P T s n) W
 
+/-! ## locNhd ∩ kernel via `Jfull` Artin-Rees (T104 substantive piece)
+
+Single substantive support theorem combining T094's `Jfull` Artin-Rees
+with T094's `locNhd ⊆ Jfull^n` containment. The result expresses the
+source-side `locNhd ∩ K` (intersection of a locNhd element with an
+arbitrary kernel ideal `K` of `Localization.Away s`) as bounded by
+the `(Jfull)^n * K` ideal product, with explicit Artin-Rees depth-
+shift constant `k₀`.
+
+This is **not** a wrapper around T099–T102 (those concern small-
+representative extraction from sup-ker membership). It composes:
+* `locNhd_subset_Jfull_pow` (T094): `(locNhd P T s n : Set _) ⊆
+  ((Jfull P T s)^n : Ideal _)` — pure inclusion.
+* `Jfull_pow_shift_inter_le_pow_mul` (T094): the Artin-Rees output
+  on `(Jfull P T s, K)` for arbitrary `K : Ideal (Loc s)`, requiring
+  `[IsNoetherianRing A]`.
+
+The combined theorem is the natural shape for source-side analyses
+that begin with a `locNhd`-membership hypothesis and need to feed into
+the Artin-Rees factorisation. Primary's T089 hard lemma uses this
+shape internally when threading the source-side preimage of target
+`locNhd` membership through the kernel-quotient analysis: deep enough
+`locNhd P T s` elements that also lie in `K` decompose as products
+`∑ j_i * k_i` with `j_i ∈ (Jfull)^n` and `k_i ∈ K`.
+
+**T089 hard-lemma assembly note**: the actual `cross_localization_preimage_in_sup_ker`
+requires the **private** `locLift` and concrete handling of source/
+target locSubring/locIdeal/locNhd interactions via the radical
+relation `e_rad * D₀.s = D.s^N_rad`. The T090–T102 support API
+provides every algebraic primitive (mem-iff, Artin-Rees, radical
+factor identities, depth shifts, sum/ker bridges); the **assembly
+must happen where `locLift` is in scope** (i.e., inside Primary's
+private context). A generic locLift-free version would require
+reproducing the locLift setup outside its private context, which
+defeats the purpose of the private encapsulation. -/
+
+omit [IsTopologicalRing A] in
+/-- **Source-side `locNhd ∩ kernel-ideal` Artin-Rees containment**
+(T104 substantive deliverable, non-wrapper combination of T094 results).
+
+For Noetherian `A` and arbitrary ideal `K` of `Localization.Away s`,
+there exists a depth-shift constant `k₀` such that for any source
+depth `n`, every element of `locNhd P T s (n + k₀) ∩ K` (intersection
+of a deep locNhd-AddSubgroup with the kernel ideal) decomposes as a
+finite sum of products in `(Jfull P T s)^n * K`.
+
+**Mathematical content** (genuinely combines two T094 results):
+1. `locNhd P T s (n + k₀) ⊆ (Jfull P T s)^(n + k₀)` (set inclusion
+   via T094's `locNhd_subset_Jfull_pow`).
+2. `(Jfull P T s)^(n + k₀) ∩ K ≤ (Jfull P T s)^n * K` (Artin-Rees
+   shift via T094's `Jfull_pow_shift_inter_le_pow_mul`).
+
+Composing: `locNhd P T s (n + k₀) ∩ K ⊆ (Jfull P T s)^n * K` (as
+sets in `Loc s`).
+
+**Why this is a substantive combination** (not a T099–T102 wrapper):
+T099–T102 derive small-representative-mod-kernel from a `sup-ker`
+membership hypothesis. T104 combines T094's containment + Artin-Rees
+to produce the *intermediate* `(Jfull)^n * K` form that an Artin-Rees-
+threaded proof needs *before* it can apply T099–T102. Primary's hard
+lemma uses this intermediate step inside the `locNhd ⊔ ker` derivation.
+
+**Use** (T089 internal): inside the proof of
+`cross_localization_preimage_in_sup_ker`, after Artin-Rees on `(Jfull
+D₀.P D₀.T D₀.s, RingHom.ker (locLift D₀ D h))`, this theorem turns
+the locNhd D₀ → Jfull → kernel-decomposition chain into a set-level
+containment. Combined with the radical-rewrite identities and small-
+representative extraction, it discharges the source-small-representative
+modulo kernel statement. -/
+theorem locNhd_pow_shift_inter_le_Jfull_pow_mul [IsNoetherianRing A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (K : Ideal (Localization.Away s)) :
+    ∃ k₀ : ℕ, ∀ n : ℕ,
+      ((locNhd P T s (n + k₀) : Set (Localization.Away s)) ∩
+        (K : Set (Localization.Away s))) ⊆
+        ((Jfull P T s) ^ n * K : Ideal (Localization.Away s)) := by
+  obtain ⟨k₀, hk⟩ := Jfull_pow_shift_inter_le_pow_mul P T s K
+  refine ⟨k₀, fun n y ⟨hy_locNhd, hy_K⟩ => ?_⟩
+  apply hk n
+  refine ⟨?_, hy_K⟩
+  exact locNhd_subset_Jfull_pow P T s (n + k₀) hy_locNhd
+
 end ValuationSpectrum
