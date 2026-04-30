@@ -451,4 +451,137 @@ theorem away_saturation_prefix_via_algebraMap_match
     congr 1
     rw [show ((α' : A) + (α - α') : A) = α from by ring]
 
+/-! ## Public witness-existence half-step (T107)
+
+Building on T105/T106, T107 lands the **public half-step** of the
+saturation witness existence: given the canonical away-lift image of
+`algebraMap α * (divByS 1 s₀)^k` lies in target `locNhd P T s m`,
+the underlying numerator image `algebraMap A (Localization.Away s)
+(α * e^k)` lies in `(Jfull P T s)^m`.
+
+This is a **substantive public theorem** (not a wrapper): it composes
+T105 #5 (the explicit `awayLift` formula) with T094's
+`locNhd_subset_Jfull_pow` and ideal multiplication-by-unit
+absorption, producing an algebraic depth condition on the
+A-numerator entirely from public ingredients.
+
+**Witness existence not addressed here**: extracting an explicit `α'
+: P₀.A₀ ∩ P₀.I^(n + k * N₀)` matching `algebraMap α` in target Loc s
+requires connecting the source pair `(P₀, T₀, s₀)` to the target
+pair `(P, T, s)` via a structural map (typically from
+`RationalLocData` containment via Primary's `rad_relation_of_rational_subset`).
+That step is **not** algebraically extractable from the half-step
+above without additional structural hypotheses on the source/target
+pair relationship — see `## Witness-existence residual report` below.
+
+## Witness-existence residual report (Option-3 per ticket)
+
+After T107, the remaining content for Primary's witness existence is:
+
+```lean
+-- (Private) given algebraMap (α * e^k) ∈ (Jfull P T s)^m as A-element image,
+-- find α' : P₀.A₀ ∩ P₀.I^(n + k * N₀) with algebraMap α = algebraMap α' in Loc s.
+```
+
+This requires a **structural relationship** between the source pair
+`(P₀, T₀, s₀)` and target pair `(P, T, s)` (typically from `D₀.P, D.P
+: PairOfDefinition A` linked via `rationalOpen` containment): the
+ideals `P₀.I` and `P.I` must interact in the right way under the
+radical relation `e * s_0 = s^N`. This interaction is encoded in
+Primary's `RationalLocData` structure and the radical-relation
+mechanics, both of which are private to `PresheafTateStructure.lean`.
+
+**Nearest existing support theorems**:
+- T106 `away_saturation_prefix_via_algebraMap_match` — the
+  decomposition step, **after** witness existence is established.
+- T107 `algebraMap_image_mem_Jfull_pow_of_awayLift_image_in_locNhd` —
+  the half-step extracting the algebraic depth condition.
+- Primary needs a private theorem of the shape
+  `algebraMap (α * e^k) ∈ (Jfull P T s)^m → ∃ α' : P₀.A₀, α' ∈
+  P₀.I^(n + k * N₀) ∧ algebraMap α = algebraMap α'` in Loc s.
+
+The witness-existence step requires:
+1. Connecting the target Jfull membership (algebraic) to a source
+   PI-power membership (structural).
+2. Using `IsLocalization.eq_iff_exists` to lift the Loc-equality
+   `algebraMap α = algebraMap α'` to an A-equality modulo
+   `s`-torsion.
+
+Both steps depend on the source/target pair structure, which lives
+in Primary's private `RationalLocData` framework.
+-/
+
+/-- **`algebraMap` image in `Jfull` power from `awayLift` image in
+`locNhd`** (T107 main public theorem; substantive half-step toward
+witness existence).
+
+Setup: source `s_0 : A`, target `s : A`, radical relation `e * s_0 =
+s^N`, unit witness `hg : IsUnit (algebraMap A (Localization.Away s)
+s_0)`, normal-form numerator `α : A`, denominator power `k`, target
+locNhd depth `m`, target localization data `(P, T)`.
+
+If the canonical `awayLift` image of `algebraMap α * (divByS 1 s_0)^k`
+lies in `locNhd P T s m`, then the underlying numerator image
+`algebraMap A (Localization.Away s) (α * e^k)` lies in `(Jfull P T
+s)^m`.
+
+**Mathematical content** (3-step composition of public theorems):
+1. By T105 #5
+   (`awayLift_algebraMap_mul_pow_divByS_one_eq_via_radical`), the
+   `awayLift` image equals `algebraMap (α * e^k) * (divByS 1 s)^(N*k)`
+   in `Loc s`.
+2. By T094's `locNhd_subset_Jfull_pow`, the LHS lies in `(Jfull P T
+   s)^m` (since `locNhd P T s m ⊆ (Jfull P T s)^m` as sets).
+3. Multiplying by `(algebraMap s)^(N*k)` (a unit in `Loc s`):
+   `algebraMap (α * e^k) = (algebraMap (α * e^k) * (divByS 1 s)^(N*k))
+   * (algebraMap s)^(N*k)`. Since `(Jfull P T s)^m` is an ideal of
+   `Loc s`, multiplication by any `Loc s` element preserves
+   membership. Hence `algebraMap (α * e^k) ∈ (Jfull P T s)^m`.
+
+**Use** (T089): provides the algebraic depth condition Primary needs
+on the A-numerator `α * e^k` (the radical-rewritten numerator).
+Combined with `IsLocalization.eq_iff_exists` and the structural
+source/target pair relationship, this becomes the witness-existence
+input. -/
+theorem algebraMap_image_mem_Jfull_pow_of_awayLift_image_in_locNhd
+    (P : PairOfDefinition A) (T : Finset A)
+    {s_0 s e : A} {N : ℕ} (h_rad : e * s_0 = s ^ N)
+    (hg : IsUnit (algebraMap A (Localization.Away s) s_0))
+    (α : A) (k m : ℕ)
+    (h_input :
+      IsLocalization.Away.lift (S := Localization.Away s_0) s_0 hg
+          (algebraMap A (Localization.Away s_0) α * (divByS 1 s_0) ^ k) ∈
+        locNhd P T s m) :
+    algebraMap A (Localization.Away s) (α * e ^ k) ∈
+      (Jfull P T s) ^ m := by
+  -- Step 1: rewrite the awayLift image via T105 #5.
+  have h_awayLift_eq :
+      IsLocalization.Away.lift (S := Localization.Away s_0) s_0 hg
+          (algebraMap A (Localization.Away s_0) α * (divByS 1 s_0) ^ k) =
+        algebraMap A (Localization.Away s) (α * e ^ k) *
+          (divByS 1 s) ^ (N * k) :=
+    awayLift_algebraMap_mul_pow_divByS_one_eq_via_radical h_rad hg α k
+  rw [h_awayLift_eq] at h_input
+  -- Now: algebraMap (α * e^k) * (divByS 1 s)^(N*k) ∈ locNhd m.
+  -- Step 2: locNhd ⊆ Jfull^m (T094).
+  have h_in_Jfull :
+      algebraMap A (Localization.Away s) (α * e ^ k) *
+          (divByS 1 s) ^ (N * k) ∈
+        (Jfull P T s) ^ m :=
+    locNhd_subset_Jfull_pow P T s m h_input
+  -- Step 3: multiply by (algebraMap s)^(N*k) (a unit) to extract.
+  -- algebraMap (α * e^k) =
+  --   (algebraMap (α * e^k) * (divByS 1 s)^(N*k)) * (algebraMap s)^(N*k)
+  have h_unit_cancel :
+      algebraMap A (Localization.Away s) (α * e ^ k) =
+        (algebraMap A (Localization.Away s) (α * e ^ k) *
+          (divByS 1 s) ^ (N * k)) *
+          algebraMap A (Localization.Away s) s ^ (N * k) := by
+    rw [mul_assoc, ← mul_pow,
+        show (divByS 1 s) * algebraMap A (Localization.Away s) s = 1
+          from by rw [mul_comm, algebraMap_mul_divByS_one_eq_one],
+        one_pow, mul_one]
+  rw [h_unit_cancel]
+  exact Ideal.mul_mem_right _ _ h_in_Jfull
+
 end ValuationSpectrum
