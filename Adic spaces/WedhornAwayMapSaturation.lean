@@ -750,4 +750,93 @@ theorem locSubring_exists_denominator_clearance
         algebraMap A (Localization.Away s) (((-β : P.A₀) : A))
     rw [show ((-β : P.A₀) : A) = -((β : A)) from rfl, map_neg, neg_mul, h]
 
+/-! ## Colon-saturation primitives for absorbing the E-shift (T119)
+
+After T114 lands the denominator-clearing helper, the next step in
+Primary's saturation chain is to absorb the resulting `s^E` factor.
+This requires Artin-Rees-type colon-saturation in the source ring of
+definition `R := P.A₀`.
+
+This section lands the **single-step `s`-absorption primitive**
+`Ideal.exists_factor_of_mem_inter_singleton`: for a Noetherian
+commutative ring `R`, ideal `I : Ideal R`, and `s : R`, there is a
+constant `k₀ : ℕ` (the Artin-Rees shift for `(I, ⟨s⟩)`) such that
+every `γ ∈ I^m ⊓ ⟨s⟩` (with `m ≥ k₀`) factors as `γ = s * α` with
+`α ∈ I^(m - k₀)`. Direct application of Mathlib's
+`Ideal.exists_pow_inf_eq_pow_smul`. Iterating this E times absorbs
+`s^E` with linear constant `c_lift = E * k₀`.
+
+The **iterated `s^E`-absorption lemma** is provable by induction on E
+using this primitive plus the fact that `γ_i = γ / s^i ∈ ⟨s⟩^(E-i)`
+when `γ ∈ ⟨s⟩^E`. The proof needs care to track the chain of
+factorizations; the iteration is omitted from this section because
+it interacts with the elaborator OOM observed in the earlier T114
+witness-extraction attempt.
+
+The **bridge from the T113-consumer relation `s^(j+E) * a = s^j *
+(γ : A)` (in `A`) to `γ ∈ ⟨s⟩^E ⊓ I^m` (in `P.A₀`)** requires
+additional structural input. Specifically, the relation only places
+`γ - s^E * a ∈ Ann_A(s^∞)` in `A` (with `a ∈ A`, not necessarily in
+`P.A₀`). For the canonical Tate setup `A = P.A₀[s^{-1}]` (e.g.,
+Tate ring with `s` topologically nilpotent unit and `P.A₀ = A°`),
+every `a ∈ A` has the form `a = a₀ / s^k` with `a₀ ∈ P.A₀`, so
+`s^E · a = s^(E-k) · a₀` (or `a₀ / s^(k-E)`) lands in `P.A₀` after
+adjusting the depth. This bridge requires a Tate-specific
+hypothesis (e.g., `IsTateRing A` plus `s = π` topologically
+nilpotent unit) and is the next reusable structural lemma needed by
+Primary's T113. -/
+
+omit [TopologicalSpace A] in
+/-- **Single-step `s`-absorption in an `I`-power, via Artin-Rees**
+(T119 reusable primitive).
+
+For a Noetherian commutative ring `R`, ideal `I : Ideal R`, and
+`s : R`, every element simultaneously in a deep `I`-power `I^m` and
+in `⟨s⟩` factors as `s * α` with `α ∈ I^(m - k₀)`, where `k₀` is the
+Artin-Rees shift for the pair `(I, ⟨s⟩)`.
+
+This is a **direct unfolding** of Mathlib's
+`Ideal.exists_pow_inf_eq_pow_smul` for the special case `N := ⟨s⟩`,
+followed by `Ideal.mem_span_singleton'` to extract the factor.
+Iterating E times yields the `s^E`-absorption with linear constant
+`E * k₀`; that iteration is the next step in the colon-saturation
+chain.
+
+**Use** (T119 / T113 corrected residual): converts a `γ ∈ I^m ⊓
+⟨s⟩` membership into the explicit `s · α` factorization, the
+prerequisite for absorbing each `s` factor in the consumer's
+`s^E`-shift form. -/
+theorem Ideal.exists_factor_of_mem_inter_singleton
+    {R : Type*} [CommRing R] [IsNoetherianRing R]
+    (I : Ideal R) (s : R) :
+    ∃ k₀ : ℕ, ∀ m : ℕ, m ≥ k₀ →
+      ∀ γ : R, γ ∈ I ^ m → γ ∈ Ideal.span ({s} : Set R) →
+        ∃ α : R, α ∈ I ^ (m - k₀) ∧ γ = s * α := by
+  obtain ⟨k₀, hk₀⟩ := Ideal.exists_pow_inf_eq_pow_smul I
+    (Ideal.span ({s} : Set R))
+  refine ⟨k₀, fun m hm γ hγ_pow hγ_s => ?_⟩
+  -- γ ∈ I^m • ⊤ ⊓ ⟨s⟩ via smul/mul translation.
+  have h_smul_eq : I ^ m • (⊤ : Submodule R R) = I ^ m := by
+    rw [Ideal.smul_eq_mul, Ideal.mul_top]
+  have h_inf : γ ∈ I ^ m • (⊤ : Submodule R R) ⊓
+      (Ideal.span ({s} : Set R) : Submodule R R) := by
+    refine ⟨?_, hγ_s⟩
+    rw [h_smul_eq]; exact hγ_pow
+  rw [hk₀ m hm] at h_inf
+  -- h_inf : γ ∈ I^(m-k₀) • (I^k₀ • ⊤ ⊓ ⟨s⟩).
+  refine Submodule.smul_induction_on h_inf ?mem ?add
+  case mem =>
+    intro a ha b hb_inter
+    obtain ⟨c, hc_eq⟩ := Ideal.mem_span_singleton'.mp hb_inter.2
+    refine ⟨a * c, (I ^ (m - k₀)).mul_mem_right c ha, ?_⟩
+    -- a • b = a * b = a * (c * s) = s * (a * c)
+    show a • b = s * (a * c)
+    rw [smul_eq_mul, ← hc_eq]; ring
+  case add =>
+    intro x y hx hy
+    obtain ⟨αx, hαx_mem, hαx_eq⟩ := hx
+    obtain ⟨αy, hαy_mem, hαy_eq⟩ := hy
+    refine ⟨αx + αy, (I ^ (m - k₀)).add_mem hαx_mem hαy_mem, ?_⟩
+    rw [hαx_eq, hαy_eq]; ring
+
 end ValuationSpectrum
