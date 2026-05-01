@@ -7,6 +7,7 @@ import «Adic spaces».RationalSubsets
 import «Adic spaces».TopologyComparison
 import «Adic spaces».PresheafTateStructure
 import «Adic spaces».LaurentCoverExact
+import «Adic spaces».LaurentCoverTopology
 import «Adic spaces».CompletionLocalization
 import «Adic spaces».Example638
 import «Adic spaces».IteratedRational
@@ -3724,53 +3725,45 @@ The bridge-hypothesis style is the same as
   side-condition of `epsilonHom_gen_injective` (Wedhorn 8.33 / Krull
   intersection on `Ideal.span {f}`).
 
-## Inducing-topology blocker (next-ticket scope)
+## Inducing-topology blocker (T132 update)
 
-Upgrading this support result to `Topology.IsEmbedding` (or its uniform-space
-equivalent `IsUniformInducing`) requires showing that the topology on
-`presheafValue D₀` equals the pullback topology from the pair restriction
-map. The algebraic ring structure of `LaurentCover.row3_exact` does not yet
-transport into a topological strict-exactness statement at the
-`presheafValue` level because the **algebraic Laurent quotients
-`LaurentCover.B₁_gen, B₂_gen, B₁₂_gen` carry no canonical topology** in the
-project today: each `letI` site (e.g., `LaurentOverlap.lean:2545`) supplies a
-local quotient topology, and there is no propagated `TopologicalSpace`
-instance/abbrev plus the matching `Continuous (LaurentCover.deltaMap_gen)`
-fact that a Banach-OMT-style argument at presheafValue level would consume.
+Upgrading this support result to `Topology.IsEmbedding` requires showing
+that the topology on `presheafValue D₀` equals the pullback topology from
+the pair restriction map. T132
+(`Adic spaces/LaurentCoverTopology.lean`, commit 53a4267) supplies the
+**first half** of the previously-missing API:
 
-The first exact missing API is therefore one of:
+* canonical `TopologicalSpace` instances on `LaurentCover.B₁_gen f`,
+  `LaurentCover.B₂_gen f`, `LaurentCover.B₁₂_gen f` (quotient topology from
+  the canonical `TateAlgebra A` / `LaurentTateAlgebra A` topologies);
+* the supporting continuity API (`posIncl_continuous`, `negIncl_continuous`,
+  `mkHom_continuous`, `posEmbHom_continuous`, `negEmbHom_continuous`,
+  `posLift_continuous`, `negLift_continuous`,
+  `deltaMap_gen_continuous`).
 
-* a Mathlib-style `instance` or `noncomputable abbrev` giving canonical
-  `TopologicalSpace (LaurentCover.B₁_gen f)`,
-  `TopologicalSpace (LaurentCover.B₂_gen f)`,
-  `TopologicalSpace (LaurentCover.B₁₂_gen f)` (quotient topology from
-  `TateAlgebra A` / `LaurentTateAlgebra A`) plus
-  `Continuous (LaurentCover.deltaMap_gen f)` once those topologies exist,
-  **or**
+The companion T133 theorem `laurentCover_isEmbedding_presheaf` immediately
+below packages the bridge-transport upgrade: given strict-exactness of the
+algebraic Laurent diagonal `LaurentCover.epsilonHom_gen f` (i.e.,
+`Topology.IsInducing (epsilonHom_gen f)` under the T132 quotient topologies)
+together with the bridge homeomorphism conditions
+`Topology.IsInducing τ_plus` and `Topology.IsInducing τ_minus`, the pair
+restriction `ε_pres` is a topological embedding.
 
-* a direct pair-restriction Banach open-mapping lemma at the completed
-  presheafValue level — i.e., a theorem of shape
+The single remaining algebraic-Laurent-level fact is therefore
+`Topology.IsInducing (LaurentCover.epsilonHom_gen f)` — equivalently,
+strict-exactness of the algebraic Laurent diagonal under the canonical
+quotient topologies. The natural proof route uses
+`AddMonoidHom.isOpenMap_of_complete_countable`
+(`NoetherianTateModules.lean:158`) on the corestriction to
+`range epsilonHom_gen = ker deltaMap_gen` (closed by
+`deltaMap_gen_continuous` plus T2 of `B₁₂_gen f`), with completeness of
+the source ring supplied by the Tate-ring framework. That step is the
+next reusable algebraic-topology step beyond T132 and is not landed in
+the present module.
 
-  ```
-  Topology.IsInducing
-    (fun x : presheafValue D₀ =>
-      (restrictionMap D₀ plus hplus x, restrictionMap D₀ minus hminus x))
-  ```
-
-  proved via `AddMonoidHom.isOpenMap_of_complete_countable`
-  (`NoetherianTateModules.lean:158`) restricted to the closed image of the
-  pair, which would need a `IsClosed (Set.range …)` fact for the pair
-  restriction.
-
-Either path is **structurally beyond the bridge-hypothesis style** of the
-current Route B Laurent infrastructure (`laurentPlusBridge` and friends are
-RingEquivs, not RingHomeoworphs/`IsHomeomorph`s). T129's
-`CompleteSpace_presheafValue_rightUniformSpace` is the canonical bridge that
-the eventual presheafValue-level Banach OMT call will consume; it is **not**
-invoked by the current support result, which uses only
-`epsilonHom_gen_injective` + `restrictionMapHom_continuous`. The honest name
-of the present theorem is `laurentCover_injective_continuous_presheaf` (see
-manager review of T130). -/
+The honest name of the prior support result is
+`laurentCover_injective_continuous_presheaf` (see manager review of
+T130). -/
 theorem laurentCover_injective_continuous_presheaf
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
@@ -3825,6 +3818,151 @@ theorem laurentCover_injective_continuous_presheaf
     -- `Continuous.prodMk`.
     exact (restrictionMapHom_continuous D₀ (laurentPlusDatum D₀ f) hplus).prodMk
       (restrictionMapHom_continuous D₀ (laurentMinusDatum D₀ f) hminus)
+
+/-- **Two-piece Laurent restriction map: topological embedding at presheaf level**
+(T133 upgrade of `laurentCover_injective_continuous_presheaf`).
+
+Strengthens the conjunction `Function.Injective ∧ Continuous` of
+`laurentCover_injective_continuous_presheaf` to `Topology.IsEmbedding`
+under three additional bridge-topology hypotheses:
+
+* `hτ_plus_inducing`: the τ-bridge
+  `presheafValue (laurentPlusDatum D₀ f) ≃+* B₁_gen (D₀.canonicalMap f)` is
+  not only a ring iso but also induces the topology (i.e., it is a
+  homeomorphism in addition to being a `RingEquiv`); concretely we ask for
+  `Topology.IsInducing τ_plus.toFun`.
+* `hτ_minus_inducing`: analogous for the minus bridge.
+* `h_alg_inducing`: the algebraic Laurent diagonal
+  `LaurentCover.epsilonHom_gen (D₀.canonicalMap f) :
+    presheafValue D₀ → B₁_gen × B₂_gen`
+  is a topological embedding (`Topology.IsInducing`) under the T132
+  canonical quotient topologies on `B₁_gen` and `B₂_gen`.
+
+The first two hypotheses are bridge-side strengthenings (the T130 bridges
+were RingEquivs only). The third is the **first remaining
+algebraic-Laurent-level fact** beyond T132: T132 supplies the canonical
+topologies on `B₁_gen f`, `B₂_gen f`, `B₁₂_gen f`, plus
+`deltaMap_gen_continuous`, but does not yet derive
+`Topology.IsInducing epsilonHom_gen` itself, which would follow from a
+Banach-OMT argument on the corestriction to
+`range epsilonHom_gen = ker deltaMap_gen` (closed because
+`deltaMap_gen` is continuous and `B₁₂_gen f` is T2 under the quotient
+topology). That algebraic-level inducing fact is the next ticket. -/
+theorem laurentCover_isEmbedding_presheaf
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A]
+    (D₀ : RationalLocData A) (f : A)
+    (hf_nonunit : ¬IsUnit (D₀.canonicalMap f))
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hDom_B : IsDomain (presheafValue D₀))
+    (hTate_B : IsTateRing (presheafValue D₀))
+    (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (τ_plus : presheafValue (laurentPlusDatum D₀ f) ≃+*
+      LaurentCover.B₁_gen (D₀.canonicalMap f))
+    (τ_minus : presheafValue (laurentMinusDatum D₀ f) ≃+*
+      LaurentCover.B₂_gen (D₀.canonicalMap f))
+    (htau_plus : ∀ x : presheafValue D₀,
+      τ_plus (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x) =
+        (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).1)
+    (htau_minus : ∀ x : presheafValue D₀,
+      τ_minus (restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x) =
+        (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).2)
+    (hτ_plus_inducing : letI := hNoeth_B; letI := hDom_B; letI := hTate_B
+      Topology.IsInducing
+        (τ_plus :
+          presheafValue (laurentPlusDatum D₀ f) →
+            LaurentCover.B₁_gen (D₀.canonicalMap f)))
+    (hτ_minus_inducing : letI := hNoeth_B; letI := hDom_B; letI := hTate_B
+      Topology.IsInducing
+        (τ_minus :
+          presheafValue (laurentMinusDatum D₀ f) →
+            LaurentCover.B₂_gen (D₀.canonicalMap f)))
+    (h_alg_inducing : letI := hNoeth_B; letI := hDom_B; letI := hTate_B
+      Topology.IsInducing
+        (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) :
+          presheafValue D₀ →
+            LaurentCover.B₁_gen (D₀.canonicalMap f) ×
+              LaurentCover.B₂_gen (D₀.canonicalMap f))) :
+    Topology.IsEmbedding
+      (fun x : presheafValue D₀ =>
+        (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x,
+         restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x)) := by
+  letI := hNoeth_B
+  letI := hDom_B
+  letI := hTate_B
+  -- Combine the existing injectivity / continuity result with the
+  -- bridge-topology inputs to upgrade to `IsEmbedding`.
+  obtain ⟨hpair_inj, hpair_cont⟩ :=
+    laurentCover_injective_continuous_presheaf D₀ f hf_nonunit hNoeth_B hDom_B
+      hplus hminus τ_plus τ_minus htau_plus htau_minus
+  -- Define the pair restriction as a local function for clarity.
+  set pair :
+      presheafValue D₀ →
+        presheafValue (laurentPlusDatum D₀ f) ×
+          presheafValue (laurentMinusDatum D₀ f) :=
+    fun x =>
+      (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x,
+       restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x) with hpair_def
+  -- The product map of the τ-bridges is inducing by `IsInducing.prodMap`.
+  have hprod_ind :
+      Topology.IsInducing
+        (Prod.map
+          (τ_plus :
+            presheafValue (laurentPlusDatum D₀ f) →
+              LaurentCover.B₁_gen (D₀.canonicalMap f))
+          (τ_minus :
+            presheafValue (laurentMinusDatum D₀ f) →
+              LaurentCover.B₂_gen (D₀.canonicalMap f))) :=
+    Topology.IsInducing.prodMap hτ_plus_inducing hτ_minus_inducing
+  -- The composition `Prod.map τ_plus τ_minus ∘ pair` equals
+  -- `epsilonHom_gen` extensionally, by `htau_plus` and `htau_minus`.
+  have hcomp_eq :
+      (Prod.map
+          (τ_plus :
+            presheafValue (laurentPlusDatum D₀ f) →
+              LaurentCover.B₁_gen (D₀.canonicalMap f))
+          (τ_minus :
+            presheafValue (laurentMinusDatum D₀ f) →
+              LaurentCover.B₂_gen (D₀.canonicalMap f))) ∘ pair =
+        ⇑(LaurentCover.epsilonHom_gen (D₀.canonicalMap f)) := by
+    funext x
+    rw [hpair_def]
+    show (τ_plus _, τ_minus _) =
+      LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x
+    apply Prod.ext
+    · exact htau_plus x
+    · exact htau_minus x
+  -- Hence the composition is `IsInducing` (transported from `h_alg_inducing`).
+  have hcomp_ind :
+      Topology.IsInducing
+        ((Prod.map
+            (τ_plus :
+              presheafValue (laurentPlusDatum D₀ f) →
+                LaurentCover.B₁_gen (D₀.canonicalMap f))
+            (τ_minus :
+              presheafValue (laurentMinusDatum D₀ f) →
+                LaurentCover.B₂_gen (D₀.canonicalMap f))) ∘ pair) := by
+    rw [hcomp_eq]; exact h_alg_inducing
+  -- Cancel the outer `Prod.map (τ_plus, τ_minus)` (which is `IsInducing`)
+  -- to obtain `IsInducing pair`.
+  have hpair_cont' : Continuous pair := hpair_cont
+  have hprod_cont :
+      Continuous
+        (Prod.map
+          (τ_plus :
+            presheafValue (laurentPlusDatum D₀ f) →
+              LaurentCover.B₁_gen (D₀.canonicalMap f))
+          (τ_minus :
+            presheafValue (laurentMinusDatum D₀ f) →
+              LaurentCover.B₂_gen (D₀.canonicalMap f))) :=
+    hτ_plus_inducing.continuous.prodMap hτ_minus_inducing.continuous
+  have hpair_ind : Topology.IsInducing pair :=
+    Topology.IsInducing.of_comp hpair_cont' hprod_cont hcomp_ind
+  -- Combine with injectivity to get `IsEmbedding`.
+  exact ⟨hpair_ind, hpair_inj⟩
 
 /-- Laurent cover gluing on presheaf values (Wedhorn Lemma 8.33, presheaf level).
 
