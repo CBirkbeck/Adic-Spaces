@@ -355,4 +355,189 @@ theorem deltaMap_gen_continuous :
 
 end LiftContinuity
 
+/-! ### Continuity and inducing-topology of `epsilonHom_gen` (T134)
+
+The Laurent diagonal `epsilonHom_gen f : A →+* B₁_gen f × B₂_gen f` is
+continuous under the canonical T132 quotient topologies (immediate from
+`tateAlgebra_algebraMap_continuous` and the continuity of the quotient
+projections).
+
+Strict-exactness — `Topology.IsInducing (epsilonHom_gen f)` — is proved
+under the prerequisites for the Banach open mapping theorem at the
+algebraic Tate level:
+
+* `[UniformSpace A] [IsUniformAddGroup A] [CompleteSpace A]
+  [SigmaCompactSpace A]` on the source `A`,
+* `T2Space (B₁₂_gen f)`, so that `ker (deltaMap_gen f)` is closed in
+  `B₁_gen f × B₂_gen f`,
+* `BaireSpace` on the kernel subspace, providing the Baire-T2 input to
+  the open mapping theorem.
+
+The remaining algebraic ingredients (`row3_exact`,
+`epsilonHom_gen_injective`, `deltaMap_gen_continuous`) are supplied by
+`LaurentCoverExact.lean` and T132 respectively. -/
+
+section EpsilonHomInducing
+
+variable [IsTateRing A] (f : A)
+
+/-- The Laurent diagonal `epsilonHom_gen f : A →+* B₁_gen f × B₂_gen f` is
+continuous under the canonical T132 quotient topologies. -/
+theorem epsilonHom_gen_continuous :
+    Continuous (epsilonHom_gen f : A → B₁_gen f × B₂_gen f) := by
+  have h_alg : Continuous (algebraMap A ↥(TateAlgebra A)) :=
+    tateAlgebra_algebraMap_continuous
+  refine Continuous.prodMk ?_ ?_
+  · exact continuous_quot_mk.comp h_alg
+  · exact continuous_quot_mk.comp h_alg
+
+variable [IsNoetherianRing A] [IsDomain A]
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- The kernel of `deltaMap_gen f` is closed in `B₁_gen f × B₂_gen f`,
+provided `B₁₂_gen f` is T2 (so that `{0}` is closed and the preimage of a
+closed set under a continuous map is closed). -/
+theorem ker_deltaMap_gen_isClosed
+    (hT2 : @T2Space (B₁₂_gen f) (B₁₂_gen_topology f)) :
+    IsClosed ((deltaMap_gen f).ker : Set (B₁_gen f × B₂_gen f)) := by
+  letI := hT2
+  have hcont : Continuous (deltaMap_gen f) := deltaMap_gen_continuous f
+  have hpre : ((deltaMap_gen f).ker : Set (B₁_gen f × B₂_gen f)) =
+      (deltaMap_gen f) ⁻¹' {0} := by
+    ext p
+    constructor
+    · intro hp; exact hp
+    · intro hp; exact hp
+  rw [hpre]
+  exact (isClosed_singleton).preimage hcont
+
+omit [IsTateRing A] [IsNoetherianRing A] [IsDomain A] in
+/-- The image of the Laurent diagonal `epsilonHom_gen f` equals the kernel
+of the Laurent codiagonal `deltaMap_gen f`. This is the algebraic
+strict-exactness `row3_exact` lifted to a set-level identification of the
+range and the kernel. -/
+theorem range_epsilonHom_gen_eq_ker_deltaMap_gen
+    [UniformSpace A] [IsUniformAddGroup A] [T2Space A] [CompleteSpace A]
+    (htop : ‹TopologicalSpace A› = UniformSpace.toTopologicalSpace) :
+    Set.range (epsilonHom_gen f : A → B₁_gen f × B₂_gen f) =
+      ((deltaMap_gen f).ker : Set (B₁_gen f × B₂_gen f)) := by
+  obtain ⟨h_eps_ker, h_ker_eps, _⟩ := row3_exact f htop
+  ext p
+  refine ⟨?_, ?_⟩
+  · rintro ⟨a, rfl⟩
+    change deltaMap_gen f (epsilonHom_gen f a) = 0
+    exact h_eps_ker a
+  · intro hp
+    have hker : deltaMap_gen f p = 0 := hp
+    obtain ⟨a, ha⟩ := h_ker_eps p hker
+    exact ⟨a, ha⟩
+
+/-- **Algebraic Laurent diagonal is a topological embedding** (T134, the
+algebraic missing fact for T133's `h_alg_inducing`).
+
+Under the canonical T132 quotient topologies on `B₁_gen f, B₂_gen f`,
+the algebraic Laurent diagonal
+
+  `epsilonHom_gen f : A →+* B₁_gen f × B₂_gen f`
+
+is a topological embedding (`Topology.IsInducing`).
+
+The hypotheses package the Banach open mapping prerequisites:
+
+* `[UniformSpace A] [IsUniformAddGroup A] [CompleteSpace A]
+  [SigmaCompactSpace A]` provide the source-side structure for
+  `AddMonoidHom.isOpenMap_of_complete_countable`;
+* `htop` ensures the topology on `A` matches the uniform structure (the
+  same comparison used by `row3_exact`);
+* `hf_nonunit` is the standard non-unit side-condition of
+  `epsilonHom_gen_injective`;
+* `hT2_B12` and `hBaire_ker` provide the closed-kernel + Baire-T2
+  inputs at the kernel subspace level.
+
+**Proof structure.** The corestriction `e : A →+ ker(deltaMap_gen f)` is
+continuous (by `epsilonHom_gen_continuous`), bijective (injective by
+`epsilonHom_gen_injective` + surjective onto `ker` by `row3_exact`), and
+goes between Banach OMT-eligible groups. The Banach open mapping theorem
+then gives `IsOpenMap e`, hence `e` is a homeomorphism (`IsHomeomorph`),
+hence `IsInducing`. The inclusion `ker → B₁_gen f × B₂_gen f` is a closed
+embedding (the kernel is closed by `ker_deltaMap_gen_isClosed`), hence
+`IsInducing`. Composition gives `IsInducing (epsilonHom_gen f)`. -/
+theorem epsilonHom_gen_inducing
+    [UniformSpace A] [IsUniformAddGroup A] [CompleteSpace A]
+    [T2Space A] [SigmaCompactSpace A]
+    (htop : ‹TopologicalSpace A› = UniformSpace.toTopologicalSpace)
+    (hf_nonunit : ¬IsUnit f)
+    (hT2_B12 : @T2Space (B₁₂_gen f) (B₁₂_gen_topology f))
+    (hT2_prod : T2Space (B₁_gen f × B₂_gen f))
+    (hBaire_ker : BaireSpace
+      ↥((deltaMap_gen f).ker : Set (B₁_gen f × B₂_gen f))) :
+    Topology.IsInducing (epsilonHom_gen f : A → B₁_gen f × B₂_gen f) := by
+  -- Substitute `htop` so the topology on `A` becomes `UniformSpace.toTopologicalSpace`.
+  -- This is the same trick used in `row3_exact`. After substitution all
+  -- `[TopologicalSpace A]`-derived facts (e.g. continuity of `epsilonHom_gen`)
+  -- agree with the uniform-space-derived ones.
+  subst htop
+  -- Step 0: continuity of the diagonal.
+  have hcont : Continuous (epsilonHom_gen f : A → B₁_gen f × B₂_gen f) :=
+    epsilonHom_gen_continuous f
+  -- Step 1: the kernel is closed (uses `T2Space (B₁₂_gen f)`).
+  have hker_closed : IsClosed ((deltaMap_gen f).ker :
+      Set (B₁_gen f × B₂_gen f)) :=
+    ker_deltaMap_gen_isClosed f hT2_B12
+  -- Step 2: image of `epsilonHom_gen f` equals the kernel (algebraic
+  -- exactness from `row3_exact`).
+  obtain ⟨h_eps_ker, h_ker_eps, _⟩ := row3_exact f rfl
+  -- Step 3: build the corestriction `e : A →+ ker` as an `AddMonoidHom`.
+  let K : AddSubgroup (B₁_gen f × B₂_gen f) := (deltaMap_gen f).ker
+  have hmem : ∀ a : A, (epsilonHom_gen f a) ∈ K := fun a =>
+    show deltaMap_gen f (epsilonHom_gen f a) = 0 from h_eps_ker a
+  let e : A →+ ↥K :=
+    { toFun := fun a => ⟨epsilonHom_gen f a, hmem a⟩
+      map_zero' := by
+        apply Subtype.ext
+        change epsilonHom_gen f 0 = 0
+        exact map_zero _
+      map_add' := fun x y => by
+        apply Subtype.ext
+        change epsilonHom_gen f (x + y) = epsilonHom_gen f x + epsilonHom_gen f y
+        exact map_add _ _ _ }
+  have he_continuous : Continuous e :=
+    Continuous.subtype_mk hcont _
+  -- Step 4: `e` is bijective.
+  have he_inj : Function.Injective e := fun x y hxy => by
+    have := congrArg (Subtype.val) hxy
+    exact LaurentCover.epsilonHom_gen_injective f hf_nonunit this
+  have he_surj : Function.Surjective e := fun ⟨p, hp⟩ => by
+    have hδ : deltaMap_gen f p = 0 := hp
+    obtain ⟨a, ha⟩ := h_ker_eps p hδ
+    refine ⟨a, ?_⟩; apply Subtype.ext; exact ha
+  have he_bij : Function.Bijective e := ⟨he_inj, he_surj⟩
+  -- Step 5: Banach open mapping theorem applied to `e`.
+  haveI := hT2_prod
+  haveI : BaireSpace ↥K := hBaire_ker
+  have he_open : IsOpenMap e :=
+    AddMonoidHom.isOpenMap_of_complete_countable e he_surj he_continuous
+  -- Step 6: `e` is a homeomorphism (continuous + open + bijective).
+  have he_homeo : IsHomeomorph e := ⟨he_continuous, he_open, he_bij⟩
+  have he_ind : Topology.IsInducing e := he_homeo.isInducing
+  -- Step 7: inclusion `ker → B₁_gen f × B₂_gen f` is a closed embedding.
+  have hincl_emb : Topology.IsClosedEmbedding
+      ((↑) : ↥(K : Set (B₁_gen f × B₂_gen f)) → B₁_gen f × B₂_gen f) :=
+    hker_closed.isClosedEmbedding_subtypeVal
+  have hincl_ind : Topology.IsInducing
+      ((↑) : ↥(K : Set (B₁_gen f × B₂_gen f)) → B₁_gen f × B₂_gen f) :=
+    hincl_emb.isInducing
+  -- Step 8: compose. `epsilonHom_gen f = (↑) ∘ e` extensionally.
+  have hcomp_eq :
+      ((↑) : ↥(K : Set (B₁_gen f × B₂_gen f)) → B₁_gen f × B₂_gen f) ∘ e =
+        ⇑(epsilonHom_gen f) := by
+    funext a; rfl
+  have hcomp_ind : Topology.IsInducing
+      (((↑) : ↥(K : Set (B₁_gen f × B₂_gen f)) → B₁_gen f × B₂_gen f) ∘ e) :=
+    hincl_ind.comp he_ind
+  rw [hcomp_eq] at hcomp_ind
+  exact hcomp_ind
+
+end EpsilonHomInducing
+
 end LaurentCover
