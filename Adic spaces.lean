@@ -31,6 +31,7 @@ import «Adic spaces».IntegralStructureSheaf
 import «Adic spaces».Example638
 import «Adic spaces».IteratedRational
 import «Adic spaces».LaurentCoverExact
+import «Adic spaces».LaurentCoverTopology
 import «Adic spaces».LaurentOverlap
 import «Adic spaces».Lemma745
 import «Adic spaces».LocalizationTopology
