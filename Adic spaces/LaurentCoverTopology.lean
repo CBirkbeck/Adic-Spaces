@@ -4,8 +4,6 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».LaurentCoverExact
 import «Adic spaces».TateAlgebraTopology
-import Mathlib.Topology.Metrizable.CompletelyMetrizable
-import Mathlib.Topology.Baire.CompleteMetrizable
 
 /-!
 # Quotient topology API for the Laurent cover (T131)
@@ -736,34 +734,20 @@ at the T2 layer, leaving `hBaire_ker` as an explicit T134 hypothesis. -/
 
 end T2Support
 
-/-! ### Complete pseudo-metrizability and `BaireSpace ker(deltaMap_gen f)` (T136)
+/-! ### Right uniform structure and countably-generated uniformity (T136)
 
-T134's last remaining target-side hypothesis `hBaire_ker` is discharged
-via the standard chain:
-
-1. `B₁_gen f`, `B₂_gen f` carry the right uniform space induced by
-   their canonical `IsTopologicalAddGroup` structure;
-2. that uniformity is countably-generated
-   (`IsUniformAddGroup.uniformity_countably_generated` from the
-   inherited `FirstCountableTopology` quotient instance);
-3. `UniformSpace.pseudoMetricSpace` then gives a compatible
-   `PseudoMetricSpace` and hence `PseudoMetrizableSpace`;
-4. combined with `CompleteSpace` (T135 closed-ideal facts +
-   `QuotientAddGroup.completeSpace_right'`), this yields
-   `IsCompletelyPseudoMetrizableSpace (B_i_gen f)`;
-5. `IsCompletelyPseudoMetrizableSpace.prod` gives the product, and
-   `IsClosed.isCompletelyPseudoMetrizableSpace` (via the T135
-   `ker_deltaMap_gen_isClosed`) gives the kernel subspace;
-6. `BaireSpace.of_completelyPseudoMetrizable` finishes.
-
-The `B₁_gen` analogue of `quotient_oneSubfXIdeal_completeSpace`
-(present in `TateAlgebraTopology.lean`) is added inline below as
-`B₁_gen_completeSpace` — same proof template but with the principal
-ideal `Ideal.span {algebraMap f − X}` in place of `oneSubfXIdeal`. -/
+This section installs the canonical right uniform structure on `B₁_gen f`
+and `B₂_gen f` (induced by their `IsTopologicalAddGroup` structure),
+proves the corresponding `IsUniformAddGroup` instances, and shows the
+uniformity is countably-generated. These are the prerequisites for the
+`BaireSpace`-of-kernel chain consumed by T134's `hBaire_ker` hypothesis;
+the downstream pseudo-metrizability / complete-pseudo-metrizability /
+`BaireSpace` steps live in the companion module
+`«Adic spaces».LaurentBaireSupport`, which imports the Mathlib
+metrizability/Baire APIs without weighing down typeclass synthesis in
+this file. -/
 
 open scoped Uniformity
-
-open TopologicalSpace
 
 section BaireSupport
 
@@ -870,69 +854,6 @@ elaboration: the canonical `B_i_gen_topology`, the
 `B_i_gen_isUniformAddGroup` instance are passed by name where Lean's
 broad typeclass search would otherwise probe an excessive
 instance database. -/
-
-/-! Pseudo-metrizability follows from
-`IsCompletelyPseudoMetrizableSpace` via Mathlib's
-priority-90 instance `PseudoMetrizableSpace`. We prove
-`IsCompletelyPseudoMetrizableSpace` directly below using the
-`UniformSpace + CompleteSpace + IsCountablyGenerated 𝓤` route. -/
-
-/-- `B₂_gen f` is `CompleteSpace` under the canonical right uniform structure.
-
-Delegates to the existing `TateAlgebra.quotient_oneSubfXIdeal_completeSpace`
-(`B₂_gen f`'s ideal is definitionally `oneSubfXIdeal f`). -/
-theorem B₂_gen_completeSpace
-    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
-    (hnoeth : IsNoetherianRing
-      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition)) :
-    @CompleteSpace (B₂_gen f) (B₂_gen_uniformSpace f) :=
-  quotient_oneSubfXIdeal_completeSpace hA_complete hnoeth f
-
-/-- `B₂_gen f` is completely pseudo-metrizable.
-The Mathlib instance
-`IsCompletelyPseudoMetrizableSpace.of_completeSpace_pseudometrizable`
-fires from `[UniformSpace] [CompleteSpace] [IsCountablyGenerated 𝓤]`. -/
-theorem B₂_gen_isCompletelyPseudoMetrizableSpace
-    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
-    (hnoeth : IsNoetherianRing
-      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition)) :
-    IsCompletelyPseudoMetrizableSpace (B₂_gen f) := by
-  haveI : Filter.IsCountablyGenerated (𝓤 (B₂_gen f)) :=
-    B₂_gen_uniformity_isCountablyGenerated f
-  haveI : CompleteSpace (B₂_gen f) := B₂_gen_completeSpace f hA_complete hnoeth
-  infer_instance
-
-/-! #### Remaining steps for `BaireSpace ↥(deltaMap_gen f).ker` (next-ticket)
-
-The downstream chain:
-
-1. **`B₁_gen_completeSpace`** — `CompleteSpace (B₁_gen f)` under the
-   canonical right uniform structure. Mathematically straightforward
-   (an inline analogue of `TateAlgebra.quotient_oneSubfXIdeal_completeSpace`
-   in `TateAlgebraTopology.lean` with `Ideal.span {algebraMap f − X}` in
-   place of `oneSubfXIdeal f`), but currently runs into Lean
-   `whnf`-timeout pressure when this file imports
-   `Mathlib.Topology.Metrizable.CompletelyMetrizable`: the
-   typeclass-instance database becomes large enough that the
-   `tateAlgebraTopology'_completeSpace hA_complete` invocation cannot
-   finish reducing within the `maxHeartbeats` budget (tested up to
-   `1.6M` heartbeats). The `B₂_gen` analogue compiles fine because it
-   delegates to the existing `quotient_oneSubfXIdeal_completeSpace`
-   declaration in `TateAlgebraTopology.lean`, which was elaborated
-   without the Mathlib `CompletelyMetrizable` import in scope. The
-   first exact missing API is therefore a `B₁_gen`-side analogue of
-   `quotient_oneSubfXIdeal_completeSpace` declared inside
-   `TateAlgebraTopology.lean` (where the typeclass database is small).
-
-2. **`B₁_gen_isCompletelyPseudoMetrizableSpace`** — auto from (1) plus
-   `B₁_gen_uniformity_isCountablyGenerated` via Mathlib's
-   `IsCompletelyPseudoMetrizableSpace.of_completeSpace_pseudometrizable`.
-
-3. **Product / closed kernel / BaireSpace**: standard Mathlib chain
-   (`IsCompletelyPseudoMetrizableSpace.prod`,
-   `IsClosed.isCompletelyPseudoMetrizableSpace`,
-   `BaireSpace.of_completelyPseudoMetrizable`) using T134
-   `ker_deltaMap_gen_isClosed` and T135 `B₁₂_gen_t2Space`. -/
 
 end BaireSupport
 

@@ -30,6 +30,7 @@ import «Adic spaces».IdealClosedness
 import «Adic spaces».IntegralStructureSheaf
 import «Adic spaces».Example638
 import «Adic spaces».IteratedRational
+import «Adic spaces».LaurentBaireSupport
 import «Adic spaces».LaurentCoverExact
 import «Adic spaces».LaurentCoverTopology
 import «Adic spaces».LaurentOverlap
