@@ -7,7 +7,7 @@ import Mathlib.Topology.Metrizable.CompletelyMetrizable
 import Mathlib.Topology.Baire.CompleteMetrizable
 
 /-!
-# Pseudo-metrizability and BaireSpace support for the Laurent cover (T137–T139)
+# Pseudo-metrizability and BaireSpace support for the Laurent cover (T137–T140)
 
 Continuation of the T136 BaireSupport section in
 `«Adic spaces».LaurentCoverTopology`. The Mathlib metrizability and
@@ -65,6 +65,18 @@ The kernel-Baire theorem takes the T134-style `hT2_B12 : T2Space (B₁₂_gen f)
 hypothesis directly, mirroring T134's signature, so callers can continue to
 discharge it from `B₁₂_gen_t2Space` (T135) or any other available T2 witness
 without forcing a specific bivariate noetherianity hypothesis at this layer.
+
+T140 (final consolidation):
+
+* `epsilonHom_gen_inducing_of_complete` — wraps T134's
+  `epsilonHom_gen_inducing` with its target-side topology hypotheses
+  (`hT2_B12`, `hT2_prod`, `hBaire_ker`) discharged from T135's T2
+  supports and T139's kernel-Baire theorem. Source-side OMT
+  prerequisites (`[UniformSpace A] [IsUniformAddGroup A]
+  [CompleteSpace A] [SigmaCompactSpace A]` plus `htop` and
+  `hf_nonunit`) remain explicit, as do the univariate +
+  bivariate noetherian pair-subring hypotheses needed by the
+  closed-ideal infrastructure.
 -/
 
 namespace LaurentCover
@@ -183,6 +195,40 @@ theorem ker_deltaMap_gen_baireSpace
       ↥((deltaMap_gen f).ker : Set (B₁_gen f × B₂_gen f)) :=
     ker_deltaMap_gen_isCompletelyPseudoMetrizableSpace f hA_complete hnoeth hT2_B12
   infer_instance
+
+/-- **T140: `Topology.IsInducing (epsilonHom_gen f)` with target-side
+hypotheses discharged.**
+
+Wraps T134's `epsilonHom_gen_inducing` and discharges its target-side
+topology obligations (`hT2_B12`, `hT2_prod`, `hBaire_ker`) using:
+
+* T135 `B₁₂_gen_t2Space` for `hT2_B12`,
+* T135 `B₁_gen_x_B₂_gen_t2Space` for `hT2_prod`,
+* T139 `ker_deltaMap_gen_baireSpace` for `hBaire_ker`.
+
+Source-side Banach open-mapping prerequisites
+(`[UniformSpace A] [IsUniformAddGroup A] [CompleteSpace A]
+[SigmaCompactSpace A]`, `htop`, `hf_nonunit`) remain explicit, as does
+the univariate + bivariate noetherian pair-subring infrastructure needed
+by the closed-ideal lemmas underlying the T2 supports. -/
+theorem epsilonHom_gen_inducing_of_complete
+    [UniformSpace A] [IsUniformAddGroup A] [CompleteSpace A] [SigmaCompactSpace A]
+    (htop : ‹TopologicalSpace A› = UniformSpace.toTopologicalSpace)
+    (hf_nonunit : ¬IsUnit f)
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hnoeth₂ : IsNoetherianRing
+      ↥(pairSubring₂ (IsTateRing.principalPair A).toPairOfDefinition)) :
+    Topology.IsInducing (epsilonHom_gen f : A → B₁_gen f × B₂_gen f) := by
+  have hT2_B12 : @T2Space (B₁₂_gen f) (B₁₂_gen_topology f) :=
+    B₁₂_gen_t2Space f hA_complete hnoeth₂
+  have hT2_prod : T2Space (B₁_gen f × B₂_gen f) :=
+    B₁_gen_x_B₂_gen_t2Space f hA_complete hnoeth
+  have hBaire_ker : BaireSpace
+      ↥((deltaMap_gen f).ker : Set (B₁_gen f × B₂_gen f)) :=
+    ker_deltaMap_gen_baireSpace f hA_complete hnoeth hT2_B12
+  exact epsilonHom_gen_inducing f htop hf_nonunit hT2_B12 hT2_prod hBaire_ker
 
 end BaireSupport
 
