@@ -7,7 +7,7 @@ import Mathlib.Topology.Metrizable.CompletelyMetrizable
 import Mathlib.Topology.Baire.CompleteMetrizable
 
 /-!
-# Pseudo-metrizability and BaireSpace support for the Laurent cover (T137 / T138)
+# Pseudo-metrizability and BaireSpace support for the Laurent cover (T137–T139)
 
 Continuation of the T136 BaireSupport section in
 `«Adic spaces».LaurentCoverTopology`. The Mathlib metrizability and
@@ -46,15 +46,25 @@ T138 (B₁-side, consuming the upstream
 * `B₁_gen_isCompletelyPseudoMetrizableSpace` — completely
   pseudo-metrizable.
 
-## Remaining steps (next-ticket scope)
+T139 (kernel-Baire chain consuming the B₁/B₂ CPS support and the T134
+closed-kernel theorem):
 
-* Product `B₁_gen f × B₂_gen f` is completely pseudo-metrizable
-  (auto via Mathlib's `IsCompletelyPseudoMetrizableSpace.prod`).
-* Closed kernel `↥(deltaMap_gen f).ker` is completely
-  pseudo-metrizable via `IsClosed.isCompletelyPseudoMetrizableSpace`,
-  using T134 `ker_deltaMap_gen_isClosed` and T135 `B₁₂_gen_t2Space`.
-* `BaireSpace ↥(deltaMap_gen f).ker` via Mathlib's auto-instance
-  `BaireSpace.of_completelyPseudoMetrizable`.
+* `B₁_gen_x_B₂_gen_isCompletelyPseudoMetrizableSpace` — the product
+  `B₁_gen f × B₂_gen f` is completely pseudo-metrizable, via Mathlib's
+  `IsCompletelyPseudoMetrizableSpace.prod` instance.
+* `ker_deltaMap_gen_isCompletelyPseudoMetrizableSpace` — the closed
+  kernel of `deltaMap_gen f` is completely pseudo-metrizable, via
+  `IsClosed.isCompletelyPseudoMetrizableSpace` and the T134
+  closed-kernel theorem.
+* `ker_deltaMap_gen_baireSpace` — `BaireSpace
+  ↥((deltaMap_gen f).ker : Set _)`, via Mathlib's auto-instance
+  `BaireSpace.of_completelyPseudoMetrizable`. This discharges the
+  `hBaire_ker` hypothesis of T134's `epsilonHom_gen_inducing`.
+
+The kernel-Baire theorem takes the T134-style `hT2_B12 : T2Space (B₁₂_gen f)`
+hypothesis directly, mirroring T134's signature, so callers can continue to
+discharge it from `B₁₂_gen_t2Space` (T135) or any other available T2 witness
+without forcing a specific bivariate noetherianity hypothesis at this layer.
 -/
 
 namespace LaurentCover
@@ -118,6 +128,60 @@ theorem B₁_gen_isCompletelyPseudoMetrizableSpace
   haveI : Filter.IsCountablyGenerated (𝓤 (B₁_gen f)) :=
     B₁_gen_uniformity_isCountablyGenerated f
   haveI : CompleteSpace (B₁_gen f) := B₁_gen_completeSpace f hA_complete hnoeth
+  infer_instance
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- The product `B₁_gen f × B₂_gen f` is completely pseudo-metrizable.
+
+This is the T139 step that combines `B₁_gen_isCompletelyPseudoMetrizableSpace`
+and `B₂_gen_isCompletelyPseudoMetrizableSpace` via Mathlib's product
+instance `TopologicalSpace.IsCompletelyPseudoMetrizableSpace.prod`. -/
+theorem B₁_gen_x_B₂_gen_isCompletelyPseudoMetrizableSpace
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition)) :
+    TopologicalSpace.IsCompletelyPseudoMetrizableSpace (B₁_gen f × B₂_gen f) := by
+  haveI : TopologicalSpace.IsCompletelyPseudoMetrizableSpace (B₁_gen f) :=
+    B₁_gen_isCompletelyPseudoMetrizableSpace f hA_complete hnoeth
+  haveI : TopologicalSpace.IsCompletelyPseudoMetrizableSpace (B₂_gen f) :=
+    B₂_gen_isCompletelyPseudoMetrizableSpace f hA_complete hnoeth
+  infer_instance
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- The closed kernel of `deltaMap_gen f` in `B₁_gen f × B₂_gen f` is
+completely pseudo-metrizable.
+
+Combines `B₁_gen_x_B₂_gen_isCompletelyPseudoMetrizableSpace` (T139) with
+the T134 `ker_deltaMap_gen_isClosed` via Mathlib's
+`IsClosed.isCompletelyPseudoMetrizableSpace`. The `hT2_B12` hypothesis is
+the same one consumed by T134's `epsilonHom_gen_inducing`; callers can
+discharge it from T135's `B₁₂_gen_t2Space`. -/
+theorem ker_deltaMap_gen_isCompletelyPseudoMetrizableSpace
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT2_B12 : @T2Space (B₁₂_gen f) (B₁₂_gen_topology f)) :
+    TopologicalSpace.IsCompletelyPseudoMetrizableSpace
+      ↥((deltaMap_gen f).ker : Set (B₁_gen f × B₂_gen f)) := by
+  haveI : TopologicalSpace.IsCompletelyPseudoMetrizableSpace (B₁_gen f × B₂_gen f) :=
+    B₁_gen_x_B₂_gen_isCompletelyPseudoMetrizableSpace f hA_complete hnoeth
+  exact (ker_deltaMap_gen_isClosed f hT2_B12).isCompletelyPseudoMetrizableSpace
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- `BaireSpace` of the closed kernel of `deltaMap_gen f`. This discharges the
+`hBaire_ker` hypothesis of T134's `epsilonHom_gen_inducing`.
+
+The proof is via Mathlib's auto-instance `BaireSpace.of_completelyPseudoMetrizable`
+fed by `ker_deltaMap_gen_isCompletelyPseudoMetrizableSpace`. -/
+theorem ker_deltaMap_gen_baireSpace
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT2_B12 : @T2Space (B₁₂_gen f) (B₁₂_gen_topology f)) :
+    BaireSpace ↥((deltaMap_gen f).ker : Set (B₁_gen f × B₂_gen f)) := by
+  haveI : TopologicalSpace.IsCompletelyPseudoMetrizableSpace
+      ↥((deltaMap_gen f).ker : Set (B₁_gen f × B₂_gen f)) :=
+    ker_deltaMap_gen_isCompletelyPseudoMetrizableSpace f hA_complete hnoeth hT2_B12
   infer_instance
 
 end BaireSupport
