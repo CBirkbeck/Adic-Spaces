@@ -3688,6 +3688,109 @@ theorem laurentCover_gluing_presheaf_viaBridges
       τ_preBiv τ_alg h_plus_compat h_minus_compat
       uplus uminus hcompat)
 
+/-- **Two-piece Laurent restriction map: injectivity and continuity at presheaf
+level** (T130, v3 strict-exactness boundary).
+
+For a Tate ring `A` and rational data `D₀`, the pair restriction map
+
+```
+ε_pres : presheafValue D₀ → presheafValue (laurentPlusDatum D₀ f) ×
+                            presheafValue (laurentMinusDatum D₀ f),
+  ε_pres x = (restrictionMap D₀ plus hplus x, restrictionMap D₀ minus hminus x)
+```
+
+is **injective and continuous**. Together these are the two basic ingredients
+for the topological-embedding statement of Wedhorn 8.33's epsilon at the
+completed presheafValue level (the v3 strict-exactness route).
+
+The bridge-hypothesis style is the same as `laurentCover_gluing_presheaf_viaRow3`
+(`τ_plus`, `τ_minus`, `htau_plus`, `htau_minus`) — the τ's are RingEquivs that
+identify each `presheafValue (laurentPlus/Minus)` algebraically with the
+corresponding `B₁_gen / B₂_gen`. Continuity comes for free from
+`restrictionMapHom_continuous`. Injectivity reduces — via the τ-bridges — to
+`LaurentCover.epsilonHom_gen_injective` applied at `A := presheafValue D₀`,
+`f := D₀.canonicalMap f`. That algebraic injectivity needs:
+
+* `[IsNoetherianRing (presheafValue D₀)]` and `[IsDomain (presheafValue D₀)]`
+  as typeclasses on the completed Tate base (the `presheafValue` version of the
+  ambient `[IsNoetherianRing A] [IsDomain A]` `section General` variables in
+  `LaurentCoverExact.lean`); both are presheafValue-level conditions and hence
+  do **not** add public `[CompleteSpace A]`, `[IsDomain A]`, or
+  `D.s`-localization-base hypotheses to the outer `tateAcyclicity` boundary.
+* `(hf_nonunit : ¬IsUnit (D₀.canonicalMap f))`, the standard non-unit
+  side-condition of `epsilonHom_gen_injective` (Wedhorn 8.33 / Krull
+  intersection on `Ideal.span {f}`).
+
+**Note on `CompleteSpace_presheafValue_rightUniformSpace` (T129).** This
+helper is the canonical bridge between the auto `CompleteSpace (presheafValue D)`
+instance from `Presheaf.lean` and the
+`@CompleteSpace _ (IsTopologicalAddGroup.rightUniformSpace _)` form that some
+Route B equivs ask for. T130's injectivity proof routes through
+`epsilonHom_gen_injective`, which only uses the underlying ring structure and
+needs no `CompleteSpace` form at all; T129 is therefore not invoked in this
+proof. It is documented here as the point where the **strict-embedding /
+inducing-topology** upgrade of T130 (a separate ticket) will plug in: that
+upgrade applies `LaurentCover.row3_exact` at `A := presheafValue D₀`, which
+needs the `IsTopologicalAddGroup.rightUniformSpace`-form `CompleteSpace`,
+discharged by T129's helper. The current T130 deliberately stops at
+`Function.Injective ∧ Continuous` because the inducing direction requires
+more topological infrastructure on the algebraic Laurent quotients
+(`B₁_gen, B₂_gen, B₁₂_gen`) than is currently in scope. -/
+theorem laurentCover_isEmbedding_presheaf
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A]
+    (D₀ : RationalLocData A) (f : A)
+    (hf_nonunit : ¬IsUnit (D₀.canonicalMap f))
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hDom_B : IsDomain (presheafValue D₀))
+    (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (τ_plus : presheafValue (laurentPlusDatum D₀ f) ≃+*
+      LaurentCover.B₁_gen (D₀.canonicalMap f))
+    (τ_minus : presheafValue (laurentMinusDatum D₀ f) ≃+*
+      LaurentCover.B₂_gen (D₀.canonicalMap f))
+    (htau_plus : ∀ x : presheafValue D₀,
+      τ_plus (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x) =
+        (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).1)
+    (htau_minus : ∀ x : presheafValue D₀,
+      τ_minus (restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x) =
+        (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).2) :
+    Function.Injective
+      (fun x : presheafValue D₀ =>
+        (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x,
+         restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x)) ∧
+    Continuous
+      (fun x : presheafValue D₀ =>
+        (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x,
+         restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x)) := by
+  letI := hNoeth_B
+  letI := hDom_B
+  refine ⟨?_, ?_⟩
+  · -- Injectivity. Apply `epsilonHom_gen_injective` at `A := presheafValue D₀`,
+    -- transported through `τ_plus, τ_minus` via `htau_plus, htau_minus`.
+    intro x y hxy
+    have hxy_plus : restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x =
+        restrictionMap D₀ (laurentPlusDatum D₀ f) hplus y :=
+      (Prod.mk.injEq ..).mp hxy |>.1
+    have hxy_minus : restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x =
+        restrictionMap D₀ (laurentMinusDatum D₀ f) hminus y :=
+      (Prod.mk.injEq ..).mp hxy |>.2
+    have hep_plus : (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).1 =
+        (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) y).1 := by
+      rw [← htau_plus x, ← htau_plus y, hxy_plus]
+    have hep_minus : (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).2 =
+        (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) y).2 := by
+      rw [← htau_minus x, ← htau_minus y, hxy_minus]
+    exact LaurentCover.epsilonHom_gen_injective (D₀.canonicalMap f) hf_nonunit
+      (Prod.ext hep_plus hep_minus)
+  · -- Continuity. Each component is `restrictionMapHom`, continuous by
+    -- `restrictionMapHom_continuous`. The product map is then continuous via
+    -- `Continuous.prodMk`.
+    exact (restrictionMapHom_continuous D₀ (laurentPlusDatum D₀ f) hplus).prodMk
+      (restrictionMapHom_continuous D₀ (laurentMinusDatum D₀ f) hminus)
+
 /-- Laurent cover gluing on presheaf values (Wedhorn Lemma 8.33, presheaf level).
 
 Delegates to `laurentCover_gluing_presheaf_viaBridges` — the Route B path
