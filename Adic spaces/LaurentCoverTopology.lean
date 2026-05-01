@@ -540,4 +540,198 @@ theorem epsilonHom_gen_inducing
 
 end EpsilonHomInducing
 
+/-! ### T2/closed-ideal support for Laurent quotients (T135)
+
+Reusable T2 lemmas for the Laurent quotients used by `epsilonHom_gen_inducing`
+(T134). All take the same closed-ideal hypotheses as
+`tateAlgebra_isClosed_ideal` / `tateAlgebra₂_isClosed_ideal`:
+`[IsTateRing A] [T2Space A]`, completeness of `A`, and noetherianity of the
+relevant pair-subring.
+
+Together they discharge the `hT2_B12` and `hT2_prod` hypotheses of T134
+(`epsilonHom_gen_inducing`); the Banach-required `hBaire_ker` falls under
+the same complete-pseudo-metrizability framework but is left as a
+separate downstream prerequisite (see the trailing docstring at the end
+of this section). -/
+
+section T2Support
+
+variable [IsTateRing A] [T2Space A] [IsNoetherianRing A] [IsDomain A] (f : A)
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- The plus-branch ideal `Ideal.span {algebraMap f − X}` is closed in
+`TateAlgebra A` under the canonical Tate topology. This is a special
+case of `tateAlgebra_isClosed_ideal` (Wedhorn 6.17) and the
+`B₁_gen`-side counterpart of the existing `oneSubfXIdeal_isClosed`. -/
+theorem plusFSubXIdeal_local_isClosed
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition)) :
+    IsClosed
+      ((Ideal.span {algebraMap A ↥(TateAlgebra A) f - TateAlgebra.X} :
+          Ideal ↥(TateAlgebra A)) : Set ↥(TateAlgebra A)) := by
+  haveI : IsNoetherianRing ↥(tateAlgebra_pairOfDefinition (A := A)).A₀ := hnoeth
+  exact tateAlgebra_isClosed_ideal hA_complete _
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- T2 of `B₁_gen f = TateAlgebra A ⧸ ⟨algebraMap f − X⟩` under the canonical
+quotient topology. -/
+theorem B₁_gen_t2Space
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition)) :
+    @T2Space (B₁_gen f) (B₁_gen_topology f) := by
+  haveI : IsClosed
+      ((Ideal.span {algebraMap A ↥(TateAlgebra A) f -
+          TateAlgebra.X}).toAddSubgroup :
+        Set ↥(TateAlgebra A)) :=
+    plusFSubXIdeal_local_isClosed f hA_complete hnoeth
+  infer_instance
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- T2 of `B₂_gen f = TateAlgebra A ⧸ ⟨1 − algebraMap f · X⟩` under the
+canonical quotient topology. -/
+theorem B₂_gen_t2Space
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition)) :
+    @T2Space (B₂_gen f) (B₂_gen_topology f) := by
+  haveI hclosed : IsClosed
+      ((Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f *
+          TateAlgebra.X}).toAddSubgroup : Set ↥(TateAlgebra A)) := by
+    haveI : IsNoetherianRing ↥(tateAlgebra_pairOfDefinition (A := A)).A₀ := hnoeth
+    exact tateAlgebra_isClosed_ideal hA_complete _
+  infer_instance
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- The two-variable Laurent ideal `laurentIdeal A = ⟨X · Y − 1⟩` is closed
+in `TateAlgebra₂ A`. -/
+theorem laurentIdeal_local_isClosed
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring₂ (IsTateRing.principalPair A).toPairOfDefinition)) :
+    IsClosed ((laurentIdeal A : Ideal ↥(TateAlgebra₂ A)) :
+      Set ↥(TateAlgebra₂ A)) := by
+  haveI : IsNoetherianRing ↥(tateAlgebra₂_pairOfDefinition (A := A)).A₀ := hnoeth
+  exact tateAlgebra₂_isClosed_ideal hA_complete _
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- T2 of `LaurentTateAlgebra A = TateAlgebra₂ A ⧸ laurentIdeal A` under the
+canonical quotient topology. -/
+theorem laurentTateAlgebra_t2Space
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring₂ (IsTateRing.principalPair A).toPairOfDefinition)) :
+    @T2Space (LaurentTateAlgebra A) laurentTateAlgebra_topology := by
+  haveI : IsClosed ((laurentIdeal A).toAddSubgroup : Set ↥(TateAlgebra₂ A)) :=
+    laurentIdeal_local_isClosed hA_complete hnoeth
+  -- `LaurentTateAlgebra A` is `↥(TateAlgebra₂ A) ⧸ laurentIdeal A` definitionally,
+  -- and `laurentTateAlgebra_topology` is the canonical quotient topology on that
+  -- type. Unfold so Mathlib's standard `T1Space (G ⧸ N) ↔ IsClosed N` /
+  -- `T2Space ↔ T1Space` instance chain applies.
+  change T2Space (↥(TateAlgebra₂ A) ⧸ laurentIdeal A)
+  infer_instance
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- The Laurent-fiber ideal `laurentFSubZetaIdeal f = ⟨algebraMap f − ζ⟩` is
+closed in `LaurentTateAlgebra A` under the canonical quotient topology.
+
+**Proof.** Let `mkHom : TateAlgebra₂ A → LaurentTateAlgebra A` be the
+canonical quotient map (an open quotient map by
+`QuotientRing.isOpenQuotientMap_mk`). The preimage of
+`laurentFSubZetaIdeal f` under `mkHom` (equivalently the comap) is an
+ideal of `TateAlgebra₂ A`, hence closed by `tateAlgebra₂_isClosed_ideal`.
+The `IsQuotientMap.isClosed_preimage` characterisation transports
+closedness back to `LaurentTateAlgebra A`. -/
+theorem laurentFSubZetaIdeal_isClosed
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring₂ (IsTateRing.principalPair A).toPairOfDefinition)) :
+    @IsClosed (LaurentTateAlgebra A) laurentTateAlgebra_topology
+      ((laurentFSubZetaIdeal f : Ideal (LaurentTateAlgebra A)) :
+        Set (LaurentTateAlgebra A)) := by
+  letI : TopologicalSpace ↥(TateAlgebra₂ A) := instTopologicalSpaceTateAlgebra₂
+  haveI : IsTopologicalRing ↥(TateAlgebra₂ A) := instIsTopologicalRingTateAlgebra₂
+  letI : TopologicalSpace (LaurentTateAlgebra A) := laurentTateAlgebra_topology
+  haveI : IsTopologicalRing (LaurentTateAlgebra A) := laurentTateAlgebra_isTopologicalRing
+  -- The comap to `TateAlgebra₂ A` is an ideal, hence closed under the
+  -- canonical bivariate Tate topology.
+  have hcomap_closed : IsClosed
+      (((laurentFSubZetaIdeal f).comap LaurentTateAlgebra.mkHom : Ideal _) :
+        Set ↥(TateAlgebra₂ A)) := by
+    haveI : IsNoetherianRing ↥(tateAlgebra₂_pairOfDefinition (A := A)).A₀ := hnoeth
+    exact tateAlgebra₂_isClosed_ideal hA_complete _
+  -- `mkHom` is an open quotient map; the preimage characterization transports
+  -- closedness back to `LaurentTateAlgebra A`.
+  have hQM : Topology.IsQuotientMap
+      (LaurentTateAlgebra.mkHom : ↥(TateAlgebra₂ A) → LaurentTateAlgebra A) :=
+    (QuotientRing.isOpenQuotientMap_mk _).isQuotientMap
+  rw [← hQM.isClosed_preimage]
+  -- Preimage as set = comap as set.
+  have hpre_eq :
+      (LaurentTateAlgebra.mkHom : ↥(TateAlgebra₂ A) → LaurentTateAlgebra A) ⁻¹'
+        ((laurentFSubZetaIdeal f : Ideal _) : Set _) =
+        (((laurentFSubZetaIdeal f).comap LaurentTateAlgebra.mkHom : Ideal _) :
+          Set ↥(TateAlgebra₂ A)) := rfl
+  rw [hpre_eq]
+  exact hcomap_closed
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- T2 of `B₁₂_gen f = LaurentTateAlgebra A ⧸ laurentFSubZetaIdeal f` under
+the canonical two-stage quotient topology. -/
+theorem B₁₂_gen_t2Space
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring₂ (IsTateRing.principalPair A).toPairOfDefinition)) :
+    @T2Space (B₁₂_gen f) (B₁₂_gen_topology f) := by
+  letI : TopologicalSpace (LaurentTateAlgebra A) := laurentTateAlgebra_topology
+  haveI : IsTopologicalRing (LaurentTateAlgebra A) := laurentTateAlgebra_isTopologicalRing
+  haveI hT2_laurent : T2Space (LaurentTateAlgebra A) :=
+    laurentTateAlgebra_t2Space hA_complete hnoeth
+  haveI hclosed : IsClosed ((laurentFSubZetaIdeal f).toAddSubgroup :
+      Set (LaurentTateAlgebra A)) :=
+    laurentFSubZetaIdeal_isClosed f hA_complete hnoeth
+  infer_instance
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- T2 of the product `B₁_gen f × B₂_gen f` under the canonical product
+quotient topology. -/
+theorem B₁_gen_x_B₂_gen_t2Space
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition)) :
+    T2Space (B₁_gen f × B₂_gen f) := by
+  haveI : T2Space (B₁_gen f) := B₁_gen_t2Space f hA_complete hnoeth
+  haveI : T2Space (B₂_gen f) := B₂_gen_t2Space f hA_complete hnoeth
+  exact Prod.t2Space
+
+/-! ### `BaireSpace` of `ker(deltaMap_gen f)` (next-step blocker)
+
+For the Banach OMT consumed by T134, the kernel
+`(deltaMap_gen f).ker` carrier needs `BaireSpace`. The natural derivation
+chain is:
+
+* `B₁_gen f`, `B₂_gen f` are `IsCompletelyPseudoMetrizableSpace` (from
+  `CompleteSpace` + first-countable + the Birkhoff-Kakutani style metric
+  on a first-countable Hausdorff topological group);
+* the product is `IsCompletelyPseudoMetrizableSpace`
+  (`IsCompletelyPseudoMetrizableSpace.prod`);
+* the closed kernel inherits `IsCompletelyPseudoMetrizableSpace`
+  (`IsClosed.isCompletelyPseudoMetrizableSpace`);
+* `BaireSpace` follows automatically
+  (`BaireSpace.of_completelyPseudoMetrizable`).
+
+The first bullet is **the next remaining algebraic-topology fact**:
+deriving `IsCompletelyPseudoMetrizableSpace (B₁_gen f)` (and `B₂_gen f`)
+from the existing `quotient_*_completeSpace` and
+`instFirstCountableTopology*` results requires a Mathlib-style metrizable
+upgrade for first-countable Hausdorff topological groups (or a direct
+construction via `UniformSpace.metricSpace` from the canonical quotient
+uniform space and its countably-generated uniformity).
+
+That step is the next ticket. The current T135 module deliberately stops
+at the T2 layer, leaving `hBaire_ker` as an explicit T134 hypothesis. -/
+
+end T2Support
+
 end LaurentCover
