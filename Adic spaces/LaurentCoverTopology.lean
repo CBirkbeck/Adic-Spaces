@@ -734,4 +734,162 @@ at the T2 layer, leaving `hBaire_ker` as an explicit T134 hypothesis. -/
 
 end T2Support
 
+/-! ### Complete pseudo-metrizability and `BaireSpace ker(deltaMap_gen f)` (T136)
+
+T134's last remaining target-side hypothesis `hBaire_ker` is discharged
+via the standard chain:
+
+1. `B₁_gen f`, `B₂_gen f` carry the right uniform space induced by
+   their canonical `IsTopologicalAddGroup` structure;
+2. that uniformity is countably-generated
+   (`IsUniformAddGroup.uniformity_countably_generated` from the
+   inherited `FirstCountableTopology` quotient instance);
+3. `UniformSpace.pseudoMetricSpace` then gives a compatible
+   `PseudoMetricSpace` and hence `PseudoMetrizableSpace`;
+4. combined with `CompleteSpace` (T135 closed-ideal facts +
+   `QuotientAddGroup.completeSpace_right'`), this yields
+   `IsCompletelyPseudoMetrizableSpace (B_i_gen f)`;
+5. `IsCompletelyPseudoMetrizableSpace.prod` gives the product, and
+   `IsClosed.isCompletelyPseudoMetrizableSpace` (via the T135
+   `ker_deltaMap_gen_isClosed`) gives the kernel subspace;
+6. `BaireSpace.of_completelyPseudoMetrizable` finishes.
+
+The `B₁_gen` analogue of `quotient_oneSubfXIdeal_completeSpace`
+(present in `TateAlgebraTopology.lean`) is added inline below as
+`B₁_gen_completeSpace` — same proof template but with the principal
+ideal `Ideal.span {algebraMap f − X}` in place of `oneSubfXIdeal`. -/
+
+open scoped Uniformity
+
+open TopologicalSpace
+
+section BaireSupport
+
+variable [IsTateRing A] [T2Space A] [IsNoetherianRing A] [IsDomain A] (f : A)
+
+/-- Canonical right uniform structure on `B₁_gen f` (instance). -/
+@[reducible]
+noncomputable instance B₁_gen_uniformSpace : UniformSpace (B₁_gen f) :=
+  @IsTopologicalAddGroup.rightUniformSpace _ _
+    (B₁_gen_topology f) (B₁_gen_isTopologicalAddGroup f)
+
+/-- Canonical right uniform structure on `B₂_gen f` (instance). -/
+@[reducible]
+noncomputable instance B₂_gen_uniformSpace : UniformSpace (B₂_gen f) :=
+  @IsTopologicalAddGroup.rightUniformSpace _ _
+    (B₂_gen_topology f) (B₂_gen_isTopologicalAddGroup f)
+
+/-- `B₁_gen f` is a `IsUniformAddGroup` (the right uniformity is the
+group uniformity for the canonical `IsTopologicalAddGroup`). -/
+noncomputable instance B₁_gen_isUniformAddGroup :
+    @IsUniformAddGroup (B₁_gen f) (B₁_gen_uniformSpace f) _ :=
+  @isUniformAddGroup_of_addCommGroup _ _ _
+    (B₁_gen_isTopologicalAddGroup f)
+
+/-- `B₂_gen f` is a `IsUniformAddGroup` (analogous to `B₁_gen`). -/
+noncomputable instance B₂_gen_isUniformAddGroup :
+    @IsUniformAddGroup (B₂_gen f) (B₂_gen_uniformSpace f) _ :=
+  @isUniformAddGroup_of_addCommGroup _ _ _
+    (B₂_gen_isTopologicalAddGroup f)
+
+omit [IsNoetherianRing A] [IsDomain A] [T2Space A] in
+/-- The neighborhood filter at `0 : B₁_gen f` is countably-generated.
+
+Derived directly from the open quotient projection
+`Ideal.Quotient.mk` (a `IsOpenQuotientMap` by
+`QuotientRing.isOpenQuotientMap_mk`) carrying the countably-generated
+nhds-of-zero from `TateAlgebra A` (which is first-countable). The
+image of a countably-generated filter under a function is
+countably-generated (`Filter.map.isCountablyGenerated`). -/
+theorem B₁_gen_nhds_zero_isCountablyGenerated :
+    Filter.IsCountablyGenerated (𝓝 (0 : B₁_gen f)) := by
+  haveI : FirstCountableTopology ↥(TateAlgebra A) :=
+    instFirstCountableTopologyTateAlgebra
+  haveI : (𝓝 (0 : ↥(TateAlgebra A))).IsCountablyGenerated := inferInstance
+  have hmk_OQM := QuotientRing.isOpenQuotientMap_mk
+    (Ideal.span {algebraMap A ↥(TateAlgebra A) f - TateAlgebra.X})
+  have hmk0 : Ideal.Quotient.mk
+      (Ideal.span {algebraMap A ↥(TateAlgebra A) f - TateAlgebra.X})
+      (0 : ↥(TateAlgebra A)) = (0 : B₁_gen f) := map_zero _
+  have h_map_nhds := hmk_OQM.map_nhds_eq (0 : ↥(TateAlgebra A))
+  rw [hmk0] at h_map_nhds
+  rw [← h_map_nhds]
+  exact Filter.map.isCountablyGenerated _ _
+
+omit [IsNoetherianRing A] [IsDomain A] [T2Space A] in
+/-- The neighborhood filter at `0 : B₂_gen f` is countably-generated. -/
+theorem B₂_gen_nhds_zero_isCountablyGenerated :
+    Filter.IsCountablyGenerated (𝓝 (0 : B₂_gen f)) := by
+  haveI : FirstCountableTopology ↥(TateAlgebra A) :=
+    instFirstCountableTopologyTateAlgebra
+  haveI : (𝓝 (0 : ↥(TateAlgebra A))).IsCountablyGenerated := inferInstance
+  have hmk_OQM := QuotientRing.isOpenQuotientMap_mk
+    (Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * TateAlgebra.X})
+  have hmk0 : Ideal.Quotient.mk
+      (Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * TateAlgebra.X})
+      (0 : ↥(TateAlgebra A)) = (0 : B₂_gen f) := map_zero _
+  have h_map_nhds := hmk_OQM.map_nhds_eq (0 : ↥(TateAlgebra A))
+  rw [hmk0] at h_map_nhds
+  rw [← h_map_nhds]
+  exact Filter.map.isCountablyGenerated _ _
+
+omit [IsNoetherianRing A] [IsDomain A] [T2Space A] in
+/-- The canonical uniformity on `B₁_gen f` is countably-generated.
+
+Inline form of `IsUniformAddGroup.uniformity_countably_generated`,
+applied at `α := B₁_gen f` with explicit instance arguments to bypass
+typeclass synthesis on the `(𝓝 0)`-countably-generated hypothesis. -/
+theorem B₁_gen_uniformity_isCountablyGenerated :
+    Filter.IsCountablyGenerated (𝓤 (B₁_gen f)) := by
+  haveI hcg : (𝓝 (0 : B₁_gen f)).IsCountablyGenerated :=
+    B₁_gen_nhds_zero_isCountablyGenerated f
+  exact @IsUniformAddGroup.uniformity_countably_generated
+    (B₁_gen f) (B₁_gen_uniformSpace f) _ (B₁_gen_isUniformAddGroup f) hcg
+
+omit [IsNoetherianRing A] [IsDomain A] [T2Space A] in
+/-- The canonical uniformity on `B₂_gen f` is countably-generated. -/
+theorem B₂_gen_uniformity_isCountablyGenerated :
+    Filter.IsCountablyGenerated (𝓤 (B₂_gen f)) := by
+  haveI hcg : (𝓝 (0 : B₂_gen f)).IsCountablyGenerated :=
+    B₂_gen_nhds_zero_isCountablyGenerated f
+  exact @IsUniformAddGroup.uniformity_countably_generated
+    (B₂_gen f) (B₂_gen_uniformSpace f) _ (B₂_gen_isUniformAddGroup f) hcg
+
+/-! #### Remaining steps (next-ticket scope)
+
+The complete-pseudo-metrizability and BaireSpace chain from here is:
+
+1. `PseudoMetrizableSpace (B_i_gen f)` via `UniformSpace.pseudoMetricSpace`
+   on the canonical countably-generated uniform structure provided by
+   `B_i_gen_uniformity_isCountablyGenerated` above.
+2. `CompleteSpace (B_i_gen f)` under the canonical right uniform
+   structure: for `B₂_gen f`, delegate to the existing
+   `TateAlgebra.quotient_oneSubfXIdeal_completeSpace` (in
+   `TateAlgebraTopology.lean`); for `B₁_gen f`, an inline analogue
+   using `QuotientAddGroup.completeSpace_right'` mirrors that proof
+   with the principal ideal `Ideal.span {algebraMap f − X}` in place
+   of `oneSubfXIdeal`.
+3. `IsCompletelyPseudoMetrizableSpace (B_i_gen f)` is then automatic
+   (`IsCompletelyPseudoMetrizableSpace.of_completeSpace_pseudometrizable`).
+4. `IsCompletelyPseudoMetrizableSpace (B₁_gen f × B₂_gen f)` from
+   `IsCompletelyPseudoMetrizableSpace.prod`.
+5. `IsCompletelyPseudoMetrizableSpace ↥(deltaMap_gen f).ker` from
+   `IsClosed.isCompletelyPseudoMetrizableSpace`, via
+   `ker_deltaMap_gen_isClosed` (T134) and `B₁₂_gen_t2Space` (T135).
+6. `BaireSpace ↥(deltaMap_gen f).ker` from
+   `BaireSpace.of_completelyPseudoMetrizable`.
+
+Each step requires Mathlib API that is already in
+`Mathlib.Topology.Metrizable.CompletelyMetrizable` and
+`Mathlib.Topology.Baire.CompleteMetrizable`. The remaining work is
+dominated by Lean-level elaboration challenges — the typeclass
+synthesizer's interaction between the canonical `B_i_gen_topology`
+instance, the `B_i_gen_uniformSpace` derived right-uniform structure,
+and the `T1Space (G ⧸ N)`-style instance pipeline can run into
+heartbeat budgets. The shape of the resolution is to push more
+explicit `letI`/`@`-syntax through the pseudo-metric construction
+step. That step is the direct continuation of T136. -/
+
+end BaireSupport
+
 end LaurentCover
