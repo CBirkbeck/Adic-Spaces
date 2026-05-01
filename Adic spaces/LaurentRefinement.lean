@@ -3689,7 +3689,7 @@ theorem laurentCover_gluing_presheaf_viaBridges
       uplus uminus hcompat)
 
 /-- **Two-piece Laurent restriction map: injectivity and continuity at presheaf
-level** (T130, v3 strict-exactness boundary).
+level** (T130 support result; embedding/inducing upgrade is blocked, see below).
 
 For a Tate ring `A` and rational data `D₀`, the pair restriction map
 
@@ -3699,20 +3699,23 @@ For a Tate ring `A` and rational data `D₀`, the pair restriction map
   ε_pres x = (restrictionMap D₀ plus hplus x, restrictionMap D₀ minus hminus x)
 ```
 
-is **injective and continuous**. Together these are the two basic ingredients
-for the topological-embedding statement of Wedhorn 8.33's epsilon at the
-completed presheafValue level (the v3 strict-exactness route).
+is **injective and continuous** under the hypotheses below. These are the two
+*basic* ingredients of `Topology.IsEmbedding`; the third — *inducing
+topology* — is **not** proved here and is genuinely missing API at the
+algebraic-Laurent-quotient level. See the "Inducing-topology blocker"
+note at the end of this docstring.
 
-The bridge-hypothesis style is the same as `laurentCover_gluing_presheaf_viaRow3`
-(`τ_plus`, `τ_minus`, `htau_plus`, `htau_minus`) — the τ's are RingEquivs that
-identify each `presheafValue (laurentPlus/Minus)` algebraically with the
-corresponding `B₁_gen / B₂_gen`. Continuity comes for free from
+The bridge-hypothesis style is the same as
+`laurentCover_gluing_presheaf_viaRow3` (`τ_plus`, `τ_minus`, `htau_plus`,
+`htau_minus`) — the τ's are RingEquivs that identify each
+`presheafValue (laurentPlus/Minus)` algebraically with the corresponding
+`B₁_gen / B₂_gen`. Continuity comes for free from
 `restrictionMapHom_continuous`. Injectivity reduces — via the τ-bridges — to
 `LaurentCover.epsilonHom_gen_injective` applied at `A := presheafValue D₀`,
 `f := D₀.canonicalMap f`. That algebraic injectivity needs:
 
 * `[IsNoetherianRing (presheafValue D₀)]` and `[IsDomain (presheafValue D₀)]`
-  as typeclasses on the completed Tate base (the `presheafValue` version of the
+  as presheafValue-level hypotheses (the `presheafValue` version of the
   ambient `[IsNoetherianRing A] [IsDomain A]` `section General` variables in
   `LaurentCoverExact.lean`); both are presheafValue-level conditions and hence
   do **not** add public `[CompleteSpace A]`, `[IsDomain A]`, or
@@ -3721,22 +3724,54 @@ corresponding `B₁_gen / B₂_gen`. Continuity comes for free from
   side-condition of `epsilonHom_gen_injective` (Wedhorn 8.33 / Krull
   intersection on `Ideal.span {f}`).
 
-**Note on `CompleteSpace_presheafValue_rightUniformSpace` (T129).** This
-helper is the canonical bridge between the auto `CompleteSpace (presheafValue D)`
-instance from `Presheaf.lean` and the
-`@CompleteSpace _ (IsTopologicalAddGroup.rightUniformSpace _)` form that some
-Route B equivs ask for. T130's injectivity proof routes through
-`epsilonHom_gen_injective`, which only uses the underlying ring structure and
-needs no `CompleteSpace` form at all; T129 is therefore not invoked in this
-proof. It is documented here as the point where the **strict-embedding /
-inducing-topology** upgrade of T130 (a separate ticket) will plug in: that
-upgrade applies `LaurentCover.row3_exact` at `A := presheafValue D₀`, which
-needs the `IsTopologicalAddGroup.rightUniformSpace`-form `CompleteSpace`,
-discharged by T129's helper. The current T130 deliberately stops at
-`Function.Injective ∧ Continuous` because the inducing direction requires
-more topological infrastructure on the algebraic Laurent quotients
-(`B₁_gen, B₂_gen, B₁₂_gen`) than is currently in scope. -/
-theorem laurentCover_isEmbedding_presheaf
+## Inducing-topology blocker (next-ticket scope)
+
+Upgrading this support result to `Topology.IsEmbedding` (or its uniform-space
+equivalent `IsUniformInducing`) requires showing that the topology on
+`presheafValue D₀` equals the pullback topology from the pair restriction
+map. The algebraic ring structure of `LaurentCover.row3_exact` does not yet
+transport into a topological strict-exactness statement at the
+`presheafValue` level because the **algebraic Laurent quotients
+`LaurentCover.B₁_gen, B₂_gen, B₁₂_gen` carry no canonical topology** in the
+project today: each `letI` site (e.g., `LaurentOverlap.lean:2545`) supplies a
+local quotient topology, and there is no propagated `TopologicalSpace`
+instance/abbrev plus the matching `Continuous (LaurentCover.deltaMap_gen)`
+fact that a Banach-OMT-style argument at presheafValue level would consume.
+
+The first exact missing API is therefore one of:
+
+* a Mathlib-style `instance` or `noncomputable abbrev` giving canonical
+  `TopologicalSpace (LaurentCover.B₁_gen f)`,
+  `TopologicalSpace (LaurentCover.B₂_gen f)`,
+  `TopologicalSpace (LaurentCover.B₁₂_gen f)` (quotient topology from
+  `TateAlgebra A` / `LaurentTateAlgebra A`) plus
+  `Continuous (LaurentCover.deltaMap_gen f)` once those topologies exist,
+  **or**
+
+* a direct pair-restriction Banach open-mapping lemma at the completed
+  presheafValue level — i.e., a theorem of shape
+
+  ```
+  Topology.IsInducing
+    (fun x : presheafValue D₀ =>
+      (restrictionMap D₀ plus hplus x, restrictionMap D₀ minus hminus x))
+  ```
+
+  proved via `AddMonoidHom.isOpenMap_of_complete_countable`
+  (`NoetherianTateModules.lean:158`) restricted to the closed image of the
+  pair, which would need a `IsClosed (Set.range …)` fact for the pair
+  restriction.
+
+Either path is **structurally beyond the bridge-hypothesis style** of the
+current Route B Laurent infrastructure (`laurentPlusBridge` and friends are
+RingEquivs, not RingHomeoworphs/`IsHomeomorph`s). T129's
+`CompleteSpace_presheafValue_rightUniformSpace` is the canonical bridge that
+the eventual presheafValue-level Banach OMT call will consume; it is **not**
+invoked by the current support result, which uses only
+`epsilonHom_gen_injective` + `restrictionMapHom_continuous`. The honest name
+of the present theorem is `laurentCover_injective_continuous_presheaf` (see
+manager review of T130). -/
+theorem laurentCover_injective_continuous_presheaf
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
     (D₀ : RationalLocData A) (f : A)
