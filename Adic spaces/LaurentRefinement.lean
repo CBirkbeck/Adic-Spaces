@@ -4477,6 +4477,123 @@ theorem laurentCover_isEmbedding_presheaf_of_complete
     hTate_B hplus hminus τ_plus τ_minus htau_plus htau_minus
     hτ_plus_inducing hτ_minus_inducing h_alg_inducing
 
+/-- **T147 consumer wrapper: two-piece Laurent restriction map is a topological
+embedding, with the τ-bridges supplied by `laurentPlusBridge` /
+`laurentMinusBridge`.**
+
+Specialization of `laurentCover_isEmbedding_presheaf_of_complete` (T141)
+with `τ_plus := laurentPlusBridge ...`, `τ_minus := laurentMinusBridge ...`.
+The `htau_plus` / `htau_minus` hypotheses of T141 are discharged by the
+existing `laurentPlusBridge_restrictionMap` / `laurentMinusBridge_restrictionMap`
+theorems; the `hτ_plus_inducing` / `hτ_minus_inducing` hypotheses are
+discharged by the new T147 `laurentPlusBridge_isInducing` /
+`laurentMinusBridge_isInducing`.
+
+The hypothesis surface is the union of T141's source-side hypotheses
+(without the τ-bridges and their two compatibility / inducing inputs)
+and the bridge construction / discharge hypotheses needed by the T147
+inducing theorems. -/
+theorem laurentCover_isEmbedding_presheaf_via_bridges
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hf_nonunit : ¬IsUnit (D₀.canonicalMap f))
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hDom_B : IsDomain (presheafValue D₀))
+    (hSigCp_B : SigmaCompactSpace (presheafValue D₀))
+    (hA_complete_B : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring
+            (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hnoeth₂_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring₂
+            (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
+    (hcont_forward_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue D₀) :=
+        presheafValue_pairOfDefinition_concrete P D₀
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))))
+        (example638Plus_forwardHom (presheafValue D₀) P_B (D₀.canonicalMap f)))
+    (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
+    (hBaire_plus_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+      letI P_B : PairOfDefinition (presheafValue D₀) :=
+        presheafValue_pairOfDefinition_concrete P D₀
+      @BaireSpace
+        (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))) _)
+    (hSigma_plus_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      @SigmaCompactSpace
+        (↥(TateAlgebra (presheafValue D₀)) ⧸
+          plusFSubXIdeal (presheafValue D₀) (D₀.canonicalMap f))
+        (quotientPlusFSubXIdealTopology (presheafValue D₀)
+          (D₀.canonicalMap f)))
+    (hBaire_minus_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      @BaireSpace (presheafValue (iteratedMinusDatum_B P D₀ f)) _)
+    (hSigma_minus_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      @SigmaCompactSpace
+        (↥(TateAlgebra (presheafValue D₀)) ⧸
+          TateAlgebra.oneSubfXIdeal (iteratedMinusDatum_B P D₀ f).s)
+        (TateAlgebra.quotientOneSubfXIdealTopology
+          (iteratedMinusDatum_B P D₀ f).s))
+    (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    Topology.IsEmbedding
+      (fun x : presheafValue D₀ =>
+        (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x,
+         restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x)) := by
+  haveI hTate_B : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+  -- Build the bridges and discharge T141's six τ-side hypotheses.
+  exact laurentCover_isEmbedding_presheaf_of_complete D₀ f hf_nonunit
+    hNoeth_B hDom_B hTate_B hSigCp_B hA_complete_B hnoeth_B hnoeth₂_B
+    hplus hminus
+    (laurentPlusBridge P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B
+      hnoeth_B hcont_forward_B)
+    (laurentMinusBridge P D₀ f hnoeth_B hcont_eval_B)
+    (laurentPlusBridge_restrictionMap P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B
+      hA_complete_B hnoeth_B hcont_forward_B hplus)
+    (laurentMinusBridge_restrictionMap P D₀ f hnoeth_B hcont_eval_B hminus)
+    (laurentPlusBridge_isInducing P D₀ f hNoeth_B hDom_B hLocLift_B
+      hA₀Noeth_B hA_complete_B hnoeth_B hcont_forward_B hBaire_plus_B
+      hSigma_plus_B)
+    (laurentMinusBridge_isInducing P D₀ f hNoeth_B hDom_B hnoeth_B
+      hcont_eval_B hBaire_minus_B hSigma_minus_B)
+
 /-- Laurent cover gluing on presheaf values (Wedhorn Lemma 8.33, presheaf level).
 
 Delegates to `laurentCover_gluing_presheaf_viaBridges` — the Route B path
