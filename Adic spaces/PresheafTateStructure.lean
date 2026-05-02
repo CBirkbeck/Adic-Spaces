@@ -2441,4 +2441,34 @@ theorem restrictionMap_isLocalization
         (by rw [map_sub]; exact sub_eq_zero.mpr hab)
       exact ⟨n, by rw [mul_sub, sub_eq_zero] at hn; exact hn⟩)
 
+/-- **Propagation of Noetherianness through rational subsets**
+(T148 partial supplier; T141 / T142 `hNoeth_B` reduction).
+
+If `presheafValue D₀` is Noetherian, then `presheafValue D` is Noetherian
+for any rational subset `rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s`.
+Direct composition: `restrictionMap_isLocalization` exhibits
+`presheafValue D` as `IsLocalization.Away (D₀.canonicalMap D.s)
+(presheafValue D₀)`, then `IsLocalization.isNoetherianRing` transfers
+Noetherianness from `presheafValue D₀` to `presheafValue D`.
+
+The base case `IsNoetherianRing (presheafValue D₀)` for some
+`presheafValue D₀` remains open: it would follow from "`I`-adic
+completion of a Noetherian ring is Noetherian" (Bourbaki, Atiyah–
+Macdonald 10.27), which is **not** currently in Mathlib
+(`Mathlib/RingTheory/AdicCompletion/Noetherian.lean` exposes only
+`IsHausdorff`-form lemmas; `Mathlib/RingTheory/AdicCompletion/AsTensorProduct.lean`
+proves flatness as `flat_of_isNoetherian` but not Noetherianity). -/
+theorem presheafValue_isNoetherianRing_of_rationalSubset
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s)
+    (hD₀_noeth : IsNoetherianRing (presheafValue D₀)) :
+    IsNoetherianRing (presheafValue D) := by
+  letI : Algebra (presheafValue D₀) (presheafValue D) :=
+    (restrictionMapHom D₀ D h).toAlgebra
+  haveI := restrictionMap_isLocalization P D₀ D h
+  exact IsLocalization.isNoetherianRing
+    (Submonoid.powers (D₀.canonicalMap D.s)) _ hD₀_noeth
+
 end ValuationSpectrum
