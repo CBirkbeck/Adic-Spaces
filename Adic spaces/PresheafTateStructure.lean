@@ -912,6 +912,38 @@ theorem presheafValue_isTateRing [IsTateRing A] [IsNoetherianRing A]
   { exists_pairOfDefinition := presheafValue_pairOfDefinition P D₀
     exists_topologicallyNilpotent_unit := presheafValue_topNilUnit D₀ }
 
+/-! ### T143: presheafValue OMT prerequisite supplier
+
+The Banach open-mapping chain in `LaurentRefinement.lean` (T140 / T141 /
+T142) requires seven explicit hypotheses on `presheafValue D₀`:
+`hTate_B`, `hA_complete_B`, `hNoeth_B`, `hDom_B`, `hSigCp_B`, `hnoeth_B`,
+`hnoeth₂_B`. Two are discharged from existing local API:
+
+* `hTate_B` — `presheafValue_isTateRing` (above).
+* `hA_complete_B` — `presheafValue_completeSpace_rightUniformSpace`
+  (below).
+
+The remaining five are open and tracked outside this file:
+`IsNoetherianRing (presheafValue D₀)`,
+`IsDomain (presheafValue D₀)`, `SigmaCompactSpace (presheafValue D₀)`,
+and Noetherianness of `TateAlgebra.pairSubring` / `pairSubring₂` for
+`presheafValue D₀`'s principal pair. -/
+
+omit [PlusSubring A] in
+/-- **`CompleteSpace` of `presheafValue D₀` w.r.t. the right-uniform-space**
+(T143 OMT prerequisite supplier; discharges T141 / T142's `hA_complete_B`).
+
+The canonical `CompleteSpace (presheafValue D₀)` instance from
+`Presheaf.lean` uses `UniformSpace.Completion.uniformSpace`; the OMT chain
+asks for the right-uniform-space form. The two agree by
+`IsUniformAddGroup.rightUniformSpace_eq`. -/
+theorem presheafValue_completeSpace_rightUniformSpace
+    (D₀ : RationalLocData A) :
+    @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)) := by
+  rw [IsUniformAddGroup.rightUniformSpace_eq]
+  infer_instance
+
 /-! ### Base-change API for the canonical map (Wedhorn Prop 8.2 analogues)
 
 Helper lemmas translating membership in `D₀.P.A₀` to membership in the
