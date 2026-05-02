@@ -1511,6 +1511,102 @@ theorem presheafValue_iteratedPlus_equiv_coeRingHom
   rw [presheafValue_iteratedPlus_equiv_apply, iteratedPlus_forwardHom_coeRingHom]
   rfl
 
+/-! #### Continuity and inducing topology of `presheafValue_iteratedPlus_equiv` (T146)
+
+The forward / backward completion homs `iteratedPlus_forwardHom` and
+`iteratedPlus_backwardHom` are both `UniformSpace.Completion.extensionHom`
+of (uncompleted) continuous ring homs, hence continuous via
+`UniformSpace.Completion.continuous_extension`. Combined with the fact
+that they are mutual inverses, they assemble into a `Homeomorph`, and the
+ring equiv `presheafValue_iteratedPlus_equiv` is `Topology.IsInducing`
+in both directions. -/
+
+/-- Continuity of the plus-branch forward completion hom. -/
+theorem iteratedPlus_forwardHom_continuous
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A) :
+    Continuous (iteratedPlus_forwardHom P D₀ f) := by
+  letI : UniformSpace (Localization.Away (laurentPlusDatum D₀ f).s) :=
+    (laurentPlusDatum D₀ f).uniformSpace
+  letI : IsUniformAddGroup (Localization.Away (laurentPlusDatum D₀ f).s) :=
+    (laurentPlusDatum D₀ f).isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away (laurentPlusDatum D₀ f).s) :=
+    (laurentPlusDatum D₀ f).isTopologicalRing
+  exact UniformSpace.Completion.continuous_extension
+
+/-- Continuity of the plus-branch backward completion hom. -/
+theorem iteratedPlus_backwardHom_continuous
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hsub : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    Continuous (iteratedPlus_backwardHom P D₀ f hsub) := by
+  letI : UniformSpace (Localization.Away (iteratedPlusDatum_B P D₀ f).s) :=
+    (iteratedPlusDatum_B P D₀ f).uniformSpace
+  letI : IsUniformAddGroup (Localization.Away (iteratedPlusDatum_B P D₀ f).s) :=
+    (iteratedPlusDatum_B P D₀ f).isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away (iteratedPlusDatum_B P D₀ f).s) :=
+    (iteratedPlusDatum_B P D₀ f).isTopologicalRing
+  exact UniformSpace.Completion.continuous_extension
+
+/-- **T146 plus: `presheafValue_iteratedPlus_equiv` packaged as `Homeomorph`.**
+The ring equiv between the two presheafValues — at `laurentPlusDatum D₀ f` and
+the iterated `iteratedPlusDatum_B P D₀ f` — is a topological homeomorphism,
+since both directions of the underlying completion-extension hom are continuous. -/
+noncomputable def presheafValue_iteratedPlus_equiv_homeomorph
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A) :
+    presheafValue (laurentPlusDatum D₀ f) ≃ₜ
+      presheafValue (iteratedPlusDatum_B P D₀ f) :=
+  { (presheafValue_iteratedPlus_equiv P D₀ f).toEquiv with
+    continuous_toFun := iteratedPlus_forwardHom_continuous P D₀ f
+    continuous_invFun :=
+      iteratedPlus_backwardHom_continuous P D₀ f (laurentPlus_subset D₀ f) }
+
+/-- **T146 plus: `presheafValue_iteratedPlus_equiv` is `Topology.IsInducing`.**
+Forward direction: `presheafValue (laurentPlusDatum D₀ f) →
+presheafValue (iteratedPlusDatum_B P D₀ f)`. -/
+theorem presheafValue_iteratedPlus_equiv_isInducing
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A) :
+    Topology.IsInducing
+      ((presheafValue_iteratedPlus_equiv P D₀ f) :
+        presheafValue (laurentPlusDatum D₀ f) →
+          presheafValue (iteratedPlusDatum_B P D₀ f)) :=
+  (presheafValue_iteratedPlus_equiv_homeomorph P D₀ f).isInducing
+
+/-- **T146 plus: `(presheafValue_iteratedPlus_equiv).symm` is `Topology.IsInducing`.**
+Inverse direction: `presheafValue (iteratedPlusDatum_B P D₀ f) →
+presheafValue (laurentPlusDatum D₀ f)`. -/
+theorem presheafValue_iteratedPlus_equiv_symm_isInducing
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A) :
+    Topology.IsInducing
+      ((presheafValue_iteratedPlus_equiv P D₀ f).symm :
+        presheafValue (iteratedPlusDatum_B P D₀ f) →
+          presheafValue (laurentPlusDatum D₀ f)) :=
+  (presheafValue_iteratedPlus_equiv_homeomorph P D₀ f).symm.isInducing
+
 /-! #### Minus-branch continuity residuals (Wedhorn Prop 8.2 analogues)
 
 The two continuity facts needed to extend the uncompleted forward / backward
@@ -2402,6 +2498,96 @@ theorem presheafValue_iteratedMinus_equiv_coeRingHom
         (iteratedMinus_forwardLocHom D₀ f a) := by
   rw [presheafValue_iteratedMinus_equiv_apply, iteratedMinus_forwardHom_coeRingHom]
   rfl
+
+/-! #### Continuity and inducing topology of `presheafValue_iteratedMinus_equiv`
+(T146 minus-branch analogue)
+
+The forward / backward completion homs `iteratedMinus_forwardHom` and
+`iteratedMinus_backwardHom` are both `UniformSpace.Completion.extensionHom`
+of (uncompleted) continuous ring homs, hence continuous via
+`UniformSpace.Completion.continuous_extension`. The minus-branch ring
+equiv `presheafValue_iteratedMinus_equiv` is therefore
+`Topology.IsInducing` in both directions. -/
+
+/-- Continuity of the minus-branch forward completion hom. -/
+theorem iteratedMinus_forwardHom_continuous
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A) :
+    Continuous (iteratedMinus_forwardHom P D₀ f) := by
+  letI : UniformSpace (Localization.Away (laurentMinusDatum D₀ f).s) :=
+    (laurentMinusDatum D₀ f).uniformSpace
+  letI : IsUniformAddGroup (Localization.Away (laurentMinusDatum D₀ f).s) :=
+    (laurentMinusDatum D₀ f).isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away (laurentMinusDatum D₀ f).s) :=
+    (laurentMinusDatum D₀ f).isTopologicalRing
+  exact UniformSpace.Completion.continuous_extension
+
+/-- Continuity of the minus-branch backward completion hom. -/
+theorem iteratedMinus_backwardHom_continuous
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    Continuous (iteratedMinus_backwardHom P D₀ f hsub) := by
+  letI : UniformSpace (Localization.Away (iteratedMinusDatum_B P D₀ f).s) :=
+    (iteratedMinusDatum_B P D₀ f).uniformSpace
+  letI : IsUniformAddGroup (Localization.Away (iteratedMinusDatum_B P D₀ f).s) :=
+    (iteratedMinusDatum_B P D₀ f).isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away (iteratedMinusDatum_B P D₀ f).s) :=
+    (iteratedMinusDatum_B P D₀ f).isTopologicalRing
+  exact UniformSpace.Completion.continuous_extension
+
+/-- **T146 minus: `presheafValue_iteratedMinus_equiv` packaged as `Homeomorph`.**
+Both directions of the underlying completion-extension hom are continuous. -/
+noncomputable def presheafValue_iteratedMinus_equiv_homeomorph
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A) :
+    presheafValue (laurentMinusDatum D₀ f) ≃ₜ
+      presheafValue (iteratedMinusDatum_B P D₀ f) :=
+  { (presheafValue_iteratedMinus_equiv P D₀ f).toEquiv with
+    continuous_toFun := iteratedMinus_forwardHom_continuous P D₀ f
+    continuous_invFun :=
+      iteratedMinus_backwardHom_continuous P D₀ f (laurentMinus_subset D₀ f) }
+
+/-- **T146 minus: `presheafValue_iteratedMinus_equiv` is `Topology.IsInducing`.** -/
+theorem presheafValue_iteratedMinus_equiv_isInducing
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A) :
+    Topology.IsInducing
+      ((presheafValue_iteratedMinus_equiv P D₀ f) :
+        presheafValue (laurentMinusDatum D₀ f) →
+          presheafValue (iteratedMinusDatum_B P D₀ f)) :=
+  (presheafValue_iteratedMinus_equiv_homeomorph P D₀ f).isInducing
+
+/-- **T146 minus: `(presheafValue_iteratedMinus_equiv).symm` is `Topology.IsInducing`.** -/
+theorem presheafValue_iteratedMinus_equiv_symm_isInducing
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A) :
+    Topology.IsInducing
+      ((presheafValue_iteratedMinus_equiv P D₀ f).symm :
+        presheafValue (iteratedMinusDatum_B P D₀ f) →
+          presheafValue (laurentMinusDatum D₀ f)) :=
+  (presheafValue_iteratedMinus_equiv_homeomorph P D₀ f).symm.isInducing
 
 omit [PlusSubring A] [IsHuberRing A] [HasLocLiftPowerBounded A] in
 /-- **Right-uniform-space `CompleteSpace` bridge for `presheafValue`** (T129).
