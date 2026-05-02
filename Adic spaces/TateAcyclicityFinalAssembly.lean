@@ -1887,4 +1887,116 @@ theorem RationalCovering.tateAcyclicity_via_primary_standardShape_canonical_allo
 
 end ConcreteLaneA
 
+/-! ## T141 Laurent embedding → Laurent-cover-level separation (T144 wrapper)
+
+Records the consumer surface that connects the post-T141 Laurent embedding
+theorem `laurentCover_isEmbedding_presheaf_of_complete` to the final Tate
+acyclicity route. T141 produces `Topology.IsEmbedding` of the two-piece
+Laurent pair restriction map at completed `presheafValue D₀` level under
+the v3 strict-exactness boundary; this section repackages the
+`Topology.IsEmbedding.injective` projection in the **Lane-B-supplier
+shape** consumed by the direct per-E gluing assembly
+(`tateAcyclicity_Part2_end_to_end_via_primary_laneA`).
+
+The wrapper is a thin no-sorry consumer of T141. It does **not** duplicate:
+
+* Primary's presheafValue OMT prerequisite work (which discharges
+  `hSigCp_B`, `hA_complete_B`, `hnoeth_B`, `hnoeth₂_B` from upstream
+  Tate / strongly noetherian data); these remain explicit hypotheses
+  here, dischargeable per call site.
+* Secondary's bridge-inducing work (deriving `hτ_plus_inducing` /
+  `hτ_minus_inducing` from `presheafValueCanonicalQuotientEquiv`); these
+  also remain explicit hypotheses here, dischargeable in a
+  Lane-B-canonical follow-up wrapper once Secondary's lane lands.
+
+No public `[CompleteSpace A]`, `[IsDomain A]`, generic `D.s`-localization,
+or parked T113/T119 hypothesis is added to the final Tate acyclicity
+boundary; all hypotheses here are presheafValue-level or content-bearing
+non-unit / topology hypotheses already in T141's signature. -/
+
+/-- **Laurent-cover-level separation from T141 strict-exactness embedding.**
+
+Given a rational localization datum `D₀` and a splitter `f`, plus all the
+prerequisites of `laurentCover_isEmbedding_presheaf_of_complete` (T141), the
+two-piece Laurent restriction map out of `presheafValue D₀` is injective
+(the `Function.Injective` projection of T141's `Topology.IsEmbedding`).
+
+This wrapper repackages T141's conclusion in the Lane-B separation supplier
+shape
+
+```
+∀ a b : presheafValue D₀,
+  restrictionMap D₀ plus  hplus  a = restrictionMap D₀ plus  hplus  b →
+  restrictionMap D₀ minus hminus a = restrictionMap D₀ minus hminus b →
+  a = b
+```
+
+consumed by the direct per-E gluing assembly (e.g., the `lane_B_supplier`
+hypothesis of `tateAcyclicity_Part2_end_to_end_via_primary_laneA`) when the
+per-E local cover is the canonical 2-piece Laurent cover
+`{laurentPlusDatum D₀ f, laurentMinusDatum D₀ f}`.
+
+The hypotheses are unchanged from T141; the `hτ_plus_inducing`,
+`hτ_minus_inducing` τ-bridge inducing hypotheses are kept explicit. The
+follow-up Secondary lane (T142/T143) will derive those from
+`presheafValueCanonicalQuotientEquiv`-style upstream API and package them
+as a `_canonical` variant.
+
+The proof is one line: extract `Topology.IsEmbedding.injective` from T141
+and apply it to the `Prod.ext` of the two component-wise hypotheses. -/
+theorem laurentCover_separation_via_isEmbedding_presheaf_of_complete
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ : RationalLocData A) (f : A)
+    (hf_nonunit : ¬IsUnit (D₀.canonicalMap f))
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hDom_B : IsDomain (presheafValue D₀))
+    (hTate_B : IsTateRing (presheafValue D₀))
+    (hSigCp_B : SigmaCompactSpace (presheafValue D₀))
+    (hA_complete_B : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
+    (hnoeth_B : letI := hTate_B
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring
+            (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hnoeth₂_B : letI := hTate_B
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring₂
+            (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (τ_plus : presheafValue (laurentPlusDatum D₀ f) ≃+*
+      LaurentCover.B₁_gen (D₀.canonicalMap f))
+    (τ_minus : presheafValue (laurentMinusDatum D₀ f) ≃+*
+      LaurentCover.B₂_gen (D₀.canonicalMap f))
+    (htau_plus : ∀ x : presheafValue D₀,
+      τ_plus (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x) =
+        (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).1)
+    (htau_minus : ∀ x : presheafValue D₀,
+      τ_minus (restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x) =
+        (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).2)
+    (hτ_plus_inducing : letI := hNoeth_B; letI := hDom_B; letI := hTate_B
+      Topology.IsInducing
+        (τ_plus :
+          presheafValue (laurentPlusDatum D₀ f) →
+            LaurentCover.B₁_gen (D₀.canonicalMap f)))
+    (hτ_minus_inducing : letI := hNoeth_B; letI := hDom_B; letI := hTate_B
+      Topology.IsInducing
+        (τ_minus :
+          presheafValue (laurentMinusDatum D₀ f) →
+            LaurentCover.B₂_gen (D₀.canonicalMap f))) :
+    ∀ a b : presheafValue D₀,
+      restrictionMap D₀ (laurentPlusDatum D₀ f) hplus a =
+        restrictionMap D₀ (laurentPlusDatum D₀ f) hplus b →
+      restrictionMap D₀ (laurentMinusDatum D₀ f) hminus a =
+        restrictionMap D₀ (laurentMinusDatum D₀ f) hminus b →
+      a = b := by
+  intro a b ha hb
+  have hemb :=
+    laurentCover_isEmbedding_presheaf_of_complete D₀ f hf_nonunit hNoeth_B
+      hDom_B hTate_B hSigCp_B hA_complete_B hnoeth_B hnoeth₂_B hplus hminus
+      τ_plus τ_minus htau_plus htau_minus hτ_plus_inducing hτ_minus_inducing
+  exact hemb.injective (Prod.ext ha hb)
+
 end ValuationSpectrum
