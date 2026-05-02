@@ -8,6 +8,7 @@ import «Adic spaces».TopologyComparison
 import «Adic spaces».PresheafTateStructure
 import «Adic spaces».LaurentCoverExact
 import «Adic spaces».LaurentCoverTopology
+import «Adic spaces».LaurentBaireSupport
 import «Adic spaces».CompletionLocalization
 import «Adic spaces».Example638
 import «Adic spaces».IteratedRational
@@ -3963,6 +3964,111 @@ theorem laurentCover_isEmbedding_presheaf
     Topology.IsInducing.of_comp hpair_cont' hprod_cont hcomp_ind
   -- Combine with injectivity to get `IsEmbedding`.
   exact ⟨hpair_ind, hpair_inj⟩
+
+/-- **T141: Two-piece Laurent restriction map is a topological embedding,
+with the algebraic-Laurent-level inducing hypothesis discharged.**
+
+Specialization of `laurentCover_isEmbedding_presheaf` (T133) that consumes the
+T140 algebraic-Laurent-level inducing theorem
+`LaurentCover.epsilonHom_gen_inducing_of_complete`. The `h_alg_inducing`
+hypothesis of T133 is replaced by the source-side Banach OMT prerequisites
+on `presheafValue D₀` plus the closed-ideal infrastructure (univariate +
+bivariate noetherian pair-subring hypotheses) that T140 needs underneath.
+
+The presheafValue side already supplies the following automatically (so
+they do *not* appear as explicit hypotheses): `CommRing`, `TopologicalSpace`,
+`UniformSpace`, `IsTopologicalRing`, `IsUniformAddGroup`, `CompleteSpace`,
+`T0Space`, `T2Space` (`presheafValueT2Space`), and `NonarchimedeanRing`
+(`presheafValueNonarchimedeanRing`, requiring the public `[NonarchimedeanRing A]`).
+
+The remaining presheafValue-side hypotheses are:
+
+* `hSigCp_B : SigmaCompactSpace (presheafValue D₀)` — required by the Banach
+  open-mapping theorem on `presheafValue D₀`.
+* `hA_complete_B` — completeness of `presheafValue D₀` w.r.t. its
+  `IsTopologicalAddGroup.rightUniformSpace` (the same form used by the
+  `tateAlgebra_isClosed_ideal` infrastructure).
+* `hnoeth_B`, `hnoeth₂_B` — noetherianity of the canonical univariate /
+  bivariate pair-subrings of the presheafValue Tate ring; these feed the
+  closed-ideal lemmas underlying the T2 supports `B₁₂_gen_t2Space` and
+  `B₁_gen_x_B₂_gen_t2Space` consumed by T140.
+
+The bridge hypotheses (`τ_plus`, `τ_minus`, `htau_plus`, `htau_minus`,
+`hτ_plus_inducing`, `hτ_minus_inducing`) are unchanged from T133.
+
+This is the strongest consumer-facing form of the T130 strict-exactness
+theorem available without further upstream work. The next reusable step
+beyond this would be to derive the bridge inducing hypotheses
+`hτ_plus_inducing` and `hτ_minus_inducing` from the `presheafValueCanonicalQuotientEquiv`
+construction in `TopologyComparison.lean`, eliminating the τ-level
+hypotheses entirely. -/
+theorem laurentCover_isEmbedding_presheaf_of_complete
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A]
+    (D₀ : RationalLocData A) (f : A)
+    (hf_nonunit : ¬IsUnit (D₀.canonicalMap f))
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hDom_B : IsDomain (presheafValue D₀))
+    (hTate_B : IsTateRing (presheafValue D₀))
+    (hSigCp_B : SigmaCompactSpace (presheafValue D₀))
+    (hA_complete_B : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
+    (hnoeth_B : letI := hTate_B
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring
+            (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hnoeth₂_B : letI := hTate_B
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring₂
+            (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (τ_plus : presheafValue (laurentPlusDatum D₀ f) ≃+*
+      LaurentCover.B₁_gen (D₀.canonicalMap f))
+    (τ_minus : presheafValue (laurentMinusDatum D₀ f) ≃+*
+      LaurentCover.B₂_gen (D₀.canonicalMap f))
+    (htau_plus : ∀ x : presheafValue D₀,
+      τ_plus (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x) =
+        (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).1)
+    (htau_minus : ∀ x : presheafValue D₀,
+      τ_minus (restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x) =
+        (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).2)
+    (hτ_plus_inducing : letI := hNoeth_B; letI := hDom_B; letI := hTate_B
+      Topology.IsInducing
+        (τ_plus :
+          presheafValue (laurentPlusDatum D₀ f) →
+            LaurentCover.B₁_gen (D₀.canonicalMap f)))
+    (hτ_minus_inducing : letI := hNoeth_B; letI := hDom_B; letI := hTate_B
+      Topology.IsInducing
+        (τ_minus :
+          presheafValue (laurentMinusDatum D₀ f) →
+            LaurentCover.B₂_gen (D₀.canonicalMap f))) :
+    Topology.IsEmbedding
+      (fun x : presheafValue D₀ =>
+        (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x,
+         restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x)) := by
+  letI := hNoeth_B
+  letI := hDom_B
+  letI := hTate_B
+  letI := hSigCp_B
+  -- T140 produces the algebraic-Laurent-level inducing under the source-side
+  -- Banach OMT prerequisites at `A := presheafValue D₀`. The topology
+  -- equality `htop` is `rfl` because the canonical `TopologicalSpace
+  -- (presheafValue D₀)` instance is defined as `UniformSpace.toTopologicalSpace`
+  -- of the canonical `UniformSpace (presheafValue D₀)` instance.
+  have h_alg_inducing :
+      Topology.IsInducing
+        (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) :
+          presheafValue D₀ →
+            LaurentCover.B₁_gen (D₀.canonicalMap f) ×
+              LaurentCover.B₂_gen (D₀.canonicalMap f)) :=
+    LaurentCover.epsilonHom_gen_inducing_of_complete (D₀.canonicalMap f) rfl
+      hf_nonunit hA_complete_B hnoeth_B hnoeth₂_B
+  exact laurentCover_isEmbedding_presheaf D₀ f hf_nonunit hNoeth_B hDom_B
+    hTate_B hplus hminus τ_plus τ_minus htau_plus htau_minus
+    hτ_plus_inducing hτ_minus_inducing h_alg_inducing
 
 /-- Laurent cover gluing on presheaf values (Wedhorn Lemma 8.33, presheaf level).
 
