@@ -1122,6 +1122,154 @@ theorem example638Plus_equiv_symm_canonicalMap
 
 end Example638PlusEquiv
 
+/-! ### Plus branch RingEquiv: topology (T145)
+
+Topological companion of `example638Plus_equiv`: the forward map
+`example638Plus_forwardHom B P b` is a homeomorphism (Banach OMT), and
+both directions of `example638Plus_equiv` are `Topology.IsInducing`.
+
+These mirror the minus-branch
+`tateQuotientToPresheafHom_isHomeomorph` /
+`presheafValueCanonicalQuotientEquiv_isInducing` pair in
+`TopologyComparison.lean` and are consumed by the Laurent plus-bridge
+identification `presheafValue_trivialPlus_fSubX_equiv` in
+`LaurentRefinement.lean` (which is defined as `(example638Plus_equiv).symm`). -/
+
+section Example638PlusEquivTopology
+
+variable [IsTateRing B] [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]
+
+open TateAlgebra
+
+/-- **T145: `example638Plus_forwardHom` is a topological homeomorphism.**
+
+Plus-branch analogue of `tateQuotientToPresheafHom_isHomeomorph`. The forward
+hom from the canonical quotient `B⟨X⟩ ⧸ (algebraMap b − X)` to the
+presheafValue of the trivial plus datum is continuous (`hcont_forward`) and
+bijective (via `example638Plus_equiv`). Under the additional Banach-OMT
+discharges (`hBaire` on the target presheafValue, `hSigma` on the source
+quotient), Banach OMT promotes it to a topological homeomorphism. -/
+theorem example638Plus_isHomeomorph
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_forward : @Continuous _ _
+      (quotientPlusFSubXIdealTopology B b)
+      (inferInstance : TopologicalSpace (presheafValue (trivialPlusDatum B P b)))
+      (example638Plus_forwardHom B P b))
+    (hBaire : @BaireSpace (presheafValue (trivialPlusDatum B P b)) _)
+    (hSigma : @SigmaCompactSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b)
+      (quotientPlusFSubXIdealTopology B b)) :
+    @IsHomeomorph _ _
+      (quotientPlusFSubXIdealTopology B b)
+      (inferInstance : TopologicalSpace (presheafValue (trivialPlusDatum B P b)))
+      (example638Plus_forwardHom B P b) := by
+  letI τC : TopologicalSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealTopology B b
+  letI : IsTopologicalRing (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealTopology_isTopologicalRing B b
+  letI : IsTopologicalAddGroup (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealTopology_isTopologicalAddGroup B b
+  letI uC : UniformSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealUniformSpace B b
+  haveI : @IsUniformAddGroup _ uC _ :=
+    quotientPlusFSubXIdeal_isUniformAddGroup B b
+  haveI : @CompleteSpace _ uC :=
+    quotient_plusFSubXIdeal_completeSpace B hA_complete hnoeth b
+  haveI : T2Space (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotient_plusFSubXIdeal_t2Space B hA_complete hnoeth b
+  -- Bijectivity from the equiv.
+  let e := example638Plus_equiv B P b hA_complete hnoeth hcont_forward
+  have hbij : Function.Bijective (example638Plus_forwardHom B P b) :=
+    ⟨e.injective, e.surjective⟩
+  -- Banach OMT for openness: surjective continuous hom from sigma-compact
+  -- complete uniform group to Baire T2 group is open.
+  have hopen : @IsOpenMap _ _ τC _ (example638Plus_forwardHom B P b) :=
+    @AddMonoidHom.isOpenMap_of_complete_countable
+      (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b)
+      (presheafValue (trivialPlusDatum B P b))
+      _ uC ‹_› _ hSigma
+      _ _ _ hBaire _
+      (example638Plus_forwardHom B P b).toAddMonoidHom
+      hbij.2 hcont_forward
+  exact {
+    continuous := hcont_forward
+    isOpenMap := hopen
+    bijective := hbij
+  }
+
+/-- **T145: `example638Plus_equiv` is `IsInducing`** (forward direction:
+`B⟨X⟩ ⧸ (algebraMap b − X) → presheafValue (trivialPlusDatum P b)`). -/
+theorem example638Plus_equiv_isInducing
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_forward : @Continuous _ _
+      (quotientPlusFSubXIdealTopology B b)
+      (inferInstance : TopologicalSpace (presheafValue (trivialPlusDatum B P b)))
+      (example638Plus_forwardHom B P b))
+    (hBaire : @BaireSpace (presheafValue (trivialPlusDatum B P b)) _)
+    (hSigma : @SigmaCompactSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b)
+      (quotientPlusFSubXIdealTopology B b)) :
+    @Topology.IsInducing _ _
+      (quotientPlusFSubXIdealTopology B b)
+      (inferInstance : TopologicalSpace (presheafValue (trivialPlusDatum B P b)))
+      ((example638Plus_equiv B P b hA_complete hnoeth hcont_forward) :
+        ↥(TateAlgebra B) ⧸ plusFSubXIdeal B b →
+          presheafValue (trivialPlusDatum B P b)) :=
+  (example638Plus_isHomeomorph B P b hA_complete hnoeth hcont_forward hBaire
+    hSigma).isInducing
+
+/-- **T145: `(example638Plus_equiv).symm` is `IsInducing`** (inverse direction:
+`presheafValue (trivialPlusDatum P b) → B⟨X⟩ ⧸ (algebraMap b − X)`).
+
+This is the form consumed by the Laurent plus bridge identification
+`presheafValue_trivialPlus_fSubX_equiv` in `LaurentRefinement.lean`, which
+is defined as `(example638Plus_equiv ...).symm`. -/
+theorem example638Plus_equiv_symm_isInducing
+    (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B)
+    (hA_complete : @CompleteSpace B (IsTopologicalAddGroup.rightUniformSpace B))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair B).toPairOfDefinition))
+    (hcont_forward : @Continuous _ _
+      (quotientPlusFSubXIdealTopology B b)
+      (inferInstance : TopologicalSpace (presheafValue (trivialPlusDatum B P b)))
+      (example638Plus_forwardHom B P b))
+    (hBaire : @BaireSpace (presheafValue (trivialPlusDatum B P b)) _)
+    (hSigma : @SigmaCompactSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b)
+      (quotientPlusFSubXIdealTopology B b)) :
+    @Topology.IsInducing _ _
+      (inferInstance : TopologicalSpace (presheafValue (trivialPlusDatum B P b)))
+      (quotientPlusFSubXIdealTopology B b)
+      (((example638Plus_equiv B P b hA_complete hnoeth hcont_forward).symm) :
+        presheafValue (trivialPlusDatum B P b) →
+          ↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) := by
+  letI τC : TopologicalSpace (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) :=
+    quotientPlusFSubXIdealTopology B b
+  -- Bundle the forward homeomorphism.
+  have h := example638Plus_isHomeomorph B P b hA_complete hnoeth hcont_forward
+    hBaire hSigma
+  let H : (↥(TateAlgebra B) ⧸ plusFSubXIdeal B b) ≃ₜ
+      presheafValue (trivialPlusDatum B P b) :=
+    h.homeomorph (example638Plus_forwardHom B P b)
+  -- The equiv's inverse pointwise equals `H.symm`. Both invert `H`.
+  have h_eq : (((example638Plus_equiv B P b hA_complete hnoeth hcont_forward).symm) :
+        presheafValue _ → _) = (H.symm : presheafValue _ → _) := by
+    funext y
+    apply H.injective
+    rw [Homeomorph.apply_symm_apply]
+    -- Goal: `H ((forward equiv).symm y) = y`. `H` underlying is
+    -- `example638Plus_forwardHom`, and `(forward equiv).symm y` coerces to
+    -- `example638Plus_backwardHom y`. The equality is `right_inv`.
+    show example638Plus_forwardHom B P b _ = y
+    exact (example638Plus_equiv B P b hA_complete hnoeth hcont_forward).right_inv y
+  rw [h_eq]
+  exact H.symm.isInducing
+
+end Example638PlusEquivTopology
+
 /-! ### Minus branch forward: evaluation at `invS = 1 / canonicalMap b` -/
 
 section Example638MinusForward
