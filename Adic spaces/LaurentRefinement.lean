@@ -3143,6 +3143,227 @@ theorem laurentMinusBridge_restrictionMap
   -- `(epsilonHom_gen (canonicalMap f) x).2 = mk(algebraMap x)` by definition.
   rfl
 
+/-! #### Bridge IsInducing consumers (T147)
+
+`laurentPlusBridge_isInducing` and `laurentMinusBridge_isInducing` compose
+the iterated rational identification IsInducing facts (T146) with the
+canonical-quotient IsInducing facts at the leaf (T142 minus, T145 plus).
+They discharge the historic `hτ_plus_inducing` / `hτ_minus_inducing`
+hypotheses of T141's `laurentCover_isEmbedding_presheaf_of_complete`. -/
+
+/-- **T147 plus: `laurentPlusBridge` is `Topology.IsInducing`.**
+
+Compose T146's `presheafValue_iteratedPlus_equiv_isInducing` (no extra
+hypotheses) with T145's `example638Plus_equiv_symm_isInducing`. The
+T145 step requires explicit Baire / sigma-compact discharge at the
+trivial-plus presheafValue / quotient layer. The `hDom_B` hypothesis
+is needed only to discharge the `LaurentCover.B₁_gen` topology
+instance, which lives in a `[IsDomain A]`-section of
+`LaurentCoverTopology.lean` (carried over from the historical
+section structure even though the topology itself does not require
+domain-ness). -/
+theorem laurentPlusBridge_isInducing
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hDom_B : IsDomain (presheafValue D₀))
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
+    (hA_complete_B : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_forward_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue D₀) :=
+        presheafValue_pairOfDefinition_concrete P D₀
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))))
+        (example638Plus_forwardHom (presheafValue D₀) P_B (D₀.canonicalMap f)))
+    (hBaire_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+      letI P_B : PairOfDefinition (presheafValue D₀) :=
+        presheafValue_pairOfDefinition_concrete P D₀
+      @BaireSpace
+        (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))) _)
+    (hSigma_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      @SigmaCompactSpace
+        (↥(TateAlgebra (presheafValue D₀)) ⧸
+          plusFSubXIdeal (presheafValue D₀) (D₀.canonicalMap f))
+        (quotientPlusFSubXIdealTopology (presheafValue D₀)
+          (D₀.canonicalMap f))) :
+    letI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+    letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+    letI : IsDomain (presheafValue D₀) := hDom_B
+    Topology.IsInducing
+      ((laurentPlusBridge P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B
+          hnoeth_B hcont_forward_B) :
+        presheafValue (laurentPlusDatum D₀ f) →
+          LaurentCover.B₁_gen (D₀.canonicalMap f)) := by
+  haveI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+  haveI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+  haveI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+  haveI : IsDomain (presheafValue D₀) := hDom_B
+  letI P_B : PairOfDefinition (presheafValue D₀) :=
+    presheafValue_pairOfDefinition_concrete P D₀
+  haveI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+  -- T146 plus equiv inducing.
+  have h₁ : Topology.IsInducing
+      ((presheafValue_iteratedPlus_equiv P D₀ f) :
+        presheafValue (laurentPlusDatum D₀ f) →
+          presheafValue (iteratedPlusDatum_B P D₀ f)) :=
+    presheafValue_iteratedPlus_equiv_isInducing P D₀ f
+  -- T145 example638Plus symm inducing.
+  have h₂ : Topology.IsInducing
+      ((example638Plus_equiv (presheafValue D₀) P_B (D₀.canonicalMap f)
+          hA_complete_B hnoeth_B hcont_forward_B).symm :
+        presheafValue
+            (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f)) →
+          ↥(TateAlgebra (presheafValue D₀)) ⧸
+            plusFSubXIdeal (presheafValue D₀) (D₀.canonicalMap f)) :=
+    example638Plus_equiv_symm_isInducing (presheafValue D₀) P_B
+      (D₀.canonicalMap f) hA_complete_B hnoeth_B hcont_forward_B hBaire_B hSigma_B
+  -- The bridge `laurentPlusBridge ...` definitionally equals the trans
+  -- `(presheafValue_iteratedPlus_equiv P D₀ f).trans
+  --   (presheafValue_trivialPlus_fSubX_equiv P D₀ f ...)`, and
+  -- `presheafValue_trivialPlus_fSubX_equiv ...` definitionally equals
+  -- `(example638Plus_equiv ...).symm`. As a function, the `trans` is
+  -- the composition `(... .symm) ∘ (presheafValue_iteratedPlus_equiv ...)`.
+  show Topology.IsInducing
+    (fun x : presheafValue (laurentPlusDatum D₀ f) =>
+      ((example638Plus_equiv (presheafValue D₀) P_B (D₀.canonicalMap f)
+          hA_complete_B hnoeth_B hcont_forward_B).symm)
+        ((presheafValue_iteratedPlus_equiv P D₀ f) x))
+  exact h₂.comp h₁
+
+/-- **T147 minus: `laurentMinusBridge` is `Topology.IsInducing`.**
+
+Compose T146's `presheafValue_iteratedMinus_equiv_isInducing` with T142's
+`presheafValueCanonicalQuotientEquiv_isInducing`. The internal `hb`,
+`hT_pb`, `hA_complete` parameters of `laurentMinusBridge` are recomputed
+in the proof body (mirroring the bridge's definition); T142 then
+discharges the canonical-quotient inducing under explicit Baire /
+sigma-compact hypotheses. The `hNoeth_B` and `hDom_B` hypotheses are
+needed to discharge the `LaurentCover.B₂_gen` topology instance from
+`LaurentCoverTopology.lean`. -/
+theorem laurentMinusBridge_isInducing
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hDom_B : IsDomain (presheafValue D₀))
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
+    (hBaire_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      @BaireSpace (presheafValue (iteratedMinusDatum_B P D₀ f)) _)
+    (hSigma_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      @SigmaCompactSpace
+        (↥(TateAlgebra (presheafValue D₀)) ⧸
+          TateAlgebra.oneSubfXIdeal (iteratedMinusDatum_B P D₀ f).s)
+        (TateAlgebra.quotientOneSubfXIdealTopology
+          (iteratedMinusDatum_B P D₀ f).s)) :
+    letI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+    letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+    letI : IsDomain (presheafValue D₀) := hDom_B
+    Topology.IsInducing
+      ((laurentMinusBridge P D₀ f hnoeth_B hcont_eval_B) :
+        presheafValue (laurentMinusDatum D₀ f) →
+          LaurentCover.B₂_gen (D₀.canonicalMap f)) := by
+  haveI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+  haveI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+  haveI : IsDomain (presheafValue D₀) := hDom_B
+  -- Recompute the internal `hb`, `hT_pb`, `hA_complete` from the
+  -- `laurentMinusBridge` body, mirroring `laurentMinusBridge_restrictionMap`.
+  have hinvS_eq : invS (iteratedMinusDatum_B P D₀ f) =
+      (iteratedMinusDatum_B P D₀ f).coeRingHom
+        (divByS 1 (iteratedMinusDatum_B P D₀ f).s) := by
+    set D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
+    have h1 : D.canonicalMap D.s * invS D = 1 := canonicalMap_s_mul_invS D
+    have halg : algebraMap (presheafValue D₀) (Localization.Away D.s) D.s *
+        divByS 1 D.s = 1 := by
+      rw [← invSelf_eq_divByS, IsLocalization.Away.mul_invSelf]
+    have h2 : D.canonicalMap D.s * D.coeRingHom (divByS 1 D.s) = 1 := by
+      show D.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away D.s) D.s) *
+        D.coeRingHom (divByS 1 D.s) = 1
+      rw [← map_mul, halg, map_one]
+    have hu : IsUnit (D.canonicalMap D.s) := isUnit_s_in_presheafValue D
+    exact hu.mul_left_cancel (h1.trans h2.symm)
+  have hb : TopologicalRing.IsPowerBounded
+      (invS (iteratedMinusDatum_B P D₀ f)) := by
+    rw [hinvS_eq]
+    exact CompletionLocalization.invS_isPowerBounded_of_one_mem_T
+      (iteratedMinusDatum_B P D₀ f) (Finset.mem_singleton_self 1)
+  have hT_pb : ∀ t ∈ (iteratedMinusDatum_B P D₀ f).T,
+      TopologicalRing.IsPowerBounded t := by
+    intro t ht
+    rw [Finset.mem_singleton.mp ht]
+    exact TopologicalRing.isPowerBounded_one
+  have hA_complete : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)) := by
+    rw [IsUniformAddGroup.rightUniformSpace_eq]
+    infer_instance
+  -- T146 minus equiv inducing.
+  have h₁ : Topology.IsInducing
+      ((presheafValue_iteratedMinus_equiv P D₀ f) :
+        presheafValue (laurentMinusDatum D₀ f) →
+          presheafValue (iteratedMinusDatum_B P D₀ f)) :=
+    presheafValue_iteratedMinus_equiv_isInducing P D₀ f
+  -- T142 canonical quotient inducing.
+  have h₂ : @Topology.IsInducing _ _ _
+      (TateAlgebra.quotientOneSubfXIdealTopology
+        (iteratedMinusDatum_B P D₀ f).s)
+      ((presheafValueCanonicalQuotientEquiv (iteratedMinusDatum_B P D₀ f)
+          hb hA_complete hnoeth_B hT_pb (hcont_eval_B hb)) :
+        presheafValue (iteratedMinusDatum_B P D₀ f) →
+          (↥(TateAlgebra (presheafValue D₀)) ⧸
+            TateAlgebra.oneSubfXIdeal (iteratedMinusDatum_B P D₀ f).s)) :=
+    presheafValueCanonicalQuotientEquiv_isInducing
+      (iteratedMinusDatum_B P D₀ f) hb hA_complete hnoeth_B hT_pb
+      (hcont_eval_B hb) hBaire_B hSigma_B
+  -- The bridge as a function is the composition (mirroring the
+  -- `change` step in `laurentMinusBridge_restrictionMap`).
+  show Topology.IsInducing
+    (fun x : presheafValue (laurentMinusDatum D₀ f) =>
+      (presheafValueCanonicalQuotientEquiv (iteratedMinusDatum_B P D₀ f)
+          hb hA_complete hnoeth_B hT_pb (hcont_eval_B hb))
+        ((presheafValue_iteratedMinus_equiv P D₀ f) x))
+  exact h₂.comp h₁
+
 /-! ### Overlap infrastructure for `laurentBridge_delta_eq_zero_of_compat`
 
 The delta-vanishing theorem below relies on an *overlap bridge* identifying
