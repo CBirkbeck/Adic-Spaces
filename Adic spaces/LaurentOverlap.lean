@@ -1970,41 +1970,12 @@ from structural `UniformSpace.Completion.continuous_extension`, the inverse
 from the same plus continuity required as a hypothesis to build the bridge
 (`hcont_forward_B`). These are the exact primitives needed by
 `TateAlgebra_mapRingEquiv` to transport Tate algebras across the bridge,
-closing the Step 3 blocker of T-OVERLAP-COMPAT. -/
+closing the Step 3 blocker of T-OVERLAP-COMPAT.
 
-/-- The completion-extension forward hom `iteratedPlus_forwardHom` is
-continuous — it's `UniformSpace.Completion.extensionHom` of a continuous hom,
-so continuous by `UniformSpace.Completion.continuous_extension`. -/
-theorem iteratedPlus_forwardHom_continuous
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
-    [LaurentNormalized D₀]
-    (f : A) :
-    Continuous (iteratedPlus_forwardHom P D₀ f) := by
-  letI : UniformSpace (Localization.Away (laurentPlusDatum D₀ f).s) :=
-    (laurentPlusDatum D₀ f).uniformSpace
-  letI : IsUniformAddGroup (Localization.Away (laurentPlusDatum D₀ f).s) :=
-    (laurentPlusDatum D₀ f).isUniformAddGroup
-  letI : IsTopologicalRing (Localization.Away (laurentPlusDatum D₀ f).s) :=
-    (laurentPlusDatum D₀ f).isTopologicalRing
-  exact UniformSpace.Completion.continuous_extension
-
-/-- The completion-extension backward hom `iteratedPlus_backwardHom` is continuous. -/
-theorem iteratedPlus_backwardHom_continuous
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
-    [LaurentNormalized D₀]
-    (f : A)
-    (hsub : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
-      rationalOpen D₀.T D₀.s) :
-    Continuous (iteratedPlus_backwardHom P D₀ f hsub) := by
-  letI : UniformSpace (Localization.Away (iteratedPlusDatum_B P D₀ f).s) :=
-    (iteratedPlusDatum_B P D₀ f).uniformSpace
-  letI : IsUniformAddGroup (Localization.Away (iteratedPlusDatum_B P D₀ f).s) :=
-    (iteratedPlusDatum_B P D₀ f).isUniformAddGroup
-  letI : IsTopologicalRing (Localization.Away (iteratedPlusDatum_B P D₀ f).s) :=
-    (iteratedPlusDatum_B P D₀ f).isTopologicalRing
-  exact UniformSpace.Completion.continuous_extension
+The two completion-extension continuity primitives
+`iteratedPlus_forwardHom_continuous` and `iteratedPlus_backwardHom_continuous`
+live upstream in `Adic spaces/LaurentRefinement.lean` (T146); the wrappers
+below thread them through to the equiv level. -/
 
 /-- `presheafValue_iteratedPlus_equiv` is continuous (its underlying function
 equals `iteratedPlus_forwardHom`). -/
