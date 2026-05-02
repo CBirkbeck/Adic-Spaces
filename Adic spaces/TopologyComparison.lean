@@ -2300,6 +2300,64 @@ theorem tateQuotientToPresheafHom_isHomeomorph (D : RationalLocData A)
     bijective := hbij
   }
 
+/-- **T142: `presheafValueCanonicalQuotientEquiv` is `IsInducing`.**
+
+Forward-direction analogue of `tateQuotientToPresheafHom_isHomeomorph`:
+since the *inverse* `tateQuotientToPresheafHom` is a homeomorphism (Banach
+OMT), so is the forward equiv `presheafValueCanonicalQuotientEquiv`,
+hence in particular `IsInducing`.
+
+The same hypothesis surface as `tateQuotientToPresheafHom_isHomeomorph`
+(Banach OMT prerequisites at the source `A`, plus the closed-ideal
+infrastructure plus the Baire / sigma-compact discharge). -/
+theorem presheafValueCanonicalQuotientEquiv_isInducing (D : RationalLocData A)
+    [IsTateRing A]
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t)
+    (hcont_eval : @Continuous _ _
+      (quotientOneSubfXIdealTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb))
+    (hBaire : @BaireSpace (presheafValue D) _)
+    (hSigma : @SigmaCompactSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s)
+      (quotientOneSubfXIdealTopology D.s)) :
+    @Topology.IsInducing _ _ _
+      (quotientOneSubfXIdealTopology D.s)
+      ((presheafValueCanonicalQuotientEquiv D hb hA_complete hnoeth hT_pb
+        hcont_eval :
+          presheafValue D → (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s))) := by
+  letI τC : TopologicalSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology D.s
+  -- The inverse direction is a homeomorphism (Banach OMT).
+  have h := tateQuotientToPresheafHom_isHomeomorph D hb hA_complete hnoeth hT_pb
+    hcont_eval hBaire hSigma
+  -- Bundle as a `Homeomorph`.
+  let H : (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) ≃ₜ presheafValue D :=
+    h.homeomorph (tateQuotientToPresheafHom D hb)
+  -- The forward equiv pointwise equals `H.symm`. Verify by injectivity of `H`:
+  -- `H.symm y = (forward equiv) y` because both invert `H` at `y`, and `H` is
+  -- a bijection so its inverse is unique.
+  have h_eq : (H.symm : presheafValue D → _) =
+      (presheafValueCanonicalQuotientEquiv D hb hA_complete hnoeth hT_pb
+        hcont_eval : presheafValue D → _) := by
+    funext y
+    apply H.injective
+    rw [Homeomorph.apply_symm_apply]
+    -- Goal: `y = H ((forward equiv) y)`. `H` underlying function is
+    -- `tateQuotientToPresheafHom D hb`, and the equiv's `left_inv` gives
+    -- `tateQuotientToPresheafHom D hb ((forward equiv) y) = y`; take `.symm`.
+    show y = tateQuotientToPresheafHom D hb _
+    exact ((presheafValueCanonicalQuotientEquiv D hb hA_complete hnoeth hT_pb
+      hcont_eval).left_inv y).symm
+  -- `H.symm` is a homeomorphism, hence inducing; transport along `h_eq`.
+  have hH_symm : Topology.IsInducing H.symm := H.symm.isInducing
+  rw [show ((presheafValueCanonicalQuotientEquiv D hb hA_complete hnoeth hT_pb
+    hcont_eval : presheafValue D → _)) = (H.symm : presheafValue D → _) from h_eq.symm]
+  exact hH_symm
+
 /-! ### Phase 2.7: Unconditional canonical-topology continuity (Wedhorn Prop 6.18)
 
 The T-topology theorem `tateQuotientToPresheafHom_continuous` requires two
