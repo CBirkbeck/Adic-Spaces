@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».WedhornMPowerStructuralDataHonest
 import «Adic spaces».WedhornLocalArithmeticPerTChain
+import «Adic spaces».WedhornLocalCor732ToFactoredChain
 
 /-!
 # `WedhornMPowerStructuralDataHonest` from localized Cor 7.32 / branch
@@ -2302,5 +2303,286 @@ unit, set `σ_loc := π_loc^(M+1)`, and use Cor 7.32's
 `Spa(Localization.Away s, ⁺)` containing the relevant local images of
 `T_D`, `α s_D`, `α s` to extract `M, N` and the locSubring membership
 of the algebraic ratios. -/
+
+/-! ### Post-T158 integration wrapper (T161)
+
+A small no-conflict consumer wrapper that connects T158's per-`(σ_loc, N)`
+M/N-choice membership package directly to T156's σ_loc-fixed
+factorisation-based structural-data discharge. This isolates the
+**σ_loc-fixed** integration step that will ultimately receive
+`(σ_loc, N)` from a Cor 7.32 / Spa-quasi-compactness M-choice supplier
+(Primary's T159 lane below) and produce a structural-data witness for
+that same σ_loc — ready to be combined with Cor 7.32 σ-strict-domination
+output (sharing σ_loc) into `WedhornC1PerCallSupplyHonest` (component 5).
+
+The wrapper takes the **same σ_loc** and **same N** that Cor 7.32 chooses
+upstream, plus the M/N-choice membership package for those parameters,
+plus `IsUnit α s_D`, and produces `WedhornMPowerStructuralDataHonest`
+**for that σ_loc** (no σ_loc existential introduced). This is the σ_loc-
+matching shape needed by `WedhornC1PerCallSupplyHonest`'s component 5.
+
+This wrapper is independent of T159/T160's content (it does not produce
+the M/N-choice package itself; it only consumes it), so it is safe to
+land here. -/
+
+omit [PlusSubring A] in
+/-- **σ_loc-fixed integration: M/N-choice membership package +
+`IsUnit α s_D` → `WedhornMPowerStructuralDataHonest` for that σ_loc**.
+
+Composes
+`AlphaJointMNChoiceLocSubringMembership P T s hopen T_D s_D σ_loc N`
+(T158's package — `(σ_loc, N)` are explicit, not existential) with
+`WedhornMPowerStructuralDataHonest_via_factorizations_and_unit_s_D`
+(T156's σ_loc-fixed factorisation-based discharge under `IsUnit α s_D`),
+producing the σ_loc-fixed honest σ-factored structural supplier for the
+**same σ_loc**.
+
+This is the σ_loc-matching shape consumed by component 5 of
+`WedhornC1PerCallSupplyHonest`: when Primary's T159 produces
+`AlphaJointMNChoiceLocSubringMembership` for the **same σ_loc** Cor 7.32
+chose for component 4 (σ-strict-domination on local Spa), this wrapper
+discharges component 5 with that shared σ_loc, ready for the trivial
+existential bundling `⟨σ_loc, f, _, _, _, _, _⟩` into
+`WedhornC1PerCallSupplyHonest`. -/
+theorem WedhornMPowerStructuralDataHonest_via_mn_choice_membership_and_unit_s_D
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (h_unit_s_D : IsUnit (algebraMap A (Localization.Away s) s_D))
+    (h_mn : AlphaJointMNChoiceLocSubringMembership
+      P T s hopen T_D s_D σ_loc N) :
+    WedhornMPowerStructuralDataHonest P T s hopen T_D s_D σ_loc := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  obtain ⟨⟨ξ_decay, hfact_decay⟩, h_factor_chain⟩ := h_mn
+  exact WedhornMPowerStructuralDataHonest_via_factorizations_and_unit_s_D
+    P T s hopen T_D s_D σ_loc N h_unit_s_D ξ_decay hfact_decay h_factor_chain
+
+/-! ### Post-T158 integration dependency map (T161 audit)
+
+Final theorem signatures needed to consume the T154-T158 chain into
+`WedhornC1PerCallSupplyHonest` (component 5) and the Tate acyclicity
+route:
+
+1. **σ_loc-FIXED integration** (this section,
+   `WedhornMPowerStructuralDataHonest_via_mn_choice_membership_and_unit_s_D`):
+   ```
+   AlphaJointMNChoiceLocSubringMembership P T s hopen T_D s_D σ_loc N →
+   IsUnit (α s_D) →
+   WedhornMPowerStructuralDataHonest P T s hopen T_D s_D σ_loc
+   ```
+   **STATUS: LANDED** (this commit, T161).
+
+2. **Cor 7.32 → M/N-choice membership** (Primary T159 lane, immediately
+   below):
+   ```
+   (Tate / Cor 7.32 hypotheses) →
+   ∃ σ_loc N, AlphaJointMNChoiceLocSubringMembership ... σ_loc N ∧
+              (∀ w ∈ Spa local, ∃ τ ∈ T_loc, σ-strict-dominates τ)
+   ```
+   The σ_loc is shared between the M/N-choice membership and the
+   σ-strict-domination output (Cor 7.32). **STATUS: T159 (Primary,
+   in progress, declarations below)**.
+
+3. **σ-power API support** (Secondary T160 lane, after T159 section).
+   **STATUS: T160 (Secondary, in progress, declarations below)**.
+
+4. **σ_loc-shared `WedhornC1PerCallSupplyHonest` constructor**:
+   ```
+   (σ_loc-shared step 2 output) →
+   (denominator-clearing identity α f = σ_loc · ∏ T_D.image α) →
+   IsUnit (α s_D) →
+   (v ∈ rationalOpen (insert f C.base.T) C.base.s ∧ ¬ v.vle f 0) →
+   WedhornC1PerCallSupplyHonest P C hopen_base D v
+   ```
+   This is a trivial existential bundling once steps 1-3 land for the
+   shared σ_loc and an explicit f is supplied. **STATUS: future ticket
+   (post-T159/T160), in `WedhornC1PerCallSupplyHonest.lean`**.
+
+5. **`C1SupplierStrong_local C` from σ_loc-shared
+   `WedhornC1PerCallSupplyHonest`**:
+   Already landed via `C1SupplierStrong_local_via_honest_residuals`
+   (`WedhornC1PerCallSupplyHonest.lean:120`). **STATUS: existing API**.
+
+6. **Tate acyclicity route via `C1SupplierStrong_local`**:
+   Routed through `Wedhorn745PointwiseBaseRefinementDischarge.lean`
+   (Wedhorn 7.45 base refinement / Hübner 3.7-3.8) and onward to
+   `tateAcyclicity_Part2_*` (`GeometricReduction.lean`). **STATUS:
+   existing API**.
+
+The remaining BLOCKERS are concentrated at step 2 (T159) and step 4
+(the trivial bundling, gated on step 2). Step 1 is now landed. -/
+
+/-! ### T159: Cor 7.32 finite test-family cover bridge to M/N-choice
+membership
+
+Strict reduction toward the joint factorisation witnesses of T158's
+`AlphaJointMNChoiceLocSubringMembership` via the Wedhorn 8.34(ii)
+Step 2 Cor 7.32 cover mechanism. T159 introduces:
+
+* `AlphaJointCor732TestFamilyCoverPackage` — named per-σ_loc finite
+  test-family cover Prop, capturing the σ_loc-rescaled Laurent piece
+  membership output of `exists_localized_cor732_laurent_piece_membership`
+  on `localizedTestFamily s T_D s_D`.
+
+* `AlphaJointCor732TestFamilyCoverPackage_exists_via_localized_cor732`
+  — produces the named cover Prop existentially in `σ_loc` from honest
+  Cor 7.32 hypotheses (Tate / pseudouniformizer data on the local Spa,
+  MulArchimedean value groups, no-common-zero on the localized test
+  family). Direct delegation to
+  `exists_localized_cor732_laurent_piece_membership`.
+
+* `AlphaJointCor732CoverImpliesMNChoice_residual` — named residual Prop
+  capturing the **genuine remaining math content** of T159: bridge from
+  per-Spa-point σ_loc-rescaled Laurent piece membership to multiplicative
+  locSubring-level factorisation witnesses of
+  `AlphaJointMNChoiceLocSubringMembership`. Encapsulates the
+  global-section / sheafiness criterion for `Localization.Away s`
+  against the open subring `locSubring P T s`.
+
+* `AlphaJointMNChoiceLocSubringMembership_via_cover_and_residual` —
+  compiled theorem composing the cover extraction with the residual.
+  Given the residual implication holds, plus the Cor 7.32 hypotheses,
+  produces `∃ σ_loc N, AlphaJointMNChoiceLocSubringMembership`, which
+  feeds T158's `AlphaJointFactorizationWitnessesExist_via_mn_choice`
+  and ultimately
+  `WedhornMPowerStructuralDataHonest_exists_via_witnesses_and_unit_s_D`.
+
+Manager-fallback delivery: a strictly lower named Prop / API for the
+exact finite test-family cover, a compiled extraction theorem producing
+it from honest Cor 7.32 hypotheses, and a compiled bridge theorem
+showing cover + named residual imply the M/N-choice membership package.
+The genuine remaining mathematical content is isolated as the residual
+Prop. -/
+
+omit [PlusSubring A] in
+/-- **T159 named test-family cover Prop**: σ_loc-rescaled Laurent piece
+membership output of Cor 7.32 on `localizedTestFamily s T_D s_D`.
+For every `w ∈ Spa(Localization.Away s, ⁺)`, some
+`τ ∈ localizedTestFamily s T_D s_D` satisfies
+`w ∈ rationalOpen {1} (σ_loc⁻¹ * τ)`. -/
+def AlphaJointCor732TestFamilyCoverPackage
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+    ∃ τ ∈ localizedTestFamily s T_D s_D,
+      w ∈ rationalOpen
+        ({(1 : Localization.Away s)} : Finset (Localization.Away s))
+        (((σ_loc⁻¹ : (Localization.Away s)ˣ) : Localization.Away s) * τ)
+
+omit [PlusSubring A] in
+/-- **T159 cover-existence theorem from Cor 7.32**. Existentially
+produces `AlphaJointCor732TestFamilyCoverPackage` from the honest
+Wedhorn 8.34(ii) Cor 7.32 hypotheses. Direct delegation to
+`exists_localized_cor732_laurent_piece_membership`.
+
+Parameters `π_loc`, `_hI_loc`, `_hπ_loc_tn`, `_hπ_loc_unit`, `_hArch_loc`,
+`_hT_loc` are listed inside the `letI`-prefixed conclusion to bring the
+local `TopologicalSpace` and `PlusSubring` instances into scope before
+the `locPairOfDefinition`-typed parameters are interpreted. -/
+theorem AlphaJointCor732TestFamilyCoverPackage_exists_via_localized_cor732
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    ∀ (π_loc : (locPairOfDefinition P T s hopen).A₀)
+      (_hI_loc : (locPairOfDefinition P T s hopen).I = Ideal.span {π_loc})
+      (_hπ_loc_tn : IsTopologicallyNilpotent
+        ((locPairOfDefinition P T s hopen).A₀.subtype π_loc))
+      (_hπ_loc_unit : IsUnit
+        ((locPairOfDefinition P T s hopen).A₀.subtype π_loc))
+      (_hArch_loc : ∀ w : Spv (Localization.Away s),
+        letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+        MulArchimedean (ValuativeRel.ValueGroupWithZero (Localization.Away s)))
+      (T_D : Finset A) (s_D : A)
+      (_hT_loc : ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ localizedTestFamily s T_D s_D, ¬ w.vle τ 0),
+    ∃ σ_loc : (Localization.Away s)ˣ,
+      AlphaJointCor732TestFamilyCoverPackage P T s hopen T_D s_D σ_loc := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  intro π_loc hI_loc hπ_loc_tn hπ_loc_unit hArch_loc T_D s_D hT_loc
+  exact exists_localized_cor732_laurent_piece_membership P T s hopen
+    π_loc hI_loc hπ_loc_tn hπ_loc_unit hArch_loc T_D s_D hT_loc
+
+omit [PlusSubring A] in
+/-- **T159 named bridge residual**: the genuine remaining Wedhorn
+8.34(ii) Step 2 algebraic content. From the Cor 7.32 σ_loc-rescaled
+Laurent piece cover, derive the multiplicative locSubring-level
+factorisation witnesses of `AlphaJointMNChoiceLocSubringMembership` via
+the global-section / sheafiness criterion for `Localization.Away s`
+against `locSubring P T s`.
+
+This residual is the canonical target for the next round of structural
+work. NOT discharged by existing local Cor 7.32 / `exists_dominatedBy_cover`
+API alone — the missing piece is the adic-space-style identification of
+locSubring with the global Spa +-section ring. -/
+def AlphaJointCor732CoverImpliesMNChoice_residual
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A) : Prop :=
+  ∀ σ_loc : (Localization.Away s)ˣ,
+    AlphaJointCor732TestFamilyCoverPackage P T s hopen T_D s_D σ_loc →
+    ∃ N : ℕ,
+      AlphaJointMNChoiceLocSubringMembership P T s hopen T_D s_D σ_loc N
+
+omit [PlusSubring A] in
+/-- **T159 cover-and-residual top-level supplier**. Given the named
+bridge residual `AlphaJointCor732CoverImpliesMNChoice_residual` plus the
+honest Cor 7.32 hypotheses producing
+`AlphaJointCor732TestFamilyCoverPackage`, output the existential M/N
+choice membership package. -/
+theorem AlphaJointMNChoiceLocSubringMembership_via_cover_and_residual
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    ∀ (π_loc : (locPairOfDefinition P T s hopen).A₀)
+      (_hI_loc : (locPairOfDefinition P T s hopen).I = Ideal.span {π_loc})
+      (_hπ_loc_tn : IsTopologicallyNilpotent
+        ((locPairOfDefinition P T s hopen).A₀.subtype π_loc))
+      (_hπ_loc_unit : IsUnit
+        ((locPairOfDefinition P T s hopen).A₀.subtype π_loc))
+      (_hArch_loc : ∀ w : Spv (Localization.Away s),
+        letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+        MulArchimedean (ValuativeRel.ValueGroupWithZero (Localization.Away s)))
+      (T_D : Finset A) (s_D : A)
+      (_hT_loc : ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ localizedTestFamily s T_D s_D, ¬ w.vle τ 0)
+      (_h_residual :
+        AlphaJointCor732CoverImpliesMNChoice_residual P T s hopen T_D s_D),
+    ∃ (σ_loc : (Localization.Away s)ˣ) (N : ℕ),
+      AlphaJointMNChoiceLocSubringMembership
+        P T s hopen T_D s_D σ_loc N := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  intro π_loc hI_loc hπ_loc_tn hπ_loc_unit hArch_loc T_D s_D hT_loc h_residual
+  obtain ⟨σ_loc, h_cover⟩ :=
+    AlphaJointCor732TestFamilyCoverPackage_exists_via_localized_cor732
+      P T s hopen π_loc hI_loc hπ_loc_tn hπ_loc_unit hArch_loc T_D s_D hT_loc
+  obtain ⟨N, h_membership⟩ := h_residual σ_loc h_cover
+  exact ⟨σ_loc, N, h_membership⟩
 
 end ValuationSpectrum
