@@ -2681,6 +2681,156 @@ theorem presheafValue_baireSpace
   -- `BaireSpace.of_completelyPseudoMetrizable` close the goal.
   infer_instance
 
+omit [PlusSubring A] [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **T152 supplier: SigmaCompactSpace transports along continuous surjections.**
+
+A general topology helper: if `X` is `SigmaCompactSpace` and `f : X → Y` is
+continuous and surjective, then `Y` is `SigmaCompactSpace`. Proof:
+`range f = univ` (by surjectivity), and `isSigmaCompact_range` gives that
+the range of a continuous map from a sigma-compact space is sigma compact.
+
+Used by the T152 quotient suppliers below to transport the (hard)
+`SigmaCompactSpace (TateAlgebra A)` hypothesis through the canonical
+quotient map onto the various `(TateAlgebra A) ⧸ I` quotients used by
+the OMT chain (T142, T145). -/
+theorem _root_.Function.Surjective.sigmaCompactSpace
+    {X Y : Type*} [TopologicalSpace X] [TopologicalSpace Y]
+    [SigmaCompactSpace X]
+    {f : X → Y} (hf_surj : Function.Surjective f) (hf_cont : Continuous f) :
+    SigmaCompactSpace Y := by
+  rw [← isSigmaCompact_univ_iff, ← hf_surj.range_eq]
+  exact isSigmaCompact_range hf_cont
+
+omit [PlusSubring A] [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **T152 supplier (plus-side): SigmaCompactSpace of the plus quotient under
+the canonical quotient topology, given `SigmaCompactSpace (TateAlgebra B)`.**
+
+Transports `SigmaCompactSpace (TateAlgebra B)` through the continuous
+surjective canonical quotient map `Ideal.Quotient.mk (plusFSubXIdeal B b)`
+to the quotient `(TateAlgebra B) ⧸ plusFSubXIdeal B b` with its canonical
+quotient topology. Mirrors the structure of the Banach-OMT chain in
+`Example638.lean` and `Adic spaces/LaurentRefinement.lean`'s consumer
+wrappers. -/
+theorem quotientPlusFSubXIdeal_sigmaCompactSpace_of_source
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (b : A)
+    (_ : SigmaCompactSpace ↥(TateAlgebra A)) :
+    @SigmaCompactSpace (↥(TateAlgebra A) ⧸ plusFSubXIdeal A b)
+      (quotientPlusFSubXIdealTopology A b) := by
+  letI τ : TopologicalSpace (↥(TateAlgebra A) ⧸ plusFSubXIdeal A b) :=
+    quotientPlusFSubXIdealTopology A b
+  letI _hringQ : @IsTopologicalRing (↥(TateAlgebra A) ⧸ plusFSubXIdeal A b) τ _ :=
+    quotientPlusFSubXIdealTopology_isTopologicalRing A b
+  -- The quotient map `mk : TateAlgebra A → (TateAlgebra A) ⧸ plusFSubXIdeal A b`
+  -- is continuous (under the canonical quotient topology τ) and surjective.
+  have hcont : Continuous (Ideal.Quotient.mk (plusFSubXIdeal A b)) :=
+    continuous_quot_mk
+  have hsurj : Function.Surjective (Ideal.Quotient.mk (plusFSubXIdeal A b)) :=
+    Ideal.Quotient.mk_surjective
+  exact hsurj.sigmaCompactSpace hcont
+
+omit [PlusSubring A] [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **T152 supplier (minus-side): SigmaCompactSpace of the `oneSubfXIdeal`
+quotient under its canonical quotient topology, given
+`SigmaCompactSpace (TateAlgebra A)`.**
+
+Minus-branch analogue of `quotientPlusFSubXIdeal_sigmaCompactSpace_of_source`,
+matching the form of the `hSigma_minus_B` hypothesis used by T149's
+`laurentCover_isEmbedding_presheaf_via_bridges_baire_auto`. -/
+theorem quotientOneSubfXIdeal_sigmaCompactSpace_of_source
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (s : A)
+    (_ : SigmaCompactSpace ↥(TateAlgebra A)) :
+    @SigmaCompactSpace (↥(TateAlgebra A) ⧸ TateAlgebra.oneSubfXIdeal s)
+      (TateAlgebra.quotientOneSubfXIdealTopology s) := by
+  letI τ : TopologicalSpace (↥(TateAlgebra A) ⧸ TateAlgebra.oneSubfXIdeal s) :=
+    TateAlgebra.quotientOneSubfXIdealTopology s
+  letI _hringQ :
+      @IsTopologicalRing (↥(TateAlgebra A) ⧸ TateAlgebra.oneSubfXIdeal s) τ _ :=
+    TateAlgebra.quotientOneSubfXIdealTopology_isTopologicalRing s
+  have hcont : Continuous (Ideal.Quotient.mk (TateAlgebra.oneSubfXIdeal s)) :=
+    continuous_quot_mk
+  have hsurj :
+      Function.Surjective (Ideal.Quotient.mk (TateAlgebra.oneSubfXIdeal s)) :=
+    Ideal.Quotient.mk_surjective
+  exact hsurj.sigmaCompactSpace hcont
+
+/-! ### T152 route-decision documentation: SigmaCompactSpace blocker scope
+
+The two `quotient*_sigmaCompactSpace_of_source` suppliers above transport
+the SigmaCompactSpace hypothesis through the quotient map, but the
+**source** hypothesis `SigmaCompactSpace (TateAlgebra A)` (with the
+canonical Tate topology) cannot be discharged generically over an
+arbitrary strongly noetherian Tate ring `A`.
+
+**Mathematical reason.** `TateAlgebra A` has a "ring of definition"
+`pairSubring P : Subring (TateAlgebra A)` with the `pairIdeal P`-adic
+topology. With a topologically nilpotent unit `π ∈ A`, every element of
+`TateAlgebra A` lies in `π^(-n) · pairSubring P` for some `n`, giving the
+covering decomposition
+`TateAlgebra A = ⋃_{n : ℕ} π^(-n) · pairSubring P`.
+Each piece `π^(-n) · pairSubring P` is compact iff `pairSubring P` is
+compact, iff `pairSubring P` is profinite-with-finite-residue-quotients,
+which holds iff `A` is a *local field* setting (`A₀ = ℤ_p`, `𝔽_p[[t]]`,
+or similar). For a generic noetherian Tate ring (e.g.,
+`A = ℂ((t))` with `A₀ = ℂ[[t]]`), `pairSubring P = ℂ[[t]]⟨X⟩` is **not**
+compact, and `TateAlgebra A` is **not** sigma compact.
+
+**Consequence for the OMT chain.** Mathlib's only Banach OMT for
+topological groups, `MonoidHom.isOpenMap_of_sigmaCompact`
+(`Mathlib/Topology/Algebra/Group/OpenMapping.lean:113`), explicitly
+requires SigmaCompactSpace on the source and notes "Note that a
+sigma-compactness assumption is necessary"
+(`Mathlib/Topology/Algebra/Group/OpenMapping.lean:19`,
+counterexample: discrete-real → usual-real). The normed-space variant
+`ContinuousLinearMap.isOpenMap` does not need sigma compactness but
+requires `NormedSpace`, which `TateAlgebra` does not have.
+
+**Replacement options for an OMT-based consumer:**
+
+1. **Scope restriction `[CompactSpace ↥(TateAlgebra.pairSubring P)]`**
+   (where `P` is the canonical principal pair). This gives compactness
+   of `pairSubring P` and then `SigmaCompactSpace (TateAlgebra A)` via
+   the `π^(-n) · pairSubring P` decomposition (currently not on disk;
+   would require Wedhorn-style Tate-algebra structure infrastructure).
+   Concrete and clean, but applies only to the local-field setting.
+
+2. **Scope restriction `[LocallyCompactSpace A]`**. By the structure
+   theory of Tate rings, this implies `A₀` has a compact open subgroup,
+   from which `CompactSpace ↥(TateAlgebra.pairSubring P)` follows.
+   Equivalent to (1) but stated at the base level.
+
+3. **Direct construction of the inducing map** without OMT. For Tate
+   algebras, the inverse of the relevant restriction map could be
+   constructed explicitly (e.g., via "evaluate at a topologically
+   nilpotent unit"). Substantial new infrastructure.
+
+4. **Bypass the OMT chain entirely.** As noted in the docstring of
+   `tateAcyclicity` (this file, line 5422 sequence), the final Tate
+   acyclicity theorem (`tateAcyclicity`) uses Wedhorn's flatness route
+   and does **not** depend on the OMT-derived strict embedding lemmas.
+   The OMT chain (T134–T149, plus the present file's
+   `laurentCover_isEmbedding_presheaf_*` family) is parameterized
+   infrastructure for *future* consumers that want strict-embedding
+   properties beyond the sheaf-of-sets statement.
+
+**Replacement theorem statement** (the SigmaCompact source hypothesis
+that would unblock the consumer chain, leaving open only the question
+of *when* it is supplied):
+```
+theorem tateAlgebra_sigmaCompactSpace [scope_restriction] :
+    SigmaCompactSpace ↥(TateAlgebra A)
+```
+where `[scope_restriction]` is one of (1)–(2) above, depending on the
+desired generality.
+
+This T152 ticket therefore lands the two `quotient_*_sigmaCompactSpace_of_source`
+transport suppliers above (axiom-clean, no scope assumption beyond
+`[SigmaCompactSpace ↥(TateAlgebra A)]`) but does **not** ship a generic
+`SigmaCompactSpace (TateAlgebra A)` supplier, because none exists at
+the level of generality this project's strongly-noetherian Tate setup
+operates at. -/
+
 /-- **Non-discrete `f − X` quotient equivalence over a generic Tate base B**
 (Q3-STEP2D, the primitive the reviewer flagged as genuinely new for Q3).
 
@@ -4764,6 +4914,111 @@ theorem laurentCover_isEmbedding_presheaf_via_bridges_baire_auto
     hLocLift_B hA₀Noeth_B hcont_forward_B hcont_eval_B
     hBaire_plus_B hSigma_plus_B hBaire_minus_B hSigma_minus_B
     hplus hminus
+
+/-- **T152 consumer wrapper: T149's `_baire_auto` with both quotient
+SigmaCompactSpace hypotheses consolidated into one source-level
+`SigmaCompactSpace ↥(TateAlgebra (presheafValue D₀))` hypothesis.**
+
+Specialization of `laurentCover_isEmbedding_presheaf_via_bridges_baire_auto`
+(T149) using the new T152 transport suppliers
+`quotientPlusFSubXIdeal_sigmaCompactSpace_of_source` and
+`quotientOneSubfXIdeal_sigmaCompactSpace_of_source`. The two quotient-level
+SigmaCompactSpace hypotheses are derived inside the proof body from the
+single source-level hypothesis via the canonical quotient map (continuous +
+surjective, transports σ-compactness).
+
+The remaining `SigmaCompactSpace ↥(TateAlgebra (presheafValue D₀))` hypothesis
+is genuinely required: see the T152 route-decision documentation block
+above (after `presheafValue_baireSpace`) for the mathematical reason it
+cannot be discharged generically and the scope-restriction options
+available to consumers (`[CompactSpace ↥(pairSubring P)]` /
+`[LocallyCompactSpace A]`). -/
+theorem laurentCover_isEmbedding_presheaf_via_bridges_baire_quotientSigma_auto
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hf_nonunit : ¬IsUnit (D₀.canonicalMap f))
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hDom_B : IsDomain (presheafValue D₀))
+    (hSigCp_B : SigmaCompactSpace (presheafValue D₀))
+    (hA_complete_B : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring
+            (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hnoeth₂_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring₂
+            (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
+    (hcont_forward_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue D₀) :=
+        presheafValue_pairOfDefinition_concrete P D₀
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))))
+        (example638Plus_forwardHom (presheafValue D₀) P_B (D₀.canonicalMap f)))
+    (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
+    (hSigCp_TA : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      SigmaCompactSpace ↥(TateAlgebra (presheafValue D₀)))
+    (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    Topology.IsEmbedding
+      (fun x : presheafValue D₀ =>
+        (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x,
+         restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x)) := by
+  haveI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+  haveI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+  haveI : IsDomain (presheafValue D₀) := hDom_B
+  -- Discharge the two quotient SigmaCompactSpace hypotheses via the T152
+  -- transport suppliers (continuous-surjective image of σ-compact is σ-compact).
+  have hSigma_plus_B :
+      @SigmaCompactSpace
+        (↥(TateAlgebra (presheafValue D₀)) ⧸
+          plusFSubXIdeal (presheafValue D₀) (D₀.canonicalMap f))
+        (quotientPlusFSubXIdealTopology (presheafValue D₀)
+          (D₀.canonicalMap f)) :=
+    quotientPlusFSubXIdeal_sigmaCompactSpace_of_source (D₀.canonicalMap f)
+      hSigCp_TA
+  have hSigma_minus_B :
+      @SigmaCompactSpace
+        (↥(TateAlgebra (presheafValue D₀)) ⧸
+          TateAlgebra.oneSubfXIdeal (iteratedMinusDatum_B P D₀ f).s)
+        (TateAlgebra.quotientOneSubfXIdealTopology
+          (iteratedMinusDatum_B P D₀ f).s) :=
+    quotientOneSubfXIdeal_sigmaCompactSpace_of_source
+      (iteratedMinusDatum_B P D₀ f).s hSigCp_TA
+  exact laurentCover_isEmbedding_presheaf_via_bridges_baire_auto P D₀ f
+    hf_nonunit hNoeth_B hDom_B hSigCp_B hA_complete_B hnoeth_B hnoeth₂_B
+    hLocLift_B hA₀Noeth_B hcont_forward_B hcont_eval_B
+    hSigma_plus_B hSigma_minus_B hplus hminus
 
 /-- Laurent cover gluing on presheaf values (Wedhorn Lemma 8.33, presheaf level).
 
