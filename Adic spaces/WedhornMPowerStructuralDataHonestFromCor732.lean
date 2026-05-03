@@ -2103,4 +2103,204 @@ quotients lie in `locSubring`. This reduces to a Spa-quasi-compactness
 `Cor732.exists_dominatedBy_cover` and the `hopen`/`locNhd_invS_step`-style
 algebraic-power-decay content. -/
 
+/-! ### M/N-choice locSubring membership package + s = s_D · c
+generalisation (T158)
+
+Promotes the parameterised content of `AlphaJointFactorizationWitnessesExist`
+into a separate **named per-(σ_loc, N) membership package** Prop, and
+provides a strict generalisation of T157's concrete construction
+covering the algebraic specialisation `s = s_D · c` for `c ∈ P.A₀`
+(reducing to T157 when `c = 1` and `s_D = s`).
+
+Provided:
+
+* `AlphaJointMNChoiceLocSubringMembership` — named package Prop fixing
+  `(σ_loc, N)` and asserting `locSubring` membership of the decay and
+  per-`t'` chain factorization witnesses for those parameters.
+* `AlphaJointFactorizationWitnessesExist_via_mn_choice` — from
+  `∃ σ_loc N, AlphaJointMNChoiceLocSubringMembership P T s hopen T_D s_D σ_loc N`
+  produces `AlphaJointFactorizationWitnessesExist`.
+* `AlphaJointFactorizationWitnessesExist_when_s_eq_s_D_mul_A0_elt_and_T_D_le_T`
+  — **fully proved concrete construction** for the natural algebraic
+  specialisation `s = s_D · c` with `c ∈ P.A₀` and `T_D ⊆ T`. Picks
+  `σ_loc := 1`, `N := 0`, `ξ_decay := algebraMap A (Loc s) c` (in
+  `locSubring` by `algebraMap_mem_locSubring`), and per-`t'`
+  `ξ_t' := divByS (preimage_t') s` (in `locSubring` by
+  `divByS_mem_locSubring` for `preimage_t' ∈ T_D ⊆ T`).
+* `WedhornMPowerStructuralDataHonest_exists_via_s_factor_and_unit_s_D`
+  — top-level supplier feed combining the above concrete construction
+  with `WedhornMPowerStructuralDataHonest_exists_via_witnesses_and_unit_s_D`.
+
+The general `s_D ≠ s` case where `s ∉ s_D · P.A₀` requires the genuine
+Wedhorn 8.34(ii) Step 2 σ-as-π-power M-choice + Cor732 N-choice content;
+the package Prop here is the canonical target for that future content. -/
+
+/-- **M-choice / N-choice locSubring membership package**. Parameterised
+per `(σ_loc, N)` — captures the existence of the decay witness `ξ_decay`
+in `locSubring` and per-`t'` chain witnesses `ξ_t'` in `locSubring`
+satisfying the joint factorisations.
+
+`AlphaJointFactorizationWitnessesExist` is the existential closure over
+`(σ_loc, N)`. -/
+def AlphaJointMNChoiceLocSubringMembership
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  (∃ ξ_decay : locSubring P T s,
+    algebraMap A (Localization.Away s) s =
+      (ξ_decay : Localization.Away s) *
+        ((σ_loc : Localization.Away s) *
+          (algebraMap A (Localization.Away s) s_D) ^ (N + 1))) ∧
+  (∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+    ∃ ξ_t' : locSubring P T s,
+      (σ_loc : Localization.Away s) * t' *
+          (algebraMap A (Localization.Away s) s_D) ^ N =
+        (ξ_t' : Localization.Away s) *
+          algebraMap A (Localization.Away s) s)
+
+set_option linter.unusedSectionVars false in
+omit [PlusSubring A] in
+/-- **Constructor: witnesses exist from the M-choice / N-choice package**.
+
+Given `(σ_loc, N)` such that `AlphaJointMNChoiceLocSubringMembership`
+holds, produces `AlphaJointFactorizationWitnessesExist`. The constructor
+unwraps the package's two existentials and combines them under the
+outer `∃ σ_loc N ξ_decay, ...`. -/
+theorem AlphaJointFactorizationWitnessesExist_via_mn_choice
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (h_membership :
+      AlphaJointMNChoiceLocSubringMembership
+        P T s hopen T_D s_D σ_loc N) :
+    AlphaJointFactorizationWitnessesExist P T s hopen T_D s_D := by
+  obtain ⟨⟨ξ_decay, hfact_decay⟩, h_chain⟩ := h_membership
+  exact ⟨σ_loc, N, ξ_decay, hfact_decay, h_chain⟩
+
+set_option linter.unusedSectionVars false in
+omit [PlusSubring A] in
+/-- **Concrete construction: `s = s_D · c` for `c ∈ P.A₀` and `T_D ⊆ T`**.
+
+Strict generalisation of T157's `s_D = s` construction. In the natural
+algebraic specialisation where `s` factors as `s_D · c` for some
+`c ∈ P.A₀` (the larger rational subset's denominator times an element
+of the ring of definition), and `T_D ⊆ T` (the smaller numerator family
+lies in the larger one), the joint factorisation witnesses are
+constructible:
+
+* Pick `σ_loc := 1`, `N := 0`.
+* Decay factorisation: `α s = (algebraMap A (Loc s) c) · (1 · α s_D^1)`
+  reduces via `h_s_factor : s = s_D · c` to
+  `α (s_D · c) = α c · α s_D`, which holds by `map_mul` + `mul_comm`.
+  The witness `ξ_decay := algebraMap A (Loc s) c` lies in `locSubring`
+  by `algebraMap_mem_locSubring P T s c.property`.
+* Chain factorisation: per `t' = α t` with `t ∈ T_D ⊆ T`, the witness
+  `ξ_t' := divByS t s` lies in `locSubring` by
+  `divByS_mem_locSubring P T s ht_in_T`, and `1 · α t · α s_D^0 = α t =
+  divByS t s · α s` by `IsLocalization.mk'_spec`.
+
+Reduces to T157's construction when `c = 1` and `s_D = s` (giving
+`s = s · 1 = s`, the trivial factorisation). -/
+theorem AlphaJointFactorizationWitnessesExist_when_s_eq_s_D_mul_A0_elt_and_T_D_le_T
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (c : P.A₀)
+    (h_s_factor : s = s_D * (c : A))
+    (h_T_D_le_T : T_D ⊆ T) :
+    AlphaJointFactorizationWitnessesExist P T s hopen T_D s_D := by
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  refine ⟨1, 0,
+    ⟨algebraMap A (Localization.Away s) (c : A),
+      algebraMap_mem_locSubring P T s c.property⟩, ?_, ?_⟩
+  · -- Decay: α s = α c · (1 · α s_D^1) reduces via s = s_D · c.
+    rw [h_s_factor, map_mul]
+    simp [Units.val_one, mul_comm]
+  · -- Chain: as in T157, with the same `T_D ⊆ T` mechanism.
+    intro t' ht'
+    obtain ⟨t, ht_in_T_D, ht_eq⟩ := Finset.mem_image.mp ht'
+    have ht_in_T : t ∈ T := h_T_D_le_T ht_in_T_D
+    refine ⟨⟨divByS t s, divByS_mem_locSubring P T s ht_in_T⟩, ?_⟩
+    have hspec : divByS t s * algebraMap A (Localization.Away s) s =
+        algebraMap A (Localization.Away s) t :=
+      IsLocalization.mk'_spec _ t ⟨s, Submonoid.mem_powers s⟩
+    simp only [Units.val_one, one_mul, pow_zero, mul_one]
+    rw [← ht_eq]
+    exact hspec.symm
+
+omit [PlusSubring A] in
+/-- **Top-level supplier feed via the `s = s_D · c` concrete construction**.
+
+Composes
+`AlphaJointFactorizationWitnessesExist_when_s_eq_s_D_mul_A0_elt_and_T_D_le_T`
+with `WedhornMPowerStructuralDataHonest_exists_via_witnesses_and_unit_s_D`,
+producing `∃ σ_loc, WedhornMPowerStructuralDataHonest P T s hopen T_D s_D σ_loc`
+under:
+
+* `IsUnit (algebraMap A (Localization.Away s) s_D)`;
+* the algebraic factorisation `s = s_D · c` for some `c ∈ P.A₀`;
+* `T_D ⊆ T`.
+
+This is the cleanest end-to-end downstream consumer for the natural
+`s = s_D · c` specialisation: only those three structural inputs remain. -/
+theorem WedhornMPowerStructuralDataHonest_exists_via_s_factor_and_unit_s_D
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (h_unit_s_D : IsUnit (algebraMap A (Localization.Away s) s_D))
+    (c : P.A₀)
+    (h_s_factor : s = s_D * (c : A))
+    (h_T_D_le_T : T_D ⊆ T) :
+    ∃ σ_loc : (Localization.Away s)ˣ,
+      WedhornMPowerStructuralDataHonest P T s hopen T_D s_D σ_loc :=
+  WedhornMPowerStructuralDataHonest_exists_via_witnesses_and_unit_s_D
+    P T s hopen T_D s_D h_unit_s_D
+    (AlphaJointFactorizationWitnessesExist_when_s_eq_s_D_mul_A0_elt_and_T_D_le_T
+      P T s hopen T_D s_D c h_s_factor h_T_D_le_T)
+
+/-! ### Remaining mathematical content (T158 fallback target)
+
+After this section, the joint factorisation witnesses are constructible
+in three classes of cases (in increasing generality):
+
+1. `s_D = s` and `T_D ⊆ T` (T157, `_when_s_D_eq_s_and_T_D_le_T`);
+2. `s = s_D · c` for `c ∈ P.A₀` and `T_D ⊆ T` (this section,
+   `_when_s_eq_s_D_mul_A0_elt_and_T_D_le_T`);
+3. The full Wedhorn 8.34(ii) Step 2 case where `s ∉ s_D · P.A₀`
+   (remaining content).
+
+Class 2 strictly generalises class 1 (set `c = 1` and `s_D = s`).
+Class 3 — the genuinely-remaining content — requires the σ-as-π-power
+M-choice + Cor732 N-choice mechanism, packaged in the named target
+`AlphaJointMNChoiceLocSubringMembership`:
+
+```
+∃ σ_loc N,
+  (∃ ξ_decay ∈ locSubring P T s,
+    α s = ξ_decay · (σ_loc · α s_D^(N+1))) ∧
+  (∀ t' ∈ T_D.image, ∃ ξ_t' ∈ locSubring P T s,
+    σ_loc · t' · α s_D^N = ξ_t' · α s)
+```
+
+Discharge route: pick `π_loc : locSubring P T s` topologically nilpotent
+unit, set `σ_loc := π_loc^(M+1)`, and use Cor 7.32's
+`exists_dominatedBy_cover` applied to a test family on
+`Spa(Localization.Away s, ⁺)` containing the relevant local images of
+`T_D`, `α s_D`, `α s` to extract `M, N` and the locSubring membership
+of the algebraic ratios. -/
+
 end ValuationSpectrum
