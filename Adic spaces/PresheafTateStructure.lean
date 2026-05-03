@@ -2559,4 +2559,52 @@ theorem presheafValue_isNoetherianRing_of_ringOfDef_isNoetherianRing
   haveI := presheafValue_isLocalization_away_topNilUnit D₀ hπ_unit hπ_nil
   exact IsLocalization.isNoetherianRing (Submonoid.powers π) _ hRoD_noeth
 
+omit [PlusSubring A] [HasLocLiftPowerBounded A] in
+/-- **Noetherian transport for `presheafValue_ringOfDef D₀` via a ring
+isomorphism** (T151 reduction; partial supplier toward T141 / T142
+`hNoeth_B`).
+
+Generic transport: any ring isomorphism `presheafValue_ringOfDef D₀ ≃+*
+R` to a Noetherian ring `R` makes `presheafValue_ringOfDef D₀` Noetherian.
+
+Intended consumer: `R := AdicCompletion (locIdeal D₀.P D₀.T D₀.s)
+(locSubring D₀.P D₀.T D₀.s)` together with the project-local iso
+`presheafValue_ringOfDef_ringEquiv_adicCompletion` (defined downstream
+in `IdealLocalizationCompletion.lean`). With those, this supplier
+reduces full `IsNoetherianRing (presheafValue D₀)` (combined with T150
+via `presheafValue_isNoetherianRing_of_ringOfDef_isNoetherianRing` and
+a topologically nilpotent unit) to the single missing Mathlib theorem
+"`I`-adic completion of a Noetherian ring along a finitely generated
+ideal is Noetherian" (Atiyah–Macdonald 10.27 / Bourbaki Commutative
+Algebra III §3.6) instantiated at `(locIdeal, locSubring)`. -/
+theorem presheafValue_ringOfDef_isNoetherianRing_of_ringEquiv
+    (D₀ : RationalLocData A)
+    {R : Type*} [CommRing R] [IsNoetherianRing R]
+    (e : presheafValue_ringOfDef D₀ ≃+* R) :
+    IsNoetherianRing (presheafValue_ringOfDef D₀) :=
+  isNoetherianRing_of_ringEquiv _ e.symm
+
+omit [PlusSubring A] [HasLocLiftPowerBounded A] in
+/-- **Full `presheafValue D₀` Noetherianness via a ring iso to a
+Noetherian base ring** (T151 chained corollary; partial supplier toward
+T141 / T142 `hNoeth_B`).
+
+Composition of `presheafValue_ringOfDef_isNoetherianRing_of_ringEquiv`
+(T151) with `presheafValue_isNoetherianRing_of_ringOfDef_isNoetherianRing`
+(T150). The caller supplies any ring iso from `presheafValue_ringOfDef D₀`
+to a Noetherian ring (e.g., the standard Mathlib `AdicCompletion` via the
+project-local `presheafValue_ringOfDef_ringEquiv_adicCompletion`), plus a
+topologically nilpotent unit `π : presheafValue_ringOfDef D₀`. -/
+theorem presheafValue_isNoetherianRing_of_ringEquiv
+    (D₀ : RationalLocData A)
+    {π : presheafValue_ringOfDef D₀}
+    (hπ_unit : IsUnit ((π : presheafValue D₀)))
+    (hπ_nil : IsTopologicallyNilpotent ((π : presheafValue D₀)))
+    {R : Type*} [CommRing R] [IsNoetherianRing R]
+    (e : presheafValue_ringOfDef D₀ ≃+* R) :
+    IsNoetherianRing (presheafValue D₀) :=
+  presheafValue_isNoetherianRing_of_ringOfDef_isNoetherianRing
+    D₀ hπ_unit hπ_nil
+    (presheafValue_ringOfDef_isNoetherianRing_of_ringEquiv D₀ e)
+
 end ValuationSpectrum
