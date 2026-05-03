@@ -14,6 +14,7 @@ import «Adic spaces».Example638
 import «Adic spaces».IteratedRational
 import Mathlib.RingTheory.Flat.Basic
 import Mathlib.RingTheory.MvPowerSeries.NoZeroDivisors
+import Mathlib.Topology.MetricSpace.Completion
 
 /-!
 # Laurent Covers and Tate Acyclicity Infrastructure
@@ -2613,6 +2614,73 @@ theorem CompleteSpace_presheafValue_rightUniformSpace
   rw [IsUniformAddGroup.rightUniformSpace_eq]
   infer_instance
 
+omit [PlusSubring A] [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **T149 BaireSpace supplier for `presheafValue`.**
+
+For any rational localization datum `D : RationalLocData A` over a
+nonarchimedean topological ring `A`, the presheaf value `presheafValue D`
+is a Baire space.
+
+**Proof.** The localization topology `D.topology` has a countable basis
+at `0` via `(locBasis D.P D.T D.s D.hopen).hasBasis_nhds_zero` (the basis
+is indexed by `ℕ`). This makes the localization's nhds-of-zero filter
+countably generated, hence — via `IsUniformAddGroup.uniformity_countably_generated`
+— its uniformity is countably generated. By
+`UniformSpace.pseudoMetricSpace`, the localization is then
+pseudo-metrizable in a way compatible with its existing uniform
+structure. Mathlib's `UniformSpace.Completion.instMetricSpace` then
+upgrades the completion `presheafValue D` to a `MetricSpace`, and the
+auto-chain `MetricSpace → IsCompletelyMetrizableSpace →
+IsCompletelyPseudoMetrizableSpace → BaireSpace` finishes the job
+(using also the auto-instance `CompleteSpace (presheafValue D)` from
+`Presheaf.lean`).
+
+Used by T147's `laurentCover_isEmbedding_presheaf_via_bridges` to
+discharge both `hBaire_plus_B` and `hBaire_minus_B`. -/
+theorem presheafValue_baireSpace
+    [NonarchimedeanRing A]
+    (D : RationalLocData A) :
+    BaireSpace (presheafValue D) := by
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsTopologicalAddGroup (Localization.Away D.s) := D.isTopologicalAddGroup
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  -- The localization topology has countable basis at `0` (locBasis indexed by ℕ).
+  haveI : (nhds (0 : Localization.Away D.s)).IsCountablyGenerated :=
+    (locBasis D.P D.T D.s D.hopen).hasBasis_nhds_zero.isCountablyGenerated
+  -- Hence the uniformity is countably generated.
+  haveI : Filter.IsCountablyGenerated (uniformity (Localization.Away D.s)) :=
+    IsUniformAddGroup.uniformity_countably_generated
+  -- Pseudo-metrize the localization (compatible with its existing UniformSpace).
+  letI : PseudoMetricSpace (Localization.Away D.s) :=
+    UniformSpace.pseudoMetricSpace _
+  -- The completion inherits a MetricSpace structure via
+  -- `UniformSpace.Completion.instMetricSpace` (in `Mathlib.Topology.MetricSpace.Completion`).
+  -- The bundled `toUniformSpace` of this metric agrees data-wise with the auto
+  -- `instUniformSpacePresheafValue D` from `Presheaf.lean` (both are
+  -- `UniformSpace.Completion.uniformSpace` of a uniform structure that
+  -- equals `D.uniformSpace`), but Lean does not see this definitionally
+  -- because the metric goes through `PseudoMetricSpace.toUniformSpace` of
+  -- the letI'd `UniformSpace.pseudoMetricSpace _`. We work around this
+  -- diamond by `letI`-ing the metric's `UniformSpace` directly so subsequent
+  -- typeclass synthesis sees a single `UniformSpace` instance through which
+  -- the auto-chain `MetricSpace ⟹ IsCompletelyPseudoMetrizableSpace ⟹ BaireSpace`
+  -- can fire.
+  letI hM : MetricSpace (presheafValue D) := UniformSpace.Completion.instMetricSpace
+  letI : UniformSpace (presheafValue D) := hM.toUniformSpace
+  haveI : @CompleteSpace (presheafValue D) hM.toUniformSpace := by
+    -- `hM.toUniformSpace = Completion.uniformSpace D.uniformSpace`
+    -- = `instUniformSpacePresheafValue D` by construction; the auto
+    -- `CompleteSpace` from Presheaf.lean transports.
+    show CompleteSpace (presheafValue D)
+    infer_instance
+  haveI : Filter.IsCountablyGenerated (uniformity (presheafValue D)) :=
+    (Metric.uniformity_basis_dist_inv_nat_succ
+      (α := presheafValue D)).isCountablyGenerated
+  -- `IsCompletelyPseudoMetrizableSpace.of_completeSpace_pseudometrizable` and
+  -- `BaireSpace.of_completelyPseudoMetrizable` close the goal.
+  infer_instance
+
 /-- **Non-discrete `f − X` quotient equivalence over a generic Tate base B**
 (Q3-STEP2D, the primitive the reviewer flagged as genuinely new for Q3).
 
@@ -4593,6 +4661,109 @@ theorem laurentCover_isEmbedding_presheaf_via_bridges
       hSigma_plus_B)
     (laurentMinusBridge_isInducing P D₀ f hNoeth_B hDom_B hnoeth_B
       hcont_eval_B hBaire_minus_B hSigma_minus_B)
+
+/-- **T149 consumer wrapper: T147's `via_bridges` with the two Baire hypotheses
+discharged automatically.**
+
+Specialization of `laurentCover_isEmbedding_presheaf_via_bridges` (T147)
+that uses the new T149 `presheafValue_baireSpace` supplier to discharge
+both `hBaire_plus_B` and `hBaire_minus_B`. The two `SigmaCompactSpace`
+hypotheses on the source TateAlgebra quotients remain explicit because
+TateAlgebras over a non-locally-compact base ring are not generally
+sigma compact (this is the genuine Banach-OMT side-condition that
+Mathlib's `MonoidHom.isOpenMap_of_sigmaCompact` cannot avoid). -/
+theorem laurentCover_isEmbedding_presheaf_via_bridges_baire_auto
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hf_nonunit : ¬IsUnit (D₀.canonicalMap f))
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hDom_B : IsDomain (presheafValue D₀))
+    (hSigCp_B : SigmaCompactSpace (presheafValue D₀))
+    (hA_complete_B : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring
+            (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hnoeth₂_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring₂
+            (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
+    (hcont_forward_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue D₀) :=
+        presheafValue_pairOfDefinition_concrete P D₀
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))))
+        (example638Plus_forwardHom (presheafValue D₀) P_B (D₀.canonicalMap f)))
+    (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
+    (hSigma_plus_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      @SigmaCompactSpace
+        (↥(TateAlgebra (presheafValue D₀)) ⧸
+          plusFSubXIdeal (presheafValue D₀) (D₀.canonicalMap f))
+        (quotientPlusFSubXIdealTopology (presheafValue D₀)
+          (D₀.canonicalMap f)))
+    (hSigma_minus_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      @SigmaCompactSpace
+        (↥(TateAlgebra (presheafValue D₀)) ⧸
+          TateAlgebra.oneSubfXIdeal (iteratedMinusDatum_B P D₀ f).s)
+        (TateAlgebra.quotientOneSubfXIdealTopology
+          (iteratedMinusDatum_B P D₀ f).s))
+    (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    Topology.IsEmbedding
+      (fun x : presheafValue D₀ =>
+        (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x,
+         restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x)) := by
+  haveI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+  haveI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+  haveI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+  letI P_B : PairOfDefinition (presheafValue D₀) :=
+    presheafValue_pairOfDefinition_concrete P D₀
+  -- Discharge the two Baire hypotheses via the T149 generic supplier.
+  have hBaire_plus_B :
+      @BaireSpace
+        (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))) _ :=
+    presheafValue_baireSpace
+      (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))
+  have hBaire_minus_B :
+      @BaireSpace (presheafValue (iteratedMinusDatum_B P D₀ f)) _ :=
+    presheafValue_baireSpace (iteratedMinusDatum_B P D₀ f)
+  exact laurentCover_isEmbedding_presheaf_via_bridges P D₀ f hf_nonunit
+    hNoeth_B hDom_B hSigCp_B hA_complete_B hnoeth_B hnoeth₂_B
+    hLocLift_B hA₀Noeth_B hcont_forward_B hcont_eval_B
+    hBaire_plus_B hSigma_plus_B hBaire_minus_B hSigma_minus_B
+    hplus hminus
 
 /-- Laurent cover gluing on presheaf values (Wedhorn Lemma 8.33, presheaf level).
 
