@@ -1569,4 +1569,305 @@ by the σ-as-π-power identification: the σ-power-decay reduces to a
 π_loc-power statement, where the π_loc is genuinely topologically
 nilpotent and the inequality direction matches `Cor732`'s output. -/
 
+/-! ### Factorization-based piece discharges (T156)
+
+Honest, fully-proved discharges of `AlphaJointPerTChainPiece` and
+`AlphaJointSigmaPowerDecayPiece` from concrete algebraic factorization
+hypotheses in `locSubring P T s`. Each discharge reduces the per-(w, t')
+or per-w valuation inequality to membership of a single witness in
+`(Localization.Away s)⁺` (which is `locSubring P T s` via the local
+plus-subring instance), via the standard `mul_vle_mul_left` pattern.
+
+The factorization hypotheses are concrete algebraic targets (existence of
+a witness `ξ` in `locSubring`) which capture the genuine Wedhorn 8.34(ii)
+Step 2 content cleanly: in Wedhorn's actual construction, `σ_loc` and `N`
+are chosen precisely so that `α s / (σ_loc · α s_D ^ (N+1))` and each
+`(σ_loc · t' · α s_D ^ N) / α s` lie in `locSubring` (which is
+`(Localization.Away s)⁺`).
+
+Provided:
+
+* `AlphaJointSigmaPowerDecayPiece_via_factorization` — decay piece
+  fully proved from `α s = σ_loc · (α s_D)^(N+1) · ξ` with `ξ ∈ locSubring`;
+* `AlphaJointPerTChainPiece_via_factorization` — chain piece fully proved
+  from `σ_loc · t' · (α s_D)^N = α s · ξ_t'` per `t'` with each `ξ_t' ∈ locSubring`;
+* `AlphaJointPerTChainPiece_of_T_D_image_empty` — trivial chain
+  discharge when `T_D.image = ∅` (vacuous);
+* `AlphaJointChainAndDecayPiecesExist` — existential combiner Prop;
+* `AlphaJointChainAndDecayPiecesExist_via_factorizations` — combiner
+  constructor consuming both factorizations together;
+* `WedhornMPowerStructuralDataHonest_via_factorizations_and_unit_s_D` —
+  top-level supplier consuming both factorizations + `IsUnit α s_D`.
+-/
+
+omit [PlusSubring A] in
+/-- **Decay piece fully proved via locSubring factorization**.
+
+If `algebraMap A (Localization.Away s) s = ξ * (σ_loc * (α s_D)^(N+1))`
+for some `ξ ∈ locSubring P T s`, then the σ-power-decay piece holds at
+every `w ∈ Spa(Localization.Away s, ⁺)`.
+
+**Proof**: substitute the factorization, then reduce to `w.vle ξ 1`
+(via `vle_one_of_mem_spa` for `ξ ∈ locSubring = (Localization.Away s)⁺`)
+and apply `mul_vle_mul_left` to right-multiply both sides by
+`σ_loc * (α s_D)^(N+1)`, finishing with `one_mul`. -/
+theorem AlphaJointSigmaPowerDecayPiece_via_factorization
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (ξ : locSubring P T s)
+    (hfact :
+      algebraMap A (Localization.Away s) s =
+        (ξ : Localization.Away s) *
+          ((σ_loc : Localization.Away s) *
+            (algebraMap A (Localization.Away s) s_D) ^ (N + 1))) :
+    AlphaJointSigmaPowerDecayPiece P T s hopen s_D σ_loc N := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  intro w hw_spa
+  have hξ_mem : (ξ : Localization.Away s) ∈
+      ((Localization.Away s)⁺ : Subring (Localization.Away s)) :=
+    ξ.property
+  have hξ_le_one : w.vle (ξ : Localization.Away s) 1 :=
+    vle_one_of_mem_spa hw_spa hξ_mem
+  have h_mul := w.mul_vle_mul_left hξ_le_one
+    ((σ_loc : Localization.Away s) *
+      (algebraMap A (Localization.Away s) s_D) ^ (N + 1))
+  rw [one_mul] at h_mul
+  rw [hfact]
+  exact h_mul
+
+omit [PlusSubring A] in
+/-- **Chain piece fully proved via per-`t'` locSubring factorization**.
+
+If for every `t' ∈ T_D.image (algebraMap A (Localization.Away s))` there
+exists `ξ_t' ∈ locSubring P T s` with
+`σ_loc * t' * (α s_D) ^ N = ξ_t' * (algebraMap A (Localization.Away s) s)`,
+then the per-(w, t') chain piece holds at every
+`w ∈ Spa(Localization.Away s, ⁺)`.
+
+**Proof**: per `t'`, substitute the factorization and reduce to
+`w.vle ξ_t' 1` then `mul_vle_mul_left` right-multiplies by `α s`,
+finishing with `one_mul`. -/
+theorem AlphaJointPerTChainPiece_via_factorization
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (h_factor :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+        ∃ ξ_t' : locSubring P T s,
+          (σ_loc : Localization.Away s) * t' *
+              (algebraMap A (Localization.Away s) s_D) ^ N =
+            (ξ_t' : Localization.Away s) *
+              algebraMap A (Localization.Away s) s) :
+    AlphaJointPerTChainPiece P T s hopen T_D s_D σ_loc N := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro w hw_spa t' ht'
+  obtain ⟨ξ_t', hfact_t'⟩ := h_factor t' ht'
+  have hξ_t'_mem : (ξ_t' : Localization.Away s) ∈
+      ((Localization.Away s)⁺ : Subring (Localization.Away s)) :=
+    ξ_t'.property
+  have hξ_t'_le_one : w.vle (ξ_t' : Localization.Away s) 1 :=
+    vle_one_of_mem_spa hw_spa hξ_t'_mem
+  have h_mul := w.mul_vle_mul_left hξ_t'_le_one
+    (algebraMap A (Localization.Away s) s)
+  rw [one_mul] at h_mul
+  rw [hfact_t']
+  exact h_mul
+
+omit [PlusSubring A] in
+/-- **Trivial chain discharge when `T_D.image` is empty**.
+
+When the image of `T_D` under `algebraMap A (Localization.Away s)` is
+empty, the per-(w, t') chain piece is vacuously true (the inner
+`∀ t' ∈ ∅, ...` is trivially satisfied).
+
+Useful as a sanity check and for callers where `T_D = ∅` is the
+degenerate base case. -/
+theorem AlphaJointPerTChainPiece_of_T_D_image_empty
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (h_T_D_image_empty :
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      T_D.image (algebraMap A (Localization.Away s)) = ∅) :
+    AlphaJointPerTChainPiece P T s hopen T_D s_D σ_loc N := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro w _hw_spa t' ht'
+  rw [h_T_D_image_empty] at ht'
+  exact absurd ht' (Finset.notMem_empty t')
+
+/-- **Existential common combiner: chain + decay pieces witness exists**.
+
+Single bundled `Prop` asserting the existence of `(σ_loc, N)` that
+simultaneously witness `AlphaJointPerTChainPiece` and
+`AlphaJointSigmaPowerDecayPiece`. This is the strict-lower common
+theorem-level target after the factorization-based discharges land:
+all that remains is to construct concrete `(σ_loc, N, ξ_decay, ξ_t')`
+witnessing the algebraic factorizations.
+
+Constructed via `AlphaJointChainAndDecayPiecesExist_via_factorizations`. -/
+def AlphaJointChainAndDecayPiecesExist
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  ∃ (σ_loc : (Localization.Away s)ˣ) (N : ℕ),
+    AlphaJointPerTChainPiece P T s hopen T_D s_D σ_loc N ∧
+    AlphaJointSigmaPowerDecayPiece P T s hopen s_D σ_loc N
+
+omit [PlusSubring A] in
+/-- **Existential combiner via locSubring factorizations**.
+
+Constructs `AlphaJointChainAndDecayPiecesExist` from explicit witness
+data: `(σ_loc, N, ξ_decay, ξ_t' per t')` such that
+
+* `α s = ξ_decay · (σ_loc · (α s_D)^(N+1))` (decay factorization);
+* `σ_loc · t' · (α s_D)^N = ξ_t' · α s` for each `t' ∈ T_D.image`
+  (per-`t'` chain factorization).
+
+This is the cleanest **single named hypothesis** for the joint pieces:
+all genuine Wedhorn 8.34(ii) Step 2 content reduces to producing the
+concrete factorization witnesses in `locSubring`. -/
+theorem AlphaJointChainAndDecayPiecesExist_via_factorizations
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (ξ_decay : locSubring P T s)
+    (hfact_decay :
+      algebraMap A (Localization.Away s) s =
+        (ξ_decay : Localization.Away s) *
+          ((σ_loc : Localization.Away s) *
+            (algebraMap A (Localization.Away s) s_D) ^ (N + 1)))
+    (h_factor_chain :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+        ∃ ξ_t' : locSubring P T s,
+          (σ_loc : Localization.Away s) * t' *
+              (algebraMap A (Localization.Away s) s_D) ^ N =
+            (ξ_t' : Localization.Away s) *
+              algebraMap A (Localization.Away s) s) :
+    AlphaJointChainAndDecayPiecesExist P T s hopen T_D s_D :=
+  ⟨σ_loc, N,
+    AlphaJointPerTChainPiece_via_factorization
+      P T s hopen T_D s_D σ_loc N h_factor_chain,
+    AlphaJointSigmaPowerDecayPiece_via_factorization
+      P T s hopen s_D σ_loc N ξ_decay hfact_decay⟩
+
+omit [PlusSubring A] in
+/-- **Top-level honest supplier from factorizations + `IsUnit α s_D`**.
+
+Composes the factorization-based discharges of both pieces with
+`AlphaJointAlphaSDNonVanishingPiece_via_isUnit` and
+`WedhornMPowerStructuralDataHonest_via_named_pieces_and_unit_s_D`,
+producing the top-level honest σ-factored structural supplier
+`WedhornMPowerStructuralDataHonest` from:
+
+* `IsUnit (algebraMap A (Localization.Away s) s_D)` — unit `α s_D`
+  hypothesis;
+* `ξ_decay ∈ locSubring P T s` with the decay factorization
+  `α s = ξ_decay * (σ_loc * (α s_D)^(N+1))`;
+* per-`t'` `ξ_t' ∈ locSubring P T s` with the chain factorization
+  `σ_loc * t' * (α s_D)^N = ξ_t' * α s`.
+
+This is the cleanest end-to-end consumer for downstream Wedhorn 8.34(ii)
+callers under the unit hypothesis: only the explicit factorization data
+remains as content-bearing input. -/
+theorem WedhornMPowerStructuralDataHonest_via_factorizations_and_unit_s_D
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (h_unit_s_D : IsUnit (algebraMap A (Localization.Away s) s_D))
+    (ξ_decay : locSubring P T s)
+    (hfact_decay :
+      algebraMap A (Localization.Away s) s =
+        (ξ_decay : Localization.Away s) *
+          ((σ_loc : Localization.Away s) *
+            (algebraMap A (Localization.Away s) s_D) ^ (N + 1)))
+    (h_factor_chain :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+        ∃ ξ_t' : locSubring P T s,
+          (σ_loc : Localization.Away s) * t' *
+              (algebraMap A (Localization.Away s) s_D) ^ N =
+            (ξ_t' : Localization.Away s) *
+              algebraMap A (Localization.Away s) s) :
+    WedhornMPowerStructuralDataHonest P T s hopen T_D s_D σ_loc :=
+  WedhornMPowerStructuralDataHonest_via_named_pieces_and_unit_s_D
+    P T s hopen T_D s_D σ_loc N h_unit_s_D
+    (AlphaJointPerTChainPiece_via_factorization
+      P T s hopen T_D s_D σ_loc N h_factor_chain)
+    (AlphaJointSigmaPowerDecayPiece_via_factorization
+      P T s hopen s_D σ_loc N ξ_decay hfact_decay)
+
+/-! ### Remaining single mathematical statement (T156 strict-lower target)
+
+After this section, the joint chain + decay pieces reduce to the
+**single concrete algebraic existence target**:
+
+```
+∃ (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+  (ξ_decay : locSubring P T s),
+  (algebraMap A (Localization.Away s) s =
+    (ξ_decay : Localization.Away s) *
+      ((σ_loc : Localization.Away s) *
+        (algebraMap A (Localization.Away s) s_D) ^ (N + 1))) ∧
+  (∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+    ∃ ξ_t' : locSubring P T s,
+      (σ_loc : Localization.Away s) * t' *
+        (algebraMap A (Localization.Away s) s_D) ^ N =
+      (ξ_t' : Localization.Away s) *
+        algebraMap A (Localization.Away s) s)
+```
+
+This is the **honest Wedhorn 8.34(ii) Step 2 algebraic statement** in
+`Localization.Away s`: a denominator-clearing factorization `s =
+ξ_decay · σ_loc · s_D^(N+1)` plus per-`t'` factorizations
+`σ_loc · t' · s_D^N = ξ_t' · s`. The `σ_loc, N`-choice is made via
+Wedhorn's σ-as-π-power identification + Spa-quasi-compactness +
+topological nilpotence; the resulting `ξ_decay`, `ξ_t'` lie in
+`locSubring` because they are `s_D / s`-style quotients absorbing the
+denominator-clearing exponent.
+
+Once this single existential statement is discharged, the entire
+`WedhornMPowerStructuralDataHonest_via_factorizations_and_unit_s_D`
+chain composes to produce the top-level honest σ-factored structural
+supplier (under the additional `IsUnit α s_D` hypothesis). -/
+
 end ValuationSpectrum
