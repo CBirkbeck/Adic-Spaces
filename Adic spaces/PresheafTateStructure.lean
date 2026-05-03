@@ -2513,6 +2513,7 @@ theorem isLocalization_away_of_openSubring_topNilpotentUnit
     have : a = b := Subtype.ext hval
     rw [pow_zero, one_mul, one_mul, this]
 
+omit [PlusSubring A] [HasLocLiftPowerBounded A] in
 /-- **`presheafValue D₀` is the localization of `presheafValue_ringOfDef D₀`
 at a topologically nilpotent unit** (T150 specialization to the
 presheafValue setting).
@@ -2535,6 +2536,7 @@ theorem presheafValue_isLocalization_away_topNilUnit
     (presheafValue_ringOfDef D₀) (presheafValue_ringOfDef_isOpen D₀)
     π hπ_unit hπ_nil
 
+omit [PlusSubring A] [HasLocLiftPowerBounded A] in
 /-- **Noetherianness propagates `presheafValue_ringOfDef D₀ →
 presheafValue D₀`** via the Tate localization at a topologically
 nilpotent unit (T150 corollary; partial supplier toward T141 / T142
