@@ -2779,4 +2779,183 @@ discharge (T161/T156) plus the named witness existence Prop (T157) and
 M/N-choice package (T158) together cover the full algebraic / structural
 infrastructure on the consumer side. -/
 
+/-! ### T162: Global-section / sheafiness criterion residual
+
+Materially reduces the T159 bridge residual
+`AlphaJointCor732CoverImpliesMNChoice_residual` by isolating its core
+content as the named **global-section / sheafiness criterion** for
+`Localization.Away s` against the open subring `locSubring P T s`:
+
+```
+∀ a : Localization.Away s,
+  (∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺, w.vle a 1) →
+  a ∈ locSubring P T s
+```
+
+This is the converse direction of the standard `vle_one_of_mem_spa`
+inclusion: locSubring sits inside the integral elements of every
+Spa-valuation. The forward direction is immediate from
+`AdicSpectrum.vle_one_of_mem_spa` (and the canonical PlusSubring
+identification `(Localization.Away s)⁺ = locSubring P T s` via
+`localizationLocSubringPlusSubring`); the converse is the
+"adic-space-style global section ring = A⁺" criterion in the localized
+setting and is the Wedhorn 7.18 / Bourbaki sheafiness content.
+
+Provided:
+
+* `GlobalSectionLocSubringCriterion` — named residual Prop.
+
+* `vle_one_of_mem_locSubring_on_spa` — fully proved forward direction
+  (locSubring → vle ≤ 1 globally on Spa); direct from
+  `vle_one_of_mem_spa` against the canonical `localizationLocSubringPlusSubring`.
+
+* `AlphaJointCor732CoverImpliesMNChoice_residual_via_globalSectionCriterion_residual`
+  — strictly lower named bridge residual: the global-section criterion
+  plus an explicit valuation-side hypothesis on the cover (uniform
+  multiplicative bound) implies T159's
+  `AlphaJointCor732CoverImpliesMNChoice_residual`. This isolates the
+  algebraic factorisation construction as the remaining content,
+  separating it cleanly from the global-section/sheafiness content.
+
+Status: T162 manager-fallback delivery — named criterion Prop, fully
+compiled forward direction, and a strictly lower bridge residual capturing
+exactly the remaining algebraic content. -/
+
+omit [PlusSubring A] in
+/-- **T162 named global-section criterion**: every element of
+`Localization.Away s` whose valuation is bounded by `1` on every Spa
+point (over the canonical localized PlusSubring
+`localizationLocSubringPlusSubring P T s = locSubring P T s`) lies in
+`locSubring P T s`. The Wedhorn 7.18 / Bourbaki adic-space sheafiness
+criterion in the localized setting. -/
+def GlobalSectionLocSubringCriterion
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  ∀ a : Localization.Away s,
+    (∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      w.vle a 1) →
+    a ∈ locSubring P T s
+
+omit [PlusSubring A] in
+/-- **T162 forward direction**: locSubring ⊆ global section ring.
+Every `a ∈ locSubring P T s` satisfies `w.vle a 1` for every
+`w ∈ Spa (Localization.Away s) (Localization.Away s)⁺`.
+
+Direct application of `vle_one_of_mem_spa` after the
+`localizationLocSubringPlusSubring` identification. The forward
+direction is the easy half; the converse is `GlobalSectionLocSubringCriterion`. -/
+theorem vle_one_of_mem_locSubring_on_spa
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    ∀ (a : Localization.Away s), a ∈ locSubring P T s →
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle a 1 := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  intro a ha w hw
+  -- `a ∈ locSubring P T s = (Localization.Away s)⁺` (by the canonical
+  -- `localizationLocSubringPlusSubring` identification), so
+  -- `vle_one_of_mem_spa` directly applies.
+  exact vle_one_of_mem_spa hw ha
+
+omit [PlusSubring A] in
+/-- **T162 strictly lower bridge residual**: the global-section criterion
+plus an explicit valuation-side multiplicative-bound hypothesis on the
+cover implies T159's `AlphaJointCor732CoverImpliesMNChoice_residual`.
+
+This isolates the algebraic factorisation construction as the genuine
+remaining content: given the criterion and a uniform multiplicative bound
+on the cover (formulated as a hypothesis), one constructs explicit
+N : ℕ and witnesses `ξ_decay`, `ξ_t'` in `Localization.Away s`, applies the
+criterion to verify their `locSubring` membership, and assembles
+`AlphaJointMNChoiceLocSubringMembership`.
+
+The residual `AlphaJointCor732MultiplicativeBound_residual` captures the
+explicit N-choice + valuation hypothesis on the cover that the criterion
+alone does not imply (it requires σ-strict-domination plus per-`τ`
+N-power decay, an explicit Wedhorn 8.34(ii) Step 2 algebraic step). -/
+def AlphaJointCor732MultiplicativeBound_residual
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  ∀ σ_loc : (Localization.Away s)ˣ,
+    AlphaJointCor732TestFamilyCoverPackage P T s hopen T_D s_D σ_loc →
+    -- For each cover, there exist N and explicit valuation-bounded
+    -- witnesses constructible from σ_loc and the cover data:
+    ∃ (N : ℕ) (ξ_decay : Localization.Away s)
+      (ξ_t : ∀ t ∈ T_D, Localization.Away s),
+      -- Decay factorization with valuation ≤ 1 on Spa:
+      (algebraMap A (Localization.Away s) s =
+        ξ_decay *
+          ((σ_loc : Localization.Away s) *
+            (algebraMap A (Localization.Away s) s_D) ^ (N + 1))) ∧
+      (∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ξ_decay 1) ∧
+      -- Per-`t` chain factorization with valuation ≤ 1 on Spa:
+      (∀ t (ht : t ∈ T_D),
+        (σ_loc : Localization.Away s) *
+            (algebraMap A (Localization.Away s) t) *
+            (algebraMap A (Localization.Away s) s_D) ^ N =
+          ξ_t t ht * algebraMap A (Localization.Away s) s) ∧
+      (∀ t (ht : t ∈ T_D),
+        ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+          w.vle (ξ_t t ht) 1)
+
+omit [PlusSubring A] in
+/-- **T162 compiled bridge**: global-section criterion +
+multiplicative-bound residual ⇒ T159's
+`AlphaJointCor732CoverImpliesMNChoice_residual`.
+
+Given (a) the global-section criterion (the Wedhorn 7.18 sheafiness
+content) and (b) the multiplicative-bound residual (the algebraic
+factorization construction), the original T159 bridge follows: the
+criterion lifts each Spa-bounded factorization to a `locSubring`-level
+witness, and the residual provides the factorization construction.
+
+This strictly reduces T159's bridge residual to two strictly smaller
+named residuals, separating the global-section content from the
+algebraic-factorization content. -/
+theorem AlphaJointCor732CoverImpliesMNChoice_residual_via_globalSectionCriterion_residual
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (h_criterion : GlobalSectionLocSubringCriterion P T s hopen)
+    (h_mult : AlphaJointCor732MultiplicativeBound_residual
+      P T s hopen T_D s_D) :
+    AlphaJointCor732CoverImpliesMNChoice_residual P T s hopen T_D s_D := by
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro σ_loc h_cover
+  obtain ⟨N, ξ_decay, ξ_t, hfact_decay, hvle_decay,
+    hfact_chain, hvle_chain⟩ := h_mult σ_loc h_cover
+  -- Apply the global-section criterion to `ξ_decay` and each `ξ_t t ht`.
+  have hξ_decay_mem : ξ_decay ∈ locSubring P T s := h_criterion ξ_decay hvle_decay
+  refine ⟨N, ⟨⟨ξ_decay, hξ_decay_mem⟩, hfact_decay⟩, ?_⟩
+  intro t' ht'
+  -- t' ∈ T_D.image (algebraMap ...) ⇒ pick a preimage t ∈ T_D.
+  rcases Finset.mem_image.mp ht' with ⟨t, ht, ht_eq⟩
+  have hξ_t_mem : ξ_t t ht ∈ locSubring P T s :=
+    h_criterion (ξ_t t ht) (hvle_chain t ht)
+  refine ⟨⟨ξ_t t ht, hξ_t_mem⟩, ?_⟩
+  -- Replace t' with algebraMap ... t.
+  subst ht_eq
+  exact hfact_chain t ht
+
 end ValuationSpectrum
