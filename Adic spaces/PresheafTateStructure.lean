@@ -2471,4 +2471,90 @@ theorem presheafValue_isNoetherianRing_of_rationalSubset
   exact IsLocalization.isNoetherianRing
     (Submonoid.powers (D₀.canonicalMap D.s)) _ hD₀_noeth
 
+/-- **Open subring + topologically nilpotent unit ⇒ `IsLocalization.Away`**
+(T150 generic supplier).
+
+For an open subring `R` of a topological commutative ring `S`, if `π : R`
+maps to a unit of `S` that is topologically nilpotent in `S`, then `S` is
+the localization of `R` away from `π`. The Tate-style "open ring of
+definition + topologically nilpotent unit ⇒ ambient = localization at
+the unit" structural fact, formulated for any topological ring (not
+restricted to Tate).
+
+Proof: apply `IsLocalization.Away.mk` to the canonical algebra
+`R →+* S = R.subtype`. Surjectivity-with-power: by topological
+nilpotence of `(π : S)`, `s · (π : S)^n → 0` in `S`; since `R` is open
+and contains `0`, eventually `s · (π : S)^n ∈ R`. Kernel: the
+inclusion `R.subtype` is injective, so `n = 0` works trivially. -/
+theorem isLocalization_away_of_openSubring_topNilpotentUnit
+    {S : Type*} [CommRing S] [TopologicalSpace S] [IsTopologicalRing S]
+    (R : Subring S) (hR_open : IsOpen (R : Set S))
+    (π : R)
+    (hπ_unit : IsUnit ((π : S)))
+    (hπ_nil : IsTopologicallyNilpotent ((π : S))) :
+    letI : Algebra R S := R.subtype.toAlgebra
+    IsLocalization.Away π S := by
+  letI : Algebra R S := R.subtype.toAlgebra
+  apply IsLocalization.Away.mk π hπ_unit
+  · -- surj: every `s : S` has `s * (π : S)^n ∈ R` for some `n`.
+    intro s
+    have h_nhds : (R : Set S) ∈ nhds (0 : S) := hR_open.mem_nhds R.zero_mem
+    have h_tendsto : Filter.Tendsto (fun n : ℕ => s * (π : S) ^ n)
+        Filter.atTop (nhds 0) := by
+      have h := Filter.Tendsto.const_mul (a := 0) s hπ_nil
+      rw [mul_zero] at h
+      exact h
+    obtain ⟨n, hn⟩ := (h_tendsto.eventually h_nhds).exists
+    exact ⟨n, ⟨s * (π : S) ^ n, hn⟩, rfl⟩
+  · -- exists_of_eq: `R.subtype` is injective, so `n = 0` works.
+    intro a b hab
+    refine ⟨0, ?_⟩
+    have hval : (a : S) = (b : S) := hab
+    have : a = b := Subtype.ext hval
+    rw [pow_zero, one_mul, one_mul, this]
+
+/-- **`presheafValue D₀` is the localization of `presheafValue_ringOfDef D₀`
+at a topologically nilpotent unit** (T150 specialization to the
+presheafValue setting).
+
+Direct application of `Subring.isLocalization_away_of_open_topNilpotentUnit`
+to `R := presheafValue_ringOfDef D₀ ⊆ presheafValue D₀`, the open ring
+of definition (`presheafValue_ringOfDef_isOpen`). The caller supplies
+the explicit `π` (e.g., the canonical image of a topologically
+nilpotent unit of `A` that lies in `D₀.P.A₀`, via
+`canonicalMap_mem_ringOfDef`). -/
+theorem presheafValue_isLocalization_away_topNilUnit
+    (D₀ : RationalLocData A)
+    {π : presheafValue_ringOfDef D₀}
+    (hπ_unit : IsUnit ((π : presheafValue D₀)))
+    (hπ_nil : IsTopologicallyNilpotent ((π : presheafValue D₀))) :
+    letI : Algebra (presheafValue_ringOfDef D₀) (presheafValue D₀) :=
+      (presheafValue_ringOfDef D₀).subtype.toAlgebra
+    IsLocalization.Away π (presheafValue D₀) :=
+  isLocalization_away_of_openSubring_topNilpotentUnit
+    (presheafValue_ringOfDef D₀) (presheafValue_ringOfDef_isOpen D₀)
+    π hπ_unit hπ_nil
+
+/-- **Noetherianness propagates `presheafValue_ringOfDef D₀ →
+presheafValue D₀`** via the Tate localization at a topologically
+nilpotent unit (T150 corollary; partial supplier toward T141 / T142
+`hNoeth_B`).
+
+Combines `presheafValue_isLocalization_away_topNilUnit` with
+`IsLocalization.isNoetherianRing`. The remaining gap to a
+hypothesis-free `presheafValue_isNoetherianRing` is the Bourbaki
+"`I`-adic completion of a Noetherian ring is Noetherian" theorem, which
+is **not** currently in Mathlib (see the T148 docstring). -/
+theorem presheafValue_isNoetherianRing_of_ringOfDef_isNoetherianRing
+    (D₀ : RationalLocData A)
+    {π : presheafValue_ringOfDef D₀}
+    (hπ_unit : IsUnit ((π : presheafValue D₀)))
+    (hπ_nil : IsTopologicallyNilpotent ((π : presheafValue D₀)))
+    (hRoD_noeth : IsNoetherianRing (presheafValue_ringOfDef D₀)) :
+    IsNoetherianRing (presheafValue D₀) := by
+  letI : Algebra (presheafValue_ringOfDef D₀) (presheafValue D₀) :=
+    (presheafValue_ringOfDef D₀).subtype.toAlgebra
+  haveI := presheafValue_isLocalization_away_topNilUnit D₀ hπ_unit hπ_nil
+  exact IsLocalization.isNoetherianRing (Submonoid.powers π) _ hRoD_noeth
+
 end ValuationSpectrum
