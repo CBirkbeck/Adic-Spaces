@@ -1999,4 +1999,141 @@ theorem laurentCover_separation_via_isEmbedding_presheaf_of_complete
       τ_plus τ_minus htau_plus htau_minus hτ_plus_inducing hτ_minus_inducing
   exact hemb.injective (Prod.ext ha hb)
 
+/-! ## T153 Lane-B-shape wrapper consuming T149's bridges-baire-auto embedding
+
+The T144 wrapper above consumes T141 (`laurentCover_isEmbedding_presheaf_of_complete`),
+which carries the τ-bridges, their compatibility witnesses, the τ-inducing
+witnesses, and both Baire hypotheses as explicit parameters. After T142–T149
+the τ-bridges and τ-inducing witnesses are constructed internally by
+`laurentPlusBridge` / `laurentMinusBridge` / `laurentPlusBridge_isInducing`
+/ `laurentMinusBridge_isInducing`, and both Baire hypotheses are discharged
+by the T149 generic supplier `presheafValue_baireSpace`. The strongest
+post-T150 Laurent embedding theorem at the completed presheafValue level is
+
+  `ValuationSpectrum.laurentCover_isEmbedding_presheaf_via_bridges_baire_auto`
+
+(`Adic spaces/LaurentRefinement.lean`, T149 consumer wrapper).
+
+T153 packages the `Topology.IsEmbedding.injective` projection of this
+post-T149 embedding in the same Lane-B-supplier shape used by the direct
+per-E gluing assembly (`tateAcyclicity_Part2_end_to_end_via_primary_laneA`).
+
+The wrapper is a thin no-sorry consumer of T149. It does **not** duplicate:
+
+* Primary's T151 lane (presheafValue ring-of-definition Noetherian base
+  case in `PresheafTateStructure.lean`); the two noetherian inputs
+  `hNoeth_B` and `hA₀Noeth_B` remain explicit hypotheses here,
+  dischargeable when T151 lands.
+* Secondary's T152 lane (Laurent SigmaCompact / OMT route decision in
+  `LaurentRefinement.lean` / `LaurentBaireSupport.lean`); the two
+  `hSigma_plus_B` / `hSigma_minus_B` and the source-side `hSigCp_B`
+  remain explicit hypotheses here, dischargeable when T152 lands.
+
+When T151 / T152 land their respective discharges, a follow-up
+`_canonical` / `_auto` variant of this wrapper can absorb them; that is
+out of scope for T153.
+
+No public `[CompleteSpace A]`, `[IsDomain A]`, generic `D.s`-localization,
+or parked T113/T119 hypothesis is added to the final Tate acyclicity
+boundary. -/
+
+/-- **Post-T149 Lane-B-shape Laurent separation supplier.**
+
+Given a rational localization datum `D₀` with `LaurentNormalized D₀` and a
+splitter `f`, plus all the prerequisites of T149's
+`laurentCover_isEmbedding_presheaf_via_bridges_baire_auto`, the two-piece
+Laurent restriction map out of `presheafValue D₀` is injective (the
+`Function.Injective` projection of T149's `Topology.IsEmbedding`).
+
+Compared to T144 (`laurentCover_separation_via_isEmbedding_presheaf_of_complete`),
+this wrapper has a **smaller hypothesis surface**: the T141 τ-bridges,
+τ-bridge compatibility witnesses, τ-bridge-inducing witnesses, and the two
+Baire hypotheses are all internally discharged via T142–T149.  The
+remaining supplier obligations are exactly the post-T150 boundary: the
+presheafValue noetherian / completion / OMT prerequisites at the completed
+`presheafValue D₀` Tate base.
+
+The proof is one line: extract `Topology.IsEmbedding.injective` from T149
+and apply it to the `Prod.ext` of the two component-wise hypotheses. -/
+theorem laurentCover_separation_via_isEmbedding_presheaf_via_bridges_baire_auto
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hf_nonunit : ¬IsUnit (D₀.canonicalMap f))
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hDom_B : IsDomain (presheafValue D₀))
+    (hSigCp_B : SigmaCompactSpace (presheafValue D₀))
+    (hA_complete_B : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring
+            (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hnoeth₂_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring₂
+            (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
+    (hcont_forward_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue D₀) :=
+        presheafValue_pairOfDefinition_concrete P D₀
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))))
+        (example638Plus_forwardHom (presheafValue D₀) P_B (D₀.canonicalMap f)))
+    (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
+    (hSigma_plus_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      @SigmaCompactSpace
+        (↥(TateAlgebra (presheafValue D₀)) ⧸
+          plusFSubXIdeal (presheafValue D₀) (D₀.canonicalMap f))
+        (quotientPlusFSubXIdealTopology (presheafValue D₀)
+          (D₀.canonicalMap f)))
+    (hSigma_minus_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      @SigmaCompactSpace
+        (↥(TateAlgebra (presheafValue D₀)) ⧸
+          TateAlgebra.oneSubfXIdeal (iteratedMinusDatum_B P D₀ f).s)
+        (TateAlgebra.quotientOneSubfXIdealTopology
+          (iteratedMinusDatum_B P D₀ f).s))
+    (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    ∀ a b : presheafValue D₀,
+      restrictionMap D₀ (laurentPlusDatum D₀ f) hplus a =
+        restrictionMap D₀ (laurentPlusDatum D₀ f) hplus b →
+      restrictionMap D₀ (laurentMinusDatum D₀ f) hminus a =
+        restrictionMap D₀ (laurentMinusDatum D₀ f) hminus b →
+      a = b := by
+  intro a b ha hb
+  have hemb :=
+    laurentCover_isEmbedding_presheaf_via_bridges_baire_auto P D₀ f hf_nonunit
+      hNoeth_B hDom_B hSigCp_B hA_complete_B hnoeth_B hnoeth₂_B hLocLift_B
+      hA₀Noeth_B hcont_forward_B hcont_eval_B hSigma_plus_B hSigma_minus_B
+      hplus hminus
+  exact hemb.injective (Prod.ext ha hb)
+
 end ValuationSpectrum
