@@ -2585,4 +2585,198 @@ theorem AlphaJointMNChoiceLocSubringMembership_via_cover_and_residual
   obtain ⟨N, h_membership⟩ := h_residual σ_loc h_cover
   exact ⟨σ_loc, N, h_membership⟩
 
+/-! ### T160: σ_loc-as-π_loc-power Unit API + bookkeeping
+
+Independent reusable API around the σ-as-π-power identification central
+to Wedhorn 8.34(ii) Step 2. From a topologically nilpotent unit
+`π_loc : locSubring P T s` (the local pseudo-uniformizer) and an
+exponent `M : ℕ`, T160 provides:
+
+* `locSigmaUnit P T s hopen π_loc hπ_loc_unit M : (Loc s)ˣ` — the unit
+  `σ_loc := π_loc^(M+1)` packaged as a `Localization.Away s` unit, ready
+  for use as the σ_loc parameter of `AlphaJointMNChoiceLocSubringMembership`.
+
+* `locSigmaUnit_val` — the value identity
+  `(σ_loc : Loc s) = ((locSubring P T s).subtype π_loc) ^ (M+1)`.
+
+* `locSigmaUnit_isTopologicallyNilpotent` — σ_loc is topologically
+  nilpotent in Loc s under `locTopology P T s hopen` (since π_loc is).
+
+* `locSigmaUnit_val_mem_locSubring` — `(σ_loc : Loc s) ∈ locSubring P T s`
+  (a positive power of π_loc stays in the subring).
+
+* `AlphaJointMNChoiceLocSubringMembership_via_pi_pow` — the named per-π_loc
+  M-choice membership package: an existential closure over `M, N` of
+  `AlphaJointMNChoiceLocSubringMembership` with `σ_loc := locSigmaUnit ... M`.
+
+* `WedhornMPowerStructuralDataHonest_exists_via_pi_pow_and_unit_s_D` —
+  top-level supplier feed: takes the π_loc-form M-choice + IsUnit α s_D
+  and produces `∃ σ_loc, WedhornMPowerStructuralDataHonest P T s hopen T_D s_D σ_loc`,
+  via the T161 σ_loc-fixed integration wrapper.
+
+This API is independent of T159's Cor 7.32 cover bridge and of T162's
+global-section/sheafiness work; it provides only the algebraic σ-as-π-power
+bookkeeping needed throughout the M/N-choice mechanism.
+-/
+
+/-- **σ_loc-as-π_loc-power Unit construction (T160)**. Given a unit
+`π_loc : locSubring P T s` (witnessed by `hπ_loc_unit`) and an exponent
+`M : ℕ`, package `(π_loc : Loc s)^(M+1) : (Loc s)ˣ` as a Units element. -/
+noncomputable def locSigmaUnit
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (_hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (π_loc : locSubring P T s)
+    (hπ_loc_unit :
+      IsUnit ((locSubring P T s).subtype π_loc))
+    (M : ℕ) : (Localization.Away s)ˣ :=
+  (hπ_loc_unit.pow (M + 1)).unit
+
+set_option linter.unusedSectionVars false in
+/-- **Value identity for `locSigmaUnit`**: the underlying `Loc s` value
+of the constructed σ_loc unit equals `((locSubring P T s).subtype π_loc) ^ (M+1)`. -/
+theorem locSigmaUnit_val
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (π_loc : locSubring P T s)
+    (hπ_loc_unit :
+      IsUnit ((locSubring P T s).subtype π_loc))
+    (M : ℕ) :
+    (locSigmaUnit P T s hopen π_loc hπ_loc_unit M : Localization.Away s) =
+      ((locSubring P T s).subtype π_loc) ^ (M + 1) :=
+  (hπ_loc_unit.pow (M + 1)).unit_spec
+
+set_option linter.unusedSectionVars false in
+/-- **Topological nilpotency of `locSigmaUnit`**: the underlying value
+of σ_loc is topologically nilpotent under `locTopology P T s hopen`,
+since π_loc is and `(M+1) > 0`. -/
+theorem locSigmaUnit_isTopologicallyNilpotent
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (π_loc : locSubring P T s)
+    (hπ_loc_unit :
+      IsUnit ((locSubring P T s).subtype π_loc))
+    (hπ_loc_tn :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      IsTopologicallyNilpotent ((locSubring P T s).subtype π_loc))
+    (M : ℕ) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    IsTopologicallyNilpotent
+      (locSigmaUnit P T s hopen π_loc hπ_loc_unit M : Localization.Away s) := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  have hval := locSigmaUnit_val P T s hopen π_loc hπ_loc_unit M
+  rw [hval]
+  exact isTopologicallyNilpotent_pow hπ_loc_tn (Nat.succ_pos M)
+
+set_option linter.unusedSectionVars false in
+/-- **`locSigmaUnit` lies in `locSubring`**: as `(π_loc : Loc s)^(M+1)`
+is a positive power of an element of the subring `locSubring P T s`,
+its value lies in `locSubring P T s`. -/
+theorem locSigmaUnit_val_mem_locSubring
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (π_loc : locSubring P T s)
+    (hπ_loc_unit :
+      IsUnit ((locSubring P T s).subtype π_loc))
+    (M : ℕ) :
+    (locSigmaUnit P T s hopen π_loc hπ_loc_unit M : Localization.Away s) ∈
+      locSubring P T s := by
+  rw [locSigmaUnit_val P T s hopen π_loc hπ_loc_unit M]
+  exact (locSubring P T s).pow_mem π_loc.property (M + 1)
+
+/-- **Named M/N-choice membership in σ-as-π-power form (T160)**.
+
+Existential closure over `(M, N)` of the M/N-choice locSubring
+membership package, with σ_loc fixed as the π_loc-power
+`locSigmaUnit P T s hopen π_loc hπ_loc_unit M`. This is the σ-as-π-power
+shape natural to Wedhorn 8.34(ii) Step 2's Cor 7.32 σ-construction
+(σ = π^(N+1) in `Cor732.lean:225`). -/
+def AlphaJointMNChoiceLocSubringMembership_via_pi_pow
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (π_loc : locSubring P T s)
+    (hπ_loc_unit :
+      IsUnit ((locSubring P T s).subtype π_loc)) : Prop :=
+  ∃ M N : ℕ,
+    AlphaJointMNChoiceLocSubringMembership P T s hopen T_D s_D
+      (locSigmaUnit P T s hopen π_loc hπ_loc_unit M) N
+
+omit [PlusSubring A] in
+/-- **From π-power M/N-choice membership to factorization witnesses
+existence**. Bridge collapsing `AlphaJointMNChoiceLocSubringMembership_via_pi_pow`
+into `AlphaJointFactorizationWitnessesExist`. -/
+theorem AlphaJointFactorizationWitnessesExist_via_pi_pow
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (π_loc : locSubring P T s)
+    (hπ_loc_unit :
+      IsUnit ((locSubring P T s).subtype π_loc))
+    (h_pi_pow :
+      AlphaJointMNChoiceLocSubringMembership_via_pi_pow
+        P T s hopen T_D s_D π_loc hπ_loc_unit) :
+    AlphaJointFactorizationWitnessesExist P T s hopen T_D s_D := by
+  obtain ⟨M, N, h_mn⟩ := h_pi_pow
+  exact AlphaJointFactorizationWitnessesExist_via_mn_choice
+    P T s hopen T_D s_D
+    (locSigmaUnit P T s hopen π_loc hπ_loc_unit M) N h_mn
+
+omit [PlusSubring A] in
+/-- **Top-level π-power supplier feed: π-power M/N-choice + `IsUnit α s_D`
+→ `∃ σ_loc, WedhornMPowerStructuralDataHonest`**.
+
+End-to-end consumer for the σ-as-π-power form: takes the existential
+M/N-choice membership in π-power form plus `IsUnit (algebraMap A (Loc s) s_D)`,
+yields `∃ σ_loc, WedhornMPowerStructuralDataHonest`. -/
+theorem WedhornMPowerStructuralDataHonest_exists_via_pi_pow_and_unit_s_D
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (π_loc : locSubring P T s)
+    (hπ_loc_unit :
+      IsUnit ((locSubring P T s).subtype π_loc))
+    (h_unit_s_D : IsUnit (algebraMap A (Localization.Away s) s_D))
+    (h_pi_pow :
+      AlphaJointMNChoiceLocSubringMembership_via_pi_pow
+        P T s hopen T_D s_D π_loc hπ_loc_unit) :
+    ∃ σ_loc : (Localization.Away s)ˣ,
+      WedhornMPowerStructuralDataHonest P T s hopen T_D s_D σ_loc := by
+  obtain ⟨M, N, h_mn⟩ := h_pi_pow
+  refine ⟨locSigmaUnit P T s hopen π_loc hπ_loc_unit M, ?_⟩
+  exact WedhornMPowerStructuralDataHonest_via_mn_choice_membership_and_unit_s_D
+    P T s hopen T_D s_D
+    (locSigmaUnit P T s hopen π_loc hπ_loc_unit M) N h_unit_s_D h_mn
+
+/-! ### T160 dependency map (post-σ-power-API)
+
+After this section, the σ-as-π-power form of the M/N-choice content is
+isolated. The remaining genuinely-mathematical content for the joint
+factorisation witnesses reduces to:
+
+```
+∀ (P T s hopen T_D s_D)
+  (π_loc : locSubring P T s)
+  (hπ_loc_unit : IsUnit ((locSubring P T s).subtype π_loc)),
+  -- the M/N-choice membership in π-power form holds for some (M, N):
+  AlphaJointMNChoiceLocSubringMembership_via_pi_pow
+    P T s hopen T_D s_D π_loc hπ_loc_unit
+```
+
+Discharging this is the genuine Wedhorn 8.34(ii) Step 2 Cor 7.32
+M/N-choice content (Primary's T159 / T162 lane). The σ-as-π-power
+algebraic packaging here (T160) plus the σ_loc-fixed factorization
+discharge (T161/T156) plus the named witness existence Prop (T157) and
+M/N-choice package (T158) together cover the full algebraic / structural
+infrastructure on the consumer side. -/
+
 end ValuationSpectrum
