@@ -1034,4 +1034,283 @@ theorem WedhornMPowerStructuralDataHonest_via_classical_sigma_decay
       (UnfactoredPerTChainBranchAlphaT_D_via_classical_sigma_decay
         P T s hopen T_D s_D σ_loc N h_α_T_D))
 
+/-! ### Joint Wedhorn σ-power-decay supplier (T154)
+
+Single bundled named residual unifying both `AlphaS_DBranchPerTSigmaPowerDecay`
+and `AlphaT_DBranchPerTSigmaPowerDecay` into a common joint supplier.
+
+Audit observation justifying the unification: the consumer
+`UnfactoredPerTChainBranchAlphaT_D_via_classical_sigma_decay` (above)
+introduces the per-`τ` quantifier of `AlphaT_DBranchPerTSigmaPowerDecay`
+but does **not** consume the per-`τ` σ-strict-domination data — only the
+chain + decay + `α s_D` non-vanishing payload (which is τ-independent).
+The per-`τ` quantifier of `AlphaT_D` is therefore redundant downstream;
+the joint supplier replaces it with a single uniform `α s_D`
+non-vanishing on `Spa(Localization.Away s, ⁺)`.
+
+Concretely, the joint supplier carries:
+
+* a uniform `α s_D` non-vanishing on the local Spa
+  (the sole piece distinguishing `AlphaT_D` from `AlphaS_D` after the
+  redundant per-`τ` quantifier is dropped);
+* the per-(`w`, `t'`) Wedhorn 8.34(ii) Route B chain + decay payload
+  (shared verbatim with `AlphaS_DBranchPerTSigmaPowerDecay`).
+
+Both branch residuals extract trivially from the joint supplier (see
+`AlphaS_DBranchPerTSigmaPowerDecay_via_joint` and
+`AlphaT_DBranchPerTSigmaPowerDecay_via_joint`); composed with
+`WedhornMPowerStructuralDataHonest_via_classical_sigma_decay`, this
+gives a top-level honest σ-factored structural supplier consuming only
+the joint residual (`WedhornMPowerStructuralDataHonest_via_joint_sigma_decay`).
+
+The remaining mathematical content collapses to a single theorem-level
+target: `AlphaJointBranchPerTSigmaPowerDecay`, with the genuine Wedhorn
+8.34(ii) Step 2 N-choice / σ-as-π-power content identified as the per-(w, t')
+chain and per-w decay pieces, plus the rational-subset-structure
+`α s_D` non-vanishing piece (separable via
+`AlphaJointBranchPerTSigmaPowerDecay_via_three_pieces` below).
+-/
+
+/-- **Joint Wedhorn σ-power-decay supplier** — single bundled named
+residual unifying the two branch residuals `AlphaS_DBranchPerTSigmaPowerDecay`
+and `AlphaT_DBranchPerTSigmaPowerDecay`.
+
+Carries:
+
+* `(∀ w ∈ Spa, ¬ w.vle (algebraMap A (Loc s) s_D) 0)` — uniform `α s_D`
+  non-vanishing on `Spa(Localization.Away s, ⁺)`;
+* `(∀ w ∈ Spa, ∀ t' ∈ T_D.image (algebraMap A (Loc s)),
+    chain_t' w ∧ decay w)` — per-(w, t') Wedhorn 8.34(ii) chain + decay.
+
+The two branch residuals trivially extract from this joint supplier.
+The remaining mathematical content reduces to a single
+theorem-level target. -/
+def AlphaJointBranchPerTSigmaPowerDecay
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  (∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      ¬ w.vle (algebraMap A (Localization.Away s) s_D) 0) ∧
+  (∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+        w.vle ((σ_loc : Localization.Away s) * t' *
+            (algebraMap A (Localization.Away s) s_D) ^ N)
+          (algebraMap A (Localization.Away s) s) ∧
+        w.vle (algebraMap A (Localization.Away s) s)
+          ((σ_loc : Localization.Away s) *
+            (algebraMap A (Localization.Away s) s_D) ^ (N + 1)))
+
+omit [PlusSubring A] in
+/-- **Reducer: `AlphaS_DBranchPerTSigmaPowerDecay` from joint supplier**.
+
+Trivial extraction: the joint supplier's chain+decay component is
+literally `AlphaS_DBranchPerTSigmaPowerDecay` by definition. -/
+theorem AlphaS_DBranchPerTSigmaPowerDecay_via_joint
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (h_joint :
+      AlphaJointBranchPerTSigmaPowerDecay P T s hopen T_D s_D σ_loc N) :
+    AlphaS_DBranchPerTSigmaPowerDecay P T s hopen T_D s_D σ_loc N :=
+  h_joint.2
+
+omit [PlusSubring A] in
+/-- **Reducer: `AlphaT_DBranchPerTSigmaPowerDecay` from joint supplier**.
+
+The per-`τ` quantifier of `AlphaT_DBranchPerTSigmaPowerDecay` is
+redundant: the inner payload (`α s_D` non-vanishing + per-`t'` chain
++ decay) is τ-independent, so the joint supplier suffices. The
+extraction introduces τ vacuously and assembles the conjunction from
+the joint's two components. -/
+theorem AlphaT_DBranchPerTSigmaPowerDecay_via_joint
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (h_joint :
+      AlphaJointBranchPerTSigmaPowerDecay P T s hopen T_D s_D σ_loc N) :
+    AlphaT_DBranchPerTSigmaPowerDecay P T s hopen T_D s_D σ_loc N := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro _τ _hτ w hw_spa
+  exact ⟨h_joint.1 w hw_spa, fun t' ht' => h_joint.2 w hw_spa t' ht'⟩
+
+omit [PlusSubring A] in
+/-- **Top-level honest supplier from joint residual** — uniform-N
+consumer.
+
+Composes `AlphaS_DBranchPerTSigmaPowerDecay_via_joint` and
+`AlphaT_DBranchPerTSigmaPowerDecay_via_joint` with the existing
+`WedhornMPowerStructuralDataHonest_via_classical_sigma_decay`,
+producing the top-level honest σ-factored structural supplier
+`WedhornMPowerStructuralDataHonest` from the **single** joint
+`AlphaJointBranchPerTSigmaPowerDecay` residual.
+
+This is the cleanest end-to-end consumer signature for downstream
+Wedhorn 8.34(ii) callers: only the joint residual remains as the single
+named mathematical target. -/
+theorem WedhornMPowerStructuralDataHonest_via_joint_sigma_decay
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (h_joint :
+      AlphaJointBranchPerTSigmaPowerDecay P T s hopen T_D s_D σ_loc N) :
+    WedhornMPowerStructuralDataHonest P T s hopen T_D s_D σ_loc :=
+  WedhornMPowerStructuralDataHonest_via_classical_sigma_decay
+    P T s hopen T_D s_D σ_loc N
+    (AlphaS_DBranchPerTSigmaPowerDecay_via_joint
+      P T s hopen T_D s_D σ_loc N h_joint)
+    (AlphaT_DBranchPerTSigmaPowerDecay_via_joint
+      P T s hopen T_D s_D σ_loc N h_joint)
+
+omit [PlusSubring A] in
+/-- **Three-piece structural decomposition of the joint residual** —
+splits `AlphaJointBranchPerTSigmaPowerDecay` into three independent atomic
+Lean targets, decoupling the genuine Wedhorn 8.34(ii) Step 2 content from
+the rational-subset-structure non-vanishing piece:
+
+1. `h_nv` — `α s_D` non-vanishing uniform on `Spa(Localization.Away s, ⁺)`
+   (rational-subset-structure / global hypothesis);
+2. `h_chain` — per-(w, t') σ-factored chain
+   `w.vle (σ_loc * t' * (α s_D)^N) (α s)` (Wedhorn f-membership content,
+   N-choice for σ * t' clearing);
+3. `h_decay` — per-w σ-power decay
+   `w.vle (α s) (σ_loc * (α s_D)^(N+1))` (Wedhorn 8.34(ii) Step 2
+   N-choice for the backward bound).
+
+Each piece is a standalone target ready to be discharged via its own
+dedicated mathematical content — pieces (2) and (3) carry the genuine
+Wedhorn 8.34(ii) Step 2 N-choice / σ-as-π-power material. -/
+theorem AlphaJointBranchPerTSigmaPowerDecay_via_three_pieces
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (h_nv :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ¬ w.vle (algebraMap A (Localization.Away s) s_D) 0)
+    (h_chain :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w.vle ((σ_loc : Localization.Away s) * t' *
+              (algebraMap A (Localization.Away s) s_D) ^ N)
+            (algebraMap A (Localization.Away s) s))
+    (h_decay :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle (algebraMap A (Localization.Away s) s)
+          ((σ_loc : Localization.Away s) *
+            (algebraMap A (Localization.Away s) s_D) ^ (N + 1))) :
+    AlphaJointBranchPerTSigmaPowerDecay P T s hopen T_D s_D σ_loc N := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  refine ⟨h_nv, ?_⟩
+  intro w hw_spa t' ht'
+  exact ⟨h_chain w hw_spa t' ht', h_decay w hw_spa⟩
+
+omit [PlusSubring A] in
+/-- **Joint residual via chain + decay + `IsUnit` `α s_D`**.
+
+Strengthened constructor for the joint residual that auto-derives the
+`α s_D` non-vanishing piece from `IsUnit (algebraMap A (Loc s) s_D)`.
+
+Useful when `s_D` is a unit in `A` (or more generally when its image in
+`Localization.Away s` is a unit), removing one of the three named
+pieces. The remaining pieces are the genuine Wedhorn 8.34(ii) Step 2
+content. -/
+theorem AlphaJointBranchPerTSigmaPowerDecay_via_chain_decay_and_unit_s_D
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (h_unit_s_D : IsUnit (algebraMap A (Localization.Away s) s_D))
+    (h_chain :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w.vle ((σ_loc : Localization.Away s) * t' *
+              (algebraMap A (Localization.Away s) s_D) ^ N)
+            (algebraMap A (Localization.Away s) s))
+    (h_decay :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle (algebraMap A (Localization.Away s) s)
+          ((σ_loc : Localization.Away s) *
+            (algebraMap A (Localization.Away s) s_D) ^ (N + 1))) :
+    AlphaJointBranchPerTSigmaPowerDecay P T s hopen T_D s_D σ_loc N :=
+  AlphaJointBranchPerTSigmaPowerDecay_via_three_pieces
+    P T s hopen T_D s_D σ_loc N
+    (fun w _ => not_vle_zero_of_isUnit h_unit_s_D w)
+    h_chain h_decay
+
+/-! ### Remaining single mathematical statement (T154 fallback target)
+
+After the joint reduction landed in this section, the mathematical
+content reduces to discharging
+`AlphaJointBranchPerTSigmaPowerDecay P T s hopen T_D s_D σ_loc N` —
+i.e., producing the per-(w, t') chain + decay pair plus the `α s_D`
+non-vanishing on `Spa(Localization.Away s, ⁺)` — which is the
+**genuine Wedhorn 8.34(ii) Step 2 N-choice content** (σ-as-π-power
+identification + Spa-quasi-compactness M-choice for topologically
+nilpotent π_loc + denominator-clearing N).
+
+Concretely, the residual to be discharged is the conjunction recorded in
+`AlphaJointBranchPerTSigmaPowerDecay`:
+
+```
+(∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+    ¬ w.vle (algebraMap A (Localization.Away s) s_D) 0) ∧
+(∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+    ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+      w.vle ((σ_loc : Localization.Away s) * t' *
+          (algebraMap A (Localization.Away s) s_D) ^ N)
+        (algebraMap A (Localization.Away s) s) ∧
+      w.vle (algebraMap A (Localization.Away s) s)
+        ((σ_loc : Localization.Away s) *
+          (algebraMap A (Localization.Away s) s_D) ^ (N + 1)))
+```
+
+Discharge route: take `π_loc : (locPairOfDefinition P T s hopen).A₀`
+topologically nilpotent (with `(locPairOfDefinition P T s hopen).I =
+Ideal.span {π_loc}`, etc.), choose `σ_loc = π_loc^(M+1)` and `N` via
+`Cor732.exists_dominatedBy_cover` applied to a sufficiently rich test
+family on the local Spa. -/
+
 end ValuationSpectrum
