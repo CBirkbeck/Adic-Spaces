@@ -923,4 +923,186 @@ theorem h_T_test_compat_loc_branch_α_T_D_via_h_alg_and_subset_A₀
       h_alg h_s_factor)
     (h_T_D_in_locSubring_of_subset_A₀ P T s T_D hT_D_le_A₀)
 
+/-! ### T174: integration into the canonical localized test-family chain
+
+This section integrates T173's α_T_D-branch closure into the canonical
+localized test-family chain consumed by
+`rationalOpen_subset_base_via_local_Cor732_chain`. The α_s_D branch is
+left as an explicit hypothesis; the α_T_D branches are dispatched via
+T173's combined per-t' upper bound + s_D non-vanishing closer, split
+into the per-t' supplier (`.1`) and the s_D non-vanishing supplier
+(`.2`).
+
+Provided:
+
+* `h_T_test_compat_loc_canonical_via_h_alg_subset_A₀_and_alpha_s_D` —
+  canonical compatibility theorem feeding `h_T_test_compat_loc_canonical`
+  with T173's α_T_D branch on the α_T_D side, and an explicit
+  `h_α_s_D_per_t` hypothesis on the α_s_D side.
+
+* `rationalOpen_subset_base_via_h_alg_subset_A₀_and_alpha_s_D` —
+  caller-facing base inclusion theorem composing the canonical
+  compatibility above with `rationalOpen_subset_base_via_local_Cor732_chain`,
+  producing `rationalOpen (insert f T_base) s ⊆ rationalOpen T_D s_D`
+  from the natural Wedhorn cover-piece structural data plus the
+  explicit α_s_D per-t' supplier. -/
+
+omit [PlusSubring A] in
+/-- **T174: canonical localized compatibility from T173's α_T_D-branch
+closure + explicit α_s_D per-t' supplier**.
+
+Feeds `h_T_test_compat_loc_canonical` with:
+* T173's
+  `h_T_test_compat_loc_branch_α_T_D_via_h_alg_and_subset_A₀`
+  on the α_T_D branches (split via `.1` for per-t' upper bound, `.2`
+  for s_D non-vanishing);
+* an explicit `h_α_s_D_per_t` hypothesis on the α_s_D branch.
+
+The α_s_D branch's per-t' supplier is left as an explicit hypothesis —
+no clean existing supplier matches the exact shape consumed by
+`h_T_test_compat_loc_canonical` (the α_s_D branch's per-t' bound from
+`h_T_test_compat_loc_branch_α_s_D` requires a τ-specialised σ-strict-dom
+hypothesis that mismatches the canonical universal-over-`localizedTestFamily`
+shape; existing `laurent_piece_α_s_D_per_t_factored_chain` outputs the
+σ-factored form `w.vle (t' * σ_loc) (α s_D * σ_loc)` rather than the
+canonical un-factored `w.vle t' (α s_D)`).
+
+The remaining open input is exactly the α_s_D per-t' supplier; all
+other inputs are dispatched through T172/T173 producers. -/
+theorem h_T_test_compat_loc_canonical_via_h_alg_subset_A₀_and_alpha_s_D
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A) (f : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (hσ_loc_dom :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ localizedTestFamily s T_D s_D,
+          w.vle (σ_loc : Localization.Away s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away s))
+    (h_alg :
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      algebraMap A (Localization.Away s) f =
+        (σ_loc : Localization.Away s) *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+    (h_s_factor : s = s_D * f)
+    (hT_D_le_A₀ : ∀ t ∈ T_D, t ∈ P.A₀)
+    (h_α_s_D_per_t :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w.vle (σ_loc : Localization.Away s)
+            (algebraMap A (Localization.Away s) s_D) ∧
+          ¬ w.vle (algebraMap A (Localization.Away s) s_D)
+            (σ_loc : Localization.Away s) →
+        ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w.vle t' (algebraMap A (Localization.Away s) s_D)) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    ∀ τ ∈ localizedTestFamily s T_D s_D,
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w.vle (σ_loc : Localization.Away s) τ ∧
+          ¬ w.vle τ (σ_loc : Localization.Away s) →
+          (∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+              w.vle t' (algebraMap A (Localization.Away s) s_D)) ∧
+            ¬ w.vle (algebraMap A (Localization.Away s) s_D) 0 := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  -- T173's α_T_D-branch closure.
+  have h_α_T_D_branch :=
+    h_T_test_compat_loc_branch_α_T_D_via_h_alg_and_subset_A₀
+      P T s hopen T_D s_D f σ_loc hσ_loc_dom h_alg h_s_factor hT_D_le_A₀
+  -- Feed into h_T_test_compat_loc_canonical, splitting α_T_D output via .1/.2.
+  exact h_T_test_compat_loc_canonical
+    P T s hopen T_D s_D σ_loc
+    h_α_s_D_per_t
+    (fun τ hτ w hw_spa hw_f hστ =>
+      (h_α_T_D_branch τ hτ w hw_spa hw_f hστ).1)
+    (fun τ hτ w hw_spa hw_f hστ =>
+      (h_α_T_D_branch τ hτ w hw_spa hw_f hστ).2)
+
+/-- **T174: caller-facing base inclusion from T173's α_T_D-branch
+closure + explicit α_s_D per-t' supplier**.
+
+Composes T174's canonical compatibility theorem with
+`rationalOpen_subset_base_via_local_Cor732_chain` to produce the base
+rational-open inclusion `rationalOpen (insert f T_base) s ⊆ rationalOpen T_D s_D`
+from natural cover-piece structural data plus the explicit α_s_D
+per-t' supplier.
+
+This is the **caller-facing end-to-end theorem** for T173/T174's
+corrected branch-clearing route: the cover-piece subset clause consumed
+downstream is produced from:
+* `hA₀_le`: `P.A₀ ≤ A⁺` (standard Tate hypothesis);
+* `T_base`, `h_T_le_T_base : T ⊆ T_base`: cover-base structural data;
+* `f, σ_loc, h_alg`: cover-refinement element + Cor 7.32 σ-strict-dom output;
+* `hσ_loc_dom`: standard Cor 7.32 σ-strict-domination over
+  `localizedTestFamily`;
+* `h_s_factor : s = s_D · f`: cover-base factorization in `A`;
+* `hT_D_le_A₀ : T_D ⊆ P.A₀`: per-element ring-of-definition membership;
+* `h_α_s_D_per_t`: explicit α_s_D per-t' supplier (the one input
+  not yet dispatched through any clean existing API). -/
+theorem rationalOpen_subset_base_via_h_alg_subset_A₀_and_alpha_s_D
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (hA₀_le : P.A₀ ≤ A⁺)
+    (T_base T_D : Finset A) (s_D : A) (f : A)
+    (h_T_le_T_base : T ⊆ T_base)
+    (σ_loc : (Localization.Away s)ˣ)
+    (hσ_loc_dom :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ localizedTestFamily s T_D s_D,
+          w.vle (σ_loc : Localization.Away s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away s))
+    (h_alg :
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      algebraMap A (Localization.Away s) f =
+        (σ_loc : Localization.Away s) *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+    (h_s_factor : s = s_D * f)
+    (hT_D_le_A₀ : ∀ t ∈ T_D, t ∈ P.A₀)
+    (h_α_s_D_per_t :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w.vle (σ_loc : Localization.Away s)
+            (algebraMap A (Localization.Away s) s_D) ∧
+          ¬ w.vle (algebraMap A (Localization.Away s) s_D)
+            (σ_loc : Localization.Away s) →
+        ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w.vle t' (algebraMap A (Localization.Away s) s_D)) :
+    rationalOpen (insert f T_base) s ⊆ rationalOpen T_D s_D :=
+  rationalOpen_subset_base_via_local_Cor732_chain
+    P T s hopen hA₀_le T_base T_D s_D h_T_le_T_base f σ_loc h_alg
+    (localizedTestFamily s T_D s_D) hσ_loc_dom
+    (h_T_test_compat_loc_canonical_via_h_alg_subset_A₀_and_alpha_s_D
+      P T s hopen T_D s_D f σ_loc hσ_loc_dom h_alg h_s_factor hT_D_le_A₀
+      h_α_s_D_per_t)
+
 end ValuationSpectrum
