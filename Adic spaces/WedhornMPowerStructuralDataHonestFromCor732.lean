@@ -4306,4 +4306,115 @@ theorem AlphaJointCor732_uniformDecayAndChain_when_s_eq_s_D_mul_A0_elt_and_T_D_l
   exact h_chain_piece w hw (algebraMap A (Localization.Away s) t)
     (Finset.mem_image_of_mem _ ht)
 
+/-! ### T167: locPlus Spa equality with locSubring Spa
+
+Concrete structural transfer for the locPlus theorem: shows that the
+**locPlus Spa equals the locSubring Spa as a set of valuations**. The
+forward inclusion `Spa(Loc s, locPlusSubring) ⊆ Spa(Loc s, locSubring)`
+holds by `spa_antitone` (T165's bridge direction). The **reverse**
+inclusion `Spa(Loc s, locSubring) ⊆ Spa(Loc s, locPlusSubring)` holds
+because every element of `locPlusSubring` is integral over `locSubring`
+(T163's `mem_locPlusSubring_iff_isIntegral`), and integrality preserves
+`v.vle a 1` (T163's private helper `vle_one_of_isIntegral_of_subring_le_one`).
+
+Combined: the two Spa sets are equal. This means **uniform statements
+on the locSubring Spa transfer to the locPlus Spa for free** (and vice
+versa) — the existing localized Cor 7.32 / σ-power API operating on
+the canonical `localizationLocSubringPlusSubring` Spa applies directly
+to the `localizationLocPlusSubring` Spa target.
+
+After this section, my T166 chain-half closure
+`AlphaJointCor732_chain_half_via_sigma_dominated_by_alpha_s` (locSubring
+Spa) and the s = s_D · c concrete construction
+`AlphaJointCor732_uniformDecayAndChain_when_s_eq_s_D_mul_A0_elt_and_T_D_le_T`
+(locSubring Spa) automatically apply to the locPlus Spa target via
+T165's bridge — without losing strength.
+
+The genuine remaining content for the **general** locPlus case
+(s ≠ s_D · c) is the **decay factorisation witness construction**: an
+explicit `ξ : locSubring P T s` (or `ξ : locPlusSubring`) satisfying
+`α s = ξ · (σ_loc · α s_D^(N+1))` for σ_loc, N chosen via Cor 7.32 +
+M-choice. This is the genuine Wedhorn 8.34(ii) Step 2 algebraic step
+and is not available from existing localized Cor 7.32 outputs.
+
+Provided:
+
+* `locPlusSpa_subset_locSubringSpa` — explicit name for T165's
+  `spa_antitone` direction.
+* `locSubringSpa_subset_locPlusSpa` — the **reverse direction** via
+  integral closure (T167's missing operation).
+* `locSubringSpa_eq_locPlusSpa` — Spa equality.
+* `AlphaJointCor732_uniformDecayAndChain_locPlus_eq_via_locSubring` —
+  applies the equality to derive the locPlus uniform decay+chain
+  target from the locSubring version (strict-equality form, weaker
+  hypothesis than T165's spa_antitone bridge). -/
+
+omit [PlusSubring A] in
+/-- **T167 forward direction**: `Spa(Loc s, locPlusSubring) ⊆ Spa(Loc s, locSubring)`
+via `spa_antitone` (the easy half — T165 already used this implicitly). -/
+theorem locPlusSpa_subset_locSubringSpa
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    Spa (Localization.Away s) (locPlusSubring P T s) ⊆
+      Spa (Localization.Away s) (locSubring P T s) := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  exact spa_antitone (locSubring_le_locPlusSubring P T s)
+
+set_option linter.unusedSectionVars false in
+omit [PlusSubring A] in
+/-- **T167 reverse direction** (concrete missing operation):
+`Spa(Loc s, locSubring) ⊆ Spa(Loc s, locPlusSubring)` via integral
+closure. Every continuous valuation `v` with `v.vle f 1` for all
+`f ∈ locSubring P T s` automatically satisfies `v.vle f 1` for all
+`f ∈ locPlusSubring P T s`, since the latter is the integral closure
+of the former, and integrality preserves `v.vle a 1`.
+
+Combines `mem_locPlusSubring_iff_isIntegral` (definitional unfolding of
+`locPlusSubring` as the integral closure) with the private helper
+`vle_one_of_isIntegral_of_subring_le_one` (T163, this file lines
+~3155-3182). -/
+theorem locSubringSpa_subset_locPlusSpa
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    Spa (Localization.Away s) (locSubring P T s) ⊆
+      Spa (Localization.Away s) (locPlusSubring P T s) := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  intro v hv
+  refine ⟨hv.1, ?_⟩
+  intro f hf
+  rw [mem_locPlusSubring_iff_isIntegral] at hf
+  exact vle_one_of_isIntegral_of_subring_le_one
+    (locSubring P T s) v.toValuativeRel hv.2 hf
+
+set_option linter.unusedSectionVars false in
+omit [PlusSubring A] in
+/-- **T167 Spa equality**: `Spa(Loc s, locSubring P T s) = Spa(Loc s, locPlusSubring P T s)`.
+
+Combines the forward and reverse subset inclusions. The two Spas are
+the **same set of valuations** — the integral-closure step at the
+plus-subring level does not change the set of continuous valuations
+satisfying the plus condition, since integrality preserves `v.vle a 1`.
+
+After this equality, all existing localized Cor 7.32 / σ-power API
+operating on the canonical `localizationLocSubringPlusSubring` Spa
+applies directly to the `localizationLocPlusSubring` Spa target — the
+"locPlus distinction" is at the level of plus-subring **witnesses**
+(integrally closed locPlusSubring vs. raw locSubring), not at the
+level of the Spa point set. -/
+theorem locSubringSpa_eq_locPlusSpa
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    Spa (Localization.Away s) (locSubring P T s) =
+      Spa (Localization.Away s) (locPlusSubring P T s) := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  exact Set.eq_of_subset_of_subset
+    (locSubringSpa_subset_locPlusSpa P T s hopen)
+    (locPlusSpa_subset_locSubringSpa P T s hopen)
+
 end ValuationSpectrum
