@@ -639,4 +639,145 @@ theorem wedhorn_834_per_call_dom_supplier_via_α_D_s_ne
     (wedhorn_834_localizedTestFamily_nonvanishing_supplier
       P C hopen_base D h_α_D_s_ne)
 
+/-! ### T182: α D.s non-vanishing from base factorization `C.base.s = D.s · f`
+
+T181 reduces the localized test-family non-vanishing input at the T180
+boundary to the per-`w` non-vanishing of `algebraMap D.s`. T182
+discharges this directly from the natural Wedhorn cover-base
+factorization `h_s_factor : C.base.s = D.s · f` (the same factorization
+already consumed by T173/T176 for the α_T_D / α_s_D branch closures).
+
+**Math**:
+* `algebraMap A (Loc C.base.s) C.base.s` is a **unit** in
+  `Loc C.base.s` (by `IsLocalization.Away.algebraMap_isUnit`, since
+  `C.base.s` is inverted there).
+* By `h_s_factor` and `RingHom.map_mul`,
+  `algebraMap C.base.s = algebraMap D.s · algebraMap f`.
+* So `algebraMap D.s · algebraMap f` is a unit in `Loc C.base.s`.
+* In a commutative monoid, the **left factor of a unit product is a
+  unit** (`isUnit_of_mul_isUnit_left`); hence `algebraMap D.s` is a
+  unit.
+* Units in commutative rings are non-vanishing at every valuation
+  (`not_vle_zero_of_isUnit`), so `¬ w.vle (algebraMap D.s) 0` at
+  every `w ∈ Spa(Loc C.base.s, ⁺)`.
+
+Provided:
+
+* `wedhorn_834_alpha_D_s_nonvanishing_of_base_factorization` —
+  produces the per-`w` `α D.s` non-vanishing from `h_s_factor` alone.
+
+* `wedhorn_834_per_call_dom_supplier_via_base_factorization` —
+  caller composing T182 with T181's
+  `wedhorn_834_per_call_dom_supplier_via_α_D_s_ne`, producing the
+  σ-strict-domination output from localized pseudouniformizer data
+  + `h_s_factor`. -/
+
+/-- **T182 α D.s non-vanishing from base factorization**.
+
+From the natural Wedhorn cover-base factorization
+`h_s_factor : C.base.s = D.s * f` and the unit-of-product factorization,
+derive `¬ w.vle (algebraMap A (Loc C.base.s) D.s) 0` at every
+`w ∈ Spa(Loc C.base.s, ⁺)`.
+
+**Proof**: `algebraMap C.base.s` is a unit in `Loc C.base.s` (since
+`C.base.s` is inverted); by `h_s_factor` + `map_mul`, this unit equals
+`algebraMap D.s * algebraMap f`; `isUnit_of_mul_isUnit_left` extracts
+the left-factor unit; `not_vle_zero_of_isUnit` gives non-vanishing at
+every `w`. -/
+theorem wedhorn_834_alpha_D_s_nonvanishing_of_base_factorization
+    [DecidableEq A]
+    (P : PairOfDefinition A)
+    (C : RationalCovering A)
+    (hopen_base : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) C.base.s ∈ locSubring P C.base.T C.base.s)
+    (D : RationalLocData A) (f : A)
+    (h_s_factor : C.base.s = D.s * f) :
+    letI : TopologicalSpace (Localization.Away C.base.s) :=
+      locTopology P C.base.T C.base.s hopen_base
+    letI : PlusSubring (Localization.Away C.base.s) :=
+      localizationLocSubringPlusSubring P C.base.T C.base.s
+    ∀ w ∈ Spa (Localization.Away C.base.s)
+          (Localization.Away C.base.s)⁺,
+      ¬ w.vle (algebraMap A (Localization.Away C.base.s) D.s) 0 := by
+  letI : TopologicalSpace (Localization.Away C.base.s) :=
+    locTopology P C.base.T C.base.s hopen_base
+  letI : PlusSubring (Localization.Away C.base.s) :=
+    localizationLocSubringPlusSubring P C.base.T C.base.s
+  -- α C.base.s is a unit in Loc C.base.s (since C.base.s is inverted).
+  have h_α_C_base_s_unit :
+      IsUnit (algebraMap A (Localization.Away C.base.s) C.base.s) :=
+    IsLocalization.Away.algebraMap_isUnit
+      (S := Localization.Away C.base.s) C.base.s
+  -- Lift h_s_factor through algebraMap (avoid motive failure on Loc C.base.s).
+  have h_α_eq :
+      algebraMap A (Localization.Away C.base.s) C.base.s =
+        algebraMap A (Localization.Away C.base.s) (D.s * f) :=
+    congr_arg (algebraMap A (Localization.Away C.base.s)) h_s_factor
+  rw [h_α_eq, map_mul] at h_α_C_base_s_unit
+  -- α D.s is the left factor of a unit product, hence a unit.
+  have h_α_D_s_unit :
+      IsUnit (algebraMap A (Localization.Away C.base.s) D.s) :=
+    isUnit_of_mul_isUnit_left h_α_C_base_s_unit
+  -- Non-vanishing at every w follows from unit-ness.
+  intro w _hw_spa
+  exact not_vle_zero_of_isUnit h_α_D_s_unit w
+
+/-- **T182 caller**: σ-strict-domination supplier with α D.s
+non-vanishing discharged from base factorization.
+
+Composes T182's `wedhorn_834_alpha_D_s_nonvanishing_of_base_factorization`
+with T181's `wedhorn_834_per_call_dom_supplier_via_α_D_s_ne`,
+producing σ_loc + per-`w` strict-domination output from:
+
+* localized pseudouniformizer data (`π_loc`, `hI_loc`, `hπ_loc_tn`,
+  `hπ_loc_unit`, `hArch_loc`) — same as T180/T181;
+* `h_s_factor : C.base.s = D.s * f` — the natural Wedhorn cover-base
+  factorization (the same one consumed by T173/T176 for the
+  α_T_D / α_s_D branch closures).
+
+After T182, the σ-strict-domination supplier at the T180 boundary is
+discharged from purely Tate-side localized pseudouniformizer data
+plus the cover-base factorization — no remaining cover-piece
+non-vanishing residual. -/
+theorem wedhorn_834_per_call_dom_supplier_via_base_factorization
+    [DecidableEq A]
+    (P : PairOfDefinition A)
+    (C : RationalCovering A)
+    (hopen_base : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) C.base.s ∈ locSubring P C.base.T C.base.s)
+    (D : RationalLocData A) (f : A)
+    (h_s_factor : C.base.s = D.s * f) :
+    letI : TopologicalSpace (Localization.Away C.base.s) :=
+      locTopology P C.base.T C.base.s hopen_base
+    letI : PlusSubring (Localization.Away C.base.s) :=
+      localizationLocSubringPlusSubring P C.base.T C.base.s
+    ∀ (π_loc : (locPairOfDefinition P C.base.T C.base.s hopen_base).A₀)
+      (_hI_loc : (locPairOfDefinition P C.base.T C.base.s hopen_base).I =
+        Ideal.span {π_loc})
+      (_hπ_loc_tn : IsTopologicallyNilpotent
+        ((locPairOfDefinition P C.base.T C.base.s hopen_base).A₀.subtype
+          π_loc))
+      (_hπ_loc_unit : IsUnit
+        ((locPairOfDefinition P C.base.T C.base.s hopen_base).A₀.subtype
+          π_loc))
+      (_hArch_loc : ∀ w : Spv (Localization.Away C.base.s),
+        letI : ValuativeRel (Localization.Away C.base.s) := w.toValuativeRel
+        MulArchimedean (ValuativeRel.ValueGroupWithZero
+          (Localization.Away C.base.s))),
+      ∃ σ_loc : (Localization.Away C.base.s)ˣ,
+        ∀ w ∈ Spa (Localization.Away C.base.s)
+              (Localization.Away C.base.s)⁺,
+          ∃ τ ∈ localizedTestFamily C.base.s D.T D.s,
+            w.vle (σ_loc : Localization.Away C.base.s) τ ∧
+              ¬ w.vle τ (σ_loc : Localization.Away C.base.s) := by
+  letI : TopologicalSpace (Localization.Away C.base.s) :=
+    locTopology P C.base.T C.base.s hopen_base
+  letI : PlusSubring (Localization.Away C.base.s) :=
+    localizationLocSubringPlusSubring P C.base.T C.base.s
+  intro π_loc hI_loc hπ_loc_tn hπ_loc_unit hArch_loc
+  exact wedhorn_834_per_call_dom_supplier_via_α_D_s_ne P C hopen_base D
+    π_loc hI_loc hπ_loc_tn hπ_loc_unit hArch_loc
+    (wedhorn_834_alpha_D_s_nonvanishing_of_base_factorization
+      P C hopen_base D f h_s_factor)
+
 end ValuationSpectrum
