@@ -545,4 +545,230 @@ theorem h_T_test_compat_loc_branch_α_T_D_via_factorization_integrality_prod_ne
     (alphaTDBranchAssembly_via_factorization_integrality_prod_ne
       P T s hopen T_D s_D σ_loc h_factorization h_T_D_image_int h_prod_ne)
 
+/-! ### T172: concrete producers for two of T171's three structural inputs
+
+This section provides concrete producers for two of the three structural
+inputs to `h_T_test_compat_loc_branch_α_T_D_via_factorization_integrality_prod_ne`
+above:
+
+* **`h_T_D_image_int_via_locSubring_membership`** — discharges the
+  per-element integrality input `h_T_D_image_int` from the natural
+  Tate-style hypothesis `∀ t ∈ T_D, algebraMap A (Loc s) t ∈ locSubring P T s`
+  via `vle_one_of_mem_spa`. Uses the canonical
+  `localizationLocSubringPlusSubring` plus-subring instance: each element
+  of `locSubring P T s` is `(Loc s)⁺` by definition, hence `w.vle t' 1`
+  at every `w ∈ Spa(Loc s, ⁺)`.
+
+* **`h_prod_ne_via_factorization`** — discharges the product non-vanishing
+  input `h_prod_ne` from `h_factorization` alone (no extra hypothesis).
+  Uses the unit-ness of `algebraMap A (Loc s) s` (always true via
+  `IsLocalization.Away.algebraMap_isUnit`): if the product `∏ T_D.image`
+  vanished at `w`, then by `mul_vle_mul_right` the entire RHS of
+  `h_factorization` would vanish, so `algebraMap s` would vanish — but
+  it is a unit, contradiction.
+
+After these producers, the only remaining structural input for
+`h_T_test_compat_loc_branch_α_T_D_via_factorization_integrality_prod_ne`
+is the cover-refinement element factorization `h_factorization`
+(supplied as `s = σ_loc · s_D · ∏ pre_T_D` from the Wedhorn cover-piece
+construction) plus the per-element locSubring membership of `T_D.image`
+(naturally available when `T_D ⊆ P.A₀` via `algebraMap_mem_locSubring`,
+or supplied directly by the cover-refinement caller).
+
+The composed top-level caller
+`h_T_test_compat_loc_branch_α_T_D_via_factorization_locSubring_membership`
+exposes only these two remaining inputs (plus the standard Cor 7.32
+σ-strict-domination output). -/
+
+omit [PlusSubring A] in
+/-- **T172: `h_T_D_image_int` supplier from per-element locSubring
+membership of `T_D.image`**.
+
+Discharges the per-element integrality input `h_T_D_image_int` of
+`alphaTDBranchAssembly_via_factorization_integrality_prod_ne` from the
+natural hypothesis that each `t ∈ T_D` has its `algebraMap` image inside
+`locSubring P T s`.
+
+**Proof**: at each `w ∈ Spa(Loc s, ⁺)` and `t' ∈ T_D.image (algebraMap)`,
+extract a preimage `t ∈ T_D` with `algebraMap t = t'`. The hypothesis
+gives `algebraMap t ∈ locSubring P T s = (Loc s)⁺`; `vle_one_of_mem_spa`
+upgrades this to `w.vle (algebraMap t) 1`, which is `w.vle t' 1` after
+substitution.
+
+The hypothesis `∀ t ∈ T_D, algebraMap t ∈ locSubring P T s` is the
+natural Tate-style integrality of `T_D`'s `algebraMap`-image — naturally
+available when `T_D ⊆ P.A₀` (via `algebraMap_mem_locSubring`), or
+supplied directly by the cover-refinement caller. -/
+theorem h_T_D_image_int_via_locSubring_membership
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A)
+    (h_T_D_in_locSubring :
+      ∀ t ∈ T_D,
+        algebraMap A (Localization.Away s) t ∈ locSubring P T s) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+        w.vle t' (1 : Localization.Away s) := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro w hw_spa t' ht'
+  obtain ⟨t, ht, rfl⟩ := Finset.mem_image.mp ht'
+  exact vle_one_of_mem_spa hw_spa (h_T_D_in_locSubring t ht)
+
+omit [PlusSubring A] in
+/-- **T172: `h_prod_ne` supplier from `h_factorization` + α s being a unit**.
+
+Discharges the product non-vanishing input `h_prod_ne` of
+`alphaTDBranchAssembly_via_factorization_integrality_prod_ne` from
+`h_factorization` alone, using the always-available
+`IsLocalization.Away.algebraMap_isUnit` (since `s` is inverted in
+`Localization.Away s`, `algebraMap s` is a unit).
+
+**Proof**: assume `w.vle (∏ T_D.image) 0` (the product vanishes at
+`w`). Multiply by `(σ_loc : Loc s) * algebraMap s_D` on the left via
+`ValuativeRel.mul_vle_mul_right` to get
+`w.vle ((σ_loc : Loc s) * algebraMap s_D * ∏ T_D.image)
+       ((σ_loc : Loc s) * algebraMap s_D * 0)`; simplify the right side
+to `0`. By `h_factorization`, the left side equals `algebraMap s`, so
+`w.vle (algebraMap s) 0`. But `algebraMap s` is a unit in `Loc s`
+(`IsLocalization.Away.algebraMap_isUnit`), so
+`not_vle_zero_of_isUnit` gives the contradiction.
+
+This producer requires neither f-membership nor the σ-strict-domination
+hypothesis — `h_factorization` alone forces product non-vanishing
+through the unit structure of `algebraMap s` in `Loc s`. -/
+theorem h_prod_ne_via_factorization
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_factorization :
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      algebraMap A (Localization.Away s) s =
+        (σ_loc : Localization.Away s) *
+          algebraMap A (Localization.Away s) s_D *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t)) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      w.vle ((σ_loc : Localization.Away s) *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+        (algebraMap A (Localization.Away s) s) →
+      ¬ w.vle (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t)
+        (0 : Localization.Away s) := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro w _hw_spa _hw_f h_prod_zero
+  letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+  -- α s is a unit in Loc s by IsLocalization.Away.
+  have h_α_s_unit :
+      IsUnit (algebraMap A (Localization.Away s) s) :=
+    IsLocalization.Away.algebraMap_isUnit (S := Localization.Away s) s
+  have h_α_s_ne :
+      ¬ w.vle (algebraMap A (Localization.Away s) s) 0 :=
+    not_vle_zero_of_isUnit h_α_s_unit w
+  apply h_α_s_ne
+  -- Goal: w.vle (algebraMap s) 0. Substitute via h_factorization.
+  rw [h_factorization]
+  -- Goal: w.vle (σ_loc · algebraMap s_D · ∏ T_D.image) 0.
+  -- Multiply h_prod_zero by (σ_loc · algebraMap s_D) on the left
+  -- (`mul_vle_mul_right` puts the multiplier on the LEFT in the result).
+  have h_step :
+      w.vle ((σ_loc : Localization.Away s) *
+          algebraMap A (Localization.Away s) s_D *
+          ∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t)
+        ((σ_loc : Localization.Away s) *
+          algebraMap A (Localization.Away s) s_D *
+          (0 : Localization.Away s)) :=
+    ValuativeRel.mul_vle_mul_right h_prod_zero
+      ((σ_loc : Localization.Away s) *
+        algebraMap A (Localization.Away s) s_D)
+  rw [mul_zero] at h_step
+  exact h_step
+
+omit [PlusSubring A] in
+/-- **T172: composed top-level caller** for the α_T_D-branch closer
+through T172's two concrete producers.
+
+Composes:
+* T172's `h_T_D_image_int_via_locSubring_membership` producer for the
+  per-element integrality input `h_T_D_image_int`,
+* T172's `h_prod_ne_via_factorization` producer for the product
+  non-vanishing input `h_prod_ne`,
+* T171's `h_T_test_compat_loc_branch_α_T_D_via_factorization_integrality_prod_ne`
+  closer.
+
+Produces the α_T_D-branch single-branch compatibility output directly
+from:
+
+* localized Cor 7.32 σ-strict-domination over `localizedTestFamily`
+  (`hσ_loc_dom`, the standard
+  `exists_dominating_unit_in_localization` output);
+* cover-refinement element factorization `h_factorization`;
+* per-element locSubring membership `h_T_D_in_locSubring` (the natural
+  Tate-style integrality of `T_D`'s `algebraMap`-image, available when
+  `T_D ⊆ P.A₀`).
+
+No `h_T_D_image_int` hypothesis or `h_prod_ne` hypothesis required —
+both are dispatched through T172's producers. The remaining structural
+input is the cover-refinement element factorization, supplied by the
+Wedhorn cover-piece construction at the localized level. -/
+theorem h_T_test_compat_loc_branch_α_T_D_via_factorization_locSubring_membership
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (hσ_loc_dom :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ localizedTestFamily s T_D s_D,
+          w.vle (σ_loc : Localization.Away s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away s))
+    (h_factorization :
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      algebraMap A (Localization.Away s) s =
+        (σ_loc : Localization.Away s) *
+          algebraMap A (Localization.Away s) s_D *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+    (h_T_D_in_locSubring :
+      ∀ t ∈ T_D,
+        algebraMap A (Localization.Away s) t ∈ locSubring P T s) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    ∀ τ ∈ T_D.image (algebraMap A (Localization.Away s)),
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w.vle (σ_loc : Localization.Away s) τ ∧
+          ¬ w.vle τ (σ_loc : Localization.Away s) →
+          (∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+              w.vle t' (algebraMap A (Localization.Away s) s_D)) ∧
+            ¬ w.vle (algebraMap A (Localization.Away s) s_D) 0 :=
+  h_T_test_compat_loc_branch_α_T_D_via_factorization_integrality_prod_ne
+    P T s hopen T_D s_D σ_loc hσ_loc_dom h_factorization
+    (h_T_D_image_int_via_locSubring_membership P T s hopen T_D
+      h_T_D_in_locSubring)
+    (h_prod_ne_via_factorization P T s hopen T_D s_D σ_loc h_factorization)
+
 end ValuationSpectrum
