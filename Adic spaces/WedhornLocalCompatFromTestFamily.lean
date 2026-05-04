@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import «Adic spaces».WedhornLocalPerBranchChain
 import «Adic spaces».WedhornLocalizedCor732Application
 import «Adic spaces».WedhornMultiDominatingUnit
+import «Adic spaces».WedhornStandardCoverRefinement
 
 /-!
 # Wedhorn local-compatibility from canonical test family
@@ -886,5 +887,149 @@ theorem h_T_test_compat_loc_branch_α_T_D_via_multi_lower
     T_D s_D σ_loc
     (h_per_w_laurent_piece_target P T s hopen T_D s_D σ_loc
       h_T_D_multi_bound h_T_D_lower_bound)
+
+omit [PlusSubring A] in
+/-- **T169 (continued): localized Wedhorn 8.34(ii) Laurent cover-refinement
+producer for the multi+lower pair**.
+
+Honest cover-decomposition theorem: from
+1. **Cor 7.32 σ-strict-domination** over `localizedTestFamily s T_D s_D`
+   (the standard `exists_dominating_unit_in_localization` output), and
+2. **Per-Laurent-piece structural data**: at each
+   `τ ∈ localizedTestFamily s T_D s_D` and each
+   `w ∈ Spa (Loc s) (Loc s)⁺` lying in the σ_loc-rescaled Laurent piece
+   `rationalOpen ({1}) (σ_loc⁻¹ · τ)` under f-membership, the
+   multi-element bound `w.vle (∏ T_D.image) (α s_D)` and per-element
+   lower bound `∀ t' ∈ T_D.image, w.vle 1 t'` hold,
+
+derive the **global** multi+lower pair:
+
+* `h_T_D_multi_bound`: `∀ w ∈ Spa, w.vle (σ_loc · ∏ T_D.image) (α s) →
+  w.vle (∏ T_D.image) (α s_D)`,
+* `h_T_D_lower_bound`: `∀ w ∈ Spa, w.vle (σ_loc · ∏ T_D.image) (α s) →
+  ∀ t' ∈ T_D.image, w.vle 1 t'`.
+
+**Proof** (cover decomposition): at any `w ∈ Spa` under f-membership,
+`localized_cor732_laurent_piece_membership_at` (commit `4197d87`,
+`WedhornLocalCor732ToFactoredChain.lean`) supplies a Laurent-piece
+membership: `∃ τ ∈ localizedTestFamily, w ∈ rationalOpen ({1}) (σ_loc⁻¹ · τ)`.
+Apply the per-piece structural hypothesis `h_per_piece_multi_lower` at
+that `τ` to extract the multi+lower bound at `w`. The cover-decomposition
+glues per-piece bounds into global bounds via the Laurent cover.
+
+**Why this is honest cover-refinement content**: the per-piece structural
+hypothesis is **strictly piece-restricted** — it asks for the multi+lower
+bound only on each Laurent piece V_τ (which is geometrically smaller
+than `Spa`), not globally. The cover {V_τ}_τ is the natural Wedhorn
+8.34(ii) Laurent cover refinement (PDF page 84 / Lemma 8.33), and the
+producer captures the cover-decomposition step of Wedhorn's proof.
+
+**First exact obstruction (per-piece arithmetic, not discharged here)**:
+on each piece V_τ for τ ∈ localizedTestFamily, deriving multi+lower
+from the available data (V_τ membership = `w.vle σ_loc τ`, f-membership
+= `w.vle (σ_loc · ∏ T_D.image) (α s)`, σ-strict-domination at τ) requires
+**Wedhorn 8.34(ii) per-piece arithmetic** that the project does not
+yet supply:
+
+* For τ = `algebraMap s_D` (V_{α s_D} piece): `w.vle σ_loc (α s_D)` plus
+  f-membership does NOT directly imply `w.vle (∏ T_D.image) (α s_D)`
+  — that would require a relation like `α s ≤ σ_loc · α s_D`, the
+  converse of σ_loc ≤ α s_D, which is not free.
+
+* For τ ∈ T_D.image (V_τ piece, K-nonempty case): `w.vle σ_loc τ` plus
+  f-membership does NOT directly imply `w.vle (∏ T_D.image) (α s_D)` —
+  T168 (`vle_of_dominating_unit_multi`) documented this implication is
+  false in general; the V_K-nonempty residual
+  (`WedhornCoverPieceVKAlphaTDMaxBound`) only delivers per-element
+  upper bounds, not the multi-element bound.
+
+The genuine remaining content is therefore a per-piece arithmetic lemma
+relating `w.vle σ_loc τ` (for each τ case) to the multi-element bound
+under additional cover-refinement structural data (e.g., a specific
+factorization of `algebraMap s` through `σ_loc · α s_D · ∏ T_D.image`,
+matching Wedhorn's cover-refinement element construction). Producing
+this per-piece arithmetic from the project's existing API is the next
+theorem-sized step beyond T169.
+
+**Use**: apply this theorem with the σ-strict-dom output and per-piece
+structural data to produce `(h_T_D_multi_bound, h_T_D_lower_bound)`,
+then feed the pair to `h_per_w_laurent_piece_target` (commit `f4f3b70`)
+to obtain the per-`w` localized Laurent-piece rationalOpen data
+consumed by `h_T_test_compat_loc_branch_α_T_D_via_localized_laurent_piece`. -/
+theorem h_T_D_multi_and_lower_bound_via_laurent_cover_refinement
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (hσ_loc_dom :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ localizedTestFamily s T_D s_D,
+          w.vle (σ_loc : Localization.Away s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away s))
+    (h_per_piece_multi_lower :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ τ ∈ localizedTestFamily s T_D s_D,
+        ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+          w ∈ rationalOpen
+              ({(1 : Localization.Away s)} : Finset (Localization.Away s))
+              (((σ_loc⁻¹ : (Localization.Away s)ˣ) : Localization.Away s) *
+                τ) →
+          w.vle ((σ_loc : Localization.Away s) *
+              (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+            (algebraMap A (Localization.Away s) s) →
+          w.vle (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t)
+                (algebraMap A (Localization.Away s) s_D) ∧
+          (∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+              w.vle (1 : Localization.Away s) t')) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    (∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w.vle (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t)
+              (algebraMap A (Localization.Away s) s_D)) ∧
+    (∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w.vle (1 : Localization.Away s) t') := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  -- Common per-`w` cover-refinement step: dispatch to the Laurent piece
+  -- containing `w`, then apply the per-piece hypothesis.
+  have h_at_w : ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      w.vle ((σ_loc : Localization.Away s) *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+        (algebraMap A (Localization.Away s) s) →
+      w.vle (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t)
+            (algebraMap A (Localization.Away s) s_D) ∧
+      (∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w.vle (1 : Localization.Away s) t') := by
+    intro w hw_spa hw_f
+    -- Specialize the general `cor732_laurent_piece_membership_at`
+    -- (in `WedhornStandardCoverRefinement.lean`) at
+    -- `A := Localization.Away s` and `T := localizedTestFamily s T_D s_D`.
+    obtain ⟨τ, hτ, hw_piece⟩ :=
+      cor732_laurent_piece_membership_at hσ_loc_dom hw_spa
+    exact h_per_piece_multi_lower τ hτ w hw_spa hw_piece hw_f
+  refine ⟨?_, ?_⟩
+  · intro w hw_spa hw_f
+    exact (h_at_w w hw_spa hw_f).1
+  · intro w hw_spa hw_f t' ht'
+    exact (h_at_w w hw_spa hw_f).2 t' ht'
 
 end ValuationSpectrum
