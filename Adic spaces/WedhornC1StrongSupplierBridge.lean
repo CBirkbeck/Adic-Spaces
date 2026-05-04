@@ -224,4 +224,172 @@ theorem produce_C1SupplierStrong_local_via_Wedhorn_834_via_per_call_supply
   C1SupplierStrong_local_via_localized_multi_piece_data
     P hA₀_le C hopen_base h_per_call_supply
 
+/-! ### T179: per-call localized multi-piece supply producer
+
+T178 (commit `d33b428`, this file) reduces the documented residual
+`produce_C1SupplierStrong_local_via_Wedhorn_834` to T177's per-call
+boundary `WedhornC1PerCallSupplyLocalizedMultiPiece`. T179 attacks the
+**per-call producer** itself: how to construct that supply from
+concrete Wedhorn 8.34(ii) Tate setup data.
+
+**Decomposition of the per-call supply**:
+
+The 8 fields of `WedhornC1PerCallSupplyLocalizedMultiPiece`:
+* (1) `σ_loc : (Loc C.base.s)ˣ`,
+* (2) `f : A`,
+* (3) `hσ_loc_dom` — σ-strict-dom over `localizedTestFamily`,
+* (4) `h_alg` — `algebraMap f = σ_loc · ∏ D.T.image`,
+* (5) `h_s_factor` — `C.base.s = D.s · f`,
+* (6) `hT_D_le_A₀` — `∀ t ∈ D.T, t ∈ P.A₀`,
+* (7a) `hv_in_plus` — `v ∈ rationalOpen (insert f C.base.T) C.base.s`,
+* (7b) `hvf_nz` — `¬ v.vle f 0`,
+
+split naturally into:
+
+* **Cover structural data**: `hT_covers_le_A₀ : ∀ D ∈ C.covers, ∀ t ∈ D.T, t ∈ P.A₀`
+  — a cover-piece structural condition not present in
+  `RationalCovering`'s definition; must be supplied explicitly.
+
+* **σ/denominator/factorization construction (the genuinely missing
+  per-call structural lemma)**: at each per-call `(D, v, t)`, construct
+  `σ_loc, f` together with `hσ_loc_dom`, `h_alg`, `h_s_factor`,
+  `hv_in_plus`, `hvf_nz`. This is Wedhorn 8.34(ii)'s explicit
+  σ-construction `f := σ · t · D.s ^ N`, with σ chosen via
+  `Cor732.exists_dominating_unit` (the localized
+  `exists_dominating_unit_in_localization` API requires lifting the
+  global pseudouniformizer `π : P.A₀` to a localized `π_loc` plus the
+  Tate transfer of pseudouniformizer hypotheses; that lifting is the
+  inner content of the missing structural lemma).
+
+**T179 deliverable shape (acceptable fallback)**: a compiled,
+caller-facing per-call reduction theorem that names
+`h_dom_factorization` (the σ/denominator/factorization construction)
+as the genuinely missing structural lemma and consumes
+`hT_D_le_A₀` from the cover structural data, producing the per-call
+`WedhornC1PerCallSupplyLocalizedMultiPiece`. A top-level theorem
+composes with T178 to produce `C1SupplierStrong_local C`.
+
+Provided:
+
+* `produce_WedhornC1PerCallSupplyLocalizedMultiPiece_via_factorization_and_dom_supply`
+  — per-call reduction theorem.
+* `produce_C1SupplierStrong_local_via_Wedhorn_834_via_factorization_and_dom_supply`
+  — top-level theorem composing the per-call reduction with T178. -/
+
+/-- **T179 per-call reduction**: produce
+`WedhornC1PerCallSupplyLocalizedMultiPiece P C hopen_base D v` from
+the σ/denominator/factorization construction supplier plus the
+cover-piece structural hypothesis `hT_D_le_A₀`.
+
+The construction supplier `h_dom_factorization` packages five of the
+six per-call fields:
+
+* `σ_loc, f` (the constructed unit and cover-refinement element);
+* `hσ_loc_dom`, `h_alg`, `h_s_factor` (Wedhorn cover-piece factorization
+  identities);
+* `hv_in_plus`, `hvf_nz` (source-side rational-open transfer).
+
+The remaining `hT_D_le_A₀` is supplied separately as a cover-piece
+structural hypothesis (the natural Wedhorn `D.T ⊆ P.A₀` condition;
+explicitly required since `RationalCovering` does not embed it).
+
+This is the **first compiled boundary** for the per-call supply
+construction: the manageable inputs are isolated as cover structural
+data, and the genuinely Wedhorn 8.34(ii)-specific content is named
+exactly as the σ/denominator/factorization construction supplier. -/
+theorem produce_WedhornC1PerCallSupplyLocalizedMultiPiece_via_factorization_and_dom_supply
+    [DecidableEq A]
+    (P : PairOfDefinition A)
+    (C : RationalCovering A)
+    (hopen_base : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) C.base.s ∈ locSubring P C.base.T C.base.s)
+    (D : RationalLocData A) (v : Spv A)
+    (hT_D_le_A₀ : ∀ τ ∈ D.T, τ ∈ P.A₀)
+    (h_dom_factorization :
+      letI : TopologicalSpace (Localization.Away C.base.s) :=
+        locTopology P C.base.T C.base.s hopen_base
+      letI : PlusSubring (Localization.Away C.base.s) :=
+        localizationLocSubringPlusSubring P C.base.T C.base.s
+      letI : DecidableEq (Localization.Away C.base.s) := Classical.decEq _
+      ∃ (σ_loc : (Localization.Away C.base.s)ˣ) (f : A),
+        (∀ w ∈ Spa (Localization.Away C.base.s)
+              (Localization.Away C.base.s)⁺,
+            ∃ τ ∈ localizedTestFamily C.base.s D.T D.s,
+              w.vle (σ_loc : Localization.Away C.base.s) τ ∧
+                ¬ w.vle τ (σ_loc : Localization.Away C.base.s)) ∧
+        (algebraMap A (Localization.Away C.base.s) f =
+          (σ_loc : Localization.Away C.base.s) *
+            (∏ τ ∈ D.T.image (algebraMap A (Localization.Away C.base.s)),
+              τ)) ∧
+        C.base.s = D.s * f ∧
+        v ∈ rationalOpen (insert f C.base.T) C.base.s ∧
+        ¬ v.vle f 0) :
+    WedhornC1PerCallSupplyLocalizedMultiPiece P C hopen_base D v := by
+  letI : TopologicalSpace (Localization.Away C.base.s) :=
+    locTopology P C.base.T C.base.s hopen_base
+  letI : PlusSubring (Localization.Away C.base.s) :=
+    localizationLocSubringPlusSubring P C.base.T C.base.s
+  letI : DecidableEq (Localization.Away C.base.s) := Classical.decEq _
+  obtain ⟨σ_loc, f, hσ_dom, h_alg, h_s_factor, hv_in, hvf_nz⟩ :=
+    h_dom_factorization
+  exact ⟨σ_loc, f, hσ_dom, h_alg, h_s_factor, hT_D_le_A₀, hv_in, hvf_nz⟩
+
+/-- **T179 top-level reduction**: produce `C1SupplierStrong_local C`
+from per-call σ/denominator/factorization construction supplier plus
+cover-piece structural data, composing T179's per-call reduction with
+T178's caller-facing reduction.
+
+**Inputs**:
+* `P`, `hA₀_le`, `C`, `hopen_base` — natural cover-base structural data.
+* `hT_covers_le_A₀ : ∀ D ∈ C.covers, ∀ t ∈ D.T, t ∈ P.A₀` —
+  cover-piece structural condition (the natural Wedhorn `D.T ⊆ P.A₀`
+  condition; explicit since `RationalCovering` does not embed it).
+* `h_per_call_construction` — per-call σ/denominator/factorization
+  construction supplier (the genuinely missing Wedhorn 8.34(ii) per-call
+  structural lemma).
+
+**Output**: `C1SupplierStrong_local C`.
+
+After T179, the documented residual
+`produce_C1SupplierStrong_local_via_Wedhorn_834` is reduced to a single
+named per-call structural lemma `h_per_call_construction` plus the
+cover structural hypothesis. The Wedhorn 8.34(ii) σ-construction at
+the per-call level is the only remaining input. -/
+theorem produce_C1SupplierStrong_local_via_Wedhorn_834_via_factorization_and_dom_supply
+    [DecidableEq A]
+    (P : PairOfDefinition A) (hA₀_le : P.A₀ ≤ A⁺)
+    (C : RationalCovering A)
+    (hopen_base : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) C.base.s ∈ locSubring P C.base.T C.base.s)
+    (hT_covers_le_A₀ : ∀ D ∈ C.covers, ∀ τ ∈ D.T, τ ∈ P.A₀)
+    (h_per_call_construction :
+      letI : TopologicalSpace (Localization.Away C.base.s) :=
+        locTopology P C.base.T C.base.s hopen_base
+      letI : PlusSubring (Localization.Away C.base.s) :=
+        localizationLocSubringPlusSubring P C.base.T C.base.s
+      letI : DecidableEq (Localization.Away C.base.s) := Classical.decEq _
+      ∀ (D : RationalLocData A), D ∈ C.covers →
+      ∀ (v : Spv A), v ∈ rationalOpen D.T D.s →
+      ∀ (t : A), t ∈ D.T → v.vle t D.s → ¬ v.vle D.s 0 →
+        ∃ (σ_loc : (Localization.Away C.base.s)ˣ) (f : A),
+          (∀ w ∈ Spa (Localization.Away C.base.s)
+                (Localization.Away C.base.s)⁺,
+              ∃ τ ∈ localizedTestFamily C.base.s D.T D.s,
+                w.vle (σ_loc : Localization.Away C.base.s) τ ∧
+                  ¬ w.vle τ (σ_loc : Localization.Away C.base.s)) ∧
+          (algebraMap A (Localization.Away C.base.s) f =
+            (σ_loc : Localization.Away C.base.s) *
+              (∏ τ ∈ D.T.image
+                (algebraMap A (Localization.Away C.base.s)), τ)) ∧
+          C.base.s = D.s * f ∧
+          v ∈ rationalOpen (insert f C.base.T) C.base.s ∧
+          ¬ v.vle f 0) :
+    C1SupplierStrong_local C :=
+  produce_C1SupplierStrong_local_via_Wedhorn_834_via_per_call_supply
+    P hA₀_le C hopen_base
+    (fun D hD v hv t ht hvt hvD_s =>
+      produce_WedhornC1PerCallSupplyLocalizedMultiPiece_via_factorization_and_dom_supply
+        P C hopen_base D v (hT_covers_le_A₀ D hD)
+        (h_per_call_construction D hD v hv t ht hvt hvD_s))
+
 end ValuationSpectrum
