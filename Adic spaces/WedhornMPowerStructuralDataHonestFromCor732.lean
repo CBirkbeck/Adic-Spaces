@@ -3540,4 +3540,214 @@ theorem AlphaJointCor732MultiplicativeBound_residual_via_uniformDecayAndChain_an
     -- (α_s_unit : Loc s) * (α_s_unit⁻¹ : Loc s) = 1.
     rwa [Units.mul_inv] at h_mul
 
+/-! ### T164 (corrected, post-T163): locPlus M/N-choice supplier
+
+Honest version of T164 with witnesses landing in `locPlusSubring P T s`
+(the integral closure of `locSubring` in `Localization.Away s` from
+T163), targeting `AlphaJointMNChoiceLocPlusMembership` directly. Uses
+T163's `mem_locPlusSubring_of_vle_on_spa` (Wedhorn 7.18 honest
+global-section criterion) to lift the raw localization witnesses
+`ξ_decay := α s · (σ_loc · α s_D^(N+1))⁻¹` and per-`t` `ξ_t := σ_loc ·
+α t · α s_D^N · (α s)⁻¹` into `locPlusSubring`-coefficients.
+
+Provided:
+
+* `AlphaJointCor732_uniformDecayAndChain_locPlus` — per-σ_loc Prop
+  asserting Spa-uniform σ-power decay + per-`t` chain on the **locPlus**
+  Spa `Spa(Localization.Away s, localizationLocPlusSubring P T s)`. The
+  uniform finite-family `N : ℕ` is shared across the decay and the
+  per-`t` chains.
+
+* `AlphaJointMNChoiceLocPlusMembership_via_uniformDecayAndChain_and_unit_s_D`
+  — compiled theorem producing
+  `∃ N, AlphaJointMNChoiceLocPlusMembership P T s hopen T_D s_D σ_loc N`
+  from the uniform decay+chain residual on locPlus Spa, the algebraic
+  hypothesis `IsUnit (algebraMap A (Loc s) s_D)`, and the
+  domain/non-zero `[IsDomain A]` + `s ≠ 0` hypotheses required by
+  `mem_locPlusSubring_of_vle_on_spa`.
+
+This is the honest plus-subring Cor 7.32 multiplicative-bound theorem
+with one uniform finite-family `N`. The remaining content reduces to
+proving `AlphaJointCor732_uniformDecayAndChain_locPlus` (the σ-power
+decay+chain on the locPlus Spa, weaker than on the locSubring Spa
+since the locPlus Spa has fewer points), discharged via
+σ-as-π-power identification (T160) + Spa-quasi-compactness M-choice. -/
+
+omit [PlusSubring A] in
+/-- **T164 (corrected) named uniform σ-power-decay + per-`t` chain on
+locPlus Spa**. For a fixed `σ_loc : (Localization.Away s)ˣ`, asserts the
+existence of an exponent `N : ℕ` such that on the **locPlus Spa**
+`Spa(Localization.Away s, localizationLocPlusSubring P T s)`:
+
+* (uniform decay) at every w in the locPlus Spa:
+  `w.vle (α s) ((σ_loc : Loc s) · (α s_D)^(N+1))`;
+* (per-`t` chain) at every `t ∈ T_D` and every w in the locPlus Spa:
+  `w.vle ((σ_loc : Loc s) · α t · (α s_D)^N) (α s)`.
+
+The uniform `N` is shared across the decay and the entire finite family
+`T_D`. -/
+def AlphaJointCor732_uniformDecayAndChain_locPlus
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocPlusSubring P T s
+  ∃ N : ℕ,
+    (∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      w.vle (algebraMap A (Localization.Away s) s)
+        ((σ_loc : Localization.Away s) *
+          (algebraMap A (Localization.Away s) s_D) ^ (N + 1))) ∧
+    (∀ t ∈ T_D,
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            algebraMap A (Localization.Away s) t *
+            (algebraMap A (Localization.Away s) s_D) ^ N)
+          (algebraMap A (Localization.Away s) s))
+
+set_option linter.unusedSectionVars false in
+omit [PlusSubring A] in
+/-- **T164 corrected: locPlus M/N-choice from uniform decay+chain +
+`IsUnit α s_D`**.
+
+Given the locPlus-Spa uniform σ-power decay+chain residual + `IsUnit α s_D`
++ domain/non-zero hypotheses (`[IsDomain A]`, `s ≠ 0`) for
+`mem_locPlusSubring_of_vle_on_spa`, produces
+
+```
+∃ N : ℕ, AlphaJointMNChoiceLocPlusMembership P T s hopen T_D s_D σ_loc N.
+```
+
+**Proof outline**:
+
+1. From `h_decayChain` extract a uniform `N`, the decay inequality, and
+   the per-`t` chain inequalities on the locPlus Spa.
+
+2. `α s` is a unit in `Loc s` (by `IsLocalization.Away.algebraMap_isUnit`);
+   `α s_D` is a unit by hypothesis; `σ_loc` is a unit by type. So
+   `σ_loc · α s_D^(N+1)` is a unit; raise α s_D to the (N+1)-th power.
+
+3. Construct raw witnesses
+   `ξ_decay_raw := α s · (σ_loc · α s_D^(N+1))⁻¹` and per-`t`
+   `ξ_t_raw := σ_loc · α t · α s_D^N · (α s)⁻¹` in `Loc s` via Units
+   inverses.
+
+4. Verify locPlus membership via `mem_locPlusSubring_of_vle_on_spa`:
+   each raw witness has Spa-uniform `vle 1` on the locPlus Spa,
+   derived from the uniform decay/chain inequalities by
+   right-multiplication with the unit inverse via
+   `vle_iff_mul_unit_right` and `Units.mul_inv` to clear.
+
+5. Verify the algebraic factorisations by Units arithmetic
+   (`IsUnit.val_inv_mul`).
+
+6. Package as `AlphaJointMNChoiceLocPlusMembership`. -/
+theorem AlphaJointMNChoiceLocPlusMembership_via_uniformDecayAndChain_and_unit_s_D
+    [DecidableEq A] [IsDomain A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (hs : s ≠ 0)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_unit_s_D : IsUnit (algebraMap A (Localization.Away s) s_D))
+    (h_decayChain :
+      AlphaJointCor732_uniformDecayAndChain_locPlus
+        P T s hopen T_D s_D σ_loc) :
+    ∃ N : ℕ,
+      AlphaJointMNChoiceLocPlusMembership
+        P T s hopen T_D s_D σ_loc N := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  obtain ⟨N, h_decay, h_chain⟩ := h_decayChain
+  -- Unit infrastructure.
+  have h_α_s_unit :
+      IsUnit (algebraMap A (Localization.Away s) s) :=
+    IsLocalization.Away.algebraMap_isUnit (S := Localization.Away s) s
+  have h_α_s_D_pow_unit :
+      IsUnit ((algebraMap A (Localization.Away s) s_D) ^ (N + 1)) :=
+    h_unit_s_D.pow (N + 1)
+  have h_denom_unit :
+      IsUnit ((σ_loc : Localization.Away s) *
+        (algebraMap A (Localization.Away s) s_D) ^ (N + 1)) :=
+    σ_loc.isUnit.mul h_α_s_D_pow_unit
+  -- Raw inverses.
+  set denom_inv : Localization.Away s :=
+    ((h_denom_unit.unit⁻¹ : (Localization.Away s)ˣ) : Localization.Away s)
+    with hdenom_inv_def
+  set α_s_inv : Localization.Away s :=
+    ((h_α_s_unit.unit⁻¹ : (Localization.Away s)ˣ) : Localization.Away s)
+    with hα_s_inv_def
+  -- Raw witnesses.
+  set ξ_decay_raw : Localization.Away s :=
+    algebraMap A (Localization.Away s) s * denom_inv with hξ_decay_raw_def
+  refine ⟨N, ?_, ?_⟩
+  · -- Decay piece: ξ_decay ∈ locPlusSubring + algebraic factorisation.
+    -- locPlus membership via mem_locPlusSubring_of_vle_on_spa.
+    have h_decay_inv_mul :
+        denom_inv * ((σ_loc : Localization.Away s) *
+          (algebraMap A (Localization.Away s) s_D) ^ (N + 1)) = 1 := by
+      rw [hdenom_inv_def]
+      exact h_denom_unit.val_inv_mul
+    have h_ξ_decay_mem : ξ_decay_raw ∈ locPlusSubring P T s := by
+      apply mem_locPlusSubring_of_vle_on_spa P T s hs hopen ξ_decay_raw
+      intro w hw
+      -- Goal: w.vle ξ_decay_raw 1, derived from h_decay.
+      have h_decay_at := h_decay w hw
+      have h_denom_eq : (h_denom_unit.unit : Localization.Away s) =
+          (σ_loc : Localization.Away s) *
+            (algebraMap A (Localization.Away s) s_D) ^ (N + 1) :=
+        h_denom_unit.unit_spec
+      rw [← h_denom_eq] at h_decay_at
+      have h_mul := (vle_iff_mul_unit_right w h_denom_unit.unit⁻¹
+        (algebraMap A (Localization.Away s) s)
+        ((h_denom_unit.unit : Localization.Away s))).mpr h_decay_at
+      rwa [Units.mul_inv] at h_mul
+    -- Algebraic factorisation: α s = ξ_decay_raw · (σ_loc · α s_D^(N+1)).
+    have h_decay_eq :
+        algebraMap A (Localization.Away s) s = ξ_decay_raw *
+          ((σ_loc : Localization.Away s) *
+            (algebraMap A (Localization.Away s) s_D) ^ (N + 1)) := by
+      rw [hξ_decay_raw_def, mul_assoc, h_decay_inv_mul, mul_one]
+    exact ⟨⟨ξ_decay_raw, h_ξ_decay_mem⟩, h_decay_eq⟩
+  · -- Per-t' chain piece: ξ_t' ∈ locPlusSubring + algebraic factorisation.
+    intro t' ht'
+    obtain ⟨t, ht_in_T_D, ht_eq⟩ := Finset.mem_image.mp ht'
+    set ξ_t_raw : Localization.Away s :=
+      (σ_loc : Localization.Away s) *
+        algebraMap A (Localization.Away s) t *
+        (algebraMap A (Localization.Away s) s_D) ^ N *
+        α_s_inv with hξ_t_raw_def
+    have h_α_s_inv_mul :
+        α_s_inv * algebraMap A (Localization.Away s) s = 1 := by
+      rw [hα_s_inv_def]
+      exact h_α_s_unit.val_inv_mul
+    have h_ξ_t_mem : ξ_t_raw ∈ locPlusSubring P T s := by
+      apply mem_locPlusSubring_of_vle_on_spa P T s hs hopen ξ_t_raw
+      intro w hw
+      have h_chain_at := h_chain t ht_in_T_D w hw
+      have h_α_s_eq : (h_α_s_unit.unit : Localization.Away s) =
+          algebraMap A (Localization.Away s) s :=
+        h_α_s_unit.unit_spec
+      rw [← h_α_s_eq] at h_chain_at
+      have h_mul := (vle_iff_mul_unit_right w h_α_s_unit.unit⁻¹
+        ((σ_loc : Localization.Away s) *
+          algebraMap A (Localization.Away s) t *
+          (algebraMap A (Localization.Away s) s_D) ^ N)
+        ((h_α_s_unit.unit : Localization.Away s))).mpr h_chain_at
+      rwa [Units.mul_inv] at h_mul
+    -- Algebraic factorisation: σ_loc · t' · α s_D^N = ξ_t_raw · α s.
+    have h_chain_eq :
+        (σ_loc : Localization.Away s) * t' *
+            (algebraMap A (Localization.Away s) s_D) ^ N =
+          ξ_t_raw * algebraMap A (Localization.Away s) s := by
+      rw [← ht_eq, hξ_t_raw_def,
+        mul_assoc _ α_s_inv (algebraMap A (Localization.Away s) s),
+        h_α_s_inv_mul, mul_one]
+    exact ⟨⟨ξ_t_raw, h_ξ_t_mem⟩, h_chain_eq⟩
+
 end ValuationSpectrum
