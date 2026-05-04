@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».WedhornStrengthenedC1
 import «Adic spaces».WedhornNormalizedC1Assembly
+import «Adic spaces».WedhornLocalizedMultiPieceLaurentRefinement
 
 /-!
 # Strong-supplier insertDenom-lift bridge
@@ -150,5 +151,77 @@ theorem C1SupplierStrong_local_insertDenom_lift
     rw [rationalOpen_insert_base_insertDenom_eq,
       RationalLocData.rationalOpen_insertDenom]
     exact hsub
+
+/-! ### T178: produce `C1SupplierStrong_local C` via T177's per-call localized
+multi-piece supply
+
+T177 (commit `09a84d9`,
+`WedhornLocalizedMultiPieceLaurentRefinement.lean`) provides
+`C1SupplierStrong_local_via_localized_multi_piece_data`, which produces
+`C1SupplierStrong_local C` from per-call delivery of
+`WedhornC1PerCallSupplyLocalizedMultiPiece` — the natural Wedhorn
+cover-piece structural data (cover-refinement element identity,
+cover-base factorization, ring-of-definition membership, source-side
+clauses).
+
+This section attacks the documented residual
+`produce_C1SupplierStrong_local_via_Wedhorn_834` by lowering it to
+T177's clean per-call supply boundary.
+
+**Status: caller-facing reduction (acceptable fallback)**. The full
+discharge from concrete Tate / pseudouniformizer hypotheses to the
+per-call supply requires the Wedhorn 8.34(ii) σ-construction
+(localized Cor 7.32 σ-strict-dominating unit, denominator-clearing
+construction `f := σ · t · D.s ^ N`, and source-side rational-open
+membership transfer) — the genuinely missing per-call structural
+producer. T178's reduction theorem isolates that per-call producer
+as the single open input.
+
+Provided:
+
+* `produce_C1SupplierStrong_local_via_Wedhorn_834_via_per_call_supply` —
+  caller-facing reduction theorem. Takes the natural cover-base
+  structural data (`P`, `hA₀_le`, `C`, `hopen_base`) plus T177's
+  `WedhornC1PerCallSupplyLocalizedMultiPiece` per-call supply, and
+  produces `C1SupplierStrong_local C` via
+  `C1SupplierStrong_local_via_localized_multi_piece_data`.
+
+The Tate / noetherian / pseudouniformizer hypotheses listed in the
+documented residual signature are not required by this reduction —
+they belong to a future per-call supply producer (Wedhorn 8.34(ii)
+σ-construction at the per-call level), which is outside T178's scope. -/
+
+/-- **T178 caller-facing reduction**: produce `C1SupplierStrong_local C`
+from T177's per-call localized multi-piece supply.
+
+Reduces the documented residual
+`produce_C1SupplierStrong_local_via_Wedhorn_834` (in this file's
+docstring) to T177's clean per-call boundary
+`WedhornC1PerCallSupplyLocalizedMultiPiece`. The per-call supply is
+the **genuine missing per-call structural producer**: the Wedhorn
+8.34(ii) σ-construction packaged as `(σ_loc, f, h_alg, h_s_factor,
+hT_D_le_A₀, hv_in_plus, hvf_nz)` per `(D, v, t)`. Its discharge from
+concrete Tate / pseudouniformizer hypotheses is the next theorem-level
+ticket beyond T178.
+
+Composition: applies
+`C1SupplierStrong_local_via_localized_multi_piece_data` (T177).
+Clauses 1, 2, 3 of `C1SupplierStrong_local` are dispatched through
+T172/T173/T175/T176 producers internally to T177; T178 only handles
+the per-call delivery layer. -/
+theorem produce_C1SupplierStrong_local_via_Wedhorn_834_via_per_call_supply
+    [DecidableEq A]
+    (P : PairOfDefinition A) (hA₀_le : P.A₀ ≤ A⁺)
+    (C : RationalCovering A)
+    (hopen_base : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) C.base.s ∈ locSubring P C.base.T C.base.s)
+    (h_per_call_supply :
+      ∀ (D : RationalLocData A), D ∈ C.covers →
+      ∀ (v : Spv A), v ∈ rationalOpen D.T D.s →
+      ∀ (t : A), t ∈ D.T → v.vle t D.s → ¬ v.vle D.s 0 →
+        WedhornC1PerCallSupplyLocalizedMultiPiece P C hopen_base D v) :
+    C1SupplierStrong_local C :=
+  C1SupplierStrong_local_via_localized_multi_piece_data
+    P hA₀_le C hopen_base h_per_call_supply
 
 end ValuationSpectrum
