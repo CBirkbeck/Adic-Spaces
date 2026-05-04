@@ -505,4 +505,138 @@ theorem wedhorn_834_per_call_dom_supplier
     π_loc hI_loc hπ_loc_tn hπ_loc_unit hArch_loc
     (localizedTestFamily C.base.s D.T D.s) hT_loc_ne
 
+/-! ### T181: localized test-family non-vanishing supplier from `α D.s`
+
+T180 takes the per-`w` non-vanishing supplier `hT_loc_ne` for
+`localizedTestFamily C.base.s D.T D.s` as an explicit input. T181 lands
+the natural reduction: from the simpler per-cover non-vanishing
+hypothesis `h_α_D_s_ne` (asserting `¬ w.vle (algebraMap D.s) 0` at every
+`w ∈ Spa(Loc C.base.s, ⁺)`), produce the localized test-family
+non-vanishing supplier.
+
+The reduction picks `τ := algebraMap A (Loc C.base.s) D.s` (always in
+`localizedTestFamily C.base.s D.T D.s` via `Finset.mem_insert_self`)
+and forwards the per-cover non-vanishing hypothesis at each `w`.
+
+This isolates the **α D.s non-vanishing** as the weakest cover-piece
+structural hypothesis sufficient to discharge `hT_loc_ne` at the T180
+boundary. The full discharge of `h_α_D_s_ne` from concrete cover data
+(e.g., from `D.s ∈ A` being a unit modulo the localization, or from
+the per-`w` rational-open / valuative restriction structure) is a
+separate cover-piece structural lemma; deriving it from existing
+codebase APIs requires the localized rational-open transfer
+(see `WedhornStrengthenedC1` / `rationalOpen_transfer_via_localization`),
+which is outside T181's scope.
+
+Provided:
+
+* `wedhorn_834_localizedTestFamily_nonvanishing_supplier` — produces
+  the T180 `hT_loc_ne` shape from `h_α_D_s_ne`.
+
+* `wedhorn_834_per_call_dom_supplier_via_α_D_s_ne` — caller composing
+  T181's supplier with T180's `wedhorn_834_per_call_dom_supplier`. -/
+
+/-- **T181 localized test-family non-vanishing supplier**.
+
+Produces the T180 `hT_loc_ne` hypothesis shape from the simpler
+per-cover non-vanishing condition `h_α_D_s_ne`: at every
+`w ∈ Spa(Loc C.base.s, ⁺)`, `¬ w.vle (algebraMap D.s) 0`.
+
+**Proof**: at each `w`, return `τ := algebraMap A (Loc C.base.s) D.s`
+(in `localizedTestFamily C.base.s D.T D.s` by `Finset.mem_insert_self`,
+since `localizedTestFamily = insert (algebraMap D.s) (D.T.image (algebraMap))`),
+with the supplied non-vanishing witness.
+
+This is a strict reduction: the multi-element `localizedTestFamily`
+non-vanishing reduces to the single-element α D.s non-vanishing — the
+weakest sufficient cover-piece structural condition. -/
+theorem wedhorn_834_localizedTestFamily_nonvanishing_supplier
+    [DecidableEq A]
+    (P : PairOfDefinition A)
+    (C : RationalCovering A)
+    (hopen_base : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) C.base.s ∈ locSubring P C.base.T C.base.s)
+    (D : RationalLocData A) :
+    letI : TopologicalSpace (Localization.Away C.base.s) :=
+      locTopology P C.base.T C.base.s hopen_base
+    letI : PlusSubring (Localization.Away C.base.s) :=
+      localizationLocSubringPlusSubring P C.base.T C.base.s
+    ∀ (_h_α_D_s_ne :
+        ∀ w ∈ Spa (Localization.Away C.base.s)
+              (Localization.Away C.base.s)⁺,
+          ¬ w.vle (algebraMap A (Localization.Away C.base.s) D.s) 0),
+      ∀ w ∈ Spa (Localization.Away C.base.s)
+            (Localization.Away C.base.s)⁺,
+        ∃ τ ∈ localizedTestFamily C.base.s D.T D.s, ¬ w.vle τ 0 := by
+  letI : TopologicalSpace (Localization.Away C.base.s) :=
+    locTopology P C.base.T C.base.s hopen_base
+  letI : PlusSubring (Localization.Away C.base.s) :=
+    localizationLocSubringPlusSubring P C.base.T C.base.s
+  letI : DecidableEq (Localization.Away C.base.s) := Classical.decEq _
+  intro h_α_D_s_ne w hw_spa
+  refine ⟨algebraMap A (Localization.Away C.base.s) D.s, ?_,
+    h_α_D_s_ne w hw_spa⟩
+  unfold localizedTestFamily
+  exact Finset.mem_insert_self _ _
+
+/-- **T181 caller**: σ-strict-domination supplier with the localized
+test-family non-vanishing hypothesis discharged from α D.s
+non-vanishing.
+
+Composes T181's `wedhorn_834_localizedTestFamily_nonvanishing_supplier`
+with T180's `wedhorn_834_per_call_dom_supplier`, producing the
+σ-strict-dominating unit + per-`w` strict-domination output from:
+
+* localized pseudouniformizer data (`π_loc`, `hI_loc`, `hπ_loc_tn`,
+  `hπ_loc_unit`, `hArch_loc`) — same as T180;
+* `h_α_D_s_ne` — per-`w` non-vanishing of `algebraMap D.s` (cover-piece
+  structural condition).
+
+After T181, the remaining inputs for the σ-strict-domination supplier
+beyond standard pseudouniformizer data are reduced to the cleanest
+per-cover non-vanishing condition on α D.s. -/
+theorem wedhorn_834_per_call_dom_supplier_via_α_D_s_ne
+    [DecidableEq A]
+    (P : PairOfDefinition A)
+    (C : RationalCovering A)
+    (hopen_base : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) C.base.s ∈ locSubring P C.base.T C.base.s)
+    (D : RationalLocData A) :
+    letI : TopologicalSpace (Localization.Away C.base.s) :=
+      locTopology P C.base.T C.base.s hopen_base
+    letI : PlusSubring (Localization.Away C.base.s) :=
+      localizationLocSubringPlusSubring P C.base.T C.base.s
+    ∀ (π_loc : (locPairOfDefinition P C.base.T C.base.s hopen_base).A₀)
+      (_hI_loc : (locPairOfDefinition P C.base.T C.base.s hopen_base).I =
+        Ideal.span {π_loc})
+      (_hπ_loc_tn : IsTopologicallyNilpotent
+        ((locPairOfDefinition P C.base.T C.base.s hopen_base).A₀.subtype
+          π_loc))
+      (_hπ_loc_unit : IsUnit
+        ((locPairOfDefinition P C.base.T C.base.s hopen_base).A₀.subtype
+          π_loc))
+      (_hArch_loc : ∀ w : Spv (Localization.Away C.base.s),
+        letI : ValuativeRel (Localization.Away C.base.s) := w.toValuativeRel
+        MulArchimedean (ValuativeRel.ValueGroupWithZero
+          (Localization.Away C.base.s)))
+      (_h_α_D_s_ne :
+        ∀ w ∈ Spa (Localization.Away C.base.s)
+              (Localization.Away C.base.s)⁺,
+          ¬ w.vle (algebraMap A (Localization.Away C.base.s) D.s) 0),
+      ∃ σ_loc : (Localization.Away C.base.s)ˣ,
+        ∀ w ∈ Spa (Localization.Away C.base.s)
+              (Localization.Away C.base.s)⁺,
+          ∃ τ ∈ localizedTestFamily C.base.s D.T D.s,
+            w.vle (σ_loc : Localization.Away C.base.s) τ ∧
+              ¬ w.vle τ (σ_loc : Localization.Away C.base.s) := by
+  letI : TopologicalSpace (Localization.Away C.base.s) :=
+    locTopology P C.base.T C.base.s hopen_base
+  letI : PlusSubring (Localization.Away C.base.s) :=
+    localizationLocSubringPlusSubring P C.base.T C.base.s
+  intro π_loc hI_loc hπ_loc_tn hπ_loc_unit hArch_loc h_α_D_s_ne
+  exact wedhorn_834_per_call_dom_supplier P C hopen_base D
+    π_loc hI_loc hπ_loc_tn hπ_loc_unit hArch_loc
+    (wedhorn_834_localizedTestFamily_nonvanishing_supplier
+      P C hopen_base D h_α_D_s_ne)
+
 end ValuationSpectrum
