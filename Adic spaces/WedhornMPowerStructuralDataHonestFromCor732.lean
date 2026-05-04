@@ -4208,4 +4208,102 @@ theorem AlphaJointCor732_uniformDecayAndChain_via_decay_factorization_and_sigma_
     exact AlphaJointCor732_chain_half_via_sigma_dominated_by_alpha_s
       P T s hopen T_D s_D σ_loc h_σ_dom h_T_D_in h_s_D_in N
 
+/-! ### T166 (continued): concrete witness construction in the
+`s = s_D · c` (`c ∈ P.A₀`) special case
+
+Per the manager's review of bf3acd3: the previous combiners are the
+right shape, but the actual remaining content is the **decay
+factorization witness construction**, not another combiner. This
+section delivers a concrete fully-proved instance of
+`AlphaJointCor732_uniformDecayAndChain` in the natural special case
+`s = s_D · c` for `c ∈ P.A₀`, mirroring T158's
+`AlphaJointFactorizationWitnessesExist_when_s_eq_s_D_mul_A0_elt_and_T_D_le_T`
+construction but landing the locSubring uniform decay+chain target
+directly (rather than the T156-T158 factorization-witness existential).
+
+Reuses the T156 factorization-side primitives
+(`AlphaJointSigmaPowerDecayPiece_via_factorization`,
+`AlphaJointPerTChainPiece_via_factorization`) on the same
+(`σ_loc := 1`, `N := 0`) data T158 already established produces locSubring
+witnesses in this case:
+
+* decay witness `ξ_decay := algebraMap A (Loc s) c` (in `locSubring` by
+  `algebraMap_mem_locSubring P T s c.property`);
+* per-`t'` chain witness `ξ_t' := divByS (preimage_t') s` (in
+  `locSubring` by `divByS_mem_locSubring P T s ht_in_T` for
+  `preimage_t' ∈ T_D ⊆ T`).
+
+The decay factorisation `α s = α c · (1 · α s_D^1)` reduces to
+`α s = α s_D · α c` via `s = s_D · c`. The per-`t'` chain factorisation
+`1 · t' · α s_D^0 = ξ_t' · α s` reduces to `t' = (divByS preimage_t' s) · α s`,
+which is `IsLocalization.mk'_spec`.
+
+This is the **actual decay-factorisation witness construction** in the
+manager-suggested concrete case, not a wrapper around the open target. -/
+
+set_option linter.unusedSectionVars false in
+omit [PlusSubring A] in
+/-- **T166 concrete construction**: closes
+`AlphaJointCor732_uniformDecayAndChain P T s hopen T_D s_D 1` (at σ_loc = 1)
+in the `s = s_D · c` (`c ∈ P.A₀`) + `T_D ⊆ T` case.
+
+**Witnesses**: `N := 0`, `ξ_decay := algebraMap A (Loc s) c`,
+per-`t'` `ξ_t' := divByS (preimage_t') s`.
+
+**Proof skeleton**: feeds these witnesses into T156's
+`AlphaJointSigmaPowerDecayPiece_via_factorization` (decay) and
+`AlphaJointPerTChainPiece_via_factorization` (chain), then converts
+the `∀ w ∀ t'` quantifier shape to `∀ t ∀ w` via
+`Finset.mem_image_of_mem`.
+
+This is the same `s = s_D · c` data T158's
+`AlphaJointFactorizationWitnessesExist_when_s_eq_s_D_mul_A0_elt_and_T_D_le_T`
+already proved produces locSubring factorisation witnesses; this
+theorem reformulates the conclusion as the locSubring uniform
+decay+chain target consumed directly by T164/T165. -/
+theorem AlphaJointCor732_uniformDecayAndChain_when_s_eq_s_D_mul_A0_elt_and_T_D_le_T
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (c : P.A₀)
+    (h_s_factor : s = s_D * (c : A))
+    (h_T_D_le_T : T_D ⊆ T) :
+    AlphaJointCor732_uniformDecayAndChain
+      P T s hopen T_D s_D 1 := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  -- Decay-side: ξ_decay := α c, hfact_decay : α s = α c · (1 · α s_D^1).
+  have h_decay_piece :
+      AlphaJointSigmaPowerDecayPiece P T s hopen s_D 1 0 := by
+    apply AlphaJointSigmaPowerDecayPiece_via_factorization
+      P T s hopen s_D 1 0
+      ⟨algebraMap A (Localization.Away s) (c : A),
+        algebraMap_mem_locSubring P T s c.property⟩
+    rw [h_s_factor, map_mul]
+    simp [Units.val_one, mul_comm]
+  -- Chain-side: per-t', ξ_t' := divByS (preimage_t') s.
+  have h_chain_piece :
+      AlphaJointPerTChainPiece P T s hopen T_D s_D 1 0 := by
+    apply AlphaJointPerTChainPiece_via_factorization
+      P T s hopen T_D s_D 1 0
+    intro t' ht'
+    obtain ⟨t, ht_in_T_D, ht_eq⟩ := Finset.mem_image.mp ht'
+    have ht_in_T : t ∈ T := h_T_D_le_T ht_in_T_D
+    refine ⟨⟨divByS t s, divByS_mem_locSubring P T s ht_in_T⟩, ?_⟩
+    have hspec : divByS t s * algebraMap A (Localization.Away s) s =
+        algebraMap A (Localization.Away s) t :=
+      IsLocalization.mk'_spec _ t ⟨s, Submonoid.mem_powers s⟩
+    simp only [Units.val_one, one_mul, pow_zero, mul_one]
+    rw [← ht_eq]
+    exact hspec.symm
+  refine ⟨0, h_decay_piece, ?_⟩
+  -- Convert PerTChainPiece's `∀ w ∀ t'` to uniformDecayAndChain's `∀ t ∀ w`.
+  intro t ht w hw
+  exact h_chain_piece w hw (algebraMap A (Localization.Away s) t)
+    (Finset.mem_image_of_mem _ ht)
+
 end ValuationSpectrum
