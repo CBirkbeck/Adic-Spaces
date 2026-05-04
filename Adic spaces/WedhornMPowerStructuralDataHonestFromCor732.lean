@@ -3750,4 +3750,109 @@ theorem AlphaJointMNChoiceLocPlusMembership_via_uniformDecayAndChain_and_unit_s_
         h_α_s_inv_mul, mul_one]
     exact ⟨⟨ξ_t_raw, h_ξ_t_mem⟩, h_chain_eq⟩
 
+/-! ### T165: bridge from locSubring uniform decay+chain to locPlus version
+
+Strictly lower concrete bridge: derives
+`AlphaJointCor732_uniformDecayAndChain_locPlus` (the locPlus Spa
+uniform decay+chain target consumed by T164's locPlus M/N-choice
+constructor) from `AlphaJointCor732_uniformDecayAndChain` (the
+locSubring Spa version, present since the original T164 reduction).
+
+The proof is a single `spa_antitone` chase: since
+`locSubring P T s ≤ locPlusSubring P T s` (T163's
+`locSubring_le_locPlusSubring`), `spa_antitone` yields
+`Spa(Loc s, locPlusSubring) ⊆ Spa(Loc s, locSubring)` (locPlus Spa is
+smaller because locPlus is bigger). Any uniform statement on the
+locSubring Spa transports to the locPlus Spa pointwise; the uniform `N`
+is shared.
+
+This **lowers** T164's open `_locPlus` target onto the same uniform
+σ-power-decay+chain content stated on the **locSubring** Spa
+(`AlphaJointCor732_uniformDecayAndChain`), which is the form most
+existing localized Cor 7.32 / σ-power API in the project (e.g.,
+`IsLocalizedCor732SigmaLocOutput` from
+`WedhornSigmaFactoredSupplierFromLocalizedCor732`,
+`localizedCor732_sigma_supplier_for_actual_C1` from
+`WedhornLocalizedCor732SigmaSupplier`, the σ-decay-chain predicates
+in `WedhornSigmaPowerInequalityFromLocalizedCor732`) is naturally
+stated against — those APIs all use the canonical
+`localizationLocSubringPlusSubring` Spa, not the integral-closure
+`localizationLocPlusSubring`.
+
+### Existing-API mismatch / why a full discharge is blocked here
+
+The existing localized Cor 7.32 / σ-power API in the project (chiefly
+`Cor732SigmaDecayChainSupplier`, `LocalizedCor732SigmaDecayChainSupplier`,
+and `sigma_power_cleared_inequality_from_localized_cor732_output`)
+delivers conclusions of the form
+
+```
+∀ t' ∈ T_D, ∀ w ∈ Spa A A⁺,
+  w.vle f s_base → w.vle 1 t' → ¬ w.vle t' 0 →
+  ∃ N : ℕ, w.vle (t' * s_D ^ N) (s_D ^ (N + 1)) ∧ ¬ w.vle s_D 0
+```
+
+— at the **global** `Spa A A⁺` with **per-(w, t') existential `N`** and
+the **σ-cancelled** conclusion `t' · s_D^N ≤ s_D^(N+1)` (no `σ_loc`,
+no `α s`). The target `AlphaJointCor732_uniformDecayAndChain_locPlus`
+needs:
+
+* **uniform `N`** over the entire finite family `T_D` and the entire
+  Spa (not per-(w, t') existential),
+* the **σ-uncancelled** decay shape `α s ≤ σ_loc · α s_D^(N+1)` and the
+  per-`t` chain `σ_loc · α t · α s_D^N ≤ α s` (with `σ_loc` and `α s`
+  explicit, not cancelled),
+* on the **local** `Spa(Localization.Away s, …)` with `α`-images of
+  `T_D, s_D, s` — not on the global Spa with global elements.
+
+Bridging the existing API to my target therefore requires (i) a
+quasi-compactness uniformisation step to collapse the per-(w, t')
+existential `N` to a single uniform `N`, and (ii) a global-to-local
+Spa transfer with element substitution. Neither bridging is available
+as a single lemma in existing API; constructing it from
+`Cor732.exists_dominatedBy_cover` plus a denominator-clearing
+factorisation step is genuine Wedhorn 8.34(ii) Step 2 mathematical
+content and is the actual remaining critical-path target. -/
+
+omit [PlusSubring A] in
+/-- **T165 strictly lower bridge** (locSubring → locPlus): the
+locPlus-Spa uniform decay+chain residual follows from the locSubring-Spa
+uniform decay+chain residual at the **same `(σ_loc, N)`**.
+
+**Proof**: `locSubring P T s ≤ locPlusSubring P T s` (T163's
+`locSubring_le_locPlusSubring`), so `spa_antitone` gives the inclusion
+`Spa(Loc s, locPlusSubring) ⊆ Spa(Loc s, locSubring)`. Both halves of
+the locSubring residual transport pointwise to the locPlus Spa via this
+inclusion, sharing the uniform `N`.
+
+This **strictly lowers** T164's locPlus target (which is the open input
+to T164's `AlphaJointMNChoiceLocPlusMembership_via_uniformDecayAndChain_and_unit_s_D`)
+onto the locSubring uniform decay+chain `AlphaJointCor732_uniformDecayAndChain`,
+which is the natural target shape against existing localized Cor 7.32
+supplier API. -/
+theorem AlphaJointCor732_uniformDecayAndChain_locPlus_of_locSubring
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_locSubring :
+      AlphaJointCor732_uniformDecayAndChain
+        P T s hopen T_D s_D σ_loc) :
+    AlphaJointCor732_uniformDecayAndChain_locPlus
+      P T s hopen T_D s_D σ_loc := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  obtain ⟨N, h_decay, h_chain⟩ := h_locSubring
+  -- locSubring P T s ≤ locPlusSubring P T s, so locPlus Spa ⊆ locSubring Spa.
+  have h_subset :
+      Spa (Localization.Away s) (locPlusSubring P T s) ⊆
+        Spa (Localization.Away s) (locSubring P T s) :=
+    spa_antitone (locSubring_le_locPlusSubring P T s)
+  refine ⟨N, ?_, ?_⟩
+  · intro w hw_locPlus
+    exact h_decay w (h_subset hw_locPlus)
+  · intro t ht w hw_locPlus
+    exact h_chain t ht w (h_subset hw_locPlus)
+
 end ValuationSpectrum
