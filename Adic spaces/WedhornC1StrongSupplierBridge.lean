@@ -780,4 +780,157 @@ theorem wedhorn_834_per_call_dom_supplier_via_base_factorization
     (wedhorn_834_alpha_D_s_nonvanishing_of_base_factorization
       P C hopen_base D f h_s_factor)
 
+/-! ### T183: per-call construction packaging with `¬ v.vle f 0` from source-side
+
+T182 supplies σ_loc + σ-strict-dom for the σ-strict-dom subset of T179's
+per-call construction supplier, from `h_s_factor : C.base.s = D.s * f`
+plus localized pseudouniformizer data. T183 attacks the **packaging**
+of T179's six-clause per-call construction bundle, deriving the
+**source-side `¬ v.vle f 0`** clause automatically from the
+rational-open membership `v ∈ rationalOpen (insert f C.base.T) C.base.s`
+and the cover-base factorization `h_s_factor : C.base.s = D.s * f`.
+
+**Cycle-breaking analysis** (per the ticket's directive):
+
+The σ-strict-dom subset of T179's bundle (T180/T181/T182 chain) and
+the algebraic-factorization subset (clauses h_alg, h_s_factor) both
+consume `h_s_factor` as a structural input. There is **no circular
+dependency**: T183 takes `f`, `h_alg`, `h_s_factor`, σ_loc, σ-strict-dom,
+and source-side `hv_in_plus` all as **explicit inputs**, packages them
+into T179's existential bundle, and **derives** `¬ v.vle f 0` (the
+sixth clause) from `hv_in_plus` + `h_s_factor`. The σ_loc in `h_alg`
+matches the σ_loc supplied separately; T183 does not need to extract
+σ_loc from T180/T181/T182's existential.
+
+**Key algebraic content (cycle-breaking)**:
+
+The lemma `not_vle_zero_left_of_mul_eq_of_not_vle_zero` derives
+`¬ v.vle f 0` from `h_s_factor : C.base.s = D.s * f` and
+`¬ v.vle (C.base.s) 0`: if `v.vle f 0`, then by `mul_vle_mul_right`
+multiplying by `D.s` on the left, `v.vle (D.s * f) (D.s * 0) = 0`;
+substituting `h_s_factor` gives `v.vle (C.base.s) 0`, contradicting
+`hv_in_plus.2.2`. This is purely algebraic, no Wedhorn-specific
+content — reusable as a standalone valuation identity.
+
+**Source-side membership `hv_in_plus`** (`v ∈ rationalOpen (insert f
+C.base.T) C.base.s`) is the genuinely missing per-call structural
+input that T183 does not derive. Its discharge requires the Wedhorn
+8.34(ii) f-construction `f := σ · t · D.s ^ (N-1)` plus per-call
+verification that `v.vle f C.base.s` (cover refinement at `v`); this
+is the next theorem-level ticket.
+
+Provided:
+
+* `not_vle_zero_left_of_mul_eq_of_not_vle_zero` — generic algebraic
+  cycle-breaking lemma.
+
+* `wedhorn_834_per_call_construction_via_factorization` — T183 main
+  theorem packaging T179's six-clause per-call construction bundle
+  with `¬ v.vle f 0` derived. -/
+
+omit [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] in
+/-- **Generic algebraic non-vanishing lemma**: from `c = a * b` and
+`¬ v.vle c 0`, derive `¬ v.vle b 0`.
+
+Proof: assume `v.vle b 0`; multiply on the left by `a` via
+`ValuativeRel.mul_vle_mul_right` to get `v.vle (a * b) (a * 0) = 0`;
+substituting `c = a * b` gives `v.vle c 0`, contradicting `¬ v.vle c 0`.
+
+This is a reusable mathlib-style algebraic lemma — purely valuation
+arithmetic, no Wedhorn-specific content. Applied at T183 to derive
+`¬ v.vle f 0` from `h_s_factor : C.base.s = D.s * f` and the
+denominator non-vanishing of `C.base.s` at `v` (the third component of
+`v ∈ rationalOpen (insert f C.base.T) C.base.s`). -/
+theorem not_vle_zero_left_of_mul_eq_of_not_vle_zero
+    (v : Spv A) {a b c : A}
+    (h_eq : c = a * b)
+    (h_c_ne : ¬ v.vle c 0) :
+    ¬ v.vle b 0 := by
+  intro h_b_zero
+  apply h_c_ne
+  rw [h_eq]
+  letI : ValuativeRel A := v.toValuativeRel
+  have h_step : v.vle (a * b) (a * 0) :=
+    ValuativeRel.mul_vle_mul_right h_b_zero a
+  rwa [mul_zero] at h_step
+
+/-- **T183 per-call construction packaging via factorization**.
+
+Packages T179's six-clause per-call construction bundle from explicit
+data:
+
+* `σ_loc, hσ_loc_dom` — the σ-strict-dominating unit and the per-`w`
+  strict-domination output (the σ-strict-dom subset, supplied by
+  T180/T181/T182 chain or directly).
+* `f, h_alg` — the cover-refinement element and the algebraic
+  identity `algebraMap f = σ_loc · ∏ D.T.image (algebraMap)`.
+* `h_s_factor : C.base.s = D.s * f` — the cover-base factorization
+  in `A`.
+* `hv_in_plus : v ∈ rationalOpen (insert f C.base.T) C.base.s` — the
+  source-side rational-open membership (the genuinely missing Wedhorn
+  8.34(ii) f-construction content; its discharge requires the next
+  theorem-level ticket).
+
+T183 **derives** `¬ v.vle f 0` (the sixth clause of the bundle)
+automatically from `hv_in_plus` + `h_s_factor`, via the generic
+algebraic lemma `not_vle_zero_left_of_mul_eq_of_not_vle_zero`.
+
+Output: T179's six-clause existential bundle, ready to feed
+`produce_WedhornC1PerCallSupplyLocalizedMultiPiece_via_factorization_and_dom_supply`. -/
+theorem wedhorn_834_per_call_construction_via_factorization
+    [DecidableEq A]
+    (P : PairOfDefinition A)
+    (C : RationalCovering A)
+    (hopen_base : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) C.base.s ∈ locSubring P C.base.T C.base.s)
+    (D : RationalLocData A) (v : Spv A)
+    (σ_loc : (Localization.Away C.base.s)ˣ)
+    (hσ_loc_dom :
+      letI : TopologicalSpace (Localization.Away C.base.s) :=
+        locTopology P C.base.T C.base.s hopen_base
+      letI : PlusSubring (Localization.Away C.base.s) :=
+        localizationLocSubringPlusSubring P C.base.T C.base.s
+      ∀ w ∈ Spa (Localization.Away C.base.s)
+            (Localization.Away C.base.s)⁺,
+        ∃ τ ∈ localizedTestFamily C.base.s D.T D.s,
+          w.vle (σ_loc : Localization.Away C.base.s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away C.base.s))
+    (f : A)
+    (h_alg :
+      letI : DecidableEq (Localization.Away C.base.s) := Classical.decEq _
+      algebraMap A (Localization.Away C.base.s) f =
+        (σ_loc : Localization.Away C.base.s) *
+          (∏ τ ∈ D.T.image (algebraMap A (Localization.Away C.base.s)),
+            τ))
+    (h_s_factor : C.base.s = D.s * f)
+    (hv_in_plus : v ∈ rationalOpen (insert f C.base.T) C.base.s) :
+    letI : TopologicalSpace (Localization.Away C.base.s) :=
+      locTopology P C.base.T C.base.s hopen_base
+    letI : PlusSubring (Localization.Away C.base.s) :=
+      localizationLocSubringPlusSubring P C.base.T C.base.s
+    letI : DecidableEq (Localization.Away C.base.s) := Classical.decEq _
+    ∃ (σ_loc' : (Localization.Away C.base.s)ˣ) (f' : A),
+      (∀ w ∈ Spa (Localization.Away C.base.s)
+            (Localization.Away C.base.s)⁺,
+          ∃ τ ∈ localizedTestFamily C.base.s D.T D.s,
+            w.vle (σ_loc' : Localization.Away C.base.s) τ ∧
+              ¬ w.vle τ (σ_loc' : Localization.Away C.base.s)) ∧
+      (algebraMap A (Localization.Away C.base.s) f' =
+        (σ_loc' : Localization.Away C.base.s) *
+          (∏ τ ∈ D.T.image
+              (algebraMap A (Localization.Away C.base.s)), τ)) ∧
+      C.base.s = D.s * f' ∧
+      v ∈ rationalOpen (insert f' C.base.T) C.base.s ∧
+      ¬ v.vle f' 0 := by
+  letI : TopologicalSpace (Localization.Away C.base.s) :=
+    locTopology P C.base.T C.base.s hopen_base
+  letI : PlusSubring (Localization.Away C.base.s) :=
+    localizationLocSubringPlusSubring P C.base.T C.base.s
+  letI : DecidableEq (Localization.Away C.base.s) := Classical.decEq _
+  refine ⟨σ_loc, f, hσ_loc_dom, h_alg, h_s_factor, hv_in_plus, ?_⟩
+  -- Derive ¬ v.vle f 0 from hv_in_plus + h_s_factor.
+  -- hv_in_plus : v ∈ Spa A A⁺ ∧ (∀ x, v.vle x C.base.s) ∧ ¬ v.vle (C.base.s) 0.
+  exact not_vle_zero_left_of_mul_eq_of_not_vle_zero v h_s_factor
+    hv_in_plus.2.2
+
 end ValuationSpectrum
