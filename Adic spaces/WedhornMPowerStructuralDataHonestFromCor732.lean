@@ -3088,6 +3088,281 @@ theorem AlphaJointCor732CoverImpliesMNChoice_residual_via_locSubring_integrallyC
       P T s hs hopen h_intCl)
     h_mult
 
+/-! ### T163 (object-level redo): `locPlusSubring` honest plus-subring API
+
+**Reviewer redirection (T163)**: the residual
+`LocSubringIntegrallyClosedInLocalization` introduced above is *not the
+right target* — `locSubring P T s = Subring.closure(image A₀ ∪ {t/s})` is
+not expected to be integrally closed in `Localization.Away s` under the
+final Wedhorn 8.34(ii) hypotheses. The honest fix replaces `locSubring`
+with its **integral closure** as the localized plus-subring.
+
+This block lands the object-level correction:
+
+1. `locPlusSubring P T s` — the integral closure of `locSubring P T s`
+   inside `Localization.Away s`, packaged as `Subring (Localization.Away s)`.
+
+2. `localizationLocPlusSubring P T s : PlusSubring (Localization.Away s)`
+   — the canonical localized plus-subring instance with
+   `toSubring = locPlusSubring P T s`.
+
+3. `mem_locPlusSubring_iff_isIntegral` — definitional equivalence between
+   `locPlusSubring` membership and `IsIntegral` over `locSubring`.
+
+4. `vle_one_of_isIntegral_of_subring_le_one` — reusable helper:
+   integrality over a subring contained in `Valuation.integer ν` gives
+   `ν ≤ 1`. Pure ValuativeRel ↔ Valuation translation, depends only on
+   `Valuation.Integers.mem_of_integral`.
+
+5. `vle_one_of_mem_locPlusSubring_on_spa` — fully proved forward
+   direction: `locPlusSubring → vle ≤ 1 globally on Spa(_, locPlusSubring)`.
+
+6. `mem_locPlusSubring_of_vle_on_spa` — **the honest global-section
+   theorem**: under `[IsDomain A]` and `s ≠ 0`, every element of
+   `Localization.Away s` whose valuation is `≤ 1` on every Spa point
+   over `(Localization.Away s, locPlusSubring P T s)` lies in
+   `locPlusSubring P T s`. Combines Wedhorn Prop 7.18
+   (`isIntegral_of_forall_continuous_valuation_le_one`) with
+   integral-closure stability of non-archimedean valuations.
+
+7. `AlphaJointMNChoiceLocPlusMembership` — the honest M/N-choice
+   membership Prop with witnesses in `locPlusSubring` (replacing the
+   `locSubring` version). This is the right downstream target for the
+   T021 lane.
+
+8. `AlphaJointMNChoiceLocPlusMembership_of_locSubring` — trivial
+   bridge: any `AlphaJointMNChoiceLocSubringMembership` lifts to the
+   locPlus version via `locSubring ≤ locPlusSubring`. Lets every
+   existing locSubring-side supplier feed the honest locPlus target
+   without duplication.
+
+**Supersedes**: the residual route
+`LocSubringIntegrallyClosedInLocalization` +
+`GlobalSectionLocSubringCriterion_via_locSubring_integrallyClosed` +
+`AlphaJointCor732CoverImpliesMNChoice_residual_via_locSubring_integrallyClosed`.
+Those bridges remain in the file (compile clean) but their named residual
+is unreachable under the final Wedhorn hypotheses; downstream consumers
+should target the locPlus API instead.
+
+**Status**: T163 honest object-level delivery — sorry-free locPlus API
+plus the honest global-section theorem, no new named residuals. -/
+
+omit [PlusSubring A] in
+/-- **T163 reusable helper**: integrality over a subring contained in
+`Valuation.integer ν` forces `ν ≤ 1`. Combines `IsIntegral.tower_top` with
+`Valuation.Integers.mem_of_integral` (ValuativeRel ↔ Valuation via
+`Valuation.Compatible.vle_iff_le`). -/
+private theorem vle_one_of_isIntegral_of_subring_le_one
+    {R : Type*} [CommRing R] (S : Subring R)
+    (_v : ValuativeRel R)
+    (hv_S : ∀ x ∈ S, _v.vle x 1)
+    {b : R}
+    (hb_int : IsIntegral S b) : _v.vle b 1 := by
+  letI : ValuativeRel R := _v
+  set ν := ValuativeRel.valuation R with hν_def
+  -- Translate vle x y ↔ ν x ≤ ν y via the Compatible instance for ν.
+  haveI : Valuation.Compatible (R := R) ν := inferInstance
+  have h_iff : ∀ x : R, x ≤ᵥ 1 ↔ ν x ≤ 1 := fun x => by
+    rw [Valuation.Compatible.vle_iff_le (v := ν) x 1, ν.map_one]
+  -- S ≤ ν.integer (as subrings of R).
+  have h_le : S ≤ Valuation.integer ν := by
+    intro x hx
+    show ν x ≤ 1
+    exact (h_iff x).mp (hv_S x hx)
+  -- Algebra (S → ν.integer) via inclusion; IsScalarTower S ν.integer R.
+  letI : Algebra S (Valuation.integer ν) := (Subring.inclusion h_le).toAlgebra
+  letI : IsScalarTower S (Valuation.integer ν) R :=
+    IsScalarTower.of_algebraMap_eq fun _ ↦ rfl
+  -- Tower top: IsIntegral S b → IsIntegral ν.integer b.
+  have hb_int' : IsIntegral (Valuation.integer ν) b := hb_int.tower_top
+  -- Use Valuation.Integers.mem_of_integral on (ν, ν.integer).
+  have hb_mem : b ∈ Valuation.integer ν :=
+    (Valuation.integer.integers ν).mem_of_integral hb_int'
+  -- b ∈ ν.integer ↔ ν b ≤ 1.
+  exact (h_iff b).mpr ((Valuation.mem_integer_iff ν b).mp hb_mem)
+
+omit [PlusSubring A] in
+/-- **T163 honest plus-subring**: the integral closure of `locSubring P T s`
+inside `Localization.Away s`, packaged as a `Subring`.
+
+This is the **honest** plus-subring of `Localization.Away s` for the
+Wedhorn 8.34(ii) lane: it is by construction integrally closed (Wedhorn
+Definition 7.14 ring-of-integral-elements axiom), so the global-section
+theorem `mem_locPlusSubring_of_vle_on_spa` is sorry-free directly from
+Wedhorn 7.18 + integral-closure stability. -/
+noncomputable def locPlusSubring
+    (P : PairOfDefinition A) (T : Finset A) (s : A) :
+    Subring (Localization.Away s) :=
+  (integralClosure (locSubring P T s) (Localization.Away s)).toSubring
+
+omit [PlusSubring A] [IsTopologicalRing A] in
+/-- **T163 mem characterization** for `locPlusSubring`: `a ∈ locPlusSubring P T s`
+iff `a` is integral over `locSubring P T s`. Definitional unfolding of
+`integralClosure.toSubring`. -/
+theorem mem_locPlusSubring_iff_isIntegral
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (a : Localization.Away s) :
+    a ∈ locPlusSubring P T s ↔ IsIntegral (locSubring P T s) a := by
+  simp only [locPlusSubring, Subalgebra.mem_toSubring, mem_integralClosure_iff]
+
+omit [PlusSubring A] [IsTopologicalRing A] in
+/-- **T163 inclusion**: `locSubring P T s ≤ locPlusSubring P T s`.
+Every element of the ring of definition is trivially integral over itself. -/
+theorem locSubring_le_locPlusSubring
+    (P : PairOfDefinition A) (T : Finset A) (s : A) :
+    locSubring P T s ≤ locPlusSubring P T s := by
+  intro x hx
+  rw [mem_locPlusSubring_iff_isIntegral]
+  exact isIntegral_algebraMap (x := (⟨x, hx⟩ : locSubring P T s))
+
+omit [PlusSubring A] in
+/-- **T163 canonical localized plus-subring** with `toSubring = locPlusSubring P T s`.
+Provided as `noncomputable def` (not `instance`) to avoid global
+instance-resolution interference; consumers introduce locally via `letI`. -/
+@[reducible]
+noncomputable def localizationLocPlusSubring
+    (P : PairOfDefinition A) (T : Finset A) (s : A) :
+    PlusSubring (Localization.Away s) where
+  toSubring := locPlusSubring P T s
+
+omit [PlusSubring A] in
+/-- **T163 forward direction**: `locPlusSubring → vle ≤ 1` on Spa.
+Direct application of `vle_one_of_mem_spa` against the canonical
+`localizationLocPlusSubring`. -/
+theorem vle_one_of_mem_locPlusSubring_on_spa
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) := localizationLocPlusSubring P T s
+    ∀ (a : Localization.Away s), a ∈ locPlusSubring P T s →
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle a 1 := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) := localizationLocPlusSubring P T s
+  intro a ha w hw
+  exact vle_one_of_mem_spa hw ha
+
+omit [PlusSubring A] in
+/-- **T163 honest global-section theorem**: any `a : Localization.Away s`
+with `w.vle a 1` for every `w ∈ Spa(_, locPlusSubring P T s)` lies in
+`locPlusSubring P T s`.
+
+Combines:
+- Wedhorn Proposition 7.18
+  (`isIntegral_of_forall_continuous_valuation_le_one`) with
+  `B = locSubring P T s` to get `IsIntegral (locSubring) a`.
+- Integral-closure stability of non-archimedean valuations
+  (`vle_one_of_isIntegral_of_subring_le_one`) to bridge from
+  `Spa(_, locPlusSubring)` to `Spa(_, locSubring)` hypotheses
+  (every continuous v ≤ 1 on locSubring is automatically ≤ 1 on
+  locPlusSubring).
+
+No residual: this is the honest closing of the global-section /
+sheafiness criterion at the locPlus level. -/
+theorem mem_locPlusSubring_of_vle_on_spa
+    [DecidableEq A] [IsDomain A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (hs : s ≠ 0)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) := localizationLocPlusSubring P T s
+    ∀ a : Localization.Away s,
+      (∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle a 1) →
+      a ∈ locPlusSubring P T s := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : IsTopologicalRing (Localization.Away s) :=
+    (locBasis P T s hopen).toRingFilterBasis.isTopologicalRing
+  letI : IsDomain (Localization.Away s) := locAway_isDomain hs
+  letI : PlusSubring (Localization.Away s) := localizationLocPlusSubring P T s
+  intro a ha_spa
+  -- Step 1: Apply Wedhorn 7.18 to get integrality over locSubring.
+  have hint : IsIntegral (locSubring P T s) a := by
+    apply isIntegral_of_forall_continuous_valuation_le_one
+      (locPairOfDefinition P T s hopen)
+      (locSubring_isOpen P T s hopen)
+      (Set.Subset.refl _)
+    intro v hv_cont hv_locSubring
+    -- Upgrade: v ≤ 1 on locPlusSubring (integral-closure stability).
+    have hv_locPlus : ∀ b ∈ locPlusSubring P T s, v.vle b 1 := by
+      intro b hb
+      rw [mem_locPlusSubring_iff_isIntegral] at hb
+      exact vle_one_of_isIntegral_of_subring_le_one
+        (locSubring P T s) v hv_locSubring hb
+    -- ⟨v⟩ ∈ Spa(_, locPlusSubring).
+    have hw_spa : (⟨v⟩ : Spv (Localization.Away s))
+        ∈ Spa (Localization.Away s) (Localization.Away s)⁺ :=
+      ⟨hv_cont, hv_locPlus⟩
+    exact ha_spa _ hw_spa
+  -- Step 2: a ∈ locPlusSubring (by definition of integral closure).
+  rw [mem_locPlusSubring_iff_isIntegral]
+  exact hint
+
+omit [PlusSubring A] in
+/-- **T163 honest M/N-choice membership** with witnesses in
+`locPlusSubring` (replacing the `locSubring` version
+`AlphaJointMNChoiceLocSubringMembership`).
+
+This is the right downstream target for the T021 lane: the honest
+`A⁺ = locPlusSubring P T s` is integrally closed by construction, so the
+M/N-choice factorisation witnesses naturally land in it. -/
+def AlphaJointMNChoiceLocPlusMembership
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) := localizationLocPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  (∃ ξ_decay : locPlusSubring P T s,
+    algebraMap A (Localization.Away s) s =
+      (ξ_decay : Localization.Away s) *
+        ((σ_loc : Localization.Away s) *
+          (algebraMap A (Localization.Away s) s_D) ^ (N + 1))) ∧
+  (∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+    ∃ ξ_t' : locPlusSubring P T s,
+      (σ_loc : Localization.Away s) * t' *
+          (algebraMap A (Localization.Away s) s_D) ^ N =
+        (ξ_t' : Localization.Away s) *
+          algebraMap A (Localization.Away s) s)
+
+set_option linter.unusedSectionVars false in
+omit [PlusSubring A] in
+/-- **T163 trivial bridge**: any
+`AlphaJointMNChoiceLocSubringMembership` (witnesses in `locSubring`)
+lifts to `AlphaJointMNChoiceLocPlusMembership` (witnesses in
+`locPlusSubring`) via the canonical inclusion
+`locSubring ≤ locPlusSubring`. No new content; lets every existing
+locSubring-side supplier feed the honest locPlus target without
+duplication.
+
+The `[IsTopologicalRing A]` section variable appears unused to the
+linter because `locTopology` is `@[reducible]` and unfolds during
+elaboration, but it is genuinely required at instance synthesis. -/
+theorem AlphaJointMNChoiceLocPlusMembership_of_locSubring
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (h_loc : AlphaJointMNChoiceLocSubringMembership
+      P T s hopen T_D s_D σ_loc N) :
+    AlphaJointMNChoiceLocPlusMembership P T s hopen T_D s_D σ_loc N := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) := localizationLocPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  obtain ⟨⟨⟨ξ_decay, hξ_decay_mem⟩, hξ_decay_eq⟩, h_chain⟩ := h_loc
+  refine ⟨⟨⟨ξ_decay, locSubring_le_locPlusSubring P T s hξ_decay_mem⟩,
+    hξ_decay_eq⟩, ?_⟩
+  intro t' ht'
+  obtain ⟨⟨ξ_t', hξ_t'_mem⟩, hξ_t'_eq⟩ := h_chain t' ht'
+  exact ⟨⟨ξ_t', locSubring_le_locPlusSubring P T s hξ_t'_mem⟩, hξ_t'_eq⟩
+
 /-! ### T164: algebraic multiplicative-bound residual reduction
 
 Strictly lower reduction of T162's `AlphaJointCor732MultiplicativeBound_residual`
