@@ -317,4 +317,232 @@ theorem h_T_test_compat_loc_branch_α_T_D_via_cor732_loc_and_assembly
       P T s hopen T_D s_D σ_loc hσ_loc_dom)
     h_assembly
 
+omit [PlusSubring A] in
+/-- **T171 (continued): full discharge of
+`LocalizedAlphaTDBranchCoverLevelAssemblyResidual` via cover-refinement
+factorization, per-element integrality, and product non-vanishing**.
+
+Closes both branches of the cover-level assembly residual (`τ =
+algebraMap s_D` and `τ = algebraMap t` for `t ∈ T_D`) **uniformly** —
+the proof does not need to case-split on `τ`. The same arithmetic
+chain works regardless of which Laurent piece `w` lies in.
+
+Hypotheses (T170-style cover-refinement factorization data):
+
+1. **Cover-refinement element factorization**:
+   ```
+   algebraMap A (Localization.Away s) s =
+     (σ_loc : Localization.Away s) *
+       algebraMap A (Localization.Away s) s_D *
+       ∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t
+   ```
+
+2. **Per-element integrality of `T_D.image` at every `w`**:
+   ```
+   ∀ w ∈ Spa, ∀ t' ∈ T_D.image (algebraMap), w.vle t' 1
+   ```
+
+3. **Product non-vanishing at every `w` under f-membership**: from the
+   cover-refinement element `f` non-degeneracy (the localized lift of
+   the per-call hypothesis `¬ v.vle f 0` from
+   `WedhornC1PerCallSupplyPerWCoverPiece`):
+   ```
+   ∀ w ∈ Spa, w.vle (σ_loc · ∏ T_D.image) (algebraMap s) →
+     ¬ w.vle (∏ T_D.image) 0
+   ```
+
+Conclusion: `LocalizedAlphaTDBranchCoverLevelAssemblyResidual`.
+
+**Proof** (τ-uniform):
+
+* Step 1. Substitute factorization in f-membership and cancel `σ_loc`
+  on the left via `vle_iff_mul_unit_left`:
+  `w.vle (∏) (algebraMap s_D · ∏)`.
+
+* Step 2. Apply `ValuativeRel.vle_mul_cancel` with product
+  non-vanishing: `w.vle 1 (algebraMap s_D)`.
+
+* Step 3. Per-`t'` upper bound: per-element integrality
+  `w.vle t' 1` + step 2 + `w.vle_trans` →
+  `w.vle t' (algebraMap s_D)`.
+
+* Step 4. `s_D` non-vanishing: assume `w.vle (algebraMap s_D) 0`;
+  combined with step 2 via `w.vle_trans`, derive `w.vle 1 0`, which
+  contradicts `w.not_vle_one_zero`.
+
+**Why τ-uniform**: the cover-level assembly residual's `τ` and piece
+membership `hw_piece` enter the conclusion only as data; the proof
+relies on f-membership + factorization + integrality + ∏ non-vanishing,
+all of which are `τ`-independent. The residual was originally stated
+case-conditional because Wedhorn 8.34(ii) PDF page 84's Laurent cover
+refinement is naturally piece-conditional, but at the level of the
+α_T_D-branch conclusion, the per-`t'` upper bound and `s_D`
+non-vanishing factor through the global multi-bound chain that does
+not require case analysis.
+
+**Strictly stronger than a wrapper**: the per-`t'` upper bound and
+`s_D` non-vanishing are **derived** from concrete factorization +
+integrality + product non-vanishing, not assumed. The factorization is
+the natural Wedhorn cover-refinement element relation; integrality is
+the Tate condition on `T_D`; product non-vanishing is the
+cover-refinement element `f` non-degeneracy. -/
+theorem alphaTDBranchAssembly_via_factorization_integrality_prod_ne
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_factorization :
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      algebraMap A (Localization.Away s) s =
+        (σ_loc : Localization.Away s) *
+          algebraMap A (Localization.Away s) s_D *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+    (h_T_D_image_int :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w.vle t' (1 : Localization.Away s))
+    (h_prod_ne :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        ¬ w.vle (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t)
+          (0 : Localization.Away s)) :
+    LocalizedAlphaTDBranchCoverLevelAssemblyResidual
+      P T s hopen T_D s_D σ_loc := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro w hw_spa hw_f _τ _hτ _hw_piece
+  letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+  set P_im := ∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t
+    with hP_im_def
+  -- Step 1: substitute factorization, then cancel σ_loc on the left.
+  have hf_substituted : w.vle ((σ_loc : Localization.Away s) * P_im)
+      ((σ_loc : Localization.Away s) *
+        (algebraMap A (Localization.Away s) s_D * P_im)) := by
+    rw [show (σ_loc : Localization.Away s) *
+            (algebraMap A (Localization.Away s) s_D * P_im) =
+          (σ_loc : Localization.Away s) *
+            algebraMap A (Localization.Away s) s_D * P_im from by ring,
+      ← h_factorization]
+    exact hw_f
+  have h_chain : w.vle P_im
+      (algebraMap A (Localization.Away s) s_D * P_im) :=
+    (vle_iff_mul_unit_left w σ_loc P_im
+      (algebraMap A (Localization.Away s) s_D * P_im)).mp hf_substituted
+  -- Step 2: cancel P_im via vle_mul_cancel using product non-vanishing.
+  have hP_im_ne : ¬ w.vle P_im (0 : Localization.Away s) :=
+    h_prod_ne w hw_spa hw_f
+  have h_one_le_s_D : w.vle (1 : Localization.Away s)
+      (algebraMap A (Localization.Away s) s_D) := by
+    have h_chain' : w.vle ((1 : Localization.Away s) * P_im)
+        (algebraMap A (Localization.Away s) s_D * P_im) := by
+      rw [one_mul]; exact h_chain
+    exact w.vle_mul_cancel hP_im_ne h_chain'
+  -- Step 3: per-`t'` upper bound via integrality + transitivity.
+  refine ⟨?_, ?_⟩
+  · intro t' ht'
+    have h_t'_int : w.vle t' (1 : Localization.Away s) :=
+      h_T_D_image_int w hw_spa t' ht'
+    exact w.vle_trans h_t'_int h_one_le_s_D
+  · -- Step 4: `s_D` non-vanishing from `w.vle 1 (algebraMap s_D)`.
+    intro h_s_D_zero
+    exact w.not_vle_one_zero (w.vle_trans h_one_le_s_D h_s_D_zero)
+
+omit [PlusSubring A] in
+/-- **T171 (continued): full α_T_D-branch closer from concrete
+factorization data**.
+
+Composes the cover-level assembly discharge
+(`alphaTDBranchAssembly_via_factorization_integrality_prod_ne`) with
+T171's caller reroute `h_T_test_compat_loc_branch_α_T_D_via_cor732_loc_and_assembly`
+to produce the α_T_D-branch's full single-branch compatibility output
+**directly from**:
+
+* localized Cor 7.32 σ-strict-domination over `localizedTestFamily`,
+* cover-refinement element factorization
+  `algebraMap s = σ_loc · algebraMap s_D · ∏ T_D.image`,
+* per-element integrality of `T_D.image`,
+* product non-vanishing under f-membership.
+
+No `LocalizedAlphaTDBranchCoverLevelAssemblyResidual` hypothesis
+required — this closer **fully discharges** the residual through the
+arithmetic chain.
+
+This is the **fully composed end-to-end caller** for T171's reroute,
+demonstrating that the localized α_T_D-branch route is honestly
+closeable from cover-refinement structural data alone (no false
+universal-over-`T_D` lower bound, no σ-power-decay, no
+`locSubring` integral-closedness). -/
+theorem h_T_test_compat_loc_branch_α_T_D_via_factorization_integrality_prod_ne
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (hσ_loc_dom :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ localizedTestFamily s T_D s_D,
+          w.vle (σ_loc : Localization.Away s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away s))
+    (h_factorization :
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      algebraMap A (Localization.Away s) s =
+        (σ_loc : Localization.Away s) *
+          algebraMap A (Localization.Away s) s_D *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+    (h_T_D_image_int :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w.vle t' (1 : Localization.Away s))
+    (h_prod_ne :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        ¬ w.vle (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t)
+          (0 : Localization.Away s)) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    ∀ τ ∈ T_D.image (algebraMap A (Localization.Away s)),
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w.vle (σ_loc : Localization.Away s) τ ∧
+          ¬ w.vle τ (σ_loc : Localization.Away s) →
+          (∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+              w.vle t' (algebraMap A (Localization.Away s) s_D)) ∧
+            ¬ w.vle (algebraMap A (Localization.Away s) s_D) 0 :=
+  h_T_test_compat_loc_branch_α_T_D_via_cor732_loc_and_assembly
+    P T s hopen T_D s_D σ_loc hσ_loc_dom
+    (alphaTDBranchAssembly_via_factorization_integrality_prod_ne
+      P T s hopen T_D s_D σ_loc h_factorization h_T_D_image_int h_prod_ne)
+
 end ValuationSpectrum
