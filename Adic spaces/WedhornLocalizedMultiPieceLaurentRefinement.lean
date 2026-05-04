@@ -1459,4 +1459,126 @@ theorem rationalOpen_subset_base_via_h_alg_subset_A₀
     (h_α_s_D_factored_via_h_alg_subset_A₀ P T s hopen T_D s_D f σ_loc
       h_alg h_s_factor hT_D_le_A₀)
 
+/-! ### T177: C1 supplier wired through the T176 localized multi-piece route
+
+This section provides a C1 supplier wrapper that consumes T176's
+`rationalOpen_subset_base_via_h_alg_subset_A₀` directly for clause 2 of
+`C1SupplierStrong_local`, **without** invoking the M_power_decay /
+σ-power-decay / source-restricted residual / locSubring-integrally-
+closed routes.
+
+The natural placement would be `Adic spaces/WedhornC1PerWCoverPieceSupplier.lean`,
+but that file is upstream of this file in the existing import graph
+(via the multi-piece Laurent / VK / cover-piece chain), so adding the
+T177 wrapper there would create an import cycle. Hosting it here, in
+the same file as T176's `rationalOpen_subset_base_via_h_alg_subset_A₀`,
+is the cycle-free placement.
+
+Provided:
+
+* `WedhornC1PerCallSupplyLocalizedMultiPiece` — per-call supply
+  predicate packaging exactly the natural Wedhorn cover-piece data
+  consumed by T176's `rationalOpen_subset_base_via_h_alg_subset_A₀`,
+  plus the source-side `v ∈ rationalOpen (insert f C.base.T) C.base.s`
+  and `¬ v.vle f 0` clauses required by `C1SupplierStrong_local`.
+
+* `C1SupplierStrong_local_via_localized_multi_piece_data` — top-level
+  C1 supplier theorem composing the per-call supply with T176's
+  localized multi-piece route. Clause 2 of `C1SupplierStrong_local`
+  is discharged by `rationalOpen_subset_base_via_h_alg_subset_A₀`;
+  clauses 1 and 3 are read directly from the per-call supply. -/
+
+/-- **T177: per-call supply predicate via T176 localized multi-piece data**.
+
+Per-call data packaging the natural Wedhorn cover-piece structural
+inputs consumed by `rationalOpen_subset_base_via_h_alg_subset_A₀`,
+plus the source-side `v`/`f` clauses for `C1SupplierStrong_local`:
+
+* (1) `σ_loc : (Localization.Away C.base.s)ˣ` — Cor 7.32 dominating unit.
+* (2) `f : A` — cover-refinement element.
+* (3) `hσ_loc_dom` — σ-strict-domination over
+  `localizedTestFamily C.base.s D.T D.s` (standard
+  `exists_dominating_unit_in_localization` output).
+* (4) `h_alg` — cover-refinement element identity:
+  `algebraMap f = σ_loc · ∏ D.T.image (algebraMap)`.
+* (5) `h_s_factor` — cover-base factorization in `A`:
+  `C.base.s = D.s · f`.
+* (6) `hT_D_le_A₀` — per-element ring-of-definition membership:
+  `∀ t ∈ D.T, t ∈ P.A₀`.
+* (7a) `hv_in_plus` — clause 1 of `C1SupplierStrong_local`:
+  `v ∈ rationalOpen (insert f C.base.T) C.base.s`.
+* (7b) `hvf_nz` — clause 3 of `C1SupplierStrong_local`: `¬ v.vle f 0`.
+
+This is the **direct per-call interface** for the T176 corrected
+branch-clearing route at the C1 layer. -/
+def WedhornC1PerCallSupplyLocalizedMultiPiece
+    [DecidableEq A]
+    (P : PairOfDefinition A)
+    (C : RationalCovering A)
+    (hopen_base : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) C.base.s ∈ locSubring P C.base.T C.base.s)
+    (D : RationalLocData A) (v : Spv A) : Prop :=
+  letI : TopologicalSpace (Localization.Away C.base.s) :=
+    locTopology P C.base.T C.base.s hopen_base
+  letI : PlusSubring (Localization.Away C.base.s) :=
+    localizationLocSubringPlusSubring P C.base.T C.base.s
+  letI : DecidableEq (Localization.Away C.base.s) := Classical.decEq _
+  ∃ (σ_loc : (Localization.Away C.base.s)ˣ) (f : A),
+    -- (3) σ-strict-domination over localizedTestFamily.
+    (∀ w ∈ Spa (Localization.Away C.base.s) (Localization.Away C.base.s)⁺,
+        ∃ τ ∈ localizedTestFamily C.base.s D.T D.s,
+          w.vle (σ_loc : Localization.Away C.base.s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away C.base.s)) ∧
+    -- (4) Cover-refinement element identity h_alg.
+    (algebraMap A (Localization.Away C.base.s) f =
+      (σ_loc : Localization.Away C.base.s) *
+        (∏ τ ∈ D.T.image (algebraMap A (Localization.Away C.base.s)), τ)) ∧
+    -- (5) Cover-base factorization h_s_factor.
+    C.base.s = D.s * f ∧
+    -- (6) Per-element ring-of-definition membership hT_D_le_A₀.
+    (∀ t ∈ D.T, t ∈ P.A₀) ∧
+    -- (7a) Clause 1 of C1: v ∈ R(insert f C.base.T, C.base.s).
+    v ∈ rationalOpen (insert f C.base.T) C.base.s ∧
+    -- (7b) Clause 3 of C1: ¬ v.vle f 0.
+    ¬ v.vle f 0
+
+/-- **T177: top-level C1 supplier via T176 localized multi-piece route**.
+
+Produces `C1SupplierStrong_local C` from per-call delivery of
+`WedhornC1PerCallSupplyLocalizedMultiPiece`. Clause 2 of
+`C1SupplierStrong_local` is discharged by T176's
+`rationalOpen_subset_base_via_h_alg_subset_A₀` applied with
+`T_base := C.base.T` and `h_T_le_T_base := Finset.Subset.refl _`;
+clauses 1 (`v ∈ rationalOpen (insert f C.base.T) C.base.s`) and 3
+(`¬ v.vle f 0`) are read directly from the per-call supply.
+
+This is the **fully end-to-end C1 caller** for the corrected
+branch-clearing route: every supplier in the chain — including the
+α_s_D branch, the α_T_D branches, the per-element integrality, the
+product non-vanishing, and the cover-base factorization — is dispatched
+through T172/T173/T175/T176 producers from the natural cover-piece
+structural data. No M_power_decay, no σ-power-decay, no
+source-restricted residual, no locSubring-integrally-closed route. -/
+theorem C1SupplierStrong_local_via_localized_multi_piece_data
+    [DecidableEq A]
+    (P : PairOfDefinition A) (hA₀_le : P.A₀ ≤ A⁺)
+    (C : RationalCovering A)
+    (hopen_base : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) C.base.s ∈ locSubring P C.base.T C.base.s)
+    (h_per_call_supply :
+      ∀ (D : RationalLocData A), D ∈ C.covers →
+      ∀ (v : Spv A), v ∈ rationalOpen D.T D.s →
+      ∀ (t : A), t ∈ D.T → v.vle t D.s → ¬ v.vle D.s 0 →
+        WedhornC1PerCallSupplyLocalizedMultiPiece P C hopen_base D v) :
+    C1SupplierStrong_local C := by
+  intro D hD v hv t ht hvt hvD_s
+  obtain ⟨σ_loc, f, hσ_loc_dom, h_alg, h_s_factor, hT_D_le_A₀,
+    hv_in_plus, hvf_nz⟩ :=
+    h_per_call_supply D hD v hv t ht hvt hvD_s
+  refine ⟨f, hv_in_plus, ?_, hvf_nz⟩
+  -- Clause 2: rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen D.T D.s.
+  exact rationalOpen_subset_base_via_h_alg_subset_A₀
+    P C.base.T C.base.s hopen_base hA₀_le C.base.T D.T D.s f
+    (Finset.Subset.refl _) σ_loc hσ_loc_dom h_alg h_s_factor hT_D_le_A₀
+
 end ValuationSpectrum
