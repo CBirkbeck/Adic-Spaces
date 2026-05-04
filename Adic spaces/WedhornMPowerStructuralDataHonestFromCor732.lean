@@ -4490,4 +4490,166 @@ theorem locSubringSpa_eq_locPlusSpa
     (locSubringSpa_subset_locPlusSpa P T s hopen)
     (locPlusSpa_subset_locSubringSpa P T s hopen)
 
+/-! ### T164 (algebraic-side closure): named pure-algebraic decay
+factorization Prop and top-level supplier
+
+Closes the algebraic side of T164 by isolating the genuine remaining
+Wedhorn 8.34(ii) Step 2 σ-power-decay content as a **single named
+pure-algebraic Prop** (`AlphaJointCor732_decay_factorization`). The
+remaining pieces beyond this Prop are either automatic from existing
+API or purely Spa-uniform via σ-domination + plus-subring data
+(available from existing Cor 7.32 / locSubring API).
+
+Provided:
+
+* `AlphaJointCor732_decay_factorization` — named pure-algebraic Prop:
+  `∃ N, ∃ ξ : locSubring P T s, α s = ξ · σ_loc · α s_D^(N+1)`. This
+  is the **single named algebraic lemma** capturing the genuine
+  remaining Wedhorn 8.34(ii) Step 2 σ-power-decay content.
+
+* `AlphaJointCor732_uniformDecayAndChain_via_named_decay_factorization`
+  — compiled bridge: from the named decay factorization Prop + chain
+  σ-domination + α-image plus-subring data, produces
+  `AlphaJointCor732_uniformDecayAndChain`.
+
+* `AlphaJointMNChoiceLocPlusMembership_via_named_decay_factorization_and_unit_s_D`
+  — top-level supplier: from the named decay factorization Prop + chain
+  σ-domination + α-image plus-subring data + `IsUnit α s_D`, produces
+  `∃ N, AlphaJointMNChoiceLocPlusMembership P T s hopen T_D s_D σ_loc N`.
+
+After this section, the algebraic side of T164 is reduced to the **one
+named pure-algebraic Prop** `AlphaJointCor732_decay_factorization`. The
+chain σ-domination hypothesis is the natural Cor 7.32 σ-strict-domination
+output and the α-image plus-subring memberships are standard locSubring
+data — both available from existing API. -/
+
+omit [PlusSubring A] in
+/-- **T164 named pure-algebraic decay factorization Prop**. The single
+algebraic statement isolating the genuine remaining Wedhorn 8.34(ii)
+Step 2 σ-power-decay content:
+
+```
+∃ N : ℕ, ∃ ξ : locSubring P T s,
+  algebraMap A (Loc s) s =
+    (ξ : Loc s) · ((σ_loc : Loc s) · (algebraMap A (Loc s) s_D)^(N+1))
+```
+
+The decay factorization data is purely algebraic — no Spa-uniform
+inequalities, no continuous-valuation hypotheses. This is the cleanest
+formulation of the σ-power-decay content as a single algebraic
+existence Prop, ready for discharge via Spa-quasi-compactness +
+topological nilpotence of `σ_loc` (the Wedhorn 8.34(ii) Step 2 step). -/
+def AlphaJointCor732_decay_factorization
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (s_D : A) (σ_loc : (Localization.Away s)ˣ) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  ∃ (N : ℕ) (ξ : locSubring P T s),
+    algebraMap A (Localization.Away s) s =
+      (ξ : Localization.Away s) *
+        ((σ_loc : Localization.Away s) *
+          (algebraMap A (Localization.Away s) s_D) ^ (N + 1))
+
+omit [PlusSubring A] in
+/-- **T164 algebraic-side bridge**: from the named decay factorization
+Prop + chain σ-domination + α-image plus-subring data, produce
+`AlphaJointCor732_uniformDecayAndChain`.
+
+Thin wrapper around T166's
+`AlphaJointCor732_uniformDecayAndChain_via_decay_factorization_and_sigma_dom_chain`
+that opens the named existential and forwards the σ-domination + chain
+data unchanged. -/
+theorem AlphaJointCor732_uniformDecayAndChain_via_named_decay_factorization
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_decay_fact :
+      AlphaJointCor732_decay_factorization P T s hopen s_D σ_loc)
+    (h_σ_dom :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle (σ_loc : Localization.Away s)
+          (algebraMap A (Localization.Away s) s))
+    (h_T_D_in : ∀ t ∈ T_D,
+      algebraMap A (Localization.Away s) t ∈ locSubring P T s)
+    (h_s_D_in :
+      algebraMap A (Localization.Away s) s_D ∈ locSubring P T s) :
+    AlphaJointCor732_uniformDecayAndChain
+      P T s hopen T_D s_D σ_loc := by
+  obtain ⟨N, ξ, hfact⟩ := h_decay_fact
+  exact AlphaJointCor732_uniformDecayAndChain_via_decay_factorization_and_sigma_dom_chain
+    P T s hopen T_D s_D σ_loc N ξ hfact h_σ_dom h_T_D_in h_s_D_in
+
+set_option linter.unusedSectionVars false in
+omit [PlusSubring A] in
+/-- **T164 top-level algebraic supplier**: from the named pure-algebraic
+decay factorization Prop, chain σ-domination, α-image plus-subring data,
+`IsUnit (α s_D)`, `[IsDomain A]`, and `s ≠ 0`, produce
+
+```
+∃ N, AlphaJointMNChoiceLocPlusMembership P T s hopen T_D s_D σ_loc N.
+```
+
+This is the **clean single-supplier theorem** for T164's algebraic side:
+the locPlus M/N-choice membership follows from purely algebraic data
+(decay factorization) plus standard Cor 7.32 σ-strict-domination, standard
+α-image locSubring membership, and the natural `IsUnit α s_D` hypothesis.
+
+The remaining content is concentrated in the named pure-algebraic Prop
+`AlphaJointCor732_decay_factorization`, which is the genuine Wedhorn
+8.34(ii) Step 2 σ-power-decay step (Spa-quasi-compactness + topological
+nilpotence of σ_loc).
+
+**Proof**: chain via T166's combiner to `AlphaJointCor732_uniformDecayAndChain`
+on the locSubring Spa, transport to the locPlus Spa via T165's
+`_locPlus_of_locSubring` bridge, then apply T164's
+`AlphaJointMNChoiceLocPlusMembership_via_uniformDecayAndChain_and_unit_s_D`. -/
+theorem AlphaJointMNChoiceLocPlusMembership_via_named_decay_factorization_and_unit_s_D
+    [DecidableEq A] [IsDomain A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (hs : s ≠ 0)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_unit_s_D : IsUnit (algebraMap A (Localization.Away s) s_D))
+    (h_decay_fact :
+      AlphaJointCor732_decay_factorization P T s hopen s_D σ_loc)
+    (h_σ_dom :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle (σ_loc : Localization.Away s)
+          (algebraMap A (Localization.Away s) s))
+    (h_T_D_in : ∀ t ∈ T_D,
+      algebraMap A (Localization.Away s) t ∈ locSubring P T s)
+    (h_s_D_in :
+      algebraMap A (Localization.Away s) s_D ∈ locSubring P T s) :
+    ∃ N, AlphaJointMNChoiceLocPlusMembership
+      P T s hopen T_D s_D σ_loc N := by
+  -- Step 1: named decay + σ-dom + plus-subring data ⇒ uniform decay+chain (locSubring Spa).
+  have h_uniformDecayAndChain :
+      AlphaJointCor732_uniformDecayAndChain
+        P T s hopen T_D s_D σ_loc :=
+    AlphaJointCor732_uniformDecayAndChain_via_named_decay_factorization
+      P T s hopen T_D s_D σ_loc h_decay_fact h_σ_dom h_T_D_in h_s_D_in
+  -- Step 2: locSubring → locPlus Spa via T165's bridge.
+  have h_uniformDecayAndChain_locPlus :
+      AlphaJointCor732_uniformDecayAndChain_locPlus
+        P T s hopen T_D s_D σ_loc :=
+    AlphaJointCor732_uniformDecayAndChain_locPlus_of_locSubring
+      P T s hopen T_D s_D σ_loc h_uniformDecayAndChain
+  -- Step 3: T164's locPlus M/N-choice supplier from uniform decay+chain + IsUnit α s_D.
+  exact AlphaJointMNChoiceLocPlusMembership_via_uniformDecayAndChain_and_unit_s_D
+    P T s hs hopen T_D s_D σ_loc h_unit_s_D h_uniformDecayAndChain_locPlus
+
 end ValuationSpectrum
