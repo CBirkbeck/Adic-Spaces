@@ -933,4 +933,143 @@ theorem wedhorn_834_per_call_construction_via_factorization
   exact not_vle_zero_left_of_mul_eq_of_not_vle_zero v h_s_factor
     hv_in_plus.2.2
 
+/-! ### T184: source-side membership bridge from `f`-bound and cover refinement
+
+T183 packages T179's per-call construction bundle taking the source-side
+rational-open membership `hv_in_plus : v ∈ rationalOpen (insert f C.base.T)
+C.base.s` as an explicit input. T184 **derives** that membership from the
+weaker hypothesis `h_f_bound : v.vle f C.base.s` combined with the
+cover refinement structure `C.hsubset D hD hv`, eliminating
+`hv_in_plus` from the input list.
+
+**Proof structure**:
+
+* `v ∈ rationalOpen (insert f C.base.T) C.base.s` unfolds to:
+  - `v ∈ Spa A A⁺` (from `v ∈ rationalOpen D.T D.s`);
+  - `∀ x ∈ insert f C.base.T, v.vle x C.base.s` — split into `x = f`
+    (from `h_f_bound`) and `x ∈ C.base.T` (from `C.hsubset` applied
+    to the cover refinement);
+  - `¬ v.vle (C.base.s) 0` (from `C.hsubset` applied to the cover
+    refinement; equivalently from the base rational-open membership).
+
+The cover refinement `C.hsubset D hD : rationalOpen D.T D.s ⊆ rationalOpen
+C.base.T C.base.s` is an axiom of `RationalCovering` itself.
+
+Provided:
+
+* `wedhorn_834_v_in_plus_of_f_bound_and_cover` — source-side membership
+  bridge.
+
+* `wedhorn_834_per_call_construction_via_factorization_and_f_bound` —
+  composes T184's bridge with T183, eliminating `hv_in_plus` from the
+  input list. -/
+
+/-- **T184 source-side membership bridge**: derive
+`v ∈ rationalOpen (insert f C.base.T) C.base.s` from `h_f_bound :
+v.vle f C.base.s` and the cover refinement `v ∈ rationalOpen D.T D.s`
+for `D ∈ C.covers`.
+
+**Proof**: unfold the rationalOpen membership into three components:
+* `v ∈ Spa A A⁺` and `¬ v.vle (C.base.s) 0` come from
+  `C.hsubset D hD hv` (the base rational-open membership).
+* `∀ x ∈ insert f C.base.T, v.vle x C.base.s` splits via
+  `Finset.mem_insert.mp`: at `x = f`, use `h_f_bound`; at
+  `x ∈ C.base.T`, use the second component of `C.hsubset D hD hv`. -/
+theorem wedhorn_834_v_in_plus_of_f_bound_and_cover
+    [DecidableEq A]
+    (C : RationalCovering A)
+    (D : RationalLocData A) (hD : D ∈ C.covers)
+    (v : Spv A) (hv : v ∈ rationalOpen D.T D.s)
+    (f : A) (h_f_bound : v.vle f C.base.s) :
+    v ∈ rationalOpen (insert f C.base.T) C.base.s := by
+  classical
+  -- Cover refinement: v lies in the base rational subset.
+  have hv_base : v ∈ rationalOpen C.base.T C.base.s := C.hsubset D hD hv
+  -- Unfold base membership.
+  obtain ⟨hv_spa, hv_T_bound, hv_C_base_s_ne⟩ := hv_base
+  refine ⟨hv_spa, ?_, hv_C_base_s_ne⟩
+  intro x hx
+  rcases Finset.mem_insert.mp hx with rfl | hx_in_T
+  · exact h_f_bound
+  · exact hv_T_bound x hx_in_T
+
+/-- **T184 per-call construction packaging from f-bound** (composed
+with T183).
+
+Composes T184's source-side membership bridge with T183's
+`wedhorn_834_per_call_construction_via_factorization`, producing
+T179's six-clause per-call construction bundle with the source-side
+membership `hv_in_plus` **eliminated** from the input list — replaced
+by the weaker `h_f_bound : v.vle f C.base.s` plus the cover refinement
+`hD : D ∈ C.covers` and `hv : v ∈ rationalOpen D.T D.s`.
+
+**Inputs**:
+* `σ_loc : (Loc C.base.s)ˣ` + `hσ_loc_dom` — σ-strict-dom (T180-T182
+  chain).
+* `f : A` + `h_alg` + `h_s_factor : C.base.s = D.s * f` — algebraic
+  factorization data.
+* `h_f_bound : v.vle f C.base.s` — the source-side `f`-bound
+  (the actual remaining structural input; replaces `hv_in_plus`).
+
+**Output**: T179's six-clause existential bundle.
+
+After T184, the per-call construction bundle is reduced to:
+* σ-strict-dom subset (4 fields via T180-T182 chain);
+* `f, h_alg, h_s_factor, h_f_bound` (algebraic + source-bound);
+* (`v ∈ rationalOpen (insert f C.base.T) C.base.s` and `¬ v.vle f 0`
+  derived).
+
+The remaining genuinely-Wedhorn input is the explicit `f` construction
+satisfying `h_alg, h_s_factor, h_f_bound` simultaneously — the next
+theorem-level ticket. -/
+theorem wedhorn_834_per_call_construction_via_factorization_and_f_bound
+    [DecidableEq A]
+    (P : PairOfDefinition A)
+    (C : RationalCovering A)
+    (hopen_base : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) C.base.s ∈ locSubring P C.base.T C.base.s)
+    (D : RationalLocData A) (hD : D ∈ C.covers)
+    (v : Spv A) (hv : v ∈ rationalOpen D.T D.s)
+    (σ_loc : (Localization.Away C.base.s)ˣ)
+    (hσ_loc_dom :
+      letI : TopologicalSpace (Localization.Away C.base.s) :=
+        locTopology P C.base.T C.base.s hopen_base
+      letI : PlusSubring (Localization.Away C.base.s) :=
+        localizationLocSubringPlusSubring P C.base.T C.base.s
+      ∀ w ∈ Spa (Localization.Away C.base.s)
+            (Localization.Away C.base.s)⁺,
+        ∃ τ ∈ localizedTestFamily C.base.s D.T D.s,
+          w.vle (σ_loc : Localization.Away C.base.s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away C.base.s))
+    (f : A)
+    (h_alg :
+      letI : DecidableEq (Localization.Away C.base.s) := Classical.decEq _
+      algebraMap A (Localization.Away C.base.s) f =
+        (σ_loc : Localization.Away C.base.s) *
+          (∏ τ ∈ D.T.image (algebraMap A (Localization.Away C.base.s)),
+            τ))
+    (h_s_factor : C.base.s = D.s * f)
+    (h_f_bound : v.vle f C.base.s) :
+    letI : TopologicalSpace (Localization.Away C.base.s) :=
+      locTopology P C.base.T C.base.s hopen_base
+    letI : PlusSubring (Localization.Away C.base.s) :=
+      localizationLocSubringPlusSubring P C.base.T C.base.s
+    letI : DecidableEq (Localization.Away C.base.s) := Classical.decEq _
+    ∃ (σ_loc' : (Localization.Away C.base.s)ˣ) (f' : A),
+      (∀ w ∈ Spa (Localization.Away C.base.s)
+            (Localization.Away C.base.s)⁺,
+          ∃ τ ∈ localizedTestFamily C.base.s D.T D.s,
+            w.vle (σ_loc' : Localization.Away C.base.s) τ ∧
+              ¬ w.vle τ (σ_loc' : Localization.Away C.base.s)) ∧
+      (algebraMap A (Localization.Away C.base.s) f' =
+        (σ_loc' : Localization.Away C.base.s) *
+          (∏ τ ∈ D.T.image
+              (algebraMap A (Localization.Away C.base.s)), τ)) ∧
+      C.base.s = D.s * f' ∧
+      v ∈ rationalOpen (insert f' C.base.T) C.base.s ∧
+      ¬ v.vle f' 0 :=
+  wedhorn_834_per_call_construction_via_factorization
+    P C hopen_base D v σ_loc hσ_loc_dom f h_alg h_s_factor
+    (wedhorn_834_v_in_plus_of_f_bound_and_cover C D hD v hv f h_f_bound)
+
 end ValuationSpectrum
