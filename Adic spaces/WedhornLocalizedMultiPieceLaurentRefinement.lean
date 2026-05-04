@@ -771,4 +771,156 @@ theorem h_T_test_compat_loc_branch_α_T_D_via_factorization_locSubring_membershi
       h_T_D_in_locSubring)
     (h_prod_ne_via_factorization P T s hopen T_D s_D σ_loc h_factorization)
 
+/-! ### T173: concrete suppliers for T172's two remaining structural inputs
+
+This section discharges T172's remaining structural inputs to
+`h_T_test_compat_loc_branch_α_T_D_via_factorization_locSubring_membership`:
+
+* `h_T_D_in_locSubring`: from the natural Wedhorn / cover-refinement
+  hypothesis `T_D ⊆ P.A₀`, produced via `algebraMap_mem_locSubring`.
+
+* `h_factorization`: from T170/T171's existing cover-refinement element
+  identity `h_alg : algebraMap f = σ_loc · ∏ T_D.image` (the Cor 7.32
+  σ-strict-domination's cover-refinement output) plus the cover-base
+  factorization `s = s_D · f` in `A` (the natural Wedhorn 8.34(ii)
+  factorization at the cover-base level).
+
+The composed end-to-end caller
+`h_T_test_compat_loc_branch_α_T_D_via_h_alg_and_subset_A₀` exposes
+only the standard Cor 7.32 σ-strict-domination output, the existing
+cover-refinement element identity `h_alg`, and the natural cover-base
+factorization `s = s_D · f` and `T_D ⊆ P.A₀` hypotheses — both directly
+expressible from the localized Wedhorn cover-piece pipeline. -/
+
+omit [IsTopologicalRing A] [PlusSubring A] in
+/-- **T173: `h_T_D_in_locSubring` supplier from `T_D ⊆ P.A₀`**.
+
+Discharges T172's `h_T_D_in_locSubring` input from the natural
+Wedhorn/cover-refinement hypothesis `T_D ⊆ P.A₀`. Each `t ∈ T_D` then
+has its `algebraMap`-image in `locSubring P T s` via the existing
+`algebraMap_mem_locSubring` API (in `LocalizationTopology.lean:72`). -/
+theorem h_T_D_in_locSubring_of_subset_A₀
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (T_D : Finset A)
+    (hT_D_le_A₀ : ∀ t ∈ T_D, t ∈ P.A₀) :
+    ∀ t ∈ T_D,
+      algebraMap A (Localization.Away s) t ∈ locSubring P T s :=
+  fun t ht => algebraMap_mem_locSubring P T s (hT_D_le_A₀ t ht)
+
+omit [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] in
+/-- **T173: `h_factorization` supplier from `h_alg` + `s = s_D · f`**.
+
+Discharges T172's `h_factorization` input from T170/T171's existing
+cover-refinement element identity
+`h_alg : algebraMap f = σ_loc · ∏ T_D.image` (the Cor 7.32 σ-strict-
+domination's cover-refinement output, see e.g.
+`rationalOpen_subset_base_via_M_power_decay`'s `h_alg` parameter in
+`Adic spaces/WedhornLocalCor732ToFactoredChain.lean:174–178`) plus the
+natural Wedhorn cover-base factorization `s = s_D · f` in `A`.
+
+**Proof**: substitute `s = s_D · f` into `algebraMap s`:
+```
+algebraMap s = algebraMap (s_D · f) = algebraMap s_D · algebraMap f
+             = algebraMap s_D · (σ_loc · ∏ T_D.image)        -- by h_alg
+             = σ_loc · algebraMap s_D · ∏ T_D.image           -- commutativity
+```
+
+The cover-base factorization `s = s_D · f` is the Wedhorn 8.34(ii) /
+Lemma 8.33 algebraic identity: the cover base denominator `s` factors
+as the cover-piece denominator `s_D` times the cover-refinement element
+`f`. This is the natural cover-refinement structural relation; for the
+Cor 7.32 / `exists_dominating_unit_in_localization` output, `f` is
+constructed precisely so that `algebraMap f` factorizes through `σ_loc`. -/
+theorem h_factorization_via_h_alg_and_s_factor_eq
+    (s : A)
+    (T_D : Finset A) (s_D : A) (f : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_alg :
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      algebraMap A (Localization.Away s) f =
+        (σ_loc : Localization.Away s) *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+    (h_s_factor : s = s_D * f) :
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    algebraMap A (Localization.Away s) s =
+      (σ_loc : Localization.Away s) *
+        algebraMap A (Localization.Away s) s_D *
+        (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t) := by
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  -- Avoid `rw [h_s_factor]` (motive failure: `s` appears in `Localization.Away s`).
+  have h_α_s_eq :
+      algebraMap A (Localization.Away s) s =
+        algebraMap A (Localization.Away s) (s_D * f) :=
+    congr_arg (algebraMap A (Localization.Away s)) h_s_factor
+  rw [h_α_s_eq, map_mul, h_alg]
+  ring
+
+omit [PlusSubring A] in
+/-- **T173: end-to-end α_T_D-branch caller from `h_alg` + `s = s_D · f`
++ `T_D ⊆ P.A₀`**.
+
+Composes T173's two suppliers (`h_factorization_via_h_alg_and_s_factor_eq`
+and `h_T_D_in_locSubring_of_subset_A₀`) with T172's caller
+(`h_T_test_compat_loc_branch_α_T_D_via_factorization_locSubring_membership`)
+to produce the α_T_D-branch's full single-branch compatibility output
+directly from the **natural Wedhorn cover-piece structural data** at
+the localized level:
+
+* `hσ_loc_dom`: standard Cor 7.32 σ-strict-domination over
+  `localizedTestFamily` (the
+  `exists_dominating_unit_in_localization` output);
+* `h_alg`: cover-refinement element identity
+  `algebraMap f = σ_loc · ∏ T_D.image` (the existing T170/T171 input
+  shape);
+* `h_s_factor : s = s_D · f`: cover-base factorization in `A` (Wedhorn
+  8.34(ii) / Lemma 8.33 cover-refinement structural relation);
+* `hT_D_le_A₀ : T_D ⊆ P.A₀`: per-element membership in the ring of
+  definition (the natural Wedhorn `T_D ⊆ A°°` Tate condition).
+
+No `h_factorization`, `h_T_D_in_locSubring`, `h_T_D_image_int`, or
+`h_prod_ne` hypotheses required — all four are dispatched through
+T172/T173 producers. The α_T_D branch is now closed from the natural
+cover-piece structural data alone. -/
+theorem h_T_test_compat_loc_branch_α_T_D_via_h_alg_and_subset_A₀
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A) (f : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (hσ_loc_dom :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ localizedTestFamily s T_D s_D,
+          w.vle (σ_loc : Localization.Away s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away s))
+    (h_alg :
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      algebraMap A (Localization.Away s) f =
+        (σ_loc : Localization.Away s) *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+    (h_s_factor : s = s_D * f)
+    (hT_D_le_A₀ : ∀ t ∈ T_D, t ∈ P.A₀) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    ∀ τ ∈ T_D.image (algebraMap A (Localization.Away s)),
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w.vle (σ_loc : Localization.Away s) τ ∧
+          ¬ w.vle τ (σ_loc : Localization.Away s) →
+          (∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+              w.vle t' (algebraMap A (Localization.Away s) s_D)) ∧
+            ¬ w.vle (algebraMap A (Localization.Away s) s_D) 0 :=
+  h_T_test_compat_loc_branch_α_T_D_via_factorization_locSubring_membership
+    P T s hopen T_D s_D σ_loc hσ_loc_dom
+    (h_factorization_via_h_alg_and_s_factor_eq s T_D s_D f σ_loc
+      h_alg h_s_factor)
+    (h_T_D_in_locSubring_of_subset_A₀ P T s T_D hT_D_le_A₀)
+
 end ValuationSpectrum
