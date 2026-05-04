@@ -4124,4 +4124,88 @@ theorem AlphaJointCor732_chain_half_via_sigma_dominated_by_alpha_s
     ValuativeRel.mul_vle_mul h_step1 h_α_s_D_pow_le_one
   rwa [mul_one, mul_one] at h_step2
 
+/-! ### T166 (continued): combiner theorem using existing decay
+factorization + new chain-half closure
+
+Per the manager's review of commit 454d490: combine the existing
+decay-factorization theorem `AlphaJointSigmaPowerDecayPiece_via_factorization`
+(this file, lines 1616-1643, T156) — which proves the decay half from
+a `ξ : locSubring P T s` with `α s = ξ · (σ_loc · α s_D^(N+1))` — with
+my T166 chain-half closure
+`AlphaJointCor732_chain_half_via_sigma_dominated_by_alpha_s` into a
+single compiled theorem feeding `AlphaJointCor732_uniformDecayAndChain`.
+
+The combiner lands the locSubring uniform decay+chain target itself
+once the **decay factorization data** is supplied — leaving as the
+sole remaining content the construction of the explicit `ξ : locSubring`
+witnessing the decay equation, which is the genuine missing Wedhorn
+8.34(ii) Step 2 algebraic / denominator-clearing data. -/
+
+set_option linter.unusedSectionVars false in
+omit [PlusSubring A] in
+/-- **T166 combiner theorem**: closes
+`AlphaJointCor732_uniformDecayAndChain` from the decay factorization
+plus chain σ-domination + plus-subring data.
+
+**Inputs** (shared exponent `N : ℕ`):
+
+* **Decay side** — `ξ : locSubring P T s` with the algebraic
+  factorization `α s = ξ · (σ_loc · α s_D^(N+1))` (consumed via the
+  existing `AlphaJointSigmaPowerDecayPiece_via_factorization` from
+  T156, this file).
+
+* **Chain side** — local σ-domination
+  `h_σ_dom : ∀ w ∈ Spa(Loc s, locSubring), w.vle σ_loc (α s)`
+  + `α t ∈ locSubring` for every `t ∈ T_D`
+  + `α s_D ∈ locSubring`
+  (consumed via `AlphaJointCor732_chain_half_via_sigma_dominated_by_alpha_s`
+  from T166, just above).
+
+**Conclusion**: `AlphaJointCor732_uniformDecayAndChain P T s hopen T_D s_D σ_loc`
+at the supplied `N`.
+
+After this combiner, the sole remaining mathematical content for
+`AlphaJointCor732_uniformDecayAndChain` is the construction of the
+decay factorization witness `ξ : locSubring` from concrete localized
+Cor732 / M-choice / denominator-clearing data — i.e., the genuine
+Wedhorn 8.34(ii) Step 2 algebraic step. The chain side is closed
+by σ-domination + plus-subring data already available from
+`Cor732.exists_dominatedBy_cover` applied locally at `T := {α s}` plus
+the natural locSubring-membership hypotheses on the test family. -/
+theorem AlphaJointCor732_uniformDecayAndChain_via_decay_factorization_and_sigma_dom_chain
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (ξ : locSubring P T s)
+    (hfact_decay :
+      algebraMap A (Localization.Away s) s =
+        (ξ : Localization.Away s) *
+          ((σ_loc : Localization.Away s) *
+            (algebraMap A (Localization.Away s) s_D) ^ (N + 1)))
+    (h_σ_dom :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle (σ_loc : Localization.Away s)
+          (algebraMap A (Localization.Away s) s))
+    (h_T_D_in : ∀ t ∈ T_D,
+      algebraMap A (Localization.Away s) t ∈ locSubring P T s)
+    (h_s_D_in : algebraMap A (Localization.Away s) s_D ∈ locSubring P T s) :
+    AlphaJointCor732_uniformDecayAndChain
+      P T s hopen T_D s_D σ_loc := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  refine ⟨N, ?_, ?_⟩
+  · -- Decay half via T156's factorization theorem.
+    exact AlphaJointSigmaPowerDecayPiece_via_factorization
+      P T s hopen s_D σ_loc N ξ hfact_decay
+  · -- Chain half via this section's σ-domination closure.
+    exact AlphaJointCor732_chain_half_via_sigma_dominated_by_alpha_s
+      P T s hopen T_D s_D σ_loc h_σ_dom h_T_D_in h_s_D_in N
+
 end ValuationSpectrum
