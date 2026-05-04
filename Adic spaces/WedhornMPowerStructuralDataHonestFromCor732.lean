@@ -3855,4 +3855,160 @@ theorem AlphaJointCor732_uniformDecayAndChain_locPlus_of_locSubring
   · intro t ht w hw_locPlus
     exact h_chain t ht w (h_subset hw_locPlus)
 
+/-! ### T166 (blocked path): finite-family N-uniformization concrete lemma
+
+The locSubring uniform decay+chain `AlphaJointCor732_uniformDecayAndChain`
+is the open critical-path target. Direct discharge from existing
+localized Cor 7.32 / σ-power API is blocked at **two missing
+operations** (per the T165 audit):
+
+1. **Finite-family N-uniformization** — the existing API delivers
+   per-(w, t') existential `N` (e.g.,
+   `sigma_power_cleared_inequality_from_localized_cor732_output`); the
+   target needs a single uniform `N` over the entire finite family `T_D`.
+
+2. **Global-to-local Spa transfer with element substitution** — the
+   existing API delivers conclusions at the global `Spa A A⁺` with
+   global elements `t', s_D : A`; the target needs the local
+   `Spa(Localization.Away s, locSubring P T s)` with `α`-images.
+
+Per the manager's "if blocked, commit one concrete lower lemma performing
+one of the two actual missing operations": this section delivers the
+**finite-family N-uniformization** operation (item 1) as a generic
+monotonicity-driven Finset lemma, applicable directly to the chain piece
+under the natural `α s_D` power-bounded hypothesis.
+
+Provided:
+
+* `Finset.exists_uniform_N_of_per_mem_monotone` — generic Mathlib-style
+  helper: for any predicate `P : ℕ → α → Prop` monotone in `N`, the
+  per-member existence `∀ a ∈ T, ∃ N, P N a` lifts to a uniform `∃ N,
+  ∀ a ∈ T, P N a` via the maximum of per-member `N`s.
+
+* `AlphaJointCor732_chain_uniform_N_of_per_t_chain_monotone` — concrete
+  application to the chain piece of `AlphaJointCor732_uniformDecayAndChain`:
+  per-`t'` chain hypotheses `∀ t ∈ T_D, ∃ N_t, ∀ w ∈ Spa, chain_t_at_N_t`
+  + monotonicity `(N ≤ M, t, w with chain_t_at_N) → chain_t_at_M`
+  together produce the uniform `∃ N, ∀ t ∈ T_D, ∀ w ∈ Spa, chain_t_at_N`.
+  The monotonicity hypothesis is naturally satisfied when
+  `w.vle (α s_D) 1` for every w in the locSubring Spa — i.e., when
+  `α s_D ∈ locSubring P T s` (which holds when `s_D ∈ P.A₀`).
+
+After these helpers land, the genuinely-remaining critical-path content
+for `AlphaJointCor732_uniformDecayAndChain` reduces to:
+
+(a) producing the per-`t'` chain inequality at some `N_t` from the
+    Cor 7.32 cover output (genuine Wedhorn 8.34(ii) Step 2 content,
+    requires the second missing operation: global-to-local Spa transfer);
+
+(b) producing the σ-power decay inequality at some `N` (similarly,
+    genuine Wedhorn 8.34(ii) Step 2 content with the orientation issue
+    documented in `WedhornSigmaPowerDecay.lean:14-22`).
+
+These two pieces remain open. -/
+
+omit [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] in
+/-- **Generic finite-family N-uniformization for monotone-in-N
+predicates** (Mathlib-style helper).
+
+Given a finite family `T : Finset α`, a predicate `P : ℕ → α → Prop`
+monotone in `N` (larger `N` preserves the predicate), and per-element
+existence `∀ a ∈ T, ∃ N, P N a`, produce a uniform `N` working for all
+members of `T`:
+
+```
+∃ N, ∀ a ∈ T, P N a
+```
+
+The uniform `N` is the maximum of per-member `N`s, well-defined since
+`T` is finite. Proof by Finset induction. -/
+theorem Finset.exists_uniform_N_of_per_mem_monotone
+    {α : Type*} {T : Finset α}
+    {P : ℕ → α → Prop}
+    (h_mono : ∀ {N M : ℕ}, N ≤ M → ∀ a, P N a → P M a)
+    (h_per_mem : ∀ a ∈ T, ∃ N, P N a) :
+    ∃ N, ∀ a ∈ T, P N a := by
+  classical
+  induction T using Finset.induction_on with
+  | empty =>
+    exact ⟨0, fun a ha => absurd ha (Finset.notMem_empty a)⟩
+  | insert b T' hb_notin ih =>
+    obtain ⟨N_T, h_N_T⟩ :=
+      ih (fun a ha => h_per_mem a (Finset.mem_insert_of_mem ha))
+    obtain ⟨N_b, h_N_b⟩ := h_per_mem b (Finset.mem_insert_self b T')
+    refine ⟨max N_T N_b, fun a ha => ?_⟩
+    rcases Finset.mem_insert.mp ha with rfl | ha_T'
+    · exact h_mono (le_max_right _ _) _ h_N_b
+    · exact h_mono (le_max_left _ _) _ (h_N_T a ha_T')
+
+set_option linter.unusedSectionVars false in
+omit [PlusSubring A] in
+/-- **T166 chain finite-family N-uniformization** (concrete application
+of the generic helper to the chain piece of
+`AlphaJointCor732_uniformDecayAndChain`).
+
+From a per-`t'` chain `∀ t ∈ T_D, ∃ N_t, ∀ w ∈ Spa(Loc s, locSubring),
+chain_at_N_t` plus a monotonicity hypothesis, derive the uniform-`N`
+chain `∃ N, ∀ t ∈ T_D, ∀ w ∈ Spa(Loc s, locSubring), chain_at_N`.
+
+The monotonicity hypothesis is naturally satisfied when
+`α s_D ∈ locSubring` (giving `w(α s_D) ≤ 1` everywhere on the locSubring
+Spa, so larger `N` makes `(α s_D)^N` smaller and the chain easier).
+
+This is one of the two **missing operations** (item 1 of the T165 audit:
+finite-family N-uniformization) on the route to closing
+`AlphaJointCor732_uniformDecayAndChain` directly. -/
+theorem AlphaJointCor732_chain_uniform_N_of_per_t_chain_monotone
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_chain_per_t :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ t ∈ T_D, ∃ N_t : ℕ,
+        ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+          w.vle ((σ_loc : Localization.Away s) *
+              algebraMap A (Localization.Away s) t *
+              (algebraMap A (Localization.Away s) s_D) ^ N_t)
+            (algebraMap A (Localization.Away s) s))
+    (h_chain_mono :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ {N M : ℕ}, N ≤ M → ∀ (t : A),
+        (∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+          w.vle ((σ_loc : Localization.Away s) *
+              algebraMap A (Localization.Away s) t *
+              (algebraMap A (Localization.Away s) s_D) ^ N)
+            (algebraMap A (Localization.Away s) s)) →
+        ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+          w.vle ((σ_loc : Localization.Away s) *
+              algebraMap A (Localization.Away s) t *
+              (algebraMap A (Localization.Away s) s_D) ^ M)
+            (algebraMap A (Localization.Away s) s)) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    ∃ N : ℕ, ∀ t ∈ T_D,
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            algebraMap A (Localization.Away s) t *
+            (algebraMap A (Localization.Away s) s_D) ^ N)
+          (algebraMap A (Localization.Away s) s) := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  exact Finset.exists_uniform_N_of_per_mem_monotone
+    (P := fun N t =>
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            algebraMap A (Localization.Away s) t *
+            (algebraMap A (Localization.Away s) s_D) ^ N)
+          (algebraMap A (Localization.Away s) s))
+    h_chain_mono h_chain_per_t
+
 end ValuationSpectrum
