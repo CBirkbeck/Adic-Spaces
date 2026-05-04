@@ -3088,5 +3088,181 @@ theorem AlphaJointCor732CoverImpliesMNChoice_residual_via_locSubring_integrallyC
       P T s hs hopen h_intCl)
     h_mult
 
+/-! ### T164: algebraic multiplicative-bound residual reduction
+
+Strictly lower reduction of T162's `AlphaJointCor732MultiplicativeBound_residual`
+into a single named **uniform σ-power-decay + per-`t` chain** Prop on
+`Spa(Localization.Away s, ⁺)`, plus an `IsUnit α s_D` algebraic side
+hypothesis. The reduction isolates the **algebraic factorisation
+construction** as a trivial `IsUnit`-driven step, leaving the genuine
+remaining content as the uniform decay+chain on Spa (the Wedhorn 8.34(ii)
+Step 2 σ-power-decay content).
+
+Provided:
+
+* `AlphaJointCor732_uniformDecayAndChain` — named per-σ_loc Prop
+  asserting the existence of a Spa-uniform exponent `N` such that the
+  σ-power decay `w.vle (α s) (σ_loc · α s_D^(N+1))` and the per-`t`
+  chain `w.vle (σ_loc · α t · α s_D^N) (α s)` hold at every
+  `w ∈ Spa(Localization.Away s, ⁺)`.
+
+* `AlphaJointCor732MultiplicativeBound_residual_via_uniformDecayAndChain_and_unit_s_D`
+  — compiled bridge: from the uniform decay+chain residual + `IsUnit α s_D`,
+  produces T162's `AlphaJointCor732MultiplicativeBound_residual`. The
+  proof constructs explicit witnesses `ξ_decay := α s · (σ_loc · α s_D^(N+1))⁻¹`
+  and per-`t` `ξ_t := σ_loc · α t · α s_D^N · (α s)⁻¹` (using the unit
+  inverses), verifies the algebraic factorisations by Units arithmetic,
+  and derives the valuation bounds via `vle_iff_mul_unit_right`
+  applied to the uniform decay+chain inequalities.
+
+The remaining content is then concentrated entirely in
+`AlphaJointCor732_uniformDecayAndChain`, which is the Wedhorn 8.34(ii)
+Step 2 σ-power-decay statement on the local Spa — discharged via
+σ-as-π-power identification (T160) + Spa-quasi-compactness M-choice. -/
+
+omit [PlusSubring A] in
+/-- **T164 named uniform σ-power-decay + per-`t` chain Prop**. For a
+fixed `σ_loc : (Localization.Away s)ˣ`, asserts the existence of an
+exponent `N : ℕ` such that:
+
+* (uniform decay) at every `w ∈ Spa(Localization.Away s, ⁺)`:
+  `w.vle (algebraMap A (Loc s) s) ((σ_loc : Loc s) · (algebraMap A (Loc s) s_D)^(N+1))`;
+* (per-`t` chain) at every `t ∈ T_D` and every `w ∈ Spa`:
+  `w.vle ((σ_loc : Loc s) · (algebraMap A (Loc s) t) · (algebraMap A (Loc s) s_D)^N)
+        (algebraMap A (Loc s) s)`.
+
+This is the natural Wedhorn 8.34(ii) Step 2 σ-power-decay content
+isolated from the algebraic factorisation. -/
+def AlphaJointCor732_uniformDecayAndChain
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) : Prop :=
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  ∃ N : ℕ,
+    (∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      w.vle (algebraMap A (Localization.Away s) s)
+        ((σ_loc : Localization.Away s) *
+          (algebraMap A (Localization.Away s) s_D) ^ (N + 1))) ∧
+    (∀ t ∈ T_D,
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            algebraMap A (Localization.Away s) t *
+            (algebraMap A (Localization.Away s) s_D) ^ N)
+          (algebraMap A (Localization.Away s) s))
+
+omit [PlusSubring A] in
+/-- **T164 strictly lower reduction**: from the uniform σ-power
+decay+chain residual and `IsUnit α s_D`, produce T162's
+`AlphaJointCor732MultiplicativeBound_residual`.
+
+**Proof outline**: given σ_loc with the Cor 7.32 cover, the
+uniform-decay+chain hypothesis (passed as `h_decayChain` per σ_loc-with-cover)
+yields an exponent `N` and Spa-uniform inequalities. With `IsUnit α s_D`
+and the always-available `IsUnit (algebraMap A (Loc s) s)` (since `s` is
+inverted in `Loc s`), construct `ξ_decay := α s · (σ_loc · α s_D^(N+1))⁻¹`
+and per-`t` `ξ_t := σ_loc · α t · α s_D^N · (α s)⁻¹`; the algebraic
+factorisations follow by Units arithmetic, and the valuation bounds
+`w.vle ξ_decay 1` / `w.vle (ξ_t t ht) 1` follow from the uniform-decay /
+chain inequalities via `vle_iff_mul_unit_right` applied with the unit
+inverse.
+
+This isolates the algebraic-factorisation construction as a trivial
+`IsUnit`-driven step, leaving `AlphaJointCor732_uniformDecayAndChain`
+(the Wedhorn 8.34(ii) Step 2 σ-power-decay content) as the genuinely
+remaining target. -/
+theorem AlphaJointCor732MultiplicativeBound_residual_via_uniformDecayAndChain_and_unit_s_D
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (h_unit_s_D : IsUnit (algebraMap A (Localization.Away s) s_D))
+    (h_decayChain :
+      ∀ σ_loc : (Localization.Away s)ˣ,
+        AlphaJointCor732TestFamilyCoverPackage P T s hopen T_D s_D σ_loc →
+        AlphaJointCor732_uniformDecayAndChain P T s hopen T_D s_D σ_loc) :
+    AlphaJointCor732MultiplicativeBound_residual P T s hopen T_D s_D := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  intro σ_loc h_cover
+  obtain ⟨N, h_decay, h_chain⟩ := h_decayChain σ_loc h_cover
+  -- α s is a unit in Loc s (by IsLocalization.Away).
+  have h_α_s_unit :
+      IsUnit (algebraMap A (Localization.Away s) s) :=
+    IsLocalization.Away.algebraMap_isUnit (S := Localization.Away s) s
+  -- α s_D is a unit by hypothesis; raise to the (N+1)-th power.
+  have h_α_s_D_pow_unit :
+      IsUnit ((algebraMap A (Localization.Away s) s_D) ^ (N + 1)) :=
+    h_unit_s_D.pow (N + 1)
+  -- σ_loc · α s_D^(N+1) is a unit.
+  have h_denom_unit :
+      IsUnit ((σ_loc : Localization.Away s) *
+        (algebraMap A (Localization.Away s) s_D) ^ (N + 1)) :=
+    σ_loc.isUnit.mul h_α_s_D_pow_unit
+  -- Construct the witnesses.
+  set denom_inv : Localization.Away s :=
+    ((h_denom_unit.unit⁻¹ : (Localization.Away s)ˣ) : Localization.Away s)
+    with hdenom_inv_def
+  set α_s_inv : Localization.Away s :=
+    ((h_α_s_unit.unit⁻¹ : (Localization.Away s)ˣ) : Localization.Away s)
+    with hα_s_inv_def
+  refine ⟨N,
+    algebraMap A (Localization.Away s) s * denom_inv,
+    fun t _ht =>
+      (σ_loc : Localization.Away s) *
+        algebraMap A (Localization.Away s) t *
+        (algebraMap A (Localization.Away s) s_D) ^ N *
+        α_s_inv,
+    ?_, ?_, ?_, ?_⟩
+  · -- Decay factorisation: α s = ξ_decay · denom.
+    have h_denom_inv_mul :
+        denom_inv * ((σ_loc : Localization.Away s) *
+          (algebraMap A (Localization.Away s) s_D) ^ (N + 1)) = 1 := by
+      rw [hdenom_inv_def]
+      exact h_denom_unit.val_inv_mul
+    rw [mul_assoc, h_denom_inv_mul, mul_one]
+  · -- Decay valuation bound on Spa.
+    intro w hw
+    have h_decay_at := h_decay w hw
+    have h_denom_eq : (h_denom_unit.unit : Localization.Away s) =
+        (σ_loc : Localization.Away s) *
+          (algebraMap A (Localization.Away s) s_D) ^ (N + 1) :=
+      h_denom_unit.unit_spec
+    -- Restate decay using denom_unit's value.
+    rw [← h_denom_eq] at h_decay_at
+    -- Multiply both sides by (denom_unit⁻¹ : Loc s) on the right.
+    have h_mul := (vle_iff_mul_unit_right w h_denom_unit.unit⁻¹
+      (algebraMap A (Localization.Away s) s)
+      ((h_denom_unit.unit : Localization.Away s))).mpr h_decay_at
+    -- (denom_unit : Loc s) * (denom_unit⁻¹ : Loc s) = 1.
+    rwa [Units.mul_inv] at h_mul
+  · -- Per-t chain factorisation.
+    intro t _ht
+    have h_inv_mul : α_s_inv * algebraMap A (Localization.Away s) s = 1 := by
+      rw [hα_s_inv_def]
+      exact h_α_s_unit.val_inv_mul
+    rw [mul_assoc _ α_s_inv (algebraMap A (Localization.Away s) s), h_inv_mul,
+      mul_one]
+  · -- Per-t chain valuation bound on Spa.
+    intro t ht w hw
+    have h_chain_at := h_chain t ht w hw
+    have h_α_s_eq : (h_α_s_unit.unit : Localization.Away s) =
+        algebraMap A (Localization.Away s) s :=
+      h_α_s_unit.unit_spec
+    -- Restate chain using α s = α_s_unit's value.
+    rw [← h_α_s_eq] at h_chain_at
+    have h_mul := (vle_iff_mul_unit_right w h_α_s_unit.unit⁻¹
+      ((σ_loc : Localization.Away s) *
+        algebraMap A (Localization.Away s) t *
+        (algebraMap A (Localization.Away s) s_D) ^ N)
+      ((h_α_s_unit.unit : Localization.Away s))).mpr h_chain_at
+    -- (α_s_unit : Loc s) * (α_s_unit⁻¹ : Loc s) = 1.
+    rwa [Units.mul_inv] at h_mul
 
 end ValuationSpectrum
