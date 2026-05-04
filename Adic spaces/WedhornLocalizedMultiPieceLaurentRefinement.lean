@@ -1270,4 +1270,193 @@ theorem rationalOpen_subset_base_via_h_alg_subset_A₀_and_alpha_s_D_factored
     (h_α_s_D_per_t_via_factored_chain P T s hopen T_D s_D σ_loc
       h_α_s_D_factored)
 
+/-! ### T176: discharge the σ-factored α_s_D supplier
+
+Discharges T175's remaining open input — the σ-factored α_s_D supplier
+— directly from the natural Wedhorn cover-piece structural data
+(`h_alg`, `h_s_factor : s = s_D · f`, `hT_D_le_A₀ : T_D ⊆ P.A₀`).
+
+The proof reuses T173's machinery
+(`alphaTDBranchAssembly_via_factorization_integrality_prod_ne` fed by
+T172's producers) to produce an unfactored per-t' upper bound at each
+`w` under f-membership, then σ-factors via `vle_iff_mul_unit_right`.
+
+The α_s_D-strict-domination hypothesis is consumed solely to construct
+a localized Laurent-piece membership `w ∈ rationalOpen ({1}) (σ_loc⁻¹ * α s_D)`
+at the specific `w`, which is required by the assembly residual's type
+even though its proof body does not depend on the choice of Laurent
+piece.
+
+Provided:
+
+* `h_α_s_D_factored_via_h_alg_subset_A₀` — σ-factored α_s_D supplier
+  matching the input shape of T175's wrapper.
+
+* `rationalOpen_subset_base_via_h_alg_subset_A₀` — caller-facing
+  base-inclusion theorem with **no explicit α_s_D supplier**;
+  produces `rationalOpen (insert f T_base) s ⊆ rationalOpen T_D s_D`
+  from the natural Wedhorn cover-piece structural data alone. -/
+
+omit [PlusSubring A] in
+/-- **T176: σ-factored α_s_D supplier from natural cover-piece data**.
+
+Discharges T175's σ-factored α_s_D supplier shape from the same
+natural cover-piece structural data as T173's α_T_D-branch closer.
+
+**Proof outline**:
+
+1. Build T172's `h_T_D_image_int` and `h_prod_ne` and T173's
+   `h_factorization` via the natural cover-piece data
+   (`h_alg`, `h_s_factor`, `hT_D_le_A₀`).
+
+2. Build T171's
+   `LocalizedAlphaTDBranchCoverLevelAssemblyResidual` via
+   `alphaTDBranchAssembly_via_factorization_integrality_prod_ne`.
+
+3. At each `w` under f-membership and α_s_D-strict-domination:
+   construct the Laurent-piece membership
+   `w ∈ rationalOpen ({1}) (σ_loc⁻¹ * α s_D)` from the
+   α_s_D-strict-domination data; apply the assembly residual at
+   `τ := α s_D` to obtain the unfactored per-t' upper bound
+   `∀ t' ∈ T_D.image, w.vle t' (α s_D)`.
+
+4. σ-factor via `vle_iff_mul_unit_right`. -/
+theorem h_α_s_D_factored_via_h_alg_subset_A₀
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A) (f : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_alg :
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      algebraMap A (Localization.Away s) f =
+        (σ_loc : Localization.Away s) *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+    (h_s_factor : s = s_D * f)
+    (hT_D_le_A₀ : ∀ t ∈ T_D, t ∈ P.A₀) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      w.vle ((σ_loc : Localization.Away s) *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+        (algebraMap A (Localization.Away s) s) →
+      w.vle (σ_loc : Localization.Away s)
+          (algebraMap A (Localization.Away s) s_D) ∧
+        ¬ w.vle (algebraMap A (Localization.Away s) s_D)
+          (σ_loc : Localization.Away s) →
+      ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+        w.vle (t' * (σ_loc : Localization.Away s))
+          ((algebraMap A (Localization.Away s) s_D) *
+            (σ_loc : Localization.Away s)) := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  -- Build the assembly residual once.
+  have h_factor :=
+    h_factorization_via_h_alg_and_s_factor_eq s T_D s_D f σ_loc
+      h_alg h_s_factor
+  have h_int :=
+    h_T_D_image_int_via_locSubring_membership P T s hopen T_D
+      (h_T_D_in_locSubring_of_subset_A₀ P T s T_D hT_D_le_A₀)
+  have h_pne :=
+    h_prod_ne_via_factorization P T s hopen T_D s_D σ_loc h_factor
+  have h_assembly :=
+    alphaTDBranchAssembly_via_factorization_integrality_prod_ne
+      P T s hopen T_D s_D σ_loc h_factor h_int h_pne
+  intro w hw_spa hw_f h_α_s_D_strict_dom t' ht'
+  letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+  obtain ⟨h_σ_le, h_α_s_D_not_le_σ⟩ := h_α_s_D_strict_dom
+  -- Construct Laurent-piece membership at α_s_D from α_s_D-strict-dom.
+  have h_α_s_D_ne :
+      ¬ w.vle (algebraMap A (Localization.Away s) s_D) 0 :=
+    not_vle_zero_of_strict_dominator h_α_s_D_not_le_σ
+  have hw_one_le_inv :
+      w.vle (1 : Localization.Away s)
+        (((σ_loc⁻¹ : (Localization.Away s)ˣ) : Localization.Away s) *
+          algebraMap A (Localization.Away s) s_D) := by
+    have h_step := ValuativeRel.mul_vle_mul_right h_σ_le
+        (((σ_loc⁻¹ : (Localization.Away s)ˣ) : Localization.Away s))
+    rwa [Units.inv_mul] at h_step
+  have hw_inv_ne :
+      ¬ w.vle (((σ_loc⁻¹ : (Localization.Away s)ˣ) :
+          Localization.Away s) *
+          algebraMap A (Localization.Away s) s_D) 0 := by
+    intro h_zero
+    apply h_α_s_D_ne
+    have h_step := ValuativeRel.mul_vle_mul_right h_zero
+        ((σ_loc : Localization.Away s))
+    rw [mul_zero, ← mul_assoc, Units.mul_inv, one_mul] at h_step
+    exact h_step
+  have hw_piece :
+      w ∈ rationalOpen
+        ({(1 : Localization.Away s)} : Finset (Localization.Away s))
+        (((σ_loc⁻¹ : (Localization.Away s)ˣ) : Localization.Away s) *
+          algebraMap A (Localization.Away s) s_D) := by
+    refine ⟨hw_spa, ?_, hw_inv_ne⟩
+    intro x hx
+    rw [Finset.mem_singleton] at hx
+    subst hx
+    exact hw_one_le_inv
+  -- Apply assembly residual at τ := α s_D.
+  have h_α_s_D_in_family :
+      algebraMap A (Localization.Away s) s_D ∈
+        localizedTestFamily s T_D s_D :=
+    Finset.mem_insert_self _ _
+  obtain ⟨h_per_t', _⟩ :=
+    h_assembly w hw_spa hw_f
+      (algebraMap A (Localization.Away s) s_D)
+      h_α_s_D_in_family hw_piece
+  -- σ-factor the unfactored per-t' upper bound.
+  exact (vle_iff_mul_unit_right w σ_loc t'
+    (algebraMap A (Localization.Away s) s_D)).mpr (h_per_t' t' ht')
+
+/-- **T176: caller-facing base inclusion with no explicit α_s_D
+supplier**.
+
+Composes T175's
+`rationalOpen_subset_base_via_h_alg_subset_A₀_and_alpha_s_D_factored`
+with T176's `h_α_s_D_factored_via_h_alg_subset_A₀` to produce the
+base rational-open inclusion `rationalOpen (insert f T_base) s ⊆
+rationalOpen T_D s_D` from the natural Wedhorn cover-piece structural
+data alone — no explicit α_s_D per-t' supplier required.
+
+This is the **fully end-to-end caller** for T173/T174/T175/T176's
+corrected branch-clearing route: every supplier in the chain is
+discharged from the natural cover-piece data
+(`hσ_loc_dom`, `h_alg`, `h_s_factor`, `hT_D_le_A₀`). -/
+theorem rationalOpen_subset_base_via_h_alg_subset_A₀
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (hA₀_le : P.A₀ ≤ A⁺)
+    (T_base T_D : Finset A) (s_D : A) (f : A)
+    (h_T_le_T_base : T ⊆ T_base)
+    (σ_loc : (Localization.Away s)ˣ)
+    (hσ_loc_dom :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ localizedTestFamily s T_D s_D,
+          w.vle (σ_loc : Localization.Away s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away s))
+    (h_alg :
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      algebraMap A (Localization.Away s) f =
+        (σ_loc : Localization.Away s) *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+    (h_s_factor : s = s_D * f)
+    (hT_D_le_A₀ : ∀ t ∈ T_D, t ∈ P.A₀) :
+    rationalOpen (insert f T_base) s ⊆ rationalOpen T_D s_D :=
+  rationalOpen_subset_base_via_h_alg_subset_A₀_and_alpha_s_D_factored
+    P T s hopen hA₀_le T_base T_D s_D f h_T_le_T_base σ_loc hσ_loc_dom
+    h_alg h_s_factor hT_D_le_A₀
+    (h_α_s_D_factored_via_h_alg_subset_A₀ P T s hopen T_D s_D f σ_loc
+      h_alg h_s_factor hT_D_le_A₀)
+
 end ValuationSpectrum
