@@ -392,4 +392,117 @@ theorem produce_C1SupplierStrong_local_via_Wedhorn_834_via_factorization_and_dom
         P C hopen_base D v (hT_covers_le_A₀ D hD)
         (h_per_call_construction D hD v hv t ht hvt hvD_s))
 
+/-! ### T180: σ-strict-domination supplier via `exists_dominating_unit_in_localization`
+
+T179's per-call construction supplier `h_per_call_construction` packages
+together five outputs:
+
+* `σ_loc, hσ_loc_dom` — the localized Cor 7.32 σ-strict-domination unit;
+* `f, h_alg, h_s_factor` — Wedhorn 8.34(ii) cover-refinement element
+  `f := σ · t · D.s ^ N` with N chosen via denominator clearing;
+* `hv_in_plus, hvf_nz` — source-side rational-open transfer for `v`.
+
+T180 lands the **first real mathematical component** of this bundle:
+the σ-strict-domination output, by **direct application** of the
+existing `exists_dominating_unit_in_localization` API (in
+`Adic spaces/WedhornLocalizedCor732Application.lean:87`) at the
+canonical localized test family `localizedTestFamily C.base.s D.T D.s`.
+
+**Inputs**: the localized pseudouniformizer data
+`(π_loc, hI_loc, hπ_loc_tn, hπ_loc_unit, hArch_loc)` — these are the
+**localized** versions of the global Tate hypotheses
+`(π, hI, hπ_tn, hπ_unit, hArch)` from the documented T178 residual
+signature; lifting global → localized is the deferred Tate-side
+content (see e.g.
+`Adic spaces/WedhornLocalizedCor732Application.lean`'s docstring).
+The non-vanishing supplier `hT_loc_ne` for
+`localizedTestFamily C.base.s D.T D.s` is also taken as input;
+deriving it from the cover plus-piece structure is a separate
+structural lemma.
+
+**Output**: `σ_loc + hσ_loc_dom` — the first two of T179's five
+construction outputs.
+
+**Next missing piece** for T179's full per-call construction
+supplier (after T180):
+
+* **Denominator-clearing / `f` construction**: given `σ_loc` from
+  T180 + `(D, v, t)`, produce `f : A` with
+  `algebraMap f = σ_loc · ∏ D.T.image (algebraMap)` and
+  `C.base.s = D.s · f`. Wedhorn 8.34(ii)'s explicit construction
+  is `f := σ · t · D.s ^ (N - 1)` for some `σ : A` lifting `σ_loc`
+  modulo the localization and `N : ℕ` chosen large enough to clear
+  denominators. The σ ↦ σ_loc lifting is non-trivial: σ_loc lives
+  in `(Loc C.base.s)ˣ`, and σ : A would need
+  `algebraMap σ = σ_loc · (algebraMap C.base.s)^M` for some M.
+
+* **Source-side transfer**: with `f` constructed, derive
+  `v ∈ rationalOpen (insert f C.base.T) C.base.s` from `v`'s
+  rational-open membership in `D` and the f-construction; derive
+  `¬ v.vle f 0` from `f`'s explicit form. -/
+
+/-- **T180 σ-strict-domination supplier** (first real component of
+T179's per-call construction supplier).
+
+Applies `exists_dominating_unit_in_localization` at the canonical
+localized test family `localizedTestFamily C.base.s D.T D.s` to
+produce the σ-strict-dominating unit `σ_loc : (Loc C.base.s)ˣ` with
+the per-`w` strict-domination output consumed by T177/T179.
+
+The localized pseudouniformizer data `(π_loc, hI_loc, hπ_loc_tn,
+hπ_loc_unit, hArch_loc)` is supplied as explicit hypotheses; lifting
+from the global `(π, hI, hπ_tn, hπ_unit, hArch)` of the documented
+T178 residual is the deferred Tate-side construction. The
+non-vanishing supplier `hT_loc_ne` for the localized test family is
+also supplied as a hypothesis.
+
+This delivers exactly the σ-strict-domination subset of T179's
+construction bundle — the first real mathematical component
+discharged from existing API. The remaining `(f, h_alg, h_s_factor,
+hv_in_plus, hvf_nz)` components require the Wedhorn 8.34(ii)
+denominator-clearing construction, which is the next theorem-level
+ticket. -/
+theorem wedhorn_834_per_call_dom_supplier
+    [DecidableEq A]
+    (P : PairOfDefinition A)
+    (C : RationalCovering A)
+    (hopen_base : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) C.base.s ∈ locSubring P C.base.T C.base.s)
+    (D : RationalLocData A) :
+    letI : TopologicalSpace (Localization.Away C.base.s) :=
+      locTopology P C.base.T C.base.s hopen_base
+    letI : PlusSubring (Localization.Away C.base.s) :=
+      localizationLocSubringPlusSubring P C.base.T C.base.s
+    ∀ (π_loc : (locPairOfDefinition P C.base.T C.base.s hopen_base).A₀)
+      (_hI_loc : (locPairOfDefinition P C.base.T C.base.s hopen_base).I =
+        Ideal.span {π_loc})
+      (_hπ_loc_tn : IsTopologicallyNilpotent
+        ((locPairOfDefinition P C.base.T C.base.s hopen_base).A₀.subtype
+          π_loc))
+      (_hπ_loc_unit : IsUnit
+        ((locPairOfDefinition P C.base.T C.base.s hopen_base).A₀.subtype
+          π_loc))
+      (_hArch_loc : ∀ w : Spv (Localization.Away C.base.s),
+        letI : ValuativeRel (Localization.Away C.base.s) := w.toValuativeRel
+        MulArchimedean (ValuativeRel.ValueGroupWithZero
+          (Localization.Away C.base.s)))
+      (_hT_loc_ne :
+        ∀ w ∈ Spa (Localization.Away C.base.s)
+              (Localization.Away C.base.s)⁺,
+          ∃ τ ∈ localizedTestFamily C.base.s D.T D.s, ¬ w.vle τ 0),
+      ∃ σ_loc : (Localization.Away C.base.s)ˣ,
+        ∀ w ∈ Spa (Localization.Away C.base.s)
+              (Localization.Away C.base.s)⁺,
+          ∃ τ ∈ localizedTestFamily C.base.s D.T D.s,
+            w.vle (σ_loc : Localization.Away C.base.s) τ ∧
+              ¬ w.vle τ (σ_loc : Localization.Away C.base.s) := by
+  letI : TopologicalSpace (Localization.Away C.base.s) :=
+    locTopology P C.base.T C.base.s hopen_base
+  letI : PlusSubring (Localization.Away C.base.s) :=
+    localizationLocSubringPlusSubring P C.base.T C.base.s
+  intro π_loc hI_loc hπ_loc_tn hπ_loc_unit hArch_loc hT_loc_ne
+  exact exists_dominating_unit_in_localization P C.base.T C.base.s hopen_base
+    π_loc hI_loc hπ_loc_tn hπ_loc_unit hArch_loc
+    (localizedTestFamily C.base.s D.T D.s) hT_loc_ne
+
 end ValuationSpectrum
