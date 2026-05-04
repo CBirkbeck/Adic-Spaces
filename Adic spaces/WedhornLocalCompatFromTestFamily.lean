@@ -708,4 +708,183 @@ theorem h_T_test_compat_loc_branch_α_T_D_via_localized_laurent_piece
     (fun w hw_spa hw_f => (h_pair w hw_spa hw_f).1)
     (fun w hw_spa hw_f => (h_pair w hw_spa hw_f).2)
 
+omit [PlusSubring A] in
+/-- **T169: localized Laurent-piece rationalOpen producer**
+(`h_per_w_laurent_piece_target`).
+
+Produces the per-`w` localized Laurent-piece rationalOpen data consumed
+by `h_T_test_compat_loc_branch_α_T_D_via_localized_laurent_piece` (and
+its underlying `T_D_multi_and_lower_bound_via_localized_laurent_piece`)
+from the **natural Wedhorn 8.34(ii) Laurent cover refinement output at
+the localized level**: the pair
+
+* `h_T_D_multi_bound` — multi-element bound at `α s_D`:
+  `w.vle (∏ T_D.image (algebraMap)) (algebraMap s_D)` per `w` under
+  f-membership;
+* `h_T_D_lower_bound` — per-element lower bound at `1`:
+  `∀ t' ∈ T_D.image (algebraMap), w.vle 1 t'` per `w` under
+  f-membership.
+
+These are the same two hypotheses consumed by the corrected-route
+α_T_D-branch suppliers `h_α_T_D_per_t_via_multi_corrected` /
+`h_α_T_D_s_D_ne_via_multi_corrected` (from T168 commits `8316474` /
+`d954344`). Wedhorn's actual cover-refinement (PDF page 84 / Lemma 8.33)
+produces exactly this pair on each Laurent piece by construction; this
+producer **packages** it into the rationalOpen vocabulary used by the
+downstream T168 caller.
+
+The rationalOpen non-vanishing clauses follow:
+
+* `¬ w.vle (algebraMap s_D) 0` — the second conjunct of
+  `vle_of_dominating_unit_multi_corrected_at` (in
+  `WedhornDominatingUnitInequality.lean`), derived from
+  `h_T_D_multi_bound + h_T_D_lower_bound` via the chain
+  `1 ≤ (∏ T_D.image) ≤ algebraMap s_D` plus `not_vle_one_zero`.
+
+* `¬ w.vle t' 0` for each `t' ∈ T_D.image (algebraMap)` — derived from
+  `h_T_D_lower_bound` via the chain `1 ≤ t'` (under `w.vle 1 t'`) plus
+  `not_vle_one_zero` and transitivity.
+
+This is the **inverse direction** of T168's
+`T_D_multi_and_lower_bound_via_localized_laurent_piece`: that lemma
+unwraps the rationalOpen form into multi+lower bounds; this lemma
+wraps multi+lower bounds back into the rationalOpen form. Both
+directions are honest Wedhorn 8.34(ii) packaging, with no σ-power-decay,
+locSubring integrality, or product-from-per-t bound. -/
+theorem h_per_w_laurent_piece_target
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_T_D_multi_bound :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w.vle (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t)
+              (algebraMap A (Localization.Away s) s_D))
+    (h_T_D_lower_bound :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w.vle (1 : Localization.Away s) t') :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      w.vle ((σ_loc : Localization.Away s) *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+        (algebraMap A (Localization.Away s) s) →
+      w ∈ rationalOpen
+          ({∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t}
+            : Finset (Localization.Away s))
+          (algebraMap A (Localization.Away s) s_D) ∧
+      ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+        w ∈ rationalOpen
+            ({(1 : Localization.Away s)} : Finset (Localization.Away s)) t' := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro w hw_spa hw_f
+  have h_prod := h_T_D_multi_bound w hw_spa hw_f
+  have h_lower := h_T_D_lower_bound w hw_spa hw_f
+  -- s_D non-vanishing: second conjunct of vle_of_dominating_unit_multi_corrected_at.
+  have h_s_D_ne : ¬ w.vle (algebraMap A (Localization.Away s) s_D) 0 :=
+    (vle_of_dominating_unit_multi_corrected_at w h_prod h_lower).2
+  refine ⟨⟨hw_spa, ?_, h_s_D_ne⟩, ?_⟩
+  · -- Singleton-product upper bound: w.vle (∏ T_D.image) (algebraMap s_D).
+    intro x hx
+    rw [Finset.mem_singleton] at hx
+    subst hx
+    exact h_prod
+  · -- Per-element lower bound + non-vanishing for each t' ∈ T_D.image.
+    intro t' ht'
+    refine ⟨hw_spa, ?_, ?_⟩
+    · intro x hx
+      rw [Finset.mem_singleton] at hx
+      subst hx
+      exact h_lower t' ht'
+    · -- ¬ w.vle t' 0: from w.vle 1 t' + not_vle_one_zero.
+      intro h_t'_zero
+      have h_one_zero : w.vle (1 : Localization.Away s) 0 :=
+        w.vle_trans (h_lower t' ht') h_t'_zero
+      exact w.not_vle_one_zero h_one_zero
+
+omit [PlusSubring A] in
+/-- **T169 caller: end-to-end α_T_D branch closure from
+multi+lower bounds**.
+
+Composes T169's `h_per_w_laurent_piece_target` with T168's
+`h_T_test_compat_loc_branch_α_T_D_via_localized_laurent_piece` to give
+the α_T_D branch's full single-branch compatibility output directly
+from the per-`w` multi-element bound + per-element lower bound
+hypotheses. This shows T169's producer feeds the T168 caller as
+intended.
+
+After this caller, the α_T_D branch closure consumes only the natural
+Wedhorn 8.34(ii) Laurent cover refinement output (the multi-element
+bound + per-element lower bound at each `w` in the cover plus-piece);
+no further rationalOpen-shape conversion is needed downstream. -/
+theorem h_T_test_compat_loc_branch_α_T_D_via_multi_lower
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_T_D_multi_bound :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w.vle (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t)
+              (algebraMap A (Localization.Away s) s_D))
+    (h_T_D_lower_bound :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w.vle (1 : Localization.Away s) t') :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    ∀ τ ∈ T_D.image (algebraMap A (Localization.Away s)),
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w.vle (σ_loc : Localization.Away s) τ ∧
+          ¬ w.vle τ (σ_loc : Localization.Away s) →
+          (∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+              w.vle t' (algebraMap A (Localization.Away s) s_D)) ∧
+            ¬ w.vle (algebraMap A (Localization.Away s) s_D) 0 :=
+  h_T_test_compat_loc_branch_α_T_D_via_localized_laurent_piece P T s hopen
+    T_D s_D σ_loc
+    (h_per_w_laurent_piece_target P T s hopen T_D s_D σ_loc
+      h_T_D_multi_bound h_T_D_lower_bound)
+
 end ValuationSpectrum
