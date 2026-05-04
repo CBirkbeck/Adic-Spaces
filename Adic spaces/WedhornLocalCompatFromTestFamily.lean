@@ -1032,4 +1032,298 @@ theorem h_T_D_multi_and_lower_bound_via_laurent_cover_refinement
   · intro w hw_spa hw_f t' ht'
     exact (h_at_w w hw_spa hw_f).2 t' ht'
 
+omit [PlusSubring A] in
+/-- **T170: case-wise multi-element bound from cover-refinement
+factorization** (multi half of `h_per_piece_multi_lower`).
+
+**Honest case-wise arithmetic theorem** discharging the multi-element
+bound clause of T169's `h_per_piece_multi_lower` from two **non-generic
+structural hypotheses**:
+
+1. **Cover-refinement element factorization (Wedhorn 8.34(ii) / Lemma
+   8.33)**:
+   ```
+   algebraMap A (Localization.Away s) s =
+     (σ_loc : Localization.Away s)
+       * algebraMap A (Localization.Away s) s_D
+       * ∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t
+   ```
+   This is the natural Wedhorn 8.34(ii) factorization: the cover base
+   denominator `algebraMap s` factors through `σ_loc` (the Cor 7.32
+   dominating unit), `algebraMap s_D` (the cover-piece denominator),
+   and the product over `T_D.image` (the cover-piece test family,
+   imaged into `Localization.Away s`). Compare
+   `WedhornStandardCoverRefinement.exists_single_f_refinement_at_t_via_dominating_unit`
+   target signature
+   (`Adic spaces/WedhornStandardCoverRefinement.lean:419–462`):
+   `f := (σ : A) * t * D.s ^ (N - 1)` for some `N`. Our `N = 0` form
+   matches the natural multi-element extension of that template.
+
+2. **Per-element integrality of `T_D` at `w`** (`T_D` images bounded
+   by `1`):
+   ```
+   ∀ w ∈ Spa, ∀ t ∈ T_D, w.vle (algebraMap A (Localization.Away s) t) 1
+   ```
+   The natural Tate condition: each `t ∈ T_D` is power-bounded
+   (integral) at `w`. Comes from the cover-piece structure
+   `D.T ⊆ A⁺` plus continuity of `algebraMap`; equivalently, the
+   `algebraMap`-image of `T_D` lies in the integers of `w`.
+
+**Conclusion**: at every `w ∈ Spa(Localization.Away s, ⁺)` under
+f-membership, the multi-element bound
+`w.vle (∏ T_D.image (algebraMap)) (algebraMap s_D)` holds.
+
+**Proof**: pure valuation arithmetic.
+
+* From the factorization plus f-membership, after `vle_iff_mul_unit_left`
+  cancellation of `σ_loc`, the chain `w.vle (∏) (algebraMap s_D · ∏)`.
+* Per-element integrality + `Spv.vle_prod_of_pointwise` (in
+  `WedhornMultiDominatingUnit.lean`) → `w.vle (∏ T_D.image) 1`.
+* Case-split on `w.vle (∏) 0`: if `(∏) = 0` at `w`, transitivity through
+  `ValuativeRel.zero_vle` gives the multi-bound; otherwise,
+  `ValuativeRel.vle_mul_cancel` on `w.vle (∏) (algebraMap s_D · ∏)`
+  yields `w.vle 1 (algebraMap s_D)`, then transitivity through
+  `w.vle (∏) 1` gives the multi-bound.
+
+**Strictly stronger than a wrapper**: the multi-element bound is
+**derived** from the factorization + per-element integrality, not
+assumed.
+
+**First exact missing algebraic/factorization fact (per-element lower
+bound)**: the *lower-bound clause* of `h_per_piece_multi_lower`,
+`∀ t' ∈ T_D.image (algebraMap), w.vle 1 t'` per `w` under f-membership,
+is the **genuinely missing per-piece content** that this theorem does
+not deliver. T054's `WedhornMultiPieceLaurentRefinement.lean` documents
+that this universal-over-`T_D.image` form is **not derivable from
+the Cor 7.32 σ-strict-domination + cover-refinement Laurent piece
+structure alone**: at any `w ∈ V_τ`, only `σ_loc⁻¹ · τ` satisfies the
+lower bound `w.vle 1 (σ_loc⁻¹ · τ)`, not other `σ_loc⁻¹ · τ'` for
+`τ' ≠ τ` (T035 counter-example). The same obstruction applies to the
+unrescaled per-element bound `w.vle 1 t'` for `t' ∈ T_D.image`. The
+lower bound therefore requires either:
+
+* **A finer Laurent cover refinement** where each piece simultaneously
+  pins all `t' ∈ T_D.image` to the lower bound (Wedhorn 8.33 binary
+  Laurent acyclicity iterated; the n-fold piece refinement); OR
+
+* **A structural fact about `T_D.image`** that the cover-refinement
+  element construction guarantees `T_D.image ⊆` (some specific
+  unit-bounded subring) at every `w ∈` (cover plus-piece) — concretely,
+  a Wedhorn 7.45-style result tying `T_D.image` valuations to the
+  cover-refinement element's `algebraMap`-image structure.
+
+**Use**: combine with the per-element lower bound (as a separate
+hypothesis or downstream input) to form the full
+`h_per_piece_multi_lower`, then feed
+`h_T_D_multi_and_lower_bound_via_laurent_cover_refinement` (commit
+`9d990df`) and `h_per_w_laurent_piece_target` (commit `f4f3b70`) to
+obtain the per-`w` localized rationalOpen Laurent-piece data consumed
+by `h_T_test_compat_loc_branch_α_T_D_via_localized_laurent_piece`. -/
+theorem multi_bound_via_cover_refinement_factorization
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_factorization :
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      algebraMap A (Localization.Away s) s =
+        (σ_loc : Localization.Away s) *
+          algebraMap A (Localization.Away s) s_D *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+    (h_T_D_image_int :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w.vle t' (1 : Localization.Away s)) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      w.vle ((σ_loc : Localization.Away s) *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+        (algebraMap A (Localization.Away s) s) →
+      w.vle (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t)
+            (algebraMap A (Localization.Away s) s_D) := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro w hw_spa hw_f
+  letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+  -- Step 1: Substitute the factorization in f-membership.
+  set P_im := ∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t with hP_im_def
+  have hf' : w.vle ((σ_loc : Localization.Away s) * P_im)
+      ((σ_loc : Localization.Away s) *
+        (algebraMap A (Localization.Away s) s_D * P_im)) := by
+    rw [show (σ_loc : Localization.Away s) *
+            (algebraMap A (Localization.Away s) s_D * P_im) =
+          (σ_loc : Localization.Away s) *
+            algebraMap A (Localization.Away s) s_D * P_im from by ring,
+      ← h_factorization]
+    exact hw_f
+  -- Step 2: Cancel σ_loc on the left via vle_iff_mul_unit_left.
+  have hP_im_chain : w.vle P_im
+      (algebraMap A (Localization.Away s) s_D * P_im) :=
+    (vle_iff_mul_unit_left w σ_loc P_im
+      (algebraMap A (Localization.Away s) s_D * P_im)).mp hf'
+  -- Step 3: Per-element integrality + Spv.vle_prod_of_pointwise →
+  -- product is integral at w (∏ ≤ 1).
+  have hP_im_int : w.vle P_im (1 : Localization.Away s) := by
+    have h_pw : ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+        w.vle t' (1 : Localization.Away s) := h_T_D_image_int w hw_spa
+    have h_prod : w.vle
+        (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t)
+        (∏ _t ∈ T_D.image (algebraMap A (Localization.Away s)),
+          (1 : Localization.Away s)) :=
+      Spv.vle_prod_of_pointwise w (T_D.image (algebraMap A (Localization.Away s)))
+        h_pw
+    rwa [Finset.prod_const_one] at h_prod
+  -- Step 4: Case-split on whether P_im is `0`-related at w.
+  by_cases hP_im_zero : w.vle P_im 0
+  · -- P_im is `0` at w: multi-bound is trivial via transitivity through 0.
+    exact w.vle_trans hP_im_zero
+      (ValuativeRel.zero_vle (algebraMap A (Localization.Away s) s_D))
+  · -- P_im is non-vanishing at w: cancel P_im in hP_im_chain to get
+    -- w.vle 1 (algebraMap s_D), then transitivity with hP_im_int.
+    have h_one_le_s_D : w.vle (1 : Localization.Away s)
+        (algebraMap A (Localization.Away s) s_D) := by
+      have h_chain' : w.vle ((1 : Localization.Away s) * P_im)
+          (algebraMap A (Localization.Away s) s_D * P_im) := by
+        rw [one_mul]; exact hP_im_chain
+      exact w.vle_mul_cancel hP_im_zero h_chain'
+    exact w.vle_trans hP_im_int h_one_le_s_D
+
+omit [PlusSubring A] in
+/-- **T170 chained caller**: combine the case-wise multi-bound theorem
+with a separately-supplied per-element lower bound to discharge T169's
+`h_per_piece_multi_lower`, then feed it through
+`h_T_D_multi_and_lower_bound_via_laurent_cover_refinement` (T169) and
+`h_per_w_laurent_piece_target` (T169 commit `f4f3b70`) to produce the
+per-`w` localized rationalOpen Laurent-piece data.
+
+Demonstrates that T170's case-wise multi-bound theorem composes
+cleanly with the existing T169 chain:
+
+```
+h_factorization + h_T_D_image_int        h_per_element_lower
+              ↓                                   ↓
+    multi_bound_via_…_factorization              ↓
+              ↓                                   ↓
+              └────────── h_per_piece_multi_lower
+                           ↓
+              h_T_D_multi_and_lower_bound_via_laurent_cover_refinement
+                           ↓
+                  (h_T_D_multi_bound, h_T_D_lower_bound)
+                           ↓
+                 h_per_w_laurent_piece_target
+                           ↓
+                 per-`w` rationalOpen Laurent-piece data
+                           ↓
+       (consumed by h_T_test_compat_loc_branch_α_T_D_via_localized_laurent_piece)
+```
+
+The `h_per_element_lower` hypothesis is the **first exact missing
+algebraic/factorization fact** named in
+`multi_bound_via_cover_refinement_factorization`'s docstring; this
+caller passes it through unchanged. Discharging it requires either a
+finer Laurent cover refinement (Wedhorn 8.33 iterated) or a Wedhorn
+7.45-style structural fact about `T_D.image` valuations, neither of
+which is currently in the project. -/
+theorem h_T_D_multi_and_lower_bound_via_factorization_and_lower
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (hσ_loc_dom :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ localizedTestFamily s T_D s_D,
+          w.vle (σ_loc : Localization.Away s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away s))
+    (h_factorization :
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      algebraMap A (Localization.Away s) s =
+        (σ_loc : Localization.Away s) *
+          algebraMap A (Localization.Away s) s_D *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+    (h_T_D_image_int :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w.vle t' (1 : Localization.Away s))
+    (h_per_element_lower :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ τ ∈ localizedTestFamily s T_D s_D,
+        ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+          w ∈ rationalOpen
+              ({(1 : Localization.Away s)} : Finset (Localization.Away s))
+              (((σ_loc⁻¹ : (Localization.Away s)ˣ) : Localization.Away s) *
+                τ) →
+          w.vle ((σ_loc : Localization.Away s) *
+              (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+            (algebraMap A (Localization.Away s) s) →
+          ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+            w.vle (1 : Localization.Away s) t') :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    (∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w.vle (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t)
+              (algebraMap A (Localization.Away s) s_D)) ∧
+    (∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w.vle (1 : Localization.Away s) t') := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  -- Multi-element bound: from T170's case-wise factorization theorem.
+  have h_multi := multi_bound_via_cover_refinement_factorization
+    P T s hopen T_D s_D σ_loc h_factorization h_T_D_image_int
+  -- Assemble per-piece multi+lower from multi-bound (proved) and
+  -- per-element lower bound (hypothesis), then dispatch via the
+  -- T169 cover-decomposition theorem.
+  have h_per_piece_multi_lower :
+      ∀ τ ∈ localizedTestFamily s T_D s_D,
+        ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+          w ∈ rationalOpen
+              ({(1 : Localization.Away s)} : Finset (Localization.Away s))
+              (((σ_loc⁻¹ : (Localization.Away s)ˣ) : Localization.Away s) *
+                τ) →
+          w.vle ((σ_loc : Localization.Away s) *
+              (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+            (algebraMap A (Localization.Away s) s) →
+          w.vle (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t)
+                (algebraMap A (Localization.Away s) s_D) ∧
+          (∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+              w.vle (1 : Localization.Away s) t') := by
+    intro τ hτ w hw_spa hw_piece hw_f
+    exact ⟨h_multi w hw_spa hw_f,
+      h_per_element_lower τ hτ w hw_spa hw_piece hw_f⟩
+  exact h_T_D_multi_and_lower_bound_via_laurent_cover_refinement
+    P T s hopen T_D s_D σ_loc hσ_loc_dom h_per_piece_multi_lower
+
 end ValuationSpectrum
