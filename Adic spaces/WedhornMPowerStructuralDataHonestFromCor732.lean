@@ -4344,10 +4344,83 @@ Provided:
 * `locSubringSpa_subset_locPlusSpa` — the **reverse direction** via
   integral closure (T167's missing operation).
 * `locSubringSpa_eq_locPlusSpa` — Spa equality.
-* `AlphaJointCor732_uniformDecayAndChain_locPlus_eq_via_locSubring` —
-  applies the equality to derive the locPlus uniform decay+chain
-  target from the locSubring version (strict-equality form, weaker
-  hypothesis than T165's spa_antitone bridge). -/
+
+Note on `AlphaJointCor732_uniformDecayAndChain_locPlus`: T165's
+`AlphaJointCor732_uniformDecayAndChain_locPlus_of_locSubring` already
+provides the transport from the locSubring version to the locPlus
+version via `spa_antitone` (forward inclusion only). The Spa equality
+landed here strengthens the structural relationship but does NOT
+produce a stronger bridge — both versions of the uniform decay+chain
+target are equivalent regardless of which Spa they range over.
+
+### Precise remaining content (T167 blocker report)
+
+The genuine remaining content for both
+`AlphaJointCor732_uniformDecayAndChain` (locSubring Spa) and
+`AlphaJointCor732_uniformDecayAndChain_locPlus` (locPlus Spa, equal as
+sets per `locSubringSpa_eq_locPlusSpa` above) reduces to the
+**σ-power-decay piece**:
+
+```
+∃ N, ∀ w ∈ Spa(Localization.Away s, ⁺),
+  w.vle (algebraMap A (Localization.Away s) s)
+    ((σ_loc : Localization.Away s) *
+      (algebraMap A (Localization.Away s) s_D) ^ (N + 1))
+```
+
+The chain piece is closed via T166's `AlphaJointCor732_chain_half_via_sigma_dominated_by_alpha_s`
++ T167's Spa equality (T166 closes the chain piece for any N from
+σ-domination + plus-subring data on the locSubring Spa, which transfers
+to locPlus Spa via T167).
+
+The σ-power-decay piece is documented as an **open target** at the
+project level — see `WedhornFactorExtractionPowerDecay.lean:144-171`,
+where the target signature `sigma_power_decay_of_cor732` is recorded
+along with the discharge hint:
+
+> "the genuinely-new Wedhorn content: the existence of an exponent N
+> (depending on σ, D_s, C_base_s, T_test) such that C_base_s ≤ σ * D_s ^
+> (N + 1) uniformly on Spa. This is achievable via the topological
+> nilpotency of σ (which is a Cor 7.32 σ-power, hence topologically
+> nilpotent) plus Spa-quasi-compactness, but is not yet formalized as
+> a named theorem."
+
+I.e., the σ-power-decay shape requires a Spa-quasi-compactness +
+topological-nilpotency argument distinct from the standard Cor 7.32
+σ-strict-domination output. Closest existing APIs and why they don't
+suffice:
+
+* `Cor732.exists_dominatedBy_cover` produces uniform N for the shape
+  `w.vle (π^N) τ` for some τ in a finite test family — not the
+  σ-uncancelled decay shape `w.vle C_base_s (σ * D_s^(N+1))`.
+
+* `localizedCor732_sigma_supplier_for_actual_C1` /
+  `IsLocalizedCor732SigmaLocOutput` produce the σ-rescaled Laurent
+  piece cover (per-w τ ∈ test family with σ-strict-domination by τ) —
+  the **opposite orientation** from σ-power-decay (σ small from above
+  vs σ * D_s^(N+1) large from below).
+
+* `WedhornSigmaPowerInequalityFromLocalizedCor732`'s
+  `sigma_power_cleared_inequality_from_localized_cor732_output`
+  produces the σ-cancelled chain `t' * s_D^N ≤ s_D^(N+1)` per-(w, t')
+  on global Spa — wrong shape (σ-cancelled, not σ-uncancelled) and
+  wrong Spa (global vs local), and per-(w, t') existential N rather
+  than uniform N over T_D.
+
+* `WedhornFactorExtractionPowerDecay`'s `sigma_power_decay_of_cor732`
+  itself is the **target signature** documented as remaining work, not
+  a delivered theorem.
+
+* `exists_away_denominator_cleared` (in
+  `WedhornLocalizationDenominatorClearing`) produces `x · α s^n = α a`
+  for `x ∈ Loc s` — wrong direction (Loc s element to A element after
+  multiplication by `s^n`; not the decay factorisation).
+
+The genuine missing API is a direct Spa-quasi-compactness application
+producing the σ-uncancelled decay shape from topological nilpotency of
+σ_loc on the local Spa. This is non-trivial Wedhorn 8.34(ii) Step 2
+mathematical content and is NOT available from existing localized
+Cor 7.32 / σ-power output. -/
 
 omit [PlusSubring A] in
 /-- **T167 forward direction**: `Spa(Loc s, locPlusSubring) ⊆ Spa(Loc s, locSubring)`
