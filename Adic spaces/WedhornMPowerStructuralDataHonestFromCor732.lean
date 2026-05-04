@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import «Adic spaces».WedhornMPowerStructuralDataHonest
 import «Adic spaces».WedhornLocalArithmeticPerTChain
 import «Adic spaces».WedhornLocalCor732ToFactoredChain
+import «Adic spaces».Presheaf
 
 /-!
 # `WedhornMPowerStructuralDataHonest` from localized Cor 7.32 / branch
@@ -2957,5 +2958,135 @@ theorem AlphaJointCor732CoverImpliesMNChoice_residual_via_globalSectionCriterion
   -- Replace t' with algebraMap ... t.
   subst ht_eq
   exact hfact_chain t ht
+
+/-! ### T163: integral-closure reduction of the global-section criterion
+
+Reduces T162's `GlobalSectionLocSubringCriterion` to a strictly smaller
+named residual: the **integral-closure property** of `locSubring P T s`
+inside `Localization.Away s`.
+
+The strategy uses Wedhorn Proposition 7.18
+(`isIntegral_of_forall_continuous_valuation_le_one` in `Presheaf.lean`):
+for an open subring `B` of a topological domain `R` containing the ring
+of definition `P.A₀`, an element `a : R` is integral over `B` iff
+`v.vle a 1` for every continuous valuation `v` with `v.vle b 1` on `b ∈ B`.
+
+Applied with `R = Localization.Away s` (under `locTopology`),
+`P = locPairOfDefinition P T s hopen`, and `B = locSubring P T s`,
+the Spa-bounded hypothesis of `GlobalSectionLocSubringCriterion`
+yields `IsIntegral (locSubring P T s) a`. The remaining gap from
+`IsIntegral B a` to `a ∈ B` is exactly the **integral closure** of
+`locSubring P T s` in `Localization.Away s`, the genuine Wedhorn 7.14
+"ring of integral elements" structural axiom.
+
+Provided:
+
+* `LocSubringIntegrallyClosedInLocalization` — named residual Prop:
+  every element of `Localization.Away s` integral over `locSubring P T s`
+  already lies in `locSubring P T s`. This is the genuine Wedhorn 7.14
+  ring-of-integral-elements axiom in the localized setting.
+
+* `GlobalSectionLocSubringCriterion_via_locSubring_integrallyClosed` —
+  compiled main bridge: integral-closure residual + `[IsDomain A]` +
+  `s ≠ 0` ⇒ `GlobalSectionLocSubringCriterion`. Direct application of
+  Wedhorn 7.18 + the integral-closure residual.
+
+* `AlphaJointCor732CoverImpliesMNChoice_residual_via_locSubring_integrallyClosed` —
+  compiled chained bridge: integral-closure residual + multiplicative-bound
+  residual ⇒ T159's `AlphaJointCor732CoverImpliesMNChoice_residual`.
+  Combines the two T162 + T163 reductions into a single supplier.
+
+Status: T163 manager-fallback delivery — strictly lower named residual
+plus two compiled bridge theorems (one direct, one chained). The
+remaining residual `LocSubringIntegrallyClosedInLocalization` is the
+genuine Wedhorn 7.14 / 7.18 structural content not reducible to existing
+local Cor 7.32 / σ-power-decay / Spa-bounded primitives. -/
+
+omit [PlusSubring A] in
+/-- **T163 named integral-closure residual**: `locSubring P T s` is
+integrally closed inside `Localization.Away s`, i.e. every element of
+`Localization.Away s` integral over `locSubring P T s` already lies in
+`locSubring P T s`.
+
+This is the Wedhorn 7.14 / 7.18 structural axiom on rings of integral
+elements: a "ring of integral elements" `A⁺` is by definition the
+integral closure of an open bounded subring inside `A`. Without it,
+the integral-closure half of the global-section criterion fails. -/
+def LocSubringIntegrallyClosedInLocalization
+    (P : PairOfDefinition A) (T : Finset A) (s : A) : Prop :=
+  ∀ a : Localization.Away s,
+    IsIntegral (locSubring P T s) a → a ∈ locSubring P T s
+
+omit [PlusSubring A] in
+/-- **T163 compiled main bridge**: Wedhorn 7.18 + integral-closure of
+`locSubring P T s` in `Localization.Away s` together with `[IsDomain A]`
+and `s ≠ 0` yield T162's `GlobalSectionLocSubringCriterion`.
+
+Strictly reduces the global-section / sheafiness criterion to one
+strictly smaller named residual: the integral-closure property of
+`locSubring` in the localization (the Wedhorn 7.14 ring-of-integral-elements
+axiom).
+
+**Proof sketch**: Apply
+`isIntegral_of_forall_continuous_valuation_le_one` (Wedhorn Prop 7.18,
+`Presheaf.lean`) to `(locPairOfDefinition P T s hopen)` with subring
+`locSubring P T s`. The Spa-bounded hypothesis on `a` produces a
+continuous-valuation hypothesis from which Wedhorn 7.18 yields
+`IsIntegral (locSubring P T s) a`. The integral-closure residual then
+gives `a ∈ locSubring P T s`. -/
+theorem GlobalSectionLocSubringCriterion_via_locSubring_integrallyClosed
+    [DecidableEq A] [IsDomain A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (hs : s ≠ 0)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (h_intCl : LocSubringIntegrallyClosedInLocalization P T s) :
+    GlobalSectionLocSubringCriterion P T s hopen := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : IsTopologicalRing (Localization.Away s) :=
+    (locBasis P T s hopen).toRingFilterBasis.isTopologicalRing
+  letI : IsDomain (Localization.Away s) := locAway_isDomain hs
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  intro a ha_spa
+  -- Step 1: Apply Wedhorn 7.18 to get integrality over `locSubring P T s`.
+  have hint : IsIntegral (locSubring P T s) a := by
+    apply isIntegral_of_forall_continuous_valuation_le_one
+      (locPairOfDefinition P T s hopen)
+      (locSubring_isOpen P T s hopen)
+      (Set.Subset.refl _)
+    intro v hv_cont hv_sub
+    -- (⟨v⟩ : Spv (Loc s)) is in Spa via hv_cont and hv_sub.
+    have hw_spa : (⟨v⟩ : Spv (Localization.Away s))
+        ∈ Spa (Localization.Away s) (Localization.Away s)⁺ := ⟨hv_cont, hv_sub⟩
+    exact ha_spa _ hw_spa
+  -- Step 2: Apply integral-closure residual.
+  exact h_intCl a hint
+
+omit [PlusSubring A] in
+/-- **T163 chained bridge**: integral-closure residual +
+multiplicative-bound residual ⇒ T159's
+`AlphaJointCor732CoverImpliesMNChoice_residual`.
+
+Combines the T163 main bridge (integrality ⇒ `GlobalSectionLocSubringCriterion`)
+with T162's compiled bridge (criterion + multiplicative-bound ⇒
+T159's bridge residual). The result is a single chained supplier
+turning two strictly smaller named residuals into the M/N-choice
+bridge residual. -/
+theorem AlphaJointCor732CoverImpliesMNChoice_residual_via_locSubring_integrallyClosed
+    [DecidableEq A] [IsDomain A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A) (hs : s ≠ 0)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (h_intCl : LocSubringIntegrallyClosedInLocalization P T s)
+    (h_mult : AlphaJointCor732MultiplicativeBound_residual
+      P T s hopen T_D s_D) :
+    AlphaJointCor732CoverImpliesMNChoice_residual P T s hopen T_D s_D :=
+  AlphaJointCor732CoverImpliesMNChoice_residual_via_globalSectionCriterion_residual
+    P T s hopen T_D s_D
+    (GlobalSectionLocSubringCriterion_via_locSubring_integrallyClosed
+      P T s hs hopen h_intCl)
+    h_mult
+
 
 end ValuationSpectrum
