@@ -546,4 +546,166 @@ theorem h_T_test_compat_loc_branch_α_T_D_via_multi_corrected
     (h_α_T_D_s_D_ne_via_multi_corrected P T s hopen T_D s_D σ_loc
       h_T_D_multi_bound h_T_D_lower_bound)
 
+omit [PlusSubring A] in
+/-- **T168: localized Laurent-piece producer for the corrected-route
+suppliers** `h_T_D_multi_bound` and `h_T_D_lower_bound`.
+
+Localized analogue of T051's `T050_supplier_via_laurent_piece_membership`
+(in `WedhornLaurentProductBoundSupplier.lean`), specialised at
+`A := Localization.Away s` with the localized topology / plus-subring
+instances. From per-`w` Laurent-piece rationalOpen data on
+`Spa(Loc s, ⁺)`:
+
+* `w ∈ rationalOpen ({∏ T_D.image (algebraMap)} : Finset (Loc s))
+    (algebraMap s_D)` — singleton-product upper bound at `α s_D`;
+* `∀ t' ∈ T_D.image (algebraMap), w ∈ rationalOpen ({(1 : Loc s)})
+    t'` — per-element lower bound at `1`,
+
+derive the corrected-route hypothesis pair consumed by
+`h_α_T_D_per_t_via_multi_corrected` and
+`h_α_T_D_s_D_ne_via_multi_corrected`:
+
+```
+w.vle (∏ T_D.image (algebraMap)) (algebraMap s_D) ∧
+∀ t' ∈ T_D.image (algebraMap), w.vle (1 : Loc s) t'
+```
+
+**Proof**: at each `w` satisfying f-membership, extract the supplied
+Laurent-piece data; the multi-element bound and per-element lower bound
+follow from the singleton-element rationalOpen membership conjunct
+(`v.vle t s` for the singleton `t`).
+
+This is the **localized analogue** of the natural Wedhorn 8.34(ii)
+Laurent-cover-refinement output at the base side (PDF page 84 /
+Lemma 8.33), expressed in localized rationalOpen vocabulary and
+matching the `h_T_D_multi_bound` / `h_T_D_lower_bound` interface
+exactly.
+
+After this producer, the **single open input** for the α_T_D branch
+closure is the per-`w` localized Laurent-piece rationalOpen data —
+paralleling `localized_cor732_laurent_piece_membership_at` (in
+`WedhornLocalCor732ToFactoredChain.lean`) for the σ-strict-domination
+output. -/
+theorem T_D_multi_and_lower_bound_via_localized_laurent_piece
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_per_w_laurent_piece :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w ∈ rationalOpen
+            ({∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t}
+              : Finset (Localization.Away s))
+            (algebraMap A (Localization.Away s) s_D) ∧
+        ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w ∈ rationalOpen
+            ({(1 : Localization.Away s)} : Finset (Localization.Away s)) t') :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      w.vle ((σ_loc : Localization.Away s) *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+        (algebraMap A (Localization.Away s) s) →
+        w.vle (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t)
+              (algebraMap A (Localization.Away s) s_D) ∧
+        (∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w.vle (1 : Localization.Away s) t') := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro w hw_spa hw_f
+  obtain ⟨h_prod_open, h_per_t_open⟩ :=
+    h_per_w_laurent_piece w hw_spa hw_f
+  refine ⟨?_, ?_⟩
+  · -- Multi-element bound: extract from singleton-product rationalOpen.
+    obtain ⟨_hw_spa', h_bound, _h_α_s_D_ne⟩ := h_prod_open
+    exact h_bound _ (Finset.mem_singleton.mpr rfl)
+  · -- Per-element lower bound: extract from each per-element rationalOpen.
+    intro t' ht'
+    obtain ⟨_hw_spa', h_bound, _h_t'_ne⟩ := h_per_t_open t' ht'
+    exact h_bound _ (Finset.mem_singleton.mpr rfl)
+
+omit [PlusSubring A] in
+/-- **T168: end-to-end α_T_D branch closure from localized Laurent-piece
+data**.
+
+Composes the localized Laurent-piece producer
+`T_D_multi_and_lower_bound_via_localized_laurent_piece` with the α_T_D
+branch closer `h_T_test_compat_loc_branch_α_T_D_via_multi_corrected`
+to produce the α_T_D branch's full single-branch compatibility output
+directly from per-`w` localized Laurent-piece rationalOpen data.
+
+This is the **end-to-end α_T_D branch theorem** for the corrected
+branch-clearing route: the only remaining input is the natural Wedhorn
+8.34(ii) Laurent-cover-refinement output at the localized base side,
+which parallels `localized_cor732_laurent_piece_membership_at` for the
+σ-strict-domination output.
+
+After this theorem, the T168 α_T_D branch is closed modulo a single
+named per-`w` localized Laurent-piece rationalOpen data hypothesis —
+the natural Wedhorn 8.34(ii) PDF page 84 / Lemma 8.33 Laurent-piece
+output expressed in localized rationalOpen vocabulary. -/
+theorem h_T_test_compat_loc_branch_α_T_D_via_localized_laurent_piece
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_per_w_laurent_piece :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w ∈ rationalOpen
+            ({∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t}
+              : Finset (Localization.Away s))
+            (algebraMap A (Localization.Away s) s_D) ∧
+        ∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+          w ∈ rationalOpen
+            ({(1 : Localization.Away s)} : Finset (Localization.Away s)) t') :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    letI : DecidableEq (Localization.Away s) := Classical.decEq _
+    ∀ τ ∈ T_D.image (algebraMap A (Localization.Away s)),
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t))
+          (algebraMap A (Localization.Away s) s) →
+        w.vle (σ_loc : Localization.Away s) τ ∧
+          ¬ w.vle τ (σ_loc : Localization.Away s) →
+          (∀ t' ∈ T_D.image (algebraMap A (Localization.Away s)),
+              w.vle t' (algebraMap A (Localization.Away s) s_D)) ∧
+            ¬ w.vle (algebraMap A (Localization.Away s) s_D) 0 := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  -- Extract the corrected-route hypothesis pair from Laurent-piece data.
+  have h_pair :=
+    T_D_multi_and_lower_bound_via_localized_laurent_piece P T s hopen
+      T_D s_D σ_loc h_per_w_laurent_piece
+  -- Feed the two halves into h_T_test_compat_loc_branch_α_T_D_via_multi_corrected.
+  exact h_T_test_compat_loc_branch_α_T_D_via_multi_corrected P T s hopen
+    T_D s_D σ_loc
+    (fun w hw_spa hw_f => (h_pair w hw_spa hw_f).1)
+    (fun w hw_spa hw_f => (h_pair w hw_spa hw_f).2)
+
 end ValuationSpectrum
