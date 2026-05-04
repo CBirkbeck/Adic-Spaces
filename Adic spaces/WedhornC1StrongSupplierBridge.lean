@@ -1072,4 +1072,133 @@ theorem wedhorn_834_per_call_construction_via_factorization_and_f_bound
     P C hopen_base D v σ_loc hσ_loc_dom f h_alg h_s_factor
     (wedhorn_834_v_in_plus_of_f_bound_and_cover C D hD v hv f h_f_bound)
 
+/-! ### T185: power-cleared `h_alg` and the exact-lift gap
+
+Manager's hypothesis (T185 directive): standard denominator clearing
+for `(σ_loc : Loc C.base.s) * ∏ D.T.image (algebraMap)` only produces
+a **power-cleared** identity, not the exact `h_alg` target.
+
+**Verification (this section)**: `exists_away_denominator_cleared`
+applied at `x := (σ_loc : Loc C.base.s) * ∏ D.T.image (algebraMap)`
+gives:
+
+```
+∃ (a : A) (n : ℕ),
+  algebraMap A (Loc C.base.s) a =
+    ((σ_loc : Loc C.base.s) *
+      (∏ τ ∈ D.T.image (algebraMap A (Loc C.base.s)), τ)) *
+      (algebraMap A (Loc C.base.s) C.base.s) ^ n
+```
+
+The factor `(algebraMap C.base.s) ^ n` on the RHS is the
+**denominator-clearing power**. The exact `h_alg` target consumed by
+T179/T183 is the `n = 0` case — i.e., the additional condition that
+the chosen `(σ_loc, ∏ D.T.image)` lifts to `algebraMap` of an
+A-element directly, with no power-clearing required.
+
+**Precise gap (the missing exact-lift hypothesis)**:
+
+```
+∃ a : A, algebraMap A (Loc C.base.s) a =
+  (σ_loc : Loc C.base.s) *
+    (∏ τ ∈ D.T.image (algebraMap A (Loc C.base.s)), τ)
+```
+
+This is **not** derivable from `exists_away_denominator_cleared` alone;
+the existing API yields only the power-cleared variant above.
+
+**Mathematical interpretation**: Wedhorn 8.34(ii)'s explicit
+`f := σ · t · D.s ^ (N - 1)` construction sidesteps this issue by
+choosing `f` of a specific algebraic form — the resulting `algebraMap f`
+matches `σ_loc · t · (algebraMap D.s) ^ (N - 1)` (a single-`t` form,
+not the multi-element `∏ D.T.image` form). Thus the current
+`h_alg` target's multi-element shape is what's mismatched: the
+denominator-clearing route naturally produces `h_alg` for a
+**singleton** `D.T = {t}` (with `∏ D.T.image = algebraMap t`) plus
+power-clearing factor; the multi-element shape requires either
+exact-lift or a different algebraic identity (e.g.,
+`f := σ · ∏ t · D.s ^ (N - |D.T|)`).
+
+**Issue type**: this is **mathematical**, not API-level — the
+exact-lift hypothesis is a genuine extra structural condition. The
+correct `h_alg` shape consumed by downstream T179/T183 is either:
+(a) the `n = 0` exact-lift case (a structural condition), or
+(b) a power-cleared form `algebraMap f = σ_loc · ∏ · (algebraMap C.base.s) ^ n`
+(requires reformulating downstream T179/T183 consumers).
+
+Provided:
+
+* `wedhorn_834_power_cleared_h_alg_for_unit_product` — strongest
+  honest power-cleared identity from `exists_away_denominator_cleared`.
+
+* `wedhorn_834_exact_h_alg_target` — Prop-valued statement of the
+  exact `h_alg` target (the existential for `f` matching the n = 0
+  case), exposed as a precise Lean type. -/
+
+/-- **T185 power-cleared `h_alg`** — strongest honest denominator-
+clearing identity for `(σ_loc : Loc C.base.s) * ∏ D.T.image
+(algebraMap)`.
+
+Direct application of `exists_away_denominator_cleared` at
+`x := (σ_loc : Loc) * ∏ D.T.image (algebraMap)`. Produces `(a, n)`
+with `algebraMap a = x * (algebraMap C.base.s) ^ n`.
+
+The exact `h_alg` target consumed by T179/T183 is the `n = 0`
+specialisation; for `n > 0`, the power factor `(algebraMap C.base.s)^n`
+remains on the RHS and the exact `h_alg` shape requires the
+exact-lift hypothesis stated by `wedhorn_834_exact_h_alg_target`. -/
+theorem wedhorn_834_power_cleared_h_alg_for_unit_product
+    [DecidableEq A]
+    (C : RationalCovering A)
+    (D : RationalLocData A)
+    (σ_loc : (Localization.Away C.base.s)ˣ) :
+    letI : DecidableEq (Localization.Away C.base.s) := Classical.decEq _
+    ∃ (a : A) (n : ℕ),
+      algebraMap A (Localization.Away C.base.s) a =
+        ((σ_loc : Localization.Away C.base.s) *
+          (∏ τ ∈ D.T.image
+              (algebraMap A (Localization.Away C.base.s)), τ)) *
+          (algebraMap A (Localization.Away C.base.s) C.base.s) ^ n := by
+  letI : DecidableEq (Localization.Away C.base.s) := Classical.decEq _
+  obtain ⟨a, n, h⟩ := exists_away_denominator_cleared C.base.s
+    ((σ_loc : Localization.Away C.base.s) *
+      (∏ τ ∈ D.T.image
+          (algebraMap A (Localization.Away C.base.s)), τ))
+  exact ⟨a, n, h.symm⟩
+
+/-- **T185 exact `h_alg` target** — precise Lean statement of the
+genuinely missing exact-lift hypothesis for the T179/T183 `h_alg`
+shape.
+
+The existential `∃ a : A, algebraMap a = σ_loc · ∏ D.T.image
+(algebraMap)` is the `n = 0` specialisation of T185's power-cleared
+identity. **It is not derivable from
+`exists_away_denominator_cleared` alone** — the existing API yields
+only the power-cleared variant.
+
+This statement is the **exact missing Lean type** for the upstream
+T179/T183 `h_alg` consumer. Discharging it requires either:
+
+(a) the structural condition that the chosen `(σ_loc, ∏ D.T.image)`
+    pair satisfies the exact-lift `n = 0` case, or
+
+(b) reformulating downstream T179/T183 consumers to accept the
+    power-cleared form (a separate signature-level refactor).
+
+The mathematical content of (a) is Wedhorn 8.34(ii)-specific: the
+`σ_loc` chosen via Cor 7.32 + the `∏ D.T.image` cover-piece product
+must combine into a "denominator-free" `Loc C.base.s`-element for the
+exact h_alg shape to hold without power factors. -/
+def wedhorn_834_exact_h_alg_target
+    [DecidableEq A]
+    (C : RationalCovering A)
+    (D : RationalLocData A)
+    (σ_loc : (Localization.Away C.base.s)ˣ) : Prop :=
+  letI : DecidableEq (Localization.Away C.base.s) := Classical.decEq _
+  ∃ a : A,
+    algebraMap A (Localization.Away C.base.s) a =
+      (σ_loc : Localization.Away C.base.s) *
+        (∏ τ ∈ D.T.image
+            (algebraMap A (Localization.Away C.base.s)), τ)
+
 end ValuationSpectrum
