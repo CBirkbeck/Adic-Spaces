@@ -4011,4 +4011,117 @@ theorem AlphaJointCor732_chain_uniform_N_of_per_t_chain_monotone
           (algebraMap A (Localization.Away s) s))
     h_chain_mono h_chain_per_t
 
+/-! ### T166 (continued): direct chain-half closure on the local Spa
+
+After the manager's review of commit 4781685, the previous Finset
+helper does not actually close the chain half because it leaves the
+per-(w, t) → per-t collapse as an external hypothesis that the existing
+API does not directly produce. The genuine chain-half closure needs to
+collapse `w` as well — i.e., the per-`t` chain hypothesis must hold
+at every w in the local Spa, not just per-(w, t).
+
+This section delivers a **direct chain-half closure on the local
+locSubring Spa**: given a σ_loc that is **uniformly dominated by α s**
+on the entire local Spa (the natural local-Spa output of
+`Cor732.exists_dominatedBy_cover` applied with `T := {α s}`), and the
+natural locSubring-membership hypotheses on `α t` (for `t ∈ T_D`) and
+`α s_D`, the chain piece holds at **any** `N : ℕ` and every `w` in the
+local Spa. The chain is automatically uniform over both `T_D` and `w`
+because the σ-domination + plus-subring bounds compose multiplicatively.
+
+This collapses operation #1 (finite-family + per-w N-uniformization)
+for the chain half by exhibiting a chain that is **trivially uniform**
+in N (any N works) once the natural σ-domination + plus-subring data
+is in place.
+
+The decay half remains open — its discharge requires the orientation-
+reversal handled by the genuine Wedhorn 8.34(ii) Step 2 σ-power-decay
+construction, which is not available from the existing localized
+Cor 7.32 σ-domination output alone (per the orientation note in
+`WedhornSigmaPowerDecay.lean:14-22`). -/
+
+set_option linter.unusedSectionVars false in
+omit [PlusSubring A] in
+/-- **T166 chain-half closure** (direct local-Spa form).
+
+Closes the chain half of `AlphaJointCor732_uniformDecayAndChain` at any
+`N : ℕ` from local data: σ_loc uniformly σ-dominated by `α s` on the
+local locSubring Spa (the cover-output shape of
+`Cor732.exists_dominatedBy_cover` applied with `T := {α s}` on the
+local Spa), plus the natural locSubring-membership hypotheses on
+`α t` (`t ∈ T_D`) and `α s_D`.
+
+**Proof**: at each `w` in the local Spa, decompose the chain target
+multiplicatively:
+* `w.vle σ_loc (α s)` — σ-domination by `α s`.
+* `w.vle (α t) 1` — from `α t ∈ locSubring = (Loc s)⁺` via `vle_one_of_mem_spa`.
+* `w.vle ((α s_D)^N) 1` — from `α s_D ∈ locSubring` via
+  `vle_one_of_mem_spa` plus `pow_vle_pow` against `1^N = 1`.
+
+Compose via `ValuativeRel.mul_vle_mul` then simplify
+`(α s) * 1 * 1 = α s` to land the chain.
+
+Crucially, the result holds **for any `N : ℕ`** — N is not the source
+of difficulty for the chain half; the σ-domination + plus-bound data
+already gives a stronger uniform bound. The N free parameter feeds
+directly into the chain shape required by
+`AlphaJointCor732_uniformDecayAndChain`. -/
+theorem AlphaJointCor732_chain_half_via_sigma_dominated_by_alpha_s
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_σ_dom :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle (σ_loc : Localization.Away s)
+          (algebraMap A (Localization.Away s) s))
+    (h_T_D_in : ∀ t ∈ T_D,
+      algebraMap A (Localization.Away s) t ∈ locSubring P T s)
+    (h_s_D_in : algebraMap A (Localization.Away s) s_D ∈ locSubring P T s)
+    (N : ℕ) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    ∀ t ∈ T_D,
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        w.vle ((σ_loc : Localization.Away s) *
+            algebraMap A (Localization.Away s) t *
+            (algebraMap A (Localization.Away s) s_D) ^ N)
+          (algebraMap A (Localization.Away s) s) := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  intro t ht w hw
+  letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+  have h_α_t_le_one :
+      w.vle (algebraMap A (Localization.Away s) t) 1 :=
+    vle_one_of_mem_spa hw (h_T_D_in t ht)
+  have h_α_s_D_le_one :
+      w.vle (algebraMap A (Localization.Away s) s_D) 1 :=
+    vle_one_of_mem_spa hw h_s_D_in
+  have h_α_s_D_pow_le_one :
+      w.vle ((algebraMap A (Localization.Away s) s_D) ^ N) 1 := by
+    have := ValuativeRel.pow_vle_pow h_α_s_D_le_one N
+    rwa [one_pow] at this
+  have h_σ_dom_at := h_σ_dom w hw
+  -- (σ_loc) * (α t) ≤ᵥ (α s) * 1
+  have h_step1 :
+      w.vle ((σ_loc : Localization.Away s) *
+          algebraMap A (Localization.Away s) t)
+        (algebraMap A (Localization.Away s) s * 1) :=
+    ValuativeRel.mul_vle_mul h_σ_dom_at h_α_t_le_one
+  -- (σ_loc * α t) * (α s_D)^N ≤ᵥ (α s * 1) * 1
+  have h_step2 :
+      w.vle ((σ_loc : Localization.Away s) *
+          algebraMap A (Localization.Away s) t *
+          (algebraMap A (Localization.Away s) s_D) ^ N)
+        (algebraMap A (Localization.Away s) s * 1 * 1) :=
+    ValuativeRel.mul_vle_mul h_step1 h_α_s_D_pow_le_one
+  rwa [mul_one, mul_one] at h_step2
+
 end ValuationSpectrum
