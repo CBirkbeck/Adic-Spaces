@@ -518,4 +518,156 @@ non-standard branch — multi-element `D.T` and/or non-unit-rescalable
 8.34(ii) chain; this file's docblock isolates its precise Lean
 signature and the precise valuation-inequality API needed to land it. -/
 
+/-! ### T199: Step-2 factor-carrying refinement API
+
+The T197/T198 blocker analysis identified the genuinely missing
+upstream piece for T192/T195's `h_struct` per-call provider as the
+**per-`(D, t)` algebraic factorization in `A`** plus the **uniform
+source f-bound** at every `v ∈ rationalOpen D.T D.s`:
+
+* `C.base.s = D.s * (σ * t * D.s ^ N)` — algebraic factorization;
+* `∀ v ∈ rationalOpen D.T D.s, ¬ v.vle D.s 0 → v.vle t D.s →
+   v.vle (σ * t * D.s ^ N) C.base.s` — uniform f-bound on the cover
+  piece.
+
+T199 packages this content as a **structure**
+`WedhornStep2RefinementCarryingFactor` with explicit factorization +
+Tate + uniform-bound fields. The bridge
+`wedhorn_834_h_struct_via_step2_factor_carrying` shows how a per-
+`(D, t)` provider of this structure produces T192/T195's `h_struct`.
+
+The genuinely missing upstream theorem — **the constructor** producing
+the factor-carrying refinement from concrete Tate /
+pseudouniformizer / cover data — is named precisely as
+`wedhorn_834_step2_factor_carrying_constructor_target` (Prop-valued
+target signature; not a residual Prop equal to `h_struct`).
+
+The Wedhorn 8.34(ii) Step-2 construction in the literature picks
+`f := σ · t · D.s^(N-1)` for σ from Cor 7.32 + N from Spa-quasi-
+compactness. The factorization `C.base.s = D.s · σ · t · D.s^(N-1) ·
+(rest)` is enforced by the **choice of `f` to lie inside a specific
+cover-refinement piece of the rational covering**, NOT by standard
+denominator clearing. -/
+
+/-- **T199: Wedhorn 8.34(ii) Step-2 factor-carrying refinement
+structure**.
+
+Packages the per-`(C, D, t)` data needed by T192/T195's `h_struct`:
+
+* `σ : A` and `N : ℕ` — the Wedhorn 8.34(ii) `f := σ · t · D.s^(N-1)`
+  parameters;
+* `h_factor : C.base.s = D.s * (σ * t * D.s ^ N)` — the algebraic
+  factorization in `A` (the genuinely missing upstream content per
+  T197/T198);
+* `h_T_D_in_plus : ∀ t' ∈ D.T, t' ∈ A⁺` — the natural Tate condition
+  on `D.T`;
+* `h_v_bound` — uniform source f-bound at every `v ∈ rationalOpen
+  D.T D.s` satisfying the standard cover-piece preconditions.
+
+The structure binds `(C, D, t)` and lets `(σ, N)` depend on the choice;
+the v-bound holds uniformly over the cover piece (not per-v). This
+matches Wedhorn's σ-strict-dom + N-choice pattern where `(σ, N)`
+depend on the cover but the bound is uniform across Spa points in the
+piece. -/
+structure WedhornStep2RefinementCarryingFactor (A : Type*)
+    [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A]
+    (C : RationalCovering A) (D : RationalLocData A) (t : A) where
+  /-- The Wedhorn σ parameter (`f := σ · t · D.s^(N-1)`). -/
+  σ : A
+  /-- The Spa-quasi-compactness N-choice exponent. -/
+  N : ℕ
+  /-- The algebraic factorization in `A` for the chosen `(σ, N)`. -/
+  h_factor : C.base.s = D.s * (σ * t * D.s ^ N)
+  /-- The natural Tate condition `D.T ⊆ A⁺`. -/
+  h_T_D_in_plus : ∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)
+  /-- Uniform source f-bound at every `v ∈ rationalOpen D.T D.s`
+  with the standard cover-piece preconditions. -/
+  h_v_bound :
+    ∀ v ∈ rationalOpen D.T D.s,
+      v.vle t D.s → ¬ v.vle D.s 0 →
+      v.vle (σ * t * D.s ^ N) C.base.s
+
+/-- **T199 factor-carrying provider Prop**.
+
+Per-`(D, t)` Nonempty `WedhornStep2RefinementCarryingFactor`. This is
+the natural per-cover provider shape; its discharge from concrete Tate
+/ cover data is the missing upstream constructor (named precisely
+below as `wedhorn_834_step2_factor_carrying_constructor_target`). -/
+def WedhornStep2FactorCarryingProvider {A : Type*}
+    [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A]
+    (C : RationalCovering A) : Prop :=
+  ∀ (D : RationalLocData A), D ∈ C.covers →
+  ∀ (t : A), t ∈ D.T →
+    Nonempty (WedhornStep2RefinementCarryingFactor A C D t)
+
+/-- **T199 bridge: factor-carrying provider produces T192/T195
+`h_struct` shape**.
+
+From a per-`(D, t)` `WedhornStep2FactorCarryingProvider`, produces the
+exact `h_struct` shape consumed by
+`hZavyalov_per_E_via_single_t_structural_data_of_base_eq_Spa` (T192)
+and
+`tateAcyclicity_Part2_via_single_t_structural_data_and_integrated_laneB`
+(T195).
+
+This bridge **isolates the genuinely Wedhorn-content boundary**: the
+caller supplies the factor-carrying provider (a per-`(D, t)` data
+package satisfying the Wedhorn 8.34(ii) Step-2 algebraic factorization
++ Tate condition + uniform v-bound), and the bridge mechanically
+unpacks it to feed the per-call existential of T195's `h_struct`. -/
+theorem wedhorn_834_h_struct_via_step2_factor_carrying {A : Type*}
+    [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A]
+    (C : RationalCovering A)
+    (h_provider : WedhornStep2FactorCarryingProvider C) :
+    ∀ (D : RationalLocData A), D ∈ C.covers →
+    ∀ (v : Spv A), v ∈ rationalOpen D.T D.s →
+    ∀ (t : A), t ∈ D.T → v.vle t D.s → ¬ v.vle D.s 0 →
+      ∃ (σ : A) (N : ℕ),
+        C.base.s = D.s * (σ * t * D.s ^ N) ∧
+        (∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)) ∧
+        v.vle (σ * t * D.s ^ N) C.base.s := by
+  intro D hD v hv t ht hvt hvD_s
+  obtain ⟨carry⟩ := h_provider D hD t ht
+  exact ⟨carry.σ, carry.N, carry.h_factor, carry.h_T_D_in_plus,
+    carry.h_v_bound v hv hvt hvD_s⟩
+
+/-- **T199 missing constructor target signature** (the genuinely
+remaining Wedhorn 8.34(ii) Step-2 content).
+
+Precise Lean type of the next theorem-level ticket: the constructor
+producing `WedhornStep2FactorCarryingProvider C` from concrete Tate /
+pseudouniformizer / cover data.
+
+The intended discharge follows Wedhorn 8.34(ii) Step-2:
+1. Apply Cor 7.32 (`exists_dominating_unit`) inside a localization or
+   directly on `Spa A A⁺` (depending on the Wedhorn variant) to obtain
+   a unit σ with σ-strict-domination over a test family that includes
+   `D.s` and the elements of `D.T`.
+2. Apply Spa-quasi-compactness + topological nilpotence of σ-as-π-power
+   to choose `N : ℕ` large enough that `f := σ · t · D.s^(N-1)`
+   satisfies `v.vle f C.base.s` uniformly on `rationalOpen D.T D.s`.
+3. Verify the algebraic factorization `C.base.s = D.s · σ · t · D.s^N`
+   in `A` — this is enforced by the cover-refinement choice of the
+   factor.
+4. Verify the Tate condition `D.T ⊆ A⁺` — typically a structural
+   property of the cover-refinement family.
+
+The natural cover families to discharge this on:
+* the per-`E` localized cover `C.per_E_local_covering`;
+* the σ-rescaled Laurent cover `cor732_laurent_cover_covers_spa`;
+* explicit Wedhorn 8.34(ii) cover-refinement constructions.
+
+This Prop's discharge is the **next critical-path theorem-level work**
+after T199's structural API. It is NOT a residual Prop equal to
+`h_struct`: the constructor produces a specific structural data
+package, which then mechanically feeds `h_struct` via the bridge above. -/
+def wedhorn_834_step2_factor_carrying_constructor_target {A : Type*}
+    [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A]
+    (C : RationalCovering A) : Prop :=
+  WedhornStep2FactorCarryingProvider C
+
 end ValuationSpectrum
