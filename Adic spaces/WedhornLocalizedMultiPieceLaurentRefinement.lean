@@ -1459,6 +1459,135 @@ theorem rationalOpen_subset_base_via_h_alg_subset_A₀
     (h_α_s_D_factored_via_h_alg_subset_A₀ P T s hopen T_D s_D f σ_loc
       h_alg h_s_factor hT_D_le_A₀)
 
+/-! ### T186: power-cleared clause-2 boundary
+
+T185 verified that standard `exists_away_denominator_cleared` only
+produces a **power-cleared** identity for `(σ_loc : Loc s) * ∏ τ`:
+
+```
+algebraMap f = ((σ_loc : Loc s) * ∏ τ) * (algebraMap s) ^ n
+```
+
+The exact `h_alg` consumed by T176's
+`rationalOpen_subset_base_via_h_alg_subset_A₀` is the `n = 0`
+specialisation. This section provides the corresponding power-cleared
+clause-2 theorem, **explicitly exposing `n = 0` as the first missing
+structural condition** in the API.
+
+**Mathematical analysis (the real obstruction for `n > 0`)**:
+
+T176's downstream chain (T172/T173/T175/T176 internally) consumes
+`h_alg` via T173's `h_factorization_via_h_alg_and_s_factor_eq` to
+derive
+
+```
+algebraMap s = σ_loc * algebraMap s_D * ∏ τ        -- exact case
+```
+
+For the power-cleared `h_alg` (with general `n`), substituting
+`h_s_factor : s = s_D * f` and `map_mul` gives
+
+```
+algebraMap s = σ_loc * algebraMap s_D * ∏ τ * (algebraMap s) ^ n
+```
+
+i.e., dividing both sides by `algebraMap s` (a unit in `Loc s`) :
+
+```
+1 = σ_loc * algebraMap s_D * ∏ τ * (algebraMap s) ^ (n - 1)   -- in Loc s
+```
+
+This is a **structurally different identity** from the `n = 0` case
+(which gives `algebraMap s = σ_loc * algebraMap s_D * ∏ τ`). The
+σ-strict-domination branch-clearing arguments downstream
+(T172/T173) do not handle this extra `(algebraMap s) ^ (n - 1)`
+factor without substantive reformulation.
+
+**Issue type**: MATHEMATICAL, not API-level. The `n = 0` case is a
+genuine structural condition on the specific `(σ_loc, ∏ τ)` pair —
+it asks that the chosen pair lifts to `algebraMap` of an `A`-element
+without requiring power-clearing. For `n > 0`, the entire downstream
+chain (T172/T173/T175/T176) would need re-derivation handling the
+extra factor — a substantial proof refactor.
+
+**The first missing Lean type** (per T186's directive):
+`(n : ℕ) → n = 0`, where `n` is the exponent in the power-cleared
+identity. Formalised below as the `h_n_zero : n = 0` parameter of
+`rationalOpen_subset_base_via_power_cleared_h_alg_subset_A₀_at_zero_power`.
+
+Provided:
+
+* `rationalOpen_subset_base_via_power_cleared_h_alg_subset_A₀_at_zero_power`
+  — the power-cleared clause-2 theorem with `h_n_zero : n = 0` as the
+  explicit structural gap. For `n = 0`, reduces (via `pow_zero` +
+  `mul_one`) to the exact `h_alg` form consumed by T176; the
+  reduction is then T176 itself. -/
+
+/-- **T186 power-cleared clause-2 boundary** (n = 0 specialisation).
+
+Takes power-cleared `h_alg` of the form
+
+```
+algebraMap f = ((σ_loc : Loc s) * ∏ τ) * (algebraMap s) ^ n
+```
+
+(produced by T185's `wedhorn_834_power_cleared_h_alg_for_unit_product`)
+together with the **explicit gap hypothesis** `h_n_zero : n = 0`.
+
+For `n = 0`, the power-cleared form reduces (via `pow_zero` +
+`mul_one`) to the exact `h_alg` form `algebraMap f = (σ_loc : Loc s) * ∏ τ`
+required by T176's `rationalOpen_subset_base_via_h_alg_subset_A₀`.
+The downstream chain T172/T173/T175/T176 then drives clause 2
+unchanged.
+
+For `n > 0`, the structural identity downstream
+(`algebraMap s = σ_loc * algebraMap s_D * ∏ τ * (algebraMap s) ^ n`)
+breaks T176's chain — see the section docstring above for the
+mathematical analysis.
+
+**The `n = 0` hypothesis is the first missing structural Lean type**:
+discharging it requires the structural condition that the chosen
+`(σ_loc, ∏ τ)` pair has `n = 0` denominator-clearing exponent —
+equivalently, the existence of an exact lift in T185's
+`wedhorn_834_exact_h_alg_target` shape, not merely the power-cleared
+form. -/
+theorem rationalOpen_subset_base_via_power_cleared_h_alg_subset_A₀_at_zero_power
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (hA₀_le : P.A₀ ≤ A⁺)
+    (T_base T_D : Finset A) (s_D : A) (f : A)
+    (h_T_le_T_base : T ⊆ T_base)
+    (σ_loc : (Localization.Away s)ˣ)
+    (hσ_loc_dom :
+      letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ localizedTestFamily s T_D s_D,
+          w.vle (σ_loc : Localization.Away s) τ ∧
+            ¬ w.vle τ (σ_loc : Localization.Away s))
+    (n : ℕ)
+    (h_alg_power_cleared :
+      letI : DecidableEq (Localization.Away s) := Classical.decEq _
+      algebraMap A (Localization.Away s) f =
+        ((σ_loc : Localization.Away s) *
+          (∏ t ∈ T_D.image (algebraMap A (Localization.Away s)), t)) *
+          (algebraMap A (Localization.Away s) s) ^ n)
+    (h_n_zero : n = 0)
+    (h_s_factor : s = s_D * f)
+    (hT_D_le_A₀ : ∀ t ∈ T_D, t ∈ P.A₀) :
+    rationalOpen (insert f T_base) s ⊆ rationalOpen T_D s_D := by
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  -- Substitute n = 0 to recover the exact h_alg shape.
+  subst h_n_zero
+  rw [pow_zero, mul_one] at h_alg_power_cleared
+  -- Apply T176 with the recovered exact h_alg.
+  exact rationalOpen_subset_base_via_h_alg_subset_A₀
+    P T s hopen hA₀_le T_base T_D s_D f h_T_le_T_base σ_loc
+    hσ_loc_dom h_alg_power_cleared h_s_factor hT_D_le_A₀
+
 /-! ### T177: C1 supplier wired through the T176 localized multi-piece route
 
 This section provides a C1 supplier wrapper that consumes T176's
