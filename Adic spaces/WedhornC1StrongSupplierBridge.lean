@@ -1318,4 +1318,135 @@ theorem C1SupplierStrong_local_via_single_t_supply
     h_per_call D hD v hv t ht hvt hvD_s
   exact ⟨σ * t * D.s ^ N, hv_in, h_subset, hvf_nz⟩
 
+/-! ### T188: single-`t` clause-2 inclusion from `h_s_factor` + `T_D ⊆ A⁺`
+
+T187's `WedhornC1PerCallSupplyLocalizedSingleT` requires the clause-2
+inclusion `rationalOpen (insert (σ * t * D.s ^ N) C.base.T) C.base.s ⊆
+rationalOpen D.T D.s` per `(D, v, t)`. T188 attacks this inclusion
+directly.
+
+**Key mathematical observation**: the single-`t` clause-2 inclusion is
+provable from purely structural data — **σ-strict-domination is not
+required**. The natural Wedhorn 8.34-style structural inputs are:
+
+1. `h_s_factor : C.base.s = D.s * (σ * t * D.s ^ N)` — the cover-base
+   factorization for the chosen `f := σ * t * D.s ^ N`.
+
+2. `h_T_D_in_plus : ∀ t' ∈ D.T, t' ∈ A⁺` — the natural Tate condition
+   that all generators of `D.T` lie in the plus-subring (equivalently,
+   are bounded by `1` at every Spa point).
+
+**Proof outline** (purely valuation arithmetic):
+
+* From `h_s_factor` + denominator non-vanishing on `R(insert f C.base.T,
+  C.base.s)`: `¬ w.vle f 0` and `¬ w.vle D.s 0` (via T183's generic
+  `not_vle_zero_left_of_mul_eq_of_not_vle_zero` applied twice — once
+  to `C.base.s = D.s * f` for `f`-non-vanishing, once after
+  commutation for `D.s`-non-vanishing).
+
+* From `h_s_factor` + `f`-bound `w.vle f C.base.s`: substituting
+  `C.base.s = D.s * f` gives `w.vle (1 * f) (D.s * f)`; cancellation
+  via `w.vle_mul_cancel` (using `f`-non-vanishing) yields `w.vle 1 D.s`.
+
+* From `h_T_D_in_plus` + `vle_one_of_mem_spa`: `w.vle t' 1` for each
+  `t' ∈ D.T`.
+
+* Transitivity `w.vle t' 1 ≤ w.vle 1 D.s` gives `w.vle t' D.s`.
+
+The σ-strict-domination data plays NO role in this proof — the
+multiplicative structure of valuations + the Tate-style A⁺ condition
+on `D.T` is enough. This is the **honest single-t clause-2 inclusion**
+under the natural Wedhorn 8.34-style structural data.
+
+Provided:
+
+* `rationalOpen_subset_via_single_t_h_s_factor_and_T_D_in_plus` — the
+  single-`t` clause-2 inclusion theorem, with no multi-product, no
+  σ-strict-dom hypothesis, and no exact-lift `n = 0` assumption.
+
+* `WedhornC1PerCallSupplyLocalizedSingleT_via_h_s_factor_and_T_D_in_plus`
+  — caller producing T187's per-call supply Prop from structural data
+  and the T188 inclusion. -/
+
+/-- **T188 single-`t` clause-2 inclusion from `h_s_factor` + Tate
+condition on `D.T`**.
+
+Proves the single-`t` rational-open inclusion
+`rationalOpen (insert (σ * t * D.s ^ N) T_base) C.base.s ⊆
+rationalOpen D.T D.s` from the natural Wedhorn 8.34-style structural
+data, without requiring σ-strict-domination, multi-product exact-lift,
+or N-choice arguments.
+
+The σ-strict-domination data is **not needed** at this level: the
+multiplicative structure of valuations on `Spa A A⁺` plus the
+`T_D ⊆ A⁺` Tate condition is sufficient. -/
+theorem rationalOpen_subset_via_single_t_h_s_factor_and_T_D_in_plus
+    [DecidableEq A]
+    (D : RationalLocData A) (σ : A) (t : A) (N : ℕ)
+    (T_base : Finset A) (C_base_s : A)
+    (h_s_factor : C_base_s = D.s * (σ * t * D.s ^ N))
+    (h_T_D_in_plus : ∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)) :
+    rationalOpen (insert (σ * t * D.s ^ N) T_base) C_base_s ⊆
+      rationalOpen D.T D.s := by
+  classical
+  intro w hw
+  obtain ⟨hw_spa, hw_bound, hw_C_base_s_ne⟩ := hw
+  letI : ValuativeRel A := w.toValuativeRel
+  -- f-bound at w (the inserted element).
+  have hw_f_bound : w.vle (σ * t * D.s ^ N) C_base_s :=
+    hw_bound _ (Finset.mem_insert_self _ _)
+  -- ¬ w.vle f 0 from h_s_factor (right factor) + ¬ w.vle C_base_s 0.
+  have hw_f_ne : ¬ w.vle (σ * t * D.s ^ N) 0 :=
+    not_vle_zero_left_of_mul_eq_of_not_vle_zero w h_s_factor hw_C_base_s_ne
+  -- ¬ w.vle D.s 0 from h_s_factor (commuted, then right factor).
+  have hw_D_s_ne : ¬ w.vle D.s 0 := by
+    apply not_vle_zero_left_of_mul_eq_of_not_vle_zero w
+      (h_s_factor.trans (mul_comm _ _)) hw_C_base_s_ne
+  -- w.vle 1 D.s from f-bound + h_s_factor + ¬ w.vle f 0 (cancellation).
+  have h_one_le_D_s : w.vle (1 : A) D.s := by
+    have h_chain : w.vle ((1 : A) * (σ * t * D.s ^ N))
+        (D.s * (σ * t * D.s ^ N)) := by
+      rw [one_mul, ← h_s_factor]
+      exact hw_f_bound
+    exact w.vle_mul_cancel hw_f_ne h_chain
+  -- Now reassemble the rational-open membership at D.T D.s.
+  refine ⟨hw_spa, ?_, hw_D_s_ne⟩
+  intro t' ht'
+  -- t' ∈ D.T → t' ∈ A⁺ (hypothesis) → w.vle t' 1 (by vle_one_of_mem_spa).
+  have h_t'_le_one : w.vle t' (1 : A) :=
+    vle_one_of_mem_spa hw_spa (h_T_D_in_plus t' ht')
+  -- Transitivity: w.vle t' 1 ≤ w.vle 1 D.s ⟹ w.vle t' D.s.
+  exact w.vle_trans h_t'_le_one h_one_le_D_s
+
+/-- **T188 caller**: produce T187's `WedhornC1PerCallSupplyLocalizedSingleT`
+from structural data alone.
+
+Given:
+* `f := σ * t * D.s ^ N` (the Wedhorn single-`t` form);
+* `h_s_factor : C.base.s = D.s * f`;
+* `h_T_D_in_plus : ∀ t' ∈ D.T, t' ∈ A⁺` (Tate condition);
+* `hv_in_plus : v ∈ rationalOpen (insert f C.base.T) C.base.s`;
+* `hvf_nz : ¬ v.vle f 0`;
+
+produce `WedhornC1PerCallSupplyLocalizedSingleT C D v t`.
+
+The clause-2 inclusion is dispatched via T188's
+`rationalOpen_subset_via_single_t_h_s_factor_and_T_D_in_plus`; clauses
+1 (`hv_in_plus`) and 3 (`hvf_nz`) are passed through unchanged. -/
+theorem WedhornC1PerCallSupplyLocalizedSingleT_via_h_s_factor_and_T_D_in_plus
+    [DecidableEq A]
+    (C : RationalCovering A)
+    (D : RationalLocData A) (v : Spv A) (t : A)
+    (σ : A) (N : ℕ)
+    (h_s_factor : C.base.s = D.s * (σ * t * D.s ^ N))
+    (h_T_D_in_plus : ∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A))
+    (hv_in_plus :
+      v ∈ rationalOpen (insert (σ * t * D.s ^ N) C.base.T) C.base.s)
+    (hvf_nz : ¬ v.vle (σ * t * D.s ^ N) 0) :
+    WedhornC1PerCallSupplyLocalizedSingleT C D v t :=
+  ⟨σ, N, hv_in_plus,
+    rationalOpen_subset_via_single_t_h_s_factor_and_T_D_in_plus
+      D σ t N C.base.T C.base.s h_s_factor h_T_D_in_plus,
+    hvf_nz⟩
+
 end ValuationSpectrum
