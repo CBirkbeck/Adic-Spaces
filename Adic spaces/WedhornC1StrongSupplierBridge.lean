@@ -1562,4 +1562,35 @@ theorem C1SupplierStrong_local_via_single_t_structural_data
   exact WedhornC1PerCallSupplyLocalizedSingleT_via_h_s_factor_T_D_in_plus_and_f_bound
     C D hD v hv t σ N h_s_factor h_T_D_in_plus h_f_bound
 
+/-- **T191 normalized-cover consumer**: produce
+`C1SupplierStrong_local C.insertDenom` from per-call honest single-`t`
+structural data.
+
+Composes T190's
+`C1SupplierStrong_local_via_single_t_structural_data` (which produces
+`C1SupplierStrong_local C` from the per-call structural provider)
+with the existing structural lift `C1SupplierStrong_local_insertDenom_lift`
+(which lifts `C1SupplierStrong_local C` to
+`C1SupplierStrong_local C.insertDenom` modulo the cover-piece
+non-emptiness condition).
+
+This delivers the consumer-ready strong C1 supplier on the normalized
+cover from honest Wedhorn 8.34-style structural per-call data plus the
+mild non-emptiness condition `∀ D ∈ C.covers, D.T.Nonempty`. -/
+theorem C1SupplierStrong_local_insertDenom_via_single_t_structural_data
+    [DecidableEq A]
+    (C : RationalCovering A)
+    (h_covers_nonempty : ∀ D ∈ C.covers, D.T.Nonempty)
+    (h_struct :
+      ∀ (D : RationalLocData A), D ∈ C.covers →
+      ∀ (v : Spv A), v ∈ rationalOpen D.T D.s →
+      ∀ (t : A), t ∈ D.T → v.vle t D.s → ¬ v.vle D.s 0 →
+        ∃ (σ : A) (N : ℕ),
+          C.base.s = D.s * (σ * t * D.s ^ N) ∧
+          (∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)) ∧
+          v.vle (σ * t * D.s ^ N) C.base.s) :
+    C1SupplierStrong_local C.insertDenom :=
+  C1SupplierStrong_local_insertDenom_lift C h_covers_nonempty
+    (C1SupplierStrong_local_via_single_t_structural_data C h_struct)
+
 end ValuationSpectrum
