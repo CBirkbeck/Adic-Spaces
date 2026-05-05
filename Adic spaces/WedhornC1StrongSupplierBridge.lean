@@ -1522,4 +1522,44 @@ theorem WedhornC1PerCallSupplyLocalizedSingleT_via_h_s_factor_T_D_in_plus_and_f_
   exact WedhornC1PerCallSupplyLocalizedSingleT_via_h_s_factor_and_T_D_in_plus
     C D v t σ N h_s_factor h_T_D_in_plus hv_in_plus hvf_nz
 
+/-- **T190 C1-level consumer**: produce `C1SupplierStrong_local C`
+from a per-call provider of the honest single-`t` structural inputs.
+
+Composes T189's
+`WedhornC1PerCallSupplyLocalizedSingleT_via_h_s_factor_T_D_in_plus_and_f_bound`
+with T187's `C1SupplierStrong_local_via_single_t_supply` to produce
+`C1SupplierStrong_local C` directly from the genuinely
+Wedhorn 8.34-style per-call structural data:
+
+* `σ : A` and `N : ℕ` (Wedhorn parameters);
+* `C.base.s = D.s * (σ * t * D.s ^ N)` (cover-base factorization);
+* `∀ t' ∈ D.T, t' ∈ A⁺` (Tate condition on D.T);
+* `v.vle (σ * t * D.s ^ N) C.base.s` (source f-bound at v).
+
+Inputs `hD`, `hv`, `t`, `ht`, `hvt`, `hvD_s` come from the C1
+consumer's per-`(D, v, t)` quantification.
+
+After T190, the C1-level reduction is reduced to the genuinely
+Wedhorn-content per-call provider (deferred upstream): producing
+`(σ, N, h_s_factor, h_T_D_in_plus, h_f_bound)` from concrete
+Tate / pseudouniformizer setup data. -/
+theorem C1SupplierStrong_local_via_single_t_structural_data
+    [DecidableEq A]
+    (C : RationalCovering A)
+    (h_struct :
+      ∀ (D : RationalLocData A), D ∈ C.covers →
+      ∀ (v : Spv A), v ∈ rationalOpen D.T D.s →
+      ∀ (t : A), t ∈ D.T → v.vle t D.s → ¬ v.vle D.s 0 →
+        ∃ (σ : A) (N : ℕ),
+          C.base.s = D.s * (σ * t * D.s ^ N) ∧
+          (∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)) ∧
+          v.vle (σ * t * D.s ^ N) C.base.s) :
+    C1SupplierStrong_local C := by
+  apply C1SupplierStrong_local_via_single_t_supply
+  intro D hD v hv t ht hvt hvD_s
+  obtain ⟨σ, N, h_s_factor, h_T_D_in_plus, h_f_bound⟩ :=
+    h_struct D hD v hv t ht hvt hvD_s
+  exact WedhornC1PerCallSupplyLocalizedSingleT_via_h_s_factor_T_D_in_plus_and_f_bound
+    C D hD v hv t σ N h_s_factor h_T_D_in_plus h_f_bound
+
 end ValuationSpectrum
