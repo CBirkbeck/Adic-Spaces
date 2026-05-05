@@ -221,4 +221,105 @@ theorem hZavyalov_per_E_via_single_t_structural_data_of_base_eq_Spa
   exact hZavyalov_per_E_via_normalized_C1Strong_supplier_of_base_eq_Spa
     P hA₀_le hAplus_le_A₀ π hI hπ_tn hπ_unit hArch C h_base_eq_Spa h_C1_normalized
 
+/-! ### T197 blocker packet: first missing upstream theorem for the
+T192/T195 `h_struct` per-call provider
+
+The T192 theorem `hZavyalov_per_E_via_single_t_structural_data_of_base_eq_Spa`
+and the final-threading T195 wrappers all consume the per-call
+single-`t` structural-data provider
+
+```
+h_struct :
+  ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s, ∀ t ∈ D.T,
+    v.vle t D.s → ¬ v.vle D.s 0 →
+    ∃ (σ : A) (N : ℕ),
+      C.base.s = D.s * (σ * t * D.s ^ N) ∧
+      (∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)) ∧
+      v.vle (σ * t * D.s ^ N) C.base.s
+```
+
+Producing this provider from concrete Tate / pseudouniformizer / cover
+setup data requires a **per-`(D, t)` algebraic factorization in `A`
+itself** — not via denominator clearing in `Localization.Away C.base.s`
+(which gives only power-cleared identities; see T185) — captured by
+the precise missing Lean type:
+
+```
+def wedhorn_834_h_struct_factorization_first_missing_upstream
+    [DecidableEq A]
+    (C : RationalCovering A) : Prop :=
+  ∀ (D : RationalLocData A), D ∈ C.covers →
+  ∀ (t : A), t ∈ D.T →
+    ∃ (σ : A) (N : ℕ), C.base.s = D.s * (σ * t * D.s ^ N)
+```
+
+(target file: `Adic spaces/Wedhorn834SupplierAssembly.lean` or a new
+leaf-level helper).
+
+**Existing APIs checked — none produce this factorization**:
+
+* `Cor732.exists_dominating_unit` — produces a unit `σ : Aˣ` with
+  σ-strict-domination over a test family, but NOT the multiplicative
+  identity `C.base.s = D.s · σ · t · D.s^N` in `A`. The σ-strict-dom
+  output is a per-`v` valuative inequality, not an algebraic factor.
+
+* `WedhornLocalizationDenominatorClearing.exists_away_denominator_cleared`
+  — produces `(a : A, n : ℕ)` with `x · (algebraMap C.base.s)^n =
+  algebraMap a` in `Loc C.base.s`. The identity is in the
+  **localization**, not in `A`; T185/T186 confirmed exact lifts back to
+  `A` require the structural condition `n = 0` (not derivable from
+  standard denominator clearing).
+
+* `RationalCovering.hsubset` — gives only the rational-open subset
+  relation `rationalOpen D.T D.s ⊆ rationalOpen C.base.T C.base.s`, no
+  underlying algebraic identity.
+
+* `StandardCover` — finite family generating the unit ideal in `A`;
+  ideal-theoretic, no per-`(D, t)` factorization data.
+
+* The Wedhorn 8.34(ii) Step-2 algebraic identity in the literature
+  picks `f := σ · t · D.s^(N - 1)` for σ from Cor 7.32 and `N` chosen
+  via Spa-quasi-compactness; the identity `C.base.s = D.s · f` then
+  holds **by the cover-refinement choice of `f`** — i.e., the
+  factorization is **enforced by the construction of `f`**, not
+  derived from standard denominator clearing.
+
+**Why this blocker boundary avoids the parked false lanes**:
+
+* **No σ-power-decay**: this is a single per-`(D, t)` algebraic identity
+  in `A`, not a Spa-uniform `w.vle (C_base) (σ · D.s^(N+1))` shape.
+* **No M_power_decay**: no Spa-quasi-compactness / M-choice over Spa
+  points.
+* **No locSubring-integrally-closed**: no integral closure axiom; the
+  identity is in `A`, no localization or integrality hypothesis.
+* **No multi-product exact `h_alg`**: no `∏ D.T.image` product; the
+  factorization is single-`t` (uses one chosen `t ∈ D.T`).
+* **No denominator-clearing `n = 0`**: the factorization is in `A`
+  directly, not via a power-cleared lift from `Loc C.base.s`.
+* **No σ-strict-domination clause-2**: no σ-strict-domination over a
+  test family; the σ in this factorization is an arbitrary `A`-element,
+  not a Cor 7.32 unit.
+
+**Resolution paths** (the next theorem-level ticket would):
+
+(a) **Specific cover construction**: prove the factorization for a
+    concrete cover-refinement family (e.g., the per-`E` localized cover
+    `C.per_E_local_covering`, or an explicit Wedhorn 8.34(ii) Step-2
+    construction with `f := σ · t · D.s^(N-1)`).
+
+(b) **Add as structural hypothesis**: thread the algebraic
+    factorization through a new T192/T195 variant that takes it as
+    an explicit per-call structural input, with the source f-bound and
+    Tate condition derived (or supplied) separately.
+
+The preferred path is (a) for an end-to-end discharge from concrete
+Tate/cover data; the acceptable path is (b) for a precise structural
+boundary at a fresh manager-designed level.
+
+Note: this blocker is the genuine Wedhorn 8.34(ii) cover-refinement
+element construction at the algebraic level — distinct from all the
+parked false lanes above. Its discharge is the next critical-path
+theorem-level work after the accepted T188-T195 honest single-`t`
+chain. -/
+
 end ValuationSpectrum
