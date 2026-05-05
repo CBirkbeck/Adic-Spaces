@@ -1449,4 +1449,77 @@ theorem WedhornC1PerCallSupplyLocalizedSingleT_via_h_s_factor_and_T_D_in_plus
       D σ t N C.base.T C.base.s h_s_factor h_T_D_in_plus,
     hvf_nz⟩
 
+/-! ### T189: per-call supply from honest structural data only
+
+Composes T184's source-side membership bridge, T183's
+non-vanishing lemma, and T188's per-call caller into a single theorem
+producing `WedhornC1PerCallSupplyLocalizedSingleT C D v t` from
+honest Wedhorn 8.34-style structural data **alone** — no `hv_in_plus`,
+no `hvf_nz`, no clause-2 inclusion taken as input.
+
+Inputs:
+
+* `hD : D ∈ C.covers` and `hv : v ∈ rationalOpen D.T D.s` — the
+  cover-piece refinement at `(D, v)`;
+* `σ : A` and `N : ℕ` — the Wedhorn 8.34(ii) parameters
+  (Cor 7.32 σ-construction + N-choice; deferred upstream);
+* `h_s_factor : C.base.s = D.s * (σ * t * D.s ^ N)` — cover-base
+  factorization for the chosen `f := σ * t * D.s ^ N`;
+* `h_T_D_in_plus : ∀ t' ∈ D.T, t' ∈ A⁺` — Tate condition on `D.T`;
+* `h_f_bound : v.vle (σ * t * D.s ^ N) C.base.s` — the source-side
+  `f`-bound at `v`.
+
+Output: `WedhornC1PerCallSupplyLocalizedSingleT C D v t`.
+
+Composition chain:
+
+* T184 (`wedhorn_834_v_in_plus_of_f_bound_and_cover`) lifts
+  `h_f_bound` + cover refinement to
+  `hv_in_plus : v ∈ rationalOpen (insert f C.base.T) C.base.s`.
+* The third component of `hv_in_plus` is `¬ v.vle (C.base.s) 0`; T183's
+  `not_vle_zero_left_of_mul_eq_of_not_vle_zero` then produces
+  `hvf_nz : ¬ v.vle f 0` from `h_s_factor`.
+* T188's
+  `WedhornC1PerCallSupplyLocalizedSingleT_via_h_s_factor_and_T_D_in_plus`
+  packages the data into the per-call supply Prop. -/
+
+/-- **T189 per-call supply from honest structural data**.
+
+Produces `WedhornC1PerCallSupplyLocalizedSingleT C D v t` from the
+honest Wedhorn 8.34-style structural data
+`(σ, N, h_s_factor, h_T_D_in_plus, h_f_bound)` plus cover-refinement
+data `(hD, hv)`. Composes T184 + T183 + T188.
+
+This eliminates `hv_in_plus`, `hvf_nz`, and the clause-2 inclusion
+from the input list — they are derived from `h_s_factor +
+h_T_D_in_plus + h_f_bound + hD + hv` via the T184/T183/T188 chain.
+
+The remaining inputs are the genuinely Wedhorn-content
+`(σ, N, h_s_factor, h_T_D_in_plus, h_f_bound)`: the σ-construction +
+N-choice + cover-base factorization + Tate condition + source f-bound.
+Their discharge from concrete Tate / pseudouniformizer data is the
+next theorem-level ticket. -/
+theorem WedhornC1PerCallSupplyLocalizedSingleT_via_h_s_factor_T_D_in_plus_and_f_bound
+    [DecidableEq A]
+    (C : RationalCovering A)
+    (D : RationalLocData A) (hD : D ∈ C.covers)
+    (v : Spv A) (hv : v ∈ rationalOpen D.T D.s)
+    (t : A)
+    (σ : A) (N : ℕ)
+    (h_s_factor : C.base.s = D.s * (σ * t * D.s ^ N))
+    (h_T_D_in_plus : ∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A))
+    (h_f_bound : v.vle (σ * t * D.s ^ N) C.base.s) :
+    WedhornC1PerCallSupplyLocalizedSingleT C D v t := by
+  -- Source-side membership via T184.
+  have hv_in_plus :
+      v ∈ rationalOpen (insert (σ * t * D.s ^ N) C.base.T) C.base.s :=
+    wedhorn_834_v_in_plus_of_f_bound_and_cover C D hD v hv
+      (σ * t * D.s ^ N) h_f_bound
+  -- Source-side non-vanishing of f via T183 + denominator non-vanishing.
+  have hvf_nz : ¬ v.vle (σ * t * D.s ^ N) 0 :=
+    not_vle_zero_left_of_mul_eq_of_not_vle_zero v h_s_factor hv_in_plus.2.2
+  -- Package via T188's caller.
+  exact WedhornC1PerCallSupplyLocalizedSingleT_via_h_s_factor_and_T_D_in_plus
+    C D v t σ N h_s_factor h_T_D_in_plus hv_in_plus hvf_nz
+
 end ValuationSpectrum
