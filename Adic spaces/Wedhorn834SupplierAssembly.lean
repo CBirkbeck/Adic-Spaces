@@ -322,4 +322,229 @@ parked false lanes above. Its discharge is the next critical-path
 theorem-level work after the accepted T188-T195 honest single-`t`
 chain. -/
 
+/-! ### T198: concrete cover construction supplying the h_struct factorization
+
+This section addresses T197's resolution path (a): produce a concrete
+cover construction supplying the `h_struct` factorization of T191/T192
+/T195. The deliverable is two-fold:
+
+1. A **concrete compiled theorem** (`h_struct_for_global_trivial_covering`)
+   for the **degenerate whole-Spa covering** with base and single piece
+   both `globalLocData P` (so `T = {1}, s = 1`); the factorization holds
+   trivially via `σ := 1, N := 0, t := 1`.
+
+2. A **precise blocker packet** for the general non-trivial case,
+   identifying why existing concrete constructions
+   (`per_E_local_covering`, `laurentPlusDatum`, `laurentMinusDatum`) do
+   NOT supply the factorization, and naming the **missing constructor/
+   API** for a non-trivial Wedhorn 8.34(ii) Step-2 cover with the
+   algebraic factorization data carried by construction.
+
+## Why the trivial whole-Spa covering works
+
+Take `C := { base := globalLocData P, covers := {globalLocData P} }`.
+Then for the unique `D = globalLocData P`:
+
+* `D.s = 1`, so `D.s | C.base.s = 1` trivially.
+* `D.T = {1}`, so the only `t ∈ D.T` is `t = 1`.
+* The factorization `C.base.s = D.s * (σ * t * D.s^N) = 1 = 1 * (1 * 1
+  * 1^0) = 1` holds with `σ = 1, N = 0, t = 1`.
+* The Tate condition `1 ∈ A⁺` holds in any subring.
+* The f-bound `v.vle (1 * 1 * 1^0) 1 = v.vle 1 1` is reflexive.
+
+This is a **valid concrete cover construction** supplying `h_struct`
+exactly. It is the simplest such construction in the project, and
+demonstrates that path (a) is feasible at least for whole-Spa Tate
+acyclicity. It does **not** generalize: for any non-trivial cover with
+`D.T ⊋ {1}` or `D.s ≠ 1`, the factorization fails (see audit below).
+
+## Why non-trivial concrete constructions fail
+
+Audit of existing `RationalLocData`/`RationalCovering` constructors,
+checking whether each supplies `C.base.s = D.s * (σ * t * D.s ^ N)` in
+`A` for `D ∈ C.covers` and `t ∈ D.T`:
+
+* **`laurentPlusDatum D₀ f`** (in `Adic spaces/LaurentRefinement.lean`,
+  line 102): `s := D₀.s`, `T := insert f D₀.T`. So for `C.base = D₀`
+  and `D = laurentPlusDatum D₀ f`, `D.s = C.base.s` and
+  `D.T = insert f C.base.T`. The factorization
+  `C.base.s = C.base.s * (σ * t * C.base.s^N)` requires
+  `σ * t * C.base.s^N = 1`. For arbitrary `t ∈ D.T = insert f C.base.T`,
+  this is restrictive (requires `t * C.base.s^N` to be a unit in `A`
+  with `σ = 1/(t * C.base.s^N)` an actual `A`-element).
+
+* **`laurentMinusDatum D₀ f`** (in `Adic spaces/LaurentRefinement.lean`,
+  line 203): `s := D₀.s * f`, `T := (insert D₀.s D₀.T).product
+  ({D₀.s, f} : Finset A) |>.image (fun p => p.1 * p.2)`. So
+  `D.s = C.base.s * f`. Then the factorization
+  `C.base.s = D.s * (σ * t * D.s^N) = (C.base.s * f)^(N+1) * σ * t`.
+  For `N = 0`: `C.base.s = C.base.s * f * σ * t`, requiring
+  `f * σ * t = 1`. Restrictive (requires `f * t` to be a unit). For
+  `N ≥ 1`: even more restrictive due to the `(C.base.s * f)^(N+1)`
+  factor. **Wrong direction**: `D.s` is a multiple of `C.base.s`, not
+  a divisor.
+
+* **`RationalCovering.per_E_local_covering C S f₀ E hprecise`** (in
+  `Adic spaces/GeometricReduction.lean`, line 5431): base = `E.1`,
+  covers built from `laurentPlusDatum`/`laurentMinusDatum` of
+  `C.plusDatum f` for filtered `f ∈ S`. The pieces inherit the
+  `laurentPlus`/`laurentMinus` structure from `C.plusDatum f`, so the
+  factorization fails for the same reasons as above (with
+  `C.base.s ↦ E.1.s`).
+
+* **`globalLocData P`** (in `Adic spaces/Presheaf.lean`, line 547):
+  `T := {1}, s := 1`. The trivial whole-Spa covering using this for
+  both base and single piece DOES supply the factorization (see
+  `h_struct_for_global_trivial_covering` below) — but only because all
+  factorization parameters reduce to `1` in `A`. No non-trivial cover
+  data.
+
+* **`RationalCovering.insertDenom`** (in
+  `Adic spaces/WedhornCoverNormalization.lean`, line 104): adds `D.s`
+  to `D.T` without changing `D.s`. Does not introduce any algebraic
+  factorization data; same issue as the underlying covering.
+
+* **`WedhornStandardCoverRefinement.exists_single_f_refinement_at_t_via_dominating_unit`**
+  (target signature, line 419-462, **MISSING in project**): proposes
+  `f := σ * t * D.s ^ (N-1)` with `R(insert f C.base.T, C.base.s) ⊆
+  R(D.T, D.s)` (rationalOpen subset, NOT algebraic equality). Even if
+  this target signature were filled, it would NOT supply the algebraic
+  identity `C.base.s = D.s * f` in `A` — that is a **strictly stronger
+  property** than the rationalOpen subset relation Wedhorn's actual
+  cover-refinement provides.
+
+## Missing constructor/API (proposed signature)
+
+The lowest missing construction is a **Wedhorn 8.34(ii) Step-2 cover
+construction with algebraic factorization data carried by
+construction** — a refinement of the existing missing
+`exists_single_f_refinement_at_t_via_dominating_unit` that ALSO supplies
+the per-piece algebraic identity in `A`:
+
+```
+def WedhornStep2RefinementCarryingFactor (C : RationalCovering A) :
+    Type :=
+  { D : RationalLocData A //
+      D ∈ C.covers ∧
+      ∀ (t : A), t ∈ D.T →
+        ∃ (σ : A) (N : ℕ), C.base.s = D.s * (σ * t * D.s ^ N) }
+
+theorem RationalCovering.exists_step2_refinement_carrying_factor
+    [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) (hA₀_le : P.A₀ ≤ A⁺)
+    (π : P.A₀) (hI : P.I = Ideal.span {π})
+    (hπ_tn : IsTopologicallyNilpotent (P.A₀.subtype π))
+    (hπ_unit : IsUnit (P.A₀.subtype π))
+    (hArch : ∀ v : Spv A, letI : ValuativeRel A := v.toValuativeRel
+        MulArchimedean (ValuativeRel.ValueGroupWithZero A))
+    (C : RationalCovering A) :
+    Nonempty (∀ D ∈ C.covers, WedhornStep2RefinementCarryingFactor C)
+```
+
+This constructor does NOT exist in the project. Its construction is
+genuine Wedhorn 8.34(ii) Step-2 content beyond what
+`exists_single_f_refinement_at_t_via_dominating_unit` (parameterized
+target) provides. The natural way to discharge it is to construct, for
+each piece D and each `t ∈ D.T`, a NEW cover-piece D' with `D'.s :=
+σ * t * D.s ^ N` for some `(σ, N)` chosen via Cor 7.32 +
+Spa-quasi-compactness, and then VERIFY both the rationalOpen inclusion
+`R(D'.T, D'.s) ⊆ R(D.T, D.s)` AND the algebraic identity
+`D.s * D'.s = C.base.s` (or similar). Constructing such D' AND showing
+it covers the right rationalOpens is non-trivial.
+
+**How this feeds T195 h_struct**: given
+`exists_step2_refinement_carrying_factor`, the per-call provider
+`h_struct` for a refined covering `C'` (where each piece carries the
+factorization) is direct extraction of the `(σ, N)` plus auxiliary
+verification of `D'.T ⊆ A⁺` and `v.vle (σ * t * D.s ^ N) C.base.s`.
+The first follows from the cover-refinement integrality (D' is built
+from t ∈ A⁺ and powers of D.s ∈ A⁺); the second from the rationalOpen
+subset relation evaluated at `v`.
+
+## Why this avoids the parked false lanes
+
+* **No σ-power-decay**: the factorization is per-`(D, t)` algebraic,
+  not Spa-uniform.
+* **No M-power-decay**: no Spa-quasi-compactness M-choice over the
+  whole Spa.
+* **No locSubring-integrally-closed**: no integral closure axiom in the
+  factorization.
+* **No multi-product exact `h_alg`**: single-`t` factorization, no
+  `∏ D.T.image`.
+* **No denominator-clearing `n = 0`**: the factorization is in `A`
+  directly; lifting from `Loc C.base.s` is irrelevant.
+* **No σ-strict-domination clause-2**: the σ in the factorization is
+  an arbitrary `A`-element produced by the construction, not a Cor 7.32
+  unit (though Cor 7.32 may be used inside the construction). -/
+
+/-- The trivial whole-Spa rational covering using `globalLocData P` for
+both base and single cover-piece. -/
+noncomputable def globalTrivialCovering (P : PairOfDefinition A) :
+    RationalCovering A :=
+  letI : DecidableEq (RationalLocData A) := Classical.decEq _
+  { base := globalLocData P
+    covers := ({globalLocData P} : Finset (RationalLocData A))
+    hsubset := by
+      intro D hD
+      rw [Finset.mem_singleton] at hD
+      subst hD
+      exact subset_rfl
+    hcover := by
+      intro v hv
+      exact ⟨globalLocData P, Finset.mem_singleton_self _, hv⟩ }
+
+/-- **T198: concrete cover construction** — the trivial whole-Spa
+rational covering (using `globalLocData P` for both base and single
+cover-piece) supplies T191/T192/T195's `h_struct` factorization
+trivially.
+
+For this covering, the unique cover-piece is `globalLocData P` with
+`T = {1}, s = 1`. The factorization
+`C.base.s = D.s * (σ * t * D.s ^ N)` with `σ := 1, N := 0, t := 1`
+reduces to `1 = 1 * (1 * 1 * 1) = 1`, holding by `ring` in `A`. The
+Tate condition `∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)` is satisfied
+since `D.T = {1}` and `1 ∈ A⁺`. The f-bound
+`v.vle (σ * t * D.s ^ N) C.base.s = v.vle 1 1` is reflexive.
+
+This is a **proof-of-concept** that path (a) is feasible in narrow
+cases. It is **not** directly useful as a general h_struct producer
+for Tate acyclicity (which needs covers with non-trivial `D.T` and
+`D.s`); see the blocker packet above for the missing
+`exists_step2_refinement_carrying_factor` construction. -/
+theorem h_struct_for_globalTrivialCovering
+    [DecidableEq A]
+    (P : PairOfDefinition A) :
+    ∀ (D : RationalLocData A), D ∈ (globalTrivialCovering P).covers →
+    ∀ (v : Spv A), v ∈ rationalOpen D.T D.s →
+    ∀ (t : A), t ∈ D.T → v.vle t D.s → ¬ v.vle D.s 0 →
+      ∃ (σ : A) (N : ℕ),
+        (globalTrivialCovering P).base.s = D.s * (σ * t * D.s ^ N) ∧
+        (∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)) ∧
+        v.vle (σ * t * D.s ^ N) (globalTrivialCovering P).base.s := by
+  letI : DecidableEq (RationalLocData A) := Classical.decEq _
+  intro D hD v _hv t ht _hvt _hvD_s
+  -- Unfold globalTrivialCovering.covers = {globalLocData P}.
+  have hD' : D ∈ ({globalLocData P} : Finset (RationalLocData A)) := hD
+  obtain rfl : D = globalLocData P := Finset.mem_singleton.mp hD'
+  -- D.T = {1}, so t = 1.
+  obtain rfl : t = 1 := Finset.mem_singleton.mp ht
+  -- Pick σ = 1, N = 0.
+  refine ⟨1, 0, ?_, ?_, ?_⟩
+  · -- (globalTrivialCovering P).base.s = 1 = 1 * (1 * 1 * 1^0) = 1.
+    show ((globalTrivialCovering P).base.s : A) =
+      (globalLocData P).s * (1 * 1 * (globalLocData P).s ^ 0)
+    show (1 : A) = 1 * (1 * 1 * (1 : A) ^ 0)
+    ring
+  · -- ∀ t' ∈ {1}, t' ∈ A⁺.
+    intro t' ht'
+    obtain rfl : t' = 1 := Finset.mem_singleton.mp ht'
+    exact (A⁺).one_mem
+  · -- v.vle (1 * 1 * 1^0) (globalTrivialCovering P).base.s = v.vle 1 1.
+    show v.vle (1 * 1 * (1 : A) ^ 0) (globalTrivialCovering P).base.s
+    show v.vle (1 * 1 * (1 : A) ^ 0) (1 : A)
+    have heq : (1 * 1 * (1 : A) ^ 0) = 1 := by ring
+    rw [heq]
+    rcases v.vle_total 1 1 with h' | h' <;> exact h'
+
 end ValuationSpectrum
