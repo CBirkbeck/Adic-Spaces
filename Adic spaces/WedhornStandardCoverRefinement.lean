@@ -670,4 +670,185 @@ def wedhorn_834_step2_factor_carrying_constructor_target {A : Type*}
     (C : RationalCovering A) : Prop :=
   WedhornStep2FactorCarryingProvider C
 
+/-! ### T200: per-call data → factor-carrying provider lower bridge
+
+T199 isolated the genuinely missing upstream content as the per-`(D, t)`
+factor-carrying refinement structure. Constructing this structure for a
+non-trivial cover-refinement family from concrete Cor 7.32 / Spa-
+quasi-compactness data is genuine Wedhorn 8.34(ii) Step-2 content (the
+proof sketch above lines 442-460 outlines the four sub-steps).
+
+T200 provides:
+
+1. A **compiled lower bridge** `WedhornStep2FactorCarryingProvider_of_per_call_carrying`
+   that takes per-`(D, t)` Prop-form factor data — the existential of
+   the Step-2 carrying-factor structure's fields — and produces the
+   `WedhornStep2FactorCarryingProvider C` shape consumed by T199's
+   `wedhorn_834_h_struct_via_step2_factor_carrying`. This packaging is
+   useful because the Prop existential form is the **natural way to
+   discharge per-`(D, t)` carrying-factor data** (it matches the shape
+   of `h_struct` itself, but per-`(D, t)` rather than per-`(D, v, t)`,
+   and crucially the `(σ, N)` pick is inside the existential rather
+   than depending on `v`).
+
+2. A **precise compiled boundary** for the next concrete cover-
+   refinement family on which to discharge the per-call data — naming
+   the four sub-inputs (Cor 7.32 σ-choice, Spa-quasi-compact N-choice,
+   algebraic factorization verification, Tate condition + uniform
+   v-bound verification) — distinct from the parked false lanes.
+
+The lower bridge does NOT discharge the missing constructor itself; it
+isolates the per-`(D, t)` Prop-form discharge as the next theorem-level
+work, ready to be filled in for any concrete cover candidate. -/
+
+/-- **T200 lower bridge**: per-`(D, t)` Prop-form factor data produces
+the `WedhornStep2FactorCarryingProvider C`.
+
+The hypothesis `h_carrying` is the **per-`(D, t)` existential** of
+`WedhornStep2RefinementCarryingFactor`'s fields:
+
+* `σ : A` and `N : ℕ` chosen for this `(D, t)`;
+* `C.base.s = D.s * (σ * t * D.s ^ N)` — algebraic factorization;
+* `∀ t' ∈ D.T, t' ∈ A⁺` — Tate condition;
+* uniform v-bound on `rationalOpen D.T D.s`.
+
+The conclusion is the provider Prop, which then feeds `h_struct` via
+`wedhorn_834_h_struct_via_step2_factor_carrying` (T199 bridge). The
+proof is mechanical: extract the existential, pack into the structure
+constructor, wrap as `Nonempty`.
+
+**Useful for next theorem-level work**: discharging the
+`WedhornStep2FactorCarryingProvider C` for a non-trivial cover family
+reduces to discharging the per-`(D, t)` Prop existential, which is the
+natural per-call shape of Wedhorn 8.34(ii) Step-2 data. The four sub-
+inputs (Cor 7.32 σ, Spa-quasi-compact N, algebraic identity, v-bound)
+can be discharged independently inside the existential. -/
+theorem WedhornStep2FactorCarryingProvider_of_per_call_carrying
+    (C : RationalCovering A)
+    (h_carrying : ∀ (D : RationalLocData A), D ∈ C.covers →
+      ∀ (t : A), t ∈ D.T →
+        ∃ (σ : A) (N : ℕ),
+          C.base.s = D.s * (σ * t * D.s ^ N) ∧
+          (∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)) ∧
+          (∀ v ∈ rationalOpen D.T D.s,
+            v.vle t D.s → ¬ v.vle D.s 0 →
+            v.vle (σ * t * D.s ^ N) C.base.s)) :
+    WedhornStep2FactorCarryingProvider C := by
+  intro D hD t ht
+  obtain ⟨σ, N, h_factor, h_T_D_in_plus, h_v_bound⟩ := h_carrying D hD t ht
+  exact ⟨⟨σ, N, h_factor, h_T_D_in_plus, h_v_bound⟩⟩
+
+/-! ### T200: precise compiled boundary for a concrete cover candidate
+
+The natural concrete cover candidate beyond T198's trivial whole-Spa
+construction is one carrying explicit Cor 7.32 σ + N data tied to the
+cover-refinement element `f := σ * t * D.s ^ (N - 1)` (Wedhorn
+8.34(ii) Step-2 literature recipe). For any such cover candidate, the
+per-`(D, t)` data needed by
+`WedhornStep2FactorCarryingProvider_of_per_call_carrying` decomposes
+into four sub-inputs:
+
+* **(I-σ) Cor 7.32 σ-choice**:
+  ```
+  ∃ σ : A, σ-strict-domination over a test family containing
+    `t` and `D.s` and the elements of `D.T`
+  ```
+
+* **(I-N) Spa-quasi-compact N-choice**:
+  ```
+  ∃ N : ℕ, the σ-power-decay `σ · D.s^(N-1)` clears the denominator
+    `C.base.s` uniformly on `rationalOpen D.T D.s`
+  ```
+
+* **(I-f) Algebraic factorization verification**:
+  ```
+  C.base.s = D.s * (σ * t * D.s ^ N)
+  ```
+  This is the **genuinely missing per-cover content**: the cover-
+  refinement piece `D` must be constructed so that its denominator
+  divides `C.base.s` with the explicit multiplicative chain
+  `D.s · σ · t · D.s ^ N`. None of the existing constructions
+  (`laurentPlusDatum`, `laurentMinusDatum`, `per_E_local_covering`,
+  `cor732_laurent_cover_covers_spa`'s pieces) supply this identity in
+  `A`; the existing `_via_dominating_unit` target (line 422 above)
+  supplies only the rationalOpen subset relation, NOT the algebraic
+  identity.
+
+* **(I-v) Uniform v-bound verification + Tate condition**:
+  ```
+  ∀ t' ∈ D.T, t' ∈ A⁺
+  ∀ v ∈ rationalOpen D.T D.s, v.vle t D.s → ¬ v.vle D.s 0 →
+    v.vle (σ * t * D.s ^ N) C.base.s
+  ```
+  The Tate condition is structural for the chosen cover family.
+  The v-bound follows from (I-σ) σ-strict-domination + (I-N)
+  N-choice + transitivity once `(σ, N)` are fixed.
+
+**The first missing theorem signature** for a concrete cover-refinement
+family is:
+
+```
+theorem exists_per_call_carrying_factor_for_<cover_family>
+    [<Tate hypothesis bundle>]
+    (P : PairOfDefinition A) (...) (C : RationalCovering A)
+    (h_cover_shape : <cover-family-specific structural hypotheses>) :
+    ∀ (D : RationalLocData A), D ∈ C.covers →
+    ∀ (t : A), t ∈ D.T →
+      ∃ (σ : A) (N : ℕ),
+        C.base.s = D.s * (σ * t * D.s ^ N) ∧
+        (∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)) ∧
+        (∀ v ∈ rationalOpen D.T D.s,
+          v.vle t D.s → ¬ v.vle D.s 0 →
+          v.vle (σ * t * D.s ^ N) C.base.s)
+```
+
+This signature is the precise next theorem-level work. Discharging it
+for a concrete cover family requires:
+
+1. A specific `<cover_family>` whose pieces' denominators `D.s` carry
+   an explicit factorization with `C.base.s` (so (I-f) holds by
+   construction). Existing candidates DO NOT satisfy this; the missing
+   construction is a **factor-carrying refinement** whose pieces are
+   built specifically to make (I-f) algebraically.
+
+2. Cor 7.32 + Spa-quasi-compactness for (I-σ) and (I-N) — already
+   available via `Cor732.exists_dominating_unit` + `SpaCompact`.
+
+3. Tate condition (I-T_D) — structural property of the cover family.
+
+4. v-bound (I-v) — derived from (I-σ) + (I-N) + (I-f) by the standard
+   `vle_of_dominating_unit_multi`-style argument.
+
+**Routing through T199 provider**: once the per-call carrying-factor
+existential is discharged for a concrete cover family,
+`WedhornStep2FactorCarryingProvider_of_per_call_carrying` packages it
+into the provider, and `wedhorn_834_h_struct_via_step2_factor_carrying`
+(T199 bridge) packages the provider into T192/T195's `h_struct`. The
+end-to-end pipeline becomes:
+
+```
+exists_per_call_carrying_factor_for_<cover_family>  [missing, T200's
+                                                     blocker]
+  ↓  (WedhornStep2FactorCarryingProvider_of_per_call_carrying, T200)
+WedhornStep2FactorCarryingProvider C                 [T199 def]
+  ↓  (wedhorn_834_h_struct_via_step2_factor_carrying, T199 bridge)
+h_struct C                                           [T192/T195 input]
+  ↓  (T192/T195 wrappers)
+hZavyalov_per_E / Tate acyclicity Part 2
+```
+
+**Why this avoids the parked false lanes**:
+
+* The per-call existential is per-`(D, t)`, not Spa-uniform: NO
+  σ-power-decay or M-power-decay shape.
+* The existential gives concrete `(σ, N) : A × ℕ`: NO locSubring
+  integrally-closed or denominator-clearing `n = 0` content.
+* The factorization is single-`t` and per-call: NO multi-product
+  exact `h_alg`.
+* The v-bound's σ-strict-domination is a **per-cover** input, not a
+  clause-2 path.
+
+The lower bridge above is **purely additive structural packaging**;
+no Wedhorn content is hidden inside it. -/
+
 end ValuationSpectrum
