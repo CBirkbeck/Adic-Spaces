@@ -1201,4 +1201,121 @@ def wedhorn_834_exact_h_alg_target
         (∏ τ ∈ D.T.image
             (algebraMap A (Localization.Away C.base.s)), τ)
 
+/-! ### T187: single-`t` per-call supply boundary (replacing multi-product)
+
+T185/T186 confirmed that the existing multi-product `h_alg` target
+(from `WedhornC1PerCallSupplyLocalizedMultiPiece`) is misframed: it
+asks for an exact lift of `(σ_loc : Loc) * ∏ D.T.image (algebraMap)`,
+which standard denominator clearing does not provide (only the
+power-cleared variant). T186's analysis showed that recovering the
+exact form requires `n = 0` in the power-cleared exponent, equivalent
+to T185's `wedhorn_834_exact_h_alg_target`, which is itself the
+genuine missing structural condition not derivable from existing
+denominator-clearing API.
+
+T187 corrects the per-call boundary by **dropping the multi-product
+shape** and aligning with Wedhorn 8.34(ii)'s natural single-`t`
+construction `f := σ · t · D.s ^ N`. The C1 supplier
+(`C1SupplierStrong_local`) is already per `(D, v, t)` with selected
+`t ∈ D.T`, so the single-`t` shape matches the consumer interface
+directly — no multi-product is independently justified by the proof.
+
+Provided:
+
+* `WedhornC1PerCallSupplyLocalizedSingleT` — single-`t` per-call
+  supply Prop. Data: `(σ : A, N : ℕ)` parameterising
+  `f := σ · t · D.s ^ N` plus the three C1 verifications (source
+  membership, target-side rational-open inclusion, source
+  non-vanishing). NO multi-product `∏ D.T.image (algebraMap)`.
+
+* `C1SupplierStrong_local_via_single_t_supply` — direct reduction:
+  per-call `WedhornC1PerCallSupplyLocalizedSingleT` data → C1 output.
+  The reduction is trivial because the single-`t` data is exactly
+  the C1 output bundled at the natural Wedhorn level.
+
+The discharge of `WedhornC1PerCallSupplyLocalizedSingleT` from
+concrete Wedhorn 8.34(ii) Tate / pseudouniformizer setup data is the
+next theorem-level ticket. Required ingredients:
+
+1. **σ-construction**: from Cor 7.32 in `Loc C.base.s` + denominator
+   clearing, produce `σ : A` such that `algebraMap σ` is `σ_loc · ?`
+   for an appropriate σ_loc with σ-strict-domination over a test
+   family.
+
+2. **N-choice**: pick `N : ℕ` large enough that `f := σ · t · D.s ^ N`
+   satisfies the source-side bound `v.vle f C.base.s` (Spa-
+   quasi-compactness + topological nilpotence of σ at the localized
+   level).
+
+3. **Clause-2 inclusion**: prove
+   `rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen D.T D.s`
+   directly via Wedhorn 8.34(ii)'s σ-strict-dom branch-clearing on
+   the single-`t` form (NOT via T176's multi-product chain — that
+   chain consumes a different algebraic identity).
+
+4. **Source clauses**: derive `v ∈ rationalOpen (insert f C.base.T)
+   C.base.s` from cover refinement + the f-bound + h_s_factor
+   structural data; derive `¬ v.vle f 0` from non-vanishing of
+   constituents.
+
+These are genuinely Wedhorn 8.34(ii)-content lemmas, not yet present
+in the codebase. -/
+
+/-- **T187 single-`t` per-call C1 supply Prop**.
+
+Per-call data and clauses for `C1SupplierStrong_local C` at a
+single `(D, v, t)`. The data is the natural Wedhorn 8.34(ii)
+parameters `(σ : A, N : ℕ)` defining
+`f := σ · t · D.s ^ N`; the clauses are the three C1 outputs at
+this `f`:
+
+* `v ∈ rationalOpen (insert f C.base.T) C.base.s` — source
+  rational-open membership.
+* `rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen D.T D.s`
+  — clause 2 (rational-open inclusion).
+* `¬ v.vle f 0` — source non-vanishing.
+
+**No multi-product** `∏ D.T.image (algebraMap)` appears in this
+shape; the algebraic data `(σ, N)` is single-`t`, matching Wedhorn's
+natural `f := σ · t · D.s ^ N` construction.
+
+This Prop is the corrected boundary replacing the misframed
+`WedhornC1PerCallSupplyLocalizedMultiPiece` (which required an exact
+lift of the multi-product, not derivable from standard denominator
+clearing per T185/T186). -/
+def WedhornC1PerCallSupplyLocalizedSingleT
+    [DecidableEq A]
+    (C : RationalCovering A)
+    (D : RationalLocData A) (v : Spv A) (t : A) : Prop :=
+  ∃ (σ : A) (N : ℕ),
+    v ∈ rationalOpen (insert (σ * t * D.s ^ N) C.base.T) C.base.s ∧
+    rationalOpen (insert (σ * t * D.s ^ N) C.base.T) C.base.s ⊆
+      rationalOpen D.T D.s ∧
+    ¬ v.vle (σ * t * D.s ^ N) 0
+
+/-- **T187 C1 supplier reduction via single-`t` per-call supply**.
+
+Direct reduction: per-call `WedhornC1PerCallSupplyLocalizedSingleT`
+data produces `C1SupplierStrong_local C`. The reduction is trivial
+because the single-`t` data `(σ, N)` is exactly the Wedhorn 8.34(ii)
+construction at the natural level matching the C1 consumer
+interface.
+
+**No multi-product** is required: the single-`t` boundary aligns
+with `C1SupplierStrong_local`'s per-`(D, v, t)` interface directly,
+avoiding the misframed multi-product `h_alg` from T177/T179. -/
+theorem C1SupplierStrong_local_via_single_t_supply
+    [DecidableEq A]
+    (C : RationalCovering A)
+    (h_per_call :
+      ∀ (D : RationalLocData A), D ∈ C.covers →
+      ∀ (v : Spv A), v ∈ rationalOpen D.T D.s →
+      ∀ (t : A), t ∈ D.T → v.vle t D.s → ¬ v.vle D.s 0 →
+        WedhornC1PerCallSupplyLocalizedSingleT C D v t) :
+    C1SupplierStrong_local C := by
+  intro D hD v hv t ht hvt hvD_s
+  obtain ⟨σ, N, hv_in, h_subset, hvf_nz⟩ :=
+    h_per_call D hD v hv t ht hvt hvD_s
+  exact ⟨σ * t * D.s ^ N, hv_in, h_subset, hvf_nz⟩
+
 end ValuationSpectrum
