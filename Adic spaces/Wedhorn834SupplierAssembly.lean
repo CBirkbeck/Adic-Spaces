@@ -142,4 +142,83 @@ theorem hZavyalov_per_E_via_unnormalized_C1Strong_supplier_of_base_eq_Spa
   exact hZavyalov_per_E_via_normalized_C1Strong_supplier_of_base_eq_Spa
     P hA₀_le hAplus_le_A₀ π hI hπ_tn hπ_unit hArch C h_base_eq_Spa h_C1_normalized
 
+/-- **Wedhorn 8.34(ii) supplier assembly — `hZavyalov_per_E` discharge
+from honest Wedhorn 8.34-style single-`t` structural per-call data**
+(T192 sibling of `hZavyalov_per_E_via_unnormalized_C1Strong_supplier_of_base_eq_Spa`).
+
+Replaces the abstract residual `h_C1_unnormalized : C1SupplierStrong_local C`
+with the **explicit single-`t` σ/N structural per-call provider**
+`h_struct` consumed by T191's
+`C1SupplierStrong_local_insertDenom_via_single_t_structural_data`. The
+provider supplies, for each `D ∈ C.covers`, `v ∈ rationalOpen D.T D.s`,
+and `t ∈ D.T` with `v.vle t D.s ∧ ¬ v.vle D.s 0`, an explicit
+`(σ : A) (N : ℕ)` with:
+
+* the base-side factorization `C.base.s = D.s * (σ * t * D.s ^ N)`,
+* test-family integrality `∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)`,
+* and the `f`-membership `v.vle (σ * t * D.s ^ N) C.base.s`.
+
+These are exactly the honest Wedhorn 8.34(ii) σ/N data delivered by
+T188's `rationalOpen_subset_via_single_t_sigma_N_data` and the T185
+power-cleared `f`-construction lane.
+
+Composition pipeline:
+
+1. T191 (`C1SupplierStrong_local_insertDenom_via_single_t_structural_data`)
+   → `C1SupplierStrong_local C.insertDenom` directly from `h_struct`
+   under `h_covers_nonempty`. (T191 internally wraps the lift via
+   `C1SupplierStrong_local_insertDenom_lift`, so no separate
+   un-normalized lift step is needed here.)
+2. `WedhornBaseSpaFinalBridgeStrong.hZavyalov_per_E_via_normalized_C1Strong_supplier_of_base_eq_Spa`
+   → closes to `hZavyalov_per_E` under H₀ (Tate hypothesis bundle) and
+   H₁ (`rationalOpen C.base.T C.base.s = Spa A A⁺`).
+
+This sibling theorem is the **same conclusion** as the unnormalized-
+supplier version above, with the `h_C1_unnormalized` residual replaced
+by the strictly-stronger explicit single-`t` structural provider. The
+output is exactly the `hZavyalov_per_E` shape consumed by the final
+Tate acyclicity assembly. Sorry-free, axiom-clean. -/
+theorem hZavyalov_per_E_via_single_t_structural_data_of_base_eq_Spa
+    [IsHuberRing A] [HasLocLiftPowerBounded A]
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    [DecidableEq A]
+    (P : PairOfDefinition A) (hA₀_le : P.A₀ ≤ A⁺)
+    [IsAdicComplete P.I P.A₀]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀)
+    (π : P.A₀) (hI : P.I = Ideal.span {π})
+    (hπ_tn : IsTopologicallyNilpotent (P.A₀.subtype π))
+    (hπ_unit : IsUnit (P.A₀.subtype π))
+    (hArch : ∀ v : Spv A, letI : ValuativeRel A := v.toValuativeRel
+        MulArchimedean (ValuativeRel.ValueGroupWithZero A))
+    (C : RationalCovering A)
+    -- Residual H₁: base-Spa specialization (consumed by the outside-rescue
+    -- pointwise-of-base-eq-Spa branch).
+    (h_base_eq_Spa : rationalOpen C.base.T C.base.s = Spa A A⁺)
+    -- Residual H₂: cover-piece test-family non-emptiness (consumed by the
+    -- T191 insertDenom strong-supplier from-structural-data wrapper).
+    (h_covers_nonempty : ∀ D ∈ C.covers, D.T.Nonempty)
+    -- Residual H₃: explicit single-`t` σ/N structural per-call provider —
+    -- the strictly-stronger replacement of the abstract `C1SupplierStrong_local C`,
+    -- matching T188's σ/N data shape and T191's structural-data input.
+    (h_struct :
+      ∀ (D : RationalLocData A), D ∈ C.covers →
+      ∀ (v : Spv A), v ∈ rationalOpen D.T D.s →
+      ∀ (t : A), t ∈ D.T → v.vle t D.s → ¬ v.vle D.s 0 →
+        ∃ (σ : A) (N : ℕ),
+          C.base.s = D.s * (σ * t * D.s ^ N) ∧
+          (∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)) ∧
+          v.vle (σ * t * D.s ^ N) C.base.s) :
+    rationalOpen C.base.T C.base.s ≠ ∅ →
+      ∃ S : Finset A,
+        refines_cover_per_E C S ∧ refines_contain C S ∧ refines_span_top S := by
+  -- Step 1: build the normalized strong C1 supplier directly from h_struct
+  -- via T191. T191 internally bundles the un-normalized supplier and the
+  -- insertDenom lift; we consume its output directly.
+  have h_C1_normalized : C1SupplierStrong_local C.insertDenom :=
+    C1SupplierStrong_local_insertDenom_via_single_t_structural_data
+      C h_covers_nonempty h_struct
+  -- Step 2: close to hZavyalov_per_E via the base-Spa final bridge strong.
+  exact hZavyalov_per_E_via_normalized_C1Strong_supplier_of_base_eq_Spa
+    P hA₀_le hAplus_le_A₀ π hI hπ_tn hπ_unit hArch C h_base_eq_Spa h_C1_normalized
+
 end ValuationSpectrum
