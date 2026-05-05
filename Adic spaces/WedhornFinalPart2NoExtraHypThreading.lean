@@ -241,4 +241,144 @@ theorem tateAcyclicity_Part2_via_sigma_C1_and_integrated_laneB_allow_empty
       h_per_call_sigma)
     f₀ fC hC_compat separation_supplier hLaneA
 
+/-- **T195 final Part-2 wrapper threading T194's single-`t`
+structural-data Lane-A + Lane-B integrated consumer**.
+
+Mirrors T074's `tateAcyclicity_Part2_via_sigma_C1_and_integrated_laneB`,
+but replaces the σ-construction supplier route
+(`C1SupplierStrong_local_via_named_sigma_construction_supplier` +
+`SigmaProductClearedInequalitySupplier`) with T194's single-`t`
+structural-data integrated consumer
+`tateAcyclicity_Part2_via_single_t_structural_data_laneA_laneB_via_separation`.
+
+The per-call residual at this consumer boundary is the **single-`t`
+structural-data provider** `h_struct`:
+
+```
+∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s, ∀ t ∈ D.T,
+  v.vle t D.s → ¬ v.vle D.s 0 →
+  ∃ σ N,
+    C.base.s = D.s * (σ * t * D.s ^ N) ∧
+    (∀ t' ∈ D.T, t' ∈ A⁺) ∧
+    v.vle (σ * t * D.s ^ N) C.base.s
+```
+
+— the genuinely Wedhorn-content per-call data isolated by T188-T193's
+single-`t` chain. Other intermediate inputs (universal nonempty-cover
+separation supplier, `PrimaryLaneAInputs`, geometric hypotheses,
+caller's section data) are unchanged from T074's boundary.
+
+**Output**: the gluing existential `∃ x : presheafValue C.base,
+∀ E ∈ C.covers, restrictionMap C.base E _ x = fC E` from compatible
+cover-level sections — exactly Part 2 of `tateAcyclicity` (Wedhorn
+8.28(b)).
+
+**No-extra-hypothesis firewall**: hypotheses of this wrapper are
+intermediate supplier-boundary inputs of the consumer; they are
+**not** changes to the final `ValuationSpectrum.tateAcyclicity`
+theorem signature. -/
+theorem tateAcyclicity_Part2_via_single_t_structural_data_and_integrated_laneB
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) (hA₀_le : P.A₀ ≤ A⁺)
+    [IsAdicComplete P.I P.A₀]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀)
+    (π : P.A₀) (hI : P.I = Ideal.span {π})
+    (hπ_tn : IsTopologicallyNilpotent (P.A₀.subtype π))
+    (hπ_unit : IsUnit (P.A₀.subtype π))
+    (hArch : ∀ v : Spv A, letI : ValuativeRel A := v.toValuativeRel
+        MulArchimedean (ValuativeRel.ValueGroupWithZero A))
+    (C : RationalCovering A) (hne : C.covers.Nonempty)
+    [IsNoetherianRing C.base.P.A₀]
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    [LaurentNormalized C.base]
+    (h_base_eq_Spa : rationalOpen C.base.T C.base.s = Spa A A⁺)
+    (h_covers_nonempty : ∀ D ∈ C.covers, D.T.Nonempty)
+    (h_struct :
+      ∀ (D : RationalLocData A), D ∈ C.covers →
+      ∀ (v : Spv A), v ∈ rationalOpen D.T D.s →
+      ∀ (t : A), t ∈ D.T → v.vle t D.s → ¬ v.vle D.s 0 →
+        ∃ (σ : A) (N : ℕ),
+          C.base.s = D.s * (σ * t * D.s ^ N) ∧
+          (∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)) ∧
+          v.vle (σ * t * D.s ^ N) C.base.s)
+    (f₀ : A)
+    (fC : ∀ E : { E // E ∈ C.covers }, presheafValue E.1)
+    (hC_compat : ∀ (E₁ E₂ : { E // E ∈ C.covers }) (D₃ : RationalLocData A)
+      (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen E₁.1.T E₁.1.s)
+      (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen E₂.1.T E₂.1.s),
+      restrictionMap E₁.1 D₃ h₃₁ (fC E₁) = restrictionMap E₂.1 D₃ h₃₂ (fC E₂))
+    (separation_supplier : ∀ C' : RationalCovering A, C'.covers.Nonempty →
+      ∀ a b : presheafValue C'.base,
+        (∀ (D : RationalLocData A) (hD : D ∈ C'.covers),
+          restrictionMap C'.base D (C'.hsubset D hD) a =
+            restrictionMap C'.base D (C'.hsubset D hD) b) →
+        a = b)
+    (per_E_nonempty : ∀ (S' : StandardCover A)
+      (hS'_per_E : refines_cover_per_E C S'.elts)
+      (_hS'_contain : refines_contain C S'.elts)
+      (E : { E // E ∈ C.covers }),
+      (C.per_E_local_covering S'.elts f₀ E hS'_per_E).covers.Nonempty)
+    (hLaneA : PrimaryLaneAInputs C f₀) :
+    ∃ x : presheafValue C.base, ∀ E : { E // E ∈ C.covers },
+      restrictionMap C.base E.1 (C.hsubset E.1 E.2) x = fC E :=
+  tateAcyclicity_Part2_via_single_t_structural_data_laneA_laneB_via_separation
+    P hA₀_le hAplus_le_A₀ π hI hπ_tn hπ_unit hArch C hne
+    h_base_eq_Spa h_covers_nonempty h_struct
+    f₀ fC hC_compat separation_supplier per_E_nonempty hLaneA
+
+/-- **T195 final Part-2 wrapper threading T194's single-`t`
+structural-data Lane-A + Lane-B integrated consumer**, allow-empty
+variant.
+
+Identical caller signature to
+`tateAcyclicity_Part2_via_single_t_structural_data_and_integrated_laneB`
+modulo the relaxed Lane B shape (per-E nonemptiness derived
+structurally from `(rationalOpen E.1.T E.1.s).Nonempty` rather than
+supplied explicitly), composing through T194's allow-empty integrated
+consumer. The per-call residual remains the single-`t` structural-data
+provider `h_struct`. -/
+theorem tateAcyclicity_Part2_via_single_t_structural_data_and_integrated_laneB_allow_empty
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) (hA₀_le : P.A₀ ≤ A⁺)
+    [IsAdicComplete P.I P.A₀]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀)
+    (π : P.A₀) (hI : P.I = Ideal.span {π})
+    (hπ_tn : IsTopologicallyNilpotent (P.A₀.subtype π))
+    (hπ_unit : IsUnit (P.A₀.subtype π))
+    (hArch : ∀ v : Spv A, letI : ValuativeRel A := v.toValuativeRel
+        MulArchimedean (ValuativeRel.ValueGroupWithZero A))
+    (C : RationalCovering A) (hne : C.covers.Nonempty)
+    [IsNoetherianRing C.base.P.A₀]
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    [LaurentNormalized C.base]
+    (h_base_eq_Spa : rationalOpen C.base.T C.base.s = Spa A A⁺)
+    (h_covers_nonempty : ∀ D ∈ C.covers, D.T.Nonempty)
+    (h_struct :
+      ∀ (D : RationalLocData A), D ∈ C.covers →
+      ∀ (v : Spv A), v ∈ rationalOpen D.T D.s →
+      ∀ (t : A), t ∈ D.T → v.vle t D.s → ¬ v.vle D.s 0 →
+        ∃ (σ : A) (N : ℕ),
+          C.base.s = D.s * (σ * t * D.s ^ N) ∧
+          (∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)) ∧
+          v.vle (σ * t * D.s ^ N) C.base.s)
+    (f₀ : A)
+    (fC : ∀ E : { E // E ∈ C.covers }, presheafValue E.1)
+    (hC_compat : ∀ (E₁ E₂ : { E // E ∈ C.covers }) (D₃ : RationalLocData A)
+      (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen E₁.1.T E₁.1.s)
+      (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen E₂.1.T E₂.1.s),
+      restrictionMap E₁.1 D₃ h₃₁ (fC E₁) = restrictionMap E₂.1 D₃ h₃₂ (fC E₂))
+    (separation_supplier : ∀ C' : RationalCovering A, C'.covers.Nonempty →
+      ∀ a b : presheafValue C'.base,
+        (∀ (D : RationalLocData A) (hD : D ∈ C'.covers),
+          restrictionMap C'.base D (C'.hsubset D hD) a =
+            restrictionMap C'.base D (C'.hsubset D hD) b) →
+        a = b)
+    (hLaneA : PrimaryLaneAInputs C f₀) :
+    ∃ x : presheafValue C.base, ∀ E : { E // E ∈ C.covers },
+      restrictionMap C.base E.1 (C.hsubset E.1 E.2) x = fC E :=
+  tateAcyclicity_Part2_via_single_t_structural_data_laneA_laneB_via_separation_allow_empty
+    P hA₀_le hAplus_le_A₀ π hI hπ_tn hπ_unit hArch C hne
+    h_base_eq_Spa h_covers_nonempty h_struct
+    f₀ fC hC_compat separation_supplier hLaneA
+
 end ValuationSpectrum
