@@ -617,4 +617,157 @@ theorem localised_sigma_clearing_bounds_for_localisation_transfer
   obtain ⟨τ, hτ_mem, hστ⟩ := h_sigma_loc w hw
   exact h_per_τ_bound τ hτ_mem w hw hστ
 
+/-! ### T206: localised Cor 7.32 dominating-unit supplier
+
+T205 (above) consumes a localised σ-strict-domination output as a
+black-box hypothesis. T206 below is the **supplier** of that output:
+a thin wrapper that applies `Cor732.exists_dominating_unit` to
+`Localization.Away s` under `locTopology P T s hopen` and
+`localizationAwayPlusSubring s`, given the localised analogues of
+Cor 7.32's algebraic preconditions on `Loc s`.
+
+**Strategy — direct application of the abstract Cor 7.32**:
+
+`ValuationSpectrum.exists_dominating_unit`
+(`Adic spaces/Cor732.lean:206`) is stated abstractly for any ring
+`A` with `[CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+[PlusSubring A]` (`[IsLinearTopology A A]` is omitted in the theorem
+statement). Substituting `A := Localization.Away s`:
+
+* `[CommRing (Localization.Away s)]` — Mathlib's `Localization`
+  instance.
+* `[TopologicalSpace (Localization.Away s)]` — supplied by `letI :=
+  locTopology P T s hopen`.
+* `[IsTopologicalRing (Localization.Away s)]` — derived from
+  `(locBasis P T s hopen).toRingFilterBasis.isTopologicalRing` (the
+  same pattern used throughout `Presheaf.lean`,
+  `WedhornLocalizationContinuity.lean`, etc.).
+* `[PlusSubring (Localization.Away s)]` — supplied by `letI :=
+  localizationAwayPlusSubring s`.
+
+T206 takes the eight per-Loc inputs as named hypotheses and applies
+`exists_dominating_unit` directly. This delivers the **acceptable
+fallback** of the ticket's spec: "compile the strongest reducer and
+report the exact first missing localised PairOfDefinition / Archimedean
+/ no-zero input signature needed to apply Cor732 on Localization.Away
+s." Each input is named below.
+
+**Missing-input signatures** (the eight per-Loc preconditions, in
+order):
+
+1. `P_loc : PairOfDefinition (Localization.Away s)` — a
+   pair-of-definition for the localised ring under `locTopology`. The
+   genuine Wedhorn-route construction would build `P_loc.A₀` as the
+   image of `P.A₀` under `algebraMap A (Loc s)` (the locSubring
+   restricted to `algebraMap`-image), with `P_loc.I` derived from
+   `P.I`. **This is the first non-trivial missing input.**
+
+2. `hA₀_le_loc : P_loc.A₀ ≤ (Loc s)⁺` — direction
+   `P_loc.A₀ ⊆ localizationAwayPlusSubring s`; should follow once
+   `P_loc.A₀` is constructed as a sub-locSubring (since
+   `locSubring P T s ⊆ localizationAwayPlusSubring s` by the
+   definition of the localised plus-subring).
+
+3. `π_loc : P_loc.A₀` — pseudo-uniformizer in the localised ring,
+   typically `algebraMap (P.I-generator)` if `P.I` is principal.
+
+4. `hI_loc : P_loc.I = Ideal.span {π_loc}` — principal ideal data.
+
+5. `hπ_loc_tn : IsTopologicallyNilpotent (P_loc.A₀.subtype π_loc)` —
+   topological nilpotency in `(Loc s, locTopology)`. Should follow
+   from the original `IsTopologicallyNilpotent` on `(A, top A)` plus
+   continuity of `algebraMap A (Loc s)` under `locTopology`.
+
+6. `hπ_loc_unit : IsUnit (P_loc.A₀.subtype π_loc)` — unit-ness
+   preserved by `algebraMap`.
+
+7. `hArch_loc : ∀ w : Spv (Loc s), MulArchimedean ...` — Archimedean
+   value groups condition; this is a generic abstract hypothesis on
+   Spv (Loc s) and is preserved under any ring extension.
+
+8. `T_test_loc, hT_loc` — finite test family on `Loc s` with
+   no-common-zero on `Spa(Loc s, ⁺)`.
+
+The **first** non-trivial missing input (item 1, `P_loc`) is the
+genuine algebraic content; items 2–8 are derivable from item 1 plus
+the existing data on `(A, P, T, s, hopen)` and `Spa A A⁺`. -/
+
+/-- **T206 localised Cor 7.32 dominating-unit supplier**.
+
+Direct application of `Cor732.exists_dominating_unit` to
+`Localization.Away s` under `locTopology P T s hopen` and
+`localizationAwayPlusSubring s`, given the localised algebraic data.
+
+**Inputs**:
+* `(P, T, s, hopen)` — the standard `locTopology` / `locSubring` data.
+* `P_loc, hA₀_le_loc, π_loc, hI_loc, hπ_loc_tn, hπ_loc_unit,
+  hArch_loc` — the localised pair-of-definition and Tate data on
+  `(Loc s, locTopology, localizationAwayPlusSubring)`.
+* `T_test_loc, hT_loc` — finite test family on `Loc s` with no-common
+  -zero on `Spa(Loc s, ⁺)`.
+
+**Output**: `σ_loc : (Loc s)ˣ` and the strict-domination witness shape
+required as input to T205's `h_sigma_loc`.
+
+**Proof**: derive `[IsTopologicalRing (Loc s)]` from `locBasis`, then
+apply `Cor732.exists_dominating_unit`. -/
+theorem exists_dominating_unit_localised
+    [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (P_loc :
+      letI : TopologicalSpace (Localization.Away s) :=
+        locTopology P T s hopen
+      PairOfDefinition (Localization.Away s))
+    (hA₀_le_loc :
+      letI : TopologicalSpace (Localization.Away s) :=
+        locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationAwayPlusSubring s
+      P_loc.A₀ ≤ (Localization.Away s)⁺)
+    (π_loc :
+      letI : TopologicalSpace (Localization.Away s) :=
+        locTopology P T s hopen
+      P_loc.A₀)
+    (hI_loc :
+      letI : TopologicalSpace (Localization.Away s) :=
+        locTopology P T s hopen
+      P_loc.I = Ideal.span {π_loc})
+    (hπ_loc_tn :
+      letI : TopologicalSpace (Localization.Away s) :=
+        locTopology P T s hopen
+      IsTopologicallyNilpotent (P_loc.A₀.subtype π_loc))
+    (hπ_loc_unit :
+      letI : TopologicalSpace (Localization.Away s) :=
+        locTopology P T s hopen
+      IsUnit (P_loc.A₀.subtype π_loc))
+    (hArch_loc :
+      ∀ w : Spv (Localization.Away s),
+        letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+        MulArchimedean (ValuativeRel.ValueGroupWithZero (Localization.Away s)))
+    (T_test_loc : Finset (Localization.Away s))
+    (hT_loc :
+      letI : TopologicalSpace (Localization.Away s) :=
+        locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationAwayPlusSubring s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ T_test_loc, ¬ w.vle τ 0) :
+    letI : TopologicalSpace (Localization.Away s) :=
+      locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationAwayPlusSubring s
+    ∃ σ_loc : (Localization.Away s)ˣ,
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ T_test_loc,
+          w.vle (σ_loc : Localization.Away s) τ ∧
+          ¬ w.vle τ (σ_loc : Localization.Away s) := by
+  letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) := localizationAwayPlusSubring s
+  haveI : IsTopologicalRing (Localization.Away s) :=
+    (locBasis P T s hopen).toRingFilterBasis.isTopologicalRing
+  exact exists_dominating_unit P_loc hA₀_le_loc π_loc hI_loc hπ_loc_tn
+    hπ_loc_unit hArch_loc T_test_loc hT_loc
+
 end ValuationSpectrum
