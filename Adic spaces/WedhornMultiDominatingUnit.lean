@@ -469,4 +469,152 @@ theorem exists_localization_lift_of_rationalOpen
   letI : PlusSubring (Localization.Away s) := localizationAwayPlusSubring s
   exact valuationLocalizationLift_of_spa_rationalOpen P T s hopen hA₀_le hv
 
+/-! ### T205: localised σ-clearing support for T202 `h_loc_bound`
+
+T202 (`rationalOpen_subset_localisation_transfer`) requires
+`h_loc_bound`: a per-`w` boundedness hypothesis on
+`Spa(Localization.Away s, ⁺)` of shape
+
+```
+∀ w ∈ Spa (Loc s) (Loc s)⁺,
+  (∀ t ∈ T', w.vle (algebraMap A (Loc s) t) (algebraMap A (Loc s) s')) ∧
+  ¬ w.vle (algebraMap A (Loc s) s') 0
+```
+
+The natural Wedhorn 8.34(ii) Step-2 supplier of `h_loc_bound` is a
+**localised Cor 7.32-style σ-strict-domination output** on
+`Spa(Loc s, ⁺)`:
+
+```
+∃ σ_loc : (Loc s)ˣ, ∀ w ∈ Spa(Loc s, ⁺), ∃ τ ∈ T_test_loc,
+  w.vle (σ_loc : Loc s) τ ∧ ¬ w.vle τ (σ_loc : Loc s)
+```
+
+plus a **per-`τ` algebraic bridge** that converts the strict-dom
+witness at each `w` to the algebraMap-image bounds for the target
+rational-open data `(T', s')` on `A`.
+
+T205 below packages the smallest reducer that **composes** these two
+hypotheses to produce `h_loc_bound` directly. The reducer is a clean
+∃-elim composition; the genuine Wedhorn σ-clearing math sits in the
+discharge of the per-`τ` bridge, which is the Step-2 integration
+target owned by T204 (`Adic spaces/WedhornStandardCoverRefinement.lean`).
+
+**Missing-input signature** (the localised Cor 7.32 supplier):
+
+```
+ValuationSpectrum.exists_dominating_unit_localised
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    [...localised PairOfDefinition + π + Archimedean data on Loc s...]
+    (T_test_loc : Finset (Localization.Away s))
+    (h_no_zero_loc :
+      letI : TopologicalSpace (Localization.Away s) :=
+        locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationAwayPlusSubring s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ T_test_loc, ¬ w.vle τ 0) :
+    letI : TopologicalSpace (Localization.Away s) :=
+      locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationAwayPlusSubring s
+    ∃ σ_loc : (Localization.Away s)ˣ,
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ T_test_loc,
+          w.vle (σ_loc : Localization.Away s) τ ∧
+          ¬ w.vle τ (σ_loc : Localization.Away s)
+```
+
+This is the **localised analogue of `Cor732.exists_dominating_unit`**
+(`Adic spaces/Cor732.lean:206`) and is the precise missing input that
+would feed T205's `h_sigma_loc` from algebraic data on `A`. Producing
+it requires either:
+* a localised PairOfDefinition + Archimedean data on `Loc s` (allowing
+  direct application of `Cor732.exists_dominating_unit` to `Loc s`), or
+* a transfer construction lifting `Cor732`'s output on `Spa A A⁺` to
+  `Spa(Loc s, ⁺)` along the comap.
+
+T205 below treats the σ-strict-dom on `Spa(Loc s, ⁺)` as a black-box
+hypothesis, leaving the supplier construction to a downstream ticket. -/
+
+/-- **T205 localised σ-clearing reducer to T202 `h_loc_bound`**.
+
+Composes a localised Cor 7.32-style σ-strict-domination output on
+`Spa(Localization.Away s, ⁺)` with a per-`τ` algebraic bridge to
+produce the `h_loc_bound` per-`w` boundedness shape required as input
+to T202's `rationalOpen_subset_localisation_transfer`.
+
+**Inputs**:
+* `(P, T, s, hopen)` — the standard `locTopology` / `locSubring` data.
+* `(T', s')` — the target rational-open's data on `A`.
+* `(T_test_loc, σ_loc)` — finite test family on `Localization.Away s`
+  and a unit `σ_loc : (Loc s)ˣ`.
+* `h_sigma_loc` — Cor 7.32-shape σ-strict-domination on
+  `Spa(Loc s, ⁺)`: at every `w`, some `τ ∈ T_test_loc` satisfies
+  `w.vle σ_loc τ ∧ ¬ w.vle τ σ_loc`. (See section docstring above for
+  the precise signature of the supplier; this is the
+  `exists_dominating_unit_localised` missing input.)
+* `h_per_τ_bound` — per-`τ` algebraic transfer: at every `w` with
+  σ-strict-dom witness `τ`, the algebraMap-image bounds for `(T', s')`
+  hold. (This is the genuine Wedhorn 8.34(ii) σ-clearing math, owned
+  by T204 in `WedhornStandardCoverRefinement.lean`.)
+
+**Output**: exactly T202's `h_loc_bound` per-`w` boundedness shape for
+`(T', s')` on `Spa(Loc s, ⁺)`.
+
+**Proof**: per-`w`, ∃-elim on `h_sigma_loc` to obtain a witnessing
+`τ ∈ T_test_loc`, then apply `h_per_τ_bound`.
+
+**Use in Step-2 (T204 integration)**: after lifting `v ∈ rationalOpen
+T s` to `w ∈ Spa(Loc s, ⁺)` via T203, the σ-clearing argument runs on
+`Spa(Loc s, ⁺)`. T205 packages its output as `h_loc_bound`, and T202
+transfers the resulting `(T', s')` membership back to `Spa A A⁺` along
+the comap. -/
+theorem localised_sigma_clearing_bounds_for_localisation_transfer
+    [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T' : Finset A) (s' : A)
+    (T_test_loc : Finset (Localization.Away s))
+    (σ_loc : (Localization.Away s)ˣ)
+    (h_sigma_loc :
+      letI : TopologicalSpace (Localization.Away s) :=
+        locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationAwayPlusSubring s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ∃ τ ∈ T_test_loc,
+          w.vle (σ_loc : Localization.Away s) τ ∧
+          ¬ w.vle τ (σ_loc : Localization.Away s))
+    (h_per_τ_bound :
+      letI : TopologicalSpace (Localization.Away s) :=
+        locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationAwayPlusSubring s
+      ∀ τ ∈ T_test_loc,
+        ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+          (w.vle (σ_loc : Localization.Away s) τ ∧
+           ¬ w.vle τ (σ_loc : Localization.Away s)) →
+          (∀ t ∈ T', w.vle (algebraMap A (Localization.Away s) t)
+            (algebraMap A (Localization.Away s) s')) ∧
+          ¬ w.vle (algebraMap A (Localization.Away s) s') 0) :
+    letI : TopologicalSpace (Localization.Away s) :=
+      locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationAwayPlusSubring s
+    ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      (∀ t ∈ T', w.vle (algebraMap A (Localization.Away s) t)
+        (algebraMap A (Localization.Away s) s')) ∧
+      ¬ w.vle (algebraMap A (Localization.Away s) s') 0 := by
+  letI : TopologicalSpace (Localization.Away s) :=
+    locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationAwayPlusSubring s
+  intro w hw
+  obtain ⟨τ, hτ_mem, hστ⟩ := h_sigma_loc w hw
+  exact h_per_τ_bound τ hτ_mem w hw hστ
+
 end ValuationSpectrum
