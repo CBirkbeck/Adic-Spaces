@@ -1607,4 +1607,241 @@ theorem wedhorn_834_h_struct_via_per_tau_algebraic
         C D t hA₀_le σ N f hf_eq h_factor h_subset h_T_D_in_plus
         T_test_loc σ_loc h_sigma_loc h_v_le_one_D_s h_f_ne_zero)
 
+/-! ## T212: post-T209 supplier audit for the per-`τ` algebraic bridge
+
+Two suppliers were exposed by T209's
+`per_tau_algebraic_sigma_clearing_bridge_for_single_f_bound`:
+
+* `h_v_le_one_D_s` — per-`(τ, w)` supplier of
+  `w.vle 1 (algebraMap A (Localization.Away D.s) D.s)`;
+* `h_f_ne_zero` — per-`(τ, w)` supplier of
+  `¬ w.vle (algebraMap A (Localization.Away D.s) f) 0` for
+  `f = σ * t * D.s ^ N`.
+
+T212 audits both. The conclusions are:
+
+1. **`h_f_ne_zero` is reducible to nonvanishing of the two finite-input
+   factors `σ` and `t`**, modulo the free unitness of `algebraMap D.s`
+   in `Localization.Away D.s`. The reducer
+   `post_T209_supplier_f_ne_zero_via_factors` discharges this from
+   `¬ w.vle (algebraMap σ) 0` and `¬ w.vle (algebraMap t) 0` directly.
+
+2. **`h_v_le_one_D_s` requires structural input not derivable from
+   `localizationAwayPlusSubring D.s = image(A⁺)` alone**: under that
+   placeholder plus subring, `w.vle 1 (algMap D.s)` is equivalent to
+   `(algMap D.s)⁻¹ ∈ ((Loc D.s)⁺)`, i.e., to the existence of a
+   plus-subring element `y` with `y * algMap D.s = 1`. The interface
+   lemma `post_T209_supplier_v_le_one_D_s_via_inverse_in_plus`
+   exposes this exact hypothesis. Under the current image-only plus
+   subring, that hypothesis amounts to `∃ a ∈ A⁺, algMap a *
+   algMap D.s = 1`, which (for a non-zero-divisor `D.s`) forces
+   `D.s` to be a unit in `A` with inverse in `A⁺` — strong but
+   precise. Genuinely deriving `w.vle 1 (algMap D.s)` from a Wedhorn
+   8.34(ii) σ-strict-domination witness alone is the next theorem-level
+   work; see the docblock above the interface lemma. -/
+
+/-- **T212 supplier for `h_f_ne_zero` via prime-support factor decomposition**.
+
+Given fixed `σ t : A`, `N : ℕ`, and `f : A` with `f = σ * t * D.s ^ N`,
+the per-`w` non-vanishing `¬ w.vle (algebraMap A (Loc D.s) f) 0` reduces
+to non-vanishing of the two scalar factors `algebraMap σ` and
+`algebraMap t`, since `(algebraMap D.s) ^ N` is a unit in
+`Localization.Away D.s` (free, by `IsLocalization.map_units`) and the
+support of `w` is a prime ideal closed under the multiplicative
+expansion of `algebraMap (σ * t * D.s ^ N) = algebraMap σ * algebraMap t
+* (algebraMap D.s) ^ N`.
+
+This produces `h_f_ne_zero` for the T209 callsite from the two minimal
+non-vanishing assumptions on `σ` and `t`, leaving only those two to be
+discharged by the upstream σ-clearing data.
+
+**Reusable scope**: this is a pure prime-support / unit-power reduction
+on `Loc D.s`; it does not depend on the specific `localTopology` or
+plus subring. -/
+theorem post_T209_supplier_f_ne_zero_via_factors
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A]
+    (D : RationalLocData A) (σ t : A) (N : ℕ) (f : A)
+    (hf_eq : f = σ * t * D.s ^ N) :
+    letI : TopologicalSpace (Localization.Away D.s) :=
+      locTopology D.P D.T D.s D.hopen
+    letI : PlusSubring (Localization.Away D.s) :=
+      localizationAwayPlusSubring D.s
+    ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+      ¬ w.vle (algebraMap A (Localization.Away D.s) σ) 0 →
+      ¬ w.vle (algebraMap A (Localization.Away D.s) t) 0 →
+      ¬ w.vle (algebraMap A (Localization.Away D.s) f) 0 := by
+  letI : TopologicalSpace (Localization.Away D.s) :=
+    locTopology D.P D.T D.s D.hopen
+  letI : PlusSubring (Localization.Away D.s) :=
+    localizationAwayPlusSubring D.s
+  intro w _hw hσ_ne ht_ne
+  letI : ValuativeRel (Localization.Away D.s) := w.toValuativeRel
+  rw [hf_eq, map_mul, map_mul, map_pow]
+  -- `algebraMap D.s` is a unit in `Loc D.s`; its `N`-th power is too.
+  have h_D_s_unit : IsUnit (algebraMap A (Localization.Away D.s) D.s) :=
+    IsLocalization.map_units (Localization.Away D.s)
+      ⟨D.s, Submonoid.mem_powers D.s⟩
+  have h_pow_pos : (0 : Localization.Away D.s) <ᵥ
+      (algebraMap A (Localization.Away D.s) D.s) ^ N :=
+    not_vle_zero_of_isUnit (h_D_s_unit.pow N) w
+  have hσ_pos : (0 : Localization.Away D.s) <ᵥ
+      algebraMap A (Localization.Away D.s) σ := hσ_ne
+  have ht_pos : (0 : Localization.Away D.s) <ᵥ
+      algebraMap A (Localization.Away D.s) t := ht_ne
+  exact ValuativeRel.zero_vlt_mul (ValuativeRel.zero_vlt_mul hσ_pos ht_pos)
+    h_pow_pos
+
+/-- **T212 per-`τ` wrapper of the `h_f_ne_zero` factor reducer**.
+
+Specialises `post_T209_supplier_f_ne_zero_via_factors` to the per-`τ`
+shape consumed by T209: every σ-strict-domination witness produces
+`¬ w.vle (algebraMap A (Loc D.s) f) 0`, given non-vanishing at the two
+factors `σ` and `t`. The σ-strict-domination witness is forwarded
+through; the conclusion does not depend on it. -/
+theorem post_T209_supplier_f_ne_zero_per_tau_via_factors
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A]
+    (D : RationalLocData A) (σ t : A) (N : ℕ) (f : A)
+    (hf_eq : f = σ * t * D.s ^ N)
+    (T_test_loc : Finset (Localization.Away D.s))
+    (σ_loc : (Localization.Away D.s)ˣ)
+    (h_σ_ne :
+      letI : TopologicalSpace (Localization.Away D.s) :=
+        locTopology D.P D.T D.s D.hopen
+      letI : PlusSubring (Localization.Away D.s) :=
+        localizationAwayPlusSubring D.s
+      ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+        ¬ w.vle (algebraMap A (Localization.Away D.s) σ) 0)
+    (h_t_ne :
+      letI : TopologicalSpace (Localization.Away D.s) :=
+        locTopology D.P D.T D.s D.hopen
+      letI : PlusSubring (Localization.Away D.s) :=
+        localizationAwayPlusSubring D.s
+      ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+        ¬ w.vle (algebraMap A (Localization.Away D.s) t) 0) :
+    letI : TopologicalSpace (Localization.Away D.s) :=
+      locTopology D.P D.T D.s D.hopen
+    letI : PlusSubring (Localization.Away D.s) :=
+      localizationAwayPlusSubring D.s
+    ∀ τ ∈ T_test_loc,
+      ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+        (w.vle (σ_loc : Localization.Away D.s) τ ∧
+         ¬ w.vle τ (σ_loc : Localization.Away D.s)) →
+        ¬ w.vle (algebraMap A (Localization.Away D.s) f) 0 := by
+  letI : TopologicalSpace (Localization.Away D.s) :=
+    locTopology D.P D.T D.s D.hopen
+  letI : PlusSubring (Localization.Away D.s) :=
+    localizationAwayPlusSubring D.s
+  intro _τ _hτ w hw _hστ
+  exact post_T209_supplier_f_ne_zero_via_factors D σ t N f hf_eq w hw
+    (h_σ_ne w hw) (h_t_ne w hw)
+
+/-- **T212 interface lemma for `h_v_le_one_D_s` via inverse-in-plus**.
+
+Characterizes `w.vle 1 (algebraMap A (Loc D.s) D.s)` for
+`w ∈ Spa(Loc D.s, ⁺)`: it is implied by the existence of a plus-subring
+element `y` in `(Loc D.s)⁺` with `y * algebraMap D.s = 1`, i.e., by
+`(algebraMap D.s)⁻¹ ∈ (Loc D.s)⁺`.
+
+**Math**: for `w ∈ Spa(Loc D.s, ⁺)` and `y ∈ ⁺`, we have
+`w.vle y 1` (`v(y) ≤ 1`) by `vle_one_of_mem_spa`. Multiplying through by
+`algebraMap D.s` via `mul_vle_mul_left`:
+
+  `v(y * algebraMap D.s) ≤ v(1 * algebraMap D.s) = v(algebraMap D.s)`,
+
+and `y * algebraMap D.s = 1` rewrites the LHS to `v(1)`. Hence
+`v(1) ≤ v(algebraMap D.s)`, i.e., `w.vle 1 (algebraMap D.s)`.
+
+**Status of the hypothesis**: under the current placeholder plus
+subring `localizationAwayPlusSubring D.s = image (A⁺)`, the existence
+of `y ∈ image(A⁺)` with `y * algebraMap D.s = 1` is equivalent (for a
+non-zero-divisor `D.s`) to the existence of `a ∈ A⁺` with
+`a * D.s = 1` in `A`, i.e., `D.s` is a unit in `A` with inverse in
+`A⁺`. **In the typical Wedhorn 8.34(ii) Step-2 setting, this fails:
+`D.s` is a denominator of a rational subset `R(D.T, D.s)` and is
+generally not a unit in `A⁺` (much less in `A`).**
+
+Therefore, deriving `h_v_le_one_D_s` from σ-strict-domination data on
+`Spa(Loc D.s, ⁺)` requires either:
+
+* **A finer plus subring** on `Loc D.s` than the image of `A⁺`
+  (e.g., `localizationLocSubringPlusSubring`, the integral closure of
+  `A⁺[D.T / D.s]` in `Loc D.s`), under which `(algMap D.s)⁻¹ ∈ ⁺`
+  becomes natural; OR
+
+* **A different valuation-arithmetic route** that bypasses
+  `w.vle 1 (algMap D.s)` and derives `w.vle (algMap f) (algMap C.base.s)`
+  directly from σ-strict-domination on `f` (e.g., via an explicit
+  factorization using both σ-strict-dom and the rational-open
+  condition `v(t) ≤ v(D.s)` for `v ∈ R(D.T, D.s)`).
+
+Either route is theorem-level Wedhorn content. This interface lemma
+makes the structural premise explicit so the consumer can supply it
+once the appropriate plus subring or factorization has been built. -/
+theorem post_T209_supplier_v_le_one_D_s_via_inverse_in_plus
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A]
+    (D : RationalLocData A)
+    (h_inv_mem :
+      letI : TopologicalSpace (Localization.Away D.s) :=
+        locTopology D.P D.T D.s D.hopen
+      letI : PlusSubring (Localization.Away D.s) :=
+        localizationAwayPlusSubring D.s
+      ∃ y ∈ ((Localization.Away D.s)⁺ : Subring (Localization.Away D.s)),
+        y * algebraMap A (Localization.Away D.s) D.s = 1) :
+    letI : TopologicalSpace (Localization.Away D.s) :=
+      locTopology D.P D.T D.s D.hopen
+    letI : PlusSubring (Localization.Away D.s) :=
+      localizationAwayPlusSubring D.s
+    ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+      w.vle (1 : Localization.Away D.s)
+            (algebraMap A (Localization.Away D.s) D.s) := by
+  letI : TopologicalSpace (Localization.Away D.s) :=
+    locTopology D.P D.T D.s D.hopen
+  letI : PlusSubring (Localization.Away D.s) :=
+    localizationAwayPlusSubring D.s
+  intro w hw
+  obtain ⟨y, hy_plus, hy_inv⟩ := h_inv_mem
+  have hy_le_one : w.vle y 1 := vle_one_of_mem_spa hw hy_plus
+  have h := w.mul_vle_mul_left hy_le_one
+    (algebraMap A (Localization.Away D.s) D.s)
+  rw [hy_inv, one_mul] at h
+  exact h
+
+/-- **T212 per-`τ` wrapper of the `h_v_le_one_D_s` interface lemma**.
+
+Specialises `post_T209_supplier_v_le_one_D_s_via_inverse_in_plus` to
+the per-`τ` shape consumed by T209. The σ-strict-domination witness is
+forwarded through; the conclusion does not depend on it. -/
+theorem post_T209_supplier_v_le_one_D_s_per_tau_via_inverse_in_plus
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A]
+    (D : RationalLocData A)
+    (T_test_loc : Finset (Localization.Away D.s))
+    (σ_loc : (Localization.Away D.s)ˣ)
+    (h_inv_mem :
+      letI : TopologicalSpace (Localization.Away D.s) :=
+        locTopology D.P D.T D.s D.hopen
+      letI : PlusSubring (Localization.Away D.s) :=
+        localizationAwayPlusSubring D.s
+      ∃ y ∈ ((Localization.Away D.s)⁺ : Subring (Localization.Away D.s)),
+        y * algebraMap A (Localization.Away D.s) D.s = 1) :
+    letI : TopologicalSpace (Localization.Away D.s) :=
+      locTopology D.P D.T D.s D.hopen
+    letI : PlusSubring (Localization.Away D.s) :=
+      localizationAwayPlusSubring D.s
+    ∀ τ ∈ T_test_loc,
+      ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+        (w.vle (σ_loc : Localization.Away D.s) τ ∧
+         ¬ w.vle τ (σ_loc : Localization.Away D.s)) →
+        w.vle (1 : Localization.Away D.s)
+              (algebraMap A (Localization.Away D.s) D.s) := by
+  letI : TopologicalSpace (Localization.Away D.s) :=
+    locTopology D.P D.T D.s D.hopen
+  letI : PlusSubring (Localization.Away D.s) :=
+    localizationAwayPlusSubring D.s
+  intro _τ _hτ w hw _hστ
+  exact post_T209_supplier_v_le_one_D_s_via_inverse_in_plus D h_inv_mem w hw
+
 end ValuationSpectrum
