@@ -770,4 +770,74 @@ theorem exists_dominating_unit_localised
   exact exists_dominating_unit P_loc hA₀_le_loc π_loc hI_loc hπ_loc_tn
     hπ_loc_unit hArch_loc T_test_loc hT_loc
 
+/-! ### T208: localised PairOfDefinition supplier on `Localization.Away s`
+
+T206's first non-trivial missing input (item 1 of its docstring's eight
+per-Loc preconditions) is
+`P_loc : PairOfDefinition (Localization.Away s)` under `locTopology P
+T s hopen`. The construction already exists in
+`Adic spaces/Prop752.lean` (lines 87–100) as `locPairOfDefinition`
+(Wedhorn §8.1):
+
+* `A₀ := locSubring P T s` — the ring of definition
+  `D = A₀[t₁/s, …, tₙ/s]`.
+* `I := locIdeal P T s` — the ideal of definition `J = I · D`.
+* `isOpen := locSubring_isOpen P T s hopen`
+  (`Adic spaces/Prop752.lean:37`).
+* `fg := locIdeal_fg P T s`
+  (`Adic spaces/LocalizationTopology.lean:92`).
+* `isAdic := locSubring_isAdic P T s hopen`
+  (`Adic spaces/Prop752.lean:53`).
+
+This file is transitively connected to `Prop752.lean` via
+`Presheaf.lean`, so `locPairOfDefinition` is already callable from
+T206.
+
+T208 below re-exports the existing `locPairOfDefinition` under the
+name requested at the T206 supplier callsite, providing a stable entry
+point and surfacing the construction on the WedhornMultiDominatingUnit
+file ladder. The result is `@[reducible]` so callers of T206 can
+substitute `localizationAway_pairOfDefinition P T s hopen` directly
+into the `P_loc` argument without unfolding.
+
+**Note on T206's `hA₀_le_loc` (item 2)**: with this `P_loc`, item 2 of
+T206's input list specialises to
+`locSubring P T s ≤ (localizationAwayPlusSubring s).toSubring`, which
+asks whether the algebraMap-image of `P.A₀` plus the `divByS t s`
+generators all lie in `algebraMap '' A⁺`. The first part follows from
+`P.A₀ ≤ A⁺`; the second part requires `divByS t s ∈ algebraMap '' A⁺`,
+which is **NOT generally true** under the trivial
+`localizationAwayPlusSubring` choice (`Subring.map (algebraMap A _)
+A⁺`). A Wedhorn-faithful refinement of the plus subring on `Loc s`
+(integrally closed and containing `locSubring`) is the future-work
+gap noted in `WedhornLocalizationPlus.lean:103-106`. This is
+**orthogonal** to T208's PairOfDefinition construction and is the
+genuine remaining downstream gap for the full `exists_dominating_unit_localised`
+chain. -/
+
+/-- **T208 localised PairOfDefinition supplier**.
+
+Re-exports `locPairOfDefinition` (`Adic spaces/Prop752.lean:90`) under
+the name expected at the T206 `P_loc` callsite. The localised pair of
+definition `(D, J)` on `Localization.Away s` under `locTopology P T s
+hopen`:
+
+* ring of definition `D = locSubring P T s = A₀[t₁/s, …, tₙ/s]`,
+* ideal of definition `J = locIdeal P T s = I · D`,
+* with `D` open in `Localization.Away s` and the subspace topology on
+  `D` equal to the `J`-adic topology.
+
+`@[reducible]` so callers of `exists_dominating_unit_localised` (T206)
+can substitute `localizationAway_pairOfDefinition P T s hopen`
+directly into the `P_loc` argument. -/
+@[reducible] noncomputable def localizationAway_pairOfDefinition
+    [TopologicalSpace A] [IsTopologicalRing A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s) :
+    letI : TopologicalSpace (Localization.Away s) :=
+      locTopology P T s hopen
+    PairOfDefinition (Localization.Away s) :=
+  locPairOfDefinition P T s hopen
+
 end ValuationSpectrum
