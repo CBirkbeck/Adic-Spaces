@@ -426,4 +426,48 @@ theorem mulArchimedean_localization_comap_transfer_unit
   apply mulArchimedean_localization_comap_transfer_concrete s w
   exact not_vle_zero_of_isUnit (IsLocalization.Away.algebraMap_isUnit _) w
 
+/-! ### T211: localized `hArch` supplier from global `hArch`
+
+Item 7 of T206's missing-input list (`WedhornMultiDominatingUnit.lean`)
+is the per-`w` MulArchimedean condition on
+`Spv (Localization.Away s)`. T211 below produces a callsite-ready
+supplier from the global `hArch` on `Spv A`, by composing the
+scaffold theorem `hArch_loc_via_value_group_iso`
+(`Adic spaces/WedhornLocalizedArchimedeanTransfer.lean:73`) with the
+fully-discharged per-`w` value-group transfer
+`mulArchimedean_localization_comap_transfer_unit` (above, line 419).
+
+Both pieces already exist; T211 is the short composition that gives
+T206 its `hArch_loc` argument from the same `hArch` already used at
+the `Cor732.exists_dominating_unit` callsite, with no further
+mathematical input. -/
+
+/-- **T211 localized `hArch` supplier**.
+
+From the global `hArch : ∀ v : Spv A, MulArchimedean (ValueGroupWithZero
+A)` (under `v.toValuativeRel`), produces the localized variant
+`∀ w : Spv (Localization.Away s), MulArchimedean (ValueGroupWithZero
+(Localization.Away s))` (under `w.toValuativeRel`) — exactly the
+shape required by T206's `hArch_loc` input.
+
+**Proof**: pointwise application of `hArch_loc_via_value_group_iso`
+with the value-group transfer
+`mulArchimedean_localization_comap_transfer_unit s w` (per-`w`
+discharger that uses the unit-ness of `algebraMap s` in
+`Localization.Away s` for the non-degeneracy precondition `hws`). -/
+theorem hArch_loc_via_global_arch_localization
+    [TopologicalSpace A] [IsTopologicalRing A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (hArch : ∀ v : Spv A,
+      letI : ValuativeRel A := v.toValuativeRel
+      MulArchimedean (ValuativeRel.ValueGroupWithZero A)) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    ∀ w : Spv (Localization.Away s),
+      letI : ValuativeRel (Localization.Away s) := w.toValuativeRel
+      MulArchimedean (ValuativeRel.ValueGroupWithZero (Localization.Away s)) :=
+  hArch_loc_via_value_group_iso P T s hopen hArch
+    (fun w => mulArchimedean_localization_comap_transfer_unit s w)
+
 end ValuationSpectrum
