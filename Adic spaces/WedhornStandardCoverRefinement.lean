@@ -1384,4 +1384,227 @@ theorem wedhorn_834_h_struct_via_localisation_transfer
       exact exists_single_f_factor_carrying_refinement_at_t_via_localisation_transfer
         C D t hA₀_le σ N f hf_eq h_factor h_subset h_T_D_in_plus h_loc_bound)
 
+/-- **T209: per-`τ` algebraic σ-clearing bridge for the single-`f` bound**.
+
+Algebraic transitivity bridge for the Wedhorn 8.34(ii) Step-2 σ-clearing
+setup. Given fixed per-`(C, D, t)` Step-2 data `σ N f` with
+`f = σ * t * D.s ^ N` and the algebraic identity `C.base.s = D.s * f`,
+plus a per-`(τ, w)` supplier of `w.vle 1 (algebraMap D.s)` and a
+per-`(τ, w)` supplier of `¬ w.vle (algebraMap f) 0`, this theorem
+produces T207's `h_per_τ_bound` shape:
+
+* singleton bound `w.vle (algebraMap f) (algebraMap C.base.s)` —
+  derived from `w.vle 1 (algebraMap D.s)` via `mul_vle_mul_left` on
+  the algebraic identity `algebraMap C.base.s = algebraMap D.s *
+  algebraMap f`;
+* non-vanishing `¬ w.vle (algebraMap C.base.s) 0` — derived from
+  `algebraMap D.s` being a unit in `Localization.Away D.s` (free, by
+  `IsLocalization.map_units`) plus `¬ w.vle (algebraMap f) 0` (the
+  supplier), via the prime-support argument on the prime ideal
+  `w.supp`.
+
+The σ-strict-domination witness `(w.vle σ_loc τ ∧ ¬ w.vle τ σ_loc)`
+is consumed as the antecedent and forwarded to the two suppliers; the
+genuine "what σ-clearing delivers" content is encapsulated in those
+two suppliers. They are the precise next missing valuation/algebra
+inputs along the T207 → `h_per_τ_bound` path. -/
+theorem per_tau_algebraic_sigma_clearing_bridge_for_single_f_bound
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [DecidableEq A]
+    (C : RationalCovering A) (D : RationalLocData A) (t : A)
+    (σ : A) (N : ℕ) (f : A) (_hf_eq : f = σ * t * D.s ^ N)
+    (h_factor : C.base.s = D.s * f)
+    (T_test_loc : Finset (Localization.Away D.s))
+    (σ_loc : (Localization.Away D.s)ˣ)
+    (h_v_le_one_D_s :
+      letI : TopologicalSpace (Localization.Away D.s) :=
+        locTopology D.P D.T D.s D.hopen
+      letI : PlusSubring (Localization.Away D.s) :=
+        localizationAwayPlusSubring D.s
+      ∀ τ ∈ T_test_loc,
+        ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+          (w.vle (σ_loc : Localization.Away D.s) τ ∧
+           ¬ w.vle τ (σ_loc : Localization.Away D.s)) →
+          w.vle (1 : Localization.Away D.s)
+                (algebraMap A (Localization.Away D.s) D.s))
+    (h_f_ne_zero :
+      letI : TopologicalSpace (Localization.Away D.s) :=
+        locTopology D.P D.T D.s D.hopen
+      letI : PlusSubring (Localization.Away D.s) :=
+        localizationAwayPlusSubring D.s
+      ∀ τ ∈ T_test_loc,
+        ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+          (w.vle (σ_loc : Localization.Away D.s) τ ∧
+           ¬ w.vle τ (σ_loc : Localization.Away D.s)) →
+          ¬ w.vle (algebraMap A (Localization.Away D.s) f) 0) :
+    letI : TopologicalSpace (Localization.Away D.s) :=
+      locTopology D.P D.T D.s D.hopen
+    letI : PlusSubring (Localization.Away D.s) :=
+      localizationAwayPlusSubring D.s
+    ∀ τ ∈ T_test_loc,
+      ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+        (w.vle (σ_loc : Localization.Away D.s) τ ∧
+         ¬ w.vle τ (σ_loc : Localization.Away D.s)) →
+        (∀ t' ∈ ({f} : Finset A),
+          w.vle (algebraMap A (Localization.Away D.s) t')
+                (algebraMap A (Localization.Away D.s) C.base.s)) ∧
+        ¬ w.vle (algebraMap A (Localization.Away D.s) C.base.s) 0 := by
+  letI : TopologicalSpace (Localization.Away D.s) :=
+    locTopology D.P D.T D.s D.hopen
+  letI : PlusSubring (Localization.Away D.s) :=
+    localizationAwayPlusSubring D.s
+  intro τ hτ w hw hστ
+  -- Algebraic identity in `Localization.Away D.s`:
+  -- `algMap C.base.s = algMap D.s * algMap f` (from `h_factor` + `map_mul`).
+  have h_alg : algebraMap A (Localization.Away D.s) C.base.s =
+      algebraMap A (Localization.Away D.s) D.s *
+        algebraMap A (Localization.Away D.s) f := by
+    rw [h_factor, map_mul]
+  -- `algMap D.s` is a unit in `Localization.Away D.s` (it is the inverted
+  -- element of the localization).
+  have h_D_s_unit : IsUnit (algebraMap A (Localization.Away D.s) D.s) :=
+    IsLocalization.map_units (Localization.Away D.s)
+      ⟨D.s, Submonoid.mem_powers D.s⟩
+  refine ⟨?_, ?_⟩
+  · -- Singleton bound: for `t' = f`, derive
+    -- `w.vle (algMap f) (algMap C.base.s)` via `mul_vle_mul_left`
+    -- applied to `w.vle 1 (algMap D.s)`.
+    intro t' ht'
+    rw [Finset.mem_singleton] at ht'
+    rw [ht', h_alg]
+    have h_dom := h_v_le_one_D_s τ hτ w hw hστ
+    have hmul := w.mul_vle_mul_left h_dom
+      (algebraMap A (Localization.Away D.s) f)
+    rwa [one_mul] at hmul
+  · -- Non-vanishing: `¬ w.vle (algMap C.base.s) 0` via prime-support
+    -- argument on `algMap D.s * algMap f` (using `algMap D.s` unit free
+    -- and `algMap f` non-vanishing via `h_f_ne_zero`).
+    rw [h_alg]
+    intro hC0
+    have h_supp : algebraMap A (Localization.Away D.s) D.s *
+        algebraMap A (Localization.Away D.s) f ∈ w.supp :=
+      (w.mem_supp_iff _).mpr hC0
+    rcases (inferInstance : w.supp.IsPrime).mem_or_mem h_supp with hD | hf
+    · exact (not_vle_zero_of_isUnit h_D_s_unit w)
+        ((w.mem_supp_iff _).mp hD)
+    · exact (h_f_ne_zero τ hτ w hw hστ)
+        ((w.mem_supp_iff _).mp hf)
+
+/-- **T209 composed bridge: per-`τ` algebraic suppliers → strengthened
+single-`f` Step-2 target**.
+
+Composes T209's per-`τ` algebraic σ-clearing bridge with T207's
+`exists_single_f_factor_carrying_refinement_at_t_via_localised_sigma`
+to produce T201's strengthened single-`f` target directly from the
+σ-strict-domination data plus the two genuine algebraic suppliers
+(`w.vle 1 (algMap D.s)` and `¬ w.vle (algMap f) 0`), bypassing
+T207's compound `h_per_τ_bound`. -/
+theorem exists_single_f_factor_carrying_refinement_at_t_via_per_tau_algebraic
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [DecidableEq A]
+    (C : RationalCovering A) (D : RationalLocData A) (t : A)
+    (hA₀_le : D.P.A₀ ≤ A⁺)
+    (σ : A) (N : ℕ) (f : A)
+    (hf_eq : f = σ * t * D.s ^ N)
+    (h_factor : C.base.s = D.s * f)
+    (h_subset : rationalOpen (insert f C.base.T) C.base.s ⊆
+      rationalOpen D.T D.s)
+    (h_T_D_in_plus : ∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A))
+    (T_test_loc : Finset (Localization.Away D.s))
+    (σ_loc : (Localization.Away D.s)ˣ)
+    (h_sigma_loc :
+      letI : TopologicalSpace (Localization.Away D.s) :=
+        locTopology D.P D.T D.s D.hopen
+      letI : PlusSubring (Localization.Away D.s) :=
+        localizationAwayPlusSubring D.s
+      ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+        ∃ τ ∈ T_test_loc,
+          w.vle (σ_loc : Localization.Away D.s) τ ∧
+          ¬ w.vle τ (σ_loc : Localization.Away D.s))
+    (h_v_le_one_D_s :
+      letI : TopologicalSpace (Localization.Away D.s) :=
+        locTopology D.P D.T D.s D.hopen
+      letI : PlusSubring (Localization.Away D.s) :=
+        localizationAwayPlusSubring D.s
+      ∀ τ ∈ T_test_loc,
+        ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+          (w.vle (σ_loc : Localization.Away D.s) τ ∧
+           ¬ w.vle τ (σ_loc : Localization.Away D.s)) →
+          w.vle (1 : Localization.Away D.s)
+                (algebraMap A (Localization.Away D.s) D.s))
+    (h_f_ne_zero :
+      letI : TopologicalSpace (Localization.Away D.s) :=
+        locTopology D.P D.T D.s D.hopen
+      letI : PlusSubring (Localization.Away D.s) :=
+        localizationAwayPlusSubring D.s
+      ∀ τ ∈ T_test_loc,
+        ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+          (w.vle (σ_loc : Localization.Away D.s) τ ∧
+           ¬ w.vle τ (σ_loc : Localization.Away D.s)) →
+          ¬ w.vle (algebraMap A (Localization.Away D.s) f) 0) :
+    exists_single_f_factor_carrying_refinement_at_t_target C D t :=
+  exists_single_f_factor_carrying_refinement_at_t_via_localised_sigma
+    C D t hA₀_le σ N f hf_eq h_factor h_subset h_T_D_in_plus
+    T_test_loc σ_loc h_sigma_loc
+    (per_tau_algebraic_sigma_clearing_bridge_for_single_f_bound
+      C D t σ N f hf_eq h_factor T_test_loc σ_loc
+      h_v_le_one_D_s h_f_ne_zero)
+
+/-- **T209 end-to-end bridge: per-`τ` algebraic suppliers → `h_struct`**.
+
+Composes the T209 strengthened-target bridge with T201's
+`wedhorn_834_h_struct_via_strengthened_single_f` to produce T192/T195's
+`h_struct` shape directly from per-`(D, t)` σ-strict-domination data
+plus the two genuine algebraic suppliers (`w.vle 1 (algMap D.s)` and
+`¬ w.vle (algMap f) 0`). -/
+theorem wedhorn_834_h_struct_via_per_tau_algebraic
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [DecidableEq A]
+    (C : RationalCovering A)
+    (h_per_call :
+      ∀ (D : RationalLocData A), D ∈ C.covers →
+      ∀ (t : A), t ∈ D.T →
+      ∃ (_hA₀_le : D.P.A₀ ≤ A⁺) (σ : A) (N : ℕ) (f : A)
+        (_hf_eq : f = σ * t * D.s ^ N)
+        (_h_factor : C.base.s = D.s * f)
+        (_h_subset : rationalOpen (insert f C.base.T) C.base.s ⊆
+          rationalOpen D.T D.s)
+        (_h_T_D_in_plus : ∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A))
+        (_T_test_loc : Finset (Localization.Away D.s))
+        (_σ_loc : (Localization.Away D.s)ˣ),
+        letI : TopologicalSpace (Localization.Away D.s) :=
+          locTopology D.P D.T D.s D.hopen
+        letI : PlusSubring (Localization.Away D.s) :=
+          localizationAwayPlusSubring D.s
+        (∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+          ∃ τ ∈ _T_test_loc,
+            w.vle (_σ_loc : Localization.Away D.s) τ ∧
+            ¬ w.vle τ (_σ_loc : Localization.Away D.s)) ∧
+        (∀ τ ∈ _T_test_loc,
+          ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+            (w.vle (_σ_loc : Localization.Away D.s) τ ∧
+             ¬ w.vle τ (_σ_loc : Localization.Away D.s)) →
+            w.vle (1 : Localization.Away D.s)
+                  (algebraMap A (Localization.Away D.s) D.s)) ∧
+        (∀ τ ∈ _T_test_loc,
+          ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+            (w.vle (_σ_loc : Localization.Away D.s) τ ∧
+             ¬ w.vle τ (_σ_loc : Localization.Away D.s)) →
+            ¬ w.vle (algebraMap A (Localization.Away D.s) f) 0)) :
+    ∀ (D : RationalLocData A), D ∈ C.covers →
+    ∀ (v : Spv A), v ∈ rationalOpen D.T D.s →
+    ∀ (t : A), t ∈ D.T → v.vle t D.s → ¬ v.vle D.s 0 →
+      ∃ (σ : A) (N : ℕ),
+        C.base.s = D.s * (σ * t * D.s ^ N) ∧
+        (∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)) ∧
+        v.vle (σ * t * D.s ^ N) C.base.s :=
+  wedhorn_834_h_struct_via_strengthened_single_f C
+    (fun D hD t ht => by
+      obtain ⟨hA₀_le, σ, N, f, hf_eq, h_factor, h_subset, h_T_D_in_plus,
+        T_test_loc, σ_loc, h_sigma_loc, h_v_le_one_D_s, h_f_ne_zero⟩ :=
+          h_per_call D hD t ht
+      exact exists_single_f_factor_carrying_refinement_at_t_via_per_tau_algebraic
+        C D t hA₀_le σ N f hf_eq h_factor h_subset h_T_D_in_plus
+        T_test_loc σ_loc h_sigma_loc h_v_le_one_D_s h_f_ne_zero)
+
 end ValuationSpectrum
