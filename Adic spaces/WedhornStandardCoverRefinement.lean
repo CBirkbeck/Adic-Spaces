@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».StandardCover
+import «Adic spaces».WedhornMultiDominatingUnit
 
 /-!
 # Wedhorn Standard-Cover Refinement: single-`t` C1 helpers
@@ -1027,5 +1028,157 @@ theorem wedhorn_834_h_struct_via_strengthened_single_f
         v.vle (σ * t * D.s ^ N) C.base.s :=
   wedhorn_834_h_struct_via_step2_factor_carrying C
     (WedhornStep2FactorCarryingProvider_of_strengthened_single_f C h_target)
+
+/-! ### T204: integrate localisation transfer into strengthened Step-2 target
+
+T201 introduced `exists_single_f_factor_carrying_refinement_at_t_target`
+and the bridges to `h_struct`. T202/T203
+(`WedhornMultiDominatingUnit.lean`) provided the bidirectional
+comap/localisation pair for `rationalOpen T s` and
+`Spa(Localization.Away s)`. T204 integrates the two: it discharges the
+T201 strengthened target's per-`v` `h_v_bound` clause from a **localised
+f-bound** on `Spa(Localization.Away D.s, ⁺)` by:
+
+1. Lifting `v ∈ rationalOpen D.T D.s` to
+   `w ∈ Spa(Localization.Away D.s, ⁺)` via T203
+   (`exists_localization_lift_of_rationalOpen`), with `comap w = v`.
+2. Applying the localised f-bound at `w`:
+   `w.vle (algebraMap f) (algebraMap C.base.s)`.
+3. Transferring the bound back to `v.vle f C.base.s` via
+   `comap_vle` and the fact that `comap w = v`.
+
+This is the standard Wedhorn 8.34(ii) Step-2 σ-clearing route:
+pre-localise at `D.s`, run σ-construction inside the localised Spa,
+transfer back via comap.
+
+The compiled bridge below packages this routing as a per-`(C, D, t)`
+constructor for the T201 strengthened target, taking the **localised
+f-bound** as a hypothesis. The localised f-bound is the natural
+output of `Cor732.exists_dominating_unit` (or its localised variant)
+applied inside `Spa(Localization.Away D.s, ⁺)`; discharging it for a
+specific cover-refinement family is the next theorem-level work.
+
+The bridge does NOT discharge the localised f-bound itself; it isolates
+it as the **last remaining input** for the T201 strengthened target.
+The h_factor algebraic identity, h_subset rationalOpen subset,
+h_T_D_in_plus Tate condition, and the `(σ, N, f)` parameters are
+taken as inputs alongside the localised bound. -/
+
+/-- **T204 localisation-transfer bridge**: discharges T201's
+`exists_single_f_factor_carrying_refinement_at_t_target` from a
+localised f-bound on `Spa(Localization.Away D.s, ⁺)`.
+
+**Inputs**:
+* `(σ, N, f, hf_eq)` — Wedhorn Step-2 element parameters;
+* `h_factor` — algebraic identity in `A`: `C.base.s = D.s * f`;
+* `h_subset` — rationalOpen subset relation:
+  `R(insert f C.base.T, C.base.s) ⊆ R(D.T, D.s)`;
+* `h_T_D_in_plus` — Tate condition: `D.T ⊆ A⁺`;
+* `hA₀_le` — standard pair-of-definition direction `D.P.A₀ ≤ A⁺`;
+* `h_loc_bound` — **localised f-bound**: at every
+  `w ∈ Spa(Localization.Away D.s, ⁺)`,
+  `w.vle (algebraMap f) (algebraMap C.base.s)`.
+
+**Output**: `exists_single_f_factor_carrying_refinement_at_t_target C D t`
+— the T201 strengthened target with the per-`v` `h_v_bound` discharged
+from the localised f-bound via T203 (lift) + comap transfer.
+
+**Proof**: extract Spa-membership and non-vanishing from `hv`, lift `v`
+to `w ∈ Spa(Loc D.s, ⁺)` via `exists_localization_lift_of_rationalOpen`
+(T203), apply `h_loc_bound` at `w`, rewrite via `comap_vle` and
+`hw_comap` to recover `v.vle f C.base.s`. -/
+theorem exists_single_f_factor_carrying_refinement_at_t_via_localisation_transfer
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [DecidableEq A]
+    (C : RationalCovering A) (D : RationalLocData A) (t : A)
+    (hA₀_le : D.P.A₀ ≤ A⁺)
+    (σ : A) (N : ℕ) (f : A)
+    (hf_eq : f = σ * t * D.s ^ N)
+    (h_factor : C.base.s = D.s * f)
+    (h_subset : rationalOpen (insert f C.base.T) C.base.s ⊆
+      rationalOpen D.T D.s)
+    (h_T_D_in_plus : ∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A))
+    (h_loc_bound :
+      letI : TopologicalSpace (Localization.Away D.s) :=
+        locTopology D.P D.T D.s D.hopen
+      letI : PlusSubring (Localization.Away D.s) :=
+        localizationAwayPlusSubring D.s
+      ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+        w.vle (algebraMap A (Localization.Away D.s) f)
+              (algebraMap A (Localization.Away D.s) C.base.s)) :
+    exists_single_f_factor_carrying_refinement_at_t_target C D t := by
+  refine ⟨σ, N, f, hf_eq, h_factor, h_subset, h_T_D_in_plus, ?_⟩
+  intro v hv _hvt _hvD_s
+  -- Lift v ∈ rationalOpen D.T D.s to w ∈ Spa(Loc D.s, ⁺) via T203.
+  letI : TopologicalSpace (Localization.Away D.s) :=
+    locTopology D.P D.T D.s D.hopen
+  letI : PlusSubring (Localization.Away D.s) :=
+    localizationAwayPlusSubring D.s
+  obtain ⟨w, hw_spa, hw_comap⟩ :=
+    exists_localization_lift_of_rationalOpen D.P D.T D.s D.hopen hA₀_le hv
+  -- Apply localised f-bound at w.
+  have h_loc : w.vle (algebraMap A (Localization.Away D.s) f)
+                     (algebraMap A (Localization.Away D.s) C.base.s) :=
+    h_loc_bound w hw_spa
+  -- Transfer the bound back via comap: v = comap w, so
+  -- v.vle f C.base.s = (comap w).vle f C.base.s = w.vle (algMap f) (algMap C.base.s).
+  rw [← hw_comap, comap_vle]
+  exact h_loc
+
+/-- **T204 end-to-end bridge: localisation-transfer → `h_struct`**.
+
+Composes the T204 localisation-transfer bridge above with T201's
+`wedhorn_834_h_struct_via_strengthened_single_f` to produce T192/T195's
+`h_struct` shape directly from per-`(D, t)` localised f-bound +
+algebraic identity + Tate condition + rationalOpen subset.
+
+Pipeline:
+```
+per-(D, t) [σ, N, f, hf_eq, h_factor, h_subset, h_T_D_in_plus,
+            hA₀_le, h_loc_bound]
+  ↓ (T204 exists_single_f_factor_carrying_refinement_at_t_via_localisation_transfer)
+exists_single_f_factor_carrying_refinement_at_t_target C D t  [T201]
+  ↓ (T201 wedhorn_834_h_struct_via_strengthened_single_f)
+h_struct C  [T192/T195 input]
+```
+
+The localised f-bound `h_loc_bound` is the natural output of
+`Cor732.exists_dominating_unit` applied inside `Spa(Loc D.s, ⁺)` (with
+`σ_loc` chosen via Cor 7.32 + N via Spa-quasi-compactness). Discharging
+it for a concrete cover-refinement family is the **next theorem-level
+work after T204**. -/
+theorem wedhorn_834_h_struct_via_localisation_transfer
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [DecidableEq A]
+    (C : RationalCovering A)
+    (h_per_call :
+      ∀ (D : RationalLocData A), D ∈ C.covers →
+      ∀ (t : A), t ∈ D.T →
+      ∃ (_hA₀_le : D.P.A₀ ≤ A⁺) (σ : A) (N : ℕ) (f : A)
+        (_hf_eq : f = σ * t * D.s ^ N)
+        (_h_factor : C.base.s = D.s * f)
+        (_h_subset : rationalOpen (insert f C.base.T) C.base.s ⊆
+          rationalOpen D.T D.s)
+        (_h_T_D_in_plus : ∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)),
+        letI : TopologicalSpace (Localization.Away D.s) :=
+          locTopology D.P D.T D.s D.hopen
+        letI : PlusSubring (Localization.Away D.s) :=
+          localizationAwayPlusSubring D.s
+        ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+          w.vle (algebraMap A (Localization.Away D.s) f)
+                (algebraMap A (Localization.Away D.s) C.base.s)) :
+    ∀ (D : RationalLocData A), D ∈ C.covers →
+    ∀ (v : Spv A), v ∈ rationalOpen D.T D.s →
+    ∀ (t : A), t ∈ D.T → v.vle t D.s → ¬ v.vle D.s 0 →
+      ∃ (σ : A) (N : ℕ),
+        C.base.s = D.s * (σ * t * D.s ^ N) ∧
+        (∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)) ∧
+        v.vle (σ * t * D.s ^ N) C.base.s :=
+  wedhorn_834_h_struct_via_strengthened_single_f C
+    (fun D hD t ht => by
+      obtain ⟨hA₀_le, σ, N, f, hf_eq, h_factor, h_subset, h_T_D_in_plus,
+        h_loc_bound⟩ := h_per_call D hD t ht
+      exact exists_single_f_factor_carrying_refinement_at_t_via_localisation_transfer
+        C D t hA₀_le σ N f hf_eq h_factor h_subset h_T_D_in_plus h_loc_bound)
 
 end ValuationSpectrum
