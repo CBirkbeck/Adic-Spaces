@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import «Adic spaces».Cor732
 import «Adic spaces».Presheaf
 import «Adic spaces».RationalSubsets
+import «Adic spaces».WedhornLocalizationTransferConsumer
 
 /-!
 # Wedhorn multi-element dominating-unit step (smallest reusable lemmas)
@@ -308,5 +309,127 @@ structure plus the comap behaviour of Spa-points across this map.
 No faithful-flatness / Cor 8.32 / Jacobson / T001 content is invoked
 anywhere in this file. The framework is purely Wedhorn 8.34(ii) /
 Cor 7.32 σ-domination. -/
+
+/-! ### T202: rational-open subset-form localisation transfer
+
+Route B support: a subset-style transfer along
+`comap (algebraMap A (Localization.Away C.base.s))` that takes
+**uniform bounds on the localised Spa** and produces **per-`v`
+membership in the original `rationalOpen T' s'` on `Spa A A⁺`** via
+comap.
+
+This is the natural Step-2 entry point for the pre-localisation
+σ-clearing route: produce σ-data on `Spa(Localization.Away s, ⁺)`
+(where `s = C.base.s` is invertible, so the test family choice is
+unconstrained), then transfer back to `Spa A A⁺` via comap.
+
+**API used**: `rationalOpen_transfer_via_localization` (in
+`WedhornLocalizationTransferConsumer.lean`). The new T202 lemma is the
+**one-direction subset packaging** of the existing iff: from per-`w`
+boundedness on Loc-Spa, produce per-`comap-w` membership on A-Spa.
+
+Limitations: this transfers conditions FROM `Spa(Loc s, ⁺)` to the
+**comap-image** in `Spa A A⁺`. The converse direction (lifting
+`v ∈ rationalOpen T s` on A-Spa to `w ∈ Spa(Loc, ⁺)` with
+`comap w = v`) is the **Spa-point lift**, a separate genuine missing
+API; documented at the end of this section. -/
+
+/-- **T202 rational-open subset-form localisation transfer**.
+
+From per-`w` bounded behavior on `Spa(Localization.Away s, ⁺)`,
+produces per-`comap-w` membership in `rationalOpen T' s'` on
+`Spa A A⁺`.
+
+**Inputs**:
+* `(P, T, s, hopen)` — the standard `locTopology` / `locSubring` data.
+* `(T', s')` — the target rational-open's data (typically `T_D` and
+  `D.s` for the Step-2 `D ∈ C.covers` case).
+* `h_loc_bound` — per-`w` boundedness on `Spa(Loc s, ⁺)`: at every
+  `w` in the localised Spa, the per-`t ∈ T'` inequality
+  `w.vle (algebraMap t) (algebraMap s')` and denominator
+  non-vanishing `¬ w.vle (algebraMap s') 0` hold.
+
+**Output**: per-`w`, the comap `comap (algebraMap A (Loc s)) w` lies
+in `rationalOpen T' s'` on `Spa A A⁺`.
+
+**Proof**: direct application of
+`rationalOpen_transfer_via_localization`'s `.mpr` direction, fed by
+`h_loc_bound`.
+
+**Use case**: Step-2 σ-clearing route. After producing σ-strict-dom
+output on `Spa(Loc s, ⁺)` via Cor 7.32, transfer the resulting per-`t'`
+bounds back to `Spa A A⁺` via comap, yielding the per-`t'` inequalities
+needed to discharge `hT_test_compat`. -/
+theorem rationalOpen_subset_localisation_transfer
+    [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T' : Finset A) (s' : A)
+    (h_loc_bound :
+      letI : TopologicalSpace (Localization.Away s) :=
+        locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationAwayPlusSubring s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        (∀ t ∈ T', w.vle (algebraMap A (Localization.Away s) t)
+          (algebraMap A (Localization.Away s) s')) ∧
+        ¬ w.vle (algebraMap A (Localization.Away s) s') 0) :
+    letI : TopologicalSpace (Localization.Away s) :=
+      locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationAwayPlusSubring s
+    ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      comap (algebraMap A (Localization.Away s)) w ∈
+        rationalOpen T' s' := by
+  letI : TopologicalSpace (Localization.Away s) :=
+    locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationAwayPlusSubring s
+  intro w hw
+  exact (rationalOpen_transfer_via_localization P T s hopen T' s' hw).mpr
+    (h_loc_bound w hw)
+
+/-! ### T202 next missing API: Spa-point lift
+
+The T202 transfer produces `comap w ∈ rationalOpen T' s'` for `w` in
+the localised Spa. The **converse direction** — lifting
+`v ∈ rationalOpen T s` on `Spa A A⁺` to `w ∈ Spa(Localization.Away s,
+(Localization.Away s)⁺)` with `comap (algebraMap A _) w = v` — is the
+genuine **Spa-point lift** lemma, not yet present in the codebase.
+
+Precise target signature (next ticket):
+
+```
+theorem exists_localization_lift_of_rationalOpen
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (v : Spv A) (hv : v ∈ rationalOpen T s) :
+    letI : TopologicalSpace (Localization.Away s) :=
+      locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationAwayPlusSubring s
+    ∃ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      comap (algebraMap A (Localization.Away s)) w = v
+```
+
+**Mathematical content**: at `v` with `¬ v.vle s 0`, the valuation
+`v` extends uniquely to `Localization.Away s` by `w(a / s^n) :=
+v(a) / v(s)^n`, which is well-defined since `v(s) ≠ 0`. The
+continuity + plus-bound conditions for `w ∈ Spa(Loc s, ⁺)` follow
+from the `locTopology` and `localizationAwayPlusSubring`
+constructions.
+
+The Spa-point lift is the **bidirectional pair** of
+`rationalOpen_subset_localisation_transfer` — together they establish
+that the comap is a bijection between `rationalOpen T s` (in
+`Spa A A⁺`) and `Spa(Loc s, ⁺)`.
+
+This is the smallest missing prerequisite for the full Step-2 route:
+once available, the Wedhorn 8.34(ii) σ-clearing argument fully runs on
+`Spa(Loc s, ⁺)` and transfers back to `Spa A A⁺` by composing the
+lift (forward) with `rationalOpen_subset_localisation_transfer`
+(backward at the σ-clearing conclusion). -/
 
 end ValuationSpectrum
