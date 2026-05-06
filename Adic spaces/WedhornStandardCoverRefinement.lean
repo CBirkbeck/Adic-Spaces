@@ -1125,6 +1125,209 @@ theorem exists_single_f_factor_carrying_refinement_at_t_via_localisation_transfe
   rw [← hw_comap, comap_vle]
   exact h_loc
 
+/-! ### T207: specialise T205 localised σ-clearing reducer to T204 f-bound
+
+T204 (`exists_single_f_factor_carrying_refinement_at_t_via_localisation_transfer`)
+takes a **single-`f` localised f-bound** of shape
+
+```
+∀ w ∈ Spa(Loc D.s, ⁺),
+  w.vle (algMap f) (algMap C.base.s)
+```
+
+T205 (`WedhornMultiDominatingUnit.localised_sigma_clearing_bounds_for_localisation_transfer`,
+commit 437f993) supplies a more general `(T', s')` two-conjunct shape
+from a localised σ-strict-domination + per-`τ` algebraic bridge. T207
+**specialises** T205 at `T' := {f}, s' := C.base.s` and extracts the
+singleton bound, producing exactly T204's `h_loc_bound` input.
+
+The composition T207 + T204 + T201 + T199 produces T192/T195's
+`h_struct` shape, with **only mathematical input** the per-`τ`
+algebraic σ-clearing bridge `h_per_τ_bound` and the black-box
+σ-strict-domination `h_sigma_loc`. The black-box `h_sigma_loc` will
+be discharged by T206 (Tertiary) when it lands. -/
+
+/-- **T207 specialised localised σ-clearing reducer: single-`f` bound**.
+
+Specialises T205 (`localised_sigma_clearing_bounds_for_localisation_transfer`)
+at `T' := {f}, s' := C.base.s`, producing exactly T204's
+`h_loc_bound` input from a localised σ-strict-domination
+`h_sigma_loc` plus a per-`τ` algebraic bridge `h_per_τ_bound`.
+
+**Inputs**:
+* `(σ, N, f, hf_eq)` — Wedhorn Step-2 element parameters (passed
+  through to keep the signature compatible with T204).
+* `(T_test_loc, σ_loc)` — finite test family + unit on `Loc D.s`.
+* `h_sigma_loc` — Cor 7.32-shape σ-strict-domination on
+  `Spa(Loc D.s, ⁺)` (T206 will eventually discharge this).
+* `h_per_τ_bound` — per-`τ` algebraic bridge **at T' = {f}**: at
+  every `τ ∈ T_test_loc` and every `w ∈ Spa(Loc D.s, ⁺)` with
+  σ-strict-dom witness `τ`, the singleton-product bound
+  `w.vle (algMap f) (algMap C.base.s)` plus the non-vanishing of
+  `algMap C.base.s` at `w`.
+
+**Output**: T204's exact `h_loc_bound` input shape:
+`∀ w ∈ Spa(Loc D.s, ⁺), w.vle (algMap f) (algMap C.base.s)`.
+
+**Proof**: apply T205 at `T' := {f}, s' := C.base.s`; extract the
+singleton bound via `Finset.mem_singleton_self`. -/
+theorem localised_sigma_reducer_to_single_f_bound_for_step2
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [DecidableEq A]
+    (C : RationalCovering A) (D : RationalLocData A) (t : A)
+    (σ : A) (N : ℕ) (f : A) (_hf_eq : f = σ * t * D.s ^ N)
+    (T_test_loc : Finset (Localization.Away D.s))
+    (σ_loc : (Localization.Away D.s)ˣ)
+    (h_sigma_loc :
+      letI : TopologicalSpace (Localization.Away D.s) :=
+        locTopology D.P D.T D.s D.hopen
+      letI : PlusSubring (Localization.Away D.s) :=
+        localizationAwayPlusSubring D.s
+      ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+        ∃ τ ∈ T_test_loc,
+          w.vle (σ_loc : Localization.Away D.s) τ ∧
+          ¬ w.vle τ (σ_loc : Localization.Away D.s))
+    (h_per_τ_bound :
+      letI : TopologicalSpace (Localization.Away D.s) :=
+        locTopology D.P D.T D.s D.hopen
+      letI : PlusSubring (Localization.Away D.s) :=
+        localizationAwayPlusSubring D.s
+      ∀ τ ∈ T_test_loc,
+        ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+          (w.vle (σ_loc : Localization.Away D.s) τ ∧
+           ¬ w.vle τ (σ_loc : Localization.Away D.s)) →
+          (∀ t' ∈ ({f} : Finset A),
+            w.vle (algebraMap A (Localization.Away D.s) t')
+                  (algebraMap A (Localization.Away D.s) C.base.s)) ∧
+          ¬ w.vle (algebraMap A (Localization.Away D.s) C.base.s) 0) :
+    letI : TopologicalSpace (Localization.Away D.s) :=
+      locTopology D.P D.T D.s D.hopen
+    letI : PlusSubring (Localization.Away D.s) :=
+      localizationAwayPlusSubring D.s
+    ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+      w.vle (algebraMap A (Localization.Away D.s) f)
+            (algebraMap A (Localization.Away D.s) C.base.s) := by
+  -- Suppress unused-section-variable warnings from `_hf_eq` and `(σ, N)`
+  -- which are kept for callsite compatibility with T204's signature.
+  letI : TopologicalSpace (Localization.Away D.s) :=
+    locTopology D.P D.T D.s D.hopen
+  letI : PlusSubring (Localization.Away D.s) :=
+    localizationAwayPlusSubring D.s
+  intro w hw
+  -- Apply T205 with T' := {f}, s' := C.base.s.
+  have h := localised_sigma_clearing_bounds_for_localisation_transfer
+    D.P D.T D.s D.hopen ({f} : Finset A) C.base.s T_test_loc σ_loc
+    h_sigma_loc h_per_τ_bound w hw
+  -- Extract the singleton bound from the conjunction's first half.
+  exact h.1 f (Finset.mem_singleton_self f)
+
+/-- **T207 composed bridge: localised σ-data → strengthened target**.
+
+Composes T207's specialised localised σ-clearing reducer (above) with
+T204's `exists_single_f_factor_carrying_refinement_at_t_via_localisation_transfer`
+to produce T201's strengthened single-f target directly from the
+**localised σ-strict-domination** + **per-`τ` algebraic bridge**
+inputs (plus the standard T201 fields).
+
+This is the **strongest currently-compilable bridge** along the T204
+path: only mathematical inputs are `h_sigma_loc` (T206's eventual
+output) and `h_per_τ_bound` (the per-`τ` algebraic σ-clearing bridge,
+genuine Wedhorn 8.34(ii) Step-2 content). -/
+theorem exists_single_f_factor_carrying_refinement_at_t_via_localised_sigma
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [DecidableEq A]
+    (C : RationalCovering A) (D : RationalLocData A) (t : A)
+    (hA₀_le : D.P.A₀ ≤ A⁺)
+    (σ : A) (N : ℕ) (f : A)
+    (hf_eq : f = σ * t * D.s ^ N)
+    (h_factor : C.base.s = D.s * f)
+    (h_subset : rationalOpen (insert f C.base.T) C.base.s ⊆
+      rationalOpen D.T D.s)
+    (h_T_D_in_plus : ∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A))
+    (T_test_loc : Finset (Localization.Away D.s))
+    (σ_loc : (Localization.Away D.s)ˣ)
+    (h_sigma_loc :
+      letI : TopologicalSpace (Localization.Away D.s) :=
+        locTopology D.P D.T D.s D.hopen
+      letI : PlusSubring (Localization.Away D.s) :=
+        localizationAwayPlusSubring D.s
+      ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+        ∃ τ ∈ T_test_loc,
+          w.vle (σ_loc : Localization.Away D.s) τ ∧
+          ¬ w.vle τ (σ_loc : Localization.Away D.s))
+    (h_per_τ_bound :
+      letI : TopologicalSpace (Localization.Away D.s) :=
+        locTopology D.P D.T D.s D.hopen
+      letI : PlusSubring (Localization.Away D.s) :=
+        localizationAwayPlusSubring D.s
+      ∀ τ ∈ T_test_loc,
+        ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+          (w.vle (σ_loc : Localization.Away D.s) τ ∧
+           ¬ w.vle τ (σ_loc : Localization.Away D.s)) →
+          (∀ t' ∈ ({f} : Finset A),
+            w.vle (algebraMap A (Localization.Away D.s) t')
+                  (algebraMap A (Localization.Away D.s) C.base.s)) ∧
+          ¬ w.vle (algebraMap A (Localization.Away D.s) C.base.s) 0) :
+    exists_single_f_factor_carrying_refinement_at_t_target C D t :=
+  exists_single_f_factor_carrying_refinement_at_t_via_localisation_transfer
+    C D t hA₀_le σ N f hf_eq h_factor h_subset h_T_D_in_plus
+    (localised_sigma_reducer_to_single_f_bound_for_step2 C D t σ N f hf_eq
+      T_test_loc σ_loc h_sigma_loc h_per_τ_bound)
+
+/-- **T207 end-to-end bridge: localised σ-data → `h_struct`**.
+
+Composes the T207 strengthened-target bridge with T201's
+`wedhorn_834_h_struct_via_strengthened_single_f` to produce T192/T195's
+`h_struct` shape directly from per-`(D, t)` localised σ-data
+(σ-strict-domination + per-`τ` algebraic bridge) plus the standard
+T201 fields. -/
+theorem wedhorn_834_h_struct_via_localised_sigma
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [DecidableEq A]
+    (C : RationalCovering A)
+    (h_per_call :
+      ∀ (D : RationalLocData A), D ∈ C.covers →
+      ∀ (t : A), t ∈ D.T →
+      ∃ (_hA₀_le : D.P.A₀ ≤ A⁺) (σ : A) (N : ℕ) (f : A)
+        (_hf_eq : f = σ * t * D.s ^ N)
+        (_h_factor : C.base.s = D.s * f)
+        (_h_subset : rationalOpen (insert f C.base.T) C.base.s ⊆
+          rationalOpen D.T D.s)
+        (_h_T_D_in_plus : ∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A))
+        (_T_test_loc : Finset (Localization.Away D.s))
+        (_σ_loc : (Localization.Away D.s)ˣ),
+        letI : TopologicalSpace (Localization.Away D.s) :=
+          locTopology D.P D.T D.s D.hopen
+        letI : PlusSubring (Localization.Away D.s) :=
+          localizationAwayPlusSubring D.s
+        (∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+          ∃ τ ∈ _T_test_loc,
+            w.vle (_σ_loc : Localization.Away D.s) τ ∧
+            ¬ w.vle τ (_σ_loc : Localization.Away D.s)) ∧
+        (∀ τ ∈ _T_test_loc,
+          ∀ w ∈ Spa (Localization.Away D.s) (Localization.Away D.s)⁺,
+            (w.vle (_σ_loc : Localization.Away D.s) τ ∧
+             ¬ w.vle τ (_σ_loc : Localization.Away D.s)) →
+            (∀ t' ∈ ({f} : Finset A),
+              w.vle (algebraMap A (Localization.Away D.s) t')
+                    (algebraMap A (Localization.Away D.s) C.base.s)) ∧
+            ¬ w.vle (algebraMap A (Localization.Away D.s) C.base.s) 0)) :
+    ∀ (D : RationalLocData A), D ∈ C.covers →
+    ∀ (v : Spv A), v ∈ rationalOpen D.T D.s →
+    ∀ (t : A), t ∈ D.T → v.vle t D.s → ¬ v.vle D.s 0 →
+      ∃ (σ : A) (N : ℕ),
+        C.base.s = D.s * (σ * t * D.s ^ N) ∧
+        (∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)) ∧
+        v.vle (σ * t * D.s ^ N) C.base.s :=
+  wedhorn_834_h_struct_via_strengthened_single_f C
+    (fun D hD t ht => by
+      obtain ⟨hA₀_le, σ, N, f, hf_eq, h_factor, h_subset, h_T_D_in_plus,
+        T_test_loc, σ_loc, h_sigma_loc, h_per_τ_bound⟩ :=
+          h_per_call D hD t ht
+      exact exists_single_f_factor_carrying_refinement_at_t_via_localised_sigma
+        C D t hA₀_le σ N f hf_eq h_factor h_subset h_T_D_in_plus
+        T_test_loc σ_loc h_sigma_loc h_per_τ_bound)
+
 /-- **T204 end-to-end bridge: localisation-transfer → `h_struct`**.
 
 Composes the T204 localisation-transfer bridge above with T201's
