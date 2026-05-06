@@ -840,4 +840,74 @@ directly into the `P_loc` argument. -/
     PairOfDefinition (Localization.Away s) :=
   locPairOfDefinition P T s hopen
 
+/-! ### T210: algebraMap-image inclusion into `localizationAwayPlusSubring`
+
+For the trivial plus-subring choice
+`localizationAwayPlusSubring s := Subring.map (algebraMap A (Loc s)) A⁺`
+(`Adic spaces/WedhornLocalizationPlus.lean:108`), the **algebraMap
+image of `A⁺`** is by construction the `(Loc s)⁺`-subring itself. T210
+below packages this safe pointwise / set-level inclusion fact in a
+clean form for downstream consumers — typically used to discharge the
+`algebraMap '' P.A₀ ⊆ (Loc s)⁺` half of T206's item-2 input, given
+`P.A₀ ≤ A⁺`.
+
+**Limitation re-emphasised** (matching T208 docstring's downstream
+note): `divByS t s` (for `t ∈ T`) is **NOT** generally in `(Loc s)⁺`
+under this trivial plus-subring choice. T210 makes **no claim** about
+`divByS t s`; the full discharge of T206's `hA₀_le_loc` (i.e.,
+`locSubring P T s ≤ (Loc s)⁺` under the current trivial plus-subring)
+does **not** hold and would require a Wedhorn-faithful refinement of
+the plus-subring on `Loc s` (future work, explicitly excluded by the
+T210 ticket scope).
+
+The lemmas below are reusable Mathlib-style API parameterised only by
+`s : A` and (for the set-level form) the standard `(P, hA₀_le)` data;
+they do **not** depend on `T`, `hopen`, or the localisation topology. -/
+
+omit [CommRing A] in
+/-- **T210 pointwise algebraMap-image plus membership**.
+
+For `a ∈ A⁺` and any `s : A`, the algebraMap-image
+`algebraMap A (Loc s) a` lies in the canonical
+`localizationAwayPlusSubring s` plus-subring.
+
+**Proof**: by definition `(Loc s)⁺ = Subring.map (algebraMap A (Loc
+s)) A⁺`, so the image membership is the canonical `Subring.mem_map`
+witness `⟨a, ha, rfl⟩`. -/
+theorem algebraMap_mem_localizationAwayPlusSubring_of_mem_plus
+    [CommRing A] [PlusSubring A] (s : A) {a : A} (ha : a ∈ A⁺) :
+    letI : PlusSubring (Localization.Away s) := localizationAwayPlusSubring s
+    algebraMap A (Localization.Away s) a ∈ (Localization.Away s)⁺ :=
+  Subring.mem_map.mpr ⟨a, ha, rfl⟩
+
+/-- **T210 set-level algebraMap-image inclusion**.
+
+If `P.A₀ ≤ A⁺` (the standard `Cor732`/`SpaCompact` precondition), the
+algebraMap-image of `P.A₀` (as a `Set`) is contained in
+`localizationAwayPlusSubring s`. -/
+theorem algebraMap_image_A₀_subset_localizationAwayPlusSubring
+    [TopologicalSpace A] [PlusSubring A]
+    (P : PairOfDefinition A) (s : A) (hA₀_le : P.A₀ ≤ A⁺) :
+    letI : PlusSubring (Localization.Away s) := localizationAwayPlusSubring s
+    (algebraMap A (Localization.Away s)) '' (P.A₀ : Set A) ⊆
+      ((Localization.Away s)⁺ : Set (Localization.Away s)) := by
+  letI : PlusSubring (Localization.Away s) := localizationAwayPlusSubring s
+  rintro x ⟨a, ha, rfl⟩
+  exact algebraMap_mem_localizationAwayPlusSubring_of_mem_plus s (hA₀_le ha)
+
+/-- **T210 Subring-level algebraMap-image inclusion**.
+
+The Subring-level packaging of the set-level inclusion: the image
+subring `Subring.map (algebraMap A (Loc s)) P.A₀` is contained in
+`(Loc s)⁺` whenever `P.A₀ ≤ A⁺`. -/
+theorem algebraMap_map_A₀_le_localizationAwayPlusSubring
+    [TopologicalSpace A] [PlusSubring A]
+    (P : PairOfDefinition A) (s : A) (hA₀_le : P.A₀ ≤ A⁺) :
+    letI : PlusSubring (Localization.Away s) := localizationAwayPlusSubring s
+    Subring.map (algebraMap A (Localization.Away s)) P.A₀ ≤
+      ((Localization.Away s)⁺ : Subring (Localization.Away s)) := by
+  letI : PlusSubring (Localization.Away s) := localizationAwayPlusSubring s
+  rintro x ⟨a, ha, rfl⟩
+  exact algebraMap_mem_localizationAwayPlusSubring_of_mem_plus s (hA₀_le ha)
+
 end ValuationSpectrum
