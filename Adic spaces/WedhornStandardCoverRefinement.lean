@@ -851,4 +851,181 @@ hZavyalov_per_E / Tate acyclicity Part 2
 The lower bridge above is **purely additive structural packaging**;
 no Wedhorn content is hidden inside it. -/
 
+/-! ### T201: strengthened single-f Step-2 target + compiled bridges
+
+The documented `exists_single_f_refinement_at_t_via_dominating_unit`
+target signature (line 422 above) supplies, for `D ∈ C.covers` and
+`t ∈ D.T`, an element `f : A` with:
+
+* `v ∈ rationalOpen (insert f C.base.T) C.base.s` (source plus-piece
+  membership at `v`);
+* `rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen D.T D.s`
+  (rationalOpen subset).
+
+This is **NOT enough** to feed T199's `WedhornStep2RefinementCarryingFactor`:
+we additionally need the algebraic identity
+`C.base.s = D.s * (σ * t * D.s ^ N)` in `A`, the Tate condition
+`∀ t' ∈ D.T, t' ∈ A⁺`, and the uniform v-bound on
+`rationalOpen D.T D.s`.
+
+T201 strengthens the documented target by carrying these extra fields,
+and compiles bridges from the strengthened target to T199's structure
+and T199's provider via T200's lower bridge.
+
+The strengthened target's discharge is the **next missing theorem**;
+the bridges compile mechanically and route the discharge into the
+T192/T195 `h_struct` pipeline.
+
+What this section provides:
+
+* `exists_single_f_factor_carrying_refinement_at_t_target` — the
+  per-`(D, t)` strengthened-single-f Prop with explicit `(σ, N, f)`
+  fields plus algebraic identity, rationalOpen subset, Tate, and
+  uniform v-bound.
+
+* `WedhornStep2RefinementCarryingFactor_of_strengthened_single_f` —
+  per-`(D, t)` bridge: from the strengthened Prop, build the T199
+  carrying-factor structure.
+
+* `WedhornStep2FactorCarryingProvider_of_strengthened_single_f` —
+  per-cover bridge: from the per-`(D, t)` strengthened Prop, produce
+  the T199 provider via T200's lower bridge.
+
+* `wedhorn_834_h_struct_via_strengthened_single_f` — full end-to-end
+  bridge composing T201 + T200 + T199 to produce T192/T195's
+  `h_struct` from the per-`(D, t)` strengthened single-f Prop directly.
+
+The pipeline once the strengthened single-f target is discharged for a
+concrete cover-refinement family:
+
+```
+exists_single_f_factor_carrying_refinement_at_t_target  [T201's blocker]
+  ↓ (WedhornStep2RefinementCarryingFactor_of_strengthened_single_f, T201)
+Nonempty (WedhornStep2RefinementCarryingFactor A C D t)  [T199 structure]
+  ↓ (Nonempty.intro packaged in
+     WedhornStep2FactorCarryingProvider_of_per_call_carrying, T200)
+WedhornStep2FactorCarryingProvider C                     [T199 def]
+  ↓ (wedhorn_834_h_struct_via_step2_factor_carrying, T199 bridge)
+h_struct C                                               [T192/T195 input]
+```
+
+The strengthened target adds **only the algebraic identity** (`C.base.s =
+D.s * f`) plus the Tate condition and the uniform v-bound; it does
+NOT change the source-side (`v ∈ rationalOpen ...`) or σ-strict-
+domination shape of the original `_via_dominating_unit` target. The
+genuine Wedhorn 8.34(ii) Step-2 content needed for the discharge is
+the same as before, with the algebraic identity carried alongside the
+rationalOpen subset relation. -/
+
+omit [PlusSubring A] in
+/-- **T201 strengthened single-f Step-2 target** (per-`(D, t)`).
+
+Strengthens the documented `exists_single_f_refinement_at_t_via_dominating_unit`
+target by carrying:
+
+* `f := σ * t * D.s ^ N` for explicit `(σ, N) : A × ℕ` (the Wedhorn
+  Step-2 element shape);
+* `C.base.s = D.s * f` — the **algebraic identity in `A`** (the
+  central missing content per T197/T198/T199);
+* `rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen D.T D.s`
+  — the rationalOpen subset relation (already in the documented
+  target);
+* `∀ t' ∈ D.T, t' ∈ A⁺` — the Tate condition on `D.T`;
+* `∀ v ∈ rationalOpen D.T D.s, v.vle t D.s → ¬ v.vle D.s 0 →
+  v.vle f C.base.s` — the uniform source f-bound on the cover piece.
+
+Discharging this Prop for a concrete cover-refinement family is the
+**next critical-path theorem-level work**. The discharge follows the
+same proof sketch as the documented `_via_dominating_unit` target
+(Cor 7.32 σ + Spa-quasi-compact N + transitivity), with the algebraic
+identity carried alongside the rationalOpen-side conclusion. -/
+def exists_single_f_factor_carrying_refinement_at_t_target
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [DecidableEq A]
+    (C : RationalCovering A) (D : RationalLocData A) (t : A) : Prop :=
+  ∃ (σ : A) (N : ℕ) (f : A),
+    f = σ * t * D.s ^ N ∧
+    C.base.s = D.s * f ∧
+    rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen D.T D.s ∧
+    (∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)) ∧
+    (∀ v ∈ rationalOpen D.T D.s,
+      v.vle t D.s → ¬ v.vle D.s 0 →
+      v.vle f C.base.s)
+
+/-- **T201 per-`(D, t)` bridge: strengthened single-f → T199 structure**.
+
+From the strengthened single-f target, build the T199 carrying-factor
+structure `WedhornStep2RefinementCarryingFactor A C D t` (wrapped in
+`Nonempty`).
+
+Proof: extract the existential witnesses `(σ, N, f)`, rewrite
+`σ * t * D.s ^ N = f` via `hf_eq`, and use `h_factor`, `h_T_D_in_plus`,
+`h_v_bound` directly as the structure's fields. The rationalOpen
+subset is unused in the structure (it is needed only for downstream
+rationalOpen consumers, not for the carrying-factor data itself). -/
+theorem WedhornStep2RefinementCarryingFactor_of_strengthened_single_f
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [DecidableEq A]
+    (C : RationalCovering A) (D : RationalLocData A) (t : A)
+    (h_target : exists_single_f_factor_carrying_refinement_at_t_target C D t) :
+    Nonempty (WedhornStep2RefinementCarryingFactor A C D t) := by
+  obtain ⟨σ, N, f, hf_eq, h_factor, _h_subset, h_T_D_in_plus, h_v_bound⟩ :=
+    h_target
+  refine ⟨{
+    σ := σ
+    N := N
+    h_factor := ?_
+    h_T_D_in_plus := h_T_D_in_plus
+    h_v_bound := ?_
+  }⟩
+  · -- C.base.s = D.s * (σ * t * D.s ^ N) ⇐ C.base.s = D.s * f ∧ f = σ * t * D.s ^ N.
+    rw [h_factor, hf_eq]
+  · -- v.vle (σ * t * D.s ^ N) C.base.s ⇐ v.vle f C.base.s ∧ σ * t * D.s ^ N = f.
+    intro v hv hvt hvD_s
+    rw [show σ * t * D.s ^ N = f from hf_eq.symm]
+    exact h_v_bound v hv hvt hvD_s
+
+/-- **T201 per-cover bridge: strengthened single-f → T199 provider**.
+
+From the per-`(D, t)` strengthened single-f target, produce the T199
+`WedhornStep2FactorCarryingProvider C` shape consumed by
+`wedhorn_834_h_struct_via_step2_factor_carrying`.
+
+Routes through T200's `WedhornStep2FactorCarryingProvider_of_per_call_carrying`
+indirectly via the per-`(D, t)` carrying-factor structure. -/
+theorem WedhornStep2FactorCarryingProvider_of_strengthened_single_f
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [DecidableEq A]
+    (C : RationalCovering A)
+    (h_target : ∀ (D : RationalLocData A), D ∈ C.covers →
+      ∀ (t : A), t ∈ D.T →
+        exists_single_f_factor_carrying_refinement_at_t_target C D t) :
+    WedhornStep2FactorCarryingProvider C := by
+  intro D hD t ht
+  exact WedhornStep2RefinementCarryingFactor_of_strengthened_single_f C D t
+    (h_target D hD t ht)
+
+/-- **T201 end-to-end bridge: strengthened single-f → `h_struct` shape**.
+
+Composes T201's per-cover bridge with T199's
+`wedhorn_834_h_struct_via_step2_factor_carrying` to produce T192/T195's
+`h_struct` shape directly from the per-`(D, t)` strengthened single-f
+target. -/
+theorem wedhorn_834_h_struct_via_strengthened_single_f
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [DecidableEq A]
+    (C : RationalCovering A)
+    (h_target : ∀ (D : RationalLocData A), D ∈ C.covers →
+      ∀ (t : A), t ∈ D.T →
+        exists_single_f_factor_carrying_refinement_at_t_target C D t) :
+    ∀ (D : RationalLocData A), D ∈ C.covers →
+    ∀ (v : Spv A), v ∈ rationalOpen D.T D.s →
+    ∀ (t : A), t ∈ D.T → v.vle t D.s → ¬ v.vle D.s 0 →
+      ∃ (σ : A) (N : ℕ),
+        C.base.s = D.s * (σ * t * D.s ^ N) ∧
+        (∀ t' ∈ D.T, t' ∈ ((A⁺) : Subring A)) ∧
+        v.vle (σ * t * D.s ^ N) C.base.s :=
+  wedhorn_834_h_struct_via_step2_factor_carrying C
+    (WedhornStep2FactorCarryingProvider_of_strengthened_single_f C h_target)
+
 end ValuationSpectrum
