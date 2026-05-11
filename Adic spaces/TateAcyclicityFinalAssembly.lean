@@ -2225,4 +2225,155 @@ theorem RationalCovering.tateAcyclicityComplete
       (A := A) C hne hZavyalov_per_E f₀ fC hC_compat
       lane_A_supplier lane_B_supplier
 
+/-! ### Allow-empty Part-2 variant of `tateAcyclicityComplete`
+
+Drop-in variant of `tateAcyclicityComplete` that uses the empty-piece-tolerant
+Part-2 assembly. The `lane_B_supplier` only needs to handle E's with nonempty
+`rationalOpen`. Empty cases are handled structurally. -/
+theorem RationalCovering.tateAcyclicityComplete_allow_empty
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    [DecidableEq A]
+    (C : RationalCovering A) (hne : C.covers.Nonempty)
+    (hZavyalov_per_E : rationalOpen C.base.T C.base.s ≠ ∅ →
+      ∃ S : Finset A,
+        refines_cover_per_E C S ∧ refines_contain C S ∧ refines_span_top S)
+    (f₀ : A)
+    (global_separation : ∀ a b : presheafValue C.base,
+      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+        restrictionMap C.base D (C.hsubset D hD) a =
+          restrictionMap C.base D (C.hsubset D hD) b) →
+      a = b)
+    (lane_A_supplier : ∀ (S' : StandardCover A)
+      (_hS'_per_E : refines_cover_per_E C S'.elts)
+      (_hS'_contain : refines_contain C S'.elts),
+      ∀ (fV : ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ }, presheafValue D.1),
+      (∀ (D₁ D₂ : { D // D ∈ C.refinedVCovers S'.elts f₀ })
+        (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (fV D₁) = restrictionMap D₂.1 D₃ h₃₂ (fV D₂)) →
+      ∃ x : presheafValue C.base, ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ },
+        restrictionMap C.base D.1
+          (C.refinedVCovers_subset_base S'.elts f₀ D.1 D.2) x = fV D)
+    (lane_B_supplier : ∀ (S' : StandardCover A)
+      (hS'_per_E : refines_cover_per_E C S'.elts)
+      (_hS'_contain : refines_contain C S'.elts),
+      ∀ (E : { E // E ∈ C.covers }),
+      (rationalOpen E.1.T E.1.s).Nonempty →
+      ∀ a b : presheafValue E.1,
+      (∀ (D : RationalLocData A)
+         (hD : D ∈ (C.per_E_local_covering S'.elts f₀ E hS'_per_E).covers),
+        restrictionMap E.1 D
+            ((C.per_E_local_covering S'.elts f₀ E hS'_per_E).hsubset D hD) a =
+          restrictionMap E.1 D
+            ((C.per_E_local_covering S'.elts f₀ E hS'_per_E).hsubset D hD) b) →
+        a = b) :
+    (∀ x : presheafValue C.base,
+      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+        restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0) ∧
+    (∀ (f : ∀ (D : ↥C.covers), presheafValue D.1),
+      (∀ (D₁ D₂ : ↥C.covers) (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (f D₁) = restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
+      ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
+        restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D) := by
+  refine ⟨?_, ?_⟩
+  · intro x hx
+    have hagree : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+        restrictionMap C.base D (C.hsubset D hD) x =
+        restrictionMap C.base D (C.hsubset D hD) 0 := by
+      intro D hD
+      change restrictionMapHom C.base D (C.hsubset D hD) x =
+        restrictionMapHom C.base D (C.hsubset D hD) 0
+      rw [map_zero]; exact hx D hD
+    exact global_separation x 0 hagree
+  · intro fC hC_compat
+    exact RationalCovering.tateAcyclicity_Part2_end_to_end_via_primary_allow_empty
+      (A := A) C hne hZavyalov_per_E f₀ fC hC_compat
+      lane_A_supplier lane_B_supplier
+
+/-! ### Combined wrapper via the prime-extension-closed route
+
+Composition of `tateAcyclicityComplete_allow_empty` with the existing universal
+separation supplier (`nonempty_separation_supplier_via_prime_extension_closed`) —
+supplies BOTH `global_separation` and `lane_B_supplier` from the same universal
+prime-extension-closed hypothesis bundle.
+
+This produces a less-abstract wrapper at the cost of propagating the existing
+`flat_over_base_tate` chain through `restrictionMap_isLocalization` (a known
+issue tracked at T-RETIRE-PROP815 / T-FLAT-PER-E). The user can substitute the
+new flatness route (T-COR832-FF-LAURENT) once T-FLAT-PER-E is resolved by
+swapping out the `_via_prime_extension_closed` chain.
+
+`lane_A_supplier` remains abstract; this wrapper does NOT discharge Lane A
+overlap gluing. -/
+theorem RationalCovering.tateAcyclicityComplete_via_prime_extension_closed
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    [DecidableEq A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) (hne : C.covers.Nonempty)
+    (hZavyalov_per_E : rationalOpen C.base.T C.base.s ≠ ∅ →
+      ∃ S : Finset A,
+        refines_cover_per_E C S ∧ refines_contain C S ∧ refines_span_top S)
+    (f₀ : A)
+    -- Universal hypothesis bundle for the prime-extension-closed Cor 8.32 chain:
+    (hloc_noeth : ∀ C' : RationalCovering A,
+      IsNoetherianRing (locSubring C'.base.P C'.base.T C'.base.s))
+    (hAplus_le_A₀ : ∀ C' : RationalCovering A,
+      (A⁺ : Set A) ⊆ C'.base.P.A₀)
+    (hcanonicalMap_cont : ∀ C' : RationalCovering A,
+      Continuous C'.base.canonicalMap)
+    (h_closed_nonOpen : ∀ C' : RationalCovering A,
+      ∀ (p : Ideal A), p.IsPrime → C'.base.s ∉ p →
+        ¬IsOpen (p : Set A) →
+        @IsClosed _ C'.base.topology
+          ((Ideal.map (algebraMap A (Localization.Away C'.base.s)) p :
+              Ideal (Localization.Away C'.base.s)) :
+            Set (Localization.Away C'.base.s)))
+    (lane_A_supplier : ∀ (S' : StandardCover A)
+      (_hS'_per_E : refines_cover_per_E C S'.elts)
+      (_hS'_contain : refines_contain C S'.elts),
+      ∀ (fV : ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ }, presheafValue D.1),
+      (∀ (D₁ D₂ : { D // D ∈ C.refinedVCovers S'.elts f₀ })
+        (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (fV D₁) = restrictionMap D₂.1 D₃ h₃₂ (fV D₂)) →
+      ∃ x : presheafValue C.base, ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ },
+        restrictionMap C.base D.1
+          (C.refinedVCovers_subset_base S'.elts f₀ D.1 D.2) x = fV D) :
+    (∀ x : presheafValue C.base,
+      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+        restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0) ∧
+    (∀ (f : ∀ (D : ↥C.covers), presheafValue D.1),
+      (∀ (D₁ D₂ : ↥C.covers) (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (f D₁) = restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
+      ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
+        restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D) := by
+  classical
+  have sep_supplier := RationalCovering.nonempty_separation_supplier_via_prime_extension_closed
+    P hloc_noeth hAplus_le_A₀ hcanonicalMap_cont h_closed_nonOpen
+  refine RationalCovering.tateAcyclicityComplete_allow_empty (A := A) C hne
+    hZavyalov_per_E f₀
+    (sep_supplier C hne)
+    lane_A_supplier
+    ?_
+  -- `lane_B_supplier` (allow_empty form): per-E separation only required for
+  -- nonempty per-E rationalOpen. Use `hS'_per_E` at any `v` in the nonempty
+  -- per-E rationalOpen to produce a cover element, hence nonempty per_E covers,
+  -- then apply `sep_supplier`.
+  intro S' hS'_per_E _hS'_contain E hE_rop_ne a b hagree
+  obtain ⟨v, hv⟩ := hE_rop_ne
+  obtain ⟨f, hf_elt, _hv_plus, h_plus_in_E⟩ := hS'_per_E E.1 E.2 v hv
+  have hne_per_E :
+      (C.per_E_local_covering S'.elts f₀ E hS'_per_E).covers.Nonempty := by
+    refine ⟨laurentPlusDatum (C.plusDatum f) f₀, ?_⟩
+    rw [RationalCovering.mem_per_E_local_covering_covers]
+    exact ⟨f, hf_elt, h_plus_in_E, Or.inl rfl⟩
+  exact sep_supplier (C.per_E_local_covering S'.elts f₀ E hS'_per_E)
+    hne_per_E a b hagree
+
 end ValuationSpectrum
