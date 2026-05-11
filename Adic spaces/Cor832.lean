@@ -1030,6 +1030,48 @@ theorem productRestriction_faithfullyFlat_tate_laurent_of_hSpa_points
       hA_complete_B hnoeth_B hP_A₀Noeth_B hlocSubring_Noeth_B hcont_eval_B)
     (hSpa_surj_from_spanTop P C (hspan_top_of_hSpa_points C hSpa_points))
 
+/-! ### Faithfully-flat combinator for combined plus+minus Laurent shapes
+
+**T-FF-COMBINED (2026-05-11)**.
+
+Faithfully-flat product restriction for covers whose pieces are EITHER
+`laurentPlusDatum` or `laurentMinusDatum` of `C.base`. Composes
+`flat_over_base_tate_laurent_combined` with `hSpa_surj_from_spanTop` and
+`productRestriction_faithfullyFlat_abstract` to give a clean sorry-free
+faithful flatness theorem for mixed Laurent covers. -/
+theorem productRestriction_faithfullyFlat_tate_laurent_combined_of_hSpa_points
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    [Finite { D : RationalLocData A // D ∈ C.covers }]
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    [LaurentNormalized C.base]
+    (laurent_witness : ∀ D : { D // D ∈ C.covers },
+      ∃ f : A,
+        D.1 = laurentPlusDatum C.base f ∨ D.1 = laurentMinusDatum C.base f)
+    (flat_plus : ∀ (f : A)
+      (hsub : rationalOpen (laurentPlusDatum C.base f).T
+                           (laurentPlusDatum C.base f).s ⊆
+              rationalOpen C.base.T C.base.s),
+      @Module.Flat (presheafValue C.base) (presheafValue (laurentPlusDatum C.base f)) _ _
+        ((restrictionMapHom C.base (laurentPlusDatum C.base f) hsub).toModule))
+    (flat_minus : ∀ (f : A)
+      (hsub : rationalOpen (laurentMinusDatum C.base f).T
+                            (laurentMinusDatum C.base f).s ⊆
+              rationalOpen C.base.T C.base.s),
+      @Module.Flat (presheafValue C.base) (presheafValue (laurentMinusDatum C.base f)) _ _
+        ((restrictionMapHom C.base (laurentMinusDatum C.base f) hsub).toModule))
+    (hSpa_points : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp) :
+    letI : ∀ D : { D // D ∈ C.covers }, Algebra (presheafValue C.base)
+      (presheafValue D.1) := fun D =>
+      (restrictionMapHom C.base D.1 (C.hsubset D.1 D.2)).toAlgebra
+    Module.FaithfullyFlat (presheafValue C.base)
+      (∀ D : { D // D ∈ C.covers }, presheafValue D.1) :=
+  productRestriction_faithfullyFlat_abstract C
+    (flat_over_base_tate_laurent_combined P C laurent_witness flat_plus flat_minus)
+    (hSpa_surj_from_spanTop P C (hspan_top_of_hSpa_points C hSpa_points))
+
 /-! ### Open-prime discharge of `hSpa_points`
 
 The `hSpa_points` hypothesis for OPEN primes is **unconditionally** discharged
