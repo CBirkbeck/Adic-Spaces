@@ -769,4 +769,64 @@ theorem restrictionMap_flat_of_rational_subset_via_relative
       left_inv := e.symm_apply_apply
       right_inv := e.apply_symm_apply }
 
+/-! ### Direct-Laurent-shape corollary: D = laurentMinusDatum E f
+
+Concrete corollary of `restrictionMap_flat_of_rational_subset_via_relative`:
+when `D = laurentMinusDatum E f` directly (depth-1 from E), the relative equiv
+is the existing `presheafValue_iteratedMinus_equiv` and the intertwining is the
+existing `_restrictionMap_canonicalMap`. So the general theorem specialises
+sorry-free.
+
+This is `restrictionMap_flat_via_iteratedMinus` restated through the general
+framework, providing the same conclusion as the existing `iteratedMinus`
+version. Useful as the depth-1 sanity check + the API entry point for the
+general theorem. -/
+theorem restrictionMap_flat_of_rational_subset_direct_laurentMinus
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (E : RationalLocData A)
+    [IsNoetherianRing (locSubring E.P E.T E.s)]
+    [LaurentNormalized E]
+    (f : A)
+    (hsub : rationalOpen (laurentMinusDatum E f).T (laurentMinusDatum E f).s ⊆
+            rationalOpen E.T E.s)
+    (hNoeth_B : IsNoetherianRing (presheafValue E))
+    (hLocLift_B : letI : IsTateRing (presheafValue E) :=
+        presheafValue_isTateRing P E
+      HasLocLiftPowerBounded (presheafValue E))
+    (hA_complete_B : @CompleteSpace (presheafValue E)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue E)))
+    (hnoeth_B : letI : IsTateRing (presheafValue E) :=
+        presheafValue_isTateRing P E
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue E)).toPairOfDefinition))
+    (hP_A₀Noeth_B : letI : IsTateRing (presheafValue E) :=
+        presheafValue_isTateRing P E
+      letI : IsNoetherianRing (presheafValue E) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P E).A₀))
+    (hlocSubring_Noeth_B : letI : IsTateRing (presheafValue E) :=
+        presheafValue_isTateRing P E
+      letI : IsNoetherianRing (presheafValue E) := hNoeth_B
+      letI : PairOfDefinition (presheafValue E) :=
+        presheafValue_pairOfDefinition_concrete P E
+      IsNoetherianRing
+        (locSubring (iteratedMinusDatum_B P E f).P (iteratedMinusDatum_B P E f).T
+          (iteratedMinusDatum_B P E f).s))
+    (hcont_eval_B : letI : IsTateRing (presheafValue E) :=
+        presheafValue_isTateRing P E
+      letI : HasLocLiftPowerBounded (presheafValue E) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue E) := hNoeth_B
+      letI : PairOfDefinition (presheafValue E) :=
+        presheafValue_pairOfDefinition_concrete P E
+      let D := iteratedMinusDatum_B P E f
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb)) :
+    @Module.Flat (presheafValue E) (presheafValue (laurentMinusDatum E f)) _ _
+      ((restrictionMapHom E (laurentMinusDatum E f) hsub).toModule) :=
+  restrictionMap_flat_via_iteratedMinus P E f hsub hNoeth_B hLocLift_B
+    hA_complete_B hnoeth_B hP_A₀Noeth_B hlocSubring_Noeth_B hcont_eval_B
+
 end ValuationSpectrum
