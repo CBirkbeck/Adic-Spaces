@@ -58,9 +58,23 @@ Mathlib-level pieces of infrastructure as a dedicated multi-file effort.
   `hcont_forward_overlap` residual** from `laneA_τ_preBiv`.
 
 **Marathon-2 deferred (named residuals)**:
-- T-NEW-1-PARK: `overlapBridge_eq` (Wedhorn 2.13 overlap transport)
-  remains as named residual in `LaneAReverseRoundTrip.laneA_τ_preBiv`.
-  Subagent attempted ~500 lines but hit delicate type-transport issues.
+- None remaining at the Lane A level.
+
+**Beast-mode push (2026-05-11, after T-NEW-1-PARK)**:
+- T-NEW-1: subagent's second pass on `IteratedOverlapEquiv.lean`
+  succeeded (1347 lines, 0 sorry, 0 axiom). Produced
+  `presheafValue_iteratedOverlap_equiv` — the Wedhorn 2.13 overlap
+  transport — concretely as a `RingEquiv`. Wired into
+  `LaneAReverseRoundTrip.laneA_τ_preBiv`, which now takes NO
+  parametric residual witnesses. The full Lane A bridge is unconditional.
+
+**Marathon-2 critical-path remaining blocker**:
+- Wedhorn Prop 8.15 Baire surjection (`restrictionMapHom_surj` at
+  `PresheafTateStructure.lean:1187`). Closure requires Mathlib-level
+  infrastructure (separability of `Localization.Away` OR Pettis lemma
+  for Baire abelian topological groups OR non-σ-compact Open Mapping
+  Theorem). Each is a dedicated multi-file effort beyond a marathon
+  session.
 
 ---
 
