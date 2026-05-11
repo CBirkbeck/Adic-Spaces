@@ -1072,6 +1072,74 @@ theorem productRestriction_faithfullyFlat_tate_laurent_combined_of_hSpa_points
     (flat_over_base_tate_laurent_combined P C laurent_witness flat_plus flat_minus)
     (hSpa_surj_from_spanTop P C (hspan_top_of_hSpa_points C hSpa_points))
 
+/-! ### E-relative faithfully flat: `laurentCovering E.1 f`
+
+**T-FF-LAURENT-AT-E (2026-05-11)**.
+
+For any `E ∈ C.covers` (viewed as a rational datum of `A`), the 2-element
+Laurent covering `laurentCovering E.1 f` is a direct Laurent decomposition
+of `E.1` itself, whose cover pieces are `{laurentPlusDatum E.1 f,
+laurentMinusDatum E.1 f}`. These ARE direct Laurent shapes of `E.1`, so the
+new flatness route (Wedhorn 8.30 + 2.13) applies at the `presheafValue E.1`
+level without needing iterated identifications.
+
+This is the structural prerequisite for the T-FLAT-PER-E refactor: replace
+the existing `per_E_local_covering` (whose pieces are NOT direct E-shapes)
+with this E-direct Laurent covering. The remaining work is wiring this
+into the assembly architecture (which currently expects the
+`per_E_local_covering` shape). -/
+theorem productRestriction_faithfullyFlat_laurentCovering_at_E
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (E : RationalLocData A)
+    [hE_loc : IsNoetherianRing (locSubring E.P E.T E.s)]
+    [hE_LN : LaurentNormalized E]
+    (f : A)
+    (flat_plus : ∀ (g : A)
+      (hsub : rationalOpen (laurentPlusDatum E g).T
+                           (laurentPlusDatum E g).s ⊆
+              rationalOpen E.T E.s),
+      @Module.Flat (presheafValue E) (presheafValue (laurentPlusDatum E g)) _ _
+        ((restrictionMapHom E (laurentPlusDatum E g) hsub).toModule))
+    (flat_minus : ∀ (g : A)
+      (hsub : rationalOpen (laurentMinusDatum E g).T
+                            (laurentMinusDatum E g).s ⊆
+              rationalOpen E.T E.s),
+      @Module.Flat (presheafValue E) (presheafValue (laurentMinusDatum E g)) _ _
+        ((restrictionMapHom E (laurentMinusDatum E g) hsub).toModule))
+    (hSpa_points : ∀ (p : Ideal A), p.IsPrime → E.s ∉ p →
+      ∃ v ∈ rationalOpen E.T E.s, p ≤ v.supp) :
+    letI : ∀ D : { D // D ∈ (laurentCovering E f).covers },
+        Algebra (presheafValue (laurentCovering E f).base) (presheafValue D.1) :=
+      fun D => (restrictionMapHom (laurentCovering E f).base D.1
+        ((laurentCovering E f).hsubset D.1 D.2)).toAlgebra
+    Module.FaithfullyFlat (presheafValue (laurentCovering E f).base)
+      (∀ D : { D // D ∈ (laurentCovering E f).covers }, presheafValue D.1) := by
+  classical
+  -- `(laurentCovering E f).base = E` definitionally; install instances at the
+  -- `(laurentCovering E f).base` side.
+  letI : IsNoetherianRing (locSubring (laurentCovering E f).base.P
+      (laurentCovering E f).base.T (laurentCovering E f).base.s) := hE_loc
+  letI : LaurentNormalized (laurentCovering E f).base := hE_LN
+  haveI : Finite { D : RationalLocData A // D ∈ (laurentCovering E f).covers } :=
+    Finite.of_fintype _
+  -- The cover pieces of `laurentCovering E f` are exactly
+  -- `laurentPlusDatum E f` and `laurentMinusDatum E f`.
+  have laurent_witness : ∀ D : { D // D ∈ (laurentCovering E f).covers },
+      ∃ g : A,
+        D.1 = laurentPlusDatum (laurentCovering E f).base g ∨
+        D.1 = laurentMinusDatum (laurentCovering E f).base g := by
+    intro D
+    refine ⟨f, ?_⟩
+    rcases D with ⟨D_val, hD_mem⟩
+    simp only [laurentCovering] at hD_mem
+    rw [Finset.mem_insert, Finset.mem_singleton] at hD_mem
+    rcases hD_mem with hD | hD
+    · exact Or.inl hD
+    · exact Or.inr hD
+  exact productRestriction_faithfullyFlat_tate_laurent_combined_of_hSpa_points
+    P (laurentCovering E f) laurent_witness flat_plus flat_minus hSpa_points
+
 /-! ### Open-prime discharge of `hSpa_points`
 
 The `hSpa_points` hypothesis for OPEN primes is **unconditionally** discharged
