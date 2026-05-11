@@ -469,4 +469,112 @@ theorem restrictionMap_flat_via_iteratedPlus
       left_inv := e.symm_apply_apply
       right_inv := e.apply_symm_apply }
 
+/-! ### T-FLAT-PLUS-REWORK: plus-side flatness via the `f-X` quotient (NO PB hypothesis)
+
+**T-FLAT-PLUS-REWORK (2026-05-11 round 3)**.
+
+Per reviewer guidance (ChatGPT Pro session 3): the plus rational localization
+`R(f/1)` is **precisely** what makes `f` power-bounded — it should NOT require
+`IsPowerBounded (D₀.canonicalMap f)` in the source. The correct model is the
+quotient `B⟨X⟩/(f - X)`.
+
+This theorem replaces `restrictionMap_flat_via_iteratedPlus` with a version
+built on `flat_quotient_fSubX_general` + the existing `laurentPlusBridge`
+(which provides `presheafValue (laurentPlusDatum D₀ f) ≃+* B⟨X⟩/(f-X)`).
+
+The hypotheses are the same as `laurentPlusBridge` (all about the generic
+B-base, NO assumption that `D₀.canonicalMap f` is power-bounded). -/
+theorem restrictionMap_flat_via_fSubX_quotient
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hsub : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+            rationalOpen D₀.T D₀.s)
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
+    (hA_complete_B : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_forward_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue D₀) :=
+        presheafValue_pairOfDefinition_concrete P D₀
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))))
+        (example638Plus_forwardHom (presheafValue D₀) P_B (D₀.canonicalMap f))) :
+    @Module.Flat (presheafValue D₀) (presheafValue (laurentPlusDatum D₀ f)) _ _
+      ((restrictionMapHom D₀ (laurentPlusDatum D₀ f) hsub).toModule) := by
+  letI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+  letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+  letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+  letI P_B : PairOfDefinition (presheafValue D₀) :=
+    presheafValue_pairOfDefinition_concrete P D₀
+  letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+  -- Step 1: B = presheafValue D₀-flatness of B⟨X⟩/(f - X) via Wedhorn 8.30 / Lemma 8.31.
+  -- `flat_quotient_fSubX_general` gives this for ANY f in B (no PB hypothesis).
+  haveI hflat_quot :
+      Module.Flat (presheafValue D₀)
+        (LaurentCover.B₁_gen (D₀.canonicalMap f)) :=
+    TateAlgebra.flat_quotient_fSubX_general P_B (D₀.canonicalMap f)
+  -- Step 2: Transfer flatness along `laurentPlusBridge`, which gives
+  -- `presheafValue (laurentPlusDatum D₀ f) ≃+* B⟨X⟩/(f-X)`.
+  let e := laurentPlusBridge P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B
+    hnoeth_B hcont_forward_B
+  change @Module.Flat (presheafValue D₀) (presheafValue (laurentPlusDatum D₀ f))
+    _ _ ((restrictionMapHom D₀ (laurentPlusDatum D₀ f) hsub).toModule)
+  letI : Module (presheafValue D₀) (presheafValue (laurentPlusDatum D₀ f)) :=
+    (restrictionMapHom D₀ (laurentPlusDatum D₀ f) hsub).toModule
+  -- Module action on B₁_gen via algebraMap (matches `flat_quotient_fSubX_general`'s
+  -- instance, which comes from the canonical A-algebra structure on `TateAlgebra A`
+  -- followed by the quotient).
+  -- `e_smul`: the equiv intertwines the restriction-map module action with the
+  -- canonical quotient-map module action.
+  have he_smul : ∀ (a : presheafValue D₀) (x : presheafValue (laurentPlusDatum D₀ f)),
+      e (a • x) = a • e x := by
+    intro a x
+    -- src: a • x = restrictionMapHom D₀ (laurentPlusDatum D₀ f) hsub a * x
+    -- tgt: a • e x = algebraMap B (B₁_gen f) a * e x
+    change e (restrictionMapHom D₀ (laurentPlusDatum D₀ f) hsub a * x) =
+      algebraMap (presheafValue D₀) (LaurentCover.B₁_gen (D₀.canonicalMap f)) a * e x
+    rw [e.map_mul]
+    congr 1
+    -- `e (restrictionMap a) = (epsilonHom_gen (canonicalMap f) a).1`
+    -- via `laurentPlusBridge_restrictionMap`.
+    have h1 := laurentPlusBridge_restrictionMap P D₀ f hNoeth_B hLocLift_B
+      hA₀Noeth_B hA_complete_B hnoeth_B hcont_forward_B hsub a
+    -- Bring `restrictionMap` and `restrictionMapHom` into the same form:
+    change e (restrictionMap D₀ (laurentPlusDatum D₀ f) hsub a) =
+      algebraMap (presheafValue D₀) (LaurentCover.B₁_gen (D₀.canonicalMap f)) a
+    rw [h1]
+    -- `(epsilonHom_gen f a).1 = (Ideal.Quotient.mk _).comp (algebraMap _ _) a`.
+    rfl
+  exact @Module.Flat.of_linearEquiv (presheafValue D₀)
+    (LaurentCover.B₁_gen (D₀.canonicalMap f))
+    (presheafValue (laurentPlusDatum D₀ f))
+    _ _ _ _ _ hflat_quot
+    { toLinearMap :=
+        { toFun := e
+          map_add' := e.map_add
+          map_smul' := he_smul }
+      invFun := e.symm
+      left_inv := e.symm_apply_apply
+      right_inv := e.apply_symm_apply }
+
 end ValuationSpectrum
