@@ -2136,4 +2136,93 @@ theorem laurentCover_separation_via_isEmbedding_presheaf_via_bridges_baire_auto
       hplus hminus
   exact hemb.injective (Prod.ext ha hb)
 
+/-! ### T-NEW-4: combined Part 1 + Part 2 wrapper via abstract suppliers
+
+**T-NEW-4 (2026-05-11)**.
+
+Final cap on the Tate acyclicity (Wedhorn Theorem 8.28(b)) result for
+strongly noetherian Tate rings: produces both Part 1 (separation) and Part 2
+(gluing) of the sheaf condition from **abstract lane suppliers** matching the
+existing assembly architecture.
+
+Composition:
+* Part 1 follows from a cover-level separation supplier
+  (`global_separation`) — typically packaged via
+  `RationalCovering.separation_via_prime_extension_closed` /
+  `nonempty_separation_supplier_via_prime_extension_closed` or — in the
+  corrected (post-2026-05-11) route — the new
+  `productRestriction_faithfullyFlat_tate_laurent_of_hSpa_points` chain
+  for Laurent-shape covers.
+* Part 2 follows from the existing
+  `tateAcyclicity_Part2_end_to_end_via_primary` wrapper, fed `lane_A_supplier`
+  and `lane_B_supplier` (the latter is the per-E separation supplier whose
+  flatness route is the subject of T-FLAT-PER-E).
+
+This wrapper does NOT propagate the misframed `restrictionMap_isLocalization`
+chain — all flatness is delegated to the caller via the lane suppliers. -/
+theorem RationalCovering.tateAcyclicityComplete
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    [DecidableEq A]
+    (C : RationalCovering A) (hne : C.covers.Nonempty)
+    (hZavyalov_per_E : rationalOpen C.base.T C.base.s ≠ ∅ →
+      ∃ S : Finset A,
+        refines_cover_per_E C S ∧ refines_contain C S ∧ refines_span_top S)
+    (f₀ : A)
+    (global_separation : ∀ a b : presheafValue C.base,
+      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+        restrictionMap C.base D (C.hsubset D hD) a =
+          restrictionMap C.base D (C.hsubset D hD) b) →
+      a = b)
+    (lane_A_supplier : ∀ (S' : StandardCover A)
+      (_hS'_per_E : refines_cover_per_E C S'.elts)
+      (_hS'_contain : refines_contain C S'.elts),
+      ∀ (fV : ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ }, presheafValue D.1),
+      (∀ (D₁ D₂ : { D // D ∈ C.refinedVCovers S'.elts f₀ })
+        (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (fV D₁) = restrictionMap D₂.1 D₃ h₃₂ (fV D₂)) →
+      ∃ x : presheafValue C.base, ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ },
+        restrictionMap C.base D.1
+          (C.refinedVCovers_subset_base S'.elts f₀ D.1 D.2) x = fV D)
+    (lane_B_supplier : ∀ (S' : StandardCover A)
+      (hS'_per_E : refines_cover_per_E C S'.elts)
+      (_hS'_contain : refines_contain C S'.elts),
+      ∀ (E : { E // E ∈ C.covers }) (a b : presheafValue E.1),
+      (∀ (D : RationalLocData A)
+         (hD : D ∈ (C.per_E_local_covering S'.elts f₀ E hS'_per_E).covers),
+        restrictionMap E.1 D
+            ((C.per_E_local_covering S'.elts f₀ E hS'_per_E).hsubset D hD) a =
+          restrictionMap E.1 D
+            ((C.per_E_local_covering S'.elts f₀ E hS'_per_E).hsubset D hD) b) →
+        a = b) :
+    -- Part 1: separation (zero-kernel form).
+    (∀ x : presheafValue C.base,
+      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+        restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0) ∧
+    -- Part 2: gluing.
+    (∀ (f : ∀ (D : ↥C.covers), presheafValue D.1),
+      (∀ (D₁ D₂ : ↥C.covers) (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (f D₁) = restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
+      ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
+        restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D) := by
+  refine ⟨?_, ?_⟩
+  · -- Part 1 via `global_separation` with `b := 0`.
+    intro x hx
+    have hagree : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+        restrictionMap C.base D (C.hsubset D hD) x =
+        restrictionMap C.base D (C.hsubset D hD) 0 := by
+      intro D hD
+      change restrictionMapHom C.base D (C.hsubset D hD) x =
+        restrictionMapHom C.base D (C.hsubset D hD) 0
+      rw [map_zero]; exact hx D hD
+    exact global_separation x 0 hagree
+  · -- Part 2 via the existing assembly wrapper.
+    intro fC hC_compat
+    exact RationalCovering.tateAcyclicity_Part2_end_to_end_via_primary
+      (A := A) C hne hZavyalov_per_E f₀ fC hC_compat
+      lane_A_supplier lane_B_supplier
+
 end ValuationSpectrum
