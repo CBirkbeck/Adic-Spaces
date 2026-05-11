@@ -914,4 +914,33 @@ theorem restrictionMap_flat_chain_three
   exact restrictionMap_flat_trans E D₂ D
     (h_D₁_D₂.trans h_E_D₁) h_D₂_D flat_E_D₂ flat_D₂_D
 
+/-- Depth-4 chain composition. -/
+theorem restrictionMap_flat_chain_four
+    (E D₁ D₂ D₃ D : RationalLocData A)
+    (h_E_D₁ : rationalOpen D₁.T D₁.s ⊆ rationalOpen E.T E.s)
+    (h_D₁_D₂ : rationalOpen D₂.T D₂.s ⊆ rationalOpen D₁.T D₁.s)
+    (h_D₂_D₃ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.T D₂.s)
+    (h_D₃_D : rationalOpen D.T D.s ⊆ rationalOpen D₃.T D₃.s)
+    (flat_E_D₁ : @Module.Flat (presheafValue E) (presheafValue D₁) _ _
+      ((restrictionMapHom E D₁ h_E_D₁).toModule))
+    (flat_D₁_D₂ : @Module.Flat (presheafValue D₁) (presheafValue D₂) _ _
+      ((restrictionMapHom D₁ D₂ h_D₁_D₂).toModule))
+    (flat_D₂_D₃ : @Module.Flat (presheafValue D₂) (presheafValue D₃) _ _
+      ((restrictionMapHom D₂ D₃ h_D₂_D₃).toModule))
+    (flat_D₃_D : @Module.Flat (presheafValue D₃) (presheafValue D) _ _
+      ((restrictionMapHom D₃ D h_D₃_D).toModule)) :
+    @Module.Flat (presheafValue E) (presheafValue D) _ _
+      ((restrictionMapHom E D
+        (h_D₃_D.trans (h_D₂_D₃.trans (h_D₁_D₂.trans h_E_D₁)))).toModule) := by
+  -- Combine the first three steps.
+  have flat_E_D₃ :
+      @Module.Flat (presheafValue E) (presheafValue D₃) _ _
+        ((restrictionMapHom E D₃
+          (h_D₂_D₃.trans (h_D₁_D₂.trans h_E_D₁))).toModule) :=
+    restrictionMap_flat_chain_three E D₁ D₂ D₃
+      h_E_D₁ h_D₁_D₂ h_D₂_D₃ flat_E_D₁ flat_D₁_D₂ flat_D₂_D₃
+  -- Add the final step.
+  exact restrictionMap_flat_trans E D₃ D
+    (h_D₂_D₃.trans (h_D₁_D₂.trans h_E_D₁)) h_D₃_D flat_E_D₃ flat_D₃_D
+
 end ValuationSpectrum
