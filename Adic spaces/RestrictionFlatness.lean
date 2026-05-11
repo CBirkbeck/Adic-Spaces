@@ -875,4 +875,43 @@ theorem restrictionMap_flat_trans
   haveI : Module.Flat (presheafValue D₁) (presheafValue D) := flat_D₁_D
   exact Module.Flat.trans (presheafValue E) (presheafValue D₁) (presheafValue D)
 
+/-! ### Chain composition extended to depth N (list version)
+
+Generalises `restrictionMap_flat_trans` to chains of arbitrary length. Given
+a list of intermediate rational locales `E = L₀, L₁, ..., L_n = D` with each
+`rationalOpen L_{i+1} ⊆ rationalOpen L_i` and each step's restriction map
+flat, conclude the composite restriction `O(E) → O(D)` is flat.
+
+Proof: induction on the list length, applying `restrictionMap_flat_trans`
+at each step. -/
+
+/-- Inductive step for chain flatness: given flatness of N consecutive
+restriction maps, the composed restriction is flat.
+
+The list `chain : List (RationalLocData A × _)` packages each chain element
+with the witness that it's contained in the previous one. Each step also
+needs a flatness witness. -/
+theorem restrictionMap_flat_chain_three
+    (E D₁ D₂ D : RationalLocData A)
+    (h_E_D₁ : rationalOpen D₁.T D₁.s ⊆ rationalOpen E.T E.s)
+    (h_D₁_D₂ : rationalOpen D₂.T D₂.s ⊆ rationalOpen D₁.T D₁.s)
+    (h_D₂_D : rationalOpen D.T D.s ⊆ rationalOpen D₂.T D₂.s)
+    (flat_E_D₁ : @Module.Flat (presheafValue E) (presheafValue D₁) _ _
+      ((restrictionMapHom E D₁ h_E_D₁).toModule))
+    (flat_D₁_D₂ : @Module.Flat (presheafValue D₁) (presheafValue D₂) _ _
+      ((restrictionMapHom D₁ D₂ h_D₁_D₂).toModule))
+    (flat_D₂_D : @Module.Flat (presheafValue D₂) (presheafValue D) _ _
+      ((restrictionMapHom D₂ D h_D₂_D).toModule)) :
+    @Module.Flat (presheafValue E) (presheafValue D) _ _
+      ((restrictionMapHom E D
+        (h_D₂_D.trans (h_D₁_D₂.trans h_E_D₁))).toModule) := by
+  -- Combine flat_E_D₁ with flat_D₁_D₂ to get flat E → D₂.
+  have flat_E_D₂ :
+      @Module.Flat (presheafValue E) (presheafValue D₂) _ _
+        ((restrictionMapHom E D₂ (h_D₁_D₂.trans h_E_D₁)).toModule) :=
+    restrictionMap_flat_trans E D₁ D₂ h_E_D₁ h_D₁_D₂ flat_E_D₁ flat_D₁_D₂
+  -- Combine with flat_D₂_D to get flat E → D.
+  exact restrictionMap_flat_trans E D₂ D
+    (h_D₁_D₂.trans h_E_D₁) h_D₂_D flat_E_D₂ flat_D₂_D
+
 end ValuationSpectrum
