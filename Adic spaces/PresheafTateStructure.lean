@@ -1167,23 +1167,42 @@ private theorem locLift_maps_locNhd
 -- Chain had no external callers (restrictionMapHom_isInducing also removed).
 -- Wedhorn flatness route (docs/plans/2026-04-08-*.md) supersedes it.
 
-/-- **Sigma surj condition (Wedhorn Prop 8.15)**: The restriction map
-`restrictionMapHom D₀ D h` satisfies the `IsLocalization.Away.surj` condition:
-for every `z`, there exist `n` and `a` with `z * sigma(s')^n = sigma(a)`.
+/-- **Sigma surj condition (Wedhorn Prop 8.15)** — ⚠️ **MISFRAMED, see below**.
 
-**WARNING**: `Function.Surjective sigma` is FALSE in general -- it would require
-`DenseRange locLift` (density of `A[1/D0.s]` in `A[1/D.s]` with the localization
-topology), but `D.s` need not be a unit in `Localization.Away D0.s`.
-Counterexample: the p-adic completion map from p-adic integers to p-adic numbers
-is injective with closed range but NOT surjective.
-The correct result is the surj condition below.
+⚠️  **THIS STATEMENT IS MATHEMATICALLY FALSE IN GENERAL** (ChatGPT Pro reviewer
+correction, 2026-05-11 session 2).
 
-**Proof (Baire category)**: Define `S_n = {z | ∃ a, z * u^n = sigma(a)}`.
-Each `S_n` is closed (preimage of closed `range(sigma)` under the homeomorphism
-`z ↦ z * u^n`). `S = ∪_n S_n` is ascending, dense (contains
-`D.coeRingHom(Localization.Away D.s)` from `h_dense`), and an additive subgroup.
-By Baire category (presheafValue D is complete metrizable), some `S_N` has
-nonempty interior, making `S` open. Open + dense subgroup = everything. -/
+The statement claims: for every `z ∈ presheafValue D`, there exist `n, a` with
+`z · u^n = σ(a)`. This is the `IsLocalization.Away.surj` predicate, i.e., the
+algebraic-localization condition that every element has a finite-power
+denominator.
+
+**Counterexample**: Take `A = ℚ_p⟨X⟩` and the completed rational localization
+`A⟨T⟩/(XT - 1)`. It contains `∑_{n ≥ 0} p^n · X^{-n}` (a convergent infinite
+negative-power series). Multiplying by `X^N` removes only finitely many
+negative powers; no finite power clears the infinite tail. So the surj
+condition FAILS.
+
+**Why we kept thinking it was provable**: the Baire-category route in the
+previous docstring is flawed at the "range(σ) is closed" step. `range(σ)` is
+generally NOT closed because σ is NOT uniform-inducing in general (Conrad
+counterexample). Without closedness, the Baire argument doesn't apply.
+
+**Correct route for the original goal (Cor 8.32 flatness)**: use
+`Module.Flat` directly via Wedhorn 8.31 + Tate-algebra quotient identification
+at the B-level (see ticket T-FLAT-VIA-WEDHORN830 in
+`Adic spaces/RestrictionFlatness.lean`). This avoids the algebraic-localization
+predicate entirely.
+
+**Status**: the sorry below is preserved as an explicit "intentionally not
+closed — over-strong target" marker. DO NOT pick it up as a TODO. New work
+should route through the flatness path.
+
+(Previous Baire-category strategy retained for historical reference:
+S_n = {z | ∃ a, z·u^n = σ(a)} is closed if range(σ) is closed; S = ⋃ S_n is
+dense ascending subgroup; if S is non-meagre, Baire gives interior, hence
+open subgroup, hence dense+clopen=univ. The fatal step is "range(σ) closed",
+which fails in general.) -/
 theorem restrictionMapHom_surj
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
@@ -2393,20 +2412,45 @@ theorem restrictionMapHom_ker_isTorsion
 
 /-- **Proposition 8.15**: the restriction map is a localization.
 
-`presheafValue D` is the localization of `presheafValue D₀` at
-`D₀.canonicalMap D.s`. This makes each restriction map a localization,
-hence flat (by `Localization.flat`).
+⚠️  **MISFRAMED — DO NOT USE FOR NEW WORK** (ChatGPT Pro reviewer correction,
+2026-05-11 session 2; see `.mathlib-quality/expert-review/2026-05-11-2/reply.md`).
 
-**Proof strategy**: Apply `IsLocalization.Away.mk` with three conditions:
-1. **Unit**: `sigma(s')` is a unit in `presheafValue D` (from `isUnit_s_in_presheafValue`).
-2. **Surj**: For every `z`, exists `n, a` with `z * sigma(s')^n = sigma(a)`.
-   Proved on the dense image via `IsLocalization.Away.surj`, extended to the
-   completion via the subring argument: the set S = {z | exists n a, ...} is a
-   dense subring of presheafValue D, and by the Baire category theorem on the
-   complete metrizable space, S is open hence closed hence everything.
-3. **Eq (torsion kernel)**: `c ∈ ker(sigma) ⟹ ∃ n, s'^n * c = 0`. Discharged
-   via `restrictionMapHom_ker_isTorsion` (named residual above, weaker than
-   the retired-false `restrictionMapHom_injective`). -/
+This statement asserts that the restriction map `presheafValue D₀ → presheafValue D`
+is an **`IsLocalization.Away`** (algebraic-localization predicate): every element
+of `presheafValue D` has the form `σ(a) / u^n` for some `a, n`. **This is FALSE
+in general for completed rational localizations.**
+
+**Counterexample**: Take `A = ℚ_p⟨X⟩` and the completed rational localization
+`A⟨T⟩/(XT - 1)` (inverting `X` in the affinoid sense). It contains the convergent
+infinite negative-power series
+```
+  ∑_{n ≥ 0} p^n · X^{-n}
+```
+Multiplying by `X^N` clears only finitely many negative powers, leaving an
+infinite tail. So no finite power of `X` clears this element into `A`.
+
+**The misframing**: `IsLocalization.Away` is an *algebraic-localization*
+predicate (Mathlib's `algebraMap`-based, finite-power denominator clearing).
+Completed rational localizations are *topological-localization* objects
+(adjoin bounded fractions, then complete). The two notions DIVERGE: completed
+rational sections contain convergent infinite denominator tails.
+
+**Correct route for downstream (Cor 8.32) consumers**: use `Module.Flat`
+directly via `restrictionMap_flat_via_iteratedMinus`/`_iteratedPlus` (in
+`Adic spaces/RestrictionFlatness.lean`, ticket T-FLAT-VIA-WEDHORN830). The
+flatness route uses the existing Wedhorn 8.31 / Tate-algebra quotient
+identifications at the B-level. See ticket T-COR832-VIA-FLAT for the
+refactored `flat_over_base_tate`.
+
+The sorry below stays as an explicit "intentionally not closed — over-strong
+target" marker. The previous proof-strategy docstring (which planned a Baire
+surjection argument) is retained for historical reference:
+
+> Previous strategy (now retired): Apply `IsLocalization.Away.mk` with three
+> conditions: (1) Unit: `sigma(s')` is a unit; (2) Surj: every `z` is
+> `sigma(a)/u^n` — discharged via Baire category on the dense subring;
+> (3) Torsion kernel. The Baire-surjection step (2) is precisely what's
+> mathematically false for the algebraic-localization predicate. -/
 theorem restrictionMap_isLocalization
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
