@@ -21,6 +21,7 @@ import «Adic spaces».CompleteTopCommRingCat
 import «Adic spaces».ContinuousValuations
 import «Adic spaces».Cor732
 import «Adic spaces».Cor832
+import «Adic spaces».EmbeddingTopo
 import «Adic spaces».ExcellentRing
 import «Adic spaces».FarguesFontaine
 import «Adic spaces».FlatnessResults
