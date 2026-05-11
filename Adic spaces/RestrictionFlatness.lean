@@ -656,4 +656,117 @@ theorem restrictionMap_flat_via_oneSubfX_quotient
       left_inv := e.symm_apply_apply
       right_inv := e.apply_symm_apply }
 
+/-! ### T-RATIONAL-FLAT-GENERAL: general rational-restriction flatness
+
+**T-RATIONAL-FLAT-GENERAL (2026-05-11 round 3, hypothesis-parameterised form)**.
+
+Per session-3 reviewer prescription: the natural theorem Wedhorn actually uses
+is *arbitrary rational restrictions are flat*. For any `E, D : RationalLocData A`
+with `rationalOpen D ⊆ rationalOpen E`, the restriction map `O(E) → O(D)` is flat
+as an `O(E)`-module homomorphism.
+
+The reviewer's proof outline:
+1. Basic plus flatness `B → B⟨X⟩/(f-X)` (already proved as
+   `flat_quotient_fSubX_general`).
+2. Basic minus flatness `B → B⟨X⟩/(1-fX)` (already proved as
+   `flat_quotient_oneSubfX_general`).
+3. Transitivity of rational localizations: any inclusion `D ⊆ E` decomposes as
+   a finite chain of basic steps.
+4. Composition of flat maps is flat.
+
+This version of the theorem is **hypothesis-parameterised** by the depth-N
+Wedhorn 2.13 generalisation: the caller supplies a ring iso
+`presheafValue D ≃+* presheafValue D_at_E` where `D_at_E : RationalLocData (presheafValue E)`
+is the relative rational locale (built by iterating Wedhorn 2.13). The iso
+must intertwine the restriction map with the canonical map at E-level.
+
+Once supplied, the flatness follows by applying `presheafValue_flat_of_canonical`
+at the E-level and transferring along the equiv.
+
+The construction of `D_at_E` and the relative-equiv `presheafValue_relative_equiv`
+is the remaining structural piece (T-WEDHORN-213-GENERAL); this wrapper isolates
+the algebraic-flatness step from that construction. -/
+theorem restrictionMap_flat_of_rational_subset_via_relative
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (E D : RationalLocData A)
+    [IsNoetherianRing (locSubring E.P E.T E.s)]
+    (hsub : rationalOpen D.T D.s ⊆ rationalOpen E.T E.s)
+    -- Depth-N Wedhorn 2.13: relative locale data for D over presheafValue E.
+    (D_at_E : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+      RationalLocData (presheafValue E))
+    -- The relative equiv (depth-N 2.13).
+    (relEquiv : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+      presheafValue D ≃+* presheafValue D_at_E)
+    -- The relative equiv intertwines the restriction map with the canonical map.
+    (h_intertwine : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+      ∀ a : presheafValue E,
+        relEquiv (restrictionMapHom E D hsub a) = D_at_E.canonicalMap a)
+    -- B-level hypotheses needed by `presheafValue_flat_of_canonical` at E-level.
+    (hNoeth_B : IsNoetherianRing (presheafValue E))
+    (hLocLift_B : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+      HasLocLiftPowerBounded (presheafValue E))
+    (hA_complete_B : @CompleteSpace (presheafValue E)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue E)))
+    (hnoeth_B : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue E)).toPairOfDefinition))
+    (hP_A₀Noeth_B : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+      letI : IsNoetherianRing (presheafValue E) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P E).A₀))
+    -- The canonical-form flatness hypotheses for D_at_E.
+    (hb : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+      TopologicalRing.IsPowerBounded (invS D_at_E))
+    (hT_pb : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+      ∀ t ∈ D_at_E.T, TopologicalRing.IsPowerBounded t)
+    (hcont_eval : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+      letI : HasLocLiftPowerBounded (presheafValue E) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue E) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue E) :=
+        presheafValue_pairOfDefinition_concrete P E
+      @Continuous _ _
+        (TateAlgebra.quotientOneSubfXIdealTopology D_at_E.s)
+        (inferInstance : TopologicalSpace (presheafValue D_at_E))
+        (tateQuotientToPresheafHom D_at_E hb)) :
+    @Module.Flat (presheafValue E) (presheafValue D) _ _
+      ((restrictionMapHom E D hsub).toModule) := by
+  letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+  letI : HasLocLiftPowerBounded (presheafValue E) := hLocLift_B
+  letI : IsNoetherianRing (presheafValue E) := hNoeth_B
+  letI P_B : PairOfDefinition (presheafValue E) :=
+    presheafValue_pairOfDefinition_concrete P E
+  letI : IsNoetherianRing ↥P_B.A₀ := hP_A₀Noeth_B
+  -- Step 1: E-level flatness of presheafValue D_at_E via Wedhorn 8.30 + Lemma 8.31.
+  haveI hflat_E :
+      @Module.Flat (presheafValue E) (presheafValue D_at_E)
+        _ _ (RingHom.toModule D_at_E.canonicalMap) :=
+    presheafValue_flat_of_canonical (presheafValue E) P_B D_at_E
+      hb hA_complete_B hnoeth_B hT_pb hcont_eval
+  -- Step 2: Transfer flatness along the relative equiv.
+  let e := relEquiv
+  change @Module.Flat (presheafValue E) (presheafValue D)
+    _ _ ((restrictionMapHom E D hsub).toModule)
+  letI : Module (presheafValue E) (presheafValue D) :=
+    (restrictionMapHom E D hsub).toModule
+  letI : Module (presheafValue E) (presheafValue D_at_E) :=
+    RingHom.toModule D_at_E.canonicalMap
+  have he_smul : ∀ (a : presheafValue E) (x : presheafValue D),
+      e (a • x) = a • e x := by
+    intro a x
+    change e (restrictionMapHom E D hsub a * x) = D_at_E.canonicalMap a * e x
+    rw [e.map_mul]
+    congr 1
+    exact h_intertwine a
+  exact @Module.Flat.of_linearEquiv (presheafValue E)
+    (presheafValue D_at_E)
+    (presheafValue D)
+    _ _ _ _ _ hflat_E
+    { toLinearMap :=
+        { toFun := e
+          map_add' := e.map_add
+          map_smul' := he_smul }
+      invFun := e.symm
+      left_inv := e.symm_apply_apply
+      right_inv := e.apply_symm_apply }
+
 end ValuationSpectrum
