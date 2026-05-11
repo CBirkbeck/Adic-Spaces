@@ -205,6 +205,119 @@ theorem instCompactSpace_spa_of_isClosed_image
     CompactSpace ↥(Spa A A⁺) :=
   isCompact_iff_compactSpace.mp (isCompact_spa_of_isClosed_image hS hEq)
 
+/-! ### Quasi-compactness of rational opens via the Bool cylinder extension
+
+`rationalOpen T s ⊆ Spa A A⁺` is a finite intersection of `basicOpen t s`
+for `t ∈ insert s T`. Each `basicOpen` is OPEN but **not closed** in the
+`Spv A` topology (see the SpaCompact preamble), so the naive
+"closed-in-compact" route fails.
+
+**The correct route** uses the Bool Huber embedding: for each `(t, s)`
+the cylinder `{r | r(t, s) = true}` IS clopen in the discrete Bool product
+(`isClosed_coord_true`), and `v ∈ basicOpen t s ↔ ιSpv_bool v (t, s) = true`.
+Hence
+  `ιSpv_bool '' rationalOpen T s = (ιSpv_bool '' Spa A A⁺) ∩ ⋂_{t ∈ insert s T} {r | r(t,s)=true}`
+stays closed whenever `ιSpv_bool '' Spa A A⁺` is; closed in compact Bool
+gives compact, which transfers back via `continuous_boolToProp_pi` +
+`ιSpv_isEmbedding.isCompact_iff`. -/
+
+/-- **Bool image of a rational open.** Assuming an abstract closed
+description `ιSpv_bool '' Spa A A⁺ = range ιSpv_bool ∩ S`, the image of
+`rationalOpen T s` is obtained by intersecting with the clopen cylinder
+`{r | r(s, s) = true}` (encoding `¬ v.vle s 0`) and, for each `t ∈ T`,
+the cylinder `{r | r(t, s) = true}` (encoding `v.vle t s`). -/
+lemma image_ιSpv_bool_rationalOpen
+    {S : Set (A × A → Bool)}
+    (hEq : (ιSpv_bool : Spv A → (A × A → Bool)) '' (Spa A A⁺) =
+      Set.range (ιSpv_bool : Spv A → (A × A → Bool)) ∩ S)
+    (T : Finset A) (s : A) :
+    (ιSpv_bool : Spv A → (A × A → Bool)) '' (rationalOpen T s) =
+      (Set.range (ιSpv_bool : Spv A → (A × A → Bool)) ∩ S) ∩
+        ({r : A × A → Bool | r (s, s) = true} ∩
+          ⋂ (t : A) (_ : t ∈ T), {r : A × A → Bool | r (t, s) = true}) := by
+  rw [← hEq]
+  ext r
+  simp only [Set.mem_image, Set.mem_inter_iff, Set.mem_iInter, Set.mem_setOf_eq]
+  refine ⟨?_, ?_⟩
+  · rintro ⟨v, ⟨hv_spa, hvT, hvs⟩, rfl⟩
+    refine ⟨⟨v, hv_spa, rfl⟩, ?_, ?_⟩
+    · simp only [ιSpv_bool_apply, @decide_eq_true_iff _ (Classical.dec _)]
+      exact ⟨(v.vle_total s s).elim id id, hvs⟩
+    · intro t ht
+      simp only [ιSpv_bool_apply, @decide_eq_true_iff _ (Classical.dec _)]
+      exact ⟨hvT t ht, hvs⟩
+  · rintro ⟨⟨v, hv_spa, rfl⟩, hs_cell, hCyl⟩
+    simp only [ιSpv_bool_apply, @decide_eq_true_iff _ (Classical.dec _)] at hs_cell
+    refine ⟨v, ⟨hv_spa, ?_, hs_cell.2⟩, rfl⟩
+    intro t ht
+    have hcell := hCyl t ht
+    simp only [ιSpv_bool_apply, @decide_eq_true_iff _ (Classical.dec _)] at hcell
+    exact hcell.1
+
+/-- **Quasi-compactness of rational opens (abstract form).** From any
+closed description `ιSpv_bool '' Spa A A⁺ = range ιSpv_bool ∩ S`, the
+rational open `rationalOpen T s` is quasi-compact in `Spv A`. Specialise
+via `image_spa_ιSpv_bool` (discrete case) or
+`image_spa_ιSpv_bool_of_tate` (Tate case). -/
+theorem isCompact_rationalOpen_of_isClosed_image
+    {S : Set (A × A → Bool)} (hS : IsClosed S)
+    (hEq : (ιSpv_bool : Spv A → (A × A → Bool)) '' (Spa A A⁺) =
+      Set.range (ιSpv_bool : Spv A → (A × A → Bool)) ∩ S)
+    (T : Finset A) (s : A) :
+    IsCompact (rationalOpen T s : Set (Spv A)) := by
+  have hBoolCompact :
+      IsCompact ((ιSpv_bool : Spv A → (A × A → Bool)) '' (rationalOpen T s)) := by
+    rw [image_ιSpv_bool_rationalOpen hEq T s]
+    refine IsClosed.isCompact ?_
+    refine (isClosed_range_ιSpv_bool.inter hS).inter ?_
+    refine (isClosed_coord_true (s, s)).inter ?_
+    exact isClosed_iInter fun t ↦ isClosed_iInter fun _ ↦ isClosed_coord_true (t, s)
+  refine (ιSpv_isEmbedding.isCompact_iff (s := rationalOpen T s)).mpr ?_
+  have hfactor :
+      (ιSpv : Spv A → (A × A → Prop)) '' (rationalOpen T s) =
+        (fun r : A × A → Bool => fun p => boolToProp (r p)) ''
+          ((ιSpv_bool : Spv A → (A × A → Bool)) '' (rationalOpen T s)) := by
+    ext p
+    simp only [Set.mem_image]
+    refine ⟨?_, ?_⟩
+    · rintro ⟨v, hv, rfl⟩
+      exact ⟨ιSpv_bool v, ⟨v, hv, rfl⟩, (ιSpv_eq_boolToProp_comp_ιSpv_bool v).symm⟩
+    · rintro ⟨r, ⟨v, hv, rfl⟩, rfl⟩
+      exact ⟨v, hv, ιSpv_eq_boolToProp_comp_ιSpv_bool v⟩
+  rw [hfactor]
+  exact hBoolCompact.image continuous_boolToProp_pi
+
+/-- **Subtype form: rational opens pull back to compact sets in `↥(Spa A A⁺)`.**
+Since `rationalOpen T s ⊆ Spa A A⁺`, the preimage under `Subtype.val` is a
+compact subset of the adic spectrum when the ambient Bool image is closed. -/
+theorem isCompact_preimage_rationalOpen_of_isClosed_image
+    {S : Set (A × A → Bool)} (hS : IsClosed S)
+    (hEq : (ιSpv_bool : Spv A → (A × A → Bool)) '' (Spa A A⁺) =
+      Set.range (ιSpv_bool : Spv A → (A × A → Bool)) ∩ S)
+    (T : Finset A) (s : A) :
+    IsCompact (Subtype.val ⁻¹' rationalOpen T s : Set ↥(Spa A A⁺)) := by
+  have hEmb : Topology.IsEmbedding (Subtype.val : ↥(Spa A A⁺) → Spv A) :=
+    Topology.IsEmbedding.subtypeVal
+  refine (hEmb.isCompact_iff (s := Subtype.val ⁻¹' rationalOpen T s)).mpr ?_
+  have himg : Subtype.val '' (Subtype.val ⁻¹' rationalOpen T s
+      : Set ↥(Spa A A⁺)) = rationalOpen T s := by
+    rw [Subtype.image_preimage_val]
+    exact Set.inter_eq_right.mpr rationalOpen_subset_spa
+  rw [himg]
+  exact isCompact_rationalOpen_of_isClosed_image hS hEq T s
+
+/-- **Quasi-compactness of rational opens (discrete case).** Under
+`[DiscreteTopology A]`, each rational open `rationalOpen T s ⊆ Spa A A⁺`
+is quasi-compact. Instantiates the abstract criterion with the discrete
+image description `image_spa_ιSpv_bool`. -/
+theorem isCompact_preimage_rationalOpen_of_discreteTopology
+    [DiscreteTopology A] (T : Finset A) (s : A) :
+    IsCompact (Subtype.val ⁻¹' rationalOpen T s : Set ↥(Spa A A⁺)) :=
+  isCompact_preimage_rationalOpen_of_isClosed_image
+    (S := ⋂ (a : A) (_ : a ∈ A⁺), {r : A × A → Bool | r (a, 1) = true})
+    (isClosed_iInter fun a ↦ isClosed_iInter fun _ ↦ isClosed_coord_true (a, 1))
+    image_spa_ιSpv_bool T s
+
 end ValuationSpectrum
 
 /-! ### Tate case: compactness via a pseudo-uniformizer
@@ -456,5 +569,39 @@ theorem instCompactSpace_spa_of_tate_pseudouniformizer
     CompactSpace ↥(Spa A A⁺) :=
   isCompact_iff_compactSpace.mp
     (isCompact_spa_of_tate_pseudouniformizer P hA₀_le π hI hπ_tn hπ_unit hArch)
+
+/-! ### Quasi-compactness of rational opens (Tate specialisation)
+
+Concrete C2 supplier for the T-NULL-PER-E decomposition: each rational
+open `rationalOpen T s ⊆ Spa A A⁺` is quasi-compact under the Tate
+hypotheses. Uses the abstract criterion `isCompact_preimage_rationalOpen_of_isClosed_image`
+(`SpaCompact.lean`, above) with the closed Bool image description from
+`image_spa_ιSpv_bool_of_tate`. -/
+
+omit [IsLinearTopology A A] in
+/-- **Quasi-compactness of rational opens for Tate rings** with a
+pseudo-uniformizer. This provides the C2 step of the reviewer's T-NULL-
+PER-E decomposition (see `StandardCover.lean` for the overall strategy):
+a finite open cover of `rationalOpen T s` admits a finite sub-cover. -/
+theorem isCompact_preimage_rationalOpen_of_tate_pseudouniformizer
+    (P : PairOfDefinition A) (hA₀_le : P.A₀ ≤ A⁺)
+    (π : P.A₀) (hI : P.I = Ideal.span {π})
+    (hπ_tn : IsTopologicallyNilpotent (P.A₀.subtype π))
+    (hπ_unit : IsUnit (P.A₀.subtype π))
+    (hArch : ∀ v : Spv A,
+        letI : ValuativeRel A := v.toValuativeRel
+        MulArchimedean (ValuativeRel.ValueGroupWithZero A))
+    (T : Finset A) (s : A) :
+    IsCompact (Subtype.val ⁻¹' rationalOpen T s : Set ↥(Spa A A⁺)) :=
+  isCompact_preimage_rationalOpen_of_isClosed_image
+    (S := (⋂ (a : A) (_ : a ∈ A⁺), {r : A × A → Bool | r (a, 1) = true}) ∩
+      {r : A × A → Bool | r (1, P.A₀.subtype π) = false})
+    ((isClosed_iInter fun a ↦ isClosed_iInter fun _ ↦
+        isClosed_coord_true (a, 1)).inter
+      (isClosed_coord_false (1, P.A₀.subtype π)))
+    (by
+      rw [image_spa_ιSpv_bool_of_tate P hA₀_le π hI hπ_tn hπ_unit hArch]
+      ext r; simp only [Set.mem_inter_iff]; tauto)
+    T s
 
 end ValuationSpectrum

@@ -461,6 +461,230 @@ noncomputable def evalHomBounded (g : A →+* B) (hg : Continuous g)
     exact Finset.sum_congr rfl fun ⟨i, j⟩ hij => by
       rw [← Finset.mem_antidiagonal.mp hij, pow_add]; ring
 
+/-! ### Bivariate evaluation ring homomorphism (Wedhorn Example 6.39)
+
+Bivariate analog of `evalHomBounded`: given a continuous ring homomorphism
+`g : A →+* B` into a complete nonarchimedean ring `B` and TWO elements
+`b₁, b₂ ∈ B` whose powers are bounded, sends `h ∈ TateAlgebra₂ A`
+to the convergent double sum
+`∑_{n : Fin 2 →₀ ℕ} g(coeff_n h) · b₁^(n 0) · b₂^(n 1) ∈ B`.
+
+This is the primitive needed by `LaurentOverlap.lean` Step A
+(Wedhorn Example 6.39 / T-OV-1). -/
+
+/-- The `n`-th term of the bivariate evaluation series:
+`g(coeff_n h) · b₁^(n 0) · b₂^(n 1)`. -/
+noncomputable def evalTerm₂ (g : A →+* B) (b₁ b₂ : B)
+    (h : ↥(TateAlgebra₂ A)) (n : Fin 2 →₀ ℕ) : B :=
+  g (MvPowerSeries.coeff n h.val) * (b₁ ^ (n 0) * b₂ ^ (n 1))
+
+omit [UniformSpace B] [IsUniformAddGroup B]
+  [NonarchimedeanRing B] [CompleteSpace B] [T0Space B] in
+/-- Bivariate coefficients of a restricted series tend to `0` along the
+cofinite filter on `Fin 2 →₀ ℕ`. Direct projection of the `IsRestricted`
+hypothesis carried by the subring element. -/
+private theorem coeff₂_tendsto_zero (h : ↥(TateAlgebra₂ A)) :
+    Tendsto (fun n : Fin 2 →₀ ℕ => MvPowerSeries.coeff n h.val)
+      cofinite (nhds (0 : A)) := h.prop
+
+omit [IsUniformAddGroup B] [NonarchimedeanRing B]
+  [CompleteSpace B] [T0Space B] in
+/-- The range of `n ↦ b₁^(n 0) · b₂^(n 1)` on `Fin 2 →₀ ℕ` is bounded
+whenever each individual power family is bounded (via `IsBounded.mul`). -/
+private theorem range_pow₂_isBounded (b₁ b₂ : B)
+    (hb₁ : TopologicalRing.IsBounded (Set.range (b₁ ^ · : ℕ → B)))
+    (hb₂ : TopologicalRing.IsBounded (Set.range (b₂ ^ · : ℕ → B))) :
+    TopologicalRing.IsBounded
+      (Set.range (fun n : Fin 2 →₀ ℕ => b₁ ^ (n 0) * b₂ ^ (n 1))) :=
+  (hb₁.mul hb₂).subset (by
+    rintro _ ⟨n, rfl⟩
+    exact Set.mul_mem_mul ⟨n 0, rfl⟩ ⟨n 1, rfl⟩)
+
+omit [IsUniformAddGroup B] [NonarchimedeanRing B]
+  [CompleteSpace B] [T0Space B] in
+/-- Bivariate evaluation terms tend to `0` along the cofinite filter on
+`Fin 2 →₀ ℕ`. Uses continuity of `g` (null sequence of coefficients) and
+boundedness of the bivariate power range. -/
+theorem evalTerm₂_tendsto_zero (g : A →+* B) (hg : Continuous g)
+    (b₁ b₂ : B)
+    (hb₁ : TopologicalRing.IsBounded (Set.range (b₁ ^ · : ℕ → B)))
+    (hb₂ : TopologicalRing.IsBounded (Set.range (b₂ ^ · : ℕ → B)))
+    (h : ↥(TateAlgebra₂ A)) :
+    Tendsto (evalTerm₂ g b₁ b₂ h) cofinite (nhds 0) := by
+  have hc : Tendsto (fun n : Fin 2 →₀ ℕ =>
+      g (MvPowerSeries.coeff n h.val)) cofinite (nhds 0) :=
+    map_zero g ▸ hg.continuousAt.tendsto.comp (coeff₂_tendsto_zero h)
+  have hd := range_pow₂_isBounded b₁ b₂ hb₁ hb₂
+  intro U hU
+  obtain ⟨V, hV, hSV⟩ := hd U hU
+  have hcV := hc hV
+  rw [mem_map] at hcV ⊢
+  refine mem_of_superset hcV (fun n (hn : _ ∈ V) => ?_)
+  change g (MvPowerSeries.coeff n h.val) *
+    (b₁ ^ (n 0) * b₂ ^ (n 1)) ∈ U
+  rw [mul_comm]
+  exact hSV (Set.mul_mem_mul ⟨n, rfl⟩ hn)
+
+omit [T0Space B] in
+/-- Bivariate eval terms are summable in a complete nonarchimedean ring. -/
+theorem evalTerm₂_summable (g : A →+* B) (hg : Continuous g)
+    (b₁ b₂ : B)
+    (hb₁ : TopologicalRing.IsBounded (Set.range (b₁ ^ · : ℕ → B)))
+    (hb₂ : TopologicalRing.IsBounded (Set.range (b₂ ^ · : ℕ → B)))
+    (h : ↥(TateAlgebra₂ A)) :
+    Summable (evalTerm₂ g b₁ b₂ h) :=
+  NonarchimedeanAddGroup.summable_of_tendsto_cofinite_zero
+    (evalTerm₂_tendsto_zero g hg b₁ b₂ hb₁ hb₂ h)
+
+omit [UniformSpace B] [IsUniformAddGroup B]
+  [NonarchimedeanRing B] [CompleteSpace B] [T0Space B] in
+/-- Bivariate convolution formula: `coeff_n (f · h) = ∑_{p+q=n}
+coeff_p f · coeff_q h` directly from `MvPowerSeries.coeff_mul`
+(no reindexing needed — the antidiagonal is already over `Fin 2 →₀ ℕ`). -/
+private theorem coeff₂_mul_antidiag
+    (f h : ↥(TateAlgebra₂ A)) (n : Fin 2 →₀ ℕ) :
+    MvPowerSeries.coeff n ((f * h : ↥(TateAlgebra₂ A)).val) =
+      ∑ p ∈ Finset.antidiagonal n,
+        MvPowerSeries.coeff p.1 f.val * MvPowerSeries.coeff p.2 h.val := by
+  rw [Subring.coe_mul, MvPowerSeries.coeff_mul]
+
+/-- **Bivariate evaluation ring homomorphism** for `TateAlgebra₂`
+(Wedhorn Example 6.39 / T-OV-1 primitive).
+
+Given a continuous ring homomorphism `g : A →+* B` into a complete
+nonarchimedean ring `B` and two elements `b₁, b₂ ∈ B` whose power families
+are each bounded, sends `h ∈ TateAlgebra₂ A` to
+`∑_{n : Fin 2 →₀ ℕ} g(coeff_n h) · b₁^(n 0) · b₂^(n 1) ∈ B`.
+
+The proof of `map_mul'` uses the nonarchimedean Cauchy product
+(`Summable.tsum_mul_tsum_eq_tsum_sum_antidiagonal` over `Fin 2 →₀ ℕ`,
+via the `HasAntidiagonal` instance on `Finsupp`) and the bivariate
+convolution formula for power series coefficients.
+
+Main application: `LaurentOverlap.lean` Step A, sending
+`X ↦ canonicalMap b` and `Y ↦ invS` in `presheafValue (overlap)`. -/
+noncomputable def evalHomBounded₂ (g : A →+* B) (hg : Continuous g)
+    (b₁ b₂ : B)
+    (hb₁ : TopologicalRing.IsBounded (Set.range (b₁ ^ · : ℕ → B)))
+    (hb₂ : TopologicalRing.IsBounded (Set.range (b₂ ^ · : ℕ → B))) :
+    ↥(TateAlgebra₂ A) →+* B where
+  toFun h := ∑' n, evalTerm₂ g b₁ b₂ h n
+  map_zero' := by
+    simp only [evalTerm₂, ZeroMemClass.coe_zero, map_zero, zero_mul]
+    exact tsum_zero
+  map_one' := by
+    rw [tsum_eq_single 0]
+    · simp only [evalTerm₂, OneMemClass.coe_one, Finsupp.zero_apply,
+        pow_zero, mul_one]
+      classical
+      rw [MvPowerSeries.coeff_one, if_pos rfl, map_one]
+    · intro n hn
+      simp only [evalTerm₂, OneMemClass.coe_one]
+      classical
+      rw [MvPowerSeries.coeff_one, if_neg hn, map_zero, zero_mul]
+  map_add' f h := by
+    have hterm : ∀ n, evalTerm₂ g b₁ b₂ (f + h) n =
+        evalTerm₂ g b₁ b₂ f n + evalTerm₂ g b₁ b₂ h n := fun n => by
+      simp only [evalTerm₂, Subring.coe_add, map_add, add_mul]
+    conv_lhs => arg 1; ext n; rw [hterm n]
+    exact (evalTerm₂_summable g hg b₁ b₂ hb₁ hb₂ f).tsum_add
+      (evalTerm₂_summable g hg b₁ b₂ hb₁ hb₂ h)
+  map_mul' f h := by
+    rw [Summable.tsum_mul_tsum_eq_tsum_sum_antidiagonal
+      (evalTerm₂_summable g hg b₁ b₂ hb₁ hb₂ f)
+      (evalTerm₂_summable g hg b₁ b₂ hb₁ hb₂ h)
+      ((evalTerm₂_summable g hg b₁ b₂ hb₁ hb₂ f).mul_of_nonarchimedean
+        (evalTerm₂_summable g hg b₁ b₂ hb₁ hb₂ h))]
+    congr 1
+    ext n
+    simp only [evalTerm₂, coeff₂_mul_antidiag, map_sum, map_mul,
+      Finset.sum_mul]
+    refine Finset.sum_congr rfl (fun ⟨p, q⟩ hpq => ?_)
+    have hpq_add : p + q = n := Finset.mem_antidiagonal.mp hpq
+    have h0 : p 0 + q 0 = n 0 := by rw [← Finsupp.add_apply, hpq_add]
+    have h1 : p 1 + q 1 = n 1 := by rw [← Finsupp.add_apply, hpq_add]
+    rw [← h0, ← h1, pow_add, pow_add]
+    ring
+
+/-- `evalHomBounded₂` sends `algebraMap a` to `g a`. -/
+theorem evalHomBounded₂_algebraMap (g : A →+* B) (hg : Continuous g)
+    (b₁ b₂ : B)
+    (hb₁ : TopologicalRing.IsBounded (Set.range (b₁ ^ · : ℕ → B)))
+    (hb₂ : TopologicalRing.IsBounded (Set.range (b₂ ^ · : ℕ → B)))
+    (a : A) :
+    evalHomBounded₂ g hg b₁ b₂ hb₁ hb₂
+      (algebraMap A ↥(TateAlgebra₂ A) a) = g a := by
+  show ∑' n, evalTerm₂ g b₁ b₂ (algebraMap A ↥(TateAlgebra₂ A) a) n = g a
+  rw [tsum_eq_single 0]
+  · simp only [evalTerm₂, Finsupp.zero_apply, pow_zero, mul_one]
+    change g ((MvPowerSeries.coeff 0)
+      (MvPowerSeries.C (σ := Fin 2) a)) = g a
+    classical
+    rw [MvPowerSeries.coeff_C, if_pos rfl]
+  · intro n hn
+    simp only [evalTerm₂]
+    have hcoeff : (MvPowerSeries.coeff (R := A) n)
+        ((algebraMap A ↥(TateAlgebra₂ A) a).val) = 0 := by
+      change (MvPowerSeries.coeff (R := A) n)
+        (MvPowerSeries.C (σ := Fin 2) a) = 0
+      classical
+      rw [MvPowerSeries.coeff_C, if_neg hn]
+    rw [hcoeff, map_zero, zero_mul]
+
+/-- `evalHomBounded₂` sends `TateAlgebra₂.X` to `b₁`. -/
+theorem evalHomBounded₂_X (g : A →+* B) (hg : Continuous g)
+    (b₁ b₂ : B)
+    (hb₁ : TopologicalRing.IsBounded (Set.range (b₁ ^ · : ℕ → B)))
+    (hb₂ : TopologicalRing.IsBounded (Set.range (b₂ ^ · : ℕ → B))) :
+    evalHomBounded₂ g hg b₁ b₂ hb₁ hb₂ TateAlgebra₂.X = b₁ := by
+  show ∑' n, evalTerm₂ g b₁ b₂ TateAlgebra₂.X n = b₁
+  rw [tsum_eq_single (Finsupp.single (0 : Fin 2) 1)]
+  · simp only [evalTerm₂, TateAlgebra₂.X]
+    classical
+    rw [show (MvPowerSeries.coeff (R := A) (Finsupp.single (0 : Fin 2) 1))
+          (MvPowerSeries.X (σ := Fin 2) 0) = 1 by
+        rw [MvPowerSeries.coeff_X, if_pos rfl]]
+    rw [map_one, one_mul]
+    have h0 : (Finsupp.single (0 : Fin 2) 1) 0 = 1 := Finsupp.single_eq_same
+    have h1 : (Finsupp.single (0 : Fin 2) 1) 1 = 0 := by
+      rw [Finsupp.single_apply]; exact if_neg (by decide)
+    rw [h0, h1, pow_one, pow_zero, mul_one]
+  · intro n hn
+    simp only [evalTerm₂, TateAlgebra₂.X]
+    classical
+    have hcoeff : (MvPowerSeries.coeff (R := A) n)
+        (MvPowerSeries.X (σ := Fin 2) 0) = 0 := by
+      rw [MvPowerSeries.coeff_X]
+      exact if_neg hn
+    rw [hcoeff, map_zero, zero_mul]
+
+/-- `evalHomBounded₂` sends `TateAlgebra₂.Y` to `b₂`. -/
+theorem evalHomBounded₂_Y (g : A →+* B) (hg : Continuous g)
+    (b₁ b₂ : B)
+    (hb₁ : TopologicalRing.IsBounded (Set.range (b₁ ^ · : ℕ → B)))
+    (hb₂ : TopologicalRing.IsBounded (Set.range (b₂ ^ · : ℕ → B))) :
+    evalHomBounded₂ g hg b₁ b₂ hb₁ hb₂ TateAlgebra₂.Y = b₂ := by
+  show ∑' n, evalTerm₂ g b₁ b₂ TateAlgebra₂.Y n = b₂
+  rw [tsum_eq_single (Finsupp.single (1 : Fin 2) 1)]
+  · simp only [evalTerm₂, TateAlgebra₂.Y]
+    classical
+    rw [show (MvPowerSeries.coeff (R := A) (Finsupp.single (1 : Fin 2) 1))
+          (MvPowerSeries.X (σ := Fin 2) 1) = 1 by
+        rw [MvPowerSeries.coeff_X, if_pos rfl]]
+    rw [map_one, one_mul]
+    have h0 : (Finsupp.single (1 : Fin 2) 1) 0 = 0 := by
+      rw [Finsupp.single_apply]; exact if_neg (by decide)
+    have h1 : (Finsupp.single (1 : Fin 2) 1) 1 = 1 := Finsupp.single_eq_same
+    rw [h0, h1, pow_zero, one_mul, pow_one]
+  · intro n hn
+    simp only [evalTerm₂, TateAlgebra₂.Y]
+    classical
+    have hcoeff : (MvPowerSeries.coeff (R := A) n)
+        (MvPowerSeries.X (σ := Fin 2) 1) = 0 := by
+      rw [MvPowerSeries.coeff_X]
+      exact if_neg hn
+    rw [hcoeff, map_zero, zero_mul]
+
 /-! ### Continuity of evaluation from T-topology (REMOVED)
 
 `evalHomBounded_continuous` was previously stated here but is UNPROVABLE

@@ -18,12 +18,14 @@ caller-visible unpacking of `(τ₁₂, hcompat_bridge)`.
 
 ## Caller tower (end-to-end view, post-Lane-A)
 
-| Caller-supplied inputs | Top-level theorem | Output |
-|---|---|---|
-| τ_preBiv + 2 intertwinings + V-cover data | `V_cover_gluing_via_primary` | V-cover gluing existential |
-| τ_preBiv + 2 intertwinings + Laurent-pair data | `laurentCover_gluing_presheaf_via_primary` | Laurent-pair gluing existential |
-| τ_preBiv + 2 intertwinings + half-sections | `laurentBridge_delta_eq_zero_via_primary` | algebraic `deltaMap_gen = 0` |
-| τ_preBiv + 2 intertwinings + Laurent-pair + V-cover | `laurentAndVCover_gluing_unified_via_primary` | combined existential (single-witness smoke test) |
+* `V_cover_gluing_via_primary`: consumes `τ_preBiv`, two intertwinings, and
+  V-cover data; returns the V-cover gluing existential.
+* `laurentCover_gluing_presheaf_via_primary`: consumes the same overlap data
+  and Laurent-pair data; returns Laurent-pair gluing.
+* `laurentBridge_delta_eq_zero_via_primary`: consumes the overlap data and
+  half-sections; returns algebraic `deltaMap_gen = 0`.
+* `laurentAndVCover_gluing_unified_via_primary`: combines the Laurent-pair
+  and V-cover conclusions into one single-witness smoke test.
 
 Each `_via_primary` theorem is a two-step composition:
 
@@ -43,15 +45,12 @@ The caller supplies `τ_preBiv` + intertwinings, which are Primary's
 Step-A / S-OV-GLUE content. From the Lane-C geometry side, there are no
 further sorries or missing bridges.
 
-## Upstream unpark condition
+## Build status
 
-**Compiles iff `LaurentOverlap.olean` is produced.** As of commit
-`6bd14ab`, `LaurentOverlap.lean` does not build — see
-`.mathlib-quality/tickets.md` (2026-04-21 session log) for the detailed
-38-error breakdown. Once Primary stabilizes that file (any
-`6bd14ab`-or-later commit that produces `LaurentOverlap.olean`), this
-file should compile automatically: every theorem here is pure
-structural composition over already-landed primitives.
+`LaurentOverlap.lean` now builds and this consumer layer compiles on top of
+it. The theorems in this file are pure structural composition over the
+already-landed overlap primitives; remaining acyclicity work is downstream
+geometric/final assembly, not this compatibility layer.
 
 ## References
 

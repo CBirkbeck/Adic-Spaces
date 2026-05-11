@@ -268,9 +268,9 @@ private theorem isUnit_algebraMap_s_of_subset
     intro p ⟨hsp, hp⟩
     refine mem_prime_of_rational_subset D₀ D h p hp
       (hsp (Ideal.subset_span (Set.mem_singleton D₀.s))) ?_
-    intro hp_notOpen
+    intro hp_notOpen hD's
     exact spa_point_nonOpen_of_rational_subset D₀ D h p hp
-      (hsp (Ideal.subset_span (Set.mem_singleton D₀.s))) hp_notOpen
+      (hsp (Ideal.subset_span (Set.mem_singleton D₀.s))) hD's hp_notOpen
   obtain ⟨n, hn⟩ := Ideal.mem_radical_iff.mp hrad
   obtain ⟨a, ha⟩ := Ideal.mem_span_singleton'.mp hn
   have heq : algebraMap A (Localization.Away D.s) a *
@@ -329,7 +329,7 @@ theorem locSubringToPresheafValue_isUniformInducing (D₀ : RationalLocData A) :
 
 omit [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A] in
-private theorem locSubringToPresheafValue_continuous (D₀ : RationalLocData A) :
+theorem locSubringToPresheafValue_continuous (D₀ : RationalLocData A) :
     @Continuous _ _
       (D₀.uniformSpace.comap (locSubring D₀.P D₀.T D₀.s).subtype).toTopologicalSpace
       (@UniformSpace.toTopologicalSpace _

@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».LaurentRefinement
+import «Adic spaces».LaurentOverlapConsumer
 import «Adic spaces».RationalRefinement
 import «Adic spaces».StandardCover
 
@@ -4521,6 +4522,439 @@ theorem RationalCovering.hV_glue_refined_from_laurent_halves
     rw [hx_m, huminus D hDminus] at hcomp
     exact hcomp.symm
 
+/-- Refined V-cover gluing from Laurent halves, with the Laurent-cover gluing
+leg specialized to the concrete caller-ready overlap theorem
+`laurentCover_gluing_presheaf_via_primary`.
+
+This removes the abstract `hLaurentGlue` input from
+`hV_glue_refined_from_laurent_halves`; the remaining explicit overlap input is
+the compatibility transfer `hOverlap`. -/
+theorem RationalCovering.hV_glue_refined_from_laurent_halves_via_primary
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    [DecidableEq A]
+    (C : RationalCovering A) (S : Finset A) (f₀ : A)
+    [IsNoetherianRing C.base.P.A₀]
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    [LaurentNormalized C.base]
+    (hS_cover : refines_cover C S)
+    (hNoeth_B : IsNoetherianRing (presheafValue C.base))
+    (hLocLift_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing C.base.P C.base
+      HasLocLiftPowerBounded (presheafValue C.base))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing C.base.P C.base
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete C.base.P C.base).A₀))
+    (hA_complete_B : @CompleteSpace (presheafValue C.base)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue C.base)))
+    (hnoeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing C.base.P C.base
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue C.base)).toPairOfDefinition))
+    (hcont_forward_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing C.base.P C.base
+      letI : HasLocLiftPowerBounded (presheafValue C.base) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue C.base) :=
+        presheafValue_pairOfDefinition_concrete C.base.P C.base
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue C.base) (C.base.canonicalMap f₀))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue C.base) P_B (C.base.canonicalMap f₀))))
+        (example638Plus_forwardHom (presheafValue C.base) P_B (C.base.canonicalMap f₀)))
+    (hcont_eval_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing C.base.P C.base
+      let D : RationalLocData (presheafValue C.base) :=
+        iteratedMinusDatum_B C.base.P C.base f₀
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
+    (τ_preBiv : presheafValue (laurentOverlapDatum C.base f₀) ≃+*
+      (↥(TateAlgebra₂ (presheafValue C.base)) ⧸
+        TateAlgebra.bivariateOverlapIdeal (C.base.canonicalMap f₀)))
+    (h_plus_compat : ∀ uplus : presheafValue (laurentPlusDatum C.base f₀),
+      (bivariateOverlap_equiv_B₁₂gen (presheafValue C.base) (C.base.canonicalMap f₀))
+          (τ_preBiv (restrictionMap (laurentPlusDatum C.base f₀)
+              (laurentOverlapDatum C.base f₀)
+              (laurentOverlap_subset_plus C.base f₀) uplus)) =
+        LaurentCover.posLift (C.base.canonicalMap f₀)
+          (laurentPlusBridge C.base.P C.base f₀ hNoeth_B hLocLift_B hA₀Noeth_B
+            hA_complete_B hnoeth_B hcont_forward_B uplus))
+    (h_minus_compat : ∀ uminus : presheafValue (laurentMinusDatum C.base f₀),
+      (bivariateOverlap_equiv_B₁₂gen (presheafValue C.base) (C.base.canonicalMap f₀))
+          (τ_preBiv (restrictionMap (laurentMinusDatum C.base f₀)
+              (laurentOverlapDatum C.base f₀)
+              (laurentOverlap_subset_minus C.base f₀) uminus)) =
+        LaurentCover.negLift (C.base.canonicalMap f₀)
+          (laurentMinusBridge C.base.P C.base f₀ hnoeth_B hcont_eval_B uminus))
+    (_plus_section_refined : ∀
+      (fV : ∀ D : { D // D ∈ C.refinedVCovers S f₀ }, presheafValue D.1),
+      (∀ (D₁ D₂ : { D // D ∈ C.refinedVCovers S f₀ }) (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (fV D₁) = restrictionMap D₂.1 D₃ h₃₂ (fV D₂)) →
+      { u_plus : presheafValue (laurentPlusDatum C.base f₀) //
+        ∀ (D : { D // D ∈ C.refinedVCovers S f₀ })
+          (hD_plus : rationalOpen D.1.T D.1.s ⊆
+            rationalOpen (laurentPlusDatum C.base f₀).T
+                         (laurentPlusDatum C.base f₀).s),
+          restrictionMap (laurentPlusDatum C.base f₀) D.1 hD_plus u_plus = fV D })
+    (_minus_section_refined : ∀
+      (fV : ∀ D : { D // D ∈ C.refinedVCovers S f₀ }, presheafValue D.1),
+      (∀ (D₁ D₂ : { D // D ∈ C.refinedVCovers S f₀ }) (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (fV D₁) = restrictionMap D₂.1 D₃ h₃₂ (fV D₂)) →
+      { u_minus : presheafValue (laurentMinusDatum C.base f₀) //
+        ∀ (D : { D // D ∈ C.refinedVCovers S f₀ })
+          (hD_minus : rationalOpen D.1.T D.1.s ⊆
+            rationalOpen (laurentMinusDatum C.base f₀).T
+                         (laurentMinusDatum C.base f₀).s),
+          restrictionMap (laurentMinusDatum C.base f₀) D.1 hD_minus u_minus = fV D })
+    (hOverlap : ∀ (fV : ∀ D : { D // D ∈ C.refinedVCovers S f₀ }, presheafValue D.1)
+      (_hV_compat : ∀ (D₁ D₂ : { D // D ∈ C.refinedVCovers S f₀ })
+        (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (fV D₁) = restrictionMap D₂.1 D₃ h₃₂ (fV D₂))
+      (u_plus : presheafValue (laurentPlusDatum C.base f₀))
+      (u_minus : presheafValue (laurentMinusDatum C.base f₀))
+      (_huplus : ∀ (D : { D // D ∈ C.refinedVCovers S f₀ })
+        (hD_plus : rationalOpen D.1.T D.1.s ⊆
+          rationalOpen (laurentPlusDatum C.base f₀).T
+                       (laurentPlusDatum C.base f₀).s),
+        restrictionMap (laurentPlusDatum C.base f₀) D.1 hD_plus u_plus = fV D)
+      (_huminus : ∀ (D : { D // D ∈ C.refinedVCovers S f₀ })
+        (hD_minus : rationalOpen D.1.T D.1.s ⊆
+          rationalOpen (laurentMinusDatum C.base f₀).T
+                       (laurentMinusDatum C.base f₀).s),
+        restrictionMap (laurentMinusDatum C.base f₀) D.1 hD_minus u_minus = fV D),
+      ∀ (D₃ : RationalLocData A)
+        (h₃p : rationalOpen D₃.T D₃.s ⊆
+          rationalOpen (laurentPlusDatum C.base f₀).T (laurentPlusDatum C.base f₀).s)
+        (h₃m : rationalOpen D₃.T D₃.s ⊆
+          rationalOpen (laurentMinusDatum C.base f₀).T (laurentMinusDatum C.base f₀).s),
+        restrictionMap (laurentPlusDatum C.base f₀) D₃ h₃p u_plus =
+          restrictionMap (laurentMinusDatum C.base f₀) D₃ h₃m u_minus) :
+    ∀ (fV : ∀ D : { D // D ∈ C.refinedVCovers S f₀ }, presheafValue D.1),
+      (∀ (D₁ D₂ : { D // D ∈ C.refinedVCovers S f₀ }) (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (fV D₁) = restrictionMap D₂.1 D₃ h₃₂ (fV D₂)) →
+      ∃ x : presheafValue C.base, ∀ D : { D // D ∈ C.refinedVCovers S f₀ },
+        restrictionMap C.base D.1
+          (C.refinedVCovers_subset_base S f₀ D.1 D.2) x = fV D := by
+  refine C.hV_glue_refined_from_laurent_halves S f₀ hS_cover
+    _plus_section_refined _minus_section_refined ?_ hOverlap
+  intro u_plus u_minus hoverlap
+  simpa using laurentCover_gluing_presheaf_via_primary C.base.P C.base f₀
+    hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B hnoeth_B
+    hcont_forward_B hcont_eval_B τ_preBiv h_plus_compat h_minus_compat
+    (laurentPlus_subset C.base f₀) (laurentMinus_subset C.base f₀)
+    u_plus u_minus hoverlap
+
+/-- Concrete Lane A supplier, reduced from the abstract direct-per-E supplier
+shape to:
+
+1. the caller-ready overlap theorem `laurentCover_gluing_presheaf_via_primary`,
+2. the inner plus/minus half-section builders, and
+3. the overlap compatibility transfer `hOverlap`.
+
+The only geometric input added here beyond
+`hV_glue_refined_from_laurent_halves_via_primary` is the weakening
+`refines_cover_of_refines_cover_per_E`. -/
+theorem RationalCovering.lane_A_supplier_via_primary
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    [DecidableEq A]
+    (C : RationalCovering A) (f₀ : A)
+    [IsNoetherianRing C.base.P.A₀]
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    [LaurentNormalized C.base]
+    (hNoeth_B : IsNoetherianRing (presheafValue C.base))
+    (hLocLift_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing C.base.P C.base
+      HasLocLiftPowerBounded (presheafValue C.base))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing C.base.P C.base
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete C.base.P C.base).A₀))
+    (hA_complete_B : @CompleteSpace (presheafValue C.base)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue C.base)))
+    (hnoeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing C.base.P C.base
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue C.base)).toPairOfDefinition))
+    (hcont_forward_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing C.base.P C.base
+      letI : HasLocLiftPowerBounded (presheafValue C.base) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue C.base) :=
+        presheafValue_pairOfDefinition_concrete C.base.P C.base
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue C.base) (C.base.canonicalMap f₀))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue C.base) P_B (C.base.canonicalMap f₀))))
+        (example638Plus_forwardHom (presheafValue C.base) P_B (C.base.canonicalMap f₀)))
+    (hcont_eval_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing C.base.P C.base
+      let D : RationalLocData (presheafValue C.base) :=
+        iteratedMinusDatum_B C.base.P C.base f₀
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
+    (τ_preBiv : presheafValue (laurentOverlapDatum C.base f₀) ≃+*
+      (↥(TateAlgebra₂ (presheafValue C.base)) ⧸
+        TateAlgebra.bivariateOverlapIdeal (C.base.canonicalMap f₀)))
+    (h_plus_compat : ∀ uplus : presheafValue (laurentPlusDatum C.base f₀),
+      (bivariateOverlap_equiv_B₁₂gen (presheafValue C.base) (C.base.canonicalMap f₀))
+          (τ_preBiv (restrictionMap (laurentPlusDatum C.base f₀)
+              (laurentOverlapDatum C.base f₀)
+              (laurentOverlap_subset_plus C.base f₀) uplus)) =
+        LaurentCover.posLift (C.base.canonicalMap f₀)
+          (laurentPlusBridge C.base.P C.base f₀ hNoeth_B hLocLift_B hA₀Noeth_B
+            hA_complete_B hnoeth_B hcont_forward_B uplus))
+    (h_minus_compat : ∀ uminus : presheafValue (laurentMinusDatum C.base f₀),
+      (bivariateOverlap_equiv_B₁₂gen (presheafValue C.base) (C.base.canonicalMap f₀))
+          (τ_preBiv (restrictionMap (laurentMinusDatum C.base f₀)
+              (laurentOverlapDatum C.base f₀)
+              (laurentOverlap_subset_minus C.base f₀) uminus)) =
+        LaurentCover.negLift (C.base.canonicalMap f₀)
+          (laurentMinusBridge C.base.P C.base f₀ hnoeth_B hcont_eval_B uminus))
+    (S' : StandardCover A)
+    (hS'_per_E : refines_cover_per_E C S'.elts)
+    (_hS'_contain : refines_contain C S'.elts)
+    (_plus_section_refined : ∀
+      (fV : ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ }, presheafValue D.1),
+      (∀ (D₁ D₂ : { D // D ∈ C.refinedVCovers S'.elts f₀ }) (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (fV D₁) = restrictionMap D₂.1 D₃ h₃₂ (fV D₂)) →
+      { u_plus : presheafValue (laurentPlusDatum C.base f₀) //
+        ∀ (D : { D // D ∈ C.refinedVCovers S'.elts f₀ })
+          (hD_plus : rationalOpen D.1.T D.1.s ⊆
+            rationalOpen (laurentPlusDatum C.base f₀).T
+                         (laurentPlusDatum C.base f₀).s),
+          restrictionMap (laurentPlusDatum C.base f₀) D.1 hD_plus u_plus = fV D })
+    (_minus_section_refined : ∀
+      (fV : ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ }, presheafValue D.1),
+      (∀ (D₁ D₂ : { D // D ∈ C.refinedVCovers S'.elts f₀ }) (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (fV D₁) = restrictionMap D₂.1 D₃ h₃₂ (fV D₂)) →
+      { u_minus : presheafValue (laurentMinusDatum C.base f₀) //
+        ∀ (D : { D // D ∈ C.refinedVCovers S'.elts f₀ })
+          (hD_minus : rationalOpen D.1.T D.1.s ⊆
+            rationalOpen (laurentMinusDatum C.base f₀).T
+                         (laurentMinusDatum C.base f₀).s),
+          restrictionMap (laurentMinusDatum C.base f₀) D.1 hD_minus u_minus = fV D })
+    (hOverlap : ∀ (fV : ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ }, presheafValue D.1)
+      (_hV_compat : ∀ (D₁ D₂ : { D // D ∈ C.refinedVCovers S'.elts f₀ })
+        (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (fV D₁) = restrictionMap D₂.1 D₃ h₃₂ (fV D₂))
+      (u_plus : presheafValue (laurentPlusDatum C.base f₀))
+      (u_minus : presheafValue (laurentMinusDatum C.base f₀))
+      (_huplus : ∀ (D : { D // D ∈ C.refinedVCovers S'.elts f₀ })
+        (hD_plus : rationalOpen D.1.T D.1.s ⊆
+          rationalOpen (laurentPlusDatum C.base f₀).T
+                       (laurentPlusDatum C.base f₀).s),
+        restrictionMap (laurentPlusDatum C.base f₀) D.1 hD_plus u_plus = fV D)
+      (_huminus : ∀ (D : { D // D ∈ C.refinedVCovers S'.elts f₀ })
+        (hD_minus : rationalOpen D.1.T D.1.s ⊆
+          rationalOpen (laurentMinusDatum C.base f₀).T
+                       (laurentMinusDatum C.base f₀).s),
+        restrictionMap (laurentMinusDatum C.base f₀) D.1 hD_minus u_minus = fV D),
+      ∀ (D₃ : RationalLocData A)
+        (h₃p : rationalOpen D₃.T D₃.s ⊆
+          rationalOpen (laurentPlusDatum C.base f₀).T (laurentPlusDatum C.base f₀).s)
+        (h₃m : rationalOpen D₃.T D₃.s ⊆
+          rationalOpen (laurentMinusDatum C.base f₀).T (laurentMinusDatum C.base f₀).s),
+        restrictionMap (laurentPlusDatum C.base f₀) D₃ h₃p u_plus =
+          restrictionMap (laurentMinusDatum C.base f₀) D₃ h₃m u_minus) :
+    ∀ (fV : ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ }, presheafValue D.1),
+      (∀ (D₁ D₂ : { D // D ∈ C.refinedVCovers S'.elts f₀ }) (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (fV D₁) = restrictionMap D₂.1 D₃ h₃₂ (fV D₂)) →
+      ∃ x : presheafValue C.base, ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ },
+        restrictionMap C.base D.1
+          (C.refinedVCovers_subset_base S'.elts f₀ D.1 D.2) x = fV D :=
+  C.hV_glue_refined_from_laurent_halves_via_primary S'.elts f₀
+    (refines_cover_of_refines_cover_per_E C S'.elts hS'_per_E)
+    hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B hnoeth_B
+    hcont_forward_B hcont_eval_B τ_preBiv h_plus_compat h_minus_compat
+    _plus_section_refined _minus_section_refined hOverlap
+
+omit [HasLocLiftPowerBounded A] in
+/-- Canonical completeness proof for the completed presheaf value, in the
+right-uniformity shape expected by the Example 6.38 bridge API. -/
+theorem RationalCovering.canonical_complete_presheafValue
+    (C : RationalCovering A) :
+    @CompleteSpace (presheafValue C.base)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue C.base)) := by
+  rw [IsUniformAddGroup.rightUniformSpace_eq]
+  infer_instance
+
+omit [HasLocLiftPowerBounded A] in
+/-- Canonical continuity proof for the minus-side Tate quotient map over
+`B = presheafValue C.base`.
+
+This is the geometric-reduction-layer analogue of the final-assembly helper:
+the target datum is the iterated minus rational localization of the completed
+base, so the continuity follows from the Tate-case topology comparison theorem. -/
+theorem RationalCovering.canonical_hcont_eval
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (C : RationalCovering A) [IsNoetherianRing C.base.P.A₀]
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)] (f₀ : A) :
+    letI : IsTateRing (presheafValue C.base) :=
+      presheafValue_isTateRing C.base.P C.base
+    let D : RationalLocData (presheafValue C.base) :=
+      iteratedMinusDatum_B C.base.P C.base f₀
+    ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+      @Continuous _ _
+        (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+        (inferInstance : TopologicalSpace (presheafValue D))
+        (tateQuotientToPresheafHom D hb) := by
+  dsimp
+  intro hb
+  letI : IsTateRing (presheafValue C.base) := presheafValue_isTateRing C.base.P C.base
+  exact tateQuotientToPresheafHom_continuous_of_tate
+    (iteratedMinusDatum_B C.base.P C.base f₀) hb
+
+/-- Canonical-completion variant of `lane_A_supplier_via_primary`.
+
+This keeps the theorem at the geometric-reduction layer while removing two
+non-mathematical proof arguments from the caller boundary:
+
+* completeness of `presheafValue C.base`;
+* continuity of the minus-side quotient map over `presheafValue C.base`.
+
+The remaining hypotheses are the genuine Lane A data, including the plus-side
+continuity proof, overlap bridge, and half-cover section suppliers. -/
+theorem RationalCovering.lane_A_supplier_via_primary_canonical
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    [DecidableEq A]
+    (C : RationalCovering A) (f₀ : A)
+    [IsNoetherianRing C.base.P.A₀]
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    [LaurentNormalized C.base]
+    (hNoeth_B : IsNoetherianRing (presheafValue C.base))
+    (hLocLift_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing C.base.P C.base
+      HasLocLiftPowerBounded (presheafValue C.base))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing C.base.P C.base
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete C.base.P C.base).A₀))
+    (hnoeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing C.base.P C.base
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue C.base)).toPairOfDefinition))
+    (hcont_forward_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing C.base.P C.base
+      letI : HasLocLiftPowerBounded (presheafValue C.base) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue C.base) :=
+        presheafValue_pairOfDefinition_concrete C.base.P C.base
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue C.base) (C.base.canonicalMap f₀))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue C.base) P_B (C.base.canonicalMap f₀))))
+        (example638Plus_forwardHom (presheafValue C.base) P_B (C.base.canonicalMap f₀)))
+    (τ_preBiv : presheafValue (laurentOverlapDatum C.base f₀) ≃+*
+      (↥(TateAlgebra₂ (presheafValue C.base)) ⧸
+        TateAlgebra.bivariateOverlapIdeal (C.base.canonicalMap f₀)))
+    (h_plus_compat : ∀ uplus : presheafValue (laurentPlusDatum C.base f₀),
+      (bivariateOverlap_equiv_B₁₂gen (presheafValue C.base) (C.base.canonicalMap f₀))
+          (τ_preBiv (restrictionMap (laurentPlusDatum C.base f₀)
+              (laurentOverlapDatum C.base f₀)
+              (laurentOverlap_subset_plus C.base f₀) uplus)) =
+        LaurentCover.posLift (C.base.canonicalMap f₀)
+          (laurentPlusBridge C.base.P C.base f₀ hNoeth_B hLocLift_B hA₀Noeth_B
+            (RationalCovering.canonical_complete_presheafValue C)
+            hnoeth_B hcont_forward_B uplus))
+    (h_minus_compat : ∀ uminus : presheafValue (laurentMinusDatum C.base f₀),
+      (bivariateOverlap_equiv_B₁₂gen (presheafValue C.base) (C.base.canonicalMap f₀))
+          (τ_preBiv (restrictionMap (laurentMinusDatum C.base f₀)
+              (laurentOverlapDatum C.base f₀)
+              (laurentOverlap_subset_minus C.base f₀) uminus)) =
+        LaurentCover.negLift (C.base.canonicalMap f₀)
+          (laurentMinusBridge C.base.P C.base f₀ hnoeth_B
+            (RationalCovering.canonical_hcont_eval C f₀) uminus))
+    (S' : StandardCover A)
+    (hS'_per_E : refines_cover_per_E C S'.elts)
+    (_hS'_contain : refines_contain C S'.elts)
+    (_plus_section_refined : ∀
+      (fV : ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ }, presheafValue D.1),
+      (∀ (D₁ D₂ : { D // D ∈ C.refinedVCovers S'.elts f₀ }) (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (fV D₁) = restrictionMap D₂.1 D₃ h₃₂ (fV D₂)) →
+      { u_plus : presheafValue (laurentPlusDatum C.base f₀) //
+        ∀ (D : { D // D ∈ C.refinedVCovers S'.elts f₀ })
+          (hD_plus : rationalOpen D.1.T D.1.s ⊆
+            rationalOpen (laurentPlusDatum C.base f₀).T
+                         (laurentPlusDatum C.base f₀).s),
+          restrictionMap (laurentPlusDatum C.base f₀) D.1 hD_plus u_plus = fV D })
+    (_minus_section_refined : ∀
+      (fV : ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ }, presheafValue D.1),
+      (∀ (D₁ D₂ : { D // D ∈ C.refinedVCovers S'.elts f₀ }) (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (fV D₁) = restrictionMap D₂.1 D₃ h₃₂ (fV D₂)) →
+      { u_minus : presheafValue (laurentMinusDatum C.base f₀) //
+        ∀ (D : { D // D ∈ C.refinedVCovers S'.elts f₀ })
+          (hD_minus : rationalOpen D.1.T D.1.s ⊆
+            rationalOpen (laurentMinusDatum C.base f₀).T
+                         (laurentMinusDatum C.base f₀).s),
+          restrictionMap (laurentMinusDatum C.base f₀) D.1 hD_minus u_minus = fV D })
+    (hOverlap : ∀ (fV : ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ }, presheafValue D.1)
+      (_hV_compat : ∀ (D₁ D₂ : { D // D ∈ C.refinedVCovers S'.elts f₀ })
+        (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (fV D₁) = restrictionMap D₂.1 D₃ h₃₂ (fV D₂))
+      (u_plus : presheafValue (laurentPlusDatum C.base f₀))
+      (u_minus : presheafValue (laurentMinusDatum C.base f₀))
+      (_huplus : ∀ (D : { D // D ∈ C.refinedVCovers S'.elts f₀ })
+        (hD_plus : rationalOpen D.1.T D.1.s ⊆
+          rationalOpen (laurentPlusDatum C.base f₀).T
+                       (laurentPlusDatum C.base f₀).s),
+        restrictionMap (laurentPlusDatum C.base f₀) D.1 hD_plus u_plus = fV D)
+      (_huminus : ∀ (D : { D // D ∈ C.refinedVCovers S'.elts f₀ })
+        (hD_minus : rationalOpen D.1.T D.1.s ⊆
+          rationalOpen (laurentMinusDatum C.base f₀).T
+                       (laurentMinusDatum C.base f₀).s),
+        restrictionMap (laurentMinusDatum C.base f₀) D.1 hD_minus u_minus = fV D),
+      ∀ (D₃ : RationalLocData A)
+        (h₃p : rationalOpen D₃.T D₃.s ⊆
+          rationalOpen (laurentPlusDatum C.base f₀).T (laurentPlusDatum C.base f₀).s)
+        (h₃m : rationalOpen D₃.T D₃.s ⊆
+          rationalOpen (laurentMinusDatum C.base f₀).T (laurentMinusDatum C.base f₀).s),
+        restrictionMap (laurentPlusDatum C.base f₀) D₃ h₃p u_plus =
+          restrictionMap (laurentMinusDatum C.base f₀) D₃ h₃m u_minus) :
+    ∀ (fV : ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ }, presheafValue D.1),
+      (∀ (D₁ D₂ : { D // D ∈ C.refinedVCovers S'.elts f₀ }) (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (fV D₁) = restrictionMap D₂.1 D₃ h₃₂ (fV D₂)) →
+      ∃ x : presheafValue C.base, ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ },
+        restrictionMap C.base D.1
+          (C.refinedVCovers_subset_base S'.elts f₀ D.1 D.2) x = fV D :=
+  RationalCovering.lane_A_supplier_via_primary C f₀
+    hNoeth_B hLocLift_B hA₀Noeth_B (RationalCovering.canonical_complete_presheafValue C)
+    hnoeth_B hcont_forward_B (RationalCovering.canonical_hcont_eval C f₀)
+    τ_preBiv h_plus_compat h_minus_compat S' hS'_per_E _hS'_contain
+    _plus_section_refined _minus_section_refined hOverlap
+
 /-! ### S-GEOM-ASM final assembly: refined V-cover Part-2 closure
 
 The assembly theorem below composes the entire geometric reduction
@@ -5075,6 +5509,34 @@ theorem RationalCovering.mem_per_E_local_covering_covers
   · rintro ⟨f, hf, h_in_E, hD | hD⟩
     · exact Or.inl ⟨f, ⟨hf, h_in_E⟩, hD⟩
     · exact Or.inr ⟨f, ⟨hf, h_in_E⟩, hD⟩
+
+/-- The direct per-E local covering is nonempty whenever the cover piece
+`E` itself has a point.
+
+This is the exact side condition needed to apply Cor 8.32-style
+nonempty-cover separation to `per_E_local_covering`: choose a point of
+`E`, use `refines_cover_per_E` to find a standard-cover generator whose
+plus-piece targets `E`, then use the two-piece Laurent cover of that
+plus-piece. -/
+theorem RationalCovering.per_E_local_covering_nonempty_of_rationalOpen_nonempty
+    [DecidableEq A] (C : RationalCovering A) (S : Finset A) (f₀ : A)
+    (E : { E // E ∈ C.covers })
+    (hprecise : refines_cover_per_E C S)
+    (hE_nonempty : (rationalOpen E.1.T E.1.s).Nonempty) :
+    (C.per_E_local_covering S f₀ E hprecise).covers.Nonempty := by
+  obtain ⟨v, hvE⟩ := hE_nonempty
+  obtain ⟨f, hf, hv_in_plus, h_plus_in_E⟩ := hprecise E.1 E.2 v hvE
+  have hv_pd : v ∈ rationalOpen (C.plusDatum f).T (C.plusDatum f).s :=
+    (C.rationalOpen_plusDatum_eq_insert f).symm ▸ hv_in_plus
+  rcases laurentCover_covers (C.plusDatum f) f₀ v hv_pd with hv_plus | hv_minus
+  · refine ⟨laurentPlusDatum (C.plusDatum f) f₀, ?_⟩
+    rw [(C.mem_per_E_local_covering_covers S f₀ E hprecise
+      (laurentPlusDatum (C.plusDatum f) f₀))]
+    exact ⟨f, hf, h_plus_in_E, Or.inl rfl⟩
+  · refine ⟨laurentMinusDatum (C.plusDatum f) f₀, ?_⟩
+    rw [(C.mem_per_E_local_covering_covers S f₀ E hprecise
+      (laurentMinusDatum (C.plusDatum f) f₀))]
+    exact ⟨f, hf, h_plus_in_E, Or.inr rfl⟩
 
 /-! ### Lane B Step 3 documentation: wiring the direct per-E covering
 

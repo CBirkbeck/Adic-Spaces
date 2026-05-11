@@ -786,7 +786,7 @@ The proof uses `rationalCovering_hasSeparation` from the Laurent refinement rout
 the product restriction being zero on all covering pieces implies the element is zero
 in `presheafValue C.base`, hence its image under `e_base` is zero. -/
 theorem tateQuotientProductRestriction_injective_on_algebraMap
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)
@@ -821,7 +821,7 @@ The proof uses `rationalCovering_hasSeparation` from the Laurent refinement rout
 the product restriction being zero on all covering pieces implies the element is zero
 in `presheafValue C.base`, hence its image under `e_base` is zero. -/
 theorem tateQuotientProductRestriction_injective
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)
@@ -852,8 +852,8 @@ theorem tateQuotientProductRestriction_injective
 /-- The product restriction is injective for strongly noetherian Tate rings
 (Theorem 8.28 of Wedhorn, separation component via TopologyComparison). -/
 theorem separation_ofStronglyNoetherianTate
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-    [IsDomain A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)
     (hb_base : TopologicalRing.IsPowerBounded (invS C.base))
@@ -1049,7 +1049,7 @@ The `hSpa` hypothesis is the Spa-point existence witness; callers supply it via
 Lemma 7.45 (non-open prime case) or the trivial-valuation construction
 (open prime case), and it is only consumed in the empty-cover edge case. -/
 theorem productRestriction_injective_of_laurentRefinement
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)
@@ -1067,7 +1067,7 @@ theorem productRestriction_injective_of_laurentRefinement
 /-- Strongly noetherian Tate rings are sheafy (Theorem 8.28 of Wedhorn),
 via Laurent cover refinement (Lemma 8.34). -/
 theorem isSheafy_ofStronglyNoetherianTate_flat
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
     IsSheafy A where
@@ -1128,7 +1128,8 @@ theorem productRestriction_comp_canonicalMap
   letI := D.isUniformAddGroup
   erw [UniformSpace.Completion.extensionHom_coe (restrictionMapAlg C.base D (C.hsubset D hD))
     (restrictionMapAlg_continuous C.base D (C.hsubset D hD))]
-  simp only [restrictionMapAlg, IsLocalization.Away.lift_eq]
+  simp only [RingHom.comp_apply, restrictionMapAlg, IsLocalization.Away.lift_eq,
+    RationalLocData.canonicalMap]
 
 /-! ### Adic spaces as objects of 𝒱 (Definitions 8.21, 8.22 of Wedhorn) -/
 

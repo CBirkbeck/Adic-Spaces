@@ -1177,6 +1177,7 @@ from the already-continuous `v` supplied by the topology-aware criterion. -/
 instance HasLocLiftPowerBounded.tate [PlusSubring A] [IsHuberRing A] [IsTateRing A]
     [IsNoetherianRing A] [IsDomain A] [CompatiblePlusSubring A] :
     HasLocLiftPowerBounded A where
+  isUnit_algebraMap_s D D' h := isUnit_algebraMap_s_of_huber D D' h
   locLift_divByS_isPowerBounded D D' h t ht := by
     letI : TopologicalSpace (Localization.Away D'.s) := D'.topology
     letI : IsTopologicalRing (Localization.Away D'.s) := D'.isTopologicalRing

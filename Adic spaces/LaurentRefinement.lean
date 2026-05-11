@@ -5612,7 +5612,7 @@ intended use is the **standard-cover reduction** (Wedhorn Lemma 8.34 / Zavyalov 
 — feed `RationalCovering.refines_by_standard_cover` to produce the refinement,
 then Laurent-cover induction to discharge `hV_glue`. -/
 theorem tateAcyclicity_gluing_via_refinement
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A]
     (C : RationalCovering A)
     (V_covers : Finset (RationalLocData A))
@@ -5678,7 +5678,7 @@ The earlier "strict exactness via Banach open mapping" framing of R2 was a
 red herring: our `IsSheafy` only requires sheaf-of-sets, and Wedhorn's proof
 gives exactly that via flatness — no topological embedding needed. -/
 theorem tateAcyclicity
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A) (hne : C.covers.Nonempty) :
@@ -5770,7 +5770,7 @@ The `hSpa` hypothesis is the Spa-point existence witness for primes avoiding
 completed pair of definition (non-open prime case) or the trivial-valuation
 construction (open prime case). -/
 theorem rationalCovering_hasSeparation
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)
@@ -5804,7 +5804,7 @@ theorem rationalCovering_hasSeparation
 /-- Gluing extracted from `tateAcyclicity`. Handles empty coverings
 directly (any element works since compatibility is vacuous). -/
 theorem rationalCovering_hasGluing
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)

@@ -97,6 +97,12 @@ theorem eq_toIndex (s : Fin 1 →₀ ℕ) : s = toIndex (s 0) := by
 noncomputable def coeff (n : ℕ) (f : ↥(TateAlgebra A)) : A :=
   (MvPowerSeries.coeff (R := A) (toIndex n)) f.val
 
+/-- The coefficients of a restricted power series tend to zero along the
+cofinite filter on `ℕ`. This is the univariate form of restrictedness. -/
+theorem coeff_tendsto_zero (f : ↥(TateAlgebra A)) :
+    Filter.Tendsto (fun n => coeff n f) Filter.cofinite (nhds (0 : A)) :=
+  f.prop.comp (Finsupp.single_injective (0 : Fin 1)).tendsto_cofinite
+
 /-- The variable `X` as an element of `A⟨X⟩`. -/
 noncomputable def X : ↥(TateAlgebra A) :=
   ⟨MvPowerSeries.X (0 : Fin 1), MvPowerSeries.X_isRestricted 0⟩
@@ -2606,6 +2612,21 @@ theorem flat_quotient_oneSubfX_general
   haveI := tateAlgebra_flat P
   exact Module.Flat.quotient_of_flat_of_saturated
     (mul_oneSubfX_regular f) (fun I s hmem => oneSubfX_saturated P f I s hmem)
+
+/-- **Lemma 8.31(1), general case**: `A⟨X⟩` is **faithfully flat** over a
+noetherian Tate ring `A`.
+
+This is the non-discrete analog of the discrete `TateAlgebra.faithfullyFlat`
+instance (line ~783): it uses the general flatness result
+`tateAlgebra_flat P` (Artin-Rees over the pair-of-definition ring),
+combined with surjectivity of `PrimeSpectrum.comap (algebraMap A A⟨X⟩)`
+(which is algebraic and requires no topology), via
+`Module.FaithfullyFlat.of_comap_surjective`. -/
+theorem faithfullyFlat_general (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
+    Module.FaithfullyFlat A ↥(TateAlgebra A) := by
+  haveI := tateAlgebra_flat P
+  exact Module.FaithfullyFlat.of_comap_surjective
+    PrimeSpectrum_comap_algebraMap_surjective
 
 end TateAlgebra
 

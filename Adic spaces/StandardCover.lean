@@ -1600,7 +1600,7 @@ route (original Phase 1/5a) which was blocked on Bourbaki CA III §2.8.
 3. Transfer the acyclicity back to `C` via Proposition A.3 of Wedhorn
    (scaffolded as `separation_of_finer_rational` in `RationalRefinement.lean`). -/
 theorem tateAcyclicity_via_standard_cover
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A]
     [HasLocLiftPowerBounded A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]

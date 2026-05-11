@@ -9,6 +9,41 @@ noetherian Tate rings: `O_X` is a sheaf of complete topological rings.
 
 ---
 
+## 2026-04-30 Expert Review Addendum — T089/T110 Witness Residual
+
+Current Control Tower tickets `T111`/`T112` own the remaining T089 residual:
+`locLift_preimage_jfull_witness_existence`, after commit `68e4dbb` reduced
+`locLift_preimage_target_witness_existence` to that smaller private lemma.
+
+External review assessment:
+- The reduction is mathematically sound, and the residual has the correct
+  orientation: target smallness of `algebraMap (α * e^k)` should produce a
+  source-depth representative for `α`, modulo the target localization kernel.
+- The radical relation `e * D₀.s = D.s^N` is the right denominator-comparison
+  input. It should not force extra global hypotheses in the final Tate
+  acyclicity theorem.
+- The main risk is over-rigid packaging: linear loss in `k` is expected, but
+  the exact coefficient `D₀.hopen.choose` should only be used if it is already
+  the established one-division-by-`D₀.s` cost. Otherwise first prove a version
+  with a derived local constant `c_lift`, then specialize/discharge it locally.
+- The clean algebraic core should be formulated modulo
+  `K_D := RingHom.ker (algebraMap A (Localization.Away D.s))`:
+  target-smallness of `α * e^k` implies `α` is congruent modulo `K_D` to an
+  element of source depth `I^(n + k*c)`.
+- Prove the saturation first in the noetherian source ring-of-definition /
+  finitely generated rational-localization algebra, or for `α ∈ D₀.P.A₀`;
+  extend to arbitrary `α : A` only afterward by clearing Tate denominators.
+  Do not treat the whole Tate ring `A` as a finite `D₀.P.A₀`-module.
+- If arbitrary `D₀ D : RationalLocData A` is stronger than downstream needs,
+  specialize to data from a common rational-containment situation over the
+  same ambient Tate setup rather than adding final theorem hypotheses.
+
+No extra hypotheses should be added to `ValuationSpectrum.tateAcyclicity`,
+Part 2, or the final acyclicity theorem. Any helper hypotheses introduced in
+this lane must be discharged from the existing Tate/rational-containment data.
+
+---
+
 ## Key Architectural Decisions (from review)
 
 ### Notation

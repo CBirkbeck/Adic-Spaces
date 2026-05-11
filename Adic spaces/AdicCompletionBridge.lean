@@ -367,6 +367,28 @@ noncomputable def completionRingEquiv
         simp [Function.comp, hf_inv_coe, hf_coe]))
   }
 
+/-- **Coe property of `completionRingEquiv`**: on the dense image of `R`, the
+forward map equals `g`. Matches `UniformSpace.Completion.extensionHom_coe`. -/
+theorem completionRingEquiv_coe
+    {R : Type*} [CommRing R] [UniformSpace R] [IsTopologicalRing R]
+    [IsUniformAddGroup R]
+    {S : Type*} [CommRing S] [UniformSpace S] [IsTopologicalRing S]
+    [IsUniformAddGroup S] [T2Space S] [CompleteSpace S]
+    (g : R →+* S) (hg_cont : Continuous g) (hg_ui : IsUniformInducing g)
+    (hg_dense : DenseRange g) (a : R) :
+    completionRingEquiv g hg_cont hg_ui hg_dense (↑a) = g a :=
+  UniformSpace.Completion.extensionHom_coe g hg_cont a
+
+/-- **Coe property of `adicCompletionRingEquiv`**: on the dense image of `R`,
+the forward map equals `AdicCompletion.of I R`. Matches
+`AbstractCompletion.compare_coe`. -/
+theorem adicCompletionRingEquiv_coe {R' : Type*} [CommRing R'] [UniformSpace R']
+    [IsTopologicalRing R'] [IsUniformAddGroup R'] (I' : Ideal R') (hadic : IsAdic I')
+    (a : R') :
+    adicCompletionRingEquiv I' hadic (↑a) = AdicCompletion.of I' R' a :=
+  AbstractCompletion.compare_coe UniformSpace.Completion.cPkg
+    (adicAbstractCompletion I' hadic) a
+
 /-! ### Kernel identity for evalₐ -/
 
 /-- In the adic completion of a Noetherian ring, the kernel of the evaluation

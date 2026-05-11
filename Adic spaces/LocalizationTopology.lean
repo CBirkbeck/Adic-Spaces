@@ -422,7 +422,32 @@ theorem locTopology_continuous_lift {B : Type*} [CommRing B] [TopologicalSpace B
         (G : Set B) (G.isOpen.mem_nhds G.zero_mem)
       obtain ⟨W, hWV⟩ := NonarchimedeanAddGroup.is_nonarchimedean V hV
       obtain ⟨m, hm⟩ := ih (fun t' ht' ↦ hpowU t' (Finset.mem_insert_of_mem ht')) W
-      exact ⟨m, fun _ _ _ _ ↦ sorry⟩
+      refine ⟨m, fun x hx b hb ↦ ?_⟩
+      -- Represent `x` as a polynomial in `divByS t s` with coefficients in
+      -- `locSubring P U' s`, via the `Algebra.adjoin` bridge.
+      have hx_in_adj : x ∈ Algebra.adjoin ↥(locSubring P U' s)
+          ({divByS t s} : Set (Localization.Away s)) := by
+        have h_le : Subring.closure
+            ((locSubring P U' s : Set (Localization.Away s)) ∪ {divByS t s}) ≤
+              (Algebra.adjoin ↥(locSubring P U' s)
+                ({divByS t s} : Set _)).toSubring := by
+          rw [Subring.closure_le]
+          rintro w (hw | rfl)
+          · exact Subalgebra.algebraMap_mem _ (⟨w, hw⟩ : ↥(locSubring P U' s))
+          · exact Algebra.subset_adjoin rfl
+        exact h_le (hinsert_le hx)
+      rw [Algebra.adjoin_singleton_eq_range_aeval, AlgHom.mem_range] at hx_in_adj
+      obtain ⟨p, hp⟩ := hx_in_adj
+      rw [← hp, Polynomial.aeval_eq_sum_range, Finset.sum_mul, map_sum]
+      refine G.toAddSubgroup.sum_mem (fun i _ ↦ ?_)
+      rw [Algebra.smul_def, Algebra.algebraMap_ofSubsemiring_apply,
+        show ((p.coeff i : Localization.Away s) * (divByS t s) ^ i) *
+              algebraMap A (Localization.Away s) (b : A) =
+            ((p.coeff i : Localization.Away s) *
+              algebraMap A (Localization.Away s) (b : A)) *
+              (divByS t s) ^ i from by ring, map_mul, map_pow, mul_comm]
+      exact hzV (Set.mul_mem_mul ⟨i, rfl⟩
+        (hWV (hm _ (p.coeff i).property b hb)))
   letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
   haveI : IsTopologicalRing (Localization.Away s) :=
     (locBasis P T s hopen).toRingFilterBasis.isTopologicalRing

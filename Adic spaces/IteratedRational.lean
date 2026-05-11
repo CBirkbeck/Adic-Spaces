@@ -58,8 +58,7 @@ theorem restrictionMapHom_canonicalMap (D₀ D' : RationalLocData A)
   simp only [RingHom.coe_comp, Function.comp_apply]
   erw [UniformSpace.Completion.extensionHom_coe (restrictionMapAlg D₀ D' h)
     (restrictionMapAlg_continuous D₀ D' h)]
-  simp only [restrictionMapAlg, IsLocalization.Away.lift_eq]
-  rfl
+  simp only [RingHom.comp_apply, restrictionMapAlg, IsLocalization.Away.lift_eq]
 
 end Helpers
 

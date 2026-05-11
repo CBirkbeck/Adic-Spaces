@@ -409,13 +409,31 @@ theorem RationalLocData.completedLocIdeal_fg (D : RationalLocData A) :
 
 /-! #### IsAdicComplete and Lemma 7.45 application infrastructure
 
-**Note (2026-04-14):** `completedLocSubring_isAdic`, `completedPairOfDefinition`,
-and `completedLocSubring_isAdicComplete` were removed from this file because
-their proofs require `presheafValue_isAdic` (PresheafTateStructure.lean:803)
-which lives downstream in the import order. The proofs are available in
-`PresheafTateStructure.lean` under the same names, guarded by
-`[IsNoetherianRing (locSubring D.P D.T D.s)]`. Callers should import
-`PresheafTateStructure.lean` to access them. -/
+**Note (2026-04-18 audit).** `completedLocSubring_isAdic`, `completedPairOfDefinition`,
+and `completedLocSubring_isAdicComplete` are **not** defined in this file because
+their proofs require `presheafValue_isAdic` (`PresheafTateStructure.lean:804`)
+which lives downstream in the import order. The downstream availability is:
+
+- `presheafValue_isAdic` — **proved sorry-free** in
+  `PresheafTateStructure.lean:804`. Uses `idealOfDef_pow_val_isClosed`
+  (`PresheafTateStructure.lean:308`) + `AdicCompletionBridge.adicCompletionRingEquiv`.
+  Carries `[IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]`.
+- `presheafValue_pairOfDefinition_concrete` — **defined sorry-free** in
+  `PresheafTateStructure.lean:867`. Packages `presheafValue_ringOfDef` and
+  `presheafValue_idealOfDef` as a `PairOfDefinition (presheafValue D₀)`.
+- `presheafValue_isAdicComplete` — **proved sorry-free** in
+  `Cor832.lean:896`. Gives
+  `IsAdicComplete (presheafValue_idealOfDef D₀) (presheafValue_ringOfDef D₀)`
+  under `[IsTateRing A] [IsNoetherianRing A] [T2Space A] [IsNoetherianRing P.A₀]
+  [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]`. The Bourbaki CA III §2.8
+  closedness step is NOT the blocker (it is discharged by
+  `IdealClosedness.Ideal.isClosed_of_le_jacobson` + the AdicCompletionBridge).
+  `D₀.completedLocSubring` and `presheafValue_ringOfDef D₀` have equal underlying
+  sets (proved in `Cor832.lean:922`).
+
+Callers should route through these downstream theorems directly. See the
+docstring of `spa_point_nonOpen_of_rational_subset` below for the status of
+T001's non-open-prime Spa-point construction. -/
 
 /-- The underlying function of `locSubringToCompleted`, viewed as
 `completedLocSubring.subtype ∘ locSubringToCompleted = coe ∘ locSubring.subtype`,
@@ -654,11 +672,11 @@ private theorem mem_prime_of_rational_subset_nonOpen {A : Type*} [CommRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
     (p : Ideal A) (hp : p.IsPrime) (_hp_notOpen : ¬IsOpen (p : Set A))
     (hDs : D.s ∈ p)
-    (hnonempty : ∃ v ∈ rationalOpen D'.T D'.s, p ≤ v.supp) :
+    (hnonempty : D'.s ∉ p → ∃ v ∈ rationalOpen D'.T D'.s, p ≤ v.supp) :
     D'.s ∈ p := by
   haveI := hp
-  by_contra _hD's
-  obtain ⟨v, hv_rat, hv_supp⟩ := hnonempty
+  by_contra hD's
+  obtain ⟨v, hv_rat, hv_supp⟩ := hnonempty hD's
   exact (h hv_rat).2.2 ((v.mem_supp_iff D.s).mp (hv_supp hDs))
 
 /-- Given a prime `p` containing `D.s`, if `R(T'/s') ⊆ R(T/s)` then `D'.s ∈ p`
@@ -669,17 +687,18 @@ theorem mem_prime_of_rational_subset {A : Type*} [CommRing A]
     [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
     (p : Ideal A) (hp : p.IsPrime) (hDs : D.s ∈ p)
-    (hnonempty : ¬IsOpen (p : Set A) → ∃ v ∈ rationalOpen D'.T D'.s, p ≤ v.supp) :
+    (hnonempty : ¬IsOpen (p : Set A) → D'.s ∉ p →
+      ∃ v ∈ rationalOpen D'.T D'.s, p ≤ v.supp) :
     D'.s ∈ p := by
   by_cases hp_open : IsOpen (p : Set A)
   · exact mem_prime_of_rational_subset_open D D' h p hp hp_open hDs
   · exact mem_prime_of_rational_subset_nonOpen D D' h p hp hp_open hDs
       (hnonempty hp_open)
 
-/-- **Shared Spa-point-existence obligation for non-open primes (Q1-FIX helper).**
+/-- **Shared Spa-point-existence obligation for non-open primes (T001 / Q1-FIX helper).**
 
-This is the single mathematical obligation behind the three Q1-FIX callsites
-in `isUnit_algebraMap_s_of_huber` (Presheaf.lean), `isUnit_algebraMap_s_of_subset`
+This is the single mathematical obligation behind the three callsites in
+`isUnit_algebraMap_s_of_huber` (Presheaf.lean), `isUnit_algebraMap_s_of_subset`
 (CompletionLocalization.lean), and `isUnit_algebraMap_s_of_rational_subset`
 (PresheafTateStructure.lean). All three invoke `mem_prime_of_rational_subset`
 inside an `Ideal.radical`-membership argument and discharge the non-open-prime
@@ -687,36 +706,106 @@ branch through an existential in `rationalOpen D'.T D'.s`.
 
 Given a non-open prime `p` of a Huber ring `A` with `D.s ∈ p`, and an inclusion
 `R(D'.T/D'.s) ⊆ R(D.T/D.s)`, this helper produces `v ∈ rationalOpen D'.T D'.s`
-with `p ≤ v.supp`. The existence of `v` is guaranteed by Wedhorn Lemma 7.45
-applied to the completion `presheafValue D'` (strongly noetherian Tate case)
-combined with the valuation-domination theorem over `Frac(A/p)`.
+with `p ≤ v.supp`.
 
-**Status: sorry'd.** The only route available in the project is via Lemma 7.45
-on `presheafValue D'`, which requires `IsAdicComplete` on `completedLocSubring`,
-which is the Bourbaki CA III §2.8 blocker (`Submodule.isClosed_of_fg`) documented
-in `project_T001_completion_route.md` and
-`docs/plans/2026-04-14-acyclicity-completion.md`.
+**Completion route status (2026-04-18 audit).**
 
-The algebraic "Option A" route (image ring in `Frac(A/p)`, dominating valuation
-ring) requires properness of `I·R`, which is itself a non-trivial fiber-nonempty
-hypothesis; that route has not been formalized.
+The previous docstring cited Bourbaki CA III §2.8 (`Submodule.isClosed_of_fg`)
+as the blocker. That claim is **stale**. The `IdealClosedness.lean` file
+(`Ideal.isClosed_of_le_jacobson` via Mathlib's `Ideal.iInf_pow_smul_eq_bot_of_le_jacobson`
+— Krull intersection) combined with the `AdicCompletionBridge` gives enough
+closedness to close `IsAdicComplete` on the completed pair of definition. As of
+this audit, the full chain is:
 
-**Retirement note (2026-04-15).** This obligation is **retired from the
-critical path** per the Q1 directive in the acyclicity completion plan: the
-standard-cover reduction (`LaurentCover` / `StandardCover`) bypasses it entirely
-by reducing general rational coverings to unit-principal covers where the
-Spa-point construction at a non-open prime is not needed. This helper lemma is
-kept to preserve the signature of `isUnit_algebraMap_s_of_huber` (which is
-consumed by downstream Huber-ring code). -/
+- `PresheafTateStructure.presheafValue_isAdic` (line 804) — **proved sorry-free**.
+- `PresheafTateStructure.presheafValue_pairOfDefinition_concrete` (line 867) —
+  **defined sorry-free**.
+- `Cor832.presheafValue_isAdicComplete` (line 896) — **proved sorry-free**,
+  under `[IsTateRing A] [IsNoetherianRing A] [T2Space A] [IsNoetherianRing P.A₀]
+  [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]`.
+- `Cor832.exists_spa_point_supp_ge_in_presheafValue` (line 958) —
+  **proved sorry-free**, packages Lemma 7.45 on the completion.
+- `Cor832.hSpa_points_nonOpen_via_lifted_ideal_proper` (line 1009) —
+  **proved sorry-free**, produces the exact T001 conclusion
+  `∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp` **conditional** on
+  `Ideal.map C.base.canonicalMap p ≠ ⊤` in `presheafValue C.base`.
+- `RationalLocData.exists_rationalOpen_of_completion_spa` (this file, line ~498)
+  — **proved sorry-free**, the pullback transfer.
+
+**Why the sorry remains in this file.** The proof cannot be closed in
+`Presheaf.lean` because the downstream infrastructure (`PresheafTateStructure`,
+`Cor832`) imports `Presheaf`; a direct call from here is a circular import.
+Callers that transitively have `Cor832` in scope should route through
+`Cor832.hSpa_points_nonOpen_via_lifted_ideal_proper` (which additionally
+requires the residual `liftedIdeal_ne_top` hypothesis below), and bypass this
+helper.
+
+**Single remaining mathematical residual (Lean-shaped target, NOT instantiated
+here).** The following is the exact obligation that, combined with the
+already-proved `Cor832.hSpa_points_nonOpen_via_lifted_ideal_proper`, closes
+`spa_point_nonOpen_of_rational_subset` end-to-end. It is **not** stated as a
+top-level theorem in this file because its proof requires downstream
+infrastructure (`IsTateRing (presheafValue D')`, `presheafValue_isAdicComplete`)
+that is only available after `Cor832.lean`; writing it here with the weak
+`Presheaf.lean`-level hypothesis bundle would produce a too-weak stub.
+
+```
+theorem liftedIdeal_ne_top_claim
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D D' : RationalLocData A) [IsNoetherianRing (locSubring D'.P D'.T D'.s)]
+    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (p : Ideal A) [p.IsPrime] (hDs : D.s ∈ p)
+    (hD's : D'.s ∉ p)
+    (hp_notOpen : ¬IsOpen (p : Set A)) :
+    D'.liftedIdeal p ≠ ⊤
+```
+
+**Mathematical content.** Completion of a strongly noetherian Tate localization
+preserves properness of finitely generated prime-ideal extensions. The image of
+a prime `p` of `A` under the canonical map `A →+* presheafValue D'` generates a
+proper ideal in `presheafValue D'` whenever the prime is non-open and witnesses
+a legitimate rational containment with `D'.s ∉ p`; `liftedIdeal p = ⊤` would force the image of
+`p` to contain a unit in `Localization.Away D'.s`, contradicting `D.s ∈ p`
+together with `rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s`.
+
+**Proof location for future work.** Downstream of
+`Cor832.presheafValue_isAdicComplete` (Cor832.lean:896) — either in `Cor832.lean`
+itself or in a new downstream bridge file between `Cor832` and `StandardCover`.
+A `Presheaf.lean`-level statement would be too weak to prove without leaking
+the full Tate / Noetherian / T2 / pair-of-definition bundle into upstream
+callers.
+
+**Why this helper remains as a sorry here.** T001's one real sorry
+(`spa_point_nonOpen_of_rational_subset`, below) cannot be closed in this
+file because the completion route primitives (`presheafValue_isAdic`,
+`presheafValue_pairOfDefinition_concrete`, `presheafValue_isAdicComplete`) live
+downstream of `Presheaf.lean` in the import DAG; importing them here would be
+circular. The obligation is therefore kept at this location with the weaker
+`[IsHuberRing A]` signature consumed by `isUnit_algebraMap_s_of_huber`
+(Presheaf.lean, below), and the residual above is to be proved downstream
+and then wired back through a signature refactor of the unit-chain.
+
+**Retirement-from-critical-path caveat.** The standard-cover reduction
+(`LaurentCover` / `StandardCover`) does **not** fully bypass this obligation:
+`StandardCover.exists_nullstellensatz_refinement_of_rationalOpen_nonempty`
+takes a `hZavyalov` hypothesis that still requires the same non-open-prime
+Spa-point construction (see `StandardCover.lean:555-559`). T001 remains on
+the critical path for `tateAcyclicity` via `restrictionMap`'s dependency on
+`isUnit_canonicalMap_s_of_huber`. -/
 theorem spa_point_nonOpen_of_rational_subset {A : Type*} [CommRing A]
     [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
     (D D' : RationalLocData A) (_h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
     (p : Ideal A) (_hp : p.IsPrime) (_hDs : D.s ∈ p)
-    (_hp_notOpen : ¬IsOpen (p : Set A)) :
+    (_hD's : D'.s ∉ p) (_hp_notOpen : ¬IsOpen (p : Set A)) :
     ∃ v ∈ rationalOpen D'.T D'.s, p ≤ v.supp := by
-  -- Blocked on Bourbaki CA III §2.8 (`Submodule.isClosed_of_fg`) for the completion
-  -- route, or on a formalised rational-ring domination theorem for Option A.
-  -- See docstring.
+  -- Proof is architecturally located downstream: see
+  -- `Cor832.hSpa_points_nonOpen_via_lifted_ideal_proper` modulo the residual
+  -- `liftedIdeal_ne_top_claim` sketched in the docstring above under the full
+  -- Tate/Noetherian/T2/NonarchimedeanRing hypothesis bundle. The Bourbaki
+  -- CA III §2.8 claim in the pre-2026-04-18 docstring is superseded by
+  -- `IdealClosedness.lean` + `Cor832.presheafValue_isAdicComplete`.
   sorry
 
 /-- The localization-level unit: `algebraMap A (Localization.Away D'.s) D.s` is a unit
@@ -734,8 +823,8 @@ theorem isUnit_algebraMap_s_of_huber {A : Type*} [CommRing A] [TopologicalSpace 
     intro p ⟨hsp, hp⟩
     have hDs : D.s ∈ p := hsp (Ideal.subset_span (Set.mem_singleton D.s))
     refine mem_prime_of_rational_subset D D' h p hp hDs ?_
-    intro hp_notOpen
-    exact spa_point_nonOpen_of_rational_subset D D' h p hp hDs hp_notOpen
+    intro hp_notOpen hD's
+    exact spa_point_nonOpen_of_rational_subset D D' h p hp hDs hD's hp_notOpen
   obtain ⟨n, hn⟩ := Ideal.mem_radical_iff.mp hrad
   obtain ⟨a, ha⟩ := Ideal.mem_span_singleton'.mp hn
   have hunit_pow : IsUnit (algebraMap A (Localization.Away D'.s) D'.s ^ n) :=
@@ -809,22 +898,15 @@ By the universal property of the localization topology
 theorem restrictionMapAlg_continuous_of_huber {A : Type*} [CommRing A]
     [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
     (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (hu_loc : IsUnit (algebraMap A (Localization.Away D'.s) D.s))
     (hpb : ∀ t ∈ D.T, @TopologicalRing.IsPowerBounded (Localization.Away D'.s) _ D'.topology
-      (IsLocalization.Away.lift D.s (isUnit_algebraMap_s_of_huber D D' h) (divByS t D.s))) :
+      (IsLocalization.Away.lift D.s hu_loc (divByS t D.s))) :
     @Continuous _ _ D.topology
       (@UniformSpace.toTopologicalSpace _
         (@UniformSpace.Completion.uniformSpace _ D'.uniformSpace))
-      (IsLocalization.Away.lift D.s (isUnit_canonicalMap_s_of_huber D D' h)) := by
-  have hu_loc := isUnit_algebraMap_s_of_huber D D' h
+      (D'.coeRingHom.comp (IsLocalization.Away.lift D.s hu_loc)) := by
   let locLift : Localization.Away D.s →+* Localization.Away D'.s :=
     IsLocalization.Away.lift D.s hu_loc
-  have hfactor : IsLocalization.Away.lift D.s (isUnit_canonicalMap_s_of_huber D D' h) =
-      D'.coeRingHom.comp locLift := by
-    apply IsLocalization.ringHom_ext (Submonoid.powers D.s)
-    ext a
-    simp only [RingHom.comp_apply, IsLocalization.Away.lift_eq, RationalLocData.coeRingHom,
-      RationalLocData.canonicalMap, locLift]
-  rw [hfactor]
   letI := D.uniformSpace
   letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
   letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
@@ -885,10 +967,13 @@ power-bounded.
 is available). For now, carried as an explicit hypothesis via this class. -/
 class HasLocLiftPowerBounded (A : Type*) [CommRing A] [TopologicalSpace A] [PlusSubring A]
     [IsHuberRing A] : Prop where
+  isUnit_algebraMap_s : ∀ (D D' : RationalLocData A),
+    rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s →
+    IsUnit (algebraMap A (Localization.Away D'.s) D.s)
   locLift_divByS_isPowerBounded : ∀ (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) (t : A), t ∈ D.T →
     @TopologicalRing.IsPowerBounded (Localization.Away D'.s) _ D'.topology
-      (IsLocalization.Away.lift D.s (isUnit_algebraMap_s_of_huber D D' h) (divByS t D.s))
+      (IsLocalization.Away.lift D.s (isUnit_algebraMap_s D D' h) (divByS t D.s))
 
 section RestrictionMaps
 
@@ -897,16 +982,17 @@ variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
 
 /-- The image of `s` under `A → A⟨T'/s'⟩` is a unit when `R(T'/s') ⊆ R(T/s)`
 (Proposition 8.2 of Wedhorn). -/
-theorem isUnit_canonicalMap_s (D D' : RationalLocData A)
+theorem isUnit_canonicalMap_s [HasLocLiftPowerBounded A] (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     IsUnit (D'.canonicalMap D.s) :=
-  isUnit_canonicalMap_s_of_huber D D' h
+  (HasLocLiftPowerBounded.isUnit_algebraMap_s D D' h).map D'.coeRingHom
 
 /-- The algebraic part of the restriction map via `IsLocalization.Away.lift`. -/
-noncomputable def restrictionMapAlg (D D' : RationalLocData A)
+noncomputable def restrictionMapAlg [HasLocLiftPowerBounded A] (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     Localization.Away D.s →+* presheafValue D' :=
-  IsLocalization.Away.lift D.s (isUnit_canonicalMap_s D D' h)
+  D'.coeRingHom.comp
+    (IsLocalization.Away.lift D.s (HasLocLiftPowerBounded.isUnit_algebraMap_s D D' h))
 
 /-- The algebraic restriction map is continuous (Proposition 8.2 of Wedhorn).
 Requires `[HasLocLiftPowerBounded A]` (the adic Nullstellensatz for power-boundedness
@@ -918,6 +1004,7 @@ theorem restrictionMapAlg_continuous [HasLocLiftPowerBounded A] (D D' : Rational
         (@UniformSpace.Completion.uniformSpace _ D'.uniformSpace))
       (restrictionMapAlg D D' h) :=
   restrictionMapAlg_continuous_of_huber D D' h
+    (HasLocLiftPowerBounded.isUnit_algebraMap_s D D' h)
     (fun t ht => HasLocLiftPowerBounded.locLift_divByS_isPowerBounded D D' h t ht)
 
 /-- The restriction map `σ : A⟨T/s⟩ →+* A⟨T'/s'⟩` (Proposition 8.2(1) of Wedhorn). -/
@@ -981,7 +1068,9 @@ theorem restrictionMap_comp [HasLocLiftPowerBounded A] (D D' D'' : RationalLocDa
     change restrictionMapHom D' D'' h₂
       (@UniformSpace.Completion.coeRingHom _ _ D'.uniformSpace
         D'.isTopologicalRing D'.isUniformAddGroup (algebraMap A _ r)) = _
-    rw [restrictionMapHom_coe, restrictionMapAlg, IsLocalization.Away.lift_eq]
+    rw [restrictionMapHom_coe]
+    simp only [RingHom.comp_apply, restrictionMapAlg, IsLocalization.Away.lift_eq,
+      RationalLocData.canonicalMap]
   ext x
   change (restrictionMapHom D' D'' h₂) ((restrictionMapHom D D' h₁) x) =
     (restrictionMapHom D D'' (h₂.trans h₁)) x
@@ -1087,25 +1176,6 @@ theorem locTopology_eq_bot_of_discrete {A : Type*} [CommRing A] [TopologicalSpac
   rw [show ({x} : Set (Localization.Away D.s)) = (x + ·) '' {0} from by
     simp only [Set.image_singleton, add_zero]]
   exact (isOpenMap_add_left x) _ (hNhd_eq ▸ hopen_nhd)
-
-/-- For discrete rings, the adic Nullstellensatz hypothesis holds trivially because
-the localization topology is `⊥` (discrete), making every element power-bounded. -/
-instance HasLocLiftPowerBounded.discrete {A : Type*} [CommRing A] [TopologicalSpace A]
-    [DiscreteTopology A] [PlusSubring A] [IsHuberRing A] : HasLocLiftPowerBounded A where
-  locLift_divByS_isPowerBounded D D' _h _t _ht := by
-    have hbot : D'.topology = ⊥ := locTopology_eq_bot_of_discrete D'
-    show @TopologicalRing.IsBounded _ _ D'.topology
-      (Set.range (fun n => (IsLocalization.Away.lift D.s _ (divByS _t D.s)) ^ n))
-    rw [hbot]
-    intro U hU
-    letI : TopologicalSpace (Localization.Away D'.s) := ⊥
-    haveI : DiscreteTopology (Localization.Away D'.s) := ⟨rfl⟩
-    rw [nhds_discrete, Filter.mem_pure] at hU
-    refine ⟨{0}, ?_, ?_⟩
-    · rw [nhds_discrete, Filter.mem_pure]; exact rfl
-    · intro x hx
-      obtain ⟨a, ha, b, hb, rfl⟩ := Set.mem_mul.mp hx
-      rw [Set.mem_singleton_iff.mp hb, mul_zero]; exact hU
 
 /-! ### Adic Nullstellensatz (Wedhorn Remark 7.24 + Prop 7.18)
 
@@ -1819,6 +1889,43 @@ theorem isUnit_canonicalMap_s_of_discrete {A : Type*} [CommRing A] [TopologicalS
     rw [← map_mul, ← map_pow, ha]
   rw [← heq] at hunit_pow
   exact isUnit_of_mul_isUnit_right hunit_pow
+
+/-- For discrete rings, the adic Nullstellensatz hypothesis holds trivially because
+the localization topology is `⊥` (discrete), making every element power-bounded. -/
+instance HasLocLiftPowerBounded.discrete {A : Type*} [CommRing A] [TopologicalSpace A]
+    [DiscreteTopology A] [PlusSubring A] [IsHuberRing A] : HasLocLiftPowerBounded A where
+  isUnit_algebraMap_s D D' h := by
+    have hrad : D'.s ∈ Ideal.radical (Ideal.span {D.s}) := by
+      classical
+      rw [Ideal.radical_eq_sInf, Ideal.mem_sInf]
+      intro p ⟨hsp, hp⟩
+      have hDs : D.s ∈ p := hsp (Ideal.subset_span (Set.mem_singleton D.s))
+      exact mem_prime_of_rational_subset_discrete D D' h p hp hDs
+    obtain ⟨n, hn⟩ := Ideal.mem_radical_iff.mp hrad
+    obtain ⟨a, ha⟩ := Ideal.mem_span_singleton'.mp hn
+    have hunit_pow : IsUnit (algebraMap A (Localization.Away D'.s) D'.s ^ n) :=
+      (IsLocalization.map_units (Localization.Away D'.s)
+        (⟨D'.s, ⟨1, pow_one D'.s⟩⟩ : Submonoid.powers D'.s)).pow n
+    have heq : algebraMap A (Localization.Away D'.s) a *
+        algebraMap A (Localization.Away D'.s) D.s =
+        algebraMap A (Localization.Away D'.s) D'.s ^ n := by
+      rw [← map_mul, ← map_pow, ha]
+    rw [← heq] at hunit_pow
+    exact isUnit_of_mul_isUnit_right hunit_pow
+  locLift_divByS_isPowerBounded D D' _h _t _ht := by
+    have hbot : D'.topology = ⊥ := locTopology_eq_bot_of_discrete D'
+    show @TopologicalRing.IsBounded _ _ D'.topology
+      (Set.range (fun n => (IsLocalization.Away.lift D.s _ (divByS _t D.s)) ^ n))
+    rw [hbot]
+    intro U hU
+    letI : TopologicalSpace (Localization.Away D'.s) := ⊥
+    haveI : DiscreteTopology (Localization.Away D'.s) := ⟨rfl⟩
+    rw [nhds_discrete, Filter.mem_pure] at hU
+    refine ⟨{0}, ?_, ?_⟩
+    · rw [nhds_discrete, Filter.mem_pure]; exact rfl
+    · intro x hx
+      obtain ⟨a, ha, b, hb, rfl⟩ := Set.mem_mul.mp hx
+      rw [Set.mem_singleton_iff.mp hb, mul_zero]; exact hU
 
 /-- The algebraic restriction map is continuous for discrete rings
 (Proposition 8.2 of Wedhorn, discrete case). -/

@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».WedhornLocalizedCor732Application
 import «Adic spaces».WedhornLocalizationContinuity
+import «Adic spaces».WedhornLocalCompatFromTestFamily
 
 /-!
 # Localized Tate-data derivation for `exists_dominating_unit_in_localization`
@@ -127,5 +128,79 @@ theorem isUnit_algebraMapD_of_isUnit
       Localization.Away s) = algebraMap A (Localization.Away s) (P.A₀.subtype π) := rfl
   rw [heq]
   exact hπ_unit.map (algebraMap A (Localization.Away s))
+
+/-! ### T213: localized test-family nonvanishing supplier
+
+T206's item-8 input (no-common-zero on `Spa(Loc s, ⁺)` for the test
+family `T_test_loc`) is the last per-cover residual after T208/T211.
+T213 below produces the supplier in the **generic** form parameterised
+directly by `(P, T, s, hopen)` and the per-cover-piece data
+`(T_D, s_D)`, rather than the existing `RationalCovering`-specialised
+`wedhorn_834_localizedTestFamily_nonvanishing_supplier`
+(`Adic spaces/WedhornC1StrongSupplierBridge.lean:553`).
+
+The proof is a clean reduction: at every `w` in the localised Spa,
+return `τ := algebraMap A (Loc s) s_D` — which lies in
+`localizedTestFamily s T_D s_D` by `Finset.mem_insert_self` (since
+`localizedTestFamily = insert (algebraMap s_D) (T_D.image algebraMap)`)
+— and use the supplied per-`w` non-vanishing of `algebraMap s_D`. -/
+
+/-- **T213 generic localized test-family nonvanishing supplier**.
+
+From the per-`w` non-vanishing of `algebraMap A (Loc s) s_D` on
+`Spa(Localization.Away s, ⁺)` (under the `locTopology` /
+`localizationLocSubringPlusSubring` choices), produce the
+`localizedTestFamily s T_D s_D` no-common-zero condition required as
+input to `Cor732.exists_dominating_unit` applied to the localised
+ring.
+
+**Inputs**:
+* `(P, T, s, hopen)` — the standard `locTopology` / `locSubring` data.
+* `(T_D, s_D)` — target cover-piece data (`s_D` is the cover-piece
+  denominator; `T_D` is the cover-piece test family).
+* `h_sD_ne` — per-`w` non-vanishing of `algebraMap A (Loc s) s_D` on
+  `Spa(Loc s, ⁺)` (cover-piece denominator structural condition).
+
+**Output**: per-`w`, `∃ τ ∈ localizedTestFamily s T_D s_D, ¬ w.vle τ 0`.
+
+**Proof**: at each `w`, return `τ := algebraMap s_D` (in
+`localizedTestFamily` by `Finset.mem_insert_self`); the supplied
+`h_sD_ne` discharges the non-vanishing.
+
+**Use**: this is the generic counterpart of
+`wedhorn_834_localizedTestFamily_nonvanishing_supplier`
+(`WedhornC1StrongSupplierBridge.lean:553`) — the same reduction,
+parameterised by `(T_D, s_D)` directly rather than by
+`(C : RationalCovering A, D : RationalLocData A)`. Suitable as the
+`hT_loc` input at T206-style callsites that lack a
+`RationalCovering` packaging. -/
+theorem localizedTestFamily_nonvanishing_of_denominator_nonvanishing
+    [PlusSubring A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (h_sD_ne :
+      letI : TopologicalSpace (Localization.Away s) :=
+        locTopology P T s hopen
+      letI : PlusSubring (Localization.Away s) :=
+        localizationLocSubringPlusSubring P T s
+      ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+        ¬ w.vle (algebraMap A (Localization.Away s) s_D) 0) :
+    letI : TopologicalSpace (Localization.Away s) :=
+      locTopology P T s hopen
+    letI : PlusSubring (Localization.Away s) :=
+      localizationLocSubringPlusSubring P T s
+    ∀ w ∈ Spa (Localization.Away s) (Localization.Away s)⁺,
+      ∃ τ ∈ localizedTestFamily s T_D s_D, ¬ w.vle τ 0 := by
+  letI : TopologicalSpace (Localization.Away s) :=
+    locTopology P T s hopen
+  letI : PlusSubring (Localization.Away s) :=
+    localizationLocSubringPlusSubring P T s
+  letI : DecidableEq (Localization.Away s) := Classical.decEq _
+  intro w hw
+  refine ⟨algebraMap A (Localization.Away s) s_D, ?_, h_sD_ne w hw⟩
+  unfold localizedTestFamily
+  exact Finset.mem_insert_self _ _
 
 end ValuationSpectrum

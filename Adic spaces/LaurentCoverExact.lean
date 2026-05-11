@@ -248,63 +248,384 @@ private theorem coeff_succ_algebraMap (a : A) (n : ℕ) :
   rw [MvPowerSeries.algebraMap_apply, MvPowerSeries.coeff_C]
   exact if_neg (Finsupp.single_ne_zero.mpr (Nat.succ_ne_zero n))
 
-/-- If a constant `algebraMap a` lies in `Ideal.span {f - X}` and `f` is not a unit
-in a noetherian domain, then `a = 0`.
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- If a constant `algebraMap a` lies in `Ideal.span {f - X}` and
+`⋂ n, (f)^n = 0`, then `a = 0`.
 
 The proof extracts the coefficient recurrence from `(f - X) · c = algebraMap a`:
 - Constant term: `f · coeff 0 c = a`
 - Higher terms: `coeff n c = f · coeff (n + 1) c` for all `n`
 
-This yields `a = f^(n+1) · coeff n c`, hence `a ∈ (f)^n` for all `n`. Since `f`
-is not a unit in a noetherian domain, the Krull intersection theorem
-(`Ideal.iInf_pow_eq_bot_of_isDomain`) gives `a ∈ ⋂ₙ (f)ⁿ = 0`. -/
-theorem algebraMap_mem_span_fSubX_eq_zero (f : A) (hf : ¬IsUnit f) (a : A)
+This yields `a = f^(n+1) · coeff n c`, hence `a ∈ (f)^n` for all `n`.
+The supplied intersection hypothesis then gives `a = 0`. This is the
+Krull-independent core used by the domain theorem below and by future
+non-domain Tate/Jacobson variants. -/
+theorem algebraMap_mem_span_fSubX_eq_zero_of_iInf_pow_eq_bot (f a : A)
+    (hInf : (⨅ n : ℕ, Ideal.span ({f} : Set A) ^ n) = ⊥)
     (h : algebraMap A ↥(TateAlgebra A) a ∈
       Ideal.span {algebraMap A ↥(TateAlgebra A) f - TateAlgebra.X}) : a = 0 := by
   rw [Ideal.mem_span_singleton'] at h
   obtain ⟨c, hc⟩ := h
-  -- Rewrite with (f - X) on the left
+  -- Rewrite with (f - X) on the left.
   have hc' : (algebraMap A ↥(TateAlgebra A) f - TateAlgebra.X) * c =
       algebraMap A _ a := by rw [mul_comm]; exact hc
-  -- Coefficient equations from (f - X) * c = algebraMap a
+  -- Coefficient equations from (f - X) * c = algebraMap a.
   have hcoeff_eq : ∀ n,
       f * TateAlgebra.coeff n c - TateAlgebra.coeff n (TateAlgebra.X * c) =
       TateAlgebra.coeff n (algebraMap A ↥(TateAlgebra A) a) := by
-    intro n; have := congr_arg (TateAlgebra.coeff n) hc'
+    intro n
+    have := congr_arg (TateAlgebra.coeff n) hc'
     rw [sub_mul, TateAlgebra.coeff_sub, TateAlgebra.coeff_algebraMap_mul] at this
     exact this
-  -- Constant coefficient: f * coeff 0 c = a
+  -- Constant coefficient: f * coeff 0 c = a.
   have h0 : f * TateAlgebra.coeff 0 c = a := by
     have := hcoeff_eq 0
     rw [TateAlgebra.coeff_zero_X_mul, sub_zero, coeff_zero_algebraMap] at this
     exact this
-  -- Recurrence: coeff n c = f * coeff (n + 1) c
+  -- Recurrence: coeff n c = f * coeff (n + 1) c.
   have hstep : ∀ n,
       TateAlgebra.coeff n c = f * TateAlgebra.coeff (n + 1) c := by
-    intro n; have h1 := hcoeff_eq (n + 1)
+    intro n
+    have h1 := hcoeff_eq (n + 1)
     rw [TateAlgebra.coeff_succ_X_mul, coeff_succ_algebraMap] at h1
     exact (sub_eq_zero.mp h1).symm
-  -- Power relation: coeff 0 c = f^n * coeff n c
+  -- Power relation: coeff 0 c = f^n * coeff n c.
   have hpow : ∀ n,
       TateAlgebra.coeff 0 c = f ^ n * TateAlgebra.coeff n c := by
-    intro n; induction n with
+    intro n
+    induction n with
     | zero => simp
     | succ n ih => rw [ih, hstep n, pow_succ, mul_assoc]
-  -- a ∈ (f)^n for all n
-  have ha_mem : ∀ n, a ∈ Ideal.span {f} ^ n := by
-    intro n; cases n with
+  -- a ∈ (f)^n for all n.
+  have ha_mem : ∀ n, a ∈ Ideal.span ({f} : Set A) ^ n := by
+    intro n
+    cases n with
     | zero => simp [Ideal.one_eq_top]
     | succ n =>
       have : a = f ^ (n + 1) * TateAlgebra.coeff n c := by
-        rw [← h0, hpow n]; ring
+        rw [← h0, hpow n]
+        ring
       rw [this]
       exact Ideal.mul_mem_right _ _
         (Ideal.pow_mem_pow (Ideal.mem_span_singleton_self f) (n + 1))
-  -- Krull intersection: ⋂_n (f)^n = 0 in a noetherian domain with (f) ≠ ⊤
+  exact Ideal.mem_bot.mp (hInf ▸ Ideal.mem_iInf.mpr ha_mem)
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- Plus-side coefficient recurrence for the simple Laurent row.
+
+If a constant series lies in `(f - X)`, then it admits witnesses
+`a = f^(n+1) * c_n` whose coefficients `c_n` tend to zero. This is the
+topological strengthening of the first-projection computation used in
+`algebraMap_mem_span_fSubX_eq_zero_of_iInf_pow_eq_bot`. -/
+theorem exists_coeff_tendsto_and_pow_mul_of_algebraMap_mem_fSubX (f a : A)
+    (h : algebraMap A ↥(TateAlgebra A) a ∈
+      Ideal.span {algebraMap A ↥(TateAlgebra A) f - TateAlgebra.X}) :
+    ∃ c : ↥(TateAlgebra A),
+      Filter.Tendsto (fun n : ℕ => TateAlgebra.coeff n c) Filter.cofinite
+        (nhds (0 : A)) ∧
+      ∀ n : ℕ, a = f ^ (n + 1) * TateAlgebra.coeff n c := by
+  rw [Ideal.mem_span_singleton'] at h
+  obtain ⟨c, hc⟩ := h
+  have hc' : (algebraMap A ↥(TateAlgebra A) f - TateAlgebra.X) * c =
+      algebraMap A _ a := by
+    rw [mul_comm]
+    exact hc
+  have hcoeff_eq : ∀ n,
+      f * TateAlgebra.coeff n c - TateAlgebra.coeff n (TateAlgebra.X * c) =
+      TateAlgebra.coeff n (algebraMap A ↥(TateAlgebra A) a) := by
+    intro n
+    have := congr_arg (TateAlgebra.coeff n) hc'
+    rw [sub_mul, TateAlgebra.coeff_sub, TateAlgebra.coeff_algebraMap_mul] at this
+    exact this
+  have h0 : f * TateAlgebra.coeff 0 c = a := by
+    have := hcoeff_eq 0
+    rw [TateAlgebra.coeff_zero_X_mul, sub_zero, coeff_zero_algebraMap] at this
+    exact this
+  have hstep : ∀ n,
+      TateAlgebra.coeff n c = f * TateAlgebra.coeff (n + 1) c := by
+    intro n
+    have h1 := hcoeff_eq (n + 1)
+    rw [TateAlgebra.coeff_succ_X_mul, coeff_succ_algebraMap] at h1
+    exact (sub_eq_zero.mp h1).symm
+  have hpow : ∀ n,
+      TateAlgebra.coeff 0 c = f ^ n * TateAlgebra.coeff n c := by
+    intro n
+    induction n with
+    | zero => simp
+    | succ n ih => rw [ih, hstep n, pow_succ, mul_assoc]
+  refine ⟨c, TateAlgebra.coeff_tendsto_zero c, ?_⟩
+  intro n
+  rw [← h0, hpow n]
+  ring
+
+/-- If a constant `algebraMap a` lies in `Ideal.span {f - X}` and `f` is not a unit
+in a noetherian domain, then `a = 0`.
+
+This is the domain/Krull-intersection specialization of
+`algebraMap_mem_span_fSubX_eq_zero_of_iInf_pow_eq_bot`. -/
+theorem algebraMap_mem_span_fSubX_eq_zero (f : A) (hf : ¬IsUnit f) (a : A)
+    (h : algebraMap A ↥(TateAlgebra A) a ∈
+      Ideal.span {algebraMap A ↥(TateAlgebra A) f - TateAlgebra.X}) : a = 0 := by
   have hf_ne_top : Ideal.span ({f} : Set A) ≠ ⊤ := by
     rwa [Ne, Ideal.span_singleton_eq_top]
-  exact Ideal.mem_bot.mp
-    (Ideal.iInf_pow_eq_bot_of_isDomain _ hf_ne_top ▸ Ideal.mem_iInf.mpr ha_mem)
+  exact algebraMap_mem_span_fSubX_eq_zero_of_iInf_pow_eq_bot f a
+    (Ideal.iInf_pow_eq_bot_of_isDomain _ hf_ne_top) h
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- **`ε` is injective from an explicit Krull-intersection input.**
+
+This theorem isolates the only algebraic separation input needed by the
+first projection of Wedhorn's Laurent row: if `⋂ n, (f)^n = 0`, then
+the diagonal map `A → B₁(f) × B₂(f)` is injective. -/
+theorem epsilonHom_gen_injective_of_iInf_pow_eq_bot (f : A)
+    (hInf : (⨅ n : ℕ, Ideal.span ({f} : Set A) ^ n) = ⊥) :
+    Function.Injective (epsilonHom_gen f) := by
+  intro a b hab
+  have h1 := (Prod.mk.inj hab).1
+  simp only [RingHom.comp_apply] at h1
+  have hmem : algebraMap A ↥(TateAlgebra A) (a - b) ∈
+      Ideal.span {algebraMap A ↥(TateAlgebra A) f - TateAlgebra.X} := by
+    rw [map_sub]; exact Ideal.Quotient.eq.mp h1
+  exact sub_eq_zero.mp
+    (algebraMap_mem_span_fSubX_eq_zero_of_iInf_pow_eq_bot f (a - b) hInf hmem)
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- If a constant series belongs to `(1 - fX)`, then the powers `f^n * a`
+tend to zero.
+
+This is the formal second-projection ingredient in the general
+Wedhorn/Hübner simple-Laurent separation argument: membership in the minus
+quotient gives a restricted witness whose coefficients are exactly
+`f^n * a`. -/
+theorem tendsto_pow_mul_of_algebraMap_mem_oneSubfX (f a : A)
+    (h : algebraMap A ↥(TateAlgebra A) a ∈
+      Ideal.span {1 - algebraMap A ↥(TateAlgebra A) f * TateAlgebra.X}) :
+    Filter.Tendsto (fun n : ℕ => f ^ n * a) Filter.cofinite (nhds (0 : A)) := by
+  rw [Ideal.mem_span_singleton'] at h
+  obtain ⟨c, hc⟩ := h
+  have hc' : (1 - algebraMap A ↥(TateAlgebra A) f * TateAlgebra.X) * c =
+      algebraMap A _ a := by
+    rw [mul_comm]
+    exact hc
+  have hcoeff_eq : ∀ n,
+      TateAlgebra.coeff n c -
+        f * TateAlgebra.coeff n (TateAlgebra.X * c) =
+      TateAlgebra.coeff n (algebraMap A ↥(TateAlgebra A) a) := by
+    intro n
+    have := congr_arg (TateAlgebra.coeff n) hc'
+    rw [sub_mul, one_mul, mul_assoc, TateAlgebra.coeff_sub,
+      TateAlgebra.coeff_algebraMap_mul] at this
+    exact this
+  have h0 : TateAlgebra.coeff 0 c = a := by
+    have := hcoeff_eq 0
+    rw [TateAlgebra.coeff_zero_X_mul, mul_zero, sub_zero,
+      coeff_zero_algebraMap] at this
+    exact this
+  have hstep : ∀ n, TateAlgebra.coeff (n + 1) c =
+      f * TateAlgebra.coeff n c := by
+    intro n
+    have := hcoeff_eq (n + 1)
+    rw [TateAlgebra.coeff_succ_X_mul, coeff_succ_algebraMap] at this
+    exact sub_eq_zero.mp this
+  have hpow : ∀ n, TateAlgebra.coeff n c = f ^ n * a := by
+    intro n
+    induction n with
+    | zero =>
+        simpa using h0
+    | succ n ih =>
+        rw [hstep n, ih, pow_succ, mul_assoc]
+        ring
+  simpa [hpow] using TateAlgebra.coeff_tendsto_zero c
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- If the minus component of `ε(a)` vanishes, then `f^n * a → 0`.
+
+This packages the second projection of the simple Laurent row in a form that
+the separation proof can use directly. -/
+theorem tendsto_pow_mul_of_epsilonHom_gen_second_eq_zero (f a : A)
+    (h2 : (epsilonHom_gen f a).2 = 0) :
+    Filter.Tendsto (fun n : ℕ => f ^ n * a) Filter.cofinite (nhds (0 : A)) := by
+  apply tendsto_pow_mul_of_algebraMap_mem_oneSubfX
+  exact Ideal.Quotient.eq_zero_iff_mem.mp h2
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- Kernel data for `ε` in the simple Laurent row.
+
+If `ε(a) = 0`, the plus component gives restricted coefficients `c_n`
+with `a = f^(n+1)c_n`, and the minus component gives `f^n a → 0`.
+This theorem deliberately stops at the exact formal boundary needed for the
+general non-domain separation argument. -/
+theorem epsilonHom_gen_eq_zero_coeff_data (f a : A)
+    (h : epsilonHom_gen f a = 0) :
+    (∃ c : ↥(TateAlgebra A),
+      Filter.Tendsto (fun n : ℕ => TateAlgebra.coeff n c) Filter.cofinite
+        (nhds (0 : A)) ∧
+      ∀ n : ℕ, a = f ^ (n + 1) * TateAlgebra.coeff n c) ∧
+    Filter.Tendsto (fun n : ℕ => f ^ n * a) Filter.cofinite (nhds (0 : A)) := by
+  have h1 : (epsilonHom_gen f a).1 = 0 := congr_arg Prod.fst h
+  have h2 : (epsilonHom_gen f a).2 = 0 := congr_arg Prod.snd h
+  constructor
+  · apply exists_coeff_tendsto_and_pow_mul_of_algebraMap_mem_fSubX
+    exact Ideal.Quotient.eq_zero_iff_mem.mp h1
+  · exact tendsto_pow_mul_of_epsilonHom_gen_second_eq_zero f a h2
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- Plus-side Krull-intersection membership for a constant in `(f - X)`.
+
+If `algebraMap a` vanishes in `A⟨X⟩/(f-X)`, then `a` lies in every power of
+the principal ideal `(f)`. This is the algebraic input used by the general
+non-domain Krull theorem `Ideal.mem_iInf_smul_pow_eq_bot_iff`. -/
+theorem mem_iInf_pow_of_algebraMap_mem_fSubX (f a : A)
+    (h : algebraMap A ↥(TateAlgebra A) a ∈
+      Ideal.span {algebraMap A ↥(TateAlgebra A) f - TateAlgebra.X}) :
+    a ∈ (⨅ n : ℕ, Ideal.span ({f} : Set A) ^ n : Ideal A) := by
+  obtain ⟨c, _hc_tend, hc_pow⟩ :=
+    exists_coeff_tendsto_and_pow_mul_of_algebraMap_mem_fSubX f a h
+  rw [Ideal.mem_iInf]
+  intro n
+  cases n with
+  | zero =>
+      simp [Ideal.one_eq_top]
+  | succ n =>
+      rw [hc_pow n]
+      exact Ideal.mul_mem_right _ _
+        (Ideal.pow_mem_pow (Ideal.mem_span_singleton_self f) (n + 1))
+
+omit [IsDomain A] in
+/-- General noetherian Krull multiplier extracted from the plus component.
+
+If `algebraMap a ∈ (f-X)`, then Krull's general intersection theorem gives
+some `r ∈ (f)` with `r * a = a`. Unlike the domain/Jacobson specializations,
+this does **not** imply `a = 0`; it is the precise non-domain replacement for
+the first-projection argument. -/
+theorem exists_span_singleton_mul_eq_self_of_algebraMap_mem_fSubX (f a : A)
+    (h : algebraMap A ↥(TateAlgebra A) a ∈
+      Ideal.span {algebraMap A ↥(TateAlgebra A) f - TateAlgebra.X}) :
+    ∃ r : Ideal.span ({f} : Set A), (r : A) * a = a := by
+  have hmem_ideal := mem_iInf_pow_of_algebraMap_mem_fSubX f a h
+  have hmem_submodule :
+      a ∈ (⨅ n : ℕ, Ideal.span ({f} : Set A) ^ n • ⊤ : Submodule A A) := by
+    rw [Submodule.mem_iInf]
+    intro n
+    have hn : a ∈ Ideal.span ({f} : Set A) ^ n := (Ideal.mem_iInf.mp hmem_ideal) n
+    rwa [smul_eq_mul, ← Ideal.one_eq_top, mul_one]
+  obtain ⟨r, hr⟩ :=
+    (Ideal.mem_iInf_smul_pow_eq_bot_iff
+      (I := Ideal.span ({f} : Set A)) (M := A) a).mp hmem_submodule
+  exact ⟨r, by simpa [smul_eq_mul] using hr⟩
+
+omit [IsDomain A] in
+/-- Epsilon-kernel Krull multiplier from the plus component. -/
+theorem exists_span_singleton_mul_eq_self_of_epsilonHom_gen_eq_zero (f a : A)
+    (h : epsilonHom_gen f a = 0) :
+    ∃ r : Ideal.span ({f} : Set A), (r : A) * a = a := by
+  have h1 : (epsilonHom_gen f a).1 = 0 := congr_arg Prod.fst h
+  exact exists_span_singleton_mul_eq_self_of_algebraMap_mem_fSubX f a
+    (Ideal.Quotient.eq_zero_iff_mem.mp h1)
+
+omit [IsDomain A] in
+/-- Combined non-domain kernel data for the simple Laurent row.
+
+For `ε(a)=0`, the plus component and general noetherian Krull theorem give a
+multiplier `c` with `(c*f)^n a = a`, while the minus component gives
+`f^n a → 0`. The missing final Tate-topology step is exactly to control the
+possibly unbounded powers `c^n`; this theorem isolates that boundary without
+adding a reducedness/Jacobson hypothesis. -/
+theorem epsilonHom_gen_eq_zero_krull_multiplier_data (f a : A)
+    (h : epsilonHom_gen f a = 0) :
+    ∃ c : A,
+      (∀ n : ℕ, c ^ n * (f ^ n * a) = a) ∧
+      Filter.Tendsto (fun n : ℕ => f ^ n * a) Filter.cofinite (nhds (0 : A)) := by
+  obtain ⟨r, hr⟩ := exists_span_singleton_mul_eq_self_of_epsilonHom_gen_eq_zero f a h
+  obtain ⟨c, hc⟩ := Ideal.mem_span_singleton'.mp r.property
+  have hcf : (c * f) * a = a := by
+    rw [hc]
+    exact hr
+  have hcf_pow : ∀ n : ℕ, (c * f) ^ n * a = a := by
+    intro n
+    induction n with
+    | zero =>
+        simp
+    | succ n ih =>
+        calc
+          (c * f) ^ (n + 1) * a = (c * f) ^ n * ((c * f) * a) := by
+            rw [pow_succ, mul_assoc]
+          _ = (c * f) ^ n * a := by rw [hcf]
+          _ = a := ih
+  refine ⟨c, ?_, tendsto_pow_mul_of_epsilonHom_gen_second_eq_zero f a (congr_arg Prod.snd h)⟩
+  intro n
+  calc
+    c ^ n * (f ^ n * a) = (c ^ n * f ^ n) * a := by ring
+    _ = (c * f) ^ n * a := by rw [mul_pow]
+    _ = a := hcf_pow n
+
+omit [IsNoetherianRing A] [IsDomain A] in
+/-- A Hausdorff consequence of the two projection recurrences.
+
+If `ε(a) = 0`, then the plus component writes `a = f^(n+1)c_n` with
+`c_n → 0`, while the minus component gives `f^n a → 0`. Multiplying the
+two convergent factors shows the constant sequence `a^2` tends to `0`;
+Hausdorffness forces `a^2 = 0`.
+
+This is not the full non-domain injectivity statement, but it isolates the
+remaining obstruction to nilpotents. -/
+theorem sq_eq_zero_of_epsilonHom_gen_eq_zero [T2Space A] (f a : A)
+    (h : epsilonHom_gen f a = 0) :
+    a ^ 2 = 0 := by
+  obtain ⟨⟨c, hc_tend, hc_pow⟩, hfa_tend⟩ :=
+    epsilonHom_gen_eq_zero_coeff_data f a h
+  have hseq_tend :
+      Filter.Tendsto
+        (fun n : ℕ => f * (TateAlgebra.coeff n c * (f ^ n * a)))
+        Filter.cofinite (nhds (0 : A)) := by
+    simpa using (hc_tend.mul hfa_tend).const_mul f
+  have hseq_eq : ∀ n : ℕ,
+      f * (TateAlgebra.coeff n c * (f ^ n * a)) = a ^ 2 := by
+    intro n
+    calc
+      f * (TateAlgebra.coeff n c * (f ^ n * a)) =
+          (f ^ (n + 1) * TateAlgebra.coeff n c) * a := by
+            ring
+      _ = a * a := by
+            rw [← hc_pow n]
+      _ = a ^ 2 := by
+            ring
+  have hconst_zero : Filter.Tendsto (fun _ : ℕ => a ^ 2)
+      Filter.cofinite (nhds (0 : A)) :=
+    hseq_tend.congr' (Filter.Eventually.of_forall hseq_eq)
+  exact tendsto_nhds_unique tendsto_const_nhds hconst_zero
+
+omit [TopologicalSpace A] [NonarchimedeanRing A] [IsDomain A] in
+/-- Krull intersection for a principal ideal contained in the Jacobson radical. -/
+theorem span_singleton_iInf_pow_eq_bot_of_le_jacobson (f : A)
+    (hf_jac : Ideal.span ({f} : Set A) ≤ Ideal.jacobson (⊥ : Ideal A)) :
+    (⨅ n : ℕ, Ideal.span ({f} : Set A) ^ n) = ⊥ := by
+  have hsub :
+      (⨅ n : ℕ, Ideal.span ({f} : Set A) ^ n • ⊤ : Submodule A A) = ⊥ :=
+    Ideal.iInf_pow_smul_eq_bot_of_le_jacobson _ hf_jac
+  rw [eq_bot_iff]
+  intro x hx
+  have hx_sub :
+      x ∈ (⨅ n : ℕ, Ideal.span ({f} : Set A) ^ n • ⊤ : Submodule A A) := by
+    rw [Submodule.mem_iInf]
+    intro n
+    have hxn : x ∈ Ideal.span ({f} : Set A) ^ n := (Ideal.mem_iInf.mp hx) n
+    rwa [smul_eq_mul, ← Ideal.one_eq_top, mul_one]
+  have hx_bot : x ∈ (⊥ : Submodule A A) := by
+    rwa [hsub] at hx_sub
+  simpa using hx_bot
+
+omit [IsDomain A] in
+/-- **`ε` is injective when `(f)` lies in the Jacobson radical.**
+
+This is a non-domain specialization of
+`epsilonHom_gen_injective_of_iInf_pow_eq_bot` via Mathlib's Krull
+intersection theorem for ideals contained in `Jacobson(0)`. -/
+theorem epsilonHom_gen_injective_of_span_le_jacobson (f : A)
+    (hf_jac : Ideal.span ({f} : Set A) ≤ Ideal.jacobson (⊥ : Ideal A)) :
+    Function.Injective (epsilonHom_gen f) :=
+  epsilonHom_gen_injective_of_iInf_pow_eq_bot f
+    (span_singleton_iInf_pow_eq_bot_of_le_jacobson f hf_jac)
 
 /-- **`ε` is injective (general case, Wedhorn Lemma 8.33 without `[DiscreteTopology A]`).**
 
@@ -314,13 +635,10 @@ if `ε(a) = ε(b)` then `algebraMap(a - b) ∈ (f - X)`, and the Krull intersect
 theorem forces `a - b = 0`. -/
 theorem epsilonHom_gen_injective (f : A) (hf : ¬IsUnit f) :
     Function.Injective (epsilonHom_gen f) := by
-  intro a b hab
-  have h1 := (Prod.mk.inj hab).1
-  simp only [RingHom.comp_apply] at h1
-  have hmem : algebraMap A ↥(TateAlgebra A) (a - b) ∈
-      Ideal.span {algebraMap A ↥(TateAlgebra A) f - TateAlgebra.X} := by
-    rw [map_sub]; exact Ideal.Quotient.eq.mp h1
-  exact sub_eq_zero.mp (algebraMap_mem_span_fSubX_eq_zero f hf (a - b) hmem)
+  have hf_ne_top : Ideal.span ({f} : Set A) ≠ ⊤ := by
+    rwa [Ne, Ideal.span_singleton_eq_top]
+  exact epsilonHom_gen_injective_of_iInf_pow_eq_bot f
+    (Ideal.iInf_pow_eq_bot_of_isDomain _ hf_ne_top)
 
 omit [IsDomain A] in
 /-- Multiplication by `f - X` is injective on `A⟨X⟩` (general case, no topology needed

@@ -4652,4 +4652,54 @@ theorem AlphaJointMNChoiceLocPlusMembership_via_named_decay_factorization_and_un
   exact AlphaJointMNChoiceLocPlusMembership_via_uniformDecayAndChain_and_unit_s_D
     P T s hs hopen T_D s_D σ_loc h_unit_s_D h_uniformDecayAndChain_locPlus
 
+omit [IsTopologicalRing A] [PlusSubring A] in
+/-- **T164 decay factorization from any M/N-choice membership**. Any
+existing `AlphaJointMNChoiceLocSubringMembership` data (witnesses for a
+specific `(σ_loc, N)`) discharges the named pure-algebraic decay
+factorization Prop by extracting the decay piece.
+
+This bridge collapses every existing M/N-choice supplier — including
+T158/T157's special-case constructions, T159's
+`AlphaJointMNChoiceLocSubringMembership_via_cover_and_residual`, and
+T160's π-power supplier — into the named decay factorization Prop. -/
+theorem AlphaJointCor732_decay_factorization_of_mn_choice
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (T_D : Finset A) (s_D : A)
+    (σ_loc : (Localization.Away s)ˣ) (N : ℕ)
+    (h_mn : AlphaJointMNChoiceLocSubringMembership
+      P T s hopen T_D s_D σ_loc N) :
+    AlphaJointCor732_decay_factorization P T s hopen s_D σ_loc := by
+  obtain ⟨⟨ξ_decay, hξ_decay_eq⟩, _⟩ := h_mn
+  exact ⟨N, ξ_decay, hξ_decay_eq⟩
+
+omit [IsTopologicalRing A] [PlusSubring A] in
+/-- **T164 concrete discharge** at `σ_loc = 1` in the natural special
+case `s = s_D · c` for `c ∈ P.A₀`.
+
+**Witnesses**: `N := 0`, `ξ := algebraMap A (Loc s) c` (in
+`locSubring P T s` by `algebraMap_mem_locSubring P T s c.property`).
+
+**Proof**: `α s = α (s_D · c) = α s_D · α c` by `RingHom.map_mul`,
+which equals `α c · (1 · α s_D^1) = ξ · (σ_loc · α s_D^(N+1))`
+under commutativity. Mirrors T158's
+`AlphaJointFactorizationWitnessesExist_when_s_eq_s_D_mul_A0_elt_and_T_D_le_T`
+construction (decay-side only — chain side not needed for the named
+decay factorization Prop). -/
+theorem AlphaJointCor732_decay_factorization_when_s_eq_s_D_mul_A0_elt
+    [DecidableEq A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    (s_D : A)
+    (c : P.A₀) (h_s_factor : s = s_D * (c : A)) :
+    AlphaJointCor732_decay_factorization P T s hopen s_D 1 := by
+  refine ⟨0, ⟨algebraMap A (Localization.Away s) (c : A),
+    algebraMap_mem_locSubring P T s c.property⟩, ?_⟩
+  -- Goal: α s = α c · (1 · α s_D^1).
+  rw [h_s_factor, map_mul]
+  simp [Units.val_one, mul_comm]
+
 end ValuationSpectrum
