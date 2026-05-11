@@ -13,6 +13,7 @@ import «Adic spaces».FlatnessResults
 import «Adic spaces».IdealClosedness
 import «Adic spaces».IdealLocalization
 import «Adic spaces».IdealLocalizationCompletion
+import «Adic spaces».RestrictionFlatness
 
 /-!
 # Corollary 8.32 of Wedhorn (faithful flatness of product restriction)
@@ -569,6 +570,99 @@ theorem flat_over_base_tate
   -- The ambient `Module` structure is `Algebra.toModule`, which matches
   -- `(restrictionMapHom ...).toModule` by definition.
   exact IsLocalization.flat (presheafValue D.1) (Submonoid.powers (C.base.canonicalMap D.1.s))
+
+/-! ### Alternative `flat_over_base_tate_laurent` via Wedhorn 8.30 + Lemma 2.13
+
+**T-COR832-VIA-FLAT (ChatGPT Pro 2026-05-11 session 2 reframe).**
+
+The above `flat_over_base_tate` routes through the misframed Wedhorn Prop 8.15
+(`restrictionMap_isLocalization`). The **mathematically correct** alternative
+route, valid for the **Laurent-minus shape**, is:
+
+1. Flatness of `presheafValue (laurentMinusDatum C.base f_D)` over `presheafValue C.base`
+   along the restriction map, delivered by `restrictionMap_flat_via_iteratedMinus`
+   (Wedhorn Prop 8.30 at the B-level + Wedhorn Lemma 2.13 transport).
+2. Identification of each cover piece `D` as `laurentMinusDatum C.base f_D` for
+   some `f_D : A` provided as part of the hypothesis bundle.
+
+This refactored discharge is the one consumed by the actual `tateAcyclicity`
+Part 1 proof, which reduces via Lane C refinement to **standard covers** that
+ARE Laurent shapes. The full-generality version of `flat_over_base_tate` (with
+arbitrary `D` in `C.covers`) is NOT closeable via this route and is retained
+above (with its `restrictionMap_isLocalization` dependency) for completeness
+documentation; downstream consumers use this Laurent-shape variant. -/
+theorem flat_over_base_tate_laurent
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    [LaurentNormalized C.base]
+    -- Witness that each cover piece is a Laurent-minus shape of `C.base`:
+    (laurent_witness : ∀ D : { D // D ∈ C.covers },
+      ∃ f : A, D.1 = laurentMinusDatum C.base f)
+    -- B-level hypothesis bundle (uniform across cover pieces):
+    (hNoeth_B : IsNoetherianRing (presheafValue C.base))
+    (hLocLift_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      HasLocLiftPowerBounded (presheafValue C.base))
+    (hA_complete_B : @CompleteSpace (presheafValue C.base)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue C.base)))
+    (hnoeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue C.base)).toPairOfDefinition))
+    (hP_A₀Noeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P C.base).A₀))
+    -- The locSubring-Noetherianity needs to hold for every chosen `f` in the
+    -- Laurent witness; we take it uniformly as a single hypothesis function.
+    -- The `letI`s are hoisted before the `∀` because `letI` inside `∀ f : A,`
+    -- does not parse correctly in current Lean.
+    (hlocSubring_Noeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      letI : PairOfDefinition (presheafValue C.base) :=
+        presheafValue_pairOfDefinition_concrete P C.base
+      ∀ f : A, IsNoetherianRing
+        (locSubring (iteratedMinusDatum_B P C.base f).P
+          (iteratedMinusDatum_B P C.base f).T
+          (iteratedMinusDatum_B P C.base f).s))
+    (hcont_eval_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : HasLocLiftPowerBounded (presheafValue C.base) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      letI : PairOfDefinition (presheafValue C.base) :=
+        presheafValue_pairOfDefinition_concrete P C.base
+      ∀ f : A,
+        let D := iteratedMinusDatum_B P C.base f
+        ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+          @Continuous _ _
+            (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+            (inferInstance : TopologicalSpace (presheafValue D))
+            (tateQuotientToPresheafHom D hb)) :
+    ∀ D : { D // D ∈ C.covers },
+      @Module.Flat (presheafValue C.base) (presheafValue D.1) _ _
+        ((restrictionMapHom C.base D.1 (C.hsubset D.1 D.2)).toModule) := by
+  intro D
+  -- Extract the Laurent witness: D.1 = laurentMinusDatum C.base f_D.
+  obtain ⟨f, hf_eq⟩ := laurent_witness D
+  -- Rewrite D.1 as laurentMinusDatum C.base f and the membership / restriction
+  -- accordingly. We do this by `subst`-ing the equality, which requires
+  -- discharging the subtype side.
+  -- The subtype carries `hD : D.1 ∈ C.covers`; rewriting `D.1` to `laurentMinusDatum`
+  -- means we transport the membership proof correspondingly.
+  rcases D with ⟨D_val, hD_mem⟩
+  simp only at hf_eq
+  subst hf_eq
+  -- Now `D = ⟨laurentMinusDatum C.base f, hD_mem⟩` and the goal is
+  -- `Module.Flat (presheafValue C.base) (presheafValue (laurentMinusDatum C.base f))`
+  -- along `restrictionMapHom C.base (laurentMinusDatum C.base f) ...`.
+  -- Apply the Laurent-shape flatness theorem.
+  exact restrictionMap_flat_via_iteratedMinus P C.base f
+    (C.hsubset (laurentMinusDatum C.base f) hD_mem)
+    hNoeth_B hLocLift_B hA_complete_B hnoeth_B hP_A₀Noeth_B
+    (hlocSubring_Noeth_B f) (hcont_eval_B f)
 
 /-! ### End-to-end combinator via Prop 8.15 + span-top
 
