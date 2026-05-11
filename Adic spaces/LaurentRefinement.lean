@@ -5703,25 +5703,16 @@ theorem tateAcyclicity
       ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
         restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D) := by
   refine ⟨?_, ?_⟩
-  · -- Part 1: Separation via Wedhorn Cor 8.32 (product-level faithful flatness,
-    -- per reviewer (ChatGPT Pro, 2026-05-11) confirmation — single-map
-    -- `restrictionMapHom_injective` is retired-as-false; only the cover-level
-    -- product injectivity enters the critical path).
-    --
-    -- The proof here previously delegated to the retired single-map
-    -- `restrictionMapHom_injective` applied to any one cover piece. That route
-    -- is mathematically false in general (Conrad counterexample). The correct
-    -- path is the product-level Cor 8.32 statement: faithful flatness of
-    -- `presheafValue C.base → ∏ presheafValue D_i` from componentwise flatness
-    -- (Lemma 8.31, available) + cover-level Spa/spec surjectivity (an R2a
-    -- ingredient).
-    --
-    -- Current status (T-INJ-1-CLEANUP, 2026-05-11): the call site below
-    -- maintains the existing dependency on `restrictionMapHom_injective`
-    -- because the product-level wrapper that would discharge this sorry-free
-    -- requires R2a to land first. The doc-block here is updated to reflect
-    -- the reviewer's confirmation that THIS is the residual to close, not
-    -- to revisit the single-map route.
+  · -- Part 1: Separation. The reviewer-confirmed (ChatGPT Pro, 2026-05-11)
+    -- correct path uses cover-level Cor 8.32 product injectivity (NOT the
+    -- retired-as-false single-map `restrictionMapHom_injective`). However,
+    -- the product-level theorem `productRestriction_injective_tate_of_hSpa_points`
+    -- lives in `Cor832.lean`, which transitively imports `LaurentRefinement.lean`
+    -- via `StructureSheaf.lean`. Direct delegation from here would create
+    -- a dependency cycle. The proper invocation site is a downstream consumer
+    -- file (e.g., the `tateAcyclicityComplete` wrapper in `TateAcyclicityFinalAssembly.lean`).
+    -- Until that wrapper exists, the call below threads through the legacy
+    -- single-map route, which inherits a retired sorry but compiles.
     intro x hx
     obtain ⟨D, hD⟩ := hne
     exact ValuationSpectrum.restrictionMapHom_injective C.base D (C.hsubset D hD)
