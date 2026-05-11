@@ -827,7 +827,33 @@ to the Tate algebra quotient `A⟨X⟩/(1-sX)` equipped with the T-topology.
 
 Both composites are identity:
 - `tateQuotientToPresheafHom ∘ presheafValueToQuotient = id` (by T2 density)
-- `presheafValueToQuotient ∘ tateQuotientToPresheafHom = id` (by round-trip on generators) -/
+- `presheafValueToQuotient ∘ tateQuotientToPresheafHom = id` (by round-trip on generators)
+
+### T-EX638-SCOPE note (per ChatGPT Pro reviewer, 2026-05-11)
+
+The right-hand side `A⟨X⟩/(1 - D.s · X)` is a ONE-VARIABLE quotient. It models
+`R(∅, D.s)` (inverting `s` and making `1/s` power-bounded) cleanly. For general
+rational data `D = (P, T, s)` with `|T| ≥ 1`, the localisation topology
+ADDITIONALLY requires each `t/s` (for `t ∈ T`) to be power-bounded — a
+strictly stronger condition than just inverting `s`.
+
+The iso below is mathematically correct on the level of underlying *rings*
+(both sides are the localisation `A[1/s]` algebraically). The topological
+agreement requires the hypothesis bundle `(hb, hcs, ht0, hcont, hdense)` to
+silently absorb the T-dependent constraints: `hb : IsPowerBounded (invS D)`
+asserts power-boundedness of `1/s` AT the presheaf-value level, which
+implicitly already incorporates the T-dependent topology. `hdense` requires
+density of `locToQuotientOneSubfX_gen` from `Localization.Away D.s` (with the
+T-aware topology) to the one-variable quotient — this enforces compatibility.
+
+**Practical scope.** For the principal Laurent-overlap consumer
+(`R(1/f)`, `R(f/1)`, i.e., singleton-T cases), the iso is the intended
+model and the hypotheses are dischargable. For general `R(T/s)` with
+`|T| > 1`, consumers must verify (a) the iso is supplied with the right
+witnesses, or (b) decompose general `R(T/s)` into chained basic-rational
+steps `R(1/f_i)` first (Wedhorn 7.30 / chain of inclusions). This file's
+exported iso DOES NOT silently absorb general-T data; it requires the
+hypothesis bundle to carry that information explicitly. -/
 noncomputable def presheafValueTateQuotientEquiv (D : RationalLocData A)
     [T2Space A]
     (hb : TopologicalRing.IsPowerBounded (invS D))
