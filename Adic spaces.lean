@@ -12,6 +12,7 @@ import «Adic spaces».CechCohomology
 import «Adic spaces».AnalyticPoints
 import «Adic spaces».AffinoidRings
 import «Adic spaces».Basic
+import «Adic spaces».BivariateContinuity
 import «Adic spaces».Bounded
 import «Adic spaces».CoherentRing
 import «Adic spaces».CompletedAlgClosure
@@ -35,6 +36,7 @@ import «Adic spaces».IdealLocalization
 import «Adic spaces».IdealLocalizationCompletion
 import «Adic spaces».IntegralStructureSheaf
 import «Adic spaces».Example638
+-- import «Adic spaces».IteratedOverlapEquiv  -- T-NEW-1 in progress; re-enable later
 import «Adic spaces».IteratedRational
 import «Adic spaces».LaurentBaireSupport
 import «Adic spaces».LaurentCoverExact
