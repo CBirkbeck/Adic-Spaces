@@ -1103,6 +1103,46 @@ theorem isSheafy_ofStronglyNoetherianTate_flat
 -- REMOVED (T6): isSheafy_ofStronglyNoetherianTate (TopologyComparison route)
 -- had 2 sorries, superseded by isSheafy_ofStronglyNoetherianTate_flat above.
 
+/-! ### T-NEW-5: `IsSheafy` from abstract lane inputs
+
+**T-NEW-5 (2026-05-11)**.
+
+Hypothesis-parameterised `IsSheafy` builder that takes the topological-inducing
+side as an abstract supplier. This factors out T-EMBED-TOPO (the remaining
+topological residual) so the algebraic side can close independently.
+
+The caller supplies:
+* `topo_inducing` — for each rational covering `C`,
+  `Topology.IsInducing (productRestrictionSub A C)`. This is the
+  Lane-Wedhorn topological route described in `EmbeddingTopo.lean`
+  (topological Example 6.38 + Laurent strictness + Lane C refinement),
+  currently not yet developed.
+
+The algebraic side (`embedding.injective`, `gluing`) is provided internally
+via `rationalCovering_hasSeparation` and `rationalCovering_hasGluing` from
+the Laurent refinement route. -/
+theorem isSheafy_ofStronglyNoetherianTate_flat_of_topo_inducing
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (hSpa : ∀ (C : RationalCovering A) (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp)
+    (topo_inducing : ∀ (C : RationalCovering A),
+      Topology.IsInducing (productRestrictionSub A C)) :
+    IsSheafy A where
+  embedding C := by
+    by_cases hs : C.base.s = 0
+    · haveI := presheafValue_subsingleton_of_s_eq_zero C.base hs
+      exact Topology.IsEmbedding.of_subsingleton _
+    · refine ⟨topo_inducing C, ?_⟩
+      -- Algebraic injectivity from `rationalCovering_hasSeparation`.
+      intro x y hxy
+      apply rationalCovering_hasSeparation P C (hSpa C)
+      intro D hD
+      exact congr_fun hxy ⟨D, hD⟩
+  gluing C f hcompat :=
+    rationalCovering_hasGluing P C f hcompat
+
 /-! ### Factoring the product restriction through the canonical map -/
 
 /-- The product restriction composed with the canonical map to the base
