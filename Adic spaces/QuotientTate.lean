@@ -47,6 +47,50 @@ noncomputable def _root_.PairOfDefinition.quotientHom (P : PairOfDefinition R)
     (P.A₀.map (Ideal.Quotient.mk I : R →+* R ⧸ I))
     (fun x => ⟨x.1, x.2, rfl⟩)
 
+omit [IsTopologicalRing R] in
+/-- `quotientHom` is surjective: it is the corestriction of `q ∘ subtype` onto its range. -/
+theorem _root_.PairOfDefinition.quotientHom_surjective (P : PairOfDefinition R) (I : Ideal R) :
+    Function.Surjective (P.quotientHom I) := by
+  rintro ⟨y, x, hx, rfl⟩
+  exact ⟨⟨x, hx⟩, rfl⟩
+
+omit [IsTopologicalRing R] in
+/-- `quotientHom` is continuous: it is the corestriction of the continuous composition
+`q ∘ subtype` (continuity of the inclusion combined with continuity of the quotient map). -/
+theorem _root_.PairOfDefinition.quotientHom_continuous (P : PairOfDefinition R) (I : Ideal R) :
+    Continuous (P.quotientHom I) :=
+  Continuous.subtype_mk (continuous_quot_mk.comp continuous_subtype_val) _
+
+/-- `quotientHom` is an open map: it factors as `corestrict (q ∘ subtype) range`, where the
+range carries the subspace topology of `R ⧸ I`; openness lifts from the openness of `q` and of
+the inclusion `subtype : P.A₀ ↪ R`. -/
+theorem _root_.PairOfDefinition.quotientHom_isOpenMap (P : PairOfDefinition R) (I : Ideal R) :
+    IsOpenMap (P.quotientHom I) := by
+  intro U hU
+  rw [isOpen_induced_iff]
+  refine ⟨((Ideal.Quotient.mk I : R →+* R ⧸ I)) '' (Subtype.val '' U), ?_, ?_⟩
+  · exact QuotientRing.isOpenMap_coe I _ (P.isOpen.isOpenMap_subtype_val _ hU)
+  · ext y
+    simp only [Set.mem_preimage, Set.mem_image]
+    refine ⟨?_, ?_⟩
+    · rintro ⟨r, ⟨x, hxU, hxr⟩, hry⟩
+      refine ⟨x, hxU, Subtype.ext ?_⟩
+      change (Ideal.Quotient.mk I) (x : R) = ↑y
+      rw [hxr]; exact hry
+    · rintro ⟨x, hxU, hxy⟩
+      exact ⟨x.1, ⟨x, hxU, rfl⟩, by rw [← hxy]; rfl⟩
+
+omit [IsTopologicalRing R] in
+/-- For any ideal `J ⊆ P.A₀`, the image `quotientHom '' J` agrees as a set with
+`Ideal.map quotientHom J`. This uses surjectivity of `quotientHom` via
+`Ideal.mem_map_iff_of_surjective`. -/
+theorem _root_.PairOfDefinition.quotientHom_image_eq_map (P : PairOfDefinition R)
+    (I : Ideal R) (J : Ideal P.A₀) :
+    ((Ideal.map (P.quotientHom I) J : Ideal _) : Set _) = (P.quotientHom I) '' (J : Set P.A₀) := by
+  ext y
+  rw [SetLike.mem_coe, Ideal.mem_map_iff_of_surjective _ (P.quotientHom_surjective I)]
+  simp [Set.mem_image]
+
 /-- The image of a pair of definition under the quotient map.
 
 For an ideal `I` of `R` and a pair of definition `P = (A₀, I_R)` for `R`,
@@ -76,10 +120,49 @@ noncomputable def _root_.PairOfDefinition.quotient (P : PairOfDefinition R)
   isAdic := by
     -- The I-adic topology on `(P.A₀.map ...)` agrees with the subspace topology
     -- inherited from `R ⧸ I`. Both have `{image of P.I^n}` as a 0-neighborhood
-    -- basis. Proof: the open quotient map carries the nhd basis `{P.I^n}` of
-    -- `0 ∈ P.A₀ ⊆ R` to a nhd basis of `0 ∈ A₀.map ... ⊆ R ⧸ I`, which is the
-    -- image of P.I^n; meanwhile (P.I.map quotientHom)^n equals the image of
-    -- P.I^n by `Ideal.map_pow` of the surjective `quotientHom`.
-    sorry
+    -- basis. Proof: the open quotient map `quotientHom` carries the nhd basis
+    -- `{P.I^n}` of `0 ∈ P.A₀` to a nhd basis of `0` in the image subring, which
+    -- equals `(P.I.map quotientHom)^n` as a set by `Ideal.map_pow` combined with
+    -- `quotientHom_image_eq_map` (using surjectivity of the corestriction).
+    rw [isAdic_iff]
+    refine ⟨?_, ?_⟩
+    · -- Each power is open: `(map q P.I)^n = map q (P.I^n) = q '' (P.I^n)` as sets,
+      -- and `q = quotientHom` is an open map applied to the open set `P.I^n`.
+      intro n
+      rw [← Ideal.map_pow, P.quotientHom_image_eq_map I]
+      exact P.quotientHom_isOpenMap I _ (P.pow_isOpen n)
+    · -- Basis property: pull back any 0-nhd `s` through continuous `quotientHom`;
+      -- use `P.isAdic.hasBasis_nhds_zero` to find `n` with `P.I^n ⊆ q⁻¹(s)`, then
+      -- the image-equals-map identity yields `(map q P.I)^n ⊆ s`.
+      intro s hs
+      have hs' : (P.quotientHom I) ⁻¹' s ∈ 𝓝 (0 : P.A₀) :=
+        (P.quotientHom_continuous I).continuousAt.preimage_mem_nhds (by simpa using hs)
+      obtain ⟨n, -, hn⟩ := P.isAdic.hasBasis_nhds_zero.mem_iff.mp hs'
+      refine ⟨n, ?_⟩
+      rw [← Ideal.map_pow, P.quotientHom_image_eq_map I]
+      rintro _ ⟨x, hx, rfl⟩
+      exact hn hx
+
+/-! ### Huber and Tate ring structure on quotients -/
+
+/-- Quotients of Huber rings are Huber rings. The pair of definition
+`PairOfDefinition.quotient` provides a witness. -/
+theorem _root_.IsHuberRing.quotient (R : Type*) [CommRing R] [TopologicalSpace R]
+    [IsHuberRing R] (I : Ideal R) : IsHuberRing (R ⧸ I) where
+  exists_pairOfDefinition :=
+    let ⟨P⟩ := IsHuberRing.exists_pairOfDefinition (A := R)
+    ⟨P.quotient I⟩
+
+/-- Quotients of Tate rings are Tate rings. The Huber-ring structure comes from
+`IsHuberRing.quotient`, and the topologically nilpotent unit is the image of the
+Tate-ring's distinguished unit under the (continuous) quotient map. -/
+theorem _root_.IsTateRing.quotient (R : Type*) [CommRing R] [TopologicalSpace R]
+    [IsTateRing R] (I : Ideal R) : IsTateRing (R ⧸ I) where
+  __ := IsHuberRing.quotient R I
+  exists_topologicallyNilpotent_unit := by
+    obtain ⟨u, hu⟩ := IsTateRing.exists_topologicallyNilpotent_unit (A := R)
+    refine ⟨Units.map (Ideal.Quotient.mk I : R →+* R ⧸ I).toMonoidHom u, ?_⟩
+    change IsTopologicallyNilpotent ((Ideal.Quotient.mk I : R →+* R ⧸ I) (u : R))
+    exact hu.map (continuous_quot_mk : Continuous (Ideal.Quotient.mk I))
 
 end IsTateRing
