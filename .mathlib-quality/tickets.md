@@ -4120,3 +4120,29 @@ Retained in tickets for future reference; not the primary path.
 ### Cleanup tickets (cadence)
 - `CLEANUP-RATIONAL-CHAIN-1` after T-CHAIN-COMPOSITION.
 - `CLEANUP-RATIONAL-CHAIN-FINAL` after T-RATIONAL-FLAT-GENERAL-CLOSE-CHAIN.
+
+### [T-MATHLIB-STACKS-00MA] Adic completion of Noetherian ring is Noetherian
+
+- **Status**: OPEN (HIGH PRIORITY — blocks T-STRONG-NOETH-PRESERVATION and the whole chain)
+- **File**: new `Adic spaces/AdicCompletionNoetherian.lean` or addition to existing AdicCompletion file
+- **Mathematical statement**:
+  ```
+  theorem AdicCompletion.isNoetherianRing
+      {R : Type*} [CommRing R] (I : Ideal R) [IsNoetherianRing R] :
+      IsNoetherianRing (AdicCompletion I R)
+  ```
+- **Reference**: Stacks Project Tag 00MA.
+- **Proof sketch**: Write the I-adic completion R̂_I as a quotient of the
+  power series ring R[[T_1, ..., T_n]] where T_i map to generators
+  f_1, ..., f_n of I (using `Ideal.fg` if I is f.g., which it is in our
+  setting). Mathlib's `PowerSeries.instIsNoetherianRing` gives noetherianity
+  of R[[T]]. Multivariable case extends iteratively: R[[T_1, ..., T_n]] =
+  R[[T_1]][[T_2]]...[[T_n]], each step preserving noetherian via the
+  single-variable theorem. Quotient of Noetherian is Noetherian.
+- **Mathlib lemmas needed**:
+  - `PowerSeries.instIsNoetherianRing` (already in mathlib).
+  - `Ideal.Quotient.isNoetherianRing` (standard).
+  - `Ideal.fg_iff` (for I finitely generated).
+  - `AdicCompletion`-specific identifications (mathlib has the structure).
+- **Sources**: Stacks Tag 00MA (Section 10.97 of the Stacks Project).
+- **Generality**: minimal — match the use site. The simplest form is `(I : Ideal R) [IsNoetherianRing R]` without requiring I to be in the Jacobson radical (that's for FAITHFUL flatness, not noetherianity).

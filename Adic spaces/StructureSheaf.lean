@@ -995,6 +995,42 @@ theorem presheafValue_flat_of_canonical
       left_inv := e.symm_apply_apply
       right_inv := e.apply_symm_apply }
 
+/-- **T-STRONG-NOETH-PRESERVATION (rational-locale case)**: for strongly noetherian
+Tate `A` and any rational locale `D : RationalLocData A`, `presheafValue D` is a
+Noetherian ring.
+
+Proof: by `presheafValueCanonicalQuotientEquiv`, `presheafValue D ≃+* (TateAlgebra A) ⧸
+oneSubfXIdeal D.s`. The Tate algebra `TateAlgebra A = restrictedMvPowerSeriesSubring 1 A`
+is Noetherian via `IsStronglyNoetherian.isNoetherianRing_restricted 1`. Quotient of
+Noetherian is Noetherian. Transfer along the ring isomorphism.
+
+This is the project's preservation theorem reviewer-flagged for the chain
+approach to general rational-restriction flatness. -/
+theorem presheafValue_isNoetherian_via_canonical
+    [T2Space A] [NonarchimedeanRing A] [IsNoetherianRing A]
+    [IsTateRing A] [IsStronglyNoetherian A]
+    (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t)
+    (hcont_eval : @Continuous _ _
+      (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb)) :
+    IsNoetherianRing (presheafValue D) := by
+  -- TateAlgebra A is noetherian (definitionally `restrictedMvPowerSeriesSubring 1 A`).
+  haveI : IsNoetherianRing ↥(TateAlgebra A) :=
+    IsStronglyNoetherian.isNoetherianRing_restricted 1
+  -- Quotient of noetherian is noetherian (mathlib instance via `Ideal.Quotient.commRing`).
+  haveI : IsNoetherianRing (↥(TateAlgebra A) ⧸ TateAlgebra.oneSubfXIdeal D.s) :=
+    isNoetherianRing_of_surjective _ _ (Ideal.Quotient.mk _)
+      (Ideal.Quotient.mk_surjective)
+  -- Transfer along the equiv.
+  let e := presheafValueCanonicalQuotientEquiv D hb hA_complete hnoeth hT_pb hcont_eval
+  exact isNoetherianRing_of_ringEquiv _ e.symm
+
 /-- `presheafValue D` is flat over `A` when `D` is `LaurentNormalized` (`1 ∈ D.T`)
 and when `T = {1}` (the Laurent-minus case — all non-base elements of `D.T` are
 power-bounded).
