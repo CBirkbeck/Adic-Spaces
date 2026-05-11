@@ -4019,3 +4019,104 @@ CLEANUP-WEDHORN-213 (final per-file cleanup)
 - **Type**: cleanup
 - **Description**: Final per-file cleanup for the new file. Runs after the
   inducing theorems are in place.
+
+---
+
+## CHAIN DECOMPOSITION ROUTE — pivoted 2026-05-11 (round 3, second pivot)
+
+The reviewer's session-3 recommendation explicitly prescribed:
+> Build [the general flatness theorem] from the two basic flatness steps
+> plus transitivity/decomposition of rational localizations.
+
+This is the **chain decomposition** approach: express D ⊆ E as a finite
+chain of basic plus/minus Laurent steps starting from E, then compose
+`Module.Flat` along the chain (each step is flat by the existing depth-1
+infrastructure).
+
+The earlier T-WEDHORN-213-* tickets (direct depth-N relative datum
+construction) are **PARKED** — mathematically valid alternative, but the
+chain approach is what the reviewer recommended AND reuses existing
+infrastructure directly.
+
+### [T-CHAIN-CONSTRUCTION] Chain of basic plus/minus steps from E to D's data
+
+- **Status**: OPEN (HIGH PRIORITY, replaces T-WEDHORN-213-DATUM as primary path)
+- **File**: `Adic spaces/RationalChainDecomposition.lean` (new file)
+- **Type**: def + theorem
+- **Mathematical statement**: For E, D : RationalLocData A with
+  rationalOpen D ⊆ rationalOpen E, define a finite sequence
+  `chainSteps : Fin (D.T.card + 2) → RationalLocData A` with
+  chainSteps 0 = E and each successive step a basic Laurent plus or
+  minus operation on the previous, terminating at a locale chainEnd
+  whose rationalOpen equals D's.
+- **Construction outline**:
+  1. Step 0: chainSteps 0 := E.
+  2. Step 1 (basic minus at D.s over E): chainSteps 1 := laurentMinusDatum E D.s.
+     This makes D.s a denominator (inverts D.s topologically).
+  3. Steps 2..|D.T|+1 (basic plus at each t ∈ D.T): enumerate D.T as
+     {t_1, ..., t_n}; chainSteps (i+2) := laurentPlusDatum (chainSteps (i+1)) t_i.
+- **Reviewer guidance**: "[the chain] is the natural transitivity formulation."
+- **Reference**: Wedhorn Lemma 2.13.
+
+### [T-CHAIN-STEP-FLATNESS] Each chain step is flat
+
+- **Status**: OPEN (HIGH PRIORITY)
+- **File**: `Adic spaces/RationalChainDecomposition.lean`
+- **Depends on**: T-CHAIN-CONSTRUCTION
+- **Type**: theorem
+- **Mathematical statement**: For each i, the restriction map
+  `presheafValue (chainSteps i) → presheafValue (chainSteps (i+1))` is flat
+  along the natural inclusion.
+- **Proof outline**: Plus steps use `restrictionMap_flat_via_fSubX_quotient`
+  (committed earlier); minus steps use `restrictionMap_flat_via_oneSubfX_quotient`
+  or `restrictionMap_flat_via_iteratedMinus`. Both flat. Each step's
+  hypothesis bundle propagated as needed.
+
+### [T-CHAIN-COMPOSITION] Chain composite is flat
+
+- **Status**: OPEN (HIGH PRIORITY)
+- **File**: `Adic spaces/RationalChainDecomposition.lean`
+- **Depends on**: T-CHAIN-STEP-FLATNESS
+- **Type**: theorem
+- **Mathematical statement**: `presheafValue E → presheafValue chainEnd` is
+  flat (via composition of the chain's flat restriction maps).
+- **Proof outline**: Induction on chain length; apply Module.Flat
+  transitivity (`Module.Flat.comp` or equivalent).
+
+### [T-CHAIN-END-IDENTIFICATION] chainEnd has D's rationalOpen; presheaf values match
+
+- **Status**: OPEN (THE structural piece)
+- **File**: `Adic spaces/RationalChainDecomposition.lean`
+- **Depends on**: T-CHAIN-CONSTRUCTION
+- **Type**: theorem
+- **Mathematical statement**:
+  1. rationalOpen chainEnd.T chainEnd.s = rationalOpen D.T D.s in Spv A.
+  2. presheafValue chainEnd ≃+* presheafValue D as topological A-algebras,
+     and the iso intertwines restriction maps from any common predecessor.
+- **Proof outline**:
+  - Part 1 via direct unfolding of valuation conditions.
+  - Part 2 via universal property of presheafValue (functoriality on rationalOpen).
+    May need a helper lemma `presheafValue_congr_of_rationalOpen_eq` if not
+    already in project.
+
+### [T-RATIONAL-FLAT-GENERAL-CLOSE-CHAIN] Wire into general flatness
+
+- **Status**: OPEN (closes T-RATIONAL-FLAT-GENERAL)
+- **File**: `Adic spaces/RestrictionFlatness.lean`
+- **Depends on**: T-CHAIN-COMPOSITION, T-CHAIN-END-IDENTIFICATION
+- **Type**: theorem
+- **Mathematical statement**: Final closure of `restrictionMap_flat_of_rational_subset`
+  sorry-free.
+
+### Parked (alternative direct depth-N path)
+
+T-WEDHORN-213-DATUM, T-WEDHORN-213-FORWARD, T-WEDHORN-213-BACKWARD,
+T-WEDHORN-213-ROUNDTRIP, T-WEDHORN-213-EQUIV, T-WEDHORN-213-INTERTWINE
+are **PARKED**. They construct `D_at_E : RationalLocData (presheafValue E)`
+directly as a single relative datum. Mathematically valid alternative
+(Wedhorn 2.13 at depth N) but more ambitious than the chain approach.
+Retained in tickets for future reference; not the primary path.
+
+### Cleanup tickets (cadence)
+- `CLEANUP-RATIONAL-CHAIN-1` after T-CHAIN-COMPOSITION.
+- `CLEANUP-RATIONAL-CHAIN-FINAL` after T-RATIONAL-FLAT-GENERAL-CLOSE-CHAIN.
