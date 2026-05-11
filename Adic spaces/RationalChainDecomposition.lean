@@ -56,6 +56,36 @@ variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
 
 /-! ### Chain construction
 
+**⚠ STRUCTURAL CAVEAT (2026-05-11 round 3).**
+
+The first-attempt construction below builds the chain at the
+**RationalLocData A** level by composing basic `laurentPlusDatum` /
+`laurentMinusDatum` operations starting from E. This gives a sequence of
+sub-rational-opens of E:
+
+  `E ⊇ laurentMinusDatum E D.s ⊇ laurentPlusDatum _ t₁ ⊇ ⋯`
+
+The resulting `chainEnd` has `s = E.s * D.s` (not just `D.s`) and a `T`
+that is the union of D.T with the `laurentMinusDatum`-generated cross
+products. So as `(T, s)` data, `chainEnd ≠ D`.
+
+`chainEnd.rationalOpen` and `D.rationalOpen` may not even agree as
+**sets in Spv A** without additional hypotheses (e.g., `v(E.s) ≤ 1`,
+which isn't automatic).
+
+The reviewer's recommended "chain of basic plus/minus steps" most
+naturally lives at the **completion / Tate-algebra-quotient level**:
+
+  `presheafValue E → presheafValue E ⟨X⟩ / (1 - D.s · X) → ⋯`
+
+where each step is a Tate-algebra quotient (Wedhorn 8.30 flatness applies)
+at the *current* completed ring, not at the A-level. The construction
+below is retained for future analysis but does not directly close
+`T-RATIONAL-FLAT-GENERAL`. The proper formalisation requires:
+* Composition at the completion-Tate-algebra level (each step B → B⟨X⟩/(*)).
+* Multivariable Example 6.38 for the final identification of the chain end
+  with presheafValue D.
+
 The chain is built in two phases:
 * Phase 1 (single minus step): `L₁ := laurentMinusDatum E D.s`. This inverts
   `D.s` over E's topology — the resulting locale has `s = E.s * D.s`.
