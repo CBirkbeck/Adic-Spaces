@@ -577,4 +577,83 @@ theorem restrictionMap_flat_via_fSubX_quotient
       left_inv := e.symm_apply_apply
       right_inv := e.apply_symm_apply }
 
+/-! ### Minus-side analog: flatness via the `1 - fX` quotient
+
+**Symmetric to `restrictionMap_flat_via_fSubX_quotient`** (T-FLAT-PLUS-REWORK).
+
+This is the corrected minus-side theorem using `flat_quotient_oneSubfX_general` +
+the existing `laurentMinusBridge`. Symmetric to the plus version; gives a clean
+uniform API for both halves of any Laurent cover.
+
+The minus side does NOT need any source-side power-boundedness hypothesis
+(neither side does, after this rework). Hypothesis set matches
+`laurentMinusBridge`: just `hnoeth_B` and `hcont_eval_B` at the B-level. -/
+theorem restrictionMap_flat_via_oneSubfX_quotient
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A)
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+            rationalOpen D₀.T D₀.s)
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hP_A₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀)) :
+    @Module.Flat (presheafValue D₀) (presheafValue (laurentMinusDatum D₀ f)) _ _
+      ((restrictionMapHom D₀ (laurentMinusDatum D₀ f) hsub).toModule) := by
+  letI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+  letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+  letI P_B : PairOfDefinition (presheafValue D₀) :=
+    presheafValue_pairOfDefinition_concrete P D₀
+  letI : IsNoetherianRing ↥P_B.A₀ := hP_A₀Noeth_B
+  -- B-level flatness of B⟨X⟩/(1 - fX) via Wedhorn 8.30 / Lemma 8.31.
+  haveI hflat_quot :
+      Module.Flat (presheafValue D₀)
+        (LaurentCover.B₂_gen (D₀.canonicalMap f)) :=
+    TateAlgebra.flat_quotient_oneSubfX_general P_B (D₀.canonicalMap f)
+  -- Transfer flatness along `laurentMinusBridge`.
+  let e := laurentMinusBridge P D₀ f hnoeth_B hcont_eval_B
+  change @Module.Flat (presheafValue D₀) (presheafValue (laurentMinusDatum D₀ f))
+    _ _ ((restrictionMapHom D₀ (laurentMinusDatum D₀ f) hsub).toModule)
+  letI : Module (presheafValue D₀) (presheafValue (laurentMinusDatum D₀ f)) :=
+    (restrictionMapHom D₀ (laurentMinusDatum D₀ f) hsub).toModule
+  have he_smul : ∀ (a : presheafValue D₀) (x : presheafValue (laurentMinusDatum D₀ f)),
+      e (a • x) = a • e x := by
+    intro a x
+    change e (restrictionMapHom D₀ (laurentMinusDatum D₀ f) hsub a * x) =
+      algebraMap (presheafValue D₀) (LaurentCover.B₂_gen (D₀.canonicalMap f)) a * e x
+    rw [e.map_mul]
+    congr 1
+    have h1 := laurentMinusBridge_restrictionMap P D₀ f hnoeth_B hcont_eval_B hsub a
+    change e (restrictionMap D₀ (laurentMinusDatum D₀ f) hsub a) =
+      algebraMap (presheafValue D₀) (LaurentCover.B₂_gen (D₀.canonicalMap f)) a
+    rw [h1]
+    rfl
+  exact @Module.Flat.of_linearEquiv (presheafValue D₀)
+    (LaurentCover.B₂_gen (D₀.canonicalMap f))
+    (presheafValue (laurentMinusDatum D₀ f))
+    _ _ _ _ _ hflat_quot
+    { toLinearMap :=
+        { toFun := e
+          map_add' := e.map_add
+          map_smul' := he_smul }
+      invFun := e.symm
+      left_inv := e.symm_apply_apply
+      right_inv := e.apply_symm_apply }
+
 end ValuationSpectrum
