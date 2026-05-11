@@ -1,9 +1,75 @@
 # Ticket Board — `tateAcyclicity` Completion
 
-**Last refreshed**: 2026-05-11 (marathon-2 session — Lane A continuity discharged,
-structural blocker on Wedhorn Prop 8.15 Baire surjection identified precisely).
+**Last refreshed**: 2026-05-11 (session 2 reviewer correction — MAJOR REFRAME of
+the Wedhorn Prop 8.15 blocker).
 
-## 2026-05-11 marathon update: Wedhorn 8.15 Baire surjection — STRUCTURAL BLOCKER
+## 2026-05-11 session 2 reviewer reframe (ChatGPT Pro) — MAJOR CORRECTION
+
+The "Wedhorn 8.15 Baire surjection" structural blocker recorded below
+(in the now-obsolete 2026-05-11 marathon update) was identified by the
+external reviewer as **trying to prove a mathematically FALSE statement**.
+
+### The misframing
+
+`restrictionMap_isLocalization` (`PresheafTateStructure.lean:2410`) was
+targeting the predicate
+
+> `∀ i, IsLocalization.Away (κ_{D₀}(s_i)) (presheafValue D_i)`
+
+i.e., every element of `presheafValue D_i` has the form `σ(a) / u^n` for
+some `a ∈ presheafValue D₀, n ∈ ℕ`. **This is false in general** because
+completed rational localizations contain infinite convergent denominator
+tails that no finite power of the denominator clears.
+
+**Counterexample** (reviewer-provided): `A = ℚ_p⟨X⟩`. The completed
+rational localization `A⟨T⟩/(XT - 1)` contains `∑_{n ≥ 0} p^n X^{-n}`.
+Multiplying by `X^N` clears only finitely many negative powers,
+leaving infinite tail. So `IsLocalization.Away X` FAILS.
+
+### The fix (NEW critical path)
+
+Refactor Cor 8.32's abstract input from `IsLocalization.Away` to
+**`Module.Flat`** per restriction map. Flatness is supplied via Wedhorn
+8.30/8.31 + the Tate-algebra quotient identifications (Example 6.38 at
+the B-level), NOT via `IsLocalization.flat`.
+
+NEW tickets (see §3 below for full plans):
+
+- `T-RETIRE-PROP815` — mark `restrictionMap_isLocalization` as misframed,
+  document the counterexample.
+- `T-FLAT-VIA-WEDHORN830` — direct flatness of restriction maps via the
+  existing `presheafValue_iteratedMinus_equiv` (sorry-free) +
+  `flat_quotient_oneSubfX_general` (sorry-free, Wedhorn 8.31). **High
+  priority, ~150-300 lines.**
+- `T-COR832-VIA-FLAT` — refactor `flat_over_base_tate` to consume
+  flatness, not `IsLocalization.Away`. **High priority, ~50-100 lines.**
+- `T-MATHLIB-COMPLETEDLOC` — corrected Mathlib contribution
+  `(R[1/x])^∧_{I·R[1/x]} ≅ lim_n (R/I^n)[1/x]` (Stacks 0BNH). **Low
+  priority, NOT critical path.**
+
+### Consequences
+
+- **T-NEW-4** (tateAcyclicity Part 2 gluing) — UNBLOCKED once
+  T-COR832-VIA-FLAT lands. No longer blocked on Baire surjection.
+- **T-NEW-5** (isSheafy embedding) — UNBLOCKED similarly.
+- **Pettis / non-archimedean Banach Open Mapping** — RETIRED from project
+  plan. Reviewer-rejected approaches.
+- **Naïve completion-localization commutation** (`(R[1/x])^∧ ≅ R̂[1/x]`)
+  — RETIRED as mathematically FALSE.
+- **Final theorem signature** — unchanged. The refactor does not require
+  adding `IsAdicComplete (locIdeal) (locSubring)` or any other extra
+  hypotheses to the main `tateAcyclicity` statement.
+
+### Old (now-obsolete) blocker analysis
+
+The section below ("Wedhorn 8.15 Baire surjection — STRUCTURAL BLOCKER")
+records the previous diagnosis. It is now superseded by the reframe
+above; kept for historical reference but no longer reflects the
+critical path.
+
+---
+
+## 2026-05-11 marathon update [SUPERSEDED]: Wedhorn 8.15 Baire surjection — STRUCTURAL BLOCKER
 
 The remaining acyclicity sorries (`tateAcyclicity` Part 1, Part 2, `isSheafy`
 embedding) all chain through `restrictionMapHom_surj` (`PresheafTateStructure.lean:1187`),
@@ -754,6 +820,156 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
 - **Reviewer guidance** (ChatGPT Pro, 2026-05-11): "If wrappers still
   mention `restrictionMapHom_injective`, refactor them to consume the
   product restriction theorem."
+
+---
+
+### [T-RETIRE-PROP815] Mark `restrictionMap_isLocalization` as MISFRAMED
+
+- **Status**: OPEN (housekeeping)
+- **File**: `Adic spaces/PresheafTateStructure.lean` (the sorry at line 2410)
+- **Depends on**: T-COR832-VIA-FLAT (must land first so downstream consumers
+  move off this dependency)
+- **Mathematical statement**: the existing `restrictionMap_isLocalization`
+  states that for rational data `D₀ ⊇ D`, the restriction map
+  `presheafValue D₀ → presheafValue D` is an `IsLocalization.Away`
+  (algebraic-localization) with respect to `canonicalMap D.s`. **The
+  reviewer (ChatGPT Pro, 2026-05-11 session 2) confirms this target is
+  MATHEMATICALLY FALSE in general.**
+- **Counterexample**: Take `A = ℚ_p⟨X⟩` and consider the completed
+  rational localization `A⟨T⟩/(XT - 1)` (inverting `X` in the affinoid
+  sense). It contains the convergent infinite negative-power series
+  `∑_{n ≥ 0} p^n X^{-n}`. Multiplying by `X^N` clears only finitely many
+  negative powers, leaving an infinite tail. So no finite power of `X`
+  clears this element into `A`; hence `IsLocalization.Away X` FAILS.
+- **The misframing**: `IsLocalization.Away` is an **algebraic-localization**
+  predicate (Mathlib's `algebraMap`-based formulation: every element is
+  `a / x^n` for some `a, n`). Completed rational localizations are
+  **topological-localization** objects (adjoin bounded fractions, then
+  complete). The two notions DIVERGE: completed rational sections
+  contain infinite convergent denominator tails that no finite power
+  clears.
+- **Action**:
+  (i) Annotate the docstring of `restrictionMap_isLocalization` with this
+      counterexample and a pointer to T-COR832-VIA-FLAT.
+  (ii) After T-COR832-VIA-FLAT lands, audit all consumers and reroute them.
+  (iii) The existing sorry stays as an explicit "intentionally not closed —
+      over-strong target" marker, NOT to be picked up as a TODO.
+  (iv) Optionally: replace with a weaker torsion-form statement that IS true
+      (e.g., the `restrictionMapHom_ker_isTorsion` shape, which is the
+      correct injectivity-up-to-torsion content).
+- **Reviewer guidance** (ChatGPT Pro, 2026-05-11 session 2): "Do not try
+  to close Wedhorn Prop. 8.15 by proving that an arbitrary completed
+  rational restriction map is an `IsLocalization.Away` map. In that
+  generality, that target is false."
+
+---
+
+### [T-FLAT-VIA-WEDHORN830] Direct flatness of restriction maps via Wedhorn 8.30/8.31
+
+- **Status**: OPEN (HIGH PRIORITY — critical path)
+- **File**: NEW (e.g., `Adic spaces/RestrictionFlatness.lean`) or addition
+  to `Cor832.lean`.
+- **Depends on**:
+  - `presheafValue_iteratedMinus_equiv` (DONE, sorry-free)
+  - `presheafValue_iteratedPlus_equiv` (DONE, sorry-free)
+  - `flat_quotient_oneSubfX_general` (DONE, sorry-free, Wedhorn 8.31)
+  - `tateAlgebra_flat` (DONE, sorry-free, Wedhorn 8.31(1))
+  - `presheafValue_isTateRing` and `presheafValue_pairOfDefinition_concrete`
+    (DONE, sorry-free)
+- **Mathematical statement**: For a strongly noetherian Tate ring `A` and
+  rational data `D₀ ⊇ D`, the restriction map
+  `presheafValue D₀ → presheafValue D` exhibits `presheafValue D` as a
+  **flat module** over `presheafValue D₀`.
+- **Proof route** (per reviewer, ChatGPT Pro 2026-05-11 session 2):
+  (i) Identify `presheafValue D` with `presheafValue (iteratedMinusDatum_B
+      P D₀ f)` (where `f` is the relevant Laurent-minus generator) via
+      `presheafValue_iteratedMinus_equiv` (already sorry-free).
+  (ii) At the B-side (`B := presheafValue D₀`), the iterated minus datum
+      identifies via Example 6.38 with the Tate-algebra quotient
+      `B⟨X⟩ / (1 - b · X)` where `b = canonicalMap(f)`.
+  (iii) Wedhorn 8.31 (`flat_quotient_oneSubfX_general` applied at `B`)
+      gives flatness of `B⟨X⟩ / (1 - b · X)` over `B`.
+  (iv) Transfer flatness through the composition of isos.
+- **NOT via**: `IsLocalization.flat` from `restrictionMap_isLocalization`
+  (that route is RETIRED — see T-RETIRE-PROP815).
+- **Estimate**: ~150-300 lines.
+- **Unblocks**: T-COR832-VIA-FLAT and through it T-NEW-4, T-NEW-5.
+- **Reviewer guidance** (ChatGPT Pro, 2026-05-11 session 2):
+  "Rational-restriction flatness should come from Wedhorn Lemma 8.31 /
+  Prop. 8.30: identify basic rational localizations with Tate-algebra
+  quotients and transfer flatness."
+
+---
+
+### [T-COR832-VIA-FLAT] Refactor Cor 8.32 abstract to consume `Module.Flat`
+
+- **Status**: OPEN (HIGH PRIORITY — critical path)
+- **File**: `Adic spaces/Cor832.lean` (refactor of `flat_over_base_tate`
+  and downstream)
+- **Depends on**: T-FLAT-VIA-WEDHORN830
+- **Mathematical statement**:
+  ```
+  flat_over_base_tate (NEW form):
+    ∀ D ∈ C.covers,
+      Module.Flat (presheafValue C.base) (presheafValue D.1)
+  ```
+  obtained DIRECTLY via T-FLAT-VIA-WEDHORN830, not via `IsLocalization.flat`
+  applied to `restrictionMap_isLocalization`.
+- **Action**:
+  (i) Replace the proof body of `flat_over_base_tate` to invoke
+      T-FLAT-VIA-WEDHORN830.
+  (ii) Update consumers `productRestriction_faithfullyFlat_abstract` and
+      its downstream callers (`productRestriction_injective_tate_of_*`,
+      etc.) to match the new flatness-only interface.
+  (iii) The `hSpa_surj_from_spanTop` helper currently uses
+      `restrictionMap_isLocalization` to access
+      `IsLocalization.isPrime_of_isPrime_disjoint`. This is the algebraic
+      prime-lift, NOT the topological surjection. Audit: this algebraic
+      step MAY still be valid (it's about algebraic Spec maps, not
+      completed rings) — verify carefully. If invalid, replace with a
+      direct algebraic prime-lift argument.
+- **Estimate**: ~50-100 lines (mostly refactoring of existing proof bodies).
+- **Reviewer guidance** (ChatGPT Pro, 2026-05-11 session 2): "Refactor
+  Cor. 8.32 to consume **flatness of each restriction map**, not
+  `IsLocalization.Away`. Discharge flatness via Wedhorn Prop. 8.30 /
+  Lemma 8.31."
+
+---
+
+### [T-MATHLIB-COMPLETEDLOC] Mathlib contribution: completed localization for noetherian adic completion (NOT CRITICAL PATH)
+
+- **Status**: OPEN (LOW PRIORITY — future Mathlib PR, decoupled from
+  acyclicity)
+- **File**: future Mathlib PR, target `Mathlib/RingTheory/AdicCompletion/Localization.lean`
+- **Mathematical statement** (Stacks tag 0BNH-style, noetherian case):
+  > For a noetherian ring `R`, an ideal `I ⊆ R`, and an element `x ∈ R`,
+  > there is a natural continuous ring iso
+  >
+  >   `(R[1/x])^∧_{I · R[1/x]}  ≅  lim_n (R / I^n)[1/x]`
+  >
+  > where the LHS is the `I · R[1/x]`-adic completion of `R[1/x]` and the
+  > RHS is the inverse limit of the `n`-th truncations after localizing.
+- **DO NOT** state the naïve form `(R[1/x])^∧_I ≅ R̂_I [1/x]` —
+  **this is FALSE in general**. Counterexample: `R = ℤ, I = (p), x = p`:
+  the LHS is 0 (because `I` becomes the unit ideal after inverting `p`,
+  so `I^n = R[1/p]` for all `n`, hence the completion is trivial) but
+  the RHS is `ℤ_p[1/p] = ℚ_p`.
+- **Mathlib hooks** (per reviewer, ChatGPT Pro 2026-05-11 session 2):
+  - `AdicCompletion.ofTensorProduct_bijective_of_finite_of_isNoetherian`
+  - `AdicCompletion.flat_of_isNoetherian`
+  - `IsLocalization.Away`
+  - The explicit inverse-limit characterization of `AdicCompletion`.
+- **Reference**: Stacks Project Tag 0BNH (Section 10.97, Completion for
+  Noetherian rings).
+- **NOT CRITICAL PATH**: this project's Tate acyclicity proof closes via
+  T-COR832-VIA-FLAT + T-FLAT-VIA-WEDHORN830 alone, without needing this
+  Mathlib theorem. T-MATHLIB-COMPLETEDLOC is documented here as a
+  reusable Mathlib contribution that the reviewer flagged as a useful
+  follow-on, but it is NOT a blocker for any acyclicity ticket.
+- **Reviewer guidance** (ChatGPT Pro, 2026-05-11 session 2): "If we want
+  a Mathlib contribution, build the corrected adic-completion
+  localization theorem... Put this near `AdicCompletion`, using existing
+  `AdicCompletion` and `IsLocalization` APIs."
 
 ---
 
