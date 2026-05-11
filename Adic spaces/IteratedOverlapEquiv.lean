@@ -366,7 +366,7 @@ private theorem iteratedOverlap_forwardLocHom_to_B_generators_powerBounded
               (invS D₀) := by
           apply hu_s_tgt.mul_right_cancel
           rw [hcm]
-          -- Goal: alg(canMap f) * alg(canMap D₀.s) = (alg(canMap f) * alg(invS D₀)) * alg(canMap D₀.s)
+          -- Goal: alg(canF) * alg(canDs) = (alg(canF) * alg(invS D₀)) * alg(canDs).
           rw [mul_assoc (algebraMap B _ (D₀.canonicalMap f)) (algebraMap B _ (invS D₀))
                 (algebraMap B _ (D₀.canonicalMap D₀.s)),
               mul_comm (algebraMap B _ (invS D₀)) (algebraMap B _ (D₀.canonicalMap D₀.s)),
@@ -629,6 +629,7 @@ theorem iteratedOverlap_forwardToCompletion_continuous
 
 /-! ### Phase 4: backward loc hom generator power-boundedness -/
 
+omit [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A] in
 /-- `D₀.s ∈ (laurentOverlapDatum D₀ f).T`, witnessed by `(1, D₀.s)` with
 `1 ∈ insert (laurentPlusDatum D₀ f).s (laurentPlusDatum D₀ f).T` (via
 `LaurentNormalized.one_mem_T`) and `D₀.s ∈ {(laurentPlusDatum D₀ f).s, f}`. -/
@@ -647,6 +648,7 @@ private theorem D₀s_mem_laurentOverlap_T
     show D₀.s ∈ ({D₀.s, f} : Finset A)
     exact Finset.mem_insert_self _ _
 
+omit [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A] in
 /-- `f * f ∈ (laurentOverlapDatum D₀ f).T`, witnessed by `(f, f)` with
 `f ∈ insert (laurentPlusDatum D₀ f).s (laurentPlusDatum D₀ f).T = insert D₀.s (insert f D₀.T)`
 and `f ∈ {(laurentPlusDatum D₀ f).s, f}`. -/
@@ -706,7 +708,8 @@ private theorem iteratedOverlap_backwardToCompletion_generators_powerBounded
   -- After unfolding, `x ∈ insert 1 {b}` and `y ∈ {1, b}` (where `b = canMap f`).
   change x ∈ (insert (1 : B) {b} : Finset B) at hx
   change y ∈ ({1, b} : Finset B) at hy
-  simp only [Prod.fst, Prod.snd] at hxy_eq
+  -- `hxy_eq : (x, y).1 * (x, y).2 = t`. Simplify the prod projections.
+  simp only at hxy_eq
   rw [← hxy_eq]
   clear hxy_eq
   -- `hs_B_eq : (iteratedOverlapDatum_B).s = canonicalMap f = b`.
@@ -781,7 +784,7 @@ private theorem iteratedOverlap_backwardToCompletion_generators_powerBounded
     rcases Finset.mem_insert.mp hy with hy_one | hy_b
     · subst hy_one
       -- `x = 1, y = 1`: `t = 1 · 1 = 1`. divByS 1 s_B = inverse of algebraMap_B b.
-      -- backward(divByS 1 s_B) = inverse of (laurentOverlap).canMap f = coeRingHom (divByS D₀.s (D₀.s·f)).
+      -- backward(divByS 1 s_B) = inverse of (laurentOverlap).canMap f.
       show TopologicalRing.IsPowerBounded
         (iteratedOverlap_backwardToCompletion P D₀ f hLocLift_B hsub
           (divByS (1 * 1) (iteratedOverlapDatum_B P D₀ f hLocLift_B).s))
@@ -789,7 +792,8 @@ private theorem iteratedOverlap_backwardToCompletion_generators_powerBounded
       rw [hone]
       -- Show backward(divByS 1 s_B) = coeRingHom(divByS D₀.s (D₀.s·f)).
       have hinv_target : divByS (1 : B) (iteratedOverlapDatum_B P D₀ f hLocLift_B).s *
-          algebraMap B (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) b = 1 := by
+          algebraMap B
+            (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) b = 1 := by
         rw [hs_B_eq]; unfold divByS
         rw [mul_comm, ← IsLocalization.mk'_one (M := Submonoid.powers b)
               (S := Localization.Away b) b,
@@ -802,7 +806,7 @@ private theorem iteratedOverlap_backwardToCompletion_generators_powerBounded
         have := congrArg (iteratedOverlap_backwardToCompletion P D₀ f hLocLift_B hsub) hinv_target
         rw [map_mul, map_one, hbwd_algMap, restrictionMapHom_canonicalMap] at this
         exact this
-      -- backward(divByS 1 s_B) = ((laurentOverlap).canMap f)⁻¹ (in laurentOverlap, where canMap f is a unit).
+      -- backward(divByS 1 s_B) = ((laurentOverlap).canMap f)⁻¹.
       have hu_canF : IsUnit ((laurentOverlapDatum D₀ f).canonicalMap f) :=
         canonicalMap_f_isUnit_in_laurentOverlap D₀ f
       -- Apply mul_right_cancel: backward(divByS 1 s_B) = coeRingHom(divByS D₀.s (D₀.s·f)).
@@ -855,38 +859,30 @@ private theorem iteratedOverlap_backwardToCompletion_generators_powerBounded
         rw [hbwd_inv, hinv_overlap]
       rw [hbwd_eq]
       exact hInvF_pb
-    · -- `x = 1, y = b`: t = 1 · b = b.
+    · -- `x = 1, y = b`: t = 1 · b = b. divByS b b = 1. Trivial.
       rw [show (1 : B) * y = y from one_mul y]
       simp only [Finset.mem_singleton] at hy_b
       subst hy_b
-      -- `t = b`. divByS b s_B = algebraMap_B b. backward = (laurentOverlap).canMap f.
-      have halg_b_eq : divByS (b : B) (iteratedOverlapDatum_B P D₀ f hLocLift_B).s =
-          algebraMap B (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) b := by
+      have hdiv1 : divByS (b : B) (iteratedOverlapDatum_B P D₀ f hLocLift_B).s = 1 := by
         rw [hs_B_eq]; unfold divByS
-        rw [← IsLocalization.mk'_one (M := Submonoid.powers b)
-              (S := Localization.Away b) b]
-        apply IsLocalization.mk'_eq_of_eq; rfl
-      rw [halg_b_eq, hbwd_algMap, restrictionMapHom_canonicalMap]
-      exact hCanF_pb
+        exact IsLocalization.mk'_self _ _
+      rw [hdiv1, map_one]
+      exact TopologicalRing.isPowerBounded_one
   · -- `x = b`.
     simp only [Finset.mem_singleton] at hx_b
     subst hx_b
     rcases Finset.mem_insert.mp hy with hy_one | hy_b
     · subst hy_one
-      -- `x = b, y = 1`: t = b · 1 = b.
+      -- `x = b, y = 1`: t = b · 1 = b. divByS b b = 1.
       rw [show (b : B) * 1 = b from mul_one b]
-      have halg_b_eq : divByS (b : B) (iteratedOverlapDatum_B P D₀ f hLocLift_B).s =
-          algebraMap B (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) b := by
+      have hdiv1 : divByS (b : B) (iteratedOverlapDatum_B P D₀ f hLocLift_B).s = 1 := by
         rw [hs_B_eq]; unfold divByS
-        rw [← IsLocalization.mk'_one (M := Submonoid.powers b)
-              (S := Localization.Away b) b]
-        apply IsLocalization.mk'_eq_of_eq; rfl
-      rw [halg_b_eq, hbwd_algMap, restrictionMapHom_canonicalMap]
-      exact hCanF_pb
-    · -- `x = b, y = b`: t = b · b.
+        exact IsLocalization.mk'_self _ _
+      rw [hdiv1, map_one]
+      exact TopologicalRing.isPowerBounded_one
+    · -- `x = b, y = b`: t = b · b = b². divByS (b · b) b = algebraMap_B b.
       simp only [Finset.mem_singleton] at hy_b
       subst hy_b
-      -- divByS (b·b) b = algebraMap_B b.
       have halg_b_eq : divByS ((b : B) * b) (iteratedOverlapDatum_B P D₀ f hLocLift_B).s =
           algebraMap B (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) b := by
         rw [hs_B_eq]; unfold divByS
@@ -896,5 +892,457 @@ private theorem iteratedOverlap_backwardToCompletion_generators_powerBounded
         simp only [Submonoid.coe_one, one_mul]
       rw [halg_b_eq, hbwd_algMap, restrictionMapHom_canonicalMap]
       exact hCanF_pb
+
+/-! ### Phase 5: backward loc hom continuity -/
+
+/-- Continuity of `iteratedOverlap_backwardToCompletion` from
+`(iteratedOverlapDatum_B).topology` to the completion of `laurentOverlapDatum`. -/
+theorem iteratedOverlap_backwardToCompletion_continuous
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hsub : rationalOpen (laurentOverlapDatum D₀ f).T (laurentOverlapDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    @Continuous _ _ (iteratedOverlapDatum_B P D₀ f hLocLift_B).topology _
+      (iteratedOverlap_backwardToCompletion P D₀ f hLocLift_B hsub) := by
+  haveI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+  haveI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+  haveI hloc_tgt : IsLocalization.Away (D₀.canonicalMap f)
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    iteratedOverlap_isLocalization_target P D₀ f hLocLift_B
+  letI : TopologicalSpace
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).topology
+  letI : IsTopologicalRing
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).isTopologicalRing
+  haveI : NonarchimedeanRing (presheafValue (laurentOverlapDatum D₀ f)) :=
+    presheafValueNonarchimedeanRing (laurentOverlapDatum D₀ f)
+  -- Continuity of `backwardToCompletion ∘ algebraMap B`: equals `restrictionMapHom`.
+  have hf_alg : @Continuous _ _ _ _
+      ((iteratedOverlap_backwardToCompletion P D₀ f hLocLift_B hsub).comp
+        (algebraMap (presheafValue D₀)
+          (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)))) := by
+    have heq : (iteratedOverlap_backwardToCompletion P D₀ f hLocLift_B hsub).comp
+        (algebraMap (presheafValue D₀)
+          (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s))) =
+        restrictionMapHom D₀ (laurentOverlapDatum D₀ f) hsub := by
+      ext b
+      simp only [RingHom.comp_apply]
+      exact iteratedOverlap_backwardToCompletion_algebraMap P D₀ f hLocLift_B hsub b
+    rw [show ⇑((iteratedOverlap_backwardToCompletion P D₀ f hLocLift_B hsub).comp
+        (algebraMap (presheafValue D₀)
+          (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)))) =
+      ⇑(restrictionMapHom D₀ (laurentOverlapDatum D₀ f) hsub) from
+      congr_arg _ heq]
+    exact restrictionMapHom_continuous D₀ (laurentOverlapDatum D₀ f) hsub
+  exact locTopology_continuous_lift (iteratedOverlapDatum_B P D₀ f hLocLift_B).P
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).T
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).s
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).hopen
+    (iteratedOverlap_backwardToCompletion P D₀ f hLocLift_B hsub) hf_alg
+    (iteratedOverlap_backwardToCompletion_generators_powerBounded P D₀ f hLocLift_B hsub)
+
+/-! ### Phase 5b: round trip at the uncompleted level for `_to_B` -/
+
+/-- `backwardToCompletion ∘ forwardLocHom_to_B = (laurentOverlap).coeRingHom`. -/
+private theorem iteratedOverlap_backwardToCompletion_comp_forwardLocHom_to_B
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hsub : rationalOpen (laurentOverlapDatum D₀ f).T (laurentOverlapDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    (iteratedOverlap_backwardToCompletion P D₀ f hLocLift_B hsub).comp
+      (iteratedOverlap_forwardLocHom_to_B P D₀ f hLocLift_B) =
+      (laurentOverlapDatum D₀ f).coeRingHom := by
+  haveI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+  haveI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+  haveI hloc_src : IsLocalization.Away (D₀.s * f)
+      (Localization.Away ((laurentOverlapDatum D₀ f).s)) := by
+    show IsLocalization.Away (D₀.s * f) (Localization.Away (D₀.s * f))
+    infer_instance
+  haveI hloc_tgt : IsLocalization.Away (D₀.canonicalMap f)
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    iteratedOverlap_isLocalization_target P D₀ f hLocLift_B
+  apply IsLocalization.ringHom_ext (Submonoid.powers (D₀.s * f))
+  ext a
+  show iteratedOverlap_backwardToCompletion P D₀ f hLocLift_B hsub
+    (iteratedOverlap_forwardLocHom_to_B P D₀ f hLocLift_B
+      (algebraMap A (Localization.Away ((laurentOverlapDatum D₀ f).s)) a)) =
+    (laurentOverlapDatum D₀ f).coeRingHom
+      (algebraMap A (Localization.Away ((laurentOverlapDatum D₀ f).s)) a)
+  rw [iteratedOverlap_forwardLocHom_to_B_algebraMap,
+      iteratedOverlap_backwardToCompletion_algebraMap,
+      restrictionMapHom_canonicalMap]
+  rfl
+
+/-! ### Phase 6: forward and backward completion homs -/
+
+/-- The forward completion hom (overlap branch): `extensionHom` of
+`iteratedOverlap_forwardToCompletion`. -/
+noncomputable def iteratedOverlap_forwardHom
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀)) :
+    presheafValue (laurentOverlapDatum D₀ f) →+*
+      presheafValue (iteratedOverlapDatum_B P D₀ f hLocLift_B) :=
+  letI : UniformSpace (Localization.Away ((laurentOverlapDatum D₀ f).s)) :=
+    (laurentOverlapDatum D₀ f).uniformSpace
+  letI : IsUniformAddGroup (Localization.Away ((laurentOverlapDatum D₀ f).s)) :=
+    (laurentOverlapDatum D₀ f).isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away ((laurentOverlapDatum D₀ f).s)) :=
+    (laurentOverlapDatum D₀ f).isTopologicalRing
+  UniformSpace.Completion.extensionHom
+    (iteratedOverlap_forwardToCompletion P D₀ f hLocLift_B)
+    (iteratedOverlap_forwardToCompletion_continuous P D₀ f hLocLift_B)
+
+/-- The backward completion hom (overlap branch): `extensionHom` of
+`iteratedOverlap_backwardToCompletion`. -/
+noncomputable def iteratedOverlap_backwardHom
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hsub : rationalOpen (laurentOverlapDatum D₀ f).T (laurentOverlapDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    presheafValue (iteratedOverlapDatum_B P D₀ f hLocLift_B) →+*
+      presheafValue (laurentOverlapDatum D₀ f) :=
+  letI : UniformSpace
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).uniformSpace
+  letI : IsUniformAddGroup
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).isUniformAddGroup
+  letI : IsTopologicalRing
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).isTopologicalRing
+  UniformSpace.Completion.extensionHom
+    (iteratedOverlap_backwardToCompletion P D₀ f hLocLift_B hsub)
+    (iteratedOverlap_backwardToCompletion_continuous P D₀ f hLocLift_B hsub)
+
+/-- Forward completion hom on `coeRingHom a`. -/
+theorem iteratedOverlap_forwardHom_coeRingHom
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (a : Localization.Away ((laurentOverlapDatum D₀ f).s)) :
+    iteratedOverlap_forwardHom P D₀ f hLocLift_B
+        ((laurentOverlapDatum D₀ f).coeRingHom a) =
+      iteratedOverlap_forwardToCompletion P D₀ f hLocLift_B a := by
+  letI : UniformSpace (Localization.Away ((laurentOverlapDatum D₀ f).s)) :=
+    (laurentOverlapDatum D₀ f).uniformSpace
+  letI : IsUniformAddGroup (Localization.Away ((laurentOverlapDatum D₀ f).s)) :=
+    (laurentOverlapDatum D₀ f).isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away ((laurentOverlapDatum D₀ f).s)) :=
+    (laurentOverlapDatum D₀ f).isTopologicalRing
+  exact UniformSpace.Completion.extensionHom_coe _ _ a
+
+/-- Backward completion hom on `coeRingHom b`. -/
+theorem iteratedOverlap_backwardHom_coeRingHom
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hsub : rationalOpen (laurentOverlapDatum D₀ f).T (laurentOverlapDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (b : Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :
+    iteratedOverlap_backwardHom P D₀ f hLocLift_B hsub
+        ((iteratedOverlapDatum_B P D₀ f hLocLift_B).coeRingHom b) =
+      iteratedOverlap_backwardToCompletion P D₀ f hLocLift_B hsub b := by
+  letI : UniformSpace
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).uniformSpace
+  letI : IsUniformAddGroup
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).isUniformAddGroup
+  letI : IsTopologicalRing
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).isTopologicalRing
+  exact UniformSpace.Completion.extensionHom_coe _ _ b
+
+/-! ### Phase 7: round-trip identities -/
+
+/-- Round-trip 1 (overlap branch): `backwardHom ∘ forwardHom = id`. -/
+theorem iteratedOverlap_backwardHom_comp_forwardHom
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hsub : rationalOpen (laurentOverlapDatum D₀ f).T (laurentOverlapDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    (iteratedOverlap_backwardHom P D₀ f hLocLift_B hsub).comp
+      (iteratedOverlap_forwardHom P D₀ f hLocLift_B) =
+      RingHom.id _ := by
+  letI : UniformSpace (Localization.Away ((laurentOverlapDatum D₀ f).s)) :=
+    (laurentOverlapDatum D₀ f).uniformSpace
+  letI : IsUniformAddGroup (Localization.Away ((laurentOverlapDatum D₀ f).s)) :=
+    (laurentOverlapDatum D₀ f).isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away ((laurentOverlapDatum D₀ f).s)) :=
+    (laurentOverlapDatum D₀ f).isTopologicalRing
+  letI : UniformSpace
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).uniformSpace
+  letI : IsUniformAddGroup
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).isUniformAddGroup
+  letI : IsTopologicalRing
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).isTopologicalRing
+  apply RingHom.ext
+  intro x
+  show iteratedOverlap_backwardHom P D₀ f hLocLift_B hsub
+    (iteratedOverlap_forwardHom P D₀ f hLocLift_B x) = x
+  refine @UniformSpace.Completion.ext' _ _ _ _ _ _ _
+    ((UniformSpace.Completion.continuous_extension).comp
+      UniformSpace.Completion.continuous_extension)
+    continuous_id ?_ x
+  intro a
+  show iteratedOverlap_backwardHom P D₀ f hLocLift_B hsub
+      (iteratedOverlap_forwardHom P D₀ f hLocLift_B
+        ((laurentOverlapDatum D₀ f).coeRingHom a)) =
+    (laurentOverlapDatum D₀ f).coeRingHom a
+  rw [iteratedOverlap_forwardHom_coeRingHom,
+      show iteratedOverlap_forwardToCompletion P D₀ f hLocLift_B a =
+        (iteratedOverlapDatum_B P D₀ f hLocLift_B).coeRingHom
+          (iteratedOverlap_forwardLocHom_to_B P D₀ f hLocLift_B a) from rfl,
+      iteratedOverlap_backwardHom_coeRingHom]
+  exact congr_fun (congrArg DFunLike.coe
+    (iteratedOverlap_backwardToCompletion_comp_forwardLocHom_to_B P D₀ f hLocLift_B hsub)) a
+
+/-- Helper: `forwardHom ∘ restrictionMapHom = (iteratedOverlapDatum_B).canonicalMap`
+as a continuous ring hom `presheafValue D₀ → presheafValue (iteratedOverlapDatum_B)`. -/
+theorem iteratedOverlap_forwardHom_comp_restrictionMapHom
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hsub : rationalOpen (laurentOverlapDatum D₀ f).T (laurentOverlapDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    (iteratedOverlap_forwardHom P D₀ f hLocLift_B).comp
+        (restrictionMapHom D₀ (laurentOverlapDatum D₀ f) hsub) =
+      (iteratedOverlapDatum_B P D₀ f hLocLift_B).canonicalMap := by
+  haveI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+  haveI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+  haveI hloc_src : IsLocalization.Away (D₀.s * f)
+      (Localization.Away ((laurentOverlapDatum D₀ f).s)) := by
+    show IsLocalization.Away (D₀.s * f) (Localization.Away (D₀.s * f))
+    infer_instance
+  haveI hloc_tgt : IsLocalization.Away (D₀.canonicalMap f)
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    iteratedOverlap_isLocalization_target P D₀ f hLocLift_B
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  letI : UniformSpace (Localization.Away ((laurentOverlapDatum D₀ f).s)) :=
+    (laurentOverlapDatum D₀ f).uniformSpace
+  letI : IsUniformAddGroup (Localization.Away ((laurentOverlapDatum D₀ f).s)) :=
+    (laurentOverlapDatum D₀ f).isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away ((laurentOverlapDatum D₀ f).s)) :=
+    (laurentOverlapDatum D₀ f).isTopologicalRing
+  letI : UniformSpace
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).uniformSpace
+  letI : IsUniformAddGroup
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).isUniformAddGroup
+  letI : IsTopologicalRing
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).isTopologicalRing
+  apply RingHom.ext
+  intro b
+  -- Apply Completion.ext' on b : presheafValue D₀.
+  let lhsFun : presheafValue D₀ →
+      presheafValue (iteratedOverlapDatum_B P D₀ f hLocLift_B) :=
+    fun y => iteratedOverlap_forwardHom P D₀ f hLocLift_B
+      (restrictionMapHom D₀ (laurentOverlapDatum D₀ f) hsub y)
+  let rhsFun : presheafValue D₀ →
+      presheafValue (iteratedOverlapDatum_B P D₀ f hLocLift_B) :=
+    fun y => (iteratedOverlapDatum_B P D₀ f hLocLift_B).canonicalMap y
+  show lhsFun b = rhsFun b
+  refine @UniformSpace.Completion.ext' (Localization.Away D₀.s) D₀.uniformSpace
+    (presheafValue (iteratedOverlapDatum_B P D₀ f hLocLift_B)) _ _ lhsFun rhsFun ?_ ?_ ?_ b
+  · exact UniformSpace.Completion.continuous_extension.comp
+      (restrictionMapHom_continuous D₀ (laurentOverlapDatum D₀ f) hsub)
+  · exact canonicalMap_continuous (iteratedOverlapDatum_B P D₀ f hLocLift_B)
+  intro a
+  show lhsFun (D₀.coeRingHom a) = rhsFun (D₀.coeRingHom a)
+  simp only [lhsFun, rhsFun]
+  -- Reduce via IsLocalization.ringHom_ext on a : Loc(D₀.s).
+  let lhsHom : Localization.Away D₀.s →+*
+      presheafValue (iteratedOverlapDatum_B P D₀ f hLocLift_B) :=
+    (iteratedOverlap_forwardHom P D₀ f hLocLift_B).comp
+      ((restrictionMapHom D₀ (laurentOverlapDatum D₀ f) hsub).comp D₀.coeRingHom)
+  let rhsHom : Localization.Away D₀.s →+*
+      presheafValue (iteratedOverlapDatum_B P D₀ f hLocLift_B) :=
+    ((iteratedOverlapDatum_B P D₀ f hLocLift_B).canonicalMap).comp D₀.coeRingHom
+  suffices h : lhsHom = rhsHom by
+    have hcong := congr_fun (congrArg DFunLike.coe h) a
+    show lhsHom a = rhsHom a
+    exact hcong
+  apply IsLocalization.ringHom_ext (Submonoid.powers D₀.s)
+  ext c
+  show lhsHom (algebraMap A _ c) = rhsHom (algebraMap A _ c)
+  show iteratedOverlap_forwardHom P D₀ f hLocLift_B
+      (restrictionMapHom D₀ (laurentOverlapDatum D₀ f) hsub
+        (D₀.coeRingHom (algebraMap A _ c))) =
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).canonicalMap
+      (D₀.coeRingHom (algebraMap A _ c))
+  show iteratedOverlap_forwardHom P D₀ f hLocLift_B
+      (restrictionMapHom D₀ (laurentOverlapDatum D₀ f) hsub
+        (D₀.canonicalMap c)) =
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).canonicalMap (D₀.canonicalMap c)
+  rw [restrictionMapHom_canonicalMap]
+  show iteratedOverlap_forwardHom P D₀ f hLocLift_B
+      ((laurentOverlapDatum D₀ f).coeRingHom (algebraMap A _ c)) =
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).canonicalMap (D₀.canonicalMap c)
+  rw [iteratedOverlap_forwardHom_coeRingHom]
+  show (iteratedOverlapDatum_B P D₀ f hLocLift_B).coeRingHom
+      (iteratedOverlap_forwardLocHom_to_B P D₀ f hLocLift_B (algebraMap A _ c)) =
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).canonicalMap (D₀.canonicalMap c)
+  rw [iteratedOverlap_forwardLocHom_to_B_algebraMap]
+  rfl
+
+/-- Round-trip 2 (overlap branch): `forwardHom ∘ backwardHom = id`. -/
+theorem iteratedOverlap_forwardHom_comp_backwardHom
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hsub : rationalOpen (laurentOverlapDatum D₀ f).T (laurentOverlapDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    (iteratedOverlap_forwardHom P D₀ f hLocLift_B).comp
+        (iteratedOverlap_backwardHom P D₀ f hLocLift_B hsub) =
+      RingHom.id _ := by
+  haveI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+  haveI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+  haveI hloc_tgt : IsLocalization.Away (D₀.canonicalMap f)
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    iteratedOverlap_isLocalization_target P D₀ f hLocLift_B
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  letI : UniformSpace (Localization.Away ((laurentOverlapDatum D₀ f).s)) :=
+    (laurentOverlapDatum D₀ f).uniformSpace
+  letI : IsUniformAddGroup (Localization.Away ((laurentOverlapDatum D₀ f).s)) :=
+    (laurentOverlapDatum D₀ f).isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away ((laurentOverlapDatum D₀ f).s)) :=
+    (laurentOverlapDatum D₀ f).isTopologicalRing
+  letI : UniformSpace
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).uniformSpace
+  letI : IsUniformAddGroup
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).isUniformAddGroup
+  letI : IsTopologicalRing
+      (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).isTopologicalRing
+  apply RingHom.ext
+  intro x
+  show iteratedOverlap_forwardHom P D₀ f hLocLift_B
+    (iteratedOverlap_backwardHom P D₀ f hLocLift_B hsub x) = x
+  refine @UniformSpace.Completion.ext'
+    (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) _ _ _ _ _ _
+    ((UniformSpace.Completion.continuous_extension).comp
+      UniformSpace.Completion.continuous_extension)
+    continuous_id ?_ x
+  intro y
+  show iteratedOverlap_forwardHom P D₀ f hLocLift_B
+      (iteratedOverlap_backwardHom P D₀ f hLocLift_B hsub
+        ((iteratedOverlapDatum_B P D₀ f hLocLift_B).coeRingHom y)) =
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).coeRingHom y
+  rw [iteratedOverlap_backwardHom_coeRingHom]
+  -- Reduce to y = algebraMap b for b : presheafValue D₀.
+  let lhsHom : Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s) →+*
+      presheafValue (iteratedOverlapDatum_B P D₀ f hLocLift_B) :=
+    (iteratedOverlap_forwardHom P D₀ f hLocLift_B).comp
+      (iteratedOverlap_backwardToCompletion P D₀ f hLocLift_B hsub)
+  let rhsHom : Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s) →+*
+      presheafValue (iteratedOverlapDatum_B P D₀ f hLocLift_B) :=
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).coeRingHom
+  suffices h : lhsHom = rhsHom by
+    have hcong := congr_fun (congrArg DFunLike.coe h) y
+    show lhsHom y = rhsHom y
+    exact hcong
+  apply IsLocalization.ringHom_ext (Submonoid.powers (D₀.canonicalMap f))
+  ext b
+  show lhsHom (algebraMap (presheafValue D₀) _ b) =
+    rhsHom (algebraMap (presheafValue D₀) _ b)
+  show iteratedOverlap_forwardHom P D₀ f hLocLift_B
+      (iteratedOverlap_backwardToCompletion P D₀ f hLocLift_B hsub
+        (algebraMap (presheafValue D₀) _ b)) =
+    (iteratedOverlapDatum_B P D₀ f hLocLift_B).coeRingHom
+      (algebraMap (presheafValue D₀) _ b)
+  rw [iteratedOverlap_backwardToCompletion_algebraMap]
+  -- Goal: forwardHom (restrictionMapHom b) = (iteratedOverlapDatum_B).canonicalMap b.
+  exact congr_fun (congrArg DFunLike.coe
+    (iteratedOverlap_forwardHom_comp_restrictionMapHom P D₀ f hLocLift_B hsub)) b
+
+/-! ### Phase 8: the packaged ring equiv -/
+
+/-- **Iterated rational identification, overlap branch (Wedhorn Lemma 2.13)**.
+
+The concrete ring equivalence:
+```
+presheafValue (laurentOverlapDatum D₀ f) ≃+*
+  presheafValue (iteratedOverlapDatum_B P D₀ f hLocLift_B)
+```
+
+This is the overlap-shape analog of `presheafValue_iteratedMinus_equiv`. It is
+the unconditional (sorry-free, axiom-free) construction discharging the
+residual `overlapBridge_eq` hypothesis in `LaneAReverseRoundTrip.laneA_τ_preBiv`. -/
+noncomputable def presheafValue_iteratedOverlap_equiv
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀)) :
+    presheafValue (laurentOverlapDatum D₀ f) ≃+*
+      presheafValue (iteratedOverlapDatum_B P D₀ f hLocLift_B) :=
+  let hsub : rationalOpen (laurentOverlapDatum D₀ f).T (laurentOverlapDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s :=
+    (laurentOverlap_subset_minus D₀ f).trans (laurentMinus_subset D₀ f)
+  { toFun := iteratedOverlap_forwardHom P D₀ f hLocLift_B
+    invFun := iteratedOverlap_backwardHom P D₀ f hLocLift_B hsub
+    left_inv := fun x =>
+      congr_fun (congrArg DFunLike.coe
+        (iteratedOverlap_backwardHom_comp_forwardHom P D₀ f hLocLift_B hsub)) x
+    right_inv := fun y =>
+      congr_fun (congrArg DFunLike.coe
+        (iteratedOverlap_forwardHom_comp_backwardHom P D₀ f hLocLift_B hsub)) y
+    map_mul' := map_mul _
+    map_add' := map_add _ }
 
 end ValuationSpectrum

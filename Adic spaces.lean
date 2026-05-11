@@ -36,7 +36,7 @@ import «Adic spaces».IdealLocalization
 import «Adic spaces».IdealLocalizationCompletion
 import «Adic spaces».IntegralStructureSheaf
 import «Adic spaces».Example638
--- import «Adic spaces».IteratedOverlapEquiv  -- T-NEW-1 in progress; re-enable later
+import «Adic spaces».IteratedOverlapEquiv
 import «Adic spaces».IteratedRational
 import «Adic spaces».LaurentBaireSupport
 import «Adic spaces».LaurentCoverExact

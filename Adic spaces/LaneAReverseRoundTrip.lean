@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».BivariateContinuity
+import «Adic spaces».IteratedOverlapEquiv
 import «Adic spaces».QuotientTate
 
 /-!
@@ -77,26 +78,25 @@ open UniformSpace TateAlgebra LaurentCover
 
 /-! ### Construction of `τ_preBiv`
 
-We package the construction in two layers:
+`laneA_τ_preBiv` constructs the bivariate-quotient bridge UNCONDITIONALLY
+(no parametric witnesses). Both residuals are discharged internally:
 
-* `laneA_τ_preBiv_of_overlap_bridge`: takes the presheaf-level overlap
-  identification as a hypothesis and produces `τ_preBiv` by composing with
-  `example638Bivariate_equiv` (B-side Step A).
-* `laneA_τ_preBiv`: same as above but with the input named for clarity
-  (the residual `T-OV-1-DENSITY` ticket discharges the hypothesis).
+* `hcont_forward_overlap` — discharged via
+  `example638Bivariate_forwardHom_continuous_canonical` (T-NEW-2,
+  `BivariateContinuity.lean`).
+* `overlapBridge_eq` — discharged via
+  `presheafValue_iteratedOverlap_equiv` (T-NEW-1,
+  `IteratedOverlapEquiv.lean`). The overlap-shape Wedhorn 2.13 iterated
+  rational identification for `T = {1, b, b²}`.
 
-The residual input is a presheaf-level ring equivalence (no continuity
-hypotheses beyond those packaged inside `example638Bivariate_equiv`):
-
+The composition is:
 ```
-overlapBridge_eq : presheafValue (laurentOverlapDatum D₀ f) ≃+*
-    presheafValue (overlapDatum (presheafValue D₀) P_B (D₀.canonicalMap f))
+presheafValue (laurentOverlapDatum D₀ f)
+  --[presheafValue_iteratedOverlap_equiv]→ presheafValue (iteratedOverlapDatum_B …)
+  --[example638Bivariate_equiv.symm]→ TateAlgebra₂ B ⧸ bivariateOverlapIdeal …
 ```
 
-This is the Wedhorn 2.13 iterated rational identification *for the overlap*.
-The minus-shape version (`presheafValue_iteratedMinus_equiv`) is already
-landed in `LaurentRefinement.lean`. The overlap version (with `T = {1, b, b²}`
-in the source) is the named residual for T-OV-1-DENSITY follow-up. -/
+Both factors are now landed sorry-free. -/
 
 variable {A : Type u} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
   [PlusSubring A] [IsHuberRing A] [HasLocLiftPowerBounded A]
@@ -139,16 +139,7 @@ noncomputable def laneA_τ_preBiv
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
       IsNoetherianRing ↥(TateAlgebra.pairSubring₂
-        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
-    -- Presheaf-level Wedhorn 2.13 overlap transport (sole residual):
-    (overlapBridge_eq : letI : IsTateRing (presheafValue D₀) :=
-        presheafValue_isTateRing P D₀
-      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
-      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
-      letI P_B : PairOfDefinition (presheafValue D₀) :=
-        presheafValue_pairOfDefinition_concrete P D₀
-      presheafValue (laurentOverlapDatum D₀ f) ≃+*
-        presheafValue (overlapDatum (presheafValue D₀) P_B (D₀.canonicalMap f))) :
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition)) :
     presheafValue (laurentOverlapDatum D₀ f) ≃+*
       (↥(TateAlgebra₂ (presheafValue D₀)) ⧸
         TateAlgebra.bivariateOverlapIdeal (D₀.canonicalMap f)) := by
@@ -158,7 +149,7 @@ noncomputable def laneA_τ_preBiv
   letI P_B : PairOfDefinition (presheafValue D₀) :=
     presheafValue_pairOfDefinition_concrete P D₀
   letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
-  -- Discharge the bivariate-side continuity unconditionally.
+  -- Discharge the bivariate-side continuity unconditionally (T-NEW-2).
   have hcont_forward_overlap :
       @Continuous _ _
         (TateAlgebra.quotientBivariateOverlapIdealTopology (D₀.canonicalMap f))
@@ -167,6 +158,13 @@ noncomputable def laneA_τ_preBiv
         (example638Bivariate_forwardHom (presheafValue D₀) P_B (D₀.canonicalMap f)) :=
     example638Bivariate_forwardHom_continuous_canonical (presheafValue D₀)
       P_B (D₀.canonicalMap f)
+  -- Discharge the Wedhorn 2.13 overlap-shape transport unconditionally (T-NEW-1).
+  -- `iteratedOverlapDatum_B P D₀ f hLocLift_B` IS definitionally
+  -- `overlapDatum (presheafValue D₀) P_B (D₀.canonicalMap f)`.
+  have overlapBridge_eq :
+      presheafValue (laurentOverlapDatum D₀ f) ≃+*
+        presheafValue (overlapDatum (presheafValue D₀) P_B (D₀.canonicalMap f)) :=
+    presheafValue_iteratedOverlap_equiv P D₀ f hLocLift_B
   -- B-side Step A: `TateAlgebra₂ B ⧸ … ≃+* presheafValue (overlapDatum …)`
   -- via `example638Bivariate_equiv` at `B := presheafValue D₀`, `b := D₀.canonicalMap f`.
   have biv_equiv :
@@ -250,20 +248,12 @@ theorem laneA_τ_preBiv_compatible_bridge_exists
           (TateAlgebra.quotientOneSubfXIdealTopology D.s)
           (inferInstance : TopologicalSpace (presheafValue D))
           (tateQuotientToPresheafHom D hb))
-    (overlapBridge_eq : letI : IsTateRing (presheafValue D₀) :=
-        presheafValue_isTateRing P D₀
-      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
-      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
-      letI P_B : PairOfDefinition (presheafValue D₀) :=
-        presheafValue_pairOfDefinition_concrete P D₀
-      presheafValue (laurentOverlapDatum D₀ f) ≃+*
-        presheafValue (overlapDatum (presheafValue D₀) P_B (D₀.canonicalMap f)))
     -- The two intertwining identities (caller still supplies, depending on
     -- the chosen `τ_preBiv` = `laneA_τ_preBiv …`):
     (h_plus_compat : ∀ uplus : presheafValue (laurentPlusDatum D₀ f),
       (bivariateOverlap_equiv_B₁₂gen (presheafValue D₀) (D₀.canonicalMap f))
           (laneA_τ_preBiv P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B
-              hnoeth_B overlapBridge_eq
+              hnoeth_B
             (restrictionMap (laurentPlusDatum D₀ f)
               (laurentOverlapDatum D₀ f)
               (laurentOverlap_subset_plus D₀ f) uplus)) =
@@ -273,7 +263,7 @@ theorem laneA_τ_preBiv_compatible_bridge_exists
     (h_minus_compat : ∀ uminus : presheafValue (laurentMinusDatum D₀ f),
       (bivariateOverlap_equiv_B₁₂gen (presheafValue D₀) (D₀.canonicalMap f))
           (laneA_τ_preBiv P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B
-              hnoeth_B overlapBridge_eq
+              hnoeth_B
             (restrictionMap (laurentMinusDatum D₀ f)
               (laurentOverlapDatum D₀ f)
               (laurentOverlap_subset_minus D₀ f) uminus)) =
@@ -286,7 +276,7 @@ theorem laneA_τ_preBiv_compatible_bridge_exists
   laurentOverlapBridge_exists_compatible_via_primary P D₀ f hNoeth_B hLocLift_B
     hA₀Noeth_B hA_complete_B hnoethUni_B hcont_forward_B hcont_eval_B
     (laneA_τ_preBiv P D₀ f hNoeth_B hLocLift_B hA₀Noeth_B hA_complete_B
-      hnoeth_B overlapBridge_eq)
+      hnoeth_B)
     h_plus_compat h_minus_compat
 
 end ValuationSpectrum
