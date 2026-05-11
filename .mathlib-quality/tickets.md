@@ -973,6 +973,255 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
 
 ---
 
+## SESSION 3 REFRAME (ChatGPT Pro 2026-05-11 round 3)
+
+The session-2 reframe correctly identified the misframed `Wedhorn 8.15 as
+IsLocalization.Away`. After executing that reframe, the project's new
+bottleneck (`T-FLAT-PER-E`) revealed a second mismatch: the executed
+solution discharges flatness for **direct Laurent shapes of D₀** only,
+but the assembly's `per_E_local_covering` uses **iterated Laurent shapes
+of intermediate `(C.plusDatum f)`** — a shape mismatch.
+
+Two candidate fixes were considered (Route A refactor; Route B depth-2
+iterated 2.13). The reviewer rejected both as primary route and
+prescribed a **third route**:
+
+> Prove the general Prop. 8.30-style theorem: if `D ⊆ E` are rational
+> data over a strongly noetherian Tate ring, then the restriction map
+> `O(E) → O(D)` is flat.
+
+This single general theorem immediately discharges T-FLAT-PER-E (every
+piece of `per_E_local_covering` is a rational sub-piece of E by
+construction) and is the reusable API for Cor 8.32 and later sheaf
+arguments.
+
+The reviewer also flagged:
+* The current `restrictionMap_flat_via_iteratedPlus` exposes a wrong
+  hypothesis: power-boundedness of `f` in `O(D₀)`. The plus rational
+  localization is precisely what **makes** `f` power-bounded; it should
+  be modeled by `B⟨X⟩/(f-X)`, not by `iteratedPlusDatum_B` with a
+  source-side PB assumption.
+* `IsNoetherianRing (locSubring …)` should be a derived theorem from
+  noetherianity of `P.A₀` + finite T, not a hypothesis.
+* Rational localizations of strongly noetherian Tate rings should
+  again be strongly noetherian Tate — a reusable preservation theorem.
+* T-EMBED-TOPO needs a separate strict-exactness package; algebraic
+  faithful flatness alone does NOT give topological inducing.
+
+The tickets below execute this third route.
+
+### [T-RATIONAL-FLAT-GENERAL] Rational-restriction flatness for arbitrary inclusion
+
+- **Status**: OPEN (HIGH PRIORITY — critical path; supersedes T-FLAT-PER-E)
+- **Added**: 2026-05-11 round 3
+- **Mathematical statement**: For a strongly noetherian Tate ring `A` with
+  rational locale data `E, D : RationalLocData A` satisfying
+  `rationalOpen D.T D.s ⊆ rationalOpen E.T E.s`, the restriction map
+  `O(E) → O(D)` is flat as a homomorphism of `O(E)`-modules.
+- **Why it matters**: this is Wedhorn's natural Prop 8.30 / Lemma 8.31
+  statement. Once proven, every piece of `per_E_local_covering` is
+  handled immediately as a rational sub-piece of `E`. No restructuring
+  of the assembly needed.
+- **Strategy** (per reviewer):
+  1. Establish two basic flatness cases over arbitrary strongly noetherian
+     Tate base `B`:
+     * `B → B⟨X⟩/(f-X)` is flat (plus side; no source-side PB hypothesis).
+     * `B → B⟨X⟩/(1-fX)` is flat (minus side; already partly in place).
+  2. Prove rational-localization transitivity: every rational containment
+     `D ⊆ E` arises as a finite chain of basic plus/minus steps.
+  3. Compose flat maps along the chain. Flatness is preserved under
+     composition.
+  4. Apply to every D in `per_E_local_covering` directly.
+- **Depends on**: T-RATIONAL-FLAT-BASIC-PLUS, T-RATIONAL-FLAT-BASIC-MINUS,
+  T-RATIONAL-LOC-TRANSITIVITY, T-STRONG-NOETH-PRESERVATION.
+- **Supersedes**: T-FLAT-PER-E (per-E task #18 in the session tracker).
+  The Route A (`laurentCovering E f` refactor) and the depth-2 Route B
+  were both rejected by the reviewer.
+- **Reviewer guidance** (ChatGPT Pro, 2026-05-11 round 3): "Prove the
+  general Prop. 8.30-style theorem… This theorem will immediately
+  discharge the per-E flatness issue, because every piece of
+  `per_E_local_covering` is, by construction, a rational subpiece of E."
+
+### [T-RATIONAL-FLAT-BASIC-PLUS] Basic plus flatness via `B⟨X⟩/(f-X)`
+
+- **Status**: OPEN (HIGH PRIORITY)
+- **Added**: 2026-05-11 round 3
+- **Mathematical statement**: For any strongly noetherian Tate ring `B`
+  and any `f : B`, the quotient `B⟨X⟩/(f - X)` is flat over `B` as a
+  `B`-module along the canonical inclusion `B → B⟨X⟩/(f - X)`.
+- **No source-side hypothesis on `f`**: in particular, `f` is NOT
+  assumed power-bounded in `B`. The quotient is precisely what makes
+  `f` power-bounded after the quotient.
+- **Proof outline**: parallel to `flat_quotient_oneSubfX_general`
+  (Wedhorn 8.30 minus case, already proved). Show that multiplication
+  by `f - X` is a regular sequence on `B⟨X⟩`, hence the quotient is flat.
+- **Replaces**: the role currently played by `iteratedPlus_B_flat_of_canonical`,
+  which uses the wrong abstraction (assumes source PB).
+- **Reference**: Wedhorn Prop 8.30 (multivariate version covers both plus
+  and minus quotients uniformly).
+- **Reviewer guidance**: "Both basic cases should be flat without a
+  source-side power-boundedness assumption on `f`."
+
+### [T-RATIONAL-FLAT-BASIC-MINUS] Basic minus flatness via `B⟨X⟩/(1-fX)`
+
+- **Status**: PARTLY DONE — `flat_quotient_oneSubfX_general` already
+  proves the underlying quotient flatness. Remaining work: expose this
+  as a `B → B⟨X⟩/(1-fX)` flatness packaged at the rational-localization
+  level, matching the API of T-RATIONAL-FLAT-BASIC-PLUS.
+- **Added**: 2026-05-11 round 3
+- **Mathematical statement**: For any strongly noetherian Tate ring `B`
+  and any `f : B`, `B⟨X⟩/(1 - fX)` is flat over `B` along the
+  canonical inclusion.
+- **Why this is partly done**: the underlying flatness of the quotient
+  is established. What's needed is the rational-localization-level
+  packaging (an analog of T-RATIONAL-FLAT-BASIC-PLUS).
+- **Reference**: Wedhorn Prop 8.30 / Lemma 8.30.
+
+### [T-RATIONAL-LOC-TRANSITIVITY] Transitivity of rational localizations
+
+- **Status**: OPEN (HIGH PRIORITY)
+- **Added**: 2026-05-11 round 3
+- **Mathematical statement**: For rational locale data `E, D` with
+  `rationalOpen D ⊆ rationalOpen E`, there is a finite chain of basic
+  plus/minus rational localizations producing `O(D)` from `O(E)`:
+  `O(E) = O(D⁽⁰⁾) → O(D⁽¹⁾) → ⋯ → O(D⁽ᵏ⁾) = O(D)`
+  where each step is a basic `f-X` or `1-fX` quotient.
+- **Proof outline**: this is the "iterate Wedhorn Lemma 2.13"
+  statement — rational localizations are transitive. Each step of the
+  chain corresponds to enlarging T by one element or replacing s by a
+  product. The decomposition is finite because both T and s are finite
+  data.
+- **Why not just depth-2**: the reviewer rejected one-off depth-2
+  bridges. The chain decomposition handles depth-N for arbitrary N
+  via a single transitivity result.
+- **Reviewer guidance**: "For iterated 2.13, the clean reference is
+  simply 'iterate Wedhorn Lemma 2.13' / rational localizations are
+  transitive. The formal theorem should be an associativity/transitivity
+  theorem for rational localization/presheaf values, not a special
+  depth-2 statement."
+
+### [T-STRONG-NOETH-PRESERVATION] Strong noetherian Tate preservation under rational localization
+
+- **Status**: OPEN (MEDIUM PRIORITY — needed at intermediate B-levels in T-RATIONAL-LOC-TRANSITIVITY)
+- **Added**: 2026-05-11 round 3
+- **Mathematical statement**: If `A` is a strongly noetherian Tate ring
+  and `D : RationalLocData A`, then `O(D)` is again a strongly
+  noetherian Tate ring.
+- **Why it matters**: the chain in T-RATIONAL-LOC-TRANSITIVITY visits
+  intermediate B-levels `O(D⁽ⁱ⁾)`, and the basic flatness theorems need
+  the base to be strongly noetherian Tate. Without preservation, the
+  chain can't be applied at intermediate levels.
+- **Reference**: this is essentially the strong-noetherian Tate version of
+  the standard fact that adic completions of noetherian rings stay
+  noetherian (Stacks 00MA), specialized to rational localizations.
+- **Reviewer guidance**: "Rational localizations of strongly noetherian
+  Tate rings should again be strongly noetherian Tate; that is the
+  right reusable preservation theorem."
+
+### [T-LOC-SUBRING-NOETH] Discharge `IsNoetherianRing (locSubring …)` locally
+
+- **Status**: OPEN (LOW PRIORITY housekeeping; reduces final theorem boundary)
+- **Added**: 2026-05-11 round 3
+- **Mathematical statement**: For a `PairOfDefinition A` with
+  `IsNoetherianRing P.A₀` and a finite `T : Finset A`, `s : A`, the
+  subring `locSubring P T s` is noetherian.
+- **Strategy**: `locSubring` is generated over `P.A₀` by the finite set
+  `T/s`. The ring of definition is noetherian by hypothesis. Finite
+  generation over a noetherian ring is noetherian (Hilbert basis).
+- **Why it matters**: the current theorems
+  (`restrictionMap_flat_via_iteratedMinus`, etc.) expose `IsNoetherianRing
+  (locSubring …)` as a final hypothesis. With T-LOC-SUBRING-NOETH, this
+  becomes a derived instance, simplifying caller hypotheses.
+- **Reviewer guidance**: "any exposed `IsNoetherianRing (locSubring ...)`
+  should be discharged locally. Since locSubring is finitely generated
+  over a noetherian ring of definition, it should follow from
+  noetherianity of P.A₀ and finiteness of T."
+
+### [T-FLAT-PLUS-REWORK] Rework `restrictionMap_flat_via_iteratedPlus` without power-boundedness
+
+- **Status**: OPEN (MEDIUM PRIORITY — fix existing wrong-abstraction theorem)
+- **Added**: 2026-05-11 round 3
+- **Problem**: the current `restrictionMap_flat_via_iteratedPlus`
+  (committed under T-FLAT-PLUS) exposes the hypothesis
+  `IsPowerBounded (D₀.canonicalMap f)` on the source side. The reviewer
+  flagged this as the wrong abstraction: the plus rational localization
+  is exactly what makes `f` power-bounded, so requiring it as input
+  defeats the purpose.
+- **Fix**: rebuild plus flatness on the `B⟨X⟩/(f-X)` quotient model
+  (T-RATIONAL-FLAT-BASIC-PLUS). The new theorem should NOT need a
+  source-side PB hypothesis.
+- **Reviewer guidance**: "the plus supplier should be based on the
+  `f-X` quotient and should not require `IsPowerBounded
+  (D₀.canonicalMap f)` in the source."
+
+### [T-EMBED-TOPO-EXAMPLE638] Topological version of Wedhorn Example 6.38
+
+- **Status**: OPEN (HIGH PRIORITY for IsSheafy embedding)
+- **Added**: 2026-05-11 round 3
+- **Mathematical statement**: For any rational locale `D` over a
+  strongly noetherian Tate ring `A`, the iso
+  `O(D) ≅ A⟨X⟩/(1 - sX)` from Example 6.38 is a TOPOLOGICAL ring
+  isomorphism (not just algebraic) when both sides carry their natural
+  topologies (`O(D)` with the completed rational-localization topology,
+  RHS with the quotient topology of the Tate-algebra by a closed ideal).
+- **Why it matters**: this is the "topological side" of Example 6.38.
+  Currently only the algebraic version is established (the equiv as a
+  ring iso). The topological enhancement is needed for T-EMBED-TOPO.
+- **Reference**: Wedhorn Example 6.38 (the iso is stated for topological
+  ring structures).
+
+### [T-EMBED-TOPO-STRICT-LAURENT] Strict exactness of the Laurent 2-cover Čech complex
+
+- **Status**: OPEN (HIGH PRIORITY for IsSheafy embedding)
+- **Added**: 2026-05-11 round 3
+- **Mathematical statement**: For the 2-element Laurent covering
+  `{D₊, D₋}` of `D₀` at `f`, the Čech sequence
+  `0 → O(D₀) → O(D₊) × O(D₋) → O(D₊ ∩ D₋) → 0`
+  is not just algebraically exact (Wedhorn Lemma 8.33) but
+  TOPOLOGICALLY STRICT: the first map is topological embedding, the
+  second is topological quotient.
+- **Why it matters**: strict exactness is the building block for the
+  T-EMBED-TOPO topological inducing argument. Algebraic exactness
+  alone (Lemma 8.33) is not sufficient.
+- **Reference**: Wedhorn Lemma 8.33 (the topological strictness is
+  implicit in his treatment but needs explicit formalization).
+
+### [T-EMBED-TOPO-REFINEMENT-TRANSFER] Refinement preserves topological embedding
+
+- **Status**: OPEN (HIGH PRIORITY for IsSheafy embedding)
+- **Added**: 2026-05-11 round 3
+- **Mathematical statement**: If a rational covering `C` refines another
+  `C'` (via Lane C / Wedhorn 8.34), and the product restriction for `C'`
+  is topologically embedding, then so is the product restriction for `C`.
+- **Why it matters**: the induction step of the T-EMBED-TOPO Lane C
+  argument. Combined with T-EMBED-TOPO-STRICT-LAURENT (base case) and
+  T-EMBED-TOPO-EXAMPLE638, this gives the topological inducing supplier
+  consumed by `isSheafy_ofStronglyNoetherianTate_flat_of_topo_inducing`.
+- **Reference**: Wedhorn Lemma 8.34 (geometric reduction); the
+  topological transfer is the analog of the algebraic transfer
+  already in `tateAcyclicity_Part2_end_to_end_via_primary`.
+
+### Note: T-FLAT-PER-E SUPERSEDED
+
+The task originally tracking per-E flatness for the iterated
+`per_E_local_covering` shape is **SUPERSEDED** by T-RATIONAL-FLAT-GENERAL.
+
+The reviewer's analysis:
+* Route A (refactor `per_E_local_covering` to use direct `laurentCovering E f`)
+  was rejected: it may not align with the pieces where the existing assembly
+  has compatibility data. Different denominators (E.s vs D₀.s) make the
+  plus/minus inequalities misalign.
+* Route B (depth-2 iterated 2.13) was rejected: too specialized; leaves the
+  same problem for any deeper refinement.
+* The general theorem handles all depths uniformly and is what Wedhorn
+  actually uses.
+
+The existing `productRestriction_faithfullyFlat_laurentCovering_at_E`
+remains useful as a special case and sanity check, but not as the main
+supplier.
+
+---
+
 ## 4. Retired tickets
 
 ### [T-INJ-1] `restrictionMapHom_injective` — RETIRED (2026-04-18)
@@ -3582,3 +3831,191 @@ All 0 sorry, build-clean:
   Cor 8.32 abstract framework. Wedhorn Prop 6.18 port for hcont_eval.
 - **Earlier**: Example 6.38 generic, Lemma 2.13 iterated rational,
   Cor 7.32, Spa/Spv compactness, bridge chain.
+
+---
+
+## DEPTH-N WEDHORN 2.13 GENERALISATION
+
+Added 2026-05-11 round 3 via `/develop --continue`. This is the substantial
+structural piece that, once landed, closes T-RATIONAL-FLAT-GENERAL completely
+(by feeding the relative equiv into the existing hypothesis-parameterised
+`restrictionMap_flat_of_rational_subset_via_relative`).
+
+Architecture: new file `Adic spaces/RelativeRationalLocData.lean`, ~800-1500
+lines, parallel structure to the existing depth-1 minus infrastructure
+(`iteratedMinusDatum_B`, `iteratedMinus_forwardHom`, etc.) but generalised
+from T = {1}, s = canonicalMap f to arbitrary T, s coming from D.
+
+Dependency graph:
+```
+T-WEDHORN-213-DATUM
+   ├─→ T-WEDHORN-213-FORWARD ─┐
+   └─→ T-WEDHORN-213-BACKWARD ┴─→ T-WEDHORN-213-ROUNDTRIP
+                                  → T-WEDHORN-213-EQUIV
+                                  → T-WEDHORN-213-INTERTWINE
+                                  → T-RATIONAL-FLAT-GENERAL-CLOSE
+CLEANUP-WEDHORN-213 (final per-file cleanup)
+```
+
+### [T-WEDHORN-213-DATUM] Define `relativeRationalLocData E D hsub`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/RelativeRationalLocData.lean` (new file)
+- **Depends on**: none — uses only existing `RationalLocData`,
+  `presheafValue_pairOfDefinition_concrete`, `RationalLocData.canonicalMap`.
+- **Type**: def + API lemmas
+- **Mathematical statement**: given `E, D : RationalLocData A` with
+  `rationalOpen D.T D.s ⊆ rationalOpen E.T E.s`, build a rational locale data
+  for D at the B = presheafValue E level:
+  - P_at_E := `presheafValue_pairOfDefinition_concrete E.P E`
+  - T_at_E := `D.T.image E.canonicalMap`
+  - s_at_E := `E.canonicalMap D.s`
+  - hopen via push-through of D's hopen along E.canonicalMap.
+- **Proof sketch**: routine construction except for `hopen`. For `hopen`:
+  pull D's `hopen` (∃ N, ∀ b ∈ E.P.I^N, divByS b D.s ∈ locSubring) along
+  `E.canonicalMap`, using that the image of E.P.I is contained in
+  P_at_E.I (the pair-of-definition at E-level), and divByS commutes with
+  the algebraMap-image where applicable.
+- **Mathlib lemmas needed**: `Finset.image`, `divByS_mem_locSubring`,
+  `algebraMap_mem_locSubring` (all existing).
+- **Sources**: Wedhorn Lemma 2.13. Templates: `iteratedMinusDatum_B` (line
+  476 of LaurentRefinement.lean), `iteratedPlusDatum_B` (line 460).
+- **Generality decision**: `(E D : RationalLocData A)` — D arbitrary
+  modulo rationalOpen-inclusion. Uses E.P as the base pair-of-definition.
+- **Risks**: subtleties in matching B-level ideal-of-definition images.
+  Test with `E.canonicalMap D.s`'s topological behaviour.
+
+### [T-WEDHORN-213-FORWARD] Forward hom presheafValue D → presheafValue (relativeRationalLocData ...)
+
+- **Status**: OPEN
+- **File**: `Adic spaces/RelativeRationalLocData.lean`
+- **Depends on**: T-WEDHORN-213-DATUM
+- **Type**: def + continuity lemma
+- **Mathematical statement**:
+  ```
+  relativeForwardLocHom : Localization.Away D.s →+*
+    Localization.Away (relativeRationalLocData E D hsub).s
+  relativeForwardHom : presheafValue D →+*
+    presheafValue (relativeRationalLocData E D hsub)
+  relativeForwardHom_continuous (..continuity..)
+  ```
+- **Proof sketch**:
+  1. Build LocHom via `IsLocalization.Away.lift` (E.canonicalMap D.s is a
+     unit in Localization.Away itself).
+  2. Compose with `coeRingHom` of presheafValue (relativeRationalLocData).
+  3. Continuity: the algebraic LocHom sends divByS-generators of D's
+     locSubring to elements of relativeRationalLocData's locSubring (after
+     E.canonicalMap-image), giving the continuity by the universal property
+     of the localized topology.
+  4. Extend over completion via `UniformSpace.Completion.extensionHom`.
+- **Mathlib lemmas needed**: `IsLocalization.Away.lift`,
+  `IsLocalization.Away.algebraMap_isUnit`,
+  `UniformSpace.Completion.extensionHom`,
+  `UniformSpace.Completion.extensionHom_coe`.
+- **Sources**: parallel to `iteratedMinus_forwardLocHom` and
+  `iteratedMinus_forwardHom`.
+
+### [T-WEDHORN-213-BACKWARD] Backward hom presheafValue (relativeRationalLocData ...) → presheafValue D
+
+- **Status**: OPEN
+- **File**: `Adic spaces/RelativeRationalLocData.lean`
+- **Depends on**: T-WEDHORN-213-DATUM
+- **Type**: def + continuity lemma
+- **Mathematical statement**:
+  ```
+  relativeBackwardLocHom : Localization.Away (relativeRationalLocData...).s
+                            →+* Localization.Away D.s
+  relativeBackwardHom : presheafValue (relativeRationalLocData...) →+*
+                         presheafValue D
+  ```
+- **Proof sketch**: parallel to T-WEDHORN-213-FORWARD but in the reverse
+  direction. The image of E.canonicalMap is invertible in Localization.Away
+  D.s (because D.s | D.s in that ring), giving the LocHom; continuity and
+  completion-extension as before.
+- **Mathlib lemmas needed**: same as T-WEDHORN-213-FORWARD.
+
+### [T-WEDHORN-213-ROUNDTRIP] Backward ∘ Forward = id; Forward ∘ Backward = id
+
+- **Status**: OPEN
+- **File**: `Adic spaces/RelativeRationalLocData.lean`
+- **Depends on**: T-WEDHORN-213-FORWARD, T-WEDHORN-213-BACKWARD
+- **Type**: lemma
+- **Mathematical statement**:
+  ```
+  relativeBackwardHom.comp relativeForwardHom = RingHom.id (presheafValue D)
+  relativeForwardHom.comp relativeBackwardHom = RingHom.id (presheafValue ...)
+  ```
+- **Proof sketch**:
+  1. Algebraic identity at the `coeRingHom` image (uniqueness of
+     IsLocalization-lift on a dense subset).
+  2. Extend via `UniformSpace.Completion.ext'` (continuous functions agreeing
+     on a dense set agree everywhere).
+- **Mathlib lemmas needed**: `UniformSpace.Completion.ext'`,
+  `IsLocalization.lift_unique` or equivalent.
+
+### [T-WEDHORN-213-EQUIV] Package as ring equiv
+
+- **Status**: OPEN
+- **File**: `Adic spaces/RelativeRationalLocData.lean`
+- **Depends on**: T-WEDHORN-213-ROUNDTRIP
+- **Type**: def (RingEquiv)
+- **Mathematical statement**:
+  ```
+  presheafValue_relative_equiv : presheafValue D ≃+*
+    presheafValue (relativeRationalLocData E D hsub)
+  ```
+- **Proof sketch**: direct construction via `RingEquiv.mk` using forward,
+  backward, and round-trip identities.
+
+### [T-WEDHORN-213-INTERTWINE] Intertwining with restriction map
+
+- **Status**: OPEN
+- **File**: `Adic spaces/RelativeRationalLocData.lean`
+- **Depends on**: T-WEDHORN-213-EQUIV
+- **Type**: theorem
+- **Mathematical statement**:
+  ```
+  ∀ a : presheafValue E,
+    presheafValue_relative_equiv E D hsub
+        (restrictionMapHom E D hsub a) =
+      (relativeRationalLocData E D hsub).canonicalMap a
+  ```
+- **Proof sketch**:
+  1. Apply `UniformSpace.Completion.ext'` on `a : presheafValue E`.
+  2. Reduce to `a = E.coeRingHom a₀` for `a₀ ∈ Localization.Away E.s`.
+  3. Trace both maps through the chain; reduce to algebraic identity in
+     `Localization.Away (relativeRationalLocData.s)`, which is
+     `Localization.Away (E.canonicalMap D.s)`.
+- **Mathlib lemmas needed**: `UniformSpace.Completion.ext'`,
+  `IsLocalization.ringHom_ext`.
+- **Sources**: parallel to
+  `presheafValue_iteratedMinus_equiv_restrictionMap_canonicalMap`.
+
+### [T-RATIONAL-FLAT-GENERAL-CLOSE] Wire into the general flatness theorem
+
+- **Status**: OPEN
+- **File**: `Adic spaces/RestrictionFlatness.lean`
+- **Depends on**: T-WEDHORN-213-INTERTWINE
+- **Type**: theorem
+- **Mathematical statement**:
+  ```
+  restrictionMap_flat_of_rational_subset :
+    Module.Flat (presheafValue E) (presheafValue D) along restrictionMap
+  ```
+  Sorry-free closure of the general flatness theorem.
+- **Proof sketch**:
+  1. Build D_at_E from T-WEDHORN-213-DATUM.
+  2. Obtain relative equiv (T-WEDHORN-213-EQUIV) + intertwining
+     (T-WEDHORN-213-INTERTWINE).
+  3. Apply `restrictionMap_flat_of_rational_subset_via_relative` (existing).
+  4. Discharge the B-level canonical-form flatness hypotheses (hb, hT_pb,
+     hcont_eval) for D_at_E shape via the strong-noetherian Tate setting.
+
+### [CLEANUP-WEDHORN-213] Run /cleanup on RelativeRationalLocData.lean
+
+- **Status**: OPEN
+- **File**: `Adic spaces/RelativeRationalLocData.lean`
+- **Depends on**: T-WEDHORN-213-INTERTWINE
+- **Type**: cleanup
+- **Description**: Final per-file cleanup for the new file. Runs after the
+  inducing theorems are in place.
