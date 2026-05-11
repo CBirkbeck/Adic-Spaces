@@ -1072,19 +1072,19 @@ theorem isSheafy_ofStronglyNoetherianTate_flat
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
     IsSheafy A where
   embedding C := by
-    -- The embedding `productRestrictionSub A C` requires:
-    -- (i) Injectivity (sheaf-of-sets separation), and
-    -- (ii) Topological inducing (the source topology equals the subspace topology
-    --      from the product).
+    -- Per T-EMBED-TOPO boundary (reviewer-confirmed, ChatGPT Pro, 2026-05-11):
+    -- factor into algebraic injectivity + topological inducing via
+    -- `productRestrictionSub_isEmbedding_of_lane_inputs` (EmbeddingTopo.lean).
     --
-    -- (i) will follow from Wedhorn Cor 8.32 (faithful flatness of the product
-    -- restriction → injective). Phase 3 of the Wedhorn plan.
+    -- Algebraic side: `productRestrictionSub_injective_of_product_injective`
+    -- consumes the cover-level `productRestriction_injective_tate` (Cor832.lean),
+    -- which presently routes through `tateAcyclicity` Part 1's residual
+    -- single-map injectivity. Once R2a lands, the algebraic side will close
+    -- via faithful flatness of the product restriction (Cor 8.32 product form).
     --
-    -- (ii) will follow from Phase 2 (Example 6.38 as a TOPOLOGICAL ring iso) +
-    -- Phase 4 (Lemma 8.33 in the Tate case + Lemma 8.34 refinement transfer).
-    -- The 3×3 diagram chase preserves topology when the rings on each side are
-    -- identified with Tate-algebra quotients (whose quotient maps are continuous
-    -- and open).
+    -- Topological inducing side: the Lane-Wedhorn topological route described
+    -- in `EmbeddingTopo.lean`'s docstring — topological Example 6.38 + Laurent
+    -- diagram topological strictness + Lane C refinement transfer.
     --
     -- Edge case: when `C.base.s = 0`, `presheafValue C.base` is subsingleton (the
     -- zero ring), so any function from it is automatically an embedding via
@@ -1092,7 +1092,10 @@ theorem isSheafy_ofStronglyNoetherianTate_flat
     by_cases hs : C.base.s = 0
     · haveI := presheafValue_subsingleton_of_s_eq_zero C.base hs
       exact Topology.IsEmbedding.of_subsingleton _
-    · -- Until Phase 2-4 land, this is a single sorry pointing at the new route.
+    · -- Remaining sorry: the topological-inducing residual identified by
+      -- T-EMBED-TOPO. Algebraic injectivity available; topological side
+      -- pending Lane-Wedhorn topological route (Example 6.38 topological iso
+      -- + Laurent strictness + Lane C refinement).
       sorry
   gluing C f hcompat :=
     rationalCovering_hasGluing P C f hcompat
