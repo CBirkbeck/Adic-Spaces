@@ -190,3 +190,38 @@ follows by instantiating `tateAlgebra_polynomials_dense_canonical (A := B)`.
 
 No new theorem is needed in this file — T-QTATE-2 is satisfied by the
 existing `tateAlgebra_polynomials_dense_canonical`. -/
+
+/-! ### T-OV-1-DENSITY route summary
+
+The Lane A reverse round trip (`τ_preBiv` in `laurentOverlapBridge_exists_
+compatible_via_primary`) is constructed by the composition:
+
+1. `IsTateRing.quotient` (this file, T-QTATE-1) → `B₁_gen f = A⟨X⟩/(f - X)`
+   inherits a Tate-ring structure, provided `(f - X)` is closed (supplied by
+   Wedhorn 6.17 / `Wedhorn.isClosed_ideal_of_noetherian` for noetherian
+   Tate `A⟨X⟩`).
+
+2. `tateAlgebra_polynomials_dense_canonical (A := B₁_gen f)` (T-QTATE-2) →
+   polynomials are dense in the Tate algebra `(B₁_gen f)⟨Z⟩`.
+
+3. The forward and backward maps between
+   `A⟨X, Y⟩/(f - X, 1 - fY)` and `(B₁_gen f)⟨Z⟩` (specialised
+   Example 6.39 setup) lift to the presheaf level via T2 density and the
+   completion universal property.
+
+4. The reverse round trip identity (`forward ∘ backward = id`) follows from
+   the polynomial-density agreement on generators (steps 2 + 3) and the T2
+   conclusion at the completion level.
+
+This composition produces a constructive `τ_preBiv` for Lane A's finish
+theorem `laurentOverlapBridge_exists_compatible_via_primary` and closes
+the previously-named sorry in `TA_B₁_gen_quotient_specialized_equiv`'s
+reverse round trip.
+
+The composition is multi-step Lean infrastructure (depends on:
+- `tateAlgebraTopology'` + `IsStronglyNoetherian` for `IsTateRing (A⟨X⟩)`
+- closedness of `(f - X)` via Wedhorn 6.17
+- presheaf-level completion bridge via `UniformSpace.Completion.extensionHom`
+
+These ingredients are all landed; the assembly remains as the dedicated
+T-OV-1-DENSITY follow-up ticket. The chain above documents the route. -/
