@@ -41,6 +41,7 @@ import «Adic spaces».LaurentCoverTopology
 import «Adic spaces».LaurentOverlap
 import «Adic spaces».LaurentOverlapConsumer
 import «Adic spaces».Lemma745
+import «Adic spaces».LocalBasis
 import «Adic spaces».LocalizationTopology
 import «Adic spaces».NoetherianTateModules
 import «Adic spaces».OpenIdeals
