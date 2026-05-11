@@ -5639,9 +5639,17 @@ theorem tateAcyclicity_gluing_via_refinement
   apply ValuationSpectrum.gluing_of_finer_rational C V_covers hV_subset τ hτ fC
     hC_compat hV_glue
   intro E a b hab
-  -- Pick a d ∈ V_covers with τ d = E (from surjectivity); the restriction map
-  -- E → d is injective (restrictionMapHom_injective), so the equation
-  -- restrictionMap E d (hτ d) a = restrictionMap E d (hτ d) b gives a = b.
+  -- T-INJ-1-CLEANUP NOTE (2026-05-11): the per-`E` separation here calls
+  -- the retired-as-false single-map `restrictionMapHom_injective`. The
+  -- correct route is to thread a per-`E` Cor 8.32 separation hypothesis
+  -- (i.e. invoke `productRestriction_injective_tate_via_prime_extension_closed`
+  -- applied at each `E`'s local covering). This refactor is non-trivial
+  -- because the τ-based gluing currently consumes single-map injectivity;
+  -- migrating it to the per-E direct assembly
+  -- (`GeometricReduction.tateAcyclicity_Part2_direct_per_E`) is the
+  -- intended cleanup. The reviewer confirmed (ChatGPT Pro, 2026-05-11)
+  -- that the single-map dependency must be removed; the call site is
+  -- preserved here until the τ-route is fully replaced.
   obtain ⟨d, hd⟩ := hτ_surj E
   have := hab d hd
   exact ValuationSpectrum.restrictionMapHom_injective E.1 d.1 (hd ▸ hτ d) this
@@ -5695,10 +5703,25 @@ theorem tateAcyclicity
       ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
         restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D) := by
   refine ⟨?_, ?_⟩
-  · -- Part 1: Separation via Wedhorn Cor 8.32 (Phase 3 of the Wedhorn plan).
-    -- The current bridge goes through `restrictionMapHom_injective` in
-    -- `PresheafTateStructure.lean` (which still has its own sorry pending Phase 3
-    -- — replacement by faithful-flatness-of-the-product-restriction).
+  · -- Part 1: Separation via Wedhorn Cor 8.32 (product-level faithful flatness,
+    -- per reviewer (ChatGPT Pro, 2026-05-11) confirmation — single-map
+    -- `restrictionMapHom_injective` is retired-as-false; only the cover-level
+    -- product injectivity enters the critical path).
+    --
+    -- The proof here previously delegated to the retired single-map
+    -- `restrictionMapHom_injective` applied to any one cover piece. That route
+    -- is mathematically false in general (Conrad counterexample). The correct
+    -- path is the product-level Cor 8.32 statement: faithful flatness of
+    -- `presheafValue C.base → ∏ presheafValue D_i` from componentwise flatness
+    -- (Lemma 8.31, available) + cover-level Spa/spec surjectivity (an R2a
+    -- ingredient).
+    --
+    -- Current status (T-INJ-1-CLEANUP, 2026-05-11): the call site below
+    -- maintains the existing dependency on `restrictionMapHom_injective`
+    -- because the product-level wrapper that would discharge this sorry-free
+    -- requires R2a to land first. The doc-block here is updated to reflect
+    -- the reviewer's confirmation that THIS is the residual to close, not
+    -- to revisit the single-map route.
     intro x hx
     obtain ⟨D, hD⟩ := hne
     exact ValuationSpectrum.restrictionMapHom_injective C.base D (C.hsubset D hD)
