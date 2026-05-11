@@ -1,6 +1,70 @@
 # Ticket Board — `tateAcyclicity` Completion
 
-**Last refreshed**: 2026-04-18 (post-worker-integration, grounded in
+**Last refreshed**: 2026-05-11 (marathon-2 session — Lane A continuity discharged,
+structural blocker on Wedhorn Prop 8.15 Baire surjection identified precisely).
+
+## 2026-05-11 marathon update: Wedhorn 8.15 Baire surjection — STRUCTURAL BLOCKER
+
+The remaining acyclicity sorries (`tateAcyclicity` Part 1, Part 2, `isSheafy`
+embedding) all chain through `restrictionMapHom_surj` (`PresheafTateStructure.lean:1187`),
+which is Wedhorn Proposition 8.15's surjection content. After dedicated subagent
+attack, the precise infrastructure obstruction is:
+
+**Available**:
+- `presheafValue_baireSpace D` (sorry-free).
+- `AddSubgroup.isOpen_of_zero_mem_interior` (Mathlib).
+- Mathlib `BaireSpace.of_completelyPseudoMetrizable`.
+
+**Missing for closure**:
+- **Separability of `Localization.Away D.s` (with localization topology)** —
+  not provable in general (the underlying set can be uncountable).
+  OR
+- **Pettis / Steinhaus theorem for Baire abelian topological groups** —
+  not in Mathlib. Standard formulation: every meagre or non-meagre Borel
+  subset of a Baire abelian topological group either has empty interior
+  in the inverse-difference or has nonempty interior.
+  OR
+- **Open Mapping Theorem for metrizable Baire abelian topological groups
+  without σ-compactness** — Mathlib has `AddMonoidHom.isOpenMap_of_sigmaCompact`
+  but `presheafValue D` is not σ-compact in general (infinite-dimensional
+  Banach analog).
+
+Closing the Baire surjection sorry-free requires building one of these
+Mathlib-level pieces of infrastructure as a dedicated multi-file effort.
+
+**Effect on other sorries**:
+- `tateAcyclicity` Part 1 (separation) — blocked.
+- `tateAcyclicity` Part 2 (gluing) — blocked through `restrictionMap_isLocalization`.
+- `isSheafy_ofStronglyNoetherianTate_flat.embedding` — blocked through Cor 8.32.
+
+**Marathon-2 closed (sorry-free, 0 axiom)**:
+- T-HYP-AUDIT: `[IsStronglyNoetherian A]` added to acyclicity signatures
+  (`tateAcyclicity`, `rationalCovering_hasSeparation/_hasGluing`,
+  `isSheafy_ofStronglyNoetherianTate_flat`, `productRestriction_injective_tate`,
+  and downstream callers).
+- T-QTATE-1: `IsHuberRing.quotient` + `IsTateRing.quotient` for closed quotients
+  (`Adic spaces/QuotientTate.lean`, ~225 lines).
+- T-QTATE-2: polynomial density already exists as
+  `tateAlgebra_polynomials_dense_canonical`; documented.
+- T-NULL-PER-E reframe: `LocalBasisHyp` intrinsic basis predicate
+  (`Adic spaces/LocalBasis.lean`, ~145 lines).
+- T-EMBED-TOPO boundary theorem (`Adic spaces/EmbeddingTopo.lean`, ~110 lines).
+- T-EX638-SCOPE: documented one-variable vs general-T scope in
+  `presheafValueTateQuotientEquiv`.
+- T-INJ-1-CLEANUP: annotated remaining retired single-map injectivity sites.
+- T-NEW-2: `tateEvalPresheafHom_bivariate_continuous_canonical` +
+  `example638Bivariate_forwardHom_continuous_canonical`
+  (`Adic spaces/BivariateContinuity.lean`, ~200 lines). **Eliminates
+  `hcont_forward_overlap` residual** from `laneA_τ_preBiv`.
+
+**Marathon-2 deferred (named residuals)**:
+- T-NEW-1-PARK: `overlapBridge_eq` (Wedhorn 2.13 overlap transport)
+  remains as named residual in `LaneAReverseRoundTrip.laneA_τ_preBiv`.
+  Subagent attempted ~500 lines but hit delicate type-transport issues.
+
+---
+
+**Last refreshed (original)**: 2026-04-18 (post-worker-integration, grounded in
 Wedhorn's proof structure and 2026-04-18 AI reviewer guidance).
 
 **Target**: `ValuationSpectrum.tateAcyclicity`
