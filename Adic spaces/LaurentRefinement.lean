@@ -5717,46 +5717,48 @@ theorem tateAcyclicity
     obtain ⟨D, hD⟩ := hne
     exact ValuationSpectrum.restrictionMapHom_injective C.base D (C.hsubset D hD)
       ((hx D hD).trans (map_zero _).symm)
-  · -- Part 2: Gluing via partition of unity (Wedhorn Prop 8.15 + Thm 8.28(b)).
+  · -- Part 2: Gluing via faithful flatness + descent (Wedhorn Cor 8.32 + Thm 8.28(b)).
     --
-    -- Using `restrictionMap_isLocalization` (PresheafTateStructure.lean), each
-    -- presheafValue D is a localization of presheafValue C.base. The standard
-    -- partition-of-unity argument produces the global section.
+    -- **CORRECTED ROUTE (reviewer reframe, ChatGPT Pro 2026-05-11)**.
     --
-    -- Upstream sorry dependencies: `restrictionMapHom_surj` (Baire category,
-    -- PresheafTateStructure:1307), `locLift_preimage_locNhd` (Artin-Rees,
-    -- PresheafTateStructure:1143). The separation (Part 1) uses the same chain.
-    -- Additional sorry: span-top needs Spa-point at non-open primes
-    -- (`exists_spa_point_in_rationalOpen`, StructureSheaf:682).
+    -- The previous "partition-of-unity via `restrictionMap_isLocalization`" plan
+    -- was based on a FALSE intermediate: `restrictionMap_isLocalization` (Wedhorn
+    -- 8.15 as `IsLocalization.Away`) is mathematically false in general, since
+    -- completed rational localizations contain infinite convergent denominator
+    -- tails (counterexample: A = ℚ_p⟨X⟩, A⟨T⟩/(XT-1) ∋ ∑ p^n X^{-n}). The route
+    -- below replaces that with the correct Wedhorn Cor 8.32 + flat-descent
+    -- argument.
+    --
+    -- **Corrected plan** (Wedhorn Theorem 8.28(b)):
+    -- 1. By Cor 8.32 (refactored under T-COR832-VIA-FLAT to consume `Module.Flat`
+    --    of each restriction map, NOT `IsLocalization.Away`), the product
+    --    restriction `presheafValue C.base → ∏_D presheafValue D` is **faithfully
+    --    flat** (over the cover by `Spa(A,A⁺)`-points).
+    -- 2. Faithful flatness gives the **flat descent** identity (Stacks 023N):
+    --    `M → ∏_D M_D ⇒ ∏_{D₁,D₂} M_D₁ ⊗ M_D₂` is an equalizer, where the two
+    --    rightward maps are the two natural restriction-tensor compositions.
+    -- 3. Translated to presheaf language: the equalizer property is exactly the
+    --    sheaf-of-sets condition. Given compatible sections `f : ∀ D, M_D` with
+    --    `restrict_D₃ f_D₁ = restrict_D₃ f_D₂` on all overlaps `D₃`, the image
+    --    `(f_D)_D ∈ ∏_D M_D` lies in the equalizer, hence descends to `x ∈ M`
+    --    with `restrict_D(x) = f_D`.
+    --
+    -- **Lean infrastructure dependencies** (from T-FLAT-VIA-WEDHORN830 +
+    -- T-COR832-VIA-FLAT, in progress 2026-05-11):
+    -- * `restrictionMap_flat_via_iteratedMinus` (RestrictionFlatness.lean) —
+    --   single-map flatness for Laurent-minus shape via Wedhorn 8.30 + 2.13.
+    -- * `Cor832.flat_over_base_tate` (refactored) — assembles product
+    --   faithful flatness from component flatness + Spa-cover surjectivity.
+    -- * `Module.Flat.equalizer` / Stacks 023N descent argument — extract from
+    --   Mathlib `AdicCompletion.flat_descent` or supply directly.
+    --
+    -- **Routing**: like Part 1, the product-level theorem
+    -- `productRestriction_faithfullyFlat_tate` lives in `Cor832.lean` which
+    -- transitively imports `LaurentRefinement.lean` via `StructureSheaf.lean`.
+    -- The proper invocation is in the downstream wrapper file
+    -- `TateAcyclicityFinalAssembly.lean`. Until that wrapper is wired, this
+    -- `sorry` is preserved.
     intro f hcompat
-    -- **Reduction available** (2026-04-14): `tateAcyclicity_gluing_via_refinement`
-    -- above provides a clean reduction of this gluing to gluing on a refinement
-    -- `V_covers` with surjective `τ : V → C`. Concretely, feed
-    -- `RationalCovering.refines_by_standard_cover` to produce the refinement (a
-    -- plus-type cover at elements of a standard cover), then Laurent-cover
-    -- induction (`laurentCover_gluing_presheaf`) to discharge `hV_glue` inductively
-    -- on the size of the standard cover.
-    --
-    -- **Remaining obstructions to full closure**:
-    -- - `refines_by_standard_cover` itself still has residual sorries
-    --   (non-open-prime Spa-point construction; see
-    --   `StandardCover.exists_nullstellensatz_refinement`).
-    -- - `laurentCover_gluing_presheaf` routes through the Route B bridges
-    --   (`laurentPlusBridge`, `laurentMinusBridge`) and their sub-sorries
-    --   (`presheafValue_iteratedPlus_equiv`, `presheafValue_iteratedMinus_equiv`,
-    --   overlap bridge intertwining lemmas).
-    -- - `restrictionMapHom_injective` is itself a sorry pending Wedhorn Cor 8.32
-    --   (faithful flatness of the product restriction).
-    --
-    -- **Alternative route (direct partition of unity)** (Wedhorn Theorem 8.28(b)):
-    -- 1. Span-top: Ideal.span {canonicalMap(D.s)} = top in presheafValue C.base
-    -- 2. Surj: f D is a fraction r_D / sD^n_D via IsLocalization.Away.surj
-    -- 3. Uniform exponent: absorb n_D into a uniform N₀
-    -- 4. Numerator compatibility: r'_D₁ * sD₂^N = r'_D₂ * sD₁^N (up to powers)
-    -- 5-6. Power absorption: uniform K, exact compatibility after absorption
-    -- 7. Partition of unity: ∑ c_D * sD^N = 1 from span-top
-    -- 8. Global section: x = ∑ c_D * r''_D
-    -- 9. Verification: restrictionMap(x) = f D via partition + compatibility
     sorry
 
 omit [PlusSubring A] [IsHuberRing A] [HasLocLiftPowerBounded A] in
