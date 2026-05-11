@@ -906,6 +906,82 @@ theorem productRestriction_faithfullyFlat_tate_of_hSpa_points
     (flat_over_base_tate P C)
     (hSpa_surj_from_spanTop P C (hspan_top_of_hSpa_points C hSpa_points))
 
+/-! ### Clean faithfully-flat combinator via Wedhorn 8.30 + 2.13 for Laurent-minus covers
+
+**T-COR832-FF-LAURENT (2026-05-11)**.
+
+Drop-in replacement for `productRestriction_faithfullyFlat_tate_of_hSpa_points`
+that uses the corrected `flat_over_base_tate_laurent` (Wedhorn 8.30 + 2.13)
+instead of the misframed `flat_over_base_tate` (Wedhorn Prop 8.15 false).
+
+Caller supplies a `laurent_witness` identifying each cover piece as a
+Laurent-minus shape of `C.base`. In practice this is provided by Lane C
+geometric reduction (Wedhorn 8.34 / Hübner 3.8) which refines an arbitrary
+rational cover into a finite sequence of Laurent decompositions.
+
+Composes:
+1. `flat_over_base_tate_laurent` — Laurent-minus shape flatness via
+   `restrictionMap_flat_via_iteratedMinus` (T-FLAT-VIA-WEDHORN830).
+2. `hSpa_surj_from_spanTop` + `hspan_top_of_hSpa_points` — span-top + Spa points
+   give prime-surjectivity.
+3. `productRestriction_faithfullyFlat_abstract` — Cor 8.32 abstract bundling. -/
+theorem productRestriction_faithfullyFlat_tate_laurent_of_hSpa_points
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    [Finite { D : RationalLocData A // D ∈ C.covers }]
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    [LaurentNormalized C.base]
+    (laurent_witness : ∀ D : { D // D ∈ C.covers },
+      ∃ f : A, D.1 = laurentMinusDatum C.base f)
+    (hSpa_points : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp)
+    (hNoeth_B : IsNoetherianRing (presheafValue C.base))
+    (hLocLift_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      HasLocLiftPowerBounded (presheafValue C.base))
+    (hA_complete_B : @CompleteSpace (presheafValue C.base)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue C.base)))
+    (hnoeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue C.base)).toPairOfDefinition))
+    (hP_A₀Noeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P C.base).A₀))
+    (hlocSubring_Noeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      letI : PairOfDefinition (presheafValue C.base) :=
+        presheafValue_pairOfDefinition_concrete P C.base
+      ∀ f : A, IsNoetherianRing
+        (locSubring (iteratedMinusDatum_B P C.base f).P
+          (iteratedMinusDatum_B P C.base f).T
+          (iteratedMinusDatum_B P C.base f).s))
+    (hcont_eval_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : HasLocLiftPowerBounded (presheafValue C.base) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      letI : PairOfDefinition (presheafValue C.base) :=
+        presheafValue_pairOfDefinition_concrete P C.base
+      ∀ f : A,
+        let D := iteratedMinusDatum_B P C.base f
+        ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+          @Continuous _ _
+            (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+            (inferInstance : TopologicalSpace (presheafValue D))
+            (tateQuotientToPresheafHom D hb)) :
+    letI : ∀ D : { D // D ∈ C.covers }, Algebra (presheafValue C.base)
+      (presheafValue D.1) := fun D =>
+      (restrictionMapHom C.base D.1 (C.hsubset D.1 D.2)).toAlgebra
+    Module.FaithfullyFlat (presheafValue C.base)
+      (∀ D : { D // D ∈ C.covers }, presheafValue D.1) :=
+  productRestriction_faithfullyFlat_abstract C
+    (flat_over_base_tate_laurent P C laurent_witness hNoeth_B hLocLift_B
+      hA_complete_B hnoeth_B hP_A₀Noeth_B hlocSubring_Noeth_B hcont_eval_B)
+    (hSpa_surj_from_spanTop P C (hspan_top_of_hSpa_points C hSpa_points))
+
 /-! ### Open-prime discharge of `hSpa_points`
 
 The `hSpa_points` hypothesis for OPEN primes is **unconditionally** discharged
