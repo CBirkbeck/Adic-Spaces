@@ -829,4 +829,50 @@ theorem restrictionMap_flat_of_rational_subset_direct_laurentMinus
   restrictionMap_flat_via_iteratedMinus P E f hsub hNoeth_B hLocLift_B
     hA_complete_B hnoeth_B hP_A₀Noeth_B hlocSubring_Noeth_B hcont_eval_B
 
+/-! ### Flatness chain composition (T-CHAIN-COMPOSITION)
+
+**Reviewer-recommended transitivity step**. Per session-3 guidance: "Build
+[arbitrary rational-restriction flatness] from the two basic flatness steps
+plus transitivity/decomposition of rational localizations."
+
+Given flatness `O(E) → O(D₁)` along restrictionMap (e.g., from a basic
+Laurent step + our depth-1 theorems) and flatness `O(D₁) → O(D)` along the
+next restrictionMap, conclude `O(E) → O(D)` is flat by `Module.Flat.trans`
+along the natural scalar tower.
+
+The tower `IsScalarTower (presheafValue E) (presheafValue D₁) (presheafValue D)`
+follows from presheaf functoriality (`restrictionMap_comp`):
+`restrictionMap D₁ D h₂ ∘ restrictionMap E D₁ h₁ = restrictionMap E D (h₂.trans h₁)`.
+
+Iterate this theorem along any finite chain of basic Laurent steps to
+discharge flatness for arbitrary rational sub-locale containments. -/
+theorem restrictionMap_flat_trans
+    (E D₁ D : RationalLocData A)
+    (h_E_D₁ : rationalOpen D₁.T D₁.s ⊆ rationalOpen E.T E.s)
+    (h_D₁_D : rationalOpen D.T D.s ⊆ rationalOpen D₁.T D₁.s)
+    (flat_E_D₁ : @Module.Flat (presheafValue E) (presheafValue D₁) _ _
+      ((restrictionMapHom E D₁ h_E_D₁).toModule))
+    (flat_D₁_D : @Module.Flat (presheafValue D₁) (presheafValue D) _ _
+      ((restrictionMapHom D₁ D h_D₁_D).toModule)) :
+    @Module.Flat (presheafValue E) (presheafValue D) _ _
+      ((restrictionMapHom E D (h_D₁_D.trans h_E_D₁)).toModule) := by
+  letI alg_E_D₁ : Algebra (presheafValue E) (presheafValue D₁) :=
+    (restrictionMapHom E D₁ h_E_D₁).toAlgebra
+  letI alg_D₁_D : Algebra (presheafValue D₁) (presheafValue D) :=
+    (restrictionMapHom D₁ D h_D₁_D).toAlgebra
+  letI alg_E_D : Algebra (presheafValue E) (presheafValue D) :=
+    (restrictionMapHom E D (h_D₁_D.trans h_E_D₁)).toAlgebra
+  letI mod_E_D₁ : Module (presheafValue E) (presheafValue D₁) := Algebra.toModule
+  letI mod_D₁_D : Module (presheafValue D₁) (presheafValue D) := Algebra.toModule
+  letI mod_E_D : Module (presheafValue E) (presheafValue D) := Algebra.toModule
+  haveI : IsScalarTower (presheafValue E) (presheafValue D₁) (presheafValue D) := by
+    refine IsScalarTower.of_algebraMap_eq fun x => ?_
+    change restrictionMapHom E D (h_D₁_D.trans h_E_D₁) x =
+      restrictionMapHom D₁ D h_D₁_D (restrictionMapHom E D₁ h_E_D₁ x)
+    have hcomp := congrFun (restrictionMap_comp E D₁ D h_E_D₁ h_D₁_D) x
+    exact hcomp.symm
+  haveI : Module.Flat (presheafValue E) (presheafValue D₁) := flat_E_D₁
+  haveI : Module.Flat (presheafValue D₁) (presheafValue D) := flat_D₁_D
+  exact Module.Flat.trans (presheafValue E) (presheafValue D₁) (presheafValue D)
+
 end ValuationSpectrum

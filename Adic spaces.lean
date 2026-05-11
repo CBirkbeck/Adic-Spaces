@@ -58,7 +58,6 @@ import «Adic spaces».PresheafIdentification
 import «Adic spaces».Prop752
 import «Adic spaces».PresheafTateStructure
 import «Adic spaces».PseudoUniformizer
-import «Adic spaces».RationalChainDecomposition
 import «Adic spaces».RationalRefinement
 import «Adic spaces».RationalSubsets
 import «Adic spaces».RelativeRationalLocData
