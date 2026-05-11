@@ -166,3 +166,27 @@ theorem _root_.IsTateRing.quotient (R : Type*) [CommRing R] [TopologicalSpace R]
     exact hu.map (continuous_quot_mk : Continuous (Ideal.Quotient.mk I))
 
 end IsTateRing
+
+/-! ### T-QTATE-2 reviewer boundary
+
+The polynomial density statement requested by ChatGPT Pro (2026-05-11) for
+Lane A's reverse round trip — that polynomials in `B⟨Z⟩` are dense in the
+canonical Tate topology for any Tate ring `B` — is **already proved
+unconditionally** in `TopologyComparison.lean` as:
+
+```
+theorem tateAlgebra_polynomials_dense_canonical [IsTateRing A] :
+    @Dense ↥(TateAlgebra A) instTopologicalSpaceTateAlgebra
+      {g | ∃ N : ℕ, ∀ n : Fin 1 →₀ ℕ, N ≤ n 0 → g.val n = 0}
+```
+
+The proof is via truncation: a restricted power series is the limit of its
+partial sums because its coefficients tend to zero. The base case requires
+only `[IsTateRing A]` and the canonical Tate topology on `TateAlgebra A`.
+
+For Lane A T-OV-1-DENSITY, the consumer specialises to `B = A⟨X⟩/(f-X)`,
+which is Tate by `IsTateRing.quotient` above (T-QTATE-1). The density then
+follows by instantiating `tateAlgebra_polynomials_dense_canonical (A := B)`.
+
+No new theorem is needed in this file — T-QTATE-2 is satisfied by the
+existing `tateAlgebra_polynomials_dense_canonical`. -/
