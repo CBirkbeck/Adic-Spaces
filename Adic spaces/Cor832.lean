@@ -664,6 +664,54 @@ theorem flat_over_base_tate_laurent
     hNoeth_B hLocLift_B hA_complete_B hnoeth_B hP_A₀Noeth_B
     (hlocSubring_Noeth_B f) (hcont_eval_B f)
 
+/-! ### Combined plus + minus Laurent-shape flatness supplier
+
+**T-FLAT-COMBINED (2026-05-11)**.
+
+Variant of `flat_over_base_tate_laurent` that handles covers whose pieces are
+EITHER Laurent-plus or Laurent-minus shapes of `C.base`. The caller supplies
+a `laurent_witness` with a disjunction.
+
+The plus side requires an additional `IsPowerBounded (C.base.canonicalMap f)`
+hypothesis (per `restrictionMap_flat_via_iteratedPlus`).
+
+This handles natural 2-element Laurent covers `{plus, minus}` directly. -/
+theorem flat_over_base_tate_laurent_combined
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    [LaurentNormalized C.base]
+    (laurent_witness : ∀ D : { D // D ∈ C.covers },
+      ∃ f : A,
+        D.1 = laurentPlusDatum C.base f ∨ D.1 = laurentMinusDatum C.base f)
+    -- Plus-shape flatness supplier (per f):
+    (flat_plus : ∀ (f : A)
+      (hsub : rationalOpen (laurentPlusDatum C.base f).T
+                           (laurentPlusDatum C.base f).s ⊆
+              rationalOpen C.base.T C.base.s),
+      @Module.Flat (presheafValue C.base) (presheafValue (laurentPlusDatum C.base f)) _ _
+        ((restrictionMapHom C.base (laurentPlusDatum C.base f) hsub).toModule))
+    -- Minus-shape flatness supplier (per f):
+    (flat_minus : ∀ (f : A)
+      (hsub : rationalOpen (laurentMinusDatum C.base f).T
+                            (laurentMinusDatum C.base f).s ⊆
+              rationalOpen C.base.T C.base.s),
+      @Module.Flat (presheafValue C.base) (presheafValue (laurentMinusDatum C.base f)) _ _
+        ((restrictionMapHom C.base (laurentMinusDatum C.base f) hsub).toModule)) :
+    ∀ D : { D // D ∈ C.covers },
+      @Module.Flat (presheafValue C.base) (presheafValue D.1) _ _
+        ((restrictionMapHom C.base D.1 (C.hsubset D.1 D.2)).toModule) := by
+  intro D
+  obtain ⟨f, hor⟩ := laurent_witness D
+  rcases D with ⟨D_val, hD_mem⟩
+  simp only at hor
+  rcases hor with hplus | hminus
+  · subst hplus
+    exact flat_plus f (C.hsubset (laurentPlusDatum C.base f) hD_mem)
+  · subst hminus
+    exact flat_minus f (C.hsubset (laurentMinusDatum C.base f) hD_mem)
+
 /-! ### End-to-end combinator via Prop 8.15 + span-top
 
 Given the **span-top content** (Wedhorn Cor 8.31), `productRestriction_injective_tate`
