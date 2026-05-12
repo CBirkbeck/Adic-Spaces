@@ -600,11 +600,10 @@ theorem flat_over_base_tate_laurent
     -- Witness that each cover piece is a Laurent-minus shape of `C.base`:
     (laurent_witness : ∀ D : { D // D ∈ C.covers },
       ∃ f : A, D.1 = laurentMinusDatum C.base f)
-    -- B-level hypothesis bundle (uniform across cover pieces):
+    -- B-level hypothesis bundle (uniform across cover pieces).
+    -- NO `hLocLift_B`: `restrictionMap_flat_via_iteratedMinus` no longer
+    -- requires HasLocLiftPowerBounded preservation (commit T214 series).
     (hNoeth_B : IsNoetherianRing (presheafValue C.base))
-    (hLocLift_B : letI : IsTateRing (presheafValue C.base) :=
-        presheafValue_isTateRing P C.base
-      HasLocLiftPowerBounded (presheafValue C.base))
     (hA_complete_B : @CompleteSpace (presheafValue C.base)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue C.base)))
     (hnoeth_B : letI : IsTateRing (presheafValue C.base) :=
@@ -630,7 +629,6 @@ theorem flat_over_base_tate_laurent
           (iteratedMinusDatum_B P C.base f).s))
     (hcont_eval_B : letI : IsTateRing (presheafValue C.base) :=
         presheafValue_isTateRing P C.base
-      letI : HasLocLiftPowerBounded (presheafValue C.base) := hLocLift_B
       letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
       letI : PairOfDefinition (presheafValue C.base) :=
         presheafValue_pairOfDefinition_concrete P C.base
@@ -661,7 +659,7 @@ theorem flat_over_base_tate_laurent
   -- Apply the Laurent-shape flatness theorem.
   exact restrictionMap_flat_via_iteratedMinus P C.base f
     (C.hsubset (laurentMinusDatum C.base f) hD_mem)
-    hNoeth_B hLocLift_B hA_complete_B hnoeth_B hP_A₀Noeth_B
+    hNoeth_B hA_complete_B hnoeth_B hP_A₀Noeth_B
     (hlocSubring_Noeth_B f) (hcont_eval_B f)
 
 /-! ### Combined plus + minus Laurent-shape flatness supplier
@@ -984,10 +982,8 @@ theorem productRestriction_faithfullyFlat_tate_laurent_of_hSpa_points
       ∃ f : A, D.1 = laurentMinusDatum C.base f)
     (hSpa_points : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
       ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp)
+    -- NO hLocLift_B: HasLocLiftPowerBounded preservation no longer needed.
     (hNoeth_B : IsNoetherianRing (presheafValue C.base))
-    (hLocLift_B : letI : IsTateRing (presheafValue C.base) :=
-        presheafValue_isTateRing P C.base
-      HasLocLiftPowerBounded (presheafValue C.base))
     (hA_complete_B : @CompleteSpace (presheafValue C.base)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue C.base)))
     (hnoeth_B : letI : IsTateRing (presheafValue C.base) :=
@@ -1009,7 +1005,6 @@ theorem productRestriction_faithfullyFlat_tate_laurent_of_hSpa_points
           (iteratedMinusDatum_B P C.base f).s))
     (hcont_eval_B : letI : IsTateRing (presheafValue C.base) :=
         presheafValue_isTateRing P C.base
-      letI : HasLocLiftPowerBounded (presheafValue C.base) := hLocLift_B
       letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
       letI : PairOfDefinition (presheafValue C.base) :=
         presheafValue_pairOfDefinition_concrete P C.base
@@ -1026,7 +1021,7 @@ theorem productRestriction_faithfullyFlat_tate_laurent_of_hSpa_points
     Module.FaithfullyFlat (presheafValue C.base)
       (∀ D : { D // D ∈ C.covers }, presheafValue D.1) :=
   productRestriction_faithfullyFlat_abstract C
-    (flat_over_base_tate_laurent P C laurent_witness hNoeth_B hLocLift_B
+    (flat_over_base_tate_laurent P C laurent_witness hNoeth_B
       hA_complete_B hnoeth_B hP_A₀Noeth_B hlocSubring_Noeth_B hcont_eval_B)
     (hSpa_surj_from_spanTop P C (hspan_top_of_hSpa_points C hSpa_points))
 

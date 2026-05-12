@@ -69,10 +69,11 @@ theorem iteratedMinus_B_flat_of_canonical
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
     [LaurentNormalized D₀]
     (f : A)
+    -- Note: NO `hLocLift_B : HasLocLiftPowerBounded (presheafValue D₀)` —
+    -- the proof uses `presheafValue_flat_of_canonical` which does not require
+    -- it. The Nullstellensatz/Wedhorn 7.32 preservation is unnecessary at
+    -- this depth-1 level.
     (hNoeth_B : IsNoetherianRing (presheafValue D₀))
-    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
-        presheafValue_isTateRing P D₀
-      HasLocLiftPowerBounded (presheafValue D₀))
     (hA_complete_B : @CompleteSpace (presheafValue D₀)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
@@ -93,7 +94,6 @@ theorem iteratedMinus_B_flat_of_canonical
           (iteratedMinusDatum_B P D₀ f).s))
     (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
-      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
       letI : PairOfDefinition (presheafValue D₀) :=
         presheafValue_pairOfDefinition_concrete P D₀
@@ -104,7 +104,6 @@ theorem iteratedMinus_B_flat_of_canonical
           (inferInstance : TopologicalSpace (presheafValue D))
           (tateQuotientToPresheafHom D hb)) :
     letI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
-    letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
     letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
     letI P_B : PairOfDefinition (presheafValue D₀) :=
       presheafValue_pairOfDefinition_concrete P D₀
@@ -115,9 +114,6 @@ theorem iteratedMinus_B_flat_of_canonical
     @Module.Flat (presheafValue D₀) (presheafValue (iteratedMinusDatum_B P D₀ f))
       _ _ (RingHom.toModule (RationalLocData.canonicalMap (iteratedMinusDatum_B P D₀ f))) := by
   letI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
-  -- HasLocLiftPowerBounded (presheafValue D₀) is brought in scope so that the
-  -- conclusion's `letI` matches (the proof itself doesn't use it).
-  letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
   letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
   letI P_B : PairOfDefinition (presheafValue D₀) :=
     presheafValue_pairOfDefinition_concrete P D₀
@@ -187,9 +183,8 @@ theorem restrictionMap_flat_via_iteratedMinus
     (hsub : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
             rationalOpen D₀.T D₀.s)
     (hNoeth_B : IsNoetherianRing (presheafValue D₀))
-    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
-        presheafValue_isTateRing P D₀
-      HasLocLiftPowerBounded (presheafValue D₀))
+    -- NO `hLocLift_B` — the proof uses `presheafValue_flat_of_canonical` which
+    -- does not require `HasLocLiftPowerBounded (presheafValue D₀)`.
     (hA_complete_B : @CompleteSpace (presheafValue D₀)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
@@ -210,7 +205,6 @@ theorem restrictionMap_flat_via_iteratedMinus
           (iteratedMinusDatum_B P D₀ f).s))
     (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
-      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
       letI : PairOfDefinition (presheafValue D₀) :=
         presheafValue_pairOfDefinition_concrete P D₀
@@ -223,7 +217,6 @@ theorem restrictionMap_flat_via_iteratedMinus
     @Module.Flat (presheafValue D₀) (presheafValue (laurentMinusDatum D₀ f)) _ _
       ((restrictionMapHom D₀ (laurentMinusDatum D₀ f) hsub).toModule) := by
   letI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
-  letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
   letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
   letI P_B : PairOfDefinition (presheafValue D₀) :=
     presheafValue_pairOfDefinition_concrete P D₀
@@ -232,11 +225,13 @@ theorem restrictionMap_flat_via_iteratedMinus
       (locSubring (iteratedMinusDatum_B P D₀ f).P (iteratedMinusDatum_B P D₀ f).T
         (iteratedMinusDatum_B P D₀ f).s) := hlocSubring_Noeth_B
   -- Step 1: B-level flatness for the iteratedMinusDatum_B side.
+  -- NO `letI : HasLocLiftPowerBounded` needed — `iteratedMinus_B_flat_of_canonical`
+  -- does not require it (proved via `presheafValue_flat_of_canonical`).
   haveI hflat_B :
       @Module.Flat (presheafValue D₀) (presheafValue (iteratedMinusDatum_B P D₀ f))
         _ _ (RingHom.toModule
           (RationalLocData.canonicalMap (iteratedMinusDatum_B P D₀ f))) :=
-    iteratedMinus_B_flat_of_canonical P D₀ f hNoeth_B hLocLift_B
+    iteratedMinus_B_flat_of_canonical P D₀ f hNoeth_B
       hA_complete_B hnoeth_B hP_A₀Noeth_B hlocSubring_Noeth_B hcont_eval_B
   -- Step 2: Transfer flatness via `presheafValue_iteratedMinus_equiv`.
   -- The equiv intertwines `restrictionMapHom`-module on the source with
@@ -293,10 +288,9 @@ theorem iteratedPlus_B_flat_of_canonical
     [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
     [LaurentNormalized D₀]
     (f : A)
+    -- NO `hLocLift_B`: HasLocLiftPowerBounded preservation isn't needed —
+    -- proof uses `presheafValue_flat_of_canonical` directly.
     (hNoeth_B : IsNoetherianRing (presheafValue D₀))
-    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
-        presheafValue_isTateRing P D₀
-      HasLocLiftPowerBounded (presheafValue D₀))
     (hA_complete_B : @CompleteSpace (presheafValue D₀)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
@@ -323,7 +317,6 @@ theorem iteratedPlus_B_flat_of_canonical
       TopologicalRing.IsPowerBounded (D₀.canonicalMap f))
     (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
-      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
       letI : PairOfDefinition (presheafValue D₀) :=
         presheafValue_pairOfDefinition_concrete P D₀
@@ -334,7 +327,6 @@ theorem iteratedPlus_B_flat_of_canonical
           (inferInstance : TopologicalSpace (presheafValue D))
           (tateQuotientToPresheafHom D hb)) :
     letI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
-    letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
     letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
     letI P_B : PairOfDefinition (presheafValue D₀) :=
       presheafValue_pairOfDefinition_concrete P D₀
@@ -345,7 +337,6 @@ theorem iteratedPlus_B_flat_of_canonical
     @Module.Flat (presheafValue D₀) (presheafValue (iteratedPlusDatum_B P D₀ f))
       _ _ (RingHom.toModule (RationalLocData.canonicalMap (iteratedPlusDatum_B P D₀ f))) := by
   letI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
-  letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
   letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
   letI P_B : PairOfDefinition (presheafValue D₀) :=
     presheafValue_pairOfDefinition_concrete P D₀
@@ -391,9 +382,7 @@ theorem restrictionMap_flat_via_iteratedPlus
     (hsub : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
             rationalOpen D₀.T D₀.s)
     (hNoeth_B : IsNoetherianRing (presheafValue D₀))
-    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
-        presheafValue_isTateRing P D₀
-      HasLocLiftPowerBounded (presheafValue D₀))
+    -- NO `hLocLift_B`: HasLocLiftPowerBounded preservation isn't needed.
     (hA_complete_B : @CompleteSpace (presheafValue D₀)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
     (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
@@ -417,7 +406,6 @@ theorem restrictionMap_flat_via_iteratedPlus
       TopologicalRing.IsPowerBounded (D₀.canonicalMap f))
     (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
         presheafValue_isTateRing P D₀
-      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
       letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
       letI : PairOfDefinition (presheafValue D₀) :=
         presheafValue_pairOfDefinition_concrete P D₀
@@ -430,7 +418,6 @@ theorem restrictionMap_flat_via_iteratedPlus
     @Module.Flat (presheafValue D₀) (presheafValue (laurentPlusDatum D₀ f)) _ _
       ((restrictionMapHom D₀ (laurentPlusDatum D₀ f) hsub).toModule) := by
   letI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
-  letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
   letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
   letI P_B : PairOfDefinition (presheafValue D₀) :=
     presheafValue_pairOfDefinition_concrete P D₀
@@ -442,7 +429,7 @@ theorem restrictionMap_flat_via_iteratedPlus
       @Module.Flat (presheafValue D₀) (presheafValue (iteratedPlusDatum_B P D₀ f))
         _ _ (RingHom.toModule
           (RationalLocData.canonicalMap (iteratedPlusDatum_B P D₀ f))) :=
-    iteratedPlus_B_flat_of_canonical P D₀ f hNoeth_B hLocLift_B
+    iteratedPlus_B_flat_of_canonical P D₀ f hNoeth_B
       hA_complete_B hnoeth_B hP_A₀Noeth_B hlocSubring_Noeth_B hf_canonical_pb hcont_eval_B
   let e := presheafValue_iteratedPlus_equiv P D₀ f
   change @Module.Flat (presheafValue D₀) (presheafValue (laurentPlusDatum D₀ f))
@@ -795,10 +782,8 @@ theorem restrictionMap_flat_of_rational_subset_direct_laurentMinus
     (f : A)
     (hsub : rationalOpen (laurentMinusDatum E f).T (laurentMinusDatum E f).s ⊆
             rationalOpen E.T E.s)
+    -- NO `hLocLift_B` — proof path doesn't need HasLocLiftPowerBounded.
     (hNoeth_B : IsNoetherianRing (presheafValue E))
-    (hLocLift_B : letI : IsTateRing (presheafValue E) :=
-        presheafValue_isTateRing P E
-      HasLocLiftPowerBounded (presheafValue E))
     (hA_complete_B : @CompleteSpace (presheafValue E)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue E)))
     (hnoeth_B : letI : IsTateRing (presheafValue E) :=
@@ -819,7 +804,6 @@ theorem restrictionMap_flat_of_rational_subset_direct_laurentMinus
           (iteratedMinusDatum_B P E f).s))
     (hcont_eval_B : letI : IsTateRing (presheafValue E) :=
         presheafValue_isTateRing P E
-      letI : HasLocLiftPowerBounded (presheafValue E) := hLocLift_B
       letI : IsNoetherianRing (presheafValue E) := hNoeth_B
       letI : PairOfDefinition (presheafValue E) :=
         presheafValue_pairOfDefinition_concrete P E
@@ -831,7 +815,7 @@ theorem restrictionMap_flat_of_rational_subset_direct_laurentMinus
           (tateQuotientToPresheafHom D hb)) :
     @Module.Flat (presheafValue E) (presheafValue (laurentMinusDatum E f)) _ _
       ((restrictionMapHom E (laurentMinusDatum E f) hsub).toModule) :=
-  restrictionMap_flat_via_iteratedMinus P E f hsub hNoeth_B hLocLift_B
+  restrictionMap_flat_via_iteratedMinus P E f hsub hNoeth_B
     hA_complete_B hnoeth_B hP_A₀Noeth_B hlocSubring_Noeth_B hcont_eval_B
 
 /-! ### Flatness chain composition (T-CHAIN-COMPOSITION)
