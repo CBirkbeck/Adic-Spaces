@@ -777,7 +777,15 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
 
 ### [T-HYP-AUDIT] Audit the strong-noetherian hypothesis chain
 
-- **Status**: OPEN (added 2026-05-11)
+- **Status**: DONE — Case B resolved (audited 2026-05-12, T255)
+- **Closed**: 2026-05-12 audit — the current `tateAcyclicity` signature
+  in `LaurentRefinement.lean:5688` already includes `[IsStronglyNoetherian A]`
+  as an explicit typeclass hypothesis, alongside `[IsTateRing A]`,
+  `[IsNoetherianRing A]`, `[T2Space A]`, `[NonarchimedeanRing A]`.
+  This is "Case B" from the original audit options: the
+  `IsStronglyNoetherian` hypothesis was already added to the signature
+  during prior work, making the implication chain to Lemma 8.31 and
+  Wedhorn 6.17 internally consistent.
 - **Task**: Verify that the current signature of `tateAcyclicity` —
   `[IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]`
