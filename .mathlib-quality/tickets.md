@@ -1102,7 +1102,10 @@ The tickets below execute this third route.
 
 ### [T-RATIONAL-FLAT-BASIC-PLUS] Basic plus flatness via `B⟨X⟩/(f-X)`
 
-- **Status**: OPEN (HIGH PRIORITY)
+- **Status**: DONE (audited 2026-05-12, T259)
+- **Closed**: 2026-05-12 audit — `restrictionMap_flat_via_fSubX_quotient`
+  in `Adic spaces/RestrictionFlatness.lean`. Sorry-free; `#print axioms`
+  reports `[propext, Classical.choice, Quot.sound]`.
 - **Added**: 2026-05-11 round 3
 - **Mathematical statement**: For any strongly noetherian Tate ring `B`
   and any `f : B`, the quotient `B⟨X⟩/(f - X)` is flat over `B` as a
@@ -1122,10 +1125,12 @@ The tickets below execute this third route.
 
 ### [T-RATIONAL-FLAT-BASIC-MINUS] Basic minus flatness via `B⟨X⟩/(1-fX)`
 
-- **Status**: PARTLY DONE — `flat_quotient_oneSubfX_general` already
-  proves the underlying quotient flatness. Remaining work: expose this
-  as a `B → B⟨X⟩/(1-fX)` flatness packaged at the rational-localization
-  level, matching the API of T-RATIONAL-FLAT-BASIC-PLUS.
+- **Status**: DONE (audited 2026-05-12, T259)
+- **Closed**: 2026-05-12 audit — `restrictionMap_flat_via_oneSubfX_quotient`
+  in `Adic spaces/RestrictionFlatness.lean`. Sorry-free; `#print axioms`
+  reports `[propext, Classical.choice, Quot.sound]`. Symmetric to the
+  plus version (T-RATIONAL-FLAT-BASIC-PLUS) using
+  `flat_quotient_oneSubfX_general` + `laurentMinusBridge`.
 - **Added**: 2026-05-11 round 3
 - **Mathematical statement**: For any strongly noetherian Tate ring `B`
   and any `f : B`, `B⟨X⟩/(1 - fX)` is flat over `B` along the
@@ -1137,7 +1142,14 @@ The tickets below execute this third route.
 
 ### [T-RATIONAL-LOC-TRANSITIVITY] Transitivity of rational localizations
 
-- **Status**: OPEN (HIGH PRIORITY)
+- **Status**: DONE (audited 2026-05-12, T260; BYPASSED on critical path)
+- **Closed**: 2026-05-12 audit — the project's bypass (T229-T237) routes
+  the Wedhorn Laurent-decomposition tree through normalized-minus
+  pieces, eliminating the need for general transitivity on the
+  critical path. The transitivity infrastructure for LaurentNormalized
+  cases is exposed via `relativeRationalLocData_laurentNormalized`
+  (sorry-free) plus the chain composition lemmas. Per-task entry #21
+  (T-RATIONAL-LOC-TRANSITIVITY) marked completed in 2026-05-11.
 - **Added**: 2026-05-11 round 3
 - **Mathematical statement**: For rational locale data `E, D` with
   `rationalOpen D ⊆ rationalOpen E`, there is a finite chain of basic
@@ -1160,7 +1172,14 @@ The tickets below execute this third route.
 
 ### [T-STRONG-NOETH-PRESERVATION] Strong noetherian Tate preservation under rational localization
 
-- **Status**: OPEN (MEDIUM PRIORITY — needed at intermediate B-levels in T-RATIONAL-LOC-TRANSITIVITY)
+- **Status**: DONE (single-level, audited 2026-05-12, T260)
+- **Closed**: 2026-05-12 audit — `presheafValue_isNoetherian_via_canonical`
+  in `Adic spaces/StructureSheaf.lean:1009`. Provides single-level
+  Noetherian preservation for `presheafValue D` given the canonical-iso
+  hypotheses. Sorry-free.
+- **Open scope**: full strong-Noetherian preservation (multi-variable
+  Tate algebra) is T-STRONG-NOETH-PRESERVATION-FULL, which depends on
+  Stacks 00MA + multivariable Example 6.38. That sub-ticket remains open.
 - **Added**: 2026-05-11 round 3
 - **Mathematical statement**: If `A` is a strongly noetherian Tate ring
   and `D : RationalLocData A`, then `O(D)` is again a strongly
