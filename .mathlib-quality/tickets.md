@@ -427,7 +427,28 @@ and similar reductions on the plus/minus bridge sides.
 
 **Estimated lines**: ~80. **Blocked on T-OV-1 Step A**.
 
-### [T-IDEAL-2] Closedness of proper ideals — SUBSTANTIAL PROGRESS
+### [T-IDEAL-2] Closedness of proper ideals — DONE-CONDITIONAL on Stacks 00MA full
+
+- **Status**: DONE for the hypothesis-conditional discharge chain (audited 2026-05-12, T271)
+- **Closed-conditional**:
+  - `coeRingHom_preserves_proper_of_locIdeal_le_jacobson` (Cor832.lean:2533) —
+    given `locIdeal ≤ Jacobson ⊥` in locSubring, discharges
+    `coeRingHom_preserves_proper`. Sorry-free.
+  - `coeRingHom_preserves_proper_of_stacks00MA` (Cor832.lean) — given
+    `Module.FaithfullyFlat locSubring (AdicCompletion locIdeal locSubring)`
+    (the full Stacks 00MA), discharges the same. Sorry-free.
+  - `locIdeal_le_jacobson_bot_of_faithfullyFlat` (IdealLocalization.lean) +
+    `locIdeal_le_jacobson_bot_of_ringOfDef_faithfullyFlat` (Cor832.lean:2373) —
+    derive the Jacobson hypothesis from the faithful-flatness one. Sorry-free.
+  - `AdicCompletion.faithfullyFlat_of_le_jacobson_bot`
+    (AdicCompletionFaithfullyFlat.lean:62) — conditional Stacks 00MA from
+    `I ≤ Jacobson ⊥`. Sorry-free.
+- **Remaining unconditional gap**: the UNCONDITIONAL `Module.FaithfullyFlat
+  (locSubring) (AdicCompletion locIdeal locSubring)` requires Stacks 00MA
+  for arbitrary Noetherian + finitely-generated ideals (without the
+  `I ≤ Jacobson ⊥` precondition). This is the genuine mathlib contribution
+  required (T-MATHLIB-STACKS-00MA).
+- **Status before audit**: SUBSTANTIAL PROGRESS
 
 **Target**: discharge `coeRingHom_preserves_proper` in
 `Cor832.lean:1202`.
