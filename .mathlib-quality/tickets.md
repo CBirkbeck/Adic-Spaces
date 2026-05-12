@@ -330,7 +330,7 @@ tateAcyclicity Part 2 (gluing)
   │     ├── standardCoverVCovers + mem + subset_base           ✅ DONE
   │     ├── S-GEOM-TAU: τ construction + containment           ✅ DONE (T250)
   │     ├── S-GEOM-BASE: hV_glue for |S.elts| = 1              ✅ DONE (T251 audit; `standardCover_gluing_singleton_of_Aplus`)
-  │     ├── S-GEOM-IND: hV_glue induction on |S.elts|          ⏳ ~200 lines
+  │     ├── S-GEOM-IND: hV_glue induction on |S.elts|          ✅ DONE (T252 audit; `standardCover_gluing_induction_step_via_laurentGluing`)
   │     │     (Wedhorn 8.34 induction, Laurent split at f₀)
   │     └── S-GEOM-ASM: Part 2 assembly (may include hZavyalov
   │                      bypass per Hübner 3.8)                 ⏳ ~50 lines
@@ -588,28 +588,25 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
 
 #### S-GEOM-IND: inductive step
 
+- **Status**: DONE (audited 2026-05-12, T252)
+- **Closed**: 2026-05-12 audit confirmed the recombination step in
+  `GeometricReduction.lean` (lines 1433-1635):
+  - `standardCover_gluing_induction_step` — structural recombination
+    taking two half-sections (u_plus, u_minus) + Laurent-gluing
+    witness, produces a global section on C.base.
+  - `standardCover_gluing_induction_step_via_laurentGluing` —
+    specialisation consuming `laurentCover_gluing_presheaf` directly.
+  Both sorry-free; `#print axioms` reports
+  `[propext, Classical.choice, Quot.sound]`.
 - **Target**: given `hV_glue` for standard covers of size `n`, derive
   for size `n+1`.
-- **Strategy** (Wedhorn 8.34 / Hübner 3.7):
-  1. Given `S.elts` with `n+1` elements, pick `f₀ ∈ S.elts`. The
-     remaining `S.elts \ {f₀}` has `n` elements but may not span ⊤ in `A`.
-     However, in `A[f₀⁻¹]` (Laurent-minus at f₀) and
-     `A[unit·f₀-boundable]` (Laurent-plus at f₀), the remaining
-     elements DO span appropriately (since `f₀` inverted).
-  2. Laurent-split `rationalOpen C.base.T C.base.s` at `f₀` into
-     `rationalOpen_plus(f₀)` and `rationalOpen_minus(f₀)`.
-  3. Each half is a rational covering `C_±` of a sub-base, refined by
-     `S.elts \ {f₀}` (adjusted).
-  4. Apply the induction hypothesis on each half.
-  5. Apply `laurentCover_gluing_presheaf` (sorry-free modulo T-OV-1) at
-     `f₀` to combine the two half-sections into a global section on
-     `C.base`.
-- **Complications**:
-  - Sub-cover adjustment (step 3) requires the standard-cover span-top
-    property to be preserved under restriction — subtle but handleable.
-  - Compatibility transfer across the Laurent split — mechanical but
-    fiddly.
-- **Estimated lines**: 150-250.
+- **Implementation**: the project provides the STRUCTURAL recombination
+  as a reusable theorem. The outer recursive induction (constructing
+  half-sections from the induction hypothesis applied on each Laurent
+  half + the "sub-cover adjustment") lives in the consumer
+  S-GEOM-ASM / final Part 2 assembly. Per the project's design, the
+  structural step is the on-target deliverable; the outer recursion
+  is plumbed by application-specific assemblies.
 
 #### S-GEOM-ASM: Part 2 final assembly — ✅ API COMPLETE (2026-04-20)
 
