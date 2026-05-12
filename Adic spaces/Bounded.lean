@@ -9,6 +9,7 @@ import Mathlib.RingTheory.IntegralClosure.IsIntegral.Defs
 import Mathlib.RingTheory.Polynomial.Basic
 import Mathlib.Data.Nat.Choose.Sum
 import Mathlib.Topology.Algebra.LinearTopology
+import «Adic spaces».GeometricSeries
 
 /-!
 # Bounded Subsets and Power-Bounded Elements
@@ -319,3 +320,41 @@ theorem IsBounded.isPowerBounded_of_isIntegral [IsTopologicalRing A] {B : Subrin
   exact pow_eq_lincomb_of_monic_rel hN hp_rel
 
 end TopologicalRing
+
+/-! ### Jacobson-radical building block: `1 - a*y` is a unit when `a` is
+topologically nilpotent and `y` is power-bounded
+
+For a complete Hausdorff nonarchimedean commutative ring, if `a` is
+topologically nilpotent and `y` is power-bounded, the product `a*y` is
+topologically nilpotent (Wedhorn Remark 5.28(5),
+`IsPowerBounded.isTopologicallyNilpotent_mul`). Then `1 - a*y` is a unit
+by the geometric-series argument (Wedhorn Prop 5.38,
+`IsTopologicallyNilpotent.isUnit_one_sub`).
+
+This is the project-specific Jacobson-radical building block: for an ideal
+`I` whose elements are topologically nilpotent and whose ambient ring is
+the power-bounded subring (`A° = TopologicalRing.powerBoundedSubring`),
+every `1 - i*y` for `i ∈ I, y ∈ A°` is a unit. Useful for S-IDEAL-JAC of
+T-IDEAL-2. -/
+
+variable {A : Type*} [CommRing A]
+  [UniformSpace A] [T2Space A] [CompleteSpace A]
+  [IsTopologicalRing A] [IsUniformAddGroup A] [NonarchimedeanAddGroup A]
+
+/-- `1 - a*y` is a unit when `a` is topologically nilpotent and `y` is
+power-bounded. -/
+theorem IsTopologicallyNilpotent.isUnit_one_sub_mul_of_isPowerBounded
+    {a y : A} (ha : IsTopologicallyNilpotent a)
+    (hy : TopologicalRing.IsPowerBounded y) :
+    IsUnit (1 - a * y) := by
+  have h_mul : IsTopologicallyNilpotent (y * a) := hy.isTopologicallyNilpotent_mul ha
+  rw [show a * y = y * a from mul_comm _ _]
+  exact h_mul.isUnit_one_sub
+
+/-- Symmetric version: `1 - y*a` is a unit when `a` is topologically nilpotent
+and `y` is power-bounded. -/
+theorem IsTopologicallyNilpotent.isUnit_one_sub_mul_of_isPowerBounded_left
+    {a y : A} (ha : IsTopologicallyNilpotent a)
+    (hy : TopologicalRing.IsPowerBounded y) :
+    IsUnit (1 - y * a) :=
+  (hy.isTopologicallyNilpotent_mul ha).isUnit_one_sub
