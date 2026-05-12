@@ -248,4 +248,118 @@ theorem relativeRationalLocData_s
     (relativeRationalLocData P E D hsub).s = E.canonicalMap D.s := by
   rfl
 
+/-! ### `hopen` for the LaurentNormalized special case
+
+**Breakthrough (2026-05-12)**: when `D` carries `[LaurentNormalized D]` (i.e.,
+`1 ∈ D.T`), the `hopen` proof for the relative datum goes through with `N = 0`
+via the standard `iteratedMinusDatum_B`-style trick:
+
+* `1 ∈ D.T` ⟹ `E.canonicalMap 1 = 1 ∈ T_at_E = D.T.image E.canonicalMap`.
+* By `divByS_mem_locSubring` with `1 ∈ T_at_E`: `divByS 1 s_at_E ∈ locSubring`.
+* For any `b ∈ P_at_E.A₀`: `algebraMap b ∈ locSubring` (`algebraMap_mem_locSubring`).
+* Decomposition: `divByS b s_at_E = algebraMap b * divByS 1 s_at_E`.
+* Both factors in `locSubring`, which is closed under multiplication. ✓
+
+This eliminates the need for Wedhorn 2.13's full algebraic identity in the
+common case where D is LaurentNormalized — which covers ALL Laurent-cover
+pieces (`laurentMinusDatum`, `laurentPlusDatum`, and their iterations).
+
+This special-case `hopen` proof is what unblocks the chain decomposition route:
+every step in a Wedhorn-style chain is a basic Laurent operation, hence
+LaurentNormalized, so the relative datum exists with explicit `hopen`.
+
+The general case (D not LaurentNormalized) still requires the full Wedhorn 2.13
+algebraic identity (`relativeRationalLocData_hopen_proof` above with its
+`sorry`). -/
+theorem relativeRationalLocData_hopen_proof_of_laurentNormalized
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (E : RationalLocData A)
+    [IsNoetherianRing (locSubring E.P E.T E.s)]
+    (D : RationalLocData A) [LaurentNormalized D]
+    (_hsub : rationalOpen D.T D.s ⊆ rationalOpen E.T E.s) :
+    letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+    letI : DecidableEq (presheafValue E) := Classical.decEq _
+    letI P_at_E : PairOfDefinition (presheafValue E) :=
+      presheafValue_pairOfDefinition_concrete P E
+    ∃ N : ℕ, ∀ b : P_at_E.A₀, b ∈ P_at_E.I ^ N →
+      divByS (b : presheafValue E) (E.canonicalMap D.s) ∈
+        locSubring P_at_E (D.T.image E.canonicalMap) (E.canonicalMap D.s) := by
+  letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+  letI : DecidableEq (presheafValue E) := Classical.decEq _
+  letI P_at_E : PairOfDefinition (presheafValue E) :=
+    presheafValue_pairOfDefinition_concrete P E
+  -- Use N = 0: every b in P_at_E.A₀ qualifies.
+  refine ⟨0, fun b _ => ?_⟩
+  -- Step 1: 1 ∈ D.T (from LaurentNormalized D)
+  have h1_in_DT : (1 : A) ∈ D.T := LaurentNormalized.one_mem_T
+  -- Step 2: E.canonicalMap 1 = 1 ∈ T_at_E.
+  have h1_in_TatE : (1 : presheafValue E) ∈ D.T.image E.canonicalMap := by
+    refine Finset.mem_image.mpr ⟨1, h1_in_DT, ?_⟩
+    exact map_one _
+  -- Step 3: divByS 1 s_at_E ∈ locSubring.
+  have hdivByS_1 : divByS (1 : presheafValue E) (E.canonicalMap D.s) ∈
+      locSubring P_at_E (D.T.image E.canonicalMap) (E.canonicalMap D.s) :=
+    divByS_mem_locSubring P_at_E (D.T.image E.canonicalMap) (E.canonicalMap D.s)
+      h1_in_TatE
+  -- Step 4: divByS b s_at_E = algebraMap b * divByS 1 s_at_E.
+  have hmul : algebraMap (presheafValue E) _ (b : presheafValue E) *
+      divByS (1 : presheafValue E) (E.canonicalMap D.s) =
+      divByS (b : presheafValue E) (E.canonicalMap D.s) := by
+    unfold divByS
+    rw [← IsLocalization.mk'_one
+          (M := Submonoid.powers (E.canonicalMap D.s))
+          (S := Localization.Away (E.canonicalMap D.s)) (b : presheafValue E),
+        ← IsLocalization.mk'_mul, one_mul, mul_one]
+  -- Step 5: combine — both factors in locSubring; multiplication closure.
+  rw [← hmul]
+  exact (locSubring _ _ _).mul_mem
+    (algebraMap_mem_locSubring _ _ _ b.2)
+    hdivByS_1
+
+/-! ### `relativeRationalLocData` for LaurentNormalized D
+
+Sorry-free variant of `relativeRationalLocData` available when `D` is
+LaurentNormalized. The hopen is discharged by
+`relativeRationalLocData_hopen_proof_of_laurentNormalized`. -/
+noncomputable def relativeRationalLocData_laurentNormalized
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (E : RationalLocData A)
+    [IsNoetherianRing (locSubring E.P E.T E.s)]
+    (D : RationalLocData A) [LaurentNormalized D]
+    (hsub : rationalOpen D.T D.s ⊆ rationalOpen E.T E.s) :
+    RationalLocData (presheafValue E) :=
+  letI : DecidableEq (presheafValue E) := Classical.decEq _
+  { P := presheafValue_pairOfDefinition_concrete P E
+    T := D.T.image E.canonicalMap
+    s := E.canonicalMap D.s
+    hopen := relativeRationalLocData_hopen_proof_of_laurentNormalized P E D hsub }
+
+/-- `.T` of `relativeRationalLocData_laurentNormalized` unfolds to
+`D.T.image E.canonicalMap`. -/
+theorem relativeRationalLocData_laurentNormalized_T
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (E : RationalLocData A)
+    [IsNoetherianRing (locSubring E.P E.T E.s)]
+    (D : RationalLocData A) [LaurentNormalized D]
+    (hsub : rationalOpen D.T D.s ⊆ rationalOpen E.T E.s) :
+    letI : DecidableEq (presheafValue E) := Classical.decEq _
+    (relativeRationalLocData_laurentNormalized P E D hsub).T =
+      D.T.image E.canonicalMap := by
+  rfl
+
+/-- `.s` of `relativeRationalLocData_laurentNormalized` unfolds to
+`E.canonicalMap D.s`. -/
+theorem relativeRationalLocData_laurentNormalized_s
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (E : RationalLocData A)
+    [IsNoetherianRing (locSubring E.P E.T E.s)]
+    (D : RationalLocData A) [LaurentNormalized D]
+    (hsub : rationalOpen D.T D.s ⊆ rationalOpen E.T E.s) :
+    (relativeRationalLocData_laurentNormalized P E D hsub).s = E.canonicalMap D.s := by
+  rfl
+
 end ValuationSpectrum
