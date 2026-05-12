@@ -625,4 +625,12 @@ theorem locSubring_isNoetherianRing (P : PairOfDefinition A) [IsNoetherianRing P
   -- Surjective ring hom from Noetherian gives Noetherian.
   exact isNoetherianRing_of_surjective _ _ aeval_g.toRingHom h_surj
 
+/-- Instance version of `locSubring_isNoetherianRing`, so `IsNoetherianRing
+(locSubring P T s)` is auto-derived from `IsNoetherianRing P.A₀` by
+typeclass synthesis. -/
+instance locSubring_isNoetherianRing_instance (P : PairOfDefinition A)
+    [IsNoetherianRing P.A₀] (T : Finset A) (s : A) :
+    IsNoetherianRing (locSubring P T s) :=
+  locSubring_isNoetherianRing P T s
+
 end ValuationSpectrum
