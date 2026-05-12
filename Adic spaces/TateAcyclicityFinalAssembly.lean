@@ -2462,6 +2462,30 @@ theorem RationalCovering.separation_via_normalizedLaurent
     exact hagree D hD
   exact sub_eq_zero.mp hzero
 
+/-! ### Helper: `invS D` is power-bounded when `1 ∈ D.T`
+
+For any rational locale `D` over any base where `1 ∈ D.T`, the unit
+`invS D = (D.canonicalMap D.s)⁻¹` is power-bounded in `presheafValue D`'s
+topology. Generalises the per-piece argument used in
+`iteratedMinus_B_flat_of_canonical`. -/
+theorem invS_isPowerBounded_of_one_mem_T_general
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsHuberRing A] [HasLocLiftPowerBounded A]
+    (D : RationalLocData A) (h1 : (1 : A) ∈ D.T) :
+    TopologicalRing.IsPowerBounded (invS D) := by
+  -- invS D = D.coeRingHom (divByS 1 D.s) (via the unit-cancellation identity).
+  have hinvS_eq : invS D = D.coeRingHom (divByS (1 : A) D.s) := by
+    have h1_eq : D.canonicalMap D.s * invS D = 1 := canonicalMap_s_mul_invS D
+    have halg : algebraMap A (Localization.Away D.s) D.s * divByS (1 : A) D.s = 1 := by
+      rw [← invSelf_eq_divByS, IsLocalization.Away.mul_invSelf]
+    have h2 : D.canonicalMap D.s * D.coeRingHom (divByS (1 : A) D.s) = 1 := by
+      change D.coeRingHom (algebraMap A (Localization.Away D.s) D.s) *
+        D.coeRingHom (divByS (1 : A) D.s) = 1
+      rw [← map_mul, halg, map_one]
+    exact (isUnit_s_in_presheafValue D).mul_left_cancel (h1_eq.trans h2.symm)
+  rw [hinvS_eq]
+  exact CompletionLocalization.invS_isPowerBounded_of_one_mem_T D h1
+
 /-! ### `tateAcyclicityComplete` wrapper with normalized-Laurent separation
 
 Composes T234 (`separation_via_normalizedLaurent`) with `tateAcyclicityComplete`
