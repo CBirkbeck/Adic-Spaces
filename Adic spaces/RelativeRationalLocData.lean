@@ -1124,4 +1124,64 @@ theorem relativeLaurentNormalized_forwardHom_canonicalMap
   rw [relativeLaurentNormalized_forwardInnerLocHom_algebraMap]
   rfl
 
+/-- Intertwining at presheafValue E: `forwardHom (restrictionMapHom E D hsub b)
+= D_at_E.canonicalMap b` for `b : presheafValue E`. Extends the A-level
+intertwining by `Completion.ext'` density. -/
+theorem relativeLaurentNormalized_forwardHom_restrictionMapHom
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (E : RationalLocData A)
+    [IsNoetherianRing (locSubring E.P E.T E.s)]
+    (D : RationalLocData A) [LaurentNormalized D]
+    (hsub : rationalOpen D.T D.s ⊆ rationalOpen E.T E.s) (b : presheafValue E) :
+    letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+    letI : DecidableEq (presheafValue E) := Classical.decEq _
+    letI D_at_E_data : RationalLocData (presheafValue E) :=
+      relativeRationalLocData_laurentNormalized P E D hsub
+    relativeLaurentNormalized_forwardHom P E D hsub
+      (restrictionMapHom E D hsub b) = D_at_E_data.canonicalMap b := by
+  letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+  letI : DecidableEq (presheafValue E) := Classical.decEq _
+  letI D_at_E_data : RationalLocData (presheafValue E) :=
+    relativeRationalLocData_laurentNormalized P E D hsub
+  letI : UniformSpace (Localization.Away E.s) := E.uniformSpace
+  letI : IsUniformAddGroup (Localization.Away E.s) := E.isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away E.s) := E.isTopologicalRing
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  haveI : T2Space (presheafValue D_at_E_data) := presheafValueT2Space _
+  set f : presheafValue E → presheafValue D_at_E_data := fun b =>
+    relativeLaurentNormalized_forwardHom P E D hsub (restrictionMapHom E D hsub b)
+  set g : presheafValue E → presheafValue D_at_E_data := fun b =>
+    D_at_E_data.canonicalMap b
+  show f b = g b
+  refine UniformSpace.Completion.ext' (f := f) (g := g) ?_ ?_ ?_ b
+  · exact (UniformSpace.Completion.continuous_extension).comp
+      (restrictionMapHom_continuous E D hsub)
+  · exact canonicalMap_continuous _
+  intro y
+  -- On E.coeRingHom y for y ∈ Loc_A(E.s):
+  -- Reduce by IsLocalization.ringHom_ext on (powers E.s) to A-level intertwining.
+  show f (E.coeRingHom y) = g (E.coeRingHom y)
+  simp only [f, g]
+  -- The composition `f ∘ E.coeRingHom = g ∘ E.coeRingHom` as ring homs Loc_A(E.s) → presheafValue D_at_E.
+  -- Both are ring homs; apply IsLocalization.ringHom_ext.
+  let h1 : Localization.Away E.s →+* presheafValue D_at_E_data :=
+    ((relativeLaurentNormalized_forwardHom P E D hsub).comp
+      (restrictionMapHom E D hsub)).comp E.coeRingHom
+  let h2 : Localization.Away E.s →+* presheafValue D_at_E_data :=
+    D_at_E_data.canonicalMap.comp E.coeRingHom
+  show h1 y = h2 y
+  have heq : h1 = h2 := by
+    apply IsLocalization.ringHom_ext (Submonoid.powers E.s)
+    ext a
+    simp only [h1, h2, RingHom.comp_apply]
+    show relativeLaurentNormalized_forwardHom P E D hsub
+        (restrictionMapHom E D hsub (E.canonicalMap a)) =
+      D_at_E_data.canonicalMap (E.canonicalMap a)
+    rw [restrictionMapHom_canonicalMap]
+    exact relativeLaurentNormalized_forwardHom_canonicalMap P E D hsub a
+  exact congr_fun (congrArg DFunLike.coe heq) y
+
 end ValuationSpectrum
