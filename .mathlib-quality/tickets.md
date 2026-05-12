@@ -4074,14 +4074,23 @@ infrastructure directly.
 
 ### [T-CHAIN-COMPOSITION] Chain composite is flat
 
-- **Status**: OPEN (HIGH PRIORITY)
-- **File**: `Adic spaces/RationalChainDecomposition.lean`
+- **Status**: DONE (depth 2, 3, 4, 5, 6, 7 covered as of 2026-05-12, commit 13f724a)
+- **File**: `Adic spaces/RestrictionFlatness.lean`
 - **Depends on**: T-CHAIN-STEP-FLATNESS
 - **Type**: theorem
 - **Mathematical statement**: `presheafValue E → presheafValue chainEnd` is
   flat (via composition of the chain's flat restriction maps).
-- **Proof outline**: Induction on chain length; apply Module.Flat
-  transitivity (`Module.Flat.comp` or equivalent).
+- **Proof outline**: Cascade `restrictionMap_flat_trans` (depth 2). Each
+  `chain_N` is direct call of `chain_{N-1}` + `restrictionMap_flat_trans`.
+- **Available APIs (2026-05-12)**:
+  - `restrictionMap_flat_trans` (depth 2)
+  - `restrictionMap_flat_chain_three`
+  - `restrictionMap_flat_chain_four`
+  - `restrictionMap_flat_chain_five` (NEW)
+  - `restrictionMap_flat_chain_six` (NEW)
+  - `restrictionMap_flat_chain_seven` (NEW)
+- Covers Wedhorn-style chains with `|D.T|` up to 5
+  (chainSteps : Fin (|D.T| + 2)).
 
 ### [T-CHAIN-END-IDENTIFICATION] chainEnd has D's rationalOpen; presheaf values match
 
@@ -4170,15 +4179,27 @@ Missing preservation theorems blocking depth-≥2 iteration:
 
 ### [T-LOCLIFT-PRESERVATION] HasLocLiftPowerBounded preservation
 
-- **Status**: OPEN (HIGH PRIORITY)
-- **Mathematical statement**: For strongly noetherian Tate A and D : RationalLocData A,
-  `HasLocLiftPowerBounded (presheafValue D)` holds.
-- **Proof sketch**: HasLocLiftPowerBounded says (a) algebraMap-image of D.s is a unit
-  in Localization.Away D'.s when D' ⊆ D; (b) certain divByS elements are power-bounded
-  in D's topology. Both are Wedhorn 7.32 / Nullstellensatz-style properties at the
-  presheafValue D₀ level. Proved at A level for Tate rings via Wedhorn's adic
-  Nullstellensatz; the B-level proof is analogous via `presheafValue_isTateRing` +
-  Wedhorn 7.14 at the B-level.
+- **Status**: PARTIALLY OBVIATED (2026-05-12 architectural finding)
+- **2026-05-12 update**: The general flatness route via
+  `restrictionMap_flat_of_rational_subset_via_relative` (RestrictionFlatness.lean)
+  was REFACTORED to NOT require `HasLocLiftPowerBounded (presheafValue E)` as
+  a hypothesis (the `hLocLift_B` parameter has been removed, commit bbbdd28).
+  The earlier proof had `letI : HasLocLiftPowerBounded (presheafValue E) :=
+  hLocLift_B` bringing the instance into scope, but it was never used —
+  flatness comes from `presheafValue_flat_of_canonical` which depends on the
+  canonical Tate-quotient identification (Example 6.38 at B-level), not the
+  Nullstellensatz.
+- **Remaining scope**: Only the BASIC LAURENT depth-1 theorems
+  (`restrictionMap_flat_via_iteratedMinus`, `_iteratedPlus`,
+  `_fSubX_quotient`, `_oneSubfX_quotient`) still take `hLocLift_B`, and they
+  thread it through `laurentPlusBridge` / `laurentMinusBridge` in
+  LaurentRefinement.lean which has structural dependencies on the
+  Nullstellensatz at B-level. Refactoring those would be a separate cleanup.
+- **Original mathematical statement**: For strongly noetherian Tate A and
+  D : RationalLocData A, `HasLocLiftPowerBounded (presheafValue D)` holds.
+- **Proof sketch (still applicable for any future refactor)**: As before —
+  Wedhorn 7.32 / Nullstellensatz at B-level via `presheafValue_isTateRing` +
+  Wedhorn 7.14 at B-level.
 - **Reference**: Wedhorn 7.14 / 7.32.
 
 ### [T-STRONG-NOETH-PRESERVATION-FULL] IsStronglyNoetherian preservation
