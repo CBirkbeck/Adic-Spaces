@@ -4130,7 +4130,14 @@ infrastructure directly.
 
 ### [T-CHAIN-CONSTRUCTION] Chain of basic plus/minus steps from E to D's data
 
-- **Status**: OPEN (HIGH PRIORITY, replaces T-WEDHORN-213-DATUM as primary path)
+- **Status**: BYPASSED — DONE for LaurentNormalized via T229-T237 (audited 2026-05-12, T262)
+- **Closed**: 2026-05-12 audit — the reviewer-prescribed normalized-minus
+  bypass (T229-T237) routes the Wedhorn Laurent-decomposition tree
+  through normalized-minus pieces, eliminating the need for arbitrary
+  E-D chain construction. `relativeRationalLocData_laurentNormalized`
+  in `Adic spaces/RelativeRationalLocData.lean` is the LaurentNormalized
+  case, sorry-free. The general non-LaurentNormalized chain is no
+  longer on the critical path.
 - **File**: `Adic spaces/RationalChainDecomposition.lean` (new file)
 - **Type**: def + theorem
 - **Mathematical statement**: For E, D : RationalLocData A with
@@ -4150,7 +4157,12 @@ infrastructure directly.
 
 ### [T-CHAIN-STEP-FLATNESS] Each chain step is flat
 
-- **Status**: OPEN (HIGH PRIORITY)
+- **Status**: BYPASSED via T229-T237 (audited 2026-05-12, T262)
+- **Closed**: 2026-05-12 audit — the normalized-minus bypass eliminates
+  the need for arbitrary chain-step flatness. The relevant flatness
+  is provided by `restrictionMap_flat_via_normalizedMinus` (T230) +
+  `restrictionMap_flat_of_rational_subset_laurentNormalized` (T228),
+  both sorry-free.
 - **File**: `Adic spaces/RationalChainDecomposition.lean`
 - **Depends on**: T-CHAIN-CONSTRUCTION
 - **Type**: theorem
@@ -4184,7 +4196,11 @@ infrastructure directly.
 
 ### [T-CHAIN-END-IDENTIFICATION] chainEnd has D's rationalOpen; presheaf values match
 
-- **Status**: OPEN (THE structural piece)
+- **Status**: BYPASSED via T229-T237 (audited 2026-05-12, T262)
+- **Closed**: 2026-05-12 audit — the normalized-minus bypass eliminates
+  the need for chain-end identification (the chain is reduced to a single
+  normalized-minus step). The relevant identification is provided by
+  `rationalOpen_laurentMinusNormalized_eq` (T229), sorry-free.
 - **File**: `Adic spaces/RationalChainDecomposition.lean`
 - **Depends on**: T-CHAIN-CONSTRUCTION
 - **Type**: theorem
@@ -4200,7 +4216,12 @@ infrastructure directly.
 
 ### [T-RATIONAL-FLAT-GENERAL-CLOSE-CHAIN] Wire into general flatness
 
-- **Status**: OPEN (closes T-RATIONAL-FLAT-GENERAL)
+- **Status**: BYPASSED via T229-T237 (audited 2026-05-12, T262)
+- **Closed**: 2026-05-12 audit — T-RATIONAL-FLAT-GENERAL was closed for
+  LaurentNormalized via the normalized-minus bypass. The wire-in to
+  general flatness is provided by `tateAcyclicityComplete_via_normalizedLaurent`
+  (T235) in `Adic spaces/TateAcyclicityFinalAssembly.lean`, which routes
+  the entire chain through normalized-minus pieces.
 - **File**: `Adic spaces/RestrictionFlatness.lean`
 - **Depends on**: T-CHAIN-COMPOSITION, T-CHAIN-END-IDENTIFICATION
 - **Type**: theorem
