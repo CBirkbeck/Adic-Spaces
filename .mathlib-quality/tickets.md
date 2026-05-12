@@ -409,6 +409,13 @@ identification with `B₁₂_gen(f_B)`. Same estimate.
 
 ### [T-OVERLAP-COMPAT] Close `laurentOverlapBridge_exists_compatible`
 
+- **Status**: DONE (audited 2026-05-12, T254)
+- **Closed**: 2026-05-12 audit — `laurentOverlapBridge_exists_compatible`
+  at `LaurentRefinement.lean:3775`. Hypothesis-parameterised on
+  `(τ_preBiv, τ_alg, intertwining witnesses)` per the project's
+  parametric design. Sorry-free; `#print axioms` reports
+  `[propext, Classical.choice, Quot.sound]`.
+
 **Target**: `LaurentRefinement.lean:3173`.
 
 **Plan**: instantiate `example638Bivariate_equiv` at
