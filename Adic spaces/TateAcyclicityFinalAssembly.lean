@@ -2486,6 +2486,35 @@ theorem invS_isPowerBounded_of_one_mem_T_general
   rw [hinvS_eq]
   exact CompletionLocalization.invS_isPowerBounded_of_one_mem_T D h1
 
+/-! ### Helper: minimal `invS_isPowerBounded_of_one_mem_T`
+
+Mirrors `invS_isPowerBounded_of_one_mem_T_general` but drops the
+`[PlusSubring A] [IsHuberRing A] [HasLocLiftPowerBounded A]` typeclass
+constraints. The proof body only uses `canonicalMap`, `coeRingHom`,
+`divByS`, and `CompletionLocalization.invS_isPowerBounded_of_one_mem_T`,
+each of which requires only `[CommRing A] [TopologicalSpace A]
+[IsTopologicalRing A]`.
+
+This allows the discharge to work at the B-level (B = presheafValue
+C.base) without needing a `HasLocLiftPowerBounded (presheafValue C.base)`
+preservation theorem (T-LOCLIFT-PRESERVATION). -/
+theorem invS_isPowerBounded_of_one_mem_T_minimal
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    (D : RationalLocData A) (h1 : (1 : A) ∈ D.T) :
+    TopologicalRing.IsPowerBounded (invS D) := by
+  have hinvS_eq : invS D = D.coeRingHom (divByS (1 : A) D.s) := by
+    have h1_eq : D.canonicalMap D.s * invS D = 1 := canonicalMap_s_mul_invS D
+    have halg : algebraMap A (Localization.Away D.s) D.s * divByS (1 : A) D.s = 1 := by
+      rw [← invSelf_eq_divByS, IsLocalization.Away.mul_invSelf]
+    have h2 : D.canonicalMap D.s * D.coeRingHom (divByS (1 : A) D.s) = 1 := by
+      change D.coeRingHom (algebraMap A (Localization.Away D.s) D.s) *
+        D.coeRingHom (divByS (1 : A) D.s) = 1
+      rw [← map_mul, halg, map_one]
+    exact (CompletionLocalization.isUnit_s_in_presheafValue D).mul_left_cancel
+      (h1_eq.trans h2.symm)
+  rw [hinvS_eq]
+  exact CompletionLocalization.invS_isPowerBounded_of_one_mem_T D h1
+
 /-! ### Helper: `canonicalMap a` is power-bounded for `a ∈ P.A₀`
 
 For any rational locale `D` and any element `a ∈ D.P.A₀` (the ring of
