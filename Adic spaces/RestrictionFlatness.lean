@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».StructureSheaf
 import «Adic spaces».LaurentRefinement
+import «Adic spaces».LaurentMinusNormalized
 import «Adic spaces».RelativeRationalLocData
 import Mathlib.RingTheory.Flat.Basic
 
@@ -1103,6 +1104,82 @@ theorem restrictionMap_flat_of_rational_subset_laurentNormalized
     (relativeRationalLocData_laurentNormalized P E D hsub)
     (relativeLaurentNormalized_equiv P E D hsub)
     (relativeLaurentNormalized_equiv_intertwine P E D hsub)
+    hNoeth_B hA_complete_B hnoeth_B hP_A₀Noeth_B
+    hb hT_pb hcont_eval
+
+/-! ### T-RATIONAL-FLAT-NORMALIZED-MINUS: flatness for `laurentMinusNormalizedDatum`
+
+Specialization of `restrictionMap_flat_of_rational_subset_laurentNormalized`
+to the case `D = laurentMinusNormalizedDatum E₀ f` (the reviewer-prescribed
+substitute for the ordinary `laurentMinusDatum`). The normalized minus is
+LaurentNormalized by construction (T229), so T228 applies directly with the
+LaurentNormalized hypothesis discharged automatically.
+
+The hypothesis `hf : f ∈ E₀.P.A₀` is needed for the normalized-minus to
+carry `LaurentNormalized` (and for `f ∈ A₀` so the new T-element products
+stay in `A₀`); it parallels Wedhorn's standard requirement for the f in
+a Laurent decomposition. -/
+theorem restrictionMap_flat_via_normalizedMinus
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (E₀ : RationalLocData A) [LaurentNormalized E₀]
+    [IsNoetherianRing (locSubring E₀.P E₀.T E₀.s)]
+    (f : A) (hf : f ∈ E₀.P.A₀)
+    -- B-level hypotheses for `presheafValue_flat_of_canonical` at E₀-level.
+    (hNoeth_B : IsNoetherianRing (presheafValue E₀))
+    (hA_complete_B : @CompleteSpace (presheafValue E₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue E₀)))
+    (hnoeth_B : letI : IsTateRing (presheafValue E₀) := presheafValue_isTateRing P E₀
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue E₀)).toPairOfDefinition))
+    (hP_A₀Noeth_B : letI : IsTateRing (presheafValue E₀) := presheafValue_isTateRing P E₀
+      letI : IsNoetherianRing (presheafValue E₀) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P E₀).A₀))
+    -- Canonical-form hypotheses for the relative datum for D = laurentMinusNormalizedDatum E₀ f.
+    (hb : letI : IsTateRing (presheafValue E₀) := presheafValue_isTateRing P E₀
+      letI : DecidableEq (presheafValue E₀) := Classical.decEq _
+      letI : LaurentNormalized (laurentMinusNormalizedDatum E₀ f) :=
+        laurentMinusNormalizedDatum_isLaurentNormalized E₀ f hf
+      TopologicalRing.IsPowerBounded
+        (invS (relativeRationalLocData_laurentNormalized P E₀
+          (laurentMinusNormalizedDatum E₀ f) (laurentMinusNormalized_subset E₀ f))))
+    (hT_pb : letI : IsTateRing (presheafValue E₀) := presheafValue_isTateRing P E₀
+      letI : DecidableEq (presheafValue E₀) := Classical.decEq _
+      letI : LaurentNormalized (laurentMinusNormalizedDatum E₀ f) :=
+        laurentMinusNormalizedDatum_isLaurentNormalized E₀ f hf
+      ∀ t ∈ (relativeRationalLocData_laurentNormalized P E₀
+        (laurentMinusNormalizedDatum E₀ f) (laurentMinusNormalized_subset E₀ f)).T,
+        TopologicalRing.IsPowerBounded t)
+    (hcont_eval : letI : IsTateRing (presheafValue E₀) := presheafValue_isTateRing P E₀
+      letI : DecidableEq (presheafValue E₀) := Classical.decEq _
+      letI : LaurentNormalized (laurentMinusNormalizedDatum E₀ f) :=
+        laurentMinusNormalizedDatum_isLaurentNormalized E₀ f hf
+      letI : IsNoetherianRing (presheafValue E₀) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue E₀) :=
+        presheafValue_pairOfDefinition_concrete P E₀
+      @Continuous _ _
+        (TateAlgebra.quotientOneSubfXIdealTopology
+          (relativeRationalLocData_laurentNormalized P E₀
+            (laurentMinusNormalizedDatum E₀ f)
+            (laurentMinusNormalized_subset E₀ f)).s)
+        (inferInstance : TopologicalSpace
+          (presheafValue (relativeRationalLocData_laurentNormalized P E₀
+            (laurentMinusNormalizedDatum E₀ f)
+            (laurentMinusNormalized_subset E₀ f))))
+        (tateQuotientToPresheafHom
+          (relativeRationalLocData_laurentNormalized P E₀
+            (laurentMinusNormalizedDatum E₀ f)
+            (laurentMinusNormalized_subset E₀ f)) hb)) :
+    letI : LaurentNormalized (laurentMinusNormalizedDatum E₀ f) :=
+      laurentMinusNormalizedDatum_isLaurentNormalized E₀ f hf
+    @Module.Flat (presheafValue E₀)
+      (presheafValue (laurentMinusNormalizedDatum E₀ f)) _ _
+      ((restrictionMapHom E₀ (laurentMinusNormalizedDatum E₀ f)
+        (laurentMinusNormalized_subset E₀ f)).toModule) := by
+  letI : LaurentNormalized (laurentMinusNormalizedDatum E₀ f) :=
+    laurentMinusNormalizedDatum_isLaurentNormalized E₀ f hf
+  exact restrictionMap_flat_of_rational_subset_laurentNormalized P E₀
+    (laurentMinusNormalizedDatum E₀ f) (laurentMinusNormalized_subset E₀ f)
     hNoeth_B hA_complete_B hnoeth_B hP_A₀Noeth_B
     hb hT_pb hcont_eval
 
