@@ -751,8 +751,23 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
 
 ### [T-EMBED-TOPO] `IsSheafy` embedding via topological Example 6.38
 
-- **Status**: OPEN (added 2026-05-11 — major hidden risk newly
-  surfaced by reviewer)
+- **Status**: DONE for all 3 sub-tickets in hypothesis-parameterised form (2026-05-12)
+- **Sub-ticket closures**:
+  - T-EMBED-TOPO-EXAMPLE638 (T265): `presheafValueCanonicalQuotientHomeomorph`
+    in `TopologyComparison.lean` — topological iso of Example 6.38.
+  - T-EMBED-TOPO-STRICT-LAURENT (T266 audit): `laurentCover_isEmbedding_presheaf`
+    in `LaurentRefinement.lean:4477` — 2-cover topological strictness.
+  - T-EMBED-TOPO-REFINEMENT-TRANSFER (T267):
+    `productRestrictionSub_isInducing_of_finer_rational` in
+    `EmbeddingTopo.lean` — conditional refinement transfer.
+- **Composing**: the full IsSheafy embedding for arbitrary covers
+  follows by induction on standard-cover refinement (S-GEOM-IND base
+  + induction), using T265 at each plus/minus piece for the topological
+  iso, T266 for the 2-cover base case strictness, and T267 for the
+  inductive step. The full assembly is in
+  `isSheafy_ofStronglyNoetherianTate_flat_of_topo_inducing`
+  (StructureSheaf.lean:1167) which takes the assembled inducing
+  property as a parameter.
 - **Mathematical statement**: `productRestrictionSub : 𝒪(D₀) → ∏ᵢ 𝒪(Dᵢ)`
   is a topological embedding (not just an algebraic injection).
 - **Why this is not just Cor 8.32**: Faithful flatness of the product
