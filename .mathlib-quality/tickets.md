@@ -860,7 +860,12 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
 
 ### [T-RETIRE-PROP815] Mark `restrictionMap_isLocalization` as MISFRAMED
 
-- **Status**: OPEN (housekeeping)
+- **Status**: DONE (audited 2026-05-12, T257)
+- **Closed**: 2026-05-12 audit — the retirement annotation is already
+  present in the docstring at `PresheafTateStructure.lean`, including
+  the reviewer's counterexample (`A = k⟨T, U⟩/(TU), U = R(1/T)`) and
+  the directive "Do not add new uses". The misframing is documented
+  at the declaration site.
 - **File**: `Adic spaces/PresheafTateStructure.lean` (the sorry at line 2410)
 - **Depends on**: T-COR832-VIA-FLAT (must land first so downstream consumers
   move off this dependency)
