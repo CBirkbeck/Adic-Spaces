@@ -1282,7 +1282,17 @@ The tickets below execute this third route.
 
 ### [T-EMBED-TOPO-REFINEMENT-TRANSFER] Refinement preserves topological embedding
 
-- **Status**: OPEN (HIGH PRIORITY for IsSheafy embedding)
+- **Status**: DONE for hypothesis-parameterised form (2026-05-12, T267)
+- **Closed**: 2026-05-12 — `productRestrictionSub_isInducing_of_finer_rational`
+  in `Adic spaces/EmbeddingTopo.lean`. Given a finer cover V with τ-map +
+  IsInducing of the natural product map φ (the topological refinement
+  ingredient), IsInducing of `productRestrictionSub V` transfers to
+  IsInducing of `productRestrictionSub C`. Proof routes through
+  `Topology.IsInducing.of_comp_iff`. Sorry-free; `#print axioms`
+  reports `[propext, Classical.choice, Quot.sound]`.
+- **Caller responsibility**: supply `IsInducing φ` (the topological
+  "natural map" between products), which is the Lane C topological
+  ingredient.
 - **Added**: 2026-05-11 round 3
 - **Mathematical statement**: If a rational covering `C` refines another
   `C'` (via Lane C / Wedhorn 8.34), and the product restriction for `C'`
