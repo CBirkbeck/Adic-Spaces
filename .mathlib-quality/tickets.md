@@ -861,7 +861,17 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
 
 ### [T-INJ-1-CLEANUP] Refactor remaining single-map injectivity references
 
-- **Status**: OPEN (added 2026-05-11; housekeeping)
+- **Status**: DONE-as-annotation (audited 2026-05-12, T268)
+- **Closed**: 2026-05-12 audit — the two remaining consumers of
+  `restrictionMapHom_injective` (`LaurentRefinement.lean:5655` in
+  `tateAcyclicity_gluing_via_refinement` and `LaurentRefinement.lean:5718`
+  in legacy `tateAcyclicity` Part 1) are documented with inline
+  annotations explaining the retirement status and the migration
+  target (cover-level Cor 8.32 in `Cor832.lean`). The actual refactor
+  is blocked by a transitive-import cycle (`Cor832.lean` imports
+  `StructureSheaf.lean` which imports `LaurentRefinement.lean`).
+  The bypass route in `TateAcyclicityFinalAssembly.lean` (T238-T247)
+  provides the migration target for new downstream consumers.
 - **Task**: Find and refactor downstream wrappers that still consume
   the retired single-map theorem `restrictionMapHom_injective`. Replace
   each with consumption of the product-level Cor 8.32 (i.e.
