@@ -943,4 +943,117 @@ theorem restrictionMap_flat_chain_four
   exact restrictionMap_flat_trans E D₃ D
     (h_D₂_D₃.trans (h_D₁_D₂.trans h_E_D₁)) h_D₃_D flat_E_D₃ flat_D₃_D
 
+/-! ### Depth-5, depth-6, depth-7 chain composition (explicit extensions)
+
+Each depth-N theorem is a direct cascade of `restrictionMap_flat_trans`,
+extending the depth-3 / depth-4 pattern. Covers chains of length up to 7,
+sufficient for `T-CHAIN-CONSTRUCTION` chains `chainSteps : Fin (|D.T| + 2)`
+with `|D.T|` up to 5. -/
+
+/-- Depth-5 chain composition. -/
+theorem restrictionMap_flat_chain_five
+    (E D₁ D₂ D₃ D₄ D : RationalLocData A)
+    (h_E_D₁ : rationalOpen D₁.T D₁.s ⊆ rationalOpen E.T E.s)
+    (h_D₁_D₂ : rationalOpen D₂.T D₂.s ⊆ rationalOpen D₁.T D₁.s)
+    (h_D₂_D₃ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.T D₂.s)
+    (h_D₃_D₄ : rationalOpen D₄.T D₄.s ⊆ rationalOpen D₃.T D₃.s)
+    (h_D₄_D : rationalOpen D.T D.s ⊆ rationalOpen D₄.T D₄.s)
+    (flat_E_D₁ : @Module.Flat (presheafValue E) (presheafValue D₁) _ _
+      ((restrictionMapHom E D₁ h_E_D₁).toModule))
+    (flat_D₁_D₂ : @Module.Flat (presheafValue D₁) (presheafValue D₂) _ _
+      ((restrictionMapHom D₁ D₂ h_D₁_D₂).toModule))
+    (flat_D₂_D₃ : @Module.Flat (presheafValue D₂) (presheafValue D₃) _ _
+      ((restrictionMapHom D₂ D₃ h_D₂_D₃).toModule))
+    (flat_D₃_D₄ : @Module.Flat (presheafValue D₃) (presheafValue D₄) _ _
+      ((restrictionMapHom D₃ D₄ h_D₃_D₄).toModule))
+    (flat_D₄_D : @Module.Flat (presheafValue D₄) (presheafValue D) _ _
+      ((restrictionMapHom D₄ D h_D₄_D).toModule)) :
+    @Module.Flat (presheafValue E) (presheafValue D) _ _
+      ((restrictionMapHom E D
+        (h_D₄_D.trans (h_D₃_D₄.trans (h_D₂_D₃.trans (h_D₁_D₂.trans h_E_D₁))))).toModule) := by
+  have flat_E_D₄ :
+      @Module.Flat (presheafValue E) (presheafValue D₄) _ _
+        ((restrictionMapHom E D₄
+          (h_D₃_D₄.trans (h_D₂_D₃.trans (h_D₁_D₂.trans h_E_D₁)))).toModule) :=
+    restrictionMap_flat_chain_four E D₁ D₂ D₃ D₄
+      h_E_D₁ h_D₁_D₂ h_D₂_D₃ h_D₃_D₄ flat_E_D₁ flat_D₁_D₂ flat_D₂_D₃ flat_D₃_D₄
+  exact restrictionMap_flat_trans E D₄ D
+    (h_D₃_D₄.trans (h_D₂_D₃.trans (h_D₁_D₂.trans h_E_D₁))) h_D₄_D flat_E_D₄ flat_D₄_D
+
+/-- Depth-6 chain composition. -/
+theorem restrictionMap_flat_chain_six
+    (E D₁ D₂ D₃ D₄ D₅ D : RationalLocData A)
+    (h_E_D₁ : rationalOpen D₁.T D₁.s ⊆ rationalOpen E.T E.s)
+    (h_D₁_D₂ : rationalOpen D₂.T D₂.s ⊆ rationalOpen D₁.T D₁.s)
+    (h_D₂_D₃ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.T D₂.s)
+    (h_D₃_D₄ : rationalOpen D₄.T D₄.s ⊆ rationalOpen D₃.T D₃.s)
+    (h_D₄_D₅ : rationalOpen D₅.T D₅.s ⊆ rationalOpen D₄.T D₄.s)
+    (h_D₅_D : rationalOpen D.T D.s ⊆ rationalOpen D₅.T D₅.s)
+    (flat_E_D₁ : @Module.Flat (presheafValue E) (presheafValue D₁) _ _
+      ((restrictionMapHom E D₁ h_E_D₁).toModule))
+    (flat_D₁_D₂ : @Module.Flat (presheafValue D₁) (presheafValue D₂) _ _
+      ((restrictionMapHom D₁ D₂ h_D₁_D₂).toModule))
+    (flat_D₂_D₃ : @Module.Flat (presheafValue D₂) (presheafValue D₃) _ _
+      ((restrictionMapHom D₂ D₃ h_D₂_D₃).toModule))
+    (flat_D₃_D₄ : @Module.Flat (presheafValue D₃) (presheafValue D₄) _ _
+      ((restrictionMapHom D₃ D₄ h_D₃_D₄).toModule))
+    (flat_D₄_D₅ : @Module.Flat (presheafValue D₄) (presheafValue D₅) _ _
+      ((restrictionMapHom D₄ D₅ h_D₄_D₅).toModule))
+    (flat_D₅_D : @Module.Flat (presheafValue D₅) (presheafValue D) _ _
+      ((restrictionMapHom D₅ D h_D₅_D).toModule)) :
+    @Module.Flat (presheafValue E) (presheafValue D) _ _
+      ((restrictionMapHom E D
+        (h_D₅_D.trans (h_D₄_D₅.trans (h_D₃_D₄.trans (h_D₂_D₃.trans
+          (h_D₁_D₂.trans h_E_D₁)))))).toModule) := by
+  have flat_E_D₅ :
+      @Module.Flat (presheafValue E) (presheafValue D₅) _ _
+        ((restrictionMapHom E D₅
+          (h_D₄_D₅.trans (h_D₃_D₄.trans (h_D₂_D₃.trans (h_D₁_D₂.trans h_E_D₁))))).toModule) :=
+    restrictionMap_flat_chain_five E D₁ D₂ D₃ D₄ D₅
+      h_E_D₁ h_D₁_D₂ h_D₂_D₃ h_D₃_D₄ h_D₄_D₅
+      flat_E_D₁ flat_D₁_D₂ flat_D₂_D₃ flat_D₃_D₄ flat_D₄_D₅
+  exact restrictionMap_flat_trans E D₅ D
+    (h_D₄_D₅.trans (h_D₃_D₄.trans (h_D₂_D₃.trans (h_D₁_D₂.trans h_E_D₁))))
+    h_D₅_D flat_E_D₅ flat_D₅_D
+
+/-- Depth-7 chain composition. -/
+theorem restrictionMap_flat_chain_seven
+    (E D₁ D₂ D₃ D₄ D₅ D₆ D : RationalLocData A)
+    (h_E_D₁ : rationalOpen D₁.T D₁.s ⊆ rationalOpen E.T E.s)
+    (h_D₁_D₂ : rationalOpen D₂.T D₂.s ⊆ rationalOpen D₁.T D₁.s)
+    (h_D₂_D₃ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.T D₂.s)
+    (h_D₃_D₄ : rationalOpen D₄.T D₄.s ⊆ rationalOpen D₃.T D₃.s)
+    (h_D₄_D₅ : rationalOpen D₅.T D₅.s ⊆ rationalOpen D₄.T D₄.s)
+    (h_D₅_D₆ : rationalOpen D₆.T D₆.s ⊆ rationalOpen D₅.T D₅.s)
+    (h_D₆_D : rationalOpen D.T D.s ⊆ rationalOpen D₆.T D₆.s)
+    (flat_E_D₁ : @Module.Flat (presheafValue E) (presheafValue D₁) _ _
+      ((restrictionMapHom E D₁ h_E_D₁).toModule))
+    (flat_D₁_D₂ : @Module.Flat (presheafValue D₁) (presheafValue D₂) _ _
+      ((restrictionMapHom D₁ D₂ h_D₁_D₂).toModule))
+    (flat_D₂_D₃ : @Module.Flat (presheafValue D₂) (presheafValue D₃) _ _
+      ((restrictionMapHom D₂ D₃ h_D₂_D₃).toModule))
+    (flat_D₃_D₄ : @Module.Flat (presheafValue D₃) (presheafValue D₄) _ _
+      ((restrictionMapHom D₃ D₄ h_D₃_D₄).toModule))
+    (flat_D₄_D₅ : @Module.Flat (presheafValue D₄) (presheafValue D₅) _ _
+      ((restrictionMapHom D₄ D₅ h_D₄_D₅).toModule))
+    (flat_D₅_D₆ : @Module.Flat (presheafValue D₅) (presheafValue D₆) _ _
+      ((restrictionMapHom D₅ D₆ h_D₅_D₆).toModule))
+    (flat_D₆_D : @Module.Flat (presheafValue D₆) (presheafValue D) _ _
+      ((restrictionMapHom D₆ D h_D₆_D).toModule)) :
+    @Module.Flat (presheafValue E) (presheafValue D) _ _
+      ((restrictionMapHom E D
+        (h_D₆_D.trans (h_D₅_D₆.trans (h_D₄_D₅.trans (h_D₃_D₄.trans
+          (h_D₂_D₃.trans (h_D₁_D₂.trans h_E_D₁))))))).toModule) := by
+  have flat_E_D₆ :
+      @Module.Flat (presheafValue E) (presheafValue D₆) _ _
+        ((restrictionMapHom E D₆
+          (h_D₅_D₆.trans (h_D₄_D₅.trans (h_D₃_D₄.trans
+            (h_D₂_D₃.trans (h_D₁_D₂.trans h_E_D₁)))))).toModule) :=
+    restrictionMap_flat_chain_six E D₁ D₂ D₃ D₄ D₅ D₆
+      h_E_D₁ h_D₁_D₂ h_D₂_D₃ h_D₃_D₄ h_D₄_D₅ h_D₅_D₆
+      flat_E_D₁ flat_D₁_D₂ flat_D₂_D₃ flat_D₃_D₄ flat_D₄_D₅ flat_D₅_D₆
+  exact restrictionMap_flat_trans E D₆ D
+    (h_D₅_D₆.trans (h_D₄_D₅.trans (h_D₃_D₄.trans (h_D₂_D₃.trans (h_D₁_D₂.trans h_E_D₁)))))
+    h_D₆_D flat_E_D₆ flat_D₆_D
+
 end ValuationSpectrum
