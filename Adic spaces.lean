@@ -42,6 +42,7 @@ import «Adic spaces».LaurentBaireSupport
 import «Adic spaces».LaurentCoverExact
 import «Adic spaces».LaurentCoverTopology
 import «Adic spaces».LaneAReverseRoundTrip
+import «Adic spaces».LaurentMinusNormalized
 import «Adic spaces».LaurentOverlap
 import «Adic spaces».LaurentOverlapConsumer
 import «Adic spaces».Lemma745
