@@ -662,6 +662,91 @@ theorem flat_over_base_tate_laurent
     hNoeth_B hA_complete_B hnoeth_B hP_A₀Noeth_B
     (hlocSubring_Noeth_B f) (hcont_eval_B f)
 
+/-! ### Normalized-minus flatness supplier (T-FLAT-NORMALIZED-LAURENT)
+
+Per external-reviewer guidance (2026-05-12), the recommended bypass of the
+non-LaurentNormalized `relativeRationalLocData_hopen_proof` sorry is to
+route all minus shapes through `laurentMinusNormalizedDatum` (T229), which
+preserves the `LaurentNormalized` class. This supplier provides flatness
+for covers consisting of normalized-minus pieces, using T230
+(`restrictionMap_flat_via_normalizedMinus`) per piece. -/
+theorem flat_over_base_tate_normalizedLaurent
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    [LaurentNormalized C.base]
+    -- Witness that each cover piece is a normalized-minus shape of `C.base`,
+    -- together with `f ∈ C.base.P.A₀` needed by T229/T230.
+    (normalized_laurent_witness : ∀ D : { D // D ∈ C.covers },
+      ∃ f : A, f ∈ C.base.P.A₀ ∧ D.1 = laurentMinusNormalizedDatum C.base f)
+    -- B-level hypothesis bundle (uniform across cover pieces).
+    (hNoeth_B : IsNoetherianRing (presheafValue C.base))
+    (hA_complete_B : @CompleteSpace (presheafValue C.base)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue C.base)))
+    (hnoeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue C.base)).toPairOfDefinition))
+    (hP_A₀Noeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P C.base).A₀))
+    -- Per-f canonical-form hypotheses for the relative datum at the normalized minus.
+    (hb_per_f : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : DecidableEq (presheafValue C.base) := Classical.decEq _
+      ∀ (f : A) (hf : f ∈ C.base.P.A₀),
+      letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
+        laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
+      TopologicalRing.IsPowerBounded
+        (invS (relativeRationalLocData_laurentNormalized P C.base
+          (laurentMinusNormalizedDatum C.base f)
+          (laurentMinusNormalized_subset C.base f))))
+    (hT_pb_per_f : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : DecidableEq (presheafValue C.base) := Classical.decEq _
+      ∀ (f : A) (hf : f ∈ C.base.P.A₀),
+      letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
+        laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
+      ∀ t ∈ (relativeRationalLocData_laurentNormalized P C.base
+        (laurentMinusNormalizedDatum C.base f)
+        (laurentMinusNormalized_subset C.base f)).T,
+        TopologicalRing.IsPowerBounded t)
+    (hcont_eval_per_f : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : DecidableEq (presheafValue C.base) := Classical.decEq _
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue C.base) :=
+        presheafValue_pairOfDefinition_concrete P C.base
+      ∀ (f : A) (hf : f ∈ C.base.P.A₀),
+      letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
+        laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
+      @Continuous _ _
+        (TateAlgebra.quotientOneSubfXIdealTopology
+          (relativeRationalLocData_laurentNormalized P C.base
+            (laurentMinusNormalizedDatum C.base f)
+            (laurentMinusNormalized_subset C.base f)).s)
+        (inferInstance : TopologicalSpace
+          (presheafValue (relativeRationalLocData_laurentNormalized P C.base
+            (laurentMinusNormalizedDatum C.base f)
+            (laurentMinusNormalized_subset C.base f))))
+        (tateQuotientToPresheafHom
+          (relativeRationalLocData_laurentNormalized P C.base
+            (laurentMinusNormalizedDatum C.base f)
+            (laurentMinusNormalized_subset C.base f)) (hb_per_f f hf))) :
+    ∀ D : { D // D ∈ C.covers },
+      @Module.Flat (presheafValue C.base) (presheafValue D.1) _ _
+        ((restrictionMapHom C.base D.1 (C.hsubset D.1 D.2)).toModule) := by
+  intro D
+  obtain ⟨f, hf, hf_eq⟩ := normalized_laurent_witness D
+  rcases D with ⟨D_val, hD_mem⟩
+  simp only at hf_eq
+  subst hf_eq
+  exact restrictionMap_flat_via_normalizedMinus P C.base f hf
+    hNoeth_B hA_complete_B hnoeth_B hP_A₀Noeth_B
+    (hb_per_f f hf) (hT_pb_per_f f hf) (hcont_eval_per_f f hf)
+
 /-! ### Combined plus + minus Laurent-shape flatness supplier
 
 **T-FLAT-COMBINED (2026-05-11)**.
