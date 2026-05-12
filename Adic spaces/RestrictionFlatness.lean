@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».StructureSheaf
 import «Adic spaces».LaurentRefinement
+import «Adic spaces».RelativeRationalLocData
 import Mathlib.RingTheory.Flat.Basic
 
 /-!
@@ -1044,5 +1045,65 @@ theorem restrictionMap_flat_chain_seven
   exact restrictionMap_flat_trans E D₆ D
     (h_D₅_D₆.trans (h_D₄_D₅.trans (h_D₃_D₄.trans (h_D₂_D₃.trans (h_D₁_D₂.trans h_E_D₁)))))
     h_D₆_D flat_E_D₆ flat_D₆_D
+
+/-! ### T-RATIONAL-FLAT-GENERAL for LaurentNormalized D (SORRY-FREE WRAPPER)
+
+Wire the sorry-free `relativeLaurentNormalized_equiv` (RelativeRationalLocData.lean)
+into `restrictionMap_flat_of_rational_subset_via_relative` to close
+T-RATIONAL-FLAT-GENERAL for any LaurentNormalized D ⊆ E rationally.
+
+The relative equiv + intertwine are now sorry-free (T218-T227), so this
+wrapper closes the algebraic-flatness step without any sorry. The caller
+still must supply the canonical-form B-level hypotheses (`hb`, `hT_pb`,
+`hcont_eval`, etc.) for `presheafValue_flat_of_canonical` at the E-level. -/
+theorem restrictionMap_flat_of_rational_subset_laurentNormalized
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (E : RationalLocData A)
+    [IsNoetherianRing (locSubring E.P E.T E.s)]
+    (D : RationalLocData A) [LaurentNormalized D]
+    (hsub : rationalOpen D.T D.s ⊆ rationalOpen E.T E.s)
+    -- B-level hypotheses for `presheafValue_flat_of_canonical` at E-level.
+    (hNoeth_B : IsNoetherianRing (presheafValue E))
+    (hA_complete_B : @CompleteSpace (presheafValue E)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue E)))
+    (hnoeth_B : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue E)).toPairOfDefinition))
+    (hP_A₀Noeth_B : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+      letI : IsNoetherianRing (presheafValue E) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P E).A₀))
+    -- Canonical-form hypotheses for the relative datum D_at_E.
+    (hb : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+      letI : DecidableEq (presheafValue E) := Classical.decEq _
+      TopologicalRing.IsPowerBounded
+        (invS (relativeRationalLocData_laurentNormalized P E D hsub)))
+    (hT_pb : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+      letI : DecidableEq (presheafValue E) := Classical.decEq _
+      ∀ t ∈ (relativeRationalLocData_laurentNormalized P E D hsub).T,
+        TopologicalRing.IsPowerBounded t)
+    (hcont_eval : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+      letI : DecidableEq (presheafValue E) := Classical.decEq _
+      letI : IsNoetherianRing (presheafValue E) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue E) :=
+        presheafValue_pairOfDefinition_concrete P E
+      @Continuous _ _
+        (TateAlgebra.quotientOneSubfXIdealTopology
+          (relativeRationalLocData_laurentNormalized P E D hsub).s)
+        (inferInstance : TopologicalSpace
+          (presheafValue (relativeRationalLocData_laurentNormalized P E D hsub)))
+        (tateQuotientToPresheafHom
+          (relativeRationalLocData_laurentNormalized P E D hsub) hb)) :
+    @Module.Flat (presheafValue E) (presheafValue D) _ _
+      ((restrictionMapHom E D hsub).toModule) := by
+  letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+  letI : DecidableEq (presheafValue E) := Classical.decEq _
+  -- Apply via_relative with D_at_E = relativeRationalLocData_laurentNormalized.
+  exact restrictionMap_flat_of_rational_subset_via_relative P E D hsub
+    (relativeRationalLocData_laurentNormalized P E D hsub)
+    (relativeLaurentNormalized_equiv P E D hsub)
+    (relativeLaurentNormalized_equiv_intertwine P E D hsub)
+    hNoeth_B hA_complete_B hnoeth_B hP_A₀Noeth_B
+    hb hT_pb hcont_eval
 
 end ValuationSpectrum
