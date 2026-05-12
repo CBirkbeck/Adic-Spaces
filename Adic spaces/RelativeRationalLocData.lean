@@ -1091,4 +1091,37 @@ theorem relativeLaurentNormalized_backwardHom_comp_forwardHom
   exact congr_fun (congrArg DFunLike.coe
     (relativeLaurentNormalized_backward_forward_locHom P E D hsub)) a
 
+/-- Intertwining at A: `forwardHom (D.canonicalMap a) = D_at_E.canonicalMap (E.canonicalMap a)`
+for `a : A`. -/
+theorem relativeLaurentNormalized_forwardHom_canonicalMap
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (E : RationalLocData A)
+    [IsNoetherianRing (locSubring E.P E.T E.s)]
+    (D : RationalLocData A) [LaurentNormalized D]
+    (hsub : rationalOpen D.T D.s ⊆ rationalOpen E.T E.s) (a : A) :
+    letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+    letI : DecidableEq (presheafValue E) := Classical.decEq _
+    letI D_at_E_data : RationalLocData (presheafValue E) :=
+      relativeRationalLocData_laurentNormalized P E D hsub
+    relativeLaurentNormalized_forwardHom P E D hsub (D.canonicalMap a) =
+      D_at_E_data.canonicalMap (E.canonicalMap a) := by
+  letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+  letI : DecidableEq (presheafValue E) := Classical.decEq _
+  letI D_at_E_data : RationalLocData (presheafValue E) :=
+    relativeRationalLocData_laurentNormalized P E D hsub
+  -- D.canonicalMap a = D.coeRingHom (algebraMap A _ a).
+  show relativeLaurentNormalized_forwardHom P E D hsub
+      (D.coeRingHom (algebraMap A (Localization.Away D.s) a)) =
+    D_at_E_data.coeRingHom
+      (algebraMap (presheafValue E) (Localization.Away D_at_E_data.s) (E.canonicalMap a))
+  rw [relativeLaurentNormalized_forwardHom_coeRingHom]
+  show D_at_E_data.coeRingHom
+      (relativeLaurentNormalized_forwardInnerLocHom P E D hsub
+        (algebraMap A (Localization.Away D.s) a)) =
+    D_at_E_data.coeRingHom
+      (algebraMap (presheafValue E) (Localization.Away D_at_E_data.s) (E.canonicalMap a))
+  rw [relativeLaurentNormalized_forwardInnerLocHom_algebraMap]
+  rfl
+
 end ValuationSpectrum
