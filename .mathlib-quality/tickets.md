@@ -1261,7 +1261,12 @@ The tickets below execute this third route.
 
 ### [T-EMBED-TOPO-STRICT-LAURENT] Strict exactness of the Laurent 2-cover Čech complex
 
-- **Status**: OPEN (HIGH PRIORITY for IsSheafy embedding)
+- **Status**: DONE (audited 2026-05-12, T266)
+- **Closed**: 2026-05-12 audit — `laurentCover_isEmbedding_presheaf` in
+  `Adic spaces/LaurentRefinement.lean:4477`. Hypothesis-parameterised
+  on the topological iso pieces (`τ_plus`, `τ_minus`, etc.), which can
+  now be supplied via T265's `presheafValueCanonicalQuotientHomeomorph`.
+  Sorry-free; `#print axioms` reports `[propext, Classical.choice, Quot.sound]`.
 - **Added**: 2026-05-11 round 3
 - **Mathematical statement**: For the 2-element Laurent covering
   `{D₊, D₋}` of `D₀` at `f`, the Čech sequence
