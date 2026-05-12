@@ -3260,4 +3260,41 @@ theorem tateAcyclicity_via_normalizedLaurent_autoTPB
     hcont_eval_per_f
     hZavyalov_per_E f₀ lane_A_supplier lane_B_supplier
 
+/-! ### Auto-discharged `hb_per_f` for normalized-Laurent
+
+For each `f ∈ C.base.P.A₀`, the relative datum's `T` contains `1` (via
+`canonicalMap 1 = 1` and `1 ∈ (laurentMinusNormalizedDatum C.base f).T`).
+Applying `invS_isPowerBounded_of_one_mem_T_minimal` gives power-boundedness
+of `invS (relativeRationalLocData_laurentNormalized ...)`. -/
+theorem hb_per_f_auto_normalizedLaurent
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    [LaurentNormalized C.base]
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A] :
+    letI : IsTateRing (presheafValue C.base) :=
+      presheafValue_isTateRing P C.base
+    letI : DecidableEq A := Classical.decEq A
+    letI : DecidableEq (presheafValue C.base) := Classical.decEq _
+    ∀ (f : A) (hf : f ∈ C.base.P.A₀),
+    letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
+      laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
+    TopologicalRing.IsPowerBounded
+      (invS (relativeRationalLocData_laurentNormalized P C.base
+        (laurentMinusNormalizedDatum C.base f)
+        (laurentMinusNormalized_subset C.base f))) := by
+  letI : IsTateRing (presheafValue C.base) := presheafValue_isTateRing P C.base
+  letI : DecidableEq A := Classical.decEq A
+  letI : DecidableEq (presheafValue C.base) := Classical.decEq _
+  intro f hf
+  letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
+    laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
+  apply invS_isPowerBounded_of_one_mem_T_minimal
+  show 1 ∈ (relativeRationalLocData_laurentNormalized P C.base
+    (laurentMinusNormalizedDatum C.base f)
+    (laurentMinusNormalized_subset C.base f)).T
+  rw [relativeRationalLocData_laurentNormalized_T]
+  refine Finset.mem_image.mpr ⟨1, ?_, map_one _⟩
+  exact Finset.mem_insert_self _ _
+
 end ValuationSpectrum
