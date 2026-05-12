@@ -1131,22 +1131,19 @@ The tickets below execute this third route.
 
 ### [T-LOC-SUBRING-NOETH] Discharge `IsNoetherianRing (locSubring …)` locally
 
-- **Status**: OPEN (LOW PRIORITY housekeeping; reduces final theorem boundary)
+- **Status**: DONE (T248, 2026-05-12)
 - **Added**: 2026-05-11 round 3
+- **Closed**: 2026-05-12 via T248 — `ValuationSpectrum.locSubring_isNoetherianRing`
+  in `LocalizationTopology.lean`. Sorry-free; #print axioms reports
+  `[propext, Classical.choice, Quot.sound]`.
 - **Mathematical statement**: For a `PairOfDefinition A` with
   `IsNoetherianRing P.A₀` and a finite `T : Finset A`, `s : A`, the
   subring `locSubring P T s` is noetherian.
-- **Strategy**: `locSubring` is generated over `P.A₀` by the finite set
-  `T/s`. The ring of definition is noetherian by hypothesis. Finite
-  generation over a noetherian ring is noetherian (Hilbert basis).
+- **Implementation**: MvPolynomial.aeval surjection — `MvPolynomial T P.A₀ →ₐ[P.A₀] locSubring P T s` sending `X_t ↦ ⟨divByS t s, _⟩`. Surjectivity by `Subring.closure_induction` on the locSubring definition. `MvPolynomial T P.A₀` is Noetherian (iterated Hilbert basis). Apply `isNoetherianRing_of_surjective`.
 - **Why it matters**: the current theorems
   (`restrictionMap_flat_via_iteratedMinus`, etc.) expose `IsNoetherianRing
   (locSubring …)` as a final hypothesis. With T-LOC-SUBRING-NOETH, this
   becomes a derived instance, simplifying caller hypotheses.
-- **Reviewer guidance**: "any exposed `IsNoetherianRing (locSubring ...)`
-  should be discharged locally. Since locSubring is finitely generated
-  over a noetherian ring of definition, it should follow from
-  noetherianity of P.A₀ and finiteness of T."
 
 ### [T-FLAT-PLUS-REWORK] Rework `restrictionMap_flat_via_iteratedPlus` without power-boundedness
 
