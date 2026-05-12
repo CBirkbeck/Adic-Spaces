@@ -4146,3 +4146,51 @@ Retained in tickets for future reference; not the primary path.
   - `AdicCompletion`-specific identifications (mathlib has the structure).
 - **Sources**: Stacks Tag 00MA (Section 10.97 of the Stacks Project).
 - **Generality**: minimal — match the use site. The simplest form is `(I : Ideal R) [IsNoetherianRing R]` without requiring I to be in the Jacobson radical (that's for FAITHFUL flatness, not noetherianity).
+
+---
+
+## STRUCTURAL PIECES BLOCKING DEPTH-N ITERATION (2026-05-12)
+
+The depth-1 flatness theorems (`restrictionMap_flat_via_fSubX_quotient` etc.)
+take typeclasses `[IsTateRing A] [IsNoetherianRing A] [PlusSubring A]
+[IsHuberRing A] [HasLocLiftPowerBounded A] [T2Space A] [NonarchimedeanRing A]`.
+
+For chain composition at depth ≥ 2 (the reviewer-prescribed path to
+T-RATIONAL-FLAT-GENERAL), each intermediate B = presheafValue D_i must satisfy
+these typeclasses. Existing preservation:
+
+* ✅ `IsTateRing` via `presheafValue_isTateRing` (existing).
+* ✅ `IsHuberRing` via `IsTateRing.toIsHuberRing` (existing).
+* ✅ `PlusSubring` via `RationalLocData.presheafValuePlusSubring` (existing).
+* ✅ `IsNoetherianRing` via `presheafValue_isNoetherian_via_canonical`
+  (T-STRONG-NOETH-PRESERVATION single-level, 2026-05-11).
+* ✅ `T2Space`, `NonarchimedeanRing` via existing instances.
+
+Missing preservation theorems blocking depth-≥2 iteration:
+
+### [T-LOCLIFT-PRESERVATION] HasLocLiftPowerBounded preservation
+
+- **Status**: OPEN (HIGH PRIORITY)
+- **Mathematical statement**: For strongly noetherian Tate A and D : RationalLocData A,
+  `HasLocLiftPowerBounded (presheafValue D)` holds.
+- **Proof sketch**: HasLocLiftPowerBounded says (a) algebraMap-image of D.s is a unit
+  in Localization.Away D'.s when D' ⊆ D; (b) certain divByS elements are power-bounded
+  in D's topology. Both are Wedhorn 7.32 / Nullstellensatz-style properties at the
+  presheafValue D₀ level. Proved at A level for Tate rings via Wedhorn's adic
+  Nullstellensatz; the B-level proof is analogous via `presheafValue_isTateRing` +
+  Wedhorn 7.14 at the B-level.
+- **Reference**: Wedhorn 7.14 / 7.32.
+
+### [T-STRONG-NOETH-PRESERVATION-FULL] IsStronglyNoetherian preservation
+
+- **Status**: OPEN (depends on Stacks 00MA mathlib contribution)
+- **Mathematical statement**: For strongly noetherian Tate A and
+  D : RationalLocData A, `IsStronglyNoetherian (presheafValue D)`.
+- **Proof sketch**: Requires `IsNoetherianRing (restrictedMvPowerSeriesSubring k (presheafValue D))`
+  for all k. Combine Stacks 00MA + multivariable Example 6.38 + Hilbert basis.
+- **Depends on**: T-MATHLIB-STACKS-00MA + multivariable Example 6.38.
+
+Once both preservation theorems land, iteration of depth-1 flatness gives
+depth-N flatness. Combined with the existing `restrictionMap_flat_trans`
+chain composition (already in place), this closes T-RATIONAL-FLAT-GENERAL
+sorry-free for any explicit chain decomposition.
