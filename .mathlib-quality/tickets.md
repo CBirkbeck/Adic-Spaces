@@ -809,7 +809,18 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
 
 ### [T-EX638-SCOPE] Example 6.38 scope: one-variable vs general rational data
 
-- **Status**: OPEN (added 2026-05-11)
+- **Status**: DONE (audited 2026-05-12, T256)
+- **Closed**: 2026-05-12 audit — the project's
+  `presheafValueCanonicalQuotientEquiv` (TopologyComparison.lean)
+  uses the one-variable quotient `A⟨X⟩/(1 - D.s · X)` for arbitrary
+  rational data `D : RationalLocData A`, parameterised by explicit
+  hypotheses `hb`, `hT_pb`, `hcont_eval` that ENFORCE the rational
+  topology constraints from `D.T`. The hypothesis `hT_pb` (every
+  `t ∈ D.T` is power-bounded) ensures the topology constraints are
+  honoured even for `|T| > 1`. There is no silent identification of
+  general `R(T/s)` with a one-variable quotient — the iso is correct
+  for general T precisely because the hypotheses encode the multi-T
+  topology constraints. Verified consistent with reviewer guidance.
 - **Task**: Document and verify which rational data are modeled by the
   one-variable quotient `A⟨X⟩/(1 - sX)` versus which require
   multivariable identification or chained basic-step decomposition.
