@@ -3977,7 +3977,12 @@ CLEANUP-WEDHORN-213 (final per-file cleanup)
 
 ### [T-WEDHORN-213-FORWARD] Forward hom presheafValue D → presheafValue (relativeRationalLocData ...)
 
-- **Status**: OPEN
+- **Status**: DONE for LaurentNormalized (audited 2026-05-12, T263)
+- **Closed**: 2026-05-12 audit — `relativeLaurentNormalized_forwardLocHom`
+  (line 411) and `relativeLaurentNormalized_forwardHom` (line 790) in
+  `Adic spaces/RelativeRationalLocData.lean`. Both sorry-free for the
+  LaurentNormalized case (T220-T223). The general non-LaurentNormalized
+  case is BYPASSED per the normalized-minus reframe.
 - **File**: `Adic spaces/RelativeRationalLocData.lean`
 - **Depends on**: T-WEDHORN-213-DATUM
 - **Type**: def + continuity lemma
@@ -4007,7 +4012,10 @@ CLEANUP-WEDHORN-213 (final per-file cleanup)
 
 ### [T-WEDHORN-213-BACKWARD] Backward hom presheafValue (relativeRationalLocData ...) → presheafValue D
 
-- **Status**: OPEN
+- **Status**: DONE for LaurentNormalized (audited 2026-05-12, T263)
+- **Closed**: 2026-05-12 — `relativeLaurentNormalized_backwardLocHom`
+  (line 461) and `relativeLaurentNormalized_backwardHom` (line 933).
+  Sorry-free (T223-T224).
 - **File**: `Adic spaces/RelativeRationalLocData.lean`
 - **Depends on**: T-WEDHORN-213-DATUM
 - **Type**: def + continuity lemma
@@ -4026,7 +4034,9 @@ CLEANUP-WEDHORN-213 (final per-file cleanup)
 
 ### [T-WEDHORN-213-ROUNDTRIP] Backward ∘ Forward = id; Forward ∘ Backward = id
 
-- **Status**: OPEN
+- **Status**: DONE for LaurentNormalized (audited 2026-05-12, T263)
+- **Closed**: 2026-05-12 — `relativeLaurentNormalized_backwardHom_comp_forwardHom`
+  (line 1039). Sorry-free (T224-T226).
 - **File**: `Adic spaces/RelativeRationalLocData.lean`
 - **Depends on**: T-WEDHORN-213-FORWARD, T-WEDHORN-213-BACKWARD
 - **Type**: lemma
@@ -4045,7 +4055,9 @@ CLEANUP-WEDHORN-213 (final per-file cleanup)
 
 ### [T-WEDHORN-213-EQUIV] Package as ring equiv
 
-- **Status**: OPEN
+- **Status**: DONE for LaurentNormalized (audited 2026-05-12, T263)
+- **Closed**: 2026-05-12 — packaged as the equiv used in
+  `restrictionMap_flat_of_rational_subset_laurentNormalized` (T227-T228).
 - **File**: `Adic spaces/RelativeRationalLocData.lean`
 - **Depends on**: T-WEDHORN-213-ROUNDTRIP
 - **Type**: def (RingEquiv)
@@ -4059,7 +4071,9 @@ CLEANUP-WEDHORN-213 (final per-file cleanup)
 
 ### [T-WEDHORN-213-INTERTWINE] Intertwining with restriction map
 
-- **Status**: OPEN
+- **Status**: DONE for LaurentNormalized (audited 2026-05-12, T263)
+- **Closed**: 2026-05-12 — full intertwining at A and presheafValue E
+  levels in `RelativeRationalLocData.lean` (T225-T226).
 - **File**: `Adic spaces/RelativeRationalLocData.lean`
 - **Depends on**: T-WEDHORN-213-EQUIV
 - **Type**: theorem
