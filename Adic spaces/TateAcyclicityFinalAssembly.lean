@@ -2486,6 +2486,40 @@ theorem invS_isPowerBounded_of_one_mem_T_general
   rw [hinvS_eq]
   exact CompletionLocalization.invS_isPowerBounded_of_one_mem_T D h1
 
+/-! ### Helper: `canonicalMap a` is power-bounded for `a ∈ P.A₀`
+
+For any rational locale `D` and any element `a ∈ D.P.A₀` (the ring of
+definition's base ring), the image `D.canonicalMap a` is power-bounded in
+`presheafValue D`. The proof goes through `algebraMap_mem_locSubring` +
+`coeRingHom_image_locSubring_isBounded`. -/
+theorem canonicalMap_isPowerBounded_of_mem_A₀
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsHuberRing A]
+    (D : RationalLocData A) {a : A} (ha : a ∈ D.P.A₀) :
+    TopologicalRing.IsPowerBounded (D.canonicalMap a) := by
+  -- D.canonicalMap a = D.coeRingHom (algebraMap A (Localization.Away D.s) a).
+  have hcm : D.canonicalMap a =
+      D.coeRingHom (algebraMap A (Localization.Away D.s) a) := rfl
+  rw [hcm]
+  -- algebraMap a ∈ locSubring D.P D.T D.s by algebraMap_mem_locSubring.
+  have hmem : algebraMap A (Localization.Away D.s) a ∈ locSubring D.P D.T D.s :=
+    algebraMap_mem_locSubring D.P D.T D.s ha
+  -- All powers of algebraMap a stay in locSubring (subring closed under powers).
+  have hpow : ∀ n : ℕ, (algebraMap A (Localization.Away D.s) a) ^ n ∈
+      locSubring D.P D.T D.s :=
+    fun n => (locSubring D.P D.T D.s).pow_mem hmem n
+  -- The range of (D.coeRingHom (algebraMap a))^· lies in D.coeRingHom '' locSubring.
+  have hrange : Set.range
+      ((D.coeRingHom (algebraMap A (Localization.Away D.s) a)) ^ · :
+        ℕ → presheafValue D) ⊆
+      D.coeRingHom '' (locSubring D.P D.T D.s :
+        Set (Localization.Away D.s)) := by
+    rintro _ ⟨n, rfl⟩
+    change (D.coeRingHom (algebraMap A (Localization.Away D.s) a)) ^ n ∈ _
+    rw [← map_pow]
+    exact ⟨(algebraMap A (Localization.Away D.s) a) ^ n, hpow n, rfl⟩
+  exact (CompletionLocalization.coeRingHom_image_locSubring_isBounded D).subset hrange
+
 /-! ### `tateAcyclicityComplete` wrapper with normalized-Laurent separation
 
 Composes T234 (`separation_via_normalizedLaurent`) with `tateAcyclicityComplete`
@@ -3070,6 +3104,131 @@ theorem tateAcyclicity_via_normalizedLaurent_autoComplete
     hNoeth_B (CompleteSpace_presheafValue_rightUniformSpace C.base)
     hnoeth_B hP_A₀Noeth_B
     hb_per_f hT_pb_per_f hcont_eval_per_f
+    hZavyalov_per_E f₀ lane_A_supplier lane_B_supplier
+
+/-! ### `tateAcyclicity_via_normalizedLaurent` with auto-discharged `hT_pb_per_f`
+
+The `hT_pb_per_f` hypothesis (every `t ∈ T_at_E` is power-bounded) is
+structurally auto-derivable using `canonicalMap_isPowerBounded_of_mem_A₀`:
+each `t = C.base.canonicalMap d` for `d ∈ (laurentMinusNormalizedDatum C.base f).T`,
+and by `LaurentNormalized` (laurentMinusNormalizedDatum C.base f), every such
+`d` lies in `C.base.P.A₀`. The helper then gives power-boundedness.
+
+This drops one more hypothesis from the wrapper signature, building on top
+of `_autoComplete` (which already dropped `hA_complete_B`). -/
+theorem tateAcyclicity_via_normalizedLaurent_autoTPB
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    [IsDomain A] [DecidableEq A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    [LaurentNormalized C.base]
+    (normalized_laurent_witness : ∀ D : { D // D ∈ C.covers },
+      ∃ f : A, f ∈ C.base.P.A₀ ∧ D.1 = laurentMinusNormalizedDatum C.base f)
+    (hSpa_points : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp)
+    (hNoeth_B : IsNoetherianRing (presheafValue C.base))
+    (hnoeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue C.base)).toPairOfDefinition))
+    (hP_A₀Noeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P C.base).A₀))
+    (hb_per_f : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      ∀ (f : A) (hf : f ∈ C.base.P.A₀),
+      letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
+        laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
+      TopologicalRing.IsPowerBounded
+        (invS (relativeRationalLocData_laurentNormalized P C.base
+          (laurentMinusNormalizedDatum C.base f)
+          (laurentMinusNormalized_subset C.base f))))
+    (hcont_eval_per_f : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue C.base) :=
+        presheafValue_pairOfDefinition_concrete P C.base
+      ∀ (f : A) (hf : f ∈ C.base.P.A₀),
+      letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
+        laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
+      @Continuous _ _
+        (TateAlgebra.quotientOneSubfXIdealTopology
+          (relativeRationalLocData_laurentNormalized P C.base
+            (laurentMinusNormalizedDatum C.base f)
+            (laurentMinusNormalized_subset C.base f)).s)
+        (inferInstance : TopologicalSpace
+          (presheafValue (relativeRationalLocData_laurentNormalized P C.base
+            (laurentMinusNormalizedDatum C.base f)
+            (laurentMinusNormalized_subset C.base f))))
+        (tateQuotientToPresheafHom
+          (relativeRationalLocData_laurentNormalized P C.base
+            (laurentMinusNormalizedDatum C.base f)
+            (laurentMinusNormalized_subset C.base f)) (hb_per_f f hf)))
+    (hZavyalov_per_E : rationalOpen C.base.T C.base.s ≠ ∅ →
+      ∃ S : Finset A,
+        refines_cover_per_E C S ∧ refines_contain C S ∧ refines_span_top S)
+    (f₀ : A)
+    (lane_A_supplier : ∀ (S' : StandardCover A)
+      (_hS'_per_E : refines_cover_per_E C S'.elts)
+      (_hS'_contain : refines_contain C S'.elts),
+      ∀ (fV : ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ }, presheafValue D.1),
+      (∀ (D₁ D₂ : { D // D ∈ C.refinedVCovers S'.elts f₀ })
+        (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (fV D₁) = restrictionMap D₂.1 D₃ h₃₂ (fV D₂)) →
+      ∃ x : presheafValue C.base, ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ },
+        restrictionMap C.base D.1
+          (C.refinedVCovers_subset_base S'.elts f₀ D.1 D.2) x = fV D)
+    (lane_B_supplier : ∀ (S' : StandardCover A)
+      (hS'_per_E : refines_cover_per_E C S'.elts)
+      (_hS'_contain : refines_contain C S'.elts),
+      ∀ (E : { E // E ∈ C.covers }) (a b : presheafValue E.1),
+      (∀ (D : RationalLocData A)
+         (hD : D ∈ (C.per_E_local_covering S'.elts f₀ E hS'_per_E).covers),
+        restrictionMap E.1 D
+            ((C.per_E_local_covering S'.elts f₀ E hS'_per_E).hsubset D hD) a =
+          restrictionMap E.1 D
+            ((C.per_E_local_covering S'.elts f₀ E hS'_per_E).hsubset D hD) b) →
+        a = b) :
+    (∀ x : presheafValue C.base,
+      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+        restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0) ∧
+    (∀ (f : ∀ (D : ↥C.covers), presheafValue D.1),
+      (∀ (D₁ D₂ : ↥C.covers) (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (f D₁) = restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
+      ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
+        restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D) :=
+  tateAcyclicity_via_normalizedLaurent_autoComplete (A := A) P C
+    normalized_laurent_witness hSpa_points
+    hNoeth_B hnoeth_B hP_A₀Noeth_B
+    hb_per_f
+    -- Auto-discharge of `hT_pb_per_f`:
+    (by
+      letI : IsTateRing (presheafValue C.base) := presheafValue_isTateRing P C.base
+      letI : DecidableEq A := Classical.decEq A
+      letI : DecidableEq (presheafValue C.base) := Classical.decEq _
+      intro f hf
+      letI hLN : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
+        laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
+      intro t ht
+      -- t ∈ T_at_E = (laurentMinusNormalizedDatum C.base f).T.image C.base.canonicalMap
+      -- by `relativeRationalLocData_laurentNormalized_T`.
+      have ht' : t ∈ (laurentMinusNormalizedDatum C.base f).T.image C.base.canonicalMap := by
+        rw [relativeRationalLocData_laurentNormalized_T] at ht
+        exact ht
+      obtain ⟨d, hd, rfl⟩ := Finset.mem_image.mp ht'
+      -- d ∈ (laurentMinusNormalizedDatum C.base f).T ⊆ insert s T ⊆ P.A₀
+      -- by LaurentNormalized (laurentMinusNormalizedDatum C.base f).
+      have hd_in_insert : d ∈ insert (laurentMinusNormalizedDatum C.base f).s
+          (laurentMinusNormalizedDatum C.base f).T := Finset.mem_insert_of_mem hd
+      have hd_A₀ : d ∈ C.base.P.A₀ := hLN.insert_s_T_subset_A₀ d hd_in_insert
+      exact canonicalMap_isPowerBounded_of_mem_A₀ C.base hd_A₀)
+    hcont_eval_per_f
     hZavyalov_per_E f₀ lane_A_supplier lane_B_supplier
 
 end ValuationSpectrum
