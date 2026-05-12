@@ -309,10 +309,10 @@ tateAcyclicity Part 1 (separation)
                     │     coeRingHom_preserves_proper_of_closed
                     ├── locSubring → Loc.Away subspace bridge (subsets)  ✅ DONE
                     │     isClosed_image_of_isClosed_subspace_in_locSubring
-                    ├── S-IDEAL-JAC: locIdeal ≤ Jacobson(⊥) in locSubring ⏳ ~30-50 lines
+                    ├── S-IDEAL-JAC: locIdeal ≤ Jacobson(⊥) in locSubring ✅ DONE-CONDITIONAL (T271 audit; `locIdeal_le_jacobson_bot_of_faithfullyFlat`)
                     ├── S-IDEAL-LOC: ideal q ⊆ A_s has q = (q∩𝔇)·A_s    ⏳ ~80-150 lines
                     │     and closedness transfers
-                    └── S-IDEAL-ASM: end-to-end assembly                 ⏳ ~30 lines
+                    └── S-IDEAL-ASM: end-to-end assembly                 ✅ DONE (T271 audit; `coeRingHom_preserves_proper_of_locIdeal_le_jacobson`)
 
 tateAcyclicity Part 2 (gluing)
   ├── laurentOverlapBridge_exists_compatible (= T-OVERLAP-COMPAT)
