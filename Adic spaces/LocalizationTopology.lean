@@ -549,4 +549,80 @@ theorem locTopology_hasBasis_singleton_one (P : PairOfDefinition A) :
 
 end Remark83Topology
 
+/-! ### `locSubring` is Noetherian when `P.A₀` is Noetherian and `T` is finite
+
+T-LOC-SUBRING-NOETH: discharge `IsNoetherianRing (locSubring P T s)` from
+`IsNoetherianRing P.A₀` and the finiteness of `T`. The proof routes
+through `MvPolynomial.aeval`: locSubring is the image of an algebra
+homomorphism `MvPolynomial T P.A₀ → locSubring P T s` sending `X_t ↦ t/s`.
+
+This map is surjective because locSubring is by definition the
+`Subring.closure` of `algebraMap '' P.A₀ ∪ {t/s : t ∈ T}`, which is
+exactly the image of `MvPolynomial.aeval`. Surjective ring hom +
+`MvPolynomial` Noetherian (by iterated Hilbert basis) gives Noetherian
+of the codomain. -/
+theorem locSubring_isNoetherianRing (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (T : Finset A) (s : A) :
+    IsNoetherianRing (locSubring P T s) := by
+  -- Algebra structure on locSubring P T s over P.A₀ via algebraMapD.
+  letI : Algebra P.A₀ (locSubring P T s) := (algebraMapD P T s).toAlgebra
+  -- Generators: for each t ∈ T, the element t/s in locSubring.
+  let g : T → locSubring P T s := fun t =>
+    ⟨divByS t.1 s, divByS_mem_locSubring P T s t.2⟩
+  -- The aeval map from polynomials to locSubring.
+  let aeval_g : MvPolynomial T P.A₀ →ₐ[P.A₀] locSubring P T s := MvPolynomial.aeval g
+  -- Surjectivity: every element of locSubring is in the image.
+  have h_surj : Function.Surjective aeval_g := by
+    intro x
+    -- x.1 ∈ locSubring P T s = Subring.closure (algebraMap '' P.A₀ ∪ range (divByS · s)).
+    have hx_mem : x.1 ∈ Subring.closure
+        ((algebraMap A (Localization.Away s)) '' (P.A₀ : Set A) ∪
+         Set.range (fun t : T ↦ divByS (t : A) s)) := x.2
+    -- Show that aeval_g hits every element of this closure (lifted to locSubring).
+    -- Strategy: use Subring.closure_induction to walk the closure and produce a
+    -- polynomial witness at each step.
+    suffices h : ∃ p : MvPolynomial T P.A₀, (aeval_g p).1 = x.1 by
+      obtain ⟨p, hp⟩ := h
+      exact ⟨p, Subtype.ext hp⟩
+    refine Subring.closure_induction
+      (p := fun y _ => ∃ p : MvPolynomial T P.A₀, (aeval_g p).1 = y)
+      ?_ ?_ ?_ ?_ ?_ ?_ hx_mem
+    · -- mem case: y ∈ algebraMap '' P.A₀ ∪ Set.range (divByS · s)
+      intro y hy
+      rcases hy with hy_alg | hy_range
+      · obtain ⟨a, ha, rfl⟩ := hy_alg
+        refine ⟨MvPolynomial.C ⟨a, ha⟩, ?_⟩
+        show (aeval_g (MvPolynomial.C ⟨a, ha⟩)).1 = algebraMap A _ a
+        simp only [aeval_g, MvPolynomial.aeval_C]
+        rfl
+      · obtain ⟨⟨t, ht⟩, rfl⟩ := hy_range
+        refine ⟨MvPolynomial.X ⟨t, ht⟩, ?_⟩
+        show (aeval_g (MvPolynomial.X ⟨t, ht⟩)).1 = divByS (t : A) s
+        simp only [aeval_g, MvPolynomial.aeval_X, g]
+    · -- zero case
+      exact ⟨0, by simp [aeval_g]⟩
+    · -- one case
+      exact ⟨1, by simp [aeval_g]⟩
+    · -- add case
+      rintro y₁ y₂ _ _ ⟨p₁, hp₁⟩ ⟨p₂, hp₂⟩
+      refine ⟨p₁ + p₂, ?_⟩
+      show (aeval_g (p₁ + p₂)).1 = y₁ + y₂
+      rw [map_add]; exact congr_arg₂ (· + ·) hp₁ hp₂
+    · -- neg case
+      rintro y _ ⟨p, hp⟩
+      refine ⟨-p, ?_⟩
+      show (aeval_g (-p)).1 = -y
+      rw [map_neg]; exact congr_arg Neg.neg hp
+    · -- mul case
+      rintro y₁ y₂ _ _ ⟨p₁, hp₁⟩ ⟨p₂, hp₂⟩
+      refine ⟨p₁ * p₂, ?_⟩
+      show (aeval_g (p₁ * p₂)).1 = y₁ * y₂
+      rw [map_mul]; exact congr_arg₂ (· * ·) hp₁ hp₂
+  -- MvPolynomial T P.A₀ is Noetherian (Hilbert basis, iterated).
+  haveI : Fintype T := inferInstance
+  haveI : IsNoetherianRing (MvPolynomial T P.A₀) :=
+    MvPolynomial.isNoetherianRing
+  -- Surjective ring hom from Noetherian gives Noetherian.
+  exact isNoetherianRing_of_surjective _ _ aeval_g.toRingHom h_surj
+
 end ValuationSpectrum
