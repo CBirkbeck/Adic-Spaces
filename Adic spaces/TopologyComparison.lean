@@ -1987,6 +1987,46 @@ noncomputable def presheafValueToCanonicalQuotient (D : RationalLocData A)
     (quotient_oneSubfXIdeal_completeSpace hA_complete hnoeth D.s)
     hT0Q
 
+/-- **Continuity of `presheafValueToCanonicalQuotient`** (T-EMBED-TOPO-EXAMPLE638
+ingredient). The backward direction of the canonical-quotient equivalence is
+continuous: as a `UniformSpace.Completion.extensionHom` it inherits continuity
+from `Completion.continuous_extension`.
+
+This is the topological complement to `tateQuotientToPresheafHom_continuous_of_tate`
+(which gives continuity of the forward direction). Together they make
+`presheafValueCanonicalQuotientEquiv` a TOPOLOGICAL ring iso (homeomorphism),
+not just an algebraic one — closing the T-EMBED-TOPO-EXAMPLE638 sub-ticket
+of T-EMBED-TOPO. -/
+theorem presheafValueToCanonicalQuotient_continuous (D : RationalLocData A)
+    [IsTateRing A]
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t) :
+    @Continuous _ _ (inferInstance : TopologicalSpace (presheafValue D))
+      (quotientOneSubfXIdealTopology D.s)
+      (presheafValueToCanonicalQuotient D hA_complete hnoeth hT_pb) := by
+  letI us_src : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI ts_tgt : TopologicalSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology D.s
+  letI us_tgt : UniformSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealUniformSpace D.s
+  haveI cs_tgt : @CompleteSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) us_tgt :=
+    quotient_oneSubfXIdeal_completeSpace hA_complete hnoeth D.s
+  haveI hT0Q : @T0Space _ (quotientOneSubfXIdealTopology D.s) :=
+    @T1Space.t0Space _ (quotientOneSubfXIdealTopology D.s)
+      (@T2Space.t1Space _ (quotientOneSubfXIdealTopology D.s)
+        (quotient_oneSubfXIdeal_t2Space hA_complete hnoeth D.s))
+  -- presheafValueToCanonicalQuotient is defined as
+  -- `UniformSpace.Completion.extensionHom (locToQuotientOneSubfX_gen D.s) ...`.
+  -- Its function coercion is `Completion.extension (...)` which is continuous.
+  show Continuous (fun x : presheafValue D =>
+    presheafValueToCanonicalQuotient D hA_complete hnoeth hT_pb x)
+  unfold presheafValueToCanonicalQuotient
+  -- The underlying function is `Completion.extension (locToQuotientOneSubfX_gen D.s)`.
+  -- Apply continuous_extension with the explicit target uniform structure.
+  exact UniformSpace.Completion.continuous_extension
+
 /-- `presheafValueToCanonicalQuotient` on the dense image agrees with
 `locToQuotientOneSubfX_gen`. -/
 theorem presheafValueToCanonicalQuotient_coe (D : RationalLocData A)
@@ -2190,6 +2230,43 @@ noncomputable def presheafValueCanonicalQuotientEquiv (D : RationalLocData A)
       D hb hA_complete hnoeth hT_pb hcont_eval
   map_mul' := map_mul _
   map_add' := map_add _
+
+/-- **T-EMBED-TOPO-EXAMPLE638**: the canonical-quotient equivalence
+`presheafValue D ≃+* A⟨X⟩/(1-D.s·X)` is a HOMEOMORPHISM (topological ring iso),
+not just an algebraic ring iso.
+
+This packages the bidirectional continuity:
+- Forward (`presheafValueToCanonicalQuotient`) continuous via
+  `presheafValueToCanonicalQuotient_continuous` (extensionHom-induced).
+- Backward (`tateQuotientToPresheafHom`) continuous via the `hcont_eval`
+  hypothesis (typically discharged by `tateQuotientToPresheafHom_continuous_of_tate`
+  under `[IsTateRing A] [NonarchimedeanRing A]`).
+
+Closes T-EMBED-TOPO-EXAMPLE638: the topological version of Wedhorn
+Example 6.38. The bare `presheafValueCanonicalQuotientEquiv` provides only
+the algebraic ring iso; this Homeomorph packages the topology too.
+
+Together with `tateQuotientToPresheafHom_continuous_of_tate`, this gives
+a sorry-free topological iso package for downstream T-EMBED-TOPO consumers. -/
+noncomputable def presheafValueCanonicalQuotientHomeomorph (D : RationalLocData A)
+    [IsTateRing A]
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hnoeth : IsNoetherianRing
+      ↥(pairSubring (IsTateRing.principalPair A).toPairOfDefinition))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t)
+    (hcont_eval : @Continuous _ _
+      (quotientOneSubfXIdealTopology D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (tateQuotientToPresheafHom D hb)) :
+    @Homeomorph (presheafValue D) (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s)
+      (inferInstance : TopologicalSpace (presheafValue D))
+      (quotientOneSubfXIdealTopology D.s) where
+  toEquiv := (presheafValueCanonicalQuotientEquiv D hb hA_complete hnoeth hT_pb
+    hcont_eval).toEquiv
+  continuous_toFun := presheafValueToCanonicalQuotient_continuous
+    D hA_complete hnoeth hT_pb
+  continuous_invFun := hcont_eval
 
 /-- The canonical isomorphism sends `canonicalMap(a)` to `mk(algebraMap a)`. -/
 theorem presheafValueCanonicalQuotientEquiv_canonicalMap (D : RationalLocData A)
