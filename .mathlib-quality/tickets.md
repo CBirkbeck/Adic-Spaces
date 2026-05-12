@@ -4097,7 +4097,12 @@ CLEANUP-WEDHORN-213 (final per-file cleanup)
 
 ### [T-RATIONAL-FLAT-GENERAL-CLOSE] Wire into the general flatness theorem
 
-- **Status**: OPEN
+- **Status**: DONE for LaurentNormalized (audited 2026-05-12, T264)
+- **Closed**: 2026-05-12 — `restrictionMap_flat_of_rational_subset_laurentNormalized`
+  in `Adic spaces/RestrictionFlatness.lean` (T228). Sorry-free; closes
+  T-RATIONAL-FLAT-GENERAL for the needed case on the critical path.
+  General non-LaurentNormalized case BYPASSED per the normalized-minus
+  reframe.
 - **File**: `Adic spaces/RestrictionFlatness.lean`
 - **Depends on**: T-WEDHORN-213-INTERTWINE
 - **Type**: theorem
