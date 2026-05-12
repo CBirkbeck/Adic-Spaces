@@ -4179,25 +4179,44 @@ Missing preservation theorems blocking depth-≥2 iteration:
 
 ### [T-LOCLIFT-PRESERVATION] HasLocLiftPowerBounded preservation
 
-- **Status**: PARTIALLY OBVIATED (2026-05-12 architectural finding)
-- **2026-05-12 update**: The general flatness route via
-  `restrictionMap_flat_of_rational_subset_via_relative` (RestrictionFlatness.lean)
-  was REFACTORED to NOT require `HasLocLiftPowerBounded (presheafValue E)` as
-  a hypothesis (the `hLocLift_B` parameter has been removed, commit bbbdd28).
-  The earlier proof had `letI : HasLocLiftPowerBounded (presheafValue E) :=
-  hLocLift_B` bringing the instance into scope, but it was never used —
-  flatness comes from `presheafValue_flat_of_canonical` which depends on the
-  canonical Tate-quotient identification (Example 6.38 at B-level), not the
-  Nullstellensatz.
-- **Remaining scope**: Only the BASIC LAURENT depth-1 theorems
-  (`restrictionMap_flat_via_iteratedMinus`, `_iteratedPlus`,
-  `_fSubX_quotient`, `_oneSubfX_quotient`) still take `hLocLift_B`, and they
-  thread it through `laurentPlusBridge` / `laurentMinusBridge` in
-  LaurentRefinement.lean which has structural dependencies on the
-  Nullstellensatz at B-level. Refactoring those would be a separate cleanup.
+- **Status**: LARGELY OBVIATED (2026-05-12 cascade refactor T214→T216)
+- **2026-05-12 progress**: Six theorems refactored to drop `hLocLift_B`
+  hypothesis. All B-level depth-1 Laurent-shape flatness theorems and the
+  Cor 8.32 faithful-flatness route no longer require HasLocLiftPowerBounded
+  preservation:
+  - `restrictionMap_flat_of_rational_subset_via_relative` (T214)
+  - `iteratedMinus_B_flat_of_canonical` (T216)
+  - `restrictionMap_flat_via_iteratedMinus` (T216)
+  - `restrictionMap_flat_of_rational_subset_direct_laurentMinus` (T216)
+  - `iteratedPlus_B_flat_of_canonical` (T216)
+  - `restrictionMap_flat_via_iteratedPlus` (T216)
+  - `flat_over_base_tate_laurent` (T216)
+  - `productRestriction_faithfullyFlat_tate_laurent_of_hSpa_points` (T216)
+
+  All these were carrying `hLocLift_B` as a "defensive" hypothesis that was
+  unused in the proof bodies. Flatness comes from `presheafValue_flat_of_canonical`
+  which only needs the canonical Tate-quotient identification (Wedhorn
+  Example 6.38 + Lemma 8.31 at B-level), not the Nullstellensatz.
+
+- **Remaining scope** (separate refactor):
+  `restrictionMap_flat_via_fSubX_quotient` and `restrictionMap_flat_via_oneSubfX_quotient`
+  still carry `hLocLift_B` because they thread through `laurentPlusBridge` /
+  `laurentMinusBridge` in `LaurentRefinement.lean`. Those bridges have
+  structural dependencies on HasLocLiftPowerBounded — refactoring them is
+  a deeper cleanup across files.
+
+- **Architectural impact**: The Cor 8.32 faithful-flatness route, the chain
+  decomposition via `via_relative`, and the basic Laurent-shape suppliers
+  ALL run without HasLocLiftPowerBounded preservation. The remaining
+  preservation theorems needed for closing T-RATIONAL-FLAT-GENERAL via the
+  chain decomposition are limited to:
+  - `IsStronglyNoetherian (presheafValue D)` (T-STRONG-NOETH-PRESERVATION-FULL,
+    depends on Stacks 00MA)
+  - The relative datum hopen sorry (T-WEDHORN-213-DATUM)
+
 - **Original mathematical statement**: For strongly noetherian Tate A and
   D : RationalLocData A, `HasLocLiftPowerBounded (presheafValue D)` holds.
-- **Proof sketch (still applicable for any future refactor)**: As before —
+- **Proof sketch (still applicable for any future LaurentRefinement refactor)**:
   Wedhorn 7.32 / Nullstellensatz at B-level via `presheafValue_isTateRing` +
   Wedhorn 7.14 at B-level.
 - **Reference**: Wedhorn 7.14 / 7.32.
