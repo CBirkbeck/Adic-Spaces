@@ -657,7 +657,11 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
 
 ### [T-QTATE-1] Closed quotient of noetherian Tate ring is Tate
 
-- **Status**: OPEN (added 2026-05-11 post-reviewer pivot for Lane A)
+- **Status**: DONE (audited 2026-05-12, T253)
+- **Closed**: 2026-05-12 audit — `IsHuberRing.quotient` and
+  `IsTateRing.quotient` in `Adic spaces/QuotientTate.lean` (lines
+  150 and 159). Both sorry-free; `#print axioms` reports
+  `[propext, Classical.choice, Quot.sound]`.
 - **Mathematical statement**: If `R` is a noetherian Tate ring and
   `I ⊆ R` is a closed ideal, then `R/I` with the quotient topology is a
   Tate ring. A ring of definition of `R/I` is the image of a ring of
@@ -681,7 +685,11 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
 
 ### [T-QTATE-2] Polynomial density in `B⟨Z⟩` for any Tate ring `B`
 
-- **Status**: OPEN (added 2026-05-11)
+- **Status**: DONE (audited 2026-05-12, T253)
+- **Closed**: 2026-05-12 audit — `tateAlgebra_polynomials_dense_canonical`
+  in `Adic spaces/TopologyComparison.lean` (referenced by
+  `QuotientTate.lean:178`). Sorry-free; `#print axioms` reports
+  `[propext, Classical.choice, Quot.sound]`.
 - **Mathematical statement**: For any Tate ring `B`, the polynomial
   subring `B[Z] ⊆ B⟨Z⟩` is dense in the canonical Tate topology, via
   truncation: a restricted power series is the limit of its partial
