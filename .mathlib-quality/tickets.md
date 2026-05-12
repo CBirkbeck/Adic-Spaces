@@ -1237,7 +1237,15 @@ The tickets below execute this third route.
 
 ### [T-EMBED-TOPO-EXAMPLE638] Topological version of Wedhorn Example 6.38
 
-- **Status**: OPEN (HIGH PRIORITY for IsSheafy embedding)
+- **Status**: DONE (2026-05-12, T265)
+- **Closed**: 2026-05-12 — `presheafValueCanonicalQuotientHomeomorph` in
+  `Adic spaces/TopologyComparison.lean`. Packages the bidirectional
+  continuity:
+  - Forward: `presheafValueToCanonicalQuotient_continuous` (new) via
+    `Completion.continuous_extension`.
+  - Backward: `hcont_eval` (the parametric hypothesis), typically
+    discharged by `tateQuotientToPresheafHom_continuous_of_tate`.
+  Sorry-free; `#print axioms` reports `[propext, Classical.choice, Quot.sound]`.
 - **Added**: 2026-05-11 round 3
 - **Mathematical statement**: For any rational locale `D` over a
   strongly noetherian Tate ring `A`, the iso
