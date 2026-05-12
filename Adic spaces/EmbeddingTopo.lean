@@ -108,4 +108,58 @@ theorem productRestrictionSub_injective_of_product_injective
   intro D hD
   exact congr_fun hxy ⟨D, hD⟩
 
+/-! ### T-EMBED-TOPO-REFINEMENT-TRANSFER (conditional form)
+
+The refinement-transfer theorem at the topological level: given a finer
+covering `V_covers` of `C.base` with a refinement map `τ : V_covers →
+C.covers`, the topological-inducing property of `productRestrictionSub`
+at the V level transfers to the C level, **provided** the "natural map"
+`φ : ∏_{E ∈ C.covers} 𝒪(E) → ∏_{D ∈ V_covers} 𝒪(D)` (sending a tuple of
+C-sections to the V-tuple via per-piece restriction along τ) is
+itself topologically inducing.
+
+The conditional form lets the caller supply `IsInducing φ` separately —
+for the Laurent 2-cover base case, `φ` is essentially the identity (since
+V refines C trivially); for general refinements, `IsInducing φ` is an
+independent topological statement.
+
+By `IsInducing.of_comp_iff` on the factorisation
+`productRestrictionSub V = φ ∘ productRestrictionSub C`, the equivalence
+between IsInducing at V and at C follows. -/
+
+/-- **Topological refinement transfer (conditional form)**: given a finer
+cover V plus a τ-map and an IsInducing witness for the natural product
+map `φ`, IsInducing of `productRestrictionSub V` implies IsInducing of
+the C-level analogue.
+
+This is the topological analogue of `separation_of_finer_rational`
+(`RationalRefinement.lean`). The hypothesis `hφ_inducing` captures the
+"refinement preserves embedding" content; downstream consumers will
+supply it via the Laurent-cover base case + induction. -/
+theorem productRestrictionSub_isInducing_of_finer_rational
+    (C : RationalCovering A)
+    (V_covers : Finset (RationalLocData A))
+    (hV_subset : ∀ D ∈ V_covers, rationalOpen D.T D.s ⊆
+      rationalOpen C.base.T C.base.s)
+    (τ : { D // D ∈ V_covers } → { E // E ∈ C.covers })
+    (hτ : ∀ d : { D // D ∈ V_covers },
+      rationalOpen d.1.T d.1.s ⊆ rationalOpen (τ d).1.T (τ d).1.s)
+    (productRestrictionSub_V :
+      presheafValue C.base → ∀ D : { D // D ∈ V_covers }, presheafValue D.1)
+    (hprV : productRestrictionSub_V =
+      fun x ⟨D, hD⟩ => restrictionMap C.base D (hV_subset D hD) x)
+    (hV_inducing : Topology.IsInducing productRestrictionSub_V)
+    (φ : (∀ E : { E // E ∈ C.covers }, presheafValue E.1) →
+         (∀ D : { D // D ∈ V_covers }, presheafValue D.1))
+    (hφ : ∀ x : presheafValue C.base,
+      φ (productRestrictionSub A C x) = productRestrictionSub_V x)
+    (hφ_inducing : Topology.IsInducing φ) :
+    Topology.IsInducing (productRestrictionSub A C) := by
+  -- productRestrictionSub_V = φ ∘ productRestrictionSub A C.
+  have hcomp : productRestrictionSub_V = φ ∘ productRestrictionSub A C := by
+    funext x; exact (hφ x).symm
+  rw [hcomp] at hV_inducing
+  -- Apply IsInducing.of_comp_iff: φ IsInducing + φ ∘ f IsInducing ⇒ f IsInducing.
+  exact (hφ_inducing.of_comp_iff).mp hV_inducing
+
 end ValuationSpectrum
