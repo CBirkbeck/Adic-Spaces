@@ -4310,7 +4310,16 @@ Retained in tickets for future reference; not the primary path.
 
 ### [T-MATHLIB-STACKS-00MA] Adic completion of Noetherian ring is Noetherian
 
-- **Status**: OPEN (HIGH PRIORITY — blocks T-STRONG-NOETH-PRESERVATION and the whole chain)
+- **Status**: PARTIAL — faithfully-flat-conditional half is DONE; Noetherianness is the remaining genuine mathlib gap (audited 2026-05-12, T270)
+- **Partial closure (T270 audit)**:
+  - `AdicCompletion.faithfullyFlat_of_le_jacobson_bot`
+    (`Adic spaces/AdicCompletionFaithfullyFlat.lean:62`): for Noetherian R
+    and ideal I with `I ≤ Jacobson ⊥`, `AdicCompletion I R` is faithfully
+    flat over R. Sorry-free.
+  - This is the FAITHFULLY-FLAT half of Stacks 00MA (the part that's
+    actually load-bearing for the project's S-IDEAL-JAC chain).
+  - The NOETHERIANNESS half of Stacks 00MA (`IsNoetherianRing (AdicCompletion I R)`
+    from `IsNoetherianRing R`) remains a genuine mathlib gap.
 - **File**: new `Adic spaces/AdicCompletionNoetherian.lean` or addition to existing AdicCompletion file
 - **Mathematical statement**:
   ```
