@@ -329,7 +329,7 @@ tateAcyclicity Part 2 (gluing)
   │     ├── tateAcyclicity_gluing_via_refinement_cover_level   ✅ DONE
   │     ├── standardCoverVCovers + mem + subset_base           ✅ DONE
   │     ├── S-GEOM-TAU: τ construction + containment           ✅ DONE (T250)
-  │     ├── S-GEOM-BASE: hV_glue for |S.elts| = 1              ⏳ ~60 lines
+  │     ├── S-GEOM-BASE: hV_glue for |S.elts| = 1              ✅ DONE (T251 audit; `standardCover_gluing_singleton_of_Aplus`)
   │     ├── S-GEOM-IND: hV_glue induction on |S.elts|          ⏳ ~200 lines
   │     │     (Wedhorn 8.34 induction, Laurent split at f₀)
   │     └── S-GEOM-ASM: Part 2 assembly (may include hZavyalov
@@ -567,17 +567,24 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
 
 #### S-GEOM-BASE: base case `|S.elts| = 1`
 
+- **Status**: DONE (audited 2026-05-12, T251)
+- **Closed**: 2026-05-12 audit confirmed the discharge chain in
+  `GeometricReduction.lean` (lines 1238-1440):
+  - `standardCover_gluing_singleton` (conditional on `hSurj`)
+  - `restrictionMap_plusDatum_surjective_of_vle` (discharge via vle)
+  - `standardCover_gluing_singleton_of_vle` (vle-parametric)
+  - `vle_s_of_mem_Aplus_of_one_mem_T` (vle from `f ∈ A⁺ + 1 ∈ T`)
+  - `standardCover_gluing_singleton_of_Aplus` (caller-ready full)
+  Sorry-free; `#print axioms standardCover_gluing_singleton_of_Aplus`
+  reports `[propext, Classical.choice, Quot.sound]`.
 - **Target**: when `S.elts = {f}` with `Ideal.span {f} = ⊤` (so
   `f ∈ Aˣ`), build `hV_glue` for the singleton V-cover `{C.plusDatum f}`.
-- **Mathematical content**: the unique plus-piece
-  `rationalOpen (insert f C.base.T) C.base.s` equals
-  `rationalOpen C.base.T C.base.s` as a set (when `f` is a unit + the
-  usual normalization `1 ∈ C.base.T` makes `v(s) ≥ 1 ≥ v(f)` tractable).
-  Gluing becomes trivial: the compatible family has one element which
-  IS the global section.
-- **Care needed**: the set equality isn't literally immediate; may need
-  a lemma "insert of a unit doesn't restrict rational open" or similar.
-- **Estimated lines**: 40-60.
+- **Implementation**: the discharge actually requires the WEAKER
+  hypothesis `f ∈ A⁺` + `1 ∈ C.base.T` (rather than `Ideal.span {f} = ⊤`),
+  which is the natural Wedhorn-normalised setup. The vle hypothesis
+  `∀ v ∈ rationalOpen C.base.T C.base.s, v.vle f C.base.s` discharges via
+  `vle_one_of_mem_spa` (f bounded by 1) + `hv_T 1` (1 bounded by s),
+  composing through `vle_trans`.
 
 #### S-GEOM-IND: inductive step
 
