@@ -270,6 +270,57 @@ theorem RationalCovering.rationalOpen_plusDatum_eq_insert
   -- with Classical) and the ambient `[DecidableEq A]` on `insert f C.base.T`.
   simp only [RationalCovering.plusDatum, laurentPlusDatum, Finset.mem_insert]
 
+/-! ### The standard-cover τ refinement map (S-GEOM-TAU)
+
+Given `refines_contain C S` (clause 2 of `refines_by_standard_cover`),
+build a noncomputable refinement map sending each V-piece (= plus-datum
+at some `f ∈ S`) to a cover piece `E ∈ C.covers` that contains it.
+
+The construction uses `Classical.choose` on the existential in
+`refines_contain` to pick an E for each f. The subset proof routes
+through `rationalOpen_plusDatum_eq_insert` to bridge the DecidableEq
+diamond. -/
+
+omit [HasLocLiftPowerBounded A] in
+/-- **The τ refinement map** (S-GEOM-TAU): each V-piece in
+`standardCoverVCovers C S` maps to a cover piece `E ∈ C.covers`
+containing it. Uses `Classical.choose` on the existential extracted via
+`(C.mem_standardCoverVCovers S).mp d.2` and on the refinement witness. -/
+noncomputable def RationalCovering.standardCoverVTau
+    [DecidableEq A] (C : RationalCovering A) (S : Finset A)
+    (hS_contain : refines_contain C S)
+    (d : { d : RationalLocData A // d ∈ C.standardCoverVCovers S }) :
+    { E : RationalLocData A // E ∈ C.covers } :=
+  let h := ((C.mem_standardCoverVCovers S).mp d.2)
+  let f := h.choose
+  let hf := h.choose_spec.1
+  ⟨(hS_contain f hf).choose, (hS_contain f hf).choose_spec.1⟩
+
+/-- **τ subset property** (S-GEOM-TAU): each V-piece is contained in its
+τ-target cover piece (as rational opens). The proof bridges the
+`DecidableEq` diamond between `(C.plusDatum f).T` (built with
+`Classical.decEq`) and `insert f C.base.T` (using ambient
+`[DecidableEq A]`) via `rationalOpen_plusDatum_eq_insert`. -/
+theorem RationalCovering.standardCoverVTau_subset
+    [DecidableEq A] (C : RationalCovering A) (S : Finset A)
+    (hS_contain : refines_contain C S)
+    (d : { d : RationalLocData A // d ∈ C.standardCoverVCovers S }) :
+    rationalOpen d.1.T d.1.s ⊆
+      rationalOpen (C.standardCoverVTau S hS_contain d).1.T
+                   (C.standardCoverVTau S hS_contain d).1.s := by
+  -- Extract the same f ∈ S used inside standardCoverVTau (via `let h := ...; let f := h.choose`).
+  intro v hv
+  set h := (C.mem_standardCoverVCovers S).mp d.2 with hh_def
+  let f := h.choose
+  let hf := h.choose_spec.1
+  have hf_eq : C.plusDatum f = d.1 := h.choose_spec.2
+  -- Translate: v ∈ rationalOpen d.1.T d.1.s → v ∈ rationalOpen (insert f C.base.T) C.base.s
+  -- via hf_eq + rationalOpen_plusDatum_eq_insert.
+  have hv_insert : v ∈ rationalOpen (insert f C.base.T) C.base.s := by
+    rw [← C.rationalOpen_plusDatum_eq_insert f, hf_eq]; exact hv
+  -- standardCoverVTau d unfolds to ⟨(hS_contain f hf).choose, _⟩ via the SAME f, hf.
+  exact (hS_contain f hf).choose_spec.2 hv_insert
+
 /-! ### Iterated Laurent-plus swap
 
 For the outer induction on `|S|`, the recursion at each Laurent split
