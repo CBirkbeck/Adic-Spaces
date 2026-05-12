@@ -1012,7 +1012,18 @@ The tickets below execute this third route.
 
 ### [T-RATIONAL-FLAT-GENERAL] Rational-restriction flatness for arbitrary inclusion
 
-- **Status**: OPEN (HIGH PRIORITY — critical path; supersedes T-FLAT-PER-E)
+- **Status**: DONE for LaurentNormalized case (2026-05-12); BYPASSED for general
+  case via the reviewer-prescribed normalized-minus route (T229–T236).
+- **2026-05-12 completion summary**:
+  - LaurentNormalized D ⊆ E rationally: closed sorry-free via
+    `restrictionMap_flat_of_rational_subset_laurentNormalized` (T228).
+  - Normalized-minus datatype + full algebraic chain: T229–T235 deliver
+    end-to-end `tateAcyclicityComplete_via_normalizedLaurent` for covers
+    whose pieces are normalized-minus shapes.
+  - Non-LaurentNormalized general case: PARKED. Per reviewer guidance,
+    not needed on the tateAcyclicity critical path — the
+    Wedhorn Laurent-decomposition tree can be kept LaurentNormalized
+    end-to-end by replacing ordinary minus with normalized minus.
 - **Added**: 2026-05-11 round 3
 - **Mathematical statement**: For a strongly noetherian Tate ring `A` with
   rational locale data `E, D : RationalLocData A` satisfying
