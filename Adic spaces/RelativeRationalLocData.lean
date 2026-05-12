@@ -530,6 +530,24 @@ noncomputable def relativeLaurentNormalized_forwardInnerLocHom
   IsLocalization.Away.lift (S := Localization.Away D.s) (R := A) D.s
     (relativeLaurentNormalized_Ds_isUnit_in_Loc P E D hsub)
 
+/-- forwardInnerLocHom on algebraMap A image equals algebraMap (presheafValue E)
+of E.canonicalMap. -/
+theorem relativeLaurentNormalized_forwardInnerLocHom_algebraMap
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (E : RationalLocData A)
+    [IsNoetherianRing (locSubring E.P E.T E.s)]
+    (D : RationalLocData A) [LaurentNormalized D]
+    (hsub : rationalOpen D.T D.s ⊆ rationalOpen E.T E.s) (a : A) :
+    letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+    relativeLaurentNormalized_forwardInnerLocHom P E D hsub
+        (algebraMap A (Localization.Away D.s) a) =
+      algebraMap (presheafValue E) (Localization.Away (E.canonicalMap D.s))
+        (E.canonicalMap a) := by
+  letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+  exact IsLocalization.Away.lift_eq D.s
+    (relativeLaurentNormalized_Ds_isUnit_in_Loc P E D hsub) a
+
 /-- Factorization: forwardLocHom = D_at_E.coeRingHom ∘ forwardInnerLocHom.
 Both sides equal the unique IsLocalization.Away.lift extension of
 `D_at_E.canonicalMap ∘ E.canonicalMap : A → presheafValue D_at_E`. -/
@@ -935,5 +953,142 @@ noncomputable def relativeLaurentNormalized_backwardHom
   UniformSpace.Completion.extensionHom
     (relativeLaurentNormalized_backwardLocHom P E D hsub)
     (relativeLaurentNormalized_backwardLocHom_continuous P E D hsub)
+
+/-! ### Coe identifications for completion extension -/
+
+/-- Forward completion hom on `D.coeRingHom a` equals `forwardToCompletion a`. -/
+theorem relativeLaurentNormalized_forwardHom_coeRingHom
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (E : RationalLocData A)
+    [IsNoetherianRing (locSubring E.P E.T E.s)]
+    (D : RationalLocData A) [LaurentNormalized D]
+    (hsub : rationalOpen D.T D.s ⊆ rationalOpen E.T E.s)
+    (a : Localization.Away D.s) :
+    relativeLaurentNormalized_forwardHom P E D hsub (D.coeRingHom a) =
+      relativeLaurentNormalized_forwardToCompletion P E D hsub a := by
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  exact UniformSpace.Completion.extensionHom_coe _ _ a
+
+/-- Backward completion hom on `D_at_E.coeRingHom b` equals `backwardLocHom b`. -/
+theorem relativeLaurentNormalized_backwardHom_coeRingHom
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (E : RationalLocData A)
+    [IsNoetherianRing (locSubring E.P E.T E.s)]
+    (D : RationalLocData A) [LaurentNormalized D]
+    (hsub : rationalOpen D.T D.s ⊆ rationalOpen E.T E.s)
+    (b : Localization.Away (E.canonicalMap D.s)) :
+    letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+    letI : DecidableEq (presheafValue E) := Classical.decEq _
+    letI D_at_E_data : RationalLocData (presheafValue E) :=
+      relativeRationalLocData_laurentNormalized P E D hsub
+    relativeLaurentNormalized_backwardHom P E D hsub (D_at_E_data.coeRingHom b) =
+      relativeLaurentNormalized_backwardLocHom P E D hsub b := by
+  letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+  letI : DecidableEq (presheafValue E) := Classical.decEq _
+  letI D_at_E_data : RationalLocData (presheafValue E) :=
+    relativeRationalLocData_laurentNormalized P E D hsub
+  letI : UniformSpace (Localization.Away D_at_E_data.s) := D_at_E_data.uniformSpace
+  letI : UniformSpace (Localization.Away (E.canonicalMap D.s)) := D_at_E_data.uniformSpace
+  letI : IsUniformAddGroup (Localization.Away D_at_E_data.s) :=
+    D_at_E_data.isUniformAddGroup
+  letI : IsUniformAddGroup (Localization.Away (E.canonicalMap D.s)) :=
+    D_at_E_data.isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away D_at_E_data.s) :=
+    D_at_E_data.isTopologicalRing
+  letI : IsTopologicalRing (Localization.Away (E.canonicalMap D.s)) :=
+    D_at_E_data.isTopologicalRing
+  exact UniformSpace.Completion.extensionHom_coe _ _ b
+
+/-! ### Round-trip identity at the locHom level (backward ∘ forwardInner)
+
+`backwardLocHom ∘ forwardInnerLocHom = D.coeRingHom` as ring homs
+`Loc_A(D.s) →+* presheafValue D`. Both extend `D.canonicalMap : A →+* presheafValue D`
+to the localization, and by `IsLocalization.ringHom_ext` they're equal. -/
+theorem relativeLaurentNormalized_backward_forward_locHom
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (E : RationalLocData A)
+    [IsNoetherianRing (locSubring E.P E.T E.s)]
+    (D : RationalLocData A) [LaurentNormalized D]
+    (hsub : rationalOpen D.T D.s ⊆ rationalOpen E.T E.s) :
+    (relativeLaurentNormalized_backwardLocHom P E D hsub).comp
+      (relativeLaurentNormalized_forwardInnerLocHom P E D hsub) =
+      D.coeRingHom := by
+  apply IsLocalization.ringHom_ext (Submonoid.powers D.s)
+  ext a
+  simp only [RingHom.comp_apply]
+  -- LHS = backwardLocHom (forwardInner (algebraMap A _ a))
+  --     = backwardLocHom (algebraMap (presheafValue E) _ (E.canonicalMap a))
+  --     = restrictionMapHom E D hsub (E.canonicalMap a)
+  --     = D.canonicalMap a = D.coeRingHom (algebraMap A _ a).
+  show relativeLaurentNormalized_backwardLocHom P E D hsub
+      (relativeLaurentNormalized_forwardInnerLocHom P E D hsub
+        (algebraMap A (Localization.Away D.s) a)) =
+    D.coeRingHom (algebraMap A (Localization.Away D.s) a)
+  rw [relativeLaurentNormalized_forwardInnerLocHom_algebraMap,
+    relativeLaurentNormalized_backwardLocHom_algebraMap,
+    restrictionMapHom_canonicalMap]
+  rfl
+
+/-- Round-trip identity at the completion level: `backwardHom ∘ forwardHom = id`
+on `presheafValue D`. -/
+theorem relativeLaurentNormalized_backwardHom_comp_forwardHom
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (E : RationalLocData A)
+    [IsNoetherianRing (locSubring E.P E.T E.s)]
+    (D : RationalLocData A) [LaurentNormalized D]
+    (hsub : rationalOpen D.T D.s ⊆ rationalOpen E.T E.s) :
+    letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+    letI : DecidableEq (presheafValue E) := Classical.decEq _
+    (relativeLaurentNormalized_backwardHom P E D hsub).comp
+      (relativeLaurentNormalized_forwardHom P E D hsub) = RingHom.id _ := by
+  letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+  letI : DecidableEq (presheafValue E) := Classical.decEq _
+  letI D_at_E_data : RationalLocData (presheafValue E) :=
+    relativeRationalLocData_laurentNormalized P E D hsub
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : UniformSpace (Localization.Away D_at_E_data.s) := D_at_E_data.uniformSpace
+  letI : UniformSpace (Localization.Away (E.canonicalMap D.s)) := D_at_E_data.uniformSpace
+  letI : IsUniformAddGroup (Localization.Away D_at_E_data.s) :=
+    D_at_E_data.isUniformAddGroup
+  letI : IsUniformAddGroup (Localization.Away (E.canonicalMap D.s)) :=
+    D_at_E_data.isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away D_at_E_data.s) :=
+    D_at_E_data.isTopologicalRing
+  letI : IsTopologicalRing (Localization.Away (E.canonicalMap D.s)) :=
+    D_at_E_data.isTopologicalRing
+  apply RingHom.ext
+  intro x
+  show relativeLaurentNormalized_backwardHom P E D hsub
+      (relativeLaurentNormalized_forwardHom P E D hsub x) = x
+  refine @UniformSpace.Completion.ext' _ _ _ _ _ _ _
+    ((UniformSpace.Completion.continuous_extension).comp
+      UniformSpace.Completion.continuous_extension)
+    continuous_id ?_ x
+  intro a
+  -- On dense subring D.coeRingHom a:
+  --   forwardHom (D.coeRingHom a) = forwardToCompletion a
+  --                                = D_at_E.coeRingHom (forwardInnerLocHom a)
+  --   backwardHom (D_at_E.coeRingHom (forwardInnerLocHom a)) = backwardLocHom (forwardInnerLocHom a)
+  --                                                          = D.coeRingHom a (by locHom round-trip)
+  show relativeLaurentNormalized_backwardHom P E D hsub
+      (relativeLaurentNormalized_forwardHom P E D hsub (D.coeRingHom a)) =
+    D.coeRingHom a
+  rw [relativeLaurentNormalized_forwardHom_coeRingHom]
+  show relativeLaurentNormalized_backwardHom P E D hsub
+      ((relativeRationalLocData_laurentNormalized P E D hsub).coeRingHom
+        (relativeLaurentNormalized_forwardInnerLocHom P E D hsub a)) =
+    D.coeRingHom a
+  rw [relativeLaurentNormalized_backwardHom_coeRingHom]
+  -- Now: backwardLocHom (forwardInnerLocHom a) = D.coeRingHom a (locHom round-trip).
+  exact congr_fun (congrArg DFunLike.coe
+    (relativeLaurentNormalized_backward_forward_locHom P E D hsub)) a
 
 end ValuationSpectrum
