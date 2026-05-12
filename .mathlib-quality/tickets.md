@@ -328,8 +328,7 @@ tateAcyclicity Part 2 (gluing)
   ├── T-GEOM-RED (geometric reduction)
   │     ├── tateAcyclicity_gluing_via_refinement_cover_level   ✅ DONE
   │     ├── standardCoverVCovers + mem + subset_base           ✅ DONE
-  │     ├── S-GEOM-TAU: τ construction + containment           ⏳ ~30 lines
-  │     │     (blocked on minor DecidableEq bridge in LaurentRefinement)
+  │     ├── S-GEOM-TAU: τ construction + containment           ✅ DONE (T250)
   │     ├── S-GEOM-BASE: hV_glue for |S.elts| = 1              ⏳ ~60 lines
   │     ├── S-GEOM-IND: hV_glue induction on |S.elts|          ⏳ ~200 lines
   │     │     (Wedhorn 8.34 induction, Laurent split at f₀)
@@ -554,19 +553,17 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
 
 #### S-GEOM-TAU: τ refinement map + containment
 
+- **Status**: DONE (T250, 2026-05-12)
+- **Closed**: 2026-05-12 via T250 — `RationalCovering.standardCoverVTau`
+  and `RationalCovering.standardCoverVTau_subset` in `GeometricReduction.lean`.
+  Sorry-free; #print axioms reports `[propext, Classical.choice, Quot.sound]`.
+- **Implementation**: τ uses `let h := ...; let f := h.choose; let hf := h.choose_spec.1`
+  to extract the witness in noncomputable def-form (avoiding the
+  Exists.casesOn-to-Type elimination error). Subset proof uses the
+  reviewer's alternative (`rationalOpen_plusDatum_eq_insert` at the
+  set level) to bridge the `DecidableEq` diamond.
 - **Target**: `RationalCovering.standardCoverVTau` (construct via
   `Classical.choose` on `hS_contain`) + `standardCoverVTau_subset`.
-- **Current blocker**: Lean 4 `DecidableEq` instance diamond between
-  `Classical.propDecidable` (used implicitly by `noncomputable def
-  laurentPlusDatum`) and explicit `[DecidableEq A]`. `rfl` fails on
-  `(laurentPlusDatum D₀ f).T = insert f D₀.T` even though values agree.
-- **Fix path**: add `@[simp] laurentPlusDatum_T_eq` in
-  `LaurentRefinement.lean` proved via `Finset.ext` on membership
-  (bypasses diamond; see reviewer note below).
-- **Reviewer's alternative**: state τ's subset claim at the
-  `rationalOpen` (Set Spv A) level rather than Finset level, since
-  valuation membership doesn't depend on `Finset.instInsert`.
-- **Estimated lines**: ~30 (once projection helper lands).
 
 #### S-GEOM-BASE: base case `|S.elts| = 1`
 
