@@ -906,7 +906,10 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
 
 ### [T-FLAT-VIA-WEDHORN830] Direct flatness of restriction maps via Wedhorn 8.30/8.31
 
-- **Status**: OPEN (HIGH PRIORITY — critical path)
+- **Status**: DONE (audited 2026-05-12, T258)
+- **Closed**: 2026-05-12 audit — `restrictionMap_flat_via_iteratedMinus`
+  in `Adic spaces/RestrictionFlatness.lean`. Sorry-free; `#print axioms`
+  reports `[propext, Classical.choice, Quot.sound]`.
 - **File**: NEW (e.g., `Adic spaces/RestrictionFlatness.lean`) or addition
   to `Cor832.lean`.
 - **Depends on**:
@@ -943,7 +946,11 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
 
 ### [T-COR832-VIA-FLAT] Refactor Cor 8.32 abstract to consume `Module.Flat`
 
-- **Status**: OPEN (HIGH PRIORITY — critical path)
+- **Status**: DONE (audited 2026-05-12, T258)
+- **Closed**: 2026-05-12 audit — `flat_over_base_tate_laurent` in
+  `Adic spaces/Cor832.lean:594`. Sorry-free; `#print axioms` reports
+  `[propext, Classical.choice, Quot.sound]`. Production-ready
+  Module.Flat-based product flatness supplier for Laurent-shape covers.
 - **File**: `Adic spaces/Cor832.lean` (refactor of `flat_over_base_tate`
   and downstream)
 - **Depends on**: T-FLAT-VIA-WEDHORN830
