@@ -3859,8 +3859,18 @@ CLEANUP-WEDHORN-213 (final per-file cleanup)
 
 ### [T-WEDHORN-213-DATUM] Define `relativeRationalLocData E D hsub`
 
-- **Status**: OPEN
-- **File**: `Adic spaces/RelativeRationalLocData.lean` (new file)
+- **Status**: PARTIAL — LaurentNormalized case DONE (2026-05-12, T218)
+- **2026-05-12 update**: The LaurentNormalized D case is closed sorry-free
+  via `relativeRationalLocData_laurentNormalized` and
+  `relativeRationalLocData_hopen_proof_of_laurentNormalized` (commit a8d364a).
+  The hopen goes through with N=0 by leveraging 1 ∈ D.T (the
+  LaurentNormalized condition) to put 1 ∈ T_at_E, then
+  divByS b s_at_E = algebraMap b * divByS 1 s_at_E ∈ locSubring.
+  This is parallel to iteratedMinusDatum_B's hopen (where T = {1}).
+- **Remaining**: non-LaurentNormalized D case still has the sorry
+  in `relativeRationalLocData_hopen_proof`. The full Wedhorn 2.13
+  algebraic identity is still needed for arbitrary D.
+- **File**: `Adic spaces/RelativeRationalLocData.lean`
 - **Depends on**: none — uses only existing `RationalLocData`,
   `presheafValue_pairOfDefinition_concrete`, `RationalLocData.canonicalMap`.
 - **Type**: def + API lemmas
@@ -3871,11 +3881,10 @@ CLEANUP-WEDHORN-213 (final per-file cleanup)
   - T_at_E := `D.T.image E.canonicalMap`
   - s_at_E := `E.canonicalMap D.s`
   - hopen via push-through of D's hopen along E.canonicalMap.
-- **Proof sketch**: routine construction except for `hopen`. For `hopen`:
-  pull D's `hopen` (∃ N, ∀ b ∈ E.P.I^N, divByS b D.s ∈ locSubring) along
-  `E.canonicalMap`, using that the image of E.P.I is contained in
-  P_at_E.I (the pair-of-definition at E-level), and divByS commutes with
-  the algebraMap-image where applicable.
+- **Proof sketch (general case, still open)**: pull D's `hopen` (∃ N, ∀ b ∈ E.P.I^N,
+  divByS b D.s ∈ locSubring) along `E.canonicalMap`, using that the image of
+  E.P.I is contained in P_at_E.I (the pair-of-definition at E-level), and
+  divByS commutes with the algebraMap-image where applicable.
 - **Mathlib lemmas needed**: `Finset.image`, `divByS_mem_locSubring`,
   `algebraMap_mem_locSubring` (all existing).
 - **Sources**: Wedhorn Lemma 2.13. Templates: `iteratedMinusDatum_B` (line
