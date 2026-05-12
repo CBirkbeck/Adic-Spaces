@@ -2617,7 +2617,22 @@ to the normalized-Laurent bypass.
 These are the migration targets for downstream callers (`Cor832.lean:462`,
 `LaurentRefinement.lean:5801`, `StandardCover.lean:1629`) which currently
 inherit the legacy `tateAcyclicity` Part 1 retired-sorry and Part 2
-literal-sorry chain. -/
+literal-sorry chain.
+
+**Axiom hygiene status (2026-05-12)**: `#print axioms` for these wrappers
+reports `[propext, sorryAx, Classical.choice, Quot.sound]`. The remaining
+`sorryAx` is inherited from `hSpa_surj_from_spanTop` (Cor832.lean:512),
+which depends on the retired-as-false `restrictionMap_isLocalization`
+(Wedhorn Prop 8.15 in surjective form, false in general per the reviewer's
+infinite-convergent-tail counterexample).
+
+Closing the inherited `sorryAx` requires building a sorry-free prime-lifting
+route that does NOT identify `presheafValue D` with the algebraic localization
+`(presheafValue C.base)[s^{-1}]`. The natural candidates — going-down via
+flatness, IsLocalRing characterization of FF, or maximal-only characterization
+— all require additional structural arguments beyond what's currently in
+the project. This is a separate research item not on the normalized-Laurent
+critical path. -/
 
 /-- Separation via the normalized-Laurent bypass, empty-coverings-tolerant. -/
 theorem rationalCovering_hasSeparation_via_normalizedLaurent
