@@ -115,6 +115,8 @@ theorem iteratedMinus_B_flat_of_canonical
     @Module.Flat (presheafValue D₀) (presheafValue (iteratedMinusDatum_B P D₀ f))
       _ _ (RingHom.toModule (RationalLocData.canonicalMap (iteratedMinusDatum_B P D₀ f))) := by
   letI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
+  -- HasLocLiftPowerBounded (presheafValue D₀) is brought in scope so that the
+  -- conclusion's `letI` matches (the proof itself doesn't use it).
   letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
   letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
   letI P_B : PairOfDefinition (presheafValue D₀) :=
@@ -703,9 +705,11 @@ theorem restrictionMap_flat_of_rational_subset_via_relative
       ∀ a : presheafValue E,
         relEquiv (restrictionMapHom E D hsub a) = D_at_E.canonicalMap a)
     -- B-level hypotheses needed by `presheafValue_flat_of_canonical` at E-level.
+    -- Note: NO `HasLocLiftPowerBounded (presheafValue E)` hypothesis required —
+    -- `presheafValue_flat_of_canonical` discharges flatness via the canonical
+    -- Tate-quotient identification, not via Nullstellensatz / restriction maps at
+    -- the B-level.
     (hNoeth_B : IsNoetherianRing (presheafValue E))
-    (hLocLift_B : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
-      HasLocLiftPowerBounded (presheafValue E))
     (hA_complete_B : @CompleteSpace (presheafValue E)
       (IsTopologicalAddGroup.rightUniformSpace (presheafValue E)))
     (hnoeth_B : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
@@ -720,7 +724,6 @@ theorem restrictionMap_flat_of_rational_subset_via_relative
     (hT_pb : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
       ∀ t ∈ D_at_E.T, TopologicalRing.IsPowerBounded t)
     (hcont_eval : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
-      letI : HasLocLiftPowerBounded (presheafValue E) := hLocLift_B
       letI : IsNoetherianRing (presheafValue E) := hNoeth_B
       letI P_B : PairOfDefinition (presheafValue E) :=
         presheafValue_pairOfDefinition_concrete P E
@@ -731,12 +734,14 @@ theorem restrictionMap_flat_of_rational_subset_via_relative
     @Module.Flat (presheafValue E) (presheafValue D) _ _
       ((restrictionMapHom E D hsub).toModule) := by
   letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
-  letI : HasLocLiftPowerBounded (presheafValue E) := hLocLift_B
   letI : IsNoetherianRing (presheafValue E) := hNoeth_B
   letI P_B : PairOfDefinition (presheafValue E) :=
     presheafValue_pairOfDefinition_concrete P E
   letI : IsNoetherianRing ↥P_B.A₀ := hP_A₀Noeth_B
   -- Step 1: E-level flatness of presheafValue D_at_E via Wedhorn 8.30 + Lemma 8.31.
+  -- Note: `presheafValue_flat_of_canonical` does NOT require
+  -- `HasLocLiftPowerBounded (presheafValue E)` — flatness is established directly
+  -- from the Tate-quotient identification at the B-level, no Nullstellensatz needed.
   haveI hflat_E :
       @Module.Flat (presheafValue E) (presheafValue D_at_E)
         _ _ (RingHom.toModule D_at_E.canonicalMap) :=
