@@ -2462,4 +2462,119 @@ theorem RationalCovering.separation_via_normalizedLaurent
     exact hagree D hD
   exact sub_eq_zero.mp hzero
 
+/-! ### `tateAcyclicityComplete` wrapper with normalized-Laurent separation
+
+Composes T234 (`separation_via_normalizedLaurent`) with `tateAcyclicityComplete`
+to discharge the `global_separation` hypothesis for covers consisting of
+normalized-minus pieces. The Part 2 lane suppliers remain as hypotheses
+(existing project infrastructure). -/
+theorem RationalCovering.tateAcyclicityComplete_via_normalizedLaurent
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    [DecidableEq A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) (hne : C.covers.Nonempty)
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    [LaurentNormalized C.base]
+    (normalized_laurent_witness : ∀ D : { D // D ∈ C.covers },
+      ∃ f : A, f ∈ C.base.P.A₀ ∧ D.1 = laurentMinusNormalizedDatum C.base f)
+    (hSpa_points : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp)
+    (hNoeth_B : IsNoetherianRing (presheafValue C.base))
+    (hA_complete_B : @CompleteSpace (presheafValue C.base)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue C.base)))
+    (hnoeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      IsNoetherianRing ↥(TateAlgebra.pairSubring
+        (IsTateRing.principalPair (presheafValue C.base)).toPairOfDefinition))
+    (hP_A₀Noeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P C.base).A₀))
+    (hb_per_f : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : DecidableEq (presheafValue C.base) := Classical.decEq _
+      ∀ (f : A) (hf : f ∈ C.base.P.A₀),
+      letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
+        laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
+      TopologicalRing.IsPowerBounded
+        (invS (relativeRationalLocData_laurentNormalized P C.base
+          (laurentMinusNormalizedDatum C.base f)
+          (laurentMinusNormalized_subset C.base f))))
+    (hT_pb_per_f : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : DecidableEq (presheafValue C.base) := Classical.decEq _
+      ∀ (f : A) (hf : f ∈ C.base.P.A₀),
+      letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
+        laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
+      ∀ t ∈ (relativeRationalLocData_laurentNormalized P C.base
+        (laurentMinusNormalizedDatum C.base f)
+        (laurentMinusNormalized_subset C.base f)).T,
+        TopologicalRing.IsPowerBounded t)
+    (hcont_eval_per_f : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : DecidableEq (presheafValue C.base) := Classical.decEq _
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue C.base) :=
+        presheafValue_pairOfDefinition_concrete P C.base
+      ∀ (f : A) (hf : f ∈ C.base.P.A₀),
+      letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
+        laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
+      @Continuous _ _
+        (TateAlgebra.quotientOneSubfXIdealTopology
+          (relativeRationalLocData_laurentNormalized P C.base
+            (laurentMinusNormalizedDatum C.base f)
+            (laurentMinusNormalized_subset C.base f)).s)
+        (inferInstance : TopologicalSpace
+          (presheafValue (relativeRationalLocData_laurentNormalized P C.base
+            (laurentMinusNormalizedDatum C.base f)
+            (laurentMinusNormalized_subset C.base f))))
+        (tateQuotientToPresheafHom
+          (relativeRationalLocData_laurentNormalized P C.base
+            (laurentMinusNormalizedDatum C.base f)
+            (laurentMinusNormalized_subset C.base f)) (hb_per_f f hf)))
+    (hZavyalov_per_E : rationalOpen C.base.T C.base.s ≠ ∅ →
+      ∃ S : Finset A,
+        refines_cover_per_E C S ∧ refines_contain C S ∧ refines_span_top S)
+    (f₀ : A)
+    (lane_A_supplier : ∀ (S' : StandardCover A)
+      (_hS'_per_E : refines_cover_per_E C S'.elts)
+      (_hS'_contain : refines_contain C S'.elts),
+      ∀ (fV : ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ }, presheafValue D.1),
+      (∀ (D₁ D₂ : { D // D ∈ C.refinedVCovers S'.elts f₀ })
+        (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (fV D₁) = restrictionMap D₂.1 D₃ h₃₂ (fV D₂)) →
+      ∃ x : presheafValue C.base, ∀ D : { D // D ∈ C.refinedVCovers S'.elts f₀ },
+        restrictionMap C.base D.1
+          (C.refinedVCovers_subset_base S'.elts f₀ D.1 D.2) x = fV D)
+    (lane_B_supplier : ∀ (S' : StandardCover A)
+      (hS'_per_E : refines_cover_per_E C S'.elts)
+      (_hS'_contain : refines_contain C S'.elts),
+      ∀ (E : { E // E ∈ C.covers }) (a b : presheafValue E.1),
+      (∀ (D : RationalLocData A)
+         (hD : D ∈ (C.per_E_local_covering S'.elts f₀ E hS'_per_E).covers),
+        restrictionMap E.1 D
+            ((C.per_E_local_covering S'.elts f₀ E hS'_per_E).hsubset D hD) a =
+          restrictionMap E.1 D
+            ((C.per_E_local_covering S'.elts f₀ E hS'_per_E).hsubset D hD) b) →
+        a = b) :
+    -- Part 1: separation (zero-kernel form).
+    (∀ x : presheafValue C.base,
+      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+        restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0) ∧
+    -- Part 2: gluing.
+    (∀ (f : ∀ (D : ↥C.covers), presheafValue D.1),
+      (∀ (D₁ D₂ : ↥C.covers) (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+        restrictionMap D₁.1 D₃ h₃₁ (f D₁) = restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
+      ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
+        restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D) :=
+  RationalCovering.tateAcyclicityComplete C hne hZavyalov_per_E f₀
+    (RationalCovering.separation_via_normalizedLaurent P C hne
+      normalized_laurent_witness hSpa_points hNoeth_B hA_complete_B hnoeth_B
+      hP_A₀Noeth_B hb_per_f hT_pb_per_f hcont_eval_per_f)
+    lane_A_supplier lane_B_supplier
+
 end ValuationSpectrum
