@@ -1213,7 +1213,14 @@ The tickets below execute this third route.
 
 ### [T-FLAT-PLUS-REWORK] Rework `restrictionMap_flat_via_iteratedPlus` without power-boundedness
 
-- **Status**: OPEN (MEDIUM PRIORITY — fix existing wrong-abstraction theorem)
+- **Status**: DONE (audited 2026-05-12, T261)
+- **Closed**: 2026-05-12 audit — `restrictionMap_flat_via_fSubX_quotient`
+  in `Adic spaces/RestrictionFlatness.lean` is the reworked version
+  WITHOUT the source-side `IsPowerBounded (D₀.canonicalMap f)` hypothesis.
+  The plus-piece flatness now uses `flat_quotient_fSubX_general` (Wedhorn
+  8.30/8.31) routed through `laurentPlusBridge`, eliminating the
+  spurious source-side PB constraint. Sorry-free; `#print axioms`
+  reports `[propext, Classical.choice, Quot.sound]`.
 - **Added**: 2026-05-11 round 3
 - **Problem**: the current `restrictionMap_flat_via_iteratedPlus`
   (committed under T-FLAT-PLUS) exposes the hypothesis
