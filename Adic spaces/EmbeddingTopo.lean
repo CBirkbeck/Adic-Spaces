@@ -1570,4 +1570,35 @@ theorem productRestrictionSub_isInducing_of_V_subset_C_with_laurent_pair
     (productRestrictionSub A C) rfl rfl hV_ind
     (productRestrictionSub_continuous C)
 
+/-! ### Depth-N Lane C refinement induction via IsInducing composition
+
+For the Lane C arbitrary-cover closure, the topological refinement
+induction iterates the local Laurent-pair step across a tree of Laurent
+splits. Each level of the tree carries its own Laurent-pair inducing
+data; the levels compose via `Topology.IsInducing.comp` +
+`Topology.IsInducing.piMap`.
+
+The generic abstract lemma: if `f : X → ∀ i : ι, A i` is `IsInducing` and
+for each `i` the map `g i : A i → B i` is `IsInducing`, then the
+composed map `x ↦ Pi.map g (f x)` is `IsInducing`.
+
+This is the **tree-iteration tool** — at the root level, `f` is the
+Laurent 2-cover diagonal (inducing via T279). For each piece at the
+root, `g i` is the further Laurent diagonal (inducing via T279 applied
+to that piece). The composition gives the depth-2 leaf diagonal as
+inducing, ready for refinement-transfer to arbitrary covers. -/
+
+/-- **Tree-iteration composition tool**: composing an `IsInducing`
+diagonal at a root with `IsInducing` diagonals at each child preserves
+`IsInducing` for the combined leaf diagonal. -/
+theorem _root_.Topology.IsInducing.piMap_comp
+    {X : Type*} [TopologicalSpace X]
+    {ι : Type*} {A B : ι → Type*}
+    [∀ i, TopologicalSpace (A i)] [∀ i, TopologicalSpace (B i)]
+    {f : X → ∀ i, A i} (hf : Topology.IsInducing f)
+    {g : ∀ i, A i → B i} (hg : ∀ i, Topology.IsInducing (g i)) :
+    Topology.IsInducing (fun x i => g i (f x i)) := by
+  have h_piMap : Topology.IsInducing (Pi.map g) := Topology.IsInducing.piMap hg
+  exact h_piMap.comp hf
+
 end ValuationSpectrum
