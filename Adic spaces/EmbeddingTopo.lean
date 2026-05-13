@@ -276,6 +276,19 @@ theorem _root_.Topology.IsInducing.of_continuous_comp
     rw [hgf, ← induced_compose]
     exact induced_mono hg.le_induced
 
+/-- **T283**: `productRestrictionSub A C` is always continuous.
+
+Each component is `restrictionMap C.base D _`, which is continuous via
+`restrictionMapHom_continuous` (the underlying-function form of the
+continuous ring homomorphism). The full Π-valued map is continuous by
+`continuous_pi`. -/
+theorem productRestrictionSub_continuous (C : RationalCovering A) :
+    Continuous (productRestrictionSub A C) := by
+  refine continuous_pi ?_
+  rintro ⟨D, hD⟩
+  show Continuous (restrictionMap C.base D (C.hsubset D hD))
+  exact restrictionMapHom_continuous C.base D (C.hsubset D hD)
+
 /-- **T282**: **strengthened** topological refinement transfer.
 
 Same as `productRestrictionSub_isInducing_of_finer_rational` (T267) but
