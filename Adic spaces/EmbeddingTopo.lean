@@ -2259,6 +2259,21 @@ theorem LaurentTree.allNodesDisjoint_ofRightBranchList
     rw [Finset.disjoint_singleton_left]
     exact h_notin
 
+/-- **Right-branching tree existence**: given a list `L` of split
+elements and per-level hypotheses (refinement, inducing,
+disjointness), the right-branching tree witnesses existence. -/
+theorem LaurentTree.exists_for_rightBranchList
+    (D₀ : RationalLocData A) (L : List A) (C : RationalCovering A)
+    (h_refines : (LaurentTree.ofRightBranchList L).Refines D₀ C)
+    (h_split : LaurentTree.RightBranchInducing D₀ L)
+    (h_disj : LaurentTree.RightBranchDisjoint D₀ L) :
+    ∃ t : LaurentTree A,
+      t.Refines D₀ C ∧ t.allSplitsInducing D₀ ∧
+      t.allNodesDisjoint D₀ :=
+  ⟨LaurentTree.ofRightBranchList L, h_refines,
+   LaurentTree.allSplitsInducing_ofRightBranchList D₀ L h_split,
+   LaurentTree.allNodesDisjoint_ofRightBranchList D₀ L h_disj⟩
+
 /-- **Laurent-cover existence**: for the 2-element Laurent cover
 `laurentCovering D₀ f`, given IsInducing for the cover itself and
 distinctness of plus/minus data, the depth-1 tree `node f leaf leaf`
