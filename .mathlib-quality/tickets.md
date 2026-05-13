@@ -5039,8 +5039,9 @@ family may depend on `j`.
 ### [T-LAURENT-TREE-RELATIVE-LABELS] Relative-label LaurentTree
 
 - **Status**: PARTIAL (2026-05-13 round 5 + beastmode session). The
-  TYPE LAYER is landed; semantic interpretation (`ratioPlusDatum`,
-  `ratioMinusDatum`, `leaves`, the three predicates) remains.
+  TYPE LAYER and the ABSOLUTE RATIO DATUM (with concrete hopen) are
+  landed; the tree's semantic interpretation (`leaves`, predicates,
+  tree-induction theorem) remains.
 - **Landed (beastmode session 2026-05-13)**:
   - `RatioLaurentTree A` inductive type with three constructors:
     `leaf`, `nodeLaurent f L R` (standard Laurent split at f ∈ A,
@@ -5049,14 +5050,40 @@ family may depend on `j`.
   - `RatioLaurentTree.depth` + simp lemmas.
   - `RatioLaurentTree.ofLaurentTree : LaurentTree A → RatioLaurentTree A`
     (embedding of standard tree). No axioms.
-- **Remaining work** (documented in-file):
-  - `ratioPlusDatum D₀ f g` / `ratioMinusDatum D₀ f g`: absolute
-    rational locality data for f/g splits via `rationalOpen_inter`.
-    Requires `hopen` threading using D₀'s hopen + g-as-unit-at-D₀.
-  - `RatioLaurentTree.leaves t D₀`: recursive leaf interpretation.
+  - **Absolute ratio datum** (substantive hopen — attacked head-on,
+    not parametric): `ratioPlusDatum D₀ f g g_inv hg hg_inv` with
+    g_inv ∈ D₀.P.A₀ producing the absolute RationalLocData A whose
+    rationalOpen equals `rationalOpen D₀ ∩ {v(f) ≤ v(g)}`. The
+    substantive hopen proof uses the algebraic identity
+    `divByS b (s·g) = algebraMap g_inv · divByS (b·g) (s·g)` and the
+    new helper `divByS_mul_g_mem_T_ratio` (analogue of the existing
+    `divByS_mul_f_mem'` for T₂ = {f, g}).
+  - `ratioMinusDatum D₀ f g f_inv hf hf_inv` (symmetric).
+  - `ratioPlus_rationalOpen`, `ratioMinus_rationalOpen` — subset
+    identity via `rationalOpen_inter`.
+  - `ratioPlus_subset`, `ratioMinus_subset` — containment in
+    rationalOpen D₀.
+  - `ratioCover_covers` — valuation-trichotomy coverage; requires
+    BOTH f_inv ∈ A₀ (for minus's v(f) ≠ 0) and g_inv ∈ A₀ (for plus's
+    v(g) ≠ 0).
+  - `ratioCovering D₀ f g f_inv g_inv hf hf_inv hg hg_inv :
+    RationalCovering A` — full 2-element ratio cover analogous to
+    `laurentCovering`.
+- **Remaining work**:
+  - `RatioLaurentTree.leaves t D₀ (per-node-inverses) :
+    List (RationalLocData A)`: recursive leaf interpretation
+    dispatching on constructor. Threads per-node inverse witnesses
+    through the tree walk.
   - `Refines`, `allSplitsInducing`, `allNodesDisjoint` analogues.
   - Tree-induction theorem analogous to
     `productRestrictionSub_isInducing_via_tree`.
+- **Important caveat**: the hopen for `ratioPlusDatum` requires
+  `g_inv ∈ D₀.P.A₀` — i.e., g is a unit *in the ring of definition
+  A₀*, not just in A. For Wedhorn 8.34's actual second-stage ratios
+  `f_i / f_j`, the inverses live in `presheafValue (leaf base)`, not
+  in A₀. Translating between these is the content of
+  `T-RATIONAL-LOC-TRANSITIVITY-API` (the transitivity bridge between
+  absolute A-level data and relative-over-presheafValue data).
 - **Priority**: HIGH (foundational for T-WEDHORN-STAGE-2 and
   T-LAURENT-TREE-GRAFT)
 - **File**: `Adic spaces/LaurentRefinementTree.lean` (extend with
