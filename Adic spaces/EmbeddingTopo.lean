@@ -2176,4 +2176,37 @@ theorem LaurentTree.exists_for_singleton_cover
    trivial,
    trivial⟩
 
+/-- **Laurent-cover existence**: for the 2-element Laurent cover
+`laurentCovering D₀ f`, given IsInducing for the cover itself and
+distinctness of plus/minus data, the depth-1 tree `node f leaf leaf`
+witnesses existence. -/
+theorem LaurentTree.exists_for_laurentCovering
+    (D₀ : RationalLocData A) (f : A)
+    (h_split : Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f)))
+    (h_ne : laurentPlusDatum D₀ f ≠ laurentMinusDatum D₀ f) :
+    ∃ t : LaurentTree A,
+      t.Refines D₀ (laurentCovering D₀ f) ∧
+      t.allSplitsInducing D₀ ∧
+      t.allNodesDisjoint D₀ := by
+  classical
+  refine ⟨LaurentTree.node f LaurentTree.leaf LaurentTree.leaf,
+    LaurentTree.node_leaf_leaf_refines_laurentCovering D₀ f, ?_, ?_⟩
+  · -- allSplitsInducing
+    refine ⟨h_split, ?_, ?_⟩ <;> trivial
+  · -- allNodesDisjoint
+    refine ⟨h_ne, ?_, ?_, ?_⟩
+    · -- Disjoint (L.toCovering plus).covers (R.toCovering minus).covers
+      -- = Disjoint {plus} {minus} (since L = R = leaf).
+      show Disjoint
+        ((LaurentTree.leaf : LaurentTree A).toCovering
+          (laurentPlusDatum D₀ f)).covers
+        ((LaurentTree.leaf : LaurentTree A).toCovering
+          (laurentMinusDatum D₀ f)).covers
+      rw [LaurentTree.toCovering_leaf_covers,
+          LaurentTree.toCovering_leaf_covers,
+          Finset.disjoint_singleton]
+      exact h_ne
+    · trivial
+    · trivial
+
 end ValuationSpectrum
