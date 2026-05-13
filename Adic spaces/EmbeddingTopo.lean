@@ -361,4 +361,96 @@ theorem productRestrictionSub_laurentCovering_isEmbedding_of_distinct
           else _) = _
     rw [dif_neg hne.symm]
 
+/-! ### T276: Concrete single-Laurent-cover IsInducing supplier
+
+Wires the bridge-form pair embedding
+`laurentCover_isEmbedding_presheaf_via_bridges_baire_quotientSigma_auto`
+(LaurentRefinement.lean) into T275's concrete Lane C base case to produce
+`Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f))`
+— the concrete first step of the Lane C induction.
+
+This is the **single-`f` IsInducing supplier**: given the bridge hypothesis
+bundle (with the bridges auto-discharged via the `_baire_quotientSigma_auto`
+variant), output the subtype-indexed IsInducing for the 2-element Laurent
+cover. -/
+
+/-- **T276**: concrete single-Laurent-cover IsInducing via the bridge form.
+Consumes the same hypothesis bundle as the
+`laurentCover_isEmbedding_presheaf_via_bridges_baire_quotientSigma_auto`
+variant, plus the distinctness
+`hne : laurentPlusDatum D₀ f ≠ laurentMinusDatum D₀ f`. -/
+theorem productRestrictionSub_laurentCovering_isInducing_via_bridges
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    [LaurentNormalized D₀]
+    (f : A)
+    (hf_nonunit : ¬IsUnit (D₀.canonicalMap f))
+    (hne : laurentPlusDatum D₀ f ≠ laurentMinusDatum D₀ f)
+    (hNoeth_B : IsNoetherianRing (presheafValue D₀))
+    (hDom_B : IsDomain (presheafValue D₀))
+    (hSigCp_B : SigmaCompactSpace (presheafValue D₀))
+    (hA_complete_B : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)))
+    (hnoeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring
+            (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hnoeth₂_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring₂
+            (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition))
+    (hLocLift_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      HasLocLiftPowerBounded (presheafValue D₀))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P D₀).A₀))
+    (hcont_forward_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      letI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue D₀) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue D₀) :=
+        presheafValue_pairOfDefinition_concrete P D₀
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue D₀) (D₀.canonicalMap f))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue D₀) P_B (D₀.canonicalMap f))))
+        (example638Plus_forwardHom (presheafValue D₀) P_B (D₀.canonicalMap f)))
+    (hcont_eval_B : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      let D : RationalLocData (presheafValue D₀) := iteratedMinusDatum_B P D₀ f
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
+    (hSigCp_TA : letI : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing P D₀
+      SigmaCompactSpace ↥(TateAlgebra (presheafValue D₀)))
+    (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s) :
+    Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f)) := by
+  -- Step 1: pair-form embedding from the bridges auto-supplier.
+  have pair_emb :
+      Topology.IsEmbedding
+        (fun x : presheafValue D₀ =>
+          (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x,
+           restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x)) :=
+    laurentCover_isEmbedding_presheaf_via_bridges_baire_quotientSigma_auto
+      P D₀ f hf_nonunit hNoeth_B hDom_B hSigCp_B hA_complete_B hnoeth_B
+      hnoeth₂_B hLocLift_B hA₀Noeth_B hcont_forward_B hcont_eval_B
+      hSigCp_TA hplus hminus
+  -- Step 2: transport to subtype-indexed Π form via T275.
+  have subtype_emb :
+      Topology.IsEmbedding (productRestrictionSub A (laurentCovering D₀ f)) :=
+    productRestrictionSub_laurentCovering_isEmbedding_of_distinct
+      D₀ f hplus hminus hne pair_emb
+  exact subtype_emb.toIsInducing
+
 end ValuationSpectrum
