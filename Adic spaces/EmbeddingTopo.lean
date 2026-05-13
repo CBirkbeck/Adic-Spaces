@@ -880,4 +880,91 @@ theorem productRestrictionSub_isInducing_via_laurent_refinement
   funext x ⟨D, hD⟩
   rfl
 
+/-- **T286**: τ-only Lane C closer. Combines T285 (natural refinement
+map + continuity + commutativity) with T284 to eliminate the manual
+`φ` / `hφ_continuous` / `hφ` hypotheses. The consumer needs only:
+
+- The bridges hypothesis bundle (consumed by T279).
+- A τ-function from `↥(laurentCovering C.base f₀).covers` to `↥C.covers`.
+- The per-piece containment proof for τ.
+
+This is the **practical** end-to-end Lane C closer for single-Laurent
+refinements. The τ-function plus containment is the **structural input
+about C** (each laurent piece is contained in some C-piece), and it is
+what an actual consumer would need to provide. -/
+theorem productRestrictionSub_isInducing_via_laurent_refinement_tau
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    [LaurentNormalized C.base]
+    (f₀ : A)
+    (hf_nonunit : ¬IsUnit (C.base.canonicalMap f₀))
+    (hs : C.base.s ≠ 0)
+    (hNoeth_B : IsNoetherianRing (presheafValue C.base))
+    (hDom_B : IsDomain (presheafValue C.base))
+    (hSigCp_B : SigmaCompactSpace (presheafValue C.base))
+    (hA_complete_B : @CompleteSpace (presheafValue C.base)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue C.base)))
+    (hnoeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring
+            (IsTateRing.principalPair (presheafValue C.base)).toPairOfDefinition))
+    (hnoeth₂_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring₂
+            (IsTateRing.principalPair (presheafValue C.base)).toPairOfDefinition))
+    (hLocLift_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      HasLocLiftPowerBounded (presheafValue C.base))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P C.base).A₀))
+    (hcont_forward_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : HasLocLiftPowerBounded (presheafValue C.base) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue C.base) :=
+        presheafValue_pairOfDefinition_concrete P C.base
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue C.base) (C.base.canonicalMap f₀))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue C.base) P_B (C.base.canonicalMap f₀))))
+        (example638Plus_forwardHom (presheafValue C.base) P_B (C.base.canonicalMap f₀)))
+    (hcont_eval_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      let D : RationalLocData (presheafValue C.base) := iteratedMinusDatum_B P C.base f₀
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
+    (hSigCp_TA : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      SigmaCompactSpace ↥(TateAlgebra (presheafValue C.base)))
+    (hplus : rationalOpen (laurentPlusDatum C.base f₀).T (laurentPlusDatum C.base f₀).s ⊆
+      rationalOpen C.base.T C.base.s)
+    (hminus : rationalOpen (laurentMinusDatum C.base f₀).T (laurentMinusDatum C.base f₀).s ⊆
+      rationalOpen C.base.T C.base.s)
+    (τ : { d // d ∈ (laurentCovering C.base f₀).covers } → { E // E ∈ C.covers })
+    (hτ : ∀ d : { d // d ∈ (laurentCovering C.base f₀).covers },
+      rationalOpen d.1.T d.1.s ⊆ rationalOpen (τ d).1.T (τ d).1.s) :
+    Topology.IsInducing (productRestrictionSub A C) := by
+  -- Discharge φ + commutativity + continuity from T285.
+  apply productRestrictionSub_isInducing_via_laurent_refinement
+    P C f₀ hf_nonunit hs hNoeth_B hDom_B hSigCp_B hA_complete_B
+    hnoeth_B hnoeth₂_B hLocLift_B hA₀Noeth_B hcont_forward_B hcont_eval_B
+    hSigCp_TA hplus hminus
+    (naturalRefinementMap τ hτ)
+  · -- Commutativity (via T285's `naturalRefinementMap_comp`).
+    intro x
+    rw [naturalRefinementMap_comp]
+    funext d
+    rfl
+  · -- Continuity (via T285's `naturalRefinementMap_continuous`).
+    exact naturalRefinementMap_continuous τ hτ
+
 end ValuationSpectrum
