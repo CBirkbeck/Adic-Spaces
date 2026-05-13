@@ -195,6 +195,40 @@ def ofLaurentTree : LaurentTree A → RatioLaurentTree A
     ofLaurentTree (LaurentTree.node f L R) =
       RatioLaurentTree.nodeLaurent f (ofLaurentTree L) (ofLaurentTree R) := rfl
 
+/-! ### Next steps for RatioLaurentTree (TODO)
+
+To make `RatioLaurentTree` semantically usable for the Wedhorn 8.34
+second stage, the following constructions are needed:
+
+1. **`ratioPlusDatum D₀ f g : RationalLocData A`** — the absolute
+   rational locality datum representing the plus piece at f · g⁻¹
+   relative to D₀, i.e. `rationalOpen D₀ ∩ {v(f) ≤ v(g)}`. The
+   natural construction uses `rationalOpen_inter` with:
+   * T = (insert D₀.s D₀.T) * {f, g}
+   * s = D₀.s * g
+   together with the requisite `hopen` witness (which requires that
+   `g` is a unit at D₀, or more precisely that `D₀.s * g` is in some
+   open ideal of `D₀.P`).
+
+2. **`ratioMinusDatum D₀ f g`** — the symmetric minus piece (swap
+   roles of f and g).
+
+3. **`RatioLaurentTree.leaves t D₀`** — the recursive leaf
+   interpretation, dispatching on the constructor.
+
+4. **`RatioLaurentTree.Refines`, `.allSplitsInducing`, `.allNodesDisjoint`** —
+   the three predicates analogous to those for `LaurentTree`.
+
+5. **Tree-induction theorem for `RatioLaurentTree`** — analogous to
+   `productRestrictionSub_isInducing_via_tree` but for the
+   generalised tree.
+
+These are the substantive next pieces for `T-LAURENT-TREE-RELATIVE-LABELS`.
+Each requires careful threading of the hopen conditions for the new
+rational locality data; particularly, the ratio constructors require
+g to be a unit at the running base, which is the substantive content
+of Wedhorn's first stage. -/
+
 end RatioLaurentTree
 
 section Semantics
