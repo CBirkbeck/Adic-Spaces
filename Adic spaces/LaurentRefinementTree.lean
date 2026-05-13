@@ -431,6 +431,62 @@ theorem LaurentTree.leaves_ofRightBranchList
     simp [LaurentTree.ofRightBranchList, LaurentTree.leaves,
       LaurentTree.plusOfMinusChain, LaurentTree.terminalMinus, ih]
 
+/-! ## Basic existence: trees refining specific covers
+
+For specific structured covers we can exhibit explicit refining trees.
+These are the building blocks; the general Wedhorn 8.34 construction
+combines them via iterated splitting. -/
+
+/-- The trivial Laurent tree `leaf` refines any covering containing the
+base datum `D₀` in its `covers`. -/
+theorem LaurentTree.leaf_refines_singleton (D₀ : RationalLocData A)
+    (C : RationalCovering A) (hcovers : D₀ ∈ C.covers) :
+    (LaurentTree.leaf : LaurentTree A).Refines D₀ C := by
+  refine ⟨D₀, hcovers, ?_⟩
+  exact subset_refl _
+
+/-- The depth-1 Laurent tree `node f leaf leaf` at root `D₀` refines the
+Laurent cover `laurentCovering D₀ f`: the plus-leaf datum is
+`laurentPlusDatum D₀ f` (a piece of `laurentCovering`'s covers), and
+the minus-leaf datum is `laurentMinusDatum D₀ f` (the other piece). -/
+theorem LaurentTree.node_leaf_leaf_refines_laurentCovering
+    (D₀ : RationalLocData A) (f : A) :
+    (LaurentTree.node f LaurentTree.leaf LaurentTree.leaf).Refines
+      D₀ (laurentCovering D₀ f) := by
+  refine ⟨?_, ?_⟩
+  · -- L = leaf at laurentPlusDatum D₀ f refines: pick laurentPlusDatum
+    refine ⟨laurentPlusDatum D₀ f, ?_, subset_refl _⟩
+    simp [laurentCovering]
+  · -- R = leaf at laurentMinusDatum D₀ f refines: pick laurentMinusDatum
+    refine ⟨laurentMinusDatum D₀ f, ?_, subset_refl _⟩
+    simp [laurentCovering]
+
+/-- **Refinement transitivity at the cover level**: if every piece of
+`C` is contained in some piece of `C'`, then `t.Refines D₀ C` implies
+`t.Refines D₀ C'`. -/
+theorem LaurentTree.Refines.mono (t : LaurentTree A) (D₀ : RationalLocData A)
+    {C C' : RationalCovering A}
+    (hCC' : ∀ E ∈ C.covers, ∃ E' ∈ C'.covers,
+      rationalOpen E.T E.s ⊆ rationalOpen E'.T E'.s)
+    (h : t.Refines D₀ C) :
+    t.Refines D₀ C' := by
+  rw [LaurentTree.refines_iff_forall_mem_leaves] at h ⊢
+  intro D hD
+  obtain ⟨E, hE, hDE⟩ := h D hD
+  obtain ⟨E', hE', hEE'⟩ := hCC' E hE
+  exact ⟨E', hE', hDE.trans hEE'⟩
+
+/-- **Node combinator**: if `L` refines `C` from `laurentPlusDatum D₀ f`
+and `R` refines `C` from `laurentMinusDatum D₀ f`, then `node f L R`
+refines `C` from `D₀`. (Definitional from `LaurentTree.refines_node`.) -/
+theorem LaurentTree.node_refines_of_subtrees_refine
+    (f : A) (L R : LaurentTree A) (D₀ : RationalLocData A)
+    (C : RationalCovering A)
+    (hL : L.Refines (laurentPlusDatum D₀ f) C)
+    (hR : R.Refines (laurentMinusDatum D₀ f) C) :
+    (LaurentTree.node f L R).Refines D₀ C :=
+  ⟨hL, hR⟩
+
 end Semantics
 
 end ValuationSpectrum
