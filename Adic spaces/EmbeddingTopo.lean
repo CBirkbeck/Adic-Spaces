@@ -2023,4 +2023,82 @@ theorem productRestrictionSub_isInducing_via_tree
       (ihR (laurentMinusDatum D₀ f) h_split_R h_disj_R)
       h_ne h_covers_disj
 
+/-! ## Final inducing transfer: tree-induction → arbitrary cover C
+
+Given an arbitrary rational covering `C` of `D₀` and a Laurent tree `t`
+refining `C`, the inducing property at the tree-level (provided by
+`productRestrictionSub_isInducing_via_tree`) transfers to inducing at
+the C-level via the natural refinement map (T285/T282 infrastructure).
+
+This is the **central application** of the Laurent refinement tree: it
+turns the tree-recursive inducing proof into an inducing proof for
+arbitrary covers, which is what's needed for `IsSheafy`. -/
+
+/-- The refinement witness from `t.Refines D₀ C` gives, for each leaf
+datum `D ∈ t.toCoveringCovers D₀`, a choice of `E ∈ C.covers` such that
+`D`'s rational open sits inside `E`'s rational open. Packaged as a
+τ-function for `naturalRefinementMap`. -/
+noncomputable def LaurentTree.refinementTau
+    (t : LaurentTree A) (D₀ : RationalLocData A) (C : RationalCovering A)
+    (h_refines : t.Refines D₀ C) :
+    { D // D ∈ (t.toCovering D₀).covers } → { E // E ∈ C.covers } := by
+  classical
+  intro ⟨D, hD⟩
+  have h := (t.refines_iff_forall_mem_leaves D₀ C).mp h_refines D
+    ((t.mem_toCoveringCovers_iff_mem_leaves D₀ D).mp hD)
+  exact ⟨h.choose, h.choose_spec.1⟩
+
+theorem LaurentTree.refinementTau_spec
+    (t : LaurentTree A) (D₀ : RationalLocData A) (C : RationalCovering A)
+    (h_refines : t.Refines D₀ C)
+    (d : { D // D ∈ (t.toCovering D₀).covers }) :
+    rationalOpen d.1.T d.1.s ⊆
+      rationalOpen (t.refinementTau D₀ C h_refines d).1.T
+                   (t.refinementTau D₀ C h_refines d).1.s := by
+  classical
+  obtain ⟨D, hD⟩ := d
+  have h := (t.refines_iff_forall_mem_leaves D₀ C).mp h_refines D
+    ((t.mem_toCoveringCovers_iff_mem_leaves D₀ D).mp hD)
+  exact h.choose_spec.2
+
+/-- **Tree inducing → arbitrary cover inducing**: given a Laurent tree
+`t` refining `C` whose splits are all inducing and whose nodes are all
+disjoint, the diagonal `productRestrictionSub A C` is `IsInducing`. -/
+theorem productRestrictionSub_isInducing_via_tree_refinement
+    (C : RationalCovering A) (t : LaurentTree A)
+    (h_refines : t.Refines C.base C)
+    (h_split : t.allSplitsInducing C.base)
+    (h_disj : t.allNodesDisjoint C.base) :
+    Topology.IsInducing (productRestrictionSub A C) := by
+  classical
+  -- Step 1: inducing at the tree-level.
+  have h_tree_ind : Topology.IsInducing
+    (productRestrictionSub A (t.toCovering C.base)) :=
+    productRestrictionSub_isInducing_via_tree t C.base h_split h_disj
+  -- Step 2: τ-map from t.toCovering covers back to C.covers.
+  set τ : { D // D ∈ (t.toCovering C.base).covers } → { E // E ∈ C.covers } :=
+    t.refinementTau C.base C h_refines with hτ_def
+  have hτ : ∀ d : { D // D ∈ (t.toCovering C.base).covers },
+      rationalOpen d.1.T d.1.s ⊆
+        rationalOpen (τ d).1.T (τ d).1.s :=
+    t.refinementTau_spec C.base C h_refines
+  -- Step 3: transfer via T282.
+  refine productRestrictionSub_isInducing_of_finer_rational_continuous
+    C (t.toCovering C.base).covers
+    (t.toCovering C.base).hsubset
+    (productRestrictionSub A (t.toCovering C.base))
+    rfl
+    h_tree_ind
+    (naturalRefinementMap τ hτ)
+    ?_  -- commutativity
+    (naturalRefinementMap_continuous τ hτ)
+    (productRestrictionSub_continuous C)
+  intro x
+  rw [naturalRefinementMap_comp]
+  funext d
+  -- Both sides: `restrictionMap C.base d.1 _ x` with possibly different
+  -- subset proofs. Use proof-irrelevance.
+  show restrictionMap C.base d.1 _ x = restrictionMap C.base d.1 _ x
+  rfl
+
 end ValuationSpectrum
