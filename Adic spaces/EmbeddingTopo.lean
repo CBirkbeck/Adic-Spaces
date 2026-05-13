@@ -162,4 +162,37 @@ theorem productRestrictionSub_isInducing_of_finer_rational
   -- Apply IsInducing.of_comp_iff: φ IsInducing + φ ∘ f IsInducing ⇒ f IsInducing.
   exact (hφ_inducing.of_comp_iff).mp hV_inducing
 
+/-! ### Pair-to-subtype transport: IsEmbedding via the pair form
+
+`laurentCover_isEmbedding_presheaf` (LaurentRefinement.lean) outputs
+`Topology.IsEmbedding` of the PAIR-form map
+`fun x => (restrictionMap plus x, restrictionMap minus x)`. The
+`productRestrictionSub A C` (StructureSheaf.lean) for a 2-element cover
+has type `presheafValue C.base → ∀ D : ↥C.covers, presheafValue D.1`,
+which is the SUBTYPE-indexed product form.
+
+These are isomorphic via the homeomorphism between
+`(P × Q)` and `∀ d : ↥({a, b} : Finset _), F d.1`.
+
+This conditional theorem captures the transport: given IsEmbedding in
+the pair form + an isomorphism witness, transport to the subtype form.
+For consumers wiring `laurentCover_isEmbedding_presheaf` into the
+`isSheafy.embedding` field of `IsSheafy`. -/
+
+/-- **Pair-to-subtype transport for IsEmbedding**: given a pair-form
+embedding `f : X → P × Q` plus a homeomorphism `g : P × Q ≃ₜ ∀ d : ↥S, F d`
+satisfying the appropriate commutativity, the subtype-form map is also
+an embedding.
+
+Statement is intentionally abstract — the homeomorphism `g` is supplied
+by the caller. For the 2-element Laurent cover, `g` is the canonical
+pair-to-subtype equivalence on `{a, b} : Finset _`. -/
+theorem isEmbedding_of_pair_form_isEmbedding
+    {X P Q Y : Type*} [TopologicalSpace X] [TopologicalSpace P]
+    [TopologicalSpace Q] [TopologicalSpace Y]
+    (f : X → P × Q) (g : (P × Q) ≃ₜ Y)
+    (h_pair : Topology.IsEmbedding f) :
+    Topology.IsEmbedding (g ∘ f) :=
+  g.isEmbedding.comp h_pair
+
 end ValuationSpectrum
