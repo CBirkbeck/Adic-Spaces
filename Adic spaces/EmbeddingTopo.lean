@@ -2376,4 +2376,32 @@ This is captured in the open ticket `T-LAURENT-TREE-PRUNE` and is the
 deferred bookkeeping for the grafted Wedhorn construction's full
 `allNodesDisjoint` closure. -/
 
+/-! ### Grafted-tree → C inducing transfer
+
+The IsSheafy downstream consumer for the grafted Wedhorn construction:
+given a refining grafted tree with the appropriate inducing predicates,
+the C-level diagonal is `Topology.IsInducing`. This composes the
+graft-preservation theorems with the tree-induction theorem. -/
+
+/-- **IsInducing via a grafted tree refinement**: given an outer tree
+`t_outer` with `allSplitsInducing`, a per-leaf inner family `h` whose
+each `h L` has `allSplitsInducing L`, together with refinement of C
+and full `allNodesDisjoint` of the grafted tree, conclude C-level
+inducing. -/
+theorem productRestrictionSub_isInducing_via_grafted_tree
+    (C : RationalCovering A)
+    (t_outer : LaurentTree A)
+    (h : RationalLocData A → LaurentTree A)
+    (h_refines : (t_outer.graftAt C.base h).Refines C.base C)
+    (h_outer_inducing : t_outer.allSplitsInducing C.base)
+    (h_inner_inducing :
+      ∀ L ∈ t_outer.leaves C.base, (h L).allSplitsInducing L)
+    (h_disjoint : (t_outer.graftAt C.base h).allNodesDisjoint C.base) :
+    Topology.IsInducing (productRestrictionSub A C) := by
+  have h_split : (t_outer.graftAt C.base h).allSplitsInducing C.base :=
+    LaurentTree.allSplitsInducing_graftAt t_outer C.base h
+      h_outer_inducing h_inner_inducing
+  exact productRestrictionSub_isInducing_via_tree_refinement
+    C (t_outer.graftAt C.base h) h_refines h_split h_disjoint
+
 end ValuationSpectrum
