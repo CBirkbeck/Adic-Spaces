@@ -546,6 +546,41 @@ theorem LaurentTree.balancedLeafBase_subset_base
   (LaurentTree.ofBalancedList L).leaf_subset_base D₀ _
     (LaurentTree.leaves_ofBalancedList_mem D₀ L σ)
 
+/-- Every leaf of `ofBalancedList L` at root `D₀` arises as
+`balancedLeafBase D₀ L σ` for some sign-function σ. The leaves of the
+balanced tree are exactly enumerated by sign-functions. -/
+theorem LaurentTree.leaves_ofBalancedList_eq_image (D₀ : RationalLocData A)
+    (L : List A) :
+    ∀ D ∈ (LaurentTree.ofBalancedList L).leaves D₀,
+      ∃ σ : Fin L.length → Bool,
+        LaurentTree.balancedLeafBase D₀ L σ = D := by
+  induction L generalizing D₀ with
+  | nil =>
+    intro D hD
+    simp only [LaurentTree.ofBalancedList, LaurentTree.leaves_leaf,
+      List.mem_singleton] at hD
+    refine ⟨fun k => k.elim0, ?_⟩
+    simp [LaurentTree.balancedLeafBase, hD]
+  | cons f rest ih =>
+    intro D hD
+    simp only [LaurentTree.ofBalancedList, LaurentTree.leaves_node,
+      List.mem_append] at hD
+    rcases hD with hL | hR
+    · obtain ⟨σ', hσ'⟩ := ih (laurentPlusDatum D₀ f) D hL
+      refine ⟨Fin.cases true σ', ?_⟩
+      rw [LaurentTree.balancedLeafBase_cons]
+      rw [show (Fin.cases true σ' ⟨0, Nat.succ_pos rest.length⟩ : Bool) = true
+        from rfl]
+      rw [if_pos rfl]
+      convert hσ' using 2
+    · obtain ⟨σ', hσ'⟩ := ih (laurentMinusDatum D₀ f) D hR
+      refine ⟨Fin.cases false σ', ?_⟩
+      rw [LaurentTree.balancedLeafBase_cons]
+      rw [show (Fin.cases false σ' ⟨0, Nat.succ_pos rest.length⟩ : Bool) = false
+        from rfl]
+      rw [if_neg (by decide)]
+      convert hσ' using 2
+
 /-! ## Unit property at minus leaves of the balanced tree
 
 The substantive content of the balanced-tree construction: at any
@@ -763,6 +798,27 @@ theorem LaurentTree.leaf_refines_of_singleton (C : RationalCovering A)
   obtain ⟨E', hE', hvE'⟩ := C.hcover v hv
   rw [hE_eq, Finset.mem_singleton] at hE'
   rwa [hE'] at hvE'
+
+/-! ## Generalised Laurent tree node — rational locality data labels
+
+For Wedhorn 8.34's second stage, the splits at "unit ratios f_i · f_j⁻¹"
+live in 𝒪(L), not A. Rather than introducing a fully relative `LaurentTreeRel`
+type (which would require type-level dependence and confront a strict-positivity
+issue), we generalise the existing `LaurentTree A`'s NODE LABEL from a single
+element `f : A` (with `laurentPlusDatum` / `laurentMinusDatum` built around it)
+to a `RationalLocData A` directly. A "generalised split" at a rational locality
+datum `D'` produces:
+
+* plus piece = `D'` itself (as a rational locality datum);
+* minus piece = the corresponding minus rational subset.
+
+The standard `laurentPlusDatum D₀ f` is a particular case (T = D₀.T ∪ {f}, s = D₀.s).
+The unit-ratio case `f_i · f_j⁻¹` corresponds to a different shape (T = {f_i}, s = f_j).
+
+This file documents the design but does not yet implement the generalised tree;
+it is deferred to the dedicated ticket `T-LAURENT-TREE-RELATIVE-LABELS`. The
+existing `LaurentTree A` continues to serve the first-stage construction; only
+the second-stage requires the generalisation. -/
 
 end Semantics
 
