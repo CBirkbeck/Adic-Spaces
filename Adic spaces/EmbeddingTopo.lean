@@ -1881,4 +1881,17 @@ theorem isInducing_pair_form_composed_via_union
     (fun D : RationalLocData A => presheafValue D) h_disj).isInducing
   exact h_union.comp h_pair
 
+/-! ### T-TREE-INDUCING-NODE: partial — landing in union-indexed form
+
+The fully-flat version (with codomain indexed by
+`((LaurentTree.node f L R).toCovering D₀).covers`, which definitionally
+unfolds to `(L.leaves plus ++ R.leaves minus).toFinset`) requires an
+additional type-level identification with `Lleaves ∪ Rleaves` (via
+`List.toFinset_append`). The proposition-level identification holds but
+the dependent type-level transport requires `Eq.mpr`/`HEq` handling
+that hasn't landed yet; tracked as sub-issue `T-FLAT-COVERS-VS-UNION`.
+
+The `isInducing_pair_form_composed_via_union` form (above) suffices
+for downstream use after a manual identification of the codomains. -/
+
 end ValuationSpectrum
