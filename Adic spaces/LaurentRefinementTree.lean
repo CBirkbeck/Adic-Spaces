@@ -546,6 +546,18 @@ theorem LaurentTree.balancedLeafBase_subset_base
   (LaurentTree.ofBalancedList L).leaf_subset_base D₀ _
     (LaurentTree.leaves_ofBalancedList_mem D₀ L σ)
 
+/-- The balanced tree at `L` has exactly `2^|L|` leaves at any root. -/
+theorem LaurentTree.length_leaves_ofBalancedList
+    (D₀ : RationalLocData A) (L : List A) :
+    ((LaurentTree.ofBalancedList L).leaves D₀).length = 2 ^ L.length := by
+  induction L generalizing D₀ with
+  | nil => simp [LaurentTree.ofBalancedList, LaurentTree.leaves]
+  | cons f rest ih =>
+    simp only [LaurentTree.ofBalancedList, LaurentTree.leaves_node,
+      List.length_append, List.length_cons]
+    rw [ih (laurentPlusDatum D₀ f), ih (laurentMinusDatum D₀ f)]
+    ring
+
 /-- Every leaf of `ofBalancedList L` at root `D₀` arises as
 `balancedLeafBase D₀ L σ` for some sign-function σ. The leaves of the
 balanced tree are exactly enumerated by sign-functions. -/
