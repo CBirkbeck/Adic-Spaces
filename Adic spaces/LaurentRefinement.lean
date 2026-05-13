@@ -414,6 +414,23 @@ noncomputable def ratioCovering (D₀ : RationalLocData A) (f g f_inv g_inv : A)
       {ratioPlusDatum D₀ f g g_inv hg hg_inv,
        ratioMinusDatum D₀ f g f_inv hf hf_inv} := rfl
 
+/-- **Distinctness**: `ratioPlusDatum` and `ratioMinusDatum` differ
+whenever the denominators `D₀.s * g` and `D₀.s * f` differ. Sufficient
+when `A` is a domain, `D₀.s ≠ 0`, and `f ≠ g`. -/
+theorem ratioPlus_ne_ratioMinus [IsDomain A] (D₀ : RationalLocData A)
+    (f g f_inv g_inv : A) (hf : f * f_inv = 1) (hf_inv : f_inv ∈ D₀.P.A₀)
+    (hg : g * g_inv = 1) (hg_inv : g_inv ∈ D₀.P.A₀)
+    (hs : D₀.s ≠ 0) (hfg : f ≠ g) :
+    ratioPlusDatum D₀ f g g_inv hg hg_inv ≠
+      ratioMinusDatum D₀ f g f_inv hf hf_inv := by
+  intro h_eq
+  -- The s fields differ: plus has D₀.s * g, minus has D₀.s * f.
+  have hs_eq : D₀.s * g = D₀.s * f := by
+    have := congrArg RationalLocData.s h_eq
+    simpa [ratioPlusDatum, ratioMinusDatum] using this
+  -- In a domain with D₀.s ≠ 0: D₀.s * g = D₀.s * f ⟹ g = f, contradicting f ≠ g.
+  exact hfg (mul_left_cancel₀ hs hs_eq).symm
+
 /-- The "minus half" of the Laurent cover at `f` within base `D₀`. -/
 noncomputable def laurentMinusDatum (D₀ : RationalLocData A) (f : A) :
     RationalLocData A where
