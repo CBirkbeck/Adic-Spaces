@@ -331,6 +331,54 @@ theorem ratioMinus_rationalOpen (D₀ : RationalLocData A) (f g f_inv : A)
   unfold ratioMinusDatum
   exact ratioPlus_rationalOpen D₀ g f f_inv hf hf_inv
 
+/-- The ratio plus piece is contained in the base. -/
+theorem ratioPlus_subset (D₀ : RationalLocData A) (f g g_inv : A)
+    (hg : g * g_inv = 1) (hg_inv : g_inv ∈ D₀.P.A₀) :
+    rationalOpen (ratioPlusDatum D₀ f g g_inv hg hg_inv).T
+                 (ratioPlusDatum D₀ f g g_inv hg hg_inv).s ⊆
+      rationalOpen D₀.T D₀.s := by
+  rw [ratioPlus_rationalOpen]
+  exact Set.inter_subset_left
+
+/-- The ratio minus piece is contained in the base. -/
+theorem ratioMinus_subset (D₀ : RationalLocData A) (f g f_inv : A)
+    (hf : f * f_inv = 1) (hf_inv : f_inv ∈ D₀.P.A₀) :
+    rationalOpen (ratioMinusDatum D₀ f g f_inv hf hf_inv).T
+                 (ratioMinusDatum D₀ f g f_inv hf hf_inv).s ⊆
+      rationalOpen D₀.T D₀.s := by
+  unfold ratioMinusDatum
+  exact ratioPlus_subset D₀ g f f_inv hf hf_inv
+
+/-- The ratio plus and minus pieces cover the base (valuation trichotomy
+on v(f) vs v(g)). We need BOTH inverses available — `g_inv` for the
+plus piece and `f_inv` for the minus piece — to give complete coverage. -/
+theorem ratioCover_covers (D₀ : RationalLocData A) (f g f_inv g_inv : A)
+    (hf : f * f_inv = 1) (hf_inv : f_inv ∈ D₀.P.A₀)
+    (hg : g * g_inv = 1) (hg_inv : g_inv ∈ D₀.P.A₀)
+    (v : Spv A) (hv : v ∈ rationalOpen D₀.T D₀.s) :
+    v ∈ rationalOpen (ratioPlusDatum D₀ f g g_inv hg hg_inv).T
+                     (ratioPlusDatum D₀ f g g_inv hg hg_inv).s ∨
+    v ∈ rationalOpen (ratioMinusDatum D₀ f g f_inv hf hf_inv).T
+                     (ratioMinusDatum D₀ f g f_inv hf hf_inv).s := by
+  have hvspa : v ∈ Spa A A⁺ := hv.1
+  have hg_unit : IsUnit g := ⟨⟨g, g_inv, hg, by rw [mul_comm]; exact hg⟩, rfl⟩
+  have hf_unit : IsUnit f := ⟨⟨f, f_inv, hf, by rw [mul_comm]; exact hf⟩, rfl⟩
+  rcases v.vle_total f g with hcase | hcase
+  · left
+    rw [ratioPlus_rationalOpen]
+    refine ⟨hv, hvspa, fun t ht => ?_, not_vle_zero_of_isUnit hg_unit v⟩
+    simp only [Finset.mem_insert, Finset.mem_singleton] at ht
+    rcases ht with ht_eq | ht_eq
+    · rw [ht_eq]; exact hcase
+    · rw [ht_eq]; exact v.vle_refl _
+  · right
+    rw [ratioMinus_rationalOpen]
+    refine ⟨hv, hvspa, fun t ht => ?_, not_vle_zero_of_isUnit hf_unit v⟩
+    simp only [Finset.mem_insert, Finset.mem_singleton] at ht
+    rcases ht with ht_eq | ht_eq
+    · rw [ht_eq]; exact hcase
+    · rw [ht_eq]; exact v.vle_refl _
+
 /-- The "minus half" of the Laurent cover at `f` within base `D₀`. -/
 noncomputable def laurentMinusDatum (D₀ : RationalLocData A) (f : A) :
     RationalLocData A where
