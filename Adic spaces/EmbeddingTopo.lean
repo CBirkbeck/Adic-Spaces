@@ -195,4 +195,51 @@ theorem isEmbedding_of_pair_form_isEmbedding
     Topology.IsEmbedding (g ∘ f) :=
   g.isEmbedding.comp h_pair
 
+/-! ### T273: Lane C Laurent base case (parametric form)
+
+The parametric Lane C base case: given a homeomorphism witness `Φ` between
+the **pair form** of the Laurent restriction and the **subtype-indexed Π
+form** required by `IsSheafy.embedding`, together with the standard pair-form
+`IsEmbedding` produced by `laurentCover_isEmbedding_presheaf`, the
+`productRestrictionSub` of `laurentCovering` is itself an `IsEmbedding`.
+
+This is the **base case** of the Lane C refinement induction: once the
+laurent 2-cover embedding is in the subtype-indexed Π form, the general
+rational-cover embedding follows by the refinement-transfer chain
+(Wedhorn Lemma 8.34, packaged through `_finer_rational_refines_by_standard`
+in `RationalRefinement.lean`).
+
+The homeomorphism `Φ` is supplied by the caller. A concrete construction
+of `Φ` is the natural next ticket; this theorem isolates the **transport
+step** from the **homeomorphism construction**. -/
+
+/-- **T273**: Lane C Laurent base case (parametric form). The
+`IsEmbedding` of `productRestrictionSub A (laurentCovering D₀ f)` follows
+from the pair-form embedding plus a homeomorphism witness `Φ`. -/
+theorem productRestrictionSub_laurentCovering_isEmbedding_of_homeomorph
+    (D₀ : RationalLocData A) (f : A)
+    (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (pair_emb : Topology.IsEmbedding
+      (fun x : presheafValue D₀ =>
+        (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x,
+         restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x)))
+    (Φ : (presheafValue (laurentPlusDatum D₀ f) ×
+           presheafValue (laurentMinusDatum D₀ f)) ≃ₜ
+          (∀ D : ↥(laurentCovering D₀ f).covers, presheafValue D.1))
+    (hΦ : ∀ x : presheafValue D₀,
+      Φ (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x,
+         restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x) =
+        productRestrictionSub A (laurentCovering D₀ f) x) :
+    Topology.IsEmbedding (productRestrictionSub A (laurentCovering D₀ f)) := by
+  have hcomp : productRestrictionSub A (laurentCovering D₀ f) =
+      Φ ∘ (fun x : presheafValue D₀ =>
+        (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x,
+         restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x)) := by
+    funext x; exact (hΦ x).symm
+  rw [hcomp]
+  exact isEmbedding_of_pair_form_isEmbedding _ Φ pair_emb
+
 end ValuationSpectrum
