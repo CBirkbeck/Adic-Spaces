@@ -2157,4 +2157,23 @@ theorem isSheafy_ofStronglyNoetherianTate_flat_of_wedhorn_tree_existence
   isSheafy_ofStronglyNoetherianTate_flat_of_topo_inducing A P hSpa
     (productRestrictionSub_isInducing_of_wedhorn_tree_existence h_wedhorn)
 
+/-! ### Concrete tree-existence witnesses
+
+For specific covers, we exhibit concrete witness trees. These do not
+solve Wedhorn 8.34 in full generality (which requires the constructive
+content for *arbitrary* C), but they cover the structural endpoints. -/
+
+/-- **Trivial cover existence**: for a covering whose covers contain
+the base datum, the `leaf` tree refines and trivially satisfies the
+inducing + disjointness predicates. -/
+theorem LaurentTree.exists_for_singleton_cover
+    (C : RationalCovering A) (h_base_mem : C.base ∈ C.covers) :
+    ∃ t : LaurentTree A,
+      t.Refines C.base C ∧ t.allSplitsInducing C.base ∧
+      t.allNodesDisjoint C.base :=
+  ⟨LaurentTree.leaf,
+   LaurentTree.leaf_refines_singleton C.base C h_base_mem,
+   trivial,
+   trivial⟩
+
 end ValuationSpectrum
