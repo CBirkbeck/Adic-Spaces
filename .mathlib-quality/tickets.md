@@ -851,6 +851,12 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
       `productRestrictionSub A C` follows.
     Closes 1135 directly for any C whose covers structure already
     includes a laurent-at-base pair.
+  - T-EMBED-TOPO-LANE-C-T291-SANITY (T292, 2026-05-13):
+    `productRestrictionSub_laurentCovering_isInducing_via_T291` in
+    `EmbeddingTopo.lean` — sanity check: T291 specialised to `C =
+    laurentCovering D₀ f` reproduces T287/T278 via the bootstrap chain.
+    Validates the consistency of the three independent closure paths
+    (T278 direct, T287 via T286, T292 via T291).
   - T-EMBED-TOPO-DISTINCT (T277, 2026-05-13): `laurentPlus_ne_laurentMinus_of_nonunit`
     in `LaurentRefinement.lean` — Laurent plus and minus data distinctness
     from `hf_nonunit + D₀.s ≠ 0 + IsDomain A`.
