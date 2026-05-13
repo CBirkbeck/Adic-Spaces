@@ -88,6 +88,36 @@ theorem depth_ofRightBranchList (L : List A) :
   | cons f rest ih =>
     simp [ofRightBranchList, depth, ih, Nat.add_comm]
 
+/-- Balanced binary Laurent tree built from a list of split elements.
+At each step, the head element splits, and *both* subtrees are the same
+recursive tree on the remaining elements. The semantic interpretation at
+a root datum `D₀` enumerates all `2^|L|` simultaneous Laurent intersections
+indexed by sign-functions `σ : Fin |L| → {+, −}`.
+
+This is the structural carrier of Wedhorn's first-stage Laurent product
+cover U_{f₁} × ⋯ × U_{f_r} for a standard cover (f₁, …, f_r). -/
+def ofBalancedList : List A → LaurentTree A
+  | [] => LaurentTree.leaf
+  | f :: rest =>
+      LaurentTree.node f (ofBalancedList rest) (ofBalancedList rest)
+
+@[simp] theorem ofBalancedList_nil :
+    (ofBalancedList ([] : List A)) = LaurentTree.leaf := rfl
+
+@[simp] theorem ofBalancedList_cons (f : A) (rest : List A) :
+    ofBalancedList (f :: rest) =
+      LaurentTree.node f (ofBalancedList rest) (ofBalancedList rest) := rfl
+
+/-- The depth of `ofBalancedList L` equals the length of `L`.
+At each level both subtrees have the same depth (= rest.length), so
+`max L.depth R.depth = rest.length`. -/
+theorem depth_ofBalancedList (L : List A) :
+    (ofBalancedList L).depth = L.length := by
+  induction L with
+  | nil => simp
+  | cons f rest ih =>
+    simp [ofBalancedList, ih, Nat.add_comm]
+
 end LaurentTree
 
 section Semantics
@@ -379,6 +409,60 @@ theorem LaurentTree.minusChain_length (D₀ : RationalLocData A) (L : List A) :
   | nil => simp
   | cons f rest ih =>
     simp [LaurentTree.minusChain, ih]
+
+/-! ## Balanced tree leaf base enumeration
+
+Companion to the structural `ofBalancedList` constructor. Walks down
+the balanced tree by a sign-choice σ to produce the running base. -/
+
+/-- The running base at a balanced-tree leaf indexed by a sign-function
+`σ : Fin L.length → Bool`. Walking from the root `D₀`, at level `k`:
+* if `σ k = true`, descend to `laurentPlusDatum (running base) (L.get k)`;
+* if `σ k = false`, descend to `laurentMinusDatum (running base) (L.get k)`.
+
+The leaf datum at σ is the result of `L.length` iterated Laurent splits. -/
+noncomputable def LaurentTree.balancedLeafBase :
+    RationalLocData A → (L : List A) → (Fin L.length → Bool) →
+      RationalLocData A
+  | D₀, [], _ => D₀
+  | D₀, f :: rest, σ =>
+      if σ ⟨0, Nat.succ_pos _⟩ then
+        balancedLeafBase (laurentPlusDatum D₀ f) rest
+          (fun k => σ ⟨k.1 + 1, Nat.succ_lt_succ k.2⟩)
+      else
+        balancedLeafBase (laurentMinusDatum D₀ f) rest
+          (fun k => σ ⟨k.1 + 1, Nat.succ_lt_succ k.2⟩)
+
+@[simp] theorem LaurentTree.balancedLeafBase_nil
+    (D₀ : RationalLocData A) (σ : Fin 0 → Bool) :
+    LaurentTree.balancedLeafBase D₀ [] σ = D₀ := rfl
+
+theorem LaurentTree.balancedLeafBase_cons (D₀ : RationalLocData A)
+    (f : A) (rest : List A) (σ : Fin (rest.length + 1) → Bool) :
+    LaurentTree.balancedLeafBase D₀ (f :: rest) σ =
+      (if σ ⟨0, Nat.succ_pos _⟩ then
+        LaurentTree.balancedLeafBase (laurentPlusDatum D₀ f) rest
+          (fun k => σ ⟨k.1 + 1, Nat.succ_lt_succ k.2⟩)
+      else
+        LaurentTree.balancedLeafBase (laurentMinusDatum D₀ f) rest
+          (fun k => σ ⟨k.1 + 1, Nat.succ_lt_succ k.2⟩)) := rfl
+
+/-- The leaves of `ofBalancedList L` at root `D₀` are exactly the
+running bases at all sign-choices `σ : Fin L.length → Bool`. -/
+theorem LaurentTree.leaves_ofBalancedList_mem
+    (D₀ : RationalLocData A) (L : List A)
+    (σ : Fin L.length → Bool) :
+    LaurentTree.balancedLeafBase D₀ L σ ∈
+      (LaurentTree.ofBalancedList L).leaves D₀ := by
+  induction L generalizing D₀ with
+  | nil =>
+    simp [LaurentTree.balancedLeafBase, LaurentTree.ofBalancedList]
+  | cons f rest ih =>
+    simp only [LaurentTree.ofBalancedList, LaurentTree.leaves_node,
+      List.mem_append, LaurentTree.balancedLeafBase_cons]
+    split_ifs with h
+    · exact Or.inl (ih (laurentPlusDatum D₀ f) _)
+    · exact Or.inr (ih (laurentMinusDatum D₀ f) _)
 
 /-- The plus-pieces enumerated along the minus-chain. Each entry is
 `laurentPlusDatum (minusBase k) f_{k+1}` where `minusBase k` is the
