@@ -326,6 +326,31 @@ theorem LaurentTree.leaves_disjoint_of_leaf_leaf
   rw [h_plus, h_minus, Finset.disjoint_singleton]
   exact laurentPlus_ne_laurentMinus_of_nonunit D₀ f hf_nonunit hs
 
+/-! ## Existence stage (T-LAURENT-REFINEMENT-TREE existence — Wedhorn 8.34)
+
+For arbitrary rational covering `C` of `D₀` and standard cover `S ⊆ A`
+with `Ideal.span S = ⊤`, the goal is to construct a `LaurentTree A`
+whose leaves (interpreted at `D₀`) refine `C` — each leaf datum
+contained in some piece of `C.covers`. The construction is iterated
+standard-cover/Laurent splitting at elements of `S`, keeping pieces
+refining `C` at each step.
+
+This is the constructive content of Wedhorn Lemma 8.34. The project's
+existing gluing-side analog (`standardCover_gluing_induction_step` in
+`GeometricReduction.lean` + per-cover `refinedVCovers`) is the model.
+
+**Sketch** (for `S = {f₁, ..., fₙ}`, by induction on `n`):
+- Base `n = 0`: `S = ∅`, `Ideal.span ∅ = ⊥ ≠ ⊤`, so this case is
+  vacuous (or `0 ∈ ⊤` forces `1 = 0` ⇒ `A = 0`, where every cover
+  refines).
+- Step `S = {f₀} ∪ S'`: Laurent-split at `f₀`. Recurse on the plus
+  piece (`laurentPlusDatum D₀ f₀`) with the same `S'` (since `f₀`
+  becomes a unit there); recurse on the minus piece with `S'`. The
+  resulting subtrees give a tree at the parent base.
+
+Statement deferred to a separate proof effort with the right
+inductive setup over `S`. -/
+
 end Semantics
 
 end ValuationSpectrum
