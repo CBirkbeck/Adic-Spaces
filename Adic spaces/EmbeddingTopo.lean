@@ -2176,6 +2176,89 @@ theorem LaurentTree.exists_for_singleton_cover
    trivial,
    trivial⟩
 
+/-! ### Right-branching tree: per-level conditions
+
+For the right-branching tree built from a list `L = [f₁, ..., fₙ]`,
+both `allSplitsInducing` and `allNodesDisjoint` reduce to per-level
+conditions along the minus chain. Define convenience predicates. -/
+
+/-- Per-level IsInducing along the right-branching tree. -/
+noncomputable def LaurentTree.RightBranchInducing :
+    RationalLocData A → List A → Prop
+  | _, [] => True
+  | D₀, f :: rest =>
+      Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f)) ∧
+      RightBranchInducing (laurentMinusDatum D₀ f) rest
+
+@[simp] theorem LaurentTree.RightBranchInducing_nil (D₀ : RationalLocData A) :
+    LaurentTree.RightBranchInducing D₀ ([] : List A) ↔ True := Iff.rfl
+
+@[simp] theorem LaurentTree.RightBranchInducing_cons (D₀ : RationalLocData A)
+    (f : A) (rest : List A) :
+    LaurentTree.RightBranchInducing D₀ (f :: rest) ↔
+      Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f)) ∧
+      LaurentTree.RightBranchInducing (laurentMinusDatum D₀ f) rest := Iff.rfl
+
+/-- `RightBranchInducing` implies `allSplitsInducing` for the
+right-branching tree. -/
+theorem LaurentTree.allSplitsInducing_ofRightBranchList
+    (D₀ : RationalLocData A) (L : List A)
+    (h : LaurentTree.RightBranchInducing D₀ L) :
+    (LaurentTree.ofRightBranchList L).allSplitsInducing D₀ := by
+  induction L generalizing D₀ with
+  | nil => trivial
+  | cons f rest ih =>
+    obtain ⟨h_head, h_rest⟩ := h
+    refine ⟨h_head, trivial, ih (laurentMinusDatum D₀ f) h_rest⟩
+
+/-- Per-level distinctness + disjointness along the right-branching
+tree. At each level, we need:
+* plus ≠ minus at the current base
+* the plus singleton is disjoint from the future right-branching covers. -/
+noncomputable def LaurentTree.RightBranchDisjoint :
+    RationalLocData A → List A → Prop
+  | _, [] => True
+  | D₀, f :: rest =>
+      laurentPlusDatum D₀ f ≠ laurentMinusDatum D₀ f ∧
+      laurentPlusDatum D₀ f ∉
+        (LaurentTree.ofRightBranchList rest).toCoveringCovers
+          (laurentMinusDatum D₀ f) ∧
+      RightBranchDisjoint (laurentMinusDatum D₀ f) rest
+
+@[simp] theorem LaurentTree.RightBranchDisjoint_nil (D₀ : RationalLocData A) :
+    LaurentTree.RightBranchDisjoint D₀ ([] : List A) ↔ True := Iff.rfl
+
+@[simp] theorem LaurentTree.RightBranchDisjoint_cons (D₀ : RationalLocData A)
+    (f : A) (rest : List A) :
+    LaurentTree.RightBranchDisjoint D₀ (f :: rest) ↔
+      laurentPlusDatum D₀ f ≠ laurentMinusDatum D₀ f ∧
+      laurentPlusDatum D₀ f ∉
+        (LaurentTree.ofRightBranchList rest).toCoveringCovers
+          (laurentMinusDatum D₀ f) ∧
+      LaurentTree.RightBranchDisjoint (laurentMinusDatum D₀ f) rest := Iff.rfl
+
+/-- `RightBranchDisjoint` implies `allNodesDisjoint` for the
+right-branching tree. -/
+theorem LaurentTree.allNodesDisjoint_ofRightBranchList
+    (D₀ : RationalLocData A) (L : List A)
+    (h : LaurentTree.RightBranchDisjoint D₀ L) :
+    (LaurentTree.ofRightBranchList L).allNodesDisjoint D₀ := by
+  classical
+  induction L generalizing D₀ with
+  | nil => trivial
+  | cons f rest ih =>
+    obtain ⟨h_ne, h_notin, h_rest⟩ := h
+    refine ⟨h_ne, ?_, trivial, ih (laurentMinusDatum D₀ f) h_rest⟩
+    -- Disjoint ({plus} : Finset _) (ofRightBranchList rest).toCoveringCovers minus
+    show Disjoint
+      ((LaurentTree.leaf : LaurentTree A).toCovering
+        (laurentPlusDatum D₀ f)).covers
+      ((LaurentTree.ofRightBranchList rest).toCovering
+        (laurentMinusDatum D₀ f)).covers
+    rw [LaurentTree.toCovering_leaf_covers]
+    rw [Finset.disjoint_singleton_left]
+    exact h_notin
+
 /-- **Laurent-cover existence**: for the 2-element Laurent cover
 `laurentCovering D₀ f`, given IsInducing for the cover itself and
 distinctness of plus/minus data, the depth-1 tree `node f leaf leaf`
