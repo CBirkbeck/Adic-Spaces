@@ -2131,4 +2131,30 @@ theorem productRestrictionSub_isInducing_of_wedhorn_tree_existence
   exact productRestrictionSub_isInducing_via_tree_refinement
     C t h_refines h_split h_disj
 
+/-! ### IsSheafy via Wedhorn 8.34 tree existence
+
+Compose `productRestrictionSub_isInducing_of_wedhorn_tree_existence` with
+`isSheafy_ofStronglyNoetherianTate_flat_of_topo_inducing` to get a
+clean factorization: the only remaining residual for `IsSheafy A` is
+the **Wedhorn 8.34** existence of a Laurent refinement tree refining
+every rational covering with appropriate inducing + disjointness
+properties. -/
+
+/-- **IsSheafy via Wedhorn 8.34 tree existence**: the composition of
+the tree-induction infrastructure with the standard IsSheafy builder.
+The hypothesis bundle separates cleanly: `hSpa` is the Spa-point
+existence (supplied by Lemma 7.45 / trivial-valuation construction)
+and `h_wedhorn` is the Wedhorn 8.34 tree existence (the substantive
+remaining geometric content). -/
+theorem isSheafy_ofStronglyNoetherianTate_flat_of_wedhorn_tree_existence
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (hSpa : ∀ (C : RationalCovering A) (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp)
+    (h_wedhorn : ∀ (C : RationalCovering A), ∃ t : LaurentTree A,
+      t.Refines C.base C ∧ t.allSplitsInducing C.base ∧
+      t.allNodesDisjoint C.base) :
+    IsSheafy A :=
+  isSheafy_ofStronglyNoetherianTate_flat_of_topo_inducing A P hSpa
+    (productRestrictionSub_isInducing_of_wedhorn_tree_existence h_wedhorn)
+
 end ValuationSpectrum
