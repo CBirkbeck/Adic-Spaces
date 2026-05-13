@@ -1881,34 +1881,84 @@ theorem isInducing_pair_form_composed_via_union
     (fun D : RationalLocData A => presheafValue D) h_disj).isInducing
   exact h_union.comp h_pair
 
-/-! ### T-TREE-INDUCING-NODE: FLAT node-case (proof skeleton established)
+/-! ### Helper: piFinsetUnion evaluates to L-side or R-side component
 
-Established proof structure (via `lean_multi_attempt` testing):
+`Homeomorph.piFinsetUnion (a, b)` evaluated at an index in `s ∪ t`
+equals `a` or `b`'s value at the corresponding s-or-t element. Both
+sides give the index via `Equiv.Finset.union`, whose forward direction
+sends `Sum.inl/inr` to `⟨value, mem_union_left/right⟩` definitionally.
+The evaluation goes through `Equiv.piCongrLeft_sumInl/sumInr`. -/
+open Classical in
+theorem _root_.Homeomorph.piFinsetUnion_apply_left
+    {ι : Type*} [DecidableEq ι] (α : ι → Type*) [∀ i, TopologicalSpace (α i)]
+    {s t : Finset ι} (h : Disjoint s t)
+    (a : (i : ↥s) → α i.1) (b : (i : ↥t) → α i.1)
+    (D : ι) (hD : D ∈ s) :
+    (Homeomorph.piFinsetUnion α h) (a, b)
+      ⟨D, Finset.mem_union_left _ hD⟩ = a ⟨D, hD⟩ :=
+  Equiv.piCongrLeft_sumInl (fun j : ↥(s ∪ t) => α j.1)
+    (Equiv.Finset.union s t h) a b ⟨D, hD⟩
 
-```
-refine (Topology.isInducing_iff _).mpr ?_
-show instTopologicalSpacePresheafValue D₀ = _
-rw [h_union.eq_induced]
-congr 1
-funext x ⟨D, hD⟩
--- Goal: piFinsetUnion (a, b) ⟨D, hD⟩
---     = productRestrictionSub A ((node f L R).toCovering D₀) x ⟨D, hD⟩
--- Case-split on Finset.mem_union.mp hD; in each case use
--- Equiv.Finset.union_symm_{inl,inr} to evaluate piFinsetUnion to the
--- L_pi or R_pi component, then restrictionMap_comp to identify.
-```
+open Classical in
+theorem _root_.Homeomorph.piFinsetUnion_apply_right
+    {ι : Type*} [DecidableEq ι] (α : ι → Type*) [∀ i, TopologicalSpace (α i)]
+    {s t : Finset ι} (h : Disjoint s t)
+    (a : (i : ↥s) → α i.1) (b : (i : ↥t) → α i.1)
+    (D : ι) (hD : D ∈ t) :
+    (Homeomorph.piFinsetUnion α h) (a, b)
+      ⟨D, Finset.mem_union_right _ hD⟩ = b ⟨D, hD⟩ :=
+  Equiv.piCongrLeft_sumInr (fun j : ↥(s ∪ t) => α j.1)
+    (Equiv.Finset.union s t h) a b ⟨D, hD⟩
 
-The closing per-case argument:
-- For `hL : D ∈ (L.toCovering plus).covers`: piFinsetUnion ... = L_pi (rest_plus x) ⟨D, hL⟩
-  = restrictionMap plus D _ (rest_plus x) = restrictionMap D₀ D _ x (by `restrictionMap_comp`).
-- For `hR : D ∈ (R.toCovering minus).covers`: symmetric.
-
-Proof-irrelevance on the subset hypotheses closes the final mismatch.
-
-The unfolding of `Homeomorph.piFinsetUnion` at `⟨D, hD⟩` requires
-applying `Homeomorph.trans_apply`, `Homeomorph.symm_apply_apply`, then
-the structural `Equiv.Finset.union_symm_inl/inr` lemmas. This step
-hasn't found a clean `simp`-set yet; sub-ticket `T-PIFINSETUNION-EVAL-LEMMA`
-captures the helper-lemma extraction. -/
+/-! ### T-TREE-INDUCING-NODE: FLAT node-case (closed) -/
+open Classical in
+theorem productRestrictionSub_isInducing_via_tree_node
+    (D₀ : RationalLocData A) (f : A) (L R : LaurentTree A)
+    (h_split : Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f)))
+    (h_L : Topology.IsInducing
+      (productRestrictionSub A (L.toCovering (laurentPlusDatum D₀ f))))
+    (h_R : Topology.IsInducing
+      (productRestrictionSub A (R.toCovering (laurentMinusDatum D₀ f))))
+    (h_ne : laurentPlusDatum D₀ f ≠ laurentMinusDatum D₀ f)
+    (h_disj : Disjoint (L.toCovering (laurentPlusDatum D₀ f)).covers
+                       (R.toCovering (laurentMinusDatum D₀ f)).covers) :
+    Topology.IsInducing (productRestrictionSub A
+      ((LaurentTree.node f L R).toCovering D₀)) := by
+  have h_union := isInducing_pair_form_composed_via_union
+    D₀ f L R h_split h_L h_R h_ne h_disj
+  refine (Topology.isInducing_iff _).mpr ?_
+  show instTopologicalSpacePresheafValue D₀ = _
+  rw [h_union.eq_induced]
+  congr 1
+  funext x ⟨D, hD⟩
+  rcases Finset.mem_union.mp hD with hL | hR
+  · -- D ∈ L's covers: piFinsetUnion gives L_pi (rest_plus x) ⟨D, hL⟩
+    -- = restrictionMap plus D _ (rest_plus x) = restrictionMap D₀ D _ x.
+    change (Homeomorph.piFinsetUnion (fun D : RationalLocData A => presheafValue D) h_disj)
+        (productRestrictionSub A (L.toCovering (laurentPlusDatum D₀ f))
+          (restrictionMap D₀ (laurentPlusDatum D₀ f) (laurentPlus_subset D₀ f) x),
+         productRestrictionSub A (R.toCovering (laurentMinusDatum D₀ f))
+          (restrictionMap D₀ (laurentMinusDatum D₀ f) (laurentMinus_subset D₀ f) x))
+        ⟨D, Finset.mem_union_left _ hL⟩ = _
+    rw [Homeomorph.piFinsetUnion_apply_left]
+    show productRestrictionSub A (L.toCovering (laurentPlusDatum D₀ f))
+        (restrictionMap D₀ (laurentPlusDatum D₀ f) (laurentPlus_subset D₀ f) x)
+        ⟨D, hL⟩ = _
+    exact congr_fun (restrictionMap_comp D₀ (laurentPlusDatum D₀ f) D
+      (laurentPlus_subset D₀ f)
+      ((L.toCovering (laurentPlusDatum D₀ f)).hsubset D hL)) x
+  · change (Homeomorph.piFinsetUnion (fun D : RationalLocData A => presheafValue D) h_disj)
+        (productRestrictionSub A (L.toCovering (laurentPlusDatum D₀ f))
+          (restrictionMap D₀ (laurentPlusDatum D₀ f) (laurentPlus_subset D₀ f) x),
+         productRestrictionSub A (R.toCovering (laurentMinusDatum D₀ f))
+          (restrictionMap D₀ (laurentMinusDatum D₀ f) (laurentMinus_subset D₀ f) x))
+        ⟨D, Finset.mem_union_right _ hR⟩ = _
+    rw [Homeomorph.piFinsetUnion_apply_right]
+    show productRestrictionSub A (R.toCovering (laurentMinusDatum D₀ f))
+        (restrictionMap D₀ (laurentMinusDatum D₀ f) (laurentMinus_subset D₀ f) x)
+        ⟨D, hR⟩ = _
+    exact congr_fun (restrictionMap_comp D₀ (laurentMinusDatum D₀ f) D
+      (laurentMinus_subset D₀ f)
+      ((R.toCovering (laurentMinusDatum D₀ f)).hsubset D hR)) x
 
 end ValuationSpectrum
