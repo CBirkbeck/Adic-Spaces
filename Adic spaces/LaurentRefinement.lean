@@ -311,6 +311,26 @@ theorem ratioPlus_rationalOpen (D₀ : RationalLocData A) (f g g_inv : A)
       (Finset.mem_insert_of_mem (Finset.mem_singleton_self g)),
     rationalOpen_insert_s]
 
+/-- **Ratio minus piece**: the rational locality datum representing
+`rationalOpen D₀ ∩ {v(f) ≥ v(g)}` = `rationalOpen D₀ ∩ {v(g) ≤ v(f)}`.
+Symmetric to `ratioPlusDatum`: just swap the roles of f and g (with
+the inverse hypothesis now on f rather than g). -/
+noncomputable def ratioMinusDatum (D₀ : RationalLocData A) (f g f_inv : A)
+    (hf : f * f_inv = 1) (hf_inv : f_inv ∈ D₀.P.A₀) :
+    RationalLocData A :=
+  ratioPlusDatum D₀ g f f_inv hf hf_inv
+
+/-- The ratio minus piece's rational subset is the expected
+intersection. (By symmetry from `ratioPlus_rationalOpen`.) -/
+theorem ratioMinus_rationalOpen (D₀ : RationalLocData A) (f g f_inv : A)
+    (hf : f * f_inv = 1) (hf_inv : f_inv ∈ D₀.P.A₀) :
+    rationalOpen (ratioMinusDatum D₀ f g f_inv hf hf_inv).T
+                 (ratioMinusDatum D₀ f g f_inv hf hf_inv).s =
+      rationalOpen D₀.T D₀.s ∩
+        rationalOpen ({g, f} : Finset A) f := by
+  unfold ratioMinusDatum
+  exact ratioPlus_rationalOpen D₀ g f f_inv hf hf_inv
+
 /-- The "minus half" of the Laurent cover at `f` within base `D₀`. -/
 noncomputable def laurentMinusDatum (D₀ : RationalLocData A) (f : A) :
     RationalLocData A where
