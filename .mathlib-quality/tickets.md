@@ -508,7 +508,37 @@ and similar reductions on the plus/minus bridge sides.
   exact (hx_tn.mul y).isUnit_one_sub.exists_left_inv
   ```
 - **Estimated lines**: 30-50.
-- **Status**: OPEN, immediately actionable.
+- **Status**: DONE-AUDIT (2026-05-13). The "from-scratch ~30-50 line proof
+  via geometric series" plan was mathematically incomplete — without
+  completeness of `locSubring`, the standard route
+  `topologically-nilpotent → 1-x*y unit → x ∈ Jacobson` does not close.
+  The project already has the structurally correct infrastructure in
+  `IdealLocalization.lean`:
+  - `locIdeal_le_jacobson_bot_of_isAdicComplete` (line 262): the
+    conditional version under `[IsAdicComplete (locIdeal) (locSubring)]`.
+    Direct application of mathlib's `IsAdicComplete.le_jacobson_bot`.
+    Axiom-clean.
+  - `locIdeal_le_jacobson_bot_of_faithfullyFlat` (line 307): the
+    faithful-flatness descent version. Given a faithfully-flat algebra
+    S with Jacobson containment at S level (e.g., S = presheafValue's
+    ring of definition, which is adic-complete), descends to
+    `locSubring` without asserting `locSubring` complete.
+    Axiom-clean.
+  - `locIdeal_forall_isTopologicallyNilpotent` (line 339): every
+    `locIdeal` element is topologically nilpotent in `locSubring`.
+    No completeness needed. Axiom-clean.
+
+  The truly **unconditional** version `locIdeal ≤ Jacobson(⊥)` without
+  any hypothesis on `locSubring` requires the faithful-flatness route
+  (path #2 above) instantiated with S = `presheafValue_ringOfDef D`,
+  which itself requires Stacks 00MA full (the unconditional adic
+  completion of Noetherian is Noetherian + faithfully flat). So the
+  closure path is: S-IDEAL-JAC unconditional ⇐ Stacks 00MA full.
+
+  Downstream consumers in `Cor832.lean` (e.g.,
+  `productRestriction_injective_tate_of_isAdicComplete`) currently
+  take `[IsAdicComplete (locIdeal) (locSubring)]` as a typeclass
+  hypothesis and apply the conditional route.
 
 #### S-IDEAL-LOC: `q_𝔇 · A_s = q` + closedness transfer
 
