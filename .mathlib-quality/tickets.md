@@ -833,6 +833,13 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
     laurent-cover IsInducing via the T286 τ-only closer with the
     trivial identity τ-function. Validates the Lane C chain
     end-to-end.
+  - T-EMBED-TOPO-LANE-C-IND-STEP (T289, 2026-05-13):
+    `productRestrictionSub_isInducing_of_sub_inducing` in
+    `EmbeddingTopo.lean` — **inductive step for the standard-cover
+    induction**: if V_small ⊆ V_large (Finset inclusion) and
+    `productRestrictionSub_V_small` is IsInducing, then
+    `productRestrictionSub_V_large` is IsInducing. Routes through T281
+    with the subtype projection as the continuous post-composition.
   - T-EMBED-TOPO-DISTINCT (T277, 2026-05-13): `laurentPlus_ne_laurentMinus_of_nonunit`
     in `LaurentRefinement.lean` — Laurent plus and minus data distinctness
     from `hf_nonunit + D₀.s ≠ 0 + IsDomain A`.
