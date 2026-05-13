@@ -66,6 +66,21 @@ def depth : LaurentTree A → ℕ
 @[simp] theorem depth_node (f : A) (L R : LaurentTree A) :
     (node f L R).depth = 1 + max L.depth R.depth := rfl
 
+/-- Uniform graft: replace every leaf of `t_outer` with a fixed `t_inner`.
+The grafted tree's leaves correspond to (outer leaf base, inner leaf
+walk) pairs. -/
+def graftUniform : LaurentTree A → LaurentTree A → LaurentTree A
+  | leaf, t_inner => t_inner
+  | node f L R, t_inner =>
+      node f (L.graftUniform t_inner) (R.graftUniform t_inner)
+
+@[simp] theorem graftUniform_leaf (t_inner : LaurentTree A) :
+    LaurentTree.leaf.graftUniform t_inner = t_inner := rfl
+
+@[simp] theorem graftUniform_node (f : A) (L R t_inner : LaurentTree A) :
+    (LaurentTree.node f L R).graftUniform t_inner =
+      LaurentTree.node f (L.graftUniform t_inner) (R.graftUniform t_inner) := rfl
+
 /-- Right-branching Laurent tree built from a list of split elements.
 At each step, the head element splits, the plus subtree is a leaf, and
 the recursion continues on the minus side. -/
@@ -136,6 +151,49 @@ noncomputable def LaurentTree.leaves :
   | .node f L R, D₀ =>
       L.leaves (laurentPlusDatum D₀ f) ++ R.leaves (laurentMinusDatum D₀ f)
 
+/-- The leaves of `t.graftUniform t_inner` at root D₀ are the leaves of
+`t_inner` walked from each leaf of `t` at D₀. -/
+theorem LaurentTree.leaves_graftUniform (t t_inner : LaurentTree A)
+    (D₀ : RationalLocData A) :
+    (t.graftUniform t_inner).leaves D₀ =
+      (t.leaves D₀).flatMap t_inner.leaves := by
+  induction t generalizing D₀ with
+  | leaf => simp [graftUniform, leaves]
+  | node f L R ihL ihR =>
+    simp [graftUniform, leaves, ihL, ihR, List.flatMap_append]
+
+/-- Per-leaf graft: replace each leaf of `t` at running base `B`
+with `h B` (a per-leaf-base sub-tree). The walk from root `D₀` knows
+each leaf's base by descending through the splits. -/
+noncomputable def LaurentTree.graftAt :
+    LaurentTree A → RationalLocData A →
+      (RationalLocData A → LaurentTree A) → LaurentTree A
+  | .leaf, D₀, h => h D₀
+  | .node f L R, D₀, h =>
+      .node f (graftAt L (laurentPlusDatum D₀ f) h)
+             (graftAt R (laurentMinusDatum D₀ f) h)
+
+@[simp] theorem LaurentTree.graftAt_leaf
+    (D₀ : RationalLocData A) (h : RationalLocData A → LaurentTree A) :
+    (LaurentTree.leaf : LaurentTree A).graftAt D₀ h = h D₀ := rfl
+
+@[simp] theorem LaurentTree.graftAt_node (f : A) (L R : LaurentTree A)
+    (D₀ : RationalLocData A) (h : RationalLocData A → LaurentTree A) :
+    (LaurentTree.node f L R).graftAt D₀ h =
+      .node f (L.graftAt (laurentPlusDatum D₀ f) h)
+             (R.graftAt (laurentMinusDatum D₀ f) h) := rfl
+
+/-- The leaves of `t.graftAt D₀ h` are the leaves of `h L` walked from
+each leaf base L of `t` at D₀. -/
+theorem LaurentTree.leaves_graftAt (t : LaurentTree A)
+    (D₀ : RationalLocData A) (h : RationalLocData A → LaurentTree A) :
+    (t.graftAt D₀ h).leaves D₀ =
+      (t.leaves D₀).flatMap (fun L => (h L).leaves L) := by
+  induction t generalizing D₀ with
+  | leaf => simp [graftAt, leaves]
+  | node f L R ihL ihR =>
+    simp [graftAt, leaves, ihL, ihR, List.flatMap_append]
+
 @[simp] theorem LaurentTree.leaves_leaf (D₀ : RationalLocData A) :
     (LaurentTree.leaf : LaurentTree A).leaves D₀ = [D₀] := rfl
 
@@ -197,6 +255,20 @@ theorem LaurentTree.refines_iff_forall_mem_leaves (t : LaurentTree A)
               (ihR (laurentMinusDatum D₀ f)).mpr ?_⟩
       · intro D hD; exact h D (Or.inl hD)
       · intro D hD; exact h D (Or.inr hD)
+
+/-- **Refinement under graftAt**: if at every leaf base L of `t` at D₀,
+the per-leaf sub-tree `h L` refines C (interpreted at base L), then
+`t.graftAt D₀ h` refines C from D₀. -/
+theorem LaurentTree.Refines_graftAt (t : LaurentTree A)
+    (D₀ : RationalLocData A) (h : RationalLocData A → LaurentTree A)
+    (C : RationalCovering A)
+    (h_inner : ∀ L ∈ t.leaves D₀, (h L).Refines L C) :
+    (t.graftAt D₀ h).Refines D₀ C := by
+  rw [LaurentTree.refines_iff_forall_mem_leaves, leaves_graftAt]
+  intro D hD
+  rcases List.mem_flatMap.mp hD with ⟨L, hL_mem, hD_in⟩
+  exact (LaurentTree.refines_iff_forall_mem_leaves _ _ _).mp
+    (h_inner L hL_mem) D hD_in
 
 /-! ## Tree-induced covering -/
 
