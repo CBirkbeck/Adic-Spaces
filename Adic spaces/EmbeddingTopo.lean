@@ -1961,4 +1961,66 @@ theorem productRestrictionSub_isInducing_via_tree_node
       (laurentMinus_subset D₀ f)
       ((R.toCovering (laurentMinusDatum D₀ f)).hsubset D hR)) x
 
+/-! ## Tree-induction predicate: distinct and disjoint at every node
+
+`productRestrictionSub_isInducing_via_tree_node` requires, at each
+node, that the plus and minus split data differ (`h_ne`) and that the
+sub-coverings are disjoint as Finsets (`h_disj`). We capture both as a
+single recursive predicate. -/
+
+/-- Predicate: at every internal node of the tree (interpreted with the
+running base), the plus and minus split data differ and the left and
+right sub-coverings are disjoint. -/
+noncomputable def LaurentTree.allNodesDisjoint :
+    LaurentTree A → RationalLocData A → Prop
+  | .leaf, _ => True
+  | .node f L R, D₀ =>
+      laurentPlusDatum D₀ f ≠ laurentMinusDatum D₀ f ∧
+      Disjoint (L.toCovering (laurentPlusDatum D₀ f)).covers
+               (R.toCovering (laurentMinusDatum D₀ f)).covers ∧
+      L.allNodesDisjoint (laurentPlusDatum D₀ f) ∧
+      R.allNodesDisjoint (laurentMinusDatum D₀ f)
+
+@[simp] theorem LaurentTree.allNodesDisjoint_leaf (D₀ : RationalLocData A) :
+    (LaurentTree.leaf : LaurentTree A).allNodesDisjoint D₀ ↔ True := Iff.rfl
+
+@[simp] theorem LaurentTree.allNodesDisjoint_node (f : A) (L R : LaurentTree A)
+    (D₀ : RationalLocData A) :
+    (LaurentTree.node f L R).allNodesDisjoint D₀ ↔
+      laurentPlusDatum D₀ f ≠ laurentMinusDatum D₀ f ∧
+      Disjoint (L.toCovering (laurentPlusDatum D₀ f)).covers
+               (R.toCovering (laurentMinusDatum D₀ f)).covers ∧
+      L.allNodesDisjoint (laurentPlusDatum D₀ f) ∧
+      R.allNodesDisjoint (laurentMinusDatum D₀ f) := Iff.rfl
+
+/-! ## Inducing-via-tree theorem
+
+Recursive theorem: given `allSplitsInducing` (every Laurent split inside
+the tree gives an inducing 2-cover at its base) and `allNodesDisjoint`
+(every node has distinct + disjoint sub-coverings), the diagonal
+`productRestrictionSub` for the tree-induced covering is inducing.
+
+Proof: induction on the tree.
+* LEAF case: `productRestrictionSub_leafTree_isInducing`.
+* NODE case: `productRestrictionSub_isInducing_via_tree_node`, fed by
+  the recursive hypotheses on L and R. -/
+theorem productRestrictionSub_isInducing_via_tree
+    (t : LaurentTree A) (D₀ : RationalLocData A)
+    (h_split : t.allSplitsInducing D₀)
+    (h_disj : t.allNodesDisjoint D₀) :
+    Topology.IsInducing (productRestrictionSub A (t.toCovering D₀)) := by
+  induction t generalizing D₀ with
+  | leaf =>
+    exact productRestrictionSub_leafTree_isInducing D₀
+  | node f L R ihL ihR =>
+    obtain ⟨h_split_f, h_split_L, h_split_R⟩ :=
+      LaurentTree.allSplitsInducing_node f L R D₀ |>.mp h_split
+    obtain ⟨h_ne, h_covers_disj, h_disj_L, h_disj_R⟩ :=
+      LaurentTree.allNodesDisjoint_node f L R D₀ |>.mp h_disj
+    exact productRestrictionSub_isInducing_via_tree_node D₀ f L R
+      h_split_f
+      (ihL (laurentPlusDatum D₀ f) h_split_L h_disj_L)
+      (ihR (laurentMinusDatum D₀ f) h_split_R h_disj_R)
+      h_ne h_covers_disj
+
 end ValuationSpectrum
