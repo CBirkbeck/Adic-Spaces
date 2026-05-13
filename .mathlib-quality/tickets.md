@@ -4767,12 +4767,35 @@ prescribed the following new tickets and reframings. See the integration record 
 
 ### [T-LAURENT-REFINEMENT-TREE] Finite Laurent refinement tree from standard cover
 
-- **Status**: OPEN (NEW 2026-05-13, reviewer-prescribed)
+- **Status**: SPLIT (2026-05-13). The DATA STRUCTURE has landed; the
+  EXISTENCE THEOREM (Wedhorn 8.34) is the remaining work.
 - **Priority**: medium (blocks T-LANE-C-REFINEMENT-INDUCTION)
+
+#### Data-structure stage — DONE (2026-05-13, commit `f5dc330`)
+
+- **File**: `Adic spaces/LaurentRefinementTree.lean` (new module).
+- **Landed (axiom-clean)**:
+  - `LaurentTree A` inductive type (unindexed; semantics supplied separately).
+  - `LaurentTree.leaves`, `.depth`, `.Refines`, `.leafCover`,
+    `.leaf_subset_base`, `.cover_base`, `.toCovering`,
+    `.refines_iff_forall_mem_leaves`.
+  - In `EmbeddingTopo.lean`: `LaurentTree.allSplitsInducing` predicate
+    + `productRestrictionSub_leafTree_isInducing` (LEAF base case for
+    the tree induction; proof via `inducing_iInf_to_pi` + `iInf_unique`
+    + `Subsingleton.elim` + `restrictionMap_id` + `induced_id`).
+- **Design note**: an indexed `LaurentTree : RationalLocData A → Type`
+  hits a strict-positivity rejection because the `node` constructor's
+  recursive children are at computed indices `laurentPlusDatum D₀ f` /
+  `laurentMinusDatum D₀ f` (noncomputable, computed). The unindexed
+  tree + separate interpretation function `leaves` works around this
+  cleanly.
+
+#### Existence stage — OPEN
+
 - **File**: `Adic spaces/GeometricReduction.lean` (extend existing standard-cover infrastructure)
 - **Mathematical statement**: For arbitrary rational covering `C` and a
-  standard cover `S ⊆ A` (with `Ideal.span S = ⊤`), construct a finite
-  TREE of Laurent splittings whose leaves are pieces refining `C`. Each
+  standard cover `S ⊆ A` (with `Ideal.span S = ⊤`), construct a
+  `LaurentTree A` whose interpretation `t.leaves D₀` refines `C`. Each
   internal node is a Laurent split at some element of `S`; each leaf is
   a piece contained in some piece of `C.covers`.
 - **Proof sketch**: Iterated standard-cover/Laurent splitting, keeping
@@ -4784,6 +4807,30 @@ prescribed the following new tickets and reframings. See the integration record 
   Laurent-refined covers by iterated standard-cover/Laurent splitting, but
   keeping all new pieces refining the original cover is the content of
   Wedhorn 8.34, not a trivial extension."
+
+### [T-TREE-INDUCING-NODE] Node-case recursion of inducing-via-tree theorem
+
+- **Status**: OPEN (NEW 2026-05-13, follow-up of T-LAURENT-REFINEMENT-TREE
+  data stage)
+- **Priority**: medium (paired with T-LAURENT-REFINEMENT-TREE existence;
+  together they close T-LANE-C-REFINEMENT-INDUCTION)
+- **File**: `Adic spaces/EmbeddingTopo.lean` (after the leaf base case)
+- **Mathematical statement**: For a `node f L R` tree at root `D₀`:
+  given (i) `IsInducing (productRestrictionSub A (laurentCovering D₀ f))`,
+  (ii) `IsInducing (productRestrictionSub A (L.toCovering (laurentPlusDatum D₀ f)))`,
+  (iii) `IsInducing (productRestrictionSub A (R.toCovering (laurentMinusDatum D₀ f)))`,
+  conclude `IsInducing (productRestrictionSub A ((LaurentTree.node f L R).toCovering D₀))`.
+- **Proof sketch**: Use `Topology.IsInducing.piMap_comp` to compose the
+  2-cover (i) with the per-piece inducings (ii, iii) — this gives the
+  *nested* IsInducing into `∀ p : ↥{plus, minus}, ∀ q : leaves_p, ...`.
+  Then identify the *flat* productRestrictionSub at the union-Finset
+  with the nested form via a `Finset.disjUnion`-style index iso.
+  Disjointness of `L.leaves` and `R.leaves` (as Finsets of
+  `RationalLocData`) follows from the laurent-plus-vs-laurent-minus
+  data structurally differing in their `T` fields by `f`.
+- **Sub-issue (T-LAURENT-LEAF-DISJOINT)**: prove `Disjoint (L.leaves
+  (laurentPlusDatum D₀ f)).toFinset (R.leaves (laurentMinusDatum D₀ f)).toFinset`
+  — needed to make the flat↔nested identification an equiv.
 
 ### [STACKS-00MA-NOETH] AdicCompletion of Noetherian is Noetherian (unconditional)
 
