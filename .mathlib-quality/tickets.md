@@ -4860,22 +4860,27 @@ dependent-type/proof-irrelevance issue.
 
 #### Sub-issues to spawn before retrying
 
-- **T-LAURENT-LEAF-DISJOINT**: prove `Disjoint Lleaves Rleaves` for
-  Laurent trees over a domain. Likely via induction on the trees plus
-  the `s`-field tracking (each Laurent split changes `s` by
-  multiplying with the split element).
+- **T-LAURENT-LEAF-DISJOINT-BASE** — DONE (commit `ad3a46a`,
+  2026-05-13): the leaf-leaf base case of disjointness lands as
+  `leaves_disjoint_of_leaf_leaf` in `LaurentRefinementTree.lean`.
+  General tree case (depth ≥ 2) remains; deferred to Wedhorn 8.34
+  tree construction maintaining disjointness as an invariant.
 - **T-INTERMEDIATE-2COVER-PAIR**: prove
   `Topology.IsInducing (fun x => (restrictionMap D₀ plus _ x, restrictionMap D₀ minus _ x))`
   from `h_split`. This is the 2-cover-to-pair homeomorphism step.
+  **Sub-sub-issue**: construct `Homeomorph.piTwoToProd : ((i : ↥{a, b}) → α i.1) ≃ₜ α a × α b`
+  for `a ≠ b`. Composition of `piFinsetUnion.symm` (already in
+  `Adic spaces/EmbeddingTopo.lean`) with `funUnique` on each singleton.
+  Dep-type/Finset-cast issues remain.
 - **T-NODE-FLAT-EQ-PIUNION-PAIR**: prove the equation
   `productRestrictionSub _ (node ...) x =
     piFinsetUnion (Lpi x, Rpi x)` (with index identification).
-- **T-NODE-CASE-FROM-PIECES**: combine the three above to get the
-  full node case.
+- **T-NODE-CASE-FROM-PIECES**: combine the above to get the full
+  node case.
 
 The right approach is to attack each sub-issue as a focused lemma with
 its own proof, then compose. Direct end-to-end proof drafts have hit
-walls.
+dep-type walls; the four sub-issues isolate each technical hurdle.
 
 ### [STACKS-00MA-NOETH] AdicCompletion of Noetherian is Noetherian (unconditional)
 
