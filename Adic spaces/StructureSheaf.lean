@@ -1131,7 +1131,27 @@ theorem isSheafy_ofStronglyNoetherianTate_flat
     · -- Remaining sorry: the topological-inducing residual identified by
       -- T-EMBED-TOPO.
       --
-      -- **STATUS (2026-05-13, T273-T279 landed)**:
+      -- **STATUS (2026-05-13, T273-T286 landed)**:
+      --
+      -- Lane C **single-step closer** is now available via T286 in
+      -- `EmbeddingTopo.lean`:
+      -- `productRestrictionSub_isInducing_via_laurent_refinement_tau`.
+      -- This closes the case where there is a single `f₀` such that
+      -- `laurentCovering C.base f₀` **refines** `C` (a τ-function with
+      -- per-piece containment can be constructed).
+      --
+      -- Supporting infrastructure (all axiom-clean):
+      --   * T280 `Topology.IsInducing.of_eval`: adding more projections.
+      --   * T281 `Topology.IsInducing.of_continuous_comp`: generic
+      --     post-composition with continuous map preserves IsInducing.
+      --   * T282 `..._of_finer_rational_continuous`: strengthened
+      --     refinement transfer (only `Continuous φ`, not `IsInducing φ`).
+      --   * T283 `productRestrictionSub_continuous`: automatic continuity.
+      --   * T284 `..._via_laurent_refinement`: parametric Lane C closer.
+      --   * T285 `naturalRefinementMap` + continuity + commutativity.
+      --   * T286: τ-only single-step Lane C closer.
+      --
+      -- **OLD STATUS (2026-05-13 morning, T273-T279)**:
       --
       -- The Lane C **base case** (single Laurent cover at `f`) is now
       -- sorry-free via the auto-discharge chain in
