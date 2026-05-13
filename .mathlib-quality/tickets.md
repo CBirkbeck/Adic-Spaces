@@ -4731,7 +4731,14 @@ prescribed the following new tickets and reframings. See the integration record 
 
 ### [T-LANE-C-REFINEMENT-INDUCTION] Topological refinement induction for Lane C arbitrary-C
 
-- **Status**: OPEN (NEW 2026-05-13, reviewer-prescribed)
+- **Status**: LOCAL STEP DONE (2026-05-13); full tree iteration remains
+- **Local step closure** (`productRestrictionSub_isInducing_via_V_containing_laurent_pair`,
+  `EmbeddingTopo.lean`, axiom-clean): given C with a refining V containing a
+  Laurent pair at C.base, IsInducing for C follows by combining T290
+  (V-bootstrap) with T282 (strengthened refinement transfer) and T285
+  (natural refinement map + continuity).
+- **Remaining**: iterate the local step across a Laurent-refinement tree
+  to handle arbitrary C. The tree construction is `T-LAURENT-REFINEMENT-TREE`.
 - **Priority**: HIGH (replaces the round-4 search for "single Laurent pair at base")
 - **File**: `Adic spaces/EmbeddingTopo.lean`
 - **Mathematical statement**:
