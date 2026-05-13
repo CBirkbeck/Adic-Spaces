@@ -1751,4 +1751,100 @@ def _root_.Homeomorph.piFinsetUnion {ι : Type*} [DecidableEq ι]
     (Homeomorph.piCongrLeft (Y := fun (j : ↥(s ∪ t)) => α j.1)
       (Equiv.Finset.union s t h))
 
+/-! ### Homeomorphism: two-element-Finset Pi to product
+
+For a 2-element Finset `{a, b}` with `a ≠ b` and a topology-indexed family
+`α : ι → Type*`, the Pi `∀ i : ↥{a, b}, α i.1` is naturally homeomorphic
+to the product `α a × α b`. Construction via the Fin 2 detour:
+
+* `Fin 2 ≃ ↥{a, b}` (built manually as a `match` on Fin 2)
+* `Homeomorph.piCongrLeft` transports along this index equiv
+* `Homeomorph.piFinTwo` gives `(∀ i : Fin 2, X i) ≃ₜ X 0 × X 1`. -/
+def _root_.Homeomorph.piTwoToProd {ι : Type*} [DecidableEq ι]
+    (α : ι → Type*) [∀ i, TopologicalSpace (α i)]
+    {a b : ι} (h_ne : a ≠ b) :
+    ((i : ↥({a, b} : Finset ι)) → α i.1) ≃ₜ α a × α b := by
+  let e : Fin 2 ≃ ↥({a, b} : Finset ι) := {
+    toFun := fun n => match n with
+      | ⟨0, _⟩ => ⟨a, by simp⟩
+      | ⟨1, _⟩ => ⟨b, by simp⟩
+    invFun := fun x => if x.1 = a then ⟨0, by omega⟩ else ⟨1, by omega⟩
+    left_inv := fun n => by
+      classical
+      rcases n with ⟨(_ | _ | _), hn⟩
+      · simp
+      · simp [h_ne.symm]
+      · omega
+    right_inv := fun x => by
+      classical
+      rcases x with ⟨x, hx⟩
+      rcases Finset.mem_insert.mp hx with hxa | hxb
+      · subst hxa; simp
+      · rw [Finset.mem_singleton] at hxb
+        subst hxb
+        simp [h_ne.symm] }
+  refine (Homeomorph.piCongrLeft
+    (Y := fun i : ↥({a, b} : Finset ι) => α i.1) e).symm.trans ?_
+  refine (Homeomorph.piFinTwo _).trans ?_
+  exact Homeomorph.refl _
+
+/-! ### T-INTERMEDIATE-2COVER-PAIR: 2-cover IsInducing in product form
+
+Given `IsInducing (productRestrictionSub A (laurentCovering D₀ f))` and
+`laurentPlusDatum D₀ f ≠ laurentMinusDatum D₀ f`, the *pair-valued* 2-cover
+map `presheafValue D₀ → presheafValue plus × presheafValue minus` is
+also `IsInducing`. This is the first sub-step of T-TREE-INDUCING-NODE.
+
+Proof: compose the original `productRestrictionSub` IsInducing with
+`Homeomorph.piTwoToProd` (which converts the 2-element Pi codomain to
+a product). The composite map equals the pair-valued map by `Prod.ext`
++ `rfl` on each component. -/
+theorem isInducing_2cover_pair
+    (D₀ : RationalLocData A) (f : A)
+    (h_split : Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f)))
+    (h_ne : laurentPlusDatum D₀ f ≠ laurentMinusDatum D₀ f) :
+    Topology.IsInducing
+      (fun x : presheafValue D₀ =>
+        (restrictionMap D₀ (laurentPlusDatum D₀ f) (laurentPlus_subset D₀ f) x,
+         restrictionMap D₀ (laurentMinusDatum D₀ f) (laurentMinus_subset D₀ f) x)) := by
+  classical
+  set h_homeo := Homeomorph.piTwoToProd
+    (fun D : RationalLocData A => presheafValue D) h_ne
+  have h_eq : (fun x : presheafValue D₀ =>
+        (restrictionMap D₀ (laurentPlusDatum D₀ f) (laurentPlus_subset D₀ f) x,
+         restrictionMap D₀ (laurentMinusDatum D₀ f) (laurentMinus_subset D₀ f) x))
+      = h_homeo ∘ productRestrictionSub A (laurentCovering D₀ f) := by
+    funext x
+    apply Prod.ext <;> rfl
+  rw [h_eq]
+  exact h_homeo.isInducing.comp h_split
+
+/-! ### T-PAIR-FORM-COMPOSED: pair-form IsInducing in composed form
+
+Combining `isInducing_2cover_pair` with the per-piece L and R IsInducings
+via `Topology.IsInducing.prodMap` gives `IsInducing` for the **composed**
+pair form: `x ↦ (L_pi (rest_plus x), R_pi (rest_minus x))`.
+
+This is the "intermediate" inducing fact that feeds into the
+flat-version closure via `restrictionMap_comp` (to identify with the
+direct `restrictionMap D₀ q.1 _ x` form). -/
+theorem isInducing_pair_form_composed
+    (D₀ : RationalLocData A) (f : A) (L R : LaurentTree A)
+    (h_split : Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f)))
+    (h_L : Topology.IsInducing
+      (productRestrictionSub A (L.toCovering (laurentPlusDatum D₀ f))))
+    (h_R : Topology.IsInducing
+      (productRestrictionSub A (R.toCovering (laurentMinusDatum D₀ f))))
+    (h_ne : laurentPlusDatum D₀ f ≠ laurentMinusDatum D₀ f) :
+    Topology.IsInducing
+      (fun x : presheafValue D₀ =>
+        (productRestrictionSub A (L.toCovering (laurentPlusDatum D₀ f))
+          (restrictionMap D₀ (laurentPlusDatum D₀ f) (laurentPlus_subset D₀ f) x),
+         productRestrictionSub A (R.toCovering (laurentMinusDatum D₀ f))
+          (restrictionMap D₀ (laurentMinusDatum D₀ f) (laurentMinus_subset D₀ f) x))) := by
+  classical
+  have h_inter := isInducing_2cover_pair D₀ f h_split h_ne
+  have h_prodmap := Topology.IsInducing.prodMap h_L h_R
+  exact h_prodmap.comp h_inter
+
 end ValuationSpectrum
