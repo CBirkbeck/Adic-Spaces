@@ -801,6 +801,11 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
     in `EmbeddingTopo.lean` — concrete single-Laurent-cover IsInducing
     supplier consuming the bridges hypothesis bundle; the `_of_s_ne_zero`
     variant discharges distinctness via T277.
+  - T-EMBED-TOPO-LAURENT-EMBEDDING (T279, 2026-05-13):
+    `productRestrictionSub_laurentCovering_isEmbedding_via_bridges_of_s_ne_zero`
+    in `EmbeddingTopo.lean` — full `IsEmbedding` form of T278 (T278 only
+    provides `IsInducing`). Useful for consumers needing both halves of
+    `IsEmbedding` (inducing + injective).
   - T-EMBED-TOPO-DISTINCT (T277, 2026-05-13): `laurentPlus_ne_laurentMinus_of_nonunit`
     in `LaurentRefinement.lean` — Laurent plus and minus data distinctness
     from `hf_nonunit + D₀.s ≠ 0 + IsDomain A`.
