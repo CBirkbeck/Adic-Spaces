@@ -4810,9 +4810,10 @@ prescribed the following new tickets and reframings. See the integration record 
 
 ### [T-TREE-INDUCING-NODE] Node-case recursion of inducing-via-tree theorem
 
-- **Status**: OPEN (NEW 2026-05-13, follow-up of T-LAURENT-REFINEMENT-TREE
-  data stage). Investigated 2026-05-13: substantial dependent-type
-  difficulties with multiple Pi/Sigma re-indexings.
+- **Status**: DONE (2026-05-13, commit `b96a6f4`). The FULL FLAT theorem
+  `productRestrictionSub_isInducing_via_tree_node` lands axiom-clean.
+  Key auxiliary land: `Homeomorph.piFinsetUnion_apply_left/right` using
+  `Equiv.piCongrLeft_sumInl/sumInr` for the unfolding step.
 - **Priority**: medium (paired with T-LAURENT-REFINEMENT-TREE existence;
   together they close T-LANE-C-REFINEMENT-INDUCTION)
 - **File**: `Adic spaces/EmbeddingTopo.lean` (after the leaf base case)
