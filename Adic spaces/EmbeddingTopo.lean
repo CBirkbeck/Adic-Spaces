@@ -1601,4 +1601,62 @@ theorem _root_.Topology.IsInducing.piMap_comp
   have h_piMap : Topology.IsInducing (Pi.map g) := Topology.IsInducing.piMap hg
   exact h_piMap.comp hf
 
+/-- **Lane C depth-2 tree-induction step**: given that the root V₁ has
+`IsInducing` for its diagonal at `C.base`, AND for each piece `p ∈ V₁`
+the further-refinement diagonal `presheafValue p → ∀ q : ↥(V₂ p), presheafValue q.1`
+is `IsInducing`, then the depth-2 leaf diagonal at `C.base` is
+`IsInducing`.
+
+The leaf diagonal sends `x ∈ presheafValue C.base` to
+`(restrictionMap C.base q.1.1 _ x)` over leaves `(p, q)` where `p ∈ V₁`
+and `q ∈ V₂ p`. -/
+theorem productRestrictionSub_isInducing_depth2_via_iterated_inducing
+    {Base : RationalLocData A}
+    (V₁_covers : Finset (RationalLocData A))
+    (hV₁_subset : ∀ p ∈ V₁_covers, rationalOpen p.T p.s ⊆ rationalOpen Base.T Base.s)
+    (V₂ : ∀ p : { p // p ∈ V₁_covers }, Finset (RationalLocData A))
+    (hV₂_subset : ∀ (p : { p // p ∈ V₁_covers }) (q : RationalLocData A),
+      q ∈ V₂ p → rationalOpen q.T q.s ⊆ rationalOpen p.1.T p.1.s)
+    (h_V₁_inducing : Topology.IsInducing
+      (fun x : presheafValue Base =>
+        (fun p : { p // p ∈ V₁_covers } =>
+          restrictionMap Base p.1 (hV₁_subset p.1 p.2) x)))
+    (h_V₂_inducing : ∀ p : { p // p ∈ V₁_covers },
+      Topology.IsInducing
+        (fun y : presheafValue p.1 =>
+          (fun q : { q // q ∈ V₂ p } =>
+            restrictionMap p.1 q.1 (hV₂_subset p q.1 q.2) y))) :
+    Topology.IsInducing
+      (fun x : presheafValue Base =>
+        (fun p : { p // p ∈ V₁_covers } =>
+          (fun q : { q // q ∈ V₂ p } =>
+            restrictionMap Base q.1
+              (Set.Subset.trans (hV₂_subset p q.1 q.2)
+                (hV₁_subset p.1 p.2)) x))) := by
+  -- Use piMap_comp: f = V₁-diagonal (IsInducing), g_p = per-piece V₂-diagonal (IsInducing).
+  -- The composed map factors as:
+  --   x ↦ V₂-diagonal_p (restrictionMap Base p x) over p ∈ V₁_covers.
+  -- The composition equals the depth-2 leaf diagonal (by restrictionMap_comp).
+  have h_comp := Topology.IsInducing.piMap_comp h_V₁_inducing h_V₂_inducing
+  -- h_comp : IsInducing (fun x p q => V₂-diagonal_p (V₁-diagonal x p) q)
+  --        = IsInducing (fun x p q => restrictionMap p.1 q.1 _ (restrictionMap Base p.1 _ x))
+  -- The target: IsInducing (fun x p q => restrictionMap Base q.1 _ x).
+  -- These agree by restrictionMap_comp.
+  have h_eq : (fun x : presheafValue Base =>
+        (fun p : { p // p ∈ V₁_covers } =>
+          (fun q : { q // q ∈ V₂ p } =>
+            restrictionMap p.1 q.1 (hV₂_subset p q.1 q.2)
+              (restrictionMap Base p.1 (hV₁_subset p.1 p.2) x)))) =
+      (fun x : presheafValue Base =>
+        (fun p : { p // p ∈ V₁_covers } =>
+          (fun q : { q // q ∈ V₂ p } =>
+            restrictionMap Base q.1
+              (Set.Subset.trans (hV₂_subset p q.1 q.2)
+                (hV₁_subset p.1 p.2)) x))) := by
+    funext x p q
+    exact congr_fun (restrictionMap_comp Base p.1 q.1
+      (hV₁_subset p.1 p.2) (hV₂_subset p q.1 q.2)) x
+  rw [← h_eq]
+  exact h_comp
+
 end ValuationSpectrum
