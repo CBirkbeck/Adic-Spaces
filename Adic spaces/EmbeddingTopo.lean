@@ -1207,4 +1207,73 @@ theorem productRestrictionSub_isInducing_of_V_contains_laurent_pair
     rintro ⟨D, hD⟩
     exact restrictionMapHom_continuous Base D (hV_subset D hD)
 
+/-- **T291**: `IsInducing` for any `C` whose `C.covers` contains both
+halves of a laurent split at `C.base`. Direct specialisation of T290
+to `Base := C.base` and `V_covers := C.covers`. -/
+theorem productRestrictionSub_isInducing_of_C_covers_contains_laurent_pair
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    [LaurentNormalized C.base]
+    (f₀ : A)
+    (hf_nonunit : ¬IsUnit (C.base.canonicalMap f₀))
+    (hs : C.base.s ≠ 0)
+    (hNoeth_B : IsNoetherianRing (presheafValue C.base))
+    (hDom_B : IsDomain (presheafValue C.base))
+    (hSigCp_B : SigmaCompactSpace (presheafValue C.base))
+    (hA_complete_B : @CompleteSpace (presheafValue C.base)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue C.base)))
+    (hnoeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring
+            (IsTateRing.principalPair (presheafValue C.base)).toPairOfDefinition))
+    (hnoeth₂_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring₂
+            (IsTateRing.principalPair (presheafValue C.base)).toPairOfDefinition))
+    (hLocLift_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      HasLocLiftPowerBounded (presheafValue C.base))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P C.base).A₀))
+    (hcont_forward_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : HasLocLiftPowerBounded (presheafValue C.base) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue C.base) :=
+        presheafValue_pairOfDefinition_concrete P C.base
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue C.base) (C.base.canonicalMap f₀))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue C.base) P_B (C.base.canonicalMap f₀))))
+        (example638Plus_forwardHom (presheafValue C.base) P_B (C.base.canonicalMap f₀)))
+    (hcont_eval_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      let D : RationalLocData (presheafValue C.base) := iteratedMinusDatum_B P C.base f₀
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
+    (hSigCp_TA : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      SigmaCompactSpace ↥(TateAlgebra (presheafValue C.base)))
+    (hplus : rationalOpen (laurentPlusDatum C.base f₀).T (laurentPlusDatum C.base f₀).s ⊆
+      rationalOpen C.base.T C.base.s)
+    (hminus : rationalOpen (laurentMinusDatum C.base f₀).T (laurentMinusDatum C.base f₀).s ⊆
+      rationalOpen C.base.T C.base.s)
+    (h_plus_mem : laurentPlusDatum C.base f₀ ∈ C.covers)
+    (h_minus_mem : laurentMinusDatum C.base f₀ ∈ C.covers) :
+    Topology.IsInducing (productRestrictionSub A C) :=
+  productRestrictionSub_isInducing_of_V_contains_laurent_pair
+    P C.base f₀ hf_nonunit hs hNoeth_B hDom_B hSigCp_B hA_complete_B
+    hnoeth_B hnoeth₂_B hLocLift_B hA₀Noeth_B hcont_forward_B hcont_eval_B
+    hSigCp_TA hplus hminus C.covers (fun D hD => C.hsubset D hD)
+    h_plus_mem h_minus_mem
+
 end ValuationSpectrum
