@@ -195,6 +195,71 @@ theorem isEmbedding_of_pair_form_isEmbedding
     Topology.IsEmbedding (g ∘ f) :=
   g.isEmbedding.comp h_pair
 
+/-! ### T274: Two-element subtype Pi ≃ₜ pair (generic utility)
+
+For any decidable type `α` with distinct elements `a ≠ b` and a family
+`F : α → Type*` with topologies on each fiber, there is a canonical
+homeomorphism between the pair type `F a × F b` and the subtype-indexed
+Π type `∀ x : ↥({a, b} : Finset α), F x.1`.
+
+This is the Mathlib-style **generic utility** used to construct the
+homeomorphism `Φ` required by T273. The construction is fully explicit:
+the forward map dispatches by decidable equality with `a` and uses
+dependent transport; the inverse evaluates the Π at the two canonical
+membership witnesses. Continuity in both directions is mechanical
+(each projection / each pair coordinate is continuous). -/
+
+/-- **T274**: the canonical homeomorphism between a pair type and the
+subtype-indexed Π type over a 2-element Finset (for distinct elements). -/
+def twoElementSubtypePiHomeomorph
+    {α : Type*} [DecidableEq α] (a b : α) (hne : a ≠ b)
+    {F : α → Type*} [∀ x, TopologicalSpace (F x)] :
+    F a × F b ≃ₜ (∀ x : ↥({a, b} : Finset α), F x.1) := by
+  refine Homeomorph.mk
+    { toFun := fun pq ⟨x, hx⟩ =>
+        if h : x = a then h ▸ pq.1
+        else
+          have hxb : x = b := by
+            simp only [Finset.mem_insert, Finset.mem_singleton] at hx
+            exact hx.resolve_left h
+          hxb ▸ pq.2
+      invFun := fun g =>
+        (g ⟨a, Finset.mem_insert_self _ _⟩,
+         g ⟨b, Finset.mem_insert_of_mem (Finset.mem_singleton_self _)⟩)
+      left_inv := by
+        rintro ⟨p, q⟩
+        refine Prod.ext ?_ ?_
+        · simp
+        · simp [dif_neg hne.symm]
+      right_inv := by
+        intro g
+        funext ⟨x, hx⟩
+        by_cases h : x = a
+        · subst h; simp
+        · have hxb : x = b := by
+            simp only [Finset.mem_insert, Finset.mem_singleton] at hx
+            exact hx.resolve_left h
+          subst hxb
+          simp [dif_neg h] }
+    ?_ ?_
+  · -- continuous_toFun
+    refine continuous_pi ?_
+    rintro ⟨x, hx⟩
+    by_cases h : x = a
+    · subst h
+      simp only [dif_pos rfl]
+      exact continuous_fst
+    · have hxb : x = b := by
+        simp only [Finset.mem_insert, Finset.mem_singleton] at hx
+        exact hx.resolve_left h
+      subst hxb
+      simp only [dif_neg h]
+      exact continuous_snd
+  · -- continuous_invFun
+    refine continuous_prodMk.mpr ⟨?_, ?_⟩
+    · exact continuous_apply _
+    · exact continuous_apply _
+
 /-! ### T273: Lane C Laurent base case (parametric form)
 
 The parametric Lane C base case: given a homeomorphism witness `Φ` between
@@ -241,5 +306,59 @@ theorem productRestrictionSub_laurentCovering_isEmbedding_of_homeomorph
     funext x; exact (hΦ x).symm
   rw [hcomp]
   exact isEmbedding_of_pair_form_isEmbedding _ Φ pair_emb
+
+/-- **T275**: Lane C Laurent base case, **concrete** form. Combines T274
+(the generic two-element subtype Pi homeomorphism) with T273 (the
+parametric transport): the `IsEmbedding` of `productRestrictionSub` for
+`laurentCovering D₀ f` follows from the pair-form embedding plus the
+distinctness `laurentPlusDatum D₀ f ≠ laurentMinusDatum D₀ f`.
+
+The commutativity hypothesis of T273 is **discharged automatically**
+because `restrictionMap` is proof-irrelevant in its subset argument
+(Lean Prop). The homeomorphism `Φ` is constructed by T274. -/
+theorem productRestrictionSub_laurentCovering_isEmbedding_of_distinct
+    (D₀ : RationalLocData A) (f : A)
+    (hplus : rationalOpen (laurentPlusDatum D₀ f).T (laurentPlusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (hminus : rationalOpen (laurentMinusDatum D₀ f).T (laurentMinusDatum D₀ f).s ⊆
+      rationalOpen D₀.T D₀.s)
+    (hne : laurentPlusDatum D₀ f ≠ laurentMinusDatum D₀ f)
+    (pair_emb : Topology.IsEmbedding
+      (fun x : presheafValue D₀ =>
+        (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x,
+         restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x))) :
+    Topology.IsEmbedding (productRestrictionSub A (laurentCovering D₀ f)) := by
+  classical
+  -- Construct Φ via T274.
+  let Φ : (presheafValue (laurentPlusDatum D₀ f) ×
+            presheafValue (laurentMinusDatum D₀ f)) ≃ₜ
+           (∀ D : ↥(laurentCovering D₀ f).covers, presheafValue D.1) :=
+    twoElementSubtypePiHomeomorph (laurentPlusDatum D₀ f)
+      (laurentMinusDatum D₀ f) hne
+  -- Verify the commutativity hypothesis of T273.
+  apply productRestrictionSub_laurentCovering_isEmbedding_of_homeomorph
+    D₀ f hplus hminus pair_emb Φ
+  intro x
+  funext ⟨D, hD⟩
+  -- The Pi value at ⟨D, hD⟩ is `restrictionMap D₀ D ((laurentCovering D₀ f).hsubset D hD) x`.
+  -- The Φ-image dispatches: if D = plus, use the first projection; else (D = minus), use the second.
+  -- Both sides equal `restrictionMap D₀ D _ x` by proof irrelevance.
+  show Φ (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x,
+         restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x) ⟨D, hD⟩ =
+       restrictionMap D₀ D ((laurentCovering D₀ f).hsubset D hD) x
+  -- Unfold Φ to expose the dispatch by `Decidable.decEq`.
+  by_cases hDp : D = laurentPlusDatum D₀ f
+  · subst hDp
+    show (if h : laurentPlusDatum D₀ f = laurentPlusDatum D₀ f then
+            h ▸ restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x
+          else _) = _
+    rw [dif_pos rfl]
+  · have hDm : D = laurentMinusDatum D₀ f := by
+      simp only [laurentCovering, Finset.mem_insert, Finset.mem_singleton] at hD
+      exact hD.resolve_left hDp
+    subst hDm
+    show (if h : laurentMinusDatum D₀ f = laurentPlusDatum D₀ f then _
+          else _) = _
+    rw [dif_neg hne.symm]
 
 end ValuationSpectrum
