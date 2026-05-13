@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».StructureSheaf
 import «Adic spaces».LaurentRefinement
+import «Adic spaces».LaurentRefinementTree
 
 /-!
 # Topological embedding boundary for `IsSheafy.embedding`
@@ -1658,5 +1659,81 @@ theorem productRestrictionSub_isInducing_depth2_via_iterated_inducing
       (hV₁_subset p.1 p.2) (hV₂_subset p q.1 q.2)) x
   rw [← h_eq]
   exact h_comp
+
+/-! ## T-LANE-C-REFINEMENT-INDUCTION: tree-induction predicate
+
+For the full Laurent-refinement-tree induction (Wedhorn 8.34) we need a
+predicate "all Laurent splits inside the tree are inducing". This is
+defined by recursion on the tree:
+
+- A `leaf` requires nothing.
+- A `node f L R` at base `D₀` requires:
+  + the 2-cover `laurentCovering D₀ f` is inducing, AND
+  + recursively `L.allSplitsInducing (laurentPlusDatum D₀ f)`, AND
+  + recursively `R.allSplitsInducing (laurentMinusDatum D₀ f)`.
+
+The actual inducing-via-tree theorem (which iterates the local step
+`productRestrictionSub_isInducing_via_V_containing_laurent_pair` along the
+tree) takes this predicate as a hypothesis. The propagation of the bridge
+package needed to *build* the inducing witnesses at each base is handled
+by separate preservation lemmas (LaurentNormalized, Noetherianness,
+SigmaCompactSpace, ...). -/
+
+/-- Predicate: every Laurent split inside the tree (interpreted at its
+corresponding base) gives an inducing `productRestrictionSub`. -/
+noncomputable def LaurentTree.allSplitsInducing :
+    LaurentTree A → RationalLocData A → Prop
+  | .leaf, _ => True
+  | .node f L R, D₀ =>
+      Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f)) ∧
+      L.allSplitsInducing (laurentPlusDatum D₀ f) ∧
+      R.allSplitsInducing (laurentMinusDatum D₀ f)
+
+@[simp] theorem LaurentTree.allSplitsInducing_leaf (D₀ : RationalLocData A) :
+    (LaurentTree.leaf : LaurentTree A).allSplitsInducing D₀ ↔ True := Iff.rfl
+
+@[simp] theorem LaurentTree.allSplitsInducing_node (f : A) (L R : LaurentTree A)
+    (D₀ : RationalLocData A) :
+    (LaurentTree.node f L R).allSplitsInducing D₀ ↔
+      Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f)) ∧
+      L.allSplitsInducing (laurentPlusDatum D₀ f) ∧
+      R.allSplitsInducing (laurentMinusDatum D₀ f) := Iff.rfl
+
+/-! ### Singleton-cover IsInducing base case (the LEAF case)
+
+For the trivial single-piece covering of `D₀` by `{D₀}` itself, the
+diagonal `productRestrictionSub` is `Topology.IsInducing`. This is the
+LEAF base case of the Laurent-tree induction.
+
+Proof: Mathlib's `inducing_iInf_to_pi` gives `IsInducing` for any
+map into a Pi when the source has the iInf-induced topology. For the
+singleton cover, the iInf is over one term (via `iInf_unique` since
+`↥{D₀}` has `Unique`), namely the induced topology along
+`restrictionMap C.base default.1`. After substituting `default` with
+the explicit element `⟨C.base, mem_singleton_self _⟩` via
+`Subsingleton.elim`, `restrictionMap_id` collapses to the identity,
+and `TopologicalSpace.induced_id` closes the topology equality. -/
+theorem productRestrictionSub_leafTree_isInducing
+    (D₀ : RationalLocData A) :
+    Topology.IsInducing (productRestrictionSub A
+      ((LaurentTree.leaf : LaurentTree A).toCovering D₀)) := by
+  classical
+  set C : RationalCovering A := (LaurentTree.leaf : LaurentTree A).toCovering D₀
+  have hcovers : C.covers = ({D₀} : Finset _) := by
+    show (LaurentTree.leaf.leaves D₀).toFinset = _
+    simp [LaurentTree.leaves_leaf, List.toFinset_cons, List.toFinset_nil]
+  haveI hUniq : Unique ↑C.covers := hcovers ▸ Finset.instUniqueSubtypeMemSingleton D₀
+  have h := inducing_iInf_to_pi
+    (fun (D : ↑C.covers) (x : presheafValue C.base) =>
+      restrictionMap C.base D.1 (C.hsubset _ D.2) x)
+  convert h
+  rw [iInf_unique]
+  have hdef_eq : (default : ↑C.covers) = ⟨C.base, by
+      rw [hcovers]; exact Finset.mem_singleton_self _⟩ :=
+    Subsingleton.elim _ _
+  rw [hdef_eq]
+  show _ = TopologicalSpace.induced (fun x => restrictionMap C.base C.base _ x) _
+  rw [restrictionMap_id]
+  exact induced_id.symm
 
 end ValuationSpectrum
