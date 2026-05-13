@@ -1847,4 +1847,38 @@ theorem isInducing_pair_form_composed
   have h_prodmap := Topology.IsInducing.prodMap h_L h_R
   exact h_prodmap.comp h_inter
 
+/-! ### T-NODE-FLAT-EQ-PIUNION-PAIR: composing with piFinsetUnion
+
+After `isInducing_pair_form_composed` gives the pair-form IsInducing,
+compose with `Homeomorph.piFinsetUnion` to obtain `IsInducing` of the
+"composed flat" form
+`fun x => h_union (L_pi (rest_plus x), R_pi (rest_minus x))`.
+
+This is the FLAT version (mapping into `∀ q ∈ (Lleaves ∪ Rleaves), …`),
+but with the indexing still coming from the disjoint Lleaves/Rleaves
+union via `piFinsetUnion`, not yet matched to the productRestrictionSub
+of `(node f L R).toCovering D₀` directly. -/
+open Classical in
+theorem isInducing_pair_form_composed_via_union
+    (D₀ : RationalLocData A) (f : A) (L R : LaurentTree A)
+    (h_split : Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f)))
+    (h_L : Topology.IsInducing
+      (productRestrictionSub A (L.toCovering (laurentPlusDatum D₀ f))))
+    (h_R : Topology.IsInducing
+      (productRestrictionSub A (R.toCovering (laurentMinusDatum D₀ f))))
+    (h_ne : laurentPlusDatum D₀ f ≠ laurentMinusDatum D₀ f)
+    (h_disj : Disjoint (L.leaves (laurentPlusDatum D₀ f)).toFinset
+                       (R.leaves (laurentMinusDatum D₀ f)).toFinset) :
+    Topology.IsInducing
+      (fun x : presheafValue D₀ =>
+        (Homeomorph.piFinsetUnion (fun D : RationalLocData A => presheafValue D) h_disj)
+          (productRestrictionSub A (L.toCovering (laurentPlusDatum D₀ f))
+            (restrictionMap D₀ (laurentPlusDatum D₀ f) (laurentPlus_subset D₀ f) x),
+           productRestrictionSub A (R.toCovering (laurentMinusDatum D₀ f))
+            (restrictionMap D₀ (laurentMinusDatum D₀ f) (laurentMinus_subset D₀ f) x))) := by
+  have h_pair := isInducing_pair_form_composed D₀ f L R h_split h_L h_R h_ne
+  have h_union := (Homeomorph.piFinsetUnion
+    (fun D : RationalLocData A => presheafValue D) h_disj).isInducing
+  exact h_union.comp h_pair
+
 end ValuationSpectrum
