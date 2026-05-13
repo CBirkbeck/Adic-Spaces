@@ -402,6 +402,18 @@ noncomputable def ratioCovering (D₀ : RationalLocData A) (f g f_inv g_inv : A)
     · exact ⟨_, Finset.mem_insert.mpr
         (Or.inr (Finset.mem_singleton_self _)), h⟩
 
+@[simp] theorem ratioCovering_base (D₀ : RationalLocData A) (f g f_inv g_inv : A)
+    (hf : f * f_inv = 1) (hf_inv : f_inv ∈ D₀.P.A₀)
+    (hg : g * g_inv = 1) (hg_inv : g_inv ∈ D₀.P.A₀) :
+    (ratioCovering D₀ f g f_inv g_inv hf hf_inv hg hg_inv).base = D₀ := rfl
+
+@[simp] theorem ratioCovering_covers (D₀ : RationalLocData A) (f g f_inv g_inv : A)
+    (hf : f * f_inv = 1) (hf_inv : f_inv ∈ D₀.P.A₀)
+    (hg : g * g_inv = 1) (hg_inv : g_inv ∈ D₀.P.A₀) :
+    (ratioCovering D₀ f g f_inv g_inv hf hf_inv hg hg_inv).covers =
+      {ratioPlusDatum D₀ f g g_inv hg hg_inv,
+       ratioMinusDatum D₀ f g f_inv hf hf_inv} := rfl
+
 /-- The "minus half" of the Laurent cover at `f` within base `D₀`. -/
 noncomputable def laurentMinusDatum (D₀ : RationalLocData A) (f : A) :
     RationalLocData A where
