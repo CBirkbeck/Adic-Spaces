@@ -2176,6 +2176,21 @@ theorem LaurentTree.exists_for_singleton_cover
    trivial,
    trivial⟩
 
+/-- **Singleton-cover existence**: when `C.covers = {E}` for some
+single `E`, the `leaf` tree witnesses Wedhorn 8.34 existence
+(refinement via `leaf_refines_of_singleton`, the inducing and
+disjointness predicates being vacuously satisfied). -/
+theorem LaurentTree.exists_for_singleton_cover_of_eq
+    (C : RationalCovering A) (E : RationalLocData A)
+    (hE_eq : C.covers = {E}) :
+    ∃ t : LaurentTree A,
+      t.Refines C.base C ∧ t.allSplitsInducing C.base ∧
+      t.allNodesDisjoint C.base :=
+  ⟨LaurentTree.leaf,
+   LaurentTree.leaf_refines_of_singleton C E hE_eq,
+   trivial,
+   trivial⟩
+
 /-! ### Right-branching tree: per-level conditions
 
 For the right-branching tree built from a list `L = [f₁, ..., fₙ]`,
