@@ -1736,4 +1736,19 @@ theorem productRestrictionSub_leafTree_isInducing
   rw [restrictionMap_id]
   exact induced_id.symm
 
+/-! ### Homeomorphism: disjoint-union Pi factors as product
+
+For disjoint Finsets `s t : Finset ι` and a topology-valued indexed family
+`α : ι → Type*`, the Pi over `s ∪ t` is naturally homeomorphic to the
+product of (Pi over `s`) × (Pi over `t`). This is the topological
+upgrade of `Equiv.piFinsetUnion`. -/
+def _root_.Homeomorph.piFinsetUnion {ι : Type*} [DecidableEq ι]
+    (α : ι → Type*) [∀ i, TopologicalSpace (α i)]
+    {s t : Finset ι} (h : Disjoint s t) :
+    ((i : ↥s) → α i.1) × ((i : ↥t) → α i.1) ≃ₜ ((i : ↥(s ∪ t)) → α i.1) :=
+  (Homeomorph.sumPiEquivProdPi (↥s) (↥t)
+      (fun st => α ((Equiv.Finset.union s t h) st).1)).symm.trans
+    (Homeomorph.piCongrLeft (Y := fun (j : ↥(s ∪ t)) => α j.1)
+      (Equiv.Finset.union s t h))
+
 end ValuationSpectrum
