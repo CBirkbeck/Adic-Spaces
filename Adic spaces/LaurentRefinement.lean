@@ -379,6 +379,29 @@ theorem ratioCover_covers (D₀ : RationalLocData A) (f g f_inv g_inv : A)
     · rw [ht_eq]; exact hcase
     · rw [ht_eq]; exact v.vle_refl _
 
+/-- The 2-element ratio Laurent covering at base D₀ for the f/g ratio,
+analogous to `laurentCovering` for the standard Laurent split. Requires
+both f and g to have inverses in A₀ to give complete cover (the plus
+piece needs g_inv, the minus piece needs f_inv). -/
+noncomputable def ratioCovering (D₀ : RationalLocData A) (f g f_inv g_inv : A)
+    (hf : f * f_inv = 1) (hf_inv : f_inv ∈ D₀.P.A₀)
+    (hg : g * g_inv = 1) (hg_inv : g_inv ∈ D₀.P.A₀) :
+    RationalCovering A where
+  base := D₀
+  covers :=
+    {ratioPlusDatum D₀ f g g_inv hg hg_inv,
+     ratioMinusDatum D₀ f g f_inv hf hf_inv}
+  hsubset D hD := by
+    simp only [Finset.mem_insert, Finset.mem_singleton] at hD
+    rcases hD with hD | hD
+    · subst hD; exact ratioPlus_subset D₀ f g g_inv hg hg_inv
+    · subst hD; exact ratioMinus_subset D₀ f g f_inv hf hf_inv
+  hcover v hv := by
+    rcases ratioCover_covers D₀ f g f_inv g_inv hf hf_inv hg hg_inv v hv with h | h
+    · exact ⟨_, Finset.mem_insert_self _ _, h⟩
+    · exact ⟨_, Finset.mem_insert.mpr
+        (Or.inr (Finset.mem_singleton_self _)), h⟩
+
 /-- The "minus half" of the Laurent cover at `f` within base `D₀`. -/
 noncomputable def laurentMinusDatum (D₀ : RationalLocData A) (f : A) :
     RationalLocData A where
