@@ -343,7 +343,21 @@ tateAcyclicity Part 2 (gluing)
 
 ## 3. Open tickets — detailed plans
 
-### [T-OV-1] Bivariate Example 6.38 — IN PROGRESS
+### [T-OV-1] Bivariate Example 6.38 — IN PROGRESS  **[TOP PRIORITY — round 5]**
+
+**Reviewer guidance** (ChatGPT Pro, 2026-05-13): T-OV-1 is "the cleanest current
+critical-path blocker — the statement is true, local, Wedhorn-shaped, and the proof
+should be a finite topological quotient/evaluation argument. I would not try to sidestep
+it by redefining the overlap presheaf as a limit or pushout; that would only move the
+same topological identification problem elsewhere."
+
+**Priority promotion** (2026-05-13): per the reviewer's round-5 priority order, T-OV-1
+is the TOP work target. Closing it unblocks the Laurent overlap bridge and downstream
+`tateAcyclicity` Part 2.
+
+**Direct proof approach** (reviewer-prescribed, do NOT switch to limit/pushout):
+forward map evaluates `ζ ↦ b`, `ζ⁻¹ ↦ b⁻¹`; inverse and round-trip checks are
+generator computations plus continuity.
 
 **Target**: `example638Bivariate_equiv : presheafValue (overlapDatum B P b) ≃+* LaurentCover.B₁₂_gen b`
 where `overlapDatum B P b = laurentMinusDatum (trivialPlusDatum B P b) b`
@@ -427,9 +441,31 @@ and similar reductions on the plus/minus bridge sides.
 
 **Estimated lines**: ~80. **Blocked on T-OV-1 Step A**.
 
-### [T-IDEAL-2] Closedness of proper ideals — DONE-CONDITIONAL on Stacks 00MA full
+### [T-IDEAL-2] Closedness of proper ideals — PAUSED-NEEDS-STATEMENT-AUDIT  **[REFRAMED 2026-05-13 per reviewer]**
 
-- **Status**: DONE for the hypothesis-conditional discharge chain (audited 2026-05-12, T271)
+**Reviewer correction** (ChatGPT Pro, 2026-05-13): "the residual 'proper ideals stay
+proper under the canonical map to completion' is FALSE if it is stated for arbitrary
+proper ideals of an uncompleted rational `locSubring`. Your own earlier example
+essentially shows this: in a non-complete locSubring, an element like `1 + X` may be
+nonunit before completion but become a unit after completion, so the proper ideal it
+generates extends to the unit ideal."
+
+**Statement audit required** (reviewer-prescribed): identify what the actual downstream
+consumer (`coeRingHom_preserves_proper` in `Cor832.lean`) needs from this lemma. Two
+candidate replacements per the reviewer:
+
+1. **Spec-cover surjectivity** (new ticket `T-SPA-COVER-SURJ`, see below): state
+   `Spec(∏_{D ∈ C.covers} 𝒪_X(D)) → Spec(𝒪_X(C.base))` surjective for rational Spa-cover,
+   prove via Wedhorn/Spa-point argument.
+2. **Safe Bourbaki closedness** (new ticket `T-BOURBAKI-FG-CLOSED`, see below): targets
+   `fg_submodule_closed_of_complete_noetherian_adic` — under complete + separated +
+   noetherian + I-adic hypotheses, every f.g. submodule is closed.
+
+**Status**: PAUSED-NEEDS-AUDIT (2026-05-13). The hypothesis-conditional chain remains
+valid as architectural scaffolding, but the unconditional CLOSURE of the chain (which
+this ticket promised to provide) was based on a false premise.
+
+- **Original Status**: DONE for the hypothesis-conditional discharge chain (audited 2026-05-12, T271)
 - **Closed-conditional**:
   - `coeRingHom_preserves_proper_of_locIdeal_le_jacobson` (Cor832.lean:2533) —
     given `locIdeal ≤ Jacobson ⊥` in locSubring, discharges
@@ -801,6 +837,18 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
 ---
 
 ### [T-EMBED-TOPO] `IsSheafy` embedding via topological Example 6.38
+
+**Round-5 reviewer correction** (ChatGPT Pro, 2026-05-13):
+- Cor 8.32 algebraic faithful flatness is INSUFFICIENT for the embedding field.
+  Topological inducing needs the refinement induction independently —
+  "Faithful flatness does not imply topological inducing in general."
+- Theorem 5.10 (`lane-c-single-laurent`) is a LOCAL induction step, not a global
+  theorem. Arbitrary covers do NOT refinement-equivalently contain one Laurent pair
+  at the base.
+- The correct approach is **topological refinement induction mirroring Wedhorn 8.34**:
+  Laurent two-cover inducing at each split + refinement transfer (already-landed
+  `productRestrictionSub_isInducing_of_finer_rational_continuous` and
+  `naturalRefinementMap*`) gives inducing for the original cover.
 
 - **Status**: DONE for all 3 sub-tickets + base case in hypothesis-parameterised form (2026-05-13)
 - **Sub-ticket closures**:
@@ -4439,9 +4487,29 @@ Retained in tickets for future reference; not the primary path.
 - `CLEANUP-RATIONAL-CHAIN-1` after T-CHAIN-COMPOSITION.
 - `CLEANUP-RATIONAL-CHAIN-FINAL` after T-RATIONAL-FLAT-GENERAL-CLOSE-CHAIN.
 
-### [T-MATHLIB-STACKS-00MA] Adic completion of Noetherian ring is Noetherian
+### [T-MATHLIB-STACKS-00MA] Adic completion of Noetherian ring is Noetherian  **[REFRAMED 2026-05-13 per reviewer]**
 
-- **Status**: PARTIAL — faithfully-flat-conditional half is DONE; Noetherianness is the remaining genuine mathlib gap (audited 2026-05-12, T270)
+**Reviewer correction** (ChatGPT Pro, 2026-05-13): "'Adic completion of a noetherian
+ring is faithfully flat without a Jacobson hypothesis' is FALSE in general. For
+example, `ℤ → ℤ_p` is flat but not faithfully flat, since tensoring with `ℤ/ℓℤ` for
+`ℓ ≠ p` gives zero. Faithful flatness of `I`-adic completion needs `I ⊆ Jac(R)` or
+an equivalent hypothesis."
+
+**Stacks 00MA split into true components** (reviewer-prescribed):
+```
+R noetherian ⇒ R̂_I noetherian                  -- UNCONDITIONAL
+R noetherian ⇒ R → R̂_I flat                    -- UNCONDITIONAL (in Mathlib as `flat_of_isNoetherian`)
+I ⊆ Jac(R) ⇒ R → R̂_I faithfully flat            -- CONDITIONAL (in Mathlib as `faithfullyFlat_of_le_jacobson_bot`)
+```
+
+Only the noetherianness half remains as a genuine mathlib gap. The previous
+"unconditional faithfully flat" framing was MATHEMATICALLY INCORRECT.
+
+**Status**: PARTIAL — noetherianness is the remaining mathlib gap; faithfully-flat is
+conditional in Mathlib (Jacobson hypothesis), which matches Stacks. The unconditional
+faithfully-flat claim of earlier framing is now retired.
+
+- **Original Status**: PARTIAL — faithfully-flat-conditional half is DONE; Noetherianness is the remaining genuine mathlib gap (audited 2026-05-12, T270)
 - **Partial closure (T270 audit)**:
   - `AdicCompletion.faithfullyFlat_of_le_jacobson_bot`
     (`Adic spaces/AdicCompletionFaithfullyFlat.lean:62`): for Noetherian R
@@ -4552,3 +4620,124 @@ Once both preservation theorems land, iteration of depth-1 flatness gives
 depth-N flatness. Combined with the existing `restrictionMap_flat_trans`
 chain composition (already in place), this closes T-RATIONAL-FLAT-GENERAL
 sorry-free for any explicit chain decomposition.
+
+---
+
+## ROUND-5 REVIEWER-PRESCRIBED ADDITIONS (2026-05-13)
+
+The round-4 reviewer reply (`.mathlib-quality/expert-review/2026-05-13/reply.md`)
+prescribed the following new tickets and reframings. See the integration record at
+`.mathlib-quality/expert-review/2026-05-13/integration.md`.
+
+### [T-SPA-COVER-SURJ] Spec-cover surjectivity for rational Spa-cover
+
+- **Status**: OPEN (NEW 2026-05-13, reviewer-prescribed)
+- **Priority**: medium (depends on outcome of T-IDEAL-2 statement audit)
+- **File**: `Adic spaces/Cor832.lean` or new module
+- **Mathematical statement**: `Spec(∏_{D ∈ C.covers} 𝒪_X(D)) → Spec(𝒪_X(C.base))`
+  is surjective for a rational Spa-cover.
+- **Proof sketch**: Wedhorn/Spa-point argument. Every prime `p ⊆ 𝒪_X(C.base)`
+  is hit by some prime of a component, using the fact that the cover is a
+  topological cover via continuous valuations: a valuation `v` lying over `p`
+  with `v(C.base.s) ≠ 0` is in `R(C.base.T / C.base.s)`, hence in some
+  `R(D.T / D.s)` by `C.hcover`. The corresponding prime of `𝒪_X(D)` is the
+  desired preimage.
+- **Reviewer guidance** (ChatGPT Pro, 2026-05-13): "If the needed fact is
+  spectrum surjectivity for the product restriction, state that directly:
+  `Spec(∏ O(D_i)) → Spec(O(D₀))` is surjective for a rational Spa-cover.
+  Prove it by the Wedhorn/Spa-point argument, not by arbitrary proper-ideal
+  preservation in `locSubring`."
+- **Use**: replacement for the false framing of T-IDEAL-2 (`closedness-residual`).
+
+### [T-BOURBAKI-FG-CLOSED] Bourbaki closedness (safe form)
+
+- **Status**: OPEN (NEW 2026-05-13, reviewer-prescribed)
+- **Priority**: medium (alternative to T-SPA-COVER-SURJ)
+- **File**: `Adic spaces/IdealClosedness.lean` (extend existing infrastructure)
+- **Mathematical statement**:
+  > For complete separated noetherian ring `R` with `I`-adic topology
+  > and finitely generated module `M` (with induced complete topology),
+  > every finitely generated submodule `N ⊆ M` is closed.
+- **Proof sketch**: Artin–Rees + Krull intersection under `I ⊆ Jac(R)`.
+  The `I ⊆ Jac(R)` condition follows from completeness in the standard
+  argument: topologically nilpotent ⇒ `1 - x` unit (geometric series in
+  COMPLETE adic rings); elements of `I` are topologically nilpotent for
+  the `I`-adic topology; hence `I ⊆ Jac(R)`. Then Krull intersection
+  (Artin–Rees) gives closedness of f.g. submodules.
+- **Reviewer guidance** (ChatGPT Pro, 2026-05-13): "If a closedness lemma
+  is still needed, target the safe Bourbaki form ... `R` noetherian,
+  complete, separated, `I`-adic, `M` finitely generated with the induced
+  complete topology. Use Artin–Rees and the Jacobson/Krull intersection
+  theorem under `I ⊆ Jac(R)`, deriving `I ⊆ Jac(R)` from completeness when
+  appropriate."
+- **Use**: alternative replacement for T-IDEAL-2 (`closedness-residual`).
+
+### [T-LANE-C-REFINEMENT-INDUCTION] Topological refinement induction for Lane C arbitrary-C
+
+- **Status**: OPEN (NEW 2026-05-13, reviewer-prescribed)
+- **Priority**: HIGH (replaces the round-4 search for "single Laurent pair at base")
+- **File**: `Adic spaces/EmbeddingTopo.lean`
+- **Mathematical statement**:
+  > If a rational cover `C` has a Laurent-refinement tree whose leaves refine
+  > `C`, and every Laurent split in the tree is topologically inducing,
+  > then the diagonal `productRestrictionSub A C` is topologically inducing.
+- **Proof sketch**: Induction on the tree. At each internal node, the Laurent
+  split is the 2-cover at some element. Apply Theorem 5.10
+  (`productRestrictionSub_isInducing_of_C_covers_contains_laurent_pair`) at the
+  leaf level: Laurent two-cover inducing. Propagate up via Aux 10.7
+  (`productRestrictionSub_isInducing_of_finer_rational_continuous`) +
+  Aux 10.8 (`naturalRefinementMap` + continuity + commutativity). Theorem 5.10
+  is the LOCAL induction step at each split, not a global theorem.
+- **Depends on**: T-LAURENT-REFINEMENT-TREE (for the tree existence);
+  T-EMBED-TOPO-LANE-C-BOOTSTRAP (already DONE, supplies the local step).
+- **Reviewer guidance** (ChatGPT Pro, 2026-05-13): "For `lane-c-arbitrary-c`,
+  do not search for one Laurent pair at the base. Theorem 5.10 is a local
+  induction step. Build a topological refinement induction mirroring Wedhorn
+  8.34: Laurent-pair inducing at each split plus refinement transfer gives
+  inducing for the original cover."
+
+### [T-LAURENT-REFINEMENT-TREE] Finite Laurent refinement tree from standard cover
+
+- **Status**: OPEN (NEW 2026-05-13, reviewer-prescribed)
+- **Priority**: medium (blocks T-LANE-C-REFINEMENT-INDUCTION)
+- **File**: `Adic spaces/GeometricReduction.lean` (extend existing standard-cover infrastructure)
+- **Mathematical statement**: For arbitrary rational covering `C` and a
+  standard cover `S ⊆ A` (with `Ideal.span S = ⊤`), construct a finite
+  TREE of Laurent splittings whose leaves are pieces refining `C`. Each
+  internal node is a Laurent split at some element of `S`; each leaf is
+  a piece contained in some piece of `C.covers`.
+- **Proof sketch**: Iterated standard-cover/Laurent splitting, keeping
+  pieces refining `C` at each step. This is Wedhorn Lemma 8.34 content
+  at the constructive level. The project's existing gluing-side analog
+  (`standardCover_gluing_induction_step` + per-cover `refinedVCovers`) is
+  the model.
+- **Reviewer guidance** (ChatGPT Pro, 2026-05-13): "You can build
+  Laurent-refined covers by iterated standard-cover/Laurent splitting, but
+  keeping all new pieces refining the original cover is the content of
+  Wedhorn 8.34, not a trivial extension."
+
+### [STACKS-00MA-NOETH] AdicCompletion of Noetherian is Noetherian (unconditional)
+
+- **Status**: OPEN (NEW 2026-05-13, reviewer-prescribed reframing of T-MATHLIB-STACKS-00MA)
+- **Priority**: medium (mathlib upstream; not blocking the project per reviewer)
+- **File**: future Mathlib PR, target `Mathlib/RingTheory/AdicCompletion/Noetherian.lean`
+- **Mathematical statement**: For Noetherian ring `R` and f.g. ideal `I`,
+  `AdicCompletion I R` is Noetherian.
+- **Proof sketch**: Standard. `R̂_I` is a quotient of `R[[T_1, ..., T_n]]`
+  where `T_i` map to generators of `I`. Mathlib's `PowerSeries.instIsNoetherianRing`
+  + multivariable iteration. Equivalent to Stacks 00MA Lemma 1.
+- **Reviewer guidance** (ChatGPT Pro, 2026-05-13): "You may still upstream:
+  completion is noetherian; completion is flat; completion is faithfully
+  flat under `I ≤ Jac(R)`. ... For this project, avoid it unless
+  noetherianity of iterated completed rings is truly missing."
+- **Replaces**: the noetherianness half of T-MATHLIB-STACKS-00MA. The
+  faithfully-flat half was incorrectly stated as unconditional; that's now
+  retired (the conditional form is in mathlib already).
+
+### Reannotation: T-EMBED-TOPO-LANE-C-BASE (T273+T275) and `lane-c-single-laurent`
+
+- **2026-05-13 reannotation** (reviewer-prescribed): Theorem 5.10 — the
+  V-contains-laurent-pair bootstrap — is the LOCAL INDUCTION STEP for
+  T-LANE-C-REFINEMENT-INDUCTION, not a global theorem solving arbitrary
+  covers. Cross-reference: it serves as the leaf-level closure in the
+  refinement-induction tree.
