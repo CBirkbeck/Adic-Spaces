@@ -487,6 +487,25 @@ theorem LaurentTree.node_refines_of_subtrees_refine
     (LaurentTree.node f L R).Refines D₀ C :=
   ⟨hL, hR⟩
 
+/-- **Right-branching refinement**: given a list `L = [f₁, ..., fₙ]` of
+split elements and a `C`-refinement witness for each plus-piece and the
+terminal minus-piece, the right-branching tree refines `C`. -/
+theorem LaurentTree.ofRightBranchList_refines (D₀ : RationalLocData A)
+    (L : List A) (C : RationalCovering A)
+    (h_plus : ∀ D ∈ LaurentTree.plusOfMinusChain D₀ L,
+      ∃ E ∈ C.covers, rationalOpen D.T D.s ⊆ rationalOpen E.T E.s)
+    (h_terminal : ∃ E ∈ C.covers,
+      rationalOpen (LaurentTree.terminalMinus D₀ L).T
+                   (LaurentTree.terminalMinus D₀ L).s ⊆
+      rationalOpen E.T E.s) :
+    (LaurentTree.ofRightBranchList L).Refines D₀ C := by
+  rw [LaurentTree.refines_iff_forall_mem_leaves, leaves_ofRightBranchList]
+  intro D hD
+  rcases List.mem_append.mp hD with hPlus | hTerm
+  · exact h_plus D hPlus
+  · rcases List.mem_singleton.mp hTerm with rfl
+    exact h_terminal
+
 end Semantics
 
 end ValuationSpectrum
