@@ -66,6 +66,28 @@ def depth : LaurentTree A → ℕ
 @[simp] theorem depth_node (f : A) (L R : LaurentTree A) :
     (node f L R).depth = 1 + max L.depth R.depth := rfl
 
+/-- Right-branching Laurent tree built from a list of split elements.
+At each step, the head element splits, the plus subtree is a leaf, and
+the recursion continues on the minus side. -/
+def ofRightBranchList : List A → LaurentTree A
+  | [] => LaurentTree.leaf
+  | f :: rest => LaurentTree.node f LaurentTree.leaf (ofRightBranchList rest)
+
+@[simp] theorem ofRightBranchList_nil :
+    (ofRightBranchList ([] : List A)) = LaurentTree.leaf := rfl
+
+@[simp] theorem ofRightBranchList_cons (f : A) (rest : List A) :
+    ofRightBranchList (f :: rest) =
+      LaurentTree.node f LaurentTree.leaf (ofRightBranchList rest) := rfl
+
+/-- The depth of `ofRightBranchList L` equals the length of `L`. -/
+theorem depth_ofRightBranchList (L : List A) :
+    (ofRightBranchList L).depth = L.length := by
+  induction L with
+  | nil => simp
+  | cons f rest ih =>
+    simp [ofRightBranchList, depth, ih, Nat.add_comm]
+
 end LaurentTree
 
 section Semantics
@@ -326,30 +348,88 @@ theorem LaurentTree.leaves_disjoint_of_leaf_leaf
   rw [h_plus, h_minus, Finset.disjoint_singleton]
   exact laurentPlus_ne_laurentMinus_of_nonunit D₀ f hf_nonunit hs
 
-/-! ## Existence stage (T-LAURENT-REFINEMENT-TREE existence — Wedhorn 8.34)
+/-! ## Right-branching tree leaf enumeration
 
-For arbitrary rational covering `C` of `D₀` and standard cover `S ⊆ A`
-with `Ideal.span S = ⊤`, the goal is to construct a `LaurentTree A`
-whose leaves (interpreted at `D₀`) refine `C` — each leaf datum
-contained in some piece of `C.covers`. The construction is iterated
-standard-cover/Laurent splitting at elements of `S`, keeping pieces
-refining `C` at each step.
+The right-branching tree `ofRightBranchList [f₁, ..., fₙ]` interpreted at
+`D₀` yields a depth-`n` chain of Laurent splits, with the plus piece at
+each level a leaf and the minus side continuing. We give the explicit
+leaf enumeration. -/
 
-This is the constructive content of Wedhorn Lemma 8.34. The project's
-existing gluing-side analog (`standardCover_gluing_induction_step` in
-`GeometricReduction.lean` + per-cover `refinedVCovers`) is the model.
+/-- An auxiliary recursive base sequence: starting from `D₀`, walk down
+the minus side via `f₁, f₂, ..., fₙ`. The `k`-th entry is
+`laurentMinusDatum^k D₀ f₁..fₖ`. -/
+noncomputable def LaurentTree.minusChain :
+    RationalLocData A → List A → List (RationalLocData A)
+  | D₀, [] => [D₀]
+  | D₀, f :: rest =>
+      D₀ :: minusChain (laurentMinusDatum D₀ f) rest
 
-**Sketch** (for `S = {f₁, ..., fₙ}`, by induction on `n`):
-- Base `n = 0`: `S = ∅`, `Ideal.span ∅ = ⊥ ≠ ⊤`, so this case is
-  vacuous (or `0 ∈ ⊤` forces `1 = 0` ⇒ `A = 0`, where every cover
-  refines).
-- Step `S = {f₀} ∪ S'`: Laurent-split at `f₀`. Recurse on the plus
-  piece (`laurentPlusDatum D₀ f₀`) with the same `S'` (since `f₀`
-  becomes a unit there); recurse on the minus piece with `S'`. The
-  resulting subtrees give a tree at the parent base.
+@[simp] theorem LaurentTree.minusChain_nil (D₀ : RationalLocData A) :
+    LaurentTree.minusChain D₀ ([] : List A) = [D₀] := rfl
 
-Statement deferred to a separate proof effort with the right
-inductive setup over `S`. -/
+@[simp] theorem LaurentTree.minusChain_cons (D₀ : RationalLocData A)
+    (f : A) (rest : List A) :
+    LaurentTree.minusChain D₀ (f :: rest) =
+      D₀ :: LaurentTree.minusChain (laurentMinusDatum D₀ f) rest := rfl
+
+/-- The minus-chain has length `L.length + 1`. -/
+theorem LaurentTree.minusChain_length (D₀ : RationalLocData A) (L : List A) :
+    (LaurentTree.minusChain D₀ L).length = L.length + 1 := by
+  induction L generalizing D₀ with
+  | nil => simp
+  | cons f rest ih =>
+    simp [LaurentTree.minusChain, ih]
+
+/-- The plus-pieces enumerated along the minus-chain. Each entry is
+`laurentPlusDatum (minusBase k) f_{k+1}` where `minusBase k` is the
+minus-chain entry after applying the first `k` splits. -/
+noncomputable def LaurentTree.plusOfMinusChain :
+    RationalLocData A → List A → List (RationalLocData A)
+  | _, [] => []
+  | D₀, f :: rest =>
+      laurentPlusDatum D₀ f ::
+        plusOfMinusChain (laurentMinusDatum D₀ f) rest
+
+@[simp] theorem LaurentTree.plusOfMinusChain_nil (D₀ : RationalLocData A) :
+    LaurentTree.plusOfMinusChain D₀ ([] : List A) = [] := rfl
+
+@[simp] theorem LaurentTree.plusOfMinusChain_cons (D₀ : RationalLocData A)
+    (f : A) (rest : List A) :
+    LaurentTree.plusOfMinusChain D₀ (f :: rest) =
+      laurentPlusDatum D₀ f ::
+        LaurentTree.plusOfMinusChain (laurentMinusDatum D₀ f) rest := rfl
+
+/-- The terminal minus-datum after walking down the chain `L = [f₁, ..., fₙ]`
+from `D₀`: it equals `laurentMinusDatum (laurentMinusDatum ... D₀ f₁ ...) fₙ`,
+i.e. the last `laurentMinusDatum` in the chain. We define it recursively
+so it interacts cleanly with `leaves_ofRightBranchList`. -/
+noncomputable def LaurentTree.terminalMinus :
+    RationalLocData A → List A → RationalLocData A
+  | D₀, [] => D₀
+  | D₀, f :: rest => LaurentTree.terminalMinus (laurentMinusDatum D₀ f) rest
+
+@[simp] theorem LaurentTree.terminalMinus_nil (D₀ : RationalLocData A) :
+    LaurentTree.terminalMinus D₀ ([] : List A) = D₀ := rfl
+
+@[simp] theorem LaurentTree.terminalMinus_cons (D₀ : RationalLocData A)
+    (f : A) (rest : List A) :
+    LaurentTree.terminalMinus D₀ (f :: rest) =
+      LaurentTree.terminalMinus (laurentMinusDatum D₀ f) rest := rfl
+
+/-- Explicit leaf enumeration for the right-branching tree:
+`leaves (ofRightBranchList L) D₀` equals the list of plus-pieces along
+the minus chain, appended with the terminal minus datum. -/
+theorem LaurentTree.leaves_ofRightBranchList
+    (D₀ : RationalLocData A) (L : List A) :
+    (LaurentTree.ofRightBranchList L).leaves D₀ =
+      LaurentTree.plusOfMinusChain D₀ L ++ [LaurentTree.terminalMinus D₀ L] := by
+  induction L generalizing D₀ with
+  | nil =>
+    simp [LaurentTree.ofRightBranchList,
+      LaurentTree.plusOfMinusChain, LaurentTree.terminalMinus]
+  | cons f rest ih =>
+    simp [LaurentTree.ofRightBranchList, LaurentTree.leaves,
+      LaurentTree.plusOfMinusChain, LaurentTree.terminalMinus, ih]
 
 end Semantics
 
