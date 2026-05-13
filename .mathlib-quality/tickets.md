@@ -469,7 +469,7 @@ and similar reductions on the plus/minus bridge sides.
 
 **Estimated lines**: ~80. **Blocked on T-OV-1 Step A**.
 
-### [T-IDEAL-2] Closedness of proper ideals — PAUSED-NEEDS-STATEMENT-AUDIT  **[REFRAMED 2026-05-13 per reviewer]**
+### [T-IDEAL-2] Closedness of proper ideals — STATEMENT AUDIT COMPLETE  **[REFRAMED 2026-05-13 per reviewer]**
 
 **Reviewer correction** (ChatGPT Pro, 2026-05-13): "the residual 'proper ideals stay
 proper under the canonical map to completion' is FALSE if it is stated for arbitrary
@@ -478,20 +478,49 @@ essentially shows this: in a non-complete locSubring, an element like `1 + X` ma
 nonunit before completion but become a unit after completion, so the proper ideal it
 generates extends to the unit ideal."
 
-**Statement audit required** (reviewer-prescribed): identify what the actual downstream
-consumer (`coeRingHom_preserves_proper` in `Cor832.lean`) needs from this lemma. Two
-candidate replacements per the reviewer:
+**STATEMENT AUDIT (2026-05-13)**: the reviewer's correction is confirmed for the
+"global proper ideal" form `hcoeRingHom_preserves_proper` (consumed by
+`productRestriction_injective_tate_via_coeRingHom_preserves_proper` in `Cor832.lean`).
+That hypothesis is too strong / potentially false in general.
 
-1. **Spec-cover surjectivity** (new ticket `T-SPA-COVER-SURJ`, see below): state
-   `Spec(∏_{D ∈ C.covers} 𝒪_X(D)) → Spec(𝒪_X(C.base))` surjective for rational Spa-cover,
-   prove via Wedhorn/Spa-point argument.
-2. **Safe Bourbaki closedness** (new ticket `T-BOURBAKI-FG-CLOSED`, see below): targets
-   `fg_submodule_closed_of_complete_noetherian_adic` — under complete + separated +
-   noetherian + I-adic hypotheses, every f.g. submodule is closed.
+**KEY FINDING**: the project already has the **mathematically correct narrowed form**
+`productRestriction_injective_tate_via_prime_extension_closed` (`Cor832.lean:2256`).
+This narrower form takes a STRICTLY WEAKER closedness obligation:
 
-**Status**: PAUSED-NEEDS-AUDIT (2026-05-13). The hypothesis-conditional chain remains
-valid as architectural scaffolding, but the unconditional CLOSURE of the chain (which
-this ticket promised to provide) was based on a false premise.
+> For every NON-OPEN prime `p ⊂ A` with `C.base.s ∉ p`, the ideal extension
+> `Ideal.map (algebraMap A (Localization.Away C.base.s)) p` is closed in
+> `C.base.topology`.
+
+This is a **pointwise** closedness claim for specific PRIME extensions — strictly
+weaker than the global "every proper ideal" form. The full chain through to
+`productRestriction_injective_tate` is intact; only this narrower residual remains.
+
+Supporting infrastructure (existing, axiom-clean):
+- `coeRingHom_preserves_proper_prime_extension_of_closed` (`Cor832.lean:2151`)
+- `liftedIdeal_ne_top_of_prime_extension_closed` (`Cor832.lean:2170`)
+- `spa_point_nonOpen_of_rational_subset_tate_of_prime_extension_closed`
+  (`Cor832.lean:2188`)
+- `hSpa_points_via_prime_extension_closed` (`Cor832.lean:2214`)
+- `productRestriction_injective_tate_via_prime_extension_closed` (`Cor832.lean:2256`)
+
+**Status**: STATEMENT-AUDIT-DONE (2026-05-13). The reviewer's two candidate
+replacements:
+
+1. **T-SPA-COVER-SURJ** (Spec-cover surjectivity): bypasses closedness entirely.
+   Still useful as an alternative route.
+2. **T-BOURBAKI-FG-CLOSED** (safe Bourbaki closedness): applies to f.g. submodules
+   in COMPLETE adic noetherian rings. Doesn't directly handle our non-complete
+   `Localization.Away C.base.s`, but supports downstream presheafValue-level
+   closedness.
+
+**Remaining work**: discharge the per-non-open-prime closedness obligation. Two paths:
+- (i) Direct topological argument for closedness of `Ideal.map algebraMap p` in
+      `C.base.topology` (the localization topology). Wedhorn/Tate-specific.
+- (ii) Route through T-SPA-COVER-SURJ to bypass closedness altogether.
+
+The reviewer's recommendation: (ii) is cleaner. Path (i) requires the proof-specific
+topological argument; path (ii) recasts the question at the Spec level using the
+Wedhorn/Spa-point construction.
 
 - **Original Status**: DONE for the hypothesis-conditional discharge chain (audited 2026-05-12, T271)
 - **Closed-conditional**:
