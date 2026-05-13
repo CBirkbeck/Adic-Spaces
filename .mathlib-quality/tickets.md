@@ -4811,26 +4811,71 @@ prescribed the following new tickets and reframings. See the integration record 
 ### [T-TREE-INDUCING-NODE] Node-case recursion of inducing-via-tree theorem
 
 - **Status**: OPEN (NEW 2026-05-13, follow-up of T-LAURENT-REFINEMENT-TREE
-  data stage)
+  data stage). Investigated 2026-05-13: substantial dependent-type
+  difficulties with multiple Pi/Sigma re-indexings.
 - **Priority**: medium (paired with T-LAURENT-REFINEMENT-TREE existence;
   together they close T-LANE-C-REFINEMENT-INDUCTION)
 - **File**: `Adic spaces/EmbeddingTopo.lean` (after the leaf base case)
-- **Mathematical statement**: For a `node f L R` tree at root `D₀`:
-  given (i) `IsInducing (productRestrictionSub A (laurentCovering D₀ f))`,
+
+#### Mathematical statement
+
+For a `node f L R` tree at root `D₀`: given
+  (i) `IsInducing (productRestrictionSub A (laurentCovering D₀ f))`,
   (ii) `IsInducing (productRestrictionSub A (L.toCovering (laurentPlusDatum D₀ f)))`,
   (iii) `IsInducing (productRestrictionSub A (R.toCovering (laurentMinusDatum D₀ f)))`,
-  conclude `IsInducing (productRestrictionSub A ((LaurentTree.node f L R).toCovering D₀))`.
-- **Proof sketch**: Use `Topology.IsInducing.piMap_comp` to compose the
-  2-cover (i) with the per-piece inducings (ii, iii) — this gives the
-  *nested* IsInducing into `∀ p : ↥{plus, minus}, ∀ q : leaves_p, ...`.
-  Then identify the *flat* productRestrictionSub at the union-Finset
-  with the nested form via a `Finset.disjUnion`-style index iso.
-  Disjointness of `L.leaves` and `R.leaves` (as Finsets of
-  `RationalLocData`) follows from the laurent-plus-vs-laurent-minus
-  data structurally differing in their `T` fields by `f`.
-- **Sub-issue (T-LAURENT-LEAF-DISJOINT)**: prove `Disjoint (L.leaves
-  (laurentPlusDatum D₀ f)).toFinset (R.leaves (laurentMinusDatum D₀ f)).toFinset`
-  — needed to make the flat↔nested identification an equiv.
+  AND (iv) `Disjoint Lleaves Rleaves`,
+conclude `IsInducing (productRestrictionSub A ((LaurentTree.node f L R).toCovering D₀))`.
+
+#### Tools already landed (2026-05-13)
+
+- `Homeomorph.piFinsetUnion` (EmbeddingTopo.lean, commit `a6ab898`):
+  `(s_pi) × (t_pi) ≃ₜ ((s ∪ t)_pi)` under `Disjoint s t`.
+- `productRestrictionSub_leafTree_isInducing` (EmbeddingTopo.lean,
+  commit `f5dc330`): the LEAF base case.
+
+#### Proof obstruction (2026-05-13)
+
+The proof goes:
+
+1. From (i), (ii), (iii), build IsInducing for the PAIR form:
+   `presheafValue D₀ → (∀ q : Lleaves, presheafValue q.1) × (∀ q : Rleaves, presheafValue q.1)`.
+2. From the PAIR form, build IsInducing for the FLAT form via
+   `Homeomorph.piFinsetUnion` (composition with a homeomorphism).
+
+Step 1 requires going from `h_split` (which has codomain
+`∀ p : ↥{plus, minus}, presheafValue p.1`) to a *product* form
+`presheafValue plus × presheafValue minus`. This requires a
+homeomorphism `Pi-over-{plus,minus} ≃ₜ presheafValue plus ×
+presheafValue minus`, which factors as
+`piFinsetUnion(symm) ∘ piUnique on each singleton`.
+
+Implementation issue: the dependent types (subtype membership proofs
+carried inside `restrictionMap`'s `hsubset` field) make the rewrites
+delicate. Several drafts have stalled on motive-not-type-correct or
+proof-irrelevance issues when substituting `default.1 = plus`.
+
+Step 2 also requires showing the FLAT productRestrictionSub equals the
+piFinsetUnion of the pair form. This equation has the same kind of
+dependent-type/proof-irrelevance issue.
+
+#### Sub-issues to spawn before retrying
+
+- **T-LAURENT-LEAF-DISJOINT**: prove `Disjoint Lleaves Rleaves` for
+  Laurent trees over a domain. Likely via induction on the trees plus
+  the `s`-field tracking (each Laurent split changes `s` by
+  multiplying with the split element).
+- **T-INTERMEDIATE-2COVER-PAIR**: prove
+  `Topology.IsInducing (fun x => (restrictionMap D₀ plus _ x, restrictionMap D₀ minus _ x))`
+  from `h_split`. This is the 2-cover-to-pair homeomorphism step.
+- **T-NODE-FLAT-EQ-PIUNION-PAIR**: prove the equation
+  `productRestrictionSub _ (node ...) x =
+    piFinsetUnion (Lpi x, Rpi x)` (with index identification).
+- **T-NODE-CASE-FROM-PIECES**: combine the three above to get the
+  full node case.
+
+The right approach is to attack each sub-issue as a focused lemma with
+its own proof, then compose. Direct end-to-end proof drafts have hit
+walls.
 
 ### [STACKS-00MA-NOETH] AdicCompletion of Noetherian is Noetherian (unconditional)
 
