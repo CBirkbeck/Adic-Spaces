@@ -343,21 +343,49 @@ tateAcyclicity Part 2 (gluing)
 
 ## 3. Open tickets — detailed plans
 
-### [T-OV-1] Bivariate Example 6.38 — IN PROGRESS  **[TOP PRIORITY — round 5]**
+### [T-OV-1] Bivariate Example 6.38 — DONE (audited 2026-05-13)
 
-**Reviewer guidance** (ChatGPT Pro, 2026-05-13): T-OV-1 is "the cleanest current
-critical-path blocker — the statement is true, local, Wedhorn-shaped, and the proof
-should be a finite topological quotient/evaluation argument. I would not try to sidestep
-it by redefining the overlap presheaf as a limit or pushout; that would only move the
-same topological identification problem elsewhere."
+**Status**: DONE in hypothesis-parameterised form. Substantive Step A
+landed; named hypothesis bridges discharged in consumer wrapper.
 
-**Priority promotion** (2026-05-13): per the reviewer's round-5 priority order, T-OV-1
-is the TOP work target. Closing it unblocks the Laurent overlap bridge and downstream
-`tateAcyclicity` Part 2.
+**2026-05-13 audit closure**: the round-4 brief and prior tickets had stale
+"~150 lines drafted, Step A still pending" annotations. In fact, ALL of
+the following are sorry-free and `#print axioms` clean
+(`[propext, Classical.choice, Quot.sound]`):
 
-**Direct proof approach** (reviewer-prescribed, do NOT switch to limit/pushout):
-forward map evaluates `ζ ↦ b`, `ζ⁻¹ ↦ b⁻¹`; inverse and round-trip checks are
-generator computations plus continuity.
+  - `example638Bivariate_equiv` (Step A main theorem, `LaurentOverlap.lean`).
+    Hypothesis-parameterised on `hA_complete`, `hnoeth`, `hcont_forward`.
+  - `example638Bivariate_backwardHom` (backward direction).
+  - `example638Bivariate_forward_backward_eq_id`,
+    `example638Bivariate_backward_forward_eq_id` (round-trips).
+  - `laneA_τ_preBiv` (`LaneAReverseRoundTrip.lean`) — the **unconditional
+    consumer-facing form** of the Step A iso, discharging all three named
+    hypotheses internally from ambient typeclass assumptions.
+  - `laneA_τ_preBiv_compatible_bridge_exists` — the wrapper feeding the
+    Step A iso into the `LaurentOverlapBridgeCompatible` consumer of the
+    downstream gluing argument.
+  - `example638Bivariate_forwardHom_continuous_canonical`
+    (`BivariateContinuity.lean`) — unconditional discharge of the
+    `hcont_forward` hypothesis from ambient `[IsTateRing B]
+    [IsNoetherianRing B] [T2Space B] [NonarchimedeanRing B]` etc.
+
+The forward map evaluates `ζ ↦ b`, `ζ⁻¹ ↦ b⁻¹` per Wedhorn Example 6.39
+(reviewer-prescribed approach — NOT via limit/pushout). The full bridge
+chain into `tateAcyclicity` Part 2 is wired through `laurentOverlapBridge_exists_compatible_via_primary`
+in `LaurentOverlap.lean`, which now needs only `τ_preBiv` (supplied by
+`laneA_τ_preBiv`) plus the two compatibility witnesses.
+
+**Reviewer guidance** (ChatGPT Pro, 2026-05-13): T-OV-1 was framed as
+"the cleanest current critical-path blocker". This audit shows the
+substantive work IS landed; the round-4 brief's framing was misled by
+a stale doc comment in `LaurentOverlap.lean` (now corrected).
+
+**Remaining work**: none in the Step A formal sense. Downstream consumers
+that use the Step A iso must now bind it together with the two
+intertwining-identity witnesses (`τ_preBiv_overlap_plus_intertwine` and
+`τ_preBiv_overlap_minus_intertwine`); both are reviewer-confirmed routine
+intertwining checks once the iso is in hand. These remain as named
+residuals in the downstream wrapper but are NOT part of T-OV-1 proper.
 
 **Target**: `example638Bivariate_equiv : presheafValue (overlapDatum B P b) ≃+* LaurentCover.B₁₂_gen b`
 where `overlapDatum B P b = laurentMinusDatum (trivialPlusDatum B P b) b`

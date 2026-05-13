@@ -70,11 +70,25 @@ bivariate analog of `example638Plus_equiv` / `example638Minus_equiv`
   `_oneSubfX_eq_zero`). Factored through the appropriate ideals:
   `overlap_plus_forwardHom : B₁_gen b →+* presheafValue(overlap)`,
   `overlap_minus_forwardHom : B₂_gen b →+* presheafValue(overlap)`.
-* `example638Bivariate_equiv` (full T-OV-1) — Step A main theorem still pending.
-  Expected route: glue `overlap_plus_forwardHom` and `overlap_minus_forwardHom`
-  via Wedhorn's p.84 decomposition `A⟨ζ, ζ⁻¹⟩ = A⟨ζ⟩ + ζ⁻¹ · A⟨ζ⁻¹⟩` into a
-  single `B₁₂_gen b →+* presheafValue(overlap)`, then Step B gives the
-  bivariate quotient iso.
+* `example638Bivariate_equiv` (full T-OV-1) — **LANDED 2026-05-13 audit**.
+  Implemented at line 1472, hypothesis-parameterised on three named bridges:
+  `hA_complete`, `hnoeth` (Noetherianness of `TateAlgebra.pairSubring₂`),
+  `hcont_forward`. All three discharged unconditionally from ambient
+  typeclass hypotheses in the consumer wrapper `laneA_τ_preBiv` in
+  `LaneAReverseRoundTrip.lean`, which is the unconditional consumer-facing
+  form of the bivariate Example 6.38 iso. `#print axioms` clean
+  (`[propext, Classical.choice, Quot.sound]`) for `example638Bivariate_equiv`,
+  `example638Bivariate_backwardHom`, the two round-trip lemmas, and
+  `laneA_τ_preBiv` (the wrapper).
+
+  The forward continuity `hcont_forward` is discharged unconditionally by
+  `example638Bivariate_forwardHom_continuous_canonical` in
+  `BivariateContinuity.lean` (also axiom-clean).
+
+  Per the round-4 reviewer's direct guidance (ChatGPT Pro, 2026-05-13),
+  this is the project's CRITICAL-PATH BLOCKER and it is now landed. The
+  remaining T-IDEAL-2 statement audit + Lane C refinement induction are
+  separate downstream concerns.
 
 ## References
 
