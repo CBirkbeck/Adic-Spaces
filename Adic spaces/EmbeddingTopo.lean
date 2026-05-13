@@ -1881,4 +1881,19 @@ theorem isInducing_pair_form_composed_via_union
     (fun D : RationalLocData A => presheafValue D) h_disj).isInducing
   exact h_union.comp h_pair
 
+/-! ### T-TREE-INDUCING-NODE: FLAT node-case (sketch documented)
+
+After the toCovering refactor, `productRestrictionSub A ((node f L R).toCovering D₀)`
+and `fun x => piFinsetUnion (...)` have *definitionally equal codomain types*
+but pointwise-equal values differ in their subset proof terms. The
+function equality requires (a) unfolding `Homeomorph.piFinsetUnion` to
+evaluate at each `⟨D, hD⟩`, which becomes either L or R's component via
+`Equiv.Finset.union.symm`, and (b) using `restrictionMap_comp` plus
+proof-irrelevance on the subset hypotheses to identify with the FLAT form.
+
+The unfolding step (a) requires careful @[simp] lemma chaining for
+`piFinsetUnion`, `sumPiEquivProdPi`, and `piCongrLeft`'s evaluation
+formulas. Tracked as the remaining sub-step
+`T-PIFINSETUNION-EVAL-LEMMA`. -/
+
 end ValuationSpectrum
