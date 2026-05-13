@@ -276,6 +276,45 @@ theorem _root_.Topology.IsInducing.of_continuous_comp
     rw [hgf, ← induced_compose]
     exact induced_mono hg.le_induced
 
+/-- **T282**: **strengthened** topological refinement transfer.
+
+Same as `productRestrictionSub_isInducing_of_finer_rational` (T267) but
+with the heavy `IsInducing φ` hypothesis weakened to `Continuous φ` —
+much easier to discharge in practice. Routes through T281
+(`Topology.IsInducing.of_continuous_comp`) instead of `of_comp_iff`.
+
+The downstream consumer chain becomes:
+- Find a finer cover V with IsInducing of `productRestrictionSub_V`
+  (e.g., from T279's laurentCovering IsEmbedding).
+- Construct the natural product map `φ : Π_C → Π_V` and show its
+  CONTINUITY (just continuity of each restriction-composed component).
+- Conclude IsInducing for the C-level restriction.
+
+This eliminates the substantial obligation to show `φ` is `IsInducing`
+(which would otherwise require independent topological analysis of the
+refinement map). -/
+theorem productRestrictionSub_isInducing_of_finer_rational_continuous
+    (C : RationalCovering A)
+    (V_covers : Finset (RationalLocData A))
+    (hV_subset : ∀ D ∈ V_covers, rationalOpen D.T D.s ⊆
+      rationalOpen C.base.T C.base.s)
+    (productRestrictionSub_V :
+      presheafValue C.base → ∀ D : { D // D ∈ V_covers }, presheafValue D.1)
+    (hprV : productRestrictionSub_V =
+      fun x ⟨D, hD⟩ => restrictionMap C.base D (hV_subset D hD) x)
+    (hV_inducing : Topology.IsInducing productRestrictionSub_V)
+    (φ : (∀ E : { E // E ∈ C.covers }, presheafValue E.1) →
+         (∀ D : { D // D ∈ V_covers }, presheafValue D.1))
+    (hφ : ∀ x : presheafValue C.base,
+      φ (productRestrictionSub A C x) = productRestrictionSub_V x)
+    (hφ_continuous : Continuous φ)
+    (hprC_continuous : Continuous (productRestrictionSub A C)) :
+    Topology.IsInducing (productRestrictionSub A C) := by
+  have hcomp : productRestrictionSub_V = φ ∘ productRestrictionSub A C := by
+    funext x; exact (hφ x).symm
+  rw [hcomp] at hV_inducing
+  exact Topology.IsInducing.of_continuous_comp hprC_continuous hφ_continuous hV_inducing
+
 /-- **T274**: the canonical homeomorphism between a pair type and the
 subtype-indexed Π type over a 2-element Finset (for distinct elements). -/
 def twoElementSubtypePiHomeomorph
