@@ -199,6 +199,118 @@ private theorem divByS_mul_f_mem' {P : PairOfDefinition A} {T₀ : Finset A}
   · intro x y _ _ hx hy
     rw [map_mul]; exact (locSubring P T_product (s₀ * f)).mul_mem hx hy
 
+/-! ### Ratio Laurent datum (T-LAURENT-TREE-RELATIVE-LABELS) — head-on hopen
+
+For Wedhorn 8.34's second-stage ratio splits at `f · g⁻¹`, we need an
+absolute `RationalLocData A` representing the rational subset
+`rationalOpen D₀ ∩ {v(f) ≤ v(g)}`. By `rationalOpen_inter`, this equals
+`rationalOpen ((insert D₀.s D₀.T) * {f, g}) (D₀.s * g)`.
+
+The hopen condition: `∃ N, ∀ b ∈ I^N, divByS b (D₀.s * g) ∈ locSubring`.
+Substantively, this requires `g_inv ∈ A₀` where `g · g_inv = 1`: then
+`divByS b (D₀.s * g) = algebraMap g_inv · divByS (b * g) (D₀.s * g)`,
+and the second factor is in the new locSubring by the same `Subring.closure_induction`
+argument as `divByS_mul_f_mem'`, while `algebraMap g_inv` is in the new
+locSubring via `algebraMap_mem_locSubring`. -/
+
+/-- For `b ∈ I^N₀`, `divByS (b * g) (D₀.s * g) ∈ locSubring P T_ratio (D₀.s * g)`
+where `T_ratio = (insert s₀ T₀) * {f, g}`. Direct analogue of
+`divByS_mul_f_mem'` but with `T₂ = {f, g}` (instead of `{s₀, f}`). -/
+private theorem divByS_mul_g_mem_T_ratio {P : PairOfDefinition A} {T₀ : Finset A}
+    {s₀ : A} {N₀ : ℕ}
+    (hN₀ : ∀ b : P.A₀, b ∈ P.I ^ N₀ → divByS (↑b : A) s₀ ∈ locSubring P T₀ s₀)
+    (f g : A) {b : P.A₀} (hb : b ∈ P.I ^ N₀) :
+    let T_ratio := (insert s₀ T₀).product ({f, g} : Finset A)
+        |>.image (fun p => p.1 * p.2)
+    divByS ((↑b : A) * g) (s₀ * g) ∈ locSubring P T_ratio (s₀ * g) := by
+  intro T_ratio
+  have hs₀ : IsUnit (algebraMap A (Localization.Away (s₀ * g)) s₀) := by
+    have := IsLocalization.Away.algebraMap_isUnit (R := A) (s₀ * g)
+        (S := Localization.Away (s₀ * g))
+    rw [map_mul] at this; exact isUnit_of_mul_isUnit_left this
+  let φ : Localization.Away s₀ →+* Localization.Away (s₀ * g) :=
+    IsLocalization.Away.lift (S := Localization.Away s₀) (R := A) s₀ hs₀
+  rw [← lift_divByS_eq' s₀ g hs₀]
+  refine Subring.closure_induction
+    (p := fun x _ => φ x ∈ locSubring P T_ratio (s₀ * g)) ?_ ?_ ?_ ?_ ?_ ?_
+    (hN₀ b hb)
+  · intro x hx
+    rcases hx with ⟨a, ha, rfl⟩ | ⟨⟨t, ht⟩, rfl⟩
+    · rw [show φ (algebraMap A _ a) = algebraMap A _ a from
+        IsLocalization.Away.lift_eq (S := Localization.Away s₀) (x := s₀) _ _]
+      exact algebraMap_mem_locSubring P T_ratio (s₀ * g) ha
+    · rw [lift_divByS_eq' s₀ g hs₀]
+      exact divByS_mem_locSubring P T_ratio (s₀ * g) (Finset.mem_image.mpr
+        ⟨(t, g), Finset.mem_product.mpr ⟨Finset.mem_insert_of_mem ht,
+          Finset.mem_insert_of_mem (Finset.mem_singleton_self g)⟩, rfl⟩)
+  · simp [map_zero, (locSubring P T_ratio (s₀ * g)).zero_mem]
+  · simp [map_one, (locSubring P T_ratio (s₀ * g)).one_mem]
+  · intro x y _ _ hx hy
+    rw [map_add]; exact (locSubring P T_ratio (s₀ * g)).add_mem hx hy
+  · intro x _ hx
+    rw [map_neg]; exact (locSubring P T_ratio (s₀ * g)).neg_mem hx
+  · intro x y _ _ hx hy
+    rw [map_mul]; exact (locSubring P T_ratio (s₀ * g)).mul_mem hx hy
+
+/-- **Ratio plus piece**: the rational locality datum representing
+`rationalOpen D₀ ∩ {v(f) ≤ v(g)}` for `g` with an inverse `g_inv ∈ D₀.P.A₀`.
+
+The substantive content of the hopen: given the inverse `g_inv ∈ A₀`,
+`divByS b (D₀.s * g) = algebraMap g_inv * divByS (b * g) (D₀.s * g)`, and
+both factors are in the new locSubring (the algebraMap by
+`algebraMap_mem_locSubring`, the divByS via `divByS_mul_g_mem_T_ratio`). -/
+noncomputable def ratioPlusDatum (D₀ : RationalLocData A) (f g g_inv : A)
+    (hg : g * g_inv = 1) (hg_inv : g_inv ∈ D₀.P.A₀) :
+    RationalLocData A where
+  P := D₀.P
+  T := (insert D₀.s D₀.T).product ({f, g} : Finset A)
+    |>.image (fun p => p.1 * p.2)
+  s := D₀.s * g
+  hopen := by
+    obtain ⟨N₀, hN₀⟩ := D₀.hopen
+    refine ⟨N₀, fun b hb => ?_⟩
+    -- The substantive algebraic identity: in Localization.Away (D₀.s * g),
+    -- divByS b (D₀.s * g) = algebraMap g_inv * divByS (b * g) (D₀.s * g).
+    have h_identity : divByS (↑b : A) (D₀.s * g) =
+        algebraMap A (Localization.Away (D₀.s * g)) g_inv *
+          divByS ((↑b : A) * g) (D₀.s * g) := by
+      unfold divByS
+      rw [← IsLocalization.mk'_one (M := Submonoid.powers (D₀.s * g))
+        (S := Localization.Away (D₀.s * g)) g_inv]
+      rw [← IsLocalization.mk'_mul]
+      refine IsLocalization.mk'_eq_of_eq ?_
+      simp only [Submonoid.coe_mul, OneMemClass.coe_one, one_mul]
+      -- After ring_nf: D₀.s * g^2 * g_inv * b = D₀.s * g * b
+      -- Use g * g_inv = 1 to simplify g^2 * g_inv = g.
+      have hg' : g ^ 2 * g_inv = g := by
+        rw [pow_two, mul_assoc, hg, mul_one]
+      ring_nf
+      rw [show D₀.s * g ^ 2 * g_inv = D₀.s * (g ^ 2 * g_inv) from by ring, hg']
+    rw [h_identity]
+    refine (locSubring _ _ _).mul_mem
+      (algebraMap_mem_locSubring _ _ _ hg_inv)
+      (divByS_mul_g_mem_T_ratio hN₀ f g hb)
+
+open scoped Pointwise in
+/-- The ratio plus piece's rational subset equals
+`rationalOpen D₀ ∩ rationalOpen {f, g} g` — the algebraic intersection
+formula consumes the structure of `T_new = (insert D₀.s D₀.T) * {f, g}`
+and `s_new = D₀.s * g`. -/
+theorem ratioPlus_rationalOpen (D₀ : RationalLocData A) (f g g_inv : A)
+    (hg : g * g_inv = 1) (hg_inv : g_inv ∈ D₀.P.A₀) :
+    rationalOpen (ratioPlusDatum D₀ f g g_inv hg hg_inv).T
+                 (ratioPlusDatum D₀ f g g_inv hg hg_inv).s =
+      rationalOpen D₀.T D₀.s ∩
+        rationalOpen ({f, g} : Finset A) g := by
+  have hT : (ratioPlusDatum D₀ f g g_inv hg hg_inv).T =
+      (insert D₀.s D₀.T) * ({f, g} : Finset A) := by
+    simp only [ratioPlusDatum, Finset.mul_def]; rfl
+  rw [show (ratioPlusDatum D₀ f g g_inv hg hg_inv).s = D₀.s * g from rfl, hT,
+    ← rationalOpen_inter (insert D₀.s D₀.T) ({f, g} : Finset A) D₀.s g
+      (Finset.mem_insert_self D₀.s D₀.T)
+      (Finset.mem_insert_of_mem (Finset.mem_singleton_self g)),
+    rationalOpen_insert_s]
+
 /-- The "minus half" of the Laurent cover at `f` within base `D₀`. -/
 noncomputable def laurentMinusDatum (D₀ : RationalLocData A) (f : A) :
     RationalLocData A where
