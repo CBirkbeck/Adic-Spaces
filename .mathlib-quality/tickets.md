@@ -5084,6 +5084,29 @@ family may depend on `j`.
   in A₀. Translating between these is the content of
   `T-RATIONAL-LOC-TRANSITIVITY-API` (the transitivity bridge between
   absolute A-level data and relative-over-presheafValue data).
+
+#### Mathematical content summary (beastmode session 2026-05-13)
+
+The session's substantive achievement: the absolute ratio-Laurent
+split machinery is now complete with constructive hopen proofs (not
+parametric hypotheses) under the genuine algebraic condition
+`g_inv ∈ A₀`. The proof technique:
+
+* `divByS_mul_g_mem_T_ratio` lifts D₀'s hopen via the canonical map
+  `Localization.Away D₀.s → Localization.Away (D₀.s * g)` to give
+  `divByS (b·g) (D₀.s·g) ∈ locSubring(D₀.P, T_new, D₀.s·g)`.
+* `ratioPlusDatum`'s hopen then uses the algebraic identity
+  `divByS b (D₀.s·g) = algebraMap g_inv · divByS (b·g) (D₀.s·g)`
+  (via `IsLocalization.mk'_eq_of_eq`) together with
+  `algebraMap_mem_locSubring` for `algebraMap g_inv` (using
+  `hg_inv : g_inv ∈ A₀`) to conclude membership.
+
+The substantive gap remaining for Wedhorn 8.34 in full: bridging
+"unit at leaf-level presheaf value" (which the unit-at-minus-leaf
+lemma gives) to "unit-with-inverse-in-A₀" (which `ratioPlusDatum`
+needs). This is the transitivity-API content of
+`T-RATIONAL-LOC-TRANSITIVITY-API`. The absolute infrastructure
+above is fully sufficient once that bridge lands.
 - **Priority**: HIGH (foundational for T-WEDHORN-STAGE-2 and
   T-LAURENT-TREE-GRAFT)
 - **File**: `Adic spaces/LaurentRefinementTree.lean` (extend with
