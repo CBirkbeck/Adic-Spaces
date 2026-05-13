@@ -2259,6 +2259,12 @@ theorem LaurentTree.allNodesDisjoint_ofRightBranchList
     rw [Finset.disjoint_singleton_left]
     exact h_notin
 
+/-- `ofRightBranchList [f] = node f leaf leaf` — the depth-1 right-
+branching tree is exactly the simple Laurent split. -/
+@[simp] theorem LaurentTree.ofRightBranchList_singleton (f : A) :
+    LaurentTree.ofRightBranchList [f] =
+      LaurentTree.node f LaurentTree.leaf LaurentTree.leaf := rfl
+
 /-- **Right-branching tree existence**: given a list `L` of split
 elements and per-level hypotheses (refinement, inducing,
 disjointness), the right-branching tree witnesses existence. -/
