@@ -2101,4 +2101,34 @@ theorem productRestrictionSub_isInducing_via_tree_refinement
   show restrictionMap C.base d.1 _ x = restrictionMap C.base d.1 _ x
   rfl
 
+/-! ## Wedhorn 8.34 factorization
+
+For arbitrary rational cover `C`, the topological-inducing of
+`productRestrictionSub` reduces to existence of a Laurent refinement
+tree `t` satisfying:
+* `t.Refines C.base C` — every leaf datum is contained in some
+  C-piece.
+* `t.allSplitsInducing C.base` — every Laurent split inside `t`
+  gives an inducing 2-cover at its base.
+* `t.allNodesDisjoint C.base` — every node has distinct + disjoint
+  sub-coverings (so the union-form embedding is well-defined).
+
+This factorization isolates the **Wedhorn 8.34** existence as the sole
+remaining gap. -/
+
+/-- **Hypothesis-parametric IsInducing**: assuming Wedhorn 8.34 tree
+existence for every rational covering, the topological-inducing for
+arbitrary `C` follows from the tree-induction theorem +
+tree→C transfer. -/
+theorem productRestrictionSub_isInducing_of_wedhorn_tree_existence
+    (h_wedhorn : ∀ (C : RationalCovering A), ∃ t : LaurentTree A,
+      t.Refines C.base C ∧ t.allSplitsInducing C.base ∧
+      t.allNodesDisjoint C.base) :
+    ∀ (C : RationalCovering A),
+      Topology.IsInducing (productRestrictionSub A C) := by
+  intro C
+  obtain ⟨t, h_refines, h_split, h_disj⟩ := h_wedhorn C
+  exact productRestrictionSub_isInducing_via_tree_refinement
+    C t h_refines h_split h_disj
+
 end ValuationSpectrum
