@@ -195,6 +195,13 @@ def ofLaurentTree : LaurentTree A → RatioLaurentTree A
     ofLaurentTree (LaurentTree.node f L R) =
       RatioLaurentTree.nodeLaurent f (ofLaurentTree L) (ofLaurentTree R) := rfl
 
+/-- The embedding `ofLaurentTree` preserves the depth function. -/
+theorem depth_ofLaurentTree (t : LaurentTree A) :
+    (ofLaurentTree t).depth = t.depth := by
+  induction t with
+  | leaf => rfl
+  | node f L R ihL ihR => simp [ofLaurentTree, depth, LaurentTree.depth, ihL, ihR]
+
 /-! ### Next steps for RatioLaurentTree (TODO)
 
 To make `RatioLaurentTree` semantically usable for the Wedhorn 8.34
