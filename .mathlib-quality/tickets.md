@@ -4737,6 +4737,11 @@ prescribed the following new tickets and reframings. See the integration record 
   Laurent pair at C.base, IsInducing for C follows by combining T290
   (V-bootstrap) with T282 (strengthened refinement transfer) and T285
   (natural refinement map + continuity).
+- **Finset-inclusion specialisation** (`productRestrictionSub_isInducing_of_V_subset_C_with_laurent_pair`,
+  `EmbeddingTopo.lean`, axiom-clean): when V_covers ⊆ C.covers as Finset,
+  IsInducing follows directly via T289 (sub-inducing) ∘ T290 (V-Laurent
+  bootstrap). No τ-map construction needed. This handles the case where C
+  itself is "rich enough" to contain a Laurent-at-base pair as a subset.
 - **Remaining**: iterate the local step across a Laurent-refinement tree
   to handle arbitrary C. The tree construction is `T-LAURENT-REFINEMENT-TREE`.
 - **Priority**: HIGH (replaces the round-4 search for "single Laurent pair at base")
