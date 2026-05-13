@@ -135,6 +135,68 @@ theorem depth_ofBalancedList (L : List A) :
 
 end LaurentTree
 
+/-! ## Generalised Laurent tree with both standard and ratio splits
+
+For Wedhorn 8.34's two-stage construction, the second-stage splits are
+**Laurent splits at ratios `f_i · f_j⁻¹`** of A-elements that are units
+in the leaf base presheaf value. These cannot be expressed via the
+standard `LaurentTree A`'s `node f L R` constructor (which fixes the
+denominator at the running base's `s`).
+
+The `RatioLaurentTree A` type extends the standard Laurent tree with a
+new `nodeRatio` constructor representing splits at f · g⁻¹ where both
+f and g are A-elements. The semantic interpretation at a running base
+treats f, g as a relative pair: the "plus piece" is where v(f) ≤ v(g)
+(in the base's rational open), and the "minus piece" is where v(f) ≥ v(g).
+
+The standard Laurent split at f ∈ A (relative to running base D) is the
+special case g = D.s. The ratio constructor generalises this to arbitrary
+denominators g ∈ A. -/
+
+/-- A generalised Laurent tree allowing both standard Laurent splits
+(`nodeLaurent`) and ratio splits (`nodeRatio`). -/
+inductive RatioLaurentTree (A : Type*) : Type _
+  /-- The trivial tree. -/
+  | leaf : RatioLaurentTree A
+  /-- A standard Laurent split at `f` (relative to the running base's `s`). -/
+  | nodeLaurent (f : A) (L R : RatioLaurentTree A) : RatioLaurentTree A
+  /-- A ratio Laurent split at `f · g⁻¹`. -/
+  | nodeRatio (f g : A) (L R : RatioLaurentTree A) : RatioLaurentTree A
+
+namespace RatioLaurentTree
+
+variable {A : Type*}
+
+/-- The depth of a `RatioLaurentTree`. -/
+def depth : RatioLaurentTree A → ℕ
+  | .leaf => 0
+  | .nodeLaurent _ L R => 1 + max L.depth R.depth
+  | .nodeRatio _ _ L R => 1 + max L.depth R.depth
+
+@[simp] theorem depth_leaf : (leaf : RatioLaurentTree A).depth = 0 := rfl
+
+@[simp] theorem depth_nodeLaurent (f : A) (L R : RatioLaurentTree A) :
+    (nodeLaurent f L R).depth = 1 + max L.depth R.depth := rfl
+
+@[simp] theorem depth_nodeRatio (f g : A) (L R : RatioLaurentTree A) :
+    (nodeRatio f g L R).depth = 1 + max L.depth R.depth := rfl
+
+/-- The standard Laurent tree embeds into the ratio tree (every node f
+becomes a `nodeLaurent f`). -/
+def ofLaurentTree : LaurentTree A → RatioLaurentTree A
+  | .leaf => RatioLaurentTree.leaf
+  | .node f L R =>
+      RatioLaurentTree.nodeLaurent f (ofLaurentTree L) (ofLaurentTree R)
+
+@[simp] theorem ofLaurentTree_leaf :
+    ofLaurentTree (LaurentTree.leaf : LaurentTree A) = RatioLaurentTree.leaf := rfl
+
+@[simp] theorem ofLaurentTree_node (f : A) (L R : LaurentTree A) :
+    ofLaurentTree (LaurentTree.node f L R) =
+      RatioLaurentTree.nodeLaurent f (ofLaurentTree L) (ofLaurentTree R) := rfl
+
+end RatioLaurentTree
+
 section Semantics
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
