@@ -506,6 +506,20 @@ theorem LaurentTree.ofRightBranchList_refines (D₀ : RationalLocData A)
   · rcases List.mem_singleton.mp hTerm with rfl
     exact h_terminal
 
+/-- **Singleton-cover refinement**: a rational covering whose `covers`
+is a singleton `{E}` has `leaf` as a refining tree. The leaf datum is
+`C.base`, and the refinement witness uses `C.hcover` (which guarantees
+that every `v ∈ rationalOpen C.base.T C.base.s` lies in some — here,
+the unique — piece). -/
+theorem LaurentTree.leaf_refines_of_singleton (C : RationalCovering A)
+    (E : RationalLocData A) (hE_eq : C.covers = {E}) :
+    (LaurentTree.leaf : LaurentTree A).Refines C.base C := by
+  refine ⟨E, hE_eq ▸ Finset.mem_singleton.mpr rfl, ?_⟩
+  intro v hv
+  obtain ⟨E', hE', hvE'⟩ := C.hcover v hv
+  rw [hE_eq, Finset.mem_singleton] at hE'
+  rwa [hE'] at hvE'
+
 end Semantics
 
 end ValuationSpectrum
