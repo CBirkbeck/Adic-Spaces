@@ -1150,6 +1150,16 @@ theorem isSheafy_ofStronglyNoetherianTate_flat
       --   * T284 `..._via_laurent_refinement`: parametric Lane C closer.
       --   * T285 `naturalRefinementMap` + continuity + commutativity.
       --   * T286: τ-only single-step Lane C closer.
+      --   * T287: sanity-check end-to-end (T286 with τ = id closes
+      --     T278's laurent-cover IsInducing via the full chain).
+      --
+      -- **REMAINING WORK**: For arbitrary `C`, **construct** a Laurent
+      -- refinement: find `f₀ : A` and a τ-function
+      -- `↥(laurentCovering C.base f₀).covers → ↥C.covers` with per-piece
+      -- containment. This existence is essentially the topological
+      -- version of Wedhorn's standard-cover refinement (Lemma 8.34).
+      -- Once the τ-existence is established, T286 closes this sorry
+      -- directly.
       --
       -- **OLD STATUS (2026-05-13 morning, T273-T279)**:
       --
