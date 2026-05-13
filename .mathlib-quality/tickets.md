@@ -5038,8 +5038,25 @@ family may depend on `j`.
 
 ### [T-LAURENT-TREE-RELATIVE-LABELS] Relative-label LaurentTree
 
-- **Status**: OPEN (2026-05-13, round 5; decision: chosen over
-  denominator-clearing route)
+- **Status**: PARTIAL (2026-05-13 round 5 + beastmode session). The
+  TYPE LAYER is landed; semantic interpretation (`ratioPlusDatum`,
+  `ratioMinusDatum`, `leaves`, the three predicates) remains.
+- **Landed (beastmode session 2026-05-13)**:
+  - `RatioLaurentTree A` inductive type with three constructors:
+    `leaf`, `nodeLaurent f L R` (standard Laurent split at f ∈ A,
+    relative to running base's s), `nodeRatio f g L R` (ratio split
+    at f · g⁻¹).
+  - `RatioLaurentTree.depth` + simp lemmas.
+  - `RatioLaurentTree.ofLaurentTree : LaurentTree A → RatioLaurentTree A`
+    (embedding of standard tree). No axioms.
+- **Remaining work** (documented in-file):
+  - `ratioPlusDatum D₀ f g` / `ratioMinusDatum D₀ f g`: absolute
+    rational locality data for f/g splits via `rationalOpen_inter`.
+    Requires `hopen` threading using D₀'s hopen + g-as-unit-at-D₀.
+  - `RatioLaurentTree.leaves t D₀`: recursive leaf interpretation.
+  - `Refines`, `allSplitsInducing`, `allNodesDisjoint` analogues.
+  - Tree-induction theorem analogous to
+    `productRestrictionSub_isInducing_via_tree`.
 - **Priority**: HIGH (foundational for T-WEDHORN-STAGE-2 and
   T-LAURENT-TREE-GRAFT)
 - **File**: `Adic spaces/LaurentRefinementTree.lean` (extend with
