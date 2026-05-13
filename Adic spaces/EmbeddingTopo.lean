@@ -1355,4 +1355,127 @@ theorem productRestrictionSub_laurentCovering_isInducing_via_T291
     (Finset.mem_insert_self _ _)
     (Finset.mem_insert_of_mem (Finset.mem_singleton_self _))
 
+/-! ### T-LANE-C-REFINEMENT-INDUCTION (round 5)
+
+The reviewer-prescribed topological refinement-induction step for Lane C
+arbitrary-cover closure. Combines:
+
+- T290 (`productRestrictionSub_isInducing_of_V_contains_laurent_pair`):
+  IsInducing for V (a Finset of rational data) refining `C.base`, provided
+  V contains both halves of a laurent split at `C.base` for some `f₀`.
+
+- T282 (`productRestrictionSub_isInducing_of_finer_rational_continuous`):
+  strengthened refinement transfer with `Continuous φ` only.
+
+- T285 (`naturalRefinementMap` + continuity + commutativity): the natural
+  product map from `Π_C` to `Π_V`, automatically continuous.
+
+The combined step closes IsInducing for `productRestrictionSub A C` whenever
+there is a finer Finset `V_covers` refining `C.covers` (via a τ-map) AND
+`V_covers` contains both halves of a Laurent split at `C.base`.
+
+This is the local refinement-induction step: the leaf level (V contains
+Laurent pair) is the BASE CASE; the transfer to C is the SINGLE refinement
+step. Iterating across a Laurent-refinement tree gives the full Lane C
+arbitrary-cover closure.
+
+Per reviewer (ChatGPT Pro, 2026-05-13): "Use Aux 10.7 [T282] and Aux 10.8
+[T285] as the core refinement-transfer tools. ... if a cover has a
+Laurent-refinement tree whose leaves refine C, and every Laurent split in
+the tree is topologically inducing, then the diagonal for C is
+topologically inducing." -/
+
+/-- **T-LANE-C-REFINEMENT-STEP**: Lane C single refinement step via a
+V-cover containing a Laurent pair at `C.base`. Combines T290 (V-Laurent
+bootstrap) with T282 (strengthened refinement transfer).
+
+Hypotheses: the bridges bundle for T290 + τ-map from V_covers to C.covers
++ per-piece containment. The hypothesis bundle is inherited from T290
+verbatim; the new T282-side inputs are just the τ-map and containment.
+
+Conclusion: `Topology.IsInducing (productRestrictionSub A C)`. -/
+theorem productRestrictionSub_isInducing_via_V_containing_laurent_pair
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    [LaurentNormalized C.base]
+    (f₀ : A)
+    (hf_nonunit : ¬IsUnit (C.base.canonicalMap f₀))
+    (hs : C.base.s ≠ 0)
+    (hNoeth_B : IsNoetherianRing (presheafValue C.base))
+    (hDom_B : IsDomain (presheafValue C.base))
+    (hSigCp_B : SigmaCompactSpace (presheafValue C.base))
+    (hA_complete_B : @CompleteSpace (presheafValue C.base)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue C.base)))
+    (hnoeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring
+            (IsTateRing.principalPair (presheafValue C.base)).toPairOfDefinition))
+    (hnoeth₂_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring₂
+            (IsTateRing.principalPair (presheafValue C.base)).toPairOfDefinition))
+    (hLocLift_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      HasLocLiftPowerBounded (presheafValue C.base))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P C.base).A₀))
+    (hcont_forward_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : HasLocLiftPowerBounded (presheafValue C.base) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue C.base) :=
+        presheafValue_pairOfDefinition_concrete P C.base
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue C.base) (C.base.canonicalMap f₀))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue C.base) P_B (C.base.canonicalMap f₀))))
+        (example638Plus_forwardHom (presheafValue C.base) P_B (C.base.canonicalMap f₀)))
+    (hcont_eval_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      let D : RationalLocData (presheafValue C.base) := iteratedMinusDatum_B P C.base f₀
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
+    (hSigCp_TA : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      SigmaCompactSpace ↥(TateAlgebra (presheafValue C.base)))
+    (hplus : rationalOpen (laurentPlusDatum C.base f₀).T (laurentPlusDatum C.base f₀).s ⊆
+      rationalOpen C.base.T C.base.s)
+    (hminus : rationalOpen (laurentMinusDatum C.base f₀).T (laurentMinusDatum C.base f₀).s ⊆
+      rationalOpen C.base.T C.base.s)
+    (V_covers : Finset (RationalLocData A))
+    (hV_subset : ∀ D ∈ V_covers, rationalOpen D.T D.s ⊆
+      rationalOpen C.base.T C.base.s)
+    (h_plus_mem : laurentPlusDatum C.base f₀ ∈ V_covers)
+    (h_minus_mem : laurentMinusDatum C.base f₀ ∈ V_covers)
+    (τ : { D // D ∈ V_covers } → { E // E ∈ C.covers })
+    (hτ : ∀ d : { D // D ∈ V_covers },
+      rationalOpen d.1.T d.1.s ⊆ rationalOpen (τ d).1.T (τ d).1.s) :
+    Topology.IsInducing (productRestrictionSub A C) := by
+  -- Step 1: V-diagonal IsInducing via T290 (V contains Laurent pair at C.base).
+  have hV_ind : Topology.IsInducing
+      (fun x : presheafValue C.base =>
+        (fun D : { D // D ∈ V_covers } =>
+          restrictionMap C.base D.1 (hV_subset D.1 D.2) x)) :=
+    productRestrictionSub_isInducing_of_V_contains_laurent_pair
+      P C.base f₀ hf_nonunit hs hNoeth_B hDom_B hSigCp_B hA_complete_B
+      hnoeth_B hnoeth₂_B hLocLift_B hA₀Noeth_B hcont_forward_B hcont_eval_B
+      hSigCp_TA hplus hminus V_covers hV_subset h_plus_mem h_minus_mem
+  -- Step 2: transfer V-inducing to C-inducing via T282 + naturalRefinementMap (T285).
+  exact productRestrictionSub_isInducing_of_finer_rational_continuous
+    C V_covers hV_subset
+    (fun x ⟨D, hD⟩ => restrictionMap C.base D (hV_subset D hD) x)
+    rfl hV_ind (naturalRefinementMap τ hτ)
+    (fun x => naturalRefinementMap_comp C V_covers τ hτ x)
+    (naturalRefinementMap_continuous τ hτ)
+    (productRestrictionSub_continuous C)
+
 end ValuationSpectrum
