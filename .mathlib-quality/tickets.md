@@ -840,6 +840,17 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
     `productRestrictionSub_V_small` is IsInducing, then
     `productRestrictionSub_V_large` is IsInducing. Routes through T281
     with the subtype projection as the continuous post-composition.
+  - T-EMBED-TOPO-LANE-C-BOOTSTRAP (T290+T291, 2026-05-13):
+    `productRestrictionSub_isInducing_of_V_contains_laurent_pair` and
+    `productRestrictionSub_isInducing_of_C_covers_contains_laurent_pair`
+    in `EmbeddingTopo.lean`:
+    - T290: ANY V_covers containing both halves of a laurent split at
+      `Base` inherits IsInducing from the laurent 2-cover via T289.
+    - T291: end-user specialisation — when `C.covers` itself contains
+      both halves of a laurent split at `C.base`, IsInducing of
+      `productRestrictionSub A C` follows.
+    Closes 1135 directly for any C whose covers structure already
+    includes a laurent-at-base pair.
   - T-EMBED-TOPO-DISTINCT (T277, 2026-05-13): `laurentPlus_ne_laurentMinus_of_nonunit`
     in `LaurentRefinement.lean` — Laurent plus and minus data distinctness
     from `hf_nonunit + D₀.s ≠ 0 + IsDomain A`.
