@@ -2328,4 +2328,52 @@ theorem LaurentTree.exists_for_laurentCovering
     · trivial
     · trivial
 
+/-! ### Graft preservation of inducing + disjointness predicates
+
+For the Wedhorn 8.34 grafted construction, we need that grafting
+preserves both `allSplitsInducing` and `allNodesDisjoint`. The
+preservation reduces to: outer tree satisfies the predicate, AND
+at every outer leaf base, the per-leaf inner tree satisfies the
+predicate at that base. -/
+
+/-- `allSplitsInducing` is preserved under per-leaf graft. -/
+theorem LaurentTree.allSplitsInducing_graftAt (t : LaurentTree A)
+    (D₀ : RationalLocData A) (h : RationalLocData A → LaurentTree A)
+    (h_outer : t.allSplitsInducing D₀)
+    (h_inner : ∀ L ∈ t.leaves D₀, (h L).allSplitsInducing L) :
+    (t.graftAt D₀ h).allSplitsInducing D₀ := by
+  induction t generalizing D₀ with
+  | leaf =>
+    simp only [LaurentTree.graftAt_leaf]
+    exact h_inner D₀ (by simp [LaurentTree.leaves])
+  | node f L R ihL ihR =>
+    obtain ⟨h_split_f, h_split_L, h_split_R⟩ :=
+      (LaurentTree.allSplitsInducing_node f L R D₀).mp h_outer
+    refine ⟨h_split_f, ?_, ?_⟩
+    · apply ihL (laurentPlusDatum D₀ f) h_split_L
+      intro L' hL'
+      exact h_inner L' (by simp [LaurentTree.leaves_node, hL'])
+    · apply ihR (laurentMinusDatum D₀ f) h_split_R
+      intro L' hL'
+      exact h_inner L' (by simp [LaurentTree.leaves_node, hL'])
+
+/-! ### Note on `allNodesDisjoint` preservation under graft
+
+Unlike `allSplitsInducing` (which only checks a *local* condition at
+each node), `allNodesDisjoint` checks Finset-disjointness of the *sub-
+coverings* at each node. After grafting, the sub-coverings inflate:
+`(L.graftAt plus h).toCovering plus`'s covers are the union of
+`(h L').leaves L'` over all L' ∈ L.leaves plus, not just the original
+`L.leaves plus`. So the outer disjointness hypothesis is the wrong
+shape for the grafted tree.
+
+The proper statement requires either:
+(a) a stronger outer hypothesis that anticipates the grafted Finsets, or
+(b) the `prune` operation (`T-LAURENT-TREE-PRUNE`) to deduplicate
+    duplicates introduced by the graft.
+
+This is captured in the open ticket `T-LAURENT-TREE-PRUNE` and is the
+deferred bookkeeping for the grafted Wedhorn construction's full
+`allNodesDisjoint` closure. -/
+
 end ValuationSpectrum
