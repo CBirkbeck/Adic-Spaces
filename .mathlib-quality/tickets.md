@@ -827,6 +827,12 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
       commutativity with `restrictionMap_comp`.
     - T286 `..._via_laurent_refinement_tau`: τ-only consumer interface
       that uses T285 to discharge T284's φ-hypotheses automatically.
+  - T-EMBED-TOPO-LANE-C-SANITY (T287, 2026-05-13):
+    `productRestrictionSub_laurentCovering_isInducing_via_tau_identity`
+    in `EmbeddingTopo.lean` — sanity-check theorem re-deriving T278's
+    laurent-cover IsInducing via the T286 τ-only closer with the
+    trivial identity τ-function. Validates the Lane C chain
+    end-to-end.
   - T-EMBED-TOPO-DISTINCT (T277, 2026-05-13): `laurentPlus_ne_laurentMinus_of_nonunit`
     in `LaurentRefinement.lean` — Laurent plus and minus data distinctness
     from `hf_nonunit + D₀.s ≠ 0 + IsDomain A`.
