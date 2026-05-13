@@ -4798,15 +4798,59 @@ prescribed the following new tickets and reframings. See the integration record 
   `LaurentTree A` whose interpretation `t.leaves D₀` refines `C`. Each
   internal node is a Laurent split at some element of `S`; each leaf is
   a piece contained in some piece of `C.covers`.
-- **Proof sketch**: Iterated standard-cover/Laurent splitting, keeping
-  pieces refining `C` at each step. This is Wedhorn Lemma 8.34 content
-  at the constructive level. The project's existing gluing-side analog
-  (`standardCover_gluing_induction_step` + per-cover `refinedVCovers`) is
-  the model.
-- **Reviewer guidance** (ChatGPT Pro, 2026-05-13): "You can build
-  Laurent-refined covers by iterated standard-cover/Laurent splitting, but
-  keeping all new pieces refining the original cover is the content of
-  Wedhorn 8.34, not a trivial extension."
+
+#### Tree-induction infrastructure — DONE (2026-05-13)
+
+The full chain from "tree exists" to "C-level inducing" lands axiom-clean:
+
+- `productRestrictionSub_isInducing_via_tree` (commit `e330720`,
+  EmbeddingTopo.lean): given `allSplitsInducing t D₀` +
+  `allNodesDisjoint t D₀`, the diagonal `productRestrictionSub` for
+  the tree-induced covering is `IsInducing`. Proof by induction on
+  the tree, using the LEAF base case + NODE step.
+- `LaurentTree.allNodesDisjoint` (EmbeddingTopo.lean): recursive
+  predicate requiring distinct + disjoint sub-coverings at every node.
+- `LaurentTree.refinementTau` + `refinementTau_spec` (commit `888cd8b`,
+  EmbeddingTopo.lean): τ-map extraction from `t.Refines D₀ C`.
+- `productRestrictionSub_isInducing_via_tree_refinement` (commit
+  `888cd8b`, EmbeddingTopo.lean): combines tree-induction with T282
+  (natural refinement transfer) to deduce IsInducing for the original
+  cover `C` from IsInducing for `t.toCovering D₀`.
+- `productRestrictionSub_isInducing_of_wedhorn_tree_existence` (commit
+  `80c2a09`, EmbeddingTopo.lean): the FINAL factorization theorem,
+  isolating Wedhorn 8.34 as the sole remaining residual.
+- Right-branching tree constructors (commits `1aff6a4`, `2c468f4`,
+  `417352a`): `LaurentTree.ofRightBranchList`, leaf enumeration
+  (`leaves_ofRightBranchList`, `plusOfMinusChain`, `terminalMinus`),
+  refinement combinators (`leaf_refines_singleton`,
+  `node_leaf_leaf_refines_laurentCovering`, `Refines.mono`,
+  `node_refines_of_subtrees_refine`, `ofRightBranchList_refines`).
+
+All axiom-clean: `propext, Classical.choice, Quot.sound`.
+
+#### Remaining residual — Wedhorn 8.34 constructive existence
+
+Given an arbitrary rational covering `C : RationalCovering A`,
+produce a `t : LaurentTree A` with `t.Refines C.base C`,
+`t.allSplitsInducing C.base`, `t.allNodesDisjoint C.base`. Once this
+is produced, `productRestrictionSub_isInducing_of_wedhorn_tree_existence`
+discharges the topological-inducing residual in
+`isSheafy_ofStronglyNoetherianTate_flat`'s embedding field.
+
+**Reviewer guidance** (ChatGPT Pro, 2026-05-13): "You can build
+Laurent-refined covers by iterated standard-cover/Laurent splitting, but
+keeping all new pieces refining the original cover is the content of
+Wedhorn 8.34, not a trivial extension."
+
+**Proof sketch**: Iterated standard-cover/Laurent splitting at elements
+of a standard cover S from `RationalCovering.refines_by_standard_cover`.
+The naïve "remove the split element from S after each step" fails
+(localising at f does not in general remove f from the unit-ideal
+condition for S\{f}); the actual Wedhorn 8.34 proof is more delicate.
+The project's existing gluing-side analog
+(`standardCover_gluing_induction_step` + per-cover `refinedVCovers`)
+captures the inductive structure on the analytic side and may serve as
+a model for the topological side.
 
 ### [T-TREE-INDUCING-NODE] Node-case recursion of inducing-via-tree theorem
 
