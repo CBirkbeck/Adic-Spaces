@@ -285,6 +285,38 @@ noncomputable def laurentCovering (D₀ : RationalLocData A) (f : A) :
     · exact ⟨_, Finset.mem_insert_self _ _, h⟩
     · exact ⟨_, Finset.mem_insert.mpr (Or.inr (Finset.mem_singleton_self _)), h⟩
 
+/-! ### T277: Distinctness of the Laurent plus and minus data
+
+For the 2-element Laurent cover at `f` of `D₀`, the plus and minus data
+are **distinct** whenever `f` is not a unit (in `presheafValue D₀`) and
+`D₀.s ≠ 0`. The distinctness is required by the subtype-indexed Π
+homeomorphism in `EmbeddingTopo.lean`'s T275.
+
+Proof: the `s` fields differ (`D₀.s` vs `D₀.s * f`); structural equality
+of the data would force `D₀.s = D₀.s * f`, hence `D₀.s * (1 - f) = 0`,
+and in a domain either `D₀.s = 0` (excluded by hypothesis) or `f = 1`
+(making `D₀.canonicalMap f = 1` a unit, excluded by hypothesis). -/
+
+/-- **T277**: the Laurent plus and minus data at `f` are distinct
+provided `f` is not a unit and `D₀.s ≠ 0`. -/
+theorem laurentPlus_ne_laurentMinus_of_nonunit
+    [IsDomain A] (D₀ : RationalLocData A) (f : A)
+    (hf_nonunit : ¬IsUnit (D₀.canonicalMap f))
+    (hs : D₀.s ≠ 0) :
+    laurentPlusDatum D₀ f ≠ laurentMinusDatum D₀ f := by
+  intro h
+  have hs_eq : (laurentPlusDatum D₀ f).s = (laurentMinusDatum D₀ f).s := by rw [h]
+  change D₀.s = D₀.s * f at hs_eq
+  have h_fact : D₀.s * (1 - f) = 0 := by
+    have : D₀.s * (1 - f) = D₀.s - D₀.s * f := by ring
+    rw [this, sub_eq_zero]; exact hs_eq
+  rcases mul_eq_zero.mp h_fact with hsz | hfone
+  · exact hs hsz
+  · have hfeq : f = 1 := (sub_eq_zero.mp hfone).symm
+    apply hf_nonunit
+    rw [hfeq, map_one]
+    exact isUnit_one
+
 /-! ### IsSheafy via faithful flatness (Wedhorn Corollary 8.31)
 
 The correct proof route (per reviewer):
