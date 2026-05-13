@@ -735,6 +735,61 @@ multiple Laurent refinements may be needed (full standard-cover
 induction), but the single-step form captures the essential transport
 mechanism. -/
 
+/-! ### T285: Natural refinement map between product types
+
+For a refinement `V` of `C` (each V-piece contained in some C-piece via
+τ), the **natural product map** `φ : Π_C → Π_V` sends `(x_E)_{E ∈ C}` to
+`(restrictionMap (τ D) D _ (x_{τ D}))_{D ∈ V}`.
+
+This is the canonical map appearing in the refinement transfer (T282).
+It is automatically continuous by `continuous_pi` + projection
+continuity + `restrictionMap` continuity. -/
+
+/-- **T285 (def)**: the natural refinement map `φ : Π_C → Π_V` for a
+τ-function from V back to C. -/
+noncomputable def naturalRefinementMap
+    {C : RationalCovering A}
+    {V_covers : Finset (RationalLocData A)}
+    (τ : { D // D ∈ V_covers } → { E // E ∈ C.covers })
+    (hτ : ∀ d : { D // D ∈ V_covers },
+      rationalOpen d.1.T d.1.s ⊆ rationalOpen (τ d).1.T (τ d).1.s) :
+    (∀ E : { E // E ∈ C.covers }, presheafValue E.1) →
+      (∀ D : { D // D ∈ V_covers }, presheafValue D.1) :=
+  fun x_C d => restrictionMap (τ d).1 d.1 (hτ d) (x_C (τ d))
+
+/-- **T285 (continuity)**: the natural refinement map is continuous. -/
+theorem naturalRefinementMap_continuous
+    {C : RationalCovering A}
+    {V_covers : Finset (RationalLocData A)}
+    (τ : { D // D ∈ V_covers } → { E // E ∈ C.covers })
+    (hτ : ∀ d : { D // D ∈ V_covers },
+      rationalOpen d.1.T d.1.s ⊆ rationalOpen (τ d).1.T (τ d).1.s) :
+    Continuous (naturalRefinementMap τ hτ) := by
+  refine continuous_pi ?_
+  intro d
+  unfold naturalRefinementMap
+  exact (restrictionMapHom_continuous (τ d).1 d.1 (hτ d)).comp (continuous_apply (τ d))
+
+/-- **T285 (commutativity)**: the natural refinement map composes with
+`productRestrictionSub_C` to give `productRestrictionSub_V` (where V is
+the refined cover with subset proof factoring through τ). -/
+theorem naturalRefinementMap_comp
+    (C : RationalCovering A)
+    (V_covers : Finset (RationalLocData A))
+    (τ : { D // D ∈ V_covers } → { E // E ∈ C.covers })
+    (hτ : ∀ d : { D // D ∈ V_covers },
+      rationalOpen d.1.T d.1.s ⊆ rationalOpen (τ d).1.T (τ d).1.s)
+    (x : presheafValue C.base) :
+    naturalRefinementMap τ hτ (productRestrictionSub A C x) =
+      fun d => restrictionMap C.base d.1
+        ((hτ d).trans (C.hsubset (τ d).1 (τ d).2)) x := by
+  funext d
+  unfold naturalRefinementMap
+  show restrictionMap (τ d).1 d.1 (hτ d)
+      (restrictionMap C.base (τ d).1 (C.hsubset (τ d).1 (τ d).2) x) = _
+  exact congr_fun (restrictionMap_comp C.base (τ d).1 d.1
+    (C.hsubset (τ d).1 (τ d).2) (hτ d)) x
+
 /-- **T284**: Lane C single-step closer via laurent refinement. Given
 the bridges hypothesis bundle + laurent refinement data + commutativity
 + continuity of the natural map `φ`, conclude `IsInducing` for the C-level
