@@ -209,6 +209,73 @@ dependent transport; the inverse evaluates the Π at the two canonical
 membership witnesses. Continuity in both directions is mechanical
 (each projection / each pair coordinate is continuous). -/
 
+/-! ### T280: generic IsInducing absorbs additional projections
+
+Key general topological lemma: if `f : X → Π i, Y i` is continuous and
+the composition with **some single projection** `eval_i ∘ f` is
+`IsInducing`, then `f` itself is `IsInducing`.
+
+Mathematical content: `tX = induced (eval_i ∘ f) (Y i) = induced f (induced eval_i (Y i)) ≤ induced f (Pi.topology)`
+since `induced eval_i (Y i) ≤ Pi.topology` (eval is continuous). Combined
+with `tX ≤ induced f (Pi.topology)` (from `f` continuous), antisymmetry
+gives equality.
+
+This is the key tool for the Lane C induction: once a sufficient set of
+restriction maps determines the source topology (e.g., a Laurent 2-cover
+via T279), adding MORE pieces to the cover preserves the inducing property
+of the diagonal.
+
+The lemma is stated in generic form (no `Adic spaces` content); it could
+in principle live in Mathlib. -/
+
+/-- **T280**: if `f : X → Π i, Y i` is continuous and `(eval i ∘ f)` is
+`IsInducing` for some `i`, then `f` itself is `IsInducing`.
+
+This is the "adding more continuous projections preserves IsInducing"
+lemma: once a subset of projections determines the source topology, the
+full family also does. -/
+theorem _root_.Topology.IsInducing.of_eval
+    {X : Type*} [TopologicalSpace X]
+    {ι : Type*} {Y : ι → Type*} [∀ i, TopologicalSpace (Y i)]
+    {f : X → ∀ i, Y i} (hf : Continuous f)
+    {i : ι} (hi : Topology.IsInducing (fun x => f x i)) :
+    Topology.IsInducing f := by
+  rw [Topology.isInducing_iff]
+  apply le_antisymm
+  · exact hf.le_induced
+  · rw [Topology.isInducing_iff] at hi
+    rw [hi, show (fun x => f x i) = (fun y : ∀ j, Y j => y i) ∘ f from rfl,
+      ← induced_compose]
+    exact induced_mono (continuous_apply i).le_induced
+
+/-- **T281**: generalization of T280 — if `f : X → Y`, `g : Y → Z`,
+`f` continuous, `g` continuous, and `g ∘ f` is `IsInducing`, then `f`
+itself is `IsInducing`.
+
+This is the "post-composition with a continuous map only TIGHTENS the
+inducing property" lemma. It does NOT require `g` to be `IsInducing` —
+unlike `Topology.IsInducing.of_comp_iff` which needs `IsInducing g`.
+
+The mathematical content: `tX = induced (g ∘ f) tZ = induced f (induced g tZ) ≤ induced f tY`
+(since `induced g tZ ≤ tY` from `g` continuous). Combined with
+`tX ≤ induced f tY` (from `f` continuous), antisymmetry gives equality.
+
+T280 is the special case where `g = eval_i` (a single projection).
+T281 covers the general case where the "extra structure" `g` is any
+continuous map (not just a projection or a homeomorphism). -/
+theorem _root_.Topology.IsInducing.of_continuous_comp
+    {X Y Z : Type*} [TopologicalSpace X] [TopologicalSpace Y] [TopologicalSpace Z]
+    {f : X → Y} (hf : Continuous f)
+    {g : Y → Z} (hg : Continuous g)
+    (hgf : Topology.IsInducing (g ∘ f)) :
+    Topology.IsInducing f := by
+  rw [Topology.isInducing_iff]
+  apply le_antisymm
+  · exact hf.le_induced
+  · rw [Topology.isInducing_iff] at hgf
+    rw [hgf, ← induced_compose]
+    exact induced_mono hg.le_induced
+
 /-- **T274**: the canonical homeomorphism between a pair type and the
 subtype-indexed Π type over a 2-element Finset (for distinct elements). -/
 def twoElementSubtypePiHomeomorph
