@@ -1881,19 +1881,34 @@ theorem isInducing_pair_form_composed_via_union
     (fun D : RationalLocData A => presheafValue D) h_disj).isInducing
   exact h_union.comp h_pair
 
-/-! ### T-TREE-INDUCING-NODE: FLAT node-case (sketch documented)
+/-! ### T-TREE-INDUCING-NODE: FLAT node-case (proof skeleton established)
 
-After the toCovering refactor, `productRestrictionSub A ((node f L R).toCovering D₀)`
-and `fun x => piFinsetUnion (...)` have *definitionally equal codomain types*
-but pointwise-equal values differ in their subset proof terms. The
-function equality requires (a) unfolding `Homeomorph.piFinsetUnion` to
-evaluate at each `⟨D, hD⟩`, which becomes either L or R's component via
-`Equiv.Finset.union.symm`, and (b) using `restrictionMap_comp` plus
-proof-irrelevance on the subset hypotheses to identify with the FLAT form.
+Established proof structure (via `lean_multi_attempt` testing):
 
-The unfolding step (a) requires careful @[simp] lemma chaining for
-`piFinsetUnion`, `sumPiEquivProdPi`, and `piCongrLeft`'s evaluation
-formulas. Tracked as the remaining sub-step
-`T-PIFINSETUNION-EVAL-LEMMA`. -/
+```
+refine (Topology.isInducing_iff _).mpr ?_
+show instTopologicalSpacePresheafValue D₀ = _
+rw [h_union.eq_induced]
+congr 1
+funext x ⟨D, hD⟩
+-- Goal: piFinsetUnion (a, b) ⟨D, hD⟩
+--     = productRestrictionSub A ((node f L R).toCovering D₀) x ⟨D, hD⟩
+-- Case-split on Finset.mem_union.mp hD; in each case use
+-- Equiv.Finset.union_symm_{inl,inr} to evaluate piFinsetUnion to the
+-- L_pi or R_pi component, then restrictionMap_comp to identify.
+```
+
+The closing per-case argument:
+- For `hL : D ∈ (L.toCovering plus).covers`: piFinsetUnion ... = L_pi (rest_plus x) ⟨D, hL⟩
+  = restrictionMap plus D _ (rest_plus x) = restrictionMap D₀ D _ x (by `restrictionMap_comp`).
+- For `hR : D ∈ (R.toCovering minus).covers`: symmetric.
+
+Proof-irrelevance on the subset hypotheses closes the final mismatch.
+
+The unfolding of `Homeomorph.piFinsetUnion` at `⟨D, hD⟩` requires
+applying `Homeomorph.trans_apply`, `Homeomorph.symm_apply_apply`, then
+the structural `Equiv.Finset.union_symm_inl/inr` lemmas. This step
+hasn't found a clean `simp`-set yet; sub-ticket `T-PIFINSETUNION-EVAL-LEMMA`
+captures the helper-lemma extraction. -/
 
 end ValuationSpectrum
