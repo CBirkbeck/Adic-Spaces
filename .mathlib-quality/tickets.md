@@ -806,6 +806,27 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
     in `EmbeddingTopo.lean` — full `IsEmbedding` form of T278 (T278 only
     provides `IsInducing`). Useful for consumers needing both halves of
     `IsEmbedding` (inducing + injective).
+  - T-EMBED-TOPO-INDUCING-GENERIC (T280+T281, 2026-05-13):
+    `Topology.IsInducing.of_eval` and `Topology.IsInducing.of_continuous_comp`
+    in `EmbeddingTopo.lean` — generic topology utilities for the Lane C
+    induction. **T280** says adding projections preserves IsInducing.
+    **T281** generalises to arbitrary continuous post-composition (no
+    IsInducing on the post-map needed, only continuity).
+  - T-EMBED-TOPO-REFINEMENT-CONTINUOUS (T282, 2026-05-13):
+    `productRestrictionSub_isInducing_of_finer_rational_continuous` in
+    `EmbeddingTopo.lean` — **strengthened** refinement transfer that
+    weakens T267's `IsInducing φ` to `Continuous φ` via T281.
+  - T-EMBED-TOPO-PROD-CONTINUOUS (T283, 2026-05-13):
+    `productRestrictionSub_continuous` in `EmbeddingTopo.lean` —
+    automatic continuity input for T282.
+  - T-EMBED-TOPO-LANE-C-SINGLE-STEP (T284+T285+T286, 2026-05-13):
+    End-to-end Lane C single-step closer in `EmbeddingTopo.lean`:
+    - T284 `..._via_laurent_refinement`: parametric form with explicit φ.
+    - T285 `naturalRefinementMap` + `_continuous` + `_comp`: canonical
+      natural map between product types + its continuity and
+      commutativity with `restrictionMap_comp`.
+    - T286 `..._via_laurent_refinement_tau`: τ-only consumer interface
+      that uses T285 to discharge T284's φ-hypotheses automatically.
   - T-EMBED-TOPO-DISTINCT (T277, 2026-05-13): `laurentPlus_ne_laurentMinus_of_nonunit`
     in `LaurentRefinement.lean` — Laurent plus and minus data distinctness
     from `hf_nonunit + D₀.s ≠ 0 + IsDomain A`.
