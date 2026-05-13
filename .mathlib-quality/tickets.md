@@ -4731,7 +4731,16 @@ prescribed the following new tickets and reframings. See the integration record 
 
 ### [T-LANE-C-REFINEMENT-INDUCTION] Topological refinement induction for Lane C arbitrary-C
 
-- **Status**: LOCAL STEP DONE (2026-05-13); full tree iteration remains
+- **Status**: TREE ITERATION DONE (2026-05-13); existence is the sole residual
+- **Tree iteration closure** (`productRestrictionSub_isInducing_via_tree`,
+  `productRestrictionSub_isInducing_via_tree_refinement`,
+  `productRestrictionSub_isInducing_of_wedhorn_tree_existence`,
+  `EmbeddingTopo.lean`, all axiom-clean, commits `e330720`, `888cd8b`,
+  `80c2a09`): the full inducing-via-tree induction (LEAF + NODE) +
+  the transfer from tree-cover inducing to arbitrary-C inducing +
+  the factorization theorem. Combined, these reduce the
+  topological-inducing-for-arbitrary-C goal to the existence of a
+  Laurent refinement tree refining C (Wedhorn 8.34 content).
 - **Local step closure** (`productRestrictionSub_isInducing_via_V_containing_laurent_pair`,
   `EmbeddingTopo.lean`, axiom-clean): given C with a refining V containing a
   Laurent pair at C.base, IsInducing for C follows by combining T290
@@ -4742,8 +4751,9 @@ prescribed the following new tickets and reframings. See the integration record 
   IsInducing follows directly via T289 (sub-inducing) ∘ T290 (V-Laurent
   bootstrap). No τ-map construction needed. This handles the case where C
   itself is "rich enough" to contain a Laurent-at-base pair as a subset.
-- **Remaining**: iterate the local step across a Laurent-refinement tree
-  to handle arbitrary C. The tree construction is `T-LAURENT-REFINEMENT-TREE`.
+- **Remaining**: Wedhorn 8.34 *constructive tree existence* — given
+  arbitrary `C`, produce a tree refining C with `allSplitsInducing` +
+  `allNodesDisjoint`. See `T-LAURENT-REFINEMENT-TREE-EXISTENCE`.
 - **Priority**: HIGH (replaces the round-4 search for "single Laurent pair at base")
 - **File**: `Adic spaces/EmbeddingTopo.lean`
 - **Mathematical statement**:
