@@ -1129,9 +1129,51 @@ theorem isSheafy_ofStronglyNoetherianTate_flat
     · haveI := presheafValue_subsingleton_of_s_eq_zero C.base hs
       exact Topology.IsEmbedding.of_subsingleton _
     · -- Remaining sorry: the topological-inducing residual identified by
-      -- T-EMBED-TOPO. Algebraic injectivity available; topological side
-      -- pending Lane-Wedhorn topological route (Example 6.38 topological iso
-      -- + Laurent strictness + Lane C refinement).
+      -- T-EMBED-TOPO.
+      --
+      -- **STATUS (2026-05-13, T273-T279 landed)**:
+      --
+      -- The Lane C **base case** (single Laurent cover at `f`) is now
+      -- sorry-free via the auto-discharge chain in
+      -- `EmbeddingTopo.lean`:
+      --   * T279 `productRestrictionSub_laurentCovering_isEmbedding_via_bridges_of_s_ne_zero`
+      --     produces `IsEmbedding (productRestrictionSub A (laurentCovering D₀ f))`
+      --     from the bridges hypothesis bundle + `hs : D₀.s ≠ 0`. Axiom-clean.
+      --   * T278 produces the IsInducing-only variant for the
+      --     `_of_topo_inducing` parametric form.
+      --
+      -- **REMAINING WORK (Lane C induction)**:
+      --
+      -- For ARBITRARY `C : RationalCovering A`, the IsEmbedding follows
+      -- by the standard-cover refinement + Laurent induction:
+      --   1. Use `RationalCovering.refines_by_standard_cover` to find a
+      --      standard cover `S` of `C.base` such that the induced
+      --      V-cover refines `C` (S-GEOM-TAU is done, T250).
+      --   2. Induct on `|S.elts|`:
+      --      - base case |S| = 1: a single plus-piece V-cover. The
+      --        single-piece IsInducing is the per-piece restriction
+      --        being IsInducing, which doesn't reduce to T279 directly
+      --        (T279 is for the 2-piece laurentCovering, not the
+      --        1-piece plusDatum cover).
+      --      - inductive step: Laurent split at the new element f₀
+      --        produces plus + minus halves; combine via T267
+      --        (`productRestrictionSub_isInducing_of_finer_rational`).
+      --   3. Transfer back to C via T267 with the τ-map from S-GEOM-TAU.
+      --
+      -- The Lane C induction needs the IsInducing of the natural product
+      -- map `φ` between V and C (the topological refinement-transfer
+      -- ingredient, supplied as hypothesis to T267). For each Laurent
+      -- step, this `φ_IsInducing` is the topological version of the
+      -- 2-cover overlap structure — supplied by the Wedhorn 8.33 / Lemma
+      -- 8.34 topological strictness.
+      --
+      -- **Algebraic injectivity side**: still pending the Cor 8.32 product
+      -- faithful-flatness route (T-IDEAL-2, conditional on Stacks 00MA).
+      --
+      -- See `EmbeddingTopo.lean` T273-T279 for the base case landing and
+      -- `RationalRefinement.lean` `separation_of_finer_rational` for the
+      -- gluing-side refinement transfer (which the topological side
+      -- mirrors via T267).
       sorry
   gluing C f hcompat :=
     rationalCovering_hasGluing P C f hcompat
