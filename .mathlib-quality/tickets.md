@@ -772,7 +772,7 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
 
 ### [T-EMBED-TOPO] `IsSheafy` embedding via topological Example 6.38
 
-- **Status**: DONE for all 3 sub-tickets in hypothesis-parameterised form (2026-05-12)
+- **Status**: DONE for all 3 sub-tickets + base case in hypothesis-parameterised form (2026-05-13)
 - **Sub-ticket closures**:
   - T-EMBED-TOPO-EXAMPLE638 (T265): `presheafValueCanonicalQuotientHomeomorph`
     in `TopologyComparison.lean` — topological iso of Example 6.38.
@@ -781,11 +781,35 @@ then wire into Part 2 via `tateAcyclicity_gluing_via_refinement_cover_level`.
   - T-EMBED-TOPO-REFINEMENT-TRANSFER (T267):
     `productRestrictionSub_isInducing_of_finer_rational` in
     `EmbeddingTopo.lean` — conditional refinement transfer.
+  - T-EMBED-TOPO-PAIRTOSUB (T272): `isEmbedding_of_pair_form_isEmbedding`
+    in `EmbeddingTopo.lean` — pair-to-subtype transport.
+  - T-EMBED-TOPO-LANE-C-BASE (T273+T275, 2026-05-13):
+    `productRestrictionSub_laurentCovering_isEmbedding_of_homeomorph` and
+    `productRestrictionSub_laurentCovering_isEmbedding_of_distinct`
+    in `EmbeddingTopo.lean` — Lane C **base case** parametric + concrete
+    forms. The concrete form has the commutativity hypothesis discharged
+    automatically by proof irrelevance on the subset arguments of
+    `restrictionMap`.
+  - T-EMBED-TOPO-2EL-PI (T274, 2026-05-13): `twoElementSubtypePiHomeomorph`
+    in `EmbeddingTopo.lean` — generic utility homeomorphism
+    `F a × F b ≃ₜ (∀ x : ↥({a, b} : Finset α), F x.1)` for distinct
+    `a, b`. Continuity proved via `continuous_pi` + `continuous_fst`/
+    `continuous_snd` + `continuous_apply`.
+  - T-EMBED-TOPO-LAURENT-INDUCING (T276+T278, 2026-05-13):
+    `productRestrictionSub_laurentCovering_isInducing_via_bridges` and
+    `productRestrictionSub_laurentCovering_isInducing_via_bridges_of_s_ne_zero`
+    in `EmbeddingTopo.lean` — concrete single-Laurent-cover IsInducing
+    supplier consuming the bridges hypothesis bundle; the `_of_s_ne_zero`
+    variant discharges distinctness via T277.
+  - T-EMBED-TOPO-DISTINCT (T277, 2026-05-13): `laurentPlus_ne_laurentMinus_of_nonunit`
+    in `LaurentRefinement.lean` — Laurent plus and minus data distinctness
+    from `hf_nonunit + D₀.s ≠ 0 + IsDomain A`.
 - **Composing**: the full IsSheafy embedding for arbitrary covers
   follows by induction on standard-cover refinement (S-GEOM-IND base
   + induction), using T265 at each plus/minus piece for the topological
-  iso, T266 for the 2-cover base case strictness, and T267 for the
-  inductive step. The full assembly is in
+  iso, T266 for the 2-cover base case strictness, T267 for the
+  inductive step, and T273-T278 for the concrete Laurent-cover
+  IsInducing base case. The full assembly is in
   `isSheafy_ofStronglyNoetherianTate_flat_of_topo_inducing`
   (StructureSheaf.lean:1167) which takes the assembled inducing
   property as a parameter.
