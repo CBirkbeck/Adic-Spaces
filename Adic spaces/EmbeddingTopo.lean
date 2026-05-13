@@ -1049,4 +1049,54 @@ theorem productRestrictionSub_laurentCovering_isInducing_via_tau_identity
     hA₀Noeth_B hcont_forward_B hcont_eval_B hSigCp_TA hplus hminus
     id (fun d => le_refl _)
 
+/-! ### T289: Lane C inductive step — absorbing pieces preserves IsInducing
+
+**Key observation**: if `V₁ ⊆ V₂` as Finsets of cover pieces (both
+subsets of `C.covers` or refinement-compatible), and `productRestrictionSub`
+to the **smaller** family `V₁` is `IsInducing`, then it is also `IsInducing`
+to the **larger** family `V₂`.
+
+The proof routes through T281 (`IsInducing.of_continuous_comp`) with the
+subtype projection `Π_{V₂} → Π_{V₁}` as the post-composition.
+
+This is the **inductive step** for building IsInducing across a chain of
+cover refinements where each step adds pieces. -/
+
+/-- **T289**: more pieces preserve IsInducing. Given two covers
+`V_small ⊆ V_large` with the V_small `productRestrictionSub` IsInducing,
+the V_large `productRestrictionSub` is also IsInducing. -/
+theorem productRestrictionSub_isInducing_of_sub_inducing
+    {Base : RationalLocData A}
+    (V_small V_large : Finset (RationalLocData A))
+    (h_subset : V_small ⊆ V_large)
+    (hV_small_subset : ∀ D ∈ V_small, rationalOpen D.T D.s ⊆
+      rationalOpen Base.T Base.s)
+    (hV_large_subset : ∀ D ∈ V_large, rationalOpen D.T D.s ⊆
+      rationalOpen Base.T Base.s)
+    (pr_small : presheafValue Base → ∀ D : { D // D ∈ V_small }, presheafValue D.1)
+    (pr_large : presheafValue Base → ∀ D : { D // D ∈ V_large }, presheafValue D.1)
+    (hpr_small : pr_small =
+      fun x ⟨D, hD⟩ => restrictionMap Base D (hV_small_subset D hD) x)
+    (hpr_large : pr_large =
+      fun x ⟨D, hD⟩ => restrictionMap Base D (hV_large_subset D hD) x)
+    (h_small_inducing : Topology.IsInducing pr_small)
+    (h_large_continuous : Continuous pr_large) :
+    Topology.IsInducing pr_large := by
+  -- The subtype projection: Π_{V_large} → Π_{V_small} restricting indices.
+  let proj : (∀ D : { D // D ∈ V_large }, presheafValue D.1) →
+              (∀ D : { D // D ∈ V_small }, presheafValue D.1) :=
+    fun x ⟨D, hD⟩ => x ⟨D, h_subset hD⟩
+  have h_proj_continuous : Continuous proj := by
+    refine continuous_pi ?_
+    rintro ⟨D, hD⟩
+    exact continuous_apply (⟨D, h_subset hD⟩ : { D // D ∈ V_large })
+  -- The composition `proj ∘ pr_large = pr_small` (by proof-irrelevance).
+  have hcomp : pr_small = proj ∘ pr_large := by
+    rw [hpr_small, hpr_large]
+    funext x ⟨D, hD⟩
+    rfl
+  rw [hcomp] at h_small_inducing
+  exact Topology.IsInducing.of_continuous_comp h_large_continuous h_proj_continuous
+    h_small_inducing
+
 end ValuationSpectrum
