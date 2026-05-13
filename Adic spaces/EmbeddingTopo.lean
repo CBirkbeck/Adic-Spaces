@@ -713,4 +713,116 @@ theorem productRestrictionSub_laurentCovering_isEmbedding_via_bridges_of_s_ne_ze
     (laurentPlus_ne_laurentMinus_of_nonunit D₀ f hf_nonunit hs)
     pair_emb
 
+/-! ### T284: Lane C single-step closer
+
+The end-to-end Lane C **closer** for the case where a Laurent covering
+at `C.base` refines `C`. Combines:
+
+- **T279** `productRestrictionSub_laurentCovering_isEmbedding_via_bridges_of_s_ne_zero`:
+  the laurent-2-cover `IsEmbedding` at `C.base`.
+- **T282** `productRestrictionSub_isInducing_of_finer_rational_continuous`:
+  strengthened refinement transfer (only needs `Continuous φ`).
+- **T283** `productRestrictionSub_continuous`: automatic continuity of
+  `productRestrictionSub A C`.
+
+The result: given a Laurent covering `laurentCovering C.base f₀` that
+refines `C` (each laurent piece is contained in some C-piece), and a
+**continuous** natural map `φ` between the C and laurent product types,
+`productRestrictionSub A C` is `IsInducing`.
+
+This is the **single-Laurent-refinement** closer. For arbitrary `C`,
+multiple Laurent refinements may be needed (full standard-cover
+induction), but the single-step form captures the essential transport
+mechanism. -/
+
+/-- **T284**: Lane C single-step closer via laurent refinement. Given
+the bridges hypothesis bundle + laurent refinement data + commutativity
++ continuity of the natural map `φ`, conclude `IsInducing` for the C-level
+product restriction. -/
+theorem productRestrictionSub_isInducing_via_laurent_refinement
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    [LaurentNormalized C.base]
+    (f₀ : A)
+    (hf_nonunit : ¬IsUnit (C.base.canonicalMap f₀))
+    (hs : C.base.s ≠ 0)
+    (hNoeth_B : IsNoetherianRing (presheafValue C.base))
+    (hDom_B : IsDomain (presheafValue C.base))
+    (hSigCp_B : SigmaCompactSpace (presheafValue C.base))
+    (hA_complete_B : @CompleteSpace (presheafValue C.base)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue C.base)))
+    (hnoeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring
+            (IsTateRing.principalPair (presheafValue C.base)).toPairOfDefinition))
+    (hnoeth₂_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      IsNoetherianRing
+        ↥(TateAlgebra.pairSubring₂
+            (IsTateRing.principalPair (presheafValue C.base)).toPairOfDefinition))
+    (hLocLift_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      HasLocLiftPowerBounded (presheafValue C.base))
+    (hA₀Noeth_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      IsNoetherianRing ↥((presheafValue_pairOfDefinition_concrete P C.base).A₀))
+    (hcont_forward_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      letI : HasLocLiftPowerBounded (presheafValue C.base) := hLocLift_B
+      letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
+      letI P_B : PairOfDefinition (presheafValue C.base) :=
+        presheafValue_pairOfDefinition_concrete P C.base
+      letI : IsNoetherianRing ↥P_B.A₀ := hA₀Noeth_B
+      @Continuous _ _
+        (quotientPlusFSubXIdealTopology (presheafValue C.base) (C.base.canonicalMap f₀))
+        (inferInstance : TopologicalSpace (presheafValue
+          (trivialPlusDatum (presheafValue C.base) P_B (C.base.canonicalMap f₀))))
+        (example638Plus_forwardHom (presheafValue C.base) P_B (C.base.canonicalMap f₀)))
+    (hcont_eval_B : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      let D : RationalLocData (presheafValue C.base) := iteratedMinusDatum_B P C.base f₀
+      ∀ hb : TopologicalRing.IsPowerBounded (invS D),
+        @Continuous _ _
+          (TateAlgebra.quotientOneSubfXIdealTopology D.s)
+          (inferInstance : TopologicalSpace (presheafValue D))
+          (tateQuotientToPresheafHom D hb))
+    (hSigCp_TA : letI : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing P C.base
+      SigmaCompactSpace ↥(TateAlgebra (presheafValue C.base)))
+    (hplus : rationalOpen (laurentPlusDatum C.base f₀).T (laurentPlusDatum C.base f₀).s ⊆
+      rationalOpen C.base.T C.base.s)
+    (hminus : rationalOpen (laurentMinusDatum C.base f₀).T (laurentMinusDatum C.base f₀).s ⊆
+      rationalOpen C.base.T C.base.s)
+    (φ : (∀ E : { E // E ∈ C.covers }, presheafValue E.1) →
+         (∀ D : { D // D ∈ (laurentCovering C.base f₀).covers }, presheafValue D.1))
+    (hφ : ∀ x : presheafValue C.base,
+      φ (productRestrictionSub A C x) =
+        productRestrictionSub A (laurentCovering C.base f₀) x)
+    (hφ_continuous : Continuous φ) :
+    Topology.IsInducing (productRestrictionSub A C) := by
+  -- Step 1: laurent IsEmbedding via T279.
+  have hlaurent_emb :
+      Topology.IsEmbedding
+        (productRestrictionSub A (laurentCovering C.base f₀)) :=
+    productRestrictionSub_laurentCovering_isEmbedding_via_bridges_of_s_ne_zero
+      P C.base f₀ hf_nonunit hs hNoeth_B hDom_B hSigCp_B hA_complete_B
+      hnoeth_B hnoeth₂_B hLocLift_B hA₀Noeth_B hcont_forward_B hcont_eval_B
+      hSigCp_TA hplus hminus
+  have hlaurent_ind : Topology.IsInducing
+      (productRestrictionSub A (laurentCovering C.base f₀)) :=
+    hlaurent_emb.toIsInducing
+  -- Step 2: apply T282 (strengthened refinement transfer).
+  -- Note: the laurent V is `(laurentCovering C.base f₀).covers`, refinement
+  -- transfer uses `productRestrictionSub_V = productRestrictionSub A (laurentCovering C.base f₀)`.
+  refine productRestrictionSub_isInducing_of_finer_rational_continuous
+    C (laurentCovering C.base f₀).covers
+    (fun D hD => (laurentCovering C.base f₀).hsubset D hD)
+    (productRestrictionSub A (laurentCovering C.base f₀))
+    ?_ hlaurent_ind φ hφ hφ_continuous (productRestrictionSub_continuous C)
+  funext x ⟨D, hD⟩
+  rfl
+
 end ValuationSpectrum
