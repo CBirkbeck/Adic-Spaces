@@ -4834,9 +4834,24 @@ The full chain from "tree exists" to "C-level inducing" lands axiom-clean:
   (`leaves_ofRightBranchList`, `plusOfMinusChain`, `terminalMinus`),
   refinement combinators (`leaf_refines_singleton`,
   `node_leaf_leaf_refines_laurentCovering`, `Refines.mono`,
-  `node_refines_of_subtrees_refine`, `ofRightBranchList_refines`).
+  `node_refines_of_subtrees_refine`, `ofRightBranchList_refines`,
+  `leaf_refines_of_singleton`).
+- Concrete tree-existence witnesses (commits `a073c08`, `9a29a99`,
+  `18dc249`): `exists_for_singleton_cover`, `exists_for_laurentCovering`,
+  `exists_for_singleton_cover_of_eq` — depth-0 and depth-1 closures.
+- Right-branching tree existence (commits `9c94153`, `0a95085`,
+  `14e18ee`): per-level predicates `RightBranchInducing`,
+  `RightBranchDisjoint` and conversion lemmas, packager
+  `exists_for_rightBranchList`, depth-1 identification
+  `ofRightBranchList_singleton`.
+- IsSheafy via Wedhorn 8.34 factorization (commit `0479098`,
+  EmbeddingTopo.lean): `isSheafy_ofStronglyNoetherianTate_flat_of_wedhorn_tree_existence`
+  composes `productRestrictionSub_isInducing_of_wedhorn_tree_existence`
+  with `isSheafy_ofStronglyNoetherianTate_flat_of_topo_inducing` into
+  a single named theorem whose hypothesis bundle isolates `hSpa` +
+  `h_wedhorn` as the two concrete residuals.
 
-All axiom-clean: `propext, Classical.choice, Quot.sound`.
+All new declarations axiom-clean: `propext, Classical.choice, Quot.sound`.
 
 #### Remaining residual — Wedhorn 8.34 constructive existence
 
