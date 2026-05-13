@@ -211,31 +211,94 @@ theorem LaurentTree.cover_base (t : LaurentTree A) (D₀ : RationalLocData A)
       exact Or.inr hD
 
 open Classical in
-/-- The rational covering of `D₀` induced by the leaves of a Laurent tree.
-The covers are the leaves (as a `Finset` via `toFinset`); the `hsubset` and
-`hcover` fields are supplied by `leaf_subset_base` and `cover_base`.
+/-- The Finset of leaves of a Laurent tree, defined recursively via
+`Finset.union` (separately from `LaurentTree.toCovering`).
 
-Note: `Classical.decEq` is used for `(t.leaves D₀).toFinset`. -/
+At a `leaf`, the covers is the singleton `{D₀}`; at a `node f L R`, the
+covers is the union of the L-subtree's covers and the R-subtree's covers.
+
+This recursive Finset form makes the node-case covers
+**definitionally** equal to a `Finset.union`, essential for the
+`Homeomorph.piFinsetUnion`-based proof of the FLAT node-case inducing
+theorem. Recovered via `LaurentTree.toCoveringCovers_eq_leaves_toFinset`. -/
+noncomputable def LaurentTree.toCoveringCovers :
+    LaurentTree A → RationalLocData A → Finset (RationalLocData A)
+  | .leaf, D₀ => {D₀}
+  | .node f L R, D₀ =>
+      toCoveringCovers L (laurentPlusDatum D₀ f) ∪
+      toCoveringCovers R (laurentMinusDatum D₀ f)
+
+@[simp] theorem LaurentTree.toCoveringCovers_leaf (D₀ : RationalLocData A) :
+    (LaurentTree.leaf : LaurentTree A).toCoveringCovers D₀ = {D₀} := rfl
+
+open Classical in
+@[simp] theorem LaurentTree.toCoveringCovers_node (f : A)
+    (L R : LaurentTree A) (D₀ : RationalLocData A) :
+    (LaurentTree.node f L R).toCoveringCovers D₀ =
+      L.toCoveringCovers (laurentPlusDatum D₀ f) ∪
+      R.toCoveringCovers (laurentMinusDatum D₀ f) := rfl
+
+open Classical in
+/-- The recursive `toCoveringCovers` equals the `toFinset` of the leaves
+list (the two ways to compute the leaf Finset agree, by
+`List.toFinset_append`). -/
+theorem LaurentTree.toCoveringCovers_eq_leaves_toFinset
+    (t : LaurentTree A) (D₀ : RationalLocData A) :
+    t.toCoveringCovers D₀ = (t.leaves D₀).toFinset := by
+  induction t generalizing D₀ with
+  | leaf => simp [LaurentTree.leaves, LaurentTree.toCoveringCovers]
+  | node f L R ihL ihR =>
+    simp [LaurentTree.toCoveringCovers, LaurentTree.leaves, ihL, ihR,
+      List.toFinset_append]
+
+theorem LaurentTree.mem_toCoveringCovers_iff_mem_leaves
+    (t : LaurentTree A) (D₀ : RationalLocData A) (D : RationalLocData A) :
+    D ∈ t.toCoveringCovers D₀ ↔ D ∈ t.leaves D₀ := by
+  classical
+  rw [t.toCoveringCovers_eq_leaves_toFinset, List.mem_toFinset]
+
+/-- Each element of `toCoveringCovers` is contained in the base rational
+open (analogue of `leaf_subset_base` but for the recursive Finset). -/
+theorem LaurentTree.toCoveringCovers_subset_base (t : LaurentTree A)
+    (D₀ : RationalLocData A) (D : RationalLocData A)
+    (hD : D ∈ t.toCoveringCovers D₀) :
+    rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s :=
+  t.leaf_subset_base D₀ D ((t.mem_toCoveringCovers_iff_mem_leaves D₀ D).mp hD)
+
+/-- The recursive `toCoveringCovers` covers the base. -/
+theorem LaurentTree.toCoveringCovers_cover_base (t : LaurentTree A)
+    (D₀ : RationalLocData A) {v : Spv A}
+    (hv : v ∈ rationalOpen D₀.T D₀.s) :
+    ∃ D ∈ t.toCoveringCovers D₀, v ∈ rationalOpen D.T D.s := by
+  classical
+  obtain ⟨D, hD, hvD⟩ := t.cover_base D₀ hv
+  exact ⟨D, (t.mem_toCoveringCovers_iff_mem_leaves D₀ D).mpr hD, hvD⟩
+
+/-- The rational covering of `D₀` induced by the leaves of a Laurent tree.
+Uses `toCoveringCovers` (the recursive Finset form) for the covers field. -/
 noncomputable def LaurentTree.toCovering (t : LaurentTree A)
     (D₀ : RationalLocData A) : RationalCovering A where
   base := D₀
-  covers := (t.leaves D₀).toFinset
-  hsubset D hD := by
-    have : D ∈ t.leaves D₀ := by
-      simpa [List.mem_toFinset] using hD
-    exact t.leaf_subset_base D₀ D this
-  hcover v hv := by
-    obtain ⟨D, hD, hvD⟩ := t.cover_base D₀ hv
-    refine ⟨D, ?_, hvD⟩
-    simpa [List.mem_toFinset] using hD
+  covers := t.toCoveringCovers D₀
+  hsubset := t.toCoveringCovers_subset_base D₀
+  hcover := fun _ hv => t.toCoveringCovers_cover_base D₀ hv
 
 @[simp] theorem LaurentTree.toCovering_base (t : LaurentTree A)
     (D₀ : RationalLocData A) : (t.toCovering D₀).base = D₀ := rfl
 
-open Classical in
 @[simp] theorem LaurentTree.toCovering_covers (t : LaurentTree A)
     (D₀ : RationalLocData A) :
-    (t.toCovering D₀).covers = (t.leaves D₀).toFinset := rfl
+    (t.toCovering D₀).covers = t.toCoveringCovers D₀ := rfl
+
+@[simp] theorem LaurentTree.toCovering_leaf_covers (D₀ : RationalLocData A) :
+    ((LaurentTree.leaf : LaurentTree A).toCovering D₀).covers = {D₀} := rfl
+
+open Classical in
+@[simp] theorem LaurentTree.toCovering_node_covers (f : A)
+    (L R : LaurentTree A) (D₀ : RationalLocData A) :
+    ((LaurentTree.node f L R).toCovering D₀).covers =
+      (L.toCovering (laurentPlusDatum D₀ f)).covers ∪
+      (R.toCovering (laurentMinusDatum D₀ f)).covers := rfl
 
 /-! ## Leaf-leaf disjointness (the base case of T-LAURENT-LEAF-DISJOINT)
 

@@ -1867,8 +1867,8 @@ theorem isInducing_pair_form_composed_via_union
     (h_R : Topology.IsInducing
       (productRestrictionSub A (R.toCovering (laurentMinusDatum D₀ f))))
     (h_ne : laurentPlusDatum D₀ f ≠ laurentMinusDatum D₀ f)
-    (h_disj : Disjoint (L.leaves (laurentPlusDatum D₀ f)).toFinset
-                       (R.leaves (laurentMinusDatum D₀ f)).toFinset) :
+    (h_disj : Disjoint (L.toCovering (laurentPlusDatum D₀ f)).covers
+                       (R.toCovering (laurentMinusDatum D₀ f)).covers) :
     Topology.IsInducing
       (fun x : presheafValue D₀ =>
         (Homeomorph.piFinsetUnion (fun D : RationalLocData A => presheafValue D) h_disj)
@@ -1880,18 +1880,5 @@ theorem isInducing_pair_form_composed_via_union
   have h_union := (Homeomorph.piFinsetUnion
     (fun D : RationalLocData A => presheafValue D) h_disj).isInducing
   exact h_union.comp h_pair
-
-/-! ### T-TREE-INDUCING-NODE: partial — landing in union-indexed form
-
-The fully-flat version (with codomain indexed by
-`((LaurentTree.node f L R).toCovering D₀).covers`, which definitionally
-unfolds to `(L.leaves plus ++ R.leaves minus).toFinset`) requires an
-additional type-level identification with `Lleaves ∪ Rleaves` (via
-`List.toFinset_append`). The proposition-level identification holds but
-the dependent type-level transport requires `Eq.mpr`/`HEq` handling
-that hasn't landed yet; tracked as sub-issue `T-FLAT-COVERS-VS-UNION`.
-
-The `isInducing_pair_form_composed_via_union` form (above) suffices
-for downstream use after a manual identification of the codomains. -/
 
 end ValuationSpectrum
