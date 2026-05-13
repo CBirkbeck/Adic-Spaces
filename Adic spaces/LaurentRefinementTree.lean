@@ -237,6 +237,32 @@ open Classical in
     (D₀ : RationalLocData A) :
     (t.toCovering D₀).covers = (t.leaves D₀).toFinset := rfl
 
+/-! ## Leaf-leaf disjointness (the base case of T-LAURENT-LEAF-DISJOINT)
+
+For a Laurent split at element `f` in a domain `A`, when both `L` and `R`
+are the trivial trees `LaurentTree.leaf`, the leaf sets are simply
+`{plus}` and `{minus}` (singletons). These are disjoint exactly when
+`plus ≠ minus`, which holds under the standard hypothesis
+`¬IsUnit (D₀.canonicalMap f) ∧ D₀.s ≠ 0` via T277. -/
+open Classical in
+theorem LaurentTree.leaves_disjoint_of_leaf_leaf
+    [IsDomain A] (D₀ : RationalLocData A) (f : A)
+    (hf_nonunit : ¬IsUnit (D₀.canonicalMap f))
+    (hs : D₀.s ≠ 0) :
+    Disjoint
+      ((LaurentTree.leaf : LaurentTree A).leaves (laurentPlusDatum D₀ f)).toFinset
+      ((LaurentTree.leaf : LaurentTree A).leaves
+        (laurentMinusDatum D₀ f)).toFinset := by
+  -- Both leaves are singletons; the disjoint reduces to plus ≠ minus.
+  have h_plus : ((LaurentTree.leaf : LaurentTree A).leaves
+      (laurentPlusDatum D₀ f)).toFinset = {laurentPlusDatum D₀ f} := by
+    simp [LaurentTree.leaves_leaf]
+  have h_minus : ((LaurentTree.leaf : LaurentTree A).leaves
+      (laurentMinusDatum D₀ f)).toFinset = {laurentMinusDatum D₀ f} := by
+    simp [LaurentTree.leaves_leaf]
+  rw [h_plus, h_minus, Finset.disjoint_singleton]
+  exact laurentPlus_ne_laurentMinus_of_nonunit D₀ f hf_nonunit hs
+
 end Semantics
 
 end ValuationSpectrum
