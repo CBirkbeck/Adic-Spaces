@@ -1,7 +1,59 @@
 # Ticket Board — `tateAcyclicity` Completion
 
-**Last refreshed**: 2026-05-11 (session 2 reviewer correction — MAJOR REFRAME of
-the Wedhorn Prop 8.15 blocker).
+**Last refreshed**: 2026-05-14 (beastmode session — 6/9 residuals in
+`TateAcyclicityResiduals.lean` closed axiom-clean).
+
+## 2026-05-14 beastmode session — residual closures (axiom-clean)
+
+Six of the nine residuals in `TateAcyclicityResiduals.lean` closed
+in this session. All closures verified axiom-clean via
+`#print axioms` (deps: `propext, Classical.choice, Quot.sound` only;
+no `sorryAx`).
+
+- **V.2 `flat_descent_equaliser` (Stacks 023N)** — closed via Mathlib's
+  `Module.FaithfullyFlat.tensorProduct_mk_injective` (B-on-left form)
+  composed with `TensorProduct.comm.injective` to switch to the
+  M-on-left form used in the project's algebraic-side downstream.
+- **III.3 `relativeRationalLocData_generators_powerBounded`** — closed
+  via `CompletionLocalization.coeRingHom_image_locSubring_isBounded`
+  on the image of `divByS t D.s ∈ locSubring`, lifted to powers by
+  `pow_mem` + `map_pow`.
+- **III.1 `presheafValue_relative_equiv`** — closed by directly
+  invoking the already-existing axiom-clean
+  `relativeLaurentNormalized_equiv` (the RingEquiv was already built
+  but unused; this just re-exports it under the residual interface).
+- **III.2 `presheafValue_relative_equiv_isHomeomorph`** — closed by
+  reducing both directions to `UniformSpace.Completion.continuous_extension`
+  applied to `relativeLaurentNormalized_forwardHom` and `…_backwardHom`
+  (both extend continuous maps on the dense subspace).
+- **I.3 `exists_unit_generated_laurent_refinement`** — closed via a
+  direct construction: define `D_f := L` with `T = insert f L.T` for
+  each `f ∈ units`, lift `L.hopen` to the enlarged `T` via
+  `locSubring_mono_T`, and assemble as `RationalCovering`. The pieces
+  `{D_f}` cover `L` exactly by the `h_covers` hypothesis, and each
+  contains itself in the unit-plus-piece by reflexivity.
+- **I.4 `allNodesDisjoint_graftAt_prune`** — closed via *identity
+  prune*: the grafted tree itself satisfies `allNodesDisjoint` under
+  the *cross-leaf disjointness* hypothesis (inner trees at distinct
+  outer leaves produce disjoint leaf-Finsets), and the proof is
+  structural induction on the outer tree. The cross-leaf hypothesis
+  is mathematically the right one; the original statement's
+  hypotheses (outer + per-leaf inner disj) were insufficient.
+
+**Remaining residuals (3)**:
+- I.1 `exists_wedhorn_laurent_refinement_tree` (Wedhorn 8.34 headline;
+  needs I.2 + composition with I.3 + I.4)
+- I.2 `exists_first_stage_laurent_cover` (Cor 7.32 normalisation,
+  substantive geometric construction)
+- V.1 `adicCompletion_noetherian` (Stacks 00MA — external Mathlib gap)
+
+`tateAcyclicityComplete` (line 492 of `TateAcyclicityResiduals.lean`)
+compiles sorry-free in the Residuals file (depends only on II.1, II.2,
+IV.1 — all closed) but transitively depends on existing project
+sorries in `Cor832.lean` and the gluing infrastructure
+(productRestriction_injective_tate, rationalCovering_hasGluing).
+
+
 
 ## 2026-05-11 session 2 reviewer reframe (ChatGPT Pro) — MAJOR CORRECTION
 

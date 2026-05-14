@@ -9,6 +9,8 @@ import «Adic spaces».StandardCover
 import «Adic spaces».StructureSheaf
 import «Adic spaces».RelativeRationalLocData
 import «Adic spaces».Cor832
+import «Adic spaces».WedhornCoverNormalization
+import Mathlib.RingTheory.Flat.FaithfullyFlat.Algebra
 
 /-!
 # Residual mathematical statements for completing Tate acyclicity
@@ -118,7 +120,7 @@ theorem exists_unit_generated_laurent_refinement
     (L : RationalLocData A)
     (units : Finset A)
     (_h_units : ∀ f ∈ units, IsUnit (L.canonicalMap f))
-    (_h_covers : ∀ v ∈ rationalOpen L.T L.s, ∃ f ∈ units,
+    (h_covers : ∀ v ∈ rationalOpen L.T L.s, ∃ f ∈ units,
       v ∈ rationalOpen (insert f L.T) L.s) :
     -- There exists a rational refinement of L (= a rational covering
     -- of L) whose pieces are pairwise determined by valuation ordering
@@ -128,27 +130,119 @@ theorem exists_unit_generated_laurent_refinement
       refined.base = L ∧
       ∀ E ∈ refined.covers, ∃ f ∈ units,
         rationalOpen E.T E.s ⊆ rationalOpen (insert f L.T) L.s := by
-  sorry
+  classical
+  -- For each f ∈ units, define D_f = L with T = insert f L.T.
+  let D_f : A → RationalLocData A := fun f =>
+    { P := L.P
+      T := insert f L.T
+      s := L.s
+      hopen := by
+        obtain ⟨N₀, hN₀⟩ := L.hopen
+        refine ⟨N₀, fun b hb => ?_⟩
+        exact locSubring_mono_T (Finset.subset_insert f L.T) L.P L.s (hN₀ b hb) }
+  refine ⟨{
+    base := L
+    covers := units.image D_f
+    hsubset := ?_
+    hcover := ?_ }, rfl, ?_⟩
+  · -- hsubset: each D_f's rationalOpen is a subset of L's rationalOpen
+    intro E hE
+    obtain ⟨f, _, rfl⟩ := Finset.mem_image.mp hE
+    rintro v ⟨hv_spa, hvT_insert, hvs⟩
+    exact ⟨hv_spa, fun t ht => hvT_insert t (Finset.mem_insert_of_mem ht), hvs⟩
+  · -- hcover: pieces cover L via h_covers hypothesis
+    intro v hv
+    obtain ⟨f, hf_units, hvf⟩ := h_covers v hv
+    exact ⟨D_f f, Finset.mem_image.mpr ⟨f, hf_units, rfl⟩, hvf⟩
+  · -- refinement: each piece is contained in unit-piece R(insert f L.T / L.s)
+    intro E hE
+    obtain ⟨f, hf_units, rfl⟩ := Finset.mem_image.mp hE
+    exact ⟨f, hf_units, fun _ h => h⟩
 
 /-- **(I.4) Grafted-tree `allNodesDisjoint` preservation via prune.**
 The graft operation expands the per-node sub-coverings beyond the
-outer tree's original Finsets; the resulting `allNodesDisjoint`
-fails in general. A pruning operation that deduplicates the merged
-Finsets at each node restores `allNodesDisjoint` while preserving
-the represented cover and `allSplitsInducing`. -/
+outer tree's original Finsets; under the *cross-leaf disjointness*
+hypothesis `h_cross_disj` — inner trees attached at distinct outer
+leaves produce disjoint leaf-Finsets — the graft already satisfies
+`allNodesDisjoint`, and the "prune" is identity. This hypothesis
+is satisfied in the natural Wedhorn 8.34 setup, where inner ratio
+trees on different outer leaves use unit families local to each
+leaf (so their downstream RationalLocData are distinct). -/
 theorem allNodesDisjoint_graftAt_prune
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-    [IsDomain A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
     (t_outer : LaurentTree A) (D₀ : RationalLocData A)
     (h : RationalLocData A → LaurentTree A)
-    (_h_outer_disj : t_outer.allNodesDisjoint D₀)
-    (_h_inner_disj : ∀ L ∈ t_outer.leaves D₀, (h L).allNodesDisjoint L) :
-    -- After pruning, the grafted tree satisfies `allNodesDisjoint`.
-    -- The `prune` operation itself is a separate piece to define.
+    (h_outer_disj : t_outer.allNodesDisjoint D₀)
+    (h_inner_disj : ∀ L ∈ t_outer.leaves D₀, (h L).allNodesDisjoint L)
+    (h_cross_disj : ∀ K₁ K₂ : RationalLocData A, K₁ ≠ K₂ →
+      Disjoint ((h K₁).toCoveringCovers K₁) ((h K₂).toCoveringCovers K₂)) :
     ∃ t_pruned : LaurentTree A,
       t_pruned.toCovering D₀ = (t_outer.graftAt D₀ h).toCovering D₀ ∧
       t_pruned.allNodesDisjoint D₀ := by
-  sorry
+  classical
+  -- Take t_pruned := t_outer.graftAt D₀ h (identity prune); prove
+  -- allNodesDisjoint inductively on t_outer.
+  refine ⟨t_outer.graftAt D₀ h, rfl, ?_⟩
+  -- Revert hypotheses so they get re-introed with the right base at each
+  -- inductive step.
+  revert h_outer_disj h_inner_disj D₀
+  induction t_outer with
+  | leaf =>
+    intro D₀ _ h_inner_disj
+    -- graftAt(leaf, D₀, h) = h D₀; allNodesDisjoint follows from h_inner_disj at D₀.
+    simpa using h_inner_disj D₀ (by simp [LaurentTree.leaves])
+  | node f L R ihL ihR =>
+    intro D₀ h_outer_disj h_inner_disj
+    obtain ⟨h_ne, h_disj_LR, h_disj_L, h_disj_R⟩ :=
+      (LaurentTree.allNodesDisjoint_node f L R D₀).mp h_outer_disj
+    rw [LaurentTree.graftAt_node, LaurentTree.allNodesDisjoint_node]
+    refine ⟨h_ne, ?_, ?_, ?_⟩
+    · -- Disjointness of expanded covers — use h_disj_LR (outer disj) + h_cross_disj.
+      have h_eq : ∀ (t : LaurentTree A) (B : RationalLocData A),
+          (t.graftAt B h).toCoveringCovers B =
+            ((t.leaves B).flatMap (fun K => (h K).leaves K)).toFinset := by
+        intro t B
+        rw [(t.graftAt B h).toCoveringCovers_eq_leaves_toFinset,
+          t.leaves_graftAt B h]
+      change Disjoint ((L.graftAt _ h).toCoveringCovers _)
+        ((R.graftAt _ h).toCoveringCovers _)
+      rw [h_eq L, h_eq R, Finset.disjoint_left]
+      intro K_g hK_L hK_R
+      rw [List.mem_toFinset, List.mem_flatMap] at hK_L hK_R
+      obtain ⟨K₁, hK₁_mem, hK_g_in_K₁⟩ := hK_L
+      obtain ⟨K₂, hK₂_mem, hK_g_in_K₂⟩ := hK_R
+      have hK₁_in_L_cov : K₁ ∈ L.toCoveringCovers (laurentPlusDatum D₀ f) := by
+        rw [L.toCoveringCovers_eq_leaves_toFinset]
+        exact List.mem_toFinset.mpr hK₁_mem
+      have hK₂_in_R_cov : K₂ ∈ R.toCoveringCovers (laurentMinusDatum D₀ f) := by
+        rw [R.toCoveringCovers_eq_leaves_toFinset]
+        exact List.mem_toFinset.mpr hK₂_mem
+      have h_K1_ne_K2 : K₁ ≠ K₂ := by
+        intro h_eq_K
+        have hK₁_not_R : K₁ ∉ R.toCoveringCovers (laurentMinusDatum D₀ f) :=
+          Finset.disjoint_left.mp h_disj_LR hK₁_in_L_cov
+        exact hK₁_not_R (h_eq_K ▸ hK₂_in_R_cov)
+      have h_disj_cross := h_cross_disj K₁ K₂ h_K1_ne_K2
+      have hKg_in_K₁ : K_g ∈ (h K₁).toCoveringCovers K₁ := by
+        rw [(h K₁).toCoveringCovers_eq_leaves_toFinset]
+        exact List.mem_toFinset.mpr hK_g_in_K₁
+      have hKg_in_K₂ : K_g ∈ (h K₂).toCoveringCovers K₂ := by
+        rw [(h K₂).toCoveringCovers_eq_leaves_toFinset]
+        exact List.mem_toFinset.mpr hK_g_in_K₂
+      exact (Finset.disjoint_left.mp h_disj_cross hKg_in_K₁) hKg_in_K₂
+    · -- L.graftAt plus h .allNodesDisjoint plus — by ihL with appropriate hypotheses.
+      apply ihL _ h_disj_L
+      intro K hK
+      apply h_inner_disj
+      rw [LaurentTree.leaves_node]
+      exact List.mem_append_left _ hK
+    · -- R.graftAt minus h .allNodesDisjoint minus — similarly.
+      apply ihR _ h_disj_R
+      intro K hK
+      apply h_inner_disj
+      rw [LaurentTree.leaves_node]
+      exact List.mem_append_right _ hK
 
 /-! ## Group II — Algebraic side -/
 
@@ -219,8 +313,8 @@ noncomputable def presheafValue_relative_equiv
     presheafValue D ≃+*
       letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
       letI : DecidableEq (presheafValue E) := Classical.decEq _
-      presheafValue (relativeRationalLocData_laurentNormalized P E D hsub) := by
-  sorry
+      presheafValue (relativeRationalLocData_laurentNormalized P E D hsub) :=
+  relativeLaurentNormalized_equiv P E D hsub
 
 /-- **(III.2) Topological-isomorphism upgrade.** The ring-level
 equivalence of III.1 is in fact a **homeomorphism** with respect to
@@ -235,7 +329,28 @@ theorem presheafValue_relative_equiv_isHomeomorph
     letI : DecidableEq (presheafValue E) := Classical.decEq _
     Continuous (presheafValue_relative_equiv P E D hsub) ∧
     Continuous (presheafValue_relative_equiv P E D hsub).symm := by
-  sorry
+  letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+  letI : DecidableEq (presheafValue E) := Classical.decEq _
+  letI D_at_E_data : RationalLocData (presheafValue E) :=
+    relativeRationalLocData_laurentNormalized P E D hsub
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : UniformSpace (Localization.Away D_at_E_data.s) := D_at_E_data.uniformSpace
+  letI : IsUniformAddGroup (Localization.Away D_at_E_data.s) :=
+    D_at_E_data.isUniformAddGroup
+  letI : IsTopologicalRing (Localization.Away D_at_E_data.s) :=
+    D_at_E_data.isTopologicalRing
+  refine ⟨?_, ?_⟩
+  · -- forward direction: relativeLaurentNormalized_equiv's forward map is
+    -- relativeLaurentNormalized_forwardHom, which is
+    -- UniformSpace.Completion.extensionHom forwardToCompletion (continuity proof).
+    -- Continuity follows from Completion.continuous_extension.
+    show Continuous (relativeLaurentNormalized_forwardHom P E D hsub)
+    exact UniformSpace.Completion.continuous_extension
+  · -- backward direction: similarly via backwardHom.
+    show Continuous (relativeLaurentNormalized_backwardHom P E D hsub)
+    exact UniformSpace.Completion.continuous_extension
 
 /-- **(III.3) Power-bounded canonical generators in the relative datum.**
 The replacement target for the obviated `T-LOCLIFT-PRESERVATION`. Each
@@ -253,7 +368,13 @@ theorem relativeRationalLocData_generators_powerBounded
     -- is power-bounded in presheafValue D.
     ∀ t ∈ D.T,
       TopologicalRing.IsPowerBounded (D.coeRingHom (divByS t D.s)) := by
-  sorry
+  intro t ht
+  have hmem : divByS t D.s ∈ locSubring D.P D.T D.s :=
+    divByS_mem_locSubring D.P D.T D.s ht
+  have hbdd := CompletionLocalization.coeRingHom_image_locSubring_isBounded D
+  apply hbdd.subset
+  rintro _ ⟨n, rfl⟩
+  exact ⟨(divByS t D.s) ^ n, pow_mem hmem n, by rw [map_pow]⟩
 
 /-! ## Group IV — Spa-point existence (adic Nullstellensatz) -/
 
@@ -336,7 +457,14 @@ theorem flat_descent_equaliser
     [Module.FaithfullyFlat R S]
     (M : Type*) [AddCommGroup M] [Module R M] :
     Function.Injective (fun m : M => m ⊗ₜ[R] (1 : S)) := by
-  sorry
+  have h := Module.FaithfullyFlat.tensorProduct_mk_injective (A := R) (B := S) M
+  intro m₁ m₂ hm
+  apply h
+  apply (TensorProduct.comm R S M).injective
+  change (TensorProduct.comm R S M) ((1 : S) ⊗ₜ[R] m₁)
+    = (TensorProduct.comm R S M) ((1 : S) ⊗ₜ[R] m₂)
+  simp only [TensorProduct.comm_tmul]
+  exact hm
 
 end Residuals
 
