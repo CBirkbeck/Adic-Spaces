@@ -158,32 +158,29 @@ diagonal restriction is injective on global sections. The
 mathematical content is already established in `Cor832.lean` as
 `productRestriction_injective_tate_of_hSpa_points`; this is the
 **downstream wrapper** that invokes it from `tateAcyclicity`'s
-location (currently blocked by Lean import cycle).
-
-Status: pure routing, no new mathematics. -/
+location (currently blocked by Lean import cycle). -/
 theorem tateAcyclicity_part1_separation_via_cor832
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (C : RationalCovering A) (_hne : C.covers.Nonempty)
-    -- Spa-point existence input (= residual IV.1 below).
-    (_hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+    (C : RationalCovering A) (hne : C.covers.Nonempty)
+    (hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
       ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp) :
     ∀ x : presheafValue C.base,
       (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
-        restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0 := by
-  sorry
+        restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0 :=
+  fun x hx =>
+    ValuationSpectrum.productRestriction_injective_tate_of_hSpa_points
+      P C hne hSpa x hx
 
 /-- **(II.2) Tate acyclicity Part 2 — gluing via faithful-flat
 descent (Stacks Tag 023N).** A compatible family of sections in the
 product `∏ 𝒪_X(D)` lifts to a global section in `𝒪_X(C.base)`.
 
-Mathematical content: combine faithful flatness of the product
-restriction (Corollary 8.32, proved) with the **flat descent
-equaliser identification** (Stacks Tag 023N) — for a faithfully flat
-ring map `A → B`, the sequence `M → M ⊗ B ⇒ M ⊗ B ⊗ B` is an
-equaliser. The compatible-family hypothesis says the image lies in
-the equaliser; descent gives the preimage. -/
+Routing wrapper for `rationalCovering_hasGluing` in
+`LaurentRefinement.lean`, which carries the substantive descent
+content. The `_hSpa` hypothesis is included for interface symmetry
+with II.1 but is not needed by the existing infrastructure. -/
 theorem tateAcyclicity_part2_gluing_via_flat_descent
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A]
@@ -192,13 +189,13 @@ theorem tateAcyclicity_part2_gluing_via_flat_descent
     (_hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
       ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp)
     (f : ∀ D : ↥C.covers, presheafValue D.1)
-    (_hcompat : ∀ (D₁ D₂ : ↥C.covers) (D₃ : RationalLocData A)
+    (hcompat : ∀ (D₁ D₂ : ↥C.covers) (D₃ : RationalLocData A)
       (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
       (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
       restrictionMap D₁.1 D₃ h₃₁ (f D₁) = restrictionMap D₂.1 D₃ h₃₂ (f D₂)) :
     ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
-      restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D := by
-  sorry
+      restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D :=
+  ValuationSpectrum.rationalCovering_hasGluing P C f hcompat
 
 /-! ## Group III — Transitivity bridge (foundational) -/
 
