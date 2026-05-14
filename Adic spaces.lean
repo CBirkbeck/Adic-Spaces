@@ -74,6 +74,7 @@ import «Adic spaces».StandardCover
 import «Adic spaces».StructureSheaf
 import «Adic spaces».TateAcyclicity
 import «Adic spaces».TateAcyclicityFinalAssembly
+import «Adic spaces».TateAcyclicityResiduals
 import «Adic spaces».TateAlgebra
 import «Adic spaces».TateAlgebraTopology
 import «Adic spaces».TateAlgebraWedhorn
