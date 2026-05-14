@@ -8,6 +8,7 @@ import «Adic spaces».EmbeddingTopo
 import «Adic spaces».StandardCover
 import «Adic spaces».StructureSheaf
 import «Adic spaces».RelativeRationalLocData
+import «Adic spaces».Cor832
 
 /-!
 # Residual mathematical statements for completing Tate acyclicity
@@ -259,24 +260,51 @@ theorem relativeRationalLocData_generators_powerBounded
 
 /-! ## Group IV — Spa-point existence (adic Nullstellensatz) -/
 
-/-- **(IV.1) Wedhorn Proposition 7.14 / Hübner adic Nullstellensatz
-(unconditional).** For a strongly noetherian Tate ring, any rational
-locality datum `D₀`, any prime ideal `p ⊂ A` with `D₀.s ∉ p`, there
-exists a continuous valuation `v ∈ rationalOpen D₀.T D₀.s ⊆ Spa(A, A⁺)`
-with `p ≤ supp(v)`.
+/-- **(IV.1) Wedhorn Prop 7.14 / Hübner adic Nullstellensatz.** For
+strongly noetherian Tate ring `A`, any rational locality datum `D₀`,
+and any prime `p ⊂ A` with `D₀.s ∉ p`, there exists a continuous
+valuation `v ∈ rationalOpen D₀.T D₀.s` with `p ≤ supp(v)`.
 
-This is the `hSpa` hypothesis currently carried at consumer level
-(used in `refines_by_standard_cover` and
-`productRestriction_injective_tate_of_hSpa_points`). An unconditional
-proof requires the adic Nullstellensatz — a valuation-theoretic
-construction. -/
+The statement carries the standard side conditions for the
+completion-route Spa pullback: `(A⁺ ⊆ D₀.P.A₀)`, continuity of
+`D₀.canonicalMap`, and noetherianity of the local subring.
+
+The remaining hypothesis `h_lifted_ne_top_for_nonOpen` is the
+*genuine* analytic Wedhorn 7.45 input (currently blocked on Bourbaki
+CA III §2.8 per the project's T001 memory): for non-open primes `p`
+with `D₀.s ∉ p`, the lifted ideal `D₀.canonicalMap(p)` is proper in
+`presheafValue D₀`. -/
 theorem exists_spa_point_dominating_prime
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A]
-    (D₀ : RationalLocData A) (p : Ideal A) (_hp : p.IsPrime)
-    (_hs : D₀.s ∉ p) :
+    (D₀ : RationalLocData A) [IsNoetherianRing D₀.P.A₀]
+    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ D₀.P.A₀)
+    (hcanonicalMap_cont : Continuous D₀.canonicalMap)
+    (h_lifted_ne_top_for_nonOpen :
+      ∀ (p : Ideal A), p.IsPrime → D₀.s ∉ p → ¬IsOpen (p : Set A) →
+        (Ideal.map D₀.canonicalMap p : Ideal (presheafValue D₀)) ≠ ⊤)
+    (p : Ideal A) (hp : p.IsPrime) (hs : D₀.s ∉ p) :
     ∃ v ∈ rationalOpen D₀.T D₀.s, p ≤ v.supp := by
-  sorry
+  -- Build a singleton rational covering with `C.base = D₀` and apply
+  -- the existing axiom-clean `hSpa_points_via_lifted_ideal_proper`.
+  let C : RationalCovering A :=
+    { base := D₀
+      covers := {D₀}
+      hsubset := by
+        intro E hE
+        rw [Finset.mem_singleton] at hE
+        subst E
+        intro v hv
+        exact hv
+      hcover := by
+        intro v hv
+        exact ⟨D₀, Finset.mem_singleton_self D₀, hv⟩ }
+  haveI : IsNoetherianRing (locSubring C.base.P C.base.T C.base.s) :=
+    inferInstanceAs (IsNoetherianRing (locSubring D₀.P D₀.T D₀.s))
+  exact ValuationSpectrum.hSpa_points_via_lifted_ideal_proper
+    (P := D₀.P) C hAplus_le_A₀ hcanonicalMap_cont
+    h_lifted_ne_top_for_nonOpen p hp hs
 
 /-! ## Group V — Mathlib external dependencies -/
 
@@ -340,7 +368,15 @@ theorem tateAcyclicityComplete
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (C : RationalCovering A) (hne : C.covers.Nonempty) :
+    (C : RationalCovering A) (hne : C.covers.Nonempty)
+    -- IV.1's side conditions, threaded through:
+    [IsNoetherianRing C.base.P.A₀]
+    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ C.base.P.A₀)
+    (hcanonicalMap_cont : Continuous C.base.canonicalMap)
+    (h_lifted_ne_top_for_nonOpen :
+      ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p → ¬IsOpen (p : Set A) →
+        (Ideal.map C.base.canonicalMap p : Ideal (presheafValue C.base)) ≠ ⊤) :
     -- Part 1: separation.
     (∀ x : presheafValue C.base,
       (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
@@ -356,7 +392,8 @@ theorem tateAcyclicityComplete
   -- The Spa-point existence hypothesis is supplied by IV.1.
   have hSpa : ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
       ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp :=
-    fun p hp hs => exists_spa_point_dominating_prime C.base p hp hs
+    fun p hp hs => exists_spa_point_dominating_prime C.base
+      hAplus_le_A₀ hcanonicalMap_cont h_lifted_ne_top_for_nonOpen p hp hs
   refine ⟨?_, ?_⟩
   · -- Part 1 via II.1.
     exact tateAcyclicity_part1_separation_via_cor832 P C hne hSpa
@@ -380,13 +417,27 @@ unconditionally — no further input needed. -/
 theorem isSheafyComplete
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    -- Per-cover instance/witness inputs for IV.1's side conditions.
+    -- (Universally quantified over all rational coverings since the
+    -- IsSheafy structure consumes hSpa on every C.)
+    (hSpa_inputs : ∀ (C : RationalCovering A),
+      IsNoetherianRing C.base.P.A₀ ∧
+      IsNoetherianRing (locSubring C.base.P C.base.T C.base.s) ∧
+      (A⁺ : Set A) ⊆ C.base.P.A₀ ∧
+      Continuous C.base.canonicalMap ∧
+      (∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p → ¬IsOpen (p : Set A) →
+        (Ideal.map C.base.canonicalMap p :
+          Ideal (presheafValue C.base)) ≠ ⊤)) :
     IsSheafy A := by
   refine isSheafy_ofStronglyNoetherianTate_flat_of_wedhorn_tree_existence
     P ?_ ?_
   · -- Spa-point existence via IV.1.
     intro C p hp hs
-    exact exists_spa_point_dominating_prime C.base p hp hs
+    obtain ⟨hA₀, hLoc, hAplus, hcont, hlifted⟩ := hSpa_inputs C
+    haveI : IsNoetherianRing C.base.P.A₀ := hA₀
+    haveI : IsNoetherianRing (locSubring C.base.P C.base.T C.base.s) := hLoc
+    exact exists_spa_point_dominating_prime C.base hAplus hcont hlifted p hp hs
   · -- Wedhorn 8.34 tree existence via I.1.
     intro C
     exact exists_wedhorn_laurent_refinement_tree P C
