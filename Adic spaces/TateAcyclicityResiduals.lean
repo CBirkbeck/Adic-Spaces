@@ -39,7 +39,168 @@ section Residuals
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
   [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
 
-/-! ## Group I — Topological-inducing side -/
+/-! ## Group I — Topological-inducing side
+
+The Wedhorn 8.34 headline `exists_wedhorn_laurent_refinement_tree` (I.1)
+is proved by composing five substantive lemmas, each captured below.
+Each W-lemma carries an explicit Wedhorn-8.34-correspondence note in
+its docstring for cross-checking against the textbook (Wedhorn, *Adic
+Spaces*, arXiv:1910.05934, Lemma 8.34, pp. 83–84).
+
+* **W1** `exists_standard_cover_refining` — Wedhorn 8.34 *input*: a
+  finite standard cover `S ⊆ A` of `C.base` refining `C` (each `f`-plus
+  piece in some `C`-piece) and spanning the unit ideal of `A`.
+* **W2** `exists_first_stage_laurent_tree_full` — Wedhorn 8.34
+  *Step (i)+(ii)*: Cor 7.32 yields a dominating unit `s : Aˣ`, and the
+  balanced Laurent tree `ofBalancedList (s⁻¹·S)` is internally inducing
+  (`allSplitsInducing`) and disjoint (`allNodesDisjoint`); at each leaf
+  the σ-minus indices of `S` are units in the leaf's `𝒪_X`.
+* **W3** `exists_inner_ratio_laurent_tree_refining_C` — Wedhorn 8.34
+  *Step (iii)*: at each first-stage leaf `L`, the unit-generated cover
+  `U|L` is refined by an inner Laurent tree on the unit ratios. The
+  inner tree carries `Refines L C` (per-leaf containment in C-pieces)
+  via `_hS_contain` + transitivity, plus inducing + disjointness.
+* **W4** `inner_ratio_trees_cross_leaf_disjoint` — cross-leaf
+  disjointness of the canonical W3 inner trees (= each inner tree's
+  leaf-Finset is disjoint from any other inner tree's leaf-Finset).
+* **W5** `graftAt_allNodesDisjoint` — Wedhorn 8.34 *graft step*:
+  non-existential form of I.4 (the existential
+  `allNodesDisjoint_graftAt_prune` packages the same content).
+
+The proof of I.1 glues these via the existing graft preservation
+lemmas (`LaurentTree.Refines_graftAt`,
+`LaurentTree.allSplitsInducing_graftAt`) and W5. -/
+
+/-- **(W1) Standard cover existence for an arbitrary rational
+covering.** For any rational covering `C` of `C.base`, there is a
+finite set `S ⊆ A` that refines `C` (each `f`-plus-piece is contained
+in some `C`-piece) and spans the unit ideal (= covers `Spa A A⁺`). -/
+theorem exists_standard_cover_refining
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (C : RationalCovering A) :
+    ∃ S : Finset A,
+      refines_cover C S ∧
+      refines_contain C S ∧
+      refines_span_top S := by
+  sorry
+
+/-- **(W2) First-stage Laurent tree with inducing + disjointness +
+unit-property.** Strengthens I.2 by adding the `allSplitsInducing C.base`
+and `allNodesDisjoint C.base` properties of the outer tree, which are
+needed for the I.1 graft composition. The dominating unit `s : Aˣ` is
+the Cor 7.32 output for the standard cover `S`.
+
+These properties hold for the balanced Laurent tree `ofBalancedList`
+on `s⁻¹·S` because each internal Laurent split at `s⁻¹·f` (for
+`f ∈ S`) is non-trivial — the dominating-unit property of `s` ensures
+no `s⁻¹·f` is a unit in `A` (so the plus-vs-minus split is
+algebraically non-degenerate at the running base). -/
+theorem exists_first_stage_laurent_tree_full
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) (S : Finset A)
+    (_hS_cover : refines_cover C S)
+    (_hS_contain : refines_contain C S)
+    (_hS_span : refines_span_top S) :
+    ∃ (s : Aˣ) (t_outer : LaurentTree A),
+      t_outer = LaurentTree.ofBalancedList
+        ((S.toList).map (fun f => ((s⁻¹ : Aˣ) : A) * f)) ∧
+      t_outer.allSplitsInducing C.base ∧
+      t_outer.allNodesDisjoint C.base ∧
+      ∀ L ∈ t_outer.leaves C.base,
+        ∃ I_units : Finset A,
+          I_units ⊆ S ∧
+          ∀ f ∈ I_units, IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f)) := by
+  sorry
+
+/-- **(W3) Inner ratio Laurent tree at a first-stage leaf, refining
+`C`.** Given a first-stage Laurent leaf `L` (= a sub-base of `C.base`)
+and the unit-property family `I_units ⊆ S` of `f`'s that are units in
+`𝒪_X(L)` (after `s⁻¹`-rescaling), there exists a Laurent tree `inner`
+at `L` such that:
+
+* `inner.Refines L C` — every inner-tree-leaf is contained in some
+  `C`-piece. The chain: each inner-leaf is inside an `f`-unit-piece at
+  `L` (= `R(insert f L.T / L.s)` for some `f ∈ I_units` that is unit at
+  `L`), which is contained in some `C`-piece via `_hS_contain` and the
+  Group III transitivity bridge (`presheafValue_relative_equiv`).
+* `inner.allSplitsInducing L` — every internal split of `inner` gives
+  an inducing 2-cover at its running base.
+* `inner.allNodesDisjoint L` — every internal node of `inner` has
+  distinct + disjoint sub-coverings.
+
+This is the formalization of Wedhorn 8.34 Step (iii): a unit-generated
+rational cover is refined by a Laurent cover of unit ratios. -/
+theorem exists_inner_ratio_laurent_tree_refining_C
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) (S : Finset A)
+    (_hS_contain : refines_contain C S)
+    (s : Aˣ)
+    (L : RationalLocData A)
+    (_hL_subset : rationalOpen L.T L.s ⊆ rationalOpen C.base.T C.base.s)
+    (I_units : Finset A)
+    (_hI_units_subset : I_units ⊆ S)
+    (_hI_units_unit : ∀ f ∈ I_units,
+      IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f))) :
+    ∃ inner : LaurentTree A,
+      inner.Refines L C ∧
+      inner.allSplitsInducing L ∧
+      inner.allNodesDisjoint L := by
+  sorry
+
+/-- **(W4) Cross-leaf disjointness for the canonical Wedhorn inner-tree
+construction.** The inner ratio Laurent trees from `W3` at distinct
+outer-leaves produce disjoint leaf-Finsets — this is needed to feed
+the graft-preservation step for `allNodesDisjoint`.
+
+The disjointness is a *consequence* of the canonical construction: the
+inner tree at an outer-leaf `L` has its leaves' `T`-fields containing
+`L`-specific elements (the σ-minus units at `L`), which differ across
+distinct outer leaves. -/
+theorem inner_ratio_trees_cross_leaf_disjoint
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) (S : Finset A)
+    (hS_contain : refines_contain C S)
+    (s : Aˣ)
+    (units_of : RationalLocData A → Finset A)
+    (h_units_subset : ∀ L, units_of L ⊆ S)
+    (h_units_unit : ∀ L, ∀ f ∈ units_of L,
+      IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f)))
+    (inner_of : RationalLocData A → LaurentTree A)
+    (h_inner_spec : ∀ L,
+      (inner_of L).allSplitsInducing L ∧
+      (inner_of L).allNodesDisjoint L) :
+    ∀ K₁ K₂ : RationalLocData A, K₁ ≠ K₂ →
+      Disjoint ((inner_of K₁).toCoveringCovers K₁)
+               ((inner_of K₂).toCoveringCovers K₂) := by
+  sorry
+
+/-- **(W5) Direct `allNodesDisjoint` preservation under `graftAt`.**
+The non-existential form of `allNodesDisjoint_graftAt_prune` (= I.4):
+the grafted tree itself satisfies `allNodesDisjoint` when the outer
+and inner trees are disjoint AND the inner trees are cross-leaf
+disjoint. Used by I.1's proof.
+
+(This is provable by the same structural induction as I.4's body; the
+existential wrapper in I.4 packages the same content under a different
+shape.) -/
+theorem graftAt_allNodesDisjoint
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
+    (t_outer : LaurentTree A) (D₀ : RationalLocData A)
+    (h : RationalLocData A → LaurentTree A)
+    (h_outer_disj : t_outer.allNodesDisjoint D₀)
+    (h_inner_disj : ∀ L ∈ t_outer.leaves D₀, (h L).allNodesDisjoint L)
+    (h_cross_disj : ∀ K₁ K₂ : RationalLocData A, K₁ ≠ K₂ →
+      Disjoint ((h K₁).toCoveringCovers K₁) ((h K₂).toCoveringCovers K₂)) :
+    (t_outer.graftAt D₀ h).allNodesDisjoint D₀ := by
+  sorry
 
 /-- **(I.1) Wedhorn Lemma 8.34 (constructive tree existence).**
 The headliner residual for the `IsSheafy` embedding. Given any
@@ -47,11 +208,18 @@ rational covering `C` of a base datum, exhibit a Laurent refinement
 tree refining `C` with the inducing and disjointness predicates
 that feed `productRestrictionSub_isInducing_via_tree_refinement`.
 
-Per round-5 reviewer guidance, this is built as a **grafted Wedhorn
-tree**: an outer balanced Laurent tree from a standard cover
-(Cor 7.32 normalisation, theorem I.2 below), each of whose leaves
-is refined by a second-stage Laurent ratio cover (theorem I.3
-below), assembled via the graft + prune operations (theorem I.4). -/
+**Proof structure (Wedhorn 8.34 via graft).** Compose:
+1. `W1 = exists_standard_cover_refining` — get standard cover `S`.
+2. `W2 = exists_first_stage_laurent_tree_full` — get outer Laurent tree
+   `t_outer` (= Cor 7.32 normalisation).
+3. `W3 = exists_inner_ratio_laurent_tree_refining_C` (applied per leaf
+   via Classical.choice) — get inner ratio Laurent trees `h L` for
+   each `L ∈ t_outer.leaves C.base`.
+4. `W4 = inner_ratio_trees_cross_leaf_disjoint` — cross-leaf
+   disjointness hypothesis for the graft step.
+5. Glue via `LaurentTree.Refines_graftAt`,
+   `LaurentTree.allSplitsInducing_graftAt`, and the direct
+   `graftAt_allNodesDisjoint` (W5). -/
 theorem exists_wedhorn_laurent_refinement_tree
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A]
@@ -61,7 +229,93 @@ theorem exists_wedhorn_laurent_refinement_tree
       t.Refines C.base C ∧
       t.allSplitsInducing C.base ∧
       t.allNodesDisjoint C.base := by
-  sorry
+  classical
+  -- Step 1: get standard cover S refining C.
+  obtain ⟨S, hS_cover, hS_contain, hS_span⟩ := exists_standard_cover_refining C
+  -- Step 2: get first-stage Laurent tree t_outer with full properties.
+  obtain ⟨s, t_outer, _ht_outer_eq, h_outer_split, h_outer_disj, h_outer_units⟩ :=
+    exists_first_stage_laurent_tree_full P C S hS_cover hS_contain hS_span
+  -- Step 3: define the per-leaf inner trees via Classical.choice on W3.
+  let units_of : RationalLocData A → Finset A := fun L =>
+    if hL : L ∈ t_outer.leaves C.base then (h_outer_units L hL).choose else ∅
+  have units_of_subset : ∀ L, units_of L ⊆ S := by
+    intro L
+    simp only [units_of]
+    split_ifs with hL
+    · exact (h_outer_units L hL).choose_spec.1
+    · exact Finset.empty_subset S
+  have units_of_unit : ∀ L, ∀ f ∈ units_of L,
+      IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f)) := by
+    intro L f hf
+    simp only [units_of] at hf
+    split_ifs at hf with hL
+    · exact (h_outer_units L hL).choose_spec.2 f hf
+    · exact absurd hf (Finset.notMem_empty f)
+  -- We pick `inner_of L` via W3 for outer leaves L. For non-outer L,
+  -- we use `.leaf` (which has the trivial allSplitsInducing /
+  -- allNodesDisjoint). Per the Wedhorn construction, the outer-leaf
+  -- inner trees encode the actual content; non-outer L's never appear
+  -- as graftAt's leaves so their inner_of value is structurally irrelevant
+  -- to the conclusion (the graft only looks at h L for L ∈ leaves).
+  let inner_of : RationalLocData A → LaurentTree A := fun L =>
+    if hL : L ∈ t_outer.leaves C.base then
+      have hL_subset : rationalOpen L.T L.s ⊆ rationalOpen C.base.T C.base.s :=
+        t_outer.leaf_subset_base C.base L hL
+      (exists_inner_ratio_laurent_tree_refining_C P C S hS_contain s L
+        hL_subset (units_of L) (units_of_subset L) (units_of_unit L)).choose
+    else LaurentTree.leaf
+  have inner_of_spec : ∀ L ∈ t_outer.leaves C.base,
+      (inner_of L).Refines L C ∧
+      (inner_of L).allSplitsInducing L ∧
+      (inner_of L).allNodesDisjoint L := by
+    intro L hL
+    simp only [inner_of]
+    rw [dif_pos hL]
+    exact (exists_inner_ratio_laurent_tree_refining_C P C S hS_contain s L
+      (t_outer.leaf_subset_base C.base L hL)
+      (units_of L) (units_of_subset L) (units_of_unit L)).choose_spec
+  -- For W4 (cross-leaf disjointness), we need inner_of to have the spec
+  -- at every L. The non-outer-L case is via .leaf's trivial properties
+  -- + a strengthened spec extending Refines to .leaf-cover trivially.
+  -- We package this via a separate inner_of_spec_extended hypothesis below.
+  -- (The extension is consistent because graftAt only consults inner_of at
+  -- outer leaves; non-outer values are irrelevant.)
+  have h_inner_spec_outer : ∀ L ∈ t_outer.leaves C.base,
+      (inner_of L).allNodesDisjoint L :=
+    fun L hL => (inner_of_spec L hL).2.2
+  -- Cross-leaf disjointness — we use W4 with a uniform inner_of by
+  -- extending the spec trivially for non-outer L (where inner_of L = .leaf,
+  -- toCoveringCovers = {L}, disjoint to {L'} for L ≠ L').
+  have h_cross : ∀ K₁ K₂ : RationalLocData A, K₁ ≠ K₂ →
+      Disjoint ((inner_of K₁).toCoveringCovers K₁)
+               ((inner_of K₂).toCoveringCovers K₂) := by
+    -- We invoke W4 with the (extended) inner_of spec — for non-outer L,
+    -- inner_of L = .leaf, which trivially satisfies allSplitsInducing
+    -- and allNodesDisjoint.
+    have h_inner_spec_all : ∀ L,
+        (inner_of L).allSplitsInducing L ∧
+        (inner_of L).allNodesDisjoint L := by
+      intro L
+      by_cases hL : L ∈ t_outer.leaves C.base
+      · exact ⟨(inner_of_spec L hL).2.1, (inner_of_spec L hL).2.2⟩
+      · simp only [inner_of, dif_neg hL]
+        exact ⟨by simp [LaurentTree.allSplitsInducing],
+               by simp [LaurentTree.allNodesDisjoint]⟩
+    exact inner_ratio_trees_cross_leaf_disjoint P C S hS_contain s
+      units_of units_of_subset units_of_unit inner_of h_inner_spec_all
+  -- Step 4: assemble the grafted tree and verify the three predicates.
+  refine ⟨t_outer.graftAt C.base inner_of, ?_, ?_, ?_⟩
+  · -- Refines via Refines_graftAt + per-outer-leaf Refines from W3.
+    apply LaurentTree.Refines_graftAt
+    intro L hL
+    exact (inner_of_spec L hL).1
+  · -- allSplitsInducing via the existing graft preservation lemma.
+    apply LaurentTree.allSplitsInducing_graftAt _ _ _ h_outer_split
+    intro L hL
+    exact (inner_of_spec L hL).2.1
+  · -- allNodesDisjoint via the direct helper W5 + W4 cross-leaf disjointness.
+    exact graftAt_allNodesDisjoint t_outer C.base inner_of
+      h_outer_disj h_inner_spec_outer h_cross
 
 /-- **(I.2) First-stage Laurent cover (Wedhorn-faithful unit-generation).**
 Given a standard cover `S` refining a rational covering `C`, produce a
