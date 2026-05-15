@@ -41,14 +41,39 @@ variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
 
 /-! ## Group I — Topological-inducing side
 
-The Wedhorn 8.34 headline `exists_wedhorn_laurent_refinement_tree` (I.1)
-is proved by composing three substantive open lemmas (W1, W2, W3)
-plus a transport helper (W3-transport). **Round-8 reviewer fix
-(ChatGPT Pro):** W4 (cross-leaf / prune) has been dropped — the
-disjointness requirement was a Lean-bookkeeping artifact; the
-NODE-step refactor of `productRestrictionSub_isInducing_via_tree`
-(pending in `EmbeddingTopo.lean`) will remove the need for
-`allNodesDisjoint` entirely.
+**ARCHITECTURE STATUS: FINALLY APPROVED (round 16, ChatGPT Pro).**
+
+After 11 rounds of architectural refinement (rounds 6–16), the
+proof target is locked. Reviewer's directive: *stop redesigning,
+start proving*.
+
+**Reviewer-recommended proof order** (round-16 final reply):
+1. `isUnit_relativeUnitGenerator_from_W2_unit` (short unit calc)
+2. `isUnit_base_s_in_presheafValue_of_subset` (use *structured*
+   rational-containment, not bare set inclusion)
+3. Internal transport theorem (inside W3-transport's proof):
+   `relative_ratio_split_transports_to_RatioNodeData`
+4. W3-transport (using #3)
+5. W3 (unit-generated cover refinement)
+6. W2 (from Cor 7.32; output derived
+   `restricted_standard_cover_generated_by_units`, hide Cor 7.32
+   technical side conditions)
+7. W1 (from Hübner-Nullstellensatz)
+8. Assemble realised ratio-tree theorem + update downstream
+   `productRestrictionSub_isInducing_via_ratio_tree`
+
+The Wedhorn 8.34 headline now exists in two forms:
+
+* `exists_wedhorn_ratio_laurent_refinement_tree_realized` —
+  reviewer-approved primary API, outputs realised ratio tree.
+* `exists_wedhorn_laurent_refinement_tree` — legacy, kept for
+  backward compat with current `isSheafyComplete` only.
+
+**Round-8 dropped (W4):** the `allNodesDisjoint` requirement was a
+Lean-bookkeeping artifact. The NODE-step refactor in
+`EmbeddingTopo.lean` (pending) will use the projection/absorption
+method so the realised ratio tree only needs `Refines` and
+`allSplitsInducing`.
 
 Each W-lemma carries an explicit Wedhorn-8.34-correspondence note in
 its docstring for cross-checking against the textbook (Wedhorn, *Adic
