@@ -407,10 +407,15 @@ to-absolute transport theorem when `f, g` correspond to units in
 proof obligations, decoupled from the unconditional definitions
 that were not provable in general. -/
 
-/-- **(W4-W5/Round-14)** Ratio node validity package for a base `D`
+/-- **(W4-W5/Round-15)** Ratio node validity package for a base `D`
 and ratio labels `f, g : A`. Constructible only when the
 corresponding relative split is valid (e.g., `f, g` map to units
-in `𝒪(D)`). Used by `RatioLaurentTree.Refines` and `.allSplitsInducing`. -/
+in `𝒪(D)`).
+
+**Round-15 reviewer addition (ChatGPT Pro):** `cover_covers` field
+asserts the 2-cover has exactly two pieces, `{plus, minus}`. Without
+this, downstream consumers (NODE-step) might face a cover with
+extra pieces, breaking the binary node argument. -/
 structure RatioNodeData {A : Type*}
     [CommRing A] [TopologicalSpace A] [PlusSubring A]
     [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
@@ -423,9 +428,11 @@ structure RatioNodeData {A : Type*}
   cover : RationalCovering A
   /-- The cover has `D` as its base. -/
   cover_base : cover.base = D
-  /-- The cover's pieces are exactly plus + minus. -/
-  cover_plus_mem : plus ∈ cover.covers
-  cover_minus_mem : minus ∈ cover.covers
+  /-- The cover's pieces are exactly `{plus, minus}` as a Finset
+  (round-15 reviewer-required exact-two-cover shape). -/
+  cover_covers : cover.covers =
+    letI : DecidableEq (RationalLocData A) := Classical.decEq _
+    ({plus, minus} : Finset (RationalLocData A))
   /-- Plus piece's rational open is `R(D) ∩ {v(f) ≤ v(g)}`. -/
   plus_open_eq :
     rationalOpen plus.T plus.s =
@@ -435,48 +442,77 @@ structure RatioNodeData {A : Type*}
     rationalOpen minus.T minus.s =
       {v ∈ rationalOpen D.T D.s | v.vle g f}
 
+/-! ### Round-15: `RatioTreeRealization` for coherent recursion
+
+Per round-14 reviewer (ChatGPT Pro): independent existential
+`RatioNodeData` choices across `Refines` and `allSplitsInducing`
+break coherence — the same subtree could be interpreted over
+different sub-bases. The fix is to introduce a **realization**: an
+indexed inductive type assigning `RatioNodeData` consistently at
+every `nodeRatio` so that the child subtrees see fixed sub-bases.
+
+A `RatioTreeRealization t D` is, intuitively, "the tree `t` with a
+specific choice of `RatioNodeData` at each `nodeRatio` node,
+fixing the sub-base at each child." Predicates like `Refines` and
+`allSplitsInducing` are then defined on the realization, sharing
+the same sub-base data. -/
+
+variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+  [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
+  [DecidableEq A] in
+/-- **(Round-15)** A realization of a `RatioLaurentTree A` at root
+`D`: assigns coherent `RatioNodeData` to each `nodeRatio` so that
+sub-trees see fixed sub-bases. -/
+inductive RatioTreeRealization :
+    RatioLaurentTree A → RationalLocData A → Type _
+  | leaf (D : RationalLocData A) :
+      RatioTreeRealization .leaf D
+  | nodeLaurent {L R : RatioLaurentTree A}
+      (D : RationalLocData A) (f : A)
+      (ρL : RatioTreeRealization L (laurentPlusDatum D f))
+      (ρR : RatioTreeRealization R (laurentMinusDatum D f)) :
+      RatioTreeRealization (.nodeLaurent f L R) D
+  | nodeRatio {L R : RatioLaurentTree A}
+      (D : RationalLocData A) (f g : A)
+      (data : RatioNodeData D f g)
+      (ρL : RatioTreeRealization L data.plus)
+      (ρR : RatioTreeRealization R data.minus) :
+      RatioTreeRealization (.nodeRatio f g L R) D
+
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
   [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
   [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
   [NonarchimedeanRing A] [IsDomain A] [DecidableEq A] in
-/-- **(Round-14) `Refines` for `RatioLaurentTree A`.** Analogous to
-`LaurentTree.Refines`. For `nodeRatio f g`, existentially quantify
-over a `RatioNodeData D f g` validity package and require both
-sub-trees to refine `C` at the package's plus/minus pieces.
-
-The existential quantification + deterministic semantics of the
-package (its `plus_open_eq`/`minus_open_eq` fix the rational opens
-uniquely) ensure coherent recursion: the same package satisfies
-`Refines` and `allSplitsInducing` simultaneously. -/
-def RatioLaurentTree.Refines :
-    RatioLaurentTree A → RationalLocData A → RationalCovering A → Prop
-  | .leaf, D₀, C => ∃ E ∈ C.covers, rationalOpen D₀.T D₀.s ⊆ rationalOpen E.T E.s
-  | .nodeLaurent f L R, D₀, C =>
-      L.Refines (laurentPlusDatum D₀ f) C ∧ R.Refines (laurentMinusDatum D₀ f) C
-  | .nodeRatio f g L R, D₀, C =>
-      ∃ data : RatioNodeData D₀ f g,
-        L.Refines data.plus C ∧ R.Refines data.minus C
+/-- **(Round-15) `Refines` for `RatioTreeRealization`.** Defined on
+the realization (NOT the bare tree) — this ensures coherent
+recursion: the sub-bases at `nodeRatio` are FIXED by the
+realization's `RatioNodeData`, so `Refines` and `allSplitsInducing`
+agree on them. -/
+def RatioTreeRealization.Refines : {t : RatioLaurentTree A} →
+    {D : RationalLocData A} → RatioTreeRealization t D →
+    RationalCovering A → Prop
+  | _, _, .leaf D, C => ∃ E ∈ C.covers, rationalOpen D.T D.s ⊆ rationalOpen E.T E.s
+  | _, _, .nodeLaurent _ _ ρL ρR, C => ρL.Refines C ∧ ρR.Refines C
+  | _, _, .nodeRatio _ _ _ _ ρL ρR, C => ρL.Refines C ∧ ρR.Refines C
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
   [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
   [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
   [NonarchimedeanRing A] [IsDomain A] [DecidableEq A] in
-/-- **(Round-14) `allSplitsInducing` for `RatioLaurentTree A`.**
+/-- **(Round-15) `allSplitsInducing` for `RatioTreeRealization`.**
 At each internal node, the 2-cover diagonal is inducing AND both
-sub-trees are inducing. For `nodeRatio`, uses a `RatioNodeData`
-validity package's `cover` for the inducing claim. -/
-def RatioLaurentTree.allSplitsInducing :
-    RatioLaurentTree A → RationalLocData A → Prop
-  | .leaf, _ => True
-  | .nodeLaurent f L R, D₀ =>
-      L.allSplitsInducing (laurentPlusDatum D₀ f) ∧
-      R.allSplitsInducing (laurentMinusDatum D₀ f) ∧
-      Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f))
-  | .nodeRatio f g L R, D₀ =>
-      ∃ data : RatioNodeData D₀ f g,
-        L.allSplitsInducing data.plus ∧
-        R.allSplitsInducing data.minus ∧
-        Topology.IsInducing (productRestrictionSub A data.cover)
+sub-trees (with their fixed sub-bases from the realization) are
+inducing. Coherent with `Refines` because both use the same
+realization's `RatioNodeData`. -/
+def RatioTreeRealization.allSplitsInducing : {t : RatioLaurentTree A} →
+    {D : RationalLocData A} → RatioTreeRealization t D → Prop
+  | _, _, .leaf _ => True
+  | _, _, .nodeLaurent D f ρL ρR =>
+      Topology.IsInducing (productRestrictionSub A (laurentCovering D f)) ∧
+      ρL.allSplitsInducing ∧ ρR.allSplitsInducing
+  | _, _, .nodeRatio _ _ _ data ρL ρR =>
+      Topology.IsInducing (productRestrictionSub A data.cover) ∧
+      ρL.allSplitsInducing ∧ ρR.allSplitsInducing
 
 /-- **(W2) First-stage Laurent tree with inducing + restricted-cover-
 by-units.** Cor 7.32 yields a dominating unit `s : Aˣ`, and the
@@ -645,11 +681,11 @@ theorem relative_laurent_tree_to_absolute
     --     clause (d))
     --   ↓ R(insert f C.base.T / C.base.s) is contained in some
     --     C-piece (by _hS_contain : refines_contain C S)
-    --   ⇒ inner_abs (transported) refines C at base L (using the
-    --     RatioLaurentTree predicates from round-12)
-    ∃ inner_abs : RatioLaurentTree A,
-      inner_abs.allSplitsInducing L ∧
-      inner_abs.Refines L C := by
+    --   ⇒ inner_abs (transported) refines C at base L (round-15:
+    --     output a REALIZED ratio tree for coherent recursion)
+    ∃ (inner_abs : RatioLaurentTree A)
+      (ρ : RatioTreeRealization inner_abs L),
+      ρ.allSplitsInducing ∧ ρ.Refines C := by
   sorry
 
 /-! **(W4 DROPPED — round-8 reviewer.)** The previous attempts at
