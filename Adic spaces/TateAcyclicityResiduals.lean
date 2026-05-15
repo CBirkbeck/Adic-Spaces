@@ -42,11 +42,13 @@ variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
 /-! ## Group I — Topological-inducing side
 
 The Wedhorn 8.34 headline `exists_wedhorn_laurent_refinement_tree` (I.1)
-is proved by composing five substantive lemmas, each captured below.
+is proved by composing four substantive open lemmas (W1–W4) plus one
+closed graft-preservation helper (W5, which is just I.4 unwrapped).
 Each W-lemma carries an explicit Wedhorn-8.34-correspondence note in
 its docstring for cross-checking against the textbook (Wedhorn, *Adic
 Spaces*, arXiv:1910.05934, Lemma 8.34, pp. 83–84).
 
+**Open (sorry):**
 * **W1** `exists_standard_cover_refining` — Wedhorn 8.34 *input*: a
   finite standard cover `S ⊆ A` of `C.base` refining `C` (each `f`-plus
   piece in some `C`-piece) and spanning the unit ideal of `A`.
@@ -63,11 +65,14 @@ Spaces*, arXiv:1910.05934, Lemma 8.34, pp. 83–84).
 * **W4** `inner_ratio_trees_cross_leaf_disjoint` — cross-leaf
   disjointness of the canonical W3 inner trees (= each inner tree's
   leaf-Finset is disjoint from any other inner tree's leaf-Finset).
-* **W5** `graftAt_allNodesDisjoint` — Wedhorn 8.34 *graft step*:
-  non-existential form of I.4 (the existential
-  `allNodesDisjoint_graftAt_prune` packages the same content).
 
-The proof of I.1 glues these via the existing graft preservation
+**Closed:**
+* **W5** `graftAt_allNodesDisjoint` — graft-preservation by structural
+  induction; identical content to I.4's body, unwrapped from its
+  existential. I.4 (`allNodesDisjoint_graftAt_prune`) is the
+  existential wrapper around W5.
+
+The proof of I.1 glues W1–W4 via the existing graft preservation
 lemmas (`LaurentTree.Refines_graftAt`,
 `LaurentTree.allSplitsInducing_graftAt`) and W5. -/
 
@@ -185,11 +190,7 @@ theorem inner_ratio_trees_cross_leaf_disjoint
 The non-existential form of `allNodesDisjoint_graftAt_prune` (= I.4):
 the grafted tree itself satisfies `allNodesDisjoint` when the outer
 and inner trees are disjoint AND the inner trees are cross-leaf
-disjoint. Used by I.1's proof.
-
-(This is provable by the same structural induction as I.4's body; the
-existential wrapper in I.4 packages the same content under a different
-shape.) -/
+disjoint. Used by I.1's proof. (I.4 is the existential wrapper.) -/
 theorem graftAt_allNodesDisjoint
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A]
@@ -200,7 +201,60 @@ theorem graftAt_allNodesDisjoint
     (h_cross_disj : ∀ K₁ K₂ : RationalLocData A, K₁ ≠ K₂ →
       Disjoint ((h K₁).toCoveringCovers K₁) ((h K₂).toCoveringCovers K₂)) :
     (t_outer.graftAt D₀ h).allNodesDisjoint D₀ := by
-  sorry
+  classical
+  revert h_outer_disj h_inner_disj D₀
+  induction t_outer with
+  | leaf =>
+    intro D₀ _ h_inner_disj
+    simpa using h_inner_disj D₀ (by simp [LaurentTree.leaves])
+  | node f L R ihL ihR =>
+    intro D₀ h_outer_disj h_inner_disj
+    obtain ⟨h_ne, h_disj_LR, h_disj_L, h_disj_R⟩ :=
+      (LaurentTree.allNodesDisjoint_node f L R D₀).mp h_outer_disj
+    rw [LaurentTree.graftAt_node, LaurentTree.allNodesDisjoint_node]
+    refine ⟨h_ne, ?_, ?_, ?_⟩
+    · have h_eq : ∀ (t : LaurentTree A) (B : RationalLocData A),
+          (t.graftAt B h).toCoveringCovers B =
+            ((t.leaves B).flatMap (fun K => (h K).leaves K)).toFinset := by
+        intro t B
+        rw [(t.graftAt B h).toCoveringCovers_eq_leaves_toFinset,
+          t.leaves_graftAt B h]
+      change Disjoint ((L.graftAt _ h).toCoveringCovers _)
+        ((R.graftAt _ h).toCoveringCovers _)
+      rw [h_eq L, h_eq R, Finset.disjoint_left]
+      intro K_g hK_L hK_R
+      rw [List.mem_toFinset, List.mem_flatMap] at hK_L hK_R
+      obtain ⟨K₁, hK₁_mem, hK_g_in_K₁⟩ := hK_L
+      obtain ⟨K₂, hK₂_mem, hK_g_in_K₂⟩ := hK_R
+      have hK₁_in_L_cov : K₁ ∈ L.toCoveringCovers (laurentPlusDatum D₀ f) := by
+        rw [L.toCoveringCovers_eq_leaves_toFinset]
+        exact List.mem_toFinset.mpr hK₁_mem
+      have hK₂_in_R_cov : K₂ ∈ R.toCoveringCovers (laurentMinusDatum D₀ f) := by
+        rw [R.toCoveringCovers_eq_leaves_toFinset]
+        exact List.mem_toFinset.mpr hK₂_mem
+      have h_K1_ne_K2 : K₁ ≠ K₂ := by
+        intro h_eq_K
+        have hK₁_not_R : K₁ ∉ R.toCoveringCovers (laurentMinusDatum D₀ f) :=
+          Finset.disjoint_left.mp h_disj_LR hK₁_in_L_cov
+        exact hK₁_not_R (h_eq_K ▸ hK₂_in_R_cov)
+      have h_disj_cross := h_cross_disj K₁ K₂ h_K1_ne_K2
+      have hKg_in_K₁ : K_g ∈ (h K₁).toCoveringCovers K₁ := by
+        rw [(h K₁).toCoveringCovers_eq_leaves_toFinset]
+        exact List.mem_toFinset.mpr hK_g_in_K₁
+      have hKg_in_K₂ : K_g ∈ (h K₂).toCoveringCovers K₂ := by
+        rw [(h K₂).toCoveringCovers_eq_leaves_toFinset]
+        exact List.mem_toFinset.mpr hK_g_in_K₂
+      exact (Finset.disjoint_left.mp h_disj_cross hKg_in_K₁) hKg_in_K₂
+    · apply ihL _ h_disj_L
+      intro K hK
+      apply h_inner_disj
+      rw [LaurentTree.leaves_node]
+      exact List.mem_append_left _ hK
+    · apply ihR _ h_disj_R
+      intro K hK
+      apply h_inner_disj
+      rw [LaurentTree.leaves_node]
+      exact List.mem_append_right _ hK
 
 /-- **(I.1) Wedhorn Lemma 8.34 (constructive tree existence).**
 The headliner residual for the `IsSheafy` embedding. Given any
@@ -471,70 +525,11 @@ theorem allNodesDisjoint_graftAt_prune
       Disjoint ((h K₁).toCoveringCovers K₁) ((h K₂).toCoveringCovers K₂)) :
     ∃ t_pruned : LaurentTree A,
       t_pruned.toCovering D₀ = (t_outer.graftAt D₀ h).toCovering D₀ ∧
-      t_pruned.allNodesDisjoint D₀ := by
-  classical
-  -- Take t_pruned := t_outer.graftAt D₀ h (identity prune); prove
-  -- allNodesDisjoint inductively on t_outer.
-  refine ⟨t_outer.graftAt D₀ h, rfl, ?_⟩
-  -- Revert hypotheses so they get re-introed with the right base at each
-  -- inductive step.
-  revert h_outer_disj h_inner_disj D₀
-  induction t_outer with
-  | leaf =>
-    intro D₀ _ h_inner_disj
-    -- graftAt(leaf, D₀, h) = h D₀; allNodesDisjoint follows from h_inner_disj at D₀.
-    simpa using h_inner_disj D₀ (by simp [LaurentTree.leaves])
-  | node f L R ihL ihR =>
-    intro D₀ h_outer_disj h_inner_disj
-    obtain ⟨h_ne, h_disj_LR, h_disj_L, h_disj_R⟩ :=
-      (LaurentTree.allNodesDisjoint_node f L R D₀).mp h_outer_disj
-    rw [LaurentTree.graftAt_node, LaurentTree.allNodesDisjoint_node]
-    refine ⟨h_ne, ?_, ?_, ?_⟩
-    · -- Disjointness of expanded covers — use h_disj_LR (outer disj) + h_cross_disj.
-      have h_eq : ∀ (t : LaurentTree A) (B : RationalLocData A),
-          (t.graftAt B h).toCoveringCovers B =
-            ((t.leaves B).flatMap (fun K => (h K).leaves K)).toFinset := by
-        intro t B
-        rw [(t.graftAt B h).toCoveringCovers_eq_leaves_toFinset,
-          t.leaves_graftAt B h]
-      change Disjoint ((L.graftAt _ h).toCoveringCovers _)
-        ((R.graftAt _ h).toCoveringCovers _)
-      rw [h_eq L, h_eq R, Finset.disjoint_left]
-      intro K_g hK_L hK_R
-      rw [List.mem_toFinset, List.mem_flatMap] at hK_L hK_R
-      obtain ⟨K₁, hK₁_mem, hK_g_in_K₁⟩ := hK_L
-      obtain ⟨K₂, hK₂_mem, hK_g_in_K₂⟩ := hK_R
-      have hK₁_in_L_cov : K₁ ∈ L.toCoveringCovers (laurentPlusDatum D₀ f) := by
-        rw [L.toCoveringCovers_eq_leaves_toFinset]
-        exact List.mem_toFinset.mpr hK₁_mem
-      have hK₂_in_R_cov : K₂ ∈ R.toCoveringCovers (laurentMinusDatum D₀ f) := by
-        rw [R.toCoveringCovers_eq_leaves_toFinset]
-        exact List.mem_toFinset.mpr hK₂_mem
-      have h_K1_ne_K2 : K₁ ≠ K₂ := by
-        intro h_eq_K
-        have hK₁_not_R : K₁ ∉ R.toCoveringCovers (laurentMinusDatum D₀ f) :=
-          Finset.disjoint_left.mp h_disj_LR hK₁_in_L_cov
-        exact hK₁_not_R (h_eq_K ▸ hK₂_in_R_cov)
-      have h_disj_cross := h_cross_disj K₁ K₂ h_K1_ne_K2
-      have hKg_in_K₁ : K_g ∈ (h K₁).toCoveringCovers K₁ := by
-        rw [(h K₁).toCoveringCovers_eq_leaves_toFinset]
-        exact List.mem_toFinset.mpr hK_g_in_K₁
-      have hKg_in_K₂ : K_g ∈ (h K₂).toCoveringCovers K₂ := by
-        rw [(h K₂).toCoveringCovers_eq_leaves_toFinset]
-        exact List.mem_toFinset.mpr hK_g_in_K₂
-      exact (Finset.disjoint_left.mp h_disj_cross hKg_in_K₁) hKg_in_K₂
-    · -- L.graftAt plus h .allNodesDisjoint plus — by ihL with appropriate hypotheses.
-      apply ihL _ h_disj_L
-      intro K hK
-      apply h_inner_disj
-      rw [LaurentTree.leaves_node]
-      exact List.mem_append_left _ hK
-    · -- R.graftAt minus h .allNodesDisjoint minus — similarly.
-      apply ihR _ h_disj_R
-      intro K hK
-      apply h_inner_disj
-      rw [LaurentTree.leaves_node]
-      exact List.mem_append_right _ hK
+      t_pruned.allNodesDisjoint D₀ :=
+  -- Take t_pruned := t_outer.graftAt D₀ h (identity prune); allNodesDisjoint
+  -- preservation is supplied by W5 (`graftAt_allNodesDisjoint`).
+  ⟨t_outer.graftAt D₀ h, rfl,
+    graftAt_allNodesDisjoint t_outer D₀ h h_outer_disj h_inner_disj h_cross_disj⟩
 
 /-! ## Group II — Algebraic side -/
 
