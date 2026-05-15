@@ -275,6 +275,85 @@ def IsUnitGeneratedCoverFrom
   -- (4) ROUND-10: every relative unit generator is actually a unit
   (∀ f ∈ I_units, IsUnit (relativeUnitGenerator L C f h_unit_base))
 
+/-- **Canonical ratio-Laurent tree from `I_units` (round-11
+reviewer).** A relative Laurent tree `inner_rel : LaurentTree
+(presheafValue L)` is the *canonical ratio-Laurent tree from
+`I_units`* if every internal split label is of the form
+`u_g * u_h⁻¹` for some `g, h ∈ I_units`, where each `u_f =
+relativeUnitGenerator L C f h_unit_base`.
+
+**Round-11 reviewer rationale (ChatGPT Pro).** A general
+`LaurentTree (presheafValue L)` need not have labels transportable
+back to `LaurentTree A`. Only the canonical ratio tree built from
+A-originating units `u_f = f/C.base.s` is transportable — its
+labels factor as `f * g⁻¹ · (C.base.s/C.base.s)` in `𝒪(L)` and
+can be denominator-cleared to A-level rational data.
+
+Defined recursively: `leaf` is trivially a ratio tree (no labels);
+`node label l r` requires `label ∈ CanonicalRatioLabels` and both
+sub-trees recursively. -/
+def IsRatioLaurentTreeFrom
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
+    [DecidableEq A]
+    (L : RationalLocData A) (C : RationalCovering A)
+    (I_units : Finset A)
+    [IsTopologicalRing (presheafValue L)] [PlusSubring (presheafValue L)]
+    [IsHuberRing (presheafValue L)] [HasLocLiftPowerBounded (presheafValue L)]
+    (h_unit_base : IsUnit (L.canonicalMap C.base.s)) :
+    LaurentTree (presheafValue L) → Prop
+  | .leaf => True
+  | .node label l r =>
+    (∃ g ∈ I_units, ∃ h ∈ I_units,
+      ∃ h_unit_uh : IsUnit (relativeUnitGenerator L C h h_unit_base),
+        label = relativeUnitGenerator L C g h_unit_base *
+          ((h_unit_uh.unit⁻¹ : (presheafValue L)ˣ) : presheafValue L)) ∧
+    IsRatioLaurentTreeFrom L C I_units h_unit_base l ∧
+    IsRatioLaurentTreeFrom L C I_units h_unit_base r
+
+/-- **(Bridge lemma, round-11)** From W2's unit
+`IsUnit (L.canonicalMap (s⁻¹·f))` to W3's required unit
+`IsUnit (relativeUnitGenerator L C f h_unit_base)`. The bridge uses
+the unitness of `L.canonicalMap s` (from `s : Aˣ`) and
+`L.canonicalMap C.base.s` (= `h_unit_base`) — neither side affects
+the unit-up-to-multiplication structure.
+
+Concretely: $f / C.\mathrm{base}.s = (s^{-1} \cdot f) \cdot (s / C.\mathrm{base}.s)$,
+and the right factor `s / C.base.s` is a unit (product of units). -/
+theorem isUnit_relativeUnitGenerator_from_W2_unit
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
+    [DecidableEq A]
+    (L : RationalLocData A) (C : RationalCovering A) (f : A)
+    [IsTopologicalRing (presheafValue L)] [PlusSubring (presheafValue L)]
+    [IsHuberRing (presheafValue L)] [HasLocLiftPowerBounded (presheafValue L)]
+    (s : Aˣ)
+    (h_unit_base : IsUnit (L.canonicalMap C.base.s))
+    (_h_unit_W2 : IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f))) :
+    IsUnit (relativeUnitGenerator L C f h_unit_base) := by
+  sorry
+
+/-- **(Derived hypothesis, round-11)** From `L ⊆ C.base`, derive
+`IsUnit (L.canonicalMap C.base.s)`. This lets I.1's composition
+discharge the `h_unit_base` parameter automatically.
+
+Mathematical content: `C.base.s` is nonzero on every point of
+`rationalOpen C.base.T C.base.s` (by definition of rationalOpen),
+hence on every point of `rationalOpen L.T L.s` (by `_hL_subset`).
+By the project's adic-Spa correspondence, this nonvanishing on the
+Spa points of L implies `L.canonicalMap C.base.s` is a unit in
+`presheafValue L`. -/
+theorem isUnit_base_s_in_presheafValue_of_subset
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
+    [DecidableEq A]
+    (L : RationalLocData A) (C : RationalCovering A)
+    [IsTopologicalRing (presheafValue L)] [PlusSubring (presheafValue L)]
+    [IsHuberRing (presheafValue L)] [HasLocLiftPowerBounded (presheafValue L)]
+    (_hL_subset : rationalOpen L.T L.s ⊆ rationalOpen C.base.T C.base.s) :
+    IsUnit (L.canonicalMap C.base.s) := by
+  sorry
+
 /-- **(W2) First-stage Laurent tree with inducing + restricted-cover-
 by-units.** Cor 7.32 yields a dominating unit `s : Aˣ`, and the
 balanced Laurent tree `ofBalancedList(s⁻¹·S)` has
@@ -371,11 +450,16 @@ theorem unitGeneratedCover_has_relative_ratioLaurentRefinement
     (unitCover : RationalCovering (presheafValue L))
     (_h_unitCover :
       IsUnitGeneratedCoverFrom L C s I_units h_unit_base L_rel unitCover) :
-    -- Output: the relative tree REFINES the relative unit-generated
-    -- cover (Wedhorn Step (iii)) AND has `allSplitsInducing`.
+    -- Output (round-11): the relative tree refines the relative
+    -- unit-generated cover (Wedhorn Step (iii)), has
+    -- `allSplitsInducing`, AND is the canonical ratio-Laurent tree
+    -- from `I_units` (= every split label is `u_g · u_h⁻¹`). The
+    -- last clause is what makes W3-transport's descent feasible:
+    -- a generic relative tree wouldn't have transportable labels.
     ∃ inner_rel : LaurentTree (presheafValue L),
       inner_rel.Refines L_rel unitCover ∧
-      inner_rel.allSplitsInducing L_rel := by
+      inner_rel.allSplitsInducing L_rel ∧
+      IsRatioLaurentTreeFrom L C I_units h_unit_base inner_rel := by
   sorry
 
 /-- **(W3-transport) Relative-to-absolute Laurent tree transport.**
@@ -418,7 +502,11 @@ theorem relative_laurent_tree_to_absolute
     -- The relative inner tree REFINING unitCover (W3 output):
     (inner_rel : LaurentTree (presheafValue L))
     (_h_refines_rel : inner_rel.Refines L_rel unitCover)
-    (_h_split_rel : inner_rel.allSplitsInducing L_rel) :
+    (_h_split_rel : inner_rel.allSplitsInducing L_rel)
+    -- Round-11 reviewer addition: the relative tree must be the
+    -- canonical ratio-Laurent tree from I_units. A generic relative
+    -- tree need not have labels transportable back to A.
+    (_h_ratio_tree : IsRatioLaurentTreeFrom L C I_units h_unit_base inner_rel) :
     -- Round-9 transport chain (per reviewer):
     --   inner_rel refines unitCover at L_rel
     --   ↓ each unitCover piece (relative) transports back via
