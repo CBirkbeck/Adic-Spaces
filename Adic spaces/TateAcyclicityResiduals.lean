@@ -182,23 +182,48 @@ def IsCanonicalRelativeBase
     (L_rel : RationalLocData (presheafValue L)) : Prop :=
   L_rel.T = ∅ ∧ L_rel.s = 1
 
-/-- **Relative unit-piece transport identification (round-9).** A
-piece `piece` of a relative cover over `presheafValue L` is the
-relative unit-piece for `f ∈ I_units` (with respect to the
-absolute base `C.base.s`) if the transport of `piece`'s rationalOpen
-back to `Spv A` via `Spv.comap L.canonicalMap` equals the absolute
-restricted unit-piece at `f`:
+/-- **Relative unit generator (round-10 reviewer).** The element
+`u_f ∈ 𝒪(L)` corresponding to `f / C.base.s`, the Wedhorn Step (iii)
+generator for the relative unit-piece at `f`.
 
-```
-Spv.comap L.canonicalMap '' rationalOpen piece.T piece.s
-  = {v ∈ rationalOpen L.T L.s | v.vle f C.base.s}.
-```
+Defined as `L.canonicalMap f * (L.canonicalMap C.base.s)⁻¹` where
+the inverse exists because `L ⊆ C.base` makes `L.canonicalMap
+C.base.s` a unit in `presheafValue L`. The unit witness is taken
+as a hypothesis (downstream, derivable from `L ⊆ C.base`).
 
-This is the formal bridge between the relative cover (in
-`Spv(presheafValue L)`) and the absolute restricted cover (in
-`Spv A`). The condition `v.vle f C.base.s` is the absolute reading
-of "f is bounded by C.base.s" — equivalently, "v is in f's
-plus-piece relative to C.base". -/
+**Round-10 reviewer rationale (ChatGPT Pro).** "W3 needs access to
+actual units in `presheafValue L`, not just to the fact that some
+relative rational piece transports to the right absolute subset."
+This explicit generator exposes the unit structure that W3's
+ratio-Laurent argument needs. -/
+noncomputable def relativeUnitGenerator
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
+    (L : RationalLocData A) (C : RationalCovering A) (f : A)
+    [IsTopologicalRing (presheafValue L)] [PlusSubring (presheafValue L)]
+    [IsHuberRing (presheafValue L)] [HasLocLiftPowerBounded (presheafValue L)]
+    (h_unit_base : IsUnit (L.canonicalMap C.base.s)) :
+    presheafValue L :=
+  L.canonicalMap f * ((h_unit_base.unit⁻¹ : (presheafValue L)ˣ) : presheafValue L)
+
+/-- **Relative unit-piece transport identification (round-10 revised).**
+A piece `piece` of a relative cover over `presheafValue L` is the
+relative unit-piece for `f ∈ I_units` if:
+
+(i) **Algebraic identification** (round-10 reviewer addition): the
+   piece's data matches the canonical unit-piece `R({u_f}/1)`, where
+   `u_f := relativeUnitGenerator L C f h_unit_base` is the actual
+   unit in `presheafValue L`. Concretely: `piece.T = {u_f}` and
+   `piece.s = 1`.
+
+(ii) **Transport equality**: the transport of `piece`'s rationalOpen
+    back via `Spv.comap L.canonicalMap` equals the absolute
+    restricted unit-piece at `f`.
+
+The condition (i) is what makes W3's ratio-Laurent argument feasible
+(reviewer-mandated round-10); condition (ii) is what makes
+W3-transport's descent argument feasible (round-8/9). Both are
+needed. -/
 def IsRelativeUnitPieceFor
     {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
     [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
@@ -207,21 +232,28 @@ def IsRelativeUnitPieceFor
     (f : A)
     [IsTopologicalRing (presheafValue L)] [PlusSubring (presheafValue L)]
     [IsHuberRing (presheafValue L)] [HasLocLiftPowerBounded (presheafValue L)]
+    (h_unit_base : IsUnit (L.canonicalMap C.base.s))
     (piece : RationalLocData (presheafValue L)) : Prop :=
+  -- (i) Algebraic identification: piece is R({u_f}/1)
+  piece.T = {relativeUnitGenerator L C f h_unit_base} ∧
+  piece.s = 1 ∧
+  -- (ii) Transport equality
   Set.image (fun v : Spv (presheafValue L) => comap L.canonicalMap v)
     (rationalOpen piece.T piece.s)
   = {v ∈ rationalOpen L.T L.s | v.vle f C.base.s}
 
-/-- **Relative unit-generated cover correspondence (round-9).** The
-relative cover `unitCover` over `presheafValue L` is the *unit-
-generated cover from `I_units`* if:
+/-- **Relative unit-generated cover correspondence (round-10
+revision).** The relative cover `unitCover` over `presheafValue L`
+is the *unit-generated cover from `I_units`* if:
 (1) `unitCover.base = L_rel` (the relative base is canonical);
-(2) each piece of `unitCover` is the relative unit-piece for some
-    `f ∈ I_units` (via `IsRelativeUnitPieceFor`);
-(3) every `f ∈ I_units` has a corresponding piece in `unitCover`.
-
-This is the round-9 reviewer-required strong predicate replacing
-the previous weak `unitCover.base = L_rel`. -/
+(2) each piece is the relative unit-piece for some `f ∈ I_units`
+    (via `IsRelativeUnitPieceFor` — which now includes the
+    algebraic identification);
+(3) every `f ∈ I_units` has a corresponding piece;
+(4) **(round-10)** every relative unit generator `u_f` is actually
+    a unit in `presheafValue L`. This is the round-10 reviewer
+    addition: W3's ratio-Laurent argument requires actual units,
+    not just opens with the right transported sets. -/
 def IsUnitGeneratedCoverFrom
     {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
     [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
@@ -230,15 +262,18 @@ def IsUnitGeneratedCoverFrom
     (_s : Aˣ) (I_units : Finset A)
     [IsTopologicalRing (presheafValue L)] [PlusSubring (presheafValue L)]
     [IsHuberRing (presheafValue L)] [HasLocLiftPowerBounded (presheafValue L)]
+    (h_unit_base : IsUnit (L.canonicalMap C.base.s))
     (L_rel : RationalLocData (presheafValue L))
     (unitCover : RationalCovering (presheafValue L)) : Prop :=
   unitCover.base = L_rel ∧
   -- (2) each piece corresponds to some f ∈ I_units
   (∀ piece ∈ unitCover.covers, ∃ f ∈ I_units,
-    IsRelativeUnitPieceFor L C f piece) ∧
+    IsRelativeUnitPieceFor L C f h_unit_base piece) ∧
   -- (3) every f ∈ I_units has a corresponding piece
   (∀ f ∈ I_units, ∃ piece ∈ unitCover.covers,
-    IsRelativeUnitPieceFor L C f piece)
+    IsRelativeUnitPieceFor L C f h_unit_base piece) ∧
+  -- (4) ROUND-10: every relative unit generator is actually a unit
+  (∀ f ∈ I_units, IsUnit (relativeUnitGenerator L C f h_unit_base))
 
 /-- **(W2) First-stage Laurent tree with inducing + restricted-cover-
 by-units.** Cor 7.32 yields a dominating unit `s : Aˣ`, and the
@@ -324,17 +359,20 @@ theorem unitGeneratedCover_has_relative_ratioLaurentRefinement
     [IsStronglyNoetherian (presheafValue L)] [T2Space (presheafValue L)]
     [NonarchimedeanRing (presheafValue L)] [IsDomain (presheafValue L)]
     [DecidableEq (presheafValue L)]
-    -- The canonical relative base over presheafValue L (round-9
-    -- reviewer: must be canonical, not arbitrary):
+    -- Round-10 reviewer addition: explicit unit witness for
+    -- `L.canonicalMap C.base.s` (needed to define
+    -- `relativeUnitGenerator`).
+    (h_unit_base : IsUnit (L.canonicalMap C.base.s))
+    -- Canonical relative base (round-9):
     (L_rel : RationalLocData (presheafValue L))
     (_h_L_rel_canonical : IsCanonicalRelativeBase L L_rel)
-    -- The relative unit-generated cover from I_units (round-9
-    -- reviewer: strong predicate, not just `base = L_rel`):
+    -- Strong predicate on unitCover (round-9 + round-10
+    -- algebraic-identification + unit-generator clause):
     (unitCover : RationalCovering (presheafValue L))
-    (_h_unitCover : IsUnitGeneratedCoverFrom L C s I_units L_rel unitCover) :
-    -- Round-8/9 output: the relative tree REFINES the relative
-    -- unit-generated cover (Wedhorn Step (iii) literally) AND has
-    -- `allSplitsInducing` at the relative base.
+    (_h_unitCover :
+      IsUnitGeneratedCoverFrom L C s I_units h_unit_base L_rel unitCover) :
+    -- Output: the relative tree REFINES the relative unit-generated
+    -- cover (Wedhorn Step (iii)) AND has `allSplitsInducing`.
     ∃ inner_rel : LaurentTree (presheafValue L),
       inner_rel.Refines L_rel unitCover ∧
       inner_rel.allSplitsInducing L_rel := by
@@ -365,12 +403,18 @@ theorem relative_laurent_tree_to_absolute
     [IsNoetherianRing (locSubring L.P L.T L.s)]
     [IsTopologicalRing (presheafValue L)] [PlusSubring (presheafValue L)]
     [IsHuberRing (presheafValue L)] [HasLocLiftPowerBounded (presheafValue L)]
-    -- Round-9 reviewer additions: canonical relative base + strong
-    -- predicate on unitCover.
+    -- Round-10 reviewer addition: explicit unit witness for
+    -- `L.canonicalMap C.base.s` (needed to define the
+    -- `relativeUnitGenerator`).
+    (h_unit_base : IsUnit (L.canonicalMap C.base.s))
+    -- Round-9/10 additions: canonical relative base + strong
+    -- predicate on unitCover (with algebraic identification +
+    -- IsUnit clause).
     (L_rel : RationalLocData (presheafValue L))
     (_h_L_rel_canonical : IsCanonicalRelativeBase L L_rel)
     (unitCover : RationalCovering (presheafValue L))
-    (_h_unitCover : IsUnitGeneratedCoverFrom L C s I_units L_rel unitCover)
+    (_h_unitCover :
+      IsUnitGeneratedCoverFrom L C s I_units h_unit_base L_rel unitCover)
     -- The relative inner tree REFINING unitCover (W3 output):
     (inner_rel : LaurentTree (presheafValue L))
     (_h_refines_rel : inner_rel.Refines L_rel unitCover)
