@@ -385,70 +385,86 @@ These replace the round-12 use of the project's existing
 appropriate when the project's caller has the inverses, but not in
 the Wedhorn-faithful ratio-tree context). -/
 
-variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
-  [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
-  [DecidableEq A] in
-/-- **(Round-13)** Denominator-cleared `ratioPlusDatum`: the
-rational subset `R(D.T/D.s) ∩ {v | v(f) ≤ v(g)}` constructed
-without requiring global inverses. -/
-noncomputable def ratioPlusDatumDC
-    (D : RationalLocData A) (f g : A) : RationalLocData A where
-  P := D.P
-  T := insert (D.s * f) (D.T.image (fun t => t * g))
-  s := D.s * g
-  hopen := by sorry
+/-! ### Round-14: Ratio node validity package
 
-variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
-  [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
-  [DecidableEq A] in
-/-- **(Round-13)** Denominator-cleared `ratioMinusDatum`. -/
-noncomputable def ratioMinusDatumDC
-    (D : RationalLocData A) (f g : A) : RationalLocData A where
-  P := D.P
-  T := insert (D.s * g) (D.T.image (fun t => t * f))
-  s := D.s * f
-  hopen := by sorry
+Per round-13 reviewer (ChatGPT Pro): the denominator-cleared
+formulas are valuation-correct but only valid when `f`, `g` don't
+vanish simultaneously on `R(D)` — true in the unit-ratio Wedhorn
+case (where they're units in `𝒪(D)`), but NOT for arbitrary
+`f, g`. The hopen / hcover proofs are also conditional.
 
-variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
-  [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
-  [DecidableEq A] in
-/-- **(Round-13)** Denominator-cleared `ratioCovering`: the 2-cover
-of `D` by the plus/minus ratio pieces, without global inverses. -/
-noncomputable def ratioCoveringDC
-    (D : RationalLocData A) (f g : A) : RationalCovering A :=
-  letI : DecidableEq (RationalLocData A) := Classical.decEq _
-  { base := D
-    covers := {ratioPlusDatumDC D f g, ratioMinusDatumDC D f g}
-    hsubset := by sorry
-    hcover := by sorry }
+Round-14 fix: replace the unconditional sorry-bodied
+`ratioPlusDatumDC` / `ratioMinusDatumDC` / `ratioCoveringDC` with a
+**validity package** `RatioNodeData D f g` that:
+- carries the plus/minus rational locality data,
+- carries the 2-covering,
+- includes the rational-open semantic equalities,
+- includes the coverage proof.
+
+Instances of `RatioNodeData D f g` are constructed by the relative-
+to-absolute transport theorem when `f, g` correspond to units in
+`𝒪(D)`. The validity package thus exposes both the data and the
+proof obligations, decoupled from the unconditional definitions
+that were not provable in general. -/
+
+/-- **(W4-W5/Round-14)** Ratio node validity package for a base `D`
+and ratio labels `f, g : A`. Constructible only when the
+corresponding relative split is valid (e.g., `f, g` map to units
+in `𝒪(D)`). Used by `RatioLaurentTree.Refines` and `.allSplitsInducing`. -/
+structure RatioNodeData {A : Type*}
+    [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
+    (D : RationalLocData A) (f g : A) where
+  /-- The plus piece `R(D) ∩ {v(f) ≤ v(g)}`. -/
+  plus : RationalLocData A
+  /-- The minus piece `R(D) ∩ {v(g) ≤ v(f)}`. -/
+  minus : RationalLocData A
+  /-- The 2-cover by plus + minus. -/
+  cover : RationalCovering A
+  /-- The cover has `D` as its base. -/
+  cover_base : cover.base = D
+  /-- The cover's pieces are exactly plus + minus. -/
+  cover_plus_mem : plus ∈ cover.covers
+  cover_minus_mem : minus ∈ cover.covers
+  /-- Plus piece's rational open is `R(D) ∩ {v(f) ≤ v(g)}`. -/
+  plus_open_eq :
+    rationalOpen plus.T plus.s =
+      {v ∈ rationalOpen D.T D.s | v.vle f g}
+  /-- Minus piece's rational open is `R(D) ∩ {v(g) ≤ v(f)}`. -/
+  minus_open_eq :
+    rationalOpen minus.T minus.s =
+      {v ∈ rationalOpen D.T D.s | v.vle g f}
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
   [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
   [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
   [NonarchimedeanRing A] [IsDomain A] [DecidableEq A] in
-/-- **(Round-13) `Refines` for `RatioLaurentTree A`.** Analogous to
-`LaurentTree.Refines`: every leaf is contained in some C-piece.
-For `nodeRatio`, uses the round-13 denominator-cleared
-`ratioPlusDatumDC` / `ratioMinusDatumDC` — no global inverses
-required (per round-12 reviewer fix). -/
+/-- **(Round-14) `Refines` for `RatioLaurentTree A`.** Analogous to
+`LaurentTree.Refines`. For `nodeRatio f g`, existentially quantify
+over a `RatioNodeData D f g` validity package and require both
+sub-trees to refine `C` at the package's plus/minus pieces.
+
+The existential quantification + deterministic semantics of the
+package (its `plus_open_eq`/`minus_open_eq` fix the rational opens
+uniquely) ensure coherent recursion: the same package satisfies
+`Refines` and `allSplitsInducing` simultaneously. -/
 def RatioLaurentTree.Refines :
     RatioLaurentTree A → RationalLocData A → RationalCovering A → Prop
   | .leaf, D₀, C => ∃ E ∈ C.covers, rationalOpen D₀.T D₀.s ⊆ rationalOpen E.T E.s
   | .nodeLaurent f L R, D₀, C =>
       L.Refines (laurentPlusDatum D₀ f) C ∧ R.Refines (laurentMinusDatum D₀ f) C
   | .nodeRatio f g L R, D₀, C =>
-      L.Refines (ratioPlusDatumDC D₀ f g) C ∧
-      R.Refines (ratioMinusDatumDC D₀ f g) C
+      ∃ data : RatioNodeData D₀ f g,
+        L.Refines data.plus C ∧ R.Refines data.minus C
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
   [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
   [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
   [NonarchimedeanRing A] [IsDomain A] [DecidableEq A] in
-/-- **(Round-13) `allSplitsInducing` for `RatioLaurentTree A`.**
-Recursive: at each internal node (Laurent or ratio), the 2-cover
-diagonal is inducing AND both sub-trees are inducing. For
-`nodeRatio`, uses the round-13 denominator-cleared
-`ratioCoveringDC` — no global inverses required. -/
+/-- **(Round-14) `allSplitsInducing` for `RatioLaurentTree A`.**
+At each internal node, the 2-cover diagonal is inducing AND both
+sub-trees are inducing. For `nodeRatio`, uses a `RatioNodeData`
+validity package's `cover` for the inducing claim. -/
 def RatioLaurentTree.allSplitsInducing :
     RatioLaurentTree A → RationalLocData A → Prop
   | .leaf, _ => True
@@ -457,9 +473,10 @@ def RatioLaurentTree.allSplitsInducing :
       R.allSplitsInducing (laurentMinusDatum D₀ f) ∧
       Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f))
   | .nodeRatio f g L R, D₀ =>
-      L.allSplitsInducing (ratioPlusDatumDC D₀ f g) ∧
-      R.allSplitsInducing (ratioMinusDatumDC D₀ f g) ∧
-      Topology.IsInducing (productRestrictionSub A (ratioCoveringDC D₀ f g))
+      ∃ data : RatioNodeData D₀ f g,
+        L.allSplitsInducing data.plus ∧
+        R.allSplitsInducing data.minus ∧
+        Topology.IsInducing (productRestrictionSub A data.cover)
 
 /-- **(W2) First-stage Laurent tree with inducing + restricted-cover-
 by-units.** Cor 7.32 yields a dominating unit `s : Aˣ`, and the
