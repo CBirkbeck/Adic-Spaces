@@ -333,16 +333,17 @@ theorem isUnit_relativeUnitGenerator_from_W2_unit
     IsUnit (relativeUnitGenerator L C f h_unit_base) := by
   sorry
 
-/-- **(Derived hypothesis, round-11)** From `L ⊆ C.base`, derive
-`IsUnit (L.canonicalMap C.base.s)`. This lets I.1's composition
-discharge the `h_unit_base` parameter automatically.
+/-- **(Derived hypothesis, round-12 revised)** From the
+restriction-map structure with rational containment, derive
+`IsUnit (L.canonicalMap C.base.s)`. This is the algebraic/
+denominator-unit fact (not merely a topological set-inclusion).
+The unit witness comes from the project's `restrictionMapHom`
+construction: when `L ⊆ C.base`, the restriction map sends
+`C.base.s` to a unit in `presheafValue L` (because rational
+locality data's `.s` field is inverted by construction).
 
-Mathematical content: `C.base.s` is nonzero on every point of
-`rationalOpen C.base.T C.base.s` (by definition of rationalOpen),
-hence on every point of `rationalOpen L.T L.s` (by `_hL_subset`).
-By the project's adic-Spa correspondence, this nonvanishing on the
-Spa points of L implies `L.canonicalMap C.base.s` is a unit in
-`presheafValue L`. -/
+**Round-12 reviewer note:** prefer rational-containment data over
+bare set inclusion. -/
 theorem isUnit_base_s_in_presheafValue_of_subset
     {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
     [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
@@ -353,6 +354,77 @@ theorem isUnit_base_s_in_presheafValue_of_subset
     (_hL_subset : rationalOpen L.T L.s ⊆ rationalOpen C.base.T C.base.s) :
     IsUnit (L.canonicalMap C.base.s) := by
   sorry
+
+/-! ### Round-12: `RatioLaurentTree A` predicates
+
+Per round-11 reviewer (ChatGPT Pro): a relative ratio Laurent split
+at `u_g · u_h⁻¹` transports to the absolute inequality `v(g) ≤ v(h)`,
+which is **not** an ordinary `LaurentTree A` split (those compare
+one element to the current denominator). So W3-transport's
+codomain must be the pair-labelled ratio tree `RatioLaurentTree A`,
+not ordinary `LaurentTree A`.
+
+The project's `RatioLaurentTree A` type (in `LaurentRefinementTree`)
+has the right constructors (`leaf`, `nodeLaurent f`, `nodeRatio f g`)
+but its `Refines` and `allSplitsInducing` predicates were not yet
+defined. Round-12 adds these inline.
+
+For `nodeRatio`, the predicate uses existential unit witnesses
+(`f_inv, g_inv ∈ A₀` with `f·f_inv = 1`, `g·g_inv = 1`) to construct
+the relevant sub-bases via the project's `ratioPlusDatum` /
+`ratioMinusDatum` (closed by I.3). This existential form matches
+the structure of round-11's `IsRatioLaurentTreeFrom`: the ratio
+tree exposes its split structure, the predicate consumes the unit
+witnesses to produce sub-base RationalLocData. -/
+
+variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+  [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
+  [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+  [NonarchimedeanRing A] [IsDomain A] [DecidableEq A] in
+/-- **(Round-12) `Refines` for `RatioLaurentTree A`.** Analogous to
+`LaurentTree.Refines`: every leaf is contained in some C-piece.
+For `nodeRatio`, unit witnesses for f and g (in `D₀.P.A₀`) are
+existentially quantified so the sub-bases can be constructed via
+the project's `ratioPlusDatum` / `ratioMinusDatum`. -/
+def RatioLaurentTree.Refines :
+    RatioLaurentTree A → RationalLocData A → RationalCovering A → Prop
+  | .leaf, D₀, C => ∃ E ∈ C.covers, rationalOpen D₀.T D₀.s ⊆ rationalOpen E.T E.s
+  | .nodeLaurent f L R, D₀, C =>
+      L.Refines (laurentPlusDatum D₀ f) C ∧ R.Refines (laurentMinusDatum D₀ f) C
+  | .nodeRatio f g L R, D₀, C =>
+      ∃ (f_inv g_inv : A)
+        (hf : f * f_inv = 1) (hg : g * g_inv = 1)
+        (hf_inv : f_inv ∈ D₀.P.A₀) (hg_inv : g_inv ∈ D₀.P.A₀),
+        L.Refines (ratioPlusDatum D₀ f g g_inv hg hg_inv) C ∧
+        R.Refines (ratioMinusDatum D₀ f g f_inv hf hf_inv) C
+
+variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+  [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
+  [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+  [NonarchimedeanRing A] [IsDomain A] [DecidableEq A] in
+/-- **(Round-12) `allSplitsInducing` for `RatioLaurentTree A`.**
+Recursive: at each internal node (Laurent or ratio), the 2-cover
+diagonal is inducing AND both sub-trees are inducing. For
+`nodeLaurent`, this matches the existing `LaurentTree` predicate.
+For `nodeRatio`, we existentially quantify the unit witnesses
+needed to construct the ratio sub-bases. -/
+def RatioLaurentTree.allSplitsInducing :
+    RatioLaurentTree A → RationalLocData A → Prop
+  | .leaf, _ => True
+  | .nodeLaurent f L R, D₀ =>
+      L.allSplitsInducing (laurentPlusDatum D₀ f) ∧
+      R.allSplitsInducing (laurentMinusDatum D₀ f) ∧
+      -- The 2-cover at f is inducing (= leaf-level Laurent split).
+      Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f))
+  | .nodeRatio f g L R, D₀ =>
+      ∃ (f_inv g_inv : A)
+        (hf : f * f_inv = 1) (hg : g * g_inv = 1)
+        (hf_inv : f_inv ∈ D₀.P.A₀) (hg_inv : g_inv ∈ D₀.P.A₀),
+        L.allSplitsInducing (ratioPlusDatum D₀ f g g_inv hg hg_inv) ∧
+        R.allSplitsInducing (ratioMinusDatum D₀ f g f_inv hf hf_inv) ∧
+        -- The 2-cover at (f, g) is inducing (= ratio split's diagonal).
+        Topology.IsInducing
+          (productRestrictionSub A (ratioCovering D₀ f g f_inv g_inv hf hf_inv hg hg_inv))
 
 /-- **(W2) First-stage Laurent tree with inducing + restricted-cover-
 by-units.** Cor 7.32 yields a dominating unit `s : Aˣ`, and the
@@ -504,9 +576,13 @@ theorem relative_laurent_tree_to_absolute
     (_h_refines_rel : inner_rel.Refines L_rel unitCover)
     (_h_split_rel : inner_rel.allSplitsInducing L_rel)
     -- Round-11 reviewer addition: the relative tree must be the
-    -- canonical ratio-Laurent tree from I_units. A generic relative
-    -- tree need not have labels transportable back to A.
+    -- canonical ratio-Laurent tree from I_units.
     (_h_ratio_tree : IsRatioLaurentTreeFrom L C I_units h_unit_base inner_rel) :
+    -- Round-12 reviewer fix: the absolute output is a
+    -- `RatioLaurentTree A` (pair-labelled), NOT ordinary `LaurentTree A`,
+    -- because a relative ratio split at `u_g · u_h⁻¹` transports to
+    -- `v(g) ≤ v(h)` — a pair-comparison, not an ordinary Laurent split
+    -- relative to the current denominator.
     -- Round-9 transport chain (per reviewer):
     --   inner_rel refines unitCover at L_rel
     --   ↓ each unitCover piece (relative) transports back via
@@ -517,8 +593,9 @@ theorem relative_laurent_tree_to_absolute
     --     clause (d))
     --   ↓ R(insert f C.base.T / C.base.s) is contained in some
     --     C-piece (by _hS_contain : refines_contain C S)
-    --   ⇒ inner_abs (transported) refines C at base L
-    ∃ inner_abs : LaurentTree A,
+    --   ⇒ inner_abs (transported) refines C at base L (using the
+    --     RatioLaurentTree predicates from round-12)
+    ∃ inner_abs : RatioLaurentTree A,
       inner_abs.allSplitsInducing L ∧
       inner_abs.Refines L C := by
   sorry
