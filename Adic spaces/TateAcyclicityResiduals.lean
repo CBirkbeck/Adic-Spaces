@@ -407,15 +407,18 @@ to-absolute transport theorem when `f, g` correspond to units in
 proof obligations, decoupled from the unconditional definitions
 that were not provable in general. -/
 
-/-- **(W4-W5/Round-15)** Ratio node validity package for a base `D`
-and ratio labels `f, g : A`. Constructible only when the
-corresponding relative split is valid (e.g., `f, g` map to units
-in `𝒪(D)`).
+/-- **(W4-W5/Round-16, APPROVED architecture)** Ratio node validity
+package for a base `D` and ratio labels `f, g : A`. Constructible
+only when the corresponding relative split is valid (e.g., `f, g`
+map to units in `𝒪(D)`).
 
-**Round-15 reviewer addition (ChatGPT Pro):** `cover_covers` field
-asserts the 2-cover has exactly two pieces, `{plus, minus}`. Without
-this, downstream consumers (NODE-step) might face a cover with
-extra pieces, breaking the binary node argument. -/
+**Round-16 reviewer-required refinement (ChatGPT Pro):** instead of
+carrying `cover` as a field with propositional `cover_base` and
+`cover_covers` equalities, the package carries only the data fields
+(`plus`, `minus`, subset/coverage/semantic-equality witnesses) and
+the cover is a **derived definition** `RatioNodeData.cover` below.
+This makes `cover.base = D` and `cover.covers = {plus, minus}`
+*definitional*, avoiding casts in the NODE induction. -/
 structure RatioNodeData {A : Type*}
     [CommRing A] [TopologicalSpace A] [PlusSubring A]
     [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
@@ -424,15 +427,14 @@ structure RatioNodeData {A : Type*}
   plus : RationalLocData A
   /-- The minus piece `R(D) ∩ {v(g) ≤ v(f)}`. -/
   minus : RationalLocData A
-  /-- The 2-cover by plus + minus. -/
-  cover : RationalCovering A
-  /-- The cover has `D` as its base. -/
-  cover_base : cover.base = D
-  /-- The cover's pieces are exactly `{plus, minus}` as a Finset
-  (round-15 reviewer-required exact-two-cover shape). -/
-  cover_covers : cover.covers =
-    letI : DecidableEq (RationalLocData A) := Classical.decEq _
-    ({plus, minus} : Finset (RationalLocData A))
+  /-- Plus piece is contained in D's rational open. -/
+  plus_subset : rationalOpen plus.T plus.s ⊆ rationalOpen D.T D.s
+  /-- Minus piece is contained in D's rational open. -/
+  minus_subset : rationalOpen minus.T minus.s ⊆ rationalOpen D.T D.s
+  /-- The two pieces cover D's rational open (every point of D
+  lands in plus or minus). -/
+  cover_proof : ∀ v ∈ rationalOpen D.T D.s,
+    v ∈ rationalOpen plus.T plus.s ∨ v ∈ rationalOpen minus.T minus.s
   /-- Plus piece's rational open is `R(D) ∩ {v(f) ≤ v(g)}`. -/
   plus_open_eq :
     rationalOpen plus.T plus.s =
@@ -441,6 +443,32 @@ structure RatioNodeData {A : Type*}
   minus_open_eq :
     rationalOpen minus.T minus.s =
       {v ∈ rationalOpen D.T D.s | v.vle g f}
+
+variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+  [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- **(Round-16) Derived `cover` for `RatioNodeData`.** The 2-cover
+of `D` by `data.plus` and `data.minus`. Both `cover.base = D` and
+`cover.covers = {plus, minus}` are now definitional (not
+propositional) — eliminates casts in the NODE induction per
+round-15 reviewer feedback. -/
+noncomputable def RatioNodeData.cover {D : RationalLocData A} {f g : A}
+    (data : RatioNodeData D f g) : RationalCovering A :=
+  letI : DecidableEq (RationalLocData A) := Classical.decEq _
+  { base := D
+    covers := {data.plus, data.minus}
+    hsubset := by
+      intro E hE
+      simp only [Finset.mem_insert, Finset.mem_singleton] at hE
+      rcases hE with rfl | rfl
+      · exact data.plus_subset
+      · exact data.minus_subset
+    hcover := by
+      intro v hv
+      letI : DecidableEq (RationalLocData A) := Classical.decEq _
+      rcases data.cover_proof v hv with h_plus | h_minus
+      · exact ⟨data.plus, Finset.mem_insert_self _ _, h_plus⟩
+      · exact ⟨data.minus,
+          Finset.mem_insert_of_mem (Finset.mem_singleton.mpr rfl), h_minus⟩ }
 
 /-! ### Round-15: `RatioTreeRealization` for coherent recursion
 
@@ -790,35 +818,44 @@ theorem graftAt_allNodesDisjoint
       rw [LaurentTree.leaves_node]
       exact List.mem_append_right _ hK
 
-/-- **(I.1) Wedhorn Lemma 8.34 (constructive tree existence).**
-The headliner residual for the `IsSheafy` embedding. Given any
+/-- **(I.1-realized, round-16 reviewer-approved cascade)** The
+realized-ratio-tree version of Wedhorn 8.34's constructive output.
+Per round-15 reviewer (architecture APPROVED): I.1 should output a
+realized `RatioLaurentTree A` together with its
+`RatioTreeRealization`, not the bare `LaurentTree A`.
+
+**Mathematical content.** *For any rational covering `C` of a base
+datum, there is a `RatioLaurentTree A` `t` and a coherent
+realization `ρ : RatioTreeRealization t C.base` such that `ρ`
+refines `C` and `ρ.allSplitsInducing`.*
+
+The composition uses W1 → W2 → W3 → W3-transport with the realized
+tree as the output of W3-transport (round-15 update). The downstream
+`productRestrictionSub_isInducing_via_ratio_tree` (pending in
+`EmbeddingTopo.lean` per the round-12 reviewer-recommended NODE
+refactor) will consume this output. -/
+theorem exists_wedhorn_ratio_laurent_refinement_tree_realized
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) :
+    ∃ (t : RatioLaurentTree A) (ρ : RatioTreeRealization t C.base),
+      ρ.Refines C ∧ ρ.allSplitsInducing := by
+  sorry
+
+/-- **(I.1, legacy `LaurentTree A` output, kept for backward
+compatibility with downstream `isSheafyComplete`).** Given any
 rational covering `C` of a base datum, exhibit a Laurent refinement
 tree refining `C` with the inducing and disjointness predicates
 that feed `productRestrictionSub_isInducing_via_tree_refinement`.
 
-**Proof structure (Wedhorn 8.34 via graft + prune, round-6 revised).**
-Compose:
-1. **W1** `exists_standard_cover_refining` — get standard cover `S`.
-2. **W2** `exists_first_stage_laurent_tree_unit_generated` — Cor 7.32
-   dominating unit `s` + outer Laurent tree `t_outer` with
-   `allSplitsInducing` (note: no `allNodesDisjoint`) + per-leaf
-   restricted-cover-by-units property.
-3. **W3** `unitGeneratedCover_has_relative_ratioLaurentRefinement`
-   (applied per leaf via Classical.choice) — get relative inner
-   ratio Laurent tree at each outer leaf `L`.
-4. **W3-transport** `relative_laurent_tree_to_absolute` — transport
-   each relative inner tree to an absolute `LaurentTree A`.
-5. Glue via `LaurentTree.Refines_graftAt`,
-   `LaurentTree.allSplitsInducing_graftAt` to get a grafted tree
-   with `Refines` and `allSplitsInducing`.
-6. **W4** `prune_preserves_refinement_and_inducing` — prune to add
-   `allNodesDisjoint` while preserving the other two predicates.
-
-The graft step needs the per-outer-leaf inner trees to be A-labelled
-(via W3-transport) AND to refine C (via the descent claim in W3 +
-the project's `refines_contain` from W1). The prune step (W4)
-removes any duplicate / trivial splits introduced by graft to
-recover `allNodesDisjoint`. -/
+**Status note (round-16):** This legacy version exists for
+backward compat with `isSheafyComplete`'s current consumer.
+Per round-15 reviewer-approved architecture, the preferred output
+is `exists_wedhorn_ratio_laurent_refinement_tree_realized` (above);
+the downstream `productRestrictionSub_isInducing_of_wedhorn_tree_existence`
+in `EmbeddingTopo.lean` should be refactored to consume the realized
+ratio tree directly. -/
 theorem exists_wedhorn_laurent_refinement_tree
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A]
