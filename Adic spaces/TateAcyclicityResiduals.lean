@@ -495,6 +495,37 @@ noncomputable def RatioNodeData.cover {D : RationalLocData A} {f g : A}
       · exact ⟨data.minus,
           Finset.mem_insert_of_mem (Finset.mem_singleton.mpr rfl), h_minus⟩ }
 
+/-- **(Round-16 reviewer-recommended helper, key transport lemma)**
+Step #3 in reviewer's recommended proof order: the relative Laurent
+split at `u_g · u_h⁻¹` over `𝒪(L)` transports to absolute
+denominator-cleared ratio data over `A`. Constructs (the existence
+of) a `RatioNodeData L g h` validity package consumed by
+`RatioTreeRealization.nodeRatio`.
+
+**Mathematical content** (per round-16 reviewer): "the relative
+Laurent split at `u_g * u_h⁻¹` over `𝒪(L)` transports to the
+absolute ratio split `R(L) ∩ {v(g) ≤ v(h)}` and its opposite."
+
+The proof constructs the plus piece (`R(L.T/L.s) ∩ {v(g) ≤ v(h)}`)
+via denominator clearing — denom `L.s · h`, generators
+`{L.s · g} ∪ {t · h : t ∈ L.T}` — and the analogous minus piece.
+Validity (the structure's `plus_subset`, `minus_subset`,
+`cover_proof`, `plus_open_eq`, `minus_open_eq` obligations) follows
+from the unit hypotheses on `u_g, u_h`. -/
+theorem relative_ratio_split_transports_to_RatioNodeData
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
+    [DecidableEq A]
+    (L : RationalLocData A) (C : RationalCovering A)
+    [IsTopologicalRing (presheafValue L)] [PlusSubring (presheafValue L)]
+    [IsHuberRing (presheafValue L)] [HasLocLiftPowerBounded (presheafValue L)]
+    (h_unit_base : IsUnit (L.canonicalMap C.base.s))
+    (g h : A)
+    (_h_unit_ug : IsUnit (relativeUnitGenerator L C g h_unit_base))
+    (_h_unit_uh : IsUnit (relativeUnitGenerator L C h h_unit_base)) :
+    Nonempty (RatioNodeData L g h) := by
+  sorry
+
 /-! ### Round-15: `RatioTreeRealization` for coherent recursion
 
 Per round-14 reviewer (ChatGPT Pro): independent existential
