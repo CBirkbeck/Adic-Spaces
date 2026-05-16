@@ -3,9 +3,11 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».OrderedGroupConvex
+import «Adic spaces».ValuationCoarsening
 import «Adic spaces».ValuationSpectrum
 import Mathlib.RingTheory.Valuation.Basic
 import Mathlib.Algebra.Order.Group.Units
+import Mathlib.Algebra.Order.GroupWithZero.WithZero
 
 /-!
 # The characteristic subgroup `cΓ_v` (Wedhorn 4.13)
@@ -200,5 +202,28 @@ theorem cGammaIdeal_le {v : Valuation A Γ₀} {I : Ideal A}
     (hgen : cGammaIdealUnits v I ⊆ H) :
     cGammaIdeal v I ≤ H :=
   ConvexSubgroup.minContain_le hgen
+
+/-! ### Transport `v` to `WithZero` form for use with `coarsen` -/
+
+/-- **The `WithZero`-units form of `v`.** Transport a valuation
+`v : Valuation A Γ₀` (with `Γ₀ : LinearOrderedCommGroupWithZero`) through
+the canonical iso `Γ₀ ≃o WithZero Γ₀ˣ` to get a valuation in `WithZero Γ₀ˣ`
+form (suitable for the `coarsen` API which expects `WithZero Γ`). -/
+noncomputable def asWithZeroUnits (v : Valuation A Γ₀) :
+    Valuation A (WithZero Γ₀ˣ) :=
+  v.map (WithZero.withZeroUnitsEquiv.symm.toMonoidWithZeroHom)
+    WithZero.withZeroUnitsEquiv_symm_strictMono.monotone
+
+/-- **The Wedhorn 7.3 coarsening of `v` by `cΓ_v(I)`.** This is the
+fundamental retraction step that takes a valuation `v ∈ Spv A` and
+projects it onto a valuation in `Spv(A, I)` (Wedhorn 7.4 characterisation
+of `Spv(A, I)`).
+
+Mathematical content: `v.coarsenIdeal I = v.asWithZeroUnits.coarsen
+(cGammaIdeal v I)`, where the value group is the quotient `Γ_v / cΓ_v(I)`.
+This is the **Wedhorn 7.5(iii) retraction** `r : Spv A → Spv(A, I)`. -/
+noncomputable def coarsenIdeal (v : Valuation A Γ₀) (I : Ideal A) :
+    Valuation A (WithZero (Γ₀ˣ ⧸ (cGammaIdeal v I).toSubgroup)) :=
+  (asWithZeroUnits v).coarsen (cGammaIdeal v I)
 
 end Valuation
