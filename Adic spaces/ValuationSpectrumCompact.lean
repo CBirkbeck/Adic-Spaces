@@ -198,6 +198,59 @@ instance : T0Space Prop := by
 T0 product `(A × A → Prop)`. -/
 instance : T0Space (Spv A) := ιSpv_isEmbedding.t0Space
 
+/-- **`{True}` is dense in Sierpinski `Prop`.** Equivalently `closure {True} = Set.univ`. -/
+lemma dense_true : Dense ({True} : Set Prop) := by
+  intro p
+  rw [mem_closure_iff]
+  intro U hU hpU
+  refine ⟨True, ?_, Set.mem_singleton _⟩
+  -- True ∈ U: induct on open structure.
+  induction hU with
+  | basic s hs =>
+    rw [show s = {True} from (Set.mem_singleton_iff.mp hs)]
+    exact Set.mem_singleton _
+  | univ => trivial
+  | inter U₁ U₂ _ _ ih₁ ih₂ =>
+    exact ⟨ih₁ hpU.1, ih₂ hpU.2⟩
+  | sUnion S _ ih =>
+    obtain ⟨s, hsS, hps⟩ := hpU
+    exact ⟨s, hsS, ih s hsS hps⟩
+
+/-- **Sierpinski `Prop` is QuasiSober.** -/
+instance : QuasiSober Prop where
+  sober {S} hirr hclosed := by
+    by_cases hT : (True : Prop) ∈ S
+    · -- True ∈ S → S ⊇ closure({True}) = Set.univ.
+      refine ⟨True, ?_⟩
+      have hsub : closure ({True} : Set Prop) ⊆ S :=
+        hclosed.closure_subset_iff.mpr (Set.singleton_subset_iff.mpr hT)
+      have hSuniv : S = Set.univ :=
+        Set.eq_univ_of_univ_subset (dense_true.closure_eq ▸ hsub)
+      rw [hSuniv]
+      exact dense_true.closure_eq
+    · -- True ∉ S, S nonempty + closed → S ⊆ {False} (since p ∈ S → p ≠ True).
+      refine ⟨False, ?_⟩
+      have hSsub : S ⊆ {False} := by
+        intro p hp
+        rw [Set.mem_singleton_iff, eq_iff_iff, iff_false]
+        intro hpT
+        exact hT (eq_true hpT ▸ hp)
+      obtain ⟨p, hp⟩ := hirr.nonempty
+      have hFmem : False ∈ S := by
+        have : p = False := Set.mem_singleton_iff.mp (hSsub hp)
+        exact this ▸ hp
+      have hSeq : S = {False} :=
+        Set.eq_singleton_iff_unique_mem.mpr ⟨hFmem, fun q hq ↦ Set.mem_singleton_iff.mp (hSsub hq)⟩
+      rw [hSeq]
+      apply IsClosed.closure_eq
+      -- {False} = {True}ᶜ in Prop, and {True} is open.
+      have hcompl : ({False} : Set Prop) = ({True} : Set Prop)ᶜ := by
+        ext q; simp [Set.mem_singleton_iff, eq_iff_iff]
+      rw [hcompl, isClosed_compl_iff]
+      exact TopologicalSpace.GenerateOpen.basic _ (Set.mem_singleton _)
+
+
+
 /-! ### Characterising the image of `ιSpv`
 
 We now capture the **set-theoretic** image of `ιSpv` via a predicate `IsValuationChar`.
