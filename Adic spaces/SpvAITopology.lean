@@ -357,4 +357,34 @@ theorem SpvAI.exists_rationalSubset_cofinality [DecidableEq A]
     obtain ⟨_, hw_T, hw_s⟩ := hw
     refine ⟨fun i hi => hw_T i (Finset.mem_union_left _ hi), hw_s⟩
 
+/-- **Wedhorn 7.5(ii) combined.** For `v ∈ SpvAI I` with cofinality
+witnessed by a FG `S ⊆ I` (when not microbial) and a basic open W
+around `v`, there's a `SpvAI` rational subset inside `W` containing `v`.
+
+Unified statement combining `exists_rationalSubset_microbial` and
+`exists_rationalSubset_cofinality`. -/
+theorem SpvAI.exists_rationalSubset [DecidableEq A]
+    (I : Ideal A) {v : Spv A} (h_in : Spv.IsInSpvAI v I)
+    (S : Finset A) (hS_in_I : ∀ s ∈ S, s ∈ I)
+    (h_cofinal_or_micr : (∀ s ∈ S,
+      letI : ValuativeRel A := v.toValuativeRel
+      Valuation.CofinalValue (ValuativeRel.valuation A) s) ∨
+      letI : ValuativeRel A := v.toValuativeRel
+      Valuation.IsMicrobial (ValuativeRel.valuation A))
+    (g_0 : A) (g : Finset A)
+    (hg : ∀ i ∈ g, v.vle i g_0) (hg_0 : ¬ v.vle g_0 0) :
+    ∃ (T : Finset A) (s : A),
+      v ∈ SpvAI.rationalSubset I T s ∧
+      SpvAI.rationalSubset I T s ⊆
+        {w | (∀ i ∈ g, w.vle i g_0) ∧ ¬ w.vle g_0 0} := by
+  rcases h_cofinal_or_micr with h_cof | h_micr
+  · -- Cofinality disjunct: use exists_rationalSubset_cofinality.
+    obtain ⟨T, s, _, hv_in, h_sub⟩ :=
+      exists_rationalSubset_cofinality I h_in S hS_in_I h_cof g_0 g hg hg_0
+    exact ⟨T, s, hv_in, h_sub⟩
+  · -- Microbial disjunct: use exists_rationalSubset_microbial.
+    obtain ⟨T, s, _, hv_in, h_sub⟩ :=
+      exists_rationalSubset_microbial I h_micr g_0 g hg hg_0
+    exact ⟨T, s, hv_in, h_sub⟩
+
 end ValuationSpectrum
