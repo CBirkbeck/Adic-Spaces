@@ -249,6 +249,36 @@ noncomputable def coarsenIdeal (v : Valuation A Γ₀) (I : Ideal A) :
     Valuation A (WithZero (Γ₀ˣ ⧸ (cGammaIdeal v I).toSubgroup)) :=
   (asWithZeroUnits v).coarsen (cGammaIdeal v I)
 
+/-- **Key trivialisation property: `coarsenIdeal v I a = 1` for `a ∈ I`
+with `v(a) ≠ 0`.** This is the substance of Wedhorn 7.4(iii) — the
+coarsening kills every value `v(a)` for `a ∈ I` (sends it to the
+quotient identity `1`).
+
+Combined with `coarsenIdeal v I a = 0` for `v(a) = 0` (immediate from
+coarsen sending 0 to 0), this means `coarsenIdeal v I a ∈ {0, 1}` for
+every `a ∈ I` — which is the cofinality / triviality condition for
+`Spv(A, I)`. -/
+theorem coarsenIdeal_eq_one_of_mem_ideal (v : Valuation A Γ₀)
+    {I : Ideal A} {a : A} (ha : a ∈ I) (hva : v a ≠ 0) :
+    v.coarsenIdeal I a = 1 := by
+  classical
+  unfold coarsenIdeal
+  rw [Valuation.coarsen_apply]
+  -- Step: (asWithZeroUnits v) a = (Units.mk0 (v a) hva : Γ₀ˣ) coerced to WithZero
+  have h1 : asWithZeroUnits v a = ((Units.mk0 (v a) hva : Γ₀ˣ) : WithZero Γ₀ˣ) := by
+    unfold asWithZeroUnits
+    rw [Valuation.map_apply]
+    simp only [MulEquiv.toMonoidWithZeroHom_apply,
+      WithZero.withZeroUnitsEquiv_symm_apply, dif_neg hva]
+  rw [h1, WithZero.mapMonoidWithZeroHom_apply_coe]
+  -- Apply the membership: [Units.mk0 (v a) hva] = 1 in quotient (since it ∈ H).
+  have hmem : Units.mk0 (v a) hva ∈ cGammaIdeal v I :=
+    vUnit_mem_cGammaIdeal_of_mem_ideal ha hva
+  have : QuotientGroup.mk' (cGammaIdeal v I).toSubgroup (Units.mk0 (v a) hva) = 1 :=
+    (QuotientGroup.eq_one_iff _).mpr hmem
+  rw [this]
+  simp
+
 end Valuation
 
 /-! ### Spv-level retraction (Wedhorn 7.5(iii)) -/
