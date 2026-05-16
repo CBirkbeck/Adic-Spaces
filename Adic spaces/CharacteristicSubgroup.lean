@@ -128,4 +128,17 @@ theorem cGammaPos_subset_cGammaIdealPos (v : Valuation A Γ₀) (I : Ideal A) :
   · exact Or.inl rfl
   · exact Or.inr ⟨hγ_pos, Or.inl ⟨a, ha_ge_one, ha_inv_le, ha_le⟩⟩
 
+/-- `1 ∈ cGammaIdealPos v I`. Witnessed by `a = 1` and `v(1) = 1`. -/
+theorem one_mem_cGammaIdealPos (v : Valuation A Γ₀) (I : Ideal A) :
+    (1 : Γ₀) ∈ cGammaIdealPos v I := by
+  refine Or.inr ⟨zero_lt_one, Or.inl ⟨1, ?_, ?_, ?_⟩⟩
+  · rw [map_one]
+  · rw [map_one, inv_one]
+  · rw [map_one]
+
+/-- Zero is in `cGammaIdealPos`. -/
+theorem zero_mem_cGammaIdealPos (v : Valuation A Γ₀) (I : Ideal A) :
+    (0 : Γ₀) ∈ cGammaIdealPos v I :=
+  Or.inl rfl
+
 end Valuation
