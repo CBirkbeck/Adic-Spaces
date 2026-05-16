@@ -174,4 +174,31 @@ def cGammaIdeal (v : Valuation A Γ₀) (I : Ideal A) :
     ConvexSubgroup Γ₀ˣ :=
   ConvexSubgroup.minContain (cGammaIdealUnits v I)
 
+/-- `cGammaIdealUnits v I ⊆ cGammaIdeal v I`: every generator is in the
+generated convex subgroup. -/
+theorem cGammaIdealUnits_subset_cGammaIdeal (v : Valuation A Γ₀) (I : Ideal A) :
+    cGammaIdealUnits v I ⊆ (cGammaIdeal v I : Set Γ₀ˣ) :=
+  ConvexSubgroup.subset_minContain _
+
+/-- **Generator: if `1 ≤ v a`, then `v a` (as unit) is in `cGammaIdeal v I`.** -/
+theorem vUnit_mem_cGammaIdeal {v : Valuation A Γ₀} {I : Ideal A}
+    {a : A} (ha : 1 ≤ v a) (hva : v a ≠ 0) :
+    Units.mk0 (v a) hva ∈ cGammaIdeal v I := by
+  refine cGammaIdealUnits_subset_cGammaIdeal v I ?_
+  refine Or.inl ⟨a, ha, hva, ?_, le_refl _⟩
+  -- (v a)⁻¹ ≤ v a since 1 ≤ v a.
+  have h1_le : (1 : Γ₀ˣ) ≤ Units.mk0 (v a) hva := Units.val_le_val.mp ha
+  have hinv_le_one : (Units.mk0 (v a) hva)⁻¹ ≤ 1 := by
+    rw [← inv_one]
+    exact inv_le_inv_iff.mpr h1_le
+  exact hinv_le_one.trans h1_le
+
+/-- **Universal property: `cGammaIdeal v I` is the smallest convex subgroup
+containing every generator.** -/
+theorem cGammaIdeal_le {v : Valuation A Γ₀} {I : Ideal A}
+    {H : ConvexSubgroup Γ₀ˣ}
+    (hgen : cGammaIdealUnits v I ⊆ H) :
+    cGammaIdeal v I ≤ H :=
+  ConvexSubgroup.minContain_le hgen
+
 end Valuation
