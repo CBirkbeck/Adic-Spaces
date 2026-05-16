@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import «Adic spaces».ValuationContinuity
 import «Adic spaces».HuberRings
 import «Adic spaces».ValuationSpectrum
+import «Adic spaces».CharacteristicSubgroup
 import Mathlib.Combinatorics.Pigeonhole
 
 /-!
@@ -74,19 +75,14 @@ variable {A : Type*} [CommRing A]
 /-- **`v ∈ Spv(A, I)` (Wedhorn 7.4 disjunction).** For `v : Spv A` and
 `I : Ideal A`, `v` is *in `Spv(A, I)`* if either
 - every `a ∈ I` has `v(a)` cofinal in `Γ_v`, or
-- `v` is "microbial" (`Γ_v = c Γ_v` in Wedhorn's notation; here
-  formulated as `v` having no proper characteristic subgroup, captured
-  via the equivalent condition that every nonzero value is part of a
-  cofinal sequence of powers).
+- `v` is **microbial** (`Γ_v = c Γ_v` in Wedhorn 4.13 notation): every
+  positive value of `v` is bounded by some `(v t)^±1` with `v t ≥ 1`.
 
-**Status (round-22).** This is the algebraic characterisation per
-Wedhorn Lemma 7.4. The spectral / topological structure on
-`Spv(A, I)` (the refined topology from Wedhorn 7.5) is built on top of
-this predicate; see the companion definitions below. -/
+This is the disjunctive characterisation per Wedhorn Lemma 7.4(ii). -/
 def Spv.IsInSpvAI (v : Spv A) (I : Ideal A) : Prop :=
   letI : ValuativeRel A := v.toValuativeRel
   (∀ a ∈ I, Valuation.CofinalValue (ValuativeRel.valuation A) a) ∨
-  ∀ a : A, ¬ (v.vle a 0) → Valuation.CofinalValue (ValuativeRel.valuation A) a
+  Valuation.IsMicrobial (ValuativeRel.valuation A)
 
 /-- **Per-`v` uniform decay on `I^n` from per-generator cofinality.**
 Given `v : Valuation A Γ₀` with `v ≤ 1` on `P.A₀` and `CofinalValue v c`

@@ -69,6 +69,7 @@ import «Adic spaces».LaurentSeparationPresheaf
 import «Adic spaces».RestrictedPowerSeries
 import «Adic spaces».RestrictedModule
 import «Adic spaces».SeminormalRing
+import «Adic spaces».CharacteristicSubgroup
 import «Adic spaces».SpaCompact
 import «Adic spaces».SpaCompactNoHArch
 import «Adic spaces».SpvAI
