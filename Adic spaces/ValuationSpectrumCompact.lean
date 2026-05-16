@@ -183,6 +183,21 @@ theorem ιSpv_isEmbedding : Topology.IsEmbedding (ιSpv : Spv A → (A × A → 
   eq_induced := ιSpv_isInducing.eq_induced
   injective := ιSpv_injective
 
+/-- **Sierpinski `Prop` is T0.** Two points `True` and `False` are
+distinguished by the open set `{True}`. -/
+instance : T0Space Prop := by
+  refine ⟨fun p q hpq ↦ ?_⟩
+  have hopen : IsOpen ({True} : Set Prop) :=
+    TopologicalSpace.GenerateOpen.basic _ (Set.mem_singleton _)
+  have hiff : p ∈ ({True} : Set Prop) ↔ q ∈ ({True} : Set Prop) := hpq.mem_open_iff hopen
+  -- p ∈ {True} iff p = True iff p (since p : Prop).
+  simp only [Set.mem_singleton_iff, eq_iff_iff, iff_true] at hiff
+  exact propext hiff
+
+/-- **`Spv A` is T0.** Inherited from the Huber embedding into the
+T0 product `(A × A → Prop)`. -/
+instance : T0Space (Spv A) := ιSpv_isEmbedding.t0Space
+
 /-! ### Characterising the image of `ιSpv`
 
 We now capture the **set-theoretic** image of `ιSpv` via a predicate `IsValuationChar`.
