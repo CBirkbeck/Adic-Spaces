@@ -316,6 +316,25 @@ noncomputable def restrictIdeal (v : Valuation A Γ₀) (I : Ideal A) :
   v.restrictToConvexBounded (cGammaIdeal v I)
     (fun a hva h_ge ↦ vUnit_mem_cGammaIdeal h_ge hva)
 
+/-- `restrictIdeal v I a` preserves `v(a)` for `a ∈ I` (since `v(a) ∈ cΓ_v(I)`
+by `vUnit_mem_cGammaIdeal_of_mem_ideal`). -/
+theorem restrictIdeal_apply_of_mem_ideal (v : Valuation A Γ₀) (I : Ideal A)
+    {a : A} (ha : a ∈ I) (hva : v a ≠ 0) :
+    v.restrictIdeal I a =
+      ((⟨Units.mk0 (v a) hva, vUnit_mem_cGammaIdeal_of_mem_ideal ha hva⟩ :
+        (cGammaIdeal v I).toSubgroup) :
+        WithZero (cGammaIdeal v I).toSubgroup) := by
+  unfold restrictIdeal
+  exact restrictToConvexBounded_apply_mem v (cGammaIdeal v I) _ hva
+    (vUnit_mem_cGammaIdeal_of_mem_ideal ha hva)
+
+/-- `restrictIdeal v I a = 0` when `v(a) = 0`. -/
+theorem restrictIdeal_apply_zero (v : Valuation A Γ₀) (I : Ideal A)
+    {a : A} (hva : v a = 0) :
+    v.restrictIdeal I a = 0 := by
+  unfold restrictIdeal
+  exact restrictToConvexBounded_apply_zero v (cGammaIdeal v I) _ hva
+
 end Valuation
 
 namespace ValuationSpectrum
