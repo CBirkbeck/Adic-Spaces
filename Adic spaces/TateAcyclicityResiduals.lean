@@ -1493,6 +1493,15 @@ theorem unitGeneratedCover_has_relative_ratioLaurentRefinement
     -- contains the leaf.
     sorry
   · -- allSplitsInducing L_rel — Lane C topological inducing per node.
+    -- Reduce via `BalancedInducing` to per-pair inducing.
+    show (LaurentTree.ofBalancedList ratio_list).allSplitsInducing L_rel
+    apply LaurentTree.allSplitsInducing_ofBalancedList
+    -- Remaining obligation: `BalancedInducing L_rel ratio_list` —
+    -- for every base reachable by σ-walk and every remaining ratio,
+    -- `productRestrictionSub _ (laurentCovering base ratio)` is inducing.
+    -- Each per-pair inducing comes from Lane C infrastructure
+    -- (`productRestrictionSub_isInducing_via_*`), but requires showing
+    -- the ratio `u_g · u_h⁻¹` has nonvanishing image at the base.
     sorry
   · -- IsRatioLaurentTreeFrom — by construction every node label is
     -- `u_g · u_h⁻¹` with g, h ∈ I_units.
