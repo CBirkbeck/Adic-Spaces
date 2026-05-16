@@ -141,4 +141,20 @@ theorem zero_mem_cGammaIdealPos (v : Valuation A Γ₀) (I : Ideal A) :
     (0 : Γ₀) ∈ cGammaIdealPos v I :=
   Or.inl rfl
 
+/-- **Units version of `cGammaIdealPos`.** The set of units `u : Γ₀ˣ`
+that are either:
+* between `(v a)⁻¹` and `v a` for some `a : A` with `1 ≤ v a` (the
+  characteristic-subgroup generators), or
+* between `v a` and `1` for some `a ∈ I` with `0 < v a` (the
+  ideal-augmentation generators).
+
+This is the natural "generating set" inside the unit group `Γ₀ˣ` for the
+convex subgroup `cΓ_v(I)`. The corresponding convex subgroup is then
+obtained by `minContain` on this set. -/
+def cGammaIdealUnits (v : Valuation A Γ₀) (I : Ideal A) : Set Γ₀ˣ :=
+  { u : Γ₀ˣ | (∃ a : A, ∃ _ha : 1 ≤ v a, ∃ hva : v a ≠ 0,
+      (Units.mk0 (v a) hva)⁻¹ ≤ u ∧ u ≤ Units.mk0 (v a) hva) ∨
+    (∃ a : A, a ∈ I ∧ ∃ hva : v a ≠ 0,
+      Units.mk0 (v a) hva ≤ u ∧ u ≤ 1) }
+
 end Valuation
