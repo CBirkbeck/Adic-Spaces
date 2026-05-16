@@ -71,6 +71,7 @@ import «Adic spaces».RestrictedModule
 import «Adic spaces».SeminormalRing
 import «Adic spaces».SpaCompact
 import «Adic spaces».SpaCompactNoHArch
+import «Adic spaces».SpvAI
 import «Adic spaces».SpvCompletionExtension
 import «Adic spaces».StandardCover
 import «Adic spaces».StructureSheaf
