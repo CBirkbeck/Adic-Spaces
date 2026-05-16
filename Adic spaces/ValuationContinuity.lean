@@ -707,6 +707,43 @@ theorem restrictToConvex_unfold
             else 0) :=
   rfl
 
+open Classical in
+/-- Unfold `restrictToConvexBounded` — same `dite` chain as `restrictToConvex`. -/
+theorem restrictToConvexBounded_unfold
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
+    (hH_ge : ∀ a : R, ∀ ha : v a ≠ 0, 1 ≤ v a → Units.mk0 (v a) ha ∈ H) (r : R) :
+    v.restrictToConvexBounded H hH_ge r =
+      (if h : v r = 0 then (0 : WithZero H.toSubgroup)
+       else if hm : Units.mk0 (v r) h ∈ H
+            then (⟨Units.mk0 (v r) h, hm⟩ : H.toSubgroup)
+            else 0) :=
+  rfl
+
+/-- `restrictToConvexBounded` agrees with `v` on values inside `H`. -/
+theorem restrictToConvexBounded_apply_mem
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
+    (hH_ge : ∀ a : R, ∀ ha : v a ≠ 0, 1 ≤ v a → Units.mk0 (v a) ha ∈ H)
+    {r : R} (hr : v r ≠ 0) (hm : Units.mk0 (v r) hr ∈ H) :
+    v.restrictToConvexBounded H hH_ge r =
+      ((⟨Units.mk0 (v r) hr, hm⟩ : H.toSubgroup) : WithZero H.toSubgroup) := by
+  rw [restrictToConvexBounded_unfold, dif_neg hr, dif_pos hm]
+
+/-- `restrictToConvexBounded` sends values outside `H` to `0`. -/
+theorem restrictToConvexBounded_apply_not_mem
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
+    (hH_ge : ∀ a : R, ∀ ha : v a ≠ 0, 1 ≤ v a → Units.mk0 (v a) ha ∈ H)
+    {r : R} (hr : v r ≠ 0) (hm : Units.mk0 (v r) hr ∉ H) :
+    v.restrictToConvexBounded H hH_ge r = 0 := by
+  rw [restrictToConvexBounded_unfold, dif_neg hr, dif_neg hm]
+
+/-- `restrictToConvexBounded` sends the zero value to `0`. -/
+theorem restrictToConvexBounded_apply_zero
+    (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
+    (hH_ge : ∀ a : R, ∀ ha : v a ≠ 0, 1 ≤ v a → Units.mk0 (v a) ha ∈ H)
+    {r : R} (hr : v r = 0) :
+    v.restrictToConvexBounded H hH_ge r = 0 := by
+  rw [restrictToConvexBounded_unfold, dif_pos hr]
+
 /-- The support of `restrictToConvex` contains the support of `v`. -/
 theorem supp_le_restrictToConvex_supp
     (v : Valuation R Γ₀) (H : ConvexSubgroup Γ₀ˣ)
