@@ -178,4 +178,113 @@ theorem Spv.isInSpvAI_of_isMicrobial (I : Ideal A) {v : Spv A}
       Valuation.IsMicrobial (ValuativeRel.valuation A)) :
     Spv.IsInSpvAI v I := Or.inr h
 
+/-- **Wedhorn 7.5(ii), microbial case.** Given `v` microbial in `SpvAI I`
+and a basic open W (`∀ i ∈ g, v.vle i g_0` and `¬ v.vle g_0 0`),
+there exists a rational subset of `SpvAI I` containing `v` and inside `W`.
+
+The construction: by `IsMicrobial`, pick `d ∈ A` with `1 ≤ v(g_0 * d)`
+(via `v(d) ≥ v(g_0)⁻¹` from `Γ_v = cΓ_v`). Then `T' := {g_i * d : i ∈ g} ∪ {1}`,
+`s' := g_0 * d`. The element `1 ∈ T'` makes `√(T' · A) = A ⊇ I` (so
+`SpvAI.rationalSubset` is a valid basis element). -/
+theorem SpvAI.exists_rationalSubset_microbial [DecidableEq A]
+    (I : Ideal A) {v : Spv A}
+    (h_micr : letI : ValuativeRel A := v.toValuativeRel
+      Valuation.IsMicrobial (ValuativeRel.valuation A))
+    (g_0 : A) (g : Finset A)
+    (hg : ∀ i ∈ g, v.vle i g_0) (hg_0 : ¬ v.vle g_0 0) :
+    ∃ (T : Finset A) (s : A),
+      (1 : A) ∈ T ∧
+      v ∈ SpvAI.rationalSubset I T s ∧
+      SpvAI.rationalSubset I T s ⊆
+        {w | (∀ i ∈ g, w.vle i g_0) ∧ ¬ w.vle g_0 0} := by
+  letI : ValuativeRel A := v.toValuativeRel
+  set wv := ValuativeRel.valuation A with hwv_def
+  -- v(g_0) ≠ 0 from hg_0.
+  have h_vg0_ne : wv g_0 ≠ 0 := by
+    intro h_eq
+    apply hg_0
+    refine (Valuation.Compatible.vle_iff_le (v := wv) g_0 0).mpr ?_
+    rw [h_eq, map_zero]
+  have h_vg0_pos : 0 < wv g_0 := zero_lt_iff.mpr h_vg0_ne
+  -- IsMicrobial: ∃ d with v(g_0)⁻¹ ≤ v(d) (i.e., 1 ≤ v(g_0 * d)).
+  obtain ⟨d, h_vd_ge, _, h_inv_g0_le_vd⟩ := h_micr (wv g_0)⁻¹ (inv_pos.mpr h_vg0_pos)
+  -- v(g_0 * d) ≥ v(g_0) * v(g_0)⁻¹ = 1.
+  have h_vg0d_ge_one : 1 ≤ wv (g_0 * d) := by
+    rw [map_mul]
+    calc 1 = wv g_0 * (wv g_0)⁻¹ := (mul_inv_cancel₀ h_vg0_ne).symm
+      _ ≤ wv g_0 * wv d := mul_le_mul_left' h_inv_g0_le_vd _
+  -- v(g_0 * d) ≠ 0 since 1 ≤ ... < ⊤.
+  have h_vg0d_ne : wv (g_0 * d) ≠ 0 := by
+    intro h_eq
+    rw [h_eq] at h_vg0d_ge_one
+    exact absurd h_vg0d_ge_one (by simp)
+  -- v(d) ≠ 0 from v(g_0 * d) ≠ 0.
+  have h_vd_ne : wv d ≠ 0 := by
+    intro h_eq
+    apply h_vg0d_ne
+    rw [map_mul, h_eq, mul_zero]
+  -- Build T' := g.image (·*d) ∪ {1}, s' := g_0 * d.
+  refine ⟨g.image (· * d) ∪ {1}, g_0 * d, ?_, ?_, ?_⟩
+  · -- 1 ∈ T'.
+    exact Finset.mem_union_right _ (Finset.mem_singleton_self _)
+  · -- v ∈ SpvAI.rationalSubset I T' s'.
+    refine ⟨Or.inr h_micr, ?_, ?_⟩
+    · -- ∀ t ∈ T', v.vle t (g_0 * d).
+      intro t ht
+      rcases Finset.mem_union.mp ht with ht_g | ht_one
+      · -- t = i * d for some i ∈ g. v(t) = v(i) * v(d) ≤ v(g_0) * v(d) = v(g_0 * d).
+        obtain ⟨i, hi, rfl⟩ := Finset.mem_image.mp ht_g
+        refine (Valuation.Compatible.vle_iff_le (v := wv) (i * d) (g_0 * d)).mpr ?_
+        rw [map_mul, map_mul]
+        have hvi_le := (Valuation.Compatible.vle_iff_le (v := wv) i g_0).mp (hg i hi)
+        exact mul_le_mul_right' hvi_le _
+      · -- t = 1, v(1) ≤ v(g_0 * d) since 1 ≤ v(g_0 * d).
+        rw [Finset.mem_singleton] at ht_one
+        subst ht_one
+        refine (Valuation.Compatible.vle_iff_le (v := wv) 1 (g_0 * d)).mpr ?_
+        rw [map_one]
+        exact h_vg0d_ge_one
+    · -- ¬ v.vle (g_0 * d) 0.
+      intro h_vle
+      apply h_vg0d_ne
+      have := (Valuation.Compatible.vle_iff_le (v := wv) (g_0 * d) 0).mp h_vle
+      rw [map_zero, le_zero_iff] at this
+      exact this
+  · -- SpvAI.rationalSubset I T' s' ⊆ W.
+    intro w hw
+    obtain ⟨hw_in, hw_T, hw_s⟩ := hw
+    refine ⟨?_, ?_⟩
+    · -- ∀ i ∈ g, w.vle i g_0.
+      intro i hi
+      -- w(i * d) ≤ w(g_0 * d). Divide both sides by w(d) (= w(g_0 * d) / w(g_0)).
+      have h_id_in : i * d ∈ g.image (· * d) ∪ {1} :=
+        Finset.mem_union_left _ (Finset.mem_image.mpr ⟨i, hi, rfl⟩)
+      have h_id_le_gd : w.vle (i * d) (g_0 * d) := hw_T (i * d) h_id_in
+      -- w(g_0 * d) ≠ 0 → w(g_0) ≠ 0 ∧ w(d) ≠ 0.
+      letI : ValuativeRel A := w.toValuativeRel
+      set ww := ValuativeRel.valuation A with hww_def
+      have h_wgd_ne : ww (g_0 * d) ≠ 0 := by
+        intro h_eq
+        apply hw_s
+        refine (Valuation.Compatible.vle_iff_le (v := ww) (g_0 * d) 0).mpr ?_
+        rw [h_eq, map_zero]
+      rw [map_mul, mul_ne_zero_iff] at h_wgd_ne
+      obtain ⟨h_wg0_ne, h_wd_ne⟩ := h_wgd_ne
+      -- Translate h_id_le_gd to ww.
+      have h_id_le_gd' := (Valuation.Compatible.vle_iff_le (v := ww) (i * d) (g_0 * d)).mp h_id_le_gd
+      rw [map_mul, map_mul] at h_id_le_gd'
+      -- ww(i) * ww(d) ≤ ww(g_0) * ww(d) → ww(i) ≤ ww(g_0).
+      have h_wd_pos : 0 < ww d := zero_lt_iff.mpr h_wd_ne
+      refine (Valuation.Compatible.vle_iff_le (v := ww) i g_0).mpr ?_
+      exact (mul_le_mul_iff_left₀ h_wd_pos).mp h_id_le_gd'
+    · -- ¬ w.vle g_0 0.
+      intro h_vle
+      apply hw_s
+      letI : ValuativeRel A := w.toValuativeRel
+      set ww := ValuativeRel.valuation A
+      have h_wg0_zero := (Valuation.Compatible.vle_iff_le (v := ww) g_0 0).mp h_vle
+      rw [map_zero, le_zero_iff] at h_wg0_zero
+      refine (Valuation.Compatible.vle_iff_le (v := ww) (g_0 * d) 0).mpr ?_
+      rw [map_mul, h_wg0_zero, zero_mul, map_zero]
+
 end ValuationSpectrum
