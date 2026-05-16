@@ -61,3 +61,4 @@ theorem IsTopologicallyNilpotent.isUnit_one_add {a : A} (ha : IsTopologicallyNil
     IsUnit (1 + a) := by
   rw [← sub_neg_eq_add]
   exact ha.neg.isUnit_one_sub
+

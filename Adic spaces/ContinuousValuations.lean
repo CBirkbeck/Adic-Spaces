@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import Mathlib.Topology.Algebra.Ring.Basic
+import Mathlib.Topology.Algebra.WithZeroTopology
 import «Adic spaces».ValuationSpectrum
 
 /-!
@@ -48,6 +49,75 @@ lemma isContinuous_iff_units :
 lemma IsContinuous.isOpen_ltAddSubgroup (hv : v.IsContinuous) (γ : Γ₀ˣ) :
     IsOpen (v.ltAddSubgroup γ : Set A) :=
   Valuation.coe_ltAddSubgroup v γ ▸ hv γ
+
+/-- A `Valuation.IsContinuous` valuation (Wedhorn 7.7) on a topological ring is
+continuous at any nonzero-value point `a` (in mathlib's topological sense):
+the strict-triangle inequality forces `v ≡ v a` on the open neighborhood
+`a + {b : v b < v a}` of `a`. -/
+lemma IsContinuous.continuousAt_of_ne_zero [IsTopologicalRing A]
+    [TopologicalSpace Γ₀] (hv : v.IsContinuous) {a : A} (ha : v a ≠ 0) :
+    ContinuousAt v a := by
+  rw [ContinuousAt]
+  set B : Set A := {b | v b < v a} with hB_def
+  have hB_open : IsOpen B := hv (v a)
+  have hB_zero : (0 : A) ∈ B := by
+    show v 0 < v a
+    rw [v.map_zero]; exact zero_lt_iff.mpr ha
+  set T : Set A := (· + a) '' B with hT_def
+  have hT_open : IsOpen T :=
+    (Homeomorph.addRight a).isOpenMap _ hB_open
+  have hT_a : a ∈ T := ⟨0, hB_zero, zero_add a⟩
+  have hT_nhds : T ∈ nhds a := hT_open.mem_nhds hT_a
+  have hT_v_const : ∀ x ∈ T, v x = v a := by
+    rintro x ⟨b, hb, rfl⟩
+    change v (b + a) = v a
+    have hvb_lt : v b < v a := hb
+    have hne : v a ≠ v b := ne_of_gt hvb_lt
+    rw [add_comm b a, v.map_add_of_distinct_val hne]
+    exact max_eq_left (le_of_lt hvb_lt)
+  have heq : v =ᶠ[nhds a] fun _ => v a :=
+    Filter.eventually_of_mem hT_nhds (fun x hx => hT_v_const x hx)
+  exact heq.tendsto
+
+/-- A `Valuation.IsContinuous` valuation (Wedhorn 7.7) on a topological ring is
+continuous at `1`. Specialization of `IsContinuous.continuousAt_of_ne_zero` with
+`a = 1` and `v 1 = 1 ≠ 0`. -/
+lemma IsContinuous.continuousAt_one [IsTopologicalRing A]
+    [TopologicalSpace Γ₀] (hv : v.IsContinuous) :
+    ContinuousAt v 1 := by
+  apply hv.continuousAt_of_ne_zero (a := 1)
+  rw [v.map_one]
+  exact one_ne_zero
+
+open scoped WithZeroTopology in
+/-- A `Valuation.IsContinuous` valuation (Wedhorn 7.7) on a topological ring is
+continuous at any zero-value point `a` (with the `WithZeroTopology` instance on
+`Γ₀`): the open `{b : v b < γ}` (Wedhorn 7.7) is a neighborhood of `a` since
+`v a = 0 < γ`. -/
+lemma IsContinuous.continuousAt_of_eq_zero [IsTopologicalRing A]
+    (hv : v.IsContinuous) {a : A} (ha : v a = 0) :
+    ContinuousAt v a := by
+  rw [ContinuousAt, ha, WithZeroTopology.hasBasis_nhds_zero.tendsto_right_iff]
+  intro γ hγ
+  have hopen : IsOpen {b : A | v b < γ} := hv γ
+  have hmem : a ∈ {b : A | v b < γ} := by
+    show v a < γ
+    rw [ha]
+    exact zero_lt_iff.mpr hγ
+  exact Filter.eventually_of_mem (hopen.mem_nhds hmem) (fun x hx => hx)
+
+open scoped WithZeroTopology in
+/-- A `Valuation.IsContinuous` valuation (Wedhorn 7.7) on a topological ring is
+fully topologically continuous (with the `WithZeroTopology` instance on `Γ₀`).
+Combines `continuousAt_of_ne_zero` (strict-triangle near nonzero values) and
+`continuousAt_of_eq_zero` (Wedhorn 7.7 open neighborhood at zero values). -/
+lemma IsContinuous.continuous [IsTopologicalRing A] (hv : v.IsContinuous) :
+    Continuous v := by
+  rw [continuous_iff_continuousAt]
+  intro a
+  by_cases ha : v a = 0
+  · exact IsContinuous.continuousAt_of_eq_zero v hv ha
+  · exact IsContinuous.continuousAt_of_ne_zero v hv ha
 
 end Valuation
 

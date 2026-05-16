@@ -2,6 +2,37 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## BINDING RULE — no work-deferral via hypotheses, witnesses, or parameters
+
+You are NOT allowed to defer work by adding any of the following to a theorem signature:
+
+1. **Hypotheses** (additional `(h : ...)` premises).
+2. **Witnesses / data parameters** (extra `(x : T)` parameters that supply structure the conclusion uses).
+3. **Typeclass instances** (extra `[Foo X]` brackets that constrain the setting).
+4. **"Parametric" reformulations** that turn a deep dependency into a parameter pushed to callers.
+
+These are prohibited UNLESS one of these holds:
+
+- **(a)** The user has explicitly told you to do that specific thing.
+- **(b)** The result is genuinely *mathematically false* without the addition — not "the project's current proof route happens to need it"; the *result itself* must be false.
+
+If neither (a) nor (b) holds, prove the result as stated with the existing signature, even if that takes substantial work.
+
+**What IS allowed**, and is the right move when you can't close everything in one go:
+
+- **Sub-lemmas with `sorry` bodies** — fine. Decomposing a hard proof into named sub-lemmas (each with its own sorry) is normal proof structure, not work-deferral, as long as the sub-lemma's statement does not itself add hypotheses to dodge work.
+- **New files** containing such sub-lemmas — fine. File granularity is an organisational choice, not a deferral.
+- **Sub-tickets on the planning board** — fine. Planning artifacts don't pollute Lean signatures.
+
+The difference: sub-lemma-with-sorry keeps the obligation honest at the original signature; adding a hypothesis silently *removes* the obligation by changing what's being claimed.
+
+Forbidden patterns observed in past sessions:
+- Adding `(g_inv : A) (hg_inv : g * g_inv = 1) ...` to make a unitness argument easier.
+- Adding `(hArch : ∀ v, MulArchimedean ...)` to "match the project pattern" when the result is true without it.
+- Adding `h_spa_lift : Wedhorn 7.49 reverse` as a parameter and calling the consumer "closed".
+
+When you reach for any of these, stop and either (1) actually prove the thing without the addition, or (2) leave the theorem with a `sorry` body — possibly decomposed into sub-lemma sorries — and report the obstruction concretely.
+
 ## Project Overview
 
 A Lean 4 formalization of adic spaces, building on Mathlib. The project follows Wedhorn's *Adic Spaces* textbook. Uses Lean 4 v4.29.0-rc3 with Mathlib v4.29.0-rc3.
