@@ -1467,6 +1467,29 @@ theorem unitGeneratedCover_has_relative_ratioLaurentRefinement
       inner_rel.Refines L_rel unitCover ∧
       inner_rel.allSplitsInducing L_rel ∧
       IsRatioLaurentTreeFrom L C I_units h_unit_base inner_rel := by
+  -- **Construction (Wedhorn 8.34(iii)).** The Laurent cover generated
+  -- by `{u_g · u_h⁻¹ : g, h ∈ I_units}` is a refinement of the
+  -- unit-generated cover.
+  --
+  -- Each `u_g · u_h⁻¹ ∈ presheafValue L` is the relative ratio of A-
+  -- originating units, used as a Laurent split label in the relative
+  -- ring. The balanced binary tree built from these ratios has
+  -- `2^(|I_units|²)` leaves, each indexed by a sign function on pairs.
+  --
+  -- **Status.** The construction is well-defined (see
+  -- `W3_ratioLaurentTree` below). The three properties decompose into
+  -- substantial sub-lemmas:
+  --   * `Refines L_rel unitCover` — combinatorial: each leaf is in
+  --     the unit-piece for the `f ∈ I_units` whose `v(u_f)` achieves
+  --     the maximum among `I_units` on the leaf.
+  --   * `allSplitsInducing L_rel` — topological: each split is
+  --     `productRestrictionSub`-inducing (Lane C infrastructure).
+  --   * `IsRatioLaurentTreeFrom` — structural: every label has the
+  --     form `u_g · u_h⁻¹` by construction (`ofBalancedList` invariant).
+  --
+  -- These sub-lemmas are stated and stubbed below for incremental
+  -- closure. The W3-transport (P4) consumes only `IsRatioLaurentTreeFrom`
+  -- + `allSplitsInducing` to lift to absolute trees.
   sorry
 
 /-- **(W3-transport) Relative-to-absolute Laurent tree transport.**
