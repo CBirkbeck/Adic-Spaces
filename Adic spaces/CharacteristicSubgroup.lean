@@ -203,6 +203,29 @@ theorem cGammaIdeal_le {v : Valuation A Γ₀} {I : Ideal A}
     cGammaIdeal v I ≤ H :=
   ConvexSubgroup.minContain_le hgen
 
+/-- **Key fact: `v(a)` (as unit) is in `cGammaIdeal v I` for every `a ∈ I`
+with `v(a) ≠ 0`.** Two cases:
+* `v(a) ≥ 1`: via the cΓ_v generators (first case of `cGammaIdealUnits`).
+* `v(a) ≤ 1`: via the ideal generators (second case).
+
+This is the **central property** of `cGammaIdeal v I` and the reason why
+coarsening by `cGammaIdeal v I` sends `v(a)` to `1` in the quotient
+(Wedhorn 7.4(iii)). -/
+theorem vUnit_mem_cGammaIdeal_of_mem_ideal {v : Valuation A Γ₀}
+    {I : Ideal A} {a : A} (ha : a ∈ I) (hva : v a ≠ 0) :
+    Units.mk0 (v a) hva ∈ cGammaIdeal v I := by
+  -- Case on whether v(a) ≥ 1 or ≤ 1.
+  by_cases h_ge : 1 ≤ v a
+  · -- Case 1: v(a) ≥ 1. Use the cΓ_v generator clause.
+    exact vUnit_mem_cGammaIdeal h_ge hva
+  · -- Case 2: v(a) < 1, hence v(a) ≤ 1. Use the ideal generator clause.
+    push_neg at h_ge
+    have h_le : Units.mk0 (v a) hva ≤ 1 := by
+      rw [← Units.val_le_val]
+      exact h_ge.le
+    refine cGammaIdealUnits_subset_cGammaIdeal v I ?_
+    exact Or.inr ⟨a, ha, hva, le_refl _, h_le⟩
+
 /-! ### Transport `v` to `WithZero` form for use with `coarsen` -/
 
 /-- **The `WithZero`-units form of `v`.** Transport a valuation
