@@ -364,4 +364,37 @@ theorem Spv.isContinuous_of_isInSpvAI_of_lt_one [TopologicalSpace A]
     -- v(c)^(n_0+1) < v(t)⁻¹ ≤ γ'.
     exact lt_of_lt_of_le h_pow_lt_inv h_vt_inv_le
 
+/-- **Wedhorn 7.11(1) forward / 7.10 forward direction.** For a continuous
+valuation `v : Spv A` on an `f`-adic ring with pair of definition `P`,
+`v(a)` is cofinal in `Γ_v` for every `a` in the ideal-of-definition
+image.
+
+This is the algebraic content of Wedhorn 7.11(1): continuity implies
+cofinality of `v(I)`. -/
+theorem Spv.cofinalValue_of_isContinuous [TopologicalSpace A]
+    [IsTopologicalRing A]
+    (P : PairOfDefinition A) (v : Spv A)
+    (hv_cont : letI : ValuativeRel A := v.toValuativeRel
+      (ValuativeRel.valuation A).IsContinuous)
+    (a : P.A₀) (ha : a ∈ P.I) :
+    letI : ValuativeRel A := v.toValuativeRel
+    Valuation.CofinalValue (ValuativeRel.valuation A) (P.A₀.subtype a) := by
+  letI : ValuativeRel A := v.toValuativeRel
+  intro γ hγ
+  -- v continuous → {x : v(x) < γ} open in A.
+  have h_open : IsOpen {x : A | (ValuativeRel.valuation A) x < γ} := hv_cont γ
+  have h_zero_mem : (0 : A) ∈ {x : A | (ValuativeRel.valuation A) x < γ} := by
+    show (ValuativeRel.valuation A) 0 < γ
+    rw [map_zero]; exact hγ
+  have h_nhds : {x : A | (ValuativeRel.valuation A) x < γ} ∈ nhds (0 : A) :=
+    h_open.mem_nhds h_zero_mem
+  -- a ∈ P.I → P.A₀.subtype a is topologically nilpotent.
+  have ha_topnilp : IsTopologicallyNilpotent (P.A₀.subtype a) :=
+    P.isTopologicallyNilpotent_of_mem ha
+  -- eventually (P.A₀.subtype a)^n is in the open neighborhood.
+  obtain ⟨n, hn⟩ := (ha_topnilp.eventually h_nhds).exists
+  -- hn : v((P.A₀.subtype a)^n) < γ. Convert to v(P.A₀.subtype a)^n < γ.
+  rw [map_pow] at hn
+  exact ⟨n, hn⟩
+
 end ValuationSpectrum
