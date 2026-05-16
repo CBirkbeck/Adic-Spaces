@@ -227,3 +227,19 @@ noncomputable def coarsenIdeal (v : Valuation A Γ₀) (I : Ideal A) :
   (asWithZeroUnits v).coarsen (cGammaIdeal v I)
 
 end Valuation
+
+/-! ### Spv-level retraction (Wedhorn 7.5(iii)) -/
+
+namespace ValuationSpectrum
+
+variable {A : Type*} [CommRing A]
+
+/-- **Spv-level Wedhorn 7.5(iii) retraction.** Takes `v ∈ Spv A` and
+returns the point `r(v) ∈ Spv A` whose underlying valuation is the
+coarsening of `v` by its characteristic subgroup `cΓ_v(I)`. Per Wedhorn
+7.4, `r(v)` actually lies in `Spv(A, I)` — proved separately. -/
+noncomputable def coarsenIdeal (v : Spv A) (I : Ideal A) : Spv A :=
+  letI : ValuativeRel A := v.toValuativeRel
+  ofValuation ((ValuativeRel.valuation A).coarsenIdeal I)
+
+end ValuationSpectrum
