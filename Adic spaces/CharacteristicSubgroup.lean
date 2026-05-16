@@ -353,6 +353,32 @@ theorem cGammaIdealUnits_structure_witness (v : Valuation A Γ₀) (I : Ideal A)
   · exact Or.inl ⟨a, ha, hva, h1, h2⟩
   · exact Or.inr ⟨a, ha, hva, h1, h2⟩
 
+/-- **Support of `restrictIdeal` contains support of `v`.** Since
+`restrictIdeal` sends `v(a) = 0` to `0` (preserves the zero values),
+the support set only grows. -/
+theorem restrictIdeal_apply_zero_iff (v : Valuation A Γ₀) (I : Ideal A)
+    {a : A} (hva : v a = 0) :
+    v.restrictIdeal I a = 0 :=
+  restrictIdeal_apply_zero v I hva
+
+/-- **`restrictIdeal v I` agrees with `v` on values in `cΓ_v(I)`.** For
+`a` with `v(a) ≠ 0` and `Units.mk0 (v a) hva ∈ cΓ_v(I)`, the restricted
+valuation preserves `v(a)` (modulo the type-level wrapping). -/
+theorem restrictIdeal_apply_of_mem (v : Valuation A Γ₀) (I : Ideal A)
+    {a : A} (hva : v a ≠ 0) (hmem : Units.mk0 (v a) hva ∈ cGammaIdeal v I) :
+    v.restrictIdeal I a =
+      ((⟨Units.mk0 (v a) hva, hmem⟩ : (cGammaIdeal v I).toSubgroup) :
+        WithZero (cGammaIdeal v I).toSubgroup) := by
+  unfold restrictIdeal
+  exact restrictToConvexBounded_apply_mem v (cGammaIdeal v I) _ hva hmem
+
+/-- **`restrictIdeal v I` sends out-of-`H` values to `0`.** -/
+theorem restrictIdeal_apply_of_not_mem (v : Valuation A Γ₀) (I : Ideal A)
+    {a : A} (hva : v a ≠ 0) (hmem : Units.mk0 (v a) hva ∉ cGammaIdeal v I) :
+    v.restrictIdeal I a = 0 := by
+  unfold restrictIdeal
+  exact restrictToConvexBounded_apply_not_mem v (cGammaIdeal v I) _ hva hmem
+
 end Valuation
 
 namespace ValuationSpectrum
