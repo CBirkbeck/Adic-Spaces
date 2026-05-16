@@ -6,6 +6,7 @@ import «Adic spaces».ValuationContinuity
 import «Adic spaces».HuberRings
 import «Adic spaces».ValuationSpectrum
 import «Adic spaces».CharacteristicSubgroup
+import «Adic spaces».Lemma745
 import Mathlib.Combinatorics.Pigeonhole
 
 /-!
@@ -279,20 +280,88 @@ theorem Spv.isContinuous_of_cofinal_disjunct [TopologicalSpace A]
   exact Valuation.isContinuous_of_ideal_pow_lt P (ValuativeRel.valuation A)
     (fun γ hγ => cofinalValue_ideal_pow_lt P h_le_one h_cofinal γ hγ)
 
-/-- **Wedhorn 7.10 reverse direction (project form).** Full statement; the
-microbial disjunct case requires further work. See module docstring. -/
+/-- **Wedhorn 7.10 reverse direction (project form).** Full proof using
+both disjuncts of `Spv.IsInSpvAI`.
+
+Cofinality disjunct: direct application of `cofinalValue_ideal_pow_lt`
++ `Valuation.isContinuous_of_ideal_pow_lt`.
+
+Microbial disjunct (Wedhorn p. 59): for each `c ∈ P.I` and `γ' > 0`,
+use `IsMicrobial.exists_inv_le` to find `t ∈ A` with `v(t)⁻¹ ≤ γ'`.
+Then `c` topologically nilpotent + `exists_pow_mul_mem_A₀` gives
+`c^{n₀} · t ∈ P.A₀`. Hence `c^{n₀+1} · t ∈ P.I`, so `v(c^{n₀+1} · t) < 1`
+from `h_lt_one`, giving `v(c)^{n₀+1} < v(t)⁻¹ ≤ γ'`. -/
 theorem Spv.isContinuous_of_isInSpvAI_of_lt_one [TopologicalSpace A]
     [IsTopologicalRing A]
     (P : PairOfDefinition A) (v : Spv A)
-    (_h_in : Spv.IsInSpvAI v (Ideal.map P.A₀.subtype P.I))
-    (_h_le_one : ∀ a : P.A₀,
+    (h_in : Spv.IsInSpvAI v (Ideal.map P.A₀.subtype P.I))
+    (h_le_one : ∀ a : P.A₀,
       letI : ValuativeRel A := v.toValuativeRel
       (ValuativeRel.valuation A) (P.A₀.subtype a) ≤ 1)
-    (_h_lt_one : ∀ a ∈ P.I,
+    (h_lt_one : ∀ a ∈ P.I,
       letI : ValuativeRel A := v.toValuativeRel
       (ValuativeRel.valuation A) (P.A₀.subtype a) < 1) :
     letI : ValuativeRel A := v.toValuativeRel
     (ValuativeRel.valuation A).IsContinuous := by
-  sorry
+  letI : ValuativeRel A := v.toValuativeRel
+  set wv := ValuativeRel.valuation A with hwv_def
+  -- Reduce to per-generator cofinality, then dispatch via Wedhorn 7.10.
+  refine Valuation.isContinuous_of_ideal_pow_lt P wv ?_
+  intro γ hγ
+  apply cofinalValue_ideal_pow_lt P h_le_one ?_ γ hγ
+  intro c hc
+  -- Goal: CofinalValue wv (P.A₀.subtype c), i.e., ∀ γ' > 0, ∃ n, wv(c)^n < γ'.
+  -- Case-split on h_in: cofinality disjunct or microbial disjunct.
+  rcases h_in with h_cof | h_micr
+  · -- Cofinality disjunct: P.A₀.subtype c is already in the I-image.
+    apply h_cof
+    exact Ideal.mem_map_of_mem _ hc
+  · -- Microbial disjunct: Wedhorn 7.10's microbial argument.
+    intro γ' hγ'
+    -- IsMicrobial: ∃ t ∈ A with wv(t) ≠ 0 and wv(t)⁻¹ ≤ γ'.
+    obtain ⟨t, h_vt_ne, h_vt_inv_le⟩ := h_micr.exists_inv_le hγ'
+    -- c is topologically nilpotent in A.
+    have hc_topnilp : IsTopologicallyNilpotent (P.A₀.subtype c) :=
+      P.isTopologicallyNilpotent_of_mem hc
+    -- ∃ n_0, (P.A₀.subtype c)^n_0 * t ∈ P.A₀.
+    obtain ⟨n_0, hn_0⟩ := PairOfDefinition.exists_pow_mul_mem_A₀ P hc_topnilp t
+    refine ⟨n_0 + 1, ?_⟩
+    -- Construct b := c * ⟨c^n_0 * t, hn_0⟩ ∈ P.I (as P.A₀-ideal).
+    let b : P.A₀ := c * ⟨(P.A₀.subtype c)^n_0 * t, hn_0⟩
+    have hb_mem_I : b ∈ P.I :=
+      Ideal.mul_mem_right _ _ hc
+    -- v(b) < 1 from h_lt_one.
+    have hb_lt_one : wv (P.A₀.subtype b) < 1 := h_lt_one b hb_mem_I
+    -- v(b) = v(c)^(n_0+1) * v(t).
+    have hb_eq : wv (P.A₀.subtype b) =
+        wv (P.A₀.subtype c) ^ (n_0 + 1) * wv t := by
+      show wv (P.A₀.subtype (c * ⟨(P.A₀.subtype c)^n_0 * t, hn_0⟩)) = _
+      rw [show (P.A₀.subtype (c * ⟨(P.A₀.subtype c)^n_0 * t, hn_0⟩) : A) =
+          P.A₀.subtype c * ((P.A₀.subtype c)^n_0 * t) from by
+        simp [Submonoid.coe_mul]]
+      rw [map_mul, map_mul, map_pow]
+      -- wv(c) * (wv(c)^n_0 * wv(t)) = wv(c)^(n_0+1) * wv(t).
+      rw [show wv (P.A₀.subtype c) ^ (n_0 + 1) = wv (P.A₀.subtype c) * wv (P.A₀.subtype c) ^ n_0
+        from by rw [pow_succ']]
+      rw [mul_assoc]
+    rw [hb_eq] at hb_lt_one
+    -- v(c)^(n_0+1) * v(t) < 1 → v(c)^(n_0+1) < v(t)⁻¹.
+    -- Multiply both sides by v(t)⁻¹ > 0 (v(t) ≠ 0).
+    have h_pow_lt_inv : wv (P.A₀.subtype c) ^ (n_0 + 1) < (wv t)⁻¹ := by
+      have h_vt_pos : 0 < wv t := zero_lt_iff.mpr h_vt_ne
+      have h_inv_pos : 0 < (wv t)⁻¹ := inv_pos.mpr h_vt_pos
+      -- x * y < 1, y > 0 → x < y⁻¹.
+      -- Rewrite: x = (x * y) * y⁻¹ < 1 * y⁻¹ = y⁻¹.
+      have h_x_eq : wv (P.A₀.subtype c) ^ (n_0 + 1) =
+          (wv (P.A₀.subtype c) ^ (n_0 + 1) * wv t) * (wv t)⁻¹ := by
+        rw [mul_assoc, mul_inv_cancel₀ h_vt_ne, mul_one]
+      rw [h_x_eq]
+      calc (wv (P.A₀.subtype c) ^ (n_0 + 1) * wv t) * (wv t)⁻¹
+          < 1 * (wv t)⁻¹ := by
+            rw [mul_comm _ ((wv t)⁻¹), mul_comm 1 ((wv t)⁻¹)]
+            exact (mul_lt_mul_iff_right₀ h_inv_pos).mpr hb_lt_one
+        _ = (wv t)⁻¹ := one_mul _
+    -- v(c)^(n_0+1) < v(t)⁻¹ ≤ γ'.
+    exact lt_of_lt_of_le h_pow_lt_inv h_vt_inv_le
 
 end ValuationSpectrum
