@@ -13,6 +13,7 @@ import «Adic spaces».WedhornCoverNormalization
 import «Adic spaces».SpvCompletionExtension
 import «Adic spaces».WedhornSpaRationalOpenLiftWrapper
 import «Adic spaces».SpaCompactNoHArch
+import Mathlib.Combinatorics.Pigeonhole
 import Mathlib.RingTheory.Flat.FaithfullyFlat.Algebra
 
 /-!
@@ -770,11 +771,124 @@ private theorem exists_ideal_pow_generators_dominated_for_half_space
     apply hK_ne_zero w hw_K
     refine (Valuation.Compatible.vle_iff_le (v := wv) a 0).mpr ?_
     rw [h_eq, map_zero]
-  -- Now the pigeonhole: for the list ℓ := List.ofFn (fun i => ↑(f i)) of length N₀ = (S.card+1)*N_max,
-  -- some element c ∈ S appears at least N_max times in ℓ. By the dominance
-  -- bound for that c, the product ≤ v(a).
-  -- We use mathlib's `Finset.exists_le_card_fiber_of_mul_le_card_of_maps_to` (pigeonhole).
-  sorry
+  -- Reduce to wv via Valuation.Compatible.vle_iff_le.
+  refine (Valuation.Compatible.vle_iff_le (v := wv) _ _).mpr ?_
+  -- Express L.P.A₀.subtype b as a Finset.prod over Fin N₀ via hf.
+  have hb_eq : (L.P.A₀.subtype b : A) =
+      ∏ i : Fin N₀, (L.P.A₀.subtype (↑(f i) : L.P.A₀) : A) := by
+    have h_map : (L.P.A₀.subtype : L.P.A₀ →+* A)
+        ((List.ofFn fun i => (↑(f i) : L.P.A₀)).prod) =
+        ((List.ofFn fun i => (↑(f i) : L.P.A₀)).map L.P.A₀.subtype).prod :=
+      map_list_prod L.P.A₀.subtype _
+    rw [← hf, h_map, List.map_ofFn, List.prod_ofFn]
+    rfl
+  rw [hb_eq, map_prod]
+  -- Goal: ∏ i, wv (L.P.A₀.subtype ↑(f i)) ≤ wv a
+  -- Empty-S case: f vacuous, contradiction.
+  by_cases hS_ne : S.Nonempty
+  · -- S nonempty: pigeonhole.
+    -- Pigeonhole inputs: f : Fin N₀ → ↥S, with N₀ ≥ S.card * N_max.
+    -- Some c : ↥S has #{i | f i = c} ≥ N_max.
+    haveI : Nonempty ↥S := hS_ne.coe_sort
+    have h_card_le : Fintype.card ↥S * N_max ≤ Fintype.card (Fin N₀) := by
+      simp only [Fintype.card_fin, Fintype.card_coe]
+      show S.card * N_max ≤ (S.card + 1) * N_max
+      calc S.card * N_max ≤ S.card * N_max + N_max := Nat.le_add_right _ _
+        _ = (S.card + 1) * N_max := by ring
+    obtain ⟨c_star, hc_count⟩ :=
+      Fintype.exists_le_card_fiber_of_mul_le_card (f := f) (n := N_max) h_card_le
+    -- c_star : ↥S, hc_count : N_max ≤ #{i | f i = c_star}.
+    -- Group the product by fiber via `prod_fiberwise'`.
+    rw [show (∏ i : Fin N₀, wv (L.P.A₀.subtype (↑(f i) : L.P.A₀))) =
+        ∏ c : ↥S, ∏ i : Fin N₀ with f i = c,
+          wv (L.P.A₀.subtype (↑c : L.P.A₀)) by
+      rw [Finset.prod_fiberwise' (s := Finset.univ) (g := f)
+        (f := fun c : ↥S => wv (L.P.A₀.subtype (↑c : L.P.A₀)))]]
+    -- Now ∏ c : ↥S, [constant factor on fiber count]
+    -- = ∏ c : ↥S, wv (L.P.A₀.subtype c)^(count of c).
+    -- Bound: split into c = c_star (contributing ≤ wv a) and c ≠ c_star (each ≤ 1).
+    -- First, simplify the inner ∏ over fiber to a power.
+    have h_inner : ∀ c : ↥S, (∏ i ∈ Finset.univ.filter (fun i => f i = c),
+        wv (L.P.A₀.subtype (↑c : L.P.A₀))) =
+        wv (L.P.A₀.subtype (↑c : L.P.A₀)) ^
+        (Finset.univ.filter (fun i : Fin N₀ => f i = c)).card := by
+      intro c
+      rw [Finset.prod_const]
+    -- Apply per-c.
+    have h_prod_eq : (∏ c : ↥S, ∏ i ∈ Finset.univ.filter (fun i => f i = c),
+        wv (L.P.A₀.subtype (↑c : L.P.A₀))) =
+        ∏ c : ↥S, wv (L.P.A₀.subtype (↑c : L.P.A₀)) ^
+          (Finset.univ.filter (fun i : Fin N₀ => f i = c)).card := by
+      exact Finset.prod_congr rfl fun c _ => h_inner c
+    rw [h_prod_eq]
+    -- Now: ∏ c, wv(c)^count(c) ≤ wv a.
+    -- Split off c_star.
+    rw [← Finset.prod_erase_mul (Finset.univ : Finset ↥S) _ (Finset.mem_univ c_star)]
+    -- (∏ c ∈ erase univ c_star, wv(c)^count(c)) * wv(c_star)^count(c_star) ≤ wv a
+    -- Bound the first factor by 1, second by wv a.
+    -- General fact: a * b ≤ 1 * (wv a) = wv a if a ≤ 1 and b ≤ wv a.
+    have h_others_le_one : (∏ c ∈ (Finset.univ : Finset ↥S).erase c_star,
+        wv (L.P.A₀.subtype (↑c : L.P.A₀)) ^
+        (Finset.univ.filter (fun i : Fin N₀ => f i = c)).card) ≤ 1 := by
+      refine Finset.prod_le_one' ?_
+      intro c _
+      exact Left.pow_le_one_of_le (h_v_le_one (↑c : L.P.A₀) c.2) _
+    have h_c_star_le : wv (L.P.A₀.subtype (↑c_star : L.P.A₀)) ^
+        (Finset.univ.filter (fun i : Fin N₀ => f i = c_star)).card ≤ wv a := by
+      -- count(c_star) ≥ N_max ≥ N_c c_star.val c_star.2 (since N_max = sup + 1).
+      set count := (Finset.univ.filter (fun i : Fin N₀ => f i = c_star)).card
+      set N_star := N_c (↑c_star : L.P.A₀) c_star.2
+      have h_N_max_ge : N_max ≥ N_star + 1 := by
+        show (S.attach.image (fun ⟨c, hc⟩ => N_c c hc)).sup id + 1 ≥ N_star + 1
+        apply Nat.add_le_add_right
+        have h_mem_image : N_star ∈ S.attach.image (fun ⟨c, hc⟩ => N_c c hc) := by
+          rw [Finset.mem_image]
+          refine ⟨⟨(↑c_star : L.P.A₀), c_star.2⟩, Finset.mem_attach _ _, rfl⟩
+        exact Finset.le_sup (f := id) h_mem_image
+      have h_count_ge_N : count ≥ N_star := by
+        calc count ≥ N_max := hc_count
+          _ ≥ N_star + 1 := h_N_max_ge
+          _ ≥ N_star := Nat.le_succ _
+      -- wv(c_star) ≤ 1 → (wv c_star)^count ≤ (wv c_star)^N_star.
+      have h_wv_c_le_one : wv (L.P.A₀.subtype (↑c_star : L.P.A₀)) ≤ 1 :=
+        h_v_le_one (↑c_star : L.P.A₀) c_star.2
+      have h_pow_mono :
+          wv (L.P.A₀.subtype (↑c_star : L.P.A₀)) ^ count ≤
+          wv (L.P.A₀.subtype (↑c_star : L.P.A₀)) ^ N_star := by
+        obtain ⟨k, hk⟩ := Nat.exists_eq_add_of_le h_count_ge_N
+        rw [hk, pow_add]
+        conv_rhs => rw [← mul_one (wv (L.P.A₀.subtype (↑c_star : L.P.A₀)) ^ N_star)]
+        exact mul_le_mul_left' (Left.pow_le_one_of_le h_wv_c_le_one k) _
+      -- (wv c_star)^N_star = wv (c_star^N_star) ≤ wv a from hN_c.
+      have h_pow_eq : wv (L.P.A₀.subtype (↑c_star : L.P.A₀)) ^ N_star =
+          wv ((L.P.A₀.subtype (↑c_star : L.P.A₀)) ^ N_star) := (map_pow _ _ _).symm
+      have h_N_c_dom : wv ((L.P.A₀.subtype (↑c_star : L.P.A₀)) ^ N_star) ≤ wv a := by
+        have := hN_c (↑c_star : L.P.A₀) c_star.2 w hw_K
+        exact (Valuation.Compatible.vle_iff_le (v := wv) _ _).mp this
+      calc wv (L.P.A₀.subtype (↑c_star : L.P.A₀)) ^ count
+          ≤ wv (L.P.A₀.subtype (↑c_star : L.P.A₀)) ^ N_star := h_pow_mono
+        _ = wv ((L.P.A₀.subtype (↑c_star : L.P.A₀)) ^ N_star) := h_pow_eq
+        _ ≤ wv a := h_N_c_dom
+    -- Combine: others_factor * c_star_factor ≤ 1 * wv a = wv a.
+    calc (∏ c ∈ (Finset.univ : Finset ↥S).erase c_star,
+            wv (L.P.A₀.subtype (↑c : L.P.A₀)) ^
+            (Finset.univ.filter (fun i : Fin N₀ => f i = c)).card) *
+          wv (L.P.A₀.subtype (↑c_star : L.P.A₀)) ^
+            (Finset.univ.filter (fun i : Fin N₀ => f i = c_star)).card
+        ≤ 1 * wv a := by
+          exact mul_le_mul' h_others_le_one h_c_star_le
+      _ = wv a := one_mul _
+  · -- S empty: contradiction from f.
+    exfalso
+    rw [Finset.not_nonempty_iff_eq_empty] at hS_ne
+    have hN₀_pos : 0 < N₀ := by
+      show 0 < (S.card + 1) * N_max
+      apply Nat.mul_pos
+      · exact Nat.succ_pos _
+      · show 0 < (S.attach.image _).sup id + 1
+        exact Nat.succ_pos _
+    -- f ⟨0, hN₀_pos⟩ : ↥S, but ↥S is empty when S = ∅.
+    exact (Finset.eq_empty_iff_forall_notMem.mp hS_ne) _ (f ⟨0, hN₀_pos⟩).2
 
 private theorem exists_absolute_ratio_rationalLocData_aux
     {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
