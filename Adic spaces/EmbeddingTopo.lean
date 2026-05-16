@@ -2214,6 +2214,31 @@ noncomputable def LaurentTree.RightBranchInducing :
       Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f)) ∧
       LaurentTree.RightBranchInducing (laurentMinusDatum D₀ f) rest := Iff.rfl
 
+/-- **Per-base IsInducing for the balanced Laurent tree.** Unlike
+`RightBranchInducing` (which only re-bases on the minus side), the
+balanced tree re-uses the same `rest` list at both plus and minus
+bases. So the per-level predicate is a tree of inducing obligations:
+the head split is inducing at the current base, and both sub-bases
+have the SAME `rest` recursively inducing. -/
+noncomputable def LaurentTree.BalancedInducing :
+    RationalLocData A → List A → Prop
+  | _, [] => True
+  | D₀, f :: rest =>
+      Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f)) ∧
+      BalancedInducing (laurentPlusDatum D₀ f) rest ∧
+      BalancedInducing (laurentMinusDatum D₀ f) rest
+
+/-- `BalancedInducing` implies `allSplitsInducing` for the balanced tree. -/
+theorem LaurentTree.allSplitsInducing_ofBalancedList
+    (D₀ : RationalLocData A) (L : List A)
+    (h : LaurentTree.BalancedInducing D₀ L) :
+    (LaurentTree.ofBalancedList L).allSplitsInducing D₀ := by
+  induction L generalizing D₀ with
+  | nil => trivial
+  | cons f rest ih =>
+    obtain ⟨h_head, h_plus, h_minus⟩ := h
+    refine ⟨h_head, ih _ h_plus, ih _ h_minus⟩
+
 /-- `RightBranchInducing` implies `allSplitsInducing` for the
 right-branching tree. -/
 theorem LaurentTree.allSplitsInducing_ofRightBranchList
