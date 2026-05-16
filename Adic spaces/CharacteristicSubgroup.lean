@@ -335,6 +335,24 @@ theorem restrictIdeal_apply_zero (v : Valuation A Γ₀) (I : Ideal A)
   unfold restrictIdeal
   exact restrictToConvexBounded_apply_zero v (cGammaIdeal v I) _ hva
 
+/-- **Structural witness lemma for `cGammaIdealUnits`.** Each `u` in
+`cGammaIdealUnits v I` is either:
+* bounded by some `v(a)^±1` with `1 ≤ v(a)` (first generator clause), or
+* bounded between some `v(a)` (for `a ∈ I`, `v(a) > 0`) and `1` (second
+  generator clause).
+
+This is the precise structural content of the `cGammaIdealUnits` set,
+made explicit as an API lemma for downstream cofinality work. -/
+theorem cGammaIdealUnits_structure_witness (v : Valuation A Γ₀) (I : Ideal A)
+    {u : Γ₀ˣ} (hu : u ∈ cGammaIdealUnits v I) :
+    (∃ a : A, 1 ≤ v a ∧ ∃ hva : v a ≠ 0,
+        (Units.mk0 (v a) hva)⁻¹ ≤ u ∧ u ≤ Units.mk0 (v a) hva) ∨
+    (∃ a : A, a ∈ I ∧ ∃ hva : v a ≠ 0,
+        Units.mk0 (v a) hva ≤ u ∧ u ≤ 1) := by
+  rcases hu with ⟨a, ha, hva, h1, h2⟩ | ⟨a, ha, hva, h1, h2⟩
+  · exact Or.inl ⟨a, ha, hva, h1, h2⟩
+  · exact Or.inr ⟨a, ha, hva, h1, h2⟩
+
 end Valuation
 
 namespace ValuationSpectrum
