@@ -1470,27 +1470,33 @@ theorem unitGeneratedCover_has_relative_ratioLaurentRefinement
   -- **Construction (Wedhorn 8.34(iii)).** The Laurent cover generated
   -- by `{u_g · u_h⁻¹ : g, h ∈ I_units}` is a refinement of the
   -- unit-generated cover.
-  --
-  -- Each `u_g · u_h⁻¹ ∈ presheafValue L` is the relative ratio of A-
-  -- originating units, used as a Laurent split label in the relative
-  -- ring. The balanced binary tree built from these ratios has
-  -- `2^(|I_units|²)` leaves, each indexed by a sign function on pairs.
-  --
-  -- **Status.** The construction is well-defined (see
-  -- `W3_ratioLaurentTree` below). The three properties decompose into
-  -- substantial sub-lemmas:
-  --   * `Refines L_rel unitCover` — combinatorial: each leaf is in
-  --     the unit-piece for the `f ∈ I_units` whose `v(u_f)` achieves
-  --     the maximum among `I_units` on the leaf.
-  --   * `allSplitsInducing L_rel` — topological: each split is
-  --     `productRestrictionSub`-inducing (Lane C infrastructure).
-  --   * `IsRatioLaurentTreeFrom` — structural: every label has the
-  --     form `u_g · u_h⁻¹` by construction (`ofBalancedList` invariant).
-  --
-  -- These sub-lemmas are stated and stubbed below for incremental
-  -- closure. The W3-transport (P4) consumes only `IsRatioLaurentTreeFrom`
-  -- + `allSplitsInducing` to lift to absolute trees.
-  sorry
+  classical
+  -- Step 1: unitness witness for u_h from `_h_unitCover.2.2.2`.
+  have h_units_invertible : ∀ h ∈ I_units,
+      IsUnit (relativeUnitGenerator L C h h_unit_base) :=
+    _h_unitCover.2.2.2
+  -- Step 2: list of all ratio labels `u_g · u_h⁻¹` for (g, h) ∈ I_units × I_units.
+  -- Uses `Finset.attach` to carry the `h ∈ I_units` proof needed for `IsUnit u_h`.
+  let pairs : Finset {x // x ∈ I_units} × Finset {x // x ∈ I_units} :=
+    (I_units.attach, I_units.attach)
+  let ratio_list : List (presheafValue L) :=
+    ((I_units.attach.toList) ×ˢ (I_units.attach.toList)).map fun ⟨gp, hp⟩ =>
+      relativeUnitGenerator L C gp.val h_unit_base *
+        ((h_units_invertible hp.val hp.property).unit⁻¹ : (presheafValue L)ˣ)
+  -- Step 3: balanced binary Laurent tree from this list.
+  let inner_rel : LaurentTree (presheafValue L) :=
+    LaurentTree.ofBalancedList ratio_list
+  -- Step 4: assemble the three properties.
+  refine ⟨inner_rel, ?_, ?_, ?_⟩
+  · -- Refines L_rel unitCover — combinatorial: each leaf σ-vector
+    -- picks `f ∈ I_units` with maximal `v(u_f)`; that f's unit-piece
+    -- contains the leaf.
+    sorry
+  · -- allSplitsInducing L_rel — Lane C topological inducing per node.
+    sorry
+  · -- IsRatioLaurentTreeFrom — by construction every node label is
+    -- `u_g · u_h⁻¹` with g, h ∈ I_units.
+    sorry
 
 /-- **(W3-transport) Relative-to-absolute Laurent tree transport.**
 Given a relative inner tree `inner_rel : LaurentTree (presheafValue L)`
