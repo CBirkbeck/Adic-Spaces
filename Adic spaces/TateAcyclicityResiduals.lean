@@ -1496,7 +1496,30 @@ theorem unitGeneratedCover_has_relative_ratioLaurentRefinement
     sorry
   · -- IsRatioLaurentTreeFrom — by construction every node label is
     -- `u_g · u_h⁻¹` with g, h ∈ I_units.
-    sorry
+    show IsRatioLaurentTreeFrom L C I_units h_unit_base
+      (LaurentTree.ofBalancedList ratio_list)
+    -- Induct on the underlying list of ratios.
+    have hall : ∀ label ∈ ratio_list,
+        ∃ g ∈ I_units, ∃ h ∈ I_units,
+          ∃ h_unit_uh : IsUnit (relativeUnitGenerator L C h h_unit_base),
+            label = relativeUnitGenerator L C g h_unit_base *
+              ((h_unit_uh.unit⁻¹ : (presheafValue L)ˣ) : presheafValue L) := by
+      intro label hlabel
+      simp only [ratio_list, List.mem_map, List.mem_product,
+        Finset.mem_toList, Finset.mem_attach, true_and, Prod.exists,
+        Subtype.exists] at hlabel
+      obtain ⟨g, hg, h, hh, _, _, rfl⟩ := hlabel
+      exact ⟨g, hg, h, hh, h_units_invertible h hh, rfl⟩
+    -- Generic induction on the list.
+    clear_value ratio_list
+    induction ratio_list with
+    | nil => exact trivial
+    | cons head tail ih =>
+      simp only [LaurentTree.ofBalancedList_cons]
+      refine ⟨?_, ?_, ?_⟩
+      · exact hall head (List.mem_cons_self)
+      · exact ih (fun label hlabel ↦ hall label (List.mem_cons_of_mem _ hlabel))
+      · exact ih (fun label hlabel ↦ hall label (List.mem_cons_of_mem _ hlabel))
 
 /-- **(W3-transport) Relative-to-absolute Laurent tree transport.**
 Given a relative inner tree `inner_rel : LaurentTree (presheafValue L)`
