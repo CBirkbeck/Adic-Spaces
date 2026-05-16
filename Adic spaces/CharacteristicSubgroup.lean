@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import «Adic spaces».OrderedGroupConvex
 import «Adic spaces».ValuationSpectrum
 import Mathlib.RingTheory.Valuation.Basic
+import Mathlib.Algebra.Order.Group.Units
 
 /-!
 # The characteristic subgroup `cΓ_v` (Wedhorn 4.13)
@@ -156,5 +157,21 @@ def cGammaIdealUnits (v : Valuation A Γ₀) (I : Ideal A) : Set Γ₀ˣ :=
       (Units.mk0 (v a) hva)⁻¹ ≤ u ∧ u ≤ Units.mk0 (v a) hva) ∨
     (∃ a : A, a ∈ I ∧ ∃ hva : v a ≠ 0,
       Units.mk0 (v a) hva ≤ u ∧ u ≤ 1) }
+
+/-- **Wedhorn 7.3: the convex subgroup `cΓ_v(I)`.** This is the smallest
+convex subgroup of `Γ₀ˣ` containing the generators of `cGammaIdealUnits v I`,
+constructed via `ConvexSubgroup.minContain`.
+
+By construction:
+* Every element of `cGammaIdealUnits v I` lies in `cGammaIdeal v I`
+  (`subset_minContain`).
+* `cGammaIdeal v I` is the smallest convex subgroup with this property
+  (`minContain_le`).
+
+Per Wedhorn 7.3, this captures "the convex subgroup making `v` continuous
+in `Spv(A, I)`". -/
+def cGammaIdeal (v : Valuation A Γ₀) (I : Ideal A) :
+    ConvexSubgroup Γ₀ˣ :=
+  ConvexSubgroup.minContain (cGammaIdealUnits v I)
 
 end Valuation
