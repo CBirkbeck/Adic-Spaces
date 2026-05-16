@@ -155,4 +155,27 @@ theorem SpvAI.rationalSubset_inter (I : Ideal A) [DecidableEq A]
       have h_s₁_pos : 0 < ValuativeRel.valuation A s₁ := zero_lt_iff.mpr h_s₁_ne
       exact (mul_le_mul_iff_right₀ h_s₁_pos).mp h_le
 
+/-- **`SpvAI.rationalSubset` is contained in `SpvAI`.** Trivial from
+the intersection definition. -/
+theorem SpvAI.rationalSubset_subset (I : Ideal A) (T : Finset A) (s : A) :
+    SpvAI.rationalSubset I T s ⊆ SpvAI A I :=
+  fun _ hv => hv.1
+
+/-- **`v ∈ SpvAI.rationalSubset I T s ↔ v ∈ SpvAI I ∧ ∀ t ∈ T, v.vle t s ∧ v.vle s 0`.** -/
+theorem SpvAI.mem_rationalSubset (I : Ideal A) (T : Finset A) (s : A) (v : Spv A) :
+    v ∈ SpvAI.rationalSubset I T s ↔
+      v ∈ SpvAI A I ∧ (∀ t ∈ T, v.vle t s) ∧ ¬ v.vle s 0 := by
+  simp only [SpvAI.rationalSubset, Set.mem_inter_iff, Set.mem_setOf_eq, and_assoc]
+
+/-- **`SpvAI` membership characterisation.** -/
+theorem Spv.mem_SpvAI (v : Spv A) (I : Ideal A) :
+    v ∈ SpvAI A I ↔ Spv.IsInSpvAI v I := Iff.rfl
+
+/-- **Microbial valuations are in `SpvAI`.** Trivial via the microbial
+disjunct of `Spv.IsInSpvAI`. -/
+theorem Spv.isInSpvAI_of_isMicrobial (I : Ideal A) {v : Spv A}
+    (h : letI : ValuativeRel A := v.toValuativeRel
+      Valuation.IsMicrobial (ValuativeRel.valuation A)) :
+    Spv.IsInSpvAI v I := Or.inr h
+
 end ValuationSpectrum
