@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».OrderedGroupConvex
 import «Adic spaces».ValuationCoarsening
+import «Adic spaces».ValuationContinuity
 import «Adic spaces».ValuationSpectrum
 import Mathlib.RingTheory.Valuation.Basic
 import Mathlib.Algebra.Order.Group.Units
@@ -294,18 +295,50 @@ theorem coarsenIdeal_eq_one_of_mem_ideal (v : Valuation A Γ₀)
 
 end Valuation
 
-/-! ### Spv-level retraction (Wedhorn 7.5(iii)) -/
+/-! ### Spv-level Wedhorn 7.5(iii) retraction via restriction -/
+
+namespace Valuation
+
+variable {A : Type*} [CommRing A]
+variable {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
+
+/-- **The TRUE Wedhorn 7.5(iii) retraction `v ↦ v|cΓ_v(I)`.**
+
+This is the **restriction** of `v` to its characteristic subgroup
+`cΓ_v(I)` — values `v(a) ∈ cΓ_v(I)` are preserved, others sent to `0`.
+This is the canonical retraction from `Spv A` onto `Spv(A, I)` per
+Wedhorn Theorem 7.5(iii).
+
+Built on `restrictToConvexBounded` using the fact that `cΓ_v(I)`
+contains every `v(a) ≥ 1` (via `vUnit_mem_cGammaIdeal`). -/
+noncomputable def restrictIdeal (v : Valuation A Γ₀) (I : Ideal A) :
+    Valuation A (WithZero (cGammaIdeal v I).toSubgroup) :=
+  v.restrictToConvexBounded (cGammaIdeal v I)
+    (fun a hva h_ge ↦ vUnit_mem_cGammaIdeal h_ge hva)
+
+end Valuation
 
 namespace ValuationSpectrum
 
 variable {A : Type*} [CommRing A]
 
-/-- **Spv-level Wedhorn 7.5(iii) retraction.** Takes `v ∈ Spv A` and
-returns the point `r(v) ∈ Spv A` whose underlying valuation is the
-coarsening of `v` by its characteristic subgroup `cΓ_v(I)`. Per Wedhorn
-7.4, `r(v)` actually lies in `Spv(A, I)` — proved separately. -/
+/-- **Spv-level coarsenIdeal (legacy: via `coarsen`, NOT the true Wedhorn
+7.5(iii) retraction).** The coarsening by `cΓ_v(I)` — quotients the value
+group, sending `v(a)` for `a ∈ I` to `1` in the quotient. Compare with
+`restrictIdeal` below which preserves values inside `cΓ_v(I)`.
+
+This is kept for the trivialisation lemmas
+(`coarsenIdeal_eq_one_of_mem_ideal`, `coarsenIdeal_eq_zero_of_eq_zero`)
+which are useful in their own right. -/
 noncomputable def coarsenIdeal (v : Spv A) (I : Ideal A) : Spv A :=
   letI : ValuativeRel A := v.toValuativeRel
   ofValuation ((ValuativeRel.valuation A).coarsenIdeal I)
+
+/-- **The Wedhorn 7.5(iii) retraction `r : Spv A → Spv A`** (via
+restriction to `cΓ_v(I)`). The image of this retraction lies in
+`Spv(A, I)` — separately proved. -/
+noncomputable def restrictIdeal (v : Spv A) (I : Ideal A) : Spv A :=
+  letI : ValuativeRel A := v.toValuativeRel
+  ofValuation ((ValuativeRel.valuation A).restrictIdeal I)
 
 end ValuationSpectrum
