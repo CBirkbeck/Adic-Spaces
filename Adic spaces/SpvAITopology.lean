@@ -287,4 +287,79 @@ theorem SpvAI.exists_rationalSubset_microbial [DecidableEq A]
       refine (Valuation.Compatible.vle_iff_le (v := ww) (g_0 * d) 0).mpr ?_
       rw [map_mul, h_wg0_zero, zero_mul, map_zero]
 
+/-- **Wedhorn 7.5(ii), cofinality-disjunct case.** Given `v` satisfying the
+cofinality disjunct of `IsInSpvAI` (for each `s_i` in a finite generating set
+`S ⊆ I`, `CofinalValue v s_i`), and a basic open W
+(`∀ i ∈ g, v.vle i g_0` and `¬ v.vle g_0 0`), there exists a rational subset
+of `SpvAI I` containing `v` and inside `W`.
+
+The construction: pick `k` such that `v(s_i)^k < v(g_0)` for all generators `s_i`
+(via per-generator cofinality + finite max). Then
+`T' := g ∪ S.image (·^k)`, `s' := g_0`. The membership `S ⊆ I` makes
+`√(T' · A) ⊇ √(S · A) ⊇ S`, so `I ⊆ √(T' · A)`. -/
+theorem SpvAI.exists_rationalSubset_cofinality [DecidableEq A]
+    (I : Ideal A) {v : Spv A}
+    (S : Finset A) (hS_in_I : ∀ s ∈ S, s ∈ I)
+    (h_cofinal : ∀ s ∈ S,
+      letI : ValuativeRel A := v.toValuativeRel
+      Valuation.CofinalValue (ValuativeRel.valuation A) s)
+    (g_0 : A) (g : Finset A)
+    (hg : ∀ i ∈ g, v.vle i g_0) (hg_0 : ¬ v.vle g_0 0) :
+    ∃ (T : Finset A) (s : A),
+      g ⊆ T ∧
+      v ∈ SpvAI.rationalSubset I T s ∧
+      SpvAI.rationalSubset I T s ⊆
+        {w | (∀ i ∈ g, w.vle i g_0) ∧ ¬ w.vle g_0 0} := by
+  letI : ValuativeRel A := v.toValuativeRel
+  set wv := ValuativeRel.valuation A with hwv_def
+  -- v(g_0) ≠ 0 from hg_0.
+  have h_vg0_ne : wv g_0 ≠ 0 := by
+    intro h_eq
+    apply hg_0
+    refine (Valuation.Compatible.vle_iff_le (v := wv) g_0 0).mpr ?_
+    rw [h_eq, map_zero]
+  have h_vg0_pos : 0 < wv g_0 := zero_lt_iff.mpr h_vg0_ne
+  -- For each s ∈ S, ∃ k_s with v(s)^k_s < v(g_0).
+  have h_per_s : ∀ s ∈ S, ∃ k : ℕ, wv s ^ k < wv g_0 := by
+    intro s hs
+    exact h_cofinal s hs (wv g_0) h_vg0_pos
+  choose k_s hk_s using h_per_s
+  -- Take K := 1 + max over S of k_s.
+  let K : ℕ := S.attach.sup (fun ⟨s, hs⟩ => k_s s hs) + 1
+  -- Build T' := g ∪ S.image (·^K), s' := g_0.
+  refine ⟨g ∪ S.image (· ^ K), g_0, ?_, ?_, ?_⟩
+  · exact Finset.subset_union_left
+  · -- v ∈ SpvAI.rationalSubset I T' g_0.
+    refine ⟨Or.inl ?_, ?_, hg_0⟩
+    · -- Cofinality disjunct for arbitrary a ∈ I: we have it for S only.
+      -- For the IsInSpvAI predicate, we need cofinality for ALL elements of I.
+      -- This sub-fact requires extending cofinality from generators to the ideal
+      -- via Lemma 7.1.
+      sorry
+    · -- ∀ t ∈ T', v.vle t g_0.
+      intro t ht
+      rcases Finset.mem_union.mp ht with ht_g | ht_S
+      · exact hg t ht_g
+      · -- t = s^K for some s ∈ S. v(s^K) ≤ v(s)^k_s < v(g_0).
+        obtain ⟨s, hs, rfl⟩ := Finset.mem_image.mp ht_S
+        refine (Valuation.Compatible.vle_iff_le (v := wv) (s ^ K) g_0).mpr ?_
+        rw [map_pow]
+        -- (v s)^K ≤ (v s)^{k_s s hs} < v g_0.
+        have h_K_ge : K ≥ k_s s hs + 1 := by
+          show S.attach.sup (fun ⟨s, hs⟩ => k_s s hs) + 1 ≥ k_s s hs + 1
+          apply Nat.add_le_add_right
+          exact Finset.le_sup (f := fun ⟨s', hs'⟩ => k_s s' hs') (Finset.mem_attach _ ⟨s, hs⟩)
+        have h_vs_le_one : wv s ≤ 1 := (h_cofinal s hs).le_one
+        -- (wv s)^K ≤ (wv s)^{k_s s hs} (since wv s ≤ 1, larger exp = smaller).
+        have h_pow_mono : wv s ^ K ≤ wv s ^ (k_s s hs) := by
+          obtain ⟨j, hj⟩ := Nat.exists_eq_add_of_le (Nat.le_of_lt h_K_ge)
+          rw [hj, pow_add]
+          conv_rhs => rw [← mul_one (wv s ^ (k_s s hs))]
+          exact mul_le_mul_left' (Left.pow_le_one_of_le h_vs_le_one _) _
+        exact lt_of_le_of_lt h_pow_mono (hk_s s hs) |>.le
+  · -- SpvAI.rationalSubset I T' g_0 ⊆ W.
+    intro w hw
+    obtain ⟨_, hw_T, hw_s⟩ := hw
+    refine ⟨fun i hi => hw_T i (Finset.mem_union_left _ hi), hw_s⟩
+
 end ValuationSpectrum
