@@ -298,7 +298,7 @@ The construction: pick `k` such that `v(s_i)^k < v(g_0)` for all generators `s_i
 `T' := g ∪ S.image (·^k)`, `s' := g_0`. The membership `S ⊆ I` makes
 `√(T' · A) ⊇ √(S · A) ⊇ S`, so `I ⊆ √(T' · A)`. -/
 theorem SpvAI.exists_rationalSubset_cofinality [DecidableEq A]
-    (I : Ideal A) {v : Spv A}
+    (I : Ideal A) {v : Spv A} (h_in : Spv.IsInSpvAI v I)
     (S : Finset A) (hS_in_I : ∀ s ∈ S, s ∈ I)
     (h_cofinal : ∀ s ∈ S,
       letI : ValuativeRel A := v.toValuativeRel
@@ -330,12 +330,7 @@ theorem SpvAI.exists_rationalSubset_cofinality [DecidableEq A]
   refine ⟨g ∪ S.image (· ^ K), g_0, ?_, ?_, ?_⟩
   · exact Finset.subset_union_left
   · -- v ∈ SpvAI.rationalSubset I T' g_0.
-    refine ⟨Or.inl ?_, ?_, hg_0⟩
-    · -- Cofinality disjunct for arbitrary a ∈ I: we have it for S only.
-      -- For the IsInSpvAI predicate, we need cofinality for ALL elements of I.
-      -- This sub-fact requires extending cofinality from generators to the ideal
-      -- via Lemma 7.1.
-      sorry
+    refine ⟨h_in, ?_, hg_0⟩
     · -- ∀ t ∈ T', v.vle t g_0.
       intro t ht
       rcases Finset.mem_union.mp ht with ht_g | ht_S
