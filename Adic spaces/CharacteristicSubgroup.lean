@@ -103,4 +103,29 @@ theorem IsMicrobial.exists_inv_le {v : Valuation A Γ₀}
   rw [h_eq] at ha_ge_one
   exact absurd ha_ge_one (by simp)
 
+/-- **Wedhorn 7.3: `cΓ_v(I)` characteristic subgroup attached to an ideal.**
+As a set of `Γ_v` values, this is `{0} ∪ {γ : ∃ a ∈ I, v(a) > 0 ∧ v(a) ≤ γ}`
+unioned with `cGammaPos v`. Concretely, `cΓ_v(I)` contains every `γ ∈ Γ_v`
+that lies "between" some `v(a)` (with `v(a) ≥ 1`) or some inverse
+`v(b)⁻¹` for `b ∈ I` with `v(b) > 0`.
+
+This is the convex subgroup that captures Wedhorn 7.4 "v is in
+`Spv(A, I)`" — equivalently, `cΓ_v(I) = Γ_v` once `I` is "enough" data
+to determine the topology.
+
+For development purposes here, we define `cGammaIdealPos v I` as a SET
+characterised by this convex hull. -/
+def cGammaIdealPos (v : Valuation A Γ₀) (I : Ideal A) : Set Γ₀ :=
+  { γ : Γ₀ | γ = 0 ∨
+    (0 < γ ∧ ((∃ a : A, 1 ≤ v a ∧ (v a)⁻¹ ≤ γ ∧ γ ≤ v a) ∨
+              (∃ a : A, a ∈ I ∧ 0 < v a ∧ v a ≤ γ ∧ γ ≤ 1))) }
+
+/-- `cGammaPos v ⊆ cGammaIdealPos v I` (the ideal-version is larger). -/
+theorem cGammaPos_subset_cGammaIdealPos (v : Valuation A Γ₀) (I : Ideal A) :
+    cGammaPos v ⊆ cGammaIdealPos v I := by
+  intro γ hγ
+  rcases hγ with rfl | ⟨hγ_pos, a, ha_ge_one, ha_inv_le, ha_le⟩
+  · exact Or.inl rfl
+  · exact Or.inr ⟨hγ_pos, Or.inl ⟨a, ha_ge_one, ha_inv_le, ha_le⟩⟩
+
 end Valuation
