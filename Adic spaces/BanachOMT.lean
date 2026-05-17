@@ -211,8 +211,36 @@ theorem _sub_lemma_translation
     {H : Type v} [AddCommGroup H] [TopologicalSpace H] [IsTopologicalAddGroup H]
     (f : G →+ H)
     (hf_zero : ∀ U ∈ nhds (0 : G), f '' U ∈ nhds (0 : H)) :
-    IsOpenMap f :=
-  sorry
+    IsOpenMap f := by
+  intro U hU_open
+  rw [isOpen_iff_mem_nhds]
+  rintro y ⟨x, hx_mem, rfl⟩
+  -- Strategy: f '' U ∈ nhds (f x) iff (Homeomorph.subRight (f x)) preimage maps it
+  -- to a nhds 0 set. Show that preimage contains f '' (U preimaged by `(· + x)`),
+  -- which is a nhds 0 by hf_zero.
+  -- Step 1: V := {z : G | z + x ∈ U} is open nhds 0 in G.
+  set V : Set G := (fun z => z + x) ⁻¹' U with hV_def
+  have hV_open : IsOpen V := hU_open.preimage (continuous_add_right x)
+  have h0V : (0 : G) ∈ V := by simp [hV_def, hx_mem]
+  have hV_nhds : V ∈ nhds (0 : G) := hV_open.mem_nhds h0V
+  -- Step 2: f '' V ∈ nhds 0 in H.
+  have hfV_nhds : f '' V ∈ nhds (0 : H) := hf_zero V hV_nhds
+  -- Step 3: f '' V ⊆ (fun w => w + f x) ⁻¹' (f '' U).
+  -- because f(z) + f x = f(z + x) ∈ f '' U whenever z + x ∈ U.
+  have hsub : f '' V ⊆ (fun w => w + f x) ⁻¹' (f '' U) := by
+    rintro w ⟨z, hzV, rfl⟩
+    have : z + x ∈ U := by simpa [hV_def] using hzV
+    exact ⟨z + x, this, by rw [f.map_add]⟩
+  -- Step 4: ((· + f x) ⁻¹' (f '' U)) ∈ nhds 0, so f '' U ∈ nhds (f x).
+  have hpre_nhds : (fun w => w + f x) ⁻¹' (f '' U) ∈ nhds (0 : H) :=
+    Filter.mem_of_superset hfV_nhds hsub
+  -- Translate via the additive homeomorphism `(· + f x)`.
+  have heq : Filter.map (fun w => w + f x) (nhds (0 : H)) = nhds (f x) := by
+    rw [show (fun w : H => w + f x) = ((Homeomorph.addRight (f x)) : H → H) from rfl,
+        Homeomorph.map_nhds_eq]
+    simp
+  rw [← heq, Filter.mem_map]
+  exact hpre_nhds
 
 /-! ## Sub-sub-lemma decomposition for Sub-lemmas A, C, D (pass-(ii) refinement)
 
@@ -236,7 +264,7 @@ theorem _sub_sub_lemma_A_1_split_symmetric
     {H : Type v} [AddCommGroup H] [TopologicalSpace H] [IsTopologicalAddGroup H]
     (U : Set H) (hU : U ∈ nhds (0 : H)) :
     ∃ V ∈ nhds (0 : H), IsClosed V ∧ (-V = V) ∧ V + V ⊆ U :=
-  sorry  -- exact exists_closed_nhds_zero_neg_eq_add_subset hU
+  exists_closed_nhds_zero_neg_eq_add_subset hU
 
 /-- **Sub-sub-lemma A.2 — interior of sum contains sum of interiors**.
 
