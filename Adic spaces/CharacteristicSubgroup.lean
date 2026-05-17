@@ -496,6 +496,11 @@ theorem restrictIdeal_apply_list_prod (v : Valuation A Γ₀) (I : Ideal A) (l :
     v.restrictIdeal I l.prod = (l.map (v.restrictIdeal I)).prod :=
   map_list_prod _ l
 
+/-- **Iterated product (`Multiset.prod`) formula for `restrictIdeal`.** -/
+theorem restrictIdeal_apply_multiset_prod (v : Valuation A Γ₀) (I : Ideal A) (s : Multiset A) :
+    v.restrictIdeal I s.prod = (s.map (v.restrictIdeal I)).prod :=
+  map_multiset_prod _ s
+
 end Valuation
 
 namespace ValuationSpectrum
