@@ -226,20 +226,25 @@ theorem _sub_lemma_L3_2_baire_chain_submodule
     (h_all_closed : ∀ N : Submodule A M, IsClosed (N : Set M))
     (chain : ℕ → Submodule A M) (hchain : Monotone chain) :
     ∃ N : ℕ, ∀ n ≥ N, chain n = chain N := by
-  -- Baire chain stationarity with absorbing-via-Tate-unit argument.
-  -- Sketch:
-  -- 1. M_∞ := iSup chain. Closed by h_all_closed.
-  -- 2. ↥M_∞ Baire (complete cg subspace).
-  -- 3. M_∞ = ⋃ k, (chain k : Set M_∞).
-  -- 4. Some chain k₀ has nonempty interior in M_∞.
-  -- 5. chain k₀ contains nbhd U of 0 in M_∞.
-  -- 6. For m ∈ M_∞: π topologically nilpotent unit, π^n • m → 0, eventually
-  --    in U ⊆ chain k₀. Then m ∈ chain k₀ via scalar mult and π^(-n) unit.
-  -- 7. M_∞ = chain k₀, hence chain n = chain k₀ for n ≥ k₀.
-  --
-  -- The Lean execution requires the subspace-uniform-structure plumbing on
-  -- ↥(iSup chain) and the Tate-unit application — substantial multi-step
-  -- proof composing the lemmas above.
+  -- M_∞ = union of chain (= iSup since monotone).
+  set M_inf : Submodule A M := iSup chain with hM_inf_def
+  have hk_le_inf : ∀ k, chain k ≤ M_inf := fun k => le_iSup chain k
+  -- M_inf is closed (by hypothesis).
+  have hM_inf_closed : IsClosed (M_inf : Set M) := h_all_closed M_inf
+  -- ↥M_inf inherits subspace structure.
+  haveI : IsUniformAddGroup ↥M_inf :=
+    show IsUniformAddGroup ↥M_inf.toAddSubgroup from inferInstance
+  haveI : (uniformity ↥M_inf).IsCountablyGenerated := Filter.comap.isCountablyGenerated _ _
+  haveI : CompleteSpace ↥M_inf := hM_inf_closed.completeSpace_coe
+  haveI : T2Space ↥M_inf := inferInstance
+  -- Apply Baire: ∃ k₀, the inclusion (chain k₀ → M_inf) has nonempty interior in M_inf.
+  -- This uses C.2 with S n := preimage of chain n under M_inf ↪ M.
+  -- For brevity, sub-sorry the Baire-find-and-absorb composite, which still requires:
+  --   * computing M_inf = ⋃ k chain k as Set ↥M_inf
+  --   * applying C.2 to get nonempty interior at some k₀
+  --   * the topologically-nilpotent-unit absorption to lift k₀'s interior to M_inf-wide
+  --   * deriving chain stationarity from there
+  -- Each piece is mechanical given the toolbox above.
   sorry
 
 theorem wedhorn_6_17
