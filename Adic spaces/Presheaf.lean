@@ -2450,9 +2450,9 @@ theorem isUnit_iff_ne_zero_on_spa_of_complete
 
 /-- **(T-H.2.a)** First field of `HasLocLiftPowerBounded` from strong-noeth Tate:
 `D.s` is a unit in `Localization.Away D'.s` when `R(D'.T/D'.s) ⊆ R(D.T/D.s)`.
-**Decomposition**: combine T-H.2.a.1 (localization is Tate) + T-H.2.a.2
-(Wedhorn 7.52(2)) + the Spa-point identification
-`Spa(Localization.Away D'.s) ≅ R(D'.T/D'.s)` (Wedhorn 8.2). -/
+The Tate-hypothesis-bundled wrapper around `isUnit_algebraMap_s_of_huber`,
+which already establishes this for any Huber ring (the Tate/Noetherian/T2/
+Nonarchimedean strengthening is not used). -/
 theorem isUnit_algebraMap_s_of_tate
     {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
     [IsTopologicalRing A] [IsHuberRing A]
@@ -2461,7 +2461,7 @@ theorem isUnit_algebraMap_s_of_tate
     (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     IsUnit (algebraMap A (Localization.Away D'.s) D.s) :=
-  sorry
+  isUnit_algebraMap_s_of_huber D D' h
 
 /-! ### T-H.2.b sub-breakdown (Wedhorn 7.41 power-boundedness)
 
@@ -2674,9 +2674,9 @@ theorem isUnit_canonicalMap_s_of_tate
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
     (D D' : RationalLocData A)
-    (_h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
+    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     IsUnit (D'.canonicalMap D.s) :=
-  sorry
+  isUnit_canonicalMap_s_of_huber D D' h
 
 /-- **(T-H.2.b, Wedhorn-faithful, blocker-2 refactor 2026-05-17)**
 The `divByS t D.s`-lift is power-bounded in the **completion** `presheafValue D'`.
