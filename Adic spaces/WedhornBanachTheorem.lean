@@ -126,7 +126,24 @@ theorem _sub_lemma_L3_1a_completion_fg_complete
       [UniformSpace M] [IsUniformAddGroup M]
       [(uniformity M).IsCountablyGenerated] [T2Space M]
     (hM_fg : Module.Finite A M) :
-    CompleteSpace M :=
+    CompleteSpace M := by
+  -- BGR §3.7.2/1 strategy (completion-embedding):
+  -- 1. M ⊆ M̂ := UniformSpace.Completion M, where M̂ is complete + cg + T2.
+  -- 2. M̂ inherits Module A structure via UniformSpace.Completion.Module instance.
+  -- 3. The image of the n generators in M̂ spans a dense subspace which IS the
+  --    image of M in M̂ (since span A {generators} = M algebraically).
+  -- 4. Apply wedhorn_6_16 to the canonical A-linear ν̂ : Aⁿ → M̂ (which is
+  --    surjective: image is dense + closed since fg + ContinuousSMul on M̂).
+  --    For ν̂ surjective we need M̂ to be fg over A — not automatic from
+  --    Module.Finite A M; requires Nakayama-style argument that the closure
+  --    of finite-span-in-M̂ is finite-span-in-M̂ (i.e., span A {m_i} = M̂ in M̂).
+  -- 5. Open ν̂ ⇒ image is open in M̂ ⇒ M open + dense + (M̂ T2) ⇒ M = M̂.
+  -- 6. Hence M is complete.
+  --
+  -- Requires:
+  -- - [ContinuousSMul A M] (per BINDING-RULE (b); not yet in hypothesis bundle).
+  -- - UniformSpace.Completion M's Module A structure (mathlib instance).
+  -- - The closure-span = span argument (Nakayama for fg M̂).
   sorry
 
 /-- **Sub-lemma L3.1b — fg submodule of complete noeth module is closed**.
