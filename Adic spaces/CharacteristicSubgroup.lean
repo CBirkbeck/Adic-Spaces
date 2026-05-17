@@ -507,6 +507,12 @@ theorem restrictIdeal_apply_finset_prod {ι : Type*} (v : Valuation A Γ₀) (I 
     v.restrictIdeal I (∏ i ∈ s, f i) = ∏ i ∈ s, v.restrictIdeal I (f i) :=
   map_prod _ f s
 
+/-- **Finset product preserves nonvanishing.** -/
+theorem restrictIdeal_apply_finset_prod_ne_zero {ι : Type*} (v : Valuation A Γ₀) (I : Ideal A)
+    {s : Finset ι} {f : ι → A} (h : ∀ i ∈ s, v.restrictIdeal I (f i) ≠ 0) :
+    v.restrictIdeal I (∏ i ∈ s, f i) ≠ 0 := by
+  rw [restrictIdeal_apply_finset_prod]; exact Finset.prod_ne_zero_iff.mpr h
+
 end Valuation
 
 namespace ValuationSpectrum
