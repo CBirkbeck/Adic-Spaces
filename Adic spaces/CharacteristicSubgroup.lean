@@ -409,6 +409,14 @@ theorem restrictIdeal_ne_zero_iff (v : Valuation A Γ₀) (I : Ideal A) (a : A) 
           fun ⟨hva_ne, hmem⟩ ↦ ⟨hva_ne, fun hva_ne' h ↦ h hmem⟩⟩
   exact hmem hva_ne h
 
+/-- **`restrictIdeal v I a ≠ 0` for `a ∈ I` with `v(a) ≠ 0`** — `v(a)`
+lies in `cΓ_v(I)` by construction, so it's preserved by the restriction. -/
+theorem restrictIdeal_ne_zero_of_mem_ideal (v : Valuation A Γ₀) {I : Ideal A}
+    {a : A} (ha : a ∈ I) (hva : v a ≠ 0) :
+    v.restrictIdeal I a ≠ 0 :=
+  (restrictIdeal_ne_zero_iff v I a).mpr
+    ⟨hva, vUnit_mem_cGammaIdeal_of_mem_ideal ha hva⟩
+
 end Valuation
 
 namespace ValuationSpectrum
