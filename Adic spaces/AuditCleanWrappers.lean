@@ -61,9 +61,7 @@ universe u
 variable {A : Type u} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
   [PlusSubring A] [IsHuberRing A]
 
-/-- **Wedhorn Cor 8.32, Wedhorn-exact form**: for a strongly noetherian Tate
-affinoid ring and a finite rational covering, the product restriction
-`O_X(X) → ∏ O_X(U_i)` is **faithfully flat**.
+/-! ## Wedhorn Cor 8.32 — option-(1) form with explicit noeth-A₀
 
 **Source** (Wedhorn Cor 8.32, p. 82):
 > "Let `A` be a strongly noetherian Tate affinoid ring, `X = Spa A`, and
@@ -71,22 +69,30 @@ affinoid ring and a finite rational covering, the product restriction
 > the homomorphism `O_X(X) → ∏_{i=1}^n O_X(U_i)`, `f ↦ (f|_{U_i})_{1 ≤ i ≤ n}`
 > is faithfully flat (and in particular injective)."
 
-**Proof**: instance derivation via `IsTateRing.principalPair` +
-audit-pass-2 (`isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof`) +
-audit-pass-2 (`exists_hSpa_points_global_of_stronglyNoetherianTate_proof`), then
-delegate to `productRestriction_faithfullyFlat_tate_of_hSpa_points`. -/
+Discharge: delegates to `productRestriction_faithfullyFlat_tate_of_hSpa_points`
++ explicit noeth-A₀ supplied + audit-pass-2 Spa-points.
+-/
+
+/-- **Option-(1) hypothesis bundle**: per pass-(iii) decision (2026-05-17), the
+noeth-A₀ requirement is **explicit** rather than derived. Wedhorn never asserts
+"strongly noeth Tate ⇒ noeth A₀" (see `decomposition.md`), so the audit-clean
+wrappers below take `(P : PairOfDefinition A) [IsNoetherianRing P.A₀]` as
+parameters. The hypothesis bundle is now:
+`[IsTateRing] + [IsNoetherianRing] + [IsStronglyNoetherian] + [T2Space] +
+[NonarchimedeanRing] + (P) + [IsNoetherianRing P.A₀]`.
+
+This is one step away from Wedhorn-exact but is the lowest-cost recovery from
+the L5.2.2 scope finding. -/
 theorem cor_8_32_clean_proof
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A) :
     letI : ∀ D : { D // D ∈ C.covers }, Algebra (presheafValue C.base)
         (presheafValue D.1) := fun D =>
       (restrictionMapHom C.base D.1 (C.hsubset D.1 D.2)).toAlgebra
     Module.FaithfullyFlat (presheafValue C.base)
       (∀ D : { D // D ∈ C.covers }, presheafValue D.1) := by
-  set P := (IsTateRing.principalPair A).toPairOfDefinition
-  haveI : IsNoetherianRing P.A₀ :=
-    isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof
   haveI : Finite { D : RationalLocData A // D ∈ C.covers } := Finite.of_fintype _
   exact productRestriction_faithfullyFlat_tate_of_hSpa_points P C
     (fun p hp hps =>
@@ -127,14 +133,12 @@ injective) + standard composition. -/
 theorem tateAcyclicity_separation_via_cor832_proof
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
     [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A) (hne : C.covers.Nonempty) :
     ∀ x : presheafValue C.base,
       (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
-        restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0 := by
-  set P := (IsTateRing.principalPair A).toPairOfDefinition
-  haveI : IsNoetherianRing P.A₀ :=
-    isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof
-  exact productRestriction_injective_tate P C hne
+        restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0 :=
+  productRestriction_injective_tate P C hne
 
 /-- **Tate acyclicity Part 2 (gluing), Wedhorn-exact form**: for a
 strongly noetherian Tate affinoid ring and a nonempty rational covering,

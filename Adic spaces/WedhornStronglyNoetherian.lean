@@ -222,36 +222,21 @@ theorem isStronglyNoetherian_of_isNoetherianRing_isTateRing_proof
     IsStronglyNoetherian A :=
   sorry
 
-/-- **Wedhorn principal-pair A₀ noetherian** (cf. Wedhorn Remark 6.19, p. 50):
-for a strongly noetherian Tate ring `A`, the ring of definition `A₀` of the
-canonical principal pair (constructive selector `IsTateRing.principalPair`)
-is noetherian.
+/-- **🚨 SUPERSEDED — see decomposition.md "Pass-(iii) SCOPE finding"**.
 
-**Source** (Wedhorn Remark 6.19, p. 50):
-> "Let `A` be a complete noetherian Tate ring, `A₀` a ring of definition and
-> `s ∈ A₀` a topologically nilpotent unit of `A` (such that `A₀` has the
-> `sA₀`-adic topology). ... Then `{sⁿM₀ ; n ∈ ℕ}` is a fundamental system
-> of open neighborhoods of 0 in `M` for the topology defined in Proposition 6.18."
+This statement claimed "strongly noeth Tate ⇒ noeth A₀ for principal pair",
+but pass-(iii) review confirmed Wedhorn never asserts this and it's not generally
+true. User decision (2026-05-17): accept noeth-A₀ as **explicit hypothesis** at
+audit-clean wrappers (option (1) from the recovery analysis).
 
-**Proof outline**:
-* The principal pair has `A₀ = closure of (image of polynomial ring in s)`
-  where `s` is the topologically nilpotent unit.
-* For strongly noetherian Tate `A`, `A₀` itself is noetherian: take the
-  Wedhorn 6.18(1) topology on `A` regarded as an `A`-module; the open
-  subring `A₀` inherits noetherianness via the descent
-  `A₀ ↪ A` + closed-subring-of-noetherian argument.
-
-Strictly, this needs:
-* Wedhorn 6.18 (for module-topology uniqueness).
-* `A₀ ⊆ A` is open (so the I-adic topology on `A₀` coincides with the
-  subspace topology).
-* Descent of noetherianness from `A` (or rather from `A⟨X⟩` for some `X`)
-  to `A₀` along the localization `A = A₀[1/s]`. -/
+Statement preserved as a named `False`-derivable obligation so any consumer that
+references it can be located via the type system. New consumers should instead
+take `(P : PairOfDefinition A) [IsNoetherianRing P.A₀]` as a parameter. -/
 theorem isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
     [T2Space A] [NonarchimedeanRing A] :
     IsNoetherianRing ↥(IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
-  sorry
+  sorry  -- ⚠ Cannot be proved unconditionally; see option (1) decision.
 
 /-- **Wedhorn principal-pair noetherian — general pair version**: any
 `PairOfDefinition A` (not just the principal pair) has noetherian `A₀`,

@@ -552,6 +552,41 @@ bundle is `Tate + Noeth + Strongly-Noeth + T2 + Nonarch + (P with noeth A₀)`.
 **Difficulty**: BLOCKED (needs user/architect decision on which recovery
 option to pursue).
 
+### 🟢 RESOLUTION (2026-05-17): Option (1) selected
+
+User decision: "it's fine to accept noeth-A0 as a hyp if we need to."
+
+**Implementation**:
+- `isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof` marked
+  **SUPERSEDED** in WedhornStronglyNoetherian.lean (kept as named-sorry stub
+  for backward consumer lookup).
+- `cor_8_32_clean_proof` (AuditCleanWrappers.lean:88) now takes
+  `(P : PairOfDefinition A) [IsNoetherianRing P.A₀]` as **explicit parameter**.
+- `tateAcyclicity_separation_via_cor832_proof` similarly takes P + noeth-A₀
+  as explicit parameters.
+
+**Effective Wedhorn-clean hypothesis bundle** (one step from Wedhorn-exact):
+`[IsTateRing A] + [IsNoetherianRing A] + [IsStronglyNoetherian A] +
+[T2Space A] + [NonarchimedeanRing A] + (P : PairOfDefinition A) +
+[IsNoetherianRing P.A₀]`.
+
+The `P + noeth-A₀` is the only non-Wedhorn-exact decoration. Wedhorn's actual
+proof of Cor 8.32 derives everything from A's structure alone (via Example
+6.38 + Lemma 8.31 + Wedhorn 6.18), but our project's existing `Cor832.lean`
+infrastructure routes through noetherian localizations, hence requires the
+per-pair noeth-A₀.
+
+**Recovery option (3)** (full Wedhorn-faithful refactor of `Cor832.lean`)
+remains a possible future improvement but is not the path we're taking now.
+
+**Build status after option-(1) implementation**: 3136 jobs clean.
+**`cor_8_32_clean_proof` is now PROVED** (no longer transitively sorry through
+the unprovable L5.2.2). Same for `tateAcyclicity_separation_via_cor832_proof`.
+
+Both wrappers are now **genuinely sorry-free** modulo the Layer 1 mathlib gap
+(Banach OMT) and Layer 5's L5.1 chain (T-MATHLIB-STACKS-00MA + audit-pass-2
+strongly-noeth derivation).
+
 ### L5.4.1, L5.4.2 — Spa-point existence pieces
 
 Both **already in project** — discharge is by citation:
