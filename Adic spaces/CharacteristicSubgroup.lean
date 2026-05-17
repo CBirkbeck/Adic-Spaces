@@ -457,6 +457,11 @@ theorem restrictIdeal_apply_one_ne_zero (v : Valuation A Γ₀) (I : Ideal A) :
     v.restrictIdeal I (1 : A) ≠ 0 := by
   rw [restrictIdeal_apply_one]; exact one_ne_zero
 
+/-- **Square formula for `restrictIdeal`:** `restrictIdeal(a*a) = (restrictIdeal a)^2`. -/
+theorem restrictIdeal_apply_sq (v : Valuation A Γ₀) (I : Ideal A) (a : A) :
+    v.restrictIdeal I (a * a) = (v.restrictIdeal I a) ^ 2 := by
+  rw [restrictIdeal_apply_mul, sq]
+
 end Valuation
 
 namespace ValuationSpectrum
