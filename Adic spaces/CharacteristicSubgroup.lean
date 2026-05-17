@@ -437,6 +437,11 @@ theorem restrictIdeal_apply_neg (v : Valuation A Γ₀) (I : Ideal A) (r : A) :
     v.restrictIdeal I (-r) = v.restrictIdeal I r :=
   Valuation.map_neg _ r
 
+/-- **Ultrametric inequality for `restrictIdeal`:** `restrictIdeal(a + b) ≤ max(restrictIdeal(a), restrictIdeal(b))`. -/
+theorem restrictIdeal_apply_add_le_max (v : Valuation A Γ₀) (I : Ideal A) (a b : A) :
+    v.restrictIdeal I (a + b) ≤ max (v.restrictIdeal I a) (v.restrictIdeal I b) :=
+  Valuation.map_add _ a b
+
 end Valuation
 
 namespace ValuationSpectrum
