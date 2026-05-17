@@ -634,6 +634,76 @@ theorem wedhorn_6_18_unique
         τ.toTopologicalSpace = τ'.toTopologicalSpace :=
   sorry
 
+/-- **Wedhorn 6.18(1) — EXISTENCE portion only (UAG + complete + cg)**.
+
+Constructs a canonical uniform structure on `M` (the **quotient uniformity**
+from a surjection `Aⁿ → M`) that is UAG + complete + countably-generated.
+This is the existence half of `wedhorn_6_18_unique`; the uniqueness half is
+genuinely false without additional `[T2Space]` + `[ContinuousSMul]` hypotheses
+on the alternative uniform structure (counterexample: M = ℤ with discrete vs
+indiscrete topology both UAG + complete + cg yet have different topologies),
+so the existence is the meaningful unconditional content.
+
+Construction: pick generators `s : Fin n → M`, form `ν : (Fin n → A) →+ M`
+surjective, take the quotient `(Fin n → A) ⧸ ker ν`, equip with the
+canonical `IsTopologicalAddGroup.rightUniformSpace`, transport back to `M`
+via the `AddEquiv` `(Fin n → A) ⧸ ker ν ≃+ M`.
+
+This is BGR §3.7.2/2 existence: every fg `A`-module admits a complete-cg
+uniformity. -/
+theorem wedhorn_6_18_exists_canonical_topology
+    {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
+      [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
+      [IsNoetherianRing A]
+    (M : Type*) [AddCommGroup M] [Module A M] [Module.Finite A M] :
+    ∃ (τ : UniformSpace M),
+      @IsUniformAddGroup M τ _ ∧
+      @CompleteSpace M τ ∧
+      (@uniformity M τ).IsCountablyGenerated := by
+  classical
+  obtain ⟨n, s, hs_span⟩ := Module.Finite.exists_fin (R := A) (M := M)
+  let ν : (Fin n → A) →+ M :=
+    { toFun := fun a => ∑ i, a i • s i
+      map_zero' := by simp
+      map_add' := fun x y => by
+        simp only [Pi.add_apply, add_smul, Finset.sum_add_distrib] }
+  have hν_surj : Function.Surjective ν := by
+    intro m
+    have hm : m ∈ Submodule.span A (Set.range s) := by
+      rw [hs_span]; exact Submodule.mem_top
+    rw [Submodule.mem_span_range_iff_exists_fun] at hm
+    obtain ⟨a, ha⟩ := hm
+    exact ⟨a, ha⟩
+  let eq : ((Fin n → A) ⧸ ν.ker) ≃+ M :=
+    QuotientAddGroup.quotientKerEquivOfSurjective ν hν_surj
+  haveI : FirstCountableTopology (Fin n → A) := UniformSpace.firstCountableTopology _
+  haveI : FirstCountableTopology ((Fin n → A) ⧸ ν.ker) :=
+    QuotientAddGroup.instFirstCountableTopology ν.ker
+  letI τQ : UniformSpace ((Fin n → A) ⧸ ν.ker) :=
+    IsTopologicalAddGroup.rightUniformSpace ((Fin n → A) ⧸ ν.ker)
+  haveI : @IsUniformAddGroup _ τQ _ := isUniformAddGroup_of_addCommGroup
+  haveI : @CompleteSpace _ τQ :=
+    QuotientAddGroup.completeSpace_right (Fin n → A) ν.ker
+  haveI : (@uniformity _ τQ).IsCountablyGenerated :=
+    IsUniformAddGroup.uniformity_countably_generated
+  letI τM : UniformSpace M := UniformSpace.comap eq.symm τQ
+  refine ⟨τM, ?_, ?_, ?_⟩
+  · -- IsUniformAddGroup M via comap of UAG quotient through eq.symm AddMonoidHom.
+    exact IsUniformAddGroup.comap eq.symm.toAddMonoidHom
+  · -- CompleteSpace via completeSpace_congr applied to eq.symm as IsUniformEmbedding.
+    have h_emb : @IsUniformEmbedding _ _ τM τQ eq.symm.toEquiv := by
+      apply Equiv.isUniformEmbedding
+      · exact uniformContinuous_comap
+      · refine uniformContinuous_comap' ?_
+        have h_id : (⇑eq.symm ∘ ⇑eq.symm.toEquiv.symm :
+            ((Fin n → A) ⧸ ν.ker) → ((Fin n → A) ⧸ ν.ker)) = id := by
+          ext x; simp
+        rw [h_id]; exact uniformContinuous_id
+    exact (completeSpace_congr h_emb).mpr (by infer_instance)
+  · -- IsCountablyGenerated via Filter.comap.isCountablyGenerated.
+    change (Filter.comap _ _).IsCountablyGenerated
+    exact Filter.comap.isCountablyGenerated _ _
+
 /-- **Wedhorn 6.18(2) — continuity part** = BGR §3.7.3/2. For a complete
 noetherian Tate ring `A` and two finitely generated `A`-modules `M, N`
 equipped with their (unique by 6.18(1)) complete countably-generated
