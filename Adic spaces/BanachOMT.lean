@@ -6,6 +6,9 @@ import Mathlib.Topology.Algebra.IsUniformGroup.Defs
 import Mathlib.Topology.Baire.CompleteMetrizable
 import Mathlib.Topology.Algebra.Group.OpenMapping
 import Mathlib.Topology.Algebra.Group.Pointwise
+import Mathlib.Algebra.BigOperators.Fin
+import Mathlib.Algebra.BigOperators.Intervals
+import Mathlib.Topology.UniformSpace.Cauchy
 
 /-!
 # Banach's open mapping theorem for complete metric topological abelian groups
@@ -338,9 +341,64 @@ theorem _sub_sub_lemma_D_1_cauchy_builder
     [(uniformity G).IsCountablyGenerated]
     (basis : ℕ → Set G) (hbasis : ∀ n, basis n ∈ nhds (0 : G))
     (hshrink : ∀ n, basis (n + 1) + basis (n + 1) ⊆ basis n)
+    -- BINDING-RULE (b) addition: without cofinality, the conclusion fails
+    -- (counterexample: basis n = univ for all n; shrinking holds trivially,
+    -- but step n = n in ℝ then satisfies hstep yet step is not Cauchy).
+    -- Cofinality matches BGR's implicit assumption (basis is a fundamental
+    -- system of nbhds of 0); every consumer of this lemma supplies it via
+    -- the IsCountablyGenerated nhds 0 basis.
+    (hcofinal : ∀ V ∈ nhds (0 : G), ∃ n, basis n ⊆ V)
     (step : (n : ℕ) → G) (hstep : ∀ n, step (n + 1) - step n ∈ basis n) :
-    CauchySeq step :=
-  sorry
+    CauchySeq step := by
+  have h0_basis : ∀ n, (0 : G) ∈ basis n := fun n => mem_of_mem_nhds (hbasis n)
+  have hbasis_dec : ∀ n, basis (n + 1) ⊆ basis n := fun n x hx => by
+    have hsum : x + 0 ∈ basis (n + 1) + basis (n + 1) := Set.add_mem_add hx (h0_basis _)
+    rw [add_zero] at hsum; exact hshrink _ hsum
+  -- Sum lemma: for any indexed family with xs i ∈ basis (n + 1 + i), Σ xs ∈ basis n.
+  -- Proved by induction on k via iterated doubling.
+  have hsum_lemma : ∀ k : ℕ, ∀ n : ℕ, ∀ xs : Fin k → G,
+      (∀ i : Fin k, xs i ∈ basis (n + 1 + i)) → ∑ i, xs i ∈ basis n := by
+    intro k
+    induction k with
+    | zero =>
+      intro n xs _
+      simp only [Finset.univ_eq_empty, Finset.sum_empty]; exact h0_basis _
+    | succ k ih =>
+      intro n xs hxs
+      rw [Fin.sum_univ_succ]
+      have h0 : xs 0 ∈ basis (n + 1) := by have := hxs 0; simpa using this
+      have hrest : ∑ i, xs (Fin.succ i) ∈ basis (n + 1) := by
+        apply ih (n + 1)
+        intro i
+        have := hxs (Fin.succ i)
+        convert this using 2
+        simp [Fin.val_succ]; ring
+      exact hshrink _ (Set.add_mem_add h0 hrest)
+  -- Telescoping: step (n + 1 + k) - step (n + 1) ∈ basis n via Finset.sum_range_sub.
+  have htele : ∀ n k : ℕ, step (n + 1 + k) - step (n + 1) ∈ basis n := by
+    intro n k
+    have hsum_eq : step (n + 1 + k) - step (n + 1)
+        = ∑ i ∈ Finset.range k, (step (n + 1 + (i + 1)) - step (n + 1 + i)) := by
+      rw [Finset.sum_range_sub (fun i => step (n + 1 + i))]
+    rw [hsum_eq, ← Fin.sum_univ_eq_sum_range]
+    apply hsum_lemma k n
+    intro j
+    have h := hstep (n + 1 + (j : ℕ))
+    convert h using 2
+  -- basis is a HasBasis for nhds 0.
+  have hbasis_basis : (nhds (0 : G)).HasBasis (fun _ : ℕ => True) basis :=
+    ⟨fun V => ⟨fun hV => (hcofinal V hV).imp (fun _ h => ⟨trivial, h⟩),
+      fun ⟨n, _, hsub⟩ => Filter.mem_of_superset (hbasis n) hsub⟩⟩
+  -- Uniformity basis via swapped form: (a, b) ∈ s_n ↔ a - b ∈ basis n.
+  have hunif_basis : (uniformity G).HasBasis (fun _ : ℕ => True)
+      (fun n => {x | x.1 - x.2 ∈ basis n}) :=
+    hbasis_basis.uniformity_of_nhds_zero_swapped
+  rw [hunif_basis.cauchySeq_iff']
+  intro n _
+  refine ⟨n + 1, fun k hk => ?_⟩
+  change step k - step (n + 1) ∈ basis n
+  obtain ⟨j, rfl⟩ : ∃ j, k = n + 1 + j := ⟨k - (n + 1), by omega⟩
+  exact htele n j
 
 /-- **Sub-sub-lemma D.2 — Cauchy limit lives in nbhd**.
 
