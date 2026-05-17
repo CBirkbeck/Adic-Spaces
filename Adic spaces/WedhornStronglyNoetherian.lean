@@ -260,8 +260,17 @@ Inductive step iterates k times.
 preservation step. -/
 theorem isStronglyNoetherian_of_isNoetherianRing_isTateRing_proof
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A] :
-    IsStronglyNoetherian A :=
-  sorry
+    IsStronglyNoetherian A := by
+  refine ⟨?_⟩
+  intro k
+  induction k with
+  | zero =>
+    -- Base case `restrictedMvPowerSeriesSubring 0 A ≅ A`, which is noetherian.
+    -- The k = 0 subring is isomorphic to A via `MvPowerSeries.empty` identification.
+    sorry
+  | succ k ih =>
+    -- Inductive step is L5.1.3.
+    exact _sub_lemma_L5_1_3_inductive_step k ih
 
 /-- **🚨 SUPERSEDED — see decomposition.md "Pass-(iii) SCOPE finding"**.
 
@@ -319,7 +328,16 @@ theorem exists_hSpa_points_global_of_stronglyNoetherianTate_proof
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
     [T2Space A] [NonarchimedeanRing A] :
     ∀ (T : Finset A) (s : A) (p : Ideal A), p.IsPrime → s ∉ p →
-      ∃ v ∈ rationalOpen T s, p ≤ v.supp :=
-  sorry
+      ∃ v ∈ rationalOpen T s, p ≤ v.supp := by
+  intro T s p hp hs_notin
+  haveI : p.IsPrime := hp
+  -- Case-split on whether p is open or not.
+  by_cases hp_open : IsOpen (p : Set A)
+  · -- Open case: L5.4.1 (trivial-valuation construction).
+    exact _sub_lemma_L5_4_1_open_prime_spa_point T s p hp hp_open hs_notin
+  · -- Non-open case: L5.4.2 via Wedhorn 7.45.
+    -- L5.4.2 requires PairOfDefinition + IsAdicComplete + A⁺ ⊆ P.A₀ —
+    -- supplied from the principal pair. Left as a focused dependency.
+    sorry
 
 end ValuationSpectrum
