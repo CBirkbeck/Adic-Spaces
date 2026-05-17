@@ -146,8 +146,17 @@ theorem _sub_lemma_L3_1b_fg_submodule_closed
       [UniformSpace M] [IsUniformAddGroup M]
       [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
     (N : Submodule A M) (hN_fg : N.FG) :
-    IsClosed (N : Set M) :=
-  sorry
+    IsClosed (N : Set M) := by
+  -- ↥N inherits subspace uniform structure from M.
+  haveI : IsUniformAddGroup ↥N :=
+    show IsUniformAddGroup ↥N.toAddSubgroup from inferInstance
+  haveI : (uniformity ↥N).IsCountablyGenerated := Filter.comap.isCountablyGenerated _ _
+  haveI : Module.Finite A ↥N := (Module.Finite.iff_fg (N := N)).mpr hN_fg
+  -- L3.1a gives CompleteSpace ↥N for the fg subspace.
+  haveI : CompleteSpace ↥N := _sub_lemma_L3_1a_completion_fg_complete (A := A) (M := ↥N)
+    inferInstance
+  -- Complete subset of T2 ambient ⇒ closed.
+  exact (completeSpace_coe_iff_isComplete.mp ‹CompleteSpace ↥N›).isClosed
 
 /-- **Sub-lemma L3.2 — Baire chain stationary**.
 
