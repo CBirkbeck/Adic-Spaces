@@ -106,10 +106,19 @@ but none directly give "closure has interior ⇒ difference contains nbhd of 0".
 **Sources**: BGR §3.7.2 proof of Prop 1 + standard Banach OMT proof. -/
 theorem _sub_lemma_symmetric_absorbs
     {H : Type v} [AddCommGroup H] [TopologicalSpace H] [IsTopologicalAddGroup H]
-    (K : Set H) (hK_closed : IsClosed K) (hK_sym : K = (fun x => -x) '' K)
+    (K : Set H) (_hK_closed : IsClosed K) (_hK_sym : K = (fun x => -x) '' K)
     (h_int : (interior K).Nonempty) :
-    (Set.image2 (· - ·) K K) ∈ nhds (0 : H) :=
-  sorry
+    (Set.image2 (· - ·) K K) ∈ nhds (0 : H) := by
+  -- Let V = interior K: open, ⊆ K, nonempty.
+  -- Then V - V is open and contains 0; V - V ⊆ K - K.
+  have hV_open : IsOpen (interior K) := isOpen_interior
+  have hV_subset : interior K ⊆ K := interior_subset
+  obtain ⟨x, hx⟩ := h_int
+  have hVV_open : IsOpen (interior K - interior K) := hV_open.sub_left
+  have h0 : (0 : H) ∈ interior K - interior K := ⟨x, hx, x, hx, sub_self x⟩
+  have hVV_KK : (interior K - interior K) ⊆ Set.image2 (· - ·) K K :=
+    Set.image2_subset hV_subset hV_subset
+  exact mem_nhds_iff.mpr ⟨interior K - interior K, hVV_KK, hVV_open, h0⟩
 
 /-- **Sub-lemma B — Countable cover by integer multiples**.
 
@@ -309,10 +318,10 @@ theorem _sub_sub_lemma_D_2_limit_in_nbhd
     {G : Type u} [AddCommGroup G] [UniformSpace G] [IsUniformAddGroup G]
     [CompleteSpace G] [(uniformity G).IsCountablyGenerated]
     (step : ℕ → G) (hcauchy : CauchySeq step)
-    (basis : ℕ → Set G) (hbasis : ∀ n, basis n ∈ nhds (0 : G)) :
-    -- Statement existential: the limit exists; placeholder.
-    True :=
-  trivial
+    (V : Set G) (hV : V ∈ nhds (0 : G))
+    (hstep_in_V : ∀ n, step n - step 0 ∈ V) :
+    ∃ x : G, Filter.Tendsto step Filter.atTop (nhds x) ∧ x - step 0 ∈ closure V :=
+  sorry
 
 /-! ## Main theorem (composes sub-lemmas A-E from sub-sub-lemmas A.1, A.2, C.1, C.2, D.1, D.2)
 -/

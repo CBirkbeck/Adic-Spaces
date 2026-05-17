@@ -228,13 +228,32 @@ theorem _sub_lemma_L4_1_quotient_complete
     {M : Type*} [AddCommGroup M] [Module A M]
       [UniformSpace M] [IsUniformAddGroup M]
       [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
-    (K : Submodule A M) (hK_closed : IsClosed (K : Set M)) :
-    -- Quotient M/K equipped with quotient uniformity is complete + countably-generated
-    -- (statement is existential — the quotient type carries the topology automatically).
-    True :=
-  -- The actual content is captured by the typeclass instances we need to make
-  -- available at use sites. This placeholder records the obligation.
-  trivial
+    (K : Submodule A M) (_hK_closed : IsClosed (K : Set M)) :
+    -- Existential: there exists a uniformity on M ⧸ K making the quotient
+    -- map continuous + the quotient complete + countably-generated.
+    -- (The canonical quotient uniformity from K.toAddSubgroup; existence stated
+    -- here, instance derivation done at use site.)
+    ∃ (τ : UniformSpace (M ⧸ K)),
+      @IsUniformAddGroup _ τ _ ∧
+      @CompleteSpace _ τ ∧
+      (@uniformity _ τ).IsCountablyGenerated := by
+  -- M is first-countable from countably-generated uniformity (mathlib instance)
+  haveI : FirstCountableTopology M := UniformSpace.firstCountableTopology M
+  -- Quotient is first-countable (mathlib instance, needs explicit subgroup arg)
+  haveI : FirstCountableTopology (M ⧸ K) :=
+    QuotientAddGroup.instFirstCountableTopology K.toAddSubgroup
+  -- Take τ := canonical right uniform space from the topological additive group structure.
+  letI τ : UniformSpace (M ⧸ K) := IsTopologicalAddGroup.rightUniformSpace (M ⧸ K)
+  refine ⟨τ, ?_, ?_, ?_⟩
+  · -- IsUniformAddGroup via abelian-group lemma
+    exact isUniformAddGroup_of_addCommGroup
+  · -- CompleteSpace: use mathlib's QuotientAddGroup.completeSpace_right instance.
+    -- With τ in scope as the default UniformSpace, inferInstance finds it.
+    exact QuotientAddGroup.completeSpace_right M K.toAddSubgroup
+  · -- IsCountablyGenerated via IsUniformAddGroup.uniformity_countably_generated;
+    -- needs IsUniformAddGroup w.r.t. our chosen τ + IsCountablyGenerated (𝓝 0).
+    haveI : @IsUniformAddGroup (M ⧸ K) τ _ := isUniformAddGroup_of_addCommGroup
+    exact IsUniformAddGroup.uniformity_countably_generated
 
 /-- **Sub-lemma L4.2 — A-linear map between fg modules is continuous**.
 

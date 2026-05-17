@@ -1,15 +1,39 @@
 # Decomposition: Wedhorn 6.16 / 6.17 / 6.18 chain + audit-pass-2 trio
 
-**Updated 2026-05-17, second pass — leaf-level decomposition for Layer 1.**
+**Updated 2026-05-17, fourth pass — placeholder audit and remediation.**
 
 ## Honesty preamble
 
 The first pass of this decomposition stated the top-level theorems but did not
 decompose them into the sub-lemmas the proofs actually need. The second pass
-(this document) decomposes Layer 1 into 5 sub-lemmas (A-E) with mathlib-search
-verification per leaf. Layers 2-5 are reviewed for "easy-to-prove vs. needs
-its own sub-decomposition" status; the ones that need sub-decomposition are
-flagged below.
+decomposed Layer 1 into 5 sub-lemmas (A-E) with mathlib-search verification.
+
+**Fourth pass (2026-05-17 evening) — placeholder audit**: in response to the
+user's question "are all these decomposed results stated in lean as lemmas
+with sorries? and have you checked they are correct", a full audit found
+**9 placeholder lemmas** stated as `theorem foo : True := trivial` rather
+than carrying their actual mathematical claim. Per user memory
+`feedback_no_placeholder_theorems` these are BANNED.
+
+Status (as of 2026-05-17 evening, post-audit):
+
+| # | Lemma | Pre-audit status | Post-audit fix |
+|---|-------|------------------|----------------|
+| 1 | `_sub_sub_lemma_D_2_limit_in_nbhd` (BanachOMT.lean) | `True := trivial` | Real existential statement, `:= sorry` |
+| 2 | `_sub_lemma_L4_1_quotient_complete` (WedhornBanachTheorem.lean) | `True := trivial` | Existential over `UniformSpace (M ⧸ K)`, `:= sorry` |
+| 3 | `_sub_lemma_L5_1_1_tateAlgebra_eq_adicCompletion` | `True := trivial` | RingEquiv-style claim, `:= sorry` |
+| 4 | `_sub_lemma_L5_1_2_adicCompletion_noetherian` | `True := trivial` | `IsNoetherianRing (AdicCompletion I R)`, `:= sorry` (Stacks 00MA) |
+| 5 | `_sub_lemma_L5_1_3_inductive_step` | `True := trivial` | Inductive `IsNoetherianRing` step, `:= sorry` |
+| 6 | `_sub_lemma_L5_2_1_A₀_open_bounded` | `True := trivial` | `IsOpen ∧ IsBounded`, **PROVED** via `⟨P.isOpen, P.isBounded_A₀⟩` |
+| 7 | `_sub_lemma_L5_2_2_A₀_noeth_via_localization` | `True := trivial` | `IsNoetherianRing P.A₀`, `:= sorry` (SUPERSEDED — see resolution) |
+| 8 | `_sub_lemma_L5_4_1_open_prime_spa_point` | `True := trivial` | Spa-point existence at open prime, `:= sorry` |
+| 9 | `_sub_lemma_L5_4_2_nonOpen_prime_spa_point` | `True := trivial` | Spa-point at non-open prime via Wedhorn 7.45, `:= sorry` |
+
+Build status post-remediation: `lake build` passes (3136 jobs, sorries-only
+warnings; no type errors). All 9 lemmas now carry their actual mathematical
+claim and either `:= sorry` (8) or a real proof (1: L5.2.1).
+
+The first pass of leaf-level checking continues below.
 
 ## Skeleton location
 

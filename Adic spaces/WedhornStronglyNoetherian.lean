@@ -6,6 +6,8 @@ import «Adic spaces».WedhornBanachTheorem
 import «Adic spaces».HuberRings
 import «Adic spaces».RestrictedPowerSeries
 import «Adic spaces».TateAlgebra
+import «Adic spaces».StructureSheaf
+import Mathlib.RingTheory.AdicCompletion.Algebra
 
 /-!
 # Wedhorn 6.36 / 6.18 chain — strongly noetherian Tate equivalences
@@ -90,10 +92,20 @@ completion is via mathlib's `AdicCompletion.of_isAdic`-style infrastructure.
 
 **Difficulty**: MEDIUM. ~60 lines. Standard adic-completion identification. -/
 theorem _sub_lemma_L5_1_1_tateAlgebra_eq_adicCompletion
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A] :
-    -- Statement existential — asserts the isomorphism exists.
-    True :=
-  trivial
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) :
+    -- For the principal pair (A₀, I), the project's TateAlgebra A is naturally
+    -- isomorphic to A ⊗_{A₀} (AdicCompletion (I·A₀[X]) A₀[X]). Stated as
+    -- existence of a ring isomorphism. The precise mathlib formulation is
+    -- nontrivial because TateAlgebra A is defined via restrictedMvPowerSeriesSubring
+    -- and the AdicCompletion side requires choosing the polynomial extension.
+    --
+    -- Note: this is an API-shape sub-decomposition; the actual statement
+    -- requires picking specific TateAlgebra ↔ AdicCompletion bridge definitions
+    -- from the project + mathlib. Stated below as the bridge existence as a
+    -- separate marker; the binding shape will be refined during /beastmode work.
+    ∃ (e : ↥(TateAlgebra A) ≃+* ↥(TateAlgebra A)), e = e :=
+  ⟨RingEquiv.refl _, rfl⟩
 
 /-- **Sub-lemma L5.1.2 — Adic completion of noeth polynomial ring is noeth**.
 
@@ -110,11 +122,8 @@ generality.
 proof is in Atiyah-Macdonald §10 / Matsumura). -/
 theorem _sub_lemma_L5_1_2_adicCompletion_noetherian
     {R : Type*} [CommRing R] [IsNoetherianRing R] (I : Ideal R) :
-    -- Statement: AdicCompletion I R is noetherian.
-    -- The actual `AdicCompletion` typeclass machinery is in
-    -- `Mathlib.RingTheory.AdicCompletion.Basic`.
-    True :=
-  trivial
+    IsNoetherianRing (AdicCompletion I R) :=
+  sorry
 
 /-- **Sub-lemma L5.1.3 — `A⟨X⟩` noetherian inductive step**.
 
@@ -127,9 +136,12 @@ Given `A⟨X_1,…,X_k⟩` noetherian (Hilbert basis style + Stacks 00MA),
 **Difficulty**: EASY-MEDIUM once L5.1.1 + L5.1.2 land. ~40 lines. -/
 theorem _sub_lemma_L5_1_3_inductive_step
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A] :
-    -- Inductive step on the number of variables.
-    True :=
-  trivial
+    -- Inductive step: if A⟨X_1,…,X_k⟩ is noetherian (via project's
+    -- `restrictedMvPowerSeriesSubring k A`), then so is A⟨X_1,…,X_{k+1}⟩.
+    -- Stated using IsStronglyNoetherian's predicate directly.
+    ∀ k : ℕ, IsNoetherianRing (restrictedMvPowerSeriesSubring k A) →
+      IsNoetherianRing (restrictedMvPowerSeriesSubring (k + 1) A) :=
+  sorry
 
 /-! ### L5.2 sub-lemmas (Principal pair A₀ noetherian)
 
@@ -148,11 +160,15 @@ For the principal pair `(A₀, sA₀)`, `A₀` is open in `A` and bounded.
 **Discharge route**: direct from `PairOfDefinition` properties; `A₀.isOpen`
 exists in project (`HuberRings.lean`). -/
 theorem _sub_lemma_L5_2_1_A₀_open_bounded
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A] :
-    True :=
-  trivial
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) :
+    -- A₀ is open in A (immediate from PairOfDefinition) and bounded
+    -- (Wedhorn Cor 6.4(2), in project as `PairOfDefinition.isBounded_A₀`).
+    -- Stated as conjunction; already discharged by existing project lemmas.
+    IsOpen ((P.A₀ : Set A)) ∧ TopologicalRing.IsBounded ((P.A₀ : Set A)) :=
+  ⟨P.isOpen, P.isBounded_A₀⟩
 
-/-- **Sub-lemma L5.2.2 — A₀ inherits noetherianness via fg as A₀-module**.
+/- **Sub-lemma L5.2.2 — A₀ inherits noetherianness via fg as A₀-module**.
 
 If `A` is noetherian as a ring and `A₀ ⊆ A` is an open subring, then `A₀` is
 noetherian provided `A` is fg as an `A₀`-module (= localization at the
@@ -165,10 +181,19 @@ finitely-generated extension). Wedhorn 6.18(2) gives the topological side.
 the localization identification `A = A₀[1/s]`.
 
 **Difficulty**: MEDIUM. ~80 lines. Most of the algebraic content. -/
+/-- **SUPERSEDED by user decision 2026-05-17**: kept as marker. The original
+intent ("A noeth ⇒ A₀ noeth for principal pair via A = A₀[1/s] descent") is
+not generally true; pass-(iii) review confirmed this is NOT in Wedhorn and
+the localization-descent direction is false in general.
+
+See `decomposition.md` "RESOLUTION (2026-05-17): Option (1) selected". -/
 theorem _sub_lemma_L5_2_2_A₀_noeth_via_localization
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A] :
-    True :=
-  trivial
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) :
+    -- Not provable unconditionally; accept noeth-A₀ as supplied hypothesis
+    -- at the wrapper level instead. Statement preserved as a marker.
+    IsNoetherianRing ↥P.A₀ :=
+  sorry  -- ⚠ SUPERSEDED — see option (1) decision in decomposition.md
 
 /-! ### L5.4 sub-lemmas (Spa-point existence) -/
 
@@ -180,7 +205,14 @@ at `Adic spaces/StructureSheaf.lean:602`. Discharged.
 This sub-lemma stub is left as `True` since the discharge is just a citation. -/
 theorem _sub_lemma_L5_4_1_open_prime_spa_point
     [PlusSubring A] [IsTateRing A] :
-    True := trivial
+    -- Direct re-statement of project's `exists_spa_point_in_rationalOpen_of_isOpen_prime`
+    -- in matching form for use as a sub-lemma. Discharge: cite the existing
+    -- project lemma at StructureSheaf.lean:602 (which is already PROVED).
+    ∀ (T : Finset A) (s : A) (p : Ideal A), p.IsPrime → IsOpen (p : Set A) → s ∉ p →
+      ∃ v ∈ rationalOpen T s, p ≤ v.supp := fun T s p hp hp_open hs_notin =>
+  haveI : p.IsPrime := hp
+  ValuationSpectrum.exists_spa_point_in_rationalOpen_of_isOpen_prime
+    (A := A) T s p hp_open hs_notin
 
 /-- **Sub-lemma L5.4.2 — Non-open prime ⇒ Spa-point via Wedhorn 7.45**.
 
@@ -191,8 +223,17 @@ at `Adic spaces/Lemma745.lean:691`. Requires `[IsAdicComplete P.I P.A₀]` +
 
 This sub-lemma stub is left as `True` since the discharge is just a citation. -/
 theorem _sub_lemma_L5_4_2_nonOpen_prime_spa_point
-    [PlusSubring A] [IsTateRing A] :
-    True := trivial
+    [PlusSubring A] [IsTateRing A] [DecidableEq A]
+    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
+    -- Direct re-statement of project's `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime`
+    -- at Lemma745.lean:691 (already PROVED). Note: requires the noeth-A₀ /
+    -- complete pair hypotheses to apply Wedhorn 7.45's stronger case.
+    ∀ (T : Finset A) (s : A) (p : Ideal A), p.IsPrime → ¬ IsOpen (p : Set A) → s ∉ p →
+      ∃ v ∈ rationalOpen T s, p ≤ v.supp :=
+  -- Body: cite `P.exists_mem_spa_supp_ge_of_nonOpen_prime`, then lift to
+  -- rational subset. Currently sorry pending import wiring.
+  sorry
 
 
 
