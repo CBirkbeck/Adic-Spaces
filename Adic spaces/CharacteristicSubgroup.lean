@@ -452,6 +452,11 @@ theorem restrictIdeal_apply_sub_le_max (v : Valuation A Γ₀) (I : Ideal A) (a 
     v.restrictIdeal I (a - b) ≤ max (v.restrictIdeal I a) (v.restrictIdeal I b) :=
   Valuation.map_sub _ a b
 
+/-- **`restrictIdeal v I 1 ≠ 0`** — the multiplicative identity is never sent to `0`. -/
+theorem restrictIdeal_apply_one_ne_zero (v : Valuation A Γ₀) (I : Ideal A) :
+    v.restrictIdeal I (1 : A) ≠ 0 := by
+  rw [restrictIdeal_apply_one]; exact one_ne_zero
+
 end Valuation
 
 namespace ValuationSpectrum
