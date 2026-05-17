@@ -486,6 +486,11 @@ theorem restrictIdeal_apply_pow_eq_zero_iff (v : Valuation A Γ₀) (I : Ideal A
     v.restrictIdeal I (a ^ n) = 0 ↔ v.restrictIdeal I a = 0 := by
   rw [restrictIdeal_apply_pow, pow_eq_zero_iff hn]
 
+/-- **Product equals zero iff a factor equals zero.** Uses absence of zero divisors in `Γ₀`. -/
+theorem restrictIdeal_apply_mul_eq_zero_iff (v : Valuation A Γ₀) (I : Ideal A) (a b : A) :
+    v.restrictIdeal I (a * b) = 0 ↔ v.restrictIdeal I a = 0 ∨ v.restrictIdeal I b = 0 := by
+  rw [restrictIdeal_apply_mul, mul_eq_zero]
+
 end Valuation
 
 namespace ValuationSpectrum
