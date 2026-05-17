@@ -1477,8 +1477,6 @@ theorem unitGeneratedCover_has_relative_ratioLaurentRefinement
     _h_unitCover.2.2.2
   -- Step 2: list of all ratio labels `u_g · u_h⁻¹` for (g, h) ∈ I_units × I_units.
   -- Uses `Finset.attach` to carry the `h ∈ I_units` proof needed for `IsUnit u_h`.
-  let pairs : Finset {x // x ∈ I_units} × Finset {x // x ∈ I_units} :=
-    (I_units.attach, I_units.attach)
   let ratio_list : List (presheafValue L) :=
     ((I_units.attach.toList) ×ˢ (I_units.attach.toList)).map fun ⟨gp, hp⟩ =>
       relativeUnitGenerator L C gp.val h_unit_base *
