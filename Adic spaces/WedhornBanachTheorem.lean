@@ -237,14 +237,30 @@ theorem _sub_lemma_L3_2_baire_chain_submodule
   haveI : (uniformity ↥M_inf).IsCountablyGenerated := Filter.comap.isCountablyGenerated _ _
   haveI : CompleteSpace ↥M_inf := hM_inf_closed.completeSpace_coe
   haveI : T2Space ↥M_inf := inferInstance
-  -- Apply Baire: ∃ k₀, the inclusion (chain k₀ → M_inf) has nonempty interior in M_inf.
-  -- This uses C.2 with S n := preimage of chain n under M_inf ↪ M.
-  -- For brevity, sub-sorry the Baire-find-and-absorb composite, which still requires:
-  --   * computing M_inf = ⋃ k chain k as Set ↥M_inf
-  --   * applying C.2 to get nonempty interior at some k₀
-  --   * the topologically-nilpotent-unit absorption to lift k₀'s interior to M_inf-wide
-  --   * deriving chain stationarity from there
-  -- Each piece is mechanical given the toolbox above.
+  -- Each chain k is closed in M (hypothesis), hence closed in ↥M_inf via preimage.
+  have hk_closed_in_inf : ∀ k, IsClosed
+      ((Subtype.val : ↥M_inf → M) ⁻¹' (chain k : Set M)) := fun k =>
+    (h_all_closed (chain k)).preimage continuous_subtype_val
+  -- M_inf = ⋃ k, chain k as Sets of M, via directed iSup (monotone ⇒ directed).
+  have h_inf_union : (M_inf : Set M) = ⋃ k, (chain k : Set M) :=
+    Submodule.coe_iSup_of_directed _ hchain.directed_le
+  -- Lift to ↥M_inf: univ = ⋃ k, (preimage of chain k via Subtype.val).
+  have h_subtype_univ :
+      ⋃ k, ((Subtype.val : ↥M_inf → M) ⁻¹' (chain k : Set M)) = Set.univ := by
+    ext ⟨x, hx⟩
+    simp only [Set.mem_iUnion, Set.mem_preimage, Set.mem_univ, iff_true]
+    have : x ∈ (M_inf : Set M) := hx
+    rw [h_inf_union, Set.mem_iUnion] at this
+    exact this
+  -- Nonempty witness for C.2.
+  haveI : Nonempty ↥M_inf := ⟨⟨0, M_inf.zero_mem⟩⟩
+  -- Apply C.2 (Baire): some chain k₀ has nonempty interior in ↥M_inf.
+  obtain ⟨k₀, _hk₀_int⟩ := AddMonoidHom._sub_sub_lemma_C_2_baire_nonempty_interior
+    (fun k => (Subtype.val : ↥M_inf → M) ⁻¹' (chain k : Set M))
+    hk_closed_in_inf h_subtype_univ
+  -- Remaining: lift the interior witness to chain stationarity via topologically
+  -- nilpotent unit absorption: for any m ∈ M_inf, π^n • m → 0 eventually in the
+  -- nbhd-of-0 inside chain k₀; π^n unit + chain k₀ A-stable ⇒ m ∈ chain k₀.
   sorry
 
 theorem wedhorn_6_17
