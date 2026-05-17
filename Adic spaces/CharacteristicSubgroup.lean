@@ -447,6 +447,11 @@ theorem restrictIdeal_apply_pow (v : Valuation A Γ₀) (I : Ideal A) (a : A) (n
     v.restrictIdeal I (a ^ n) = (v.restrictIdeal I a) ^ n :=
   map_pow _ a n
 
+/-- **Subtraction inequality for `restrictIdeal`:** ultrametric bound on differences. -/
+theorem restrictIdeal_apply_sub_le_max (v : Valuation A Γ₀) (I : Ideal A) (a b : A) :
+    v.restrictIdeal I (a - b) ≤ max (v.restrictIdeal I a) (v.restrictIdeal I b) :=
+  Valuation.map_sub _ a b
+
 end Valuation
 
 namespace ValuationSpectrum
