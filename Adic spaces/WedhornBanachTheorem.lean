@@ -255,12 +255,33 @@ theorem _sub_lemma_L3_2_baire_chain_submodule
   -- Nonempty witness for C.2.
   haveI : Nonempty ↥M_inf := ⟨⟨0, M_inf.zero_mem⟩⟩
   -- Apply C.2 (Baire): some chain k₀ has nonempty interior in ↥M_inf.
-  obtain ⟨k₀, _hk₀_int⟩ := AddMonoidHom._sub_sub_lemma_C_2_baire_nonempty_interior
+  obtain ⟨k₀, hk₀_int⟩ := AddMonoidHom._sub_sub_lemma_C_2_baire_nonempty_interior
     (fun k => (Subtype.val : ↥M_inf → M) ⁻¹' (chain k : Set M))
     hk_closed_in_inf h_subtype_univ
-  -- Remaining: lift the interior witness to chain stationarity via topologically
-  -- nilpotent unit absorption: for any m ∈ M_inf, π^n • m → 0 eventually in the
-  -- nbhd-of-0 inside chain k₀; π^n unit + chain k₀ A-stable ⇒ m ∈ chain k₀.
+  -- Extract nbhd of 0 in ↥M_inf inside chain k₀'s preimage via translation.
+  obtain ⟨y, hy_int⟩ := hk₀_int
+  rw [mem_interior] at hy_int
+  obtain ⟨V, hV_sub, hV_open, hy_V⟩ := hy_int
+  set V₀ : Set ↥M_inf := (· - y) '' V with hV₀_def
+  have hV₀_open : IsOpen V₀ := (Homeomorph.subRight y).isOpenMap _ hV_open
+  have h0_V₀ : (0 : ↥M_inf) ∈ V₀ := ⟨y, hy_V, sub_self y⟩
+  have hV₀_nhds : V₀ ∈ nhds (0 : ↥M_inf) := hV₀_open.mem_nhds h0_V₀
+  -- V₀ ⊆ chain k₀'s preimage (chain k₀ is subgroup-closed).
+  have hV₀_sub : V₀ ⊆ (Subtype.val : ↥M_inf → M) ⁻¹' (chain k₀ : Set M) := by
+    rintro z ⟨w, hwV, rfl⟩
+    show ((w - y : ↥M_inf) : M) ∈ chain k₀
+    have hwk : (w : M) ∈ chain k₀ := hV_sub hwV
+    have hyk : (y : M) ∈ chain k₀ := hV_sub hy_V
+    push_cast
+    exact (chain k₀).sub_mem hwk hyk
+  -- Establish ContinuousSMul A ↥M_inf via the subspace IsInducing.
+  haveI : ContinuousSMul A ↥M_inf := ⟨by
+    refine Topology.IsInducing.subtypeVal.continuous_iff.mpr ?_
+    exact continuous_smul.comp
+      ((continuous_fst).prodMk (continuous_subtype_val.comp continuous_snd))⟩
+  -- Use absorption via topologically-nilpotent unit (still requires several
+  -- mechanical mathlib steps: TopologicallyNilpotent → SMul-tendsto-0 via
+  -- ContinuousSMul, then unit-inverse absorption).
   sorry
 
 theorem wedhorn_6_17
