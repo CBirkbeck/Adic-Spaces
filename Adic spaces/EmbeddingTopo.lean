@@ -2288,6 +2288,15 @@ theorem LaurentTree.BalancedInducing.minus_branch
     (h : LaurentTree.BalancedInducing D₀ (f :: rest)) :
     LaurentTree.BalancedInducing (laurentMinusDatum D₀ f) rest := h.2.2
 
+/-- Constructor: assemble `BalancedInducing` on `cons` from the three components. -/
+theorem LaurentTree.BalancedInducing.cons
+    {D₀ : RationalLocData A} {f : A} {rest : List A}
+    (h_head : Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f)))
+    (h_plus : LaurentTree.BalancedInducing (laurentPlusDatum D₀ f) rest)
+    (h_minus : LaurentTree.BalancedInducing (laurentMinusDatum D₀ f) rest) :
+    LaurentTree.BalancedInducing D₀ (f :: rest) :=
+  ⟨h_head, h_plus, h_minus⟩
+
 /-- `RightBranchInducing` implies `allSplitsInducing` for the
 right-branching tree. -/
 theorem LaurentTree.allSplitsInducing_ofRightBranchList
