@@ -469,6 +469,12 @@ theorem restrictIdeal_apply_pow_ne_zero (v : Valuation A Γ₀) (I : Ideal A)
     v.restrictIdeal I (a ^ n) ≠ 0 := by
   rw [restrictIdeal_apply_pow]; exact pow_ne_zero n h
 
+/-- **`restrictIdeal` preserves multiplicative nonvanishing.** -/
+theorem restrictIdeal_apply_mul_ne_zero (v : Valuation A Γ₀) (I : Ideal A)
+    {a b : A} (ha : v.restrictIdeal I a ≠ 0) (hb : v.restrictIdeal I b ≠ 0) :
+    v.restrictIdeal I (a * b) ≠ 0 := by
+  rw [restrictIdeal_apply_mul]; exact mul_ne_zero ha hb
+
 end Valuation
 
 namespace ValuationSpectrum
