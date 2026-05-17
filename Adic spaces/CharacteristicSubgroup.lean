@@ -379,6 +379,25 @@ theorem restrictIdeal_apply_of_not_mem (v : Valuation A Γ₀) (I : Ideal A)
   unfold restrictIdeal
   exact restrictToConvexBounded_apply_not_mem v (cGammaIdeal v I) _ hva hmem
 
+/-- **`restrictIdeal v I a = v.restrictIdeal I a = 0 ↔ v a = 0 ∨ v(a) ∉ cΓ_v(I)`.**
+The zero set of the restricted valuation is the union of `v`'s support and
+the values not captured by `cΓ_v(I)`. -/
+theorem restrictIdeal_eq_zero_iff (v : Valuation A Γ₀) (I : Ideal A) (a : A) :
+    v.restrictIdeal I a = 0 ↔
+      v a = 0 ∨ ∃ hva : v a ≠ 0, Units.mk0 (v a) hva ∉ cGammaIdeal v I := by
+  classical
+  constructor
+  · intro h
+    by_cases hva : v a = 0
+    · exact Or.inl hva
+    · refine Or.inr ⟨hva, ?_⟩
+      intro hmem
+      rw [restrictIdeal_apply_of_mem v I hva hmem] at h
+      exact absurd h (by simp)
+  · rintro (hva | ⟨hva, hmem⟩)
+    · exact restrictIdeal_apply_zero v I hva
+    · exact restrictIdeal_apply_of_not_mem v I hva hmem
+
 end Valuation
 
 namespace ValuationSpectrum
