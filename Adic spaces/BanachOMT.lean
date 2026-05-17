@@ -353,10 +353,17 @@ theorem _sub_sub_lemma_D_2_limit_in_nbhd
     {G : Type u} [AddCommGroup G] [UniformSpace G] [IsUniformAddGroup G]
     [CompleteSpace G] [(uniformity G).IsCountablyGenerated]
     (step : ℕ → G) (hcauchy : CauchySeq step)
-    (V : Set G) (hV : V ∈ nhds (0 : G))
+    (V : Set G) (_hV : V ∈ nhds (0 : G))
     (hstep_in_V : ∀ n, step n - step 0 ∈ V) :
-    ∃ x : G, Filter.Tendsto step Filter.atTop (nhds x) ∧ x - step 0 ∈ closure V :=
-  sorry
+    ∃ x : G, Filter.Tendsto step Filter.atTop (nhds x) ∧ x - step 0 ∈ closure V := by
+  -- Cauchy + complete ⇒ converges.
+  obtain ⟨x, hx⟩ := cauchySeq_tendsto_of_complete hcauchy
+  refine ⟨x, hx, ?_⟩
+  -- (step n - step 0) → x - step 0 by continuity of subtraction.
+  have h_lim : Filter.Tendsto (fun n => step n - step 0) Filter.atTop (nhds (x - step 0)) :=
+    hx.sub_const (step 0)
+  -- Each step n - step 0 ∈ V, so the limit lies in closure V.
+  exact mem_closure_of_tendsto h_lim (Filter.Eventually.of_forall hstep_in_V)
 
 /-! ## Main theorem (composes sub-lemmas A-E from sub-sub-lemmas A.1, A.2, C.1, C.2, D.1, D.2)
 -/
