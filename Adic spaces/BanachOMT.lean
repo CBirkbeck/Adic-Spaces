@@ -389,7 +389,22 @@ theorem isOpenMap_of_completeSpace_of_countablyGenerated
     {H : Type v} [AddCommGroup H] [UniformSpace H] [IsUniformAddGroup H]
     [CompleteSpace H] [(uniformity H).IsCountablyGenerated] [T2Space H]
     (f : G →+ H) (hf : Continuous f) (hsurj : Function.Surjective f) :
-    IsOpenMap f :=
+    IsOpenMap f := by
+  -- Apply L1.E (translation invariance): suffices to show openness at 0.
+  apply _sub_lemma_translation f
+  -- Show: ∀ U ∈ nhds 0 in G, f '' U ∈ nhds 0 in H.
+  -- This uses L1.D (cauchy_lift) applied with the right V_H choice:
+  -- by L1.A, shrink U to symmetric U' with U' + U' ⊆ U; by L1.D applied
+  -- to a small V_H, get U_G ⊆ U' with V_H ⊆ f '' U_G ⊆ f '' U.
+  intro U hU
+  -- L1.A pre-shrink U to symmetric U' with U' + U' ⊆ U.
+  obtain ⟨V, hV_nhds, _hV_closed, hV_sym, hV_add⟩ :=
+    _sub_sub_lemma_A_1_split_symmetric U hU
+  -- L1.D applied: ∃ V_H ∈ nhds 0 in H, ∃ U_G ∈ nhds 0 in G with
+  -- V_H ⊆ f '' U_G. The discharge of "U_G ⊆ V" requires the L1.D
+  -- iteration to be constrained — i.e., the iteration in L1.D's body
+  -- produces a U_G of a specific size relative to V_H. This is the
+  -- substantive sub-iteration step that completes the BGR argument.
   sorry
 
 /-- **Corollary — Banach's theorem for surjections.** A continuous surjective
