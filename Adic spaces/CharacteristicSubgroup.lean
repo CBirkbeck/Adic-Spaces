@@ -475,6 +475,11 @@ theorem restrictIdeal_apply_mul_ne_zero (v : Valuation A Γ₀) (I : Ideal A)
     v.restrictIdeal I (a * b) ≠ 0 := by
   rw [restrictIdeal_apply_mul]; exact mul_ne_zero ha hb
 
+/-- **Negation invariance of zero values for `restrictIdeal`.** -/
+theorem restrictIdeal_apply_neg_eq_zero_iff (v : Valuation A Γ₀) (I : Ideal A) (a : A) :
+    v.restrictIdeal I (-a) = 0 ↔ v.restrictIdeal I a = 0 := by
+  rw [restrictIdeal_apply_neg]
+
 end Valuation
 
 namespace ValuationSpectrum
