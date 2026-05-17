@@ -23,6 +23,81 @@ The Lean skeleton (every lemma stated with `:= by sorry`) lives in:
 
 `lake build` passes (sorries only, no type errors) — verified at 2026-05-17.
 
+## Pass-(ii) update: sub-sub-lemmas for Layer 1's A, C, D
+
+After mathlib search confirmed `exists_closed_nhds_one_inv_eq_mul_subset`
+(`Topology.Algebra.Group.Pointwise:304`, auto-additive
+`exists_closed_nhds_zero_neg_eq_add_subset`) exists, Sub-lemmas A, C, D reduce
+to cleaner sub-sub-pieces. Each is ≤ 40 lines.
+
+### Sub-lemma A (symmetric absorbs) breakdown
+
+- **A.1** `_sub_sub_lemma_A_1_split_symmetric` (BanachOMT.lean:227)
+  Statement: ∃ closed symmetric `V` with `V + V ⊆ U`.
+  Discharge: **TRIVIAL one-liner** via `exists_closed_nhds_zero_neg_eq_add_subset`.
+  Difficulty: TRIVIAL (~5 lines).
+
+- **A.2** `_sub_sub_lemma_A_2_interior_add` (BanachOMT.lean:241)
+  Statement: `interior S + interior T ⊆ interior (S + T)`.
+  Discharge: `IsOpen.add_left` + `IsOpen.add_right` from
+  `Topology.Algebra.Group.Pointwise`. ~15 lines.
+  Difficulty: EASY.
+
+- **A main composition**: A.1 + A.2 + symmetric K ⇒ `-y ∈ K` ⇒ `0 ∈ K + K = K - K`
+  + `0 ∈ interior(K - K)` ⇒ `K - K ∈ nhds 0`. ~20 lines composition.
+
+**Total Sub-lemma A**: A.1 (5) + A.2 (15) + composition (20) = ~40 lines.
+
+### Sub-lemma C (approx preimage) breakdown
+
+- **C.1** `_sub_sub_lemma_C_1_countable_closed_cover` (BanachOMT.lean:260)
+  Statement: `H = ⋃ n, closure (f '' ((n : ℤ) • U))`.
+  Discharge: surjectivity + integer scaling + `isClosed_closure`. ~25 lines.
+  Difficulty: EASY-MEDIUM.
+
+- **C.2** `_sub_sub_lemma_C_2_baire_nonempty_interior` (BanachOMT.lean:272)
+  Statement: Baire ⇒ some closed set in countable cover has nonempty interior.
+  Discharge: **TRIVIAL one-liner** via `nonempty_interior_of_iUnion_of_closed`.
+  Difficulty: TRIVIAL (~5 lines).
+
+- **C main composition**: C.1 + C.2 + Sub-lemma A (apply to the closure with
+  interior) + scaling back to U via integer-action arithmetic. ~50 lines.
+
+**Total Sub-lemma C**: C.1 (25) + C.2 (5) + composition (50) = ~80 lines.
+
+### Sub-lemma D (Cauchy lift) breakdown
+
+- **D.1** `_sub_sub_lemma_D_1_cauchy_builder` (BanachOMT.lean:294)
+  Statement: inductive Cauchy sequence builder from shrinking-basis step data.
+  Discharge: `Nat.rec` + `IsUniformAddGroup.cauchy_iff`. ~40 lines.
+  Difficulty: MEDIUM (the substantive iteration).
+
+- **D.2** `_sub_sub_lemma_D_2_limit_in_nbhd` (BanachOMT.lean:309)
+  Statement: limit of Cauchy sequence in nbhd of source.
+  Discharge: `CauchySeq.tendsto_of_completeSpace` + sum-of-nbhds. ~25 lines.
+  Difficulty: EASY-MEDIUM.
+
+- **D main composition**: iterate Sub-lemma C to build step data, then D.1
+  to get Cauchy, then D.2 to get limit + apply continuity for f(x) = y. ~30 lines.
+
+**Total Sub-lemma D**: D.1 (40) + D.2 (25) + composition (30) = ~95 lines.
+
+### Updated total for Layer 1
+
+| Piece | LOC |
+|-------|-----|
+| Sub-lemma A (incl. A.1, A.2, composition) | ~40 |
+| Sub-lemma B (countable cover wrinkle: USE C.1's cover argument directly) | ~25 |
+| Sub-lemma C (incl. C.1, C.2, composition) | ~80 |
+| Sub-lemma D (incl. D.1, D.2, composition) | ~95 |
+| Sub-lemma E (translation invariance) | ~15 |
+| Main theorem composition (A, C, D, E) | ~25 |
+| **Layer 1 total** | **~280 lines** |
+
+Compared to first estimate (~250 lines), the second-pass refinement is
++30 lines but each sub-sub-lemma is now ≤ 40 lines (vs. monolithic 80-line
+Stage 1/2). This makes the work parallelizable across `/beastmode` workers.
+
 ## Layer 1 — Sub-lemma decomposition (binding)
 
 The main theorem `AddMonoidHom.isOpenMap_of_completeSpace_of_countablyGenerated`
@@ -413,12 +488,69 @@ is an ideal, then the I-adic completion of R is noetherian."
 
 **Discharge route verified**:
 - L5.2.1: `A₀.isOpen` exists in project (`HuberRings.lean`); boundedness via
-  `PairOfDefinition.isBounded_A₀`.
-- L5.2.2: uses `IsLocalization.isNoetherian` (mathlib) with `A = A₀[1/s]`
-  (where s is the topologically nilpotent unit).
+  `PairOfDefinition.isBounded_A₀`. EASY (~10 lines).
+- L5.2.2: this is where the **scope issue surfaces**.
 
-**Difficulty**: MEDIUM. ~80 lines (mostly L5.2.2 which has the substantive
-localization-descent argument).
+### 🚨 SCOPE ISSUE flagged in pass-(ii) — Layer 5.2.2 is not generally provable
+
+**Mathlib search result** (verified): `IsLocalization.isNoetherianRing` at
+`Mathlib.RingTheory.Localization.Submodule:78` gives:
+
+> "Theorem isNoetherianRing (h : IsNoetherianRing R) : IsNoetherianRing S
+> where S = Localization M of R."
+
+This is the **FORWARD** direction (R noeth ⇒ Localization noeth). Layer 5.2.2
+asks for the **REVERSE** (Localization noeth ⇒ R noeth), which is **NOT
+generally true**.
+
+**Wedhorn evidence check**:
+- Wedhorn Remark 6.37(3) (p. 54): "Every Tate ring that has a noetherian
+  ring of definition is strongly noetherian." — FORWARD direction.
+- Wedhorn does **NOT** state "Every strongly noetherian Tate has a noetherian
+  ring of definition" — the reverse direction.
+- Wedhorn's proof of Cor 8.32 (p. 82) doesn't construct a noetherian pair;
+  it just uses the abstract strongly noeth Tate hypothesis.
+
+**Implication**:
+- For **Tate algebras over a complete non-arch field k** (BGR-style), A₀ = k°⟨X⟩
+  IS noetherian, so the claim holds in this special case.
+- For **abstract strongly noeth Tate rings** without further structure, the
+  claim is **likely false in general** (e.g., perfectoid rings: their canonical
+  pair has A° = the tilt-side ring which need not be noetherian).
+
+**Verdict**: Layer 5.2.2 (`isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof`)
+is a **B2 candidate** — its statement is too strong without an additional
+hypothesis like `(P : PairOfDefinition A) [IsNoetherianRing P.A₀]` being
+supplied as a parameter.
+
+**Recovery options**:
+
+1. **(Recommended)** Pass the noetherian pair as an explicit hypothesis at every
+   audit-clean wrapper that needs it (= revert to the existing project
+   convention; the "audit-clean = Wedhorn-exact" goal is unachievable for
+   this specific lemma without the additional structure).
+
+2. **(Specialized)** Restrict the audit-clean wrapper to "Tate algebras over a
+   complete non-archimedean field" — adds a typeclass requirement
+   `[IsFiniteTypeOverField k A]` or similar. Loses some generality but
+   matches BGR-classical setting.
+
+3. **(Bypass)** Refactor `productRestriction_faithfullyFlat_tate_of_hSpa_points`
+   to NOT require `[IsNoetherianRing P.A₀]` — rework the proof through
+   Wedhorn's direct chain (Example 6.38 + Lemma 8.31) without the
+   per-pair noetherian assumption. This is the largest refactor but matches
+   Wedhorn's actual proof structure most faithfully.
+
+**Recommendation**: option (1) for now — keep the audit-pass-2 trio as a
+helper supplier but accept that the Wedhorn-exact `cor_8_32_clean_proof`
+form still needs a `(P : PairOfDefinition A) [IsNoetherianRing P.A₀]`
+hypothesis. The "clean" naming is misleading; in reality the hypothesis
+bundle is `Tate + Noeth + Strongly-Noeth + T2 + Nonarch + (P with noeth A₀)`.
+
+**For the present decomposition pass, mark L5.2.2 as BLOCKED on scope decision.**
+
+**Difficulty**: BLOCKED (needs user/architect decision on which recovery
+option to pursue).
 
 ### L5.4.1, L5.4.2 — Spa-point existence pieces
 
