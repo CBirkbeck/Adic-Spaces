@@ -1491,6 +1491,18 @@ theorem unitGeneratedCover_has_relative_ratioLaurentRefinement
   · -- Refines L_rel unitCover — combinatorial: each leaf σ-vector
     -- picks `f ∈ I_units` with maximal `v(u_f)`; that f's unit-piece
     -- contains the leaf.
+    --
+    -- Reduce to per-leaf via `refines_iff_forall_mem_leaves`.
+    show (LaurentTree.ofBalancedList ratio_list).Refines L_rel unitCover
+    rw [LaurentTree.refines_iff_forall_mem_leaves]
+    -- Remaining: for every D ∈ leaves of ofBalancedList ratio_list at L_rel,
+    -- ∃ E ∈ unitCover.covers, rationalOpen D.T D.s ⊆ rationalOpen E.T E.s.
+    -- Each leaf D is determined by a sign vector σ over ratio_list, giving
+    -- σ-inequalities on each pair (g, h) ∈ I_units². For any v in the
+    -- leaf's open, the σ-vector forces a specific maximal `f* ∈ I_units`
+    -- with v(u_f*) maximal among I_units; the unitCover piece for f*
+    -- (from _h_unitCover condition (3)) contains the leaf.
+    intro D hD
     sorry
   · -- allSplitsInducing L_rel — Lane C topological inducing per node.
     -- Reduce via `BalancedInducing` to per-pair inducing.
