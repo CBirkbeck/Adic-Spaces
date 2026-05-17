@@ -177,7 +177,21 @@ The audit-pass-2 derived inputs match Wedhorn's exact hypothesis bundle. -/
 theorem isSheafy_ofStronglyNoetherianTate_proof
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] :
-    IsSheafy A :=
-  sorry
+    IsSheafy A := by
+  refine ⟨?_, ?_⟩
+  · -- Embedding (separation + topological). Routes via
+    -- `productRestrictionSub_isEmbedding_of_lane_inputs` (EmbeddingTopo.lean)
+    -- which needs PairOfDefinition + noeth-A₀ + algebraic-injection (from
+    -- cor_8_32_clean) + topological-inducing. Each sub-input sorried.
+    intro C
+    sorry
+  · -- Gluing: case-split on cover non-emptiness.
+    intro C f hcompat
+    by_cases hne : C.covers.Nonempty
+    · exact tateAcyclicity_gluing_via_descent_proof C hne f hcompat
+    · -- Empty cover: any x works (the conclusion ∀ D ∈ ∅, ... is vacuous).
+      refine ⟨0, ?_⟩
+      intro D
+      exact absurd ⟨D.1, D.2⟩ hne
 
 end ValuationSpectrum
