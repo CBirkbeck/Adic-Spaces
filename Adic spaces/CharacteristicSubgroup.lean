@@ -491,6 +491,11 @@ theorem restrictIdeal_apply_mul_eq_zero_iff (v : Valuation A Γ₀) (I : Ideal A
     v.restrictIdeal I (a * b) = 0 ↔ v.restrictIdeal I a = 0 ∨ v.restrictIdeal I b = 0 := by
   rw [restrictIdeal_apply_mul, mul_eq_zero]
 
+/-- **Iterated product (`List.prod`) formula for `restrictIdeal`.** -/
+theorem restrictIdeal_apply_list_prod (v : Valuation A Γ₀) (I : Ideal A) (l : List A) :
+    v.restrictIdeal I l.prod = (l.map (v.restrictIdeal I)).prod :=
+  map_list_prod _ l
+
 end Valuation
 
 namespace ValuationSpectrum
