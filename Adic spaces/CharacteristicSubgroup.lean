@@ -501,6 +501,12 @@ theorem restrictIdeal_apply_multiset_prod (v : Valuation A Γ₀) (I : Ideal A) 
     v.restrictIdeal I s.prod = (s.map (v.restrictIdeal I)).prod :=
   map_multiset_prod _ s
 
+/-- **Iterated product (`Finset.prod`) formula for `restrictIdeal`.** -/
+theorem restrictIdeal_apply_finset_prod {ι : Type*} (v : Valuation A Γ₀) (I : Ideal A)
+    (s : Finset ι) (f : ι → A) :
+    v.restrictIdeal I (∏ i ∈ s, f i) = ∏ i ∈ s, v.restrictIdeal I (f i) :=
+  map_prod _ f s
+
 end Valuation
 
 namespace ValuationSpectrum
