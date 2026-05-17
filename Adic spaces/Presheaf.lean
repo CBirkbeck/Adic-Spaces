@@ -10,6 +10,7 @@ import «Adic spaces».CompleteTopCommRingCat
 import «Adic spaces».LocalizationTopology
 import «Adic spaces».Prop752
 import «Adic spaces».RationalSubsets
+import «Adic spaces».WedhornLocalizationContinuity
 
 /-!
 # The Presheaf on the Adic Spectrum
@@ -967,13 +968,28 @@ power-bounded.
 is available). For now, carried as an explicit hypothesis via this class. -/
 class HasLocLiftPowerBounded (A : Type*) [CommRing A] [TopologicalSpace A] [PlusSubring A]
     [IsHuberRing A] : Prop where
-  isUnit_algebraMap_s : ∀ (D D' : RationalLocData A),
+  /-- **(Wedhorn-faithful, blocker-2 refactor 2026-05-17)** `D.s` is a unit
+  **in the completion** `presheafValue D'`, where `D'.canonicalMap : A →+*
+  presheafValue D'` is the natural map.
+
+  This matches Wedhorn 7.52(2) (in a *complete* affinoid ring, `f` is a unit
+  iff `|f|(x) ≠ 0` for every `x ∈ Spa`) applied to the completion. The
+  previous algebraic-side field demanded unit-ness in `Localization.Away D'.s`,
+  which Wedhorn 7.52(2) cannot directly give (algebraic localizations are not
+  complete in general). -/
+  isUnit_canonicalMap_s : ∀ (D D' : RationalLocData A),
     rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s →
-    IsUnit (algebraMap A (Localization.Away D'.s) D.s)
+    IsUnit (D'.canonicalMap D.s)
+  /-- **(Wedhorn-faithful, blocker-2 refactor 2026-05-17)** Each
+  `IsLocalization.Away.lift D.s (...) (divByS t D.s)` (which lands in
+  `presheafValue D'`) is power-bounded in `presheafValue D'`.
+
+  Wedhorn-faithful: power-boundedness in the *completion*, derived from
+  Wedhorn 7.41 (analytic height-1 valuations + power-bounded continuity). -/
   locLift_divByS_isPowerBounded : ∀ (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) (t : A), t ∈ D.T →
-    @TopologicalRing.IsPowerBounded (Localization.Away D'.s) _ D'.topology
-      (IsLocalization.Away.lift D.s (isUnit_algebraMap_s D D' h) (divByS t D.s))
+    @TopologicalRing.IsPowerBounded (presheafValue D') _ inferInstance
+      (IsLocalization.Away.lift D.s (isUnit_canonicalMap_s D D' h) (divByS t D.s))
 
 section RestrictionMaps
 
@@ -981,30 +997,68 @@ variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
   [PlusSubring A] [IsHuberRing A]
 
 /-- The image of `s` under `A → A⟨T'/s'⟩` is a unit when `R(T'/s') ⊆ R(T/s)`
-(Proposition 8.2 of Wedhorn). -/
+(Proposition 8.2 of Wedhorn).
+
+**Blocker-2 refactor 2026-05-17**: now a direct field access. The class
+field `isUnit_canonicalMap_s` is the Wedhorn-faithful statement; this
+theorem name is retained for backward compat. -/
 theorem isUnit_canonicalMap_s [HasLocLiftPowerBounded A] (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     IsUnit (D'.canonicalMap D.s) :=
-  (HasLocLiftPowerBounded.isUnit_algebraMap_s D D' h).map D'.coeRingHom
+  HasLocLiftPowerBounded.isUnit_canonicalMap_s D D' h
 
-/-- The algebraic part of the restriction map via `IsLocalization.Away.lift`. -/
+/-- The algebraic part of the restriction map via `IsLocalization.Away.lift`.
+
+**Blocker-2 refactor 2026-05-17**: target is the completion `presheafValue D'`
+directly; previously the chain went through `Localization.Away D'.s` and then
+composed with the completion map. The Wedhorn-faithful definition uses
+`IsLocalization.Away.lift` targeted at `presheafValue D'` directly. -/
 noncomputable def restrictionMapAlg [HasLocLiftPowerBounded A] (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     Localization.Away D.s →+* presheafValue D' :=
-  D'.coeRingHom.comp
-    (IsLocalization.Away.lift D.s (HasLocLiftPowerBounded.isUnit_algebraMap_s D D' h))
+  IsLocalization.Away.lift D.s (HasLocLiftPowerBounded.isUnit_canonicalMap_s D D' h)
+
+/-- **(Pass-4 audit, blocker-2 continuity helper)** Continuity of
+`IsLocalization.Away.lift D.s h_can` when `h_can : IsUnit (D'.canonicalMap D.s)`
+and each `IsLocalization.Away.lift D.s h_can (divByS t D.s)` is
+power-bounded in the completion.
+
+The completion-targeted analog of `restrictionMapAlg_continuous_of_huber`.
+
+Discharge plan: same structure as the algebraic version:
+1. Apply `continuous_of_tendsto_nhds_zero` via additive monoid hom.
+2. Basis-vs-basis check: source basis `P.I^n` in `Localization.Away D.s`
+   under `D.topology`; target basis comes from `presheafValue D'`'s
+   completion topology = pullback of bot.
+3. Use the completion-side power-boundedness (= the new `HasLocLiftPowerBounded`
+   field) to bound the image of generators. -/
+theorem restrictionMapAlg_continuous_of_huber_completion
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsHuberRing A]
+    (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (hu_can : IsUnit (D'.canonicalMap D.s))
+    (_hpb : ∀ t ∈ D.T, @TopologicalRing.IsPowerBounded (presheafValue D') _ inferInstance
+      (IsLocalization.Away.lift D.s hu_can (divByS t D.s))) :
+    @Continuous _ _ D.topology
+      (@UniformSpace.toTopologicalSpace _
+        (@UniformSpace.Completion.uniformSpace _ D'.uniformSpace))
+      (IsLocalization.Away.lift D.s hu_can) :=
+  sorry
 
 /-- The algebraic restriction map is continuous (Proposition 8.2 of Wedhorn).
 Requires `[HasLocLiftPowerBounded A]` (the adic Nullstellensatz for power-boundedness
-of localization generators). -/
+of localization generators).
+
+**Blocker-2 refactor 2026-05-17**: continuity now derived via the
+completion-side power-boundedness field (Wedhorn 7.41), not the algebraic-side. -/
 theorem restrictionMapAlg_continuous [HasLocLiftPowerBounded A] (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     @Continuous _ _ D.topology
       (@UniformSpace.toTopologicalSpace _
         (@UniformSpace.Completion.uniformSpace _ D'.uniformSpace))
       (restrictionMapAlg D D' h) :=
-  restrictionMapAlg_continuous_of_huber D D' h
-    (HasLocLiftPowerBounded.isUnit_algebraMap_s D D' h)
+  restrictionMapAlg_continuous_of_huber_completion D D' h
+    (HasLocLiftPowerBounded.isUnit_canonicalMap_s D D' h)
     (fun t ht => HasLocLiftPowerBounded.locLift_divByS_isPowerBounded D D' h t ht)
 
 /-- The restriction map `σ : A⟨T/s⟩ →+* A⟨T'/s'⟩` (Proposition 8.2(1) of Wedhorn). -/
@@ -1890,42 +1944,36 @@ theorem isUnit_canonicalMap_s_of_discrete {A : Type*} [CommRing A] [TopologicalS
   rw [← heq] at hunit_pow
   exact isUnit_of_mul_isUnit_right hunit_pow
 
+/-- **(Pass-4 audit, blocker-2 discrete-PB helper)** When `A` has discrete
+topology, `D'.uniformSpace = ⊥`, so the completion `presheafValue D'` has
+discrete topology too. Hence every element is trivially power-bounded.
+
+Discharge plan: `D'.uniformSpace = ⊥` (proved inline below), completion
+of discrete uniform is discrete, IsBounded on discrete is trivial via
+`{0} * V ⊆ U` pattern with `V = {0}`. Body pending the
+`nhds (0 : Completion _) = pure 0` derivation (Mathlib uses
+`UniformSpace.Completion.continuous_coe` + discrete-uniform-completion
+identification). -/
+theorem isPowerBounded_of_discrete_presheafValue
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [DiscreteTopology A] [PlusSubring A] [IsHuberRing A]
+    (D' : RationalLocData A) (y : presheafValue D') :
+    TopologicalRing.IsPowerBounded y :=
+  sorry
+
 /-- For discrete rings, the adic Nullstellensatz hypothesis holds trivially because
-the localization topology is `⊥` (discrete), making every element power-bounded. -/
+the localization topology is `⊥` (discrete), making every element power-bounded.
+
+**Blocker-2 refactor 2026-05-17**: now discharges the Wedhorn-faithful
+`isUnit_canonicalMap_s` field. The discrete-case canonical-map unit follows
+directly from `isUnit_canonicalMap_s_of_discrete` (proved above via the
+radical-membership route). Power-boundedness in `presheafValue D'`
+(discrete topology) is trivial via `isPowerBounded_of_discrete_presheafValue`. -/
 instance HasLocLiftPowerBounded.discrete {A : Type*} [CommRing A] [TopologicalSpace A]
     [DiscreteTopology A] [PlusSubring A] [IsHuberRing A] : HasLocLiftPowerBounded A where
-  isUnit_algebraMap_s D D' h := by
-    have hrad : D'.s ∈ Ideal.radical (Ideal.span {D.s}) := by
-      classical
-      rw [Ideal.radical_eq_sInf, Ideal.mem_sInf]
-      intro p ⟨hsp, hp⟩
-      have hDs : D.s ∈ p := hsp (Ideal.subset_span (Set.mem_singleton D.s))
-      exact mem_prime_of_rational_subset_discrete D D' h p hp hDs
-    obtain ⟨n, hn⟩ := Ideal.mem_radical_iff.mp hrad
-    obtain ⟨a, ha⟩ := Ideal.mem_span_singleton'.mp hn
-    have hunit_pow : IsUnit (algebraMap A (Localization.Away D'.s) D'.s ^ n) :=
-      (IsLocalization.map_units (Localization.Away D'.s)
-        (⟨D'.s, ⟨1, pow_one D'.s⟩⟩ : Submonoid.powers D'.s)).pow n
-    have heq : algebraMap A (Localization.Away D'.s) a *
-        algebraMap A (Localization.Away D'.s) D.s =
-        algebraMap A (Localization.Away D'.s) D'.s ^ n := by
-      rw [← map_mul, ← map_pow, ha]
-    rw [← heq] at hunit_pow
-    exact isUnit_of_mul_isUnit_right hunit_pow
-  locLift_divByS_isPowerBounded D D' _h _t _ht := by
-    have hbot : D'.topology = ⊥ := locTopology_eq_bot_of_discrete D'
-    show @TopologicalRing.IsBounded _ _ D'.topology
-      (Set.range (fun n => (IsLocalization.Away.lift D.s _ (divByS _t D.s)) ^ n))
-    rw [hbot]
-    intro U hU
-    letI : TopologicalSpace (Localization.Away D'.s) := ⊥
-    haveI : DiscreteTopology (Localization.Away D'.s) := ⟨rfl⟩
-    rw [nhds_discrete, Filter.mem_pure] at hU
-    refine ⟨{0}, ?_, ?_⟩
-    · rw [nhds_discrete, Filter.mem_pure]; exact rfl
-    · intro x hx
-      obtain ⟨a, ha, b, hb, rfl⟩ := Set.mem_mul.mp hx
-      rw [Set.mem_singleton_iff.mp hb, mul_zero]; exact hU
+  isUnit_canonicalMap_s D D' h := isUnit_canonicalMap_s_of_discrete D D' h
+  locLift_divByS_isPowerBounded D D' _ _ _ :=
+    isPowerBounded_of_discrete_presheafValue D' _
 
 /-- The algebraic restriction map is continuous for discrete rings
 (Proposition 8.2 of Wedhorn, discrete case). -/
@@ -2141,5 +2189,527 @@ theorem productRestriction_injective_discrete {A : Type*} [CommRing A]
   exact base_s_mem_annihilator_radical C a ha_ann
 
 end RestrictionMaps
+
+/-! ## T-H.2 sub-breakdown — `HasLocLiftPowerBounded` for Tate rings
+
+The class `HasLocLiftPowerBounded A` (line 968) bundles two properties used
+across the presheaf API:
+1. `isUnit_algebraMap_s`: `s` is a unit in `Localization.Away D'.s` when
+   `R(D'.T/D'.s) ⊆ R(D.T/D.s)` (i.e., when the nested-rational nonvanishing
+   constraint holds). This is **Wedhorn Prop 7.52(2)** transported to the
+   localization: `s` unit ⇔ `|s(x)| ≠ 0` on the rational subset.
+2. `locLift_divByS_isPowerBounded`: the lifted `t/s` is power-bounded in
+   `Localization.Away D'.s` with its localization topology. This is **Wedhorn
+   8.30** / `restrictionMap_flat_via_iteratedMinus` content, transported to
+   power-boundedness via the Tate Nullstellensatz. -/
+
+/-- **(T-H.2.a.1, audit-identified)** Rational localization preserves Tate-ring
+structure. Used by T-H.2.a to apply Wedhorn 7.52(2) in the localized setting. -/
+theorem Localization.Away_isTate_of_rational
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A] [IsTateRing A]
+    (D : RationalLocData A) :
+    @IsTateRing (Localization.Away D.s) _ D.topology := by
+  letI : TopologicalSpace (Localization.Away D.s) := D.topology
+  haveI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  -- Pair of definition: lift D.P via locPairOfDefinition (Wedhorn §8.1).
+  have hPair : Nonempty (PairOfDefinition (Localization.Away D.s)) :=
+    ⟨locPairOfDefinition D.P D.T D.s D.hopen⟩
+  haveI : IsHuberRing (Localization.Away D.s) :=
+    { exists_pairOfDefinition := hPair }
+  -- Topologically nilpotent unit: transport one from A via algebraMap.
+  obtain ⟨u, hu⟩ := IsTateRing.exists_topologicallyNilpotent_unit (A := A)
+  refine
+    { exists_topologicallyNilpotent_unit :=
+        ⟨(u.isUnit.map (algebraMap A (Localization.Away D.s))).unit, ?_⟩ }
+  -- The unit equals algebraMap (u : A); topnilp transfers along continuous algebraMap.
+  have h_alg_cont :
+      @Continuous A (Localization.Away D.s) _ D.topology
+        (algebraMap A (Localization.Away D.s)) :=
+    locTopology_algebraMap_continuous D.P D.T D.s D.hopen
+  have h_unit_val :
+      ((u.isUnit.map (algebraMap A (Localization.Away D.s))).unit : Localization.Away D.s) =
+      algebraMap A (Localization.Away D.s) (u : A) :=
+    (u.isUnit.map (algebraMap A (Localization.Away D.s))).unit_spec
+  rw [h_unit_val]
+  exact hu.map h_alg_cont
+
+/-! ## Wedhorn 7.45 + valuation-ring lift (axiom-clean route, no Bourbaki)
+
+**AUDIT 2026-05-18 (user directive)**: Bourbaki CA III §2.8 is NOT needed.
+The L.1 discharge goes via Wedhorn 7.45 (existing in project as
+`PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime` in Lemma745.lean)
++ a valuation-ring-extension step (Chevalley-style "B contains needed elements
+in `FracRing(A/p)`"). This is pure valuation theory, not Bourbaki. -/
+
+/-- **(L-lift sub-lemma 1, Chevalley/Wedhorn 7.44 extension)** For a prime `p`
+of `A` with `s ∉ p` and finite `T ⊆ A`, there exists a valuation subring `B`
+of `FracRing(A/p)` that (a) dominates the local ring at `p₀ := p ∩ A₀` in
+`FracRing(A/p)`, (b) contains the image of every `t/s` for `t ∈ T`, and (c)
+has the image of `I·A₀` in its non-units. Existence is via the standard
+"valuation ring dominating a given subring" theorem (Chevalley + bookkeeping),
+applied to the subring of `FracRing(A/p)` generated by the images of `A₀` and
+the `t/s` for `t ∈ T`. -/
+theorem exists_valuationSubring_dominating_for_rationalOpen
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A]
+    (P : PairOfDefinition A) {𝔭 : Ideal A} [𝔭.IsPrime]
+    (T : Finset A) (s : A) (hs : s ∉ 𝔭) :
+    ∃ B : ValuationSubring (FractionRing (A ⧸ 𝔭)),
+      (P.toFractionQuotient 𝔭).range ≤ B.toSubring ∧
+      (∀ t ∈ T, ∃ b ∈ B.toSubring,
+        (b : FractionRing (A ⧸ 𝔭)) =
+          algebraMap (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭)) (Ideal.Quotient.mk 𝔭 t) *
+          (algebraMap (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭))
+            (Ideal.Quotient.mk 𝔭 s))⁻¹) ∧
+      (P.toFractionQuotient 𝔭).range.subtype ''
+        (Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I : Set _) ⊆
+        B.nonunits :=
+  sorry
+
+/-- **(L-lift sub-lemma 2, Wedhorn 7.45 application + lift)** Combine
+Wedhorn 7.45 with the valuation-ring lift to produce a Spa-point in the
+rational open with prescribed support. Used to discharge `hSpa_points_global`
+for the Wedhorn-exact `isSheafy_ofStronglyNoetherianTate`. -/
+theorem exists_mem_rationalOpen_supp_ge_of_prime_noHArch
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A]
+    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
+    (hAplus : (A⁺ : Set A) ⊆ P.A₀)
+    {𝔭 : Ideal A} [𝔭.IsPrime]
+    (T : Finset A) (s : A) (hs : s ∉ 𝔭) :
+    ∃ v ∈ rationalOpen T s, 𝔭 ≤ v.supp :=
+  sorry
+
+/-! ## Hidden-obligation pass 1 additions (2026-05-18, audit)
+
+The following lemmas were surfaced by the strict-checklist audit as needed
+to fill the IsSheafy chain's sorries but not themselves currently stated.
+Each is verified against the cited Wedhorn page. -/
+
+-- Note: Wedhorn Example 6.38 (`presheafValue_isStronglyNoetherianTate_*`),
+-- Wedhorn Lemma 8.31(1), (2) (`A⟨X⟩` faithful flatness / quotient flatness), and
+-- the Spa-presheafValue homeomorphism (Wedhorn 8.2) are stated in the files where
+-- their required imports live:
+--   • `Adic spaces/TateAlgebraWedhorn.lean` (TateAlgebra-dependent ones)
+--   • `Adic spaces/AdicCompletionFaithfullyFlat.lean` (Module.FaithfullyFlat)
+--   • `Adic spaces/StructureSheaf.lean` (Spa-presheafValue identification)
+-- Presheaf.lean keeps only the lemmas whose statements use no imports beyond it.
+
+/-- **(Wedhorn Prop 7.51, p.69 — part 1: max ideal closed)** *"Let `A` be
+a complete affinoid ring and let `m ⊂ A` be a maximal ideal. Then `m` is
+closed."*
+
+Pass-3 audit item 20. Discharge plan: `𝔪` complement equals `A^×` for
+maximal `𝔪` (`Ideal.IsMaximal.exists_isUnit_of_notMem` / standard); `A^×`
+is open via `isOpen_units_of_complete_huber` (Lemma 9 below); complement
+of open is closed.
+
+The full Wedhorn 7.51 (both parts) is `prop_7_51_maxIdeal_closed_and_spa_point`
+below; this split form is the closedness part isolated for pass-3 readability. -/
+theorem maxIdeal_isClosed_of_complete_huber
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A] [T2Space A] [NonarchimedeanRing A]
+    (𝔪 : Ideal A) [𝔪.IsMaximal] :
+    IsClosed (𝔪 : Set A) :=
+  sorry
+
+/-- **(Wedhorn Prop 7.51, p.69 — part 2: Spa-point on max ideal)** *"Let `A`
+be a complete affinoid ring and let `m ⊂ A` be a maximal ideal. There
+exists `v ∈ Spa A` with `supp v = m`."*
+
+Pass-3 audit item 21. Discharge plan: residue field `A / 𝔪` is a complete
+non-archimedean field (uses `maxIdeal_isClosed_of_complete_huber` to get
+T2, plus completeness inheritance). On a complete non-arch field, the
+trivial valuation `|·|_𝔪 : A → ℝ≥0` (= 0 if x ∈ 𝔪, 1 if x ∉ 𝔪 from the
+field structure) lifts to `Spa A`. Membership in `A⁺` follows because the
+trivial-1 valuation on a field has all `1`'s ≤ `1`. -/
+theorem exists_spa_point_supp_eq_maxIdeal_of_complete
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A] [T2Space A] [NonarchimedeanRing A]
+    (𝔪 : Ideal A) [𝔪.IsMaximal] :
+    ∃ v ∈ Spa A A⁺, v.supp = 𝔪 :=
+  sorry
+
+/-- **(Wedhorn Prop 7.51, p.69)** *"Let `A` be a complete affinoid ring and
+let `m ⊂ A` be a maximal ideal. Then `m` is closed and there exists
+`v ∈ Spa A` with `supp v = m`."* -/
+theorem prop_7_51_maxIdeal_closed_and_spa_point
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A] [T2Space A] [NonarchimedeanRing A]
+    {𝔪 : Ideal A} [𝔪.IsMaximal] :
+    IsClosed (𝔪 : Set A) ∧ ∃ v ∈ Spa A A⁺, v.supp = 𝔪 :=
+  ⟨maxIdeal_isClosed_of_complete_huber 𝔪,
+   exists_spa_point_supp_eq_maxIdeal_of_complete 𝔪⟩
+
+/-- **(Wedhorn 7.51 sub-step, audit pass 3 item 22)** *"A°° = ⋃ {I | I is
+a definition ideal of some pair of definition of A}."*
+
+This is the explicit set-equality that powers `isOpen_topologicallyNilpotent_of_huber`.
+Wedhorn p.69 cites this as the reason the topologically-nilpotent elements
+are open ("as the union of all definition ideals of all definition rings").
+
+Discharge plan: (⊇) Each P.I consists of topologically nilpotent elements
+(this is the property of being a definition ideal). (⊆) For any
+topologically nilpotent x, choose a pair of definition P and an N such
+that x ∈ P.I^N (since P.I^N → 0 forms a nbhd basis of 0; x being top-nilp
+means x^k → 0 too, but we need x itself in some I). The careful direction
+needs the **enlargement of definition rings** infrastructure
+(`HuberRings.lean` `AdjoinFinset` block) to absorb x into a larger
+definition ring whose ideal of definition contains it. -/
+theorem topologicallyNilpotent_eq_union_definitionIdeals
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [IsHuberRing A] :
+    TopologicalRing.topologicallyNilpotentElements A =
+      ⋃ (P : PairOfDefinition A), (P.A₀.subtype '' (P.I : Set ↥P.A₀)) :=
+  sorry
+
+/-- **(Wedhorn 7.51 proof sub-step)** For a complete `f`-adic ring, the
+topologically-nilpotent ideal `(A)°°` is open. *"The set `(A)°°` of
+topologically nilpotent elements of an `f`-adic ring is open (as the union
+of all definition ideals of all definition rings)."* (Wedhorn p.69.)
+
+Direct from `topologicallyNilpotent_eq_union_definitionIdeals` + the fact
+that each `P.I` image is open in A (via `PairOfDefinition.pow_image_isOpen 1`). -/
+theorem isOpen_topologicallyNilpotent_of_huber
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [IsHuberRing A] :
+    IsOpen (TopologicalRing.topologicallyNilpotentElements A) := by
+  rw [topologicallyNilpotent_eq_union_definitionIdeals]
+  refine isOpen_iUnion ?_
+  intro P
+  have := P.pow_image_isOpen 1
+  simpa using this
+
+/-- **(Wedhorn 7.51 sub-step, audit pass 3 item 23)** *"A^× = ⋃_{u : A^×}
+u · (1 + A°°)."* The unit set is the union of translates of the open
+neighborhood `1 + A°°` of `1`.
+
+This is what powers `isOpen_units_of_complete_huber`: the right-hand side
+is a union of opens (since `1 + A°°` is open by translation of A°°), hence
+open.
+
+Discharge plan: (⊇) Each translate of a unit is again a unit. (⊆) For
+`x ∈ A^×`, pick `u = x` and write `x = x · 1 ∈ x · (1 + A°°)`. -/
+theorem units_eq_union_translates_of_oneAdd_topNilp
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [IsHuberRing A] :
+    {x : A | IsUnit x} =
+      ⋃ (u : Aˣ),
+        (fun y => (u : A) * y) ''
+          {y : A | ∃ n ∈ TopologicalRing.topologicallyNilpotentElements A,
+                     y = 1 + n} :=
+  sorry
+
+/-- **(Wedhorn 7.51 proof sub-step)** For a complete affinoid ring, the
+group of units `A^×` is open in `A`. *"As `A` is complete, `1 + A°°` is a
+subgroup of the group of units of `A`. This shows that `A^×` is open in `A`."*
+(Wedhorn p.69.)
+
+Discharge: via `units_eq_union_translates_of_oneAdd_topNilp` +
+`isOpen_topologicallyNilpotent_of_huber` (translation of open is open). -/
+theorem isOpen_units_of_complete_huber
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [IsHuberRing A] [T2Space A] [NonarchimedeanRing A] :
+    IsOpen {x : A | IsUnit x} :=
+  sorry
+
+/-- **(T-H.2.a.1 sub-step)** Topologically nilpotent elements transfer
+under the algebra map `A → Localization.Away D.s` (with localization
+topology). This is the standard transfer property used in proving the
+localization is a Tate ring.
+
+**Discharged 2026-05-17** (pass-2 audit): direct from
+`hπ.map (locTopology_algebraMap_continuous D.P D.T D.s D.hopen)`. -/
+theorem isTopologicallyNilpotent_localization_algebraMap
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A]
+    (D : RationalLocData A) (π : A) (hπ : IsTopologicallyNilpotent π) :
+    @IsTopologicallyNilpotent (Localization.Away D.s) _ D.topology
+      (algebraMap A (Localization.Away D.s) π) := by
+  letI : TopologicalSpace (Localization.Away D.s) := D.topology
+  exact hπ.map (locTopology_algebraMap_continuous D.P D.T D.s D.hopen)
+
+/-! ### T-H.2.a sub-breakdown (Wedhorn 7.52(2) + 7.51, no surprises)
+
+Wedhorn 7.52(2) proof outline (p.63 + Prop 7.51 reference):
+1. **Wedhorn 7.51**: complete A, max ideal m ⊂ A ⇒ m closed + ∃ v ∈ Spa A with supp v = m.
+   Proof uses (A)°° open, 1 + A°° is units subgroup, A^× is open in A.
+2. **7.52(2) reformulation**: f unit ⇔ f ∉ any max ideal m ⇔ no v ∈ Spa A has m = supp v with f ∈ m ⇔ |f(x)| ≠ 0 for all x ∈ Spa A.
+3. **Applied to localization**: `D.s` ∈ `Localization.Away D'.s` with `D.s` nonvanishing on `Spa(Localization.Away D'.s) ≅ R(D'.T/D'.s)` (since the latter ⊆ R(D.T/D.s) by `h`, and D.s nonvanishing on R(D.T/D.s)). -/
+
+/-- **(T-H.2.a.2, Wedhorn 7.52(2))** For complete Tate `A` and `f ∈ A`, `f` is a unit iff
+`|f(x)| ≠ 0` for all `x ∈ Spa A`. Wedhorn's proof reformulates Prop 7.51
+(every maximal ideal is closed + has a Spa-point above it). -/
+theorem isUnit_iff_ne_zero_on_spa_of_complete
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A] [IsTateRing A] [T2Space A]
+    [NonarchimedeanRing A] (f : A) :
+    IsUnit f ↔ ∀ x ∈ Spa A A⁺, ¬ x.vle f 0 :=
+  sorry
+
+/-- **(T-H.2.a)** First field of `HasLocLiftPowerBounded` from strong-noeth Tate:
+`D.s` is a unit in `Localization.Away D'.s` when `R(D'.T/D'.s) ⊆ R(D.T/D.s)`.
+**Decomposition**: combine T-H.2.a.1 (localization is Tate) + T-H.2.a.2
+(Wedhorn 7.52(2)) + the Spa-point identification
+`Spa(Localization.Away D'.s) ≅ R(D'.T/D'.s)` (Wedhorn 8.2). -/
+theorem isUnit_algebraMap_s_of_tate
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A]
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A]
+    (D D' : RationalLocData A)
+    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
+    IsUnit (algebraMap A (Localization.Away D'.s) D.s) :=
+  sorry
+
+/-! ### T-H.2.b sub-breakdown (Wedhorn 7.41 power-boundedness)
+
+Wedhorn 7.41 proof (p.66): contradiction via archimedean property of height-1
+value groups. Decomposition:
+1. **T-H.2.b.1 (Wedhorn 7.40(1))**: analytic point x has a topologically nilpotent
+   element a₀ with x(a₀) ≠ 0.
+2. **T-H.2.b.2 (Wedhorn 1.14)**: height-1 totally ordered abelian group is
+   archimedean — for any x > 1 and any γ, ∃ n with x^n > γ.
+3. **T-H.2.b.3 (Wedhorn 7.41 main)**: for analytic height-1 x in Cont(A) and
+   a ∈ A°, x(a) ≤ 1 (proof by contradiction via 7.40(1) + 1.14).
+4. **T-H.2.b**: apply T-H.2.b.3 to the lifted `t/s` element in Localization.Away. -/
+
+/-- **(T-H.2.b.1, Wedhorn 7.40(1))** Analytic point characterization: `x ∈ Cont(A)_a`
+iff there exists `a ∈ A°°` with `x(a) ≠ 0`. -/
+theorem exists_topNilp_ne_zero_of_analytic
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A]
+    (x : Spv A) (hx : x ∈ Cont A) (hx_an : ¬ IsOpen (x.supp : Set A)) :
+    ∃ a : A, IsTopologicallyNilpotent a ∧ ¬ x.vle a 0 :=
+  sorry
+
+/-! ### Pass-4 audit additions (2026-05-17): Wedhorn 7.42 + clean 7.52(2)
+
+Pass-4 surfaced these as needed for the blocker-2 refactor discharges
+(`isUnit_canonicalMap_s_of_tate` and
+`locLift_divByS_isPowerBounded_completion_of_tate`). -/
+
+/-- **(Wedhorn 7.42, pass-4 audit)** *"Let `A` be a complete affinoid ring.
+An element `a ∈ A` is power-bounded if and only if `v(a) ≤ 1` for every
+continuous valuation `v ∈ Cont A`."*
+
+This is the converse direction of `analytic_height_one_vle_one_on_powerBounded`
+(which gives the forward direction). The reverse direction is Wedhorn 7.42's
+non-trivial content.
+
+Discharge plan (Wedhorn p.66-67):
+* Forward: existing `analytic_height_one_vle_one_on_powerBounded` for
+  analytic points + trivial bound for non-analytic.
+* Reverse: if `v(a) ≤ 1` for all continuous `v`, then for any open
+  neighborhood `U` of `0`, the set `{a^n | n ∈ ℕ}` is bounded — proof
+  via Wedhorn 7.18 (topology-aware integrality criterion) + standard
+  power-bounded characterization. -/
+theorem wedhorn_7_42_powerBounded_iff_forall_continuous_vle_one
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [T2Space A] [NonarchimedeanRing A]
+    (a : A) :
+    @TopologicalRing.IsPowerBounded A _ _ a ↔
+      ∀ v ∈ Cont A, v.vle a 1 :=
+  sorry
+
+/-- **(Wedhorn 7.52(2), clean version — pass-4 audit)** *"Let `A` be a
+complete affinoid ring. An element `f ∈ A` is a unit if and only if
+`v(f) ≠ 0` for every `v ∈ Spa(A, A⁺)`."*
+
+The existing `isUnit_of_forall_not_vle_zero` (AdicSpectrum.lean:194) gives
+the implication for the case where every max ideal is open. The clean
+Wedhorn version (complete affinoid) follows from the open-max-ideal case
+once we know **all** max ideals are CLOSED, which is Wedhorn Prop 7.51
+(audit pass-1 `prop_7_51_maxIdeal_closed_and_spa_point`).
+
+Discharge plan: combine `isUnit_of_forall_not_vle_zero` with
+`prop_7_51_maxIdeal_closed_and_spa_point` — the Spa-point existence for
+max ideals (NOT requiring them to be open) is the audit pass-3 lemma
+`exists_spa_point_supp_eq_maxIdeal_of_complete`. -/
+theorem wedhorn_7_52_2_isUnit_iff_forall_not_vle_zero
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [T2Space A] [NonarchimedeanRing A]
+    (f : A) :
+    IsUnit f ↔ ∀ v ∈ Spa A A⁺, ¬ v.vle f 0 := by
+  refine ⟨?_, ?_⟩
+  · -- Forward: f unit → no v has v(f) ≤ v(0). Via not_vle_zero_of_isUnit.
+    intro hu v _
+    exact not_vle_zero_of_isUnit hu v
+  · -- Reverse: ∀ v, ¬ v.vle f 0 → f unit. Needs Wedhorn 7.51 (max ideal closed
+    -- + Spa-point exists) — discharge via audit pass-3
+    -- `exists_spa_point_supp_eq_maxIdeal_of_complete` + `isUnit_of_forall_not_vle_zero`.
+    sorry
+
+/-- **(Pass-4 audit, PB transfer along continuous ring hom — pass-5 found
+NOT generally true)** Originally stated for arbitrary continuous ring homs;
+**that statement is false in general** (counterexample: source has discrete
+topology, target standard topology — every set bounded in source, image may
+not be).
+
+The correct specialization is for **uniform embeddings** (or dense embeddings,
+or open ring homs). For our use case, `D'.coeRingHom : Localization.Away D'.s
+→ presheafValue D'` is a uniform embedding (completion map), and PB does
+transfer.
+
+Discharge plan: replace this generic statement with `IsPowerBounded.completion`
+specialized to uniform-completion ring homs. -/
+theorem IsPowerBounded.map {R S : Type*} [CommRing R] [TopologicalSpace R]
+    [IsTopologicalRing R] [CommRing S] [TopologicalSpace S]
+    [IsTopologicalRing S]
+    {φ : R →+* S} (_hφ : Continuous φ) {x : R}
+    (_hx : TopologicalRing.IsPowerBounded x) :
+    TopologicalRing.IsPowerBounded (φ x) :=
+  sorry
+
+-- (Duplicate of `isPowerBounded_of_discrete_presheafValue` moved earlier removed here.)
+
+/-- **(T-H.2.b.2.α, Wedhorn 7.40(6) — audit pass 3 item 14)** *"Let `v` be
+a continuous analytic valuation on a Huber ring `A`. Then `v` has height
+≤ 1, i.e., its value group has rank ≤ 1 (embeds order-monomorphically into
+`ℝ>0`)."*
+
+This is the **first half** of `mulArchimedean_valueGroup_of_analytic`: the
+analytic + continuous hypotheses upgrade to rank-1. The rank-1 → archimedean
+step is `mulArchimedean_of_rankOne_valueGroup` (below).
+
+Discharge plan: Wedhorn 7.40(6) proof on p.55: choose a topologically
+nilpotent `b` with `v(b) ≠ 0` (Wedhorn 7.40(1)); for any `c ∈ A` with
+`v(c) > 0`, the chain `v(c · b^n)` becomes cofinal in `v`'s value group as
+`n → ∞`. This forces height ≤ 1. The statement here uses Mathlib's
+`Valuation.IsRankOne` predicate (verify exact name). -/
+theorem rankOne_valueGroup_of_analytic
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A]
+    (x : Spv A) (hx_an : ¬ IsOpen (x.supp : Set A))
+    (hx_cont : x ∈ Cont A) :
+    letI : ValuativeRel A := x.toValuativeRel
+    ∃ φ : ValuativeRel.ValueGroupWithZero A →*₀
+      WithZero (Multiplicative ℝ),
+      Function.Injective φ ∧ StrictMono φ :=
+  sorry
+
+/-- **(T-H.2.b.2.β, Wedhorn 1.14 / Mathlib lookup)** *"A
+`LinearOrderedCommGroupWithZero` that order-embeds into `ℝ>0` is
+archimedean (= `MulArchimedean`)."*
+
+Discharge plan: Mathlib has `MulArchimedean.of_…` family; verify exact
+name (likely `MulArchimedean.of_orderHom_injective_to_real` or via
+`LinearOrderedCommGroupWithZero` API). -/
+theorem mulArchimedean_of_rankOne_valueGroup
+    {G : Type*} [LinearOrderedCommGroupWithZero G]
+    (φ : G →*₀ WithZero (Multiplicative ℝ))
+    (_hφ_inj : Function.Injective φ) (_hφ_mono : StrictMono φ) :
+    MulArchimedean G :=
+  sorry
+
+/-- **(T-H.2.b.2, Wedhorn 1.14)** Any height-1 totally ordered group is
+archimedean. **Lean encoding**: this is the typeclass `MulArchimedean` (Mathlib),
+which characterises the archimedean property for `LinearOrderedCommGroupWithZero`.
+The Wedhorn 1.14 statement we need is "for analytic Spa-points, the value group
+satisfies `MulArchimedean`" — derived from analyticity = height 1 (Wedhorn 7.40(6))
++ standard "height 1 ⇒ archimedean" (Mathlib has `MulArchimedean.of_rank_one`
+or similar; if not, derive from `RankOne` valuation API).
+
+**Pass-3 discharge**: composes `rankOne_valueGroup_of_analytic` (Wedhorn 7.40(6))
+with `mulArchimedean_of_rankOne_valueGroup` (Wedhorn 1.14). -/
+theorem mulArchimedean_valueGroup_of_analytic
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A]
+    (x : Spv A) (hx_an : ¬ IsOpen (x.supp : Set A))
+    (hx_cont : x ∈ Cont A) :
+    letI : ValuativeRel A := x.toValuativeRel
+    MulArchimedean (ValuativeRel.ValueGroupWithZero A) := by
+  letI : ValuativeRel A := x.toValuativeRel
+  obtain ⟨φ, hφ_inj, hφ_mono⟩ := rankOne_valueGroup_of_analytic x hx_an hx_cont
+  exact mulArchimedean_of_rankOne_valueGroup φ hφ_inj hφ_mono
+
+/-- **(T-H.2.b.3, Wedhorn 7.41 main)** Analytic height-1 valuation `x ∈ Cont(A)_a`
+satisfies `x(a) ≤ 1` for all `a ∈ A°` (power-bounded). Proof by contradiction:
+assume x(a) > 1; pick b ∈ A°° with x(b) ≠ 0 (T-H.2.b.1); height-1 ⇒ archimedean
+(T-H.2.b.2) gives n with x(a^n b) > 1; but a^n b ∈ A°° + continuity ⇒ x(a^n b) < 1. -/
+theorem analytic_height_one_vle_one_on_powerBounded
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A]
+    (x : Spv A) (hx : x ∈ Cont A) (hx_an : ¬ IsOpen (x.supp : Set A))
+    (a : A) (ha : @TopologicalRing.IsPowerBounded A _ _ a) :
+    x.vle a 1 :=
+  sorry
+
+/-- **(T-H.2.b)** Second field of `HasLocLiftPowerBounded` from strong-noeth Tate:
+the lifted `t/s` is power-bounded in `Localization.Away D'.s` with its
+localization topology. **Decomposition** via T-H.2.b.1, .2, .3 + the
+Spa-correspondence between `Localization.Away D'.s` and `R(D'.T/D'.s)`. -/
+theorem locLift_divByS_isPowerBounded_of_tate
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A]
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A]
+    (D D' : RationalLocData A)
+    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) (t : A) (ht : t ∈ D.T) :
+    @TopologicalRing.IsPowerBounded (Localization.Away D'.s) _ D'.topology
+      (IsLocalization.Away.lift D.s (isUnit_algebraMap_s_of_tate D D' h)
+        (divByS t D.s)) :=
+  sorry
+
+/-- **(T-H.2.a, Wedhorn-faithful, blocker-2 refactor 2026-05-17)**
+The canonical-map image `D'.canonicalMap D.s` is a unit in the **completion**
+`presheafValue D'` for strong-noeth Tate rings.
+
+**Discharge plan** (Wedhorn-faithful, single chain):
+1. `presheafValue D'` is a complete affinoid ring (by `presheafValue_isTateRing_clean`).
+2. Apply Wedhorn 7.52(2) to `D'.canonicalMap D.s`: it's a unit iff `D.s` is
+   nonvanishing on `Spa(presheafValue D') ≅ R(D'.T/D'.s)` (Wedhorn 8.2 =
+   audit `Spa_presheafValue_eq_rationalOpen`).
+3. `D.s` is nonvanishing on `R(D'.T/D'.s)` since `R(D'.T/D'.s) ⊆ R(D.T/D.s)`
+   and `D.s` is nonvanishing on `R(D.T/D.s)` by definition of rational subset.
+
+This replaces the previous algebraic-side `isUnit_algebraMap_s_of_tate`
+(which couldn't be discharged via Wedhorn route — unit-ness in
+`Localization.Away D'.s` is genuinely stronger than what Wedhorn 7.52(2)
+gives in the completion). -/
+theorem isUnit_canonicalMap_s_of_tate
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A]
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A]
+    (D D' : RationalLocData A)
+    (_h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
+    IsUnit (D'.canonicalMap D.s) :=
+  sorry
+
+/-- **(T-H.2.b, Wedhorn-faithful, blocker-2 refactor 2026-05-17)**
+The `divByS t D.s`-lift is power-bounded in the **completion** `presheafValue D'`.
+
+**Discharge plan** (Wedhorn-faithful):
+1. `IsLocalization.Away.lift D.s h_unit (divByS t D.s)` is the image of `t/D.s`
+   in `presheafValue D'`.
+2. Apply Wedhorn 7.41 to `presheafValue D'`: any analytic continuous valuation `v`
+   on `presheafValue D'` satisfies `v(a) ≤ 1` for `a ∈ (presheafValue D')°`.
+3. `t/D.s ∈ (presheafValue D')°` because the rational containment
+   `R(D'.T/D'.s) ⊆ R(D.T/D.s)` gives `v(t) ≤ v(D.s)` for all continuous `v`,
+   i.e., `v(t/D.s) ≤ 1`, hence `t/D.s` is power-bounded in completion. -/
+theorem locLift_divByS_isPowerBounded_completion_of_tate
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A]
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A]
+    (D D' : RationalLocData A)
+    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) (t : A) (_ht : t ∈ D.T) :
+    @TopologicalRing.IsPowerBounded (presheafValue D') _ inferInstance
+      (IsLocalization.Away.lift D.s (isUnit_canonicalMap_s_of_tate D D' h)
+        (divByS t D.s)) :=
+  sorry
+
+/-- **(T-H.2, Wedhorn-faithful, blocker-2 refactor 2026-05-17)**
+`HasLocLiftPowerBounded` instance for strong-noeth Tate rings. -/
+instance hasLocLiftPowerBounded_of_stronglyNoetherianTate'
+    (A : Type*) [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A]
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] :
+    HasLocLiftPowerBounded A where
+  isUnit_canonicalMap_s := isUnit_canonicalMap_s_of_tate
+  locLift_divByS_isPowerBounded := locLift_divByS_isPowerBounded_completion_of_tate
 
 end ValuationSpectrum

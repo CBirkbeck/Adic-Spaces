@@ -48,18 +48,74 @@ Follows directly from `UniformSpace.Completion.extensionHom_coe` + the
 theorem restrictionMapHom_canonicalMap (D₀ D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D₀.T D₀.s) (a : A) :
     restrictionMapHom D₀ D' h (D₀.canonicalMap a) = D'.canonicalMap a := by
-  unfold restrictionMapHom RationalLocData.canonicalMap
   letI := D₀.uniformSpace
   letI := D₀.isTopologicalRing
   letI := D₀.isUniformAddGroup
   letI := D'.uniformSpace
   letI := D'.isTopologicalRing
   letI := D'.isUniformAddGroup
-  simp only [RingHom.coe_comp, Function.comp_apply]
-  erw [UniformSpace.Completion.extensionHom_coe (restrictionMapAlg D₀ D' h)
-    (restrictionMapAlg_continuous D₀ D' h)]
-  simp only [RingHom.comp_apply, restrictionMapAlg, IsLocalization.Away.lift_eq]
+  show restrictionMapHom D₀ D' h
+      (D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) a)) =
+      D'.coeRingHom (algebraMap A (Localization.Away D'.s) a)
+  -- `D₀.coeRingHom = UniformSpace.Completion.coeRingHom` and `restrictionMapHom = extensionHom`.
+  -- Apply `extensionHom_coe` to collapse `extensionHom f (coeRingHom x)` to `f x`.
+  -- Then `restrictionMapAlg = IsLocalization.Away.lift D₀.s witness` with witness
+  -- for the ring hom `D'.canonicalMap`; `IsLocalization.Away.lift_eq` finishes.
+  have h_ext :
+      restrictionMapHom D₀ D' h
+        (D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) a)) =
+      restrictionMapAlg D₀ D' h (algebraMap A (Localization.Away D₀.s) a) :=
+    UniformSpace.Completion.extensionHom_coe (restrictionMapAlg D₀ D' h)
+      (restrictionMapAlg_continuous D₀ D' h)
+      (algebraMap A (Localization.Away D₀.s) a)
+  rw [h_ext, restrictionMapAlg, IsLocalization.Away.lift_eq]
+  rfl
 
 end Helpers
+
+/-! ## Hidden-obligation audit pass 3 (2026-05-17): Wedhorn 7.55 reduction
+
+Item 4 from the audit. Wedhorn Prop 8.30 (page 81) reduces to Lemma
+8.31(1)/(2) via:
+1. Example 6.38: WLOG U = Spa A (the bigger rational is again strong-noeth Tate);
+2. Remark 7.55: any rational `V = R(T/s) ⊆ Spa A` admits a description
+   `O_X(V) ≅ A⟨X_1, …, X_n⟩ / (s·X_1 - t_1, …, s·X_n - t_n)` where `T = {t_1, …, t_n}`;
+3. Each generator `(s·X_i - t_i)` is the "Laurent pair" form, flat by 8.31(2).
+
+The intermediate step is the explicit ring isomorphism that's the missing
+audit lemma. -/
+
+section AuditPass3
+
+variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+  [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsNoetherianRing A]
+  [T2Space A] [NonarchimedeanRing A]
+
+/-- **(Wedhorn Remark 7.55, clean ring-iso form)** *"For a rational subset
+`V = R(T/s)` with `T = {t_1, …, t_n}`, we have an isomorphism
+`O_X(V) ≅ A⟨X_1, …, X_n⟩ / (s·X_1 - t_1, …, s·X_n - t_n)`."*
+
+This is the iterated `A⟨X⟩/(s·X - t)` description that Wedhorn 8.30 uses
+to reduce flatness to Lemma 8.31(2).
+
+Discharge plan: induction on `n`. The base case `n = 0` is `R(∅/s) = R(s) =
+Spa(A[1/s])` and `presheafValue ≃+* completion of A[1/s]` already exists in
+the project (`PresheafIdentification.lean`). The inductive step adjoins
+one more variable via the "Wedhorn 7.55" `Localization.Away` identification
+applied to `A → A⟨X_1⟩/(s·X_1 - t_1)`.
+
+**Note**: stated for arbitrary finset; the package shape returns the
+ring iso bundled with a `HasLocLiftPowerBounded`-style continuity assertion
+(omitted here for brevity; project's `presheafValue` API handles it). -/
+theorem presheafValue_eq_quotient_AlangleX_iterated
+    (D : RationalLocData A) :
+    Nonempty (presheafValue D ≃+*
+      MvPolynomial D.T A ⧸ Ideal.span
+        (Set.range (fun t : D.T =>
+          MvPolynomial.X (R := A) t * MvPolynomial.C D.s
+            - MvPolynomial.C (t : A)))) :=
+  sorry
+
+end AuditPass3
 
 end ValuationSpectrum
