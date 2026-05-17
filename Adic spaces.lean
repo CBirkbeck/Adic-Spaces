@@ -94,6 +94,11 @@ import «Adic spaces».ValuationSpectrum
 import «Adic spaces».ValuationSpectrumCompact
 import «Adic spaces».ValuativeRel.Comap
 import «Adic spaces».WittVectorPrimitive
+-- Wedhorn 6.18 chain (planning skeleton, audit-pass-2 proof providers)
+import «Adic spaces».BanachOMT
+import «Adic spaces».WedhornBanachTheorem
+import «Adic spaces».WedhornStronglyNoetherian
+import «Adic spaces».AuditCleanWrappers
 -- Nonarchimedean Scottish Book (Kedlaya et al., 2015–2022)
 -- Described (docstring only, no Lean formalization yet)
 import «Adic spaces».ScottishBook.Described.Problem011

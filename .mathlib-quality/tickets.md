@@ -5351,3 +5351,217 @@ dep-type walls; the four sub-issues isolate each technical hurdle.
   T-LANE-C-REFINEMENT-INDUCTION, not a global theorem solving arbitrary
   covers. Cross-reference: it serves as the leaf-level closure in the
   refinement-induction tree.
+
+---
+
+## Wedhorn 6.18 chain tickets (2026-05-17, /develop pass)
+
+Generated from `.mathlib-quality/decomposition.md` after the binding methodical-
+decomposition pre-work pass for the Wedhorn 6.16/6.17/6.18 chain + audit-pass-2
+trio + AuditCleanWrappers. Roadmap doc:
+`docs/plans/2026-05-17-wedhorn-618-roadmap.md`.
+
+### [T-WEDHORN-618-L1] Banach OMT for complete metric topological abelian groups
+
+- **Status**: open
+- **File**: `Adic spaces/BanachOMT.lean`
+- **Depends on**: (none — mathlib gap; foundation for all later tickets)
+- **Parallel**: yes (no dependencies)
+- **Type**: lemma (mathlib gap, suitable for upstream)
+
+#### Statement
+
+```lean
+theorem AddMonoidHom.isOpenMap_of_completeSpace_of_countablyGenerated
+    {G : Type u} [AddCommGroup G] [UniformSpace G] [IsUniformAddGroup G]
+    [CompleteSpace G] [(uniformity G).IsCountablyGenerated]
+    {H : Type v} [AddCommGroup H] [UniformSpace H] [IsUniformAddGroup H]
+    [CompleteSpace H] [(uniformity H).IsCountablyGenerated] [T2Space H]
+    (f : G →+ H) (hf : Continuous f) (hsurj : Function.Surjective f) :
+    IsOpenMap f := by sorry
+```
+
+#### Proof sketch
+
+Bourbaki [TG] III.3.3 — the classical Banach argument adapted to topological
+abelian groups.
+
+1. **Source is Baire.** `G` is complete uniform with countably-generated
+   uniformity ⇒ `BaireSpace G` via `BaireSpace.of_pseudoEMetricSpace_completeSpace`.
+2. **Cover trick.** Pick any nbhd `U` of 0 in `G`. Since `H` is countably-generated,
+   there's a countable nbhd basis `(V_n)` of 0 in `H`. For each `n`,
+   `H = ⋃_k (k · V_n)` (by countability of integers acting via addition).
+3. **Baire on H.** The image `f(n·U) = n·f(U)` covers `H` by countable union
+   (any countable cover by translates of `f(U)`); `H` is Baire (CompleteSpace
+   + countably-generated ⇒ same instance), so some `n·f(U)` has nonempty interior.
+4. **Subtract.** `f(U) - f(U)` contains a nbhd of 0 in `H` (by the open-symmetric
+   trick: if `n·f(U)` has interior point `y`, then `y - y = 0` is in interior
+   of `f(U) - f(U)` after rescaling).
+5. **Cauchy lift.** For any `y` in a small nbhd of 0 in `H`, build a Cauchy
+   sequence `(x_n)` in `G` with `x_n ∈ ½^n · U` and `f(x_n) - y → 0`
+   (geometric refinement). Since `G` is complete, `x_n → x ∈ G`; `f` continuous
+   ⇒ `f(x) = y`; the sequence stays in `U + ¼U + ⅛U + … ⊆ 2U`, so `x ∈ 2U`.
+6. **Open everywhere.** Translation invariance: `f` open at 0 ⇒ open everywhere.
+
+#### Mathlib lemmas needed
+
+- `BaireSpace.of_pseudoEMetricSpace_completeSpace` — Baire from complete +
+  countably-generated uniformity (verified: `Mathlib.Topology.Baire.CompleteMetrizable`).
+- `nonempty_interior_of_iUnion_of_closed` — Baire category for closed unions.
+- `Filter.HasBasis.mem_iff`, `nhds_zero` basis lemmas.
+- `CauchySeq.tendsto_of_completeSpace` — completeness ⇒ Cauchy converges.
+- `IsTopologicalAddGroup.continuous_neg`, `continuous_add` — translation continuity.
+
+#### Sources
+
+- Bourbaki, *Topologie Générale*, Chapter III §3 no. 3 Théorème 1.
+- Huber [Hu3] Lemma 2.4(i), Math. Z. 217 (1994), p. 16 (verbatim restatement
+  for the A-module case).
+- BGR §3.7 (uses Banach OMT as prerequisite per Introduction p. 5).
+
+#### Generality decision
+
+- Stated over `[AddCommGroup G]` + `[UniformSpace G]` + `[CompleteSpace G]` +
+  `[(uniformity G).IsCountablyGenerated]` — minimal hypotheses; matches the
+  Bourbaki abstraction (no scalar ring).
+- The mathlib-style upstream version should drop the `T2Space H` if possible
+  (T2 follows from completeness + countably-generated in most cases).
+
+### [T-WEDHORN-618-L2-616] Wedhorn 6.16 = Huber 2.4(i) as A-module OMT
+
+- **Status**: open
+- **File**: `Adic spaces/WedhornBanachTheorem.lean`
+- **Depends on**: T-WEDHORN-618-L1
+- **Parallel**: no (sequential after L1)
+- **Type**: lemma
+
+#### Statement
+
+See `Adic spaces/WedhornBanachTheorem.lean:68` for `wedhorn_6_16`.
+
+#### Proof sketch
+
+Direct corollary of T-WEDHORN-618-L1. The A-linear map `f : M →ₗ[A] N` is in
+particular an `AddMonoidHom`, and the underlying additive group structure
+satisfies the hypotheses of L1.
+
+Body: `exact AddMonoidHom.isOpenMap_of_completeSpace_of_countablyGenerated f.toAddMonoidHom hf hsurj`.
+
+### [T-WEDHORN-618-L3-617] Wedhorn 6.17: noetherian ⇔ every ideal closed
+
+- **Status**: open
+- **File**: `Adic spaces/WedhornBanachTheorem.lean`
+- **Depends on**: T-WEDHORN-618-L2-616
+- **Parallel**: no
+- **Type**: theorem (iff)
+
+#### Statement
+
+See `Adic spaces/WedhornBanachTheorem.lean:103, 114` for `wedhorn_6_17` and
+`wedhorn_6_17_ideal`.
+
+#### Proof sketch
+
+BGR §3.7.2/2 verbatim.
+
+* **Forward (Noetherian ⇒ submodules closed)**: every submodule `M'` is fg,
+  so we have a surjection `π : A^n ↠ M'`. By T-WEDHORN-618-L2-616, `π` is
+  open, hence quotient map, hence `M' = im(π)` is closed in the codomain
+  (it's the image of a closed set under an open quotient).
+* **Reverse (submodules closed ⇒ Noetherian)**: ascending chain
+  `M_1 ⊆ M_2 ⊆ …` has closed union `M' = ⋃ M_i`. By Baire on `M'`, some
+  `M_i` has nonempty interior, hence equals `M'`.
+
+### [T-WEDHORN-618-L4-618] Wedhorn 6.18: unique fg-module topology + maps strict
+
+- **Status**: open
+- **File**: `Adic spaces/WedhornBanachTheorem.lean`
+- **Depends on**: T-WEDHORN-618-L3-617
+- **Parallel**: no
+- **Type**: theorem (3 sub-statements)
+
+#### Statement
+
+See `Adic spaces/WedhornBanachTheorem.lean:143, 175, 205` for
+`wedhorn_6_18_unique`, `wedhorn_6_18_continuous`, `wedhorn_6_18_open_onto_image`.
+
+#### Proof sketch
+
+BGR §3.7.3/2 (continuity) and §3.7.3/3 (existence + uniqueness) and Cor 5
+(strictness/openness) — see decomposition.md Layer 4 for full per-statement
+sketches.
+
+### [T-WEDHORN-618-L5-AUDIT] Audit-pass-2 trio (`_proof`-suffixed)
+
+- **Status**: open
+- **File**: `Adic spaces/WedhornStronglyNoetherian.lean`
+- **Depends on**: T-WEDHORN-618-L4-618, T-MATHLIB-STACKS-00MA (ticket #36)
+- **Parallel**: no
+- **Type**: theorem (3 sub-statements + 1 generic-pair variant)
+
+#### Statement
+
+See `Adic spaces/WedhornStronglyNoetherian.lean:73, 103, 112, 144` for:
+- `isStronglyNoetherian_of_isNoetherianRing_isTateRing_proof`
+- `isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof`
+- `isNoetherianRing_A₀_of_stronglyNoetherianTate_proof`
+- `exists_hSpa_points_global_of_stronglyNoetherianTate_proof`
+
+#### Proof sketch
+
+Per-lemma sketches in the file docstrings. Highlights:
+
+* `isStronglyNoetherian_of_isNoetherianRing_isTateRing_proof`: inductive on
+  variables; base case `k=0` is `A` noetherian; inductive step uses
+  T-MATHLIB-STACKS-00MA + polynomial Hilbert basis.
+* `isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof`: A₀ is
+  open in A, noetherian descends via Wedhorn 6.18(2) (every A-linear map
+  continuous + open ⇒ closed subring inherits).
+* `exists_hSpa_points_global_of_stronglyNoetherianTate_proof`: open case via
+  trivial valuation (existing `exists_spa_point_in_rationalOpen_of_isOpen_prime`);
+  non-open case via Wedhorn 7.45 noetherian-ring-of-definition variant
+  (existing `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime` in
+  `Lemma745.lean`), using A₀ noetherian from item 2.
+
+### [T-WEDHORN-618-L6-CLEANWRAPS] Audit-clean wrappers `_proof` discharges
+
+- **Status**: open
+- **File**: `Adic spaces/AuditCleanWrappers.lean`
+- **Depends on**: T-WEDHORN-618-L5-AUDIT
+- **Parallel**: no
+- **Type**: theorem (5 sub-statements)
+
+#### Statement
+
+See `Adic spaces/AuditCleanWrappers.lean:78, 110, 125, 147, 173` for:
+- `cor_8_32_clean_proof` — **already PROVED** (delegates via Layer 5)
+- `prop_8_30_flat_clean_proof` — sorry'd, needs Layer 5 + flatness chain
+- `tateAcyclicity_separation_via_cor832_proof` — **already PROVED**
+- `tateAcyclicity_gluing_via_descent_proof` — sorry'd, needs Wedhorn 8.34 chain
+- `isSheafy_ofStronglyNoetherianTate_proof` — sorry'd, composes the above
+
+#### Proof sketch
+
+Two of the five are already proved by composition through existing
+`Cor832.lean` infrastructure + the (sorry'd) audit-pass-2 trio. Once Layer
+5 lands, these become genuinely sorry-free (only sorryAx-transitive via the
+single underlying T-WEDHORN-618-L1 Banach OMT gap).
+
+The remaining three sorry'd wrappers compose:
+- `isSheafy_ofStronglyNoetherianTate_proof` = `tateAcyclicity_separation_via_cor832_proof` (proved)
+  + `tateAcyclicity_gluing_via_descent_proof` (pending) + sheaf-axiom assembly.
+
+### Per-file cleanup cadence
+
+The 4 new files (`BanachOMT.lean`, `WedhornBanachTheorem.lean`,
+`WedhornStronglyNoetherian.lean`, `AuditCleanWrappers.lean`) have 1-5 proof
+tickets each. Per the cadence rule:
+
+- After each file's main ticket completes, run `/cleanup <file>`. Inserted as
+  `[CLEANUP-WEDHORN-618-<file>]` blocking the next layer's dependent ticket.
+
+### Roadmap reference
+
+Full layered analysis with source quotes per leaf:
+`docs/plans/2026-05-17-wedhorn-618-roadmap.md` (1070-line estimate plus
+`.mathlib-quality/decomposition.md` (the binding decomposition artifact).

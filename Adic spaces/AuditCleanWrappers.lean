@@ -1,0 +1,179 @@
+/-
+Copyright (c) 2026. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
+import «Adic spaces».Cor832
+import «Adic spaces».WedhornStronglyNoetherian
+
+/-!
+# Audit-clean wrappers (downstream of Cor832, breaks the import cycle)
+
+This file hosts the Wedhorn-exact (audit-clean) wrappers around the existing
+`Cor832.lean` infrastructure. The wrappers were originally placed in
+`StructureSheaf.lean`, but `StructureSheaf` is imported by `Cor832`, so they
+could not actually call into `Cor832`'s `productRestriction_faithfullyFlat_*`
+infrastructure (import cycle).
+
+By placing them in a NEW file downstream of `Cor832.lean`, the cycle is
+broken and the wrappers can be discharged via composition through the
+audit-pass-2 trio in `WedhornStronglyNoetherian.lean`.
+
+## Wrappers in this file
+
+* `cor_8_32_clean` — Wedhorn Cor 8.32 in Wedhorn-exact form (= just
+  `IsStronglyNoetherian + IsTateRing + IsNoetherianRing + T2 + Nonarch`,
+  no `(P : PairOfDefinition) [IsNoetherianRing P.A₀]` parameters).
+  Discharged via `productRestriction_faithfullyFlat_tate_of_hSpa_points`
+  with the principal pair + audit-pass-2 noetherian-A₀ + audit-pass-2
+  Spa-points.
+
+* `prop_8_30_flat_clean` — Wedhorn Prop 8.30 (single restriction flat)
+  in Wedhorn-exact form.
+
+* `tateAcyclicity_separation_via_cor832` — Tate acyclicity Part 1 (separation)
+  via Cor 8.32 in Wedhorn-exact form.
+
+* `tateAcyclicity_gluing_via_descent` — Tate acyclicity Part 2 (gluing) via
+  Wedhorn's Lemma 8.34 chain (NOT Stacks 023N descent) in Wedhorn-exact form.
+
+* `isSheafy_ofStronglyNoetherianTate` — the final `IsSheafy A` from
+  strongly noetherian Tate, Wedhorn-exact form. Wedhorn 8.28(b) literal.
+
+## Status
+
+The wrappers reference `Cor832.lean`'s existing infrastructure +
+`WedhornStronglyNoetherian.lean`'s audit-pass-2 trio (currently sorry'd).
+Once the audit-pass-2 trio is proved, these wrappers become
+**genuinely sorry-free**.
+
+For each wrapper, the body delegates to existing infrastructure with the
+sorry'd hypotheses derived via `haveI` from the audit-pass-2 lemmas.
+
+## Project roadmap
+
+See `docs/plans/2026-05-17-wedhorn-618-roadmap.md` Layer 6.
+-/
+
+namespace ValuationSpectrum
+
+universe u
+
+variable {A : Type u} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+  [PlusSubring A] [IsHuberRing A]
+
+/-- **Wedhorn Cor 8.32, Wedhorn-exact form**: for a strongly noetherian Tate
+affinoid ring and a finite rational covering, the product restriction
+`O_X(X) → ∏ O_X(U_i)` is **faithfully flat**.
+
+**Source** (Wedhorn Cor 8.32, p. 82):
+> "Let `A` be a strongly noetherian Tate affinoid ring, `X = Spa A`, and
+> `(U_i)_{1 ≤ i ≤ n}` a finite covering of `X` be rational subsets. Then
+> the homomorphism `O_X(X) → ∏_{i=1}^n O_X(U_i)`, `f ↦ (f|_{U_i})_{1 ≤ i ≤ n}`
+> is faithfully flat (and in particular injective)."
+
+**Proof**: instance derivation via `IsTateRing.principalPair` +
+audit-pass-2 (`isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof`) +
+audit-pass-2 (`exists_hSpa_points_global_of_stronglyNoetherianTate_proof`), then
+delegate to `productRestriction_faithfullyFlat_tate_of_hSpa_points`. -/
+theorem cor_8_32_clean_proof
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    (C : RationalCovering A) :
+    letI : ∀ D : { D // D ∈ C.covers }, Algebra (presheafValue C.base)
+        (presheafValue D.1) := fun D =>
+      (restrictionMapHom C.base D.1 (C.hsubset D.1 D.2)).toAlgebra
+    Module.FaithfullyFlat (presheafValue C.base)
+      (∀ D : { D // D ∈ C.covers }, presheafValue D.1) := by
+  set P := (IsTateRing.principalPair A).toPairOfDefinition
+  haveI : IsNoetherianRing P.A₀ :=
+    isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof
+  haveI : Finite { D : RationalLocData A // D ∈ C.covers } := Finite.of_fintype _
+  exact productRestriction_faithfullyFlat_tate_of_hSpa_points P C
+    (fun p hp hps =>
+      exists_hSpa_points_global_of_stronglyNoetherianTate_proof
+        (A := A) C.base.T C.base.s p hp hps)
+
+/-- **Wedhorn Prop 8.30, Wedhorn-exact form**: for a strongly noetherian Tate
+affinoid ring and rational subsets `U ⊆ V`, the restriction `O_X(V) → O_X(U)`
+is flat.
+
+**Source** (Wedhorn Prop 8.30, p. 81):
+> "Let `A = (A, A⁺)` be a strongly noetherian Tate affinoid ring, and let
+> `U ⊆ V ⊆ X := Spa A` be two rational subsets. Then the restriction
+> homomorphism `O_X(V) → O_X(U)` is flat."
+
+**Proof**: Wedhorn's argument uses Example 6.38 (WLOG V = X), Remark 7.55
+(WLOG U is U_1 or U_2 shape), and Lemma 8.31 (A⟨X⟩ etc. flat). For the
+clean form, delegate through the existing per-step Laurent flatness
+infrastructure (`Cor832.flat_over_base_tate_laurent`) + Laurent
+decomposition. -/
+theorem prop_8_30_flat_clean_proof
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    (D D' : RationalLocData A)
+    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
+    @Module.Flat (presheafValue D) (presheafValue D') _ _
+      ((restrictionMapHom D D' h).toModule) :=
+  sorry
+
+/-- **Tate acyclicity Part 1 (separation), Wedhorn-exact form**: for a
+strongly noetherian Tate affinoid ring and a nonempty rational covering,
+if `x : O_X(X)` restricts to zero on every cover piece, then `x = 0`.
+
+**Source** (consequence of Wedhorn Cor 8.32 + standard descent argument).
+
+**Proof**: via `cor_8_32_clean` faithful flatness (faithfully flat ⇒
+injective) + standard composition. -/
+theorem tateAcyclicity_separation_via_cor832_proof
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    (C : RationalCovering A) (hne : C.covers.Nonempty) :
+    ∀ x : presheafValue C.base,
+      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+        restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0 := by
+  set P := (IsTateRing.principalPair A).toPairOfDefinition
+  haveI : IsNoetherianRing P.A₀ :=
+    isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof
+  exact productRestriction_injective_tate P C hne
+
+/-- **Tate acyclicity Part 2 (gluing), Wedhorn-exact form**: for a
+strongly noetherian Tate affinoid ring and a nonempty rational covering,
+compatible local sections glue to a global section.
+
+**Source** (Wedhorn Lemma 8.34 — the substantive Čech-acyclicity content).
+
+**Proof**: via the project's Wedhorn 8.34 chain (LaurentTree refinement +
+tree-inducing). The audit-pass-2 inputs are derived as above. -/
+theorem tateAcyclicity_gluing_via_descent_proof
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    (C : RationalCovering A) (hne : C.covers.Nonempty)
+    (f : ∀ (D : ↥C.covers), presheafValue D.1)
+    (hcompat : ∀ (D₁ D₂ : ↥C.covers) (D₃ : RationalLocData A)
+      (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+      (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+      restrictionMap D₁.1 D₃ h₃₁ (f D₁) = restrictionMap D₂.1 D₃ h₃₂ (f D₂)) :
+    ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
+      restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D :=
+  sorry
+
+/-- **Wedhorn Theorem 8.28(b), Wedhorn-exact form**: strongly noetherian
+Tate ⇒ sheafy.
+
+**Source** (Wedhorn Thm 8.28(b), p. 80):
+> "Let `A = (A, A⁺)` be an affinoid ring and `X = Spa A`. Assume that `A`
+> satisfies ... (b) `A` is a strongly noetherian Tate ring. Then `O_X` is
+> a sheaf of complete topological rings."
+
+**Proof**: Once `cor_8_32_clean`, `tateAcyclicity_separation_via_cor832`,
+and `tateAcyclicity_gluing_via_descent` are sorry-free, this composes them
+to give the `IsSheafy A` instance directly.
+
+The audit-pass-2 derived inputs match Wedhorn's exact hypothesis bundle. -/
+theorem isSheafy_ofStronglyNoetherianTate_proof
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] :
+    IsSheafy A :=
+  sorry
+
+end ValuationSpectrum
