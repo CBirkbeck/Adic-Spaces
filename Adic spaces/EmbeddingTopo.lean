@@ -2239,6 +2239,16 @@ theorem LaurentTree.allSplitsInducing_ofBalancedList
     obtain ⟨h_head, h_plus, h_minus⟩ := h
     refine ⟨h_head, ih _ h_plus, ih _ h_minus⟩
 
+@[simp] theorem LaurentTree.BalancedInducing_nil (D₀ : RationalLocData A) :
+    LaurentTree.BalancedInducing D₀ ([] : List A) ↔ True := Iff.rfl
+
+@[simp] theorem LaurentTree.BalancedInducing_cons (D₀ : RationalLocData A)
+    (f : A) (rest : List A) :
+    LaurentTree.BalancedInducing D₀ (f :: rest) ↔
+      Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f)) ∧
+      LaurentTree.BalancedInducing (laurentPlusDatum D₀ f) rest ∧
+      LaurentTree.BalancedInducing (laurentMinusDatum D₀ f) rest := Iff.rfl
+
 /-- `RightBranchInducing` implies `allSplitsInducing` for the
 right-branching tree. -/
 theorem LaurentTree.allSplitsInducing_ofRightBranchList
