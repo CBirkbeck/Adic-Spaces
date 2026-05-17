@@ -191,7 +191,9 @@ theorem wedhorn_6_17_ideal
     {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
       [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A] :
     IsNoetherianRing A ↔ ∀ I : Ideal A, IsClosed (I : Set A) :=
-  sorry
+  -- Specialise wedhorn_6_17 to M = A. Ideal A = Submodule A A and
+  -- IsNoetherianRing A = IsNoetherian A A.
+  wedhorn_6_17 (A := A) (M := A)
 
 /-! ## Wedhorn 6.18 (= BGR §3.7.3) — unique fg-module topology + maps strict
 
@@ -345,8 +347,20 @@ theorem _sub_lemma_L4_4_unique_topology
     (h_complete2 : @CompleteSpace M τ₂)
     (h_cg2 : (@uniformity M τ₂).IsCountablyGenerated)
     (h_t2_2 : @T2Space M τ₂.toTopologicalSpace) :
-    τ₁.toTopologicalSpace = τ₂.toTopologicalSpace :=
-  sorry
+    τ₁.toTopologicalSpace = τ₂.toTopologicalSpace := by
+  -- Apply L4.2 twice with the identity map in each direction.
+  -- id : (M, τ₁) → (M, τ₂) is A-linear and continuous (by L4.2 with codomain τ₂),
+  -- giving τ₂.top ≤ τ₁.top. Symmetric for the reverse.
+  have h12 : @Continuous M M τ₁.toTopologicalSpace τ₂.toTopologicalSpace id :=
+    @_sub_lemma_L4_2_continuous_via_OMT _ _ _ _ _ _ _
+      M _ _ _ τ₁ h_top1 h_complete1 h_cg1
+      M _ _ _ τ₂ h_top2 h_complete2 h_cg2 h_t2_2 (LinearMap.id (R := A) (M := M))
+  have h21 : @Continuous M M τ₂.toTopologicalSpace τ₁.toTopologicalSpace id :=
+    @_sub_lemma_L4_2_continuous_via_OMT _ _ _ _ _ _ _
+      M _ _ _ τ₂ h_top2 h_complete2 h_cg2
+      M _ _ _ τ₁ h_top1 h_complete1 h_cg1 h_t2_1 (LinearMap.id (R := A) (M := M))
+  -- Two-sided continuity of id is equivalent to topology equality.
+  exact le_antisymm (continuous_id_iff_le.mp h12) (continuous_id_iff_le.mp h21)
 
 theorem wedhorn_6_18_unique
     {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
@@ -392,7 +406,8 @@ theorem wedhorn_6_18_continuous
       [CompleteSpace N] [(uniformity N).IsCountablyGenerated] [T2Space N]
     (f : M →ₗ[A] N) :
     Continuous f :=
-  sorry
+  -- Direct citation of L4.2 (same statement).
+  _sub_lemma_L4_2_continuous_via_OMT f
 
 /-- **Wedhorn 6.18(2) — open onto image part** = BGR §3.7.3/Corollary 5.
 For a complete noetherian Tate ring `A` and two finitely generated `A`-modules
@@ -422,6 +437,7 @@ theorem wedhorn_6_18_open_onto_image
       [CompleteSpace N] [(uniformity N).IsCountablyGenerated] [T2Space N]
     (f : M →ₗ[A] N) :
     IsOpenMap (Set.rangeFactorization f) :=
-  sorry
+  -- Direct citation of L4.3 (same statement).
+  _sub_lemma_L4_3_strict_via_closed_image f
 
 end ValuationSpectrum
