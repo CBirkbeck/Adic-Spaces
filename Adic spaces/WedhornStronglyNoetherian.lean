@@ -265,9 +265,31 @@ theorem isStronglyNoetherian_of_isNoetherianRing_isTateRing_proof
   intro k
   induction k with
   | zero =>
-    -- Base case `restrictedMvPowerSeriesSubring 0 A ≅ A`, which is noetherian.
-    -- The k = 0 subring is isomorphic to A via `MvPowerSeries.empty` identification.
-    sorry
+    -- Base case `restrictedMvPowerSeriesSubring 0 A ≅ A`, which is noetherian by hypothesis.
+    -- The k = 0 subring is identified with A via constantCoeff (since `Fin 0 →₀ ℕ` is a
+    -- singleton, so MvPowerSeries (Fin 0) A ≃+* A; restrictedness is trivial as cofinite
+    -- on a finite-domain function is automatic).
+    let e : ↥(restrictedMvPowerSeriesSubring 0 A) ≃+* A :=
+      { toFun := fun f => MvPowerSeries.constantCoeff (f : MvPowerSeries (Fin 0) A)
+        invFun := fun a => ⟨algebraMap A (MvPowerSeries (Fin 0) A) a,
+          MvPowerSeries.IsRestricted_algebraMap a⟩
+        left_inv := by
+          intro ⟨f, hf⟩
+          classical
+          apply Subtype.ext
+          change algebraMap A (MvPowerSeries (Fin 0) A) (MvPowerSeries.constantCoeff f) = f
+          ext n
+          have hn : n = 0 := Subsingleton.elim _ _
+          subst hn
+          rw [MvPowerSeries.algebraMap_apply, MvPowerSeries.coeff_C]
+          simp [MvPowerSeries.coeff_zero_eq_constantCoeff]
+        right_inv := by
+          intro a
+          change MvPowerSeries.constantCoeff (algebraMap A (MvPowerSeries (Fin 0) A) a) = a
+          rw [MvPowerSeries.algebraMap_apply]; simp
+        map_mul' := by intros; simp
+        map_add' := by intros; simp }
+    exact isNoetherianRing_of_ringEquiv A e.symm
   | succ k ih =>
     -- Inductive step is L5.1.3.
     exact _sub_lemma_L5_1_3_inductive_step k ih
