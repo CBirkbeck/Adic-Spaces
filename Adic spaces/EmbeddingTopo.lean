@@ -2270,6 +2270,24 @@ theorem LaurentTree.RightBranchInducing_of_BalancedInducing
     obtain ⟨h_head, _, h_minus⟩ := h
     exact ⟨h_head, ih _ h_minus⟩
 
+/-- Projection: BalancedInducing on cons gives head's inducing fact. -/
+theorem LaurentTree.BalancedInducing.head
+    {D₀ : RationalLocData A} {f : A} {rest : List A}
+    (h : LaurentTree.BalancedInducing D₀ (f :: rest)) :
+    Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f)) := h.1
+
+/-- Projection: BalancedInducing on cons gives plus branch. -/
+theorem LaurentTree.BalancedInducing.plus_branch
+    {D₀ : RationalLocData A} {f : A} {rest : List A}
+    (h : LaurentTree.BalancedInducing D₀ (f :: rest)) :
+    LaurentTree.BalancedInducing (laurentPlusDatum D₀ f) rest := h.2.1
+
+/-- Projection: BalancedInducing on cons gives minus branch. -/
+theorem LaurentTree.BalancedInducing.minus_branch
+    {D₀ : RationalLocData A} {f : A} {rest : List A}
+    (h : LaurentTree.BalancedInducing D₀ (f :: rest)) :
+    LaurentTree.BalancedInducing (laurentMinusDatum D₀ f) rest := h.2.2
+
 /-- `RightBranchInducing` implies `allSplitsInducing` for the
 right-branching tree. -/
 theorem LaurentTree.allSplitsInducing_ofRightBranchList
