@@ -422,6 +422,10 @@ theorem restrictIdeal_ne_zero_of_mem_ideal (v : Valuation A Γ₀) {I : Ideal A}
 theorem restrictIdeal_apply_one (v : Valuation A Γ₀) (I : Ideal A) :
     v.restrictIdeal I 1 = 1 := map_one _
 
+/-- **`restrictIdeal v I 0 = 0`** (trivially, valuations send `0` to `0`). -/
+theorem restrictIdeal_apply_zero_elem (v : Valuation A Γ₀) (I : Ideal A) :
+    v.restrictIdeal I 0 = 0 := map_zero _
+
 end Valuation
 
 namespace ValuationSpectrum
