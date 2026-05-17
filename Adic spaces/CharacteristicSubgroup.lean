@@ -462,6 +462,13 @@ theorem restrictIdeal_apply_sq (v : Valuation A Γ₀) (I : Ideal A) (a : A) :
     v.restrictIdeal I (a * a) = (v.restrictIdeal I a) ^ 2 := by
   rw [restrictIdeal_apply_mul, sq]
 
+/-- **`restrictIdeal` preserves powers being nonzero.** If `v.restrictIdeal I a ≠ 0`
+then so is its `n`-th power. -/
+theorem restrictIdeal_apply_pow_ne_zero (v : Valuation A Γ₀) (I : Ideal A)
+    (a : A) (n : ℕ) (h : v.restrictIdeal I a ≠ 0) :
+    v.restrictIdeal I (a ^ n) ≠ 0 := by
+  rw [restrictIdeal_apply_pow]; exact pow_ne_zero n h
+
 end Valuation
 
 namespace ValuationSpectrum
