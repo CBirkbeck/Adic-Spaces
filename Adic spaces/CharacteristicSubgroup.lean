@@ -442,6 +442,11 @@ theorem restrictIdeal_apply_add_le_max (v : Valuation A Γ₀) (I : Ideal A) (a 
     v.restrictIdeal I (a + b) ≤ max (v.restrictIdeal I a) (v.restrictIdeal I b) :=
   Valuation.map_add _ a b
 
+/-- **Power formula for `restrictIdeal`:** `restrictIdeal(a^n) = (restrictIdeal a)^n`. -/
+theorem restrictIdeal_apply_pow (v : Valuation A Γ₀) (I : Ideal A) (a : A) (n : ℕ) :
+    v.restrictIdeal I (a ^ n) = (v.restrictIdeal I a) ^ n :=
+  map_pow _ a n
+
 end Valuation
 
 namespace ValuationSpectrum
