@@ -185,45 +185,75 @@ theorem _sub_lemma_L3_2_baire_chain
     ∃ N : ℕ, ∀ n ≥ N, chain n = chain N :=
   sorry
 
+/-- **Sub-lemma L3.2-Submodule — Baire chain stationary for Submodules**.
+
+Variant of L3.2 for `Submodule A M` (not `AddSubgroup M`), needed for the
+reverse direction of `wedhorn_6_17`. The argument is the same Baire +
+absorbing structure but uses the *A-module* scalar action for the
+absorbing step: given a chain k₀ with nonempty interior in M_∞ := ⨆ chain
+and any m ∈ M_∞, a topologically nilpotent unit π ∈ A satisfies
+π^n • m → 0; eventually π^n • m ∈ chain k₀; then m = π^(-n) • (π^n • m) ∈
+chain k₀ since chain k₀ is A-stable and π^n is a unit.
+
+Per BINDING-RULE (b): the absorbing argument requires `[IsTateRing A]`
+(for topologically nilpotent units) and `[ContinuousSMul A M]` (for
+π^n • m → 0). Without these, the conclusion is false (exotic topologies
+on M can have all-submodules-closed without M noeth). -/
+theorem _sub_lemma_L3_2_baire_chain_submodule
+    {A : Type u} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [IsTateRing A]
+    {M : Type*} [AddCommGroup M] [Module A M]
+      [UniformSpace M] [IsUniformAddGroup M]
+      [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
+      [ContinuousSMul A M]
+    (h_all_closed : ∀ N : Submodule A M, IsClosed (N : Set M))
+    (chain : ℕ → Submodule A M) (hchain : Monotone chain) :
+    ∃ N : ℕ, ∀ n ≥ N, chain n = chain N :=
+  sorry
+
 theorem wedhorn_6_17
     {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
       [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [IsNoetherianRing A]
+      [IsTopologicalRing A] [IsTateRing A]
     {M : Type*} [AddCommGroup M] [Module A M]
       [UniformSpace M] [IsUniformAddGroup M]
-      [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M] :
+      [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
+      [ContinuousSMul A M] :
     IsNoetherian A M ↔ ∀ N : Submodule A M, IsClosed (N : Set M) := by
   constructor
   · -- Forward: every submodule fg + L3.1b ⇒ every submodule closed.
     intro hM N
     have hN_fg : N.FG := IsNoetherian.noetherian (R := A) N
     exact _sub_lemma_L3_1b_fg_submodule_closed N hN_fg
-  · -- Reverse: every submodule closed ⇒ chain stationary ⇒ noeth.
-    -- Requires a Submodule version of L3.2 (Baire chain stationary). The current
-    -- L3.2 is at AddSubgroup level; lifting it to Submodule requires showing
-    -- that every Submodule's underlying AddSubgroup is closed — which holds
-    -- (hypothesis), but the chain's AddSubgroup may not faithfully recover
-    -- the original Submodule chain without extra scalar-mult structure on the
-    -- ambient AddSubgroup. Left sorried pending Submodule-level L3.2 variant.
-    sorry
+  · -- Reverse: chain stationary via L3.2 Submodule variant.
+    intro h_all_closed
+    rw [isNoetherian_iff', wellFoundedGT_iff_monotone_chain_condition]
+    intro chain
+    obtain ⟨N, hN⟩ := _sub_lemma_L3_2_baire_chain_submodule h_all_closed
+      (fun n => chain n) chain.monotone
+    exact ⟨N, fun m hm => (hN m hm).symm⟩
 
 /-- **Wedhorn 6.17 specialised to A itself** — A complete Tate-like noetherian
 ring has all ideals closed (and conversely). -/
 theorem wedhorn_6_17_ideal
     {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
-      [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A] :
+      [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
+      [IsTopologicalRing A] [IsTateRing A] :
     IsNoetherianRing A ↔ ∀ I : Ideal A, IsClosed (I : Set A) := by
   -- Specialise wedhorn_6_17 to M = A. Need [IsNoetherianRing A] for forward
   -- direction, but here it appears as iff LHS. Split into two directions.
   constructor
   · intro hA
-    -- Forward: derive [IsNoetherianRing A] as instance, then cite wedhorn_6_17.
     haveI : IsNoetherianRing A := hA
     exact (wedhorn_6_17 (A := A) (M := A)).mp hA
   · intro h_all
-    -- Reverse: use wedhorn_6_17's reverse direction. But it requires
-    -- [IsNoetherianRing A] as instance to invoke — circular for reverse.
-    -- Instead, use the underlying L3.2 directly; left sorried alongside L3.2.
-    sorry
+    -- Reverse: derive IsNoetherian A A from chain stationarity via L3.2 Submodule.
+    show IsNoetherian A A
+    rw [isNoetherian_iff', wellFoundedGT_iff_monotone_chain_condition]
+    intro chain
+    obtain ⟨N, hN⟩ := _sub_lemma_L3_2_baire_chain_submodule h_all
+      (fun n => chain n) chain.monotone
+    exact ⟨N, fun m hm => (hN m hm).symm⟩
 
 /-! ## Wedhorn 6.18 (= BGR §3.7.3) — unique fg-module topology + maps strict
 
