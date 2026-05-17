@@ -77,7 +77,7 @@ theorem wedhorn_6_16
     IsOpenMap f :=
   -- Apply the group-level Banach OMT to f.toAddMonoidHom.
   -- The A-linearity is not needed for openness (only the group hom structure).
-  sorry
+  AddMonoidHom.isOpenMap_of_completeSpace_of_countablyGenerated f.toAddMonoidHom hf hsurj
 
 /-! ## Wedhorn 6.17 (= BGR §3.7.2/2) — noetherian iff every (sub)module closed
 
