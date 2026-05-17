@@ -417,6 +417,11 @@ theorem restrictIdeal_ne_zero_of_mem_ideal (v : Valuation A Γ₀) {I : Ideal A}
   (restrictIdeal_ne_zero_iff v I a).mpr
     ⟨hva, vUnit_mem_cGammaIdeal_of_mem_ideal ha hva⟩
 
+/-- **`restrictIdeal v I` preserves the multiplicative identity.** Since
+`restrictIdeal` is a valuation, it sends `1` to `1`. -/
+theorem restrictIdeal_apply_one (v : Valuation A Γ₀) (I : Ideal A) :
+    v.restrictIdeal I 1 = 1 := map_one _
+
 end Valuation
 
 namespace ValuationSpectrum
