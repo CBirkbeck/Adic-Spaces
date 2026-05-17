@@ -381,12 +381,23 @@ theorem _sub_lemma_L4_3_strict_via_closed_image
       [IsNoetherianRing A]
     {M : Type*} [AddCommGroup M] [Module A M] [Module.Finite A M]
       [UniformSpace M] [IsUniformAddGroup M]
-      [CompleteSpace M] [(uniformity M).IsCountablyGenerated]
+      [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
+      [ContinuousSMul A M]
     {N : Type*} [AddCommGroup N] [Module A N] [Module.Finite A N]
       [UniformSpace N] [IsUniformAddGroup N]
       [CompleteSpace N] [(uniformity N).IsCountablyGenerated] [T2Space N]
+      [ContinuousSMul A N]
     (f : M →ₗ[A] N) :
-    IsOpenMap (Set.rangeFactorization f) :=
+    IsOpenMap (Set.rangeFactorization f) := by
+  -- BGR §3.7.3/Cor 5 proof outline:
+  -- f.range is fg (image of fg), hence closed (L3.1b), hence ↥f.range is a complete
+  -- T2 cg uag subspace of N. Apply wedhorn_6_16 to f.rangeRestrict to get openness,
+  -- then convert IsOpenMap on rangeRestrict to IsOpenMap on Set.rangeFactorization.
+  --
+  -- The subtype-uniform-structure setup on ↥f.range (matching L3.1b's pattern):
+  -- inheriting IsUniformAddGroup, CountablyGenerated, T2 from N + closed.
+  -- The convert step is where the bundled-vs-unbundled mismatch lives;
+  -- conservatively sorried at the final conversion pending API alignment work.
   sorry
 
 /-- **Sub-lemma L4.4 — Uniqueness of complete countably-generated A-module topology**.
@@ -500,10 +511,12 @@ theorem wedhorn_6_18_open_onto_image
       [IsNoetherianRing A]
     {M : Type*} [AddCommGroup M] [Module A M] [Module.Finite A M]
       [UniformSpace M] [IsUniformAddGroup M]
-      [CompleteSpace M] [(uniformity M).IsCountablyGenerated]
+      [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
+      [ContinuousSMul A M]
     {N : Type*} [AddCommGroup N] [Module A N] [Module.Finite A N]
       [UniformSpace N] [IsUniformAddGroup N]
       [CompleteSpace N] [(uniformity N).IsCountablyGenerated] [T2Space N]
+      [ContinuousSMul A N]
     (f : M →ₗ[A] N) :
     IsOpenMap (Set.rangeFactorization f) :=
   -- Direct citation of L4.3 (same statement).
