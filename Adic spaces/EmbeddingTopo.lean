@@ -2256,6 +2256,20 @@ theorem LaurentTree.BalancedInducing_singleton (D₀ : RationalLocData A) (f : A
       Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f)) := by
   simp
 
+/-- **`BalancedInducing` implies `RightBranchInducing`.** The balanced
+predicate's "both subtrees inducing" requirement subsumes the
+right-branching predicate's "minus subtree inducing" requirement. Useful
+when downstream consumers want to fall back to the right-branching API. -/
+theorem LaurentTree.RightBranchInducing_of_BalancedInducing
+    (D₀ : RationalLocData A) (L : List A)
+    (h : LaurentTree.BalancedInducing D₀ L) :
+    LaurentTree.RightBranchInducing D₀ L := by
+  induction L generalizing D₀ with
+  | nil => trivial
+  | cons f rest ih =>
+    obtain ⟨h_head, _, h_minus⟩ := h
+    exact ⟨h_head, ih _ h_minus⟩
+
 /-- `RightBranchInducing` implies `allSplitsInducing` for the
 right-branching tree. -/
 theorem LaurentTree.allSplitsInducing_ofRightBranchList
