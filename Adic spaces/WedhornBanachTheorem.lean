@@ -312,13 +312,51 @@ theorem _sub_lemma_L4_2_continuous_via_OMT
       [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
     {M : Type*} [AddCommGroup M] [Module A M] [Module.Finite A M]
       [UniformSpace M] [IsUniformAddGroup M]
-      [CompleteSpace M] [(uniformity M).IsCountablyGenerated]
+      [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
+      [ContinuousSMul A M]
     {N : Type*} [AddCommGroup N] [Module A N] [Module.Finite A N]
       [UniformSpace N] [IsUniformAddGroup N]
       [CompleteSpace N] [(uniformity N).IsCountablyGenerated] [T2Space N]
+      [ContinuousSMul A N]
     (f : M →ₗ[A] N) :
-    Continuous f :=
-  sorry
+    Continuous f := by
+  -- BGR §3.7.3/2 proof.
+  -- Pick a finite generating set s : Fin n → M.
+  obtain ⟨n, s, hs⟩ := Module.Finite.exists_fin (R := A) (M := M)
+  -- Define ν : (Fin n → A) →ₗ[A] M by ν a = ∑ i, a i • s i.
+  let ν : (Fin n → A) →ₗ[A] M :=
+    { toFun := fun a => ∑ i, a i • s i
+      map_add' := fun x y => by
+        simp only [Pi.add_apply, add_smul, Finset.sum_add_distrib]
+      map_smul' := fun a x => by
+        simp only [Pi.smul_apply, smul_eq_mul, RingHom.id_apply, Finset.smul_sum,
+          smul_smul] }
+  -- ν continuous via ContinuousSMul A M.
+  have hν_cont : Continuous ν := by
+    change Continuous fun a : (Fin n → A) => ∑ i, a i • s i
+    refine continuous_finset_sum _ ?_
+    intro i _
+    exact (continuous_apply i).smul continuous_const
+  -- ν surjective from hs.
+  have hν_surj : Function.Surjective ν := by
+    intro m
+    have hm : m ∈ Submodule.span A (Set.range s) := hs ▸ Submodule.mem_top
+    rw [Submodule.mem_span_range_iff_exists_fun] at hm
+    obtain ⟨c, hc⟩ := hm
+    exact ⟨c, hc⟩
+  -- By wedhorn_6_16, ν is open. (Needs T2Space M on target — supplied.)
+  have hν_open : IsOpenMap ν := wedhorn_6_16 ν hν_cont hν_surj
+  -- ν is a quotient map.
+  have hν_quot : Topology.IsQuotientMap ν := hν_open.isQuotientMap hν_cont hν_surj
+  -- f ∘ ν continuous via ContinuousSMul A N.
+  have hfν_cont : Continuous (f ∘ ν) := by
+    change Continuous fun a : (Fin n → A) => f (∑ i, a i • s i)
+    simp only [map_sum, map_smul]
+    refine continuous_finset_sum _ ?_
+    intro i _
+    exact (continuous_apply i).smul continuous_const
+  -- f continuous via quotient map.
+  exact hν_quot.continuous_iff.mpr hfν_cont
 
 /-- **Sub-lemma L4.3 — A-linear map is open onto image (strict)**.
 
@@ -373,23 +411,22 @@ theorem _sub_lemma_L4_4_unique_topology
     (h_complete1 : @CompleteSpace M τ₁)
     (h_cg1 : (@uniformity M τ₁).IsCountablyGenerated)
     (h_t2_1 : @T2Space M τ₁.toTopologicalSpace)
+    (h_csmul_1 : @ContinuousSMul A M _ _ τ₁.toTopologicalSpace)
     (h_top2 : @IsUniformAddGroup M τ₂ _)
     (h_complete2 : @CompleteSpace M τ₂)
     (h_cg2 : (@uniformity M τ₂).IsCountablyGenerated)
-    (h_t2_2 : @T2Space M τ₂.toTopologicalSpace) :
+    (h_t2_2 : @T2Space M τ₂.toTopologicalSpace)
+    (h_csmul_2 : @ContinuousSMul A M _ _ τ₂.toTopologicalSpace) :
     τ₁.toTopologicalSpace = τ₂.toTopologicalSpace := by
   -- Apply L4.2 twice with the identity map in each direction.
-  -- id : (M, τ₁) → (M, τ₂) is A-linear and continuous (by L4.2 with codomain τ₂),
-  -- giving τ₂.top ≤ τ₁.top. Symmetric for the reverse.
   have h12 : @Continuous M M τ₁.toTopologicalSpace τ₂.toTopologicalSpace id :=
     @_sub_lemma_L4_2_continuous_via_OMT _ _ _ _ _ _ _
-      M _ _ _ τ₁ h_top1 h_complete1 h_cg1
-      M _ _ _ τ₂ h_top2 h_complete2 h_cg2 h_t2_2 (LinearMap.id (R := A) (M := M))
+      M _ _ _ τ₁ h_top1 h_complete1 h_cg1 h_t2_1 h_csmul_1
+      M _ _ _ τ₂ h_top2 h_complete2 h_cg2 h_t2_2 h_csmul_2 (LinearMap.id (R := A) (M := M))
   have h21 : @Continuous M M τ₂.toTopologicalSpace τ₁.toTopologicalSpace id :=
     @_sub_lemma_L4_2_continuous_via_OMT _ _ _ _ _ _ _
-      M _ _ _ τ₂ h_top2 h_complete2 h_cg2
-      M _ _ _ τ₁ h_top1 h_complete1 h_cg1 h_t2_1 (LinearMap.id (R := A) (M := M))
-  -- Two-sided continuity of id is equivalent to topology equality.
+      M _ _ _ τ₂ h_top2 h_complete2 h_cg2 h_t2_2 h_csmul_2
+      M _ _ _ τ₁ h_top1 h_complete1 h_cg1 h_t2_1 h_csmul_1 (LinearMap.id (R := A) (M := M))
   exact le_antisymm (continuous_id_iff_le.mp h12) (continuous_id_iff_le.mp h21)
 
 theorem wedhorn_6_18_unique
@@ -430,10 +467,12 @@ theorem wedhorn_6_18_continuous
       [IsNoetherianRing A]
     {M : Type*} [AddCommGroup M] [Module A M] [Module.Finite A M]
       [UniformSpace M] [IsUniformAddGroup M]
-      [CompleteSpace M] [(uniformity M).IsCountablyGenerated]
+      [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
+      [ContinuousSMul A M]
     {N : Type*} [AddCommGroup N] [Module A N] [Module.Finite A N]
       [UniformSpace N] [IsUniformAddGroup N]
       [CompleteSpace N] [(uniformity N).IsCountablyGenerated] [T2Space N]
+      [ContinuousSMul A N]
     (f : M →ₗ[A] N) :
     Continuous f :=
   -- Direct citation of L4.2 (same statement).
