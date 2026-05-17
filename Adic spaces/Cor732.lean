@@ -3,6 +3,7 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».SpaCompact
+import «Adic spaces».SpaCompactNoHArch
 import «Adic spaces».RationalSubsets
 
 /-!
@@ -288,5 +289,179 @@ theorem exists_dominating_unit
     rw [hunit_val] at hvle
     have h_le := (Valuation.Compatible.vle_iff_le (v := w) t (πA ^ (N + 1))).mp hvle
     exact absurd h_le (not_le.mpr h_lt_t)
+
+/-! ## Wedhorn Cor 7.32 no-hArch variant
+
+The Wedhorn statement of Cor 7.32 (p.63) makes no MulArchimedean assumption:
+
+> Let `A = (A, A⁺)` be a Tate affinoid ring, `Y ⊆ Spa A` a quasi-compact subset
+> and `s ∈ A` such that `|s(y)| ≠ 0` for all `y ∈ Y`. Then there exists a unit
+> `π ∈ A^×` such that `|π(y)| < |s(y)|` for all `y ∈ Y`.
+
+Wedhorn's proof uses Lemma 7.31 (open neighborhood of zero with smaller
+valuation, for QC subsets) plus the Tate axiom (units exist in any neighborhood
+of zero). Neither needs `hArch`. -/
+
+/-! ### Sub-breakdown for T-B.1 (Wedhorn Lemma 7.31)
+
+Wedhorn's proof (p.63) constructs the neighborhood by:
+1. Pick a finite generating set `T ⊆ A°°` for a system of generators of an
+   ideal of definition.
+2. Define `X_n := {x ∈ Spa A | |t(x)| ≤ |f(x)| ≠ 0 for all t ∈ T^n}` — open.
+3. The X_n are an open cover of X (by `f` nonvanishing and `T^n → 0`). Take
+   finite subcover, hence X ⊆ X_m for some m.
+4. Set I := T^m · A°° — a neighborhood of zero with the desired property. -/
+
+/-- **(T-B.1.a)** For QC `X ⊆ Spa A`, finite `T ⊆ A°°`, and `f ∈ A` nonvanishing
+on `X`, there exists `m : ℕ` such that for every `x ∈ X` and every `t ∈ T^m`,
+`v(t) ≤ v(f)`. (The open-cover step in Wedhorn 7.31.) -/
+theorem exists_pow_dominated_finset
+    {X : Set ↥(Spa A A⁺)} (hX : IsCompact X) (f : A)
+    (hf : ∀ x ∈ X, ¬ (x.1 : Spv A).vle f 0)
+    (T : Finset A) (hT_topnilp : ∀ t ∈ T, IsTopologicallyNilpotent t) :
+    ∃ m : ℕ, ∀ x ∈ X, ∀ t ∈ T, ∀ k : ℕ, m ≤ k →
+      (x.1 : Spv A).vle (t ^ k) f := by
+  classical
+  -- U m := preimage in X of (⋂_{t ∈ T} basicOpen (t^m) f). Open in X.
+  set U : ℕ → Set ↥(Spa A A⁺) := fun m =>
+    Subtype.val ⁻¹' (⋂ t ∈ T, basicOpen (t ^ m) f) with hU_def
+  have hU_open : ∀ m, IsOpen (U m) := fun m =>
+    IsOpen.preimage continuous_subtype_val
+      (isOpen_biInter_finset (fun t _ => isOpen_basicOpen _ _))
+  -- Per-point per-t bound using IsContinuous of v_x + IsTopologicallyNilpotent t.
+  have h_pointwise : ∀ x : ↥(Spa A A⁺), x ∈ X → ∀ t ∈ T, ∃ n : ℕ,
+      x.1.vle (t ^ n) f ∧ ¬ x.1.vle f 0 := by
+    intro x hx t htT
+    letI : ValuativeRel A := x.1.toValuativeRel
+    have hcompat : (ValuativeRel.valuation A).Compatible := inferInstance
+    set w := ValuativeRel.valuation A
+    have hv_cont : w.IsContinuous := x.2.1
+    have hwf_ne : w f ≠ 0 := by
+      intro h
+      refine (hf x hx) ((Valuation.Compatible.vle_iff_le (v := w) _ _).mpr ?_)
+      rw [map_zero]; exact le_of_eq h
+    have h_open : IsOpen {a : A | w a < w f} := hv_cont (w f)
+    have h0_mem : (0 : A) ∈ {a : A | w a < w f} := by
+      change w 0 < w f
+      rw [map_zero]; exact zero_lt_iff.mpr hwf_ne
+    have h_nhds : {a : A | w a < w f} ∈ nhds (0 : A) := h_open.mem_nhds h0_mem
+    obtain ⟨n, hn⟩ := ((hT_topnilp t htT).eventually h_nhds).exists
+    refine ⟨n, ?_, hf x hx⟩
+    refine (Valuation.Compatible.vle_iff_le (v := w) _ _).mpr ?_
+    exact le_of_lt hn
+  -- Per-x bound via finite max over T.
+  have h_per_x : ∀ x : ↥(Spa A A⁺), x ∈ X → ∃ m : ℕ, x ∈ U m := by
+    intro x hx
+    have h_choose : ∀ t : T, ∃ n : ℕ, x.1.vle ((t.val) ^ n) f ∧ ¬ x.1.vle f 0 :=
+      fun ⟨t, ht⟩ => h_pointwise x hx t ht
+    let m_x := T.attach.sup (fun t => (h_choose t).choose)
+    refine ⟨m_x, ?_⟩
+    simp only [hU_def, Set.mem_preimage, Set.mem_iInter, basicOpen]
+    intro t htT
+    refine ⟨?_, hf x hx⟩
+    have h_n_t := (h_choose ⟨t, htT⟩).choose_spec
+    have h_n_le : (h_choose ⟨t, htT⟩).choose ≤ m_x :=
+      Finset.le_sup (f := fun t => (h_choose t).choose) (Finset.mem_attach _ ⟨t, htT⟩)
+    letI : ValuativeRel A := x.1.toValuativeRel
+    have hcompat : (ValuativeRel.valuation A).Compatible := inferInstance
+    set w := ValuativeRel.valuation A
+    have h_t_le_one : w t ≤ 1 := by
+      have h_t_not : ¬ x.1.vle 1 t :=
+        not_vle_one_of_mem_spa_of_topologicallyNilpotent x.2 (hT_topnilp t htT)
+      have h_not : ¬ (w 1 ≤ w t) := fun h => h_t_not
+        ((Valuation.Compatible.vle_iff_le (v := w) _ _).mpr h)
+      rw [map_one] at h_not
+      exact le_of_not_ge h_not
+    have h_pow : w t ^ m_x ≤ w t ^ (h_choose ⟨t, htT⟩).choose :=
+      pow_le_pow_of_le_one (zero_le') h_t_le_one h_n_le
+    refine (Valuation.Compatible.vle_iff_le (v := w) _ _).mpr ?_
+    calc w (t ^ m_x) = w t ^ m_x := by simp [map_pow]
+      _ ≤ w t ^ (h_choose ⟨t, htT⟩).choose := h_pow
+      _ = w (t ^ (h_choose ⟨t, htT⟩).choose) := by simp [map_pow]
+      _ ≤ w f := (Valuation.Compatible.vle_iff_le (v := w) _ _).mp h_n_t.1
+  -- Monotonicity in m on X (via w t ≤ 1 from Spa membership).
+  have hU_mono : ∀ m m', m ≤ m' → U m ⊆ U m' := by
+    intro m m' hmm' x hx_m
+    simp only [hU_def, Set.mem_preimage, Set.mem_iInter, basicOpen] at hx_m ⊢
+    intro t htT
+    have ⟨hvtm, hvf⟩ := hx_m t htT
+    refine ⟨?_, hvf⟩
+    letI : ValuativeRel A := x.1.toValuativeRel
+    have hcompat : (ValuativeRel.valuation A).Compatible := inferInstance
+    set w := ValuativeRel.valuation A
+    have h_t_le_one : w t ≤ 1 := by
+      have h_t_not : ¬ x.1.vle 1 t :=
+        not_vle_one_of_mem_spa_of_topologicallyNilpotent x.2 (hT_topnilp t htT)
+      have h_not : ¬ (w 1 ≤ w t) := fun h => h_t_not
+        ((Valuation.Compatible.vle_iff_le (v := w) _ _).mpr h)
+      rw [map_one] at h_not
+      exact le_of_not_ge h_not
+    have h_pow : w t ^ m' ≤ w t ^ m :=
+      pow_le_pow_of_le_one (zero_le') h_t_le_one hmm'
+    refine (Valuation.Compatible.vle_iff_le (v := w) _ _).mpr ?_
+    calc w (t ^ m') = w t ^ m' := by simp [map_pow]
+      _ ≤ w t ^ m := h_pow
+      _ = w (t ^ m) := by simp [map_pow]
+      _ ≤ w f := (Valuation.Compatible.vle_iff_le (v := w) _ _).mp hvtm
+  -- QC subcover.
+  have hX_subset : X ⊆ ⋃ m, U m := fun x hx =>
+    Set.mem_iUnion.mpr (h_per_x x hx)
+  obtain ⟨F, hF⟩ := hX.elim_finite_subcover U hU_open hX_subset
+  let m₀ := F.sup id
+  refine ⟨m₀, fun x hx t htT k hk => ?_⟩
+  obtain ⟨m_x, hm_x_F, hx_m_x⟩ := Set.mem_iUnion₂.mp (hF hx)
+  have h_m_x_le_m₀ : m_x ≤ m₀ := Finset.le_sup (f := id) hm_x_F
+  have hx_k : x ∈ U k := hU_mono _ _ (h_m_x_le_m₀.trans hk) hx_m_x
+  simp only [hU_def, Set.mem_preimage, Set.mem_iInter, basicOpen] at hx_k
+  exact (hx_k t htT).1
+
+/-- **Wedhorn Lemma 7.31.** For `X ⊆ Spa A` quasi-compact and `f ∈ A` with
+`|f(x)| ≠ 0` for all `x ∈ X`, there exists a neighborhood `I` of zero in `A`
+such that `|a(x)| < |f(x)|` for all `x ∈ X` and `a ∈ I`. -/
+theorem exists_zero_nbhd_lt_on_qc
+    {X : Set ↥(Spa A A⁺)} (hX : IsCompact X) (f : A)
+    (hf : ∀ x ∈ X, ¬ (x.1 : Spv A).vle f 0) :
+    ∃ I : Set A, IsOpen I ∧ (0 : A) ∈ I ∧
+      ∀ a ∈ I, ∀ x ∈ X, (x.1 : Spv A).vle a f ∧ ¬ (x.1 : Spv A).vle f a :=
+  sorry
+
+/-- **(T-B.2.a, audit-identified)** Tate-ring axiom: every open neighborhood of
+zero in a Tate ring contains a unit. Wedhorn 7.32 proof uses this directly:
+"as A is Tate, there exists a unit π of A in I." Wedhorn defines Tate (6.5)
+to require existence of topologically nilpotent unit, which gives this. -/
+theorem IsTateRing.exists_unit_in_zeroNbhd
+    [IsTateRing A] (I : Set A) (hI_open : IsOpen I) (h0 : (0 : A) ∈ I) :
+    ∃ π : Aˣ, (π : A) ∈ I := by
+  obtain ⟨π, hπ_nil⟩ := IsTateRing.exists_topologicallyNilpotent_unit (A := A)
+  -- π^n → 0, so eventually π^n ∈ I.
+  obtain ⟨n, hn⟩ :=
+    (hπ_nil.eventually (hI_open.mem_nhds h0)).exists
+  refine ⟨π^n, ?_⟩
+  exact_mod_cast hn
+
+/-- **Wedhorn Cor 7.32 (no hArch).** For a Tate affinoid ring, `Y ⊆ Spa A` QC,
+and `s ∈ A` with `|s(y)| ≠ 0` on `Y`, there is a unit `π ∈ Aˣ` with `|π(y)| < |s(y)|`
+on `Y`. **No `hArch` required.** -/
+theorem exists_dominating_unit_noHArch
+    [IsTateRing A]
+    {Y : Set ↥(Spa A A⁺)} (hY : IsCompact Y) (s : A)
+    (hs : ∀ y ∈ Y, ¬ (y.1 : Spv A).vle s 0) :
+    ∃ π : Aˣ, ∀ y ∈ Y, (y.1 : Spv A).vle (π : A) s ∧ ¬ (y.1 : Spv A).vle s (π : A) := by
+  -- Step 1: Wedhorn 7.31 gives an open neighborhood I of 0 dominated by s.
+  obtain ⟨I, hI_open, h0_mem, hI⟩ := exists_zero_nbhd_lt_on_qc hY s hs
+  -- Step 2: IsTateRing.exists_unit_in_zeroNbhd gives a unit π in I.
+  obtain ⟨π, hπ_mem⟩ := IsTateRing.exists_unit_in_zeroNbhd I hI_open h0_mem
+  -- Step 3: π is dominated by s on Y by hI.
+  exact ⟨π, fun y hy => hI π hπ_mem y hy⟩
+
+/-- **Wedhorn Cor 7.32 (no hArch), Finset form.** For a finite family `T` with
+no common zero on `Spa A A⁺`, there exists a unit `s ∈ Aˣ` such that for every
+`v ∈ Spa A A⁺`, some `t ∈ T` satisfies `v(s) < v(t)`. This is the form consumed
+by P6/W2. -/
+theorem exists_dominating_unit_noHArch_finset
+    (T : Finset A) (hT : ∀ v ∈ Spa A A⁺, ∃ t ∈ T, ¬ v.vle t 0) :
+    ∃ s : Aˣ, ∀ v ∈ Spa A A⁺, ∃ t ∈ T,
+      v.vle (s : A) t ∧ ¬ v.vle t (s : A) :=
+  sorry
 
 end ValuationSpectrum
