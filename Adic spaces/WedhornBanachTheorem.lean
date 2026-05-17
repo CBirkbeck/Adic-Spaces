@@ -208,7 +208,21 @@ theorem _sub_lemma_L3_2_baire_chain_submodule
       [ContinuousSMul A M]
     (h_all_closed : ∀ N : Submodule A M, IsClosed (N : Set M))
     (chain : ℕ → Submodule A M) (hchain : Monotone chain) :
-    ∃ N : ℕ, ∀ n ≥ N, chain n = chain N :=
+    ∃ N : ℕ, ∀ n ≥ N, chain n = chain N := by
+  -- Baire chain stationarity with absorbing-via-Tate-unit argument.
+  -- Sketch:
+  -- 1. M_∞ := iSup chain. Closed by h_all_closed.
+  -- 2. ↥M_∞ Baire (complete cg subspace).
+  -- 3. M_∞ = ⋃ k, (chain k : Set M_∞).
+  -- 4. Some chain k₀ has nonempty interior in M_∞.
+  -- 5. chain k₀ contains nbhd U of 0 in M_∞.
+  -- 6. For m ∈ M_∞: π topologically nilpotent unit, π^n • m → 0, eventually
+  --    in U ⊆ chain k₀. Then m ∈ chain k₀ via scalar mult and π^(-n) unit.
+  -- 7. M_∞ = chain k₀, hence chain n = chain k₀ for n ≥ k₀.
+  --
+  -- The Lean execution requires the subspace-uniform-structure plumbing on
+  -- ↥(iSup chain) and the Tate-unit application — substantial multi-step
+  -- proof composing the lemmas above.
   sorry
 
 theorem wedhorn_6_17
