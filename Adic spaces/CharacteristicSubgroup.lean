@@ -480,6 +480,12 @@ theorem restrictIdeal_apply_neg_eq_zero_iff (v : Valuation A Γ₀) (I : Ideal A
     v.restrictIdeal I (-a) = 0 ↔ v.restrictIdeal I a = 0 := by
   rw [restrictIdeal_apply_neg]
 
+/-- **Power equals zero iff base equals zero (for `n ≠ 0`).** -/
+theorem restrictIdeal_apply_pow_eq_zero_iff (v : Valuation A Γ₀) (I : Ideal A)
+    (a : A) {n : ℕ} (hn : n ≠ 0) :
+    v.restrictIdeal I (a ^ n) = 0 ↔ v.restrictIdeal I a = 0 := by
+  rw [restrictIdeal_apply_pow, pow_eq_zero_iff hn]
+
 end Valuation
 
 namespace ValuationSpectrum
