@@ -398,6 +398,17 @@ theorem restrictIdeal_eq_zero_iff (v : Valuation A Γ₀) (I : Ideal A) (a : A) 
     · exact restrictIdeal_apply_zero v I hva
     · exact restrictIdeal_apply_of_not_mem v I hva hmem
 
+/-- **`restrictIdeal v I a ≠ 0 ↔ v(a) ≠ 0 ∧ v(a) ∈ cΓ_v(I)`** (contrapositive
+of `restrictIdeal_eq_zero_iff`). -/
+theorem restrictIdeal_ne_zero_iff (v : Valuation A Γ₀) (I : Ideal A) (a : A) :
+    v.restrictIdeal I a ≠ 0 ↔
+      ∃ hva : v a ≠ 0, Units.mk0 (v a) hva ∈ cGammaIdeal v I := by
+  classical
+  rw [Ne, restrictIdeal_eq_zero_iff, not_or, not_exists]
+  refine ⟨fun ⟨hva_ne, hmem⟩ ↦ ⟨hva_ne, by_contra fun h ↦ ?_⟩,
+          fun ⟨hva_ne, hmem⟩ ↦ ⟨hva_ne, fun hva_ne' h ↦ h hmem⟩⟩
+  exact hmem hva_ne h
+
 end Valuation
 
 namespace ValuationSpectrum
