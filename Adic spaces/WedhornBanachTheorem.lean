@@ -453,11 +453,38 @@ theorem _sub_lemma_L4_3_strict_via_closed_image
     Filter.comap.isCountablyGenerated _ _
   haveI : CompleteSpace ↥(LinearMap.range f) :=
     hrange_closed.completeSpace_coe
-  -- The remaining typeclass [Module.Finite A ↥f.range], [ContinuousSMul A ↥f.range],
-  -- the continuity of f.rangeRestrict, and the IsOpenMap conversion from
-  -- f.rangeRestrict to Set.rangeFactorization are mechanical but require careful
-  -- Subtype/SetLike plumbing. Left sub-sorried for the next pass.
-  sorry
+  haveI : T2Space ↥(LinearMap.range f) :=
+    inferInstance  -- Subtype T2 from T2 N
+  haveI : Module.Finite A ↥(LinearMap.range f) :=
+    (Module.Finite.iff_fg (N := LinearMap.range f)).mpr hrange_fg
+  -- ContinuousSMul on subspace: A × ↥range → ↥range factors through
+  -- A × N → N via Subtype.val on the codomain.
+  haveI : ContinuousSMul A ↥(LinearMap.range f) := by
+    refine ⟨?_⟩
+    -- Continuous fun p : A × ↥(LinearMap.range f) => p.1 • p.2 : ↥(LinearMap.range f)
+    -- Equivalently, Continuous of (a, x) ↦ ⟨a • x.1, ...⟩.
+    -- Use IsInducing.continuous_iff: Subtype.val of the SMul output is the
+    -- continuous SMul A × N → N restricted.
+    rw [show (fun p : A × ↥(LinearMap.range f) => p.1 • p.2) =
+        fun p => ⟨p.1 • (p.2 : N), Submodule.smul_mem _ p.1 p.2.2⟩ from rfl]
+    refine Topology.IsInducing.subtypeVal.continuous_iff.mpr ?_
+    exact continuous_smul.comp ((continuous_fst).prodMk
+      ((continuous_subtype_val.comp continuous_snd)))
+  -- Now apply wedhorn_6_16 to f.rangeRestrict.
+  have hf_rangeRestrict_cont : Continuous (f.rangeRestrict : M →ₗ[A] LinearMap.range f) := by
+    -- f.rangeRestrict composed with Subtype.val = f, so by inducing, f.rangeRestrict
+    -- continuous iff f continuous.
+    refine Topology.IsInducing.subtypeVal.continuous_iff.mpr ?_
+    -- Subtype.val ∘ f.rangeRestrict = f (definitionally)
+    exact _sub_lemma_L4_2_continuous_via_OMT f
+  have hf_rangeRestrict_surj : Function.Surjective f.rangeRestrict :=
+    LinearMap.surjective_rangeRestrict f
+  -- wedhorn_6_16 gives IsOpenMap (f.rangeRestrict).
+  have hf_rangeRestrict_open : IsOpenMap f.rangeRestrict :=
+    wedhorn_6_16 f.rangeRestrict hf_rangeRestrict_cont hf_rangeRestrict_surj
+  -- Convert: Set.rangeFactorization f and f.rangeRestrict are defeq as functions
+  -- M → ↥(LinearMap.range f) (via Set.range f = LinearMap.range f as Set N).
+  convert hf_rangeRestrict_open using 1
 
 /-- **Sub-lemma L4.4 — Uniqueness of complete countably-generated A-module topology**.
 
