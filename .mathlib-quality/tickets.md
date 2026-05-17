@@ -5363,7 +5363,18 @@ trio + AuditCleanWrappers. Roadmap doc:
 
 ### [T-WEDHORN-618-L1] Banach OMT for complete metric topological abelian groups
 
-- **Status**: open
+- **Status**: open — **B2 SCOPE finding (2026-05-18)**: the statement as
+  currently written is FALSE without an extra hypothesis such as
+  `[SeparableSpace G]` or `[SigmaCompactSpace G]`. Counterexample
+  (`b2_log.jsonl` entry 3): `G = ℝ` with the DISCRETE topology (complete,
+  countably-generated uniformity, UAG, T2), `H = ℝ` with Euclidean topology
+  (complete, countably-generated, T2 UAG), `f = id`. `f` is continuous +
+  surjective but NOT open (`f({0}) = {0}` is not open in Euclidean ℝ).
+  Bourbaki's proof needs G to be σ-compact (Hewitt-Ross [HR] §5.29) OR
+  separable (so H can be covered by countably many translates of `f(U)`).
+  Sub-lemmas B (`_sub_lemma_countable_cover`) and C.1
+  (`_sub_sub_lemma_C_1_countable_closed_cover`) are likewise FALSE as
+  stated for the same reason.
 - **File**: `Adic spaces/BanachOMT.lean`
 - **Depends on**: (none — mathlib gap; foundation for all later tickets)
 - **Parallel**: yes (no dependencies)

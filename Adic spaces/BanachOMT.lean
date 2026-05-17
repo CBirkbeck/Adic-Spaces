@@ -436,9 +436,24 @@ additive group homomorphism `f : G →+ H` is open.
 This is the substantive analytical input for Wedhorn 6.16/6.17/6.18 and for the
 audit-pass-2 trio in `StructureSheaf.lean`.
 
-**Proof sketch** (Bourbaki):
+**B2 SCOPE FINDING (2026-05-18, `b2_log.jsonl` entry 3)**: as currently
+stated, this theorem is **mathematically false** without an extra
+hypothesis such as `[SeparableSpace G]` or `[SigmaCompactSpace G]`.
+Counterexample: `G = ℝ` with the **discrete** topology (complete,
+countably-generated uniformity, UAG, T2), `H = ℝ` with the Euclidean
+topology, `f = id`. Then `f` is continuous + surjective but not open
+(`f({0}) = {0}` is not open in Euclidean ℝ). Bourbaki's proof needs
+`G` to be σ-compact (Hewitt-Ross [HR] §5.29) OR separable (so `H` can
+be covered by countably many translates of `f(U)` via the dense subset
+of `G`); `[(uniformity G).IsCountablyGenerated]` alone supplies a
+countable nbhd basis at 0 but does not give a countable cover of `G`
+itself. Mathlib's normed-space Banach OMT works because normed spaces
+are σ-compact via `⋃ n, ball 0 n`.
+
+**Proof sketch** (Bourbaki, requires the missing hypothesis):
 1. `G` is BaireSpace via complete + countably-generated uniformity.
-2. For any neighbourhood `U` of 0 in `G`, `f(n·U)` covers `H` by countable union.
+2. For any neighbourhood `U` of 0 in `G`, `f(n·U)` covers `H` by countable union
+   (uses σ-compactness or separability of `G`).
 3. `H` Baire ⇒ some `n·f(U)` has nonempty interior ⇒ `f(U) − f(U)` contains nbhd of 0.
 4. Cauchy completeness of `G` lifts approximate preimages to exact ones.
 5. Translation invariance ⇒ open everywhere.
