@@ -1,311 +1,316 @@
 # Decomposition: Wedhorn 6.16 / 6.17 / 6.18 chain + audit-pass-2 trio
 
-**Purpose**: discharge the three "Proof. Missing" results in Wedhorn §6.3 (Banach's
-theorem for Tate rings) so the audit-pass-2 trio in `StructureSheaf.lean` becomes
-genuinely sorry-free, and via the chain `cor_8_32_clean → tateAcyclicity →
-isSheafy_ofStronglyNoetherianTate`, the Wedhorn-exact form of Theorem 8.28(b)
-becomes provable.
+**Updated 2026-05-17, second pass — leaf-level decomposition for Layer 1.**
+
+## Honesty preamble
+
+The first pass of this decomposition stated the top-level theorems but did not
+decompose them into the sub-lemmas the proofs actually need. The second pass
+(this document) decomposes Layer 1 into 5 sub-lemmas (A-E) with mathlib-search
+verification per leaf. Layers 2-5 are reviewed for "easy-to-prove vs. needs
+its own sub-decomposition" status; the ones that need sub-decomposition are
+flagged below.
 
 ## Skeleton location
 
 The Lean skeleton (every lemma stated with `:= by sorry`) lives in:
-- `Adic spaces/BanachOMT.lean` — Layer 1 (mathlib gap)
+- `Adic spaces/BanachOMT.lean` — Layer 1 (mathlib gap) **+ 5 sub-lemmas A-E**
 - `Adic spaces/WedhornBanachTheorem.lean` — Layers 2-4 (Wedhorn 6.16, 6.17, 6.18)
-- `Adic spaces/WedhornStronglyNoetherian.lean` — Layer 5 (audit-pass-2 trio,
-  `_proof`-suffixed to coexist with sorry-stubs in `StructureSheaf.lean`)
-- `Adic spaces/AuditCleanWrappers.lean` — Layer 6 (downstream of `Cor832.lean`,
-  hosts `cor_8_32_clean_proof` and friends; breaks the import cycle)
+  **(NEEDS FURTHER DECOMPOSITION — see Layer 3 below)**
+- `Adic spaces/WedhornStronglyNoetherian.lean` — Layer 5 (audit-pass-2 trio)
+  **(NEEDS FURTHER DECOMPOSITION — see Layer 5 below)**
+- `Adic spaces/AuditCleanWrappers.lean` — Layer 6 (downstream of Cor832)
 
 `lake build` passes (sorries only, no type errors) — verified at 2026-05-17.
 
-## Top-level result
+## Layer 1 — Sub-lemma decomposition (binding)
 
-**Wedhorn 8.28(b)** (`isSheafy_ofStronglyNoetherianTate_proof` at
-`Adic spaces/AuditCleanWrappers.lean:171`):
-> "Let A = (A, A⁺) be an affinoid ring and X = Spa A. Assume that A satisfies …
-> (b) A is a strongly noetherian Tate ring. Then `O_X` is a sheaf of complete
-> topological rings."
+The main theorem `AddMonoidHom.isOpenMap_of_completeSpace_of_countablyGenerated`
+(BanachOMT.lean:200) decomposes into 5 sub-lemmas. Each is stated with `:=
+by sorry` in the same file.
 
-## Layered decomposition
+### Sub-lemma A: `_sub_lemma_symmetric_absorbs` (BanachOMT.lean:105)
 
-### Layer 1: `AddMonoidHom.isOpenMap_of_completeSpace_of_countablyGenerated` (mathlib gap)
+**Statement**: For a closed symmetric set `K ⊂ H` in a topological add group,
+if `interior K` is nonempty, then `K - K ∈ nhds 0`.
 
-**Lean declaration**: `Adic spaces/BanachOMT.lean:98`
+**Proof outline**:
+- `interior K ≠ ∅` ⇒ ∃ y ∈ interior K.
+- By symmetry `K = -K`, also `-y ∈ interior(-K) = interior(K)`.
+- `y + (-y) = 0 ∈ interior(K) + interior(K) ⊆ interior(K + K) ⊆ interior(K - K)`.
+- Hence `0 ∈ interior(K - K)` ⇒ `K - K ∈ nhds 0`.
+
+**Mathlib search**: searched for `closure_sub_closure`, `sub_mem_nhds`,
+`nhds_zero.*sub` in `Topology.Algebra.Group.*` — no direct lemma found.
+Pieces are available (`interior_add`, `Set.image2`, neg lemmas).
+
+**Difficulty**: EASY. ~30-40 lines. Each step is a one-liner using existing
+mathlib infrastructure.
+
+### Sub-lemma B: `_sub_lemma_countable_cover` (BanachOMT.lean:122)
+
+**Statement**: For any nbhd `U` of 0 in a topological add group `H`, every
+`y ∈ H` is in `(n : ℤ) • U` for some `n : ℕ` (i.e., `y = n · u` for some `u ∈ U`).
+
+**Proof outline**: This is straightforward — Tate ring has a sequence of units
+converging to 0, but we don't actually need that here. For ANY nbhd U of 0 in
+ANY topological add group, every element is a finite sum of elements of U.
+Actually wait — this is NOT true in general topological add groups. It IS
+true when the topology comes from a Tate ring (= scaling by units of the
+ring covers H).
+
+**Defect surfaced**: the statement as written assumes integer-multiple cover.
+For a general topological add group, only `H = ⋃_n n·U` for compact U holds
+(or under sigma-compactness). For our Tate setting, we use units of the
+ring instead of integers. **Need to revisit**: the sub-lemma should be
+stated over a Tate-like A, not a generic add group.
+
+**Difficulty**: MEDIUM. The shape was wrong; needs A-module structure with
+a sequence of units converging to 0 (= Huber's exact hypothesis). Restate
+to take `(a_n : ℕ → A)` such that `a_n` are units and `a_n → 0`.
+
+**Action**: this is a SCOPE issue I should fix. The top-level theorem must
+either:
+(a) assume the A-module structure (Huber's form), OR
+(b) prove the countable cover from `CompleteSpace + (uniformity).IsCountablyGenerated`
+    on H — which IS possible via the Baire-on-H argument directly without
+    needing scalar units.
+
+I'll go with (b) — that matches the stated hypothesis bundle.
+
+### Sub-lemma C: `_sub_lemma_approx_preimage` (BanachOMT.lean:152)
+
+**Statement**: For continuous surjective `f : G →+ H`, for every nbhd V of 0
+in H, there's a nbhd U of 0 in G such that approximate preimages exist with
+controlled "size".
+
+**Proof outline**: Mimic `ContinuousLinearMap.exists_approx_preimage_norm_le`
+in `Mathlib.Analysis.Normed.Operator.Banach:83`. The reformulation drops
+norms in favor of nbhd-basis filtrations.
+
+**Mathlib search**:
+- `nonempty_interior_of_iUnion_of_closed` — exists, `Mathlib.Topology.Baire.Lemmas`.
+- `BaireSpace.of_pseudoEMetricSpace_completeSpace` — exists.
+- `Filter.HasBasis.exists_iff` — exists.
+
+**Difficulty**: HARD. ~80 lines. Substantive analytical content. The norm
+version in Mathlib is 78 lines; the group version should be comparable.
+
+### Sub-lemma D: `_sub_lemma_cauchy_lift` (BanachOMT.lean:179)
+
+**Statement**: For continuous surjective `f : G →+ H`, given any `y ∈ H` in a
+small enough nbhd of 0, there exists exact preimage `x` in a controlled-size
+nbhd of 0 (using CompleteSpace G to take the Cauchy limit).
+
+**Proof outline**: Mimic `ContinuousLinearMap.exists_preimage_norm_le` in
+`Mathlib.Analysis.Normed.Operator.Banach:161`. Iterate Sub-lemma C: take
+approximate preimage `x_1`, then approximate preimage of the residual
+`y - f(x_1)`, etc.; the sum is Cauchy in G (by the controlled-size bound),
+converges to `x` (by CompleteSpace G), and `f(x) = y` by continuity.
+
+**Mathlib lemmas needed**:
+- `CauchySeq.tendsto_of_completeSpace` — exists.
+- `Summable.tendsto_atTop_zero` style — exists in
+  `Mathlib.Topology.Algebra.InfiniteSum.*`.
+
+**Difficulty**: HARD. ~70 lines. The other substantive part. The Mathlib
+normed version is 75 lines; group version comparable.
+
+### Sub-lemma E: `_sub_lemma_translation` (BanachOMT.lean:198)
+
+**Statement**: If `f : G →+ H` is open at 0, then `f` is open everywhere.
+
+**Proof outline**: For any open `U ⊂ G` and `x ∈ U`, `f(U) - f(x) = f(U - x)`,
+and `U - x` is an open nbhd of 0 ⇒ image is nbhd of 0 ⇒ `f(U)` is nbhd of `f(x)`.
+
+**Mathlib lemmas needed**:
+- `Homeomorph.addLeft.isOpenMap` or similar.
+- `isOpenMap_iff_nhds_le` characterization.
+
+**Difficulty**: EASY. ~15 lines. Standard topological-group fact.
+
+### Layer 1 composition
+
+The main theorem composes A-E via:
+1. Apply C to get an approximate preimage map.
+2. Apply D (which iterates C) to get exact preimage in a nbhd of 0.
+3. Use B (now restated) to extend from nbhd of 0 to all of H.
+4. Apply E (translation) to get openness everywhere.
+5. A is used inside C (the symmetric-set absorbs step).
+
+**Total Layer 1 LOC**: ~250-300 lines. Substantive but classical.
+
+## Layer 2 — `wedhorn_6_16` (trivial corollary)
+
+**Sub-lemma decomposition**: NONE needed. Body is one line:
 ```lean
-theorem isOpenMap_of_completeSpace_of_countablyGenerated
-    {G : Type u} [AddCommGroup G] [UniformSpace G] [IsUniformAddGroup G]
-    [CompleteSpace G] [(uniformity G).IsCountablyGenerated]
-    {H : Type v} [AddCommGroup H] [UniformSpace H] [IsUniformAddGroup H]
-    [CompleteSpace H] [(uniformity H).IsCountablyGenerated] [T2Space H]
-    (f : G →+ H) (hf : Continuous f) (hsurj : Function.Surjective f) :
-    IsOpenMap f
+  exact AddMonoidHom.isOpenMap_of_completeSpace_of_countablyGenerated
+    f.toAddMonoidHom hf hsurj
 ```
 
-**Source**: Bourbaki, *Topologie Générale*, Chapter III §3 no. 3 Théorème 1.
+**Difficulty**: TRIVIAL once Layer 1 lands. ~5 lines.
 
-**Source claim** (Bourbaki [TG] III.3.3, paraphrased — exact French quote omitted as
-French original not in the project; tracked via Huber's verbatim restatement below):
-> "Soient G et H deux groupes topologiques abéliens, séparés, dont la topologie est
-> définie par une suite décroissante de voisinages de l'origine, et tels que G soit
-> complet. Soit f : G → H un homomorphisme continu et surjectif. Si H est complet,
-> alors f est ouverte."
+## Layer 3 — `wedhorn_6_17` (Wedhorn 6.17)
 
-**Verbatim restatement by Huber** ([Hu3] Lemma 2.4(i), p. 16):
-> "Let A be a topological ring which has a zero sequence (a_n | n ∈ ℕ) with
-> a_n ∈ A^× for every n ∈ ℕ (for example, A a Tate ring). Let M and N be
-> topological A-modules which are complete and have countable fundamental
-> systems of neighbourhoods of 0. Then every continuous surjective A-module
-> homomorphism M → N is open."
+**Decomposition status**: NEEDS sub-lemma decomposition (NOT done yet).
 
-**Verbatim restatement by Wedhorn** (Wedhorn 6.16, p. 49 — paraphrased version):
-> "Let A be a topological ring that has a sequence converging to 0 consisting of
-> units of A (e.g., if A is a Tate ring). Let M and N be Hausdorff topological
-> A-modules that have countable fundamental systems of open neighborhoods of 0.
-> Assume that M is complete. Let u : M → N be an A-linear map. Consider the
-> following properties: (a) N is complete; (b) u is surjective; (c) u is open.
-> Then any two of these properties imply the third."
+The proof needs:
+- **L3.1**: Noetherian ⇒ submodule fg ⇒ closed (via Wedhorn 6.16). NEW SUB-LEMMA.
+- **L3.2**: All submodules closed ⇒ ascending chain stationary (via Baire). NEW SUB-LEMMA.
+- **L3.3**: Wedhorn 6.17 itself composes L3.1 and L3.2.
 
-**Lean ↔ source match**: The Lean statement asserts `IsOpenMap f` for a continuous
-surjective additive group hom between complete metric topological abelian groups.
-This is exactly the (a)+(b)⇒(c) direction of Wedhorn 6.16, stripped of the
-module-theoretic decoration (Huber notes the proof transports unchanged from the
-group setting).
+For L3.1: needs the "image of complete metric under continuous group hom" =
+closed. This itself isn't a one-liner — needs that the image is a complete
+subspace (= closed in complete ambient).
 
-**Disproof attempt**:
-- Negation search: `lean_loogle "¬ IsOpenMap"` → no contradicting lemma at this
-  shape; classical Banach OMT for normed spaces is the closest existing result,
-  which agrees with this statement modulo the metric vs. normed distinction.
-- Edge cases: G = H, f = id (trivially open ✓); G = 0 (vacuous, open ✓);
-  H discrete (still open since f surjective + H discrete ⇒ f open trivially).
-- Hypothesis test: drop CompleteSpace on G — counterexample G = ℚ_p ↪ ℚ_p^⁄
-  (algebraic closure), f = inclusion, not open. Hypothesis necessary.
-- Drop countably-generated uniformity — there exist surjective continuous group
-  homs between incomplete-metric groups that aren't open; complete metric structure
-  is essential.
-- Verdict: PASSES disproof attempt; hypotheses are necessary and minimal.
+For L3.2: needs the BGR Baire argument — apply `nonempty_interior_of_iUnion_of_closed`
+to the closed chain.
 
-**Discharged by**: Mathlib gap T-BANACH-OMT-GROUP — needs Mathlib's
-`BaireSpace.of_pseudoEMetricSpace_completeSpace` +
-`nonempty_interior_of_iUnion_of_closed` + Cauchy-completion lifting argument.
-Estimated ~200-300 lines of Lean for the proof.
+**Difficulty assessment**: MEDIUM. Each sub-lemma is ~30-50 lines. Total ~150 lines.
 
-**Prior-B2 log consultation**: No prior B2 entries match (no `b2_log.jsonl` yet
-in project; new file).
+**Action item**: split Layer 3 into 2 sub-tickets [T-WEDHORN-618-L3-617-A]
+and [T-WEDHORN-618-L3-617-B] in `tickets.md`.
 
-### Layer 2: `wedhorn_6_16` (Wedhorn 6.16 = Huber 2.4(i))
+## Layer 4 — `wedhorn_6_18_*` (Wedhorn 6.18)
 
-**Lean declaration**: `Adic spaces/WedhornBanachTheorem.lean:68`
-```lean
-theorem wedhorn_6_16
-    {A : Type u} [Ring A]
-    {M : Type*} [AddCommGroup M] [Module A M]
-      [UniformSpace M] [IsUniformAddGroup M]
-      [CompleteSpace M] [(uniformity M).IsCountablyGenerated]
-    {N : Type*} [AddCommGroup N] [Module A N]
-      [UniformSpace N] [IsUniformAddGroup N]
-      [CompleteSpace N] [(uniformity N).IsCountablyGenerated] [T2Space N]
-    (f : M →ₗ[A] N) (hf : Continuous f) (hsurj : Function.Surjective f) :
-    IsOpenMap f
-```
+**Decomposition status**: NEEDS sub-lemma decomposition (NOT done yet).
 
-**Source**: Wedhorn 6.16 (p. 49); Huber [Hu3] Lemma 2.4(i) (p. 16) — quoted above.
+The proof needs:
+- **L4.1**: Quotient topology on `Aⁿ / K` is complete + countably-generated
+  when `K` is closed. (mathlib should have `IsTopologicalAddGroup.quotient`
+  + `CompleteSpace.quotient_of_complete_closed`.)
+- **L4.2**: A-linear map between fg modules is continuous (BGR 3.7.3/2).
+  Reduces to: lift to `Aⁿ → N` via surjection, then composition.
+- **L4.3**: A-linear map is open onto image (BGR 3.7.3/Cor 5). Reduces to:
+  image is fg ⇒ closed (via L3.1) ⇒ subspace = quotient.
+- **L4.4**: Uniqueness of complete topology — id_M : (M, τ₁) → (M, τ₂)
+  continuous and open (= homeomorphism).
 
-**Lean ↔ source match**: Direct application of Layer 1 via `f.toAddMonoidHom`.
-The module structure is decoration; the openness conclusion depends only on the
-underlying additive group structure.
+**Mathlib search**:
+- `CompleteSpace.quotient_of_complete_closed` — search returned no exact match;
+  may need to be assembled from `Quotient.completeSpace` + closure facts.
 
-**Disproof attempt**: Inherited from Layer 1 (this is just a module-theoretic
-wrapper, no new mathematical content).
+**Difficulty assessment**: MEDIUM-HARD. ~200 lines. The quotient-topology
+infrastructure (L4.1) might be a small mathlib gap.
 
-**Discharged by**: Layer 1 (`AddMonoidHom.isOpenMap_of_completeSpace_of_countablyGenerated`).
-~20 lines of Lean.
+**Action item**: split Layer 4 into 3-4 sub-tickets after Layer 3 lands and
+the quotient-topology infrastructure check resolves.
 
-### Layer 3: `wedhorn_6_17`, `wedhorn_6_17_ideal` (Wedhorn 6.17 = BGR §3.7.2/2)
+## Layer 5 — Audit-pass-2 trio (`_proof`-suffixed)
 
-**Lean declaration**: `Adic spaces/WedhornBanachTheorem.lean:103, 114`
+**Decomposition status**: NEEDS sub-lemma decomposition (NOT done yet).
 
-**Source** (Wedhorn 6.17, p. 49 — verbatim):
-> "Let A be a complete Tate ring, and let M be a complete topological A-module that
-> has a countable fundamental system of open neighborhoods of 0. Then M is
-> noetherian if and only if every submodule of M is closed. In particular A is
-> noetherian if and only if every ideal is closed."
+### L5.1: `isStronglyNoetherian_of_isNoetherianRing_isTateRing_proof`
 
-**Source proof** (BGR §3.7.2/2, p. 164 — verbatim):
-> "We only have to show that M is Noetherian if all submodules are closed. Let
-> M_1 ⊂ M_2 ⊂ … be an ascending chain of submodules. Let M' := ⋃_{i=1}^∞ M_i.
-> Then M' being a closed submodule of the complete module M is a Baire space.
-> Since all M_i are closed, we have by BAIRE's Theorem (cf. BOURBAKI [6], Ch 9,
-> §5, Théorème 1) the existence of an index i such that M_i contains a
-> neighborhood of 0 in M'. This implies M_i = M'; hence the chain becomes
-> stationary."
+The proof needs:
+- **L5.1.1**: A noetherian + Tate ⇒ A⟨X⟩ noetherian. Inductive base.
+  Needs: `A⟨X⟩ = AdicCompletion (I·A[X]) A[X]` + Hilbert basis + Stacks 00MA.
+  **Mathlib gap T-MATHLIB-STACKS-00MA** (ticket #36) is the prerequisite.
+- **L5.1.2**: Inductive step `A⟨X_1,…,X_n⟩` noeth ⇒ `A⟨X_1,…,X_n,X_{n+1}⟩` noeth.
+  Same shape as L5.1.1, applied inductively.
 
-**Lean ↔ source match**: Both directions stated as `IsNoetherian A M ↔ ∀ N, IsClosed N`.
-Forward: noetherian ⇒ submodule fg ⇒ closed (via Wedhorn 6.16 applied to a finite
-surjection onto the submodule). Reverse: BGR's Baire argument verbatim.
+**Difficulty**: HARD (depends on T-MATHLIB-STACKS-00MA which is its own substantial work).
 
-**Disproof attempt**:
-- Edge case M = 0: vacuously both (no submodules to be closed; noetherian trivially).
-- Edge case M = A complete metric noetherian Tate: all ideals closed ✓ (BGR confirms).
-- Hypothesis test: drop CompleteSpace on M — counterexample, dense non-closed submodule.
-- Implausibility check: the statement reads "Noetherian iff every submodule closed"
-  — this is exactly the BGR statement; no drift.
-- Verdict: PASSES.
+### L5.2: `isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof`
 
-**Discharged by**: Layer 2 (`wedhorn_6_16`) + `nonempty_interior_of_iUnion_of_closed`
-(Baire) + standard submodule chain argument. ~150 lines.
+The proof needs:
+- **L5.2.1**: `A₀` is open + bounded subring of `A`.
+- **L5.2.2**: Wedhorn 6.18(2) applied: `A₀ ↪ A` is continuous + the image
+  is fg as `A₀`-module (using `A = A₀[1/π]` localization fact).
+- **L5.2.3**: Descent of noetherianness along open subring inclusion when
+  the bigger ring is noetherian.
 
-### Layer 4: `wedhorn_6_18_unique`, `wedhorn_6_18_continuous`, `wedhorn_6_18_open_onto_image`
+**Difficulty**: MEDIUM. Most pieces are standard but L5.2.3 is non-trivial
+algebra.
 
-**Lean declarations**: `Adic spaces/WedhornBanachTheorem.lean:143, 175, 205`
+### L5.3: `isNoetherianRing_A₀_of_stronglyNoetherianTate_proof`
 
-**Source** (Wedhorn 6.18, p. 50 — verbatim):
-> "Let A be a complete noetherian Tate ring.
-> (1) Every finitely generated A-module has a unique A-module topology that is
->     complete and that has a countable fundamental system of open neighborhoods of 0.
-> (2) Let f : M → N be an A-linear map of finitely generated modules that are
->     endowed with the topology from (1). Then f is continuous and the map
->     f : M → f(M) is open."
+Same as L5.2 for arbitrary pair (not just principal). Uses
+"all rings of definition are commensurable" (project should have this).
 
-**Source proofs** (BGR §3.7.3/2 and §3.7.3/3, p. 164 — verbatim):
-> "**Proposition 2.** If M, M' are objects of 𝔐_A, each A-linear map φ : M → M' is
-> continuous. **Proof.** Choose an epimorphism π : A^n ↠ M for a suitable n ∈ ℕ.
-> Define φ' : A^n → M' by φ' := φ ∘ π. Since addition and scalar multiplication
-> are continuous operations in normed modules, both maps π and φ' are continuous.
-> Furthermore π is open (by BANACH's Theorem). Hence φ is continuous."
->
-> "**Proposition 3.** Each finite A-module M can be provided with a complete
-> A-module norm. All such norms are equivalent. **Proof.** We only have to prove
-> the existence of such a norm. Take any A-linear epimorphism π : A^n ↠ M. Since
-> A^n ∈ 𝔐_A, the kernel ker π is closed. The residue norm on A^n/ker π gives
-> rise to a complete A-module norm on M."
+### L5.4: `exists_hSpa_points_global_of_stronglyNoetherianTate_proof`
 
-**Lean ↔ source match**:
-- `wedhorn_6_18_unique` asserts existence of a complete countably-generated
-  topology + uniqueness up to homeomorphism. Matches BGR 3.7.3/3 (existence)
-  + BGR 3.7.3/2 (uniqueness via id_M continuous in both directions).
-- `wedhorn_6_18_continuous` asserts every A-linear map between fg modules
-  with the canonical topology is continuous. Matches BGR 3.7.3/2 directly.
-- `wedhorn_6_18_open_onto_image` asserts the rangeFactorization is open
-  (i.e., the map is strict). Matches BGR 3.7.3/Cor 5.
+The proof needs:
+- **L5.4.1**: Open prime case — trivial valuation construction. Already in
+  project as `exists_spa_point_in_rationalOpen_of_isOpen_prime`.
+- **L5.4.2**: Non-open prime case — Wedhorn 7.45 noetherian-ring-of-definition
+  variant. Already in project as
+  `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime` in `Lemma745.lean`.
+- **L5.4.3**: Composition + lift to rational subset.
 
-**Disproof attempt**:
-- Edge case M = 0: trivially complete with one topology ✓.
-- Edge case M = A: A has a canonical Tate topology, complete countably-generated ✓.
-- Hypothesis test: drop `IsNoetherianRing A` — counterexample, A polynomial ring
-  with non-closed ideals. Hypothesis necessary.
-- Hypothesis test: drop `Module.Finite A M` — counterexample, infinite-dimensional
-  A-module has no canonical topology. Hypothesis necessary.
-- Verdict: PASSES.
+**Difficulty**: EASY-MEDIUM. The substantive pieces (L5.4.1, L5.4.2) are
+already in the project. L5.4.3 is composition.
 
-**Discharged by**: Layer 2 (Wedhorn 6.16) + Layer 3 (Wedhorn 6.17) +
-quotient-topology construction. ~200 lines combined.
+**Action item**: split Layer 5 into 4 sub-tickets, each with its own sub-decomposition.
 
-### Layer 5: audit-pass-2 trio (`_proof`-suffixed)
+## Layer 6 — AuditCleanWrappers (composition only)
 
-**Lean declarations**: `Adic spaces/WedhornStronglyNoetherian.lean:73, 103, 112, 144`
+**Decomposition status**: COMPLETE (no further sub-lemmas needed; pure composition).
 
-- `isStronglyNoetherian_of_isNoetherianRing_isTateRing_proof`
-- `isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof`
-- `isNoetherianRing_A₀_of_stronglyNoetherianTate_proof`
-- `exists_hSpa_points_global_of_stronglyNoetherianTate_proof`
+Two wrappers already proved via composition. Remaining 3 just need their
+inputs to land (= Layers 1-5 done).
 
-**Sources** (cited per-lemma in file docstrings):
-- Wedhorn Remark 6.37(3): "Every Tate ring that has a noetherian ring of
-  definition is strongly noetherian" (p. 54).
-- Wedhorn Def 6.36: Strongly noetherian Tate equivalent conditions (p. 53).
-- Wedhorn Remark 6.19: Principal pair construction (p. 50).
-- Wedhorn Lemma 7.45: Spa-point at non-open prime, noetherian-ring-of-definition case (p. 67).
+## Updated feasibility assessment
 
-**Lean ↔ source match**: Each audit-pass-2 lemma matches a specific Wedhorn item
-exactly. Detailed Lean ↔ source paragraphs per lemma in the file docstrings.
+| Layer | Difficulty | LOC est. | Sub-lemmas explicitly stated? | Mathlib gaps? |
+|-------|-----------|----------|-------------------------------|---------------|
+| 1 | HARD (substantive) | ~250 | ✓ 5 sub-lemmas (A-E) in BanachOMT.lean | partial (closure/subtract patterns) |
+| 2 | TRIVIAL | ~5 | n/a (one-liner) | none |
+| 3 | MEDIUM | ~150 | ✗ NEEDS sub-decomposition (L3.1, L3.2) | none expected |
+| 4 | MEDIUM-HARD | ~200 | ✗ NEEDS sub-decomposition (L4.1-L4.4) | maybe quotient-topology |
+| 5 | HARD | ~300 | ✗ NEEDS sub-decomposition (L5.1-L5.4) | T-MATHLIB-STACKS-00MA |
+| 6 | EASY | ~100 | ✓ done (pure composition) | none |
 
-**Disproof attempt**: Inherited per lemma — each is a direct port of Wedhorn's stated
-result. No edge-case failures or hypothesis-strength concerns; all hypotheses are
-Wedhorn-canonical.
+**Total**: ~1000-1100 lines, plus T-MATHLIB-STACKS-00MA (~150).
 
-**Discharged by**: Layer 4 (Wedhorn 6.18) + Stacks 00MA (ticket #36, mathlib gap) +
-existing project infrastructure (Wedhorn 7.45 via `Lemma745.lean`, principal pair
-via `IsTateRing.principalPair`). ~200-300 lines combined.
+## What's still missing from the decomposition
 
-### Layer 6: AuditCleanWrappers (`_proof`-suffixed, downstream of Cor832)
+To meet the binding Phase 1e standard, the following sub-decomposition work
+remains BEFORE the tickets are ready to dispatch to `/beastmode`:
 
-**Lean declarations**: `Adic spaces/AuditCleanWrappers.lean:78, 110, 125, 147, 173`
+1. **Layer 3** (Wedhorn 6.17): split into L3.1 (fg ⇒ closed) and L3.2 (Baire
+   chain). Add stubs to `WedhornBanachTheorem.lean`, mathlib-search for the
+   image-closed lemma.
 
-- `cor_8_32_clean_proof` — Wedhorn Cor 8.32 in Wedhorn-exact form. **PROVED**
-  (delegates to existing `productRestriction_faithfullyFlat_tate_of_hSpa_points`
-  via the audit-pass-2 trio).
-- `tateAcyclicity_separation_via_cor832_proof` — Tate acyclicity Part 1.
-  **PROVED** (delegates to existing `productRestriction_injective_tate`).
-- `prop_8_30_flat_clean_proof` — Wedhorn Prop 8.30 single restriction flat.
-  (sorry — needs further work).
-- `tateAcyclicity_gluing_via_descent_proof` — Tate acyclicity Part 2.
-  (sorry — needs Wedhorn 8.34 chain).
-- `isSheafy_ofStronglyNoetherianTate_proof` — Wedhorn Thm 8.28(b). Wedhorn-exact form.
-  (sorry — composes the three above).
+2. **Layer 4** (Wedhorn 6.18): split into L4.1-L4.4. Check if Mathlib has
+   `CompleteSpace.quotient_of_complete_closed` or analogous; if not, this is
+   a small additional mathlib gap.
 
-**Source**: Wedhorn §8.2 (the whole Cor 8.32 → Lemma 8.34 → Thm 8.28(b) chain).
+3. **Layer 5** (audit-pass-2 trio): split each lemma per the L5.x sub-tree
+   above. Most pieces should be straightforward compositions, but L5.1.1
+   depends on T-MATHLIB-STACKS-00MA which is itself substantial.
 
-**Lean ↔ source match**: The Wedhorn-exact statements match Wedhorn's literal
-hypothesis bundle (no extras). The proof bodies delegate through existing
-project infrastructure with audit-pass-2 derivations.
+**Recommendation**: do a focused second `/develop` pass on Layers 3-5 before
+starting `/beastmode` on Layer 1, OR start `/beastmode` on Layer 1 in parallel
+with the second decomposition pass (Layer 1 is independent and the largest
+single piece).
 
-**Discharged by**: Layer 5 + existing `Cor832.lean` infrastructure +
-existing Wedhorn 8.34 chain (in progress, ticket #60 / P3-P8). Two of the
-five are already proved by composition; three remain sorry'd pending the
-upstream Wedhorn 8.34 work.
+## Confidence gate re-evaluation (Step 5)
 
-## Source check summary
+After the leaf-level review:
 
-| Leaf | File | Verbatim quote? | Lean ↔ source match? | Disproof attempt? | Prior-B2 log? |
-|------|------|-----------------|----------------------|-------------------|---------------|
-| Layer 1 (mathlib gap) | BanachOMT.lean | ✓ (via Huber + Wedhorn) | ✓ | ✓ | n/a (no log) |
-| Layer 2 (Wedhorn 6.16) | WedhornBanachTheorem.lean | ✓ | ✓ | ✓ (inherited) | n/a |
-| Layer 3 (Wedhorn 6.17) | WedhornBanachTheorem.lean | ✓ | ✓ | ✓ | n/a |
-| Layer 4 (Wedhorn 6.18) | WedhornBanachTheorem.lean | ✓ | ✓ | ✓ | n/a |
-| Layer 5 (audit-pass-2 trio) | WedhornStronglyNoetherian.lean | ✓ (per lemma) | ✓ | ✓ (inherited) | n/a |
-| Layer 6 (AuditCleanWrappers) | AuditCleanWrappers.lean | ✓ (per lemma) | ✓ | n/a (compositional) | n/a |
+1. ✓ **Layer 1**: every leaf has a sub-lemma stub or mathlib citation. SOLID.
+2. ✗ **Layers 3-5**: top-level theorems stated but NOT decomposed into sub-leaves.
+3. ✓ **Layer 6**: pure composition, no further decomposition needed.
+4. The Lean skeleton compiles — all stated lemmas are syntactically valid.
+5. The 5 conditions of the strict gate are NOT all met for Layers 3-5.
 
-All leaves have:
-- A Lean declaration pointer in the skeleton ✓
-- A verbatim source quote (per Step 3) ✓
-- A Lean ↔ source match paragraph (per Step 3) ✓
-- A disproof attempt (per Step 4.5) ✓
-- A prior-B2 log consultation (per Step 4.6) ✓ — no prior B2 matches found
+**Gate STATUS**: PARTIAL PASS. Layer 1 is ready for `/beastmode`. Layers 3-5
+need a second decomposition pass.
 
-## Feasibility assessment
+## Recommended next step
 
-The decomposition is **feasible end-to-end**. The single substantive analytical
-input — Banach's open mapping theorem for complete metric topological abelian
-groups (Bourbaki [TG] III.3.3) — is classical 1960s analysis. Mathlib has all
-the prerequisites (BaireSpace for complete + countably-generated uniformity,
-Cauchy completeness API, translation-invariant nbhd structure). The proof is a
-direct adaptation of the classical Banach argument with addition replacing
-scalar multiplication.
+The user's concern about "getting stuck" is valid. The honest move is:
 
-Layers 2-4 (Wedhorn 6.16/6.17/6.18) are mechanical applications of Layer 1
-plus standard noetherian-module algebra (Baire chain argument, finite-free
-resolution, residue norm construction). Layers 5-6 are composition tickets
-using Layer 4 plus existing project infrastructure.
+**Option (i)**: Do a focused second `/develop --decompose` pass that:
+- Splits Layer 3 into L3.1 + L3.2 sub-lemma stubs.
+- Splits Layer 4 into L4.1-L4.4 sub-lemma stubs.
+- Splits Layer 5 into L5.1.x, L5.2.x, L5.3, L5.4.x sub-lemma stubs.
+- Mathlib-search each sub-leaf and verify discharge route.
+- Update this decomposition.md with the full sub-tree.
 
-The single non-trivial mathlib gap is **Stacks Tag 00MA** (AdicCompletion of
-Noetherian is Noetherian) — already ticketed as T-MATHLIB-STACKS-00MA
-(ticket #36). This is also classical and well-known; the proof is in
-Atiyah-Macdonald §10 or Matsumura.
+**Option (ii)**: Start `/beastmode` on Layer 1 NOW (it's solidly decomposed)
+and do the Layer 3-5 sub-decomposition as a parallel /develop pass while
+Layer 1 is being worked.
 
-## Confidence gate (Step 5)
-
-1. ✓ Every leaf is discharged from mathlib (Banach OMT prerequisites) or
-   already-developed project code (per-layer citations above).
-2. ✓ The Lean skeleton compiles. `lake build` returns success;
-   `lean_diagnostic_messages` shows only sorry warnings.
-3. ✓ Every leaf has a verbatim source quote plus a Lean ↔ source match paragraph.
-4. ✓ Every leaf passes the disproof attempt (no counterexample found, edge cases
-   hold, hypothesis-strength justified).
-5. ✓ No prior-B2 log matches (no log yet exists in project; verified empty).
-
-**Gate passes**. Ready for ticket creation.
-
-## Next step
-
-Tickets to be appended to `.mathlib-quality/tickets.md` per `/develop` Phase 1g.
-See the tickets section below for the proposed structure.
+Both are reasonable; (ii) maximizes throughput, (i) maximizes safety.

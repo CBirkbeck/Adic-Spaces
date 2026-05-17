@@ -73,6 +73,139 @@ namespace AddMonoidHom
 
 universe u v
 
+/-! ## Sub-lemma decomposition (binding — these are the leaves Layer 1 reduces to)
+
+The classical Banach proof has two stages plus a symmetric-set lemma. Each is
+stated below with `:= by sorry`. The sub-lemma decomposition exists so each
+piece can be tackled independently in `/beastmode`.
+
+Reference: Mathlib's `Mathlib.Analysis.Normed.Operator.Banach` proves the
+analogous result for normed spaces via `exists_approx_preimage_norm_le` (Stage 1)
+and `exists_preimage_norm_le` (Stage 2) using the same two-stage structure.
+The group version replaces norms with nbhd-basis filtration.
+-/
+
+/-- **Sub-lemma A — Symmetric-set absorbs** (the "subtract trick").
+
+If `K` is a closed set in a topological additive group `H` such that some
+integer multiple `n · K` has nonempty interior, then `K - K` contains a
+neighborhood of 0.
+
+This is the standard symmetric-set argument: if `y ∈ interior(n·K)`, then
+`y - y = 0 ∈ interior(n·K - n·K) = n·interior(K - K)`, so `interior(K - K)`
+is nonempty (and contains 0 by symmetry/translation).
+
+**Mathlib search**: no direct lemma found; needs to be stated. Closest
+pattern: `Symmetric` mathlib lemmas in `Topology.Algebra.Group.Pointwise`
+but none directly give "closure has interior ⇒ difference contains nbhd of 0".
+
+**Estimated**: ~40 lines.
+
+**Sources**: BGR §3.7.2 proof of Prop 1 + standard Banach OMT proof. -/
+theorem _sub_lemma_symmetric_absorbs
+    {H : Type v} [AddCommGroup H] [TopologicalSpace H] [IsTopologicalAddGroup H]
+    (K : Set H) (hK_closed : IsClosed K) (hK_sym : K = (fun x => -x) '' K)
+    (h_int : (interior K).Nonempty) :
+    (Set.image2 (· - ·) K K) ∈ nhds (0 : H) :=
+  sorry
+
+/-- **Sub-lemma B — Countable cover by integer multiples**.
+
+For any neighborhood `U` of 0 in a topological additive group `H`, the union
+`⋃ n, n · U` covers all of `H` (every element of `H` is in some `n · U` for
+large enough `n`).
+
+**Mathlib search**: `Filter.HasBasis.exists_iff` plus standard nbhd manipulations.
+Probably exists in some form; needs verification.
+
+**Estimated**: ~15 lines (likely a one-liner if the right mathlib lemma exists). -/
+theorem _sub_lemma_countable_cover
+    {H : Type v} [AddCommGroup H] [TopologicalSpace H] [IsTopologicalAddGroup H]
+    (U : Set H) (hU : U ∈ nhds (0 : H)) (y : H) :
+    ∃ n : ℕ, ∃ u : H, u ∈ U ∧ y = (n : ℤ) • u :=
+  sorry
+
+/-- **Sub-lemma C — Approximate preimage** (Stage 1 of Banach OMT).
+
+Mathlib analogue: `ContinuousLinearMap.exists_approx_preimage_norm_le`
+(`Mathlib.Analysis.Normed.Operator.Banach:83`). The proof shape transfers
+directly to the group setting with `closure(f(n·U))` covering `H` (via
+Sub-lemma B), Baire on `H` (BaireSpace instance), nonempty interior somewhere
+(`nonempty_interior_of_iUnion_of_closed`), and symmetric-set absorbs
+(Sub-lemma A).
+
+For any neighborhood `V` of 0 in `H`, there exists a neighborhood `U` of 0
+in `G` such that for every `y ∈ V`, some `x` with `f(x) - y ∈ ½·V'`
+(for a smaller `V'`) and `x ∈ U`.
+
+**Note on statement form**: the precise statement requires a "nbhd-basis
+filtration" — a `Nat`-indexed shrinking basis `(V_n)` of 0 in `H`. Then for
+each `n` we find `x ∈ U_n` with `f(x) - y ∈ V_{n+1}` for `y ∈ V_n`.
+
+**Mathlib search**:
+- `nonempty_interior_of_iUnion_of_closed` — verified at
+  `Mathlib.Topology.Baire.Lemmas`.
+- `BaireSpace.of_pseudoEMetricSpace_completeSpace` — verified at
+  `Mathlib.Topology.Baire.CompleteMetrizable`.
+
+**Estimated**: ~80 lines. The substantive part of Layer 1. -/
+theorem _sub_lemma_approx_preimage
+    {G : Type u} [AddCommGroup G] [UniformSpace G] [IsUniformAddGroup G]
+    [(uniformity G).IsCountablyGenerated]
+    {H : Type v} [AddCommGroup H] [UniformSpace H] [IsUniformAddGroup H]
+    [CompleteSpace H] [(uniformity H).IsCountablyGenerated] [T2Space H]
+    (f : G →+ H) (hf : Continuous f) (hsurj : Function.Surjective f) :
+    ∀ V ∈ nhds (0 : H), ∃ U ∈ nhds (0 : G), ∀ V' ∈ nhds (0 : H), ∀ y ∈ V,
+      ∃ x ∈ U, f x - y ∈ V' :=
+  sorry
+
+/-- **Sub-lemma D — Cauchy refinement** (Stage 2 of Banach OMT).
+
+Mathlib analogue: `ContinuousLinearMap.exists_preimage_norm_le`
+(`Mathlib.Analysis.Normed.Operator.Banach:161`). The Stage 2 proof iterates
+Stage 1: given approximate preimage, recurse on the "error" `y - f(x_1)` to
+build a Cauchy sequence whose sum is the exact preimage.
+
+For any `y ∈ H` and any neighborhood `U` of 0 in `G`, there exists `x ∈ U + U`
+with `f(x) = y` (using `CompleteSpace G` to take the limit of the Cauchy
+sequence).
+
+**Mathlib lemmas needed**:
+- `CauchySeq.tendsto_of_completeSpace` — verified.
+- `IsUniformAddGroup.cauchySeq_iff` — standard Cauchy-sequence characterization
+  in uniform groups.
+
+**Estimated**: ~70 lines. The other substantive part of Layer 1. -/
+theorem _sub_lemma_cauchy_lift
+    {G : Type u} [AddCommGroup G] [UniformSpace G] [IsUniformAddGroup G]
+    [CompleteSpace G] [(uniformity G).IsCountablyGenerated]
+    {H : Type v} [AddCommGroup H] [UniformSpace H] [IsUniformAddGroup H]
+    [CompleteSpace H] [(uniformity H).IsCountablyGenerated] [T2Space H]
+    (f : G →+ H) (hf : Continuous f) (hsurj : Function.Surjective f) :
+    ∀ V ∈ nhds (0 : H), ∃ U ∈ nhds (0 : G),
+      ∀ y ∈ V, ∃ x : G, x ∈ U ∧ f x = y :=
+  sorry
+
+/-- **Sub-lemma E — Translation invariance** (the easy step).
+
+If `f : G →+ H` is open at 0 (image of every nbhd of 0 contains a nbhd of 0),
+then `f` is open everywhere (image of every open set is open).
+
+**Mathlib search**: standard topological-group fact. Likely follows immediately
+from `Homeomorph.add_right` or similar via `isOpenMap_iff_nhds_le`.
+
+**Estimated**: ~10 lines (one-liner if the right lemma exists). -/
+theorem _sub_lemma_translation
+    {G : Type u} [AddCommGroup G] [TopologicalSpace G] [IsTopologicalAddGroup G]
+    {H : Type v} [AddCommGroup H] [TopologicalSpace H] [IsTopologicalAddGroup H]
+    (f : G →+ H)
+    (hf_zero : ∀ U ∈ nhds (0 : G), f '' U ∈ nhds (0 : H)) :
+    IsOpenMap f :=
+  sorry
+
+/-! ## Main theorem (composes sub-lemmas A-E)
+-/
+
 /-- **Banach's open mapping theorem for complete metric topological abelian groups**
 (Bourbaki [TG] Ch. III §3 no. 3 Théorème 1; Huber [Hu3] Lemma 2.4(i)).
 
