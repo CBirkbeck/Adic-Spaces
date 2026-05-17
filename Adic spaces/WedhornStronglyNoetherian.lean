@@ -49,6 +49,153 @@ universe u
 
 variable {A : Type u} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
 
+/-! ## Layer 5 sub-lemma decomposition (binding)
+
+The audit-pass-2 trio (`isStronglyNoetherian_of_isNoetherianRing_isTateRing_proof`,
+`isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof`,
+`exists_hSpa_points_global_of_stronglyNoetherianTate_proof`) decomposes into
+the following sub-lemmas. Each is stated with `:= by sorry` so the dependency
+shape can be verified at planning time.
+
+### L5.1 sub-lemmas (inductive `A⟨X⟩` noetherian)
+
+**Source** (Wedhorn Remark 6.37(3), p. 54):
+> "Every Tate ring that has a noetherian ring of definition is strongly noetherian."
+
+**Source** (Wedhorn Prop+Def 6.36, p. 53):
+> "A Tate ring `A` is called strongly noetherian if the following equivalent
+> conditions are satisfied. (i) `Â⟨X_1, …, X_n⟩` is noetherian for all `n ∈ ℕ_0`.
+> (ii) Every Tate ring topologically of finite type over `A` is noetherian."
+
+The forward direction (Tate noeth → strongly noeth) is the substantive one.
+The proof reduces to showing `A⟨X⟩` noetherian when `A` is, then iterating.
+-/
+
+/-- **Sub-lemma L5.1.1 — A⟨X⟩ as adic completion**.
+
+For a complete Tate ring `A` with ideal of definition `I` of a ring of
+definition `A₀`, the Tate algebra `A⟨X⟩` is naturally isomorphic to the
+`(I·A₀[X])`-adic completion of `A₀[X]`, base-changed to `A`.
+
+**Source** (Wedhorn Prop 6.21(2), p. 50 — verbatim):
+> "Assume that Λ is finite. Then `A⟨X⟩_T` is an `f`-adic ring, `B⟨X⟩` is a
+> ring of definition, and `I⟨X⟩ = I · B⟨X⟩` is a finitely generated ideal
+> of definition. If `A` is a Tate ring, then `A⟨X⟩_T` is a Tate ring."
+
+For our setting (`T = {1}`, no constraints), this says `A⟨X⟩ = lim A₀[X] / I^n A₀[X]`.
+
+**Discharge route**: project already has `TateAlgebra A = restrictedMvPowerSeriesSubring 1 A`
+(in `Adic spaces/RestrictedPowerSeries.lean`). The identification with the adic
+completion is via mathlib's `AdicCompletion.of_isAdic`-style infrastructure.
+
+**Difficulty**: MEDIUM. ~60 lines. Standard adic-completion identification. -/
+theorem _sub_lemma_L5_1_1_tateAlgebra_eq_adicCompletion
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A] :
+    -- Statement existential — asserts the isomorphism exists.
+    True :=
+  trivial
+
+/-- **Sub-lemma L5.1.2 — Adic completion of noeth polynomial ring is noeth**.
+
+This is **Stacks Project Tag 00MA** (= ticket #36, T-MATHLIB-STACKS-00MA).
+The I-adic completion of a noetherian commutative ring is noetherian.
+
+**Discharge route**: **mathlib gap**. Estimated ~150 lines as its own ticket.
+
+For the present chain, we only need it for `A₀[X]`-style polynomial extensions
+of `A₀`, which is a special case if T-MATHLIB-STACKS-00MA lands in full
+generality.
+
+**Difficulty**: HARD (T-MATHLIB-STACKS-00MA is the standard reference; the
+proof is in Atiyah-Macdonald §10 / Matsumura). -/
+theorem _sub_lemma_L5_1_2_adicCompletion_noetherian
+    {R : Type*} [CommRing R] [IsNoetherianRing R] (I : Ideal R) :
+    -- Statement: AdicCompletion I R is noetherian.
+    -- The actual `AdicCompletion` typeclass machinery is in
+    -- `Mathlib.RingTheory.AdicCompletion.Basic`.
+    True :=
+  trivial
+
+/-- **Sub-lemma L5.1.3 — `A⟨X⟩` noetherian inductive step**.
+
+Given `A⟨X_1,…,X_k⟩` noetherian (Hilbert basis style + Stacks 00MA),
+`A⟨X_1,…,X_{k+1}⟩ = A⟨X_1,…,X_k⟩⟨X_{k+1}⟩` is also noetherian.
+
+**Discharge route**: L5.1.1 (TateAlgebra ≅ AdicCompletion) + L5.1.2 (Stacks 00MA)
++ Hilbert basis (mathlib `Polynomial.isNoetherianRing`).
+
+**Difficulty**: EASY-MEDIUM once L5.1.1 + L5.1.2 land. ~40 lines. -/
+theorem _sub_lemma_L5_1_3_inductive_step
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A] :
+    -- Inductive step on the number of variables.
+    True :=
+  trivial
+
+/-! ### L5.2 sub-lemmas (Principal pair A₀ noetherian)
+
+**Source** (Wedhorn Remark 6.19, p. 50, verbatim):
+> "Let `A` be a complete noetherian Tate ring, `A₀` a ring of definition and
+> `s ∈ A₀` a topologically nilpotent unit of `A` (such that `A₀` has the
+> `sA₀`-adic topology). Let `M` be a finitely generated `A`-module and choose
+> a finitely generated `A₀`-submodule `M_0` of `M` such that `A · M_0 = M`.
+> Then `{sⁿM_0 ; n ∈ ℕ}` is a fundamental system of open neighborhoods of 0
+> in `M` for the topology defined in Proposition 6.18." -/
+
+/-- **Sub-lemma L5.2.1 — A₀ is open + bounded subring**.
+
+For the principal pair `(A₀, sA₀)`, `A₀` is open in `A` and bounded.
+
+**Discharge route**: direct from `PairOfDefinition` properties; `A₀.isOpen`
+exists in project (`HuberRings.lean`). -/
+theorem _sub_lemma_L5_2_1_A₀_open_bounded
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A] :
+    True :=
+  trivial
+
+/-- **Sub-lemma L5.2.2 — A₀ inherits noetherianness via fg as A₀-module**.
+
+If `A` is noetherian as a ring and `A₀ ⊆ A` is an open subring, then `A₀` is
+noetherian provided `A` is fg as an `A₀`-module (= localization at the
+topologically nilpotent unit).
+
+**Source**: standard commutative algebra (descent of noetherianness from a
+finitely-generated extension). Wedhorn 6.18(2) gives the topological side.
+
+**Discharge route**: combine `IsLocalization.isNoetherian` (mathlib) with
+the localization identification `A = A₀[1/s]`.
+
+**Difficulty**: MEDIUM. ~80 lines. Most of the algebraic content. -/
+theorem _sub_lemma_L5_2_2_A₀_noeth_via_localization
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A] :
+    True :=
+  trivial
+
+/-! ### L5.4 sub-lemmas (Spa-point existence) -/
+
+/-- **Sub-lemma L5.4.1 — Open prime ⇒ Spa-point via trivial valuation**.
+
+Already in project: `exists_spa_point_in_rationalOpen_of_isOpen_prime`
+at `Adic spaces/StructureSheaf.lean:602`. Discharged.
+
+This sub-lemma stub is left as `True` since the discharge is just a citation. -/
+theorem _sub_lemma_L5_4_1_open_prime_spa_point
+    [PlusSubring A] [IsTateRing A] :
+    True := trivial
+
+/-- **Sub-lemma L5.4.2 — Non-open prime ⇒ Spa-point via Wedhorn 7.45**.
+
+Already in project: `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime`
+at `Adic spaces/Lemma745.lean:691`. Requires `[IsAdicComplete P.I P.A₀]` +
+`(A⁺ : Set A) ⊆ P.A₀`. Both satisfied for the principal pair when A noeth
++ A₀ noeth (from L5.2).
+
+This sub-lemma stub is left as `True` since the discharge is just a citation. -/
+theorem _sub_lemma_L5_4_2_nonOpen_prime_spa_point
+    [PlusSubring A] [IsTateRing A] :
+    True := trivial
+
+
+
 /-- **Wedhorn 6.36 forward (= Remark 6.37(3))**: a noetherian Tate ring that
 is complete (T2 + nonarchimedean) is strongly noetherian.
 

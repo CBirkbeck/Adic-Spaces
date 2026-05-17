@@ -79,11 +79,11 @@ theorem wedhorn_6_16
   -- The A-linearity is not needed for openness (only the group hom structure).
   sorry
 
-/-- **Wedhorn 6.17** = BGR §3.7.2/2. For a complete Tate-like ring `A` and a
-complete topological `A`-module `M` with countably-generated uniformity:
-`M` is noetherian iff every `A`-submodule of `M` is closed.
+/-! ## Wedhorn 6.17 (= BGR §3.7.2/2) — noetherian iff every (sub)module closed
 
-In particular, `A` itself is noetherian iff every ideal of `A` is closed.
+For a complete Tate-like ring `A` and a complete topological `A`-module `M`
+with countably-generated uniformity: `M` is noetherian iff every `A`-submodule
+of `M` is closed. In particular, `A` itself is noetherian iff every ideal is closed.
 
 **Source** (Wedhorn 6.17, p. 49):
 > "Let `A` be a complete Tate ring, and let `M` be a complete topological
@@ -93,13 +93,89 @@ In particular, `A` itself is noetherian iff every ideal of `A` is closed.
 > closed."
 
 **Proof outline** (BGR 3.7.2/2):
-* (→) Noetherian ⇒ every submodule fg ⇒ closed via Banach OMT applied to a
-  surjection from a finite free module (the image is closed because the
-  domain is complete and the source surjects onto it through an open quotient).
+* (→) Noetherian ⇒ every submodule fg ⇒ closed: this is BGR 3.7.2/1 + observation.
 * (←) Every submodule closed ⇒ ascending chain `M_1 ⊆ M_2 ⊆ …` has closed
-  union `M' = ⋃ M_i`. `M'` is a Baire space (complete metrizable). Each `M_i`
-  is closed in `M'`, and they cover `M'`, so by Baire some `M_i` has nonempty
-  interior in `M'`, hence contains a neighborhood of 0, hence equals `M'`. -/
+  union `M' = ⋃ M_i`. `M'` is a Baire space; by Baire some `M_i` has nonempty
+  interior in `M'`, hence equals `M'`.
+
+### Layer 3 sub-lemmas (L3.1a, L3.1b, L3.2) -/
+
+/-- **Sub-lemma L3.1a — BGR §3.7.2/1: completion of fg normed module is module itself**.
+
+**Source** (BGR §3.7.2/1, p. 163, verbatim):
+> "Proposition 1. Let A be a k-Banach algebra and let M be a normed A-module
+> such that the completion M̂ of M is a finite A-module. Then M is complete.
+> Proof. There are elements x_1, ..., x_n ∈ M̂ such that the homomorphism
+> π : A^n → M̂ defined by π(a_1, ..., a_n) := Σᵢ aᵢxᵢ is surjective. By
+> BANACH's Theorem, π is open, and therefore Σᵢ Ãx_i = π(Ãⁿ) is a neighborhood
+> of 0 in M̂. Since M is dense in M̂, we have x_v ∈ M + Σᵤ Ãx_μ for v = 1, ..., n.
+> Now NAKAYAMA's Lemma 1.2.4/6 yields M = M̂."
+
+**Lean statement**: A normed A-module M whose completion `M̂` is finite as A-module
+is itself complete (= already equals its completion).
+
+**Discharge route**: `wedhorn_6_16` (Banach OMT for A-modules, Layer 2) +
+Nakayama's lemma (mathlib: `Submodule.eq_of_le_of_finrank_eq` style; or direct
+via `Module.eq_top_iff` + finiteness).
+
+**Difficulty**: MEDIUM. ~50 lines. The Banach OMT input is the substantive part. -/
+theorem _sub_lemma_L3_1a_completion_fg_complete
+    {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
+      [CompleteSpace A] [(uniformity A).IsCountablyGenerated]
+    {M : Type*} [AddCommGroup M] [Module A M]
+      [UniformSpace M] [IsUniformAddGroup M]
+      [(uniformity M).IsCountablyGenerated] [T2Space M]
+    (hM_fg : Module.Finite A M) :
+    CompleteSpace M :=
+  sorry
+
+/-- **Sub-lemma L3.1b — fg submodule of complete noeth module is closed**.
+
+Direct corollary of L3.1a applied to the submodule N ⊆ M (with N inheriting
+the subspace uniformity from M). The completion `N̂` is fg (= `Module.Finite A N`
+when A noeth + N fg over A, by Hilbert), so N is complete, so N is closed in M.
+
+**Discharge**: L3.1a + `IsClosed.of_completeSpace` (for closed subset of T2 space,
+complete subspace is closed).
+
+**Difficulty**: EASY. ~25 lines. -/
+theorem _sub_lemma_L3_1b_fg_submodule_closed
+    {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
+      [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [IsNoetherianRing A]
+    {M : Type*} [AddCommGroup M] [Module A M]
+      [UniformSpace M] [IsUniformAddGroup M]
+      [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
+    (N : Submodule A M) (hN_fg : N.FG) :
+    IsClosed (N : Set M) :=
+  sorry
+
+/-- **Sub-lemma L3.2 — Baire chain stationary**.
+
+**Source** (BGR §3.7.2/2 proof, p. 164, verbatim):
+> "We only have to show that M is Noetherian if all submodules are closed. Let
+> M_1 ⊂ M_2 ⊂ … be an ascending chain of submodules. Let M' := ⋃_{i=1}^∞ M_i.
+> Then M' being a closed submodule of the complete module M is a Baire space.
+> Since all M_i are closed, we have by BAIRE's Theorem (cf. BOURBAKI [6], Ch 9,
+> §5, Théorème 1) the existence of an index i such that M_i contains a
+> neighborhood of 0 in M'. This implies M_i = M'; hence the chain becomes
+> stationary."
+
+**Lean statement**: in a complete metric topological add group where every
+additive subgroup is closed, every ascending chain of subgroups is stationary.
+
+**Discharge route**: `nonempty_interior_of_iUnion_of_closed` (mathlib Baire) +
+`AddSubgroup.isOpen_of_zero_mem_interior` (open subgroup = whole closed thing).
+
+**Difficulty**: MEDIUM. ~50 lines. -/
+theorem _sub_lemma_L3_2_baire_chain
+    {M : Type*} [AddCommGroup M]
+      [UniformSpace M] [IsUniformAddGroup M]
+      [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
+    (h_all_closed : ∀ N : AddSubgroup M, IsClosed (N : Set M))
+    (chain : ℕ → AddSubgroup M) (hchain : Monotone chain) :
+    ∃ N : ℕ, ∀ n ≥ N, chain n = chain N :=
+  sorry
+
 theorem wedhorn_6_17
     {A : Type u} [Ring A] [UniformSpace A] [IsUniformAddGroup A]
       [CompleteSpace A] [(uniformity A).IsCountablyGenerated]
@@ -117,29 +193,142 @@ theorem wedhorn_6_17_ideal
     IsNoetherianRing A ↔ ∀ I : Ideal A, IsClosed (I : Set A) :=
   sorry
 
-/-- **Wedhorn 6.18(1)** = BGR §3.7.3/3. For a complete noetherian Tate ring
-`A`, every finitely generated `A`-module `M` admits a complete countably-
-generated `A`-module topology, and all such topologies are equivalent (i.e.,
-give the same underlying topological space).
+/-! ## Wedhorn 6.18 (= BGR §3.7.3) — unique fg-module topology + maps strict
 
-**Source** (Wedhorn 6.18(1), p. 50):
+For a complete noetherian Tate ring `A`, every finitely generated `A`-module
+has a unique complete countably-generated A-module topology; A-linear maps
+between such modules are continuous and open onto image.
+
+**Source** (Wedhorn 6.18, p. 50):
 > "Every finitely generated `A`-module has a unique `A`-module topology that
 > is complete and that has a countable fundamental system of open
-> neighborhoods of 0."
+> neighborhoods of 0. Let `f : M → N` be an `A`-linear map of finitely
+> generated modules that are endowed with the topology from (1). Then `f`
+> is continuous and the map `f : M → f(M)` is open."
 
-**Proof outline** (BGR 3.7.3/3):
-* Existence: choose a surjection `π : Aⁿ ↠ M`. The kernel `ker π` is closed
-  in `Aⁿ` (by Wedhorn 6.17 applied to `Aⁿ` as `A`-module). The quotient
-  topology on `M = Aⁿ / ker π` is then complete and countably-generated
-  (quotient of complete by closed is complete; quotient of countably-
-  generated uniformity is countably-generated).
-* Uniqueness: any two such topologies `τ₁, τ₂` on `M`; the identity
-  `id : (M, τ₁) → (M, τ₂)` is A-linear hence (by part (2) below) continuous
-  + open ⇒ homeomorphism.
+**Decomposition into sub-lemmas L4.1–L4.4**: see below.
 
-This is stated **non-constructively**: it asserts the existence of a unique
-topology without naming it. The downstream consumers will use the
-`presheafValue`-style canonical construction. -/
+### Layer 4 sub-lemmas (Wedhorn 6.18 — BGR §3.7.3) -/
+
+/-- **Sub-lemma L4.1 — Quotient of complete countably-generated is complete countably-generated**.
+
+For a closed subgroup K ⊆ M with M complete + countably-generated uniformity,
+the quotient M/K (with quotient topology) is also complete + countably-generated.
+
+**Source**: standard topological group fact. Mathlib has
+`AddSubgroup.QuotientAddGroup.CompleteSpace`-style instances.
+
+**Mathlib search**:
+- `Quotient.completeSpace` for quotients of complete uniform spaces.
+- `Quotient.uniformContinuous_mk` for quotient map continuity.
+
+**Difficulty**: EASY-MEDIUM. ~30 lines. Mostly assembling existing instances. -/
+theorem _sub_lemma_L4_1_quotient_complete
+    {A : Type u} [Ring A]
+    {M : Type*} [AddCommGroup M] [Module A M]
+      [UniformSpace M] [IsUniformAddGroup M]
+      [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
+    (K : Submodule A M) (hK_closed : IsClosed (K : Set M)) :
+    -- Quotient M/K equipped with quotient uniformity is complete + countably-generated
+    -- (statement is existential — the quotient type carries the topology automatically).
+    True :=
+  -- The actual content is captured by the typeclass instances we need to make
+  -- available at use sites. This placeholder records the obligation.
+  trivial
+
+/-- **Sub-lemma L4.2 — A-linear map between fg modules is continuous**.
+
+**Source** (BGR §3.7.3/2, p. 164, verbatim):
+> "Proposition 2. If M, M' are objects of 𝔐_A, each A-linear map φ : M → M' is
+> continuous. Proof. Choose an epimorphism π : A^n ↠ M for a suitable n ∈ ℕ.
+> Define φ' : A^n → M' by φ' := φ ∘ π. Since addition and scalar multiplication
+> are continuous operations in normed modules, both maps π and φ' are continuous.
+> Furthermore π is open (by BANACH's Theorem). Hence φ is continuous."
+
+**Lean statement**: identical to `wedhorn_6_18_continuous` below.
+
+**Discharge route**:
+- Choose surjection π : A^n ↠ M (via `Module.Finite`).
+- π is continuous (sum of coordinate projections × x_i, all continuous in normed
+  modules — uses `IsUniformAddGroup` continuity of add + smul).
+- π is open by `wedhorn_6_16` (Layer 2).
+- φ ∘ π is continuous (composition).
+- φ = (φ ∘ π) ∘ π⁻¹ where π⁻¹ is the quotient map (well-defined via open π).
+
+**Difficulty**: MEDIUM. ~60 lines. -/
+theorem _sub_lemma_L4_2_continuous_via_OMT
+    {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
+      [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
+    {M : Type*} [AddCommGroup M] [Module A M] [Module.Finite A M]
+      [UniformSpace M] [IsUniformAddGroup M]
+      [CompleteSpace M] [(uniformity M).IsCountablyGenerated]
+    {N : Type*} [AddCommGroup N] [Module A N] [Module.Finite A N]
+      [UniformSpace N] [IsUniformAddGroup N]
+      [CompleteSpace N] [(uniformity N).IsCountablyGenerated] [T2Space N]
+    (f : M →ₗ[A] N) :
+    Continuous f :=
+  sorry
+
+/-- **Sub-lemma L4.3 — A-linear map is open onto image (strict)**.
+
+**Source** (BGR §3.7.3/Proposition 4, p. 165, verbatim):
+> "Proposition 4. A continuous k-linear map φ : X → Y between k-Banach spaces is
+> strict if and only if φ(X) is closed in Y. From this we immediately conclude
+> Corollary 5. Each A-module homomorphism φ : M → M', where M, M' ∈ 𝔐_A, is strict."
+
+**Lean statement**: the rangeFactorization of f is open.
+
+**Discharge route**:
+- f continuous by L4.2.
+- Image f(M) is fg submodule of N (since M fg + linear map), hence closed by
+  Wedhorn 6.17 forward direction (or directly L3.1b).
+- Image with subspace topology = quotient topology by Banach OMT (Layer 2,
+  applied to the rangeFactorization which is surjective onto its image).
+
+**Difficulty**: MEDIUM. ~50 lines. -/
+theorem _sub_lemma_L4_3_strict_via_closed_image
+    {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
+      [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
+      [IsNoetherianRing A]
+    {M : Type*} [AddCommGroup M] [Module A M] [Module.Finite A M]
+      [UniformSpace M] [IsUniformAddGroup M]
+      [CompleteSpace M] [(uniformity M).IsCountablyGenerated]
+    {N : Type*} [AddCommGroup N] [Module A N] [Module.Finite A N]
+      [UniformSpace N] [IsUniformAddGroup N]
+      [CompleteSpace N] [(uniformity N).IsCountablyGenerated] [T2Space N]
+    (f : M →ₗ[A] N) :
+    IsOpenMap (Set.rangeFactorization f) :=
+  sorry
+
+/-- **Sub-lemma L4.4 — Uniqueness of complete countably-generated A-module topology**.
+
+If τ₁ and τ₂ are two uniform structures on M (both making M into a complete
+countably-generated A-module), then they induce the SAME topology.
+
+**Discharge route**: apply L4.2 (continuity of A-linear maps) to id_M in
+both directions:
+- id : (M, τ₁) → (M, τ₂) is A-linear (trivially) ⇒ continuous by L4.2 ⇒ τ₂ ≤ τ₁.
+- id : (M, τ₂) → (M, τ₁) similarly ⇒ τ₁ ≤ τ₂.
+- Hence τ₁ = τ₂.
+
+**Difficulty**: EASY. ~25 lines. -/
+theorem _sub_lemma_L4_4_unique_topology
+    {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
+      [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
+      [IsNoetherianRing A]
+    {M : Type*} [AddCommGroup M] [Module A M] [Module.Finite A M]
+    (τ₁ τ₂ : UniformSpace M)
+    (h_top1 : @IsUniformAddGroup M τ₁ _)
+    (h_complete1 : @CompleteSpace M τ₁)
+    (h_cg1 : (@uniformity M τ₁).IsCountablyGenerated)
+    (h_t2_1 : @T2Space M τ₁.toTopologicalSpace)
+    (h_top2 : @IsUniformAddGroup M τ₂ _)
+    (h_complete2 : @CompleteSpace M τ₂)
+    (h_cg2 : (@uniformity M τ₂).IsCountablyGenerated)
+    (h_t2_2 : @T2Space M τ₂.toTopologicalSpace) :
+    τ₁.toTopologicalSpace = τ₂.toTopologicalSpace :=
+  sorry
+
 theorem wedhorn_6_18_unique
     {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
       [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
