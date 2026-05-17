@@ -432,6 +432,11 @@ theorem restrictIdeal_apply_mul (v : Valuation A Γ₀) (I : Ideal A) (a b : A) 
     v.restrictIdeal I (a * b) = v.restrictIdeal I a * v.restrictIdeal I b :=
   map_mul _ a b
 
+/-- **`restrictIdeal v I (-r) = restrictIdeal v I r`** — valuations respect negation. -/
+theorem restrictIdeal_apply_neg (v : Valuation A Γ₀) (I : Ideal A) (r : A) :
+    v.restrictIdeal I (-r) = v.restrictIdeal I r :=
+  Valuation.map_neg _ r
+
 end Valuation
 
 namespace ValuationSpectrum
