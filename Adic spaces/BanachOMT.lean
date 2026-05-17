@@ -277,8 +277,15 @@ exist via `Topology.Algebra.Group.Pointwise`. Compose for `interior + interior �
 theorem _sub_sub_lemma_A_2_interior_add
     {H : Type v} [AddCommGroup H] [TopologicalSpace H] [IsTopologicalAddGroup H]
     (S T : Set H) :
-    interior S + interior T ⊆ interior (S + T) :=
-  sorry
+    interior S + interior T ⊆ interior (S + T) := by
+  -- interior S + interior T is open (sum of opens via IsOpen.add_left).
+  have h_open : IsOpen (interior S + interior T) :=
+    isOpen_interior.add_left
+  -- And interior S + interior T ⊆ S + T (since interior S ⊆ S, interior T ⊆ T).
+  have h_sub : interior S + interior T ⊆ S + T :=
+    Set.add_subset_add interior_subset interior_subset
+  -- An open subset of S + T lies in interior (S + T).
+  exact interior_maximal h_sub h_open
 
 /-- **Sub-sub-lemma C.1 — Countable closed cover via image-closure**.
 
@@ -309,11 +316,11 @@ in `Topology.Baire.Lemmas`. One-liner body.
 
 **Difficulty**: TRIVIAL. ~5 lines. -/
 theorem _sub_sub_lemma_C_2_baire_nonempty_interior
-    {H : Type v} [TopologicalSpace H] [BaireSpace H]
+    {H : Type v} [TopologicalSpace H] [BaireSpace H] [Nonempty H]
     (S : ℕ → Set H) (hS_closed : ∀ n, IsClosed (S n))
     (hS_cover : ⋃ n, S n = Set.univ) :
     ∃ n, (interior (S n)).Nonempty :=
-  sorry  -- exact nonempty_interior_of_iUnion_of_closed hS_closed hS_cover
+  nonempty_interior_of_iUnion_of_closed hS_closed hS_cover
 
 /-- **Sub-sub-lemma D.1 — Inductive Cauchy sequence builder**.
 
@@ -398,7 +405,8 @@ theorem isQuotientMap_of_completeSpace_of_countablyGenerated
     [CompleteSpace H] [(uniformity H).IsCountablyGenerated] [T2Space H]
     (f : G →+ H) (hf : Continuous f) (hsurj : Function.Surjective f) :
     Topology.IsQuotientMap f :=
-  sorry
+  (AddMonoidHom.isOpenMap_of_completeSpace_of_countablyGenerated f hf hsurj).isQuotientMap
+    hf hsurj
 
 /-- **Bourbaki's full any-two-imply-third statement** — the version Wedhorn 6.16
 states. Let `G, H` be Hausdorff topological abelian groups with countably-
@@ -421,6 +429,12 @@ theorem banach_two_of_three
     ((CompleteSpace H ∧ Function.Surjective f) → IsOpenMap f) ∧
     ((CompleteSpace H ∧ IsOpenMap f) → Function.Surjective f) ∧
     ((Function.Surjective f ∧ IsOpenMap f) → CompleteSpace H) :=
-  sorry
+  ⟨fun ⟨hcomp, hsurj⟩ =>
+    haveI := hcomp
+    isOpenMap_of_completeSpace_of_countablyGenerated f hf hsurj,
+   -- (a) ∧ (c) ⇒ (b): complete H + f open ⇒ f surjective. Needs separate work.
+   sorry,
+   -- (b) ∧ (c) ⇒ (a): f surjective + f open ⇒ H complete. Needs separate work.
+   sorry⟩
 
 end AddMonoidHom
