@@ -433,15 +433,30 @@ theorem _sub_lemma_L4_3_strict_via_closed_image
       [ContinuousSMul A N]
     (f : M →ₗ[A] N) :
     IsOpenMap (Set.rangeFactorization f) := by
-  -- BGR §3.7.3/Cor 5 proof outline:
-  -- f.range is fg (image of fg), hence closed (L3.1b), hence ↥f.range is a complete
-  -- T2 cg uag subspace of N. Apply wedhorn_6_16 to f.rangeRestrict to get openness,
-  -- then convert IsOpenMap on rangeRestrict to IsOpenMap on Set.rangeFactorization.
+  -- BGR §3.7.3/Cor 5: f.range is fg (image of fg under linear map), so closed in
+  -- N by L3.1b. Then ↥(f.range) inherits a complete T2 cg uag subspace structure,
+  -- and wedhorn_6_16 applied to f.rangeRestrict (= f viewed as map to its range)
+  -- gives openness. Set.rangeFactorization = f.rangeRestrict up to type identity.
   --
-  -- The subtype-uniform-structure setup on ↥f.range (matching L3.1b's pattern):
-  -- inheriting IsUniformAddGroup, CountablyGenerated, T2 from N + closed.
-  -- The convert step is where the bundled-vs-unbundled mismatch lives;
-  -- conservatively sorried at the final conversion pending API alignment work.
+  -- Step 1: f.range as Submodule A N is fg (image of ⊤ under f, which is fg).
+  have htop_fg : (⊤ : Submodule A M).FG := Module.Finite.fg_top
+  have hrange_fg : (LinearMap.range f).FG := by
+    rw [LinearMap.range_eq_map]
+    exact htop_fg.map f
+  -- Step 2: f.range is closed via L3.1b.
+  have hrange_closed : IsClosed (LinearMap.range f : Set N) :=
+    _sub_lemma_L3_1b_fg_submodule_closed (LinearMap.range f) hrange_fg
+  -- Step 3: subspace typeclass setup on ↥f.range.
+  haveI : IsUniformAddGroup ↥(LinearMap.range f) :=
+    show IsUniformAddGroup ↥(LinearMap.range f).toAddSubgroup from inferInstance
+  haveI : (uniformity ↥(LinearMap.range f)).IsCountablyGenerated :=
+    Filter.comap.isCountablyGenerated _ _
+  haveI : CompleteSpace ↥(LinearMap.range f) :=
+    hrange_closed.completeSpace_coe
+  -- The remaining typeclass [Module.Finite A ↥f.range], [ContinuousSMul A ↥f.range],
+  -- the continuity of f.rangeRestrict, and the IsOpenMap conversion from
+  -- f.rangeRestrict to Set.rangeFactorization are mechanical but require careful
+  -- Subtype/SetLike plumbing. Left sub-sorried for the next pass.
   sorry
 
 /-- **Sub-lemma L4.4 — Uniqueness of complete countably-generated A-module topology**.
