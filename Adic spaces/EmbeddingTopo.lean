@@ -2249,6 +2249,13 @@ theorem LaurentTree.allSplitsInducing_ofBalancedList
       LaurentTree.BalancedInducing (laurentPlusDatum D₀ f) rest ∧
       LaurentTree.BalancedInducing (laurentMinusDatum D₀ f) rest := Iff.rfl
 
+/-- Singleton case: `BalancedInducing D₀ [f]` reduces to just the head split's
+inducing condition. -/
+theorem LaurentTree.BalancedInducing_singleton (D₀ : RationalLocData A) (f : A) :
+    LaurentTree.BalancedInducing D₀ [f] ↔
+      Topology.IsInducing (productRestrictionSub A (laurentCovering D₀ f)) := by
+  simp
+
 /-- `RightBranchInducing` implies `allSplitsInducing` for the
 right-branching tree. -/
 theorem LaurentTree.allSplitsInducing_ofRightBranchList
