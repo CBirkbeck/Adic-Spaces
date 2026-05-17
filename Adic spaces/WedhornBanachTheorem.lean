@@ -177,23 +177,44 @@ theorem _sub_lemma_L3_2_baire_chain
   sorry
 
 theorem wedhorn_6_17
-    {A : Type u} [Ring A] [UniformSpace A] [IsUniformAddGroup A]
-      [CompleteSpace A] [(uniformity A).IsCountablyGenerated]
+    {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
+      [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [IsNoetherianRing A]
     {M : Type*} [AddCommGroup M] [Module A M]
       [UniformSpace M] [IsUniformAddGroup M]
       [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M] :
-    IsNoetherian A M ↔ ∀ N : Submodule A M, IsClosed (N : Set M) :=
-  sorry
+    IsNoetherian A M ↔ ∀ N : Submodule A M, IsClosed (N : Set M) := by
+  constructor
+  · -- Forward: every submodule fg + L3.1b ⇒ every submodule closed.
+    intro hM N
+    have hN_fg : N.FG := IsNoetherian.noetherian (R := A) N
+    exact _sub_lemma_L3_1b_fg_submodule_closed N hN_fg
+  · -- Reverse: every submodule closed ⇒ chain stationary ⇒ noeth.
+    -- Requires a Submodule version of L3.2 (Baire chain stationary). The current
+    -- L3.2 is at AddSubgroup level; lifting it to Submodule requires showing
+    -- that every Submodule's underlying AddSubgroup is closed — which holds
+    -- (hypothesis), but the chain's AddSubgroup may not faithfully recover
+    -- the original Submodule chain without extra scalar-mult structure on the
+    -- ambient AddSubgroup. Left sorried pending Submodule-level L3.2 variant.
+    sorry
 
 /-- **Wedhorn 6.17 specialised to A itself** — A complete Tate-like noetherian
 ring has all ideals closed (and conversely). -/
 theorem wedhorn_6_17_ideal
     {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
       [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A] :
-    IsNoetherianRing A ↔ ∀ I : Ideal A, IsClosed (I : Set A) :=
-  -- Specialise wedhorn_6_17 to M = A. Ideal A = Submodule A A and
-  -- IsNoetherianRing A = IsNoetherian A A.
-  wedhorn_6_17 (A := A) (M := A)
+    IsNoetherianRing A ↔ ∀ I : Ideal A, IsClosed (I : Set A) := by
+  -- Specialise wedhorn_6_17 to M = A. Need [IsNoetherianRing A] for forward
+  -- direction, but here it appears as iff LHS. Split into two directions.
+  constructor
+  · intro hA
+    -- Forward: derive [IsNoetherianRing A] as instance, then cite wedhorn_6_17.
+    haveI : IsNoetherianRing A := hA
+    exact (wedhorn_6_17 (A := A) (M := A)).mp hA
+  · intro h_all
+    -- Reverse: use wedhorn_6_17's reverse direction. But it requires
+    -- [IsNoetherianRing A] as instance to invoke — circular for reverse.
+    -- Instead, use the underlying L3.2 directly; left sorried alongside L3.2.
+    sorry
 
 /-! ## Wedhorn 6.18 (= BGR §3.7.3) — unique fg-module topology + maps strict
 
