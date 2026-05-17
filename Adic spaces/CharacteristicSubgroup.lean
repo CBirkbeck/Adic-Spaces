@@ -426,6 +426,12 @@ theorem restrictIdeal_apply_one (v : Valuation A Γ₀) (I : Ideal A) :
 theorem restrictIdeal_apply_zero_elem (v : Valuation A Γ₀) (I : Ideal A) :
     v.restrictIdeal I 0 = 0 := map_zero _
 
+/-- **`restrictIdeal v I` is multiplicative.** Since the restriction is a
+valuation, it respects multiplication: `restrictIdeal(a · b) = restrictIdeal(a) · restrictIdeal(b)`. -/
+theorem restrictIdeal_apply_mul (v : Valuation A Γ₀) (I : Ideal A) (a b : A) :
+    v.restrictIdeal I (a * b) = v.restrictIdeal I a * v.restrictIdeal I b :=
+  map_mul _ a b
+
 end Valuation
 
 namespace ValuationSpectrum
