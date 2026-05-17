@@ -2297,6 +2297,10 @@ theorem LaurentTree.BalancedInducing.cons
     LaurentTree.BalancedInducing D₀ (f :: rest) :=
   ⟨h_head, h_plus, h_minus⟩
 
+/-- Trivial case: empty list always satisfies `BalancedInducing`. -/
+theorem LaurentTree.BalancedInducing.empty (D₀ : RationalLocData A) :
+    LaurentTree.BalancedInducing D₀ ([] : List A) := trivial
+
 /-- `RightBranchInducing` implies `allSplitsInducing` for the
 right-branching tree. -/
 theorem LaurentTree.allSplitsInducing_ofRightBranchList
