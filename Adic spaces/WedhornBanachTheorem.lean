@@ -178,32 +178,15 @@ theorem _sub_lemma_L3_1b_fg_submodule_closed
   -- Complete subset of T2 ambient ⇒ closed.
   exact (completeSpace_coe_iff_isComplete.mp ‹CompleteSpace ↥N›).isClosed
 
-/-- **Sub-lemma L3.2 — Baire chain stationary**.
+/-! `_sub_lemma_L3_2_baire_chain` (AddSubgroup version) removed (2026-05-18).
 
-**Source** (BGR §3.7.2/2 proof, p. 164, verbatim):
-> "We only have to show that M is Noetherian if all submodules are closed. Let
-> M_1 ⊂ M_2 ⊂ … be an ascending chain of submodules. Let M' := ⋃_{i=1}^∞ M_i.
-> Then M' being a closed submodule of the complete module M is a Baire space.
-> Since all M_i are closed, we have by BAIRE's Theorem (cf. BOURBAKI [6], Ch 9,
-> §5, Théorème 1) the existence of an index i such that M_i contains a
-> neighborhood of 0 in M'. This implies M_i = M'; hence the chain becomes
-> stationary."
-
-**Lean statement**: in a complete metric topological add group where every
-additive subgroup is closed, every ascending chain of subgroups is stationary.
-
-**Discharge route**: `nonempty_interior_of_iUnion_of_closed` (mathlib Baire) +
-`AddSubgroup.isOpen_of_zero_mem_interior` (open subgroup = whole closed thing).
-
-**Difficulty**: MEDIUM. ~50 lines. -/
-theorem _sub_lemma_L3_2_baire_chain
-    {M : Type*} [AddCommGroup M]
-      [UniformSpace M] [IsUniformAddGroup M]
-      [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
-    (h_all_closed : ∀ N : AddSubgroup M, IsClosed (N : Set M))
-    (chain : ℕ → AddSubgroup M) (hchain : Monotone chain) :
-    ∃ N : ℕ, ∀ n ≥ N, chain n = chain N :=
-  sorry
+The AddSubgroup-level statement was B2 false (`b2_log.jsonl` entry 2,
+counterexample: `M = ⊕_n ℤ/2ℤ` with discrete topology — every subgroup is
+trivially closed but the chain `⊕_{n ≤ k} ℤ/2ℤ` never stabilises). The
+*Submodule* variant below is provable because the `A`-module scalar action
+supplies the absorbing structure that the AddGroup-level argument lacks; it
+is the variant the consumer (`wedhorn_6_17`) actually uses.
+-/
 
 /-- **Sub-lemma L3.2-Submodule — Baire chain stationary for Submodules**.
 
