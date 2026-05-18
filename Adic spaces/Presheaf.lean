@@ -2395,6 +2395,23 @@ theorem isOpen_topologicallyNilpotent_of_huber
   have := P.pow_image_isOpen 1
   simpa using this
 
+/-- **(⊆ direction of Wedhorn 7.51 sub-step)** Every unit `x : A^×` lies in
+the trivial translate `x · (1 + 0) = x · 1`. This is the easy direction of
+`units_eq_union_translates_of_oneAdd_topNilp`. -/
+theorem units_subseteq_union_translates_of_oneAdd_topNilp
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [IsHuberRing A] :
+    {x : A | IsUnit x} ⊆
+      ⋃ (u : Aˣ),
+        (fun y => (u : A) * y) ''
+          {y : A | ∃ n ∈ TopologicalRing.topologicallyNilpotentElements A,
+                     y = 1 + n} := by
+  intro x hx
+  obtain ⟨u, rfl⟩ := hx
+  refine Set.mem_iUnion.mpr ⟨u, ?_⟩
+  refine ⟨1, ⟨0, ?_, by simp⟩, by simp⟩
+  exact IsTopologicallyNilpotent.zero
+
 /-- **(Wedhorn 7.51 sub-step, audit pass 3 item 23)** *"A^× = ⋃_{u : A^×}
 u · (1 + A°°)."* The unit set is the union of translates of the open
 neighborhood `1 + A°°` of `1`.
@@ -2403,8 +2420,14 @@ This is what powers `isOpen_units_of_complete_huber`: the right-hand side
 is a union of opens (since `1 + A°°` is open by translation of A°°), hence
 open.
 
-Discharge plan: (⊇) Each translate of a unit is again a unit. (⊆) For
-`x ∈ A^×`, pick `u = x` and write `x = x · 1 ∈ x · (1 + A°°)`. -/
+Discharge plan: (⊇) Each translate of a unit is again a unit (requires
+`1 + n ∈ A^×` for `n` topologically nilpotent, which needs `[CompleteSpace A]`
+via the geometric-series argument in `IsTopologicallyNilpotent.isUnit_one_add`).
+(⊆) For `x ∈ A^×`, pick `u = x` and write `x = x · 1 ∈ x · (1 + A°°)` —
+discharged in `units_subseteq_union_translates_of_oneAdd_topNilp`. The
+equality fails without `[CompleteSpace A]`: e.g., `A = ℤ` with `p`-adic
+topology has `1 + p` topologically nilpotent but `1 + p` is not a unit
+in `ℤ`. -/
 theorem units_eq_union_translates_of_oneAdd_topNilp
     {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [IsHuberRing A] :
