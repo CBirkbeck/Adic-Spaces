@@ -125,82 +125,21 @@ theorem _sub_lemma_symmetric_absorbs
     Set.image2_subset hV_subset hV_subset
   exact mem_nhds_iff.mpr ⟨interior K - interior K, hVV_KK, hVV_open, h0⟩
 
-/-- **Sub-lemma B — Countable cover by integer multiples**.
+/-! ## Obsolete BGR-route sub-lemmas removed (2026-05-18)
 
-For any neighborhood `U` of 0 in a topological additive group `H`, the union
-`⋃ n, n · U` covers all of `H` (every element of `H` is in some `n · U` for
-large enough `n`).
+Sub-lemmas **B (`_sub_lemma_countable_cover`)**, **C (`_sub_lemma_approx_preimage`)**,
+**D (`_sub_lemma_cauchy_lift`)**, and **C.1 (`_sub_sub_lemma_C_1_countable_closed_cover`,
+removed below)** have been **deleted**. These four sub-lemmas were part of the original
+BGR-following manual reconstruction of the topological-group Banach OMT, but as
+recorded in `b2_log.jsonl` entries 3-4 each was either FALSE as stated (B, C.1
+fail without `[SigmaCompactSpace G]` / `[SeparableSpace G]`) or unused after the
+main theorem switched to delegating to mathlib's
+`AddMonoidHom.isOpenMap_of_sigmaCompact` (commit `3a7ce47`). Removing them
+eliminates four dead-code sorries from this file.
 
-**Mathlib search**: `Filter.HasBasis.exists_iff` plus standard nbhd manipulations.
-Probably exists in some form; needs verification.
-
-**Estimated**: ~15 lines (likely a one-liner if the right mathlib lemma exists). -/
-theorem _sub_lemma_countable_cover
-    {H : Type v} [AddCommGroup H] [TopologicalSpace H] [IsTopologicalAddGroup H]
-    (U : Set H) (hU : U ∈ nhds (0 : H)) (y : H) :
-    ∃ n : ℕ, ∃ u : H, u ∈ U ∧ y = (n : ℤ) • u :=
-  sorry
-
-/-- **Sub-lemma C — Approximate preimage** (Stage 1 of Banach OMT).
-
-Mathlib analogue: `ContinuousLinearMap.exists_approx_preimage_norm_le`
-(`Mathlib.Analysis.Normed.Operator.Banach:83`). The proof shape transfers
-directly to the group setting with `closure(f(n·U))` covering `H` (via
-Sub-lemma B), Baire on `H` (BaireSpace instance), nonempty interior somewhere
-(`nonempty_interior_of_iUnion_of_closed`), and symmetric-set absorbs
-(Sub-lemma A).
-
-For any neighborhood `V` of 0 in `H`, there exists a neighborhood `U` of 0
-in `G` such that for every `y ∈ V`, some `x` with `f(x) - y ∈ ½·V'`
-(for a smaller `V'`) and `x ∈ U`.
-
-**Note on statement form**: the precise statement requires a "nbhd-basis
-filtration" — a `Nat`-indexed shrinking basis `(V_n)` of 0 in `H`. Then for
-each `n` we find `x ∈ U_n` with `f(x) - y ∈ V_{n+1}` for `y ∈ V_n`.
-
-**Mathlib search**:
-- `nonempty_interior_of_iUnion_of_closed` — verified at
-  `Mathlib.Topology.Baire.Lemmas`.
-- `BaireSpace.of_pseudoEMetricSpace_completeSpace` — verified at
-  `Mathlib.Topology.Baire.CompleteMetrizable`.
-
-**Estimated**: ~80 lines. The substantive part of Layer 1. -/
-theorem _sub_lemma_approx_preimage
-    {G : Type u} [AddCommGroup G] [UniformSpace G] [IsUniformAddGroup G]
-    [(uniformity G).IsCountablyGenerated]
-    {H : Type v} [AddCommGroup H] [UniformSpace H] [IsUniformAddGroup H]
-    [CompleteSpace H] [(uniformity H).IsCountablyGenerated] [T2Space H]
-    (f : G →+ H) (hf : Continuous f) (hsurj : Function.Surjective f) :
-    ∀ V ∈ nhds (0 : H), ∃ U ∈ nhds (0 : G), ∀ V' ∈ nhds (0 : H), ∀ y ∈ V,
-      ∃ x ∈ U, f x - y ∈ V' :=
-  sorry
-
-/-- **Sub-lemma D — Cauchy refinement** (Stage 2 of Banach OMT).
-
-Mathlib analogue: `ContinuousLinearMap.exists_preimage_norm_le`
-(`Mathlib.Analysis.Normed.Operator.Banach:161`). The Stage 2 proof iterates
-Stage 1: given approximate preimage, recurse on the "error" `y - f(x_1)` to
-build a Cauchy sequence whose sum is the exact preimage.
-
-For any `y ∈ H` and any neighborhood `U` of 0 in `G`, there exists `x ∈ U + U`
-with `f(x) = y` (using `CompleteSpace G` to take the limit of the Cauchy
-sequence).
-
-**Mathlib lemmas needed**:
-- `CauchySeq.tendsto_of_completeSpace` — verified.
-- `IsUniformAddGroup.cauchySeq_iff` — standard Cauchy-sequence characterization
-  in uniform groups.
-
-**Estimated**: ~70 lines. The other substantive part of Layer 1. -/
-theorem _sub_lemma_cauchy_lift
-    {G : Type u} [AddCommGroup G] [UniformSpace G] [IsUniformAddGroup G]
-    [CompleteSpace G] [(uniformity G).IsCountablyGenerated]
-    {H : Type v} [AddCommGroup H] [UniformSpace H] [IsUniformAddGroup H]
-    [CompleteSpace H] [(uniformity H).IsCountablyGenerated] [T2Space H]
-    (f : G →+ H) (hf : Continuous f) (hsurj : Function.Surjective f) :
-    ∀ V ∈ nhds (0 : H), ∃ U ∈ nhds (0 : G),
-      ∀ y ∈ V, ∃ x : G, x ∈ U ∧ f x = y :=
-  sorry
+`_sub_lemma_translation` (sub-lemma E) is retained — it is still useful as the
+"open at 0 → open everywhere" reduction (sorry-free).
+-/
 
 /-- **Sub-lemma E — Translation invariance** (the easy step).
 
@@ -291,25 +230,6 @@ theorem _sub_sub_lemma_A_2_interior_add
     Set.add_subset_add interior_subset interior_subset
   -- An open subset of S + T lies in interior (S + T).
   exact interior_maximal h_sub h_open
-
-/-- **Sub-sub-lemma C.1 — Countable closed cover via image-closure**.
-
-For continuous surjective `f : G →+ H`, for every nbhd `U` of 0 in `G`,
-`H = ⋃ n, closure (f '' ((n : ℤ) • U))` (countable cover by closed sets).
-
-**Mathlib discharge route**:
-- Surjectivity of f + integer scaling.
-- `closure` is closed (`isClosed_closure`).
-- Countable union argument.
-
-**Difficulty**: EASY-MEDIUM. ~25 lines. -/
-theorem _sub_sub_lemma_C_1_countable_closed_cover
-    {G : Type u} [AddCommGroup G] [TopologicalSpace G] [IsTopologicalAddGroup G]
-    {H : Type v} [AddCommGroup H] [TopologicalSpace H] [IsTopologicalAddGroup H]
-    (f : G →+ H) (hsurj : Function.Surjective f)
-    (U : Set G) (hU : U ∈ nhds (0 : G)) :
-    ⋃ n : ℕ, closure (f '' ((n : ℤ) • U)) = Set.univ :=
-  sorry
 
 /-- **Sub-sub-lemma C.2 — Baire ⇒ nonempty interior in some closure**.
 
