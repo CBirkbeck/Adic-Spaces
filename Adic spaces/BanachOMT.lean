@@ -80,16 +80,22 @@ namespace AddMonoidHom
 
 universe u v
 
-/-! ## Sub-lemma decomposition (binding — these are the leaves Layer 1 reduces to)
+/-! ## Sub-lemmas (kept for documentation / reference)
 
-The classical Banach proof has two stages plus a symmetric-set lemma. Each is
-stated below with `:= by sorry`. The sub-lemma decomposition exists so each
-piece can be tackled independently in `/beastmode`.
+The Banach OMT main theorem now delegates to mathlib's
+`AddMonoidHom.isOpenMap_of_sigmaCompact`
+(`Mathlib.Topology.Algebra.Group.OpenMapping`) under an added
+`[SigmaCompactSpace G]` hypothesis (per BINDING-RULE (b) — see commit
+`3a7ce47` and the docstring on `isOpenMap_of_completeSpace_of_countablyGenerated`
+below).
 
-Reference: Mathlib's `Mathlib.Analysis.Normed.Operator.Banach` proves the
-analogous result for normed spaces via `exists_approx_preimage_norm_le` (Stage 1)
-and `exists_preimage_norm_le` (Stage 2) using the same two-stage structure.
-The group version replaces norms with nbhd-basis filtration.
+The remaining sub-lemmas (`_sub_sub_lemma_A_1_split_symmetric`,
+`_sub_sub_lemma_A_2_interior_add`, `_sub_sub_lemma_C_2_baire_nonempty_interior`,
+`_sub_sub_lemma_D_1_cauchy_builder`, `_sub_sub_lemma_D_2_limit_in_nbhd`,
+`_sub_lemma_translation`) are independently useful pieces of topological-group
+infrastructure and are retained sorry-free. The obsolete BGR-route sub-lemmas
+B / C / D / C.1 were removed in commit `ddeb5dc` as dead code (and B / C.1 were
+B2 false, per `b2_log.jsonl` entry 3).
 -/
 
 /-- **Sub-lemma A — Symmetric-set absorbs** (the "subtract trick").
