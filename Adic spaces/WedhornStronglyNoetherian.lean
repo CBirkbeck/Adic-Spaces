@@ -196,24 +196,29 @@ theorem _sub_lemma_L5_4_1_open_prime_spa_point
 
 /-- **Sub-lemma L5.4.2 — Non-open prime ⇒ Spa-point via Wedhorn 7.45**.
 
-Already in project: `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime`
-at `Adic spaces/Lemma745.lean:691`. Requires `[IsAdicComplete P.I P.A₀]` +
-`(A⁺ : Set A) ⊆ P.A₀`. Both satisfied for the principal pair when A noeth
-+ A₀ noeth (from L5.2).
+Direct delegation to `exists_mem_rationalOpen_supp_ge_of_prime_noHArch`
+(Presheaf.lean), which gives `∃ v ∈ rationalOpen T s, 𝔭 ≤ v.supp` for any
+prime `𝔭` with `s ∉ 𝔭` under `[IsAdicComplete P.I P.A₀]` + `(A⁺ : Set A) ⊆ P.A₀`.
+The `¬ IsOpen p` hypothesis here is not needed by the parent lemma (which
+handles both open and non-open primes uniformly), but matches the open-vs-
+non-open case-split structure of `_sub_lemma_L5_4_1_open_prime_spa_point` /
+`_sub_lemma_L5_4_2_nonOpen_prime_spa_point`.
 
-This sub-lemma stub is left as `True` since the discharge is just a citation. -/
+The parent `exists_mem_rationalOpen_supp_ge_of_prime_noHArch` is itself
+currently a sorry pending the Chevalley/Wedhorn 7.44 valuation-ring lift +
+Wedhorn 7.45 combination (`exists_valuationSubring_dominating_for_rationalOpen`
+at Presheaf.lean:2253). This refactor consolidates the
+non-open-prime sub-lemma sorry with its parent so the project tracks ONE
+canonical statement instead of two duplicates. -/
 theorem _sub_lemma_L5_4_2_nonOpen_prime_spa_point
     [PlusSubring A] [IsTateRing A] [DecidableEq A]
     (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
     (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
-    -- Direct re-statement of project's `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime`
-    -- at Lemma745.lean:691 (already PROVED). Note: requires the noeth-A₀ /
-    -- complete pair hypotheses to apply Wedhorn 7.45's stronger case.
     ∀ (T : Finset A) (s : A) (p : Ideal A), p.IsPrime → ¬ IsOpen (p : Set A) → s ∉ p →
-      ∃ v ∈ rationalOpen T s, p ≤ v.supp :=
-  -- Body: cite `P.exists_mem_spa_supp_ge_of_nonOpen_prime`, then lift to
-  -- rational subset. Currently sorry pending import wiring.
-  sorry
+      ∃ v ∈ rationalOpen T s, p ≤ v.supp := fun T s p hp _hp_notopen hs_notin =>
+  haveI : p.IsPrime := hp
+  ValuationSpectrum.exists_mem_rationalOpen_supp_ge_of_prime_noHArch
+    P hAplus_le_A₀ T s hs_notin
 
 
 
