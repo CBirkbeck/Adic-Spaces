@@ -3,12 +3,14 @@ Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import Mathlib.Topology.Algebra.IsUniformGroup.Defs
+import Mathlib.Topology.Algebra.IsUniformGroup.Basic
 import Mathlib.Topology.Baire.CompleteMetrizable
 import Mathlib.Topology.Algebra.Group.OpenMapping
 import Mathlib.Topology.Algebra.Group.Pointwise
 import Mathlib.Algebra.BigOperators.Fin
 import Mathlib.Algebra.BigOperators.Intervals
 import Mathlib.Topology.UniformSpace.Cauchy
+import Mathlib.Topology.UniformSpace.UniformEmbedding
 
 /-!
 # Banach's open mapping theorem for complete metric topological abelian groups
@@ -530,8 +532,44 @@ theorem banach_two_of_three
    -- cg, UAG, SigmaCompact; H complete, cg, UAG, T2). f = inclusion is
    -- continuous + open but NOT surjective (range is 2ℤ ⊊ ℤ).
    sorry,
-   -- (b) ∧ (c) ⇒ (a): f surjective + f open ⇒ H complete. Provable via
-   -- standard quotient-of-complete argument.
-   sorry⟩
+   -- (b) ∧ (c) ⇒ (a): f surjective + f open ⇒ H complete. Via the AddEquiv
+   -- eq : (G ⧸ f.ker) ≃+ H induced by surjectivity, plus completeness of
+   -- the quotient (`QuotientAddGroup.completeSpace_right'`).
+   fun ⟨hsurj, hopen⟩ => by
+     haveI hk_normal : f.ker.Normal := AddSubgroup.normal_of_comm _
+     haveI : FirstCountableTopology G := UniformSpace.firstCountableTopology G
+     letI τQ : UniformSpace (G ⧸ f.ker) :=
+       IsTopologicalAddGroup.rightUniformSpace (G ⧸ f.ker)
+     haveI hτQ_uag : @IsUniformAddGroup _ τQ _ := isUniformAddGroup_of_addCommGroup
+     haveI hτQ_complete : @CompleteSpace _ τQ :=
+       QuotientAddGroup.completeSpace_right G f.ker
+     -- f is a topological quotient map: open + continuous + surjective.
+     have hf_quot : Topology.IsQuotientMap f := hopen.isQuotientMap hf hsurj
+     -- The lift eq : G ⧸ f.ker ≃+ H from surjectivity.
+     let eq : G ⧸ f.ker ≃+ H := QuotientAddGroup.quotientKerEquivOfSurjective f hsurj
+     -- eq is continuous: eq ∘ mk = f (continuous), and mk is a quotient map.
+     have heq_cont : @Continuous _ _ τQ.toTopologicalSpace _ eq :=
+       (QuotientAddGroup.isQuotientMap_mk f.ker).continuous_iff.mpr hf
+     -- eq.symm is continuous: eq.symm ∘ f = mk (continuous), f is a quotient map.
+     have heq_symm_cont : Continuous (eq.symm : H → G ⧸ f.ker) := by
+       rw [hf_quot.continuous_iff]
+       have : ⇑eq.symm ∘ ⇑f = (QuotientAddGroup.mk : G → G ⧸ f.ker) := by
+         ext g
+         show eq.symm (f g) = QuotientAddGroup.mk g
+         have h1 : eq (QuotientAddGroup.mk g) = f g := rfl
+         rw [← h1]
+         exact eq.symm_apply_apply (QuotientAddGroup.mk g)
+       rw [this]
+       exact QuotientAddGroup.continuous_mk
+     -- UC for both directions via `uniformContinuous_addMonoidHom_of_continuous`.
+     have heq_uc : @UniformContinuous _ _ τQ _ eq :=
+       @uniformContinuous_addMonoidHom_of_continuous _ _ τQ _ _ _ _ _ _ _ _ _ heq_cont
+     have heq_symm_uc : @UniformContinuous _ _ _ τQ eq.symm.toAddMonoidHom :=
+       @uniformContinuous_addMonoidHom_of_continuous _ _ _ _ _ _ τQ _ _ _ _ _ heq_symm_cont
+     -- IsUniformEmbedding of eq.toEquiv.
+     have heq_emb : @IsUniformEmbedding _ _ τQ _ eq.toEquiv := by
+       apply @Equiv.isUniformEmbedding _ _ τQ _ eq.toEquiv heq_uc heq_symm_uc
+     -- Transfer completeness via the embedding.
+     exact (@completeSpace_congr _ _ τQ _ eq.toEquiv heq_emb).mp hτQ_complete⟩
 
 end AddMonoidHom
