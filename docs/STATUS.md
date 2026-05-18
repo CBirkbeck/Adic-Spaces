@@ -167,7 +167,20 @@ height-1 step, a separate deep result).
 1 new helper + 1 new B2 documented). Cumulative across sessions 1-6:
 179 → 173 (6 sorries closed) + 8 B2 entries logged.**
 
+## Recent progress (2026-05-18 session 7)
 
+Wedhorn 7.5(3) — retraction preserves nonvanishing on the ideal:
+
+- **`SpvAITopology.SpvAI.retraction_ideal_ne_zero`** (CLOSED):
+  given `v ∈ Spv A` with some `a ∈ I` having `¬ v.vle a 0`, the
+  retracted valuation `restrictIdeal v I` likewise has `¬ (·).vle a 0`
+  at the same `a`. Proof routes through `mem_supp_iff` →
+  `ValuativeRel.supp_eq_valuation_supp` →
+  `Valuation.restrictIdeal_apply_of_mem_ideal` (the value `v(a)` is
+  preserved as a unit in the cGammaIdeal v I subgroup, hence nonzero).
+
+**Session 7 total: 173 → 172 (1 sorry closed). Cumulative across
+sessions 1-7: 179 → 172 (7 sorries closed) + 8 B2 entries logged.**
 
 ## Module Status
 

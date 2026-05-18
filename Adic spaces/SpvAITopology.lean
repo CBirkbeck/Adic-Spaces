@@ -440,8 +440,28 @@ theorem SpvAI.retraction_preimage_rationalSubset (I : Ideal A) [DecidableEq A]
 `v(a) ≠ 0`) ⇒ `r(v)(I) ≠ 0`. -/
 theorem SpvAI.retraction_ideal_ne_zero {I : Ideal A} {v : Spv A}
     (h : ∃ a ∈ I, ¬ v.vle a 0) :
-    ∃ a ∈ I, ¬ (restrictIdeal v I).vle a 0 :=
-  sorry
+    ∃ a ∈ I, ¬ (restrictIdeal v I).vle a 0 := by
+  obtain ⟨a, haI, hva⟩ := h
+  refine ⟨a, haI, ?_⟩
+  letI : ValuativeRel A := v.toValuativeRel
+  -- Restate via support.
+  rw [← mem_supp_iff] at hva
+  rw [← mem_supp_iff]
+  -- Translate v.supp to (ValuativeRel.valuation A).supp.
+  have hv_supp_eq : v.supp = (ValuativeRel.valuation A).supp :=
+    @ValuativeRel.supp_eq_valuation_supp A _ v.toValuativeRel
+  rw [hv_supp_eq] at hva
+  -- Translate (restrictIdeal v I).supp via supp_ofValuation.
+  change a ∉ (ofValuation ((ValuativeRel.valuation A).restrictIdeal I)).supp
+  rw [supp_ofValuation]
+  -- v(a) ≠ 0 from hva.
+  have hv_ne_zero : (ValuativeRel.valuation A) a ≠ 0 := by
+    rwa [Valuation.mem_supp_iff] at hva
+  -- Conclude via restrictIdeal_apply_of_mem_ideal: restricted value is a unit, hence ≠ 0.
+  intro hmem
+  rw [Valuation.mem_supp_iff,
+      Valuation.restrictIdeal_apply_of_mem_ideal _ I haI hv_ne_zero] at hmem
+  simp at hmem
 
 end ValuationSpectrum
 
