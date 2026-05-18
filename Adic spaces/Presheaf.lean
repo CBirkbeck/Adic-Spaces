@@ -2591,19 +2591,23 @@ theorem wedhorn_7_52_2_isUnit_iff_forall_not_vle_zero
     -- `exists_spa_point_supp_eq_maxIdeal_of_complete` + `isUnit_of_forall_not_vle_zero`.
     sorry
 
-/-- **(Pass-4 audit, PB transfer along continuous ring hom — pass-5 found
-NOT generally true)** Originally stated for arbitrary continuous ring homs;
-**that statement is false in general** (counterexample: source has discrete
-topology, target standard topology — every set bounded in source, image may
-not be).
+/-- **(Pass-4 audit, PB transfer along continuous ring hom — STATEMENT BUG)**
 
-The correct specialization is for **uniform embeddings** (or dense embeddings,
-or open ring homs). For our use case, `D'.coeRingHom : Localization.Away D'.s
-→ presheafValue D'` is a uniform embedding (completion map), and PB does
-transfer.
+⚠ **B2 (b2_log entry 7, 2026-05-18):** false in general for arbitrary
+continuous ring homs. Counterexample: φ = id : ℝ_discrete → ℝ_std
+(continuous since discrete source). x = 2 ∈ ℝ_discrete is power-bounded
+(every subset of discrete is bounded). φ(2) = 2 ∈ ℝ_std has powers
+{2^n} unbounded, hence NOT power-bounded.
+
+The correct specialization is for **uniform embeddings** (or dense
+embeddings, or open ring homs). For the project's use case,
+`D'.coeRingHom : Localization.Away D'.s → presheafValue D'` is a
+uniform-completion ring hom, so PB does transfer there — but a separate
+specialised lemma is needed for that.
 
 Discharge plan: replace this generic statement with `IsPowerBounded.completion`
-specialized to uniform-completion ring homs. -/
+specialized to uniform-completion ring homs. The sorry body is preserved
+unchanged to keep legacy callers compiling. -/
 theorem IsPowerBounded.map {R S : Type*} [CommRing R] [TopologicalSpace R]
     [IsTopologicalRing R] [CommRing S] [TopologicalSpace S]
     [IsTopologicalRing S]
