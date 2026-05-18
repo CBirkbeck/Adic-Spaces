@@ -2,7 +2,7 @@
 
 > **Agents: Read this file before starting work. Update it when you begin or complete a task.**
 >
-> Last updated: 2026-05-18 (Wedhorn 6.18 L1 chain closed via mathlib delegation; session 2: trivial-direction splits + K.1 chain closed + isPowerBounded discrete + multiple B2 logs)
+> Last updated: 2026-05-18 (Wedhorn 6.18 L1 chain closed via mathlib delegation; sessions 2-4: trivial-direction splits + K.1 chain closed + isPowerBounded discrete + mulArchimedean closure + multiple B2 logs)
 
 ## Recent progress (2026-05-18 session)
 
@@ -120,6 +120,26 @@ Stacks 023N descent chain + isPowerBounded discrete + B2 logging:
   discrete source but not in standard target. In-file docstring updated.
 
 **Session 3 totals: sorry count 178 → 174 (4 sorries closed).**
+
+## Recent progress (2026-05-18 session 4)
+
+One additional closure via Mathlib delegation:
+
+- **`Presheaf.mulArchimedean_of_rankOne_valueGroup`** (Wedhorn 1.14):
+  closed via direct delegation to `MulArchimedean.comap` (Mathlib's
+  `Algebra.Order.Archimedean.Basic`). Takes the injective strict-mono
+  `φ : G →*₀ WithZero (Multiplicative ℝ)` coerced to `MonoidHom`,
+  and uses Mathlib's instance chain
+  `Real.instArchimedean → Multiplicative.instMulArchimedean →
+  WithZero.instMulArchimedean`.
+
+This also makes the composition `mulArchimedean_valueGroup_of_analytic`
+(Presheaf.lean, body chains this with `rankOne_valueGroup_of_analytic`)
+fully sorry-free at the project layer — the remaining transitive sorry
+is on the upstream `rankOne_valueGroup_of_analytic` (Wedhorn 7.40(6)
+height-1 step, a separate deep result).
+
+**Session 4 totals: sorry count 174 → 173 (1 sorry closed).**
 
 
 
