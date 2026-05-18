@@ -62,7 +62,7 @@ lemma IsContinuous.continuousAt_of_ne_zero [IsTopologicalRing A]
   set B : Set A := {b | v b < v a} with hB_def
   have hB_open : IsOpen B := hv (v a)
   have hB_zero : (0 : A) ∈ B := by
-    show v 0 < v a
+    change v 0 < v a
     rw [v.map_zero]; exact zero_lt_iff.mpr ha
   set T : Set A := (· + a) '' B with hT_def
   have hT_open : IsOpen T :=
@@ -102,7 +102,7 @@ lemma IsContinuous.continuousAt_of_eq_zero [IsTopologicalRing A]
   intro γ hγ
   have hopen : IsOpen {b : A | v b < γ} := hv γ
   have hmem : a ∈ {b : A | v b < γ} := by
-    show v a < γ
+    change v a < γ
     rw [ha]
     exact zero_lt_iff.mpr hγ
   exact Filter.eventually_of_mem (hopen.mem_nhds hmem) (fun x hx => hx)
