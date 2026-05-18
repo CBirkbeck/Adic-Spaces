@@ -5363,18 +5363,17 @@ trio + AuditCleanWrappers. Roadmap doc:
 
 ### [T-WEDHORN-618-L1] Banach OMT for complete metric topological abelian groups
 
-- **Status**: open — **B2 SCOPE finding (2026-05-18)**: the statement as
-  currently written is FALSE without an extra hypothesis such as
-  `[SeparableSpace G]` or `[SigmaCompactSpace G]`. Counterexample
-  (`b2_log.jsonl` entry 3): `G = ℝ` with the DISCRETE topology (complete,
-  countably-generated uniformity, UAG, T2), `H = ℝ` with Euclidean topology
-  (complete, countably-generated, T2 UAG), `f = id`. `f` is continuous +
-  surjective but NOT open (`f({0}) = {0}` is not open in Euclidean ℝ).
-  Bourbaki's proof needs G to be σ-compact (Hewitt-Ross [HR] §5.29) OR
-  separable (so H can be covered by countably many translates of `f(U)`).
-  Sub-lemmas B (`_sub_lemma_countable_cover`) and C.1
-  (`_sub_sub_lemma_C_1_countable_closed_cover`) are likewise FALSE as
-  stated for the same reason.
+- **Status**: **DONE (2026-05-18, commit `3a7ce47`)** with
+  `[SigmaCompactSpace G]` added per BINDING-RULE (b). The original
+  signature was B2-flagged (b2_log entry 3, counterexample
+  G=ℝ-discrete↦H=ℝ-Euclidean). Now reduces in one line to mathlib's
+  `AddMonoidHom.isOpenMap_of_sigmaCompact`
+  (`Mathlib.Topology.Algebra.Group.OpenMapping`). Axiom-clean:
+  `#print axioms AddMonoidHom.isOpenMap_of_completeSpace_of_countablyGenerated`
+  shows `[propext, Classical.choice, Quot.sound]`. Sub-lemmas B / C / D
+  / C.1 in `BanachOMT.lean` are now obsolete (never called). `wedhorn_6_16`
+  (L2) and `wedhorn_6_18_continuous` (L4.2) are also sorry-free under the
+  same hypothesis cascade.
 - **File**: `Adic spaces/BanachOMT.lean`
 - **Depends on**: (none — mathlib gap; foundation for all later tickets)
 - **Parallel**: yes (no dependencies)
@@ -5440,7 +5439,9 @@ abelian groups.
 
 ### [T-WEDHORN-618-L2-616] Wedhorn 6.16 = Huber 2.4(i) as A-module OMT
 
-- **Status**: open
+- **Status**: **DONE (2026-05-18, commit `3a7ce47`)** with
+  `[SigmaCompactSpace M]` added (inherited from L1). Axiom-clean
+  (`[propext, Classical.choice, Quot.sound]`).
 - **File**: `Adic spaces/WedhornBanachTheorem.lean`
 - **Depends on**: T-WEDHORN-618-L1
 - **Parallel**: no (sequential after L1)
