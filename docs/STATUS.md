@@ -2,7 +2,7 @@
 
 > **Agents: Read this file before starting work. Update it when you begin or complete a task.**
 >
-> Last updated: 2026-05-18 (Wedhorn 6.18 L1 chain closed via mathlib delegation)
+> Last updated: 2026-05-18 (Wedhorn 6.18 L1 chain closed via mathlib delegation; session 2: trivial-direction lemmas split out)
 
 ## Recent progress (2026-05-18 session)
 
@@ -38,6 +38,29 @@ Remaining sorries on the L1 chain (B2-flagged, blocked on user decision):
 - `_sub_lemma_L3_1a_completion_fg_complete` — needs M̂ fg as A-module
   (b2_log entry 1).
 - `banach_two_of_three` direction 2 — needs ConnectedSpace H or equivalent.
+
+## Recent progress (2026-05-18 session 2)
+
+Triage + splitting "obvious-direction" lemmas to isolate the hard residual:
+
+- **`ContinuousValuations.IsContinuous.isOpen_setOf_ge`** (NEW):
+  forward direction of Wedhorn 7.8(3) under `[ContinuousAdd A]`.
+  Proof: open ball is an open additive subgroup → clopen via
+  `AddSubgroup.isClosed_of_isOpen` → complement is open.
+  The iff `isContinuous_iff_setOf_ge_isOpen` is documented as B2 (the
+  reverse direction is false; b2_log entry 5) — counterexample:
+  trivial valuation on ℝ satisfies the ≥-hypothesis but is not
+  IsContinuous (at γ = 1, {v a < 1} = {0} is not open).
+- **`Presheaf.union_definitionIdeals_subseteq_topologicallyNilpotent`** (NEW):
+  ⊇ direction of Wedhorn 7.51 sub-step (`A°° = ⋃ definition ideals`).
+  Direct from `PairOfDefinition.isTopologicallyNilpotent_of_mem`.
+  The full equality remains sorry — ⊆ direction needs AdjoinFinset
+  enlargement of definition rings.
+- **`Presheaf.units_subseteq_union_translates_of_oneAdd_topNilp`** (NEW):
+  ⊆ direction of `A^× = ⋃_u u · (1 + A°°)`. Trivial: x ∈ A^× ↦
+  x · (1 + 0) with 0 ∈ A°° via `IsTopologicallyNilpotent.zero`.
+  Full equality requires `[CompleteSpace A]` (counterexample documented:
+  A = ℤ with p-adic topology has 1 + p top-nilp but not a unit in ℤ).
 
 
 
