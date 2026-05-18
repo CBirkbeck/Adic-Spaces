@@ -141,6 +141,32 @@ height-1 step, a separate deep result).
 
 **Session 4 totals: sorry count 174 → 173 (1 sorry closed).**
 
+## Recent progress (2026-05-18 sessions 5-6)
+
+**Session 5 (helper):**
+
+- **`Presheaf.union_translates_of_oneAdd_topNilp_subseteq_units_of_complete`**
+  (NEW): ⊇ direction of Wedhorn 7.51 sub-step (`A^× = ⋃_u u · (1 + A°°)`)
+  under `[UniformSpace A] [IsUniformAddGroup A] [T2Space A] [CompleteSpace A]`.
+  Direct: u · (1 + n) is a unit because u is and `1 + n` is via
+  `IsTopologicallyNilpotent.isUnit_one_add` (Wedhorn 5.38). Full
+  equality remains sorry — counterexample without completeness is
+  A = ℤ with p-adic topology.
+
+**Session 6 (B2 logging):**
+
+- **b2_log entry 8**: `lemma_3_29_qcKolmogorov_oc_basis_consequences`
+  (SpvAITopology.lean:508). The conjunction's IsTopologicalBasis clause
+  is false without `(hU_inter : U closed under finite ∩)` and
+  `(hU_cover : ⋃₀ U = univ)` hypotheses. Counterexample:
+  X₀ = {a, b} discrete, U = {{a}} → ⋃₀ U = {a} ≠ univ. The other
+  three clauses of the conjunction (T'≤T, CompactSpace T, ∀s∈U IsCompact s)
+  ARE correctly proved. In-file docstring annotated.
+
+**Sessions 5-6 totals: sorry count unchanged at 173 (0 closures, but
+1 new helper + 1 new B2 documented). Cumulative across sessions 1-6:
+179 → 173 (6 sorries closed) + 8 B2 entries logged.**
+
 
 
 ## Module Status
