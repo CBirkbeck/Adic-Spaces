@@ -2463,6 +2463,30 @@ theorem units_subseteq_union_translates_of_oneAdd_topNilp
   refine ⟨1, ⟨0, ?_, by simp⟩, by simp⟩
   exact IsTopologicallyNilpotent.zero
 
+/-- **(⊇ direction of Wedhorn 7.51 sub-step, under completeness)** Every
+element in the union of unit-translates of `1 + A°°` is itself a unit.
+Requires `[CompleteSpace A]` because `1 + n` for topologically nilpotent
+`n` is a unit only when the geometric-series sum converges
+(`IsTopologicallyNilpotent.isUnit_one_add`). -/
+theorem union_translates_of_oneAdd_topNilp_subseteq_units_of_complete
+    {A : Type*} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
+    [IsTopologicalRing A] [IsHuberRing A] [T2Space A] [CompleteSpace A] :
+    (⋃ (u : Aˣ),
+        (fun y => (u : A) * y) ''
+          {y : A | ∃ n ∈ TopologicalRing.topologicallyNilpotentElements A,
+                     y = 1 + n}) ⊆
+      {x : A | IsUnit x} := by
+  intro x hx
+  obtain ⟨u, hxu⟩ := Set.mem_iUnion.mp hx
+  obtain ⟨y, ⟨n, hn_topnilp, hyn⟩, hxy⟩ := hxu
+  subst hyn
+  subst hxy
+  -- Now x = u * (1 + n), n is topologically nilpotent.
+  -- 1 + n is a unit via geometric series (completeness).
+  have hone : IsUnit (1 + n) := hn_topnilp.isUnit_one_add
+  -- u * (1 + n) is a unit (product of units).
+  exact u.isUnit.mul hone
+
 /-- **(Wedhorn 7.51 sub-step, audit pass 3 item 23)** *"A^× = ⋃_{u : A^×}
 u · (1 + A°°)."* The unit set is the union of translates of the open
 neighborhood `1 + A°°` of `1`.
@@ -2474,6 +2498,8 @@ open.
 Discharge plan: (⊇) Each translate of a unit is again a unit (requires
 `1 + n ∈ A^×` for `n` topologically nilpotent, which needs `[CompleteSpace A]`
 via the geometric-series argument in `IsTopologicallyNilpotent.isUnit_one_add`).
+The discharge is in
+`union_translates_of_oneAdd_topNilp_subseteq_units_of_complete` above.
 (⊆) For `x ∈ A^×`, pick `u = x` and write `x = x · 1 ∈ x · (1 + A°°)` —
 discharged in `units_subseteq_union_translates_of_oneAdd_topNilp`. The
 equality fails without `[CompleteSpace A]`: e.g., `A = ℤ` with `p`-adic
