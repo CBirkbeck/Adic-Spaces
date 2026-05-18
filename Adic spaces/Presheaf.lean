@@ -2475,9 +2475,22 @@ Wedhorn 7.52(2) proof outline (p.63 + Prop 7.51 reference):
 2. **7.52(2) reformulation**: f unit ⇔ f ∉ any max ideal m ⇔ no v ∈ Spa A has m = supp v with f ∈ m ⇔ |f(x)| ≠ 0 for all x ∈ Spa A.
 3. **Applied to localization**: `D.s` ∈ `Localization.Away D'.s` with `D.s` nonvanishing on `Spa(Localization.Away D'.s) ≅ R(D'.T/D'.s)` (since the latter ⊆ R(D.T/D.s) by `h`, and D.s nonvanishing on R(D.T/D.s)). -/
 
+/-- **Forward direction of `isUnit_iff_ne_zero_on_spa_of_complete`**: a unit
+`f ∈ A` does not vanish on any Spa-point (no completeness or topology
+hypotheses needed — pure valuation argument). Direct from
+`ValuationSpectrum.not_vle_zero_of_isUnit`. -/
+theorem isUnit_implies_ne_zero_on_spa
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A]
+    {f : A} (hf : IsUnit f) :
+    ∀ x ∈ Spa A A⁺, ¬ x.vle f 0 :=
+  fun x _ => ValuationSpectrum.not_vle_zero_of_isUnit hf x
+
 /-- **(T-H.2.a.2, Wedhorn 7.52(2))** For complete Tate `A` and `f ∈ A`, `f` is a unit iff
 `|f(x)| ≠ 0` for all `x ∈ Spa A`. Wedhorn's proof reformulates Prop 7.51
-(every maximal ideal is closed + has a Spa-point above it). -/
+(every maximal ideal is closed + has a Spa-point above it). The forward
+direction is unconditional via `isUnit_implies_ne_zero_on_spa`; only the
+reverse direction (no-vanishing ⇒ unit) needs the full hypothesis bundle. -/
 theorem isUnit_iff_ne_zero_on_spa_of_complete
     {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
     [IsTopologicalRing A] [IsHuberRing A] [IsTateRing A] [T2Space A]
