@@ -290,15 +290,23 @@ theorem isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof
     IsNoetherianRing ↥(IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
   sorry  -- ⚠ Cannot be proved unconditionally; see option (1) decision.
 
-/-- **Wedhorn principal-pair noetherian — general pair version**: any
-`PairOfDefinition A` (not just the principal pair) has noetherian `A₀`,
-given strongly noetherian Tate. -/
+/-- **🚨 SUPERSEDED — see decomposition.md "Pass-(iii) SCOPE finding"**, same
+as the principal-pair version above. The general-pair version inherits the
+same B2 finding: "strongly noeth Tate ⇒ noeth A₀" is NOT in Wedhorn and the
+localization-descent direction is false in general. User decision
+(2026-05-17): accept noeth-A₀ as **explicit hypothesis** at audit-clean
+wrappers (option (1)).
+
+Statement preserved as a named `False`-derivable obligation so any consumer
+that references it can be located via the type system. New consumers should
+instead take `(P : PairOfDefinition A) [IsNoetherianRing P.A₀]` as a
+parameter. -/
 theorem isNoetherianRing_A₀_of_stronglyNoetherianTate_proof
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
     [T2Space A] [NonarchimedeanRing A]
     (P : PairOfDefinition A) :
     IsNoetherianRing ↥P.A₀ :=
-  sorry
+  sorry  -- ⚠ SUPERSEDED — see option (1) decision in decomposition.md
 
 /-- **Wedhorn 7.45 globalised**: for a strongly noetherian Tate ring, every
 prime `p` of `A` with `s ∉ p` (for any `s ∈ A`) admits a Spa-point `v` whose
