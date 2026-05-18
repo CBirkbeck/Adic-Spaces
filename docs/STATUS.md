@@ -41,7 +41,10 @@ Remaining sorries on the L1 chain (B2-flagged, blocked on user decision):
 
 ## Recent progress (2026-05-18 session 2)
 
-Triage + splitting "obvious-direction" lemmas to isolate the hard residual:
+Triage + splitting "obvious-direction" lemmas to isolate the hard residual;
+plus one canonicalisation refactor closing a duplicate sorry.
+
+**New lemmas (obvious-direction splits):**
 
 - **`ContinuousValuations.IsContinuous.isOpen_setOf_ge`** (NEW):
   forward direction of Wedhorn 7.8(3) under `[ContinuousAdd A]`.
@@ -61,6 +64,20 @@ Triage + splitting "obvious-direction" lemmas to isolate the hard residual:
   x · (1 + 0) with 0 ∈ A°° via `IsTopologicallyNilpotent.zero`.
   Full equality requires `[CompleteSpace A]` (counterexample documented:
   A = ℤ with p-adic topology has 1 + p top-nilp but not a unit in ℤ).
+- **`Presheaf.isUnit_implies_ne_zero_on_spa`** (NEW): forward direction
+  of Wedhorn 7.52(2)-style `isUnit_iff_ne_zero_on_spa_of_complete` —
+  unconditional via `ValuationSpectrum.not_vle_zero_of_isUnit`.
+
+**Canonicalisation refactor:**
+
+- **`WedhornStronglyNoetherian._sub_lemma_L5_4_2_nonOpen_prime_spa_point`**:
+  was sorry pending "import wiring". The parent lemma
+  `Presheaf.exists_mem_rationalOpen_supp_ge_of_prime_noHArch` has the
+  exact target statement (covering both open and non-open primes
+  uniformly), so the audit sub-lemma is now a direct delegation. This
+  consolidates two duplicate sorries into one canonical sorry in
+  Presheaf.lean (right home for the Chevalley/Wedhorn 7.44 + 7.45
+  combination content). **Sorry count: 179 → 178.**
 
 
 
