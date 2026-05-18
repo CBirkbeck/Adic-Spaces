@@ -1368,14 +1368,17 @@ as an R-linear map. -/
 noncomputable def faithfullyFlat_cocycleMap
     (R S : Type*) [CommRing R] [CommRing S] [Algebra R S] :
     S →ₗ[R] TensorProduct R S S :=
-  sorry
+  TensorProduct.mk R S S 1 - (TensorProduct.mk R S S).flip 1
 
 /-- **(K.1.b)** The image of `algebraMap R S` lies in the kernel of the cocycle map.
 **Cocycle property of R-elements.** -/
 theorem faithfullyFlat_cocycleMap_algebraMap_eq_zero
     (R S : Type*) [CommRing R] [CommRing S] [Algebra R S] (r : R) :
-    faithfullyFlat_cocycleMap R S (algebraMap R S r) = 0 :=
-  sorry
+    faithfullyFlat_cocycleMap R S (algebraMap R S r) = 0 := by
+  unfold faithfullyFlat_cocycleMap
+  simp only [LinearMap.sub_apply, TensorProduct.mk_apply, LinearMap.flip_apply,
+    Algebra.algebraMap_eq_smul_one, TensorProduct.smul_tmul, TensorProduct.tmul_smul,
+    sub_self]
 
 /-- **(K.1.c)** The Stacks 023N THEOREM: for faithfully flat `R → S`, every
 element in `ker (cocycleMap)` is in the image of `algebraMap`. Proof outline
@@ -1401,8 +1404,12 @@ theorem faithfullyFlat_descent_equalizer
     [Module.FaithfullyFlat R S]
     (s : S)
     (h_cocycle : (1 : S) ⊗ₜ[R] s - s ⊗ₜ[R] (1 : S) = 0) :
-    ∃ r : R, algebraMap R S r = s :=
-  sorry
+    ∃ r : R, algebraMap R S r = s := by
+  have h : faithfullyFlat_cocycleMap R S s = 0 := by
+    unfold faithfullyFlat_cocycleMap
+    simp only [LinearMap.sub_apply, TensorProduct.mk_apply, LinearMap.flip_apply]
+    exact h_cocycle
+  exact faithfullyFlat_cocycle_kernel_eq_algebraMap_range R S s h
 
 /-- **(K.2) Tate acyclicity Part 2 (gluing), Wedhorn-exact.** Uses
 `cor_8_32_clean` + Wedhorn's Čech-based proof (Lemma 8.34) — NOT Stacks 023N
