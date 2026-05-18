@@ -2704,9 +2704,9 @@ name (likely `MulArchimedean.of_orderHom_injective_to_real` or via
 theorem mulArchimedean_of_rankOne_valueGroup
     {G : Type*} [LinearOrderedCommGroupWithZero G]
     (φ : G →*₀ WithZero (Multiplicative ℝ))
-    (_hφ_inj : Function.Injective φ) (_hφ_mono : StrictMono φ) :
+    (_hφ_inj : Function.Injective φ) (hφ_mono : StrictMono φ) :
     MulArchimedean G :=
-  sorry
+  MulArchimedean.comap (φ : G →* WithZero (Multiplicative ℝ)) hφ_mono
 
 /-- **(T-H.2.b.2, Wedhorn 1.14)** Any height-1 totally ordered group is
 archimedean. **Lean encoding**: this is the typeclass `MulArchimedean` (Mathlib),
