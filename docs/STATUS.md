@@ -2,7 +2,44 @@
 
 > **Agents: Read this file before starting work. Update it when you begin or complete a task.**
 >
-> Last updated: 2026-03-28 (sorry documentation improved, blocking issues identified)
+> Last updated: 2026-05-18 (Wedhorn 6.18 L1 chain closed via mathlib delegation)
+
+## Recent progress (2026-05-18 session)
+
+The Wedhorn §6.3 "Banach's theorem for Tate rings" chain made substantial
+progress:
+
+- **T-WEDHORN-618-L1** (`AddMonoidHom.isOpenMap_of_completeSpace_of_countablyGenerated`):
+  **AXIOM-CLEAN** via delegation to mathlib's
+  `AddMonoidHom.isOpenMap_of_sigmaCompact` (commit `3a7ce47`). Added
+  `[SigmaCompactSpace G]` per BINDING-RULE (b) — original statement is
+  B2 false without it (counterexample: G = ℝ-discrete, H = ℝ-Euclidean,
+  f = id). See `.mathlib-quality/b2_log.jsonl` entry 3.
+- **T-WEDHORN-618-L2-616** (`wedhorn_6_16`): **AXIOM-CLEAN** with the
+  cascaded `[SigmaCompactSpace M]` hypothesis.
+- **wedhorn_6_18_continuous** (L4.2): **AXIOM-CLEAN** with the cascade.
+- **`banach_two_of_three`**: directions 1 and 3 **AXIOM-CLEAN**;
+  direction 2 documented as B2 false (counterexample G=2ℤ↪H=ℤ discrete).
+  Direction 3 closure (`d5bcdea`) uses `QuotientAddGroup.completeSpace_right`
+  + `Equiv.isUniformEmbedding` + `completeSpace_congr`.
+
+Cleanup work: 6 obsolete sorries deleted across the chain:
+- Sub-lemmas B (`_sub_lemma_countable_cover`), C (`_sub_lemma_approx_preimage`),
+  D (`_sub_lemma_cauchy_lift`), C.1 (`_sub_sub_lemma_C_1_countable_closed_cover`)
+  in `BanachOMT.lean` — dead code after main switched to mathlib delegation,
+  AND B / C.1 were B2 false (commit `ddeb5dc`).
+- `_sub_lemma_L3_2_baire_chain` (AddSubgroup variant) in `WedhornBanachTheorem.lean`
+  — B2 false (b2_log entry 2), superseded by Submodule variant (commit `5ea0687`).
+- `_sub_lemma_L5_2_2_A₀_noeth_via_localization` in `WedhornStronglyNoetherian.lean`
+  — SUPERSEDED marker, unreferenced (commit `4c3cce4`).
+
+Remaining sorries on the L1 chain (B2-flagged, blocked on user decision):
+- `wedhorn_6_18_unique` — uniqueness clause needs T2+ContinuousSMul on τ'.
+- `_sub_lemma_L3_1a_completion_fg_complete` — needs M̂ fg as A-module
+  (b2_log entry 1).
+- `banach_two_of_three` direction 2 — needs ConnectedSpace H or equivalent.
+
+
 
 ## Module Status
 
