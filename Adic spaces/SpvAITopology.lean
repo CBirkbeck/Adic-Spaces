@@ -528,9 +528,16 @@ theorem lemma_3_29_qcKolmogorov_oc_basis_consequences
     intro ι UU hU_open hUni
     have hU'_open : ∀ i, @IsOpen X₀ T' (UU i) := fun i => hT'_le_T (UU i) (hU_open i)
     exact (@isCompact_univ X₀ T' hT'_qc).elim_finite_subcover UU hU'_open hUni
-  · -- IsTopologicalBasis: deferred as the topological-basis criterion requires
-    -- showing that every open of `generateFrom U` is a union of `U`-elements,
-    -- which fails in general without U being closed under finite intersection.
+  · -- ⚠ B2 (b2_log entry 8, 2026-05-18): the IsTopologicalBasis clause is
+    -- FALSE as stated. `IsTopologicalBasis U` requires (1) closure under
+    -- finite intersection, (2) `⋃₀ U = univ`, (3) `t = generateFrom U`.
+    -- The hypothesis `hU_oc` only requires each element clopen — does not
+    -- guarantee closure under finite intersection or that U covers X₀.
+    -- Counterexample: X₀ = {a,b} discrete, U = {{a}} → ⋃₀ U = {a} ≠ univ.
+    -- Fix needs the lemma signature to add `(hU_inter : U closed under ∩)`
+    -- and `(hU_cover : ⋃₀ U = univ)`, or drop this clause from the
+    -- conjunction. Preserved as sorry per BINDING RULE (no signature
+    -- changes); the other 3 conjunction clauses ARE correctly proved.
     sorry
   · -- ∀ s ∈ U, IsCompact[T] s: each s is closed in T' (hU_oc), hence
     -- T'-compact (closed subset of T'-compact); transfer to T via the
