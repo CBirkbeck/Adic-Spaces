@@ -217,6 +217,19 @@ BINDING RULE.
 **Session 7 total: 173 → 168 (5 sorries closed). Cumulative across
 sessions 1-7: 179 → 168 (11 sorries closed) + 8 B2 entries logged.**
 
+## Recent progress (2026-05-18 session 8)
+
+Concrete Witt vector construction:
+
+- **`FarguesFontaine.teichmullerPi`** (CLOSED): the Teichmüller
+  representative `[π] ∈ W(O_E)` of a pseudo-uniformizer. Direct
+  composition: `π : PseudoUniformizer E` → power-bounded (via
+  `IsTopologicallyNilpotent.isPowerBounded`) → element of
+  `↥(powerBoundedSubring.toSubring E)` → apply `teichmullerLift`.
+
+**Session 8 total: 168 → 167 (1 sorry closed). Cumulative across
+sessions 1-8: 179 → 167 (12 sorries closed) + 8 B2 entries logged.**
+
 ## Module Status
 
 | Module | Lines | Status | Notes |

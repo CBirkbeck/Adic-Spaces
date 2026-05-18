@@ -191,7 +191,10 @@ The sorry can be filled by:
 
 (Fargues--Fontaine, *Courbes et fibres vectoriels*, §2.1) -/
 def teichmullerPi (π : PseudoUniformizer E) :
-    WittVector p ↥(powerBoundedSubring.toSubring E) := sorry
+    WittVector p ↥(powerBoundedSubring.toSubring E) :=
+  teichmullerLift p E
+    ⟨((π.val : Eˣ) : E),
+      (PseudoUniformizer.isTopologicallyNilpotent π).isPowerBounded⟩
 
 /-- The **pre-curve** `Y_FF = Spa(W(O_E), W(O_E)) \ V(p, [π])`.
 
