@@ -5486,7 +5486,21 @@ BGR §3.7.2/2 verbatim.
 
 ### [T-WEDHORN-618-L4-618] Wedhorn 6.18: unique fg-module topology + maps strict
 
-- **Status**: open
+- **Status**: PARTIAL (2026-05-18):
+  * `wedhorn_6_18_exists_canonical_topology` — axiom-clean (existence half,
+    landed earlier this session).
+  * `wedhorn_6_18_continuous` — axiom-clean (commit `3a7ce47` with
+    `[SigmaCompactSpace A]` added per BINDING-RULE (b)).
+  * `_sub_lemma_L4_2_continuous_via_OMT` — axiom-clean (same commit).
+  * `_sub_lemma_L4_4_unique_topology` — already proved (T2 + ContinuousSMul
+    parameter on alternative τ').
+  * `wedhorn_6_18_unique` — STILL SORRIED; the uniqueness clause is B2
+    false (counterexample: M=ℤ with discrete vs. indiscrete topology both
+    UAG + complete + cg yet differ topologically); needs additional
+    `[T2Space τ']` + `[ContinuousSMul A M with τ']` hypotheses per
+    BINDING-RULE (b).
+  * `wedhorn_6_18_open_onto_image` — has sorryAx (depends on L4.3 via
+    L3.1b via L3.1a, all B2-flagged).
 - **File**: `Adic spaces/WedhornBanachTheorem.lean`
 - **Depends on**: T-WEDHORN-618-L3-617
 - **Parallel**: no
