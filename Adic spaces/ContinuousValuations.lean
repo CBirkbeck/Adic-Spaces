@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import Mathlib.Topology.Algebra.Ring.Basic
 import Mathlib.Topology.Algebra.WithZeroTopology
+import Mathlib.Topology.Algebra.OpenSubgroup
 import «Adic spaces».ValuationSpectrum
 
 /-!
@@ -205,3 +206,70 @@ theorem cont_comap_mapsTo {φ : A →+* B} (hφ : Continuous φ) :
 end Functoriality
 
 end ValuationSpectrum
+
+/-! ## Wedhorn 7.8(3) — alternative continuity characterisation -/
+
+namespace Valuation
+
+variable {A : Type*} [CommRing A] [TopologicalSpace A]
+variable {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
+
+/-- **Forward direction of Wedhorn 7.8(3)** (under topological additive
+group): if `v` is continuous (Definition 7.7), then the half-space
+`{a | γ ≤ v a}` (complement of the open ball `{v a < γ}`) is open for every
+`γ`. Proof: the open ball is an open additive subgroup
+(`ltAddSubgroup`), hence clopen (`AddSubgroup.isClosed_of_isOpen`), so its
+complement is open. -/
+lemma IsContinuous.isOpen_setOf_ge [ContinuousAdd A] {v : Valuation A Γ₀}
+    (hv : v.IsContinuous) (γ : Γ₀) :
+    IsOpen { a : A | γ ≤ v a } := by
+  by_cases hγ : γ = 0
+  · subst hγ
+    have hEq : { a : A | (0 : Γ₀) ≤ v a } = Set.univ := by
+      ext a
+      simp only [Set.mem_setOf_eq, Set.mem_univ, iff_true]
+      exact LinearOrderedCommMonoidWithZero.zero_le (v a)
+    rw [hEq]
+    exact isOpen_univ
+  · have hUnit_open : IsOpen ((v.ltAddSubgroup (Units.mk0 γ hγ)) : Set A) :=
+      Valuation.IsContinuous.isOpen_ltAddSubgroup (v := v) hv (Units.mk0 γ hγ)
+    have hClosed : IsClosed ((v.ltAddSubgroup (Units.mk0 γ hγ)) : Set A) :=
+      AddSubgroup.isClosed_of_isOpen _ hUnit_open
+    have hcompl : { a : A | γ ≤ v a } =
+        ((v.ltAddSubgroup (Units.mk0 γ hγ)) : Set A)ᶜ := by
+      ext a
+      simp only [v.coe_ltAddSubgroup, Set.mem_compl_iff, Set.mem_setOf_eq, not_lt,
+        Units.val_mk0]
+    rw [hcompl]
+    exact hClosed.isOpen_compl
+
+/-- **Wedhorn 7.8(3) — claimed equivalence (CURRENTLY UNRESOLVED).**
+
+*Claim:* `v` is continuous iff `{a | γ ≤ v a}` is open for every `γ`.
+
+**Status (2026-05-18 audit):** the forward direction is captured by
+`IsContinuous.isOpen_setOf_ge` under `[ContinuousAdd A]`. The reverse
+direction, as stated for all `γ : Γ₀`, **is mathematically false** in this
+project's hypothesis profile (only `[TopologicalSpace A]` / `[CommRing A]`).
+
+**Counterexample (reverse direction).** Take `A = ℝ` with the standard
+topology and the trivial valuation `v : ℝ → WithZero (Multiplicative ℤ)`
+with `v 0 = 0`, `v a = 1` for `a ≠ 0`. Then:
+* For every `γ : Γ₀`, `{a | γ ≤ v a}` is either `ℝ`, `ℝ \ {0}`, or `∅` —
+  all open. So the hypothesis of the reverse direction holds.
+* But `v.IsContinuous` fails: at `γ = 1`, `{a | v a < 1} = {0}`, which is
+  not open in `ℝ`.
+
+The original "transposition" docstring claimed `v(a) ≥ γ ↔ v(a)⁻¹ ≤ γ⁻¹`,
+but this conflates `v(a)⁻¹` (value-group inverse) with `v(a⁻¹)` (value of
+inverse in `A`), which only coincide when `a` is a unit. The set-level
+equivalence breaks down on the support of `v`.
+
+This statement is preserved as a named sorry so consumers calling it can
+be located via the type system; **no working downstream consumer should
+rely on the reverse direction as stated.** -/
+theorem isContinuous_iff_setOf_ge_isOpen (v : Valuation A Γ₀) :
+    v.IsContinuous ↔ ∀ γ : Γ₀, IsOpen { a : A | γ ≤ v a } :=
+  sorry
+
+end Valuation
