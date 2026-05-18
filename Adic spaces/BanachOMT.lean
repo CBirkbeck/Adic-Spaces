@@ -466,26 +466,22 @@ are σ-compact via `⋃ n, ball 0 n`.
 theorem isOpenMap_of_completeSpace_of_countablyGenerated
     {G : Type u} [AddCommGroup G] [UniformSpace G] [IsUniformAddGroup G]
     [CompleteSpace G] [(uniformity G).IsCountablyGenerated]
+    -- BINDING-RULE (b) addition (2026-05-18): without `[SigmaCompactSpace G]`,
+    -- the theorem is FALSE. Counterexample: G = ℝ-discrete (UAG, complete, cg,
+    -- T2) ↦ H = ℝ-Euclidean via identity; f is continuous + surjective but not
+    -- open (`f({0}) = {0}` is not open in Euclidean ℝ). Cf. `b2_log.jsonl`
+    -- entry 3 and the docstring above. With `[SigmaCompactSpace G]` added the
+    -- result reduces to mathlib's `AddMonoidHom.isOpenMap_of_sigmaCompact`.
+    [SigmaCompactSpace G]
     {H : Type v} [AddCommGroup H] [UniformSpace H] [IsUniformAddGroup H]
     [CompleteSpace H] [(uniformity H).IsCountablyGenerated] [T2Space H]
     (f : G →+ H) (hf : Continuous f) (hsurj : Function.Surjective f) :
-    IsOpenMap f := by
-  -- Apply L1.E (translation invariance): suffices to show openness at 0.
-  apply _sub_lemma_translation f
-  -- Show: ∀ U ∈ nhds 0 in G, f '' U ∈ nhds 0 in H.
-  -- This uses L1.D (cauchy_lift) applied with the right V_H choice:
-  -- by L1.A, shrink U to symmetric U' with U' + U' ⊆ U; by L1.D applied
-  -- to a small V_H, get U_G ⊆ U' with V_H ⊆ f '' U_G ⊆ f '' U.
-  intro U hU
-  -- L1.A pre-shrink U to symmetric U' with U' + U' ⊆ U.
-  obtain ⟨V, hV_nhds, _hV_closed, hV_sym, hV_add⟩ :=
-    _sub_sub_lemma_A_1_split_symmetric U hU
-  -- L1.D applied: ∃ V_H ∈ nhds 0 in H, ∃ U_G ∈ nhds 0 in G with
-  -- V_H ⊆ f '' U_G. The discharge of "U_G ⊆ V" requires the L1.D
-  -- iteration to be constrained — i.e., the iteration in L1.D's body
-  -- produces a U_G of a specific size relative to V_H. This is the
-  -- substantive sub-iteration step that completes the BGR argument.
-  sorry
+    IsOpenMap f :=
+  -- `[BaireSpace H]` synthesised from `[CompleteSpace H] +
+  -- [(uniformity H).IsCountablyGenerated]` via
+  -- `IsCompletelyPseudoMetrizableSpace.of_completeSpace_pseudometrizable` and
+  -- `BaireSpace.of_completelyPseudoMetrizable` (both mathlib instances).
+  AddMonoidHom.isOpenMap_of_sigmaCompact f hsurj hf
 
 /-- **Corollary — Banach's theorem for surjections.** A continuous surjective
 group homomorphism between complete metric topological abelian groups is a
@@ -496,6 +492,7 @@ the `IsOpenMap.isQuotientMap` characterization. -/
 theorem isQuotientMap_of_completeSpace_of_countablyGenerated
     {G : Type u} [AddCommGroup G] [UniformSpace G] [IsUniformAddGroup G]
     [CompleteSpace G] [(uniformity G).IsCountablyGenerated]
+    [SigmaCompactSpace G]
     {H : Type v} [AddCommGroup H] [UniformSpace H] [IsUniformAddGroup H]
     [CompleteSpace H] [(uniformity H).IsCountablyGenerated] [T2Space H]
     (f : G →+ H) (hf : Continuous f) (hsurj : Function.Surjective f) :
@@ -518,6 +515,7 @@ any two imply the third.
 theorem banach_two_of_three
     {G : Type u} [AddCommGroup G] [UniformSpace G] [IsUniformAddGroup G]
     [CompleteSpace G] [(uniformity G).IsCountablyGenerated]
+    [SigmaCompactSpace G]
     {H : Type v} [AddCommGroup H] [UniformSpace H] [IsUniformAddGroup H]
     [(uniformity H).IsCountablyGenerated] [T2Space H]
     (f : G →+ H) (hf : Continuous f) :
@@ -527,9 +525,13 @@ theorem banach_two_of_three
   ⟨fun ⟨hcomp, hsurj⟩ =>
     haveI := hcomp
     isOpenMap_of_completeSpace_of_countablyGenerated f hf hsurj,
-   -- (a) ∧ (c) ⇒ (b): complete H + f open ⇒ f surjective. Needs separate work.
+   -- (a) ∧ (c) ⇒ (b): **B2 FALSE (2026-05-18)** — see `b2_log.jsonl` entry 4.
+   -- Counterexample: G = 2ℤ ↪ H = ℤ (both discrete, addition; G complete,
+   -- cg, UAG, SigmaCompact; H complete, cg, UAG, T2). f = inclusion is
+   -- continuous + open but NOT surjective (range is 2ℤ ⊊ ℤ).
    sorry,
-   -- (b) ∧ (c) ⇒ (a): f surjective + f open ⇒ H complete. Needs separate work.
+   -- (b) ∧ (c) ⇒ (a): f surjective + f open ⇒ H complete. Provable via
+   -- standard quotient-of-complete argument.
    sorry⟩
 
 end AddMonoidHom

@@ -70,6 +70,7 @@ theorem wedhorn_6_16
     {M : Type*} [AddCommGroup M] [Module A M]
       [UniformSpace M] [IsUniformAddGroup M]
       [CompleteSpace M] [(uniformity M).IsCountablyGenerated]
+      [SigmaCompactSpace M]
     {N : Type*} [AddCommGroup N] [Module A N]
       [UniformSpace N] [IsUniformAddGroup N]
       [CompleteSpace N] [(uniformity N).IsCountablyGenerated] [T2Space N]
@@ -77,6 +78,8 @@ theorem wedhorn_6_16
     IsOpenMap f :=
   -- Apply the group-level Banach OMT to f.toAddMonoidHom.
   -- The A-linearity is not needed for openness (only the group hom structure).
+  -- `[SigmaCompactSpace M]` added per BINDING-RULE (b) — see `BanachOMT.lean`
+  -- L1 docstring + `b2_log.jsonl` entry 3.
   AddMonoidHom.isOpenMap_of_completeSpace_of_countablyGenerated f.toAddMonoidHom hf hsurj
 
 /-! ## Wedhorn 6.17 (= BGR §3.7.2/2) — noetherian iff every (sub)module closed
@@ -446,6 +449,7 @@ theorem _sub_lemma_L4_1_quotient_complete
 theorem _sub_lemma_L4_2_continuous_via_OMT
     {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
       [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
+      [SigmaCompactSpace A]
     {M : Type*} [AddCommGroup M] [Module A M] [Module.Finite A M]
       [UniformSpace M] [IsUniformAddGroup M]
       [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
@@ -514,11 +518,11 @@ theorem _sub_lemma_L4_2_continuous_via_OMT
 theorem _sub_lemma_L4_3_strict_via_closed_image
     {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
       [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
-      [IsNoetherianRing A]
+      [SigmaCompactSpace A] [IsNoetherianRing A]
     {M : Type*} [AddCommGroup M] [Module A M] [Module.Finite A M]
       [UniformSpace M] [IsUniformAddGroup M]
       [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
-      [ContinuousSMul A M]
+      [SigmaCompactSpace M] [ContinuousSMul A M]
     {N : Type*} [AddCommGroup N] [Module A N] [Module.Finite A N]
       [UniformSpace N] [IsUniformAddGroup N]
       [CompleteSpace N] [(uniformity N).IsCountablyGenerated] [T2Space N]
@@ -593,7 +597,7 @@ both directions:
 theorem _sub_lemma_L4_4_unique_topology
     {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
       [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
-      [IsNoetherianRing A]
+      [SigmaCompactSpace A] [IsNoetherianRing A]
     {M : Type*} [AddCommGroup M] [Module A M] [Module.Finite A M]
     (τ₁ τ₂ : UniformSpace M)
     (h_top1 : @IsUniformAddGroup M τ₁ _)
@@ -609,11 +613,11 @@ theorem _sub_lemma_L4_4_unique_topology
     τ₁.toTopologicalSpace = τ₂.toTopologicalSpace := by
   -- Apply L4.2 twice with the identity map in each direction.
   have h12 : @Continuous M M τ₁.toTopologicalSpace τ₂.toTopologicalSpace id :=
-    @_sub_lemma_L4_2_continuous_via_OMT _ _ _ _ _ _ _
+    @_sub_lemma_L4_2_continuous_via_OMT _ _ _ _ _ _ _ _
       M _ _ _ τ₁ h_top1 h_complete1 h_cg1 h_t2_1 h_csmul_1
       M _ _ _ τ₂ h_top2 h_complete2 h_cg2 h_t2_2 h_csmul_2 (LinearMap.id (R := A) (M := M))
   have h21 : @Continuous M M τ₂.toTopologicalSpace τ₁.toTopologicalSpace id :=
-    @_sub_lemma_L4_2_continuous_via_OMT _ _ _ _ _ _ _
+    @_sub_lemma_L4_2_continuous_via_OMT _ _ _ _ _ _ _ _
       M _ _ _ τ₂ h_top2 h_complete2 h_cg2 h_t2_2 h_csmul_2
       M _ _ _ τ₁ h_top1 h_complete1 h_cg1 h_t2_1 h_csmul_1 (LinearMap.id (R := A) (M := M))
   exact le_antisymm (continuous_id_iff_le.mp h12) (continuous_id_iff_le.mp h21)
@@ -723,7 +727,7 @@ topologies, every `A`-linear map `f : M → N` is continuous.
 theorem wedhorn_6_18_continuous
     {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
       [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
-      [IsNoetherianRing A]
+      [SigmaCompactSpace A] [IsNoetherianRing A]
     {M : Type*} [AddCommGroup M] [Module A M] [Module.Finite A M]
       [UniformSpace M] [IsUniformAddGroup M]
       [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
@@ -756,11 +760,11 @@ quotient topology), equivalently, `f : M → f(M)` is open.
 theorem wedhorn_6_18_open_onto_image
     {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
       [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
-      [IsNoetherianRing A]
+      [SigmaCompactSpace A] [IsNoetherianRing A]
     {M : Type*} [AddCommGroup M] [Module A M] [Module.Finite A M]
       [UniformSpace M] [IsUniformAddGroup M]
       [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
-      [ContinuousSMul A M]
+      [SigmaCompactSpace M] [ContinuousSMul A M]
     {N : Type*} [AddCommGroup N] [Module A N] [Module.Finite A N]
       [UniformSpace N] [IsUniformAddGroup N]
       [CompleteSpace N] [(uniformity N).IsCountablyGenerated] [T2Space N]
