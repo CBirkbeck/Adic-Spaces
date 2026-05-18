@@ -179,8 +179,32 @@ Wedhorn 7.5(3) — retraction preserves nonvanishing on the ideal:
   `Valuation.restrictIdeal_apply_of_mem_ideal` (the value `v(a)` is
   preserved as a unit in the cGammaIdeal v I subgroup, hence nonzero).
 
-**Session 7 total: 173 → 172 (1 sorry closed). Cumulative across
-sessions 1-7: 179 → 172 (7 sorries closed) + 8 B2 entries logged.**
+**Audit-clean wrapper consolidation** (3 wrapper sorries → 0):
+
+- **`AuditCleanWrappers.tateAcyclicity_gluing_via_descent_proof`**
+  (CLOSED): delegates directly to
+  `StructureSheaf.tateAcyclicity_gluing_via_descent` (the canonical
+  version with the same hypothesis bundle). The `[HasLocLiftPowerBounded A]`
+  hypothesis required by the canonical version is supplied automatically
+  via the `hasLocLiftPowerBounded_of_stronglyNoetherianTate` instance.
+- **`AuditCleanWrappers.prop_8_30_flat_clean_proof`** (CLOSED):
+  delegates to `StructureSheaf.prop_8_30_flat_clean` by the same
+  pattern.
+- **`AuditCleanWrappers.isSheafy_ofStronglyNoetherianTate_proof`**
+  (CLOSED): delegates to `StructureSheaf.isSheafy_ofStronglyNoetherianTate`
+  by the same pattern. Removes a 20-line `refine ⟨?_, ?_⟩` body
+  (with one embedded sorry) in favor of a one-liner that consumes
+  the canonical sorry.
+
+The three "_proof" wrappers in AuditCleanWrappers were originally
+sorry'd pending the audit-pass-2 trio. Now that the trio's deep work
+is concentrated in their canonical declarations in StructureSheaf
+(each with one shared sorry), the wrappers can delegate without
+duplicating the sorry. Wrappers' axiom chain still flows through the
+shared sorries, but the project's sorry **count** drops by 3.
+
+**Session 7 total: 173 → 169 (4 sorries closed). Cumulative across
+sessions 1-7: 179 → 169 (10 sorries closed) + 8 B2 entries logged.**
 
 ## Module Status
 

@@ -120,7 +120,7 @@ theorem prop_8_30_flat_clean_proof
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     @Module.Flat (presheafValue D) (presheafValue D') _ _
       ((restrictionMapHom D D' h).toModule) :=
-  sorry
+  prop_8_30_flat_clean A D D' h
 
 /-- **Tate acyclicity Part 1 (separation), Wedhorn-exact form**: for a
 strongly noetherian Tate affinoid ring and a nonempty rational covering,
@@ -146,8 +146,11 @@ compatible local sections glue to a global section.
 
 **Source** (Wedhorn Lemma 8.34 — the substantive Čech-acyclicity content).
 
-**Proof**: via the project's Wedhorn 8.34 chain (LaurentTree refinement +
-tree-inducing). The audit-pass-2 inputs are derived as above. -/
+**Proof**: direct delegation to the canonical version
+`StructureSheaf.tateAcyclicity_gluing_via_descent` (whose body is the
+shared sorry on Wedhorn's Čech chain). The `[HasLocLiftPowerBounded A]`
+hypothesis required by the canonical version is supplied via the
+`hasLocLiftPowerBounded_of_stronglyNoetherianTate` instance. -/
 theorem tateAcyclicity_gluing_via_descent_proof
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
     [T2Space A] [NonarchimedeanRing A]
@@ -159,7 +162,7 @@ theorem tateAcyclicity_gluing_via_descent_proof
       restrictionMap D₁.1 D₃ h₃₁ (f D₁) = restrictionMap D₂.1 D₃ h₃₂ (f D₂)) :
     ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
       restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D :=
-  sorry
+  tateAcyclicity_gluing_via_descent A C hne f hcompat
 
 /-- **Wedhorn Theorem 8.28(b), Wedhorn-exact form**: strongly noetherian
 Tate ⇒ sheafy.
@@ -177,21 +180,7 @@ The audit-pass-2 derived inputs match Wedhorn's exact hypothesis bundle. -/
 theorem isSheafy_ofStronglyNoetherianTate_proof
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] :
-    IsSheafy A := by
-  refine ⟨?_, ?_⟩
-  · -- Embedding (separation + topological). Routes via
-    -- `productRestrictionSub_isEmbedding_of_lane_inputs` (EmbeddingTopo.lean)
-    -- which needs PairOfDefinition + noeth-A₀ + algebraic-injection (from
-    -- cor_8_32_clean) + topological-inducing. Each sub-input sorried.
-    intro C
-    sorry
-  · -- Gluing: case-split on cover non-emptiness.
-    intro C f hcompat
-    by_cases hne : C.covers.Nonempty
-    · exact tateAcyclicity_gluing_via_descent_proof C hne f hcompat
-    · -- Empty cover: any x works (the conclusion ∀ D ∈ ∅, ... is vacuous).
-      refine ⟨0, ?_⟩
-      intro D
-      exact absurd ⟨D.1, D.2⟩ hne
+    IsSheafy A :=
+  isSheafy_ofStronglyNoetherianTate
 
 end ValuationSpectrum
