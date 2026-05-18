@@ -2342,6 +2342,19 @@ theorem prop_7_51_maxIdeal_closed_and_spa_point
   ⟨maxIdeal_isClosed_of_complete_huber 𝔪,
    exists_spa_point_supp_eq_maxIdeal_of_complete 𝔪⟩
 
+/-- **(⊇ direction of Wedhorn 7.51 sub-step)** Every element in the image of some
+definition ideal `P.I` is topologically nilpotent. This is the easy direction
+of `topologicallyNilpotent_eq_union_definitionIdeals`, discharged directly
+from `PairOfDefinition.isTopologicallyNilpotent_of_mem`. -/
+theorem union_definitionIdeals_subseteq_topologicallyNilpotent
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [IsHuberRing A] :
+    (⋃ (P : PairOfDefinition A), (P.A₀.subtype '' (P.I : Set ↥P.A₀))) ⊆
+      TopologicalRing.topologicallyNilpotentElements A := by
+  rintro x ⟨S, ⟨P, rfl⟩, hxS⟩
+  obtain ⟨a, ha_mem, rfl⟩ := hxS
+  exact PairOfDefinition.isTopologicallyNilpotent_of_mem P ha_mem
+
 /-- **(Wedhorn 7.51 sub-step, audit pass 3 item 22)** *"A°° = ⋃ {I | I is
 a definition ideal of some pair of definition of A}."*
 
@@ -2350,7 +2363,8 @@ Wedhorn p.69 cites this as the reason the topologically-nilpotent elements
 are open ("as the union of all definition ideals of all definition rings").
 
 Discharge plan: (⊇) Each P.I consists of topologically nilpotent elements
-(this is the property of being a definition ideal). (⊆) For any
+(this is the property of being a definition ideal — discharged separately
+in `union_definitionIdeals_subseteq_topologicallyNilpotent`). (⊆) For any
 topologically nilpotent x, choose a pair of definition P and an N such
 that x ∈ P.I^N (since P.I^N → 0 forms a nbhd basis of 0; x being top-nilp
 means x^k → 0 too, but we need x itself in some I). The careful direction
