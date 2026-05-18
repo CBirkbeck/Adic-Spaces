@@ -2,7 +2,7 @@
 
 > **Agents: Read this file before starting work. Update it when you begin or complete a task.**
 >
-> Last updated: 2026-05-18 (Wedhorn 6.18 L1 chain closed via mathlib delegation; session 2: trivial-direction lemmas split out)
+> Last updated: 2026-05-18 (Wedhorn 6.18 L1 chain closed via mathlib delegation; session 2: trivial-direction splits + K.1 chain closed + isPowerBounded discrete + multiple B2 logs)
 
 ## Recent progress (2026-05-18 session)
 
@@ -78,6 +78,48 @@ plus one canonicalisation refactor closing a duplicate sorry.
   consolidates two duplicate sorries into one canonical sorry in
   Presheaf.lean (right home for the Chevalley/Wedhorn 7.44 + 7.45
   combination content). **Sorry count: 179 → 178.**
+
+## Recent progress (2026-05-18 session 3)
+
+Stacks 023N descent chain + isPowerBounded discrete + B2 logging:
+
+**K.1 chain (Stacks 023N faithfully flat descent equaliser) — three sorries closed:**
+
+- **`StructureSheaf.faithfullyFlat_cocycleMap`** (K.1.a, definition):
+  defined as `TensorProduct.mk R S S 1 - (TensorProduct.mk R S S).flip 1`
+  (s ↦ 1⊗s - s⊗1, R-linear). No sorry.
+- **`StructureSheaf.faithfullyFlat_cocycleMap_algebraMap_eq_zero`** (K.1.b):
+  algebraMap(r) lies in kernel, via `Algebra.algebraMap_eq_smul_one` +
+  `TensorProduct.smul_tmul` / `TensorProduct.tmul_smul`.
+- **`StructureSheaf.faithfullyFlat_descent_equalizer`** (K.1, the consumer):
+  delegates through K.1.c by unfolding the cocycle map and matching the
+  hypothesis shape. The deep K.1.c (`faithfullyFlat_cocycle_kernel_eq_algebraMap_range`,
+  Stacks 023N theorem) remains as the single deep sorry in this chain.
+
+**Discrete power-boundedness — one sorry closed:**
+
+- **`Presheaf.isPowerBounded_of_discrete_presheafValue`**: closed via
+  inline replication of the chain `DiscreteUniformity → DiscreteTopology →
+  bounded with V = {0}`. The proof uses `Topology.IsEmbedding.toHomeomorphOfSurjective`
+  + `Homeomorph.discreteTopology` to transfer DiscreteTopology from
+  `Localization.Away D'.s` (where the localization topology is `⊥` via
+  `locTopology_eq_bot_of_discrete`) to `presheafValue D'`.
+  Transitively unblocks `HasLocLiftPowerBounded.discrete` (the instance
+  was already filled but used the now-sorry-free helper).
+
+**B2 logs added:**
+
+- **b2_log entry 6**: `presheafValue_eq_quotient_AlangleX_iterated`
+  uses MvPolynomial (algebraic) where it should use TateAlgebra
+  (topological completion). Counterexample: A = ℤ p-adic, D.T = ∅,
+  D.s = p — LHS = Completion(ℤ[1/p]) = ℚ_p, RHS = MvPolynomial ∅ ℤ ≅ ℤ.
+  In-file docstring annotated.
+- **b2_log entry 7**: `IsPowerBounded.map` claimed PB transfers along
+  arbitrary continuous ring homs. Counterexample: φ = id : ℝ_discrete →
+  ℝ_std (continuous since discrete source). x = 2 power-bounded in
+  discrete source but not in standard target. In-file docstring updated.
+
+**Session 3 totals: sorry count 178 → 174 (4 sorries closed).**
 
 
 
