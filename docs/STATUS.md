@@ -259,6 +259,25 @@ Wedhorn 7.5(2) retraction surjectivity via fixed-point:
 sessions 1-8 + 11 + 13: 179 → 165 (14 sorries closed) + 8 B2 entries
 logged.**
 
+## Recent progress (2026-05-18 session 15)
+
+In-file reorder + delegation for upstream-downstream prevention:
+
+- **`StructureSheaf.exists_spa_point_in_rationalOpen_of_prime`** (CLOSED):
+  the original declaration was at line 690, BEFORE the canonical
+  `exists_hSpa_points_global_of_stronglyNoetherianTate` at line 1444.
+  Since the two have equivalent shape (specialise T = C.base.T, s =
+  C.base.s), the local sorry was just a stand-in for the canonical's
+  sorry but unusable in a forward-reference. Resolution: moved the
+  declaration after the canonical and rewrote the body as a one-line
+  delegation `fun p hp hs => exists_hSpa_points_global_of_stronglyNoetherianTate
+  (A := A) C.base.T C.base.s p hp hs`. Confirmed zero consumers of the
+  declaration (only the original site), so the move is safe.
+
+**Session 15 total: 165 → 164 (1 sorry closed). Cumulative across
+sessions 1-8 + 11 + 13 + 15: 179 → 164 (15 sorries closed) + 8 B2
+entries logged.**
+
 ## Module Status
 
 | Module | Lines | Status | Notes |

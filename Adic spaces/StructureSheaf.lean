@@ -678,23 +678,6 @@ theorem exists_spa_point_in_rationalOpen_of_isOpen_prime
 -- directly, or `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime`
 -- (Lemma745.lean:691) on `presheafValue_pairOfDefinition` for the non-open case.
 
-/-- **(L.1) Spa-point existence above any prime, combining open and non-open
-cases.** This is the discharge of the `hSpa_points` hypothesis used by
-`base_s_in_annihilator_radical_of_covering` etc. — case-split on `IsOpen (p : Set A)`
-gives:
-- open case: `exists_spa_point_in_rationalOpen_of_isOpen_prime`
-- non-open case: `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime` (Lemma 7.45)
-  combined with the rational-open membership lift.
-
-The non-open case via Lemma 7.45 does NOT need `MulArchimedean`. -/
-theorem exists_spa_point_in_rationalOpen_of_prime
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A]
-    (C : RationalCovering A) :
-    ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
-      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp :=
-  sorry
-
 /-- If `D.s^k * a = 0` for each covering piece `D`, then `C.base.s ∈ radical(ann(a))`
 (Wedhorn Theorem 8.28). Uses the Spa-point construction at primes. -/
 theorem base_s_in_annihilator_radical_of_covering
@@ -1447,6 +1430,26 @@ theorem exists_hSpa_points_global_of_stronglyNoetherianTate
     ∀ (T : Finset A) (s : A) (p : Ideal A), p.IsPrime → s ∉ p →
       ∃ v ∈ rationalOpen T s, p ≤ v.supp :=
   sorry
+
+/-- **(L.1) Spa-point existence above any prime, combining open and non-open
+cases.** This is the discharge of the `hSpa_points` hypothesis used by
+`base_s_in_annihilator_radical_of_covering` etc. — case-split on `IsOpen (p : Set A)`
+gives:
+- open case: `exists_spa_point_in_rationalOpen_of_isOpen_prime`
+- non-open case: `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime` (Lemma 7.45)
+  combined with the rational-open membership lift.
+
+Specialisation of `exists_hSpa_points_global_of_stronglyNoetherianTate` to
+the data of a `RationalCovering` (T = C.base.T, s = C.base.s). Inherits the
+shared Wedhorn 7.45 sorry transitively. -/
+theorem exists_spa_point_in_rationalOpen_of_prime
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    (C : RationalCovering A) :
+    ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp :=
+  fun p hp hs =>
+    exists_hSpa_points_global_of_stronglyNoetherianTate (A := A) C.base.T C.base.s p hp hs
 
 -- I.1 cluster DELETED (2026-05-18, user audit): `A° noetherian` is NOT used
 -- anywhere in Wedhorn 8.28's actual proof. The project's existing
