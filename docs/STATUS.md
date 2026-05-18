@@ -203,8 +203,19 @@ is concentrated in their canonical declarations in StructureSheaf
 duplicating the sorry. Wrappers' axiom chain still flows through the
 shared sorries, but the project's sorry **count** drops by 3.
 
-**Session 7 total: 173 → 169 (4 sorries closed). Cumulative across
-sessions 1-7: 179 → 169 (10 sorries closed) + 8 B2 entries logged.**
+- **`WedhornStronglyNoetherian.exists_hSpa_points_global_of_stronglyNoetherianTate_proof`**
+  (CLOSED): delegates to canonical `StructureSheaf.exists_hSpa_points_global_of_stronglyNoetherianTate`
+  by the same one-liner pattern. Removes a structured open/non-open case-split
+  whose non-open branch was sorry; the canonical's single sorry covers both.
+
+The two SUPERSEDED `isNoetherianRing_*_of_stronglyNoetherianTate_proof`
+wrappers were NOT delegated because the canonical versions require
+`[PlusSubring A]` (from their section vars) which the wrappers' section
+vars omit. Adding `[PlusSubring A]` to the wrappers would violate the
+BINDING RULE.
+
+**Session 7 total: 173 → 168 (5 sorries closed). Cumulative across
+sessions 1-7: 179 → 168 (11 sorries closed) + 8 B2 entries logged.**
 
 ## Module Status
 
