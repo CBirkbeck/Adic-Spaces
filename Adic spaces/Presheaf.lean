@@ -1958,8 +1958,59 @@ theorem isPowerBounded_of_discrete_presheafValue
     {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [DiscreteTopology A] [PlusSubring A] [IsHuberRing A]
     (D' : RationalLocData A) (y : presheafValue D') :
-    TopologicalRing.IsPowerBounded y :=
-  sorry
+    TopologicalRing.IsPowerBounded y := by
+  -- Derive DiscreteTopology (presheafValue D') inline (replicates the
+  -- bijection + uniform-embedding chain from `coeRingHom_bijective_of_discrete`
+  -- + `discreteTopology_presheafValue`; the latter is `private` in
+  -- TateAcyclicity.lean which is downstream, so we cannot import it here).
+  have htop : D'.topology = ⊥ := locTopology_eq_bot_of_discrete D'
+  have hbot : D'.uniformSpace = ⊥ := by
+    suffices h : D'.uniformSpace.uniformity = Filter.principal SetRel.id by
+      exact UniformSpace.ext (h.trans bot_uniformity.symm)
+    change Filter.comap (fun p : Localization.Away D'.s × Localization.Away D'.s ↦
+      p.2 - p.1) (@nhds (Localization.Away D'.s) D'.topology 0) =
+        Filter.principal SetRel.id
+    have hpure : @nhds (Localization.Away D'.s) D'.topology 0 = pure 0 := by
+      rw [htop]
+      letI : TopologicalSpace (Localization.Away D'.s) := ⊥
+      haveI : DiscreteTopology (Localization.Away D'.s) := ⟨rfl⟩
+      exact congr_fun (nhds_discrete _) 0
+    rw [hpure, Filter.comap_pure]
+    ext s
+    simp only [Filter.mem_principal]
+    constructor
+    · intro h ⟨a, b⟩ (hab : a = b); exact h (show b - a = 0 by rw [hab, sub_self])
+    · intro h ⟨a, b⟩ (hab : b - a = 0); exact h (sub_eq_zero.mp hab).symm
+  letI : UniformSpace (Localization.Away D'.s) := D'.uniformSpace
+  haveI : DiscreteUniformity (Localization.Away D'.s) := ⟨hbot⟩
+  -- DiscreteUniformity → DiscreteTopology automatically (mathlib instance).
+  have hue := UniformSpace.Completion.isUniformEmbedding_coe (Localization.Away D'.s)
+  have hemb : Topology.IsEmbedding D'.coeRingHom := hue.isEmbedding
+  -- Surjectivity of coeRingHom: completion of discrete = discrete (hence
+  -- the range is closed and dense, so univ).
+  have hsurj : Function.Surjective D'.coeRingHom := by
+    have hclosed := (UniformSpace.Completion.isUniformEmbedding_coe
+      (Localization.Away D'.s)).isClosedEmbedding.isClosed_range
+    have hdense := UniformSpace.Completion.denseRange_coe
+      (α := Localization.Away D'.s)
+    intro x
+    have hmem : x ∈ Set.range ((↑) : Localization.Away D'.s →
+        UniformSpace.Completion (Localization.Away D'.s)) := by
+      rw [hclosed.closure_eq.symm]; exact hdense.closure_eq ▸ Set.mem_univ x
+    exact hmem
+  -- Transfer DiscreteTopology via the homeomorphism induced by hemb + hsurj.
+  haveI : DiscreteTopology (presheafValue D') :=
+    (hemb.toHomeomorphOfSurjective hsurj).discreteTopology
+  -- IsBounded under discrete topology: V = {0} works.
+  intro U hU
+  refine ⟨{0}, ?_, ?_⟩
+  · rw [mem_nhds_discrete]; exact rfl
+  · rintro z ⟨a, _, b, hb_mem, rfl⟩
+    rw [Set.mem_singleton_iff] at hb_mem
+    subst hb_mem
+    show a * 0 ∈ U
+    rw [mul_zero]
+    exact mem_of_mem_nhds hU
 
 /-- For discrete rings, the adic Nullstellensatz hypothesis holds trivially because
 the localization topology is `⊥` (discrete), making every element power-bounded.
