@@ -168,32 +168,12 @@ theorem _sub_lemma_L5_2_1_A₀_open_bounded
     IsOpen ((P.A₀ : Set A)) ∧ TopologicalRing.IsBounded ((P.A₀ : Set A)) :=
   ⟨P.isOpen, P.isBounded_A₀⟩
 
-/- **Sub-lemma L5.2.2 — A₀ inherits noetherianness via fg as A₀-module**.
-
-If `A` is noetherian as a ring and `A₀ ⊆ A` is an open subring, then `A₀` is
-noetherian provided `A` is fg as an `A₀`-module (= localization at the
-topologically nilpotent unit).
-
-**Source**: standard commutative algebra (descent of noetherianness from a
-finitely-generated extension). Wedhorn 6.18(2) gives the topological side.
-
-**Discharge route**: combine `IsLocalization.isNoetherian` (mathlib) with
-the localization identification `A = A₀[1/s]`.
-
-**Difficulty**: MEDIUM. ~80 lines. Most of the algebraic content. -/
-/-- **SUPERSEDED by user decision 2026-05-17**: kept as marker. The original
-intent ("A noeth ⇒ A₀ noeth for principal pair via A = A₀[1/s] descent") is
-not generally true; pass-(iii) review confirmed this is NOT in Wedhorn and
-the localization-descent direction is false in general.
-
-See `decomposition.md` "RESOLUTION (2026-05-17): Option (1) selected". -/
-theorem _sub_lemma_L5_2_2_A₀_noeth_via_localization
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-    (P : PairOfDefinition A) :
-    -- Not provable unconditionally; accept noeth-A₀ as supplied hypothesis
-    -- at the wrapper level instead. Statement preserved as a marker.
-    IsNoetherianRing ↥P.A₀ :=
-  sorry  -- ⚠ SUPERSEDED — see option (1) decision in decomposition.md
+/-! L5.2.2 (`_sub_lemma_L5_2_2_A₀_noeth_via_localization`) **deleted**
+(2026-05-18) per user decision 2026-05-17 (option (1) — accept noeth-A₀
+as supplied hypothesis at the wrapper level instead). The original intent
+"`A` noeth ⇒ `A₀` noeth for principal pair via `A = A₀[1/s]` descent" is
+NOT in Wedhorn and the localization-descent direction is false in
+general; see `decomposition.md` "RESOLUTION (2026-05-17)". -/
 
 /-! ### L5.4 sub-lemmas (Spa-point existence) -/
 
