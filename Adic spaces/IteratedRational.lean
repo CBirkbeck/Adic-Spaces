@@ -91,17 +91,28 @@ variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
   [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsNoetherianRing A]
   [T2Space A] [NonarchimedeanRing A]
 
-/-- **(Wedhorn Remark 7.55, clean ring-iso form)** *"For a rational subset
-`V = R(T/s)` with `T = {t_1, …, t_n}`, we have an isomorphism
-`O_X(V) ≅ A⟨X_1, …, X_n⟩ / (s·X_1 - t_1, …, s·X_n - t_n)`."*
+/-- **(Wedhorn Remark 7.55, clean ring-iso form — STATEMENT BUG, 2026-05-18)**
 
-This is the iterated `A⟨X⟩/(s·X - t)` description that Wedhorn 8.30 uses
-to reduce flatness to Lemma 8.31(2).
+⚠ **B2 (b2_log entry 6, 2026-05-18):** the Lean statement below uses
+`MvPolynomial D.T A` (algebraic polynomial ring) which gives quotient
+`A[X_t]/(s·X_t = t) ≅ A[1/s]` — the *algebraic* localization, no topology.
+But `presheafValue D = Completion(Localization.Away D.s)` in the
+localization topology. The two coincide only when `A[1/s]` is already
+complete (e.g., `A` discrete). Counterexample: `A = ℤ` with `p`-adic
+topology, `D.s = p`, `D.T = ∅`. RHS = `MvPolynomial ∅ ℤ ≅ ℤ`. LHS =
+`Completion(ℤ[1/p]) = ℚ_p ≠ ℤ`.
 
-Discharge plan: induction on `n`. The base case `n = 0` is `R(∅/s) = R(s) =
-Spa(A[1/s])` and `presheafValue ≃+* completion of A[1/s]` already exists in
-the project (`PresheafIdentification.lean`). The inductive step adjoins
-one more variable via the "Wedhorn 7.55" `Localization.Away` identification
+The intended statement (per docstring `A⟨X⟩` notation) uses the **Tate
+algebra** in `|D.T|` variables (project's `restrictedMvPowerSeriesSubring`),
+not `MvPolynomial`. With Tate algebra, the equivalence is Wedhorn 7.55
+exactly. Fix: replace `MvPolynomial` with `restrictedMvPowerSeriesSubring`
+(or equivalent Tate-algebra encoding) and quotient by the same ideal.
+
+Discharge plan (for the *corrected* statement using `A⟨X⟩`): induction on
+`n`. The base case `n = 0` is `R(∅/s) = R(s) = Spa(A[1/s])` and
+`presheafValue ≃+* completion of A[1/s]` already exists in the project
+(`PresheafIdentification.lean`). The inductive step adjoins one more
+variable via the "Wedhorn 7.55" `Localization.Away` identification
 applied to `A → A⟨X_1⟩/(s·X_1 - t_1)`.
 
 **Note**: stated for arbitrary finset; the package shape returns the
