@@ -230,6 +230,21 @@ Concrete Witt vector construction:
 **Session 8 total: 168 → 167 (1 sorry closed). Cumulative across
 sessions 1-8: 179 → 167 (12 sorries closed) + 8 B2 entries logged.**
 
+## Recent progress (2026-05-18 session 11)
+
+Topological-openness of Y_FF in the Fargues-Fontaine curve construction:
+
+- **`FarguesFontaine.Y_FF_isOpen`** (CLOSED): the pre-curve
+  `Y_FF p E π` is the complement of the simultaneous vanishing locus
+  `V(p, [π])`, which is open in `Spa(W(O_E), W(O_E))`. Proof via
+  De Morgan: `¬(v(p) = 0 ∧ v([π]) = 0)` rewrites as
+  `v(p) ≠ 0 ∨ v([π]) ≠ 0`, which is the union of two basic-opens.
+  `isOpen_basicOpen` + `Continuous.isOpen_preimage` of `Subtype.val`
+  finishes.
+
+**Session 11 total: 167 → 166 (1 sorry closed). Cumulative across
+sessions 1-8 + 11: 179 → 166 (13 sorries closed) + 8 B2 entries logged.**
+
 ## Module Status
 
 | Module | Lines | Status | Notes |

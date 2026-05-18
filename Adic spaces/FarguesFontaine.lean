@@ -228,14 +228,37 @@ theorem Y_FF_subset_spa (π : PseudoUniformizer E) :
 This is the complement of the closed locus `V(p, [π])` (the common vanishing set
 of `p` and `[π]`), which is open.
 
-The sorry can be filled by showing `V(p) ∩ V([π])` is closed (intersection of
-two closed sets defined by vanishing of continuous functions on `Spa`).
+Proof: by De Morgan, `Y_FF = Spa ∩ (basicOpen pWitt pWitt ∪ basicOpen [π] [π])`,
+and basic opens in Spv are open by construction. The Subtype.val preimage of an
+open set in Spv intersected with Spa is open in the subspace topology.
 
 (Fargues--Fontaine, *Courbes et fibres vectoriels*, §2.5) -/
 theorem Y_FF_isOpen (π : PseudoUniformizer E) :
     IsOpen (Subtype.val ⁻¹' Y_FF p E π :
       Set ↥(Spa (WittVector p ↥(powerBoundedSubring.toSubring E))
-        (ringPlus (WittVector p ↥(powerBoundedSubring.toSubring E))))) := sorry
+        (ringPlus (WittVector p ↥(powerBoundedSubring.toSubring E))))) := by
+  -- Y_FF in Spv is `Spa ∩ (basicOpen pWitt pWitt ∪ basicOpen [π] [π])`.
+  -- The Subtype.val preimage equals the Subtype.val preimage of the union
+  -- (the Spa intersection is automatic on the subtype).
+  have hopen_union :
+      IsOpen (basicOpen (pWitt p E) (pWitt p E)
+              ∪ basicOpen (teichmullerPi p E π) (teichmullerPi p E π)) :=
+    (isOpen_basicOpen _ _).union (isOpen_basicOpen _ _)
+  -- The set in question equals Subtype.val ⁻¹' (basicOpen ∪ basicOpen).
+  convert continuous_subtype_val.isOpen_preimage _ hopen_union using 1
+  ext v
+  simp only [Set.mem_preimage, Y_FF, basicOpen_self, Set.mem_setOf_eq,
+    Set.mem_union, Set.mem_inter_iff]
+  refine ⟨fun h => ?_, fun h => ⟨v.2, ?_⟩⟩
+  · -- h : ¬(v.1.vle pWitt 0 ∧ v.1.vle [π] 0) → ¬v.1.vle pWitt 0 ∨ ¬v.1.vle [π] 0
+    rcases not_and_or.mp h.2 with h1 | h2
+    · exact Or.inl h1
+    · exact Or.inr h2
+  · -- ¬v.vle p 0 ∨ ¬v.vle [π] 0 → ¬(both)
+    intro ⟨hp, hπ⟩
+    rcases h with h | h
+    · exact h hp
+    · exact h hπ
 
 /-! ### Frobenius action on Y_FF -/
 
