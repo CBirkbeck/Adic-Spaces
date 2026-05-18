@@ -497,10 +497,12 @@ Wedhorn's proof of Spv(A,I) spectral (p.58 last paragraph) uses:
 -- separate T-Spv.2.a wrapper is needed.
 
 /-- **(T-Spv.2.b)** Restriction-to-retraction `r : Spv A → Spv(A,I)` is surjective
-(every `v ∈ Spv(A,I)` is its own restriction). -/
+(every `v ∈ Spv(A,I)` is its own restriction).
+
+Proof: take `w = v.1`; by `SpvAI.retraction_eq_self`, `r(v.1) = v`. -/
 theorem SpvAI.retraction_surjective (I : Ideal A) :
     Function.Surjective (SpvAI.retraction I) :=
-  sorry
+  fun v => ⟨v.1, SpvAI.retraction_eq_self I v⟩
 
 /-! ### T-Spv.2 decomposition (Wedhorn 7.5(1)(iv) via Prop 3.31)
 

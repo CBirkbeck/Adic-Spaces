@@ -245,6 +245,20 @@ Topological-openness of Y_FF in the Fargues-Fontaine curve construction:
 **Session 11 total: 167 → 166 (1 sorry closed). Cumulative across
 sessions 1-8 + 11: 179 → 166 (13 sorries closed) + 8 B2 entries logged.**
 
+## Recent progress (2026-05-18 session 13)
+
+Wedhorn 7.5(2) retraction surjectivity via fixed-point:
+
+- **`SpvAITopology.SpvAI.retraction_surjective`** (CLOSED): for
+  `v ∈ SpvAI A I`, the retraction `r(v.1)` equals `v` by
+  `SpvAI.retraction_eq_self` (sorry'd; inherits sorryAx transitively),
+  so `v.1` is the preimage. One-liner:
+  `fun v => ⟨v.1, SpvAI.retraction_eq_self I v⟩`.
+
+**Session 13 total: 166 → 165 (1 sorry closed). Cumulative across
+sessions 1-8 + 11 + 13: 179 → 165 (14 sorries closed) + 8 B2 entries
+logged.**
+
 ## Module Status
 
 | Module | Lines | Status | Notes |
