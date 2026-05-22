@@ -76,12 +76,12 @@ instance CompletedAlgClosure.instField (p : ℕ)
 instance CompletedAlgClosure.instTopologicalSpace (p : ℕ)
     [Fact (Nat.Prime p)] :
     TopologicalSpace (CompletedAlgClosure p) := by
-  unfold CompletedAlgClosure; exact sorry
+  unfold CompletedAlgClosure; infer_instance
 
 instance CompletedAlgClosure.instUniformSpace (p : ℕ)
     [Fact (Nat.Prime p)] :
     UniformSpace (CompletedAlgClosure p) := by
-  unfold CompletedAlgClosure; exact sorry
+  unfold CompletedAlgClosure; infer_instance
 
 instance CompletedAlgClosure.instIsTopologicalRing (p : ℕ)
     [Fact (Nat.Prime p)] :

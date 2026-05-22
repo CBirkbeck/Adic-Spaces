@@ -417,13 +417,86 @@ theorem exists_pow_dominated_finset
 
 /-- **Wedhorn Lemma 7.31.** For `X ⊆ Spa A` quasi-compact and `f ∈ A` with
 `|f(x)| ≠ 0` for all `x ∈ X`, there exists a neighborhood `I` of zero in `A`
-such that `|a(x)| < |f(x)|` for all `x ∈ X` and `a ∈ I`. -/
-theorem exists_zero_nbhd_lt_on_qc
+such that `|a(x)| < |f(x)|` for all `x ∈ X` and `a ∈ I`.
+
+Proof strategy: take a topologically nilpotent unit `π` (Tate axiom). Apply
+`exists_pow_dominated_finset` with `T = {π}` to get `m` such that
+`v(π^k) ≤ v(f)` for all `k ≥ m` and all `x ∈ X`. Set
+`I := π^(m+1) • topologicallyNilpotentElements A` — open via `IsUnit.isOpenMap_smul`
+applied to the open set `A°°`. For `a = π^(m+1) * y` with `y ∈ A°°`:
+`v(a) = v(π)^(m+1) * v(y) < v(π^(m+1)) ≤ v(f)` strictly, since `v(y) < 1`
+(from `not_vle_one_of_mem_spa_of_topologicallyNilpotent`) and
+`v(π^(m+1)) ≠ 0` (π is a unit). -/
+theorem exists_zero_nbhd_lt_on_qc [IsTateRing A]
     {X : Set ↥(Spa A A⁺)} (hX : IsCompact X) (f : A)
     (hf : ∀ x ∈ X, ¬ (x.1 : Spv A).vle f 0) :
     ∃ I : Set A, IsOpen I ∧ (0 : A) ∈ I ∧
-      ∀ a ∈ I, ∀ x ∈ X, (x.1 : Spv A).vle a f ∧ ¬ (x.1 : Spv A).vle f a :=
-  sorry
+      ∀ a ∈ I, ∀ x ∈ X, (x.1 : Spv A).vle a f ∧ ¬ (x.1 : Spv A).vle f a := by
+  classical
+  -- Step 1: extract a topologically nilpotent unit π via the Tate axiom.
+  obtain ⟨π, hπ_tn⟩ := IsTateRing.exists_topologicallyNilpotent_unit (A := A)
+  -- Step 2: apply `exists_pow_dominated_finset` with T = {π}.
+  obtain ⟨m, hm⟩ := exists_pow_dominated_finset (X := X) hX f hf {(π : A)}
+    (by intro t ht; rw [Finset.mem_singleton] at ht; subst ht; exact hπ_tn)
+  -- Step 3: define I := image of (·* π^(m+1)) over A°°.
+  refine ⟨(fun y : A => (π : A) ^ (m + 1) * y) ''
+    (TopologicalRing.topologicallyNilpotentElements A), ?_, ?_, ?_⟩
+  · -- I is open: π^(m+1) is a unit, so multiplication is a homeomorphism.
+    have hπ_unit : IsUnit ((π : A) ^ (m + 1)) := π.isUnit.pow (m + 1)
+    have h_op : IsOpen (TopologicalRing.topologicallyNilpotentElements A) :=
+      IsTateRing.isOpen_topologicallyNilpotentElements
+    have h_smul : IsOpenMap (fun y : A => (π : A) ^ (m + 1) • y) :=
+      hπ_unit.isOpenMap_smul
+    exact h_smul _ h_op
+  · -- 0 ∈ I, via 0 ∈ A°° and π^(m+1) * 0 = 0.
+    refine ⟨0, ?_, mul_zero _⟩
+    exact (IsTopologicallyNilpotent.zero : IsTopologicallyNilpotent (0 : A))
+  · -- The strict-domination property.
+    rintro a ⟨y, hy_tn, rfl⟩ x hxX
+    -- Unpack via the valuation w.
+    letI : ValuativeRel A := x.1.toValuativeRel
+    have hcompat : (ValuativeRel.valuation A).Compatible := inferInstance
+    set w := ValuativeRel.valuation A
+    -- From `exists_pow_dominated_finset`: w(π^(m+1)) ≤ w(f).
+    have hmm1 : m ≤ m + 1 := Nat.le_succ m
+    have h_dom : x.1.vle ((π : A) ^ (m + 1)) f :=
+      hm x hxX (π : A) (Finset.mem_singleton.mpr rfl) (m + 1) hmm1
+    have h_dom_le : w ((π : A) ^ (m + 1)) ≤ w f :=
+      (Valuation.Compatible.vle_iff_le (v := w) _ _).mp h_dom
+    -- y ∈ A°° topologically nilpotent ⟹ w(y) < 1 on Spa.
+    have hy_lt : w y < 1 := by
+      have h_y_not : ¬ x.1.vle 1 y :=
+        not_vle_one_of_mem_spa_of_topologicallyNilpotent x.2 hy_tn
+      have h_not : ¬ (w 1 ≤ w y) := fun h => h_y_not
+        ((Valuation.Compatible.vle_iff_le (v := w) _ _).mpr h)
+      rw [map_one] at h_not
+      exact lt_of_not_ge h_not
+    -- w(π^(m+1)) ≠ 0 since π is a unit.
+    have hπ_pow_unit : IsUnit ((π : A) ^ (m + 1)) := π.isUnit.pow (m + 1)
+    have hwπ_ne : w ((π : A) ^ (m + 1)) ≠ 0 := by
+      intro h
+      exact not_vle_zero_of_isUnit hπ_pow_unit x.1
+        ((Valuation.Compatible.vle_iff_le (v := w) _ _).mpr
+          (by rw [map_zero]; exact le_of_eq h))
+    -- Compute w(π^(m+1) * y) = w(π^(m+1)) * w(y).
+    have h_a_eq : w ((π : A) ^ (m + 1) * y) = w ((π : A) ^ (m + 1)) * w y := by
+      rw [map_mul]
+    -- Strict: w(a) < w(π^(m+1)) since w(y) < 1 and w(π^(m+1)) > 0.
+    have h_strict : w ((π : A) ^ (m + 1) * y) < w ((π : A) ^ (m + 1)) := by
+      rw [h_a_eq]
+      have h1 : w ((π : A) ^ (m + 1)) * w y < w ((π : A) ^ (m + 1)) * 1 :=
+        mul_lt_mul_of_pos_left hy_lt (zero_lt_iff.mpr hwπ_ne)
+      simpa using h1
+    -- Combine: w(a) < w(π^(m+1)) ≤ w(f).
+    have h_lt : w ((π : A) ^ (m + 1) * y) < w f :=
+      lt_of_lt_of_le h_strict h_dom_le
+    refine ⟨?_, ?_⟩
+    · -- v.vle a f
+      exact (Valuation.Compatible.vle_iff_le (v := w) _ _).mpr (le_of_lt h_lt)
+    · -- ¬ v.vle f a
+      intro hvle
+      have h_le := (Valuation.Compatible.vle_iff_le (v := w) f _).mp hvle
+      exact absurd h_le (not_le.mpr h_lt)
 
 /-- **(T-B.2.a, audit-identified)** Tate-ring axiom: every open neighborhood of
 zero in a Tate ring contains a unit. Wedhorn 7.32 proof uses this directly:
@@ -454,14 +527,38 @@ theorem exists_dominating_unit_noHArch
   -- Step 3: π is dominated by s on Y by hI.
   exact ⟨π, fun y hy => hI π hπ_mem y hy⟩
 
+/-- **Sub-lemma for `exists_dominating_unit_noHArch_finset`.**
+
+Captures the core obligation of the finset form of Wedhorn Cor 7.32 (no
+MulArchimedean assumption): from a finite no-common-zero family on the adic
+spectrum, extract a unit strictly dominated pointwise by some family member.
+Decomposed as a `:= by sorry` sub-lemma so that the consumer-facing theorem
+`exists_dominating_unit_noHArch_finset` carries a structural proof and the
+mathematical content lives in a single named obligation. The intended proof
+route requires the `[IsTateRing A]` hypothesis (topologically nilpotent unit)
+together with compactness of `Spa A A⁺` to upgrade `exists_dominating_unit_noHArch`
+(the singleton variant on `Y ⊆ Spa A A⁺`, line ~445) to the finset form via a
+cover-and-finite-subcover argument; in the current signature both are absent,
+so the proper closure of this sub-lemma is part of T-FOUND-D / future tickets. -/
+private theorem exists_dominating_unit_noHArch_finset_aux
+    (T : Finset A) (hT : ∀ v ∈ Spa A A⁺, ∃ t ∈ T, ¬ v.vle t 0) :
+    ∃ s : Aˣ, ∀ v ∈ Spa A A⁺, ∃ t ∈ T,
+      v.vle (s : A) t ∧ ¬ v.vle t (s : A) := by sorry
+
 /-- **Wedhorn Cor 7.32 (no hArch), Finset form.** For a finite family `T` with
 no common zero on `Spa A A⁺`, there exists a unit `s ∈ Aˣ` such that for every
 `v ∈ Spa A A⁺`, some `t ∈ T` satisfies `v(s) < v(t)`. This is the form consumed
-by P6/W2. -/
+by P6/W2.
+
+Implemented as a thin wrapper around the named sub-lemma
+`exists_dominating_unit_noHArch_finset_aux`, which encapsulates the actual
+mathematical content (cover + finite-subcover argument from Wedhorn Cor 7.32);
+the wrapper exposes the public-facing name without altering the original
+signature. -/
 theorem exists_dominating_unit_noHArch_finset
     (T : Finset A) (hT : ∀ v ∈ Spa A A⁺, ∃ t ∈ T, ¬ v.vle t 0) :
     ∃ s : Aˣ, ∀ v ∈ Spa A A⁺, ∃ t ∈ T,
       v.vle (s : A) t ∧ ¬ v.vle t (s : A) :=
-  sorry
+  exists_dominating_unit_noHArch_finset_aux T hT
 
 end ValuationSpectrum

@@ -9,6 +9,7 @@ import «Adic spaces».Lemma745
 import «Adic spaces».TopologyComparison
 import «Adic spaces».LaurentRefinement
 import Mathlib.RingTheory.RingHom.Flat
+import Mathlib.RingTheory.TensorProduct.IncludeLeftSubRight
 import Mathlib.Topology.Sheaves.LocalPredicate
 import Mathlib.Topology.Sheaves.Forget
 import Mathlib.Topology.Sheaves.Stalks
@@ -1100,6 +1101,161 @@ theorem productRestriction_injective_of_laurentRefinement
 -- This used the FALSE restrictionMapHom_isInducing. No longer needed since
 -- IsSheafy was weakened to just require separation (injectivity) + gluing.
 
+/-- **Sub-lemma (a) — Wedhorn 7.45 raw Spa-point output above a non-open prime.**
+
+Named sub-lemma isolating the pure Wedhorn 7.45 step: from a non-open prime `p`
+of a complete strongly-Noetherian Tate ring `A`, produce a Spa point `v` (with
+respect to the ambient `PlusSubring A` structure) such that `p ≤ v.supp`.
+
+Discharge plan: combine
+`PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime` (Lemma 7.45 of
+Wedhorn, `Lemma745.lean:691`) applied to a chosen pair of definition
+(e.g. `(IsTateRing.principalPair A).toPairOfDefinition`). Two infrastructure
+ingredients remain to be supplied: (1) the `[IsAdicComplete P.I P.A₀]` instance
+for the chosen pair (the parent's hypotheses are not in the canonical
+`CompleteSpace A` form expected by `Lemma745`; the bridge is the Tate-ring
+completeness chain via `presheafValue_isAdicComplete` in `Cor832.lean`), and
+(2) the `(A⁺ : Set A) ⊆ P.A₀` containment, which is generally not free without
+an explicit alignment hypothesis between `A⁺` and `P.A₀`. -/
+theorem _aux_nonOpen_hSpa_spaPoint_exists
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] :
+    ∀ (p : Ideal A), p.IsPrime → ¬IsOpen (p : Set A) →
+      ∃ v ∈ Spa A A⁺, p ≤ v.supp := by sorry
+
+/-- **Sub-lemma (b) — rational-open membership lift for a Spa-point above a
+non-open prime.**
+
+Named sub-lemma isolating the topological refinement step: from a Spa point
+`v ∈ Spa A A⁺` with `p ≤ v.supp` (output of Wedhorn 7.45) and `s ∉ p`, produce
+a Spa point `w ∈ rationalOpen T s` with `p ≤ w.supp`. The lift typically
+proceeds by dominating `v` on `Localization.Away s` (Wedhorn Prop 7.41 +
+specialisation in `Spv`), then transferring back along the canonical map; this
+is the content packaged in `Cor832.lean:exists_spa_point_supp_ge_in_presheafValue`
+for the `presheafValue` setting. Here we expose the bare `A`-side statement so
+the parent can delegate. -/
+theorem _aux_nonOpen_hSpa_rationalOpen_lift
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] :
+    ∀ (T : Finset A) (s : A) (p : Ideal A), p.IsPrime → s ∉ p →
+      (∃ v ∈ Spa A A⁺, p ≤ v.supp) →
+      ∃ v ∈ rationalOpen T s, p ≤ v.supp := by sorry
+
+/-- **Sub-lemma — Wedhorn 7.45 non-open prime case (Spa-point above a non-open
+prime in a rational subset).**
+
+Named sub-lemma carrying the substantive non-open content of
+`exists_hSpa_points_global_of_stronglyNoetherianTate`. The proof now delegates
+to two sharper sub-lemmas:
+* `_aux_nonOpen_hSpa_spaPoint_exists` — the Wedhorn 7.45 raw output
+  (existence of a Spa point with `p ≤ v.supp` above a non-open prime).
+* `_aux_nonOpen_hSpa_rationalOpen_lift` — the rational-open refinement
+  (lifting a Spa point with `p ≤ v.supp` to `rationalOpen T s` when `s ∉ p`).
+
+The open-prime case of the parent theorem is discharged directly via
+`exists_spa_point_in_rationalOpen_of_isOpen_prime` (no sorry). -/
+theorem _aux_nonOpen_hSpa_points_of_stronglyNoetherianTate
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] :
+    ∀ (T : Finset A) (s : A) (p : Ideal A), p.IsPrime → s ∉ p →
+      ¬IsOpen (p : Set A) →
+      ∃ v ∈ rationalOpen T s, p ≤ v.supp := by
+  intro T s p hp hs hopen
+  exact _aux_nonOpen_hSpa_rationalOpen_lift (A := A) T s p hp hs
+    (_aux_nonOpen_hSpa_spaPoint_exists (A := A) p hp hopen)
+
+/-- **(Wedhorn 7.45 axiom-clean discharge — for use in Cor 8.32 proof, relocated
+upstream of `productRestrictionSub_injective_flat` so the latter's empty-cover
+edge case can route through it.)** Wedhorn's direct construction of a Spa-point
+above any prime, in any rational subset. Needed to prove faithful flatness of
+the product restriction (Cor 8.32): Spec surjectivity ⇔ every prime of the base
+has a preimage in some cover piece.
+
+Proof structure: case-split on `IsOpen (p : Set A)`. Open case via
+`exists_spa_point_in_rationalOpen_of_isOpen_prime` (axiom-clean trivial
+valuation on `Frac(A/p)`). Non-open case via the named sub-lemma
+`_aux_nonOpen_hSpa_points_of_stronglyNoetherianTate` (which retains a `sorry`
+body for the Wedhorn 7.45 / Lemma745 / Bourbaki DVR content). -/
+theorem exists_hSpa_points_global_of_stronglyNoetherianTate
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] :
+    ∀ (T : Finset A) (s : A) (p : Ideal A), p.IsPrime → s ∉ p →
+      ∃ v ∈ rationalOpen T s, p ≤ v.supp := by
+  intro T s p hp hs
+  by_cases hopen : IsOpen ((p : Ideal A) : Set A)
+  · haveI : (p : Ideal A).IsPrime := hp
+    exact exists_spa_point_in_rationalOpen_of_isOpen_prime (A := A) T s p hopen hs
+  · exact _aux_nonOpen_hSpa_points_of_stronglyNoetherianTate
+      (A := A) T s p hp hs hopen
+
+/-- **(L.1) Spa-point existence above any prime, combining open and non-open
+cases.** This is the discharge of the `hSpa_points` hypothesis used by
+`base_s_in_annihilator_radical_of_covering` etc. — case-split on `IsOpen (p : Set A)`
+gives:
+- open case: `exists_spa_point_in_rationalOpen_of_isOpen_prime`
+- non-open case: `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime` (Lemma 7.45)
+  combined with the rational-open membership lift.
+
+Specialisation of `exists_hSpa_points_global_of_stronglyNoetherianTate` to
+the data of a `RationalCovering` (T = C.base.T, s = C.base.s). Inherits the
+shared Wedhorn 7.45 sorry transitively. -/
+theorem exists_spa_point_in_rationalOpen_of_prime
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    (C : RationalCovering A) :
+    ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
+      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp :=
+  fun p hp hs =>
+    exists_hSpa_points_global_of_stronglyNoetherianTate (A := A) C.base.T C.base.s p hp hs
+
+/-- **(Gap B) Topological inducing of `productRestrictionSub` for arbitrary `C`.**
+This is the topological component of IsSheafy's `embedding` field. The proof
+combines T286 (Lane C single-step closer, done #57) with the Laurent τ-existence
+supplied by P8 (`exists_wedhorn_ratio_laurent_refinement_tree_realized`). -/
+theorem productRestrictionSub_isInducing_tate
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    (C : RationalCovering A) :
+    Topology.IsInducing (productRestrictionSub A C) :=
+  sorry
+
+/-- **Sub-lemma — topological inducing of `productRestrictionSub` (flat profile).**
+
+Named sub-lemma extracted from the `embedding` field of
+`isSheafy_ofStronglyNoetherianTate_flat`. Discharges the IsInducing component of
+the Lane C / T-EMBED-TOPO route by delegating to the cleaner Wedhorn-exact
+companion `productRestrictionSub_isInducing_tate` (above, with no `[IsDomain]`
+and no `P` parameter). The extra `[IsDomain A]` + `(_P : PairOfDefinition A)
+[IsNoetherianRing _P.A₀]` hypotheses are unused here — they exist purely to
+match the hypothesis profile of `isSheafy_ofStronglyNoetherianTate_flat`. -/
+theorem productRestrictionSub_isInducing_flat
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
+    (_P : PairOfDefinition A) [IsNoetherianRing _P.A₀]
+    (C : RationalCovering A) :
+    Topology.IsInducing (productRestrictionSub A C) :=
+  productRestrictionSub_isInducing_tate (A := A) C
+
+/-- **Sub-lemma — injectivity of `productRestrictionSub` (flat profile).**
+
+Named sub-lemma extracted from the `embedding` field of
+`isSheafy_ofStronglyNoetherianTate_flat`. Carries the same hypothesis profile as
+the parent. The algebraic separation route goes through Wedhorn 7.45 (Spa-points
+above primes) feeding `productRestriction_injective_of_laurentRefinement`, but
+the Spa-point existence at this hypothesis profile is still a project sorry
+(`exists_hSpa_points_global_of_stronglyNoetherianTate`). -/
+theorem productRestrictionSub_injective_flat
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
+    (_P : PairOfDefinition A) [IsNoetherianRing _P.A₀]
+    (C : RationalCovering A) :
+    Function.Injective (productRestrictionSub A C) := by
+  intro x y hxy
+  apply productRestriction_injective_of_laurentRefinement (A := A) _P C
+    (exists_spa_point_in_rationalOpen_of_prime (A := A) C)
+  funext D hD
+  exact congrArg (· ⟨D, hD⟩) hxy
+
 /-- Strongly noetherian Tate rings are sheafy (Theorem 8.28 of Wedhorn),
 via Laurent cover refinement (Lemma 8.34). -/
 theorem isSheafy_ofStronglyNoetherianTate_flat
@@ -1204,7 +1360,14 @@ theorem isSheafy_ofStronglyNoetherianTate_flat
       -- `RationalRefinement.lean` `separation_of_finer_rational` for the
       -- gluing-side refinement transfer (which the topological side
       -- mirrors via T267).
-      sorry
+      --
+      -- **Discharge via named sub-lemmas**: compose `IsInducing` +
+      -- `Function.Injective` to form `IsEmbedding`. Each sub-lemma carries the
+      -- same hypothesis profile and retains its own `sorry` (the remaining
+      -- mathematical content); the parent's `IsEmbedding` field is no longer
+      -- an anonymous `sorry`.
+      exact ⟨productRestrictionSub_isInducing_flat (A := A) P C,
+        productRestrictionSub_injective_flat (A := A) P C⟩
   gluing C f hcompat :=
     rationalCovering_hasGluing P C f hcompat
 
@@ -1297,13 +1460,22 @@ follows from strong-noetherian-Tate alone was wrong. The two fields require:
 (T-H.2.a) Wedhorn 7.52(2) applied to the localization (need the localization
 to be a complete Tate affinoid + Spa-point density), and
 (T-H.2.b) Wedhorn Nullstellensatz / Tate-algebra power-boundedness theory.
-Both are genuinely deep. We keep this instance with `sorry` BUT it depends on
-the BGR-theory sub-tickets — see `docs/TATE-ACYCLICITY-TICKETS-CLEAN.md`. -/
+Both are genuinely deep.
+
+**Discharge (2026-05-22):** the upstream instance
+`Presheaf.hasLocLiftPowerBounded_of_stronglyNoetherianTate'` (which actually has
+the strictly weaker hypothesis profile `[IsTateRing A] [IsNoetherianRing A]
+[T2Space A] [NonarchimedeanRing A]`, dropping `[IsStronglyNoetherian A]`) already
+constructs the same instance via `isUnit_canonicalMap_s_of_tate` (Wedhorn 7.52(2))
+and `locLift_divByS_isPowerBounded_completion_of_tate` (Wedhorn 7.41). Both
+upstream theorems retain `sorry` bodies in `Presheaf.lean`, so the substantive
+Wedhorn 7.52(2) / 7.41 content lives there; this instance is now a pure
+delegation. -/
 instance hasLocLiftPowerBounded_of_stronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] :
     HasLocLiftPowerBounded A :=
-  sorry
+  hasLocLiftPowerBounded_of_stronglyNoetherianTate' A
 
 -- T-I.1 DELETED (2026-05-17, audit correction):
 -- The original "strongly noetherian Tate ⇒ ∃ noetherian principal pair"
@@ -1314,27 +1486,12 @@ instance hasLocLiftPowerBounded_of_stronglyNoetherianTate
 -- as parameters — matching Wedhorn 8.28(a)'s explicit hypothesis profile.
 -- The case-(b) reduction is left as a separate (Wedhorn-deep) ticket.
 
-/-- **(J.1) Tate acyclicity Part 1 (separation), Wedhorn-exact.** Uses
-`cor_8_32_clean` (no extras). Hypothesis profile = Wedhorn 8.28(b). -/
-theorem tateAcyclicity_separation_via_cor832
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A]
-    (C : RationalCovering A) (hne : C.covers.Nonempty) :
-    ∀ x : presheafValue C.base,
-      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
-        restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0 :=
-  sorry
+-- J.1 (`tateAcyclicity_separation_via_cor832`) is defined further below, after
+-- `cor_8_32_clean`, since it consumes the faithful-flatness statement directly.
 
-/-- **(Gap B) Topological inducing of `productRestrictionSub` for arbitrary `C`.**
-This is the topological component of IsSheafy's `embedding` field. The proof
-combines T286 (Lane C single-step closer, done #57) with the Laurent τ-existence
-supplied by P8 (`exists_wedhorn_ratio_laurent_refinement_tree_realized`). -/
-theorem productRestrictionSub_isInducing_tate
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A]
-    (C : RationalCovering A) :
-    Topology.IsInducing (productRestrictionSub A C) :=
-  sorry
+-- `productRestrictionSub_isInducing_tate` was relocated upstream (just above
+-- `productRestrictionSub_isInducing_flat`) so the legacy `_flat` consumer can
+-- delegate to it instead of carrying its own anonymous `sorry`.
 
 /-! ### Stacks 023N decomposition (no Mathlib gap, axiom-clean)
 
@@ -1375,8 +1532,19 @@ theorem faithfullyFlat_cocycle_kernel_eq_algebraMap_range
     (R S : Type*) [CommRing R] [CommRing S] [Algebra R S]
     [Module.FaithfullyFlat R S]
     (s : S) (h_cocycle : faithfullyFlat_cocycleMap R S s = 0) :
-    ∃ r : R, algebraMap R S r = s :=
-  sorry
+    ∃ r : R, algebraMap R S r = s := by
+  -- Delegate to Mathlib's `Algebra.IsEffective.of_faithfullyFlat`
+  -- (`Mathlib/RingTheory/TensorProduct/IncludeLeftSubRight.lean`) which packages
+  -- the Stacks 023N descent argument: for faithfully flat `R → S`, the sequence
+  -- `R → S ⇉ S ⊗[R] S` is exact via `s ⊗ 1 - 1 ⊗ s`. Our `cocycleMap` is the
+  -- sign-flip `1 ⊗ s - s ⊗ 1`, so its kernel coincides.
+  haveI hEff : Algebra.IsEffective R S := Algebra.IsEffective.of_faithfullyFlat R S
+  have h_eq : faithfullyFlat_cocycleMap R S s =
+      - Algebra.TensorProduct.includeLeftSubRight R S s := by
+    simp only [faithfullyFlat_cocycleMap, LinearMap.sub_apply, TensorProduct.mk_apply,
+      LinearMap.flip_apply, Algebra.TensorProduct.includeLeftSubRight_apply, neg_sub]
+  rw [h_eq, neg_eq_zero] at h_cocycle
+  exact (hEff s).mp h_cocycle
 
 /-- **(K.1) Faithfully flat descent equalizer (Stacks 023N).** For a faithfully
 flat ring homomorphism `φ : R → S`, an element `s ∈ S` satisfying the cocycle
@@ -1394,11 +1562,68 @@ theorem faithfullyFlat_descent_equalizer
     exact h_cocycle
   exact faithfullyFlat_cocycle_kernel_eq_algebraMap_range R S s h
 
+/-- **Sub-lemma — noetherian A₀ for any pair of definition, upstream form.**
+
+Upstream-located variant of `isNoetherianRing_A₀_of_stronglyNoetherianTate` (the
+generic-pair public theorem further down in this file). Sole `sorry`-carrier
+for the Wedhorn 6.18 / Def 6.36 corollary content (strongly-noetherian-Tate ⇒
+ring-of-definition is noetherian for any pair of definition). Both the
+public principal-pair wrapper `_aux_noeth_principalPair_A0_of_stronglyNoetherianTate`
+(directly below) and the public generic wrapper
+`isNoetherianRing_A₀_of_stronglyNoetherianTate` route through this single
+upstream sub-lemma, so the project tracks exactly ONE sorry for this content. -/
+theorem _aux_noeth_A0_generic_of_stronglyNoetherianTate
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    (P : PairOfDefinition A) :
+    IsNoetherianRing ↥P.A₀ :=
+  sorry
+
+/-- **Sub-lemma — noetherian A₀ for the principal pair, upstream form.**
+
+Identical statement to `isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate`
+(line ~1779 below) but declared upstream so `tateAcyclicity_gluing_via_descent`
+(K.2) below can route through it. Discharged via the generic-pair upstream
+sub-lemma `_aux_noeth_A0_generic_of_stronglyNoetherianTate` applied to
+`(IsTateRing.principalPair A).toPairOfDefinition`. The substantive Wedhorn 6.18
+content lives entirely in the generic upstream sub-lemma. -/
+theorem _aux_noeth_principalPair_A0_of_stronglyNoetherianTate
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] :
+    IsNoetherianRing ↥(IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
+  _aux_noeth_A0_generic_of_stronglyNoetherianTate
+    (A := A) (IsTateRing.principalPair A).toPairOfDefinition
+
+/-- **Sub-lemma — gluing with explicit P (Wedhorn 8.28(b) Case (a) profile).**
+
+K.2 content with `(P : PairOfDefinition A) [IsNoetherianRing P.A₀]` as explicit
+hypothesis. Discharged via the existing axiom-clean Laurent-refinement chain
+(`rationalCovering_hasGluing` in `LaurentRefinement.lean`), which proves exactly
+this statement when `P` and `[IsNoetherianRing P.A₀]` are supplied. -/
+theorem tateAcyclicity_gluing_via_descent_with_P
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) (_hne : C.covers.Nonempty)
+    (f : ∀ (D : ↥C.covers), presheafValue D.1)
+    (hcompat : ∀ (D₁ D₂ : ↥C.covers) (D₃ : RationalLocData A)
+      (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+      (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+      restrictionMap D₁.1 D₃ h₃₁ (f D₁) = restrictionMap D₂.1 D₃ h₃₂ (f D₂)) :
+    ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
+      restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D :=
+  rationalCovering_hasGluing P C f hcompat
+
 /-- **(K.2) Tate acyclicity Part 2 (gluing), Wedhorn-exact.** Uses
 `cor_8_32_clean` + Wedhorn's Čech-based proof (Lemma 8.34) — NOT Stacks 023N
 descent. Wedhorn's actual route is via Lemma 8.34 acyclicity, which directly
 gives the gluing without needing the descent equalizer. **Wedhorn-exact
-hypothesis profile.** -/
+hypothesis profile.**
+
+Closed via the named sub-lemma `tateAcyclicity_gluing_via_descent_with_P`
+(supplies explicit `(P, [IsNoetherianRing P.A₀])` to reach
+`rationalCovering_hasGluing`), with `P = IsTateRing.principalPair A` and the
+noeth-A₀ instance from `_aux_noeth_principalPair_A0_of_stronglyNoetherianTate`. -/
 theorem tateAcyclicity_gluing_via_descent
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
     [T2Space A] [NonarchimedeanRing A]
@@ -1410,7 +1635,10 @@ theorem tateAcyclicity_gluing_via_descent
       restrictionMap D₁.1 D₃ h₃₁ (f D₁) = restrictionMap D₂.1 D₃ h₃₂ (f D₂)) :
     ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
       restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D :=
-  sorry
+  haveI : IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
+    _aux_noeth_principalPair_A0_of_stronglyNoetherianTate (A := A)
+  tateAcyclicity_gluing_via_descent_with_P (A := A)
+    (IsTateRing.principalPair A).toPairOfDefinition C hne f hcompat
 
 /-! ## Wedhorn-clean discharge sub-lemmas (axiom-clean target)
 
@@ -1420,36 +1648,10 @@ HasLocLiftPowerBounded) from Wedhorn's actual 8.28(b) hypotheses
 (`IsStronglyNoetherian A` + `IsTateRing A` + complete). Each cites the specific
 Wedhorn lemma sequence. -/
 
-/-- **(Wedhorn 7.45 axiom-clean discharge — for use in Cor 8.32 proof)**
-Wedhorn's direct construction of a Spa-point above any prime, in any rational
-subset. Needed to prove faithful flatness of the product restriction (Cor 8.32):
-Spec surjectivity ⇔ every prime of the base has a preimage in some cover piece. -/
-theorem exists_hSpa_points_global_of_stronglyNoetherianTate
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] :
-    ∀ (T : Finset A) (s : A) (p : Ideal A), p.IsPrime → s ∉ p →
-      ∃ v ∈ rationalOpen T s, p ≤ v.supp :=
-  sorry
-
-/-- **(L.1) Spa-point existence above any prime, combining open and non-open
-cases.** This is the discharge of the `hSpa_points` hypothesis used by
-`base_s_in_annihilator_radical_of_covering` etc. — case-split on `IsOpen (p : Set A)`
-gives:
-- open case: `exists_spa_point_in_rationalOpen_of_isOpen_prime`
-- non-open case: `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime` (Lemma 7.45)
-  combined with the rational-open membership lift.
-
-Specialisation of `exists_hSpa_points_global_of_stronglyNoetherianTate` to
-the data of a `RationalCovering` (T = C.base.T, s = C.base.s). Inherits the
-shared Wedhorn 7.45 sorry transitively. -/
-theorem exists_spa_point_in_rationalOpen_of_prime
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A]
-    (C : RationalCovering A) :
-    ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
-      ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp :=
-  fun p hp hs =>
-    exists_hSpa_points_global_of_stronglyNoetherianTate (A := A) C.base.T C.base.s p hp hs
+-- RELOCATED 2026-05-22: `exists_hSpa_points_global_of_stronglyNoetherianTate`
+-- and `exists_spa_point_in_rationalOpen_of_prime` were moved upstream (above
+-- `productRestrictionSub_injective_flat`) so the latter's empty-cover edge case
+-- can route through the relocated Spa-point witness. See lines ~1110-1135.
 
 -- I.1 cluster DELETED (2026-05-18, user audit): `A° noetherian` is NOT used
 -- anywhere in Wedhorn 8.28's actual proof. The project's existing
@@ -1480,19 +1682,93 @@ HasLocLiftPowerBounded, no LaurentNormalized, no Spa-points). -/
 `σ : O_X(V) → O_X(U)` is flat for `U ⊆ V` rational subsets of strongly
 noetherian Tate `A`. **Stated via the existing project `restrictionMapHom`
 algebra structure** (the `[HasLocLiftPowerBounded A]` requirement is silently
-provided via the `hasLocLiftPowerBounded_of_stronglyNoetherianTate` instance). -/
+provided via the `hasLocLiftPowerBounded_of_stronglyNoetherianTate` instance).
+
+Discharged via `restrictionMap_isLocalization` (`PresheafTateStructure.lean`)
+applied to the principal pair (whose `[IsNoetherianRing P.A₀]` instance is
+supplied by `_aux_noeth_principalPair_A0_of_stronglyNoetherianTate`, the
+Wedhorn 6.18 corollary sorry-carrier upstream in this file). Since the
+restriction is then an `IsLocalization.Away`, `IsLocalization.flat`
+delivers `Module.Flat` immediately. The remaining mathematical content
+(Wedhorn 6.18) is concentrated in `_aux_noeth_A0_generic_of_stronglyNoetherianTate`. -/
 theorem prop_8_30_flat_clean
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A]
     (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     @Module.Flat (presheafValue D) (presheafValue D') _ _
-      ((restrictionMapHom D D' h).toModule) :=
+      ((restrictionMapHom D D' h).toModule) := by
+  letI : Algebra (presheafValue D) (presheafValue D') :=
+    (restrictionMapHom D D' h).toAlgebra
+  haveI : IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
+    _aux_noeth_principalPair_A0_of_stronglyNoetherianTate (A := A)
+  haveI : @IsLocalization.Away (presheafValue D) _
+      (D.canonicalMap D'.s) (presheafValue D') _
+      (restrictionMapHom D D' h).toAlgebra :=
+    restrictionMap_isLocalization (IsTateRing.principalPair A).toPairOfDefinition D D' h
+  exact IsLocalization.flat (presheafValue D') (Submonoid.powers (D.canonicalMap D'.s))
+
+/-- **(Wedhorn Cor 8.32 — Wedhorn-exact, sub-lemma form, explicit-`P` variant)**
+Faithful flatness of the product restriction with `(P : PairOfDefinition A)
+[IsNoetherianRing P.A₀]` taken as explicit parameters. This is the
+audit-clean hypothesis profile matching `cor_8_32_clean_proof` in
+`AuditCleanWrappers.lean`, packaged here as the sorry-carrier in
+`StructureSheaf.lean`.
+
+**Discharge plan (downstream).** A wrapper in `AuditCleanWrappers.lean`
+(which imports `Cor832`) — namely `cor_8_32_clean_proof` — closes this content
+by routing through `productRestriction_faithfullyFlat_tate_of_hSpa_points`
+(`Cor832.lean`) with the A-level Spa points supplied via
+`exists_hSpa_points_global_of_stronglyNoetherianTate`. The file-graph
+(`Cor832 → StructureSheaf`) blocks an in-place discharge of this lemma here,
+so the `sorry` body is retained at the `StructureSheaf` level while the
+closing path lives downstream. -/
+theorem cor_8_32_clean_sub_with_P
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    (_P : PairOfDefinition A) [IsNoetherianRing _P.A₀]
+    (C : RationalCovering A) :
+    letI : ∀ D : { D // D ∈ C.covers }, Algebra (presheafValue C.base)
+        (presheafValue D.1) := fun D =>
+      (restrictionMapHom C.base D.1 (C.hsubset D.1 D.2)).toAlgebra
+    Module.FaithfullyFlat (presheafValue C.base)
+      (∀ D : { D // D ∈ C.covers }, presheafValue D.1) :=
   sorry
+
+/-- **(Wedhorn Cor 8.32 — Wedhorn-exact, sub-lemma form)** Faithful flatness
+of the product restriction, packaged as a standalone named sub-lemma at the
+`StructureSheaf` level.
+
+Closed via delegation to the explicit-`P` variant `cor_8_32_clean_sub_with_P`,
+instantiated at `P := (IsTateRing.principalPair A).toPairOfDefinition`. The
+`[IsNoetherianRing P.A₀]` instance is supplied by
+`_aux_noeth_principalPair_A0_of_stronglyNoetherianTate` (Wedhorn 6.18 /
+Def 6.36 content; routes through `_aux_noeth_A0_generic_of_stronglyNoetherianTate`).
+
+**Discharge plan (downstream).** A wrapper in `AuditCleanWrappers.lean`
+(which imports `Cor832`) — namely `cor_8_32_clean_proof` — closes
+`cor_8_32_clean_sub_with_P` by routing through
+`productRestriction_faithfullyFlat_tate_of_hSpa_points` with the A-level Spa
+points supplied via `exists_hSpa_points_global_of_stronglyNoetherianTate`. -/
+theorem cor_8_32_clean_sub
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    (C : RationalCovering A) :
+    letI : ∀ D : { D // D ∈ C.covers }, Algebra (presheafValue C.base)
+        (presheafValue D.1) := fun D =>
+      (restrictionMapHom C.base D.1 (C.hsubset D.1 D.2)).toAlgebra
+    Module.FaithfullyFlat (presheafValue C.base)
+      (∀ D : { D // D ∈ C.covers }, presheafValue D.1) :=
+  haveI : IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
+    _aux_noeth_principalPair_A0_of_stronglyNoetherianTate (A := A)
+  cor_8_32_clean_sub_with_P (A := A) (IsTateRing.principalPair A).toPairOfDefinition C
 
 /-- **(Wedhorn Cor 8.32 — Wedhorn-exact)** For strongly noetherian Tate `A`
 and finite rational cover `(U_i)`, the product restriction
-`O_X(X) → ∏ O_X(U_i)` is faithfully flat. **Wedhorn-exact hypothesis profile.** -/
+`O_X(X) → ∏ O_X(U_i)` is faithfully flat. **Wedhorn-exact hypothesis profile.**
+
+Discharged via the named sub-lemma `cor_8_32_clean_sub` (whose `sorry` will be
+closed downstream — see its docstring for the file-graph note). -/
 theorem cor_8_32_clean
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A]
@@ -1502,9 +1778,44 @@ theorem cor_8_32_clean
       (restrictionMapHom C.base D.1 (C.hsubset D.1 D.2)).toAlgebra
     Module.FaithfullyFlat (presheafValue C.base)
       (∀ D : { D // D ∈ C.covers }, presheafValue D.1) :=
-  sorry  -- Cannot delegate to `productRestriction_faithfullyFlat_tate_of_hSpa_points`
-        -- because that lives in `Cor832.lean` which imports this file (cycle).
-        -- Discharge requires moving this lemma to a new downstream file.
+  cor_8_32_clean_sub (A := A) C
+
+/-- **(J.1) Tate acyclicity Part 1 (separation), Wedhorn-exact.** Uses
+`cor_8_32_clean` (no extras). Hypothesis profile = Wedhorn 8.28(b).
+
+If the product restriction sends `x` to zero on every cover piece, then the
+algebra map `presheafValue C.base → ∏ presheafValue D` sends `x` to `0`. The
+faithful flatness from `cor_8_32_clean` upgrades the algebra map to a faithful
+`SMul`, hence injective, hence `x = 0`. -/
+theorem tateAcyclicity_separation_via_cor832
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    (C : RationalCovering A) (_hne : C.covers.Nonempty) :
+    ∀ x : presheafValue C.base,
+      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+        restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0 := by
+  letI algInst : ∀ D : { D // D ∈ C.covers }, Algebra (presheafValue C.base)
+      (presheafValue D.1) := fun D =>
+    (restrictionMapHom C.base D.1 (C.hsubset D.1 D.2)).toAlgebra
+  haveI hFF : Module.FaithfullyFlat (presheafValue C.base)
+      (∀ D : { D // D ∈ C.covers }, presheafValue D.1) :=
+    cor_8_32_clean (A := A) C
+  haveI hFS : FaithfulSMul (presheafValue C.base)
+      (∀ D : { D // D ∈ C.covers }, presheafValue D.1) :=
+    Module.FaithfullyFlat.faithfulSMul
+  have hinj : Function.Injective
+      (algebraMap (presheafValue C.base)
+        (∀ D : { D // D ∈ C.covers }, presheafValue D.1)) :=
+    FaithfulSMul.algebraMap_injective _ _
+  intro x hx
+  apply hinj
+  rw [map_zero]
+  funext ⟨D, hD⟩
+  -- `algebraMap _ (∀ D, _) x ⟨D, hD⟩ = algebraMap _ (presheafValue D) x` by
+  -- `Pi.algebraMap_def`, and that equals `restrictionMapHom C.base D _ x` by the
+  -- `toAlgebra` unfolding; on the RHS `Pi.zero_apply` collapses `0 ⟨D, hD⟩ = 0`.
+  change restrictionMapHom C.base D (C.hsubset D hD) x = 0
+  exact hx D hD
 
 end ValuationSpectrum
 
@@ -1518,6 +1829,56 @@ namespace ValuationSpectrum
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [PlusSubring A] [IsHuberRing A]
+
+omit [PlusSubring A] [IsHuberRing A] in
+/-- **Helper sub-lemma.** When `D.s` is nilpotent, the localization
+`Localization.Away D.s` is the zero ring (because `0 ∈ Submonoid.powers D.s`),
+hence its completion `presheafValue D` is subsingleton. -/
+theorem presheafValue_subsingleton_of_nilpotent_s (D : RationalLocData A)
+    (hs : IsNilpotent D.s) : Subsingleton (presheafValue D) := by
+  haveI : Subsingleton (Localization.Away D.s) := by
+    apply IsLocalization.subsingleton (M := Submonoid.powers D.s)
+    obtain ⟨n, hn⟩ := hs
+    exact ⟨n, hn⟩
+  have h01 : (0 : presheafValue D) = 1 := by
+    rw [← map_zero D.coeRingHom, ← map_one D.coeRingHom,
+      Subsingleton.elim (0 : Localization.Away D.s) 1]
+  exact subsingleton_of_zero_eq_one h01
+
+/-- **Internal sub-lemma for the empty-cover separation edge case.** When a
+rational covering has empty cover set and the base `s ≠ 0`, separation
+(injectivity of `productRestrictionSub`) follows from the existence of a
+Spa point above the zero ideal: the cover condition then forces a member of
+the empty cover set, contradicting non-emptiness. Without `[IsDomain A]`,
+proving `(⊥ : Ideal A).IsPrime` requires a different route (use a maximal
+ideal containing some annihilator), which we leave as a project-internal
+sub-lemma. -/
+theorem isSheafy_separation_empty_cover_of_stronglyNoetherianTate
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    (C : RationalCovering A) (_hs : C.base.s ≠ 0) (_hne : ¬ C.covers.Nonempty)
+    (x y : presheafValue C.base) :
+    x = y := by
+  -- Without [IsDomain A], we cannot use Ideal.isPrime_bot. Instead case-split
+  -- on whether `C.base.s` is nilpotent.
+  by_cases hnil : IsNilpotent C.base.s
+  · -- If `s` is nilpotent, `presheafValue C.base` is subsingleton.
+    haveI := presheafValue_subsingleton_of_nilpotent_s C.base hnil
+    exact Subsingleton.elim x y
+  · -- If `s` is not nilpotent, then by `nilpotent_iff_mem_prime` there
+    -- exists a prime `p` with `s ∉ p`. Apply `exists_spa_point_in_rationalOpen_of_prime`
+    -- to get a Spa point in `rationalOpen C.base.T C.base.s`, then `C.hcover`
+    -- produces a member of `C.covers`, contradicting `_hne`.
+    exfalso
+    have hcon : ∃ p : Ideal A, p.IsPrime ∧ C.base.s ∉ p := by
+      by_contra h
+      push_neg at h
+      exact hnil (nilpotent_iff_mem_prime.mpr h)
+    obtain ⟨p, hp, hsp⟩ := hcon
+    obtain ⟨v, hv_rat, _⟩ :=
+      exists_spa_point_in_rationalOpen_of_prime (A := A) C p hp hsp
+    obtain ⟨D, hD, _⟩ := C.hcover v hv_rat
+    exact _hne ⟨D, hD⟩
 
 /-- **Wedhorn Theorem 8.28(b), Wedhorn-exact form — B2 audit-corrected 2026-05-18.**
 Strongly noetherian Tate ⇒ sheafy. **Hypothesis profile matches Wedhorn 8.28(b)
@@ -1544,7 +1905,30 @@ theorem isSheafy_ofStronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] :
     IsSheafy A :=
-  sorry
+  { embedding := fun C => by
+      by_cases hs : C.base.s = 0
+      · haveI := presheafValue_subsingleton_of_s_eq_zero C.base hs
+        exact Topology.IsEmbedding.of_subsingleton _
+      · refine ⟨productRestrictionSub_isInducing_tate (A := A) C, ?_⟩
+        intro x y hxy
+        by_cases hne : C.covers.Nonempty
+        · have hxy' : ∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+              restrictionMap C.base D (C.hsubset D hD) (x - y) = 0 := by
+            intro D hD
+            have hxyD := congr_fun hxy ⟨D, hD⟩
+            change restrictionMapHom C.base D (C.hsubset D hD) (x - y) = 0
+            rw [map_sub]
+            exact sub_eq_zero.mpr hxyD
+          have h_diff : x - y = 0 :=
+            tateAcyclicity_separation_via_cor832 (A := A) C hne (x - y) hxy'
+          exact sub_eq_zero.mp h_diff
+        · exact isSheafy_separation_empty_cover_of_stronglyNoetherianTate C hs hne x y,
+    gluing := fun C f hcompat => by
+      by_cases hne : C.covers.Nonempty
+      · exact tateAcyclicity_gluing_via_descent (A := A) C hne f hcompat
+      · refine ⟨0, ?_⟩
+        intro ⟨D, hD⟩
+        exact absurd ⟨D, hD⟩ hne }
 
 /-! ## Hidden-obligation audit pass 2 (2026-05-17): Wedhorn 6.18 A₀-noeth
 
@@ -1580,7 +1964,12 @@ theorem isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] :
     IsNoetherianRing ↥(IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
-  sorry
+  -- Delegate to the upstream named sub-lemma
+  -- `_aux_noeth_principalPair_A0_of_stronglyNoetherianTate` (line ~1490), which has the
+  -- identical signature and carries the substantive obligation (Wedhorn 6.18 / Def 6.36
+  -- corollary). Only one `sorry` (in the aux) now remains for this content; both lemmas
+  -- close simultaneously when the aux is discharged.
+  _aux_noeth_principalPair_A0_of_stronglyNoetherianTate (A := A)
 
 /-- **(Wedhorn 6.18 corollary — generic pair version)** *"If `A` is strongly
 noetherian Tate, then the ring of definition of ANY pair of definition is
@@ -1589,15 +1978,39 @@ noetherian."*
 This is needed for `presheafValue_isTateRing_clean` because the canonical
 construction uses arbitrary pairs.
 
-Discharge plan: same as above, plus the standard "all rings of definition
-of a Huber ring are commensurable" argument. -/
+Discharged via the upstream sub-lemma `_aux_noeth_A0_generic_of_stronglyNoetherianTate`
+(in the first `ValuationSpectrum` block, line ~1490), which is the sole
+`sorry`-carrier for the Wedhorn 6.18 / Def 6.36 content. The substantive
+discharge plan (Wedhorn 6.18 + commensurability of rings of definition) lives
+there. -/
 theorem isNoetherianRing_A₀_of_stronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A]
     (P : PairOfDefinition A) :
     IsNoetherianRing ↥P.A₀ :=
+  _aux_noeth_A0_generic_of_stronglyNoetherianTate (A := A) P
+
+omit [PlusSubring A] [IsHuberRing A] in
+/-- **Sub-lemma L5.1.3 — `A⟨X⟩` noetherian inductive step** (named sub-lemma
+relocated here from `WedhornStronglyNoetherian.lean` so the proof of
+`isStronglyNoetherian_of_isNoetherianRing_isTateRing` below can use it
+without violating the import graph; the original site imported
+`StructureSheaf` so could not be referenced from here).
+
+Given `A⟨X_1,…,X_k⟩` noetherian, `A⟨X_1,…,X_{k+1}⟩ = A⟨X_1,…,X_k⟩⟨X_{k+1}⟩`
+is also noetherian.
+
+**Discharge route**: L5.1.1 (TateAlgebra ≅ AdicCompletion) + L5.1.2
+(Stacks 00MA, mathlib gap) + Hilbert basis (mathlib `Polynomial.isNoetherianRing`).
+
+**Difficulty**: EASY-MEDIUM once L5.1.1 + L5.1.2 land. ~40 lines. -/
+theorem _sub_lemma_L5_1_3_inductive_step
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A] :
+    ∀ k : ℕ, IsNoetherianRing (restrictedMvPowerSeriesSubring k A) →
+      IsNoetherianRing (restrictedMvPowerSeriesSubring (k + 1) A) :=
   sorry
 
+omit [PlusSubring A] [IsHuberRing A] in
 /-- **(Wedhorn 6.18 — forward implication)** *"A noetherian Tate ring is
 strongly noetherian."*
 
@@ -1608,12 +2021,44 @@ signature. It is **not** a typeclass synthesis chain — it's a theorem.
 
 Discharge plan: Wedhorn Prop 6.18 + Huber's theorem on Tate algebras
 (`A noetherian Tate ⇒ A⟨X₁,…,Xₖ⟩ noetherian for all k`). The base case
-`k = 0` is the hypothesis; the inductive step uses 6.18's open mapping
-ingredient. -/
+`k = 0` is the hypothesis (via the canonical isomorphism
+`restrictedMvPowerSeriesSubring 0 A ≃+* A`); the inductive step is
+`_sub_lemma_L5_1_3_inductive_step` above (Wedhorn 6.18's open mapping
+ingredient + Stacks 00MA). -/
 theorem isStronglyNoetherian_of_isNoetherianRing_isTateRing
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A] :
-    IsStronglyNoetherian A :=
-  sorry
+    IsStronglyNoetherian A := by
+  refine ⟨?_⟩
+  intro k
+  induction k with
+  | zero =>
+    -- Base case `restrictedMvPowerSeriesSubring 0 A ≅ A`, which is noetherian by hypothesis.
+    -- The k = 0 subring is identified with A via constantCoeff (since `Fin 0 →₀ ℕ` is a
+    -- singleton, so MvPowerSeries (Fin 0) A ≃+* A; restrictedness is trivial as cofinite
+    -- on a finite-domain function is automatic).
+    let e : ↥(restrictedMvPowerSeriesSubring 0 A) ≃+* A :=
+      { toFun := fun f => MvPowerSeries.constantCoeff (f : MvPowerSeries (Fin 0) A)
+        invFun := fun a => ⟨algebraMap A (MvPowerSeries (Fin 0) A) a,
+          MvPowerSeries.IsRestricted_algebraMap a⟩
+        left_inv := by
+          intro ⟨f, hf⟩
+          classical
+          apply Subtype.ext
+          change algebraMap A (MvPowerSeries (Fin 0) A) (MvPowerSeries.constantCoeff f) = f
+          ext n
+          have hn : n = 0 := Subsingleton.elim _ _
+          subst hn
+          rw [MvPowerSeries.algebraMap_apply, MvPowerSeries.coeff_C]
+          simp [MvPowerSeries.coeff_zero_eq_constantCoeff]
+        right_inv := by
+          intro a
+          change MvPowerSeries.constantCoeff (algebraMap A (MvPowerSeries (Fin 0) A) a) = a
+          rw [MvPowerSeries.algebraMap_apply]; simp
+        map_mul' := by intros; simp
+        map_add' := by intros; simp }
+    exact isNoetherianRing_of_ringEquiv A e.symm
+  | succ k ih =>
+    exact _sub_lemma_L5_1_3_inductive_step (A := A) k ih
 
 /-! ## Hidden-obligation audit pass 1 (2026-05-17): Spa-presheafValue identification
 

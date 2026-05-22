@@ -1,5 +1,6 @@
 import «Adic spaces».AdicCompletionBridge
 import «Adic spaces».AdicCompletionFaithfullyFlat
+import «Adic spaces».AdicCompletionNoetherian
 import «Adic spaces».AdicCompletionTransfer
 import «Adic spaces».CompletionLocalization
 import «Adic spaces».PresheafAdicCompletion

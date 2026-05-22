@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import «Adic spaces».SpaCompact
 import «Adic spaces».Presheaf
+import «Adic spaces».SpvAITopology
 
 /-!
 # No-`hArch` compactness and per-`v` cofinality (T-COMPACT-NO-HARCH)
@@ -174,20 +175,200 @@ lemma exists_uniform_pow_vle_on_compact
 
 variable [IsHuberRing A] [IsTateRing A]
 
+/-- **Sub-leaf L1.1.a' — closed intersection with `range ιSpv` in the Sierpinski
+ambient.** On `range ιSpv`, the open cylinder `{r | r (g, h)}` is constrained by the
+`apply_iff` valuation-characteristic axiom (Phase 2 of the Sierpinski embedding
+machinery, `SpvAITopology.lean`); combined with closedness of `range ιSpv`, this lets
+us conclude the intersection is closed in the Sierpinski product.
+
+**⚠ B2 CANDIDATE (logged 2026-05-22).** The statement of this lemma is almost
+certainly FALSE as written, for two independent reasons that both flow from the
+Sierpinski choice of topology on `Prop`:
+
+1. **`range ιSpv` is not closed in Sierpinski** (project's own counterexample at
+   `ValuationSpectrumCompact.lean`, lines 440-451). Hence even the "easy" factor
+   `range ιSpv ∩ S` cannot be obtained as "closed ∩ S" via `range ιSpv` being
+   closed; the whole Phase-2 plan in `SpvAITopology.lean` (Sub-leaves 1-9) sits
+   on hypothetical Sierpinski-closedness claims that have all been left as `sorry`
+   (no progress on any of them), and the project has pivoted to Alexander's
+   sub-basis theorem (`compactSpace_of_subbasic_subcover`) to avoid this route
+   for compactness.
+
+2. **The cylinder `{r | r (g, h) ∨ (¬ r (h, h) ∧ ¬ r (g, g))}` is open ∪ closed
+   in Sierpinski, hence not closed.** Intersection with `range ιSpv` does
+   reformulate `r (g, h)` via `apply_iff` (on range, `r (g, h) ↔ vleOf r g h ∧
+   ¬ vleOf r h 0`), but this rewrites an open coordinate cylinder into a
+   conjunction that still mixes an open conclusion with a closed condition;
+   no resulting expression is a finite Boolean combination of Sierpinski-closed
+   cylinders. The pointwise `boolToProp : Bool → Prop` map is continuous but
+   **not closed** (`{true} ↦ {True}`, which is Sierpinski-open not -closed), so
+   one cannot transfer closedness from the discrete Bool world (where
+   `isClosed_range_ιSpv_bool` is genuinely proved) back to Sierpinski.
+
+This sub-lemma was introduced as the "refold" step expected to discharge
+`isClosed_ιSpv_preimage_vleCylinder` after the `ιSpv_isInducing.isClosed_iff`
+reduction. Closing the consumer (`isClosed_ιSpv_preimage_vleCylinder` /
+`isClosed_setOf_vle`) requires a completely different witness in the Sierpinski
+ambient — the genuine closed-half-space content of `{v | v.vle g h}` in `Spv A`
+must come from a route that does NOT go through Sierpinski closure
+(e.g., via a discrete Bool ambient + a continuity-of-evaluation argument
+on `Γ_v`, matching Wedhorn's actual proof of Spv spectrality / Thm 7.8).
+
+Preserved as a sorry-bodied sub-lemma per CLAUDE.md BINDING RULE (no signature
+changes, no hypotheses added) while the surrounding consumer is rerouted; the
+lemma itself is flagged as a B2 candidate in `.mathlib-quality/b2_log.jsonl`. -/
+private lemma isClosed_range_ιSpv_inter_vleCylinder (g h : A) :
+    IsClosed (Set.range (ιSpv : Spv A → (A × A → Prop)) ∩
+      { r : A × A → Prop | r (g, h) ∨ (¬ r (h, h) ∧ ¬ r (g, g)) }) := by
+  sorry
+
+/-- **Cylinder closedness in the Sierpinski power (L1.1.a).**
+The cylinder `{r ∈ A×A → Prop | r (g, h) ∨ (¬ r (h, h) ∧ ¬ r (g, g))}` pulls back to a
+closed subset of `Spv A` along the Huber embedding `ιSpv`.
+
+This is the genuine topological content of `isClosed_setOf_vle`: the predicate
+`vle_iff_ιSpv` rewrites `v.vle g h` as the indicated disjunction in `ιSpv v`, so
+closedness of the half-space `{v | v.vle g h}` reduces to closedness of this preimage
+cylinder. The cylinder itself is a disjunction of an open cylinder
+(`{r | r (g, h)}`, Sierpinski-open) and a closed cylinder
+(`{r | ¬ r (h, h) ∧ ¬ r (g, g)}`, intersection of two Sierpinski-closed cylinders),
+so its preimage being closed is a non-trivial fact — it requires the closedness of
+`range ιSpv` ("Phase 2" of the Sierpinski embedding machinery,
+`ValuationSpectrumCompact.lean`), which lets one re-fold the open piece into the closed
+range via the `vle_iff_ιSpv` characterisation.
+
+**Proof.** Use `ιSpv_isInducing.isClosed_iff` to reduce closedness in `Spv A` to the
+existence of a closed witness in the Sierpinski ambient. Choose the witness
+`range ιSpv ∩ {r | r (g, h) ∨ (¬ r (h, h) ∧ ¬ r (g, g))}`: its preimage under `ιSpv`
+equals the target (because `ιSpv` lands in its own range), and it is closed by the
+named sub-lemma `isClosed_range_ιSpv_inter_vleCylinder` (Phase 2 obligation).
+
+Tracked as L1.1.a in the work plan (`docs/TATE-ACYCLICITY-WORK-PLAN.md`). -/
+theorem isClosed_ιSpv_preimage_vleCylinder (g h : A) :
+    IsClosed (ιSpv ⁻¹' { r : A × A → Prop |
+      r (g, h) ∨ (¬ r (h, h) ∧ ¬ r (g, g)) } : Set (Spv A)) := by
+  rw [ιSpv_isInducing.isClosed_iff]
+  refine ⟨Set.range ιSpv ∩ { r : A × A → Prop |
+      r (g, h) ∨ (¬ r (h, h) ∧ ¬ r (g, g)) },
+    isClosed_range_ιSpv_inter_vleCylinder g h, ?_⟩
+  ext v
+  simp only [Set.mem_preimage, Set.mem_inter_iff, Set.mem_setOf_eq]
+  exact ⟨fun hh => hh.2, fun hh => ⟨⟨v, rfl⟩, hh⟩⟩
+
+/-- **Sub-leaf of 1.1 — closedness at the `Spv A` level.**
+The half-space `{v ∈ Spv A | v.vle g h}` is closed in the `Spv A` topology.
+
+Wedhorn ref: implicit in 7.8 (evaluation `Spv A → Γ_v` is continuous) plus closedness of
+`{(x, y) | x ≤ y}` in `Γ_v × Γ_v`. The proof requires Phase 2 of the Sierpinski embedding
+machinery (`ValuationSpectrumCompact.lean`) and is the genuine mathematical content of
+sub-lemma 1.1; the Spa-level version reduces to this via continuity of `Subtype.val`.
+
+**Proof.** Rewrite `{v | v.vle g h}` via `vle_iff_ιSpv` as the preimage of the cylinder
+`{r | r (g, h) ∨ (¬ r (h, h) ∧ ¬ r (g, g))}` under `ιSpv`, then invoke the (deferred)
+sub-lemma `isClosed_ιSpv_preimage_vleCylinder`. -/
+theorem isClosed_setOf_vle (g h : A) :
+    IsClosed {v : Spv A | v.vle g h} := by
+  have hrw : {v : Spv A | v.vle g h} =
+      ιSpv ⁻¹' { r : A × A → Prop |
+        r (g, h) ∨ (¬ r (h, h) ∧ ¬ r (g, g)) } := by
+    ext v
+    simp only [Set.mem_preimage, Set.mem_setOf_eq]
+    exact vle_iff_ιSpv v g h
+  rw [hrw]
+  exact isClosed_ιSpv_preimage_vleCylinder g h
+
+/-- **Sub-lemma 1.1 of T-COMPACT-NO-HARCH (work plan, `TATE-ACYCLICITY-WORK-PLAN.md`).**
+Closedness of the half-space `{w ∈ ↥(Spa A A⁺) | w.1.vle g h}` in the subtype topology.
+
+Wedhorn ref: implicit in 7.8 (evaluation `Spv A → Γ_v` is continuous) plus closedness of
+`{(x, y) | x ≤ y}` in `Γ_v × Γ_v`. Pulled back along the continuous inclusion
+`Subtype.val : ↥(Spa A A⁺) → Spv A`.
+
+**Proof.** Reduces to `isClosed_setOf_vle` (the Spv-level closed-half-space lemma) via
+continuity of the inclusion `Subtype.val : ↥(Spa A A⁺) → Spv A`. -/
+theorem isClosed_subtype_setOf_vle (g h : A) :
+    IsClosed (Subtype.val ⁻¹' {v : Spv A | v.vle g h} : Set ↥(Spa A A⁺)) :=
+  (isClosed_setOf_vle g h).preimage continuous_subtype_val
+
+/-- **Sub-lemma (genuine content of L1.3.a).** In the no-`hArch` Tate case,
+`ιSpv_bool '' Spa A A⁺` is closed in the discrete Bool product
+`(A × A → Bool)`. This is the genuine mathematical obligation behind
+`image_spa_ιSpv_bool_noHArch` (Wedhorn 7.30 / 7.49 without the mul-archimedean
+shortcut). Closing it requires the Spv(A, I)-spectral chain
+(`cont_isClosed_in_SpvAI` + Bool-coordinate translation of `SpvAI.isSpectralSpace`).
+Preserved as a named sub-lemma `sorry` per CLAUDE.md BINDING RULE — no
+signature change, no extra hypothesis. -/
+lemma isClosed_image_spa_ιSpv_bool_noHArch_aux :
+    IsClosed ((ιSpv_bool : Spv A → (A × A → Bool)) '' (Spa A A⁺)) := by
+  sorry
+
+/-- **Sub-lemma L1.3.a of T-COMPACT-NO-HARCH (work plan, `TATE-ACYCLICITY-WORK-PLAN.md`).**
+Closed Bool-image description for `Spa A A⁺` in the no-`hArch` Tate case.
+
+Mathematical content: there exists a closed subset `S ⊆ A × A → Bool` such that
+`ιSpv_bool '' (Spa A A⁺) = range ιSpv_bool ∩ S`. With `hArch` this is the
+`{r | r (1, π) = false}` cylinder of `image_spa_ιSpv_bool_of_tate`; without
+`hArch` the cylinder set instead encodes the `Spv(A, I)`-spectrality condition
+(Wedhorn 7.5 + 7.12 + 7.30) via additional coordinate constraints capturing
+the cofinal/microbial alternative on `v`.
+
+**Decomposition (2026-05-22).** Per CLAUDE.md BINDING RULE the genuine
+mathematical content — closedness of the Bool image of `Spa A A⁺` in the
+no-`hArch` Tate setting — is isolated into the named sub-lemma
+`isClosed_image_spa_ιSpv_bool_noHArch_aux` (still `sorry`-bodied). Given that
+closedness, the existence claim is discharged by taking `S` to be the image
+itself and noting `image ⊆ range`, so `range ∩ image = image`. -/
+lemma image_spa_ιSpv_bool_noHArch :
+    ∃ S : Set (A × A → Bool), IsClosed S ∧
+      (ιSpv_bool : Spv A → (A × A → Bool)) '' (Spa A A⁺) =
+        Set.range (ιSpv_bool : Spv A → (A × A → Bool)) ∩ S :=
+  ⟨(ιSpv_bool : Spv A → (A × A → Bool)) '' (Spa A A⁺),
+    isClosed_image_spa_ιSpv_bool_noHArch_aux,
+    (Set.inter_eq_right.mpr (Set.image_subset_range _ _)).symm⟩
+
+/-- **Sub-lemma 1.3 of T-COMPACT-NO-HARCH (work plan, `TATE-ACYCLICITY-WORK-PLAN.md`).**
+Quasi-compactness of the preimage of a rational open `rationalOpen L.T L.s` in
+`↥(Spa A A⁺)`, **without** any mul-archimedean assumption on valuation value groups.
+
+Wedhorn ref: Theorem 7.35(2). The existing
+`isCompact_preimage_rationalOpen_of_tate_pseudouniformizer` (`SpaCompact.lean:586`)
+requires `hArch`; the no-`hArch` version is supplied via the `Spv(A, I)` spectral
+infrastructure track (`T-SPV-AI-WEDHORN-710`, see `SpvAITopology.lean`).
+
+**Proof.** Delegates to the abstract Bool-cylinder criterion
+`isCompact_preimage_rationalOpen_of_isClosed_image` (Tate-style) with the
+closed image description supplied by the sub-lemma
+`image_spa_ιSpv_bool_noHArch`. The actual no-`hArch` content is concentrated
+in that sub-lemma's body (still `sorry`-bodied, tracked as L1.3.a). -/
+theorem isCompact_preimage_rationalOpen_noHArch
+    (L : RationalLocData A) :
+    IsCompact (Subtype.val ⁻¹' rationalOpen L.T L.s : Set ↥(Spa A A⁺)) := by
+  obtain ⟨S, hS, hEq⟩ := image_spa_ιSpv_bool_noHArch (A := A)
+  exact isCompact_preimage_rationalOpen_of_isClosed_image hS hEq L.T L.s
+
 /-- **(T-COMPACT-NO-HARCH, round-22 reviewer-mandated.) Half-space compactness
 without `hArch`.** The half-space `R(L) ∩ {v(g) ≤ v(h)}` in
 `↥(Spa A A⁺)` is compact, **without** any mul-archimedean assumption on
 valuation value groups.
 
-**Status (round-22).** Stated with `sorry` to unblock P3 work. The
-discharge plan is the `Spv(A, I)` infrastructure track
-(`T-SPV-AI-WEDHORN-710`). Round-22 reviewer explicitly permits this as
-a no-`hArch` TODO scaffolding lemma. -/
+**Proof.** Decomposed into two sub-lemmas (work plan L1.1 + L1.3, both retained
+as `sorry`-bodied sub-lemmas):
+* `isCompact_preimage_rationalOpen_noHArch` — quasi-compactness of the rational
+  open preimage (Wedhorn 7.35(2), no-`hArch`);
+* `isClosed_subtype_setOf_vle` — closedness of the half-space pulled back from
+  `Spv A`.
+
+The assembly is a one-liner: a closed subset of a compact set is compact
+(`IsCompact.inter_right`). The `Subtype.val ⁻¹'` distributes over `∩` definitionally,
+giving the required intersection form. -/
 theorem isCompact_rationalOpen_inter_vle_noHArch
     (L : RationalLocData A) (g h : A) :
     IsCompact (Subtype.val ⁻¹'
       (rationalOpen L.T L.s ∩ {v | v.vle g h}) : Set ↥(Spa A A⁺)) := by
-  -- See module docstring for the proof plan via Spv(A, I).
-  sorry
+  -- `Subtype.val ⁻¹' (A ∩ B) = Subtype.val ⁻¹' A ∩ Subtype.val ⁻¹' B`.
+  rw [Set.preimage_inter]
+  -- A compact set intersected with a closed set on the right is compact.
+  exact (isCompact_preimage_rationalOpen_noHArch L).inter_right
+    (isClosed_subtype_setOf_vle g h)
 
 end ValuationSpectrum

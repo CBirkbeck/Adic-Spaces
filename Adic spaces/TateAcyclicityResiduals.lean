@@ -2,10 +2,12 @@
 Copyright (c) 2026. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
+import «Adic spaces».AdicCompletionNoetherian
 import «Adic spaces».LaurentRefinement
 import «Adic spaces».LaurentRefinementTree
 import «Adic spaces».EmbeddingTopo
 import «Adic spaces».StandardCover
+import «Adic spaces».LocalBasis
 import «Adic spaces».StructureSheaf
 import «Adic spaces».RelativeRationalLocData
 import «Adic spaces».Cor832
@@ -186,11 +188,11 @@ preservation lemmas (`LaurentTree.Refines_graftAt`,
 `EmbeddingTopo.lean` refactor, I.1's conclusion needs no
 `allNodesDisjoint` clause. -/
 
-/-- **(W1) Standard cover existence for an arbitrary rational
-covering.** For any rational covering `C` of `C.base`, there is a
-finite set `S ⊆ A` that refines `C` (each `f`-plus-piece is contained
-in some `C`-piece) and spans the unit ideal of `A` (the absolute
-condition).
+/-! ### W1 — Standard cover existence for an arbitrary rational covering
+
+For any rational covering `C` of `C.base`, there is a finite set
+`S ⊆ A` that refines `C` (each `f`-plus-piece is contained in some
+`C`-piece) and spans the unit ideal of `A` (the absolute condition).
 
 **Round-6 audit note (ChatGPT Pro).** The reviewer flagged that
 `refines_span_top S = (Ideal.span S = ⊤)` is the *absolute* condition
@@ -206,7 +208,235 @@ downstream consumers expect), pending verification of whether the
 Hübner refinement theorem at an arbitrary `C.base` produces the
 absolute or the relative condition. If only relative, W1 should be
 relativised to `O(C.base)` per reviewer's recommended signature
-`standardCoverOver C.base S ∧ standardCover_refines C S`. -/
+`standardCoverOver C.base S ∧ standardCover_refines C S`.
+
+**Lane C decomposition (CLAUDE.md sub-lemma rule).** W1 is split into
+three atomic obligations, each tracked as a named theorem with its
+own `sorry` body (legal per CLAUDE.md — sub-lemmas with sorries are
+honest decomposition, not work-deferral):
+
+* **C1** `localBasisHyp_of_strongly_noetherian` — the intrinsic
+  basis hypothesis (Hübner Lemma 3.8 / Zavyalov §2.3).
+* **C2** `exists_per_D_finite_cover_of_localBasisHyp` — per-D finite
+  extraction from quasi-compactness on each cover piece.
+* **C3** `span_top_of_per_D_finite_cover` — span-top via Cor 7.32
+  applied through `spanTop_iff_noCommonZero_spa`.
+
+The headline `exists_standard_cover_refining` assembles these via
+`exists_refines_cover_per_E_of_localBasisHyp` and then weakens the
+per-E form to the per-C-base form via `refines_cover_of_refines_cover_per_E`. -/
+
+/-- **(W1 sub-lemma C1) Local-basis hypothesis for strongly noetherian
+Tate rings.** Lane C C1 content: for any rational covering `C`, the
+plus-pieces over `C.base` form a topological basis on each cover
+piece `E ∈ C.covers`. This is the intrinsic content of Wedhorn 8.34
+/ Zavyalov §2.3 / Hübner Lemma 3.8.
+
+Tracked as an atomic sub-lemma; closing this discharges C1. -/
+theorem localBasisHyp_of_strongly_noetherian
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (C : RationalCovering A) :
+    LocalBasisHyp C := by
+  sorry
+
+/-- **(W1 sub-lemma C2) Per-D finite cover construction from the
+local-basis hypothesis.** Lane C C2 content: given `LocalBasisHyp C`,
+the rational opens of each `D ∈ C.covers` (quasi-compact by
+`SpaCompactNoHArch.isCompact_preimage_rationalOpen_noHArch`) admit a
+finite family `mk_S_D D ⊆ A` of basis-witnesses that cover `D`'s
+rational open via plus-pieces over `C.base`, with each piece
+contained in `D`'s rational open.
+
+Tracked as an atomic sub-lemma; closing this discharges C2. -/
+theorem exists_per_D_finite_cover_of_localBasisHyp
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (C : RationalCovering A) (h_basis : LocalBasisHyp C) :
+    ∃ mk_S_D : RationalLocData A → Finset A,
+      (∀ D ∈ C.covers, ∀ f ∈ mk_S_D D,
+        rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen D.T D.s) ∧
+      (∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+        ∃ f ∈ mk_S_D D, v ∈ rationalOpen (insert f C.base.T) C.base.s) := by
+  classical
+  -- For each `D`, the set `W D := {f : A | R(insert f base.T, base.s) ⊆ R(D.T, D.s)}`
+  -- indexes the plus-pieces that fit inside `D`. `LocalBasisHyp` says every point
+  -- of `R(D.T, D.s)` lies in some `f ∈ W D` plus-piece.
+  set W : RationalLocData A → Set A := fun D =>
+    {f | rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen D.T D.s} with hW_def
+  -- The W-indexed family covers `K_D = Subtype.val ⁻¹' R(D.T, D.s)` in `↥(Spa A A⁺)`.
+  have h_cover : ∀ D ∈ C.covers,
+      (Subtype.val ⁻¹' rationalOpen D.T D.s : Set ↥(Spa A A⁺)) ⊆
+        ⋃ f ∈ W D, (Subtype.val ⁻¹' rationalOpen (insert f C.base.T) C.base.s :
+          Set ↥(Spa A A⁺)) := by
+    rintro D hD ⟨v, _⟩ hv_D
+    simp only [Set.mem_preimage] at hv_D
+    obtain ⟨f, hv_plus, h_sub⟩ := h_basis D hD v hv_D
+    refine Set.mem_iUnion.mpr ⟨f, Set.mem_iUnion.mpr ⟨h_sub, ?_⟩⟩
+    exact hv_plus
+  -- Quasi-compactness of `R(D.T, D.s)` extracts a finite subfamily.
+  choose mk_S_D h_subset hW_fin _h_cover_fin using fun D (hD : D ∈ C.covers) =>
+    (isCompact_preimage_rationalOpen_noHArch D).elim_finite_subcover_image
+      (b := W D)
+      (c := fun f => Subtype.val ⁻¹' rationalOpen (insert f C.base.T) C.base.s)
+      (fun f _ => rationalOpen_isOpen _ _)
+      (h_cover D hD)
+  -- Convert to `Finset A`, returning `∅` outside `C.covers`.
+  refine ⟨fun D => if hD : D ∈ C.covers then (hW_fin D hD).toFinset else ∅, ?_, ?_⟩
+  · intro D hD f hf
+    simp only [dif_pos hD, Set.Finite.mem_toFinset] at hf
+    have hf_W : f ∈ W D := (h_subset D hD) hf
+    simpa [hW_def] using hf_W
+  · intro D hD v hv
+    have hv_spa : v ∈ Spa A A⁺ := rationalOpen_subset_spa hv
+    have hv_pre : (⟨v, hv_spa⟩ : ↥(Spa A A⁺)) ∈
+        (Subtype.val ⁻¹' rationalOpen D.T D.s : Set ↥(Spa A A⁺)) := by
+      simpa [Set.mem_preimage] using hv
+    obtain ⟨f, hf_W, hf_v⟩ := Set.mem_iUnion₂.mp (_h_cover_fin D hD hv_pre)
+    refine ⟨f, ?_, ?_⟩
+    · simpa [dif_pos hD, Set.Finite.mem_toFinset] using hf_W
+    · simpa [Set.mem_preimage] using hf_v
+
+/-! #### C3 atomic decomposition
+
+Closing C3 requires inputs that the C3 typeclass signature does NOT
+directly supply. Each missing input is captured as a named atomic
+sub-lemma (with `:= by sorry` body), and the C3 reduction below glues
+them sorry-free via the existing
+`spanTop_iff_noCommonZero_spa` bridge (Prop 7.14, `StandardCover.lean`).
+
+The decomposition is honest per CLAUDE.md: each sub-lemma's statement
+matches a concrete residual mathematical obligation; no hypothesis is
+added to C3 itself. -/
+
+/-- **(C3 atom C3a) Adic-completeness of the canonical principal pair.**
+The principal pair of a (strongly noetherian) Tate ring is
+adically complete with respect to its principal ideal of definition.
+
+This is the strongly-noetherian Tate analogue of the standard
+completeness condition needed by Prop 7.14
+(`spanTop_iff_noCommonZero_spa`).
+
+Tracked as an atomic sub-lemma; closes via the strongly noetherian
+Tate completeness package. -/
+theorem principalPair_isAdicComplete_of_stronglyNoetherianTate
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] :
+    IsAdicComplete
+      (IsTateRing.principalPair A).toPairOfDefinition.I
+      (IsTateRing.principalPair A).toPairOfDefinition.A₀ := by
+  sorry
+
+/-- **(C3 atom C3b) `A⁺ ⊆ A₀` for the canonical principal pair.**
+For a (strongly noetherian) Tate ring, the project's plus-subring
+`A⁺` is contained in the ring of definition of the canonical
+principal pair (a standard Wedhorn fact: integral elements of a Tate
+ring lie in every ring of definition by power-boundedness).
+
+Tracked as an atomic sub-lemma. -/
+theorem principalPair_aplus_le_A₀_of_stronglyNoetherianTate
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] :
+    (A⁺ : Set A) ⊆ (IsTateRing.principalPair A).toPairOfDefinition.A₀ := by
+  sorry
+
+/-- **(C3 atom C3c) Strengthened per-D cover: plus-piece membership
+implies non-zero valuation.**
+For each per-D witness `f ∈ mk_S_D D` and each `v ∈ rationalOpen D.T
+D.s`, plus-piece membership at `insert f C.base.T` upgrades to
+`¬ v.vle f 0` (i.e., `v(f) ≠ 0`).
+
+Tracked as an atomic sub-lemma; the standard inequality
+`v(f) ≥ v(C.base.s) > 0` for plus-piece points proves it. -/
+theorem strengthened_cover_of_basic_cover
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (C : RationalCovering A)
+    (mk_S_D : RationalLocData A → Finset A)
+    (h_cover_D : ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+      ∃ f ∈ mk_S_D D, v ∈ rationalOpen (insert f C.base.T) C.base.s) :
+    ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+      ∃ f ∈ mk_S_D D,
+        v ∈ rationalOpen (insert f C.base.T) C.base.s ∧ ¬ v.vle f 0 := by
+  sorry
+
+/-- **(C3 atom C3d) Outside-base rescue.**
+Any Spa point outside the base rational open admits a witness
+`f ∈ C.covers.biUnion mk_S_D` with `¬ v.vle f 0`.
+
+Tracked as an atomic sub-lemma; the residual content is the
+Hübner / Nullstellensatz "no-common-zero on the complement"
+ingredient. -/
+theorem outside_rescue_of_per_D_cover
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (C : RationalCovering A)
+    (mk_S_D : RationalLocData A → Finset A)
+    (_h_in_D : ∀ D ∈ C.covers, ∀ f ∈ mk_S_D D,
+      rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen D.T D.s)
+    (_h_cover_D : ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+      ∃ f ∈ mk_S_D D, v ∈ rationalOpen (insert f C.base.T) C.base.s) :
+    ∀ v ∈ Spa A A⁺, v ∉ rationalOpen C.base.T C.base.s →
+      ∃ f ∈ C.covers.biUnion mk_S_D, ¬ v.vle f 0 := by
+  sorry
+
+/-- **(W1 sub-lemma C3) Span-top for the combined per-D family.**
+Lane C C3 content: the combined finset `C.covers.biUnion mk_S_D` spans
+the unit ideal in `A`. This is Cor 7.32 / Prop 7.14 applied via
+`spanTop_iff_noCommonZero_spa`: the per-D families cover `Spa(A, A⁺)`
+by `C`'s coverage hypothesis, hence have no common zero, hence span
+top.
+
+Sorry-free reduction via the four atomic sub-lemmas C3a–C3d above
+and `spanTop_iff_noCommonZero_spa` (`StandardCover.lean`, Prop 7.14).
+Closing the four atomic sub-lemmas discharges C3. -/
+theorem span_top_of_per_D_finite_cover
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (C : RationalCovering A)
+    (mk_S_D : RationalLocData A → Finset A)
+    (h_in_D : ∀ D ∈ C.covers, ∀ f ∈ mk_S_D D,
+      rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen D.T D.s)
+    (h_cover_D : ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+      ∃ f ∈ mk_S_D D, v ∈ rationalOpen (insert f C.base.T) C.base.s) :
+    Ideal.span ((C.covers.biUnion mk_S_D : Finset A) : Set A) = ⊤ := by
+  -- Materialise the canonical principal pair and its supporting data.
+  let P : PairOfDefinition A :=
+    (IsTateRing.principalPair A).toPairOfDefinition
+  haveI : IsAdicComplete P.I P.A₀ :=
+    principalPair_isAdicComplete_of_stronglyNoetherianTate
+  have hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀ :=
+    principalPair_aplus_le_A₀_of_stronglyNoetherianTate
+  -- Strengthen the per-D cover so each `f` has `v(f) ≠ 0`.
+  have h_cover_D_nonzero :
+      ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+        ∃ f ∈ mk_S_D D,
+          v ∈ rationalOpen (insert f C.base.T) C.base.s ∧ ¬ v.vle f 0 :=
+    strengthened_cover_of_basic_cover C mk_S_D h_cover_D
+  -- Outside-base rescue.
+  have h_outside :
+      ∀ v ∈ Spa A A⁺, v ∉ rationalOpen C.base.T C.base.s →
+        ∃ f ∈ C.covers.biUnion mk_S_D, ¬ v.vle f 0 :=
+    outside_rescue_of_per_D_cover C mk_S_D h_in_D h_cover_D
+  -- Reduce to no-common-zero on Spa via Prop 7.14 and case-split on
+  -- membership in the base rational open.
+  refine (spanTop_iff_noCommonZero_spa P hAplus_le_A₀ _).mpr ?_
+  intro v hv_spa
+  by_cases hv_base : v ∈ rationalOpen C.base.T C.base.s
+  · obtain ⟨D, hD_mem, hv_D⟩ := C.hcover v hv_base
+    obtain ⟨f, hf_mem, _hv_plus, hvf_ne⟩ :=
+      h_cover_D_nonzero D hD_mem v hv_D
+    exact ⟨f, Finset.mem_biUnion.mpr ⟨D, hD_mem, hf_mem⟩, hvf_ne⟩
+  · exact h_outside v hv_spa hv_base
+
+/-- **(W1) Standard cover existence for an arbitrary rational covering.**
+For any rational covering `C` of `C.base`, there is a finite set
+`S ⊆ A` that refines `C` (each `f`-plus-piece is contained in some
+`C`-piece) and spans the unit ideal of `A` (the absolute condition).
+
+Assembled from sub-lemmas C1 (`localBasisHyp_of_strongly_noetherian`),
+C2 (`exists_per_D_finite_cover_of_localBasisHyp`), and C3
+(`span_top_of_per_D_finite_cover`); see the section header above. -/
 theorem exists_standard_cover_refining
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
@@ -215,7 +445,18 @@ theorem exists_standard_cover_refining
       refines_cover C S ∧
       refines_contain C S ∧
       refines_span_top S := by
-  sorry
+  -- Lane C C1: local basis hypothesis
+  have h_basis : LocalBasisHyp C := localBasisHyp_of_strongly_noetherian C
+  -- Lane C C2: per-D finite families from quasi-compactness
+  obtain ⟨mk_S_D, h_in_D, h_cover_D⟩ :=
+    exists_per_D_finite_cover_of_localBasisHyp C h_basis
+  -- Lane C C3: span-top on the combined family via Cor 7.32
+  have h_span : Ideal.span ((C.covers.biUnion mk_S_D : Finset A) : Set A) = ⊤ :=
+    span_top_of_per_D_finite_cover C mk_S_D h_in_D h_cover_D
+  -- Assemble via the existing per-D → per-E bridge
+  obtain ⟨S, hS_per_E, hS_contain, hS_span⟩ :=
+    exists_refines_cover_per_E_of_localBasisHyp C h_basis mk_S_D h_in_D h_cover_D h_span
+  exact ⟨S, refines_cover_of_refines_cover_per_E C S hS_per_E, hS_contain, hS_span⟩
 
 /-- **Restricted standard cover generated by units (round-8 revision).**
 For a first-stage Laurent leaf `L`, the restricted cover `U|L`
@@ -1349,6 +1590,130 @@ def RatioTreeRealization.allSplitsInducing : {t : RatioLaurentTree A} →
       Topology.IsInducing (productRestrictionSub A data.cover) ∧
       ρL.allSplitsInducing ∧ ρR.allSplitsInducing
 
+/-- **(I.2) First-stage Laurent cover (Wedhorn-faithful unit-generation).**
+Given a standard cover `S` refining a rational covering `C`, produce a
+balanced Laurent refinement tree on `S` (rescaled by `s⁻¹` for some unit
+`s : Aˣ`) such that at every Laurent leaf `L` of this tree, the
+σ-minus indices of `S` (= those `f` for which `s⁻¹·f` is a unit at `L`'s
+presheaf value) form a sub-family of `S` consisting of units in `𝒪_X(L)`.
+
+**Wedhorn-faithful note (REVIEW_BRIEF.md §4.1, option (c)).** The
+original (project-specific) cover-decomposing condition was incorrect:
+Wedhorn's invariant is whole-cover ("U_T|V_j is unit-generated for every
+V_j ∈ C"), not per-Laurent-leaf. The corrected statement asserts only
+the unit-generation at each leaf — the cover-decomposing relative to
+C-pieces V_j ∈ C.covers is a separate consumer-side claim handled in
+the IsSheafy proof (via Wedhorn Prop A.3(2)/(3) at the whole-cover
+level, not per Laurent leaf).
+
+**Why `s = 1` suffices for the unit-property part.** The unit-property
+at σ-minus leaves follows directly from the structural lemma
+`balancedLeafBase_isUnit_get_of_false` (no rescaling needed). The
+Cor 7.32 dominating unit is needed for the *consumer-side* cover-
+decomposing argument, not for the existence of unit-generation at
+leaves. -/
+theorem exists_first_stage_laurent_cover
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
+    [DecidableEq A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A)
+    (S : Finset A)
+    (_hS_cover : refines_cover C S)
+    (_hS_contain : refines_contain C S)
+    (_hS_span : refines_span_top S) :
+    ∃ (s : Aˣ) (V : LaurentTree A),
+      V = LaurentTree.ofBalancedList
+        ((S.toList).map (fun f => ((s⁻¹ : Aˣ) : A) * f)) ∧
+      ∀ L ∈ V.leaves C.base,
+        ∃ I_units : Finset A,
+          I_units ⊆ S ∧
+          ∀ f ∈ I_units,
+            IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f)) := by
+  classical
+  -- Take s = 1 (trivial unit). Then s⁻¹ * f = f, so V is the balanced
+  -- Laurent tree on S.toList directly. At each leaf L (encoded by some
+  -- σ : Fin |S.toList| → Bool), the σ-minus subset of S consists of
+  -- units in L by `balancedLeafBase_isUnit_get_of_false`.
+  refine ⟨1, LaurentTree.ofBalancedList ((S.toList).map (fun f => ((1⁻¹ : Aˣ) : A) * f)),
+    rfl, ?_⟩
+  intro L hL
+  -- Recover the sign-function σ from L.
+  obtain ⟨σ, hσ⟩ :=
+    LaurentTree.leaves_ofBalancedList_eq_image C.base _ L hL
+  -- I_units = {f ∈ S : σ at f's position = false}.
+  let I_units : Finset A :=
+    ((Finset.univ.filter (fun i : Fin S.toList.length => σ ⟨i.1, by
+      rw [List.length_map]; exact i.2⟩ = false)).image
+      (fun i => S.toList.get i))
+  refine ⟨I_units, ?_, ?_⟩
+  · -- I_units ⊆ S.
+    intro f hf
+    obtain ⟨i, _, rfl⟩ := Finset.mem_image.mp hf
+    exact (Finset.mem_toList).mp (List.get_mem _ _)
+  · -- ∀ f ∈ I_units, IsUnit (L.canonicalMap (1⁻¹ * f)).
+    intro f hf
+    obtain ⟨i, hi_filter, rfl⟩ := Finset.mem_image.mp hf
+    have hσi : σ ⟨i.1, by rw [List.length_map]; exact i.2⟩ = false := by
+      simpa using (Finset.mem_filter.mp hi_filter).2
+    have h_unit := LaurentTree.balancedLeafBase_isUnit_get_of_false
+      C.base ((S.toList).map (fun f => ((1⁻¹ : Aˣ) : A) * f)) σ
+      ⟨i.1, by rw [List.length_map]; exact i.2⟩ hσi
+    -- L = balancedLeafBase ... σ (from hσ flipped).
+    rw [← hσ]
+    convert h_unit using 2
+    simp [List.get_eq_getElem, List.getElem_map]
+
+/-- **(W2 sub-lemma, per-leaf clauses (c)+(d) of `restricted_standard_
+cover_generated_by_units`.)** Given the unit clause `IsUnit
+(L.canonicalMap (s⁻¹·f))` for each `f ∈ I_units ⊆ S` at a leaf `L`
+of the balanced tree on `s⁻¹·S`, plus the standard-cover hypothesis
+`refines_contain C S`, the I_units family also satisfies clauses
+(c) pointwise cover and (d) piecewise containment of
+`restricted_standard_cover_generated_by_units`.
+
+Tracked as an honest atomic sub-obligation (per CLAUDE.md sub-lemma-
+with-sorry rule). The two clauses isolate the genuinely Wedhorn-8.34
+content (pointwise cover from Step (ii) and piecewise containment
+from Step (ii)/(d)) from the I.2 unit-generation skeleton. -/
+theorem restricted_standard_cover_clauses_cd_at_leaf
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (C : RationalCovering A) (S : Finset A)
+    (_hS_cover : refines_cover C S)
+    (_hS_contain : refines_contain C S)
+    (s : Aˣ) (L : RationalLocData A) (I_units : Finset A)
+    (_hI_sub : I_units ⊆ S)
+    (_h_unit : ∀ f ∈ I_units,
+      IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f))) :
+    (∀ v ∈ rationalOpen L.T L.s, ∃ f ∈ I_units,
+      v ∈ rationalOpen (insert f C.base.T) C.base.s) ∧
+    (∀ f ∈ I_units,
+      {v ∈ rationalOpen L.T L.s | v.vle f C.base.s} ⊆
+        rationalOpen (insert f C.base.T) C.base.s ∩ rationalOpen L.T L.s) := by
+  sorry
+
+/-- **(W2 sub-lemma, `allSplitsInducing` for the balanced tree on
+`s⁻¹·S`.)** The balanced Laurent tree built from the rescaled list
+`(S.toList).map (s⁻¹··)` has `allSplitsInducing` at root `C.base`.
+Each internal node is a `laurentCovering` 2-split, and the Lane C
+infrastructure produces the diagonal-inducing property at each split.
+
+Tracked as an honest atomic sub-obligation (per CLAUDE.md sub-lemma-
+with-sorry rule). This isolates the topological-inducing content of
+W2 from the combinatorial tree-construction part. -/
+theorem balancedTree_allSplitsInducing_of_rescaled_S
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) (S : Finset A)
+    (_hS_contain : refines_contain C S)
+    (s : Aˣ) :
+    (LaurentTree.ofBalancedList
+      ((S.toList).map (fun f => ((s⁻¹ : Aˣ) : A) * f))).allSplitsInducing
+      C.base := by
+  sorry
+
 /-- **(W2) First-stage Laurent tree with inducing + restricted-cover-
 by-units.** Cor 7.32 yields a dominating unit `s : Aˣ`, and the
 balanced Laurent tree `ofBalancedList(s⁻¹·S)` has
@@ -1389,6 +1754,97 @@ theorem exists_first_stage_laurent_tree_unit_generated
       ∀ L ∈ t_outer.leaves C.base,
         ∃ I_units : Finset A,
           restricted_standard_cover_generated_by_units L C S s I_units := by
+  -- Step 1: I.2 (`exists_first_stage_laurent_cover`) provides a unit `s`,
+  -- the balanced tree on `s⁻¹·S`, and a per-leaf `I_units ⊆ S` satisfying
+  -- the unit clause `IsUnit (L.canonicalMap (s⁻¹·f))`.
+  obtain ⟨s, V, hV_eq, h_per_leaf⟩ :=
+    exists_first_stage_laurent_cover P C S _hS_cover _hS_contain _hS_span
+  refine ⟨s, V, hV_eq, ?_, ?_⟩
+  · -- allSplitsInducing via the named sub-leaf
+    -- `balancedTree_allSplitsInducing_of_rescaled_S`.
+    rw [hV_eq]
+    exact balancedTree_allSplitsInducing_of_rescaled_S P C S _hS_contain s
+  · -- Per-leaf restricted_standard_cover_generated_by_units: combine I.2's
+    -- (a)+(b) (containment in S + unit clause) with the named sub-leaf
+    -- `restricted_standard_cover_clauses_cd_at_leaf` for (c)+(d).
+    intro L hL
+    obtain ⟨I_units, hI_sub, h_unit⟩ := h_per_leaf L hL
+    obtain ⟨h_cover_pointwise, h_piece_contain⟩ :=
+      restricted_standard_cover_clauses_cd_at_leaf C S _hS_cover _hS_contain
+        s L I_units hI_sub h_unit
+    exact ⟨I_units, hI_sub, h_unit, h_cover_pointwise, h_piece_contain⟩
+
+/-- **(W3 sub-lemma, per-leaf refinement of unitCover by the balanced
+ratio tree.)** Per CLAUDE.md sub-lemma-with-sorry rule: the combinatorial
+content of W3's `Refines` clause is isolated as a named obligation
+rather than being inlined as an anonymous sorry.
+
+Mathematical content: for each leaf `D` of the balanced Laurent tree on
+the ratio list `{u_g · u_h⁻¹ : g, h ∈ I_units}` (where
+`u_f = relativeUnitGenerator L C f h_unit_base`), there is a piece
+`E ∈ unitCover.covers` containing `D`'s rational open.
+
+The leaf `D` is determined by a sign vector `σ` on the ratio list, which
+encodes pairwise `vle` comparisons on `{u_g : g ∈ I_units}`. The σ-vector
+forces a specific maximal `f* ∈ I_units` with `v(u_f*)` maximal among
+`I_units`; the `unitCover` piece for `f*` (provided by
+`_h_unitCover`'s clause (3)) is then the desired `E`.
+
+Tracked as an honest atomic sub-obligation. -/
+theorem unitCover_refines_relative_balanced_ratio_tree_leaves
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
+    [DecidableEq A]
+    (L : RationalLocData A) (C : RationalCovering A)
+    (I_units : Finset A)
+    [IsTopologicalRing (presheafValue L)] [PlusSubring (presheafValue L)]
+    [IsHuberRing (presheafValue L)] [HasLocLiftPowerBounded (presheafValue L)]
+    (h_unit_base : IsUnit (L.canonicalMap C.base.s))
+    (L_rel : RationalLocData (presheafValue L))
+    (unitCover : RationalCovering (presheafValue L))
+    (h_units_invertible : ∀ h ∈ I_units,
+      IsUnit (relativeUnitGenerator L C h h_unit_base))
+    (h_unit_pieces : ∀ f ∈ I_units, ∃ piece ∈ unitCover.covers,
+      IsRelativeUnitPieceFor L C f h_unit_base piece) :
+    let ratio_list : List (presheafValue L) :=
+      ((I_units.attach.toList) ×ˢ (I_units.attach.toList)).map fun ⟨gp, hp⟩ =>
+        relativeUnitGenerator L C gp.val h_unit_base *
+          ((h_units_invertible hp.val hp.property).unit⁻¹ :
+            (presheafValue L)ˣ)
+    ∀ D ∈ (LaurentTree.ofBalancedList ratio_list).leaves L_rel,
+      ∃ E ∈ unitCover.covers, rationalOpen D.T D.s ⊆ rationalOpen E.T E.s := by
+  sorry
+
+/-- **(W3 sub-lemma, per-node inducing of the balanced ratio tree.)**
+Per CLAUDE.md sub-lemma-with-sorry rule: the topological content of
+W3's `allSplitsInducing` clause is isolated as a named obligation.
+
+Mathematical content: for every base `B` reachable by σ-walk on the
+ratio list and every remaining ratio `u_g · u_h⁻¹`, the 2-cover
+`laurentCovering B (u_g · u_h⁻¹)` is inducing on the localization. The
+per-pair inducing comes from the Lane C infrastructure
+(`productRestrictionSub_isInducing_via_*`), once one shows the ratio
+label has non-vanishing image at the σ-walk base — which holds because
+`u_g`, `u_h` are units in `presheafValue L`.
+
+Tracked as an honest atomic sub-obligation. -/
+theorem balancedInducing_of_relative_unit_ratios
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A] [HasLocLiftPowerBounded A]
+    [DecidableEq A]
+    (L : RationalLocData A) (C : RationalCovering A)
+    (I_units : Finset A)
+    [IsTopologicalRing (presheafValue L)] [PlusSubring (presheafValue L)]
+    [IsHuberRing (presheafValue L)] [HasLocLiftPowerBounded (presheafValue L)]
+    (h_unit_base : IsUnit (L.canonicalMap C.base.s))
+    (L_rel : RationalLocData (presheafValue L))
+    (h_units_invertible : ∀ h ∈ I_units,
+      IsUnit (relativeUnitGenerator L C h h_unit_base)) :
+    LaurentTree.BalancedInducing L_rel
+      (((I_units.attach.toList) ×ˢ (I_units.attach.toList)).map fun ⟨gp, hp⟩ =>
+        relativeUnitGenerator L C gp.val h_unit_base *
+          ((h_units_invertible hp.val hp.property).unit⁻¹ :
+            (presheafValue L)ˣ)) := by
   sorry
 
 /-- **(W3) Unit-generated rational cover has a Laurent-ratio
@@ -1488,31 +1944,22 @@ theorem unitGeneratedCover_has_relative_ratioLaurentRefinement
   refine ⟨inner_rel, ?_, ?_, ?_⟩
   · -- Refines L_rel unitCover — combinatorial: each leaf σ-vector
     -- picks `f ∈ I_units` with maximal `v(u_f)`; that f's unit-piece
-    -- contains the leaf.
-    --
-    -- Reduce to per-leaf via `refines_iff_forall_mem_leaves`.
+    -- contains the leaf. Delegated to the named sub-lemma
+    -- `unitCover_refines_relative_balanced_ratio_tree_leaves` per the
+    -- CLAUDE.md sub-lemma-with-sorry rule.
     show (LaurentTree.ofBalancedList ratio_list).Refines L_rel unitCover
     rw [LaurentTree.refines_iff_forall_mem_leaves]
-    -- Remaining: for every D ∈ leaves of ofBalancedList ratio_list at L_rel,
-    -- ∃ E ∈ unitCover.covers, rationalOpen D.T D.s ⊆ rationalOpen E.T E.s.
-    -- Each leaf D is determined by a sign vector σ over ratio_list, giving
-    -- σ-inequalities on each pair (g, h) ∈ I_units². For any v in the
-    -- leaf's open, the σ-vector forces a specific maximal `f* ∈ I_units`
-    -- with v(u_f*) maximal among I_units; the unitCover piece for f*
-    -- (from _h_unitCover condition (3)) contains the leaf.
-    intro D hD
-    sorry
+    exact unitCover_refines_relative_balanced_ratio_tree_leaves
+      L C I_units h_unit_base L_rel unitCover h_units_invertible
+      _h_unitCover.2.2.1
   · -- allSplitsInducing L_rel — Lane C topological inducing per node.
-    -- Reduce via `BalancedInducing` to per-pair inducing.
+    -- Reduce via `BalancedInducing` and delegate to the named sub-lemma
+    -- `balancedInducing_of_relative_unit_ratios` per the CLAUDE.md
+    -- sub-lemma-with-sorry rule.
     show (LaurentTree.ofBalancedList ratio_list).allSplitsInducing L_rel
     apply LaurentTree.allSplitsInducing_ofBalancedList
-    -- Remaining obligation: `BalancedInducing L_rel ratio_list` —
-    -- for every base reachable by σ-walk and every remaining ratio,
-    -- `productRestrictionSub _ (laurentCovering base ratio)` is inducing.
-    -- Each per-pair inducing comes from Lane C infrastructure
-    -- (`productRestrictionSub_isInducing_via_*`), but requires showing
-    -- the ratio `u_g · u_h⁻¹` has nonvanishing image at the base.
-    sorry
+    exact balancedInducing_of_relative_unit_ratios
+      L C I_units h_unit_base L_rel h_units_invertible
   · -- IsRatioLaurentTreeFrom — by construction every node label is
     -- `u_g · u_h⁻¹` with g, h ∈ I_units.
     show IsRatioLaurentTreeFrom L C I_units h_unit_base
@@ -1733,6 +2180,159 @@ theorem graftAt_allNodesDisjoint
       rw [LaurentTree.leaves_node]
       exact List.mem_append_right _ hK
 
+/-! ### Structural transfer: `LaurentTree A` to `RatioTreeRealization`
+
+Helpers reducing the realized I.1 to the legacy I.1: every
+`LaurentTree A` produces a realization on `RatioLaurentTree.ofLaurentTree`
+that uses only `nodeLaurent` (no `nodeRatio`), and the `Refines` /
+`allSplitsInducing` predicates transfer by structural induction because
+both definitions recurse via the same `laurentPlusDatum/laurentMinusDatum`
+sub-bases. -/
+
+/-- The realization of `RatioLaurentTree.ofLaurentTree t` at base `D`
+that places `nodeLaurent` at every internal node, mirroring the
+recursive structure of `t : LaurentTree A`. Marked `noncomputable`
+because `laurentPlusDatum`/`laurentMinusDatum` are noncomputable. -/
+noncomputable def RatioTreeRealization.ofLaurentTree :
+    (t : LaurentTree A) → (D : RationalLocData A) →
+      RatioTreeRealization (RatioLaurentTree.ofLaurentTree t) D
+  | .leaf, D => RatioTreeRealization.leaf D
+  | .node f L R, D =>
+      RatioTreeRealization.nodeLaurent D f
+        (RatioTreeRealization.ofLaurentTree L (laurentPlusDatum D f))
+        (RatioTreeRealization.ofLaurentTree R (laurentMinusDatum D f))
+
+/-- `LaurentTree.Refines` transfers to the `nodeLaurent`-only
+realization built by `RatioTreeRealization.ofLaurentTree`. -/
+theorem RatioTreeRealization.refines_ofLaurentTree
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
+    (t : LaurentTree A) (D : RationalLocData A) (C : RationalCovering A)
+    (h : t.Refines D C) :
+    (RatioTreeRealization.ofLaurentTree t D).Refines C := by
+  induction t generalizing D with
+  | leaf =>
+      simpa [RatioTreeRealization.ofLaurentTree, RatioTreeRealization.Refines,
+        LaurentTree.Refines] using h
+  | node f L R ihL ihR =>
+      obtain ⟨hL, hR⟩ := h
+      exact ⟨ihL _ hL, ihR _ hR⟩
+
+/-- `LaurentTree.allSplitsInducing` transfers to the `nodeLaurent`-only
+realization built by `RatioTreeRealization.ofLaurentTree`. -/
+theorem RatioTreeRealization.allSplitsInducing_ofLaurentTree
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
+    (t : LaurentTree A) (D : RationalLocData A)
+    (h : t.allSplitsInducing D) :
+    (RatioTreeRealization.ofLaurentTree t D).allSplitsInducing := by
+  induction t generalizing D with
+  | leaf => trivial
+  | node f L R ihL ihR =>
+      obtain ⟨hsplit, hL, hR⟩ := h
+      exact ⟨hsplit, ihL _ hL, ihR _ hR⟩
+
+/-- **(I.1.a) Per-leaf absolute inner Laurent trees.** Sub-claim of I.1
+extracted as a named honest obligation. For the first-stage outer tree
+`t_outer` produced by W2 (`exists_first_stage_laurent_tree_unit_generated`),
+at every outer leaf `L` there exists an absolute `LaurentTree A` `inner L`
+refining the C-piece-by-units restricted to `L`, with `allSplitsInducing L`.
+
+This is the composition of W3 (`unitGeneratedCover_has_relative_ratioLaurentRefinement`,
+producing a relative tree over `presheafValue L`) with W3-transport
+(`relative_laurent_tree_to_absolute`, transporting back to `A`). The
+sorry-state of this sub-claim captures the open T-LOCLIFT-PRESERVATION
+ticket: W3 and W3-transport require typeclass instances on `presheafValue L`
+(`IsTopologicalRing`, `PlusSubring`, `IsHuberRing`, `HasLocLiftPowerBounded`,
+etc.) that are not yet derivable from the `A`-level hypotheses alone.
+Once those instances are available per leaf, this sub-claim closes
+mechanically by the W3 ∘ W3-transport composition (the absolute
+ratio-tree output is then converted to bare `LaurentTree A` by
+dropping the `RatioTreeRealization` structure, since the legacy
+I.1 output does not consume the ratio structure). -/
+theorem exists_inner_laurent_refinement_per_leaf
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) (S : Finset A)
+    (_hS_cover : refines_cover C S)
+    (_hS_contain : refines_contain C S)
+    (_hS_span : refines_span_top S)
+    (s : Aˣ) (t_outer : LaurentTree A)
+    (_ht_outer_eq : t_outer = LaurentTree.ofBalancedList
+      ((S.toList).map (fun f => ((s⁻¹ : Aˣ) : A) * f)))
+    (_h_outer_unit_gen : ∀ L ∈ t_outer.leaves C.base,
+      ∃ I_units : Finset A,
+        restricted_standard_cover_generated_by_units L C S s I_units) :
+    ∀ L ∈ t_outer.leaves C.base, ∃ inner : LaurentTree A,
+      inner.Refines L C ∧ inner.allSplitsInducing L := by
+  sorry
+
+/-- **(I.1, Wedhorn-faithful output)** Given any rational covering
+`C` of a base datum, exhibit a Laurent refinement tree refining `C`
+with the inducing predicate that feeds the tree-induction part of
+`productRestrictionSub_isInducing_via_tree_refinement`.
+
+**Wedhorn-faithful note (Route A refactor).** Wedhorn's proof of
+Lemma 8.34 does NOT require `allNodesDisjoint`. The augmented Čech
+complex (Lemma 8.33) is exact for any `f ∈ A`, regardless of node
+degeneracy. The previous `allNodesDisjoint` conjunct was
+project-specific bookkeeping for the downstream embedding argument;
+the Wedhorn-faithful refactor drops it from the I.1 conclusion. The
+downstream `productRestrictionSub_isInducing_via_tree_refinement`
+that still consumes `allNodesDisjoint` will be refactored separately
+(deferred to `EmbeddingTopo.lean`).
+
+**Proof decomposition (binding-rule-faithful).** The proof composes
+named sub-lemmas with the existing infrastructure:
+
+* `exists_standard_cover_refining` (S refining C),
+* `exists_first_stage_laurent_tree_unit_generated` (W2: outer tree
+  `t_outer` with `allSplitsInducing C.base` and per-outer-leaf
+  unit-generated restricted covers),
+* `exists_inner_laurent_refinement_per_leaf` (I.1.a: per-leaf inner
+  trees — sub-sorry capturing the open T-LOCLIFT-PRESERVATION ticket),
+* `LaurentTree.Refines_graftAt`,
+  `LaurentTree.allSplitsInducing_graftAt` (structural assembly). -/
+theorem exists_wedhorn_laurent_refinement_tree
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) :
+    ∃ t : LaurentTree A,
+      t.Refines C.base C ∧
+      t.allSplitsInducing C.base := by
+  classical
+  -- Step 1: get standard cover S refining C.
+  obtain ⟨S, hS_cover, hS_contain, hS_span⟩ := exists_standard_cover_refining C
+  -- Step 2: get first-stage Laurent tree t_outer + per-leaf restricted-
+  -- cover-by-units (W2). The outer tree is the balanced Laurent tree
+  -- on the unit-rescaled S.
+  obtain ⟨s, t_outer, ht_outer_eq, h_outer_split, h_outer_unit_gen⟩ :=
+    exists_first_stage_laurent_tree_unit_generated P C S hS_cover hS_contain hS_span
+  -- Step 3: extract per-leaf inner trees (I.1.a sub-lemma).
+  obtain ⟨inner_of, h_inner⟩ : ∃ inner_of : RationalLocData A → LaurentTree A,
+      ∀ L ∈ t_outer.leaves C.base,
+        (inner_of L).Refines L C ∧ (inner_of L).allSplitsInducing L := by
+    have h_per_leaf :=
+      exists_inner_laurent_refinement_per_leaf P C S hS_cover hS_contain hS_span
+        s t_outer ht_outer_eq h_outer_unit_gen
+    classical
+    refine ⟨fun L =>
+      if hL : L ∈ t_outer.leaves C.base then (h_per_leaf L hL).choose
+      else LaurentTree.leaf, ?_⟩
+    intro L hL
+    simp only [dif_pos hL]
+    exact (h_per_leaf L hL).choose_spec
+  -- Step 4: graft, then apply preservation lemmas.
+  refine ⟨t_outer.graftAt C.base inner_of, ?_, ?_⟩
+  · -- Refines via `LaurentTree.Refines_graftAt`.
+    exact LaurentTree.Refines_graftAt t_outer C.base inner_of C
+      (fun L hL => (h_inner L hL).1)
+  · -- allSplitsInducing via `LaurentTree.allSplitsInducing_graftAt`.
+    exact LaurentTree.allSplitsInducing_graftAt t_outer C.base inner_of
+      h_outer_split (fun L hL => (h_inner L hL).2)
+
 /-- **(I.1-realized, round-16 reviewer-approved cascade)** The
 realized-ratio-tree version of Wedhorn 8.34's constructive output.
 Per round-15 reviewer (architecture APPROVED): I.1 should output a
@@ -1744,144 +2344,32 @@ datum, there is a `RatioLaurentTree A` `t` and a coherent
 realization `ρ : RatioTreeRealization t C.base` such that `ρ`
 refines `C` and `ρ.allSplitsInducing`.*
 
-The composition uses W1 → W2 → W3 → W3-transport with the realized
-tree as the output of W3-transport (round-15 update). The downstream
-`productRestrictionSub_isInducing_via_ratio_tree` (pending in
-`EmbeddingTopo.lean` per the round-12 reviewer-recommended NODE
-refactor) will consume this output. -/
+**Closure route.** Reduces to the legacy
+`exists_wedhorn_laurent_refinement_tree` (above) by promoting the
+output `LaurentTree A` via `RatioLaurentTree.ofLaurentTree` and the
+structural realization `RatioTreeRealization.ofLaurentTree`. The
+`Refines` and `allSplitsInducing` predicates transfer through the
+`nodeLaurent`-only embedding because both definitions recurse via
+identical `laurentPlusDatum/laurentMinusDatum` sub-bases (see
+`refines_ofLaurentTree`, `allSplitsInducing_ofLaurentTree` above).
+
+The downstream `productRestrictionSub_isInducing_via_ratio_tree`
+(pending in `EmbeddingTopo.lean` per the round-12 reviewer-recommended
+NODE refactor) will consume this output. -/
 theorem exists_wedhorn_ratio_laurent_refinement_tree_realized
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    [NonarchimedeanRing A] [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A) :
     ∃ (t : RatioLaurentTree A) (ρ : RatioTreeRealization t C.base),
       ρ.Refines C ∧ ρ.allSplitsInducing := by
-  sorry
-
-/-- **(I.1, legacy `LaurentTree A` output, kept for backward
-compatibility with downstream `isSheafyComplete`).** Given any
-rational covering `C` of a base datum, exhibit a Laurent refinement
-tree refining `C` with the inducing and disjointness predicates
-that feed `productRestrictionSub_isInducing_via_tree_refinement`.
-
-**Status note (round-16):** This legacy version exists for
-backward compat with `isSheafyComplete`'s current consumer.
-Per round-15 reviewer-approved architecture, the preferred output
-is `exists_wedhorn_ratio_laurent_refinement_tree_realized` (above);
-the downstream `productRestrictionSub_isInducing_of_wedhorn_tree_existence`
-in `EmbeddingTopo.lean` should be refactored to consume the realized
-ratio tree directly. -/
-theorem exists_wedhorn_laurent_refinement_tree
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (C : RationalCovering A) :
-    ∃ t : LaurentTree A,
-      t.Refines C.base C ∧
-      t.allSplitsInducing C.base ∧
-      t.allNodesDisjoint C.base := by
-  classical
-  -- Step 1: get standard cover S refining C.
-  obtain ⟨S, hS_cover, hS_contain, _hS_span⟩ := exists_standard_cover_refining C
-  -- Step 2: get first-stage Laurent tree t_outer + per-leaf restricted-
-  -- cover-by-units. Note: W2 no longer gives allNodesDisjoint — that is
-  -- handled by W4's prune.
-  obtain ⟨s, t_outer, _ht_outer_eq, h_outer_split, h_outer_unit_gen⟩ :=
-    exists_first_stage_laurent_tree_unit_generated P C S hS_cover hS_contain _hS_span
-  -- Step 3+4: define per-leaf A-labelled inner trees by composing W3
-  -- (relative) with W3-transport (relative → absolute). For non-outer
-  -- L, use `.leaf` as a no-op fallback (graftAt only consults inner_of
-  -- at outer leaves).
-  --
-  -- The W3-transport theorem's typeclass dependencies on `presheafValue L`
-  -- (the IsTopologicalRing, PlusSubring, IsHuberRing,
-  -- HasLocLiftPowerBounded instances) need to be supplied per L. These
-  -- are part of the pending T-LOCLIFT-PRESERVATION ticket; we package
-  -- them as a sub-claim of I.1's proof. For each outer leaf L, the
-  -- absolute inner tree exists by W3 ∘ W3-transport, conditional on
-  -- those instances being available.
-  --
-  -- The clean closure of I.1 requires propagating the instance
-  -- dependencies via either (a) a per-L typeclass argument in I.1's
-  -- own signature, or (b) discharging T-LOCLIFT-PRESERVATION once and
-  -- for all in the project. (b) is the long-term path; for now we
-  -- record I.1 as conditionally provable once the typeclass instances
-  -- are available.
-  sorry
-
-/-- **(I.2) First-stage Laurent cover (Wedhorn-faithful unit-generation).**
-Given a standard cover `S` refining a rational covering `C`, produce a
-balanced Laurent refinement tree on `S` (rescaled by `s⁻¹` for some unit
-`s : Aˣ`) such that at every Laurent leaf `L` of this tree, the
-σ-minus indices of `S` (= those `f` for which `s⁻¹·f` is a unit at `L`'s
-presheaf value) form a sub-family of `S` consisting of units in `𝒪_X(L)`.
-
-**Wedhorn-faithful note (REVIEW_BRIEF.md §4.1, option (c)).** The
-original (project-specific) cover-decomposing condition was incorrect:
-Wedhorn's invariant is whole-cover ("U_T|V_j is unit-generated for every
-V_j ∈ C"), not per-Laurent-leaf. The corrected statement asserts only
-the unit-generation at each leaf — the cover-decomposing relative to
-C-pieces V_j ∈ C.covers is a separate consumer-side claim handled in
-the IsSheafy proof (via Wedhorn Prop A.3(2)/(3) at the whole-cover
-level, not per Laurent leaf).
-
-**Why `s = 1` suffices for the unit-property part.** The unit-property
-at σ-minus leaves follows directly from the structural lemma
-`balancedLeafBase_isUnit_get_of_false` (no rescaling needed). The
-Cor 7.32 dominating unit is needed for the *consumer-side* cover-
-decomposing argument, not for the existence of unit-generation at
-leaves. -/
-theorem exists_first_stage_laurent_cover
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
-    [DecidableEq A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (C : RationalCovering A)
-    (S : Finset A)
-    (_hS_cover : refines_cover C S)
-    (_hS_contain : refines_contain C S)
-    (_hS_span : refines_span_top S) :
-    ∃ (s : Aˣ) (V : LaurentTree A),
-      V = LaurentTree.ofBalancedList
-        ((S.toList).map (fun f => ((s⁻¹ : Aˣ) : A) * f)) ∧
-      ∀ L ∈ V.leaves C.base,
-        ∃ I_units : Finset A,
-          I_units ⊆ S ∧
-          ∀ f ∈ I_units,
-            IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f)) := by
-  classical
-  -- Take s = 1 (trivial unit). Then s⁻¹ * f = f, so V is the balanced
-  -- Laurent tree on S.toList directly. At each leaf L (encoded by some
-  -- σ : Fin |S.toList| → Bool), the σ-minus subset of S consists of
-  -- units in L by `balancedLeafBase_isUnit_get_of_false`.
-  refine ⟨1, LaurentTree.ofBalancedList ((S.toList).map (fun f => ((1⁻¹ : Aˣ) : A) * f)),
-    rfl, ?_⟩
-  intro L hL
-  -- Recover the sign-function σ from L.
-  obtain ⟨σ, hσ⟩ :=
-    LaurentTree.leaves_ofBalancedList_eq_image C.base _ L hL
-  -- I_units = {f ∈ S : σ at f's position = false}.
-  let I_units : Finset A :=
-    ((Finset.univ.filter (fun i : Fin S.toList.length => σ ⟨i.1, by
-      rw [List.length_map]; exact i.2⟩ = false)).image
-      (fun i => S.toList.get i))
-  refine ⟨I_units, ?_, ?_⟩
-  · -- I_units ⊆ S.
-    intro f hf
-    obtain ⟨i, _, rfl⟩ := Finset.mem_image.mp hf
-    exact (Finset.mem_toList).mp (List.get_mem _ _)
-  · -- ∀ f ∈ I_units, IsUnit (L.canonicalMap (1⁻¹ * f)).
-    intro f hf
-    obtain ⟨i, hi_filter, rfl⟩ := Finset.mem_image.mp hf
-    have hσi : σ ⟨i.1, by rw [List.length_map]; exact i.2⟩ = false := by
-      simpa using (Finset.mem_filter.mp hi_filter).2
-    have h_unit := LaurentTree.balancedLeafBase_isUnit_get_of_false
-      C.base ((S.toList).map (fun f => ((1⁻¹ : Aˣ) : A) * f)) σ
-      ⟨i.1, by rw [List.length_map]; exact i.2⟩ hσi
-    -- L = balancedLeafBase ... σ (from hσ flipped).
-    rw [← hσ]
-    convert h_unit using 2
-    simp [List.get_eq_getElem, List.getElem_map]
+  -- Promote the legacy `LaurentTree`-valued I.1 via the structural transfer
+  -- lemmas `refines_ofLaurentTree` and `allSplitsInducing_ofLaurentTree`.
+  obtain ⟨t, hRefines, hSplits⟩ := exists_wedhorn_laurent_refinement_tree P C
+  refine ⟨RatioLaurentTree.ofLaurentTree t,
+    RatioTreeRealization.ofLaurentTree t C.base, ?_, ?_⟩
+  · exact RatioTreeRealization.refines_ofLaurentTree t C.base C hRefines
+  · exact RatioTreeRealization.allSplitsInducing_ofLaurentTree t C.base hSplits
 
 /-- **(I.3) Second-stage Laurent refinement of a unit-generated
 cover.** A rational cover whose pieces are determined by a finite
@@ -2159,12 +2647,15 @@ noetherianity (= noetherianity of multivariable restricted-power-
 series rings) through rational localisations. Currently a Mathlib
 gap; affects multivariable-Tate-algebra Noetherianity preservation.
 
-Statement uses `AdicCompletion`. -/
+Statement uses `AdicCompletion`. Delegates to `AdicCompletion.isNoetherianRing`
+in `AdicCompletionNoetherian.lean`, which implements the Stacks 0316 proof
+route (Lemma 10.97.6 of Stacks; iterated power series surjective evaluation
+into the completion). -/
 theorem adicCompletion_noetherian
     (R : Type*) [CommRing R] [IsNoetherianRing R]
     (I : Ideal R) :
-    IsNoetherianRing (AdicCompletion I R) := by
-  sorry
+    IsNoetherianRing (AdicCompletion I R) :=
+  AdicCompletion.isNoetherianRing I
 
 /-- **(V.2) Stacks Project Tag 023N (faithfully flat descent —
 injectivity content).** For a faithfully flat ring map `R → S` and
@@ -2288,7 +2779,14 @@ theorem isSheafyComplete
     haveI : IsNoetherianRing C.base.P.A₀ := hA₀
     haveI : IsNoetherianRing (locSubring C.base.P C.base.T C.base.s) := hLoc
     exact exists_spa_point_dominating_prime C.base hAplus hcont hlifted p hp hs
-  · -- Wedhorn 8.34 tree existence via I.1.
+  · -- Wedhorn 8.34 tree existence via I.1 (Wedhorn-faithful pair). Per
+    -- Route A (Wedhorn-faithful) refactor, both sides are now Wedhorn-
+    -- faithful: I.1 (`exists_wedhorn_laurent_refinement_tree`) produces
+    -- `(t, hRef, hSplits)` without `allNodesDisjoint`, and the downstream
+    -- `productRestrictionSub_isInducing_of_wedhorn_tree_existence` (in
+    -- `EmbeddingTopo.lean`, post 2026-05-22 refactor) consumes exactly
+    -- that bundle. The bridge sorry that previously stood here for the
+    -- `T-EMBEDDINGTOPO-WEDHORN-FAITHFUL` ticket is now discharged.
     intro C
     exact exists_wedhorn_laurent_refinement_tree P C
 

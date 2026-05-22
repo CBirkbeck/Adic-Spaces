@@ -2101,6 +2101,228 @@ theorem productRestrictionSub_isInducing_via_tree_refinement
   show restrictionMap C.base d.1 _ x = restrictionMap C.base d.1 _ x
   rfl
 
+/-! ### Wedhorn-faithful (no-disjointness) inducing transfer
+
+Wedhorn's Lemma 8.34 proof does NOT require node-disjointness of the
+underlying rational data. The disjointness assumption in
+`productRestrictionSub_isInducing_via_tree_refinement` was a
+project-specific bookkeeping device to enable the
+`Homeomorph.piFinsetUnion`-based proof of the node case.
+
+Below we provide a no-disjointness alternative proof of the same
+inducing conclusion, using the iInf characterization of the Pi topology
+together with the union-decomposition
+`⨅ D ∈ s ∪ u, … = ⨅ D ∈ s, … ⊓ ⨅ D ∈ u, …` (which holds for arbitrary
+Finsets, *not* requiring disjointness). This is the route used by the
+Wedhorn-faithful consumer chain. -/
+
+/-- **iInf characterization of inducing Pi-restriction**: a
+`productRestrictionSub`-style map into a Finset-indexed Pi is
+`Topology.IsInducing` iff the source topology equals the iInf of
+induced topologies along the components. -/
+theorem isInducing_to_subtype_pi_iff_iInf_induced
+    {X : Type*} [tX : TopologicalSpace X]
+    {ι : Type*} {Y : ι → Type*} [tY : (i : ι) → TopologicalSpace (Y i)]
+    (s : Finset ι) (f : ∀ i : ↥s, X → Y i.1) :
+    Topology.IsInducing (fun (x : X) (i : ↥s) => f i x) ↔
+      tX = ⨅ i : ↥s, TopologicalSpace.induced (f i) inferInstance := by
+  rw [Topology.isInducing_iff]
+  rw [show (Pi.topologicalSpace : TopologicalSpace ((i : ↥s) → Y i.1)) =
+    ⨅ i : ↥s, TopologicalSpace.induced (fun g => g i) inferInstance from rfl]
+  rw [induced_iInf]
+  simp_rw [induced_compose]
+  rfl
+
+/-- **Pulled-back iInf via intermediate restriction**: if the topology on
+`presheafValue D'` is the iInf of induced topologies along restrictions
+to a Finset `S` of finer data, then the induced topology on
+`presheafValue D₀` along `restrictionMap D₀ D'` equals the iInf of
+induced topologies along the composed restrictions `restrictionMap D₀ D`
+for `D ∈ S`. This is the topological reformulation of
+`restrictionMap_comp` applied to an iInf. -/
+theorem induced_restrictionMap_eq_iInf_of_inner_topology_iInf
+    (D₀ D' : RationalLocData A)
+    (h_inter : rationalOpen D'.T D'.s ⊆ rationalOpen D₀.T D₀.s)
+    (S : Finset (RationalLocData A))
+    (hSub_inner : ∀ D ∈ S, rationalOpen D.T D.s ⊆ rationalOpen D'.T D'.s)
+    (h_inner_top : (instTopologicalSpacePresheafValue D') =
+      ⨅ D : ↥S, TopologicalSpace.induced
+        (fun y : presheafValue D' => restrictionMap D' D.1 (hSub_inner D.1 D.2) y)
+        inferInstance) :
+    TopologicalSpace.induced
+        (fun x : presheafValue D₀ => restrictionMap D₀ D' h_inter x)
+        (instTopologicalSpacePresheafValue D') =
+    ⨅ D : ↥S, TopologicalSpace.induced
+      (fun x : presheafValue D₀ =>
+        restrictionMap D₀ D.1 ((hSub_inner D.1 D.2).trans h_inter) x) inferInstance := by
+  rw [h_inner_top, induced_iInf]
+  congr 1
+  funext D
+  rw [induced_compose]
+  congr 1
+  funext x
+  show (restrictionMap D' D.1 (hSub_inner D.1 D.2) ∘
+      restrictionMap D₀ D' h_inter) x = restrictionMap D₀ D.1 _ x
+  exact congr_fun (restrictionMap_comp D₀ D' D.1 h_inter (hSub_inner D.1 D.2)) x
+
+/-- **Subtype-iInf union with dependent bodies**: if two subtype-indexed
+iInfs `⨅ D : ↥s, fs D` and `⨅ D : ↥u, fu D` agree (on overlapping/each
+side) with a third function `f : ↥(s ∪ u) → α`, then `(⨅ D : ↥s, fs D) ⊓
+(⨅ D : ↥u, fu D) = ⨅ D : ↥(s ∪ u), f D`. Used to combine the L-side and
+R-side topology iInfs at a node into a single union-side iInf, without
+needing disjointness. -/
+theorem iInf_subtype_finset_union_eq_inf_of_dependent
+    {α : Type*} [CompleteLattice α]
+    {ι : Type*} [DecidableEq ι]
+    (s u : Finset ι) (f : ↥(s ∪ u) → α)
+    (fs : ↥s → α) (fu : ↥u → α)
+    (h_fs : ∀ i (hi : i ∈ s), fs ⟨i, hi⟩ = f ⟨i, Finset.mem_union_left _ hi⟩)
+    (h_fu : ∀ i (hi : i ∈ u), fu ⟨i, hi⟩ = f ⟨i, Finset.mem_union_right _ hi⟩) :
+    (⨅ D : ↥s, fs D) ⊓ (⨅ D : ↥u, fu D) = ⨅ D : ↥(s ∪ u), f D := by
+  apply le_antisymm
+  · refine le_iInf fun D => ?_
+    rcases Finset.mem_union.mp D.2 with hL | hR
+    · refine inf_le_left.trans (le_trans (iInf_le _ ⟨D.1, hL⟩) ?_)
+      rw [h_fs]
+    · refine inf_le_right.trans (le_trans (iInf_le _ ⟨D.1, hR⟩) ?_)
+      rw [h_fu]
+  · refine le_inf ?_ ?_
+    · refine le_iInf fun D => ?_
+      rw [h_fs]
+      exact iInf_le f ⟨D.1, Finset.mem_union_left _ D.2⟩
+    · refine le_iInf fun D => ?_
+      rw [h_fu]
+      exact iInf_le f ⟨D.1, Finset.mem_union_right _ D.2⟩
+
+set_option maxHeartbeats 1500000 in
+/-- **Tree inducing (no-disjointness version)**: given a Laurent tree `t`
+with `allSplitsInducing D₀` (every Laurent split inside `t` gives an
+inducing 2-cover at its base), the diagonal `productRestrictionSub` for
+the tree-induced covering is `IsInducing`. Unlike
+`productRestrictionSub_isInducing_via_tree`, this version does NOT
+require `t.allNodesDisjoint D₀`.
+
+**Proof.** Induction on `t`. The LEAF case is identical to
+`productRestrictionSub_leafTree_isInducing`. For the NODE case
+`node f L R`:
+1. The `h_split_f` 2-cover inducing gives the topology on `presheafValue D₀`
+   as `⨅ q ∈ {plus, minus}, induced (restrictionMap D₀ q.1 _) =
+   induced (rest D₀ plus _) ⊓ induced (rest D₀ minus _)` (proof-irrelevance
+   plus case-split on `q ∈ {plus, minus}`; works whether or not `plus = minus`).
+2. By IH on L (resp. R) and the pulled-back iInf lemma, each `induced`
+   becomes `⨅ D ∈ L_cov, induced (rest D₀ D _)` (resp. R_cov).
+3. The union decomposition `⨅ ∈ L_cov ∪ R_cov = ⨅ ∈ L_cov ⊓ ⨅ ∈ R_cov`
+   (without disjointness, via
+   `iInf_subtype_finset_union_eq_inf_of_dependent`) closes the iInf form
+   for the node-tree cover. -/
+theorem productRestrictionSub_isInducing_via_tree_no_disj
+    (t : LaurentTree A) (D₀ : RationalLocData A)
+    (h_split : t.allSplitsInducing D₀) :
+    Topology.IsInducing (productRestrictionSub A (t.toCovering D₀)) := by
+  classical
+  induction t generalizing D₀ with
+  | leaf =>
+    exact productRestrictionSub_leafTree_isInducing D₀
+  | node f L R ihL ihR =>
+    obtain ⟨h_split_f, h_split_L, h_split_R⟩ :=
+      LaurentTree.allSplitsInducing_node f L R D₀ |>.mp h_split
+    have ihL_full := ihL (laurentPlusDatum D₀ f) h_split_L
+    have ihR_full := ihR (laurentMinusDatum D₀ f) h_split_R
+    rw [isInducing_to_subtype_pi_iff_iInf_induced] at ihL_full ihR_full h_split_f ⊢
+    -- Decompose `h_split_f` into `⊓` of induced via plus / minus.
+    have hsf_eq : instTopologicalSpacePresheafValue D₀ =
+      TopologicalSpace.induced (fun x : presheafValue D₀ =>
+        restrictionMap D₀ (laurentPlusDatum D₀ f) (laurentPlus_subset D₀ f) x)
+        (instTopologicalSpacePresheafValue _) ⊓
+      TopologicalSpace.induced (fun x : presheafValue D₀ =>
+        restrictionMap D₀ (laurentMinusDatum D₀ f) (laurentMinus_subset D₀ f) x)
+        (instTopologicalSpacePresheafValue _) := by
+      change instTopologicalSpacePresheafValue (laurentCovering D₀ f).base = _
+      rw [h_split_f, iInf_subtype]
+      change (⨅ i, ⨅ (h : i ∈ ({laurentPlusDatum D₀ f, laurentMinusDatum D₀ f} : Finset _)),
+        TopologicalSpace.induced (fun x : presheafValue D₀ =>
+          restrictionMap D₀ i ((laurentCovering D₀ f).hsubset i h) x)
+          inferInstance) = _
+      refine le_antisymm ?_ ?_
+      · refine le_inf ?_ ?_
+        · refine iInf_le_of_le (laurentPlusDatum D₀ f) (iInf_le_of_le ?_ le_rfl)
+          simp
+        · refine iInf_le_of_le (laurentMinusDatum D₀ f) (iInf_le_of_le ?_ le_rfl)
+          simp
+      · refine le_iInf fun i => le_iInf fun hi => ?_
+        rcases Finset.mem_insert.mp hi with rfl | hi
+        · exact inf_le_left
+        · rw [Finset.mem_singleton] at hi
+          subst hi
+          exact inf_le_right
+    have hL_pulled := induced_restrictionMap_eq_iInf_of_inner_topology_iInf
+      D₀ (laurentPlusDatum D₀ f) (laurentPlus_subset D₀ f)
+      (L.toCovering (laurentPlusDatum D₀ f)).covers
+      (L.toCovering (laurentPlusDatum D₀ f)).hsubset
+      ihL_full
+    have hR_pulled := induced_restrictionMap_eq_iInf_of_inner_topology_iInf
+      D₀ (laurentMinusDatum D₀ f) (laurentMinus_subset D₀ f)
+      (R.toCovering (laurentMinusDatum D₀ f)).covers
+      (R.toCovering (laurentMinusDatum D₀ f)).hsubset
+      ihR_full
+    change instTopologicalSpacePresheafValue D₀ = _
+    rw [hsf_eq, hL_pulled, hR_pulled]
+    -- The two LHS iInfs are over `↥L_cov` and `↥R_cov`; goal RHS iInf is
+    -- over `↥(L_cov ∪ R_cov) = ↥((node f L R).toCovering D₀).covers`.
+    -- All three bodies are `induced (rest D₀ D _) inferInstance` (proof-
+    -- irrelevant in the Subset arg). Apply the union-iInf lemma with a
+    -- canonical body using `((node f L R).toCovering D₀).hsubset`.
+    rw [iInf_subtype_finset_union_eq_inf_of_dependent
+      (L.toCovering (laurentPlusDatum D₀ f)).covers
+      (R.toCovering (laurentMinusDatum D₀ f)).covers
+      (f := fun D => TopologicalSpace.induced (fun x : presheafValue D₀ =>
+        restrictionMap D₀ D.1 (((LaurentTree.node f L R).toCovering D₀).hsubset D.1
+          (by rw [LaurentTree.toCovering_node_covers]; exact D.2)) x) inferInstance)
+      (fun D => TopologicalSpace.induced (fun x : presheafValue D₀ =>
+        restrictionMap D₀ D.1 (((L.toCovering (laurentPlusDatum D₀ f)).hsubset D.1 D.2).trans
+          (laurentPlus_subset D₀ f)) x) inferInstance)
+      (fun D => TopologicalSpace.induced (fun x : presheafValue D₀ =>
+        restrictionMap D₀ D.1 (((R.toCovering (laurentMinusDatum D₀ f)).hsubset D.1 D.2).trans
+          (laurentMinus_subset D₀ f)) x) inferInstance)
+      (fun _ _ => rfl) (fun _ _ => rfl)]
+    rfl
+
+/-- **Tree inducing → arbitrary cover inducing (no-disjointness version)**:
+given a Laurent tree `t` refining `C` whose splits are all inducing, the
+diagonal `productRestrictionSub A C` is `IsInducing`. Unlike
+`productRestrictionSub_isInducing_via_tree_refinement`, this version
+does NOT require `t.allNodesDisjoint C.base`. -/
+theorem productRestrictionSub_isInducing_via_tree_refinement_no_disj
+    (C : RationalCovering A) (t : LaurentTree A)
+    (h_refines : t.Refines C.base C)
+    (h_split : t.allSplitsInducing C.base) :
+    Topology.IsInducing (productRestrictionSub A C) := by
+  classical
+  have h_tree_ind : Topology.IsInducing
+    (productRestrictionSub A (t.toCovering C.base)) :=
+    productRestrictionSub_isInducing_via_tree_no_disj t C.base h_split
+  set τ : { D // D ∈ (t.toCovering C.base).covers } → { E // E ∈ C.covers } :=
+    t.refinementTau C.base C h_refines with hτ_def
+  have hτ : ∀ d : { D // D ∈ (t.toCovering C.base).covers },
+      rationalOpen d.1.T d.1.s ⊆
+        rationalOpen (τ d).1.T (τ d).1.s :=
+    t.refinementTau_spec C.base C h_refines
+  refine productRestrictionSub_isInducing_of_finer_rational_continuous
+    C (t.toCovering C.base).covers
+    (t.toCovering C.base).hsubset
+    (productRestrictionSub A (t.toCovering C.base))
+    rfl
+    h_tree_ind
+    (naturalRefinementMap τ hτ)
+    ?_
+    (naturalRefinementMap_continuous τ hτ)
+    (productRestrictionSub_continuous C)
+  intro x
+  rw [naturalRefinementMap_comp]
+  funext d
+  show restrictionMap C.base d.1 _ x = restrictionMap C.base d.1 _ x
+  rfl
+
 /-! ## Wedhorn 8.34 factorization
 
 For arbitrary rational cover `C`, the topological-inducing of
@@ -2110,26 +2332,32 @@ tree `t` satisfying:
   C-piece.
 * `t.allSplitsInducing C.base` — every Laurent split inside `t`
   gives an inducing 2-cover at its base.
-* `t.allNodesDisjoint C.base` — every node has distinct + disjoint
-  sub-coverings (so the union-form embedding is well-defined).
 
 This factorization isolates the **Wedhorn 8.34** existence as the sole
-remaining gap. -/
+remaining gap. Per the Wedhorn-faithful Route A refactor (2026-05-22),
+the legacy `t.allNodesDisjoint C.base` conjunct has been dropped from
+the consumer's hypothesis: Wedhorn's proof of Lemma 8.34 does not
+require it, and the no-disjointness inducing transfer above
+(`productRestrictionSub_isInducing_via_tree_refinement_no_disj`)
+delivers the inducing conclusion using `allSplitsInducing` alone. -/
 
 /-- **Hypothesis-parametric IsInducing**: assuming Wedhorn 8.34 tree
 existence for every rational covering, the topological-inducing for
 arbitrary `C` follows from the tree-induction theorem +
-tree→C transfer. -/
+tree→C transfer.
+
+**Route A (Wedhorn-faithful, 2026-05-22):** the hypothesis only requires
+`Refines + allSplitsInducing` (no `allNodesDisjoint`), matching what
+Wedhorn's proof of Lemma 8.34 actually produces. -/
 theorem productRestrictionSub_isInducing_of_wedhorn_tree_existence
     (h_wedhorn : ∀ (C : RationalCovering A), ∃ t : LaurentTree A,
-      t.Refines C.base C ∧ t.allSplitsInducing C.base ∧
-      t.allNodesDisjoint C.base) :
+      t.Refines C.base C ∧ t.allSplitsInducing C.base) :
     ∀ (C : RationalCovering A),
       Topology.IsInducing (productRestrictionSub A C) := by
   intro C
-  obtain ⟨t, h_refines, h_split, h_disj⟩ := h_wedhorn C
-  exact productRestrictionSub_isInducing_via_tree_refinement
-    C t h_refines h_split h_disj
+  obtain ⟨t, h_refines, h_split⟩ := h_wedhorn C
+  exact productRestrictionSub_isInducing_via_tree_refinement_no_disj
+    C t h_refines h_split
 
 /-! ### IsSheafy via Wedhorn 8.34 tree existence
 
@@ -2137,22 +2365,26 @@ Compose `productRestrictionSub_isInducing_of_wedhorn_tree_existence` with
 `isSheafy_ofStronglyNoetherianTate_flat_of_topo_inducing` to get a
 clean factorization: the only remaining residual for `IsSheafy A` is
 the **Wedhorn 8.34** existence of a Laurent refinement tree refining
-every rational covering with appropriate inducing + disjointness
-properties. -/
+every rational covering with the inducing property. -/
 
 /-- **IsSheafy via Wedhorn 8.34 tree existence**: the composition of
 the tree-induction infrastructure with the standard IsSheafy builder.
 The hypothesis bundle separates cleanly: `hSpa` is the Spa-point
 existence (supplied by Lemma 7.45 / trivial-valuation construction)
 and `h_wedhorn` is the Wedhorn 8.34 tree existence (the substantive
-remaining geometric content). -/
+remaining geometric content).
+
+**Route A (Wedhorn-faithful, 2026-05-22):** the `h_wedhorn` bundle no
+longer carries `allNodesDisjoint` — Wedhorn's proof of Lemma 8.34 does
+not require it, and the no-disjointness inducing transfer
+(`productRestrictionSub_isInducing_via_tree_refinement_no_disj`) closes
+the topology side without it. -/
 theorem isSheafy_ofStronglyNoetherianTate_flat_of_wedhorn_tree_existence
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (hSpa : ∀ (C : RationalCovering A) (p : Ideal A), p.IsPrime → C.base.s ∉ p →
       ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp)
     (h_wedhorn : ∀ (C : RationalCovering A), ∃ t : LaurentTree A,
-      t.Refines C.base C ∧ t.allSplitsInducing C.base ∧
-      t.allNodesDisjoint C.base) :
+      t.Refines C.base C ∧ t.allSplitsInducing C.base) :
     IsSheafy A :=
   isSheafy_ofStronglyNoetherianTate_flat_of_topo_inducing A P hSpa
     (productRestrictionSub_isInducing_of_wedhorn_tree_existence h_wedhorn)
@@ -2165,30 +2397,28 @@ content for *arbitrary* C), but they cover the structural endpoints. -/
 
 /-- **Trivial cover existence**: for a covering whose covers contain
 the base datum, the `leaf` tree refines and trivially satisfies the
-inducing + disjointness predicates. -/
+inducing predicate (matching the Wedhorn-faithful Route A bundle: no
+`allNodesDisjoint` conjunct). -/
 theorem LaurentTree.exists_for_singleton_cover
     (C : RationalCovering A) (h_base_mem : C.base ∈ C.covers) :
     ∃ t : LaurentTree A,
-      t.Refines C.base C ∧ t.allSplitsInducing C.base ∧
-      t.allNodesDisjoint C.base :=
+      t.Refines C.base C ∧ t.allSplitsInducing C.base :=
   ⟨LaurentTree.leaf,
    LaurentTree.leaf_refines_singleton C.base C h_base_mem,
-   trivial,
    trivial⟩
 
 /-- **Singleton-cover existence**: when `C.covers = {E}` for some
 single `E`, the `leaf` tree witnesses Wedhorn 8.34 existence
-(refinement via `leaf_refines_of_singleton`, the inducing and
-disjointness predicates being vacuously satisfied). -/
+(refinement via `leaf_refines_of_singleton`, the inducing predicate
+being vacuously satisfied). Matches the Wedhorn-faithful Route A
+bundle (no `allNodesDisjoint` conjunct). -/
 theorem LaurentTree.exists_for_singleton_cover_of_eq
     (C : RationalCovering A) (E : RationalLocData A)
     (hE_eq : C.covers = {E}) :
     ∃ t : LaurentTree A,
-      t.Refines C.base C ∧ t.allSplitsInducing C.base ∧
-      t.allNodesDisjoint C.base :=
+      t.Refines C.base C ∧ t.allSplitsInducing C.base :=
   ⟨LaurentTree.leaf,
    LaurentTree.leaf_refines_of_singleton C E hE_eq,
-   trivial,
    trivial⟩
 
 /-! ### Right-branching tree: per-level conditions
@@ -2470,11 +2700,15 @@ given a refining grafted tree with the appropriate inducing predicates,
 the C-level diagonal is `Topology.IsInducing`. This composes the
 graft-preservation theorems with the tree-induction theorem. -/
 
-/-- **IsInducing via a grafted tree refinement**: given an outer tree
-`t_outer` with `allSplitsInducing`, a per-leaf inner family `h` whose
-each `h L` has `allSplitsInducing L`, together with refinement of C
-and full `allNodesDisjoint` of the grafted tree, conclude C-level
-inducing. -/
+/-- **IsInducing via a grafted tree refinement (no-disjointness)**: given
+an outer tree `t_outer` with `allSplitsInducing`, a per-leaf inner family
+`h` whose each `h L` has `allSplitsInducing L`, together with refinement
+of C, conclude C-level inducing.
+
+**Route A (Wedhorn-faithful, 2026-05-22):** the legacy `h_disjoint`
+hypothesis has been dropped; the no-disjointness inducing transfer
+(`productRestrictionSub_isInducing_via_tree_refinement_no_disj`) does
+not require it. -/
 theorem productRestrictionSub_isInducing_via_grafted_tree
     (C : RationalCovering A)
     (t_outer : LaurentTree A)
@@ -2482,13 +2716,12 @@ theorem productRestrictionSub_isInducing_via_grafted_tree
     (h_refines : (t_outer.graftAt C.base h).Refines C.base C)
     (h_outer_inducing : t_outer.allSplitsInducing C.base)
     (h_inner_inducing :
-      ∀ L ∈ t_outer.leaves C.base, (h L).allSplitsInducing L)
-    (h_disjoint : (t_outer.graftAt C.base h).allNodesDisjoint C.base) :
+      ∀ L ∈ t_outer.leaves C.base, (h L).allSplitsInducing L) :
     Topology.IsInducing (productRestrictionSub A C) := by
   have h_split : (t_outer.graftAt C.base h).allSplitsInducing C.base :=
     LaurentTree.allSplitsInducing_graftAt t_outer C.base h
       h_outer_inducing h_inner_inducing
-  exact productRestrictionSub_isInducing_via_tree_refinement
-    C (t_outer.graftAt C.base h) h_refines h_split h_disjoint
+  exact productRestrictionSub_isInducing_via_tree_refinement_no_disj
+    C (t_outer.graftAt C.base h) h_refines h_split
 
 end ValuationSpectrum

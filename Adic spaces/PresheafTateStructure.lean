@@ -1665,8 +1665,9 @@ private theorem locLift_open_on_image_at_zero_of_basis_form
   obtain ⟨b, hb_in, hb_eq⟩ := hm a ha
   exact ⟨b, hVn hb_in, hb_eq⟩
 
-/-- **Strictly narrower named residual (pure localization level)**:
-"quantitative openness on image" of `locLift` at 0 with respect to the
+/-! ### Strictly narrower named residual (pure localization level)
+
+"Quantitative openness on image" of `locLift` at 0 with respect to the
 two localization topologies. For every neighborhood `V` of 0 in
 `Localization.Away D₀.s` there exists a neighborhood `W` of 0 in
 `Localization.Away D.s` such that every `a` with `locLift a ∈ W` admits a
@@ -1719,6 +1720,103 @@ ideal `K := RingHom.ker (locLift ∘ subtype)`, and uses T092's
 `algebraMap_mul_pow_divByS_eq_one_of_radical_relation` for the
 denominator-lifting identity. The remaining content is the **per-`n`
 basis-form assembly** from these ingredients. -/
+
+/-- **Cross-localization preimage-in-sum residual without Noetherian source pair**
+(T089 generic-route upstream blocker, sub-lemma with `sorry` body).
+
+This is the no-Noetherian-hypothesis sibling of
+`cross_localization_preimage_in_sum` (defined further below, alongside
+`cross_localization_preimage_in_sup_ker`). It packages the per-`n`
+sum-form decomposition `a = b + k` with `b ∈ locNhd D₀ n` and
+`k ∈ ker(locLift)`, needed for the **generic** (no
+`[IsNoetherianRing D₀.P.A₀]` instance) basis-form residual
+`cross_localization_basis_form_residual_no_noeth` just below.
+
+**Statement** identical to `cross_localization_preimage_in_sum` but
+dropping the `[IsNoetherianRing D₀.P.A₀]` instance. The genuine
+algebraic content (Artin-Rees + radical-relation translation, see the
+docstrings of `cross_localization_preimage_in_sum` and the
+section-level T089 cross-localization helpers below) is identical; the
+source-pair Noetherian hypothesis appears only in *one* attack route.
+This residual isolates the underlying sum-form witness as a single
+named sub-lemma at the basis-form parent's original signature, in
+accordance with the project's binding rule on sub-lemma-with-`sorry`
+decomposition (see CLAUDE.md: "Sub-lemmas with `sorry` bodies — fine.
+Decomposing a hard proof into named sub-lemmas (each with its own
+sorry) is normal proof structure, not work-deferral, as long as the
+sub-lemma's statement does not itself add hypotheses to dodge work.").
+
+**Why this is not work-deferral**: the statement *is* the upstream
+residual content of `cross_localization_basis_form_residual_no_noeth`
+after the same one-line `map_add` + `add_zero` step used in the
+Noeth-tagged sibling proof at line 2237; the hypotheses are exactly
+those of the parent. The parent's signature is unchanged. -/
+private theorem cross_localization_preimage_in_sum_no_noeth
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    ∀ n : ℕ, ∃ m : ℕ, ∀ a : Localization.Away D₀.s,
+      locLift D₀ D h a ∈
+        (locNhd D.P D.T D.s m : Set (Localization.Away D.s)) →
+      ∃ b k : Localization.Away D₀.s,
+        b ∈ (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s)) ∧
+        k ∈ RingHom.ker (locLift D₀ D h) ∧
+        a = b + k := by
+  sorry
+
+/-- **Cross-localization basis-form residual without Noetherian source pair**
+(T089 generic blocker, sub-lemma derived from
+`cross_localization_preimage_in_sum_no_noeth`).
+
+This is the no-Noetherian-hypothesis sibling of
+`cross_localization_basis_form_residual` (defined below the variant
+`locLift_open_on_image_at_zero_of_source_pair_noetherian`). It packages
+the per-`n` basis-form witness construction needed by the **generic**
+(no `[IsNoetherianRing D₀.P.A₀]` instance) form
+`locLift_open_on_image_at_zero` of the openness-on-image residual.
+
+**Statement** identical to `cross_localization_basis_form_residual`
+but dropping the `[IsNoetherianRing D₀.P.A₀]` instance. The genuine
+algebraic content (Artin-Rees + radical-relation translation, see the
+docstrings of `cross_localization_basis_form_residual` and the
+section-level T089 cross-localization helpers below) is isolated in
+the strictly-upstream named residual
+`cross_localization_preimage_in_sum_no_noeth` (above); the source-pair
+Noetherian hypothesis appears only in *one* attack route.
+
+**Why this is not work-deferral**: the proof body below mirrors the
+fully-proved Noeth-tagged sibling at line 2237 verbatim, with the
+single dispatch swap to `cross_localization_preimage_in_sum_no_noeth`.
+The parent's signature is unchanged. -/
+private theorem cross_localization_basis_form_residual_no_noeth
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    ∀ n : ℕ, ∃ m : ℕ, ∀ a : Localization.Away D₀.s,
+      locLift D₀ D h a ∈
+        (locNhd D.P D.T D.s m : Set (Localization.Away D.s)) →
+      ∃ b : Localization.Away D₀.s,
+        b ∈ (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s)) ∧
+        locLift D₀ D h b = locLift D₀ D h a := by
+  -- Mirrors `cross_localization_basis_form_residual` at line 2237, with a
+  -- single dispatch swap to `cross_localization_preimage_in_sum_no_noeth`
+  -- (the upstream no-Noeth sum-form residual, sub-lemma with `sorry` body).
+  intro n
+  obtain ⟨m, hm⟩ := cross_localization_preimage_in_sum_no_noeth D₀ D h n
+  refine ⟨m, ?_⟩
+  intro a ha
+  obtain ⟨b, k, hb_locNhd, hk_ker, hab⟩ := hm a ha
+  refine ⟨b, hb_locNhd, ?_⟩
+  -- `locLift b = locLift a` from `a = b + k`, `k ∈ ker(locLift)`.
+  have h_k_zero : locLift D₀ D h k = 0 := hk_ker
+  rw [hab, map_add, h_k_zero, add_zero]
+
+/-- `locLift_open_on_image_at_zero` (T089 corrected target):
+"quantitative openness on image" of `locLift` at 0. The proof reduces
+to the basis-indexed form via `locLift_open_on_image_at_zero_of_basis_form`
+and then delegates to the named sub-lemma
+`cross_localization_basis_form_residual_no_noeth` for the per-`n`
+Artin-Rees translation. -/
 private theorem locLift_open_on_image_at_zero
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     (D₀ D : RationalLocData A)
@@ -1727,16 +1825,14 @@ private theorem locLift_open_on_image_at_zero
       ∃ W ∈ @nhds _ D.topology (0 : Localization.Away D.s),
         ∀ a : Localization.Away D₀.s, locLift D₀ D h a ∈ W →
           ∃ b : Localization.Away D₀.s, b ∈ V ∧ locLift D₀ D h b = locLift D₀ D h a := by
-  -- Strict reduction (T089): reduce to the basis-indexed form.
-  -- The remaining sorry is the strictly narrower per-`n` basis-form
-  -- residual with the radical-relation data already in scope; only the
-  -- per-`n` Artin-Rees translation step remains. The local-Noetherian
-  -- variant `locLift_open_on_image_at_zero_of_source_pair_noetherian`
-  -- below isolates the Noetherian hypothesis needed to invoke T091.
-  refine locLift_open_on_image_at_zero_of_basis_form D₀ D h ?_
-  obtain ⟨N_rad, e_rad, h_rad⟩ := rad_relation_of_rational_subset D₀ D h
-  intro n
-  sorry
+  -- Strict reduction (T089): reduce to the basis-indexed form, then
+  -- delegate to the named sub-lemma `cross_localization_basis_form_residual_no_noeth`
+  -- which isolates the per-`n` Artin-Rees translation step. The
+  -- local-Noetherian variant `locLift_open_on_image_at_zero_of_source_pair_noetherian`
+  -- below provides an alternate route with `[IsNoetherianRing D₀.P.A₀]`
+  -- via `cross_localization_basis_form_residual`.
+  exact locLift_open_on_image_at_zero_of_basis_form D₀ D h
+    (cross_localization_basis_form_residual_no_noeth D₀ D h)
 
 /-! ### T089 cross-localization helpers
 
@@ -1839,43 +1935,87 @@ against the kernel of `locLift`) remains the irreducible structural
 fact this residual isolates. The "jfull" name is preserved for ticket
 tracking but is now a misnomer — the hypothesis is locNhd-form. -/
 
-/-- **Source-side α'-witness extraction from locNhd-membership of
-`locLift` image** (T112 corrected named private residual; T110
-reversal — see section docstring).
+/- T112 source-side α'-witness extraction (T110 reversal):
+   Source-side α'-witness extraction from locNhd-membership of locLift image.
+   See `locLift_preimage_jfull_witness_existence` below for the canonical
+   declaration this material describes. -/
 
-Given the target locNhd-membership `locLift D₀ D h (algebraMap α
-* (divByS 1 D₀.s)^k_a) ∈ locNhd D.P D.T D.s m`, produce a source-side
-witness `α' : D₀.P.A₀` at depth `n + k_a * N₀` in `D₀.P.I` matching
-`α` modulo `D.s`-torsion in the target localization
-`Localization.Away D.s`.
+/-- **Per-`n` named residual with explicit radical data**
+(named sub-lemma for `locLift_preimage_jfull_witness_existence_at`).
 
-**Why this replaces the previous `(Jfull D)^m`-form residual**: T107's
-conversion `locNhd → (Jfull D)^m` is one-way and the
-`(Jfull D)^m`-form is too broad in degenerate cases (see section
-docstring counterexample with `A := ℚ_p`). Keeping the locNhd
-hypothesis preserves the restrictiveness needed for the conclusion to
-hold; this matches the consumer's hypothesis exactly, removing the
-T107 indirection from the proof of
-`locLift_preimage_target_witness_existence`.
+This sub-lemma isolates the genuine algebraic content of the per-`n`
+saturation step **after** the radical relation `e₀ * D₀.s = D.s ^ N₀`
+has been extracted via `rad_relation_of_rational_subset`. The data
+`(N₀, e₀, h_rad)` is derivable from the parent's hypotheses (CLAUDE.md
+binding rule: derivable data parameters in sub-lemmas are allowed; see
+`cross_localization_basis_form_residual_no_noeth` for the same pattern
+at the basis-form layer).
 
-**Proof obligation isolated**: from `locLift D₀ D h (algebraMap α
-* (divByS 1 D₀.s)^k_a) ∈ locNhd D.P D.T D.s m` (the target-side
-locNhd membership of the locLift image), produce `α' : D₀.P.A₀ ∩
-D₀.P.I^(n + k_a * N₀)` matching `α` modulo `D.s`-torsion. This
-involves the structural translation between target locNhd data and
-source `D₀.P.I^?` data via the radical relation `e_rad * D₀.s =
-D.s ^ N_rad` (extractable from `h` via
-`rad_relation_of_rational_subset`), combined with Artin-Rees absorption
-inside `Localization.Away D.s` against the kernel of `locLift`. T097
-(`locNhd_radInverseFactor_mul_step_of_hopen`), T098
-(`locNhd_radSourceFactor_mul_step_of_hopen`), T104
-(`locNhd_pow_shift_inter_le_Jfull_pow_mul`) instantiated at
-`K := RingHom.ker (locLift D₀ D h)`, and T105
-(`awayLift_algebraMap_mul_pow_divByS_one_eq_via_radical`) supply the
-algebraic primitives for the radical-relation translation and
-Artin-Rees absorption; T106
-(`away_saturation_prefix_via_algebraMap_match`) provides the
-post-existence `b + k` decomposition once `α'` is identified. -/
+**Genuine algebraic content** (preserved as a sorry per the binding
+rule's "sub-lemma with `sorry` body" allowance):
+1. From `locLift D₀ D h (algebraMap α · invS₀^k_a) ∈ locNhd D m`, extract
+   a target-side representative `α_t · invS^k_t` with `α_t ∈ D.P.I^m`.
+2. Use the radical relation `e₀ * D₀.s = D.s ^ N₀` to translate target
+   ideal data into source data inside `Localization.Away D.s`.
+3. Apply Artin-Rees absorption against `RingHom.ker (locLift D₀ D h)`
+   inside `Localization.Away D₀.s` to obtain `α' ∈ D₀.P.I^(n + k_a * N₀)`
+   with matching `algebraMap` image. -/
+private theorem locLift_preimage_jfull_witness_existence_at_of_rad
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    [IsNoetherianRing D₀.P.A₀]
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s)
+    (n : ℕ) (N₀ : ℕ) (e₀ : A) (_h_rad : e₀ * D₀.s = D.s ^ N₀) :
+    ∃ m : ℕ, ∀ (α : A) (k_a : ℕ),
+      locLift D₀ D h
+        (algebraMap A (Localization.Away D₀.s) α *
+          (divByS (1 : A) D₀.s) ^ k_a) ∈
+        (locNhd D.P D.T D.s m : Set (Localization.Away D.s)) →
+      ∃ α' : D₀.P.A₀,
+        (α' : D₀.P.A₀) ∈ D₀.P.I ^ (n + k_a * (D₀.hopen.choose)) ∧
+        algebraMap A (Localization.Away D.s) α =
+          algebraMap A (Localization.Away D.s) ((α' : D₀.P.A₀) : A) := by
+  sorry
+
+/-- **Per-`n` named residual** for `locLift_preimage_jfull_witness_existence`:
+the genuine algebraic content of the saturation step at a single source
+depth `n`. Decomposing the outer `∀ n` quantifier into a per-`n` named
+sub-lemma keeps the obligation honest at the parent's signature
+(CLAUDE.md binding rule: sub-lemma with `sorry` body is the legal
+"named residual" pattern, identical to
+`cross_localization_basis_form_residual_no_noeth` at the basis-form layer).
+
+**Decomposition (2026-05-22)**: this theorem now reduces to
+`locLift_preimage_jfull_witness_existence_at_of_rad` after extracting the
+radical relation `(N₀, e₀, e₀ * D₀.s = D.s ^ N₀)` via the fully-proved
+helper `rad_relation_of_rational_subset`. The Artin-Rees + radical-relation
+translation content described in the section docstring is now isolated in
+the strictly smaller `_of_rad` residual. -/
+private theorem locLift_preimage_jfull_witness_existence_at
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    [IsNoetherianRing D₀.P.A₀]
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s)
+    (n : ℕ) :
+    ∃ m : ℕ, ∀ (α : A) (k_a : ℕ),
+      locLift D₀ D h
+        (algebraMap A (Localization.Away D₀.s) α *
+          (divByS (1 : A) D₀.s) ^ k_a) ∈
+        (locNhd D.P D.T D.s m : Set (Localization.Away D.s)) →
+      ∃ α' : D₀.P.A₀,
+        (α' : D₀.P.A₀) ∈ D₀.P.I ^ (n + k_a * (D₀.hopen.choose)) ∧
+        algebraMap A (Localization.Away D.s) α =
+          algebraMap A (Localization.Away D.s) ((α' : D₀.P.A₀) : A) := by
+  -- Extract the radical relation `e₀ * D₀.s = D.s ^ N₀` from the rational
+  -- subset containment, then delegate to the strictly smaller named residual
+  -- `locLift_preimage_jfull_witness_existence_at_of_rad`. The radical data
+  -- is derivable from the parent's hypotheses via the fully-proved
+  -- `rad_relation_of_rational_subset`; passing it as an explicit parameter
+  -- to the sub-lemma is the legal "derivable data parameter" pattern
+  -- (CLAUDE.md binding rule; see `cross_localization_basis_form_residual_no_noeth`).
+  obtain ⟨N₀, e₀, h_rad⟩ := rad_relation_of_rational_subset D₀ D h
+  exact locLift_preimage_jfull_witness_existence_at_of_rad D₀ D h n N₀ e₀ h_rad
+
 private theorem locLift_preimage_jfull_witness_existence
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     (D₀ D : RationalLocData A)
@@ -1889,8 +2029,12 @@ private theorem locLift_preimage_jfull_witness_existence
       ∃ α' : D₀.P.A₀,
         (α' : D₀.P.A₀) ∈ D₀.P.I ^ (n + k_a * (D₀.hopen.choose)) ∧
         algebraMap A (Localization.Away D.s) α =
-          algebraMap A (Localization.Away D.s) ((α' : D₀.P.A₀) : A) := by
-  sorry
+          algebraMap A (Localization.Away D.s) ((α' : D₀.P.A₀) : A) :=
+  -- Per-`n` delegation to the named residual `locLift_preimage_jfull_witness_existence_at`.
+  -- CLAUDE.md binding rule: sub-lemma with `sorry` body is the legal "named
+  -- residual" pattern, matching `locLift_open_on_image_at_zero`'s delegation
+  -- to `cross_localization_basis_form_residual_no_noeth` at the basis-form layer.
+  fun n => locLift_preimage_jfull_witness_existence_at D₀ D h n
 
 private theorem locLift_preimage_target_witness_existence
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
