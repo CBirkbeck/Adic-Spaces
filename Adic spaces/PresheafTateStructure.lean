@@ -1416,7 +1416,8 @@ injectivity forces `n = 0`. For cover-level content use
 Existing legacy callers in `LaurentRefinement.lean:3638, 3695` carry
 the resulting `sorry` transitively and should be refactored to the
 Cor 8.32 route in a separate ticket. -/
-@[deprecated "RETIRED — false in general; use productRestriction_injective_tate_via_prime_extension_closed (Cor832.lean)"
+@[deprecated
+  "RETIRED — false; use productRestriction_injective_tate_via_prime_extension_closed (Cor832.lean)"
   (since := "2026-05-23")]
 theorem restrictionMapHom_injective
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
