@@ -113,7 +113,7 @@ noncomputable def iteratedOverlap_forwardLocHom_to_B
       Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s) := by
   haveI : IsLocalization.Away (D₀.s * f)
       (Localization.Away ((laurentOverlapDatum D₀ f).s)) := by
-    show IsLocalization.Away (D₀.s * f) (Localization.Away (D₀.s * f))
+    change IsLocalization.Away (D₀.s * f) (Localization.Away (D₀.s * f))
     infer_instance
   exact IsLocalization.Away.lift (S := Localization.Away ((laurentOverlapDatum D₀ f).s))
     (R := A) (D₀.s * f)
@@ -134,9 +134,9 @@ theorem iteratedOverlap_forwardLocHom_to_B_algebraMap
         (D₀.canonicalMap a) := by
   haveI : IsLocalization.Away (D₀.s * f)
       (Localization.Away ((laurentOverlapDatum D₀ f).s)) := by
-    show IsLocalization.Away (D₀.s * f) (Localization.Away (D₀.s * f))
+    change IsLocalization.Away (D₀.s * f) (Localization.Away (D₀.s * f))
     infer_instance
-  show IsLocalization.Away.lift (D₀.s * f)
+  change IsLocalization.Away.lift (D₀.s * f)
     (iteratedOverlap_baseHom_DsTimes_f_isUnit P D₀ f hLocLift_B)
     (algebraMap A (Localization.Away ((laurentOverlapDatum D₀ f).s)) a) = _
   rw [IsLocalization.Away.lift_eq]
@@ -178,7 +178,7 @@ private theorem iteratedOverlap_forwardLocHom_to_B_generators_powerBounded
   haveI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
   haveI hloc_src : IsLocalization.Away (D₀.s * f)
       (Localization.Away ((laurentOverlapDatum D₀ f).s)) := by
-    show IsLocalization.Away (D₀.s * f) (Localization.Away (D₀.s * f))
+    change IsLocalization.Away (D₀.s * f) (Localization.Away (D₀.s * f))
     infer_instance
   haveI hloc_tgt : IsLocalization.Away (D₀.canonicalMap f)
       (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
@@ -199,7 +199,7 @@ private theorem iteratedOverlap_forwardLocHom_to_B_generators_powerBounded
   -- Auxiliary facts (units, alg-action).
   have hu_s_src : IsUnit (algebraMap A
       (Localization.Away ((laurentOverlapDatum D₀ f).s)) D₀.s) := by
-    show IsUnit (algebraMap A (Localization.Away (D₀.s * f)) D₀.s)
+    change IsUnit (algebraMap A (Localization.Away (D₀.s * f)) D₀.s)
     have := IsLocalization.Away.algebraMap_isUnit (R := A) (D₀.s * f)
         (S := Localization.Away (D₀.s * f))
     rw [map_mul] at this; exact isUnit_of_mul_isUnit_left this
@@ -307,7 +307,7 @@ private theorem iteratedOverlap_forwardLocHom_to_B_generators_powerBounded
     · -- `a = D₀.s, b = f`: trivial.
       rw [show D₀.s * b = D₀.s * f from by rw [hb_f]]
       have hself : divByS (D₀.s * f) (laurentOverlapDatum D₀ f).s = 1 := by
-        show divByS (D₀.s * f) (D₀.s * f) = 1
+        change divByS (D₀.s * f) (D₀.s * f) = 1
         unfold divByS; exact IsLocalization.mk'_self _ _
       rw [hself, map_one]
       exact (locSubring _ _ _).one_mem
@@ -319,7 +319,7 @@ private theorem iteratedOverlap_forwardLocHom_to_B_generators_powerBounded
       · -- `a = f, b = D₀.s`: trivial.
         rw [show f * b = f * D₀.s from by rw [hb_s]]
         have hself : divByS (f * D₀.s) (laurentOverlapDatum D₀ f).s = 1 := by
-          show divByS (f * D₀.s) (D₀.s * f) = 1
+          change divByS (f * D₀.s) (D₀.s * f) = 1
           rw [show f * D₀.s = D₀.s * f from mul_comm _ _]
           unfold divByS
           exact IsLocalization.mk'_self _ _
@@ -639,15 +639,15 @@ private theorem D₀s_mem_laurentOverlap_T
     (D₀ : RationalLocData A) [LaurentNormalized D₀] (f : A) :
     D₀.s ∈ (laurentOverlapDatum D₀ f).T := by
   classical
-  show D₀.s ∈ ((insert (laurentPlusDatum D₀ f).s (laurentPlusDatum D₀ f).T).product
+  change D₀.s ∈ ((insert (laurentPlusDatum D₀ f).s (laurentPlusDatum D₀ f).T).product
       ({(laurentPlusDatum D₀ f).s, f} : Finset A)).image (fun p => p.1 * p.2)
   refine Finset.mem_image.mpr ⟨(1, D₀.s), ?_, one_mul _⟩
   refine Finset.mem_product.mpr ⟨?_, ?_⟩
   · -- 1 ∈ insert (laurentPlusDatum.s) (laurentPlusDatum.T) = insert D₀.s (insert f D₀.T).
-    show (1 : A) ∈ insert D₀.s (insert f D₀.T)
+    change (1 : A) ∈ insert D₀.s (insert f D₀.T)
     exact Finset.mem_insert_of_mem (Finset.mem_insert_of_mem LaurentNormalized.one_mem_T)
   · -- D₀.s ∈ {(laurentPlusDatum.s), f} = {D₀.s, f}.
-    show D₀.s ∈ ({D₀.s, f} : Finset A)
+    change D₀.s ∈ ({D₀.s, f} : Finset A)
     exact Finset.mem_insert_self _ _
 
 omit [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A] in
@@ -658,13 +658,13 @@ private theorem f_sq_mem_laurentOverlap_T
     (D₀ : RationalLocData A) (f : A) :
     f * f ∈ (laurentOverlapDatum D₀ f).T := by
   classical
-  show f * f ∈ ((insert (laurentPlusDatum D₀ f).s (laurentPlusDatum D₀ f).T).product
+  change f * f ∈ ((insert (laurentPlusDatum D₀ f).s (laurentPlusDatum D₀ f).T).product
       ({(laurentPlusDatum D₀ f).s, f} : Finset A)).image (fun p => p.1 * p.2)
   refine Finset.mem_image.mpr ⟨(f, f), ?_, rfl⟩
   refine Finset.mem_product.mpr ⟨?_, ?_⟩
-  · show f ∈ insert D₀.s (insert f D₀.T)
+  · change f ∈ insert D₀.s (insert f D₀.T)
     exact Finset.mem_insert_of_mem (Finset.mem_insert_self _ _)
-  · show f ∈ ({D₀.s, f} : Finset A)
+  · change f ∈ ({D₀.s, f} : Finset A)
     exact Finset.mem_insert_of_mem (Finset.mem_singleton_self _)
 
 /-- **Backward loc hom power-boundedness, overlap case.**
@@ -787,7 +787,7 @@ private theorem iteratedOverlap_backwardToCompletion_generators_powerBounded
     · subst hy_one
       -- `x = 1, y = 1`: `t = 1 · 1 = 1`. divByS 1 s_B = inverse of algebraMap_B b.
       -- backward(divByS 1 s_B) = inverse of (laurentOverlap).canMap f.
-      show TopologicalRing.IsPowerBounded
+      change TopologicalRing.IsPowerBounded
         (iteratedOverlap_backwardToCompletion P D₀ f hLocLift_B hsub
           (divByS (1 * 1) (iteratedOverlapDatum_B P D₀ f hLocLift_B).s))
       have hone : (1 : B) * 1 = 1 := mul_one _
@@ -838,7 +838,7 @@ private theorem iteratedOverlap_backwardToCompletion_generators_powerBounded
           -- Goal: divByS D₀.s (D₀.s · f) · algebraMap f = 1.
           rw [← hDs_mul, mul_assoc, mul_comm (divByS (1 : A) (D₀.s * f)) _,
               ← mul_assoc, ← map_mul]
-          show algebraMap A (Localization.Away (D₀.s * f)) (D₀.s * f) *
+          change algebraMap A (Localization.Away (D₀.s * f)) (D₀.s * f) *
             divByS (1 : A) (D₀.s * f) = 1
           exact hsf_inv
         have h2 : (laurentOverlapDatum D₀ f).coeRingHom
@@ -969,14 +969,14 @@ private theorem iteratedOverlap_backwardToCompletion_comp_forwardLocHom_to_B
   haveI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
   haveI hloc_src : IsLocalization.Away (D₀.s * f)
       (Localization.Away ((laurentOverlapDatum D₀ f).s)) := by
-    show IsLocalization.Away (D₀.s * f) (Localization.Away (D₀.s * f))
+    change IsLocalization.Away (D₀.s * f) (Localization.Away (D₀.s * f))
     infer_instance
   haveI hloc_tgt : IsLocalization.Away (D₀.canonicalMap f)
       (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
     iteratedOverlap_isLocalization_target P D₀ f hLocLift_B
   apply IsLocalization.ringHom_ext (Submonoid.powers (D₀.s * f))
   ext a
-  show iteratedOverlap_backwardToCompletion P D₀ f hLocLift_B hsub
+  change iteratedOverlap_backwardToCompletion P D₀ f hLocLift_B hsub
     (iteratedOverlap_forwardLocHom_to_B P D₀ f hLocLift_B
       (algebraMap A (Localization.Away ((laurentOverlapDatum D₀ f).s)) a)) =
     (laurentOverlapDatum D₀ f).coeRingHom
@@ -1117,14 +1117,14 @@ theorem iteratedOverlap_backwardHom_comp_forwardHom
     (iteratedOverlapDatum_B P D₀ f hLocLift_B).isTopologicalRing
   apply RingHom.ext
   intro x
-  show iteratedOverlap_backwardHom P D₀ f hLocLift_B hsub
+  change iteratedOverlap_backwardHom P D₀ f hLocLift_B hsub
     (iteratedOverlap_forwardHom P D₀ f hLocLift_B x) = x
   refine @UniformSpace.Completion.ext' _ _ _ _ _ _ _
     ((UniformSpace.Completion.continuous_extension).comp
       UniformSpace.Completion.continuous_extension)
     continuous_id ?_ x
   intro a
-  show iteratedOverlap_backwardHom P D₀ f hLocLift_B hsub
+  change iteratedOverlap_backwardHom P D₀ f hLocLift_B hsub
       (iteratedOverlap_forwardHom P D₀ f hLocLift_B
         ((laurentOverlapDatum D₀ f).coeRingHom a)) =
     (laurentOverlapDatum D₀ f).coeRingHom a
@@ -1155,7 +1155,7 @@ theorem iteratedOverlap_forwardHom_comp_restrictionMapHom
   haveI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
   haveI hloc_src : IsLocalization.Away (D₀.s * f)
       (Localization.Away ((laurentOverlapDatum D₀ f).s)) := by
-    show IsLocalization.Away (D₀.s * f) (Localization.Away (D₀.s * f))
+    change IsLocalization.Away (D₀.s * f) (Localization.Away (D₀.s * f))
     infer_instance
   haveI hloc_tgt : IsLocalization.Away (D₀.canonicalMap f)
       (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) :=
@@ -1188,14 +1188,14 @@ theorem iteratedOverlap_forwardHom_comp_restrictionMapHom
   let rhsFun : presheafValue D₀ →
       presheafValue (iteratedOverlapDatum_B P D₀ f hLocLift_B) :=
     fun y => (iteratedOverlapDatum_B P D₀ f hLocLift_B).canonicalMap y
-  show lhsFun b = rhsFun b
+  change lhsFun b = rhsFun b
   refine @UniformSpace.Completion.ext' (Localization.Away D₀.s) D₀.uniformSpace
     (presheafValue (iteratedOverlapDatum_B P D₀ f hLocLift_B)) _ _ lhsFun rhsFun ?_ ?_ ?_ b
   · exact UniformSpace.Completion.continuous_extension.comp
       (restrictionMapHom_continuous D₀ (laurentOverlapDatum D₀ f) hsub)
   · exact canonicalMap_continuous (iteratedOverlapDatum_B P D₀ f hLocLift_B)
   intro a
-  show lhsFun (D₀.coeRingHom a) = rhsFun (D₀.coeRingHom a)
+  change lhsFun (D₀.coeRingHom a) = rhsFun (D₀.coeRingHom a)
   simp only [lhsFun, rhsFun]
   -- Reduce via IsLocalization.ringHom_ext on a : Loc(D₀.s).
   let lhsHom : Localization.Away D₀.s →+*
@@ -1207,26 +1207,26 @@ theorem iteratedOverlap_forwardHom_comp_restrictionMapHom
     ((iteratedOverlapDatum_B P D₀ f hLocLift_B).canonicalMap).comp D₀.coeRingHom
   suffices h : lhsHom = rhsHom by
     have hcong := congr_fun (congrArg DFunLike.coe h) a
-    show lhsHom a = rhsHom a
+    change lhsHom a = rhsHom a
     exact hcong
   apply IsLocalization.ringHom_ext (Submonoid.powers D₀.s)
   ext c
-  show lhsHom (algebraMap A _ c) = rhsHom (algebraMap A _ c)
-  show iteratedOverlap_forwardHom P D₀ f hLocLift_B
+  change lhsHom (algebraMap A _ c) = rhsHom (algebraMap A _ c)
+  change iteratedOverlap_forwardHom P D₀ f hLocLift_B
       (restrictionMapHom D₀ (laurentOverlapDatum D₀ f) hsub
         (D₀.coeRingHom (algebraMap A _ c))) =
     (iteratedOverlapDatum_B P D₀ f hLocLift_B).canonicalMap
       (D₀.coeRingHom (algebraMap A _ c))
-  show iteratedOverlap_forwardHom P D₀ f hLocLift_B
+  change iteratedOverlap_forwardHom P D₀ f hLocLift_B
       (restrictionMapHom D₀ (laurentOverlapDatum D₀ f) hsub
         (D₀.canonicalMap c)) =
     (iteratedOverlapDatum_B P D₀ f hLocLift_B).canonicalMap (D₀.canonicalMap c)
   rw [restrictionMapHom_canonicalMap]
-  show iteratedOverlap_forwardHom P D₀ f hLocLift_B
+  change iteratedOverlap_forwardHom P D₀ f hLocLift_B
       ((laurentOverlapDatum D₀ f).coeRingHom (algebraMap A _ c)) =
     (iteratedOverlapDatum_B P D₀ f hLocLift_B).canonicalMap (D₀.canonicalMap c)
   rw [iteratedOverlap_forwardHom_coeRingHom]
-  show (iteratedOverlapDatum_B P D₀ f hLocLift_B).coeRingHom
+  change (iteratedOverlapDatum_B P D₀ f hLocLift_B).coeRingHom
       (iteratedOverlap_forwardLocHom_to_B P D₀ f hLocLift_B (algebraMap A _ c)) =
     (iteratedOverlapDatum_B P D₀ f hLocLift_B).canonicalMap (D₀.canonicalMap c)
   rw [iteratedOverlap_forwardLocHom_to_B_algebraMap]
@@ -1271,7 +1271,7 @@ theorem iteratedOverlap_forwardHom_comp_backwardHom
     (iteratedOverlapDatum_B P D₀ f hLocLift_B).isTopologicalRing
   apply RingHom.ext
   intro x
-  show iteratedOverlap_forwardHom P D₀ f hLocLift_B
+  change iteratedOverlap_forwardHom P D₀ f hLocLift_B
     (iteratedOverlap_backwardHom P D₀ f hLocLift_B hsub x) = x
   refine @UniformSpace.Completion.ext'
     (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s)) _ _ _ _ _ _
@@ -1279,7 +1279,7 @@ theorem iteratedOverlap_forwardHom_comp_backwardHom
       UniformSpace.Completion.continuous_extension)
     continuous_id ?_ x
   intro y
-  show iteratedOverlap_forwardHom P D₀ f hLocLift_B
+  change iteratedOverlap_forwardHom P D₀ f hLocLift_B
       (iteratedOverlap_backwardHom P D₀ f hLocLift_B hsub
         ((iteratedOverlapDatum_B P D₀ f hLocLift_B).coeRingHom y)) =
     (iteratedOverlapDatum_B P D₀ f hLocLift_B).coeRingHom y
@@ -1294,13 +1294,13 @@ theorem iteratedOverlap_forwardHom_comp_backwardHom
     (iteratedOverlapDatum_B P D₀ f hLocLift_B).coeRingHom
   suffices h : lhsHom = rhsHom by
     have hcong := congr_fun (congrArg DFunLike.coe h) y
-    show lhsHom y = rhsHom y
+    change lhsHom y = rhsHom y
     exact hcong
   apply IsLocalization.ringHom_ext (Submonoid.powers (D₀.canonicalMap f))
   ext b
-  show lhsHom (algebraMap (presheafValue D₀) _ b) =
+  change lhsHom (algebraMap (presheafValue D₀) _ b) =
     rhsHom (algebraMap (presheafValue D₀) _ b)
-  show iteratedOverlap_forwardHom P D₀ f hLocLift_B
+  change iteratedOverlap_forwardHom P D₀ f hLocLift_B
       (iteratedOverlap_backwardToCompletion P D₀ f hLocLift_B hsub
         (algebraMap (presheafValue D₀) _ b)) =
     (iteratedOverlapDatum_B P D₀ f hLocLift_B).coeRingHom
