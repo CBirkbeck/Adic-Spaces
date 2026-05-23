@@ -1380,7 +1380,7 @@ private theorem _mvPowerSeriesEval_surjective_inductive_step_strong
         omega
       rw [if_neg h_neq]
     -- Now conclude (P + δ_poly) α₀ = P α₀ from δ_poly α₀ = 0.
-    show (P + (δ_poly : MvPowerSeries (Fin n) R)) α₀ = P α₀
+    change (P + (δ_poly : MvPowerSeries (Fin n) R)) α₀ = P α₀
     change P α₀ + ((δ_poly : MvPowerSeries (Fin n) R)) α₀ = P α₀
     rw [hcoeff_zero, add_zero]
 
@@ -1698,7 +1698,7 @@ private lemma _mvPowerSeriesEval_surjective_limit_spec_per_level
     (mvPowerSeriesEval I f hf
         (_mvPowerSeriesEval_surjective_limit I f hf hspan r) :
       AdicCompletion I R).val k = r.val k := by
-  show (AdicCompletion.lift I (_mvPowerSeriesEval_partial I f hf)
+  change (AdicCompletion.lift I (_mvPowerSeriesEval_partial I f hf)
       (fun {_ _} hle => _mvPowerSeriesEval_partial_compat I f hf hle)
       (_mvPowerSeriesEval_surjective_limit I f hf hspan r)).val k = r.val k
   rw [AdicCompletion.eval_lift_apply]
