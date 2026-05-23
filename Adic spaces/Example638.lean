@@ -1339,7 +1339,8 @@ theorem example638Minus_evalHom_oneSubfX_eq_zero
       example638Minus_evalHom_X,
       canonicalMap_b_mul_invS_eq_one_in_trivialMinus, sub_self]
 
-/-- Forward ring hom `TateAlgebra B ⧸ (1 − algebraMap b · X) → presheafValue (trivialMinusDatum P b)`,
+/-- Forward ring hom
+`TateAlgebra B ⧸ (1 − algebraMap b · X) → presheafValue (trivialMinusDatum P b)`,
 obtained by factoring `example638Minus_evalHom` through the quotient. -/
 noncomputable def example638Minus_forwardHom
     (P : PairOfDefinition B) [IsNoetherianRing P.A₀] (b : B) :
