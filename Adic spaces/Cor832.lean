@@ -717,7 +717,7 @@ theorem flat_over_base_tate_normalizedLaurent
         presheafValue_isTateRing P C.base
       letI : DecidableEq (presheafValue C.base) := Classical.decEq _
       letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
-      letI P_B : PairOfDefinition (presheafValue C.base) :=
+      letI _ : PairOfDefinition (presheafValue C.base) :=
         presheafValue_pairOfDefinition_concrete P C.base
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
@@ -1164,7 +1164,7 @@ theorem productRestriction_faithfullyFlat_tate_normalizedLaurent_of_hSpa_points
         presheafValue_isTateRing P C.base
       letI : DecidableEq (presheafValue C.base) := Classical.decEq _
       letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
-      letI P_B : PairOfDefinition (presheafValue C.base) :=
+      letI _ : PairOfDefinition (presheafValue C.base) :=
         presheafValue_pairOfDefinition_concrete P C.base
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
@@ -1241,7 +1241,7 @@ theorem productRestriction_injective_tate_normalizedLaurent_of_hSpa_points
         presheafValue_isTateRing P C.base
       letI : DecidableEq (presheafValue C.base) := Classical.decEq _
       letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
-      letI P_B : PairOfDefinition (presheafValue C.base) :=
+      letI _ : PairOfDefinition (presheafValue C.base) :=
         presheafValue_pairOfDefinition_concrete P C.base
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
