@@ -1127,7 +1127,8 @@ theorem tateAlgebraTopology'_completeSpace [IsTateRing A] [T2Space A]
     -- Goal: (coeff l (u m), coeff l (u k)) ∈ V.
     -- preimage is p.2 + -p.1, so we need coeff l (u k) - coeff l (u m) ∈ W.
     -- We have b with b = coeff l (u m - u k) = coeff l (u m) - coeff l (u k).
-    -- Since image P.I^n is a subgroup, -b also has image in P.I^n and -b = coeff l (u k) - coeff l (u m).
+    -- image P.I^n is a subgroup, so -b also has image in P.I^n,
+    -- and -b = coeff l (u k) - coeff l (u m).
     apply hWV
     simp only [Set.mem_preimage]
     apply hn
@@ -1348,7 +1349,8 @@ theorem tateAlgebra_algebraMap_continuous [IsTateRing A] :
   intro a ha
   -- Since U is open and algebraMap a ∈ U, U ∈ nhds (algebraMap a).
   have hU_nhds : U ∈ @nhds _ τ (algebraMap A _ a) := hU.mem_nhds ha
-  -- Translate using the basis: there exists n such that {b | b - algebraMap a ∈ tateAlgNhd P n} ⊆ U.
+  -- Translate using the basis: there exists n such that
+  -- {b | b - algebraMap a ∈ tateAlgNhd P n} ⊆ U.
   obtain ⟨n, -, hn⟩ := (tateAlgBasis'.hasBasis_nhds (algebraMap A _ a)).mem_iff.mp hU_nhds
   -- Show the preimage contains the translate a + (image of P.I^n).
   -- For any a' with a' - a ∈ (image of P.I^n under Subtype.val), we have
@@ -3182,7 +3184,8 @@ theorem tateAlgebra₂_polynomial_decomp (g : ↥(TateAlgebra₂ A)) (N : ℕ)
     exact TateAlgebra₂_monomial_val _ i j
   rw [hRHS_val_eq]
   -- Compute the value at l via Finset.sum_apply' + coeff_monomial.
-  -- (∑_i ∑_j monomial_ij c_ij) l = ∑_i ∑_j (monomial_ij c_ij) l = ∑_i ∑_j (if l = key_ij then c_ij else 0).
+  -- (∑_i ∑_j monomial_ij c_ij) l = ∑_i ∑_j (monomial_ij c_ij) l
+  -- = ∑_i ∑_j (if l = key_ij then c_ij else 0).
   have hsum_val : (∑ i ∈ Finset.range N, ∑ j ∈ Finset.range N,
         MvPowerSeries.monomial (Finsupp.single (0 : Fin 2) i +
           Finsupp.single (1 : Fin 2) j)
