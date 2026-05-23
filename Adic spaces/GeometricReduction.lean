@@ -957,7 +957,7 @@ noncomputable def RationalCovering.plus_section_of_plus_hV_glue
     [DecidableEq A] (C : RationalCovering A) (S : Finset A) (f₀ : A)
     (hS_cover : refines_cover C S)
     (fV : ∀ D : { D // D ∈ C.standardCoverVCovers S }, presheafValue D.1)
-    (hV_compat : ∀ (D₁ D₂ : { D // D ∈ C.standardCoverVCovers S })
+    (_hV_compat : ∀ (D₁ D₂ : { D // D ∈ C.standardCoverVCovers S })
       (D₃ : RationalLocData A)
       (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
       (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
@@ -2155,7 +2155,7 @@ minus half. The third precondition `1 ∈ (laurentMinusDatum C.base f₀).T`
 is NOT automatic (see doc block above); callers supply it explicitly
 when invoking the recursive IH on the minus half. -/
 theorem RationalCovering.standardCover_inner_IH_preconds_minusHalf_partial
-    [DecidableEq A] (C : RationalCovering A) (S : Finset A) (f₀ : A)
+    [DecidableEq A] (_C : RationalCovering A) (S : Finset A) (f₀ : A)
     (hf₀ : f₀ ∈ S) (hcard : 2 ≤ S.card)
     (hAplus : ∀ f ∈ S, f ∈ A⁺) :
     (S.erase f₀).Nonempty ∧ (∀ f ∈ S.erase f₀, f ∈ A⁺) :=
@@ -2750,7 +2750,7 @@ theorem RationalCovering.noCommonZero_erase_of_f₀_zero
     (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀)
     [DecidableEq A] (f₀ : A) (S : Finset A)
     (hspan : Ideal.span ((S : Set A)) = ⊤)
-    (h_f₀_mem : f₀ ∈ S) :
+    (_h_f₀_mem : f₀ ∈ S) :
     ∀ v ∈ Spa A A⁺, v.vle f₀ 0 → ∃ g ∈ S.erase f₀, ¬ v.vle g 0 := by
   intro v hv_spa hv_f₀
   obtain ⟨f, hf_mem, hvf⟩ :=
@@ -4468,7 +4468,7 @@ section-identification machinery (see the S-GEOM-IND documentation
 above). -/
 theorem RationalCovering.hV_glue_refined_from_laurent_halves
     [DecidableEq A] (C : RationalCovering A) (S : Finset A) (f₀ : A)
-    (hS_cover : refines_cover C S)
+    (_hS_cover : refines_cover C S)
     -- Inner hV_glue on the plus half (indexed by plus-refined subset of refined V-cover).
     (_plus_section_refined : ∀
       (fV : ∀ D : { D // D ∈ C.refinedVCovers S f₀ }, presheafValue D.1),

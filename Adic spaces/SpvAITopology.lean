@@ -162,6 +162,66 @@ theorem SpvAI.rationalSubset_subset (I : Ideal A) (T : Finset A) (s : A) :
     SpvAI.rationalSubset I T s ⊆ SpvAI A I :=
   fun _ hv => hv.1
 
+/-- **Adding the distinguished element `b` to `T` does not change the rational
+subset.** Since `v.vle b b` is always true (totality), `(∀ t ∈ T ∪ {b}, v.vle t b)`
+is equivalent to `(∀ t ∈ T, v.vle t b)`. -/
+theorem SpvAI.rationalSubset_union_self_eq [DecidableEq A] (I : Ideal A) (T : Finset A) (b : A) :
+    SpvAI.rationalSubset I (T ∪ {b}) b = SpvAI.rationalSubset I T b := by
+  ext v
+  simp only [SpvAI.rationalSubset, Set.mem_inter_iff, Set.mem_setOf_eq, Finset.mem_union,
+    Finset.mem_singleton]
+  refine and_congr_right_iff.mpr fun _ => ?_
+  refine and_congr_left_iff.mpr fun _ => ?_
+  refine forall_congr' fun t => ?_
+  refine ⟨fun h hT => h (Or.inl hT), fun h hOr => ?_⟩
+  rcases hOr with hT | rfl
+  · exact h hT
+  · exact (v.vle_total t t).elim id id
+
+/-- **Sub-lemma: finite intersection of rational subsets collapses to a single
+rational subset (Wedhorn 7.5(i)).** Given a `Finset` of `(T, b)`-pairs and a
+point `v` lying in each `rationalSubset I T b`, there exist `T', b'` such that
+`v ∈ rationalSubset I T' b'` and the preimage under `Subtype.val` is contained
+in the finite intersection of the preimages.
+
+Proved by `Finset.induction_on` on the pair-collection, using
+`SpvAI.rationalSubset_inter` (which requires the distinguished element to lie
+in the finset; we normalise by replacing `(T, b)` with `(T ∪ {b}, b)` so that
+`b ∈ T ∪ {b}` is automatic). -/
+theorem SpvAI.rationalSubset_inter_collapse [DecidableEq A]
+    (I : Ideal A) (v : SpvAI A I) (g : Finset (Finset A × A))
+    (hv : ∀ p ∈ g, v.1 ∈ SpvAI.rationalSubset I p.1 p.2) :
+    ∃ T b, v.1 ∈ SpvAI.rationalSubset I T b ∧
+      (Subtype.val ⁻¹' SpvAI.rationalSubset I T b : Set (SpvAI A I)) ⊆
+        ⋂ p ∈ g, Subtype.val ⁻¹' SpvAI.rationalSubset I p.1 p.2 := by
+  classical
+  induction g using Finset.induction_on with
+  | empty =>
+    refine ⟨∅, 1, ⟨v.2, fun _ ht => absurd ht (Finset.notMem_empty _),
+      fun h_vle => v.1.not_vle_one_zero h_vle⟩, ?_⟩
+    intro w _hw; simp
+  | @insert p g' _ ih =>
+    obtain ⟨T_ih, b_ih, hv_ih, h_sub_ih⟩ :=
+      ih (fun q hq => hv q (Finset.mem_insert_of_mem hq))
+    have hv_p : v.1 ∈ SpvAI.rationalSubset I p.1 p.2 := hv p (Finset.mem_insert_self _ _)
+    set T_p := p.1 ∪ {p.2}
+    set T_ih' := T_ih ∪ {b_ih}
+    have hp_in : p.2 ∈ T_p := Finset.mem_union_right _ (Finset.mem_singleton_self _)
+    have hbih_in : b_ih ∈ T_ih' := Finset.mem_union_right _ (Finset.mem_singleton_self _)
+    have h_eq_p : SpvAI.rationalSubset I T_p p.2 = SpvAI.rationalSubset I p.1 p.2 :=
+      SpvAI.rationalSubset_union_self_eq I p.1 p.2
+    have h_eq_ih : SpvAI.rationalSubset I T_ih' b_ih = SpvAI.rationalSubset I T_ih b_ih :=
+      SpvAI.rationalSubset_union_self_eq I T_ih b_ih
+    have h_inter := SpvAI.rationalSubset_inter I T_p T_ih' p.2 b_ih hp_in hbih_in
+    refine ⟨(T_p ×ˢ T_ih').image (fun q => q.1 * q.2), p.2 * b_ih, ?_, ?_⟩
+    · rw [← h_inter]; exact ⟨h_eq_p ▸ hv_p, h_eq_ih ▸ hv_ih⟩
+    · rw [Finset.set_biInter_insert]
+      intro w hw
+      rw [Set.mem_preimage, ← h_inter] at hw
+      have hw_p : (w : Spv A) ∈ SpvAI.rationalSubset I p.1 p.2 := h_eq_p ▸ hw.1
+      have hw_ih : (w : Spv A) ∈ SpvAI.rationalSubset I T_ih b_ih := h_eq_ih ▸ hw.2
+      exact ⟨hw_p, h_sub_ih hw_ih⟩
+
 /-- **`v ∈ SpvAI.rationalSubset I T s ↔ v ∈ SpvAI I ∧ ∀ t ∈ T, v.vle t s ∧ v.vle s 0`.** -/
 theorem SpvAI.mem_rationalSubset (I : Ideal A) (T : Finset A) (s : A) (v : Spv A) :
     v ∈ SpvAI.rationalSubset I T s ↔
@@ -300,7 +360,7 @@ The construction: pick `k` such that `v(s_i)^k < v(g_0)` for all generators `s_i
 `√(T' · A) ⊇ √(S · A) ⊇ S`, so `I ⊆ √(T' · A)`. -/
 theorem SpvAI.exists_rationalSubset_cofinality [DecidableEq A]
     (I : Ideal A) {v : Spv A} (h_in : Spv.IsInSpvAI v I)
-    (S : Finset A) (hS_in_I : ∀ s ∈ S, s ∈ I)
+    (S : Finset A) (_hS_in_I : ∀ s ∈ S, s ∈ I)
     (h_cofinal : ∀ s ∈ S,
       letI : ValuativeRel A := v.toValuativeRel
       Valuation.CofinalValue (ValuativeRel.valuation A) s)
@@ -760,7 +820,56 @@ theorem SpvAI.exists_subbasic_mem_nhds [DecidableEq A] (I : Ideal A)
     ∃ (T : Finset A) (b : A),
       v.1 ∈ SpvAI.rationalSubset I T b ∧
       Subtype.val ⁻¹' SpvAI.rationalSubset I T b ⊆ U := by
-  sorry
+  letI : TopologicalSpace (SpvAI A I) := SpvAI.topology I
+  -- The subbasis defining `SpvAI.topology I` is closed under finite intersection
+  -- (Wedhorn 7.5(i) via `SpvAI.rationalSubset_inter`), so it is itself a basis;
+  -- mathlib's `isTopologicalBasis_of_subbasis_of_inter` then gives a basis
+  -- element neighbourhood, which is exactly the desired rational-subset preimage.
+  set subbasis : Set (Set (SpvAI A I)) := { s : Set (SpvAI A I) | ∃ T : Finset A,
+    ∃ b : A, s = Subtype.val ⁻¹' SpvAI.rationalSubset I T b } with subbasis_def
+  -- Helper: enlarging `T` to contain the distinguished `b` does not change the
+  -- rational subset (the extra condition `v.vle b b` follows from totality).
+  have hT_eq : ∀ (T : Finset A) (b : A),
+      SpvAI.rationalSubset I T b = SpvAI.rationalSubset I (T ∪ {b}) b := by
+    intro T b
+    ext w
+    simp only [SpvAI.rationalSubset, Set.mem_inter_iff, Set.mem_setOf_eq,
+      Finset.mem_union, Finset.mem_singleton]
+    refine and_congr_right fun _ => ?_
+    refine and_congr_left fun _ => ?_
+    refine ⟨fun h t ht => ?_, fun h t ht => h t (Or.inl ht)⟩
+    rcases ht with ht | rfl
+    · exact h t ht
+    · exact (w.vle_total t t).elim id id
+  -- Subbasis is closed under finite intersection (Wedhorn 7.5(i), after the WLOG
+  -- enlargement that puts each distinguished `bᵢ` into its `Tᵢ`).
+  have h_inter : ∀ ⦃s : Set (SpvAI A I)⦄, s ∈ subbasis →
+      ∀ ⦃t : Set (SpvAI A I)⦄, t ∈ subbasis → s ∩ t ∈ subbasis := by
+    intro s hs t ht
+    obtain ⟨T₁, b₁, rfl⟩ := hs
+    obtain ⟨T₂, b₂, rfl⟩ := ht
+    rw [hT_eq T₁ b₁, hT_eq T₂ b₂]
+    have hb₁_in : b₁ ∈ T₁ ∪ {b₁} :=
+      Finset.mem_union_right T₁ (Finset.mem_singleton_self b₁)
+    have hb₂_in : b₂ ∈ T₂ ∪ {b₂} :=
+      Finset.mem_union_right T₂ (Finset.mem_singleton_self b₂)
+    have h_int :=
+      SpvAI.rationalSubset_inter I (T₁ ∪ {b₁}) (T₂ ∪ {b₂}) b₁ b₂ hb₁_in hb₂_in
+    refine ⟨((T₁ ∪ {b₁}) ×ˢ (T₂ ∪ {b₂})).image (fun p => p.1 * p.2), b₁ * b₂, ?_⟩
+    rw [← Set.preimage_inter, h_int]
+  -- Promote subbasis to a basis (`insert Set.univ subbasis`), then extract a basis
+  -- neighbourhood of `v` inside `U` and dispatch the two basis cases.
+  have htop_eq : SpvAI.topology I = TopologicalSpace.generateFrom subbasis := rfl
+  have hb : TopologicalSpace.IsTopologicalBasis (insert Set.univ subbasis) :=
+    TopologicalSpace.isTopologicalBasis_of_subbasis_of_inter htop_eq h_inter
+  obtain ⟨B, hB_mem, hvB, hBU⟩ := hb.exists_subset_of_mem_open hv hU_open
+  rcases hB_mem with rfl | ⟨T, b, rfl⟩
+  · -- Universe case: `Subtype.val ⁻¹' SpvAI.rationalSubset I ∅ 1 = Set.univ`
+    -- via `not_vle_one_zero` from the valuative-relation axioms.
+    refine ⟨∅, 1, ⟨v.2, fun t ht => absurd ht (by simp), v.1.not_vle_one_zero⟩, ?_⟩
+    intro w _
+    exact hBU (Set.mem_univ _)
+  · exact ⟨T, b, hvB, hBU⟩
 
 /-- **Sub-lemma B (Wedhorn 7.5(ii) packaged — radical refinement).** Given
 a subbasic neighborhood `Subtype.val ⁻¹' SpvAI.rationalSubset I T b` with
@@ -1082,10 +1191,122 @@ theorem ιSpv_isClosedEmbedding :
 QuasiSober. In particular the Sierpinski cube `(A × A → Prop)` (a product of
 copies of `Prop` with the Sierpinski topology) is QuasiSober.
 
-This is a known topology fact (Pi of sober is sober; QuasiSober is the
-non-T0 analogue) which is not currently in Mathlib for arbitrary index types.
-Recorded as a deferred Mathlib gap. -/
-theorem prop_pi_quasiSober : QuasiSober (A × A → Prop) := by sorry
+Proof: given an irreducible closed `S ⊆ A × A → Prop`, define the candidate
+generic point `r_top p := ∃ r ∈ S, r p`. Then:
+
+* `r_top ∈ S`: use `isOpen_pi_iff` to write every open neighborhood of `r_top`
+  as `(↑I).pi u` for some finite `I` and opens `u p`. For each `p ∈ I`, the
+  cylinder `{r | r p ∈ u p}` is open and meets `S` (case analysis on whether
+  `True`/`False` ∈ u p). By `isIrreducible_iff_sInter`, the finite intersection
+  of these cylinders meets `S`, producing `r ∈ S` in the neighborhood.
+* `closure {r_top} = S`: every `r ∈ S` satisfies `r ≤ r_top` pointwise (each
+  True of `r` witnesses a True of `r_top`), hence `r_top ⤳ r` via the
+  Sierpinski specialisation `q ⤳ p ↔ p → q`. Apply `Specializes.mem_open`. -/
+theorem prop_pi_quasiSober : QuasiSober (A × A → Prop) := by
+  refine ⟨fun {S} hirr hclosed => ?_⟩
+  let r_top : A × A → Prop := fun p => ∃ r ∈ S, r p
+  refine ⟨r_top, ?_⟩
+  rw [isGenericPoint_def]
+  apply Set.Subset.antisymm
+  · -- closure {r_top} ⊆ S
+    rw [hclosed.closure_subset_iff, Set.singleton_subset_iff]
+    rw [← hclosed.closure_eq, mem_closure_iff]
+    intro U hU hr_top_U
+    obtain ⟨I, u, hu, h_sub⟩ := isOpen_pi_iff.mp hU r_top hr_top_U
+    classical
+    have hV_open : ∀ p ∈ I, IsOpen ({r : A × A → Prop | r p ∈ u p}) :=
+      fun p hp => (continuous_apply p).isOpen_preimage _ (hu p hp).1
+    have hV_meets : ∀ p ∈ I, (S ∩ {r : A × A → Prop | r p ∈ u p}).Nonempty := by
+      intro p hp
+      have h_rtop_p : r_top p ∈ u p := (hu p hp).2
+      by_cases h_True : True ∈ u p
+      · by_cases h_False : False ∈ u p
+        · -- Both True and False ∈ u p: u p = univ, so any r ∈ S works.
+          obtain ⟨r, hr⟩ := hirr.nonempty
+          refine ⟨r, hr, ?_⟩
+          change r p ∈ u p
+          by_cases hrp : r p
+          · have heq : r p = True := propext (iff_true_intro hrp)
+            rw [heq]; exact h_True
+          · have heq : r p = False := propext (iff_false_intro hrp)
+            rw [heq]; exact h_False
+        · -- True ∈ u p, False ∉ u p: u p = {True}, so r_top p = True;
+          -- extract a witnessing r ∈ S with r p = True.
+          have h_rtop_T : r_top p := by
+            by_contra h_neg
+            have hrtopF : r_top p = False := propext (iff_false_intro h_neg)
+            rw [hrtopF] at h_rtop_p
+            exact h_False h_rtop_p
+          obtain ⟨r, hr, hrp⟩ := h_rtop_T
+          refine ⟨r, hr, ?_⟩
+          change r p ∈ u p
+          have heq : r p = True := propext (iff_true_intro hrp)
+          rw [heq]; exact h_True
+      · -- True ∉ u p: then u p ⊆ {False}, so r_top p = False, hence ∀ r ∈ S, ¬ r p.
+        have h_rtop_F : ¬ r_top p := by
+          intro hrp
+          apply h_True
+          have heq : r_top p = True := propext (iff_true_intro hrp)
+          rwa [heq] at h_rtop_p
+        obtain ⟨r, hr⟩ := hirr.nonempty
+        refine ⟨r, hr, ?_⟩
+        change r p ∈ u p
+        have hrp : ¬ r p := fun hrp' => h_rtop_F ⟨r, hr, hrp'⟩
+        have hrpF : r p = False := propext (iff_false_intro hrp)
+        rw [hrpF]
+        have hrtopF : r_top p = False := propext (iff_false_intro h_rtop_F)
+        rwa [hrtopF] at h_rtop_p
+    -- Apply irreducibility (`isIrreducible_iff_sInter`) on the cylinder Finset.
+    have h_irr_iff := (isIrreducible_iff_sInter (X := A × A → Prop) (s := S)).mp hirr
+    obtain ⟨r, hr_S, hr_inter⟩ := h_irr_iff
+      (I.image (fun p => {r : A × A → Prop | r p ∈ u p}))
+      (by intro V hV
+          simp only [Finset.mem_image] at hV
+          obtain ⟨p, hp, rfl⟩ := hV
+          exact hV_open p hp)
+      (by intro V hV
+          simp only [Finset.mem_image] at hV
+          obtain ⟨p, hp, rfl⟩ := hV
+          exact hV_meets p hp)
+    refine ⟨r, ?_, hr_S⟩
+    apply h_sub
+    intro p hp
+    have hmem : r ∈ (⋂₀ ↑(I.image (fun p => {r : A × A → Prop | r p ∈ u p})) : Set _) :=
+      hr_inter
+    rw [Set.mem_sInter] at hmem
+    have hcyl_mem : ({r : A × A → Prop | r p ∈ u p} : Set _) ∈
+        (I.image (fun p => {r : A × A → Prop | r p ∈ u p}) : Finset _) :=
+      Finset.mem_image.mpr ⟨p, hp, rfl⟩
+    exact hmem _ (Finset.mem_coe.mpr hcyl_mem)
+  · -- S ⊆ closure {r_top}
+    intro r hr
+    rw [mem_closure_iff]
+    intro U hU hrU
+    refine ⟨r_top, ?_, Set.mem_singleton _⟩
+    refine Specializes.mem_open ?_ hU hrU
+    -- Show r_top ⤳ r via pointwise specialisation r_top p ⤳ r p
+    -- (i.e., r p → r_top p in Sierpinski Prop).
+    rw [specializes_pi]
+    intro p
+    rw [specializes_iff_mem_closure]
+    have hpq : r p → r_top p := fun hrp => ⟨r, hr, hrp⟩
+    by_cases hq : r_top p
+    · -- r_top p = True; closure {True} = univ (dense_true).
+      have hqT : r_top p = True := propext (iff_true_intro hq)
+      rw [hqT]
+      exact dense_true _
+    · -- r_top p = False; closure {False} = {False}; conclude r p = False.
+      have hqF : r_top p = False := propext (iff_false_intro hq)
+      rw [hqF]
+      have h_false_closed : IsClosed ({False} : Set Prop) := by
+        have h_compl : ({False} : Set Prop) = ({True} : Set Prop)ᶜ := by
+          ext x; simp [Set.mem_singleton_iff, eq_iff_iff]
+        rw [h_compl, isClosed_compl_iff]
+        exact TopologicalSpace.GenerateOpen.basic _ (Set.mem_singleton _)
+      rw [h_false_closed.closure_eq]
+      have hp : ¬ r p := fun hrp => hq (hpq hrp)
+      have hpF : r p = False := propext (iff_false_intro hp)
+      rw [hpF]; exact Set.mem_singleton _
 
 /-- **(T-Spv.2.β, Wedhorn 4.7 — Spv A is spectral)** Existing project
 infrastructure in `ValuationSpectrumCompact.lean` provides CompactSpace and
@@ -1248,6 +1469,30 @@ namespace ValuationSpectrum
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A]
 
+/-- **Sub-leaf (microbial-disjunct case of Wedhorn 7.10 forward).** For a
+microbial valuation `v` that is continuous on a Huber pair `(A₀, I)`, every
+`a ∈ I = Ideal.span (P.A₀.subtype '' P.I)` satisfies `v(a) < 1`.
+
+The proof requires reducing arbitrary `a ∈ I` (a finite R-linear combination
+of topologically nilpotent generators) to a strict value bound, using the
+microbial value-group structure (every positive value bounded by `v(t)^±N`).
+
+Preserved as a named sub-leaf `sorry` per CLAUDE.md BINDING RULE: this is
+the genuinely microbial substance of Wedhorn 7.10 forward direction. -/
+theorem cont_to_ideal_le_supp_microbial
+    (P : PairOfDefinition A) (I : Ideal A)
+    (_hIeq : I = Ideal.span (P.A₀.subtype '' (P.I : Set P.A₀)))
+    (v : Spv A)
+    (_h_micr :
+      letI : ValuativeRel A := v.toValuativeRel
+      Valuation.IsMicrobial (ValuativeRel.valuation A))
+    (_h_cont :
+      letI : ValuativeRel A := v.toValuativeRel
+      (ValuativeRel.valuation A).IsContinuous) :
+    letI : ValuativeRel A := v.toValuativeRel
+    ∀ a ∈ I, (ValuativeRel.valuation A) a < 1 := by
+  sorry
+
 /-- **Sub-lemma (Wedhorn 7.10 substance, forward direction).** For
 `v : SpvAI A I`, if the induced valuation `(ValuativeRel.valuation A)` (on the
 valuative relation `v.1.toValuativeRel`) is continuous, then `v(a) < 1` for
@@ -1257,8 +1502,14 @@ This is the forward (continuity ⇒ values strictly less than `1` on `I`)
 direction of Wedhorn Lemma 7.10. Wedhorn's characterisation reads
 `Cont(A) = {v ∈ Spv(A, I·A) ; v(a) < 1 for all a ∈ I}` (p. 59). Under the
 `SpvAI A I` disjunctive hypothesis (cofinal-on-`I` or microbial), continuity
-of the valuation forces each `a ∈ I` to satisfy `v(a) < 1`. Preserved as a
-named sub-lemma `sorry` per CLAUDE.md BINDING RULE.
+of the valuation forces each `a ∈ I` to satisfy `v(a) < 1`.
+
+**Cofinality disjunct**: immediate from the cofinality witness `v(a)^n < 1`
+for `n` large, which forces `v(a) < 1` (else `v(a) ≥ 1 ⇒ v(a)^n ≥ 1`).
+
+**Microbial disjunct**: delegated to the named sub-leaf
+`cont_to_ideal_le_supp_microbial`, preserved as a sorry sub-leaf per
+CLAUDE.md BINDING RULE.
 
 **B2 fix (2026-05-22)**: Restated to match Wedhorn 7.10 verbatim. The previous
 encoding `I ≤ supp(v)` was strictly stronger: `v(a) < 1` allows nonzero values
@@ -1274,7 +1525,20 @@ theorem cont_to_ideal_le_supp
       (ValuativeRel.valuation A).IsContinuous) :
     letI : ValuativeRel A := v.1.toValuativeRel
     ∀ a ∈ I, (ValuativeRel.valuation A) a < 1 := by
-  sorry
+  letI : ValuativeRel A := v.1.toValuativeRel
+  intro a ha
+  rcases v.2 with h_cof | h_micr
+  · -- Cofinality disjunct: a ∈ I gives CofinalValue v a; v(a) ≥ 1 ⇒ v(a)^n ≥ 1,
+    -- but cofinality with γ = 1 gives ∃ n, v(a)^n < 1. Contradiction.
+    have h_cofa := h_cof a ha
+    by_contra h_not_lt
+    push_neg at h_not_lt
+    obtain ⟨n, hn⟩ := h_cofa 1 zero_lt_one
+    have h_pow_ge : 1 ≤ (ValuativeRel.valuation A) a ^ n :=
+      one_le_pow₀ h_not_lt
+    exact absurd hn (not_lt_of_ge h_pow_ge)
+  · -- Microbial disjunct: delegated to named sub-leaf.
+    exact cont_to_ideal_le_supp_microbial P I _hIeq v.1 h_micr _h_cont a ha
 
 /-- **Sub-leaf (`IsTopologicalRing` from `PairOfDefinition`).** A topological
 ring structure on `A` is implicit in the existence of a `PairOfDefinition`:
@@ -1290,6 +1554,51 @@ topology forces continuous ring operations on the ambient ring) that the
 project has not yet formalised. -/
 theorem isTopologicalRing_of_pairOfDefinition
     (P : PairOfDefinition A) : IsTopologicalRing A := by
+  sorry
+
+/-- **Sub-leaf (cofinality-disjunct case of `v ≤ 1` on `A₀`).** Under the
+cofinality disjunct of `Spv.IsInSpvAI v I` (every `a ∈ I` has cofinal
+value) together with `v(a) < 1` for every `a ∈ I`, the valuation `v` is
+bounded by `1` on the whole ring of definition `P.A₀`. The argument uses
+openness of `P.I^n` and topological nilpotency.
+
+Preserved as a named sub-leaf `sorry` per CLAUDE.md BINDING RULE. -/
+theorem Spv.le_one_on_A₀_of_cofinality
+    (P : PairOfDefinition A) (I : Ideal A)
+    (_hIeq : I = Ideal.span (P.A₀.subtype '' (P.I : Set P.A₀)))
+    (v : Spv A)
+    (_h_cof :
+      letI : ValuativeRel A := v.toValuativeRel
+      ∀ a ∈ I, Valuation.CofinalValue (ValuativeRel.valuation A) a)
+    (_h_lt_one : ∀ a ∈ I,
+      letI : ValuativeRel A := v.toValuativeRel
+      (ValuativeRel.valuation A) a < 1)
+    (a : P.A₀) :
+    letI : ValuativeRel A := v.toValuativeRel
+    (ValuativeRel.valuation A) (P.A₀.subtype a) ≤ 1 := by
+  sorry
+
+/-- **Sub-leaf (microbial-disjunct case of `v ≤ 1` on `A₀`).** Under the
+microbial disjunct of `Spv.IsInSpvAI v I` together with `v(a) < 1` for
+every `a ∈ I`, the valuation `v` is bounded by `1` on the whole ring of
+definition `P.A₀`. The argument uses that all positive values are bounded
+by some `v(t)^±1` and that `t` is available on `P.A₀` up to a
+topologically-nilpotent normalisation.
+
+Preserved as a named sub-leaf `sorry` per CLAUDE.md BINDING RULE. -/
+theorem Spv.le_one_on_A₀_of_microbial
+    (P : PairOfDefinition A) (I : Ideal A)
+    (_hIeq : I = Ideal.span (P.A₀.subtype '' (P.I : Set P.A₀)))
+    (v : Spv A)
+    (_h_micr :
+      letI : ValuativeRel A := v.toValuativeRel
+      Valuation.IsMicrobial (ValuativeRel.valuation A))
+    (_h_lt_one : ∀ a ∈ I,
+      letI : ValuativeRel A := v.toValuativeRel
+      (ValuativeRel.valuation A) a < 1)
+    (a : P.A₀) :
+    letI : ValuativeRel A := v.toValuativeRel
+    (ValuativeRel.valuation A) (P.A₀.subtype a) ≤ 1 := by
   sorry
 
 /-- **Sub-leaf (`v ≤ 1` on `A₀` from `IsInSpvAI` + `v(I) < 1`).** Under the
@@ -1308,21 +1617,25 @@ nilpotency. In the **microbial disjunct**, all positive values are bounded
 by some `v(t)^±1`, and the bound on `P.A₀` follows from `t` being available
 on `P.A₀` up to a topologically-nilpotent normalisation.
 
-Preserved as a named sub-leaf `sorry` per CLAUDE.md BINDING RULE: the
-substantive Wedhorn 7.10 argument lives here, decomposed away from the
-main theorem so the assembly below is mechanical. -/
+Discharged by case-splitting on the `Spv.IsInSpvAI v I` disjunction and
+delegating each case to a named sub-leaf (`Spv.le_one_on_A₀_of_cofinality`
+and `Spv.le_one_on_A₀_of_microbial`), each preserved as `sorry` per
+CLAUDE.md BINDING RULE. -/
 theorem Spv.le_one_on_A₀_of_IsInSpvAI_of_lt_one
     (P : PairOfDefinition A) (I : Ideal A)
-    (_hIeq : I = Ideal.span (P.A₀.subtype '' (P.I : Set P.A₀)))
+    (hIeq : I = Ideal.span (P.A₀.subtype '' (P.I : Set P.A₀)))
     (v : Spv A)
-    (_h_in : Spv.IsInSpvAI v I)
-    (_h_lt_one : ∀ a ∈ I,
+    (h_in : Spv.IsInSpvAI v I)
+    (h_lt_one : ∀ a ∈ I,
       letI : ValuativeRel A := v.toValuativeRel
       (ValuativeRel.valuation A) a < 1)
     (a : P.A₀) :
     letI : ValuativeRel A := v.toValuativeRel
     (ValuativeRel.valuation A) (P.A₀.subtype a) ≤ 1 := by
-  sorry
+  letI : ValuativeRel A := v.toValuativeRel
+  rcases h_in with h_cof | h_micr
+  · exact Spv.le_one_on_A₀_of_cofinality P I hIeq v h_cof h_lt_one a
+  · exact Spv.le_one_on_A₀_of_microbial P I hIeq v h_micr h_lt_one a
 
 /-- **Sub-leaf (Wedhorn 7.10 reverse direction, general-`I` form).**
 Genuine substance of Wedhorn 7.10 reverse direction for an *arbitrary*
