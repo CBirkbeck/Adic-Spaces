@@ -1216,7 +1216,7 @@ private theorem exists_ideal_pow_generators_dominated_for_half_space
       change 0 < (S.card + 1) * N_max
       apply Nat.mul_pos
       · exact Nat.succ_pos _
-      · show 0 < (S.attach.image _).sup id + 1
+      · change 0 < (S.attach.image _).sup id + 1
         exact Nat.succ_pos _
     -- f ⟨0, hN₀_pos⟩ : ↥S, but ↥S is empty when S = ∅.
     exact (Finset.eq_empty_iff_forall_notMem.mp hS_ne) _ (f ⟨0, hN₀_pos⟩).2
@@ -1360,7 +1360,7 @@ private theorem exists_absolute_ratio_rationalLocData_aux
       show (↑x : A) ∈ Tminus
       simp only [Tminus, Finset.mem_union, Finset.mem_image]
       refine Or.inr ⟨x, hx, rfl⟩
-    · show divByS ((0 : L.P.A₀) : A) (L.s * g) ∈ _
+    · change divByS ((0 : L.P.A₀) : A) (L.s * g) ∈ _
       change divByS (0 : A) (L.s * g) ∈ _
       have h0 : divByS (0 : A) (L.s * g) = 0 := by
         unfold divByS
