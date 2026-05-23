@@ -369,7 +369,7 @@ lemma ιSpv_toSpv {r : A × A → Prop} (hr : IsValuationChar r) :
     ιSpv hr.toSpv = r := by
   funext p
   obtain ⟨f, s⟩ := p
-  show (hr.toSpv.vle f s ∧ ¬ hr.toSpv.vle s 0) = r (f, s)
+  change (hr.toSpv.vle f s ∧ ¬ hr.toSpv.vle s 0) = r (f, s)
   rw [hr.toSpv_vle, hr.toSpv_vle]
   exact propext (hr.apply_iff f s).symm
 

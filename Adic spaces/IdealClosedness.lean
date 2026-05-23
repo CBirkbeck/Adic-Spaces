@@ -74,7 +74,7 @@ theorem mem_closure_iff_of_isAdic
     refine ⟨a, ?_, ha_q⟩
     apply hn
     refine ⟨-b, (I ^ n).neg_mem hb_In, ?_⟩
-    show x + (-b) = a
+    change x + (-b) = a
     rw [← hab]; ring
 
 /-- **Closedness of ideals in the `I`-adic topology under the Jacobson
@@ -114,7 +114,7 @@ theorem Ideal.isClosed_of_le_jacobson
     convert hπb_mem using 1
     -- Goal: `π b = b • (1 : R ⧸ q)`.
     -- Uses `Submodule.Quotient.mk_smul`: `mk (r • x) = r • mk x`.
-    show (Submodule.Quotient.mk b : R ⧸ (q : Submodule R R)) =
+    change (Submodule.Quotient.mk b : R ⧸ (q : Submodule R R)) =
       b • (Submodule.Quotient.mk (1 : R) : R ⧸ (q : Submodule R R))
     rw [← Submodule.Quotient.mk_smul]
     congr 1

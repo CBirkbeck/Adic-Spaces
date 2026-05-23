@@ -92,7 +92,7 @@ theorem locTopology_algebraMap_continuous
   have heq : algebraMap A (Localization.Away s) ((P.A₀.subtype) b) =
       ((algebraMapD P T s b : locSubring P T s) : Localization.Away s) := by
     rfl
-  show algebraMap A (Localization.Away s) ((P.A₀.subtype) b) ∈
+  change algebraMap A (Localization.Away s) ((P.A₀.subtype) b) ∈
     (locNhd P T s n : Set (Localization.Away s))
   rw [heq]
   -- Use locNhd = image of (locIdeal)^n via subtype embedding.

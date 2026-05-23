@@ -1089,7 +1089,7 @@ theorem hrat_compat_of_mem_enlarged_domination (P : PairOfDefinition A)
   change V.valuation (φ t) ≤ V.valuation (φ s)
   rw [V.valuation_le_iff]
   refine ⟨⟨φ t * (φ s)⁻¹, h_in_V⟩, ?_⟩
-  show (φ t * (φ s)⁻¹) * φ s = φ t
+  change (φ t * (φ s)⁻¹) * φ s = φ t
   rw [mul_assoc, inv_mul_cancel₀ hφs_ne, mul_one]
 
 /-! ### Packaged caller-ready residual for `Presheaf.spa_point_nonOpen_of_rational_subset`

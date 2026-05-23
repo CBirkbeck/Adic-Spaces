@@ -210,7 +210,7 @@ theorem RationalCovering.mem_standardCoverVCovers
     (C : RationalCovering A) (S : Finset A) {D : RationalLocData A} :
     D ∈ C.standardCoverVCovers S ↔ ∃ f ∈ S, C.plusDatum f = D := by
   letI : DecidableEq (RationalLocData A) := Classical.decEq _
-  show D ∈ (S.image C.plusDatum) ↔ _
+  change D ∈ (S.image C.plusDatum) ↔ _
   exact Finset.mem_image
 
 /-- Each element of `standardCoverVCovers S` is contained in `C.base`. -/
@@ -5814,7 +5814,7 @@ theorem RationalCovering.tateAcyclicity_Part2_direct_per_E
   rw [hxD]
   -- fV ⟨D, D_in_refined⟩ = restrictionMap (D_E ⟨D,_⟩) D _ (fC ⟨D_E ⟨D,_⟩,_⟩).
   -- By hC_compat at (⟨D_E ⟨D,_⟩,_⟩, E, D), this equals restrictionMap E D _ (fC E).
-  show restrictionMap (D_E ⟨D, D_in_refined⟩) D (D_sub_DE ⟨D, D_in_refined⟩)
+  change restrictionMap (D_E ⟨D, D_in_refined⟩) D (D_sub_DE ⟨D, D_in_refined⟩)
       (fC ⟨D_E ⟨D, D_in_refined⟩, D_E_mem ⟨D, D_in_refined⟩⟩) =
     restrictionMap E.1 D
       ((C.per_E_local_covering S f₀ E hS_per_E).hsubset D hD) (fC E)

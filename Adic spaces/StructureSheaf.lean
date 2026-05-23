@@ -8,6 +8,7 @@ import «Adic spaces».CompleteTopCommRingCat
 import «Adic spaces».Lemma745
 import «Adic spaces».TopologyComparison
 import «Adic spaces».LaurentRefinement
+import Mathlib.RingTheory.AdicCompletion.Topology
 import Mathlib.RingTheory.RingHom.Flat
 import Mathlib.RingTheory.TensorProduct.IncludeLeftSubRight
 import Mathlib.Topology.Sheaves.LocalPredicate
@@ -204,26 +205,62 @@ noncomputable def structurePresheaf [IsHuberRing A] [PlusSubring A] :
     apply Subtype.ext; ext ⟨f, hf⟩
     exact Subtype.ext (funext fun ⟨x, hx⟩ ↦ rfl)
 
-/-- The structure sheaf of `Spa(A, A⁺)`, valued in `CompleteTopCommRingCat`
-(Remark 8.20 of Wedhorn).
+/-- **Sub-lemma — type-level sheaf condition for the locally-fraction subpresheaf.**
 
-**Route to fill:** The type-level sheaf condition is already available
-via `subpresheafToTypes.isSheaf isLocallyFraction` (from Mathlib's
-`Topology.Sheaves.LocalPredicate`), since `isLocallyFraction` is a
-`LocalPredicate` on `Localizations`. The transfer to `CompleteTopCommRingCat`
+This is the *type-level* sheaf condition on `subpresheafToTypes
+isLocallyFraction.toPrelocalPredicate`, which is precisely the underlying
+type-presheaf of `structurePresheaf A` (modulo bundling into
+`CompleteTopCommRingCat`). The proof is a direct application of Mathlib's
+`subpresheafToTypes.isSheaf` for any `LocalPredicate`. Used by
+`structurePresheaf_isSheaf` below as the type-level input to the (still-pending)
+`CompleteTopCommRingCat`-to-types infrastructure transfer.
+
+Per CLAUDE.md sub-lemma policy: this fully discharges the type-level half
+of `structurePresheaf_isSheaf`, isolating the remaining obligation to the
+forgetful-functor / concrete-category infrastructure for
+`CompleteTopCommRingCat`. -/
+theorem structurePresheaf_typeLevel_isSheaf [IsHuberRing A] :
+    (subpresheafToTypes
+      (T := fun x : SpaTop A ↦ StructureSheaf.Localizations x)
+      StructureSheaf.isLocallyFraction.toPrelocalPredicate).IsSheaf :=
+  subpresheafToTypes.isSheaf StructureSheaf.isLocallyFraction
+
+/-- **Sub-lemma — sheaf condition for `structurePresheaf` in
+`CompleteTopCommRingCat`.**
+
+Named sub-lemma extracted from the (formerly anonymous) `sorry` body in the
+`structureSheaf` definition. Keeps the project's sorry obligation honest at a
+named declaration with a tracked docstring, per project policy.
+
+**Route to fill:** The type-level sheaf condition is now established at
+`structurePresheaf_typeLevel_isSheaf` (directly above, sorry-free), which
+proves that the underlying `subpresheafToTypes` of `isLocallyFraction` is a
+sheaf. What remains is the transfer to `CompleteTopCommRingCat`, which
 requires:
 1. A forgetful functor `CompleteTopCommRingCat ⥤ Type` that preserves
    limits and reflects isomorphisms.
 2. A natural isomorphism `structurePresheaf ⋙ forget ≅ subpresheafToTypes`.
 3. Application of `isSheaf_iff_isSheaf_comp` to transfer the sheaf condition.
 
-Alternatively, verify the sheaf condition directly by showing that
-`structurePresheaf` satisfies `IsSheafUniqueGluing` in `CompleteTopCommRingCat`.
-Both routes need additional category-theoretic infrastructure for
-`CompleteTopCommRingCat` (limits, concrete category properties). -/
+Note: the forgetful functor `CompleteTopCommRingCat ⥤ Type` does NOT reflect
+isomorphisms in general (a bijective continuous ring hom into a complete
+topological ring need not have a continuous inverse), so the standard
+`isSheaf_iff_isSheaf_comp` lemma cannot be applied as stated. The Wedhorn-style
+proof goes via the **Hom-by-Hom** route: for each `E : CompleteTopCommRingCat`,
+the presheaf `U ↦ Hom(E, structurePresheaf U)` is a sheaf of types, verified
+by gluing continuous ring homs piecewise. Continuity of the global lift uses
+the fact that rational covers are *finite* (hence finite intersections of
+preimages of points in the discrete target remain open). -/
+theorem structurePresheaf_isSheaf [IsHuberRing A] [PlusSubring A] :
+    (structurePresheaf A).IsSheaf := by
+  sorry
+
+/-- The structure sheaf of `Spa(A, A⁺)`, valued in `CompleteTopCommRingCat`
+(Remark 8.20 of Wedhorn). Sheaf condition delegated to the named sub-lemma
+`structurePresheaf_isSheaf` (its `sorry` body carries the obligation). -/
 noncomputable def structureSheaf [IsHuberRing A] [PlusSubring A] :
     Sheaf CompleteTopCommRingCat (SpaTop A) :=
-  ⟨structurePresheaf A, sorry⟩
+  ⟨structurePresheaf A, structurePresheaf_isSheaf A⟩
 
 /-! ### Sheafy affinoid rings (Definition 8.26 of Wedhorn) -/
 
@@ -808,7 +845,7 @@ theorem tateQuotientProductRestriction_injective_on_algebraMap
     e_base (C.base.canonicalMap a) = 0 := by
   have hzero : C.base.canonicalMap a = 0 :=
     rationalCovering_hasSeparation P C hSpa (C.base.canonicalMap a) 0 (fun D hD => by
-      show restrictionMap C.base D (C.hsubset D hD) (C.base.canonicalMap a) =
+      change restrictionMap C.base D (C.hsubset D hD) (C.base.canonicalMap a) =
         restrictionMap C.base D (C.hsubset D hD) 0
       rw [show restrictionMap C.base D (C.hsubset D hD) 0 =
         (0 : presheafValue D) from map_zero (restrictionMapHom C.base D (C.hsubset D hD))]
@@ -843,7 +880,7 @@ theorem tateQuotientProductRestriction_injective
     _e_base z = 0 := by
   have hzero : z = 0 :=
     rationalCovering_hasSeparation P C hSpa z 0 (fun D hD => by
-      show restrictionMap C.base D (C.hsubset D hD) z =
+      change restrictionMap C.base D (C.hsubset D hD) z =
         restrictionMap C.base D (C.hsubset D hD) 0
       rw [show restrictionMap C.base D (C.hsubset D hD) 0 =
         (0 : presheafValue D) from map_zero (restrictionMapHom C.base D (C.hsubset D hD))]
@@ -1101,6 +1138,107 @@ theorem productRestriction_injective_of_laurentRefinement
 -- This used the FALSE restrictionMapHom_isInducing. No longer needed since
 -- IsSheafy was weakened to just require separation (injectivity) + gluing.
 
+/-- **Sub-lemma (a.1.i) — `CompleteSpace` for the principal pair's ring of
+definition (sub-atom of `_aux_nonOpen_hSpa_principalPair_isAdicComplete`).**
+
+This is the "completeness" half of the `IsAdic.isAdicComplete_iff` reduction:
+`A₀` equipped with the subspace uniformity inherited (via `Subtype.val`) from
+`A`'s canonical right uniform structure (as a topological additive group) is a
+complete uniform space. The `T2Space` half is automatic for a subspace of `A`,
+which is `T2Space` by hypothesis. Mirrors
+`principalPair_A₀_completeSpace_of_stronglyNoetherianTate` in
+`TateAcyclicityResiduals.lean` (which retains the same sorry). -/
+theorem _aux_nonOpen_hSpa_principalPair_A₀_completeSpace
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A] :
+    letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A
+    letI : UniformSpace ↥(IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
+      UniformSpace.comap Subtype.val ‹UniformSpace A›
+    CompleteSpace ↥(IsTateRing.principalPair A).toPairOfDefinition.A₀ := by
+  -- Per round-2 reviewer Q1 + B2 #24: `[CompleteSpace A]` (under the right-uniform
+  -- group structure) is a standing assumption.
+  -- Proof: A₀ ⊆ A is closed (open subgroup of T2 topological group); a closed
+  -- subspace of a complete uniform space is complete.
+  letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A
+  haveI : IsUniformAddGroup A := isUniformAddGroup_of_addCommGroup
+  set P := (IsTateRing.principalPair A).toPairOfDefinition
+  have hclosed : IsClosed (P.A₀ : Set A) :=
+    AddSubgroup.isClosed_of_isOpen P.A₀.toAddSubgroup P.isOpen
+  -- The subspace uniformity coincides with the comap uniformity for the inclusion.
+  haveI : IsClosed ((P.A₀ : Set A) : Set A) := hclosed
+  exact IsClosed.completeSpace_coe (s := (P.A₀ : Set A))
+
+/-- **Sub-lemma (a.1) — `IsAdicComplete` instance for the principal pair of a
+strongly-noetherian Tate ring.**
+
+The substantive infrastructure obligation surfaced by the discharge plan for
+`_aux_nonOpen_hSpa_spaPoint_exists`: `Lemma745` requires an
+`IsAdicComplete P.I P.A₀` instance for the chosen `PairOfDefinition`. The
+parent's hypotheses `[IsTateRing A] [T2Space A] [NonarchimedeanRing A]` give
+ambient topological completeness for `A`, but the canonical form expected by
+`Lemma745` is `IsAdicComplete` on the subring `P.A₀` with the `P.I`-adic
+topology.
+
+**Discharge (now sorry-free at this site, modulo the sub-atom
+`_aux_nonOpen_hSpa_principalPair_A₀_completeSpace`):** Equip `A` with its
+canonical right uniform structure (`IsTopologicalAddGroup.rightUniformSpace`);
+since `A` is an additive commutative topological group, this uniformity makes
+`A` an `IsUniformAddGroup`. Equip `A₀` with the subspace uniformity via
+`Subtype.val`; the `AddSubgroup.isUniformAddGroup` instance gives
+`IsUniformAddGroup A₀`. The pair-of-definition's `isAdic` field plus
+`IsAdic.isAdicComplete_iff` then reduces `IsAdicComplete P.I P.A₀` to
+`CompleteSpace A₀ ∧ T2Space A₀`. `T2Space A₀` is automatic as a subspace of
+the ambient `T2Space A`; `CompleteSpace A₀` is the named sub-atom above.
+
+Mirrors the proof structure of
+`principalPair_isAdicComplete_of_stronglyNoetherianTate` in
+`TateAcyclicityResiduals.lean`. -/
+theorem _aux_nonOpen_hSpa_principalPair_isAdicComplete
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A] :
+    IsAdicComplete (IsTateRing.principalPair A).toPairOfDefinition.I
+      (IsTateRing.principalPair A).toPairOfDefinition.A₀ := by
+  letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A
+  haveI : IsUniformAddGroup A := isUniformAddGroup_of_addCommGroup
+  letI : UniformSpace ↥(IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
+    UniformSpace.comap Subtype.val ‹UniformSpace A›
+  haveI : IsUniformAddGroup
+      ↥(IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
+    AddSubgroup.isUniformAddGroup
+      (IsTateRing.principalPair A).toPairOfDefinition.A₀.toAddSubgroup
+  exact ((IsTateRing.principalPair A).toPairOfDefinition.isAdic.isAdicComplete_iff).mpr
+    ⟨_aux_nonOpen_hSpa_principalPair_A₀_completeSpace A, inferInstance⟩
+
+/-- **Sub-lemma (a.2) — `A⁺ ⊆ A₀` containment for the principal pair.**
+
+The second infrastructure obligation surfaced by the discharge plan for
+`_aux_nonOpen_hSpa_spaPoint_exists`: `Lemma745` requires the underlying-set
+containment `(A⁺ : Set A) ⊆ P.A₀` for the chosen `PairOfDefinition`. This is
+generally not free without an explicit alignment hypothesis between `A⁺` and
+`P.A₀`; in the standard setting (Wedhorn §7) one chooses `A⁺ = A°` and
+`P.A₀ ⊆ A°` so the containment holds, but the project's `PlusSubring` is an
+abstract typeclass-supplied subring. Tracked as a named sub-lemma sorry. -/
+theorem _aux_nonOpen_hSpa_Aplus_le_principalPair_A₀
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [CompatiblePlusSubring A] :
+    ((A⁺ : Subring A) : Set A) ⊆
+      ((IsTateRing.principalPair A).toPairOfDefinition.A₀ : Set A) := by
+  -- Per round-2 reviewer Q1 + B2 #25: `[CompatiblePlusSubring A]` is a standing
+  -- assumption. The typeclass provides `A⁺ ⊆ D.P.A₀` for any RationalLocData D;
+  -- specialise to a trivial D with `D.P = principalPair.toPairOfDefinition`,
+  -- `T = {1}`, `s = 1`.
+  set P := (IsTateRing.principalPair A).toPairOfDefinition
+  let D : RationalLocData A :=
+    { P := P
+      T := {1}
+      s := 1
+      hopen := ⟨0, fun b _ => by
+        rw [divByS_eq_algebraMap]
+        exact algebraMap_mem_locSubring P {1} (1 : A) b.property⟩ }
+  exact CompatiblePlusSubring.aplus_le_A₀ D
+
 /-- **Sub-lemma (a) — Wedhorn 7.45 raw Spa-point output above a non-open prime.**
 
 Named sub-lemma isolating the pure Wedhorn 7.45 step: from a non-open prime `p`
@@ -1109,19 +1247,30 @@ respect to the ambient `PlusSubring A` structure) such that `p ≤ v.supp`.
 
 Discharge plan: combine
 `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime` (Lemma 7.45 of
-Wedhorn, `Lemma745.lean:691`) applied to a chosen pair of definition
-(e.g. `(IsTateRing.principalPair A).toPairOfDefinition`). Two infrastructure
-ingredients remain to be supplied: (1) the `[IsAdicComplete P.I P.A₀]` instance
-for the chosen pair (the parent's hypotheses are not in the canonical
-`CompleteSpace A` form expected by `Lemma745`; the bridge is the Tate-ring
-completeness chain via `presheafValue_isAdicComplete` in `Cor832.lean`), and
-(2) the `(A⁺ : Set A) ⊆ P.A₀` containment, which is generally not free without
-an explicit alignment hypothesis between `A⁺` and `P.A₀`. -/
+Wedhorn, `Lemma745.lean:691`) applied to the principal pair
+`(IsTateRing.principalPair A).toPairOfDefinition`. The two infrastructure
+ingredients are now isolated as named sub-lemma sorries directly above:
+(1) `_aux_nonOpen_hSpa_principalPair_isAdicComplete` supplies the
+`[IsAdicComplete P.I P.A₀]` instance, and
+(2) `_aux_nonOpen_hSpa_Aplus_le_principalPair_A₀` supplies the
+`(A⁺ : Set A) ⊆ P.A₀` containment.
+The composition itself is structural (no remaining mathematical content). -/
 theorem _aux_nonOpen_hSpa_spaPoint_exists
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] :
+    [NonarchimedeanRing A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A] :
     ∀ (p : Ideal A), p.IsPrime → ¬IsOpen (p : Set A) →
-      ∃ v ∈ Spa A A⁺, p ≤ v.supp := by sorry
+      ∃ v ∈ Spa A A⁺, p ≤ v.supp := by
+  intro p hp hopen
+  haveI : IsAdicComplete (IsTateRing.principalPair A).toPairOfDefinition.I
+      (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
+    _aux_nonOpen_hSpa_principalPair_isAdicComplete A
+  haveI : p.IsPrime := hp
+  obtain ⟨v, hv, hpv, _⟩ :=
+    PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime
+      (IsTateRing.principalPair A).toPairOfDefinition hopen
+      (_aux_nonOpen_hSpa_Aplus_le_principalPair_A₀ A)
+  exact ⟨v, hv, hpv⟩
 
 /-- **Sub-lemma (b) — rational-open membership lift for a Spa-point above a
 non-open prime.**
@@ -1136,10 +1285,25 @@ for the `presheafValue` setting. Here we expose the bare `A`-side statement so
 the parent can delegate. -/
 theorem _aux_nonOpen_hSpa_rationalOpen_lift
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] :
+    [NonarchimedeanRing A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A] :
     ∀ (T : Finset A) (s : A) (p : Ideal A), p.IsPrime → s ∉ p →
       (∃ v ∈ Spa A A⁺, p ≤ v.supp) →
-      ∃ v ∈ rationalOpen T s, p ≤ v.supp := by sorry
+      ∃ v ∈ rationalOpen T s, p ≤ v.supp := by
+  -- Discharge via the existing Wedhorn-7.45 lift in `Presheaf.lean`
+  -- (`exists_mem_rationalOpen_supp_ge_of_prime_noHArch`), instantiated at the
+  -- principal pair of definition. The two infrastructure ingredients are the
+  -- named sub-lemmas declared above. Note: the `∃ v ∈ Spa A A⁺, p ≤ v.supp`
+  -- existence hypothesis is structurally consumed inside the underlying
+  -- Wedhorn-7.45 chain, so we don't need it explicitly here.
+  intro T s p hp hs _h
+  haveI : p.IsPrime := hp
+  haveI : IsAdicComplete (IsTateRing.principalPair A).toPairOfDefinition.I
+      (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
+    _aux_nonOpen_hSpa_principalPair_isAdicComplete A
+  exact exists_mem_rationalOpen_supp_ge_of_prime_noHArch
+    (IsTateRing.principalPair A).toPairOfDefinition
+    (_aux_nonOpen_hSpa_Aplus_le_principalPair_A₀ A) T s hs
 
 /-- **Sub-lemma — Wedhorn 7.45 non-open prime case (Spa-point above a non-open
 prime in a rational subset).**
@@ -1156,7 +1320,8 @@ The open-prime case of the parent theorem is discharged directly via
 `exists_spa_point_in_rationalOpen_of_isOpen_prime` (no sorry). -/
 theorem _aux_nonOpen_hSpa_points_of_stronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] :
+    [NonarchimedeanRing A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A] :
     ∀ (T : Finset A) (s : A) (p : Ideal A), p.IsPrime → s ∉ p →
       ¬IsOpen (p : Set A) →
       ∃ v ∈ rationalOpen T s, p ≤ v.supp := by
@@ -1178,7 +1343,8 @@ valuation on `Frac(A/p)`). Non-open case via the named sub-lemma
 body for the Wedhorn 7.45 / Lemma745 / Bourbaki DVR content). -/
 theorem exists_hSpa_points_global_of_stronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] :
+    [NonarchimedeanRing A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A] :
     ∀ (T : Finset A) (s : A) (p : Ideal A), p.IsPrime → s ∉ p →
       ∃ v ∈ rationalOpen T s, p ≤ v.supp := by
   intro T s p hp hs
@@ -1201,7 +1367,8 @@ the data of a `RationalCovering` (T = C.base.T, s = C.base.s). Inherits the
 shared Wedhorn 7.45 sorry transitively. -/
 theorem exists_spa_point_in_rationalOpen_of_prime
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A]
+    [T2Space A] [NonarchimedeanRing A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A]
     (C : RationalCovering A) :
     ∀ (p : Ideal A), p.IsPrime → C.base.s ∉ p →
       ∃ v ∈ rationalOpen C.base.T C.base.s, p ≤ v.supp :=
@@ -1246,7 +1413,8 @@ the Spa-point existence at this hypothesis profile is still a project sorry
 (`exists_hSpa_points_global_of_stronglyNoetherianTate`). -/
 theorem productRestrictionSub_injective_flat
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
+    [NonarchimedeanRing A] [IsDomain A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A]
     (_P : PairOfDefinition A) [IsNoetherianRing _P.A₀]
     (C : RationalCovering A) :
     Function.Injective (productRestrictionSub A C) := by
@@ -1260,7 +1428,8 @@ theorem productRestrictionSub_injective_flat
 via Laurent cover refinement (Lemma 8.34). -/
 theorem isSheafy_ofStronglyNoetherianTate_flat
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
+    [NonarchimedeanRing A] [IsDomain A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
     IsSheafy A where
   embedding C := by
@@ -1855,7 +2024,8 @@ ideal containing some annihilator), which we leave as a project-internal
 sub-lemma. -/
 theorem isSheafy_separation_empty_cover_of_stronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A]
+    [NonarchimedeanRing A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A]
     (C : RationalCovering A) (_hs : C.base.s ≠ 0) (_hne : ¬ C.covers.Nonempty)
     (x y : presheafValue C.base) :
     x = y := by
@@ -1903,7 +2073,8 @@ The proof body uses:
   `isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate`. -/
 theorem isSheafy_ofStronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] :
+    [NonarchimedeanRing A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A] :
     IsSheafy A :=
   { embedding := fun C => by
       by_cases hs : C.base.s = 0

@@ -123,7 +123,7 @@ theorem Localization.Away.exists_unit_locSubring_decomp
       _ = algebraMap A (Localization.Away s) (π ^ n * a) := by
           rw [← map_pow, ← map_mul]
   refine ⟨U⁻¹, ⟨algebraMap A (Localization.Away s) (π ^ n * a), h_mem⟩, ?_⟩
-  show x = ((U⁻¹ : (Localization.Away s)ˣ) : Localization.Away s) *
+  change x = ((U⁻¹ : (Localization.Away s)ˣ) : Localization.Away s) *
       algebraMap A (Localization.Away s) (π ^ n * a)
   rw [← key, ← mul_assoc, Units.inv_mul, one_mul]
 
@@ -229,7 +229,7 @@ theorem Ideal.isClosed_in_locTopology_of_contraction_isClosed_in_locSubring
   have hz_notin_contr : z ∉ (Ideal.comap (locSubring P T s).subtype q :
       Ideal (locSubring P T s)) := hV₀_sub hz_preim
   apply hz_notin_contr
-  show (z : Localization.Away s) ∈ q
+  change (z : Localization.Away s) ∈ q
   exact h_uinv_y_in_q
 
 /-! ### S-IDEAL-JAC — `locIdeal ≤ Ideal.jacobson ⊥` in `locSubring`

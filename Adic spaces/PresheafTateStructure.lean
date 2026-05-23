@@ -1262,7 +1262,7 @@ theorem restrictionMapHom_surj
       rw [hsigma_coe]
       simp only [RingHom.comp_apply, restrictionMapAlg, IsLocalization.Away.lift_eq,
         RationalLocData.canonicalMap]
-    show D.coeRingHom x * (D.coeRingHom (algebraMap A (Localization.Away D.s) D.s)) ^ k =
+    change D.coeRingHom x * (D.coeRingHom (algebraMap A (Localization.Away D.s) D.s)) ^ k =
       D.canonicalMap a
     rw [← map_pow, ← map_mul]
     simp only [RationalLocData.canonicalMap, RingHom.comp_apply]
@@ -2750,7 +2750,7 @@ theorem restrictionMapHom_ker_isTorsion
     -- `hN₀` gives `algebraMap A (Loc.Away D₀.s) (D.s^N₀) * a = 0`.
     have hkilled : algebraMap A (Localization.Away D₀.s) (D.s ^ N₀) * a = 0 := hN₀ a ha
     -- Push through `D₀.coeRingHom` and unfold `D₀.canonicalMap`.
-    show (D₀.canonicalMap D.s) ^ N₀ * D₀.coeRingHom a = 0
+    change (D₀.canonicalMap D.s) ^ N₀ * D₀.coeRingHom a = 0
     have h_canon : (D₀.canonicalMap D.s) ^ N₀ =
         D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) (D.s ^ N₀)) := by
       change (D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) D.s)) ^ N₀ = _
