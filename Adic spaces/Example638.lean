@@ -994,7 +994,6 @@ theorem example638Plus_forward_backward_eq_id
   suffices h : (example638Plus_forwardHom B P b).comp (plusLocToQuotient B b) =
       (trivialPlusDatum B P b).coeRingHom by
     have := congr_fun (congrArg DFunLike.coe h) a
-    simp only [RingHom.comp_apply] at this
     exact this
   apply IsLocalization.ringHom_ext (Submonoid.powers (1 : B))
   ext c

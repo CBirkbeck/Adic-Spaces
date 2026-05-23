@@ -1696,7 +1696,7 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
               (hV_le (Subalgebra.algebraMap_mem (integralClosure B K) ⟨b, hb⟩))
           have hb_le : v₀_A₀ ⟨s ^ n * b, hn⟩ ≤ v₀_A₀ (t₀ ^ n) := by
             change V.valuation (ι (s ^ n * b)) ≤ V.valuation (ι (P.A₀.subtype (t₀ ^ n)))
-            simp only [map_mul, map_pow, Subring.coe_subtype, Subring.coe_pow]
+            simp only [map_mul, map_pow, Subring.coe_subtype]
             calc V.valuation (ι s) ^ n * V.valuation (ι b)
                 ≤ V.valuation (ι s) ^ n * 1 := mul_le_mul_left' hval_b _
               _ = V.valuation (ι s) ^ n := mul_one _

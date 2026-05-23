@@ -2438,7 +2438,7 @@ theorem TA_B_to_bivariateOverlap_evalHom_X
       have := congrArg (fun f : Fin 1 →₀ ℕ => f 0) h
       simp at this
       exact hn this
-    simp only [if_neg hne, RingHom.comp_apply, map_zero]
+    simp only [if_neg hne, map_zero]
     exact zero_mul _
 
 /-! #### Step 2: factor through `plusFSubXIdeal b` to get `B₁_gen b → target`
@@ -2701,7 +2701,7 @@ theorem TA_B₁_gen_to_bivariateOverlap_outer_evalHom_X
       have := congrArg (fun f : Fin 1 →₀ ℕ => f 0) h
       simp at this
       exact hn this
-    simp only [if_neg hne, RingHom.comp_apply, map_zero]
+    simp only [if_neg hne, map_zero]
     exact zero_mul _
 
 /-! #### Step 4: factor through the outer ideal `(1 - Ybar · X_out)` -/

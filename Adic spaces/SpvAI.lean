@@ -247,7 +247,7 @@ theorem cofinalValue_ideal_pow_lt {A : Type*} [CommRing A] [TopologicalSpace A]
   · -- Scale case: v(r · x) = v(r) · v(x) ≤ v(x) < γ (since v(r) ≤ 1).
     intro r x _ hx
     rw [show P.A₀.subtype (r • x) = P.A₀.subtype r * P.A₀.subtype x by
-      simp [Algebra.smul_def, smul_eq_mul]]
+      simp [smul_eq_mul]]
     rw [map_mul]
     have hr_le : v (P.A₀.subtype r) ≤ 1 := h_le_one r
     calc v (P.A₀.subtype r) * v (P.A₀.subtype x)

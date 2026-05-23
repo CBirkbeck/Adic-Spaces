@@ -2279,7 +2279,7 @@ theorem forall_coeff_mem_of_mem_ideal_map (I : Ideal A) (g : ↥(TateAlgebra A))
   · -- Generators: algebraMap a for a ∈ I.
     rintro _ ⟨a, ha, rfl⟩ n
     by_cases hn : n = 0
-    · subst hn; simp only [coeff, toIndex_zero, MvPowerSeries.algebraMap_apply]; exact ha
+    · subst hn; simp only [coeff, toIndex_zero]; exact ha
     · simp only [coeff, toIndex]
       change MvPowerSeries.coeff (Finsupp.single 0 n) (algebraMap A _ a) ∈ I
       rw [MvPowerSeries.algebraMap_apply, MvPowerSeries.coeff_C]
@@ -2379,7 +2379,7 @@ theorem mem_ideal_map_of_forall_coeff_mem (I : Ideal A)
       · -- qn = 0: hypothesis fails at all levels. Use arbitrary decomposition.
         obtain ⟨M, hM⟩ := (hw_event (h.val n)).exists
         have hM_I₀ : ⟨(w : A) ^ M * h.val n, hM⟩ ∈ I₀ := by
-          show P.A₀.subtype ⟨_, hM⟩ ∈ I; simp [Subring.coe_subtype, I.mul_mem_left _ (hval_mem_I n)]
+          show P.A₀.subtype ⟨_, hM⟩ ∈ I; simp [I.mul_mem_left _ (hval_mem_I n)]
         have h_in_sp : (⟨⟨_, hM⟩, hM_I₀⟩ : I₀) ∈
             Submodule.span P.A₀ (Set.range g₀) := hg₀ ▸ Submodule.mem_top
         obtain ⟨cf, hcf⟩ := Finsupp.mem_span_range_iff_exists_finsupp.mp h_in_sp
