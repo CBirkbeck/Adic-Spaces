@@ -1615,7 +1615,7 @@ theorem productRestrictionSub_isInducing_depth2_via_iterated_inducing
     {Base : RationalLocData A}
     (V₁_covers : Finset (RationalLocData A))
     (hV₁_subset : ∀ p ∈ V₁_covers, rationalOpen p.T p.s ⊆ rationalOpen Base.T Base.s)
-    (V₂ : ∀ p : { p // p ∈ V₁_covers }, Finset (RationalLocData A))
+    (V₂ : ∀ _ : { p // p ∈ V₁_covers }, Finset (RationalLocData A))
     (hV₂_subset : ∀ (p : { p // p ∈ V₁_covers }) (q : RationalLocData A),
       q ∈ V₂ p → rationalOpen q.T q.s ⊆ rationalOpen p.1.T p.1.s)
     (h_V₁_inducing : Topology.IsInducing
