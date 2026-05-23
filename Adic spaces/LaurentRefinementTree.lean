@@ -200,7 +200,7 @@ theorem depth_ofLaurentTree (t : LaurentTree A) :
     (ofLaurentTree t).depth = t.depth := by
   induction t with
   | leaf => rfl
-  | node f L R ihL ihR => simp [ofLaurentTree, depth, LaurentTree.depth, ihL, ihR]
+  | node f L R ihL ihR => simp [ofLaurentTree, LaurentTree.depth, ihL, ihR]
 
 /-! ### Next steps for RatioLaurentTree (TODO)
 
@@ -654,7 +654,7 @@ theorem LaurentTree.length_leaves_ofBalancedList
     (D₀ : RationalLocData A) (L : List A) :
     ((LaurentTree.ofBalancedList L).leaves D₀).length = 2 ^ L.length := by
   induction L generalizing D₀ with
-  | nil => simp [LaurentTree.ofBalancedList, LaurentTree.leaves]
+  | nil => simp [LaurentTree.ofBalancedList]
   | cons f rest ih =>
     simp only [LaurentTree.ofBalancedList, LaurentTree.leaves_node,
       List.length_append, List.length_cons]

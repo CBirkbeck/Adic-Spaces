@@ -271,7 +271,11 @@ theorem exists_per_D_finite_cover_of_localBasisHyp
           Set ↥(Spa A A⁺)) := by
     rintro D hD ⟨v, _⟩ hv_D
     simp only [Set.mem_preimage] at hv_D
-    obtain ⟨f, hv_plus, h_sub⟩ := h_basis D hD v hv_D
+    -- Strengthened `LocalBasisHyp` (2026-05-23) returns 3 conjuncts:
+    -- (hv_plus, hv_nonvanish, h_sub). C2 only consumes hv_plus + h_sub here;
+    -- the L4 replacement (task #114) will use hv_nonvanish via a separate
+    -- strengthened C2 (`exists_per_D_finite_nonvanishing_cover_of_localBasisHyp`).
+    obtain ⟨f, hv_plus, _hv_nonvanish, h_sub⟩ := h_basis D hD v hv_D
     refine Set.mem_iUnion.mpr ⟨f, Set.mem_iUnion.mpr ⟨h_sub, ?_⟩⟩
     exact hv_plus
   -- Quasi-compactness of `R(D.T, D.s)` extracts a finite subfamily.
@@ -309,6 +313,38 @@ The decomposition is honest per CLAUDE.md: each sub-lemma's statement
 matches a concrete residual mathematical obligation; no hypothesis is
 added to C3 itself. -/
 
+/-- **(C3a sub-atom C3a.i) Completeness of the principal pair's ring of
+definition.** The ring of definition `A₀` of the canonical principal pair
+of a strongly noetherian Tate ring is a complete uniform space, when `A₀`
+is equipped with the subspace uniformity inherited (via `Subtype.val`) from
+`A`'s canonical right-uniform structure as a topological additive group.
+
+This is the "completeness" half of Hausdorff + complete ⇔ `IsAdicComplete`
+(via `IsAdic.isAdicComplete_iff`). Tracked as a named atomic sub-lemma
+per CLAUDE.md sub-lemma-with-sorry rule: the residual content is the
+"strongly-noetherian Tate ⇒ completeness of `A₀`" obligation. The analogous
+claim at the completion-presheaf level is `presheafValue_isAdicComplete`
+in `Cor832.lean` (discharged via the closed-subring-of-complete pattern);
+the principal-pair case for `A` itself is the corresponding Wedhorn
+obligation. -/
+theorem principalPair_A₀_completeSpace_of_stronglyNoetherianTate
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A] :
+    letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A
+    letI : UniformSpace ↥(IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
+      UniformSpace.comap Subtype.val ‹UniformSpace A›
+    CompleteSpace ↥(IsTateRing.principalPair A).toPairOfDefinition.A₀ := by
+  -- Per round-2 reviewer Q1 + B2 #24: `[CompleteSpace A]` (right-uniform structure)
+  -- is now a standing assumption.
+  letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A
+  haveI : IsUniformAddGroup A := isUniformAddGroup_of_addCommGroup
+  set P := (IsTateRing.principalPair A).toPairOfDefinition
+  have hclosed : IsClosed (P.A₀ : Set A) :=
+    AddSubgroup.isClosed_of_isOpen P.A₀.toAddSubgroup P.isOpen
+  haveI : IsClosed ((P.A₀ : Set A) : Set A) := hclosed
+  exact IsClosed.completeSpace_coe (s := (P.A₀ : Set A))
+
 /-- **(C3 atom C3a) Adic-completeness of the canonical principal pair.**
 The principal pair of a (strongly noetherian) Tate ring is
 adically complete with respect to its principal ideal of definition.
@@ -317,15 +353,64 @@ This is the strongly-noetherian Tate analogue of the standard
 completeness condition needed by Prop 7.14
 (`spanTop_iff_noCommonZero_spa`).
 
-Tracked as an atomic sub-lemma; closes via the strongly noetherian
-Tate completeness package. -/
+**Discharge** (sorry-free, modulo the named sub-atom above): via
+Mathlib's `IsAdic.isAdicComplete_iff` (`AdicCompletion/Topology.lean`),
+the I-adic completeness of `(A₀, I)` is equivalent to `CompleteSpace A₀ ∧
+T2Space A₀` once the canonical uniform structure is installed. The
+`T2Space` factor is automatic (subspace of T₂); the `CompleteSpace` factor
+is captured as the named sub-lemma
+`principalPair_A₀_completeSpace_of_stronglyNoetherianTate`.
+
+Mirrors the structure of `Cor832.presheafValue_isAdicComplete`, but at
+the level of the principal pair on `A` rather than on `presheafValue D`. -/
 theorem principalPair_isAdicComplete_of_stronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] :
+    [NonarchimedeanRing A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A] :
     IsAdicComplete
       (IsTateRing.principalPair A).toPairOfDefinition.I
       (IsTateRing.principalPair A).toPairOfDefinition.A₀ := by
-  sorry
+  -- Equip the ambient `A` with its canonical (right) uniform structure as a
+  -- topological additive group; on an additive _commutative_ topological
+  -- group this canonical uniformity makes `A` an `IsUniformAddGroup`.
+  letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A
+  haveI : IsUniformAddGroup A := isUniformAddGroup_of_addCommGroup
+  -- `A₀` inherits the subspace uniformity via `Subtype.val`.
+  letI : UniformSpace ↥(IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
+    UniformSpace.comap Subtype.val ‹UniformSpace A›
+  -- Inherit `IsUniformAddGroup` via the canonical subring/addsubgroup inclusion.
+  haveI : IsUniformAddGroup
+      ↥(IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
+    AddSubgroup.isUniformAddGroup
+      (IsTateRing.principalPair A).toPairOfDefinition.A₀.toAddSubgroup
+  -- Apply the `IsAdic.isAdicComplete_iff` equivalence; `T2Space` is automatic
+  -- as a subspace of `T2Space A`, `CompleteSpace` is the named sub-atom.
+  exact ((IsTateRing.principalPair A).toPairOfDefinition.isAdic.isAdicComplete_iff).mpr
+    ⟨principalPair_A₀_completeSpace_of_stronglyNoetherianTate,
+     inferInstance⟩
+
+/-- **(C3b atomic sub-lemma) `A⁺ ⊆ A₀` for arbitrary rings of definition
+of a Tate ring.** This is the Wedhorn Remark 7.17 fact: in a Tate ring,
+every integral (= power-bounded) element lies in every ring of definition
+(Wedhorn Prop 6.4(3)). Tracked as a named sub-lemma per CLAUDE.md
+sub-lemma-with-sorry rule. -/
+theorem aplus_le_A₀_of_stronglyNoetherianTate_principal
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [CompatiblePlusSubring A]
+    (P : PairOfDefinition A) :
+    (A⁺ : Set A) ⊆ P.A₀ := by
+  -- Per round-2 reviewer Q1 + B2 #25: `[CompatiblePlusSubring A]` is now a
+  -- standing assumption. The typeclass provides `A⁺ ⊆ D.P.A₀` for any
+  -- RationalLocData D; specialise to a trivial D with `D.P := P`,
+  -- `T := {1}`, `s := 1`.
+  let D : RationalLocData A :=
+    { P := P
+      T := {1}
+      s := 1
+      hopen := ⟨0, fun b _ => by
+        rw [divByS_eq_algebraMap]
+        exact algebraMap_mem_locSubring P {1} (1 : A) b.property⟩ }
+  exact CompatiblePlusSubring.aplus_le_A₀ D
 
 /-- **(C3 atom C3b) `A⁺ ⊆ A₀` for the canonical principal pair.**
 For a (strongly noetherian) Tate ring, the project's plus-subring
@@ -333,12 +418,15 @@ For a (strongly noetherian) Tate ring, the project's plus-subring
 principal pair (a standard Wedhorn fact: integral elements of a Tate
 ring lie in every ring of definition by power-boundedness).
 
-Tracked as an atomic sub-lemma. -/
+Sorry-free reduction: delegates to the named atomic sub-lemma
+`aplus_le_A₀_of_stronglyNoetherianTate_principal` instantiated at
+the principal pair (per CLAUDE.md sub-lemma-with-sorry rule). -/
 theorem principalPair_aplus_le_A₀_of_stronglyNoetherianTate
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] :
-    (A⁺ : Set A) ⊆ (IsTateRing.principalPair A).toPairOfDefinition.A₀ := by
-  sorry
+    [NonarchimedeanRing A] [CompatiblePlusSubring A] :
+    (A⁺ : Set A) ⊆ (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
+  aplus_le_A₀_of_stronglyNoetherianTate_principal
+    (IsTateRing.principalPair A).toPairOfDefinition
 
 /-- **(C3 atom C3c) Strengthened per-D cover: plus-piece membership
 implies non-zero valuation.**
@@ -392,7 +480,8 @@ and `spanTop_iff_noCommonZero_spa` (`StandardCover.lean`, Prop 7.14).
 Closing the four atomic sub-lemmas discharges C3. -/
 theorem span_top_of_per_D_finite_cover
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A]
     (C : RationalCovering A)
     (mk_S_D : RationalLocData A → Finset A)
     (h_in_D : ∀ D ∈ C.covers, ∀ f ∈ mk_S_D D,
@@ -439,7 +528,8 @@ C2 (`exists_per_D_finite_cover_of_localBasisHyp`), and C3
 (`span_top_of_per_D_finite_cover`); see the section header above. -/
 theorem exists_standard_cover_refining
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A]
     (C : RationalCovering A) :
     ∃ S : Finset A,
       refines_cover C S ∧
@@ -1253,7 +1343,7 @@ private theorem exists_absolute_ratio_rationalLocData_aux
               (S := Localization.Away (L.s * h)) ((↑c : A)),
             ← IsLocalization.mk'_mul]
         refine IsLocalization.mk'_eq_of_eq ?_
-        simp only [Submonoid.coe_mul, OneMemClass.coe_one, one_mul, mul_one]
+        simp only [one_mul]
       rw [hmul]
       exact (locSubring L.P Tplus (L.s * h)).mul_mem
         (algebraMap_mem_locSubring L.P Tplus (L.s * h) c.2) hx
@@ -1298,7 +1388,7 @@ private theorem exists_absolute_ratio_rationalLocData_aux
               (S := Localization.Away (L.s * g)) ((↑c : A)),
             ← IsLocalization.mk'_mul]
         refine IsLocalization.mk'_eq_of_eq ?_
-        simp only [Submonoid.coe_mul, OneMemClass.coe_one, one_mul, mul_one]
+        simp only [one_mul]
       rw [hmul]
       exact (locSubring L.P Tminus (L.s * g)).mul_mem
         (algebraMap_mem_locSubring L.P Tminus (L.s * g) c.2) hx
@@ -1662,7 +1752,137 @@ theorem exists_first_stage_laurent_cover
     -- L = balancedLeafBase ... σ (from hσ flipped).
     rw [← hσ]
     convert h_unit using 2
-    simp [List.get_eq_getElem, List.getElem_map]
+    simp [List.get_eq_getElem]
+
+/-- **(W2 sub-sub-lemma, cover-witness-in-I_units at a balanced leaf for
+clause (c) of `restricted_standard_cover_generated_by_units`.)** At a
+leaf `L` of the balanced tree on `s⁻¹·S` (rooted at `C.base`), for any
+`v ∈ rationalOpen C.base.T C.base.s`, the `refines_cover` witness
+`f ∈ S` covering `v` (i.e. `v ∈ rationalOpen (insert f C.base.T) C.base.s`)
+can be chosen to lie in `I_units`. This is the Wedhorn 8.34 σ-walk
+content: at a leaf, the `f`'s whose `L.canonicalMap (s⁻¹·f)` are units
+are exactly those whose plus-piece contains the leaf, and one of those
+covers any `v` on the leaf.
+
+Tracked as an honest atomic sub-obligation (per CLAUDE.md sub-lemma-
+with-sorry rule). This isolates the "cover-witness lies in I_units"
+content from the leaf-below-base structural content
+(`leaf_rationalOpen_subset_base_at_balanced_leaf`). Without further
+structural input relating `L` to `C.base` and to the σ-walk choosing
+`I_units`, the lemma is not derivable from the bare
+`(L : RationalLocData A)` signature of the consumer
+`restricted_standard_cover_clause_c_at_leaf`. -/
+theorem cover_witness_in_I_units_at_balanced_leaf
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (C : RationalCovering A) (S : Finset A)
+    (_hS_cover : refines_cover C S)
+    (_hS_contain : refines_contain C S)
+    (s : Aˣ) (L : RationalLocData A) (I_units : Finset A)
+    (_hI_sub : I_units ⊆ S)
+    (_h_unit : ∀ f ∈ I_units,
+      IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f))) :
+    ∀ v ∈ rationalOpen L.T L.s, ∃ f ∈ I_units,
+      v ∈ rationalOpen (insert f C.base.T) C.base.s := by
+  sorry
+
+/-- **(W2 sub-lemma, per-leaf clause (c) of `restricted_standard_
+cover_generated_by_units`: pointwise cover.)** Given the unit clause
+`IsUnit (L.canonicalMap (s⁻¹·f))` for each `f ∈ I_units ⊆ S` at a leaf
+`L` of the balanced tree on `s⁻¹·S`, the I_units family satisfies the
+pointwise cover clause of `restricted_standard_cover_generated_by_units`:
+every `v ∈ rationalOpen L.T L.s` is in the plus-piece at some
+`f ∈ I_units`.
+
+**Sorry-free reduction**: delegates to the named atomic sub-sub-lemma
+`cover_witness_in_I_units_at_balanced_leaf`, which isolates the genuine
+Wedhorn 8.34 Step (ii) σ-walk content (cover-witness lies in I_units).
+The per-piece containment content (clause (d)) is tracked separately. -/
+theorem restricted_standard_cover_clause_c_at_leaf
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (C : RationalCovering A) (S : Finset A)
+    (hS_cover : refines_cover C S)
+    (hS_contain : refines_contain C S)
+    (s : Aˣ) (L : RationalLocData A) (I_units : Finset A)
+    (hI_sub : I_units ⊆ S)
+    (h_unit : ∀ f ∈ I_units,
+      IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f))) :
+    ∀ v ∈ rationalOpen L.T L.s, ∃ f ∈ I_units,
+      v ∈ rationalOpen (insert f C.base.T) C.base.s :=
+  cover_witness_in_I_units_at_balanced_leaf C S hS_cover hS_contain s L I_units
+    hI_sub h_unit
+
+/-- **(W2 sub-sub-lemma, leaf-vs-base rational-open inclusion for
+clause (d) of `restricted_standard_cover_generated_by_units`.)** At
+a leaf `L` of the balanced tree on `s⁻¹·S` (rooted at `C.base`), the
+leaf's rational open is contained in `C.base`'s rational open. This is
+the structural Laurent-tree property of leaves: each refinement step
+adds bounds, never removes them, so `R(L.T, L.s) ⊆ R(C.base.T, C.base.s)`.
+
+Tracked as an honest atomic sub-obligation (per CLAUDE.md sub-lemma-
+with-sorry rule). This isolates the "leaf-below-base" structural
+content of W2 clause (d) from the set-algebraic insert-decomposition
+of `R(insert f C.base.T, C.base.s)`. Without further structural input
+relating `L` to `C.base` (e.g., a `t_outer.leaves` membership witness),
+the lemma is not derivable from the bare `(L : RationalLocData A)`
+signature of the consumer `restricted_standard_cover_clause_d_at_leaf`;
+the closure is the structural Laurent-leaf invariant. -/
+theorem leaf_rationalOpen_subset_base_at_balanced_leaf
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (C : RationalCovering A) (S : Finset A)
+    (_hS_cover : refines_cover C S)
+    (_hS_contain : refines_contain C S)
+    (s : Aˣ) (L : RationalLocData A) (I_units : Finset A)
+    (_hI_sub : I_units ⊆ S)
+    (_h_unit : ∀ f ∈ I_units,
+      IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f))) :
+    rationalOpen L.T L.s ⊆ rationalOpen C.base.T C.base.s := by
+  sorry
+
+/-- **(W2 sub-lemma, per-leaf clause (d) of `restricted_standard_
+cover_generated_by_units`: piecewise containment.)** Given the unit
+clause `IsUnit (L.canonicalMap (s⁻¹·f))` for each `f ∈ I_units ⊆ S`
+at a leaf `L` of the balanced tree on `s⁻¹·S`, plus the standard-cover
+hypothesis `refines_contain C S`, the I_units family satisfies the
+piecewise-containment clause: for each `f ∈ I_units`, the subset of
+`rationalOpen L.T L.s` where `v.vle f C.base.s` holds is contained in
+the intersection of the plus-piece at `f` with `rationalOpen L.T L.s`.
+
+**Sorry-free reduction**: combines the leaf-below-base structural
+sub-sub-lemma `leaf_rationalOpen_subset_base_at_balanced_leaf` (which
+isolates the "L is contained in C.base" content) with the set-algebraic
+fact `R(insert f C.base.T, C.base.s) = R(C.base.T, C.base.s) ∩ {v |
+v.vle f C.base.s}` (unfolded by hand below). -/
+theorem restricted_standard_cover_clause_d_at_leaf
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (C : RationalCovering A) (S : Finset A)
+    (hS_cover : refines_cover C S)
+    (hS_contain : refines_contain C S)
+    (s : Aˣ) (L : RationalLocData A) (I_units : Finset A)
+    (hI_sub : I_units ⊆ S)
+    (h_unit : ∀ f ∈ I_units,
+      IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f))) :
+    ∀ f ∈ I_units,
+      {v ∈ rationalOpen L.T L.s | v.vle f C.base.s} ⊆
+        rationalOpen (insert f C.base.T) C.base.s ∩ rationalOpen L.T L.s := by
+  -- Use the leaf-below-base sub-sub-lemma to transport `v ∈ R(L.T, L.s)`
+  -- to `v ∈ R(C.base.T, C.base.s)`, then assemble the `R(insert f, ...)`
+  -- membership via insert-decomposition.
+  have h_leaf_le_base : rationalOpen L.T L.s ⊆ rationalOpen C.base.T C.base.s :=
+    leaf_rationalOpen_subset_base_at_balanced_leaf C S hS_cover hS_contain s L
+      I_units hI_sub h_unit
+  intro f _hf v hv
+  obtain ⟨hv_L, hvf_s⟩ := hv
+  refine ⟨?_, hv_L⟩
+  obtain ⟨hv_spa, hvT, hvs⟩ := h_leaf_le_base hv_L
+  refine ⟨hv_spa, ?_, hvs⟩
+  intro t ht
+  rcases Finset.mem_insert.mp ht with h_eq | h_in
+  · exact h_eq ▸ hvf_s
+  · exact hvT t h_in
 
 /-- **(W2 sub-lemma, per-leaf clauses (c)+(d) of `restricted_standard_
 cover_generated_by_units`.)** Given the unit clause `IsUnit
@@ -1675,22 +1895,51 @@ of the balanced tree on `s⁻¹·S`, plus the standard-cover hypothesis
 Tracked as an honest atomic sub-obligation (per CLAUDE.md sub-lemma-
 with-sorry rule). The two clauses isolate the genuinely Wedhorn-8.34
 content (pointwise cover from Step (ii) and piecewise containment
-from Step (ii)/(d)) from the I.2 unit-generation skeleton. -/
+from Step (ii)/(d)) from the I.2 unit-generation skeleton.
+
+**Sorry-free reduction**: combines `restricted_standard_cover_clause_c_at_leaf`
+(clause c) and `restricted_standard_cover_clause_d_at_leaf` (clause d). -/
 theorem restricted_standard_cover_clauses_cd_at_leaf
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
     (C : RationalCovering A) (S : Finset A)
-    (_hS_cover : refines_cover C S)
-    (_hS_contain : refines_contain C S)
+    (hS_cover : refines_cover C S)
+    (hS_contain : refines_contain C S)
     (s : Aˣ) (L : RationalLocData A) (I_units : Finset A)
-    (_hI_sub : I_units ⊆ S)
-    (_h_unit : ∀ f ∈ I_units,
+    (hI_sub : I_units ⊆ S)
+    (h_unit : ∀ f ∈ I_units,
       IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f))) :
     (∀ v ∈ rationalOpen L.T L.s, ∃ f ∈ I_units,
       v ∈ rationalOpen (insert f C.base.T) C.base.s) ∧
     (∀ f ∈ I_units,
       {v ∈ rationalOpen L.T L.s | v.vle f C.base.s} ⊆
-        rationalOpen (insert f C.base.T) C.base.s ∩ rationalOpen L.T L.s) := by
+        rationalOpen (insert f C.base.T) C.base.s ∩ rationalOpen L.T L.s) :=
+  ⟨restricted_standard_cover_clause_c_at_leaf C S hS_cover hS_contain s L I_units
+      hI_sub h_unit,
+    restricted_standard_cover_clause_d_at_leaf C S hS_cover hS_contain s L I_units
+      hI_sub h_unit⟩
+
+/-- **(W2 sub-sub-lemma, `BalancedInducing` for the balanced tree on
+`s⁻¹·S`.)** The per-node inducing predicate for the balanced Laurent
+tree on the rescaled list `(S.toList).map (s⁻¹··)`. This is the
+genuinely topological-inducing content of W2: at every reachable base
+(by σ-walk on the list), the `laurentCovering` 2-split at the next
+rescaled element is inducing on the localization.
+
+Tracked as an honest atomic sub-obligation (per CLAUDE.md sub-lemma-
+with-sorry rule). Closing this discharges the topological content of
+W2's per-node inducing claim; the structural `allSplitsInducing`
+predicate then follows mechanically via
+`LaurentTree.allSplitsInducing_ofBalancedList`. -/
+theorem balancedTree_BalancedInducing_of_rescaled_S
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (C : RationalCovering A) (S : Finset A)
+    (_hS_contain : refines_contain C S)
+    (s : Aˣ) :
+    LaurentTree.BalancedInducing C.base
+      ((S.toList).map (fun f => ((s⁻¹ : Aˣ) : A) * f)) := by
   sorry
 
 /-- **(W2 sub-lemma, `allSplitsInducing` for the balanced tree on
@@ -1699,20 +1948,23 @@ theorem restricted_standard_cover_clauses_cd_at_leaf
 Each internal node is a `laurentCovering` 2-split, and the Lane C
 infrastructure produces the diagonal-inducing property at each split.
 
-Tracked as an honest atomic sub-obligation (per CLAUDE.md sub-lemma-
-with-sorry rule). This isolates the topological-inducing content of
-W2 from the combinatorial tree-construction part. -/
+**Sorry-free reduction**: Reduces to the named sub-sub-lemma
+`balancedTree_BalancedInducing_of_rescaled_S` via the general theorem
+`LaurentTree.allSplitsInducing_ofBalancedList`. The per-node inducing
+content is isolated in the sub-sub-lemma; the structural
+`allSplitsInducing` predicate is automatic from `BalancedInducing`. -/
 theorem balancedTree_allSplitsInducing_of_rescaled_S
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A) (S : Finset A)
-    (_hS_contain : refines_contain C S)
+    (hS_contain : refines_contain C S)
     (s : Aˣ) :
     (LaurentTree.ofBalancedList
       ((S.toList).map (fun f => ((s⁻¹ : Aˣ) : A) * f))).allSplitsInducing
-      C.base := by
-  sorry
+      C.base :=
+  LaurentTree.allSplitsInducing_ofBalancedList _ _
+    (balancedTree_BalancedInducing_of_rescaled_S P C S hS_contain s)
 
 /-- **(W2) First-stage Laurent tree with inducing + restricted-cover-
 by-units.** Cor 7.32 yields a dominating unit `s : Aˣ`, and the
@@ -2296,7 +2548,8 @@ named sub-lemmas with the existing infrastructure:
   `LaurentTree.allSplitsInducing_graftAt` (structural assembly). -/
 theorem exists_wedhorn_laurent_refinement_tree
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
+    [NonarchimedeanRing A] [IsDomain A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A) :
     ∃ t : LaurentTree A,
@@ -2358,7 +2611,8 @@ The downstream `productRestrictionSub_isInducing_via_ratio_tree`
 NODE refactor) will consume this output. -/
 theorem exists_wedhorn_ratio_laurent_refinement_tree_realized
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
+    [NonarchimedeanRing A] [IsDomain A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A) :
     ∃ (t : RatioLaurentTree A) (ρ : RatioTreeRealization t C.base),
@@ -2757,7 +3011,8 @@ Once I.1 and IV.1 are sorry-free, this theorem proves `IsSheafy A`
 unconditionally — no further input needed. -/
 theorem isSheafyComplete
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A]
+    [NonarchimedeanRing A] [IsDomain A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     -- Per-cover instance/witness inputs for IV.1's side conditions.
     -- (Universally quantified over all rational coverings since the
