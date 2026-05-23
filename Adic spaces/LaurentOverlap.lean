@@ -2533,7 +2533,8 @@ theorem B₁_gen_nonarchimedeanRing (b : B) :
     quotientPlusFSubXIdealTopology B b
   letI hring : IsTopologicalRing (LaurentCover.B₁_gen b) :=
     quotientPlusFSubXIdealTopology_isTopologicalRing B b
-  haveI hNA_tate : @NonarchimedeanRing ↥(TateAlgebra B) _ TateAlgebra.instTopologicalSpaceTateAlgebra :=
+  haveI hNA_tate : @NonarchimedeanRing ↥(TateAlgebra B) _
+      TateAlgebra.instTopologicalSpaceTateAlgebra :=
     TateAlgebra.tateAlgBasis'.nonarchimedean
   constructor; intro U hU
   have hcont : @Continuous _ _ TateAlgebra.instTopologicalSpaceTateAlgebra
@@ -2878,7 +2879,8 @@ theorem TA_B₁_gen_quotient_to_bivariateOverlap_forwardHom_mk_X
   rw [Ideal.Quotient.lift_mk,
       TA_B₁_gen_to_bivariateOverlap_outer_evalHom_X]
 
-/-! #### Step 6: backward direction `TA₂ B ⧸ bivariateOverlapIdeal b → TA(B₁_gen b) ⧸ outerLaurentOverlapIdeal b`
+/-! #### Step 6: backward direction
+`TA₂ B ⧸ bivariateOverlapIdeal b → TA(B₁_gen b) ⧸ outerLaurentOverlapIdeal b`
 
 Built via `TateAlgebraWedhorn.evalHomBounded₂` with:
 * base map `mk_outer ∘ algMap_{B₁_gen → TA(B₁_gen)} ∘ mk_inner ∘ algMap_B : B → outer quotient`;
