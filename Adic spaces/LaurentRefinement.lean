@@ -62,8 +62,6 @@ variable {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
 
 variable [IsHuberRing A] [HasLocLiftPowerBounded A]
 
-set_option maxHeartbeats 800000
-
 /-! **`LaurentNormalized` class was migrated to
 `LaurentRefinementCore.lean` (F12 file split, 2026-05-23 take 2,
 migration 2).** -/
