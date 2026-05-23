@@ -74,7 +74,6 @@ theorem SpvAI.rationalSubset_inter (I : Ideal A) [DecidableEq A]
     · -- ∀ t ∈ T₁ × T₂ products, v(t₁·t₂) ≤ v(s₁·s₂).
       intro x hx
       obtain ⟨⟨t₁, t₂⟩, hp, h_eq⟩ := hx
-      simp only [Finset.mem_product] at hp
       obtain ⟨ht₁, ht₂⟩ := hp
       subst h_eq
       letI : ValuativeRel A := v.toValuativeRel
@@ -1188,6 +1187,7 @@ theorem ιSpv_isClosedEmbedding :
     Topology.IsClosedEmbedding (ιSpv : Spv A → (A × A → Prop)) :=
   ⟨ιSpv_isEmbedding, isClosed_range_ιSpv⟩
 
+omit [CommRing A] in
 /-- **Sub-lemma (T-Spv.2.β-ii).** Arbitrary products of QuasiSober spaces are
 QuasiSober. In particular the Sierpinski cube `(A × A → Prop)` (a product of
 copies of `Prop` with the Sierpinski topology) is QuasiSober.
