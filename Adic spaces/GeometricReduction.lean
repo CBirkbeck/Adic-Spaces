@@ -1107,16 +1107,19 @@ theorem RationalCovering.plus_compat_fn_from_outer_hV_compat
   subst hg₁_eq
   subst hg₂_eq
   -- Extract Classical.choose-derived witnesses g₁', g₂' (may differ from g₁, g₂).
-  set h_ex_1 := ((C.plusLaurentCovering_of_standardCoverVCovers S f₀ hS_cover).mem_standardCoverVCovers
-      (S.erase f₀)).mp D₁'_prop with hE1
-  set h_ex_2 := ((C.plusLaurentCovering_of_standardCoverVCovers S f₀ hS_cover).mem_standardCoverVCovers
-      (S.erase f₀)).mp D₂'_prop with hE2
+  set h_ex_1 := ((C.plusLaurentCovering_of_standardCoverVCovers S f₀ hS_cover)
+      .mem_standardCoverVCovers (S.erase f₀)).mp D₁'_prop with hE1
+  set h_ex_2 := ((C.plusLaurentCovering_of_standardCoverVCovers S f₀ hS_cover)
+      .mem_standardCoverVCovers (S.erase f₀)).mp D₂'_prop with hE2
   obtain ⟨hg₁'_mem, hg₁'_eq⟩ := Classical.choose_spec h_ex_1
   obtain ⟨hg₂'_mem, hg₂'_eq⟩ := Classical.choose_spec h_ex_2
   -- Now goal:
-  -- restrictionMap (plusC.plusDatum g₁) D₃ h₃₁ (hg₁'_eq ▸ plusHalf_fV_transport_at_g S f₀ g₁' hg₁'_mem fV)
-  --  = restrictionMap (plusC.plusDatum g₂) D₃ h₃₂ (hg₂'_eq ▸ plusHalf_fV_transport_at_g S f₀ g₂' hg₂'_mem fV)
-  -- where g_i' := Classical.choose h_ex_i, hg_i'_eq : plusC.plusDatum g_i' = plusC.plusDatum g_i.
+  -- restrictionMap (plusC.plusDatum g₁) D₃ h₃₁
+  --   (hg₁'_eq ▸ plusHalf_fV_transport_at_g S f₀ g₁' hg₁'_mem fV) =
+  -- restrictionMap (plusC.plusDatum g₂) D₃ h₃₂
+  --   (hg₂'_eq ▸ plusHalf_fV_transport_at_g S f₀ g₂' hg₂'_mem fV)
+  -- with g_i' := Classical.choose h_ex_i,
+  --      hg_i'_eq : plusC.plusDatum g_i' = plusC.plusDatum g_i.
   -- Apply restrictionMap_mpr_eq to push the ▸ onto the subset witness.
   rw [restrictionMap_mpr_eq hg₁'_eq D₃ h₃₁
         (C.plusHalf_fV_transport_at_g S f₀ (Classical.choose h_ex_1) hg₁'_mem fV),
