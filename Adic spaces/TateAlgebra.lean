@@ -2307,7 +2307,8 @@ theorem forall_coeff_mem_of_mem_ideal_map (I : Ideal A) (g : ↥(TateAlgebra A))
     apply I.mul_mem_left
     -- s₂ is a Fin 1 →₀ ℕ, so s₂ = Finsupp.single 0 (s₂ 0)
     have hs₂ : s₂ = Finsupp.single 0 (s₂ 0) := by
-      ext (i : Fin 1)
+      apply Finsupp.ext
+      intro i
       simp [show i = 0 from Fin.ext_iff.mpr (Nat.lt_one_iff.mp i.isLt)]
     rw [hs₂]; exact ih (s₂ 0)
 
