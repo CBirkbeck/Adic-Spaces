@@ -45,30 +45,51 @@ open Filter Topology Pointwise
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
   [PlusSubring A] [DecidableEq A]
 
-/-- **Local-basis hypothesis** on a rational covering `C`.
+/-- **Local-basis hypothesis** on a rational covering `C` (strengthened form,
+per expert review 2026-05-23 / B2 #21 fix).
 
 For each target piece `E ∈ C.covers` and each point `v` of `E`'s rational open,
-there exists a refining element `f ∈ A` such that the plus-piece `R(insert f
-C.base.T, C.base.s)` at the base contains `v` AND is contained in `R(E.T, E.s)`.
+there exists a refining element `f ∈ A` such that:
 
-This is the intrinsic content of Wedhorn 8.34 / Zavyalov §2.3: "rational
-plus-pieces over `C.base` form a basis of the topology on `R(E.T, E.s)`".
+1. `v ∈ rationalOpen (insert f C.base.T) C.base.s` — `v` is in the plus-piece
+   at `f` over the base.
+2. `v ∈ rationalOpen {f} f` — `v(f) ≠ 0` (the non-vanishing clause; this is
+   the rational open associated to `({f}, f)`, equivalent to `v.vle f f ∧
+   ¬ v.vle f 0`, the second conjunct giving `v(f) ≠ 0`).
+3. `rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen E.T E.s` — the
+   plus-piece is contained in `E`'s rational open.
 
-By reviewer guidance (2026-05-11), this is the correct boundary for Lane C C1
-— stated as an existence statement rather than a guessed explicit formula. -/
+This is the intrinsic content of Wedhorn 8.34 / Zavyalov §2.3 in the
+strengthened form that the C2 finite-cover extraction needs: "rational
+plus-pieces over `C.base` intersected with their non-vanishing loci form a
+basis of the topology on `R(E.T, E.s)`".
+
+**Strengthening rationale** (expert review 2026-05-23): the bare basis
+predicate (without the `R({f}/f)` clause) does not suffice to discharge the
+downstream `span_top_iff_noCommonZero_spa` requirement, because the chosen
+finite subcover may select `f` with `v(f) = 0` (e.g., `f = 0` itself). The
+non-vanishing clause guarantees each extracted witness satisfies `v(f) ≠ 0`,
+which `spanTop_iff_noCommonZero_spa` (Prop 7.14) requires witness-wise.
+
+By reviewer guidance (2026-05-11, refined 2026-05-23), this is the correct
+boundary for Lane C C1 — stated as an existence statement with the
+non-vanishing strengthening built in. -/
 def LocalBasisHyp (C : RationalCovering A) : Prop :=
   ∀ E ∈ C.covers, ∀ v ∈ rationalOpen E.T E.s,
     ∃ f : A,
       v ∈ rationalOpen (insert f C.base.T) C.base.s ∧
+      v ∈ rationalOpen ({f} : Finset A) f ∧
       rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen E.T E.s
 
 /-- Direct corollary of `LocalBasisHyp` formulated as a pointwise basis
-statement (rather than a per-E quantifier). -/
+statement (rather than a per-E quantifier). Conclusion now includes the
+`v ∈ rationalOpen {f} f` non-vanishing clause per the strengthened predicate. -/
 theorem LocalBasisHyp.pointwise {C : RationalCovering A} (h : LocalBasisHyp C)
     {E : RationalLocData A} (hE : E ∈ C.covers)
     {v : Spv A} (hv : v ∈ rationalOpen E.T E.s) :
     ∃ f : A,
       v ∈ rationalOpen (insert f C.base.T) C.base.s ∧
+      v ∈ rationalOpen ({f} : Finset A) f ∧
       rationalOpen (insert f C.base.T) C.base.s ⊆ rationalOpen E.T E.s :=
   h E hE v hv
 
