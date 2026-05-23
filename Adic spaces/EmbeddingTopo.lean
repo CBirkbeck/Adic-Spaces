@@ -216,7 +216,8 @@ Key general topological lemma: if `f : X → Π i, Y i` is continuous and
 the composition with **some single projection** `eval_i ∘ f` is
 `IsInducing`, then `f` itself is `IsInducing`.
 
-Mathematical content: `tX = induced (eval_i ∘ f) (Y i) = induced f (induced eval_i (Y i)) ≤ induced f (Pi.topology)`
+Mathematical content:
+`tX = induced (eval_i ∘ f) (Y i) = induced f (induced eval_i (Y i)) ≤ induced f (Pi.topology)`
 since `induced eval_i (Y i) ≤ Pi.topology` (eval is continuous). Combined
 with `tX ≤ induced f (Pi.topology)` (from `f` continuous), antisymmetry
 gives equality.
@@ -461,7 +462,8 @@ theorem productRestrictionSub_laurentCovering_isEmbedding_of_distinct
   intro x
   funext ⟨D, hD⟩
   -- The Pi value at ⟨D, hD⟩ is `restrictionMap D₀ D ((laurentCovering D₀ f).hsubset D hD) x`.
-  -- The Φ-image dispatches: if D = plus, use the first projection; else (D = minus), use the second.
+  -- The Φ-image dispatches: if D = plus, use the first projection;
+  -- else (D = minus), use the second.
   -- Both sides equal `restrictionMap D₀ D _ x` by proof irrelevance.
   change Φ (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x,
          restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x) ⟨D, hD⟩ =
