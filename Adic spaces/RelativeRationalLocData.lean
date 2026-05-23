@@ -58,6 +58,51 @@ build a rational locale data over `presheafValue E` carrying:
 
 The `hopen` condition is the key piece: openness in the relative locSubring. -/
 
+/-- **Residual obstruction (Wedhorn Lemma 2.13, non-LaurentNormalized case).**
+
+The single algebraic claim isolating the obstruction for
+`relativeRationalLocData_hopen_proof`: the unit fraction `1 / s_at_E` lies in
+the relative locSubring `locSubring P_at_E T_at_E s_at_E` over
+`presheafValue E`, where `s_at_E = E.canonicalMap D.s` and
+`T_at_E = D.T.image E.canonicalMap`.
+
+**Status (2026-05-23).** Decomposed-out from `relativeRationalLocData_hopen_proof`.
+The full `hopen` for the relative datum reduces to this one membership via the
+multiplicative identity
+`divByS b s_at_E = algebraMap b · divByS 1 s_at_E` together with
+`algebraMap b ∈ locSubring` (for `b ∈ P_at_E.A₀`, by
+`algebraMap_mem_locSubring`). See the docstring of
+`relativeRationalLocData_hopen_proof` for the three closure routes that have
+been ruled out (N = 0 collapse, pull-through of D's hopen via locLift,
+closure-aware Lemma 8.5 argument).
+
+**Mathematical content.** Wedhorn Lemma 2.13: for `D ⊆ E` rational, the datum
+on `presheafValue E` describing D is again rational. The non-trivial piece is
+exactly that `1/s_at_E` admits a polynomial expression in the generators of
+`locSubring P_at_E T_at_E s_at_E`, which is the explicit algebraic identity of
+Lemma 2.13.
+
+For `LaurentNormalized D` this is closed sorry-free by
+`relativeRationalLocData_hopen_proof_of_laurentNormalized` (the `1 ∈ D.T`
+hypothesis gives `1 ∈ T_at_E`, hence `divByS 1 s_at_E ∈ locSubring` via
+`divByS_mem_locSubring`). -/
+private theorem relativeRationalLocData_divByS_one_mem_locSubring
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (E : RationalLocData A)
+    [IsNoetherianRing (locSubring E.P E.T E.s)]
+    (D : RationalLocData A)
+    (_hsub : rationalOpen D.T D.s ⊆ rationalOpen E.T E.s) :
+    letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+    letI : DecidableEq (presheafValue E) := Classical.decEq _
+    letI P_at_E : PairOfDefinition (presheafValue E) :=
+      presheafValue_pairOfDefinition_concrete P E
+    divByS (1 : presheafValue E) (E.canonicalMap D.s) ∈
+      locSubring P_at_E (D.T.image E.canonicalMap) (E.canonicalMap D.s) := by
+  letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
+  letI : DecidableEq (presheafValue E) := Classical.decEq _
+  sorry
+
 /-- `hopen` for the relative rational locale data: openness of the relative
 locSubring's image of `(P_at_E.I)^N` in `Localization.Away (E.canonicalMap D.s)`.
 
@@ -201,8 +246,32 @@ private theorem relativeRationalLocData_hopen_proof
   --   `Localization.Away (E.canonicalMap D.s)`).
   -- * Wedhorn Lemma 8.5 (closed-locSubring completion identification)
   --   to handle the topological-closure structure of `P_at_E.A₀`.
+  --
+  -- DECOMPOSITION (2026-05-23): the goal reduces — for ANY choice of `N`
+  -- — to the single membership claim
+  --   `divByS 1 s_at_E ∈ locSubring P_at_E T_at_E s_at_E`,
+  -- via the factorization `divByS b s_at_E = algebraMap b · divByS 1 s_at_E`.
+  -- The sub-lemma `relativeRationalLocData_divByS_one_mem_locSubring` carries
+  -- the residual obstruction (Wedhorn 2.13 / Lemma 8.5); the main hopen
+  -- witness is now `N = 0` plus the standard mul-decomposition argument.
+  letI P_at_E : PairOfDefinition (presheafValue E) :=
+    presheafValue_pairOfDefinition_concrete P E
   refine ⟨0, fun b _ => ?_⟩
-  sorry
+  have hdivByS_1 :
+      divByS (1 : presheafValue E) (E.canonicalMap D.s) ∈
+        locSubring P_at_E (D.T.image E.canonicalMap) (E.canonicalMap D.s) :=
+    relativeRationalLocData_divByS_one_mem_locSubring P E D _hsub
+  have hmul : algebraMap (presheafValue E) _ (b : presheafValue E) *
+      divByS (1 : presheafValue E) (E.canonicalMap D.s) =
+      divByS (b : presheafValue E) (E.canonicalMap D.s) := by
+    unfold divByS
+    rw [← IsLocalization.mk'_one
+          (M := Submonoid.powers (E.canonicalMap D.s))
+          (S := Localization.Away (E.canonicalMap D.s)) (b : presheafValue E),
+        ← IsLocalization.mk'_mul, one_mul, mul_one]
+  rw [← hmul]
+  exact (locSubring _ _ _).mul_mem
+    (algebraMap_mem_locSubring _ _ _ b.2) hdivByS_1
 
 /-- The relative rational locale data: D viewed as a rational locale over
 `presheafValue E`. Generalises the depth-1 `iteratedMinusDatum_B` /
@@ -400,7 +469,7 @@ private theorem relativeLaurentNormalized_Ds_isUnit
   -- Unfold: baseHom D.s = D_at_E.canonicalMap (E.canonicalMap D.s)
   --                    = D_at_E.canonicalMap D_at_E.s
   -- which is a unit by `isUnit_s_in_presheafValue D_at_E`.
-  show IsUnit ((relativeRationalLocData_laurentNormalized P E D hsub).canonicalMap
+  change IsUnit ((relativeRationalLocData_laurentNormalized P E D hsub).canonicalMap
     (E.canonicalMap D.s))
   -- E.canonicalMap D.s = D_at_E.s by relativeRationalLocData_laurentNormalized_s.
   rw [show E.canonicalMap D.s =
@@ -512,7 +581,7 @@ private theorem relativeLaurentNormalized_Ds_isUnit_in_Loc
     IsUnit ((algebraMap (presheafValue E)
       (Localization.Away (E.canonicalMap D.s))).comp E.canonicalMap D.s) := by
   letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
-  show IsUnit (algebraMap (presheafValue E) _ (E.canonicalMap D.s))
+  change IsUnit (algebraMap (presheafValue E) _ (E.canonicalMap D.s))
   exact IsLocalization.Away.algebraMap_isUnit _
 
 /-- Inner forward uncompleted hom
@@ -572,19 +641,19 @@ theorem relativeLaurentNormalized_forwardLocHom_factor
   --    = D_at_E.coeRingHom (algebraMap _ (E.canonicalMap a))
   --    = D_at_E.canonicalMap (E.canonicalMap a)  (by definition of canonicalMap).
   simp only [RingHom.comp_apply]
-  show relativeLaurentNormalized_forwardLocHom P E D hsub
+  change relativeLaurentNormalized_forwardLocHom P E D hsub
       (algebraMap A (Localization.Away D.s) a) =
     (relativeRationalLocData_laurentNormalized P E D hsub).coeRingHom
       (relativeLaurentNormalized_forwardInnerLocHom P E D hsub
         (algebraMap A (Localization.Away D.s) a))
   rw [relativeLaurentNormalized_forwardLocHom_algebraMap]
   -- Inner: forwardInnerLocHom (algebraMap A _ a) = algebraMap (presheafValue E) _ (E.canonicalMap a).
-  show (relativeRationalLocData_laurentNormalized P E D hsub).canonicalMap
+  change (relativeRationalLocData_laurentNormalized P E D hsub).canonicalMap
       (E.canonicalMap a) =
     (relativeRationalLocData_laurentNormalized P E D hsub).coeRingHom
       (relativeLaurentNormalized_forwardInnerLocHom P E D hsub
         (algebraMap A (Localization.Away D.s) a))
-  show relativeLaurentNormalized_baseHom P E D hsub a =
+  change relativeLaurentNormalized_baseHom P E D hsub a =
     (relativeRationalLocData_laurentNormalized P E D hsub).coeRingHom
       (relativeLaurentNormalized_forwardInnerLocHom P E D hsub
         (algebraMap A (Localization.Away D.s) a))
@@ -615,12 +684,12 @@ theorem relativeLaurentNormalized_forwardInnerLocHom_divByS
       divByS (E.canonicalMap t) (E.canonicalMap D.s) := by
   letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
   -- Unfold divByS to mk' form, then use lift_mk'_spec.
-  show relativeLaurentNormalized_forwardInnerLocHom P E D hsub
+  change relativeLaurentNormalized_forwardInnerLocHom P E D hsub
       (IsLocalization.mk' (Localization.Away D.s) t
         (⟨D.s, ⟨1, pow_one _⟩⟩ : Submonoid.powers D.s)) =
     divByS (E.canonicalMap t) (E.canonicalMap D.s)
   -- forwardInnerLocHom is IsLocalization.lift on the source localization.
-  show IsLocalization.lift _ _ = _
+  change IsLocalization.lift _ _ = _
   rw [IsLocalization.lift_mk'_spec]
   -- Goal: g t = g D.s * divByS (E.canonicalMap t) (E.canonicalMap D.s).
   -- g = (algebraMap (presheafValue E) _).comp E.canonicalMap.
@@ -628,7 +697,7 @@ theorem relativeLaurentNormalized_forwardInnerLocHom_divByS
   -- divByS (E.canonicalMap t) (E.canonicalMap D.s) = mk' (E.canonicalMap t) ⟨E.canonicalMap D.s, _⟩.
   -- By mk'_spec': algebraMap _ (E.canonicalMap D.s) * mk' (E.canonicalMap t) _
   --               = algebraMap _ (E.canonicalMap t).
-  show (algebraMap (presheafValue E)
+  change (algebraMap (presheafValue E)
         (Localization.Away (E.canonicalMap D.s))).comp E.canonicalMap t = _
   simp only [RingHom.comp_apply]
   show algebraMap (presheafValue E) (Localization.Away (E.canonicalMap D.s))
@@ -707,7 +776,7 @@ theorem relativeLaurentNormalized_forwardInnerLocHom_continuous
     rw [relativeLaurentNormalized_forwardInnerLocHom_divByS]
     -- divByS (E.canonicalMap t) (E.canonicalMap D.s) ∈ locSubring of D_at_E_data.
     apply isPowerBounded_of_mem_locSubring D_at_E_data
-    show divByS (E.canonicalMap t) (E.canonicalMap D.s) ∈
+    change divByS (E.canonicalMap t) (E.canonicalMap D.s) ∈
       locSubring D_at_E_data.P D_at_E_data.T D_at_E_data.s
     -- D_at_E_data.T = D.T.image E.canonicalMap, so E.canonicalMap t ∈ T.
     exact divByS_mem_locSubring D_at_E_data.P D_at_E_data.T D_at_E_data.s
@@ -830,22 +899,22 @@ theorem relativeLaurentNormalized_backwardLocHom_divByS
       D.coeRingHom (divByS t D.s) := by
   letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
   -- Unfold divByS in source.
-  show relativeLaurentNormalized_backwardLocHom P E D hsub
+  change relativeLaurentNormalized_backwardLocHom P E D hsub
       (IsLocalization.mk' (Localization.Away (E.canonicalMap D.s))
         (E.canonicalMap t)
         (⟨E.canonicalMap D.s, ⟨1, pow_one _⟩⟩ : Submonoid.powers (E.canonicalMap D.s))) =
     D.coeRingHom (divByS t D.s)
-  show IsLocalization.lift _ _ = _
+  change IsLocalization.lift _ _ = _
   rw [IsLocalization.lift_mk'_spec]
   -- Goal: g (E.canonicalMap t) = g (E.canonicalMap D.s) * D.coeRingHom (divByS t D.s)
   -- where g = restrictionMapHom E D hsub.
   -- restrictionMapHom E D hsub (E.canonicalMap a) = D.canonicalMap a
   -- by restrictionMapHom_canonicalMap.
-  show restrictionMapHom E D hsub (E.canonicalMap t) =
+  change restrictionMapHom E D hsub (E.canonicalMap t) =
     restrictionMapHom E D hsub (E.canonicalMap D.s) * _
   rw [restrictionMapHom_canonicalMap, restrictionMapHom_canonicalMap]
   -- Goal: D.canonicalMap t = D.canonicalMap D.s * D.coeRingHom (divByS t D.s)
-  show D.canonicalMap t =
+  change D.canonicalMap t =
     D.coeRingHom (algebraMap A (Localization.Away D.s) D.s) *
     D.coeRingHom (divByS t D.s)
   -- D.canonicalMap t = D.coeRingHom (algebraMap A _ t)
@@ -912,7 +981,7 @@ theorem relativeLaurentNormalized_backwardLocHom_continuous
     -- D_at_E_data.s = E.canonicalMap D.s definitionally.
     -- Compute the image: backwardLocHom (divByS (E.canonicalMap t) (E.canonicalMap D.s))
     --                  = D.coeRingHom (divByS t D.s).
-    show TopologicalRing.IsPowerBounded
+    change TopologicalRing.IsPowerBounded
       ((relativeLaurentNormalized_backwardLocHom P E D hsub)
         (divByS (E.canonicalMap t) (E.canonicalMap D.s)))
     rw [relativeLaurentNormalized_backwardLocHom_divByS]
@@ -1025,7 +1094,7 @@ theorem relativeLaurentNormalized_backward_forward_locHom
   --     = backwardLocHom (algebraMap (presheafValue E) _ (E.canonicalMap a))
   --     = restrictionMapHom E D hsub (E.canonicalMap a)
   --     = D.canonicalMap a = D.coeRingHom (algebraMap A _ a).
-  show relativeLaurentNormalized_backwardLocHom P E D hsub
+  change relativeLaurentNormalized_backwardLocHom P E D hsub
       (relativeLaurentNormalized_forwardInnerLocHom P E D hsub
         (algebraMap A (Localization.Away D.s) a)) =
     D.coeRingHom (algebraMap A (Localization.Away D.s) a)
@@ -1066,7 +1135,7 @@ theorem relativeLaurentNormalized_backwardHom_comp_forwardHom
     D_at_E_data.isTopologicalRing
   apply RingHom.ext
   intro x
-  show relativeLaurentNormalized_backwardHom P E D hsub
+  change relativeLaurentNormalized_backwardHom P E D hsub
       (relativeLaurentNormalized_forwardHom P E D hsub x) = x
   refine @UniformSpace.Completion.ext' _ _ _ _ _ _ _
     ((UniformSpace.Completion.continuous_extension).comp
@@ -1078,11 +1147,11 @@ theorem relativeLaurentNormalized_backwardHom_comp_forwardHom
   --                                = D_at_E.coeRingHom (forwardInnerLocHom a)
   --   backwardHom (D_at_E.coeRingHom (forwardInnerLocHom a)) = backwardLocHom (forwardInnerLocHom a)
   --                                                          = D.coeRingHom a (by locHom round-trip)
-  show relativeLaurentNormalized_backwardHom P E D hsub
+  change relativeLaurentNormalized_backwardHom P E D hsub
       (relativeLaurentNormalized_forwardHom P E D hsub (D.coeRingHom a)) =
     D.coeRingHom a
   rw [relativeLaurentNormalized_forwardHom_coeRingHom]
-  show relativeLaurentNormalized_backwardHom P E D hsub
+  change relativeLaurentNormalized_backwardHom P E D hsub
       ((relativeRationalLocData_laurentNormalized P E D hsub).coeRingHom
         (relativeLaurentNormalized_forwardInnerLocHom P E D hsub a)) =
     D.coeRingHom a
@@ -1111,12 +1180,12 @@ theorem relativeLaurentNormalized_forwardHom_canonicalMap
   letI D_at_E_data : RationalLocData (presheafValue E) :=
     relativeRationalLocData_laurentNormalized P E D hsub
   -- D.canonicalMap a = D.coeRingHom (algebraMap A _ a).
-  show relativeLaurentNormalized_forwardHom P E D hsub
+  change relativeLaurentNormalized_forwardHom P E D hsub
       (D.coeRingHom (algebraMap A (Localization.Away D.s) a)) =
     D_at_E_data.coeRingHom
       (algebraMap (presheafValue E) (Localization.Away D_at_E_data.s) (E.canonicalMap a))
   rw [relativeLaurentNormalized_forwardHom_coeRingHom]
-  show D_at_E_data.coeRingHom
+  change D_at_E_data.coeRingHom
       (relativeLaurentNormalized_forwardInnerLocHom P E D hsub
         (algebraMap A (Localization.Away D.s) a)) =
     D_at_E_data.coeRingHom
@@ -1155,7 +1224,7 @@ theorem relativeLaurentNormalized_forwardHom_restrictionMapHom
     relativeLaurentNormalized_forwardHom P E D hsub (restrictionMapHom E D hsub b)
   set g : presheafValue E → presheafValue D_at_E_data := fun b =>
     D_at_E_data.canonicalMap b
-  show f b = g b
+  change f b = g b
   refine UniformSpace.Completion.ext' (f := f) (g := g) ?_ ?_ ?_ b
   · exact (UniformSpace.Completion.continuous_extension).comp
       (restrictionMapHom_continuous E D hsub)
@@ -1163,7 +1232,7 @@ theorem relativeLaurentNormalized_forwardHom_restrictionMapHom
   intro y
   -- On E.coeRingHom y for y ∈ Loc_A(E.s):
   -- Reduce by IsLocalization.ringHom_ext on (powers E.s) to A-level intertwining.
-  show f (E.coeRingHom y) = g (E.coeRingHom y)
+  change f (E.coeRingHom y) = g (E.coeRingHom y)
   simp only [f, g]
   -- The composition `f ∘ E.coeRingHom = g ∘ E.coeRingHom` as ring homs Loc_A(E.s) → presheafValue D_at_E.
   -- Both are ring homs; apply IsLocalization.ringHom_ext.
@@ -1172,12 +1241,12 @@ theorem relativeLaurentNormalized_forwardHom_restrictionMapHom
       (restrictionMapHom E D hsub)).comp E.coeRingHom
   let h2 : Localization.Away E.s →+* presheafValue D_at_E_data :=
     D_at_E_data.canonicalMap.comp E.coeRingHom
-  show h1 y = h2 y
+  change h1 y = h2 y
   have heq : h1 = h2 := by
     apply IsLocalization.ringHom_ext (Submonoid.powers E.s)
     ext a
     simp only [h1, h2, RingHom.comp_apply]
-    show relativeLaurentNormalized_forwardHom P E D hsub
+    change relativeLaurentNormalized_forwardHom P E D hsub
         (restrictionMapHom E D hsub (E.canonicalMap a)) =
       D_at_E_data.canonicalMap (E.canonicalMap a)
     rw [restrictionMapHom_canonicalMap]
@@ -1218,7 +1287,7 @@ theorem relativeLaurentNormalized_forwardHom_comp_backwardHom
   letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
   apply RingHom.ext
   intro y
-  show relativeLaurentNormalized_forwardHom P E D hsub
+  change relativeLaurentNormalized_forwardHom P E D hsub
       (relativeLaurentNormalized_backwardHom P E D hsub y) = y
   refine @UniformSpace.Completion.ext' _ _ _ _ _ _ _
     ((UniformSpace.Completion.continuous_extension).comp
@@ -1230,7 +1299,7 @@ theorem relativeLaurentNormalized_forwardHom_comp_backwardHom
   --   forwardHom (backwardLocHom b) = ? — need to compute.
   -- Both sides are ring homs Loc_{presheafValue E}(E.canonicalMap D.s) → presheafValue D_at_E.
   -- Apply IsLocalization.ringHom_ext on (Submonoid.powers (E.canonicalMap D.s)).
-  show relativeLaurentNormalized_forwardHom P E D hsub
+  change relativeLaurentNormalized_forwardHom P E D hsub
       (relativeLaurentNormalized_backwardHom P E D hsub (D_at_E_data.coeRingHom b)) =
     D_at_E_data.coeRingHom b
   rw [relativeLaurentNormalized_backwardHom_coeRingHom]
@@ -1241,7 +1310,7 @@ theorem relativeLaurentNormalized_forwardHom_comp_backwardHom
       (relativeLaurentNormalized_backwardLocHom P E D hsub)
   let h2 : Localization.Away (E.canonicalMap D.s) →+* presheafValue D_at_E_data :=
     D_at_E_data.coeRingHom
-  show h1 b = h2 b
+  change h1 b = h2 b
   have heq : h1 = h2 := by
     apply IsLocalization.ringHom_ext (Submonoid.powers (E.canonicalMap D.s))
     ext b'
@@ -1251,7 +1320,7 @@ theorem relativeLaurentNormalized_forwardHom_comp_backwardHom
     --       = forwardHom (restrictionMapHom E D hsub b')  [backwardLocHom_algebraMap]
     --       = D_at_E.canonicalMap b'                      [forwardHom_restrictionMapHom]
     -- RHS = D_at_E.coeRingHom (algebraMap b') = D_at_E.canonicalMap b' (by definition)
-    show relativeLaurentNormalized_forwardHom P E D hsub
+    change relativeLaurentNormalized_forwardHom P E D hsub
         (relativeLaurentNormalized_backwardLocHom P E D hsub
           (algebraMap (presheafValue E) _ b')) =
       D_at_E_data.coeRingHom (algebraMap (presheafValue E) _ b')
