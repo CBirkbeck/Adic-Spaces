@@ -427,7 +427,8 @@ theorem restrictIdeal_apply_zero_elem (v : Valuation A Γ₀) (I : Ideal A) :
     v.restrictIdeal I 0 = 0 := map_zero _
 
 /-- **`restrictIdeal v I` is multiplicative.** Since the restriction is a
-valuation, it respects multiplication: `restrictIdeal(a · b) = restrictIdeal(a) · restrictIdeal(b)`. -/
+valuation, it respects multiplication:
+`restrictIdeal(a · b) = restrictIdeal(a) · restrictIdeal(b)`. -/
 theorem restrictIdeal_apply_mul (v : Valuation A Γ₀) (I : Ideal A) (a b : A) :
     v.restrictIdeal I (a * b) = v.restrictIdeal I a * v.restrictIdeal I b :=
   map_mul _ a b
@@ -437,7 +438,8 @@ theorem restrictIdeal_apply_neg (v : Valuation A Γ₀) (I : Ideal A) (r : A) :
     v.restrictIdeal I (-r) = v.restrictIdeal I r :=
   Valuation.map_neg _ r
 
-/-- **Ultrametric inequality for `restrictIdeal`:** `restrictIdeal(a + b) ≤ max(restrictIdeal(a), restrictIdeal(b))`. -/
+/-- **Ultrametric inequality for `restrictIdeal`:**
+`restrictIdeal(a + b) ≤ max(restrictIdeal(a), restrictIdeal(b))`. -/
 theorem restrictIdeal_apply_add_le_max (v : Valuation A Γ₀) (I : Ideal A) (a b : A) :
     v.restrictIdeal I (a + b) ≤ max (v.restrictIdeal I a) (v.restrictIdeal I b) :=
   Valuation.map_add _ a b
