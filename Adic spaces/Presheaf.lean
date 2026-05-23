@@ -2856,8 +2856,12 @@ theorem isTopologicallyNilpotent_localization_algebraMap
 Wedhorn 7.52(2) proof outline (p.63 + Prop 7.51 reference):
 1. **Wedhorn 7.51**: complete A, max ideal m ⊂ A ⇒ m closed + ∃ v ∈ Spa A with supp v = m.
    Proof uses (A)°° open, 1 + A°° is units subgroup, A^× is open in A.
-2. **7.52(2) reformulation**: f unit ⇔ f ∉ any max ideal m ⇔ no v ∈ Spa A has m = supp v with f ∈ m ⇔ |f(x)| ≠ 0 for all x ∈ Spa A.
-3. **Applied to localization**: `D.s` ∈ `Localization.Away D'.s` with `D.s` nonvanishing on `Spa(Localization.Away D'.s) ≅ R(D'.T/D'.s)` (since the latter ⊆ R(D.T/D.s) by `h`, and D.s nonvanishing on R(D.T/D.s)). -/
+2. **7.52(2) reformulation**: f unit ⇔ f ∉ any max ideal m
+   ⇔ no v ∈ Spa A has m = supp v with f ∈ m
+   ⇔ |f(x)| ≠ 0 for all x ∈ Spa A.
+3. **Applied to localization**: `D.s` ∈ `Localization.Away D'.s` with `D.s`
+   nonvanishing on `Spa(Localization.Away D'.s) ≅ R(D'.T/D'.s)`
+   (since the latter ⊆ R(D.T/D.s) by `h`, and D.s nonvanishing on R(D.T/D.s)). -/
 
 /-- **Forward direction of `isUnit_iff_ne_zero_on_spa_of_complete`**: a unit
 `f ∈ A` does not vanish on any Spa-point (no completeness or topology
