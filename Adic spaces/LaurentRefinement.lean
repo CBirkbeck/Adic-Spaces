@@ -493,19 +493,22 @@ transport suppliers above (axiom-clean, no scope assumption beyond
 the level of generality this project's strongly-noetherian Tate setup
 operates at. -/
 
-/-! **Bridge cluster (presheafValue_trivialPlus_fSubX_equiv + laurentPlusBridge + laurentMinusBridge, lines 495-709) migrated to LaurentRefinementCore.lean (F12 take 2, migration 20).** -/
+/-! **F12 take 2 migration markers (2026-05-23, 27 migrations total).**
 
-/-! **Bridge restrictionMap + isInducing cluster (presheafValue_iteratedPlus/Minus_equiv_restrictionMap_canonicalMap, laurentPlus/MinusBridge_restrictionMap, laurentPlus/MinusBridge_isInducing, lines 497-1031) migrated to LaurentRefinementCore.lean (F12 take 2, migration 21).** -/
+The following content blocks were extracted to sister files:
 
-/-! **Laurent overlap infrastructure + delta-vanishing cluster (laurentOverlapDatum, laurentOverlap_subset_plus/minus, LaurentOverlapBridgeCompatible, laurentOverlapBridge_exists_compatible variants, laurentOverlap_plus/minus_intertwine_of_compatible, laurentBridge_delta_eq_zero_of_compat, lines 499-1079) migrated to LaurentRefinementCore.lean (F12 take 2, migration 22).** -/
+* `LaurentRefinementCore.lean` (migrations 20-25):
+  - Bridge cluster (trivialPlus_fSubX_equiv + laurentPlus/MinusBridge)
+  - Bridge restrictionMap + isInducing cluster
+  - Laurent overlap infrastructure + delta-vanishing
+  - Laurent cover gluing viaRow3 + viaBridges
+  - Laurent isEmbedding cluster (6 theorems)
+  - Lane-C consumer cluster (5 theorems)
 
+* `LaurentRefinementAcyclic.lean` (migration 26):
+  - tateAcyclicity_gluing_* family + tateAcyclicity headline (Wedhorn 8.28(b))
 
-/-! **Laurent cover gluing viaRow3 + viaBridges (lines 502-653) migrated to LaurentRefinementCore.lean (F12 take 2, migration 23).** -/
-
-/-! **Laurent isEmbedding cluster (laurentCover_injective_continuous_presheaf, laurentCover_isEmbedding_presheaf, laurentCover_isEmbedding_presheaf_of_complete, laurentCover_isEmbedding_presheaf_via_bridges, _via_bridges_baire_auto, _via_bridges_baire_quotientSigma_auto, lines 504-1208) migrated to LaurentRefinementCore.lean (F12 take 2, migration 24).** -/
-
-/-! **Lane-C cluster (laurentCover_gluing_presheaf, laurentBridge_delta_eq_zero_via_compatible_bridge, laurentCover_gluing_presheaf_via_compatible_bridge, V_cover_gluing_from_laurentPair_via_compatible_bridge, laurentAndVCover_gluing_unified_via_compatible_bridge, lines 506-1078) migrated to LaurentRefinementCore.lean (F12 take 2, migration 25).** -/
-/-! **tateAcyclicity_gluing cluster (tateAcyclicity_gluing_via_refinement, _descent_witness, _witness_restricts, tateAcyclicity_gluing, tateAcyclicity, lines 509-850) migrated to LaurentRefinementAcyclic.lean (F12 take 2, migration 26).** -/
+See commit 5cef63d (F12 take 2 split) and Adic spaces.lean import order. -/
 
 /-! **presheafValue_subsingleton_of_s_eq_zero + rationalCovering_hasSeparation + rationalCovering_hasGluing (lines 510-584) migrated to LaurentRefinementAcyclic.lean (F12 take 2, migration 27).** -/
 
