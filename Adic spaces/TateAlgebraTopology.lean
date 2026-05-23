@@ -373,7 +373,7 @@ noncomputable def coeffInIdealIdeal (P : PairOfDefinition A) (I : Ideal P.A₀) 
     obtain ⟨b_z, hb_z, heq_z⟩ := hz l
     obtain ⟨b_w, hb_w, heq_w⟩ := hw l
     refine ⟨b_z + b_w, I.add_mem hb_z hb_w, ?_⟩
-    show ((b_z + b_w : P.A₀) : A) = MvPowerSeries.coeff l (z + w).val.val
+    change ((b_z + b_w : P.A₀) : A) = MvPowerSeries.coeff l (z + w).val.val
     push_cast
     rw [heq_z, heq_w, ← map_add]
   smul_mem' r z hz l := by
@@ -393,10 +393,10 @@ noncomputable def coeffInIdealIdeal (P : PairOfDefinition A) (I : Ideal P.A₀) 
       -- Each term is (r-coeff) · (z-coeff), and the z-coeff is in I
       exact I.mul_mem_left _ (hz p.2).choose_spec.1
     · -- The sum equals coeff l (r · z)
-      show ((∑ p ∈ Finset.antidiagonal l, f p : P.A₀) : A) =
+      change ((∑ p ∈ Finset.antidiagonal l, f p : P.A₀) : A) =
         MvPowerSeries.coeff l (r • z).val.val
       push_cast [f]
-      show (∑ p ∈ Finset.antidiagonal l,
+      change (∑ p ∈ Finset.antidiagonal l,
           MvPowerSeries.coeff p.1 r.val.val * ((hz p.2).choose : A)) =
         MvPowerSeries.coeff l (r • z).val.val
       rw [show (r • z).val.val = r.val.val * z.val.val from rfl]
@@ -415,11 +415,11 @@ private theorem pairConstantHom_mem_coeffInIdeal (P : PairOfDefinition A) {n : �
   · refine ⟨c, hc, ?_⟩
     show (c : A) = MvPowerSeries.coeff l (pairConstantHom P c).val.val
     subst hl
-    show (c : A) = MvPowerSeries.coeff 0 (MvPowerSeries.C (c : A))
+    change (c : A) = MvPowerSeries.coeff 0 (MvPowerSeries.C (c : A))
     rw [MvPowerSeries.coeff_zero_C]
   · refine ⟨0, (P.I ^ n).zero_mem, ?_⟩
     show ((0 : P.A₀) : A) = MvPowerSeries.coeff l (pairConstantHom P c).val.val
-    show (0 : A) = MvPowerSeries.coeff l (MvPowerSeries.C (c : A))
+    change (0 : A) = MvPowerSeries.coeff l (MvPowerSeries.C (c : A))
     rw [MvPowerSeries.coeff_C, if_neg hl]
 
 omit [IsTopologicalRing A] in
@@ -432,7 +432,7 @@ theorem pairIdeal_le_coeffInIdeal (P : PairOfDefinition A) :
   unfold pairIdeal
   rw [Ideal.map_le_iff_le_comap]
   intro c hc
-  show pairConstantHom P c ∈ coeffInIdealIdeal P P.I
+  change pairConstantHom P c ∈ coeffInIdealIdeal P P.I
   have h1 : c ∈ P.I ^ 1 := by rw [pow_one]; exact hc
   have := pairConstantHom_mem_coeffInIdeal P (n := 1) c h1
   convert this using 1
@@ -460,10 +460,10 @@ theorem coeffInIdealIdeal_mul_mono (P : PairOfDefinition A) {I₁ I₂ : Ideal P
     refine ⟨∑ p ∈ Finset.antidiagonal l, f p, ?_, ?_⟩
     · refine (I₁ * I₂).sum_mem fun p _ => ?_
       exact Ideal.mul_mem_mul (ha' p.1).choose_spec.1 (hb' p.2).choose_spec.1
-    · show ((∑ p ∈ Finset.antidiagonal l, f p : P.A₀) : A) =
+    · change ((∑ p ∈ Finset.antidiagonal l, f p : P.A₀) : A) =
         MvPowerSeries.coeff l (a * b).val.val
       push_cast [f]
-      show (∑ p ∈ Finset.antidiagonal l,
+      change (∑ p ∈ Finset.antidiagonal l,
           ((ha' p.1).choose : A) * ((hb' p.2).choose : A)) =
         MvPowerSeries.coeff l (a * b).val.val
       rw [show (a * b).val.val = a.val.val * b.val.val from rfl]
@@ -475,7 +475,7 @@ theorem coeffInIdealIdeal_mul_mono (P : PairOfDefinition A) {I₁ I₂ : Ideal P
     obtain ⟨b₁, hb₁, heq₁⟩ := h₁' l
     obtain ⟨b₂, hb₂, heq₂⟩ := h₂' l
     refine ⟨b₁ + b₂, (I₁ * I₂).add_mem hb₁ hb₂, ?_⟩
-    show ((b₁ : A) + (b₂ : A)) = MvPowerSeries.coeff l (z₁ + z₂).val.val
+    change ((b₁ : A) + (b₂ : A)) = MvPowerSeries.coeff l (z₁ + z₂).val.val
     rw [show (z₁ + z₂).val.val = z₁.val.val + z₂.val.val from rfl, map_add,
       ← heq₁, ← heq₂]
 
@@ -505,7 +505,7 @@ theorem tateAlgNhd_coeff_mem (P : PairOfDefinition A) (n : ℕ)
   obtain ⟨z, hz, rfl⟩ := hy
   -- y = ↑z, so y.val = z.val.val
   have := pairIdeal_pow_le_coeffInIdeal P n hz l
-  show ∃ b, b ∈ P.I ^ n ∧ (b : A) =
+  change ∃ b, b ∈ P.I ^ n ∧ (b : A) =
     MvPowerSeries.coeff l ((pairSubring P).subtype.toAddMonoidHom z).val
   exact this
 
@@ -623,12 +623,12 @@ theorem tateAlgNhd_of_coeff_mem_principal (P : PairOfDefinition A) (n : ℕ)
     intro l
     -- coeff l g_val = πinv^n * coeff l y.val
     have hcoeff_g : MvPowerSeries.coeff l g_val.val = πinv ^ n * MvPowerSeries.coeff l y.val := by
-      show MvPowerSeries.coeff l
+      change MvPowerSeries.coeff l
         (((algebraMap A ↥(TateAlgebra A)) (πinv ^ n) * y).val) = _
-      show MvPowerSeries.coeff l
+      change MvPowerSeries.coeff l
         ((MvPowerSeries.C (πinv ^ n) : MvPowerSeries (Fin 1) A) * y.val) = _
       rw [MvPowerSeries.coeff_C_mul]
-    show MvPowerSeries.coeff l g_val.val ∈ P.A₀
+    change MvPowerSeries.coeff l g_val.val ∈ P.A₀
     rw [hcoeff_g]
     -- coeff l y.val = (b_l : A) for b_l ∈ P.I^n = span{π^n}, so b_l = a_l * π^n
     obtain ⟨b, hb_mem, hb_eq⟩ := hy_coeff l
@@ -638,7 +638,7 @@ theorem tateAlgNhd_of_coeff_mem_principal (P : PairOfDefinition A) (n : ℕ)
     -- b = π^n * a (Ideal.mem_span_singleton gives the multiple form)
     rw [ha_eq]
     -- Goal: πinv^n * ((π^n * a : P.A₀) : A) ∈ P.A₀
-    show πinv ^ n * ((π ^ n * a : P.A₀) : A) ∈ P.A₀
+    change πinv ^ n * ((π ^ n * a : P.A₀) : A) ∈ P.A₀
     have : πinv ^ n * ((π ^ n * a : P.A₀) : A) = (a : A) := by
       push_cast
       rw [show πinv ^ n * ((π : A) ^ n * (a : A)) = ((π : A) ^ n * πinv ^ n) * (a : A) by ring,
@@ -652,14 +652,14 @@ theorem tateAlgNhd_of_coeff_mem_principal (P : PairOfDefinition A) (n : ℕ)
     apply Subtype.ext
     -- Both sides as MvPowerSeries (Fin 1) A
     ext l
-    show MvPowerSeries.coeff l y.val =
+    change MvPowerSeries.coeff l y.val =
       MvPowerSeries.coeff l
         ((pairConstantHom P (π ^ n) * g_in_subring : ↥(pairSubring P)) : ↥(TateAlgebra A)).val
     -- RHS = coeff l ((pairConstantHom (π^n)).val * g_val.val)
     -- = coeff l (C (π^n : A) * (C (πinv^n) * y.val))
     -- = coeff l (C ((π^n : A) * πinv^n) * y.val)
     -- = coeff l (C 1 * y.val) = coeff l y.val
-    show MvPowerSeries.coeff l y.val =
+    change MvPowerSeries.coeff l y.val =
       MvPowerSeries.coeff l
         ((MvPowerSeries.C ((π : A) ^ n)) * g_val.val)
     change MvPowerSeries.coeff l y.val =
@@ -970,7 +970,7 @@ private theorem pairIdeal_iInter_eq_zero [T2Space A] (P : PairOfDefinition A) :
   apply hHausdorff.haus'
   intro n
   rw [SModEq.zero]
-  show b ∈ P.I ^ n • (⊤ : Submodule ↥P.A₀ ↥P.A₀)
+  change b ∈ P.I ^ n • (⊤ : Submodule ↥P.A₀ ↥P.A₀)
   rw [Ideal.smul_eq_mul, Ideal.mul_top]
   exact hb_all n
 
@@ -1132,7 +1132,7 @@ theorem tateAlgebraTopology'_completeSpace [IsTateRing A] [T2Space A]
     apply hn
     refine ⟨-b, (P.I ^ n).neg_mem hb_mem, ?_⟩
     simp only [Subring.coe_neg, hb_eq]
-    show -MvPowerSeries.coeff l (u m - u k).val =
+    change -MvPowerSeries.coeff l (u m - u k).val =
       MvPowerSeries.coeff l (u k).val + -MvPowerSeries.coeff l (u m).val
     rw [show (u m - u k).val = (u m).val - (u k).val from rfl, map_sub, neg_sub,
       sub_eq_add_neg]
@@ -1146,7 +1146,7 @@ theorem tateAlgebraTopology'_completeSpace [IsTateRing A] [T2Space A]
     -- IsRestricted means: Tendsto (fun l => f l) cofinite (nhds 0),
     -- where f is viewed as a function (Fin 1 →₀ ℕ) → A.
     -- Since our f is (fun l => c l), we need Tendsto c cofinite (nhds 0).
-    show Tendsto c cofinite (nhds 0)
+    change Tendsto c cofinite (nhds 0)
     rw [tendsto_nhds]
     intro U hU h0U
     rw [Filter.mem_cofinite]
@@ -1206,7 +1206,7 @@ theorem tateAlgebraTopology'_completeSpace [IsTateRing A] [T2Space A]
   -- coeff l (u n) - coeff l (u m) = coeff l (u n - u m), which for m ≥ N is in image P.I^k.
   -- By closedness, the limit coeff l (u n) - c l is also in image P.I^k.
   refine ⟨N, fun n hn => ?_⟩
-  show u n - f ∈ tateAlgNhd P k
+  change u n - f ∈ tateAlgNhd P k
   -- First show u n - f ∈ pairSubring P (all coefficients in P.A₀).
   -- Then show all coefficients of u n - f are in image P.I^k.
   -- Then apply tateAlgNhd_of_coeff_mem_principal.
@@ -1219,7 +1219,7 @@ theorem tateAlgebraTopology'_completeSpace [IsTateRing A] [T2Space A]
     -- By closedness of image P.I^k, the limit is also in image P.I^k.
     have hcoeff_val : MvPowerSeries.coeff l (u n - f).val =
         MvPowerSeries.coeff l (u n).val - c l := by
-      show MvPowerSeries.coeff l ((u n).val - f.val) =
+      change MvPowerSeries.coeff l ((u n).val - f.val) =
         MvPowerSeries.coeff l (u n).val - c l
       rw [map_sub]
       simp only [MvPowerSeries.coeff_apply, f]
@@ -1359,7 +1359,7 @@ theorem tateAlgebra_algebraMap_continuous [IsTateRing A] :
     -- Need: algebraMap (↑b + a) ∈ U, i.e., algebraMap (↑b + a) - algebraMap a ∈ tateAlgNhd P n.
     rw [Set.mem_preimage]
     apply hn
-    show algebraMap A ↥(TateAlgebra A) ((b : A) + a) -
+    change algebraMap A ↥(TateAlgebra A) ((b : A) + a) -
       algebraMap A ↥(TateAlgebra A) a ∈ tateAlgNhd P n
     rw [map_add, add_sub_cancel_right]
     -- algebraMap (b : A) ∈ tateAlgNhd P n.
@@ -1393,7 +1393,7 @@ theorem tateAlgebra_isTateRing [IsTateRing A] :
       obtain ⟨u, hu_nilp⟩ := IsTateRing.exists_topologicallyNilpotent_unit (A := A)
       refine ⟨Units.map (algebraMap A ↥(TateAlgebra A) : A →* ↥(TateAlgebra A)) u, ?_⟩
       -- IsTopologicallyNilpotent (algebraMap u) in tateAlgebraTopology'.
-      show @IsTopologicallyNilpotent _ _ τ
+      change @IsTopologicallyNilpotent _ _ τ
         ((Units.map (algebraMap A ↥(TateAlgebra A) : A →* ↥(TateAlgebra A)) u : ↥(TateAlgebra A)))
       change Tendsto (fun n => ((Units.map (algebraMap A ↥(TateAlgebra A) : A →* ↥(TateAlgebra A))
         u : ↥(TateAlgebra A)) ^ n)) atTop (@nhds _ τ 0)
@@ -1859,7 +1859,7 @@ noncomputable def coeffInIdealIdeal₂ (P : PairOfDefinition A) (I : Ideal P.A�
     obtain ⟨b_z, hb_z, heq_z⟩ := hz l
     obtain ⟨b_w, hb_w, heq_w⟩ := hw l
     refine ⟨b_z + b_w, I.add_mem hb_z hb_w, ?_⟩
-    show ((b_z + b_w : P.A₀) : A) = MvPowerSeries.coeff l (z + w).val.val
+    change ((b_z + b_w : P.A₀) : A) = MvPowerSeries.coeff l (z + w).val.val
     push_cast
     rw [heq_z, heq_w, ← map_add]
   smul_mem' r z hz l := by
@@ -1871,10 +1871,10 @@ noncomputable def coeffInIdealIdeal₂ (P : PairOfDefinition A) (I : Ideal P.A�
     refine ⟨∑ p ∈ Finset.antidiagonal l, f p, ?_, ?_⟩
     · refine I.sum_mem fun p _ => ?_
       exact I.mul_mem_left _ (hz p.2).choose_spec.1
-    · show ((∑ p ∈ Finset.antidiagonal l, f p : P.A₀) : A) =
+    · change ((∑ p ∈ Finset.antidiagonal l, f p : P.A₀) : A) =
         MvPowerSeries.coeff l (r • z).val.val
       push_cast [f]
-      show (∑ p ∈ Finset.antidiagonal l,
+      change (∑ p ∈ Finset.antidiagonal l,
           MvPowerSeries.coeff p.1 r.val.val * ((hz p.2).choose : A)) =
         MvPowerSeries.coeff l (r • z).val.val
       rw [show (r • z).val.val = r.val.val * z.val.val from rfl]
@@ -1894,11 +1894,11 @@ private theorem pairConstantHom₂_mem_coeffInIdealIdeal₂ (P : PairOfDefinitio
   · refine ⟨c, hc, ?_⟩
     show (c : A) = MvPowerSeries.coeff l (pairConstantHom₂ P c).val.val
     subst hl
-    show (c : A) = MvPowerSeries.coeff 0 (MvPowerSeries.C (c : A))
+    change (c : A) = MvPowerSeries.coeff 0 (MvPowerSeries.C (c : A))
     rw [MvPowerSeries.coeff_zero_C]
   · refine ⟨0, (P.I ^ n).zero_mem, ?_⟩
     show ((0 : P.A₀) : A) = MvPowerSeries.coeff l (pairConstantHom₂ P c).val.val
-    show (0 : A) = MvPowerSeries.coeff l (MvPowerSeries.C (c : A))
+    change (0 : A) = MvPowerSeries.coeff l (MvPowerSeries.C (c : A))
     rw [MvPowerSeries.coeff_C, if_neg hl]
 
 omit [IsTopologicalRing A] in
@@ -1909,7 +1909,7 @@ theorem pairIdeal₂_le_coeffInIdealIdeal₂ (P : PairOfDefinition A) :
   unfold pairIdeal₂
   rw [Ideal.map_le_iff_le_comap]
   intro c hc
-  show pairConstantHom₂ P c ∈ coeffInIdealIdeal₂ P P.I
+  change pairConstantHom₂ P c ∈ coeffInIdealIdeal₂ P P.I
   have h1 : c ∈ P.I ^ 1 := by rw [pow_one]; exact hc
   have := pairConstantHom₂_mem_coeffInIdealIdeal₂ P (n := 1) c h1
   convert this using 1
@@ -1933,10 +1933,10 @@ theorem coeffInIdealIdeal₂_mul_mono (P : PairOfDefinition A) {I₁ I₂ : Idea
     refine ⟨∑ p ∈ Finset.antidiagonal l, f p, ?_, ?_⟩
     · refine (I₁ * I₂).sum_mem fun p _ => ?_
       exact Ideal.mul_mem_mul (ha' p.1).choose_spec.1 (hb' p.2).choose_spec.1
-    · show ((∑ p ∈ Finset.antidiagonal l, f p : P.A₀) : A) =
+    · change ((∑ p ∈ Finset.antidiagonal l, f p : P.A₀) : A) =
         MvPowerSeries.coeff l (a * b).val.val
       push_cast [f]
-      show (∑ p ∈ Finset.antidiagonal l,
+      change (∑ p ∈ Finset.antidiagonal l,
           ((ha' p.1).choose : A) * ((hb' p.2).choose : A)) =
         MvPowerSeries.coeff l (a * b).val.val
       rw [show (a * b).val.val = a.val.val * b.val.val from rfl]
@@ -1947,7 +1947,7 @@ theorem coeffInIdealIdeal₂_mul_mono (P : PairOfDefinition A) {I₁ I₂ : Idea
     obtain ⟨b₁, hb₁, heq₁⟩ := h₁' l
     obtain ⟨b₂, hb₂, heq₂⟩ := h₂' l
     refine ⟨b₁ + b₂, (I₁ * I₂).add_mem hb₁ hb₂, ?_⟩
-    show ((b₁ : A) + (b₂ : A)) = MvPowerSeries.coeff l (z₁ + z₂).val.val
+    change ((b₁ : A) + (b₂ : A)) = MvPowerSeries.coeff l (z₁ + z₂).val.val
     rw [show (z₁ + z₂).val.val = z₁.val.val + z₂.val.val from rfl, map_add,
       ← heq₁, ← heq₂]
 
@@ -1974,7 +1974,7 @@ theorem tateAlgNhd₂_coeff_mem (P : PairOfDefinition A) (n : ℕ)
     ∃ b : P.A₀, b ∈ P.I ^ n ∧ (b : A) = MvPowerSeries.coeff l y.val := by
   obtain ⟨z, hz, rfl⟩ := hy
   have := pairIdeal₂_pow_le_coeffInIdealIdeal₂ P n hz l
-  show ∃ b, b ∈ P.I ^ n ∧ (b : A) =
+  change ∃ b, b ∈ P.I ^ n ∧ (b : A) =
     MvPowerSeries.coeff l ((pairSubring₂ P).subtype.toAddMonoidHom z).val
   exact this
 
@@ -2024,19 +2024,19 @@ theorem tateAlgNhd₂_of_coeff_mem_principal (P : PairOfDefinition A) (n : ℕ)
     intro l
     have hcoeff_g : MvPowerSeries.coeff l g_val.val =
         πinv ^ n * MvPowerSeries.coeff l y.val := by
-      show MvPowerSeries.coeff l
+      change MvPowerSeries.coeff l
         (((algebraMap A ↥(TateAlgebra₂ A)) (πinv ^ n) * y).val) = _
-      show MvPowerSeries.coeff l
+      change MvPowerSeries.coeff l
         ((MvPowerSeries.C (πinv ^ n) : MvPowerSeries (Fin 2) A) * y.val) = _
       rw [MvPowerSeries.coeff_C_mul]
-    show MvPowerSeries.coeff l g_val.val ∈ P.A₀
+    change MvPowerSeries.coeff l g_val.val ∈ P.A₀
     rw [hcoeff_g]
     obtain ⟨b, hb_mem, hb_eq⟩ := hy_coeff l
     rw [← hb_eq]
     rw [hpow] at hb_mem
     obtain ⟨a, ha_eq⟩ := Ideal.mem_span_singleton.mp hb_mem
     rw [ha_eq]
-    show πinv ^ n * ((π ^ n * a : P.A₀) : A) ∈ P.A₀
+    change πinv ^ n * ((π ^ n * a : P.A₀) : A) ∈ P.A₀
     have : πinv ^ n * ((π ^ n * a : P.A₀) : A) = (a : A) := by
       push_cast
       rw [show πinv ^ n * ((π : A) ^ n * (a : A)) =
@@ -2050,11 +2050,11 @@ theorem tateAlgNhd₂_of_coeff_mem_principal (P : PairOfDefinition A) (n : ℕ)
     apply Subtype.ext
     apply Subtype.ext
     ext l
-    show MvPowerSeries.coeff l y.val =
+    change MvPowerSeries.coeff l y.val =
       MvPowerSeries.coeff l
         ((pairConstantHom₂ P (π ^ n) * g_in_subring :
           ↥(pairSubring₂ P)) : ↥(TateAlgebra₂ A)).val
-    show MvPowerSeries.coeff l y.val =
+    change MvPowerSeries.coeff l y.val =
       MvPowerSeries.coeff l
         ((MvPowerSeries.C ((π : A) ^ n)) * g_val.val)
     change MvPowerSeries.coeff l y.val =
@@ -2408,7 +2408,7 @@ theorem tateAlgebra₂Topology'_completeSpace [IsTateRing A] [T2Space A]
     apply hn
     refine ⟨-b, (P.I ^ n).neg_mem hb_mem, ?_⟩
     simp only [Subring.coe_neg, hb_eq]
-    show -MvPowerSeries.coeff l (u m - u k).val =
+    change -MvPowerSeries.coeff l (u m - u k).val =
       MvPowerSeries.coeff l (u k).val + -MvPowerSeries.coeff l (u m).val
     rw [show (u m - u k).val = (u m).val - (u k).val from rfl, map_sub, neg_sub,
       sub_eq_add_neg]
@@ -2417,7 +2417,7 @@ theorem tateAlgebra₂Topology'_completeSpace [IsTateRing A] [T2Space A]
     fun l => cauchySeq_tendsto_of_complete (hcoeff_cauchy l)
   choose c hc using hcoeff_conv
   have hc_restricted : MvPowerSeries.IsRestricted (fun l => c l : MvPowerSeries (Fin 2) A) := by
-    show Tendsto c cofinite (nhds 0)
+    change Tendsto c cofinite (nhds 0)
     rw [tendsto_nhds]
     intro U hU h0U
     rw [Filter.mem_cofinite]
@@ -2452,13 +2452,13 @@ theorem tateAlgebra₂Topology'_completeSpace [IsTateRing A] [T2Space A]
   rw [Filter.eventually_atTop]
   obtain ⟨N, hN⟩ := hu_basis k
   refine ⟨N, fun n hn => ?_⟩
-  show u n - f ∈ tateAlgNhd₂ P k
+  change u n - f ∈ tateAlgNhd₂ P k
   have hcoeff_diff : ∀ l : Fin 2 →₀ ℕ,
       ∃ b : ↥P.A₀, b ∈ P.I ^ k ∧ (b : A) = MvPowerSeries.coeff l (u n - f).val := by
     intro l
     have hcoeff_val : MvPowerSeries.coeff l (u n - f).val =
         MvPowerSeries.coeff l (u n).val - c l := by
-      show MvPowerSeries.coeff l ((u n).val - f.val) =
+      change MvPowerSeries.coeff l ((u n).val - f.val) =
         MvPowerSeries.coeff l (u n).val - c l
       rw [map_sub]
       simp only [MvPowerSeries.coeff_apply, f]
@@ -2549,7 +2549,7 @@ theorem tateAlgebra₂_algebraMap_continuous [IsTateRing A] :
   · rintro x ⟨_, ⟨b, hb, rfl⟩, rfl⟩
     rw [Set.mem_preimage]
     apply hn
-    show algebraMap A ↥(TateAlgebra₂ A) ((b : A) + a) -
+    change algebraMap A ↥(TateAlgebra₂ A) ((b : A) + a) -
       algebraMap A ↥(TateAlgebra₂ A) a ∈ tateAlgNhd₂ P n
     rw [map_add, add_sub_cancel_right]
     refine ⟨pairConstantHom₂ P ⟨b, b.property⟩, ?_, ?_⟩
@@ -2573,7 +2573,7 @@ theorem tateAlgebra₂_isTateRing [IsTateRing A] :
     (by
       obtain ⟨u, hu_nilp⟩ := IsTateRing.exists_topologicallyNilpotent_unit (A := A)
       refine ⟨Units.map (algebraMap A ↥(TateAlgebra₂ A) : A →* ↥(TateAlgebra₂ A)) u, ?_⟩
-      show @IsTopologicallyNilpotent _ _ τ
+      change @IsTopologicallyNilpotent _ _ τ
         ((Units.map (algebraMap A ↥(TateAlgebra₂ A) : A →* ↥(TateAlgebra₂ A)) u :
           ↥(TateAlgebra₂ A)))
       change Tendsto (fun n => ((Units.map
@@ -2849,7 +2849,7 @@ theorem mk_X_isPowerBounded_in_bivariateOverlap [IsTateRing A] (b : A) :
       rw [map_pow]
     · rintro ⟨_, ⟨n, rfl⟩, rfl⟩
       exact ⟨n, by rw [map_pow]⟩
-  show @TopologicalRing.IsBounded _ _ (quotientBivariateOverlapIdealTopology b) _
+  change @TopologicalRing.IsBounded _ _ (quotientBivariateOverlapIdealTopology b) _
   rw [hrange_eq]
   exact IsBounded_mk_image_of_IsBounded_bivariate b hX_pb
 
@@ -2870,7 +2870,7 @@ theorem mk_Y_isPowerBounded_in_bivariateOverlap [IsTateRing A] (b : A) :
       rw [map_pow]
     · rintro ⟨_, ⟨n, rfl⟩, rfl⟩
       exact ⟨n, by rw [map_pow]⟩
-  show @TopologicalRing.IsBounded _ _ (quotientBivariateOverlapIdealTopology b) _
+  change @TopologicalRing.IsBounded _ _ (quotientBivariateOverlapIdealTopology b) _
   rw [hrange_eq]
   exact IsBounded_mk_image_of_IsBounded_bivariate b hY_pb
 
@@ -3120,7 +3120,7 @@ theorem TateAlgebra₂_monomial_val (c : A) (i j : ℕ) :
         (algebraMap A ↥(TateAlgebra₂ A) c * TateAlgebra₂.X ^ i *
           TateAlgebra₂.Y ^ j) := rfl
   rw [hval, map_mul, map_mul, map_pow, map_pow]
-  show MvPowerSeries.C c * MvPowerSeries.X (0 : Fin 2) ^ i *
+  change MvPowerSeries.C c * MvPowerSeries.X (0 : Fin 2) ^ i *
       MvPowerSeries.X (1 : Fin 2) ^ j = _
   -- Rewrite X^k as monomial (single _ k) 1 and C c as monomial 0 c.
   rw [MvPowerSeries.X_pow_eq, MvPowerSeries.X_pow_eq,
@@ -3171,7 +3171,7 @@ theorem tateAlgebra₂_polynomial_decomp (g : ↥(TateAlgebra₂ A)) (N : ℕ)
           Finsupp.single (1 : Fin 2) j)
           (MvPowerSeries.coeff (Finsupp.single (0 : Fin 2) i +
             Finsupp.single (1 : Fin 2) j) g.val) := by
-    show (Subring.subtype _) _ = _
+    change (Subring.subtype _) _ = _
     rw [map_sum]
     apply Finset.sum_congr rfl
     intros i _
