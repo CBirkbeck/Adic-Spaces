@@ -85,7 +85,8 @@ This is one step away from Wedhorn-exact but is the lowest-cost recovery from
 the L5.2.2 scope finding. -/
 theorem cor_8_32_clean_proof
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A]
+    [NonarchimedeanRing A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A) :
     letI : ∀ D : { D // D ∈ C.covers }, Algebra (presheafValue C.base)
@@ -179,7 +180,8 @@ to give the `IsSheafy A` instance directly.
 The audit-pass-2 derived inputs match Wedhorn's exact hypothesis bundle. -/
 theorem isSheafy_ofStronglyNoetherianTate_proof
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] :
+    [NonarchimedeanRing A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A] :
     IsSheafy A :=
   isSheafy_ofStronglyNoetherianTate
 
