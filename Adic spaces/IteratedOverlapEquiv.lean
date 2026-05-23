@@ -94,7 +94,7 @@ private theorem iteratedOverlap_baseHom_DsTimes_f_isUnit
   haveI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing P D₀
   haveI : HasLocLiftPowerBounded (presheafValue D₀) := hLocLift_B
   haveI := iteratedOverlap_isLocalization_target P D₀ f hLocLift_B
-  show IsUnit (algebraMap (presheafValue D₀)
+  change IsUnit (algebraMap (presheafValue D₀)
     (Localization.Away ((iteratedOverlapDatum_B P D₀ f hLocLift_B).s))
     (D₀.canonicalMap (D₀.s * f)))
   rw [map_mul, map_mul]
