@@ -291,9 +291,9 @@ def minContain (S : Set Γ) : ConvexSubgroup Γ where
   toSubgroup :=
     { carrier := { x | ∀ (H : ConvexSubgroup Γ), S ⊆ H → x ∈ H }
       one_mem' := fun H _ ↦ one_mem H
-      mul_mem' := fun {a b} ha hb H hS ↦ mul_mem (ha H hS) (hb H hS)
-      inv_mem' := fun {a} ha H hS ↦ inv_mem (ha H hS) }
-  convex' := fun {a b _} ha hb h₁ h₂ H hS ↦
+      mul_mem' := fun ha hb H hS ↦ mul_mem (ha H hS) (hb H hS)
+      inv_mem' := fun ha H hS ↦ inv_mem (ha H hS) }
+  convex' := fun ha hb h₁ h₂ H hS ↦
     H.convex (ha H hS) (hb H hS) h₁ h₂
 
 omit [IsOrderedMonoid Γ] in
