@@ -1779,7 +1779,7 @@ theorem locToQuotientOneSubfX_gen_continuous_canonical [IsTateRing A] [T2Space A
         algebraMap A ↥(TateAlgebra A) a₀ * g ∈ G := by
     intro a₀ ha₀ g hg l
     change MvPowerSeries.coeff l (algebraMap A ↥(TateAlgebra A) a₀ * g).val ∈ _
-    show MvPowerSeries.coeff l
+    change MvPowerSeries.coeff l
       ((MvPowerSeries.C a₀ : MvPowerSeries (Fin 1) A) * g.val) ∈ _
     rw [MvPowerSeries.coeff_C_mul]
     obtain ⟨c, hc, hc_eq⟩ := hg l
@@ -1834,7 +1834,7 @@ theorem locToQuotientOneSubfX_gen_continuous_canonical [IsTateRing A] [T2Space A
       -- b ∈ P.I^M. incl b ∈ P_common.I^M (by Ideal.mem_map_of_mem).
       -- incl b ∈ P_common.I^M = (Ideal.map incl P.I)^M = Ideal.map incl (P.I^M).
       refine ⟨Subring.inclusion (P.le_adjoin_A₀ T) b, ?_, rfl⟩
-      show Subring.inclusion (P.le_adjoin_A₀ T) b ∈ P_common.I ^ M
+      change Subring.inclusion (P.le_adjoin_A₀ T) b ∈ P_common.I ^ M
       have : P_common.I ^ M = (Ideal.map (Subring.inclusion (P.le_adjoin_A₀ T)) P.I) ^ M :=
         rfl
       rw [this, ← Ideal.map_pow]
@@ -2020,7 +2020,7 @@ theorem presheafValueToCanonicalQuotient_continuous (D : RationalLocData A)
   -- presheafValueToCanonicalQuotient is defined as
   -- `UniformSpace.Completion.extensionHom (locToQuotientOneSubfX_gen D.s) ...`.
   -- Its function coercion is `Completion.extension (...)` which is continuous.
-  show Continuous (fun x : presheafValue D =>
+  change Continuous (fun x : presheafValue D =>
     presheafValueToCanonicalQuotient D hA_complete hnoeth hT_pb x)
   unfold presheafValueToCanonicalQuotient
   -- The underlying function is `Completion.extension (locToQuotientOneSubfX_gen D.s)`.
@@ -2452,7 +2452,7 @@ theorem presheafValueCanonicalQuotientEquiv_isInducing (D : RationalLocData A)
     -- Goal: `y = H ((forward equiv) y)`. `H` underlying function is
     -- `tateQuotientToPresheafHom D hb`, and the equiv's `left_inv` gives
     -- `tateQuotientToPresheafHom D hb ((forward equiv) y) = y`; take `.symm`.
-    show y = tateQuotientToPresheafHom D hb _
+    change y = tateQuotientToPresheafHom D hb _
     exact ((presheafValueCanonicalQuotientEquiv D hb hA_complete hnoeth hT_pb
       hcont_eval).left_inv y).symm
   -- `H.symm` is a homeomorphism, hence inducing; transport along `h_eq`.

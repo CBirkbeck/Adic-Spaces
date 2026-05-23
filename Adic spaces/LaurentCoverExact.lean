@@ -1433,14 +1433,14 @@ theorem lambdaMap_surjective [UniformSpace A] [IsUniformAddGroup A] [T2Space A] 
               else ∑' k, MvPowerSeries.coeff (idx k (s 0 + k)) p.val, hRestr⟩
   -- Step 5: Produce the preimage (g, -h) and show lambdaMap(g, -h) = mkHom(p).
   refine ⟨(g, -h), ?_⟩
-  show posEmbHom g - negEmbHom (-h) = mkHom p
+  change posEmbHom g - negEmbHom (-h) = mkHom p
   rw [map_neg, sub_neg_eq_add]
   -- Step 6: Show posEmbHom g + negEmbHom h = mkHom p in the Laurent algebra.
   -- posEmbHom = mkHom ∘ posIncl and negEmbHom = mkHom ∘ negIncl, so
   -- LHS = mkHom(posIncl g) + mkHom(negIncl h) = mkHom(posIncl g + negIncl h).
   -- We need: mkHom(posIncl g + negIncl h) = mkHom p, i.e.,
   -- posIncl g + negIncl h - p ∈ laurentIdeal A = (XY - 1).
-  show mkHom (posIncl g) + mkHom (negIncl h) = mkHom p
+  change mkHom (posIncl g) + mkHom (negIncl h) = mkHom p
   rw [← map_add]
   apply Ideal.Quotient.eq.mpr
   -- Goal: posIncl g + negIncl h - p ∈ laurentIdeal A = Ideal.span {XY_sub_one}
@@ -1533,7 +1533,7 @@ theorem lambdaMap_surjective [UniformSpace A] [IsUniformAddGroup A] [T2Space A] 
       omega
     apply Set.Finite.subset
     · -- The bound: {e | e 0 < M ∧ e 1 < M}
-      show {e : Fin 2 →₀ ℕ | e 0 < M ∧ e 1 < M}.Finite
+      change {e : Fin 2 →₀ ℕ | e 0 < M ∧ e 1 < M}.Finite
       apply Set.Finite.subset
         ((Finset.range M ×ˢ Finset.range M).image (fun p => idx p.1 p.2)).finite_toSet
       intro e ⟨h0, h1⟩
@@ -1760,7 +1760,7 @@ theorem ker_deltaMap_gen_le_range_epsilonHom_gen
       neg_mem (Ideal.mul_mem_right _ _ (Ideal.subset_span rfl)), ?_⟩
     -- Verify: lambdaMap(g', h') = lambdaMap(g, h)
     -- lambdaMap(g', h') = posEmbHom((f-X)·a) - negEmbHom((1-fX)·b')
-    show lambdaMap (((algebraMap A _ f - TateAlgebra.X) * a),
+    change lambdaMap (((algebraMap A _ f - TateAlgebra.X) * a),
       (-((1 - algebraMap A _ f * TateAlgebra.X) * b'))) = lambdaMap (g, h)
     change posEmbHom ((algebraMap A _ f - TateAlgebra.X) * a) -
       negEmbHom (-((1 - algebraMap A _ f * TateAlgebra.X) * b')) = posEmbHom g - negEmbHom h

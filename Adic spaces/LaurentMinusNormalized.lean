@@ -143,7 +143,7 @@ theorem laurentMinusNormalizedDatum_isLaurentNormalized
   letI : DecidableEq A := Classical.decEq A
   refine ⟨?_, ?_⟩
   · -- insert_s_T_subset_A₀: every element of insert s T is in A₀.
-    show ∀ a ∈ insert ((laurentMinusNormalizedDatum D₀ f).s)
+    change ∀ a ∈ insert ((laurentMinusNormalizedDatum D₀ f).s)
         (laurentMinusNormalizedDatum D₀ f).T, a ∈ D₀.P.A₀
     intro a ha
     rcases Finset.mem_insert.mp ha with rfl | ha_T
@@ -167,7 +167,7 @@ theorem laurentMinusNormalizedDatum_isLaurentNormalized
           (Finset.mem_insert_self _ _)
       · rw [Finset.mem_singleton.mp hx_f]; exact hf
   · -- one_mem_T: 1 ∈ T by construction.
-    show (1 : A) ∈ insert (1 : A) (laurentMinusDatum D₀ f).T
+    change (1 : A) ∈ insert (1 : A) (laurentMinusDatum D₀ f).T
     exact Finset.mem_insert_self _ _
 
 /-! ### Rational open equality
@@ -186,7 +186,7 @@ theorem rationalOpen_laurentMinusNormalized_eq
       rationalOpen (laurentMinusDatum D₀ f).T
         (laurentMinusDatum D₀ f).s := by
   letI : DecidableEq A := Classical.decEq A
-  show rationalOpen (insert (1 : A) (laurentMinusDatum D₀ f).T)
+  change rationalOpen (insert (1 : A) (laurentMinusDatum D₀ f).T)
       (D₀.s * f) = rationalOpen (laurentMinusDatum D₀ f).T (D₀.s * f)
   ext v
   refine ⟨fun ⟨hv, hvT, hvs⟩ => ⟨hv, ?_, hvs⟩, fun ⟨hv, hvT, hvs⟩ => ⟨hv, ?_, hvs⟩⟩
@@ -208,7 +208,7 @@ theorem rationalOpen_laurentMinusNormalized_eq
       have hv_1_Ds : v.vle 1 D₀.s := hv_D₀_T 1 LaurentNormalized.one_mem_T
       -- Step 3: D₀.s ∈ (laurentMinusDatum D₀ f).T (as `1 * D₀.s` with `1 ∈ insert D₀.s D₀.T`).
       have hDs_in_oldT : D₀.s ∈ (laurentMinusDatum D₀ f).T := by
-        show D₀.s ∈ ((insert D₀.s D₀.T).product ({D₀.s, f} : Finset A)).image
+        change D₀.s ∈ ((insert D₀.s D₀.T).product ({D₀.s, f} : Finset A)).image
             (fun p => p.1 * p.2)
         refine Finset.mem_image.mpr ⟨(1, D₀.s), ?_, ?_⟩
         · exact Finset.mem_product.mpr

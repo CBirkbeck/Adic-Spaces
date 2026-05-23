@@ -1596,7 +1596,7 @@ theorem muMap_surjective
       exact Fintype.sum_apply s _]
     rfl
   rw [lhs]
-  show _ = p (h.val s)
+  change _ = p (h.val s)
   rw [show h.val s = ∑ i : Fin n, h.val s i • Pi.single i (1 : A) from
     funext fun j => by simp [Finset.sum_apply, Pi.single_apply]]
   rw [map_sum]; congr 1; funext i; rw [map_smul]
@@ -1782,7 +1782,7 @@ theorem tateAlgebra_flat (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
         · rw [hcoord, mul_zero]
       have h_eq_zero : ∑ i : Fin l, g i * lift₀ i = 0 := by
         ext; simpa [Subring.coe_subtype] using h_sum_zero
-      show (fun i => lift₀ i) ∈ LinearMap.ker relMap₀
+      change (fun i => lift₀ i) ∈ LinearMap.ker relMap₀
       rw [LinearMap.mem_ker]
       exact h_eq_zero
     have h_smul_top : (fun i => lift₀ i) ∈
@@ -1956,7 +1956,7 @@ theorem tateAlgebra_flat (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
             · rw [hcoord n, mul_zero]
           have h_eq : ∑ i : Fin l, g i * (⟨(w : A) ^ M * (x i).val n, hM i⟩ : ↥P.A₀) = 0 := by
             ext; simpa [Subring.coe_subtype] using h_zero
-          show (fun i => (⟨(w : A) ^ M * (x i).val n, hM i⟩ : ↥P.A₀)) ∈ LinearMap.ker relMap₀
+          change (fun i => (⟨(w : A) ^ M * (x i).val n, hM i⟩ : ↥P.A₀)) ∈ LinearMap.ker relMap₀
           rw [LinearMap.mem_ker]
           exact h_eq
         -- Decompose over s₀.
@@ -2120,7 +2120,7 @@ theorem Module.Flat.quotient_of_flat_of_saturated
     rw [map_sum]
     convert hfx using 1
     congr 1; ext i
-    show π (f i • x' i) = f i • x i
+    change π (f i • x' i) = f i • x i
     rw [Algebra.smul_def, Algebra.smul_def, map_mul, ← RingHom.comp_apply,
       show (π : S →+* Q).comp (algebraMap R S) = algebraMap R Q from rfl, hx']
   have hsum_mem : ∑ i, f i • x' i ∈ Ideal.span ({g} : Set S) :=
@@ -2244,9 +2244,9 @@ theorem noeth_mem_ideal_of_mul_shift {R : Type u} [CommRing R] [IsNoetherianRing
   obtain ⟨K, hK⟩ :=
     (monotone_stabilizes_iff_noetherian (R := R ⧸ I) (M := R ⧸ I)).mpr inferInstance chain
   have hxK_mem : mk (x K) ∈ chain (K + 1) := by
-    show mk (x K) ∈ LinearMap.ker (mulPow (K + 1))
+    change mk (x K) ∈ LinearMap.ker (mulPow (K + 1))
     rw [LinearMap.mem_ker]
-    show a' ^ (K + 1) • mk (x K) = 0
+    change a' ^ (K + 1) • mk (x K) = 0
     rw [smul_eq_mul]; exact hann K
   have hxK : a' ^ K * mk (x K) = 0 := by
     have hmem : mk (x K) ∈ chain K := hK (K + 1) (by omega) ▸ hxK_mem
@@ -2290,13 +2290,13 @@ theorem forall_coeff_mem_of_mem_ideal_map (I : Ideal A) (g : ↥(TateAlgebra A))
     intro n; simp only [coeff, map_zero, ZeroMemClass.coe_zero]; exact I.zero_mem
   · -- Addition
     intro g₁ g₂ _ _ ih₁ ih₂ n
-    show coeff n (g₁ + g₂) ∈ I
+    change coeff n (g₁ + g₂) ∈ I
     rw [show coeff n (g₁ + g₂) = coeff n g₁ + coeff n g₂ from by
       simp only [coeff, map_add, Subring.coe_add]]
     exact I.add_mem (ih₁ n) (ih₂ n)
   · -- Scalar multiplication: coeff n (r * g'') ∈ I when all coeff of g'' are in I.
     intro r g'' _ ih n
-    show coeff n (r • g'') ∈ I
+    change coeff n (r • g'') ∈ I
     change coeff n (r * g'') ∈ I
     simp only [coeff, toIndex]
     change MvPowerSeries.coeff (Finsupp.single 0 n) (r.val * g''.val) ∈ I
@@ -2379,7 +2379,7 @@ theorem mem_ideal_map_of_forall_coeff_mem (I : Ideal A)
       · -- qn = 0: hypothesis fails at all levels. Use arbitrary decomposition.
         obtain ⟨M, hM⟩ := (hw_event (h.val n)).exists
         have hM_I₀ : ⟨(w : A) ^ M * h.val n, hM⟩ ∈ I₀ := by
-          show P.A₀.subtype ⟨_, hM⟩ ∈ I; simp [I.mul_mem_left _ (hval_mem_I n)]
+          change P.A₀.subtype ⟨_, hM⟩ ∈ I; simp [I.mul_mem_left _ (hval_mem_I n)]
         have h_in_sp : (⟨⟨_, hM⟩, hM_I₀⟩ : I₀) ∈
             Submodule.span P.A₀ (Set.range g₀) := hg₀ ▸ Submodule.mem_top
         obtain ⟨cf, hcf⟩ := Finsupp.mem_span_range_iff_exists_finsupp.mp h_in_sp
@@ -2541,7 +2541,7 @@ theorem fSubX_saturated
       exact noeth_mem_ideal_of_mul_shift f I (fun k => coeff (n + 1 + k) h)
         (by simp only [Nat.add_zero]; exact hf_succ)
         (fun k => by
-          show coeff (n + 1 + k) h - f * coeff (n + 1 + (k + 1)) h ∈ I
+          change coeff (n + 1 + k) h - f * coeff (n + 1 + (k + 1)) h ∈ I
           rw [show n + 1 + (k + 1) = (n + 1 + k) + 1 from by omega]
           exact hstep (n + 1 + k))
   -- Step 5: Conclude h ∈ Ideal.map I.

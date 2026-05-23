@@ -614,7 +614,7 @@ theorem evalHomBounded₂_algebraMap (g : A →+* B) (hg : Continuous g)
     (a : A) :
     evalHomBounded₂ g hg b₁ b₂ hb₁ hb₂
       (algebraMap A ↥(TateAlgebra₂ A) a) = g a := by
-  show ∑' n, evalTerm₂ g b₁ b₂ (algebraMap A ↥(TateAlgebra₂ A) a) n = g a
+  change ∑' n, evalTerm₂ g b₁ b₂ (algebraMap A ↥(TateAlgebra₂ A) a) n = g a
   rw [tsum_eq_single 0]
   · simp only [evalTerm₂, Finsupp.zero_apply, pow_zero, mul_one]
     change g ((MvPowerSeries.coeff 0)
@@ -637,7 +637,7 @@ theorem evalHomBounded₂_X (g : A →+* B) (hg : Continuous g)
     (hb₁ : TopologicalRing.IsBounded (Set.range (b₁ ^ · : ℕ → B)))
     (hb₂ : TopologicalRing.IsBounded (Set.range (b₂ ^ · : ℕ → B))) :
     evalHomBounded₂ g hg b₁ b₂ hb₁ hb₂ TateAlgebra₂.X = b₁ := by
-  show ∑' n, evalTerm₂ g b₁ b₂ TateAlgebra₂.X n = b₁
+  change ∑' n, evalTerm₂ g b₁ b₂ TateAlgebra₂.X n = b₁
   rw [tsum_eq_single (Finsupp.single (0 : Fin 2) 1)]
   · simp only [evalTerm₂, TateAlgebra₂.X]
     classical
@@ -664,7 +664,7 @@ theorem evalHomBounded₂_Y (g : A →+* B) (hg : Continuous g)
     (hb₁ : TopologicalRing.IsBounded (Set.range (b₁ ^ · : ℕ → B)))
     (hb₂ : TopologicalRing.IsBounded (Set.range (b₂ ^ · : ℕ → B))) :
     evalHomBounded₂ g hg b₁ b₂ hb₁ hb₂ TateAlgebra₂.Y = b₂ := by
-  show ∑' n, evalTerm₂ g b₁ b₂ TateAlgebra₂.Y n = b₂
+  change ∑' n, evalTerm₂ g b₁ b₂ TateAlgebra₂.Y n = b₂
   rw [tsum_eq_single (Finsupp.single (1 : Fin 2) 1)]
   · simp only [evalTerm₂, TateAlgebra₂.Y]
     classical

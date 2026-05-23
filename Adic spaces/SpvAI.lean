@@ -159,7 +159,7 @@ theorem cofinalValue_ideal_pow_lt {A : Type*} [CommRing A] [TopologicalSpace A]
     · haveI : Nonempty ↥S := hS_ne.coe_sort
       have h_card_le : Fintype.card ↥S * N_max ≤ Fintype.card (Fin n₀) := by
         simp only [Fintype.card_fin, Fintype.card_coe]
-        show S.card * N_max ≤ (S.card + 1) * N_max
+        change S.card * N_max ≤ (S.card + 1) * N_max
         calc S.card * N_max ≤ S.card * N_max + N_max := Nat.le_add_right _ _
           _ = (S.card + 1) * N_max := by ring
       obtain ⟨c_star, hc_count⟩ :=
@@ -193,7 +193,7 @@ theorem cofinalValue_ideal_pow_lt {A : Type*} [CommRing A] [TopologicalSpace A]
         set count := (Finset.univ.filter (fun i : Fin n₀ => f i = c_star)).card
         set N_star := N_c (↑c_star : P.A₀) c_star.2
         have h_N_max_ge : N_max ≥ N_star + 1 := by
-          show (S.attach.image (fun ⟨c, hc⟩ => N_c c hc)).sup id + 1 ≥ N_star + 1
+          change (S.attach.image (fun ⟨c, hc⟩ => N_c c hc)).sup id + 1 ≥ N_star + 1
           apply Nat.add_le_add_right
           have h_mem_image : N_star ∈ S.attach.image (fun ⟨c, hc⟩ => N_c c hc) := by
             rw [Finset.mem_image]
@@ -230,10 +230,10 @@ theorem cofinalValue_ideal_pow_lt {A : Type*} [CommRing A] [TopologicalSpace A]
       exfalso
       rw [Finset.not_nonempty_iff_eq_empty] at hS_ne
       have hn₀_pos : 0 < n₀ := by
-        show 0 < (S.card + 1) * N_max
+        change 0 < (S.card + 1) * N_max
         apply Nat.mul_pos
         · exact Nat.succ_pos _
-        · show 0 < (S.attach.image _).sup id + 1
+        · change 0 < (S.attach.image _).sup id + 1
           exact Nat.succ_pos _
       exact (Finset.eq_empty_iff_forall_notMem.mp hS_ne) _ (f ⟨0, hn₀_pos⟩).2
   · -- Zero case: v(0) = 0 < γ.
@@ -335,7 +335,7 @@ theorem Spv.isContinuous_of_isInSpvAI_of_lt_one [TopologicalSpace A]
     -- v(b) = v(c)^(n_0+1) * v(t).
     have hb_eq : wv (P.A₀.subtype b) =
         wv (P.A₀.subtype c) ^ (n_0 + 1) * wv t := by
-      show wv (P.A₀.subtype (c * ⟨(P.A₀.subtype c)^n_0 * t, hn_0⟩)) = _
+      change wv (P.A₀.subtype (c * ⟨(P.A₀.subtype c)^n_0 * t, hn_0⟩)) = _
       rw [show (P.A₀.subtype (c * ⟨(P.A₀.subtype c)^n_0 * t, hn_0⟩) : A) =
           P.A₀.subtype c * ((P.A₀.subtype c)^n_0 * t) from by
         simp]
@@ -384,7 +384,7 @@ theorem Spv.cofinalValue_of_isContinuous [TopologicalSpace A]
   -- v continuous → {x : v(x) < γ} open in A.
   have h_open : IsOpen {x : A | (ValuativeRel.valuation A) x < γ} := hv_cont γ
   have h_zero_mem : (0 : A) ∈ {x : A | (ValuativeRel.valuation A) x < γ} := by
-    show (ValuativeRel.valuation A) 0 < γ
+    change (ValuativeRel.valuation A) 0 < γ
     rw [map_zero]; exact hγ
   have h_nhds : {x : A | (ValuativeRel.valuation A) x < γ} ∈ nhds (0 : A) :=
     h_open.mem_nhds h_zero_mem

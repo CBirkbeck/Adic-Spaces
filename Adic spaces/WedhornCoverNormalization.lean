@@ -297,7 +297,7 @@ theorem RationalCovering.PinnedTo.samePair_base
     {P : PairOfDefinition A} {C : RationalCovering A} (hC : C.PinnedTo P)
     {D : RationalLocData A} (hD : D ∈ C.covers) :
     C.base.SamePair D := by
-  show D.P = C.base.P
+  change D.P = C.base.P
   rw [hC.covers_pair D hD, hC.base_pair]
 
 /-- The cover-level `insertDenom` transform preserves `PinnedTo`: the
@@ -307,7 +307,7 @@ theorem RationalCovering.PinnedTo.insertDenom
     C.insertDenom.PinnedTo P where
   base_pair := by
     show C.insertDenom.base.P = P
-    show C.base.insertDenom.P = P
+    change C.base.insertDenom.P = P
     rw [RationalLocData.insertDenom_P]
     exact hC.base_pair
   covers_pair := by

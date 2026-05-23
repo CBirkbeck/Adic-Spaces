@@ -255,7 +255,7 @@ theorem _sub_lemma_L3_2_baire_chain_submodule
   -- V₀ ⊆ chain k₀'s preimage (chain k₀ is subgroup-closed).
   have hV₀_sub : V₀ ⊆ (Subtype.val : ↥M_inf → M) ⁻¹' (chain k₀ : Set M) := by
     rintro z ⟨w, hwV, rfl⟩
-    show ((w - y : ↥M_inf) : M) ∈ chain k₀
+    change ((w - y : ↥M_inf) : M) ∈ chain k₀
     have hwk : (w : M) ∈ chain k₀ := hV_sub hwV
     have hyk : (y : M) ∈ chain k₀ := hV_sub hy_V
     push_cast
@@ -340,7 +340,7 @@ theorem wedhorn_6_17_ideal
     exact (wedhorn_6_17 (A := A) (M := A)).mp hA
   · intro h_all
     -- Reverse: derive IsNoetherian A A from chain stationarity via L3.2 Submodule.
-    show IsNoetherian A A
+    change IsNoetherian A A
     rw [isNoetherian_iff', wellFoundedGT_iff_monotone_chain_condition]
     intro chain
     obtain ⟨N, hN⟩ := _sub_lemma_L3_2_baire_chain_submodule h_all

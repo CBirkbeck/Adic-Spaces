@@ -725,7 +725,7 @@ theorem locSubring_exists_denominator_clearance
         algebraMap A (Localization.Away s) ((β₂ : A) * s ^ E₁) := by
       rw [show E₁ + E₂ = E₂ + E₁ from by omega, pow_add, map_mul,
           ← mul_assoc, h₂, ← map_mul]
-    show (y + z) * algebraMap A (Localization.Away s) (s ^ (E₁ + E₂)) =
+    change (y + z) * algebraMap A (Localization.Away s) (s ^ (E₁ + E₂)) =
         algebraMap A (Localization.Away s)
           ((β₁ : A) * s ^ E₂ + (β₂ : A) * s ^ E₁)
     rw [add_mul, h1', h2', ← map_add]
@@ -733,7 +733,7 @@ theorem locSubring_exists_denominator_clearance
     obtain ⟨β₁, E₁, h₁⟩ := hy
     obtain ⟨β₂, E₂, h₂⟩ := hz
     refine ⟨β₁ * β₂, E₁ + E₂, ?_⟩
-    show (y * z) * algebraMap A (Localization.Away s) (s ^ (E₁ + E₂)) =
+    change (y * z) * algebraMap A (Localization.Away s) (s ^ (E₁ + E₂)) =
         algebraMap A (Localization.Away s) (((β₁ * β₂ : P.A₀) : A))
     rw [show ((β₁ * β₂ : P.A₀) : A) = (β₁ : A) * (β₂ : A) from rfl,
         map_mul, pow_add, map_mul]
@@ -746,7 +746,7 @@ theorem locSubring_exists_denominator_clearance
   | neg y _ hy =>
     obtain ⟨β, E, h⟩ := hy
     refine ⟨-β, E, ?_⟩
-    show (-y) * algebraMap A (Localization.Away s) (s ^ E) =
+    change (-y) * algebraMap A (Localization.Away s) (s ^ E) =
         algebraMap A (Localization.Away s) (((-β : P.A₀) : A))
     rw [show ((-β : P.A₀) : A) = -((β : A)) from rfl, map_neg, neg_mul, h]
 
@@ -830,7 +830,7 @@ theorem Ideal.exists_factor_of_mem_inter_singleton
     obtain ⟨c, hc_eq⟩ := Ideal.mem_span_singleton'.mp hb_inter.2
     refine ⟨a * c, (I ^ (m - k₀)).mul_mem_right c ha, ?_⟩
     -- a • b = a * b = a * (c * s) = s * (a * c)
-    show a • b = s * (a * c)
+    change a • b = s * (a * c)
     rw [smul_eq_mul, ← hc_eq]; ring
   case add =>
     intro x y hx hy
@@ -894,7 +894,7 @@ theorem Ideal.exists_factor_pow_of_mem_inter_pow_singleton
     obtain ⟨c, hc_eq⟩ := Ideal.mem_span_singleton'.mp hb_inter.2
     refine ⟨a * c, (I ^ (m - k_E)).mul_mem_right c ha, ?_⟩
     -- a • b = a * b = a * (c * s^E) = s^E * (a * c)
-    show a • b = s ^ E * (a * c)
+    change a • b = s ^ E * (a * c)
     rw [smul_eq_mul, ← hc_eq]; ring
   case add =>
     intro x y hx hy
