@@ -107,29 +107,29 @@ theorem extendToLocalization_le_one_of_locSubring
       rw [hν_loc, Valuation.extendToLocalization_apply_map_apply]
       exact hν_A₀ a ha
     · -- y = divByS (t : A) s = IsLocalization.mk' _ t ⟨s, ⟨1, pow_one s⟩⟩.
-      show ν_loc (divByS (t : A) s) ≤ 1
+      change ν_loc (divByS (t : A) s) ≤ 1
       simp only [divByS, hν_loc, Valuation.extendToLocalization_mk']
       calc ν (t : A) * (ν s)⁻¹
           ≤ ν s * (ν s)⁻¹ := mul_le_mul_right' (hν_T t ht) _
         _ = 1 := mul_inv_cancel₀ hs_pos
   · -- 0 case: ν_loc 0 = 0 ≤ 1.
-    show ν_loc 0 ≤ 1
+    change ν_loc 0 ≤ 1
     rw [map_zero]; exact zero_le_one
   · -- 1 case: ν_loc 1 = 1 ≤ 1.
-    show ν_loc 1 ≤ 1
+    change ν_loc 1 ≤ 1
     rw [map_one]
   · -- Sum: ν_loc(a + b) ≤ max ≤ 1.
     intro a b _ _ ha hb
-    show ν_loc (a + b) ≤ 1
+    change ν_loc (a + b) ≤ 1
     refine le_trans (ν_loc.map_add a b) ?_
     exact max_le ha hb
   · -- Negation: ν_loc(-a) = ν_loc(a) ≤ 1.
     intro a _ ha
-    show ν_loc (-a) ≤ 1
+    change ν_loc (-a) ≤ 1
     rw [Valuation.map_neg]; exact ha
   · -- Product: ν_loc(a * b) = ν_loc a * ν_loc b ≤ 1 * 1 = 1.
     intro a b _ _ ha hb
-    show ν_loc (a * b) ≤ 1
+    change ν_loc (a * b) ≤ 1
     rw [map_mul]
     exact mul_le_one' ha hb
 
@@ -207,14 +207,14 @@ theorem extendToLocalization_isContinuous_locTopology_of_bounded
   -- d ∈ locNhd m, i.e., ∃ d' ∈ (locIdeal)^m, subtype.val d' = d.
   obtain ⟨d', hd'_mem, rfl⟩ := hd
   -- Goal: subtype.val d' ∈ ↑(ν_loc.ltAddSubgroup γu).
-  show ν_loc ((d' : locSubring P T s) : Localization.Away s) < γ
+  change ν_loc ((d' : locSubring P T s) : Localization.Away s) < γ
   rw [locIdeal, ← Ideal.map_pow, ← Ideal.span_eq (P.I^m), Ideal.map_span] at hd'_mem
   refine Submodule.span_induction (p := fun x _ =>
     ν_loc (((x : locSubring P T s) : Localization.Away s)) < γ)
     ?_ ?_ ?_ ?_ hd'_mem
   · -- Generator case: x = algebraMapD b for b ∈ P.I^m.
     rintro x ⟨b, hb, rfl⟩
-    show ν_loc ((algebraMapD P T s b : locSubring P T s)
+    change ν_loc ((algebraMapD P T s b : locSubring P T s)
       : Localization.Away s) < γ
     have heq : ((algebraMapD P T s b : locSubring P T s) :
         Localization.Away s) = algebraMap A (Localization.Away s) (b : A) :=
@@ -222,11 +222,11 @@ theorem extendToLocalization_isContinuous_locTopology_of_bounded
     rw [heq, hν_loc, Valuation.extendToLocalization_apply_map_apply]
     exact hm ⟨b, hb, rfl⟩
   · -- Zero case.
-    show ν_loc (((0 : locSubring P T s) : Localization.Away s)) < γ
+    change ν_loc (((0 : locSubring P T s) : Localization.Away s)) < γ
     simp [zero_lt_iff.mpr hγ]
   · -- Sum case.
     intro x y _ _ hx hy
-    show ν_loc (((x + y : locSubring P T s) : Localization.Away s)) < γ
+    change ν_loc (((x + y : locSubring P T s) : Localization.Away s)) < γ
     have h_add : ((x + y : locSubring P T s) : Localization.Away s) =
         ((x : locSubring P T s) : Localization.Away s) +
           ((y : locSubring P T s) : Localization.Away s) := rfl
@@ -235,7 +235,7 @@ theorem extendToLocalization_isContinuous_locTopology_of_bounded
     exact max_lt hx hy
   · -- Smul case (locSubring acting on (locIdeal)^m).
     intro r x _ hx
-    show ν_loc (((r • x : locSubring P T s) : Localization.Away s)) < γ
+    change ν_loc (((r • x : locSubring P T s) : Localization.Away s)) < γ
     have h_smul : ((r • x : locSubring P T s) : Localization.Away s) =
         ((r : locSubring P T s) : Localization.Away s) *
           ((x : locSubring P T s) : Localization.Away s) :=

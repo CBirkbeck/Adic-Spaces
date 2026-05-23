@@ -103,7 +103,7 @@ theorem canonicalMap_b_isPowerBounded_in_trivialPlus
   rw [hcm]
   -- Show `algebraMap b = divByS b 1` lies in `locSubring P {b} 1`.
   have halg_eq : algebraMap B (Localization.Away D.s) b = divByS b D.s := by
-    show algebraMap B (Localization.Away (1 : B)) b = divByS b 1
+    change algebraMap B (Localization.Away (1 : B)) b = divByS b 1
     rw [divByS_eq_algebraMap]
   rw [halg_eq]
   -- `divByS b D.s ∈ locSubring D.P D.T D.s` since `b ∈ D.T = {b}`.
@@ -491,7 +491,7 @@ theorem mk_algebraMap_b_isPowerBounded_in_quotientPlusFSubX
       rw [map_pow]
     · rintro ⟨_, ⟨n, rfl⟩, rfl⟩
       exact ⟨n, by rw [map_pow]⟩
-  show @TopologicalRing.IsBounded _ _ (quotientPlusFSubXIdealTopology B b) _
+  change @TopologicalRing.IsBounded _ _ (quotientPlusFSubXIdealTopology B b) _
   rw [hrange_eq]
   exact IsBounded_mk_image_of_IsBounded B b hX_pb
 
@@ -548,7 +548,7 @@ theorem plusLocToQuotient_continuous (P : PairOfDefinition B) (b : B) :
     (trivialPlusDatum B P b).s (trivialPlusDatum B P b).hopen
     (plusLocToQuotient B b)
   · -- Continuity of plusLocToQuotient ∘ algebraMap = mk ∘ algebraMap.
-    show @Continuous _ _ _ (quotientPlusFSubXIdealTopology B b)
+    change @Continuous _ _ _ (quotientPlusFSubXIdealTopology B b)
         ((plusLocToQuotient B b).comp (algebraMap B (Localization.Away (1 : B))))
     -- Rewrite the composite as mk ∘ algebraMap using plusLocToQuotient_algebraMap.
     have heq : (plusLocToQuotient B b).comp
@@ -568,9 +568,9 @@ theorem plusLocToQuotient_continuous (P : PairOfDefinition B) (b : B) :
     have htb : t = b := Finset.mem_singleton.mp ht
     -- divByS t 1 = algebraMap t.
     rw [htb]
-    show @TopologicalRing.IsPowerBounded _ _ (quotientPlusFSubXIdealTopology B b)
+    change @TopologicalRing.IsPowerBounded _ _ (quotientPlusFSubXIdealTopology B b)
       (plusLocToQuotient B b (divByS b (trivialPlusDatum B P b).s))
-    show @TopologicalRing.IsPowerBounded _ _ (quotientPlusFSubXIdealTopology B b)
+    change @TopologicalRing.IsPowerBounded _ _ (quotientPlusFSubXIdealTopology B b)
       (plusLocToQuotient B b (divByS b (1 : B)))
     rw [divByS_eq_algebraMap]
     rw [plusLocToQuotient_algebraMap]
@@ -686,7 +686,7 @@ theorem example638Plus_backwardHom_canonicalMap
         ((trivialPlusDatum B P b).canonicalMap a) =
       (Ideal.Quotient.mk (plusFSubXIdeal B b))
         (algebraMap B ↥(TateAlgebra B) a) := by
-  show example638Plus_backwardHom B P b hA_complete hnoeth
+  change example638Plus_backwardHom B P b hA_complete hnoeth
     ((trivialPlusDatum B P b).coeRingHom
       (algebraMap B (Localization.Away (1 : B)) a)) = _
   rw [example638Plus_backwardHom_coe, plusLocToQuotient_algebraMap]
@@ -763,7 +763,7 @@ theorem example638Plus_backward_forward_eq_id
   intro x
   -- LHS: backward (forward (mk x)) = backward (evalHom x)
   -- RHS: mk x
-  show (example638Plus_backwardHom B P b hA_complete hnoeth)
+  change (example638Plus_backwardHom B P b hA_complete hnoeth)
     (example638Plus_forwardHom B P b (Ideal.Quotient.mk _ x)) =
     Ideal.Quotient.mk _ x
   -- Simplify forward ∘ mk = evalHom.
@@ -806,7 +806,7 @@ theorem example638Plus_backward_forward_eq_id
     have heq : (example638Plus_evalHom B P b : ↥(TateAlgebra B) → _) =
         (example638Plus_forwardHom B P b ∘ Ideal.Quotient.mk (plusFSubXIdeal B b)) := by
       ext y
-      show example638Plus_evalHom B P b y =
+      change example638Plus_evalHom B P b y =
         example638Plus_forwardHom B P b (Ideal.Quotient.mk _ y)
       change _ = Ideal.Quotient.lift _ (example638Plus_evalHom B P b) _
         (Ideal.Quotient.mk _ y)
@@ -972,7 +972,7 @@ theorem example638Plus_forward_backward_eq_id
     quotient_plusFSubXIdeal_completeSpace B hA_complete hnoeth b
   apply RingHom.ext
   intro y
-  show example638Plus_forwardHom B P b
+  change example638Plus_forwardHom B P b
     (example638Plus_backwardHom B P b hA_complete hnoeth y) = y
   refine @UniformSpace.Completion.ext' _ _
     (presheafValue (trivialPlusDatum B P b)) _ _ _ _
@@ -980,7 +980,7 @@ theorem example638Plus_forward_backward_eq_id
       UniformSpace.Completion.continuous_extension)
     continuous_id ?_ y
   intro a
-  show example638Plus_forwardHom B P b
+  change example638Plus_forwardHom B P b
     (example638Plus_backwardHom B P b hA_complete hnoeth
       (UniformSpace.Completion.coeRingHom a)) = UniformSpace.Completion.coeRingHom a
   -- backward (coeRingHom a) = plusLocToQuotient a
@@ -997,12 +997,12 @@ theorem example638Plus_forward_backward_eq_id
     exact this
   apply IsLocalization.ringHom_ext (Submonoid.powers (1 : B))
   ext c
-  show example638Plus_forwardHom B P b
+  change example638Plus_forwardHom B P b
       (plusLocToQuotient B b (algebraMap B (Localization.Away (1 : B)) c)) =
     (trivialPlusDatum B P b).coeRingHom (algebraMap B _ c)
   rw [plusLocToQuotient_algebraMap]
   -- forward(mk(algebraMap c)) = evalHom(algebraMap c) = canonicalMap c.
-  show Ideal.Quotient.lift _ (example638Plus_evalHom B P b) _
+  change Ideal.Quotient.lift _ (example638Plus_evalHom B P b) _
       ((Ideal.Quotient.mk (plusFSubXIdeal B b))
         (algebraMap B ↥(TateAlgebra B) c)) =
     (trivialPlusDatum B P b).coeRingHom (algebraMap B _ c)
@@ -1262,7 +1262,7 @@ theorem example638Plus_equiv_symm_isInducing
     -- Goal: `H ((forward equiv).symm y) = y`. `H` underlying is
     -- `example638Plus_forwardHom`, and `(forward equiv).symm y` coerces to
     -- `example638Plus_backwardHom y`. The equality is `right_inv`.
-    show example638Plus_forwardHom B P b _ = y
+    change example638Plus_forwardHom B P b _ = y
     exact (example638Plus_equiv B P b hA_complete hnoeth hcont_forward).right_inv y
   rw [h_eq]
   exact H.symm.isInducing
@@ -1284,7 +1284,7 @@ theorem invS_eq_coeRingHom_divByS_one (D : RationalLocData A) :
   have halg : algebraMap A (Localization.Away D.s) D.s * divByS 1 D.s = 1 := by
     rw [← invSelf_eq_divByS, IsLocalization.Away.mul_invSelf]
   have h2 : D.canonicalMap D.s * D.coeRingHom (divByS 1 D.s) = 1 := by
-    show D.coeRingHom (algebraMap A (Localization.Away D.s) D.s) *
+    change D.coeRingHom (algebraMap A (Localization.Away D.s) D.s) *
       D.coeRingHom (divByS 1 D.s) = 1
     rw [← map_mul, halg, map_one]
   have hu : IsUnit (D.canonicalMap D.s) := isUnit_s_in_presheafValue D
@@ -1418,7 +1418,7 @@ theorem example638Minus_backwardHom_canonicalMap
         ((trivialMinusDatum B P b).canonicalMap a) =
       (Ideal.Quotient.mk (oneSubfXIdeal b))
         (algebraMap B ↥(TateAlgebra B) a) := by
-  show example638Minus_backwardHom B P b hA_complete hnoeth
+  change example638Minus_backwardHom B P b hA_complete hnoeth
     ((trivialMinusDatum B P b).coeRingHom
       (algebraMap B (Localization.Away b) a)) = _
   rw [example638Minus_backwardHom_coe, locToQuotientOneSubfX_gen_algebraMap]
@@ -1436,7 +1436,7 @@ theorem example638Minus_backwardHom_invS
   -- `divByS 1 b = invSelf` in `Localization.Away b`.
   have hdiv : divByS (1 : B) (trivialMinusDatum B P b).s =
       IsLocalization.Away.invSelf (S := Localization.Away b) b := by
-    show divByS (1 : B) b = IsLocalization.Away.invSelf b
+    change divByS (1 : B) b = IsLocalization.Away.invSelf b
     rw [← invSelf_eq_divByS]
   rw [hdiv, example638Minus_backwardHom_coe, locToQuotientOneSubfX_gen_invSelf]
 
@@ -1493,7 +1493,7 @@ theorem example638Minus_backward_forward_eq_id
     example638Minus_backwardHom_eq_presheafValueToCanonicalQuotient]
   apply RingHom.ext
   intro q
-  show presheafValueToCanonicalQuotient (trivialMinusDatum B P b)
+  change presheafValueToCanonicalQuotient (trivialMinusDatum B P b)
       hA_complete hnoeth (trivialMinusDatum_hT_pb B P b)
       (tateQuotientToPresheafHom (trivialMinusDatum B P b)
         (invS_isPowerBounded_in_trivialMinus B P b) q) = q
@@ -1524,7 +1524,7 @@ theorem example638Minus_forward_backward_eq_id
     example638Minus_backwardHom_eq_presheafValueToCanonicalQuotient]
   apply RingHom.ext
   intro x
-  show tateQuotientToPresheafHom (trivialMinusDatum B P b)
+  change tateQuotientToPresheafHom (trivialMinusDatum B P b)
       (invS_isPowerBounded_in_trivialMinus B P b)
       (presheafValueToCanonicalQuotient (trivialMinusDatum B P b)
         hA_complete hnoeth (trivialMinusDatum_hT_pb B P b) x) = x

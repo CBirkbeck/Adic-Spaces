@@ -1363,7 +1363,7 @@ theorem isIntegral_of_forall_valuation_le_one
   -- Step 5: w.vle b 1 for all b ∈ B (elements of B land in integralClosure ≤ V)
   have hw_B : ∀ b ∈ B, w.vle b 1 := by
     intro b hb
-    show V.valuation (ι b) ≤ V.valuation (ι 1)
+    change V.valuation (ι b) ≤ V.valuation (ι 1)
     simp only [map_one, ValuationSubring.valuation_le_one_iff]
     exact hV_le (Subalgebra.algebraMap_mem (integralClosure B (FractionRing R)) ⟨b, hb⟩)
   -- Step 6: hvle gives w.vle x 1, i.e. V.valuation (ι x) ≤ V.valuation (ι 1) = 1
@@ -1491,11 +1491,11 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
       let S_x : Ideal R₀ :=
         { carrier := { s : R₀ | (s : K) * ι x ∈ R₀ }
           add_mem' := fun {a b} ha hb ↦ by
-            show (↑(a + b) : K) * ι x ∈ R₀
+            change (↑(a + b) : K) * ι x ∈ R₀
             rw [Subring.coe_add, add_mul]; exact R₀.add_mem ha hb
           zero_mem' := by show (0 : K) * ι x ∈ R₀; rw [zero_mul]; exact R₀.zero_mem
           smul_mem' := fun r s hs ↦ by
-            show (↑(r • s) : K) * ι x ∈ R₀
+            change (↑(r • s) : K) * ι x ∈ R₀
             simp only [smul_eq_mul, Subring.coe_mul, mul_assoc]
             exact R₀.mul_mem r.property hs }
       -- S_x is proper (since 1 · ι x = ι x ∉ R₀).
@@ -1521,7 +1521,7 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
         -- For a ∈ P.I^n: x * P.A₀.subtype a ∈ B, so ι_R₀ a · ι x ∈ R₀.
         have hgen : ∀ a ∈ P.I ^ n, ι_R₀ a ∈ S_x := by
           intro a ha
-          show (ι_R₀ a : K) * ι x ∈ R₀
+          change (ι_R₀ a : K) * ι x ∈ R₀
           change ι (P.A₀.subtype a) * ι x ∈ R₀
           rw [← map_mul]
           have hmem : x * P.A₀.subtype a ∈ B := hn ⟨a, ha, rfl⟩
@@ -1627,7 +1627,7 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
         -- V.valuation.comap ι is trivially continuous: I^n maps to {0} ⊂ {< γ}.
         have hle_A₀ : ∀ (a : P.A₀), (V.valuation.comap ι) (P.A₀.subtype a) ≤ 1 :=
           fun a ↦ by
-            show V.valuation (ι (P.A₀.subtype a : R)) ≤ 1
+            change V.valuation (ι (P.A₀.subtype a : R)) ≤ 1
             rw [ValuationSubring.valuation_le_one_iff]
             exact hV_le (Subalgebra.algebraMap_mem (integralClosure B K)
               ⟨_, hA₀B a.property⟩)
@@ -1656,7 +1656,7 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
         set v₀_A₀ : Valuation P.A₀ V.ValueGroup :=
           (V.valuation.comap ι).comap P.A₀.subtype with v₀_A₀_def
         have hle_A₀ : ∀ (a : P.A₀), v₀_A₀ a ≤ 1 := fun a ↦ by
-          show V.valuation (ι (P.A₀.subtype a)) ≤ 1
+          change V.valuation (ι (P.A₀.subtype a)) ≤ 1
           rw [ValuationSubring.valuation_le_one_iff]
           exact hV_le (Subalgebra.algebraMap_mem (integralClosure B K) ⟨_, hA₀B a.property⟩)
         -- Step 2: Find generator achieving g_max.
@@ -1793,10 +1793,10 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
       -- With I = ⊥, every valuation is trivially continuous.
       refine ⟨V.ValueGroup, inferInstance, V.valuation.comap ι, ?_, ?_, ?_⟩
       · intro b hb
-        show V.valuation (ι b) ≤ 1
+        change V.valuation (ι b) ≤ 1
         rw [ValuationSubring.valuation_le_one_iff]
         exact hV_le (Subalgebra.algebraMap_mem (integralClosure B K) ⟨b, hb⟩)
-      · show 1 < V.valuation (ι x)
+      · change 1 < V.valuation (ι x)
         exact not_le.mp (by rw [ValuationSubring.valuation_le_one_iff]; exact hx_notV)
       · apply Valuation.isContinuous_of_ideal_pow_lt P (V.valuation.comap ι)
         intro γ hγ; refine ⟨1, fun a ha ↦ ?_⟩
@@ -1902,11 +1902,11 @@ theorem locLift_vle_one_at_spa {A : Type*} [CommRing A]
   -- w.vle t' D'.s for t' ∈ D'.T
   have hw_rat : ∀ t' ∈ D'.T, w.vle t' D'.s := by
     intro t' ht'
-    show v.vle (algebraMap A _ t') (algebraMap A _ D'.s)
+    change v.vle (algebraMap A _ t') (algebraMap A _ D'.s)
     exact comap_algebraMap_vle_of_locSubring D'.P D'.T D'.s D'.hopen v hv_sub ht'
   -- ¬ w.vle D'.s 0
   have hw_nz : ¬ w.vle D'.s 0 := by
-    show ¬ v.vle (algebraMap A _ D'.s) (algebraMap A _ 0)
+    change ¬ v.vle (algebraMap A _ D'.s) (algebraMap A _ 0)
     rw [map_zero]
     exact ValuativeRel.not_vle_zero_of_isUnit
       (IsLocalization.map_units (Localization.Away D'.s)
@@ -1914,7 +1914,7 @@ theorem locLift_vle_one_at_spa {A : Type*} [CommRing A]
   -- w.vle a 1 for a ∈ A₀ (and hence for a ∈ A⁺ since A⁺ ⊆ A₀ for affinoid)
   have hw_A₀ : ∀ a ∈ D'.P.A₀, w.vle a 1 := by
     intro a ha
-    show v.vle (algebraMap A _ a) (algebraMap A _ 1)
+    change v.vle (algebraMap A _ a) (algebraMap A _ 1)
     rw [map_one]
     exact hv_sub _ (algebraMap_mem_locSubring D'.P D'.T D'.s ha)
   -- Step 4: Show ⟨w⟩ ∈ rationalOpen D'.T D'.s (needs Spa membership, i.e. continuity)
@@ -2097,7 +2097,7 @@ theorem isPowerBounded_of_discrete_presheafValue
   · rintro z ⟨a, _, b, hb_mem, rfl⟩
     rw [Set.mem_singleton_iff] at hb_mem
     subst hb_mem
-    show a * 0 ∈ U
+    change a * 0 ∈ U
     rw [mul_zero]
     exact mem_of_mem_nhds hU
 
