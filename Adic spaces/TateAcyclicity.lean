@@ -566,7 +566,8 @@ private theorem discrete_gluing {A : Type*} [CommRing A]
     -- For each D ∈ covers, equip Away D.s with R-algebra structure via the lift.
     -- The lift φ_D : R →+* Away D.s satisfies φ_D ∘ algebraMap A R = algebraMap A (Away D.s).
     -- Under this, Away D.s is IsLocalization.Away (algebraMap A R D.s) by isLocAway_of_isUnit.
-    -- Use IsLocalization.algEquiv to get θ_D : Localization.Away (algebraMap A R D.s) ≃ₐ[R] Away D.s.
+    -- Use IsLocalization.algEquiv to get
+    -- θ_D : Localization.Away (algebraMap A R D.s) ≃ₐ[R] Away D.s.
     -- Then g'_D := θ_D.symm (g D) : Localization.Away (algebraMap A R D.s) = Away s_D.
     --
     -- Define g' : Π (a : S), Away a.1 by choosing D with algebraMap D.s = a.

@@ -134,8 +134,10 @@ theorem localizationLift_isContinuous_locTopology_of_bounded
 /-- **Full localization lift under bounded hypotheses** (Wedhorn 8.34(ii)
 callsite-ready).
 
-Combines the bounded continuity bridge (`localizationLift_isContinuous_locTopology_of_bounded`,
-above) with `valuationLocalizationLift_via_continuity` (`Adic spaces/WedhornValuationLocalizationLift.lean`)
+Combines the bounded continuity bridge
+(`localizationLift_isContinuous_locTopology_of_bounded`, above)
+with `valuationLocalizationLift_via_continuity`
+(`Adic spaces/WedhornValuationLocalizationLift.lean`)
 to produce the full localized Spa point + comap identity, WITHOUT any
 remaining abstract continuity hypothesis.
 
