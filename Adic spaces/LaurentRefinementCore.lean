@@ -2029,9 +2029,6 @@ theorem iteratedMinus_forwardHom_comp_restrictionMapHom
     change Continuous (fun y : presheafValue D₀ =>
       iteratedMinus_forwardHom P D₀ f
         (restrictionMapHom D₀ (laurentMinusDatum D₀ f) hsub y))
-    change Continuous (fun y : presheafValue D₀ =>
-      iteratedMinus_forwardHom P D₀ f
-        (restrictionMapHom D₀ (laurentMinusDatum D₀ f) hsub y))
     exact UniformSpace.Completion.continuous_extension.comp
       (restrictionMapHom_continuous D₀ (laurentMinusDatum D₀ f) hsub)
   · -- Continuity RHS: canonicalMap is continuous.
