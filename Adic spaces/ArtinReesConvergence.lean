@@ -39,7 +39,7 @@ variable {R : Type u} [CommRing R] [IsNoetherianRing R]
 
 omit [IsNoetherianRing R] in
 /-- Elements of `I^m • ⊤` in a Pi type have all components in `I^m`. -/
-theorem pi_smul_top_component {ι : Type*} [Fintype ι] {I : Ideal R} {m : ℕ}
+theorem pi_smul_top_component {ι : Type*} {I : Ideal R} {m : ℕ}
     {v : ι → R} (hv : v ∈ (I ^ m • ⊤ : Submodule R (ι → R))) (i : ι) :
     v i ∈ (I ^ m : Ideal R) := by
   refine Submodule.smul_induction_on
