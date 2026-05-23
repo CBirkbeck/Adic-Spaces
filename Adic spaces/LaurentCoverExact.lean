@@ -1719,7 +1719,8 @@ theorem ker_deltaMap_gen_le_range_epsilonHom_gen
     --   = (f-ζ)·posEmbHom(a) - (1-f·zetaInv)·negEmbHom(b')
     --   = (f-ζ)·posEmbHom(a) + zetaInv·(f-ζ)·negEmbHom(b')    [since 1-f·zetaInv = -zetaInv·(f-ζ)]
     --   = (f-ζ)·(posEmbHom(a) + zetaInv·negEmbHom(b'))
-    --   = (f-ζ)·(posEmbHom(a) - negEmbHom(b))                  [since zetaInv·negEmb(b') = negEmb(b)]
+    --   = (f-ζ)·(posEmbHom(a) - negEmbHom(b))
+    --                                       [since zetaInv·negEmb(b') = negEmb(b)]
     --   = (f-ζ)·c_laurent = posEmbHom g - negEmbHom h = lambdaMap(g, h)  ✓
     --
     -- g' = (f-X)·a, h' = (1-fX)·b' where b' satisfies b = X·b'.
