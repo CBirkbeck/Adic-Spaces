@@ -570,7 +570,7 @@ noncomputable def iteratedPlus_backwardLocHom
   IsLocalization.Away.lift (S := Localization.Away (1 : presheafValue D₀))
     (R := presheafValue D₀) (1 : presheafValue D₀)
     (g := restrictionMapHom D₀ (laurentPlusDatum D₀ f) hsub)
-    (by simpa using isUnit_one)
+    (by simp [isUnit_one])
 
 /-- The backward loc hom composed with `algebraMap B _` equals `restrictionMapHom`. -/
 theorem iteratedPlus_backwardLocHom_algebraMap
@@ -584,7 +584,7 @@ theorem iteratedPlus_backwardLocHom_algebraMap
         (Localization.Away (1 : presheafValue D₀)) b) =
       restrictionMapHom D₀ (laurentPlusDatum D₀ f) hsub b :=
   IsLocalization.Away.lift_eq (1 : presheafValue D₀)
-    (by simpa using isUnit_one) b
+    (by simp [isUnit_one]) b
 
 /-- The uncompleted round-trip identity (plus branch). -/
 theorem iteratedPlus_backward_forward_locHom
