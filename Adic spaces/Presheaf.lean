@@ -1384,7 +1384,8 @@ to *continuous* valuations only. See Wedhorn Prop 7.18 / [Hu2, Lemma 3.3].
 
 **Proof outline (following Wedhorn):**
 1. Contrapositive: assume `x` is not integral over `B`.
-2. Use a refined Stacks 090P construction (`LocalSubring.exists_le_valuationSubring_of_isIntegrallyClosedIn`)
+2. Use a refined Stacks 090P construction
+   (`LocalSubring.exists_le_valuationSubring_of_isIntegrallyClosedIn`)
    that produces a valuation subring `V ⊆ Frac(R)` with:
    - `integralClosure(B) ⊆ V` (so `wVal ≤ 1` on `B`),
    - `V` dominates a local subring `L` whose maximal ideal contains image of `P.I`
