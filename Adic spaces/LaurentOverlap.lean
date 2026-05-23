@@ -1749,7 +1749,8 @@ end IteratedOverlapBridge
 
 **Composition step 1**: apply `presheafValue_iteratedMinus_equiv` at base
 `laurentPlusDatum D₀ f` and element `f` to obtain the identification
-`presheafValue (laurentOverlapDatum D₀ f) ≃+* presheafValue (iteratedMinusDatum_B P (laurentPlusDatum D₀ f) f)`.
+`presheafValue (laurentOverlapDatum D₀ f) ≃+*`
+`presheafValue (iteratedMinusDatum_B P (laurentPlusDatum D₀ f) f)`.
 
 Requires the `laurentPlusDatum D₀ f` to be LaurentNormalized and its locSubring
 noetherian, both taken as typeclass hypotheses. These capture the structural
@@ -1763,7 +1764,8 @@ variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
   [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
 
 /-- **Composition step 1**: Wedhorn 2.13 applied at the plus base gives
-`presheafValue (laurentOverlapDatum D₀ f) ≃+* presheafValue (iteratedMinusDatum_B P (laurentPlusDatum D₀ f) f)`.
+`presheafValue (laurentOverlapDatum D₀ f) ≃+*`
+`presheafValue (iteratedMinusDatum_B P (laurentPlusDatum D₀ f) f)`.
 
 `laurentOverlapDatum D₀ f = laurentMinusDatum (laurentPlusDatum D₀ f) f` by
 definition, so this is a direct specialization of `presheafValue_iteratedMinus_equiv`. -/
