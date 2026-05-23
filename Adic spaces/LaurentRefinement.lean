@@ -414,7 +414,8 @@ iteratedMinus_backwardHom, *_coeRingHom, *_comp_*, presheafValue_iteratedMinus_e
 *_apply, *_coeRingHom, *_continuous, *_homeomorph, *_isInducing, *_symm_isInducing. -/
 
 
-/-! **CompleteSpace + Baire + sigmaCompactSpace suppliers (lines 416-579) migrated to LaurentRefinementCore.lean (F12 take 2, migration 19).** -/
+/-! **CompleteSpace + Baire + sigmaCompactSpace suppliers (lines 416-579)
+migrated to LaurentRefinementCore.lean (F12 take 2, migration 19).** -/
 
 
 /-! ### T152 route-decision documentation: SigmaCompactSpace blocker scope
@@ -510,7 +511,9 @@ The following content blocks were extracted to sister files:
 
 See commit 5cef63d (F12 take 2 split) and Adic spaces.lean import order. -/
 
-/-! **presheafValue_subsingleton_of_s_eq_zero + rationalCovering_hasSeparation + rationalCovering_hasGluing (lines 510-584) migrated to LaurentRefinementAcyclic.lean (F12 take 2, migration 27).** -/
+/-! **presheafValue_subsingleton_of_s_eq_zero + rationalCovering_hasSeparation
++ rationalCovering_hasGluing (lines 510-584) migrated to
+LaurentRefinementAcyclic.lean (F12 take 2, migration 27).** -/
 
 
 -- The embedding theorem (Topology.IsEmbedding) is stated in StructureSheaf.lean
