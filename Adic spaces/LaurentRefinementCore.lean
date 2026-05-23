@@ -48,7 +48,7 @@ theorem rationalOpen_eq_iInter_singleton (T : Finset A) (hT : T.Nonempty) (s : A
     rationalOpen T s = ⋂ t ∈ T, rationalOpen {t} s := by
   ext v
   simp only [Set.mem_iInter, rationalOpen, Set.mem_setOf_eq,
-    Finset.mem_singleton, forall_eq, Set.mem_sep_iff]
+    Finset.mem_singleton, forall_eq]
   constructor
   · rintro ⟨hv, hvT, hvs⟩ t ht
     exact ⟨hv, hvT t ht, hvs⟩
@@ -308,7 +308,7 @@ noncomputable def ratioPlusDatum (D₀ : RationalLocData A) (f g g_inv : A)
         (S := Localization.Away (D₀.s * g)) g_inv]
       rw [← IsLocalization.mk'_mul]
       refine IsLocalization.mk'_eq_of_eq ?_
-      simp only [Submonoid.coe_mul, OneMemClass.coe_one, one_mul]
+      simp only [one_mul]
       have hg' : g ^ 2 * g_inv = g := by
         rw [pow_two, mul_assoc, hg, mul_one]
       ring_nf
