@@ -1747,8 +1747,10 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
             H_gen.convex hsn_mem (one_mem H_gen)
               (Units.val_le_val.mp hv₀_lt.le) (Units.val_le_val.mp (hle_A₀ _))
           have h_r_lt : v_r ⟨s ^ n, hsn_A₀⟩ < v_r ⟨s ^ n * x, hn⟩ := by
-            have h1 : v_r ⟨s ^ n, hsn_A₀⟩ = v₀_A₀.restrictToConvex H_gen hle_A₀ ⟨s ^ n, hsn_A₀⟩ := rfl
-            have h2 : v_r ⟨s ^ n * x, hn⟩ = v₀_A₀.restrictToConvex H_gen hle_A₀ ⟨s ^ n * x, hn⟩ := rfl
+            have h1 : v_r ⟨s ^ n, hsn_A₀⟩ =
+                v₀_A₀.restrictToConvex H_gen hle_A₀ ⟨s ^ n, hsn_A₀⟩ := rfl
+            have h2 : v_r ⟨s ^ n * x, hn⟩ =
+                v₀_A₀.restrictToConvex H_gen hle_A₀ ⟨s ^ n * x, hn⟩ := rfl
             rw [h1, Valuation.restrictToConvex_unfold, dif_neg hsn_ne, dif_pos hsn_mem,
                 h2, Valuation.restrictToConvex_unfold, dif_neg hsnx_ne, dif_pos hsnx_mem]
             exact WithZero.coe_lt_coe.mpr (Subtype.mk_lt_mk.mpr (Units.val_lt_val.mp hv₀_lt))
