@@ -2135,7 +2135,8 @@ theorem Module.Flat.quotient_of_flat_of_saturated
     apply Ideal.sum_mem
     intro i _
     rw [Algebra.smul_def]
-    exact Ideal.mul_mem_right _ _ (Ideal.mem_map_of_mem _ (Ideal.subset_span (Set.mem_range_self i)))
+    exact Ideal.mul_mem_right _ _
+      (Ideal.mem_map_of_mem _ (Ideal.subset_span (Set.mem_range_self i)))
   -- Step 4: By saturation, w ∈ Ideal.map (algebraMap R S) J.
   have hw_mem := hsat J w hgw_mem
   -- Decompose w: Ideal.map (algebraMap R S) J = Ideal.span (range (algebraMap R S ∘ f)).
