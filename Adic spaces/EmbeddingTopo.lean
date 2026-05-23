@@ -287,7 +287,7 @@ theorem productRestrictionSub_continuous (C : RationalCovering A) :
     Continuous (productRestrictionSub A C) := by
   refine continuous_pi ?_
   rintro ⟨D, hD⟩
-  show Continuous (restrictionMap C.base D (C.hsubset D hD))
+  change Continuous (restrictionMap C.base D (C.hsubset D hD))
   exact restrictionMapHom_continuous C.base D (C.hsubset D hD)
 
 /-- **T282**: **strengthened** topological refinement transfer.
@@ -463,13 +463,13 @@ theorem productRestrictionSub_laurentCovering_isEmbedding_of_distinct
   -- The Pi value at ⟨D, hD⟩ is `restrictionMap D₀ D ((laurentCovering D₀ f).hsubset D hD) x`.
   -- The Φ-image dispatches: if D = plus, use the first projection; else (D = minus), use the second.
   -- Both sides equal `restrictionMap D₀ D _ x` by proof irrelevance.
-  show Φ (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x,
+  change Φ (restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x,
          restrictionMap D₀ (laurentMinusDatum D₀ f) hminus x) ⟨D, hD⟩ =
        restrictionMap D₀ D ((laurentCovering D₀ f).hsubset D hD) x
   -- Unfold Φ to expose the dispatch by `Decidable.decEq`.
   by_cases hDp : D = laurentPlusDatum D₀ f
   · subst hDp
-    show (if h : laurentPlusDatum D₀ f = laurentPlusDatum D₀ f then
+    change (if h : laurentPlusDatum D₀ f = laurentPlusDatum D₀ f then
             h ▸ restrictionMap D₀ (laurentPlusDatum D₀ f) hplus x
           else _) = _
     rw [dif_pos rfl]
@@ -477,7 +477,7 @@ theorem productRestrictionSub_laurentCovering_isEmbedding_of_distinct
       simp only [laurentCovering, Finset.mem_insert, Finset.mem_singleton] at hD
       exact hD.resolve_left hDp
     subst hDm
-    show (if h : laurentMinusDatum D₀ f = laurentPlusDatum D₀ f then _
+    change (if h : laurentMinusDatum D₀ f = laurentPlusDatum D₀ f then _
           else _) = _
     rw [dif_neg hne.symm]
 
@@ -786,7 +786,7 @@ theorem naturalRefinementMap_comp
         ((hτ d).trans (C.hsubset (τ d).1 (τ d).2)) x := by
   funext d
   unfold naturalRefinementMap
-  show restrictionMap (τ d).1 d.1 (hτ d)
+  change restrictionMap (τ d).1 d.1 (hτ d)
       (restrictionMap C.base (τ d).1 (C.hsubset (τ d).1 (τ d).2) x) = _
   exact congr_fun (restrictionMap_comp C.base (τ d).1 d.1
     (C.hsubset (τ d).1 (τ d).2) (hτ d)) x
@@ -1720,7 +1720,7 @@ theorem productRestrictionSub_leafTree_isInducing
   classical
   set C : RationalCovering A := (LaurentTree.leaf : LaurentTree A).toCovering D₀
   have hcovers : C.covers = ({D₀} : Finset _) := by
-    show (LaurentTree.leaf.leaves D₀).toFinset = _
+    change (LaurentTree.leaf.leaves D₀).toFinset = _
     simp [LaurentTree.leaves_leaf, List.toFinset_cons, List.toFinset_nil]
   haveI hUniq : Unique ↑C.covers := hcovers ▸ Finset.instUniqueSubtypeMemSingleton D₀
   have h := inducing_iInf_to_pi
@@ -1732,7 +1732,7 @@ theorem productRestrictionSub_leafTree_isInducing
       rw [hcovers]; exact Finset.mem_singleton_self _⟩ :=
     Subsingleton.elim _ _
   rw [hdef_eq]
-  show _ = TopologicalSpace.induced (fun x => restrictionMap C.base C.base _ x) _
+  change _ = TopologicalSpace.induced (fun x => restrictionMap C.base C.base _ x) _
   rw [restrictionMap_id]
   exact induced_id.symm
 
@@ -1927,7 +1927,7 @@ theorem productRestrictionSub_isInducing_via_tree_node
   have h_union := isInducing_pair_form_composed_via_union
     D₀ f L R h_split h_L h_R h_ne h_disj
   refine (Topology.isInducing_iff _).mpr ?_
-  show instTopologicalSpacePresheafValue D₀ = _
+  change instTopologicalSpacePresheafValue D₀ = _
   rw [h_union.eq_induced]
   congr 1
   funext x ⟨D, hD⟩
@@ -2098,7 +2098,7 @@ theorem productRestrictionSub_isInducing_via_tree_refinement
   funext d
   -- Both sides: `restrictionMap C.base d.1 _ x` with possibly different
   -- subset proofs. Use proof-irrelevance.
-  show restrictionMap C.base d.1 _ x = restrictionMap C.base d.1 _ x
+  change restrictionMap C.base d.1 _ x = restrictionMap C.base d.1 _ x
   rfl
 
 /-! ### Wedhorn-faithful (no-disjointness) inducing transfer
@@ -2161,7 +2161,7 @@ theorem induced_restrictionMap_eq_iInf_of_inner_topology_iInf
   rw [induced_compose]
   congr 1
   funext x
-  show (restrictionMap D' D.1 (hSub_inner D.1 D.2) ∘
+  change (restrictionMap D' D.1 (hSub_inner D.1 D.2) ∘
       restrictionMap D₀ D' h_inter) x = restrictionMap D₀ D.1 _ x
   exact congr_fun (restrictionMap_comp D₀ D' D.1 h_inter (hSub_inner D.1 D.2)) x
 
@@ -2320,7 +2320,7 @@ theorem productRestrictionSub_isInducing_via_tree_refinement_no_disj
   intro x
   rw [naturalRefinementMap_comp]
   funext d
-  show restrictionMap C.base d.1 _ x = restrictionMap C.base d.1 _ x
+  change restrictionMap C.base d.1 _ x = restrictionMap C.base d.1 _ x
   rfl
 
 /-! ## Wedhorn 8.34 factorization
