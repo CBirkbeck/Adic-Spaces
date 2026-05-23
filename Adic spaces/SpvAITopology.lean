@@ -188,7 +188,7 @@ Proved by `Finset.induction_on` on the pair-collection, using
 `SpvAI.rationalSubset_inter` (which requires the distinguished element to lie
 in the finset; we normalise by replacing `(T, b)` with `(T ∪ {b}, b)` so that
 `b ∈ T ∪ {b}` is automatic). -/
-theorem SpvAI.rationalSubset_inter_collapse [DecidableEq A]
+theorem SpvAI.rationalSubset_inter_collapse
     (I : Ideal A) (v : SpvAI A I) (g : Finset (Finset A × A))
     (hv : ∀ p ∈ g, v.1 ∈ SpvAI.rationalSubset I p.1 p.2) :
     ∃ T b, v.1 ∈ SpvAI.rationalSubset I T b ∧
