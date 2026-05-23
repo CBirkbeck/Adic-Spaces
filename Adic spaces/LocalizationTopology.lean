@@ -597,7 +597,7 @@ theorem locSubring_isNoetherianRing (P : PairOfDefinition A) [IsNoetherianRing P
         rfl
       · obtain ⟨⟨t, ht⟩, rfl⟩ := hy_range
         refine ⟨MvPolynomial.X ⟨t, ht⟩, ?_⟩
-        show (aeval_g (MvPolynomial.X ⟨t, ht⟩)).1 = divByS (t : A) s
+        change (aeval_g (MvPolynomial.X ⟨t, ht⟩)).1 = divByS (t : A) s
         simp only [aeval_g, MvPolynomial.aeval_X, g]
     · -- zero case
       exact ⟨0, by simp [aeval_g]⟩
@@ -606,17 +606,17 @@ theorem locSubring_isNoetherianRing (P : PairOfDefinition A) [IsNoetherianRing P
     · -- add case
       rintro y₁ y₂ _ _ ⟨p₁, hp₁⟩ ⟨p₂, hp₂⟩
       refine ⟨p₁ + p₂, ?_⟩
-      show (aeval_g (p₁ + p₂)).1 = y₁ + y₂
+      change (aeval_g (p₁ + p₂)).1 = y₁ + y₂
       rw [map_add]; exact congr_arg₂ (· + ·) hp₁ hp₂
     · -- neg case
       rintro y _ ⟨p, hp⟩
       refine ⟨-p, ?_⟩
-      show (aeval_g (-p)).1 = -y
+      change (aeval_g (-p)).1 = -y
       rw [map_neg]; exact congr_arg Neg.neg hp
     · -- mul case
       rintro y₁ y₂ _ _ ⟨p₁, hp₁⟩ ⟨p₂, hp₂⟩
       refine ⟨p₁ * p₂, ?_⟩
-      show (aeval_g (p₁ * p₂)).1 = y₁ * y₂
+      change (aeval_g (p₁ * p₂)).1 = y₁ * y₂
       rw [map_mul]; exact congr_arg₂ (· * ·) hp₁ hp₂
   -- MvPolynomial T P.A₀ is Noetherian (Hilbert basis, iterated).
   haveI : Fintype T := inferInstance
