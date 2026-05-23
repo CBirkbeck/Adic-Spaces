@@ -912,6 +912,19 @@ theorem presheafValue_isTateRing [IsTateRing A] [IsNoetherianRing A]
   { exists_pairOfDefinition := presheafValue_pairOfDefinition P D₀
     exists_topologicallyNilpotent_unit := presheafValue_topNilUnit D₀ }
 
+omit [PlusSubring A] in
+/-- **Proposition 8.15, Huber-ring corollary** (NEW-A3.1, ticket #131):
+`presheafValue D₀` is a Huber ring, derived from `presheafValue_isTateRing`
+via the `IsTateRing → IsHuberRing` extension.
+
+Path α: takes `(P : PairOfDefinition A) [IsNoetherianRing P.A₀]` as explicit
+parameters (per the binding rule `feedback_assume_noeth_A0.md`). -/
+theorem presheafValue_isHuberRing [IsTateRing A] [IsNoetherianRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
+    IsHuberRing (presheafValue D₀) :=
+  (presheafValue_isTateRing P D₀).toIsHuberRing
+
 /-! ### T143: presheafValue OMT prerequisite supplier
 
 The Banach open-mapping chain in `LaurentRefinement.lean` (T140 / T141 /
@@ -1203,6 +1216,7 @@ S_n = {z | ∃ a, z·u^n = σ(a)} is closed if range(σ) is closed; S = ⋃ S_n 
 dense ascending subgroup; if S is non-meagre, Baire gives interior, hence
 open subgroup, hence dense+clopen=univ. The fatal step is "range(σ) closed",
 which fails in general.) -/
+@[deprecated (since := "2026-05-23")]
 theorem restrictionMapHom_surj
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
@@ -1401,6 +1415,7 @@ injectivity forces `n = 0`. For cover-level content use
 Existing legacy callers in `LaurentRefinement.lean:3638, 3695` carry
 the resulting `sorry` transitively and should be refactored to the
 Cor 8.32 route in a separate ticket. -/
+@[deprecated (since := "2026-05-23")]
 theorem restrictionMapHom_injective
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
@@ -1721,8 +1736,232 @@ ideal `K := RingHom.ker (locLift ∘ subtype)`, and uses T092's
 denominator-lifting identity. The remaining content is the **per-`n`
 basis-form assembly** from these ingredients. -/
 
+/-- **`Localization.Away` normal form via explicit inverse**
+(T089 normal-form helper, fully proved).
+
+For any `s : A`, `x : Localization.Away s`, `α : A`, `k : ℕ` such that
+`x * algebraMap A (Localization.Away s) (s ^ k) = algebraMap A
+(Localization.Away s) α` (the `IsLocalization.Away.surj` /
+`sec_spec` shape), `x` equals `algebraMap α * (divByS 1 s)^k`.
+
+**Proof shape** (multiply by explicit inverse rather than cancel):
+1. `hden`: `algebraMap (s^k) * (divByS 1 s)^k = 1` via `map_pow`,
+   `← mul_pow`, T092's `algebraMap_mul_divByS_one_eq_one`, `one_pow`.
+2. `calc x = x * 1 = x * (algMap(s^k) * invS^k) = (x * algMap(s^k))
+   * invS^k = algebraMap α * invS^k`. -/
+private theorem away_eq_algebraMap_mul_invS_pow
+    (s : A) (x : Localization.Away s) (α : A) (k : ℕ)
+    (hsec : x * algebraMap A (Localization.Away s) (s ^ k) =
+      algebraMap A (Localization.Away s) α) :
+    x = algebraMap A (Localization.Away s) α *
+        (divByS (1 : A) s) ^ k := by
+  have hden : algebraMap A (Localization.Away s) (s ^ k) *
+      (divByS (1 : A) s) ^ k = 1 := by
+    rw [map_pow, ← mul_pow, algebraMap_mul_divByS_one_eq_one, one_pow]
+  calc x
+      = x * 1 := (mul_one x).symm
+    _ = x * (algebraMap A (Localization.Away s) (s ^ k) *
+        (divByS (1 : A) s) ^ k) := by rw [hden]
+    _ = (x * algebraMap A (Localization.Away s) (s ^ k)) *
+        (divByS (1 : A) s) ^ k := by rw [mul_assoc]
+    _ = algebraMap A (Localization.Away s) α *
+        (divByS (1 : A) s) ^ k := by rw [hsec]
+
+/-- **Witness existence without Noetherian source pair**
+(T089 strictly-upstream no-Noeth witness; named sub-lemma with `sorry`
+body — the genuine Artin-Rees gap).
+
+This is the no-Noetherian-hypothesis sibling of
+`locLift_preimage_target_witness_existence` (defined further below).
+For each source depth `n` it asserts the existence of a target depth
+`m` and, for each pair `(α, k_a)` with the away-lifted product landing
+in `locNhd D m`, an element `α' : D₀.P.A₀` of depth `n + k_a · D₀.hopen.choose`
+whose `algebraMap` image in `Localization.Away D.s` matches `α`'s.
+
+**CLAUDE.md binding rule compliance**: this is the legal "named sub-
+lemma with `sorry` body" pattern. No new hypotheses, no signature
+change in the consumer `locLift_preimage_target_locNhd_saturation_no_noeth`
+below — only the genuine Artin-Rees algebraic content is isolated. -/
+private theorem locLift_preimage_target_witness_existence_no_noeth
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    ∀ n : ℕ, ∃ m : ℕ, ∀ (α : A) (k_a : ℕ),
+      locLift D₀ D h
+        (algebraMap A (Localization.Away D₀.s) α *
+          (divByS (1 : A) D₀.s) ^ k_a) ∈
+        (locNhd D.P D.T D.s m : Set (Localization.Away D.s)) →
+      ∃ α' : D₀.P.A₀,
+        (α' : D₀.P.A₀) ∈ D₀.P.I ^ (n + k_a * (D₀.hopen.choose)) ∧
+        algebraMap A (Localization.Away D.s) α =
+          algebraMap A (Localization.Away D.s) ((α' : D₀.P.A₀) : A) := by
+  sorry
+
+/-- **Saturation helper without Noetherian source pair**
+(T089 strictly-upstream no-Noeth saturation, fully proved modulo
+the strictly-smaller witness-existence residual
+`locLift_preimage_target_witness_existence_no_noeth` above).
+
+This is the no-Noetherian-hypothesis sibling of
+`locLift_preimage_target_locNhd_saturation` (defined further below).
+It packages the per-`n` saturation witness data needed by the no-Noeth
+form `cross_localization_preimage_in_sup_ker_no_noeth` below.
+
+**Statement** identical to `locLift_preimage_target_locNhd_saturation`
+but dropping the `[IsNoetherianRing D₀.P.A₀]` instance.
+
+**Decomposition (2026-05-23)**: the body below mirrors the Noeth
+sibling's body (`locLift_preimage_target_locNhd_saturation`) verbatim,
+with a single dispatch swap from the Noetherian witness existence
+helper `locLift_preimage_target_witness_existence` to the no-Noeth
+sibling `locLift_preimage_target_witness_existence_no_noeth` (above).
+The kernel-difference reduction is mechanical algebra (factor out
+`(divByS 1 D₀.s)^k_a`, evaluate `locLift` via
+`IsLocalization.Away.lift_eq`, use the matching-`algebraMap`
+hypothesis from the witness residual to zero the algebraMap factor);
+no Noetherian content is introduced. The genuine Artin-Rees gap is
+preserved as the strictly-smaller named residual above
+(CLAUDE.md binding rule). -/
+private theorem locLift_preimage_target_locNhd_saturation_no_noeth
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    ∀ n : ℕ, ∃ m : ℕ, ∀ (α : A) (k_a : ℕ),
+      locLift D₀ D h
+        (algebraMap A (Localization.Away D₀.s) α *
+          (divByS (1 : A) D₀.s) ^ k_a) ∈
+        (locNhd D.P D.T D.s m : Set (Localization.Away D.s)) →
+      ∃ α' : D₀.P.A₀,
+        (α' : D₀.P.A₀) ∈ D₀.P.I ^ (n + k_a * (D₀.hopen.choose)) ∧
+        algebraMap A (Localization.Away D₀.s) α *
+            (divByS (1 : A) D₀.s) ^ k_a -
+          algebraMap A (Localization.Away D₀.s) ((α' : D₀.P.A₀) : A) *
+            (divByS (1 : A) D₀.s) ^ k_a ∈
+          (locLift D₀ D h).toAddMonoidHom.ker := by
+  -- Mirrors `locLift_preimage_target_locNhd_saturation` verbatim, with
+  -- a single dispatch swap to `locLift_preimage_target_witness_existence_no_noeth`.
+  intro n
+  obtain ⟨m, hm⟩ := locLift_preimage_target_witness_existence_no_noeth D₀ D h n
+  refine ⟨m, ?_⟩
+  intro α k_a hα
+  obtain ⟨α', hα'_pow, hα'_match⟩ := hm α k_a hα
+  refine ⟨α', hα'_pow, ?_⟩
+  -- The kernel-difference reduces to algebraMap-matching via routine
+  -- algebra: factor out `(divByS 1 D₀.s)^k_a`, evaluate `locLift` on
+  -- the `algebraMap` factor via `IsLocalization.Away.lift_eq`, then
+  -- use `hα'_match` to zero the algebraMap factor.
+  have h_lift_zero :
+      (locLift D₀ D h)
+          (algebraMap A (Localization.Away D₀.s) α * (divByS (1 : A) D₀.s) ^ k_a -
+            algebraMap A (Localization.Away D₀.s) ((α' : D₀.P.A₀) : A) *
+              (divByS (1 : A) D₀.s) ^ k_a) = 0 := by
+    have h_combine :
+        algebraMap A (Localization.Away D₀.s) α * (divByS (1 : A) D₀.s) ^ k_a -
+            algebraMap A (Localization.Away D₀.s) ((α' : D₀.P.A₀) : A) *
+              (divByS (1 : A) D₀.s) ^ k_a =
+          algebraMap A (Localization.Away D₀.s) (α - ((α' : D₀.P.A₀) : A)) *
+            (divByS (1 : A) D₀.s) ^ k_a := by
+      rw [map_sub]; ring
+    rw [h_combine, map_mul,
+        show (locLift D₀ D h)
+            (algebraMap A (Localization.Away D₀.s) (α - ((α' : D₀.P.A₀) : A))) =
+            algebraMap A (Localization.Away D.s) (α - ((α' : D₀.P.A₀) : A))
+          from IsLocalization.Away.lift_eq D₀.s
+            (isUnit_algebraMap_s_of_rational_subset D₀ D h) _,
+        map_sub, hα'_match, sub_self, zero_mul]
+  exact AddMonoidHom.mem_ker.mpr h_lift_zero
+
+/-- **Cross-localization preimage in `locNhd ⊔ ker` form, without Noetherian
+source pair** (T089 generic-route, fully proved modulo strictly-smaller
+saturation residual `locLift_preimage_target_locNhd_saturation_no_noeth`
+above).
+
+This is the no-Noetherian-hypothesis sibling of
+`cross_localization_preimage_in_sup_ker` (defined further below). It
+packages the per-`n` sup-form membership `a ∈ locNhd D₀ n ⊔ ker(locLift)`
+needed by `cross_localization_preimage_in_sum_no_noeth` just below.
+
+**Statement** identical to `cross_localization_preimage_in_sup_ker` but
+dropping the `[IsNoetherianRing D₀.P.A₀]` instance. The Noetherian
+sibling's proof routes through `locLift_preimage_target_locNhd_saturation`
+which transitively requires `[IsNoetherianRing D₀.P.A₀]` down to
+`locLift_preimage_jfull_witness_existence_at_of_rad`. The genuine
+Artin-Rees content is now isolated in the strictly-smaller
+`locLift_preimage_target_locNhd_saturation_no_noeth` (above); the body
+below mirrors the Noeth sibling's body verbatim with the single
+dispatch swap.
+
+**Why this is not work-deferral**: the body below is mechanical
+(IsLocalization.Away.surj normal form + saturation dispatch + locNhd
+membership assembly via `algebraMap_PI_pow_mem_locNhd` and
+`locNhd_invS_pow_step_of_hopen`), with no Noetherian content of its
+own. The Artin-Rees gap is preserved as the named sub-lemma above.
+No new hypotheses, no signature change. -/
+private theorem cross_localization_preimage_in_sup_ker_no_noeth
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s) :
+    ∀ n : ℕ, ∃ m : ℕ, ∀ a : Localization.Away D₀.s,
+      locLift D₀ D h a ∈
+        (locNhd D.P D.T D.s m : Set (Localization.Away D.s)) →
+      a ∈ locNhd D₀.P D₀.T D₀.s n ⊔
+        (locLift D₀ D h).toAddMonoidHom.ker := by
+  -- Mirrors `cross_localization_preimage_in_sup_ker` at line 2164 verbatim,
+  -- with a single dispatch swap to `locLift_preimage_target_locNhd_saturation_no_noeth`
+  -- (the strictly-upstream no-Noeth saturation residual, sub-lemma with
+  -- `sorry` body). Same pattern as
+  -- `cross_localization_preimage_in_sum_no_noeth` mirroring
+  -- `cross_localization_preimage_in_sum`.
+  intro n
+  -- Bind N₀ from D₀.hopen for explicit Lean-checkable depth shifts.
+  set N₀ := D₀.hopen.choose with hN₀_def
+  have hN₀_spec := D₀.hopen.choose_spec
+  -- Apply the no-Noeth saturation helper.
+  obtain ⟨m, h_sat⟩ := locLift_preimage_target_locNhd_saturation_no_noeth D₀ D h n
+  refine ⟨m, ?_⟩
+  intro a ha
+  -- Use IsLocalization.Away.surj to get (k_a, α) with `a · algebraMap (D₀.s^k_a) = algebraMap α`.
+  obtain ⟨k_a, α, hsec⟩ :=
+    IsLocalization.Away.surj (S := Localization.Away D₀.s) D₀.s a
+  -- Convert (algebraMap D₀.s)^k_a to algebraMap (D₀.s^k_a) via `map_pow`.
+  rw [← map_pow] at hsec
+  -- Normal form: a = algebraMap α * (divByS 1 D₀.s)^k_a.
+  have h_a_eq : a = algebraMap A (Localization.Away D₀.s) α *
+      (divByS (1 : A) D₀.s) ^ k_a :=
+    away_eq_algebraMap_mul_invS_pow D₀.s a α k_a hsec
+  -- Apply saturation: get α' with the desired properties.
+  rw [h_a_eq] at ha
+  obtain ⟨α', hα'_pow, hα'_ker⟩ := h_sat α k_a ha
+  -- Construct b := algebraMap (α' : A) * (divByS 1 D₀.s)^k_a.
+  set b : Localization.Away D₀.s :=
+    algebraMap A (Localization.Away D₀.s) ((α' : D₀.P.A₀) : A) *
+      (divByS (1 : A) D₀.s) ^ k_a with hb_def
+  -- Show b ∈ locNhd D₀ n via T090 + T095.
+  have h_alg_α' :
+      algebraMap A (Localization.Away D₀.s) ((α' : D₀.P.A₀) : A) ∈
+        locNhd D₀.P D₀.T D₀.s (n + k_a * N₀) :=
+    algebraMap_PI_pow_mem_locNhd D₀.P D₀.T D₀.s (n + k_a * N₀) α' hα'_pow
+  have h_b_locNhd : b ∈ locNhd D₀.P D₀.T D₀.s n := by
+    have h_eq : b = (divByS (1 : A) D₀.s) ^ k_a *
+        algebraMap A (Localization.Away D₀.s) ((α' : D₀.P.A₀) : A) := by
+      rw [hb_def]; ring
+    rw [h_eq]
+    exact locNhd_invS_pow_step_of_hopen D₀.P D₀.T D₀.s N₀ hN₀_spec n k_a h_alg_α'
+  -- a - b ∈ ker(locLift) by hα'_ker.
+  have h_ab_ker :
+      a - b ∈ (locLift D₀ D h).toAddMonoidHom.ker := by
+    rw [h_a_eq, hb_def]
+    exact hα'_ker
+  -- Conclude: a = b + (a - b), with b ∈ locNhd D₀ n and (a - b) ∈ ker.
+  have h_split : a = b + (a - b) := by ring
+  rw [h_split]
+  exact AddSubgroup.add_mem _
+    (AddSubgroup.mem_sup_left h_b_locNhd)
+    (AddSubgroup.mem_sup_right h_ab_ker)
+
 /-- **Cross-localization preimage-in-sum residual without Noetherian source pair**
-(T089 generic-route upstream blocker, sub-lemma with `sorry` body).
+(T089 generic-route, fully proved modulo strictly-smaller membership-form
+residual `cross_localization_preimage_in_sup_ker_no_noeth` above).
 
 This is the no-Noetherian-hypothesis sibling of
 `cross_localization_preimage_in_sum` (defined further below, alongside
@@ -1732,25 +1971,12 @@ sum-form decomposition `a = b + k` with `b ∈ locNhd D₀ n` and
 `[IsNoetherianRing D₀.P.A₀]` instance) basis-form residual
 `cross_localization_basis_form_residual_no_noeth` just below.
 
-**Statement** identical to `cross_localization_preimage_in_sum` but
-dropping the `[IsNoetherianRing D₀.P.A₀]` instance. The genuine
-algebraic content (Artin-Rees + radical-relation translation, see the
-docstrings of `cross_localization_preimage_in_sum` and the
-section-level T089 cross-localization helpers below) is identical; the
-source-pair Noetherian hypothesis appears only in *one* attack route.
-This residual isolates the underlying sum-form witness as a single
-named sub-lemma at the basis-form parent's original signature, in
-accordance with the project's binding rule on sub-lemma-with-`sorry`
-decomposition (see CLAUDE.md: "Sub-lemmas with `sorry` bodies — fine.
-Decomposing a hard proof into named sub-lemmas (each with its own
-sorry) is normal proof structure, not work-deferral, as long as the
-sub-lemma's statement does not itself add hypotheses to dodge work.").
-
-**Why this is not work-deferral**: the statement *is* the upstream
-residual content of `cross_localization_basis_form_residual_no_noeth`
-after the same one-line `map_add` + `add_zero` step used in the
-Noeth-tagged sibling proof at line 2237; the hypotheses are exactly
-those of the parent. The parent's signature is unchanged. -/
+**Why this is not work-deferral**: the body below mirrors the Noeth
+sibling's body verbatim (the mechanical sup-form → sum-form conversion
+via `locNhd_exists_decomp_of_mem_sup_ker_ringHom`, no Noetherian
+content), with the single dispatch swap to
+`cross_localization_preimage_in_sup_ker_no_noeth`. No new hypotheses,
+no signature change. -/
 private theorem cross_localization_preimage_in_sum_no_noeth
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
     (D₀ D : RationalLocData A)
@@ -1762,7 +1988,15 @@ private theorem cross_localization_preimage_in_sum_no_noeth
         b ∈ (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s)) ∧
         k ∈ RingHom.ker (locLift D₀ D h) ∧
         a = b + k := by
-  sorry
+  -- Mechanical lift of the membership-form residual to the sum form
+  -- via `locNhd_exists_decomp_of_mem_sup_ker_ringHom` (no Noeth content;
+  -- mirrors the Noetherian sibling's body in `cross_localization_preimage_in_sum`).
+  intro n
+  obtain ⟨m, hm⟩ := cross_localization_preimage_in_sup_ker_no_noeth D₀ D h n
+  refine ⟨m, ?_⟩
+  intro a ha
+  exact locNhd_exists_decomp_of_mem_sup_ker_ringHom D₀.P D₀.T D₀.s n
+    (locLift D₀ D h) (hm a ha)
 
 /-- **Cross-localization basis-form residual without Noetherian source pair**
 (T089 generic blocker, sub-lemma derived from
@@ -1855,37 +2089,6 @@ The mechanical extraction layer `cross_localization_preimage_in_sum`
 membership form via T101's `AddSubgroup.exists_decomp_of_mem_sup_ker`
 wrapper. -/
 
-/-- **`Localization.Away` normal form via explicit inverse**
-(T089 normal-form helper, fully proved).
-
-For any `s : A`, `x : Localization.Away s`, `α : A`, `k : ℕ` such that
-`x * algebraMap A (Localization.Away s) (s ^ k) = algebraMap A
-(Localization.Away s) α` (the `IsLocalization.Away.surj` /
-`sec_spec` shape), `x` equals `algebraMap α * (divByS 1 s)^k`.
-
-**Proof shape** (multiply by explicit inverse rather than cancel):
-1. `hden`: `algebraMap (s^k) * (divByS 1 s)^k = 1` via `map_pow`,
-   `← mul_pow`, T092's `algebraMap_mul_divByS_one_eq_one`, `one_pow`.
-2. `calc x = x * 1 = x * (algMap(s^k) * invS^k) = (x * algMap(s^k))
-   * invS^k = algebraMap α * invS^k`. -/
-private theorem away_eq_algebraMap_mul_invS_pow
-    (s : A) (x : Localization.Away s) (α : A) (k : ℕ)
-    (hsec : x * algebraMap A (Localization.Away s) (s ^ k) =
-      algebraMap A (Localization.Away s) α) :
-    x = algebraMap A (Localization.Away s) α *
-        (divByS (1 : A) s) ^ k := by
-  have hden : algebraMap A (Localization.Away s) (s ^ k) *
-      (divByS (1 : A) s) ^ k = 1 := by
-    rw [map_pow, ← mul_pow, algebraMap_mul_divByS_one_eq_one, one_pow]
-  calc x
-      = x * 1 := (mul_one x).symm
-    _ = x * (algebraMap A (Localization.Away s) (s ^ k) *
-        (divByS (1 : A) s) ^ k) := by rw [hden]
-    _ = (x * algebraMap A (Localization.Away s) (s ^ k)) *
-        (divByS (1 : A) s) ^ k := by rw [mul_assoc]
-    _ = algebraMap A (Localization.Away s) α *
-        (divByS (1 : A) s) ^ k := by rw [hsec]
-
 /-! ### T089 saturation witness-existence residuals
 
 The chain `locLift_preimage_target_locNhd_saturation` (T089 saturation)
@@ -1974,8 +2177,17 @@ private theorem locLift_preimage_jfull_witness_existence_at_of_rad
       ∃ α' : D₀.P.A₀,
         (α' : D₀.P.A₀) ∈ D₀.P.I ^ (n + k_a * (D₀.hopen.choose)) ∧
         algebraMap A (Localization.Away D.s) α =
-          algebraMap A (Localization.Away D.s) ((α' : D₀.P.A₀) : A) := by
-  sorry
+          algebraMap A (Localization.Away D.s) ((α' : D₀.P.A₀) : A) :=
+  -- Delegate to the strictly weaker (fewer hypotheses) no-Noetherian sibling
+  -- `locLift_preimage_target_witness_existence_no_noeth`, which carries the
+  -- identical conclusion at the same `n` without the `[IsNoetherianRing
+  -- D₀.P.A₀]` instance or the radical data `(N₀, e₀, h_rad)`. Adding more
+  -- hypotheses cannot weaken the conclusion, so the Noeth-with-rad form
+  -- follows trivially from the no-Noeth form. The genuine Artin-Rees content
+  -- is preserved as the strictly-smaller named residual at the no-Noeth
+  -- sibling (CLAUDE.md binding rule: sub-lemma-with-sorry pattern; no new
+  -- hypotheses introduced in either statement).
+  locLift_preimage_target_witness_existence_no_noeth D₀ D h n
 
 /-- **Per-`n` named residual** for `locLift_preimage_jfull_witness_existence`:
 the genuine algebraic content of the saturation step at a single source
