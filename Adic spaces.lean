@@ -46,6 +46,8 @@ import «Adic spaces».LaneAReverseRoundTrip
 import «Adic spaces».LaurentMinusNormalized
 import «Adic spaces».LaurentOverlap
 import «Adic spaces».LaurentOverlapConsumer
+import «Adic spaces».LaurentRefinementCore
+import «Adic spaces».LaurentRefinementAcyclic
 import «Adic spaces».Lemma745
 import «Adic spaces».LocalBasis
 import «Adic spaces».LocalizationTopology
