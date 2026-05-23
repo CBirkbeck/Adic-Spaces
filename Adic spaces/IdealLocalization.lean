@@ -82,7 +82,7 @@ theorem Localization.Away.exists_unit_locSubring_decomp
     (P : PairOfDefinition A) (T : Finset A) (s : A)
     (_hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
       divByS (b : A) s ∈ locSubring P T s)
-    {π : A} (hπ_nil : IsTopologicallyNilpotent π) (hπ_A₀ : π ∈ P.A₀)
+    {π : A} (hπ_nil : IsTopologicallyNilpotent π) (_hπ_A₀ : π ∈ P.A₀)
     (hπ_unit : IsUnit π) (x : Localization.Away s) :
     ∃ (u : (Localization.Away s)ˣ) (d : locSubring P T s),
       x = (u : Localization.Away s) * ((d : Localization.Away s)) := by

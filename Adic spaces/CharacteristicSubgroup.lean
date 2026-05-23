@@ -314,7 +314,7 @@ contains every `v(a) ≥ 1` (via `vUnit_mem_cGammaIdeal`). -/
 noncomputable def restrictIdeal (v : Valuation A Γ₀) (I : Ideal A) :
     Valuation A (WithZero (cGammaIdeal v I).toSubgroup) :=
   v.restrictToConvexBounded (cGammaIdeal v I)
-    (fun a hva h_ge ↦ vUnit_mem_cGammaIdeal h_ge hva)
+    (fun _ hva h_ge ↦ vUnit_mem_cGammaIdeal h_ge hva)
 
 /-- `restrictIdeal v I a` preserves `v(a)` for `a ∈ I` (since `v(a) ∈ cΓ_v(I)`
 by `vUnit_mem_cGammaIdeal_of_mem_ideal`). -/

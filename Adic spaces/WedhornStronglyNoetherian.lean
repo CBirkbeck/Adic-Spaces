@@ -94,7 +94,7 @@ completion is via mathlib's `AdicCompletion.of_isAdic`-style infrastructure.
 **Difficulty**: MEDIUM. ~60 lines. Standard adic-completion identification. -/
 theorem _sub_lemma_L5_1_1_tateAlgebra_eq_adicCompletion
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-    (P : PairOfDefinition A) :
+    (_P : PairOfDefinition A) :
     -- For the principal pair (A₀, I), the project's TateAlgebra A is naturally
     -- isomorphic to A ⊗_{A₀} (AdicCompletion (I·A₀[X]) A₀[X]). Stated as
     -- existence of a ring isomorphism. The precise mathlib formulation is
@@ -306,7 +306,8 @@ existing `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime` from
 theorem exists_hSpa_points_global_of_stronglyNoetherianTate_proof
     [PlusSubring A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A] :
+    [T2Space A] [NonarchimedeanRing A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A] :
     ∀ (T : Finset A) (s : A) (p : Ideal A), p.IsPrime → s ∉ p →
       ∃ v ∈ rationalOpen T s, p ≤ v.supp :=
   exists_hSpa_points_global_of_stronglyNoetherianTate A
