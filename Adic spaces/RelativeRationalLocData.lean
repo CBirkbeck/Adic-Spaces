@@ -1238,7 +1238,8 @@ theorem relativeLaurentNormalized_forwardHom_restrictionMapHom
   -- Reduce by IsLocalization.ringHom_ext on (powers E.s) to A-level intertwining.
   change f (E.coeRingHom y) = g (E.coeRingHom y)
   simp only [f, g]
-  -- The composition `f ∘ E.coeRingHom = g ∘ E.coeRingHom` as ring homs Loc_A(E.s) → presheafValue D_at_E.
+  -- The composition `f ∘ E.coeRingHom = g ∘ E.coeRingHom` as ring homs
+  -- Loc_A(E.s) → presheafValue D_at_E.
   -- Both are ring homs; apply IsLocalization.ringHom_ext.
   let h1 : Localization.Away E.s →+* presheafValue D_at_E_data :=
     ((relativeLaurentNormalized_forwardHom P E D hsub).comp
