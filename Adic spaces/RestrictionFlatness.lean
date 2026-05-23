@@ -714,7 +714,7 @@ theorem restrictionMap_flat_of_rational_subset_via_relative
       ∀ t ∈ D_at_E.T, TopologicalRing.IsPowerBounded t)
     (hcont_eval : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
       letI : IsNoetherianRing (presheafValue E) := hNoeth_B
-      letI P_B : PairOfDefinition (presheafValue E) :=
+      letI _ : PairOfDefinition (presheafValue E) :=
         presheafValue_pairOfDefinition_concrete P E
       @Continuous _ _
         (TateAlgebra.quotientOneSubfXIdealTopology D_at_E.s)
@@ -1086,7 +1086,7 @@ theorem restrictionMap_flat_of_rational_subset_laurentNormalized
     (hcont_eval : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
       letI : DecidableEq (presheafValue E) := Classical.decEq _
       letI : IsNoetherianRing (presheafValue E) := hNoeth_B
-      letI P_B : PairOfDefinition (presheafValue E) :=
+      letI _ : PairOfDefinition (presheafValue E) :=
         presheafValue_pairOfDefinition_concrete P E
       @Continuous _ _
         (TateAlgebra.quotientOneSubfXIdealTopology
@@ -1155,7 +1155,7 @@ theorem restrictionMap_flat_via_normalizedMinus
       letI : LaurentNormalized (laurentMinusNormalizedDatum E₀ f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized E₀ f hf
       letI : IsNoetherianRing (presheafValue E₀) := hNoeth_B
-      letI P_B : PairOfDefinition (presheafValue E₀) :=
+      letI _ : PairOfDefinition (presheafValue E₀) :=
         presheafValue_pairOfDefinition_concrete P E₀
       @Continuous _ _
         (TateAlgebra.quotientOneSubfXIdealTopology
