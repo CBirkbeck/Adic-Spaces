@@ -541,7 +541,8 @@ theorem exists_mul_pow_subset_pow (P : PairOfDefinition A) (a : A) (n : ℕ) :
   have hcont : Continuous fun b : A => a * b := continuous_const.mul continuous_id
   have hV : (fun b : A => a * b) ⁻¹' (Subtype.val '' ((P.I ^ n : Ideal P.A₀) : Set P.A₀)) ∈
       nhds (0 : A) := by
-    have h0 : (0 : A) ∈ (fun b : A => a * b) ⁻¹' (Subtype.val '' ((P.I ^ n : Ideal P.A₀) : Set P.A₀)) := by
+    have h0 : (0 : A) ∈
+        (fun b : A => a * b) ⁻¹' (Subtype.val '' ((P.I ^ n : Ideal P.A₀) : Set P.A₀)) := by
       simp only [Set.mem_preimage, mul_zero]
       exact ⟨0, (P.I ^ n).zero_mem, rfl⟩
     exact hcont.continuousAt.preimage_mem_nhds (by
