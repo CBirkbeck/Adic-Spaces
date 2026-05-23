@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import «Adic spaces».StructureSheaf
 import «Adic spaces».Presheaf
 import «Adic spaces».PresheafIdentification
+import «Adic spaces».WedhornSpaRationalOpenLiftWrapper
 
 /-!
 # C3 — `Spa_presheafValue_eq_rationalOpen` (Wedhorn 8.2)
@@ -112,6 +113,34 @@ universe u
 
 variable {A : Type u} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
   [PlusSubring A] [IsHuberRing A]
+
+/-! ## Sub-lemma 1 (C3.1 / NEW-A2.1) — valuation extends to localization
+
+This is the C3-context alias for `valuationLocalizationLift_of_spa_rationalOpen`
+(in `WedhornSpaRationalOpenLiftWrapper.lean`), packaged at the
+`RationalLocData A` shape so the C3 main assembly can call it without
+unpacking `D` into `(D.P, D.T, D.s)` pieces. -/
+
+/-- **(C3.1, NEW-A2.1)**: a Spa-point `v` of `A` lying in
+`rationalOpen D.T D.s` extends to a Spa-point `w` of `Localization.Away D.s`
+(with the localization topology `D.topology`, bounded by the canonical
+plus-subring `localizationAwayPlusSubring D.s`) such that
+`comap (algebraMap A _) w = v`.
+
+Existence half of "extends uniquely"; uniqueness is a separate (smaller)
+lemma orthogonal to the IsSheafy chain.
+
+**Proof**: pure invocation of `valuationLocalizationLift_of_spa_rationalOpen`
+(WedhornSpaRationalOpenLiftWrapper.lean:68). The hypotheses match up
+1-1 once we unpack `D.hopen`. -/
+theorem valuation_extends_to_localization_of_rationalOpen
+    (D : RationalLocData A) (hA₀_le : D.P.A₀ ≤ A⁺)
+    {v : Spv A} (hv_rat : v ∈ rationalOpen D.T D.s) :
+    ∃ w : Spv (Localization.Away D.s),
+      w ∈ @Spa (Localization.Away D.s) _ D.topology
+        (localizationAwayPlusSubring D.s).toSubring ∧
+      comap (algebraMap A (Localization.Away D.s)) w = v :=
+  valuationLocalizationLift_of_spa_rationalOpen D.P D.T D.s D.hopen hA₀_le hv_rat
 
 /-! ## Sub-lemma 3 — image identification (the substantive Wedhorn 8.2)
 
