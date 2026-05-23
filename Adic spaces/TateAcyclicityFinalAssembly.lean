@@ -2427,7 +2427,7 @@ theorem RationalCovering.separation_via_normalizedLaurent
         presheafValue_isTateRing P C.base
       letI : DecidableEq (presheafValue C.base) := Classical.decEq _
       letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
-      letI P_B : PairOfDefinition (presheafValue C.base) :=
+      letI _ : PairOfDefinition (presheafValue C.base) :=
         presheafValue_pairOfDefinition_concrete P C.base
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
@@ -2601,7 +2601,7 @@ theorem RationalCovering.tateAcyclicityComplete_via_normalizedLaurent
         presheafValue_isTateRing P C.base
       letI : DecidableEq (presheafValue C.base) := Classical.decEq _
       letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
-      letI P_B : PairOfDefinition (presheafValue C.base) :=
+      letI _ : PairOfDefinition (presheafValue C.base) :=
         presheafValue_pairOfDefinition_concrete P C.base
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
@@ -2700,7 +2700,7 @@ critical path. -/
 /-- Separation via the normalized-Laurent bypass, empty-coverings-tolerant. -/
 theorem rationalCovering_hasSeparation_via_normalizedLaurent
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-    [IsDomain A] [DecidableEq A]
+    [IsDomain A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)
     [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
@@ -2741,7 +2741,7 @@ theorem rationalCovering_hasSeparation_via_normalizedLaurent
     (hcont_eval_per_f : letI : IsTateRing (presheafValue C.base) :=
         presheafValue_isTateRing P C.base
       letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
-      letI P_B : PairOfDefinition (presheafValue C.base) :=
+      letI _ : PairOfDefinition (presheafValue C.base) :=
         presheafValue_pairOfDefinition_concrete P C.base
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
@@ -2823,7 +2823,7 @@ theorem rationalCovering_hasGluing_via_normalizedLaurent
     (hcont_eval_per_f : letI : IsTateRing (presheafValue C.base) :=
         presheafValue_isTateRing P C.base
       letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
-      letI P_B : PairOfDefinition (presheafValue C.base) :=
+      letI _ : PairOfDefinition (presheafValue C.base) :=
         presheafValue_pairOfDefinition_concrete P C.base
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
@@ -2939,7 +2939,7 @@ theorem tateAcyclicity_via_normalizedLaurent
     (hcont_eval_per_f : letI : IsTateRing (presheafValue C.base) :=
         presheafValue_isTateRing P C.base
       letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
-      letI P_B : PairOfDefinition (presheafValue C.base) :=
+      letI _ : PairOfDefinition (presheafValue C.base) :=
         presheafValue_pairOfDefinition_concrete P C.base
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
@@ -3071,7 +3071,7 @@ theorem tateAcyclicity_via_normalizedLaurent_autoComplete
     (hcont_eval_per_f : letI : IsTateRing (presheafValue C.base) :=
         presheafValue_isTateRing P C.base
       letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
-      letI P_B : PairOfDefinition (presheafValue C.base) :=
+      letI _ : PairOfDefinition (presheafValue C.base) :=
         presheafValue_pairOfDefinition_concrete P C.base
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
@@ -3177,7 +3177,7 @@ theorem tateAcyclicity_via_normalizedLaurent_autoTPB
     (hcont_eval_per_f : letI : IsTateRing (presheafValue C.base) :=
         presheafValue_isTateRing P C.base
       letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
-      letI P_B : PairOfDefinition (presheafValue C.base) :=
+      letI _ : PairOfDefinition (presheafValue C.base) :=
         presheafValue_pairOfDefinition_concrete P C.base
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
@@ -3290,7 +3290,7 @@ theorem hb_per_f_auto_normalizedLaurent
   letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
     laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
   apply invS_isPowerBounded_of_one_mem_T_minimal
-  show 1 ∈ (relativeRationalLocData_laurentNormalized P C.base
+  change 1 ∈ (relativeRationalLocData_laurentNormalized P C.base
     (laurentMinusNormalizedDatum C.base f)
     (laurentMinusNormalized_subset C.base f)).T
   rw [relativeRationalLocData_laurentNormalized_T]
@@ -3328,7 +3328,7 @@ theorem tateAcyclicity_via_normalizedLaurent_autoB
     (hcont_eval_per_f : letI : IsTateRing (presheafValue C.base) :=
         presheafValue_isTateRing P C.base
       letI : IsNoetherianRing (presheafValue C.base) := hNoeth_B
-      letI P_B : PairOfDefinition (presheafValue C.base) :=
+      letI _ : PairOfDefinition (presheafValue C.base) :=
         presheafValue_pairOfDefinition_concrete P C.base
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
