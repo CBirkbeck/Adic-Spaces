@@ -1061,7 +1061,7 @@ private theorem exists_ideal_pow_generators_dominated_for_half_space
   -- Step 5: B := S^N₀ as Finset, generates L.P.I^N₀.
   let B : Finset L.P.A₀ := S ^ N₀
   have hB_span : Ideal.span ((B : Finset L.P.A₀) : Set L.P.A₀) = L.P.I ^ N₀ := by
-    show Ideal.span ((S ^ N₀ : Finset L.P.A₀) : Set L.P.A₀) = L.P.I ^ N₀
+    change Ideal.span ((S ^ N₀ : Finset L.P.A₀) : Set L.P.A₀) = L.P.I ^ N₀
     rw [Finset.coe_pow, ← hS_span]
     exact (Submodule.span_pow (R := L.P.A₀) (A := L.P.A₀) (↑S) N₀).symm
   refine ⟨N₀, B, hB_span, ?_⟩
@@ -1123,7 +1123,7 @@ private theorem exists_ideal_pow_generators_dominated_for_half_space
     haveI : Nonempty ↥S := hS_ne.coe_sort
     have h_card_le : Fintype.card ↥S * N_max ≤ Fintype.card (Fin N₀) := by
       simp only [Fintype.card_fin, Fintype.card_coe]
-      show S.card * N_max ≤ (S.card + 1) * N_max
+      change S.card * N_max ≤ (S.card + 1) * N_max
       calc S.card * N_max ≤ S.card * N_max + N_max := Nat.le_add_right _ _
         _ = (S.card + 1) * N_max := by ring
     obtain ⟨c_star, hc_count⟩ :=
@@ -1170,7 +1170,7 @@ private theorem exists_ideal_pow_generators_dominated_for_half_space
       set count := (Finset.univ.filter (fun i : Fin N₀ => f i = c_star)).card
       set N_star := N_c (↑c_star : L.P.A₀) c_star.2
       have h_N_max_ge : N_max ≥ N_star + 1 := by
-        show (S.attach.image (fun ⟨c, hc⟩ => N_c c hc)).sup id + 1 ≥ N_star + 1
+        change (S.attach.image (fun ⟨c, hc⟩ => N_c c hc)).sup id + 1 ≥ N_star + 1
         apply Nat.add_le_add_right
         have h_mem_image : N_star ∈ S.attach.image (fun ⟨c, hc⟩ => N_c c hc) := by
           rw [Finset.mem_image]
@@ -1213,7 +1213,7 @@ private theorem exists_ideal_pow_generators_dominated_for_half_space
     exfalso
     rw [Finset.not_nonempty_iff_eq_empty] at hS_ne
     have hN₀_pos : 0 < N₀ := by
-      show 0 < (S.card + 1) * N_max
+      change 0 < (S.card + 1) * N_max
       apply Nat.mul_pos
       · exact Nat.succ_pos _
       · show 0 < (S.attach.image _).sup id + 1
@@ -1313,7 +1313,7 @@ private theorem exists_absolute_ratio_rationalLocData_aux
       simp only [Tplus, Finset.mem_union, Finset.mem_image]
       refine Or.inr ⟨x, hx, rfl⟩
     · -- zero
-      show divByS ((0 : L.P.A₀) : A) (L.s * h) ∈ locSubring L.P Tplus (L.s * h)
+      change divByS ((0 : L.P.A₀) : A) (L.s * h) ∈ locSubring L.P Tplus (L.s * h)
       change divByS (0 : A) (L.s * h) ∈ _
       have h0 : divByS (0 : A) (L.s * h) = 0 := by
         unfold divByS
@@ -1321,7 +1321,7 @@ private theorem exists_absolute_ratio_rationalLocData_aux
       rw [h0]; exact (locSubring L.P Tplus (L.s * h)).zero_mem
     · -- additive: divByS (x + y) s = divByS x s + divByS y s
       intro x y _ _ hx hy
-      show divByS ((↑(x + y) : A)) (L.s * h) ∈ _
+      change divByS ((↑(x + y) : A)) (L.s * h) ∈ _
       rw [show ((x + y : L.P.A₀) : A) = (↑x : A) + (↑y : A) from rfl]
       have hadd : divByS ((↑x : A) + (↑y : A)) (L.s * h) =
           divByS (↑x : A) (L.s * h) + divByS (↑y : A) (L.s * h) := by
@@ -1332,7 +1332,7 @@ private theorem exists_absolute_ratio_rationalLocData_aux
       exact (locSubring L.P Tplus (L.s * h)).add_mem hx hy
     · -- smul by c ∈ P.A₀: divByS (c·b) s = algebraMap c · divByS b s
       intro c x _ hx
-      show divByS ((↑(c • x) : A)) (L.s * h) ∈ _
+      change divByS ((↑(c • x) : A)) (L.s * h) ∈ _
       rw [show ((c • x : L.P.A₀) : A) = (↑c : A) * (↑x : A) from rfl]
       have hmul : divByS ((↑c : A) * (↑x : A)) (L.s * h) =
           algebraMap A (Localization.Away (L.s * h)) (↑c : A) *
@@ -1367,7 +1367,7 @@ private theorem exists_absolute_ratio_rationalLocData_aux
         exact (IsLocalization.mk'_zero _).trans rfl
       rw [h0]; exact (locSubring L.P Tminus (L.s * g)).zero_mem
     · intro x y _ _ hx hy
-      show divByS ((↑(x + y) : A)) (L.s * g) ∈ _
+      change divByS ((↑(x + y) : A)) (L.s * g) ∈ _
       rw [show ((x + y : L.P.A₀) : A) = (↑x : A) + (↑y : A) from rfl]
       have hadd : divByS ((↑x : A) + (↑y : A)) (L.s * g) =
           divByS (↑x : A) (L.s * g) + divByS (↑y : A) (L.s * g) := by
@@ -1377,7 +1377,7 @@ private theorem exists_absolute_ratio_rationalLocData_aux
       rw [hadd]
       exact (locSubring L.P Tminus (L.s * g)).add_mem hx hy
     · intro c x _ hx
-      show divByS ((↑(c • x) : A)) (L.s * g) ∈ _
+      change divByS ((↑(c • x) : A)) (L.s * g) ∈ _
       rw [show ((c • x : L.P.A₀) : A) = (↑c : A) * (↑x : A) from rfl]
       have hmul : divByS ((↑c : A) * (↑x : A)) (L.s * g) =
           algebraMap A (Localization.Away (L.s * g)) (↑c : A) *
@@ -2199,7 +2199,7 @@ theorem unitGeneratedCover_has_relative_ratioLaurentRefinement
     -- contains the leaf. Delegated to the named sub-lemma
     -- `unitCover_refines_relative_balanced_ratio_tree_leaves` per the
     -- CLAUDE.md sub-lemma-with-sorry rule.
-    show (LaurentTree.ofBalancedList ratio_list).Refines L_rel unitCover
+    change (LaurentTree.ofBalancedList ratio_list).Refines L_rel unitCover
     rw [LaurentTree.refines_iff_forall_mem_leaves]
     exact unitCover_refines_relative_balanced_ratio_tree_leaves
       L C I_units h_unit_base L_rel unitCover h_units_invertible
@@ -2208,13 +2208,13 @@ theorem unitGeneratedCover_has_relative_ratioLaurentRefinement
     -- Reduce via `BalancedInducing` and delegate to the named sub-lemma
     -- `balancedInducing_of_relative_unit_ratios` per the CLAUDE.md
     -- sub-lemma-with-sorry rule.
-    show (LaurentTree.ofBalancedList ratio_list).allSplitsInducing L_rel
+    change (LaurentTree.ofBalancedList ratio_list).allSplitsInducing L_rel
     apply LaurentTree.allSplitsInducing_ofBalancedList
     exact balancedInducing_of_relative_unit_ratios
       L C I_units h_unit_base L_rel h_units_invertible
   · -- IsRatioLaurentTreeFrom — by construction every node label is
     -- `u_g · u_h⁻¹` with g, h ∈ I_units.
-    show IsRatioLaurentTreeFrom L C I_units h_unit_base
+    change IsRatioLaurentTreeFrom L C I_units h_unit_base
       (LaurentTree.ofBalancedList ratio_list)
     -- Induct on the underlying list of ratios.
     have hall : ∀ label ∈ ratio_list,
@@ -2813,10 +2813,10 @@ theorem presheafValue_relative_equiv_isHomeomorph
     -- relativeLaurentNormalized_forwardHom, which is
     -- UniformSpace.Completion.extensionHom forwardToCompletion (continuity proof).
     -- Continuity follows from Completion.continuous_extension.
-    show Continuous (relativeLaurentNormalized_forwardHom P E D hsub)
+    change Continuous (relativeLaurentNormalized_forwardHom P E D hsub)
     exact UniformSpace.Completion.continuous_extension
   · -- backward direction: similarly via backwardHom.
-    show Continuous (relativeLaurentNormalized_backwardHom P E D hsub)
+    change Continuous (relativeLaurentNormalized_backwardHom P E D hsub)
     exact UniformSpace.Completion.continuous_extension
 
 /-- **(III.3) Power-bounded canonical generators in the relative datum.**
