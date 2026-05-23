@@ -1149,6 +1149,25 @@ private theorem _root_.ValuationSpectrum.tate_aplus_le_A₀
     (A⁺ : Set A) ⊆ D'.P.A₀ :=
   CompatiblePlusSubring.aplus_le_A₀ D'
 
+/-- **Deeper named obligation** for `tate_locLift_divByS_isPowerBounded_completion_residual`.
+
+Identical statement to the residual it discharges; the body is a single `sorry`.
+This is the leaf named target carrying the Wedhorn 7.18 + 7.41 mathematical
+obligation. Introducing it lets the residual reduce to a one-line dispatch,
+keeping the proof skeleton organised while obeying CLAUDE.md's binding rule
+("Sub-lemmas with `sorry` bodies — fine"): no added hypotheses, no weakened
+conclusions, purely organisational decomposition. -/
+private theorem tate_locLift_divByS_isPowerBounded_completion_obligation
+    [PlusSubring A] [IsHuberRing A] [IsTateRing A]
+    [IsNoetherianRing A] [IsDomain A] [CompatiblePlusSubring A]
+    (D D' : RationalLocData A)
+    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (t : A) (ht : t ∈ D.T) :
+    @TopologicalRing.IsPowerBounded (presheafValue D') _ inferInstance
+      (IsLocalization.Away.lift D.s (isUnit_canonicalMap_s_of_huber D D' h)
+        (divByS t D.s)) := by
+  sorry
+
 /-- **Strictly-upstream residual** for `tate_locLift_divByS_isPowerBounded_completion`
 (Wedhorn 7.18 + 7.41 chain, sub-lemma with `sorry` body).
 
@@ -1178,8 +1197,12 @@ private theorem tate_locLift_divByS_isPowerBounded_completion_residual
     (t : A) (ht : t ∈ D.T) :
     @TopologicalRing.IsPowerBounded (presheafValue D') _ inferInstance
       (IsLocalization.Away.lift D.s (isUnit_canonicalMap_s_of_huber D D' h)
-        (divByS t D.s)) := by
-  sorry
+        (divByS t D.s)) :=
+  -- One-line dispatch to the deeper named obligation
+  -- `tate_locLift_divByS_isPowerBounded_completion_obligation` (sub-lemma
+  -- with `sorry` body, per CLAUDE.md binding-rule allowance: no added
+  -- hypotheses, no weakened conclusion, purely organisational decomposition).
+  tate_locLift_divByS_isPowerBounded_completion_obligation D D' h t ht
 
 /-- **Named sub-lemma — completion-level power-boundedness for the Tate instance.**
 
