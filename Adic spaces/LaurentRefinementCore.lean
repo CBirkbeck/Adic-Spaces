@@ -3262,8 +3262,10 @@ theorem laurentOverlap_subset_minus (D₀ : RationalLocData A) (f : A) :
   · -- Every `t ∈ (laurentMinusDatum D₀ f).T` is also in `(laurentOverlapDatum D₀ f).T`.
     -- (laurentMinusDatum D₀ f).T = (insert D₀.s D₀.T).product {D₀.s, f} |>.image (·.1 * ·.2)
     -- (laurentOverlapDatum D₀ f).T
-    --   = (insert (laurentPlusDatum D₀ f).s (laurentPlusDatum D₀ f).T).product {(laurentPlusDatum D₀ f).s, f} |>.image (·.1 * ·.2)
-    --   = (insert D₀.s (insert f D₀.T)).product {D₀.s, f} |>.image (·.1 * ·.2)
+    --   = (insert (laurentPlusDatum D₀ f).s (laurentPlusDatum D₀ f).T)
+    --     .product {(laurentPlusDatum D₀ f).s, f} |>.image (·.1 * ·.2)
+    --   = (insert D₀.s (insert f D₀.T)).product {D₀.s, f}
+    --     |>.image (·.1 * ·.2)
     -- The insert D₀.s (insert f D₀.T) ⊇ insert D₀.s D₀.T (left factor containment).
     -- So the overlap T ⊇ minus T.
     apply hv_T
@@ -3272,7 +3274,8 @@ theorem laurentOverlap_subset_minus (D₀ : RationalLocData A) (f : A) :
     rcases Finset.mem_product.mp ht_prod with ⟨ht₁, ht₂⟩
     refine Finset.mem_image.mpr ⟨(t₁, t₂), ?_, rfl⟩
     refine Finset.mem_product.mpr ⟨?_, ht₂⟩
-    -- t₁ ∈ insert D₀.s D₀.T ⊆ insert D₀.s (insert f D₀.T) = insert (laurentPlusDatum D₀ f).s (laurentPlusDatum D₀ f).T
+    -- t₁ ∈ insert D₀.s D₀.T ⊆ insert D₀.s (insert f D₀.T)
+    -- = insert (laurentPlusDatum D₀ f).s (laurentPlusDatum D₀ f).T
     rcases Finset.mem_insert.mp ht₁ with h | h
     · exact Finset.mem_insert.mpr (Or.inl h)
     · exact Finset.mem_insert.mpr
