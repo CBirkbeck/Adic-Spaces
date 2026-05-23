@@ -647,7 +647,8 @@ theorem relativeLaurentNormalized_forwardLocHom_factor
       (relativeLaurentNormalized_forwardInnerLocHom P E D hsub
         (algebraMap A (Localization.Away D.s) a))
   rw [relativeLaurentNormalized_forwardLocHom_algebraMap]
-  -- Inner: forwardInnerLocHom (algebraMap A _ a) = algebraMap (presheafValue E) _ (E.canonicalMap a).
+  -- Inner: forwardInnerLocHom (algebraMap A _ a)
+  -- = algebraMap (presheafValue E) _ (E.canonicalMap a).
   change (relativeRationalLocData_laurentNormalized P E D hsub).canonicalMap
       (E.canonicalMap a) =
     (relativeRationalLocData_laurentNormalized P E D hsub).coeRingHom
@@ -666,7 +667,8 @@ theorem relativeLaurentNormalized_forwardLocHom_factor
       (relativeLaurentNormalized_Ds_isUnit_in_Loc P E D hsub) a
   rw [hinner]
   -- Goal: baseHom a = coeRingHom (algebraMap presheafValue E _ (E.canonicalMap a))
-  -- baseHom a = D_at_E.canonicalMap (E.canonicalMap a) = D_at_E.coeRingHom (algebraMap _ (E.canonicalMap a))
+  -- baseHom a = D_at_E.canonicalMap (E.canonicalMap a)
+  -- = D_at_E.coeRingHom (algebraMap _ (E.canonicalMap a))
   -- by definition of canonicalMap.
   rfl
 

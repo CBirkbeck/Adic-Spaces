@@ -332,7 +332,8 @@ theorem SpvAI.exists_rationalSubset_microbial [DecidableEq A]
       rw [map_mul, mul_ne_zero_iff] at h_wgd_ne
       obtain ⟨h_wg0_ne, h_wd_ne⟩ := h_wgd_ne
       -- Translate h_id_le_gd to ww.
-      have h_id_le_gd' := (Valuation.Compatible.vle_iff_le (v := ww) (i * d) (g_0 * d)).mp h_id_le_gd
+      have h_id_le_gd' :=
+        (Valuation.Compatible.vle_iff_le (v := ww) (i * d) (g_0 * d)).mp h_id_le_gd
       rw [map_mul, map_mul] at h_id_le_gd'
       -- ww(i) * ww(d) ≤ ww(g_0) * ww(d) → ww(i) ≤ ww(g_0).
       have h_wd_pos : 0 < ww d := zero_lt_iff.mpr h_wd_ne
