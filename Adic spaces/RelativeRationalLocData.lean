@@ -696,7 +696,8 @@ theorem relativeLaurentNormalized_forwardInnerLocHom_divByS
   -- Goal: g t = g D.s * divByS (E.canonicalMap t) (E.canonicalMap D.s).
   -- g = (algebraMap (presheafValue E) _).comp E.canonicalMap.
   -- g t = algebraMap _ (E.canonicalMap t), g D.s = algebraMap _ (E.canonicalMap D.s).
-  -- divByS (E.canonicalMap t) (E.canonicalMap D.s) = mk' (E.canonicalMap t) ⟨E.canonicalMap D.s, _⟩.
+  -- divByS (E.canonicalMap t) (E.canonicalMap D.s)
+  -- = mk' (E.canonicalMap t) ⟨E.canonicalMap D.s, _⟩.
   -- By mk'_spec': algebraMap _ (E.canonicalMap D.s) * mk' (E.canonicalMap t) _
   --               = algebraMap _ (E.canonicalMap t).
   change (algebraMap (presheafValue E)
@@ -1147,8 +1148,9 @@ theorem relativeLaurentNormalized_backwardHom_comp_forwardHom
   -- On dense subring D.coeRingHom a:
   --   forwardHom (D.coeRingHom a) = forwardToCompletion a
   --                                = D_at_E.coeRingHom (forwardInnerLocHom a)
-  --   backwardHom (D_at_E.coeRingHom (forwardInnerLocHom a)) = backwardLocHom (forwardInnerLocHom a)
-  --                                                          = D.coeRingHom a (by locHom round-trip)
+  --   backwardHom (D_at_E.coeRingHom (forwardInnerLocHom a))
+  --     = backwardLocHom (forwardInnerLocHom a)
+  --     = D.coeRingHom a (by locHom round-trip)
   change relativeLaurentNormalized_backwardHom P E D hsub
       (relativeLaurentNormalized_forwardHom P E D hsub (D.coeRingHom a)) =
     D.coeRingHom a
