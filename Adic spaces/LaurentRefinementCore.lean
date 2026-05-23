@@ -1777,7 +1777,8 @@ with base ring `B = presheafValue D₀`, source data
 `((iteratedMinusDatum_B P D₀ f).P, {1}, canonicalMap f)`, and target
 `presheafValue (laurentMinusDatum D₀ f)`. Reduces to two conditions:
 
-(a) `iteratedMinus_backwardLocHom ∘ algebraMap B = restrictionMapHom D₀ (laurentMinusDatum D₀ f) hsub`
+(a) `iteratedMinus_backwardLocHom ∘ algebraMap B =`
+    `restrictionMapHom D₀ (laurentMinusDatum D₀ f) hsub`
     (by `iteratedMinus_backwardLocHom_algebraMap`), continuous by
     `restrictionMapHom_continuous`.
 (b) For the single generator `divByS 1 (canonicalMap f)`, the image is
@@ -2759,7 +2760,8 @@ theorem presheafValue_iteratedPlus_equiv_restrictionMap_canonicalMap
       (restrictionMapHom D₀ (laurentPlusDatum D₀ f) hplus (D₀.canonicalMap b)) =
     (iteratedPlusDatum_B P D₀ f).canonicalMap (D₀.canonicalMap b)
   rw [restrictionMapHom_canonicalMap]
-  -- Now: forwardHom ((laurentPlus).canonicalMap b) = (iteratedPlusDatum_B).canonicalMap (D₀.canonicalMap b)
+  -- Now: forwardHom ((laurentPlus).canonicalMap b)
+  -- = (iteratedPlusDatum_B).canonicalMap (D₀.canonicalMap b)
   change iteratedPlus_forwardHom P D₀ f
       ((laurentPlusDatum D₀ f).coeRingHom (algebraMap A _ b)) =
     (iteratedPlusDatum_B P D₀ f).canonicalMap (D₀.canonicalMap b)
@@ -2768,7 +2770,8 @@ theorem presheafValue_iteratedPlus_equiv_restrictionMap_canonicalMap
       (iteratedPlus_forwardLocHom D₀ (algebraMap A _ b)) =
     (iteratedPlusDatum_B P D₀ f).canonicalMap (D₀.canonicalMap b)
   rw [iteratedPlus_forwardLocHom_algebraMap]
-  -- Goal: coeRingHom_B (algebraMap_B (D₀.canonicalMap b)) = (iteratedPlusDatum_B).canonicalMap (D₀.canonicalMap b)
+  -- Goal: coeRingHom_B (algebraMap_B (D₀.canonicalMap b))
+  -- = (iteratedPlusDatum_B).canonicalMap (D₀.canonicalMap b)
   -- Both are `(iteratedPlusDatum_B).coeRingHom.comp algebraMap B _` applied to
   -- `D₀.canonicalMap b`, i.e., `(iteratedPlusDatum_B).canonicalMap (D₀.canonicalMap b)` by def.
   rfl
