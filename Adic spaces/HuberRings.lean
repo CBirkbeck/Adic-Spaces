@@ -662,7 +662,7 @@ theorem PairOfDefinition.isBounded_adjoin (P : PairOfDefinition A) (T : Finset A
     have h_sub : (P.A₀ : Set A) ∪ ↑(insert a S) ⊆ (C_subring : Set A) := by
       rw [Finset.coe_insert]
       intro x hx
-      show x ∈ (AddSubgroup.closure BM : Set A)
+      change x ∈ (AddSubgroup.closure BM : Set A)
       rcases hx with hx_A₀ | hx_a
       · -- x ∈ A₀: x ∈ B_old (via A₀ ⊆ A₀ ∪ S), so x = x * a^0
         rw [show x = x * a ^ 0 by simp]
@@ -745,7 +745,7 @@ def PairOfDefinition.adjoin (P : PairOfDefinition A) (T : Finset A)
       -- Each term: val(f(i)) ∈ B₀, val(i) ∈ val''(P.I^n) ⊆ V.
       -- So val(f(i)) * val(i) ∈ B₀ * V ⊆ G. Sum ∈ G (additive subgroup).
       rw [← hf_sum]
-      show (Finsupp.sum f fun i a => a • i : B₀).val ∈ (G : Set A)
+      change (Finsupp.sum f fun i a => a • i : B₀).val ∈ (G : Set A)
       simp only [Finsupp.sum, smul_eq_mul]
       rw [show ((∑ x ∈ f.support, f x * x : B₀) : A) =
           ∑ x ∈ f.support, ((f x * x : B₀) : A) from map_sum B₀.subtype _ _]
@@ -764,7 +764,7 @@ theorem PairOfDefinition.adjoin_A₀_le (P : PairOfDefinition A) (T : Finset A)
     (hT : ∀ t ∈ T, TopologicalRing.IsPowerBounded t)
     [NonarchimedeanRing A] :
     P.A₀ ≤ (P.adjoin T hT).A₀ := by
-  show P.A₀ ≤ Subring.closure ((P.A₀ : Set A) ∪ ↑T)
+  change P.A₀ ≤ Subring.closure ((P.A₀ : Set A) ∪ ↑T)
   exact P.le_adjoin_A₀ T
 
 /-- Every element of `T` belongs to the enlarged ring of definition. -/
@@ -772,7 +772,7 @@ theorem PairOfDefinition.mem_adjoin_of_mem_T (P : PairOfDefinition A) (T : Finse
     (hT : ∀ t ∈ T, TopologicalRing.IsPowerBounded t)
     [NonarchimedeanRing A]
     {t : A} (ht : t ∈ T) : t ∈ (P.adjoin T hT).A₀ := by
-  show t ∈ Subring.closure ((P.A₀ : Set A) ∪ ↑T)
+  change t ∈ Subring.closure ((P.A₀ : Set A) ∪ ↑T)
   exact Subring.subset_closure (Set.mem_union_right _ (Finset.mem_coe.mpr ht))
 
 end AdjoinFinset
