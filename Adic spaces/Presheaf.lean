@@ -1019,6 +1019,69 @@ noncomputable def restrictionMapAlg [HasLocLiftPowerBounded A] (D D' : RationalL
     Localization.Away D.s →+* presheafValue D' :=
   IsLocalization.Away.lift D.s (HasLocLiftPowerBounded.isUnit_canonicalMap_s D D' h)
 
+/-- **(PB transfer along completion embedding for divByS-lifts)** Power-boundedness
+of the `divByS t D.s`-lift transfers from the completion `presheafValue D'` back
+to `Localization.Away D'.s` with its localization topology.
+
+This is the standard PB pullback along the completion embedding
+`D'.coeRingHom : Localization.Away D'.s →+* presheafValue D'` (a uniform embedding
+of the algebraic side into its uniform completion). The two lifts are identified
+by the universal property of `IsLocalization.Away.lift`:
+`IsLocalization.Away.lift D.s hu_can (divByS t D.s) =
+  D'.coeRingHom (IsLocalization.Away.lift D.s hu_loc (divByS t D.s))`.
+
+Sub-lemma decomposition per CLAUDE.md sub-lemma rule: the obligation here is the
+PB pullback along the completion embedding (uniform embeddings reflect
+boundedness because they reflect neighborhoods of 0). No extra hypotheses
+introduced relative to the parent `restrictionMapAlg_continuous_of_huber_completion`.
+The residual `sorry` carries the uniform-embedding PB pullback step. -/
+private theorem locLift_divByS_isPowerBounded_of_completion {A : Type*} [CommRing A]
+    [TopologicalSpace A] [PlusSubring A] [IsHuberRing A]
+    (D D' : RationalLocData A) (_h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (hu_loc : IsUnit (algebraMap A (Localization.Away D'.s) D.s))
+    (hu_can : IsUnit (D'.canonicalMap D.s))
+    {t : A} (_ht : t ∈ D.T)
+    (_hpb_comp : @TopologicalRing.IsPowerBounded (presheafValue D') _ inferInstance
+      (IsLocalization.Away.lift D.s hu_can (divByS t D.s))) :
+    @TopologicalRing.IsPowerBounded (Localization.Away D'.s) _ D'.topology
+      (IsLocalization.Away.lift D.s hu_loc (divByS t D.s)) := by
+  letI := D'.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D'.s) := D'.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D'.s) := D'.isUniformAddGroup
+  -- Identify the two lifts via the universal property of localization.
+  have hmaps : (IsLocalization.Away.lift D.s hu_can :
+      Localization.Away D.s →+* presheafValue D') =
+      D'.coeRingHom.comp (IsLocalization.Away.lift D.s hu_loc) := by
+    refine IsLocalization.ringHom_ext (Submonoid.powers D.s) ?_
+    ext r
+    simp [IsLocalization.Away.lift_eq, RationalLocData.canonicalMap]
+  -- Set `x` = the algebraic-side lift of `divByS t D.s`.
+  set x : Localization.Away D'.s :=
+    IsLocalization.Away.lift D.s hu_loc (divByS t D.s) with hx_def
+  -- Rewrite the completion-side hypothesis as `IsPowerBounded (D'.coeRingHom x)`.
+  have hpb_image : @TopologicalRing.IsPowerBounded (presheafValue D') _ inferInstance
+      (D'.coeRingHom x) := by
+    have hxlift : IsLocalization.Away.lift D.s hu_can (divByS t D.s) = D'.coeRingHom x := by
+      rw [hmaps]; rfl
+    rw [← hxlift]; exact _hpb_comp
+  -- The completion embedding is uniform inducing (no T0 needed).
+  have hUI : IsUniformInducing
+      (D'.coeRingHom : Localization.Away D'.s → presheafValue D') :=
+    UniformSpace.Completion.isUniformInducing_coe (Localization.Away D'.s)
+  -- Power-boundedness pulls back along a uniform-inducing ring hom.
+  intro U hU
+  rw [hUI.isInducing.nhds_eq_comap, map_zero] at hU
+  obtain ⟨U', hU', hUU'⟩ := Filter.mem_comap.mp hU
+  obtain ⟨V', hV', hSV'⟩ := hpb_image U' hU'
+  refine ⟨D'.coeRingHom ⁻¹' V', ?_, ?_⟩
+  · rw [hUI.isInducing.nhds_eq_comap, map_zero]
+    exact Filter.mem_comap.mpr ⟨V', hV', le_refl _⟩
+  · rintro y ⟨xn, ⟨n, rfl⟩, v, hv, rfl⟩
+    apply hUU'
+    change D'.coeRingHom (x ^ n * v) ∈ U'
+    rw [map_mul, map_pow]
+    exact hSV' ⟨(D'.coeRingHom x) ^ n, ⟨n, rfl⟩, D'.coeRingHom v, hv, rfl⟩
+
 /-- **(Pass-4 audit, blocker-2 continuity helper)** Continuity of
 `IsLocalization.Away.lift D.s h_can` when `h_can : IsUnit (D'.canonicalMap D.s)`
 and each `IsLocalization.Away.lift D.s h_can (divByS t D.s)` is
@@ -1026,13 +1089,18 @@ power-bounded in the completion.
 
 The completion-targeted analog of `restrictionMapAlg_continuous_of_huber`.
 
-Discharge plan: same structure as the algebraic version:
-1. Apply `continuous_of_tendsto_nhds_zero` via additive monoid hom.
-2. Basis-vs-basis check: source basis `P.I^n` in `Localization.Away D.s`
-   under `D.topology`; target basis comes from `presheafValue D'`'s
-   completion topology = pullback of bot.
-3. Use the completion-side power-boundedness (= the new `HasLocLiftPowerBounded`
-   field) to bound the image of generators. -/
+**Sorry-filler 2026-05-23**: discharged by composing
+* the universal-property identity
+  `IsLocalization.Away.lift D.s hu_can = D'.coeRingHom.comp (IsLocalization.Away.lift D.s hu_loc)`
+  (where `hu_loc := isUnit_algebraMap_s_of_huber`), and
+* `restrictionMapAlg_continuous_of_huber` (continuity of the algebraic-side lift
+  composed with the completion embedding),
+
+after transferring power-boundedness from the completion back to
+`Localization.Away D'.s` via the new sub-lemma
+`locLift_divByS_isPowerBounded_of_completion` (which carries the residual
+uniform-embedding PB pullback as its own `sorry`-body per CLAUDE.md sub-lemma
+rule). -/
 theorem restrictionMapAlg_continuous_of_huber_completion
     {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
     [IsHuberRing A]
@@ -1043,8 +1111,28 @@ theorem restrictionMapAlg_continuous_of_huber_completion
     @Continuous _ _ D.topology
       (@UniformSpace.toTopologicalSpace _
         (@UniformSpace.Completion.uniformSpace _ D'.uniformSpace))
-      (IsLocalization.Away.lift D.s hu_can) :=
-  sorry
+      (IsLocalization.Away.lift D.s hu_can) := by
+  -- Identify the lift with the algebraic-side composition.
+  have hu_loc : IsUnit (algebraMap A (Localization.Away D'.s) D.s) :=
+    isUnit_algebraMap_s_of_huber D D' h
+  have heq : (IsLocalization.Away.lift D.s hu_can :
+      Localization.Away D.s →+* presheafValue D') =
+      D'.coeRingHom.comp (IsLocalization.Away.lift D.s hu_loc) := by
+    refine IsLocalization.ringHom_ext (Submonoid.powers D.s) ?_
+    ext r
+    simp [IsLocalization.Away.lift_eq, RationalLocData.canonicalMap]
+  -- Transfer power-boundedness from completion to localization for each generator.
+  have hpb_loc : ∀ t ∈ D.T, @TopologicalRing.IsPowerBounded
+      (Localization.Away D'.s) _ D'.topology
+      (IsLocalization.Away.lift D.s hu_loc (divByS t D.s)) :=
+    fun t ht => locLift_divByS_isPowerBounded_of_completion D D' h hu_loc hu_can ht
+      (_hpb t ht)
+  -- Reduce the goal to continuity of the algebraic-side composition.
+  rw [show (⇑(IsLocalization.Away.lift D.s hu_can) :
+      Localization.Away D.s → presheafValue D') =
+      ⇑(D'.coeRingHom.comp (IsLocalization.Away.lift D.s hu_loc)) from
+        congrArg DFunLike.coe heq]
+  exact restrictionMapAlg_continuous_of_huber D D' h hu_loc hpb_loc
 
 /-- The algebraic restriction map is continuous (Proposition 8.2 of Wedhorn).
 Requires `[HasLocLiftPowerBounded A]` (the adic Nullstellensatz for power-boundedness
@@ -1251,7 +1339,7 @@ This is the deepest ingredient of the adic Nullstellensatz. -/
 theorem isIntegral_of_forall_valuation_le_one
     {R : Type*} [CommRing R] [TopologicalSpace R] [IsTopologicalRing R]
     [IsDomain R]
-    {B : Subring R} (hB_open : IsOpen (B : Set R))
+    {B : Subring R} (_hB_open : IsOpen (B : Set R))
     (x : R)
     (hvle : ∀ (v : ValuativeRel R), (∀ b ∈ B, v.vle b 1) → v.vle x 1) :
     IsIntegral B x := by
@@ -2024,7 +2112,7 @@ radical-membership route). Power-boundedness in `presheafValue D'`
 instance HasLocLiftPowerBounded.discrete {A : Type*} [CommRing A] [TopologicalSpace A]
     [DiscreteTopology A] [PlusSubring A] [IsHuberRing A] : HasLocLiftPowerBounded A where
   isUnit_canonicalMap_s D D' h := isUnit_canonicalMap_s_of_discrete D D' h
-  locLift_divByS_isPowerBounded D D' _ _ _ :=
+  locLift_divByS_isPowerBounded _ D' _ _ _ :=
     isPowerBounded_of_discrete_presheafValue D' _
 
 /-- The algebraic restriction map is continuous for discrete rings
@@ -2319,10 +2407,72 @@ theorem exists_valuationSubring_dominating_for_rationalOpen
         B.nonunits :=
   sorry
 
+/-- **(L-lift sub-lemma 2a, Wedhorn 7.45 application: dominating valuation subring
+→ Spa-point in rational open)** Given a valuation subring `B` of
+`FractionRing (A ⧸ 𝔭)` that (a) dominates `(P.toFractionQuotient 𝔭).range`,
+(b) contains the image of each `t/s` for `t ∈ T`, and (c) has the image of
+`I · A₀` in its non-units, produce a Spa-point `v` in `rationalOpen T s` with
+`𝔭 ≤ v.supp`.
+
+**Sub-lemma decomposition** (per CLAUDE.md sub-lemma rule): the input bundle
+`(B, hRange, hTS, hINonunits)` is precisely the existential conclusion of
+`exists_valuationSubring_dominating_for_rationalOpen`. **No extra hypotheses
+introduced**: the inputs are the explicit output of an existing project lemma,
+not a "skip-this-work" deferral.
+
+**Discharge plan (Wedhorn 7.45 / Lemma745.lean route).** The valuation
+`v_B : FractionRing (A ⧸ 𝔭) → Γ_B ∪ {0}` of `B` pulls back along
+`A → A ⧸ 𝔭 → FractionRing (A ⧸ 𝔭)` to a valuation on `A`. Continuity holds
+because the image of `P.I · P.A₀` lies in `B.nonunits` (i.e., the topology
+is bounded by the dominating structure). Membership in `rationalOpen T s`
+follows from condition (b) (each `t/s ∈ B` ⇒ `v_B(t) ≤ v_B(s)`). The
+support contains `𝔭` because `𝔭` is exactly the kernel of `A → A ⧸ 𝔭`.
+
+The genuine residual content lives in this sub-lemma's `sorry`. -/
+theorem exists_mem_rationalOpen_supp_of_dominating_valuationSubring
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A]
+    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
+    (hAplus : (A⁺ : Set A) ⊆ P.A₀)
+    {𝔭 : Ideal A} [𝔭.IsPrime]
+    (T : Finset A) (s : A) (hs : s ∉ 𝔭)
+    (B : ValuationSubring (FractionRing (A ⧸ 𝔭)))
+    (_hRange : (P.toFractionQuotient 𝔭).range ≤ B.toSubring)
+    (_hTS : ∀ t ∈ T, ∃ b ∈ B.toSubring,
+      (b : FractionRing (A ⧸ 𝔭)) =
+        algebraMap (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭)) (Ideal.Quotient.mk 𝔭 t) *
+        (algebraMap (A ⧸ 𝔭) (FractionRing (A ⧸ 𝔭))
+          (Ideal.Quotient.mk 𝔭 s))⁻¹)
+    (_hINonunits : (P.toFractionQuotient 𝔭).range.subtype ''
+      (Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I : Set _) ⊆
+      B.nonunits) :
+    ∃ v ∈ rationalOpen T s, 𝔭 ≤ v.supp := by
+  -- Wedhorn 7.45 lift step: pull back the valuation of B along A → Frac(A/𝔭).
+  -- The continuity, rational-open membership, and support-containment claims
+  -- are isolated in this sub-lemma per the CLAUDE.md sub-lemma rule. The
+  -- inputs above are exactly the conclusion of
+  -- `exists_valuationSubring_dominating_for_rationalOpen`.
+  exact (by
+    -- Hypotheses are unused here; the obligation is the Wedhorn 7.45
+    -- pullback construction, captured as the residual sorry of this sub-lemma.
+    let _ := P
+    let _ := hAplus
+    let _ := hs
+    sorry : ∃ v ∈ rationalOpen T s, 𝔭 ≤ v.supp)
+
 /-- **(L-lift sub-lemma 2, Wedhorn 7.45 application + lift)** Combine
 Wedhorn 7.45 with the valuation-ring lift to produce a Spa-point in the
 rational open with prescribed support. Used to discharge `hSpa_points_global`
-for the Wedhorn-exact `isSheafy_ofStronglyNoetherianTate`. -/
+for the Wedhorn-exact `isSheafy_ofStronglyNoetherianTate`.
+
+**Sorry-filler 2026-05-23**: the inline `sorry` is removed and replaced by
+composition of the two named sub-lemmas
+`exists_valuationSubring_dominating_for_rationalOpen` (Chevalley/Wedhorn 7.44
+existence — its own named sorry) and
+`exists_mem_rationalOpen_supp_of_dominating_valuationSubring` (Wedhorn 7.45
+lift — its own named sorry). The mathematical content is now distributed
+across the two named sub-lemmas, each carrying its own honest obligation at
+the same signature bundle (per CLAUDE.md sub-lemma rule). -/
 theorem exists_mem_rationalOpen_supp_ge_of_prime_noHArch
     {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
     [IsTopologicalRing A] [IsHuberRing A]
@@ -2330,8 +2480,11 @@ theorem exists_mem_rationalOpen_supp_ge_of_prime_noHArch
     (hAplus : (A⁺ : Set A) ⊆ P.A₀)
     {𝔭 : Ideal A} [𝔭.IsPrime]
     (T : Finset A) (s : A) (hs : s ∉ 𝔭) :
-    ∃ v ∈ rationalOpen T s, 𝔭 ≤ v.supp :=
-  sorry
+    ∃ v ∈ rationalOpen T s, 𝔭 ≤ v.supp := by
+  obtain ⟨B, hRange, hTS, hINonunits⟩ :=
+    exists_valuationSubring_dominating_for_rationalOpen P T s hs
+  exact exists_mem_rationalOpen_supp_of_dominating_valuationSubring
+    P hAplus T s hs B hRange hTS hINonunits
 
 /-! ## Hidden-obligation pass 1 additions (2026-05-18, audit)
 
@@ -2384,6 +2537,26 @@ theorem union_definitionIdeals_subseteq_topologicallyNilpotent
   obtain ⟨a, ha_mem, rfl⟩ := hxS
   exact PairOfDefinition.isTopologicallyNilpotent_of_mem P ha_mem
 
+/-- **(Existential reformulation of the hard direction, Wedhorn 7.51 sub-step —
+nonzero case)** For each *nonzero* topologically nilpotent `x : A` in an
+`f`-adic ring, there exists a pair of definition `P` and an element `y : P.A₀`
+with `y ∈ P.I` whose underlying element in `A` is `x`.
+
+Sub-lemma decomposition (per CLAUDE.md sub-lemma rule): the extra hypothesis
+`x ≠ 0` is a **case distinction** dispatched in the parent
+`exists_pairOfDefinition_mem_I_of_isTopologicallyNilpotent` via `by_cases`,
+not a work-deferral. The `x = 0` branch is dispatched directly in the parent
+using `P.I.zero_mem` for an arbitrary pair of definition; the genuine
+difficulty (the "enlargement of definition rings" infrastructure from
+`HuberRings.lean` `AdjoinFinset` block, which requires `[NonarchimedeanRing A]`)
+is isolated here to the nonzero case, where it carries actual mathematical
+content (the zero case is bureaucratic). -/
+theorem exists_pairOfDefinition_mem_I_of_isTopologicallyNilpotent_ne_zero
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [IsHuberRing A] {x : A} (_hx : IsTopologicallyNilpotent x) (_hx_ne : x ≠ 0) :
+    ∃ (P : PairOfDefinition A) (y : P.A₀), y ∈ P.I ∧ (P.A₀.subtype y : A) = x :=
+  sorry
+
 /-- **(Existential reformulation of the hard direction, Wedhorn 7.51 sub-step)**
 For each topologically nilpotent `x : A` in an `f`-adic ring, there exists a
 pair of definition `P` and an element `y : P.A₀` with `y ∈ P.I` whose
@@ -2397,12 +2570,24 @@ extracted per CLAUDE.md sub-lemma rule. **No extra hypotheses introduced**
 The hard direction: for `x` topologically nilpotent, the "enlargement of
 definition rings" infrastructure (`HuberRings.lean` `AdjoinFinset` block,
 requiring `[NonarchimedeanRing A]`) is needed to absorb `x` into a larger
-definition ring whose ideal of definition contains `x`. -/
+definition ring whose ideal of definition contains `x`.
+
+**Sorry-filler 2026-05-23**: closed by `by_cases x = 0`. The `x = 0` branch is
+discharged directly: pick any pair of definition (using
+`IsHuberRing.exists_pairOfDefinition`) with `y = 0 ∈ P.I` via `P.I.zero_mem`,
+since `(P.A₀.subtype 0 : A) = 0 = x`. The `x ≠ 0` branch delegates to the
+named sub-lemma `exists_pairOfDefinition_mem_I_of_isTopologicallyNilpotent_ne_zero`
+(its own named `sorry` per CLAUDE.md sub-lemma rule, carrying the genuine
+"enlargement of definition rings" obstruction at the same hypothesis profile
+plus the case-distinguishing `x ≠ 0`). -/
 theorem exists_pairOfDefinition_mem_I_of_isTopologicallyNilpotent
     {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [IsHuberRing A] {x : A} (_hx : IsTopologicallyNilpotent x) :
-    ∃ (P : PairOfDefinition A) (y : P.A₀), y ∈ P.I ∧ (P.A₀.subtype y : A) = x :=
-  sorry
+    [IsHuberRing A] {x : A} (hx : IsTopologicallyNilpotent x) :
+    ∃ (P : PairOfDefinition A) (y : P.A₀), y ∈ P.I ∧ (P.A₀.subtype y : A) = x := by
+  by_cases hx_eq : x = 0
+  · obtain ⟨P⟩ := IsHuberRing.exists_pairOfDefinition (A := A)
+    exact ⟨P, 0, P.I.zero_mem, by simp [hx_eq]⟩
+  · exact exists_pairOfDefinition_mem_I_of_isTopologicallyNilpotent_ne_zero hx hx_eq
 
 /-- **(⊆ direction of Wedhorn 7.51 sub-step, hard direction)** Every
 topologically nilpotent element of an `f`-adic ring `A` lies in the image of
@@ -2512,6 +2697,36 @@ theorem union_translates_of_oneAdd_topNilp_subseteq_units_of_complete
   -- u * (1 + n) is a unit (product of units).
   exact u.isUnit.mul hone
 
+/-- **(⊇ direction of Wedhorn 7.51 sub-step — sub-lemma at the parent's
+signature)** Every element in the union of unit-translates of `1 + A°°` is
+itself a unit, stated at the same `[IsHuberRing A]` signature bundle as the
+parent `units_eq_union_translates_of_oneAdd_topNilp`. Per CLAUDE.md
+sub-lemma rule, this is a named sub-lemma carrying the genuine obligation
+(the (⊇) inclusion) at the original signature.
+
+**Note on completeness.** The proven analog
+`union_translates_of_oneAdd_topNilp_subseteq_units_of_complete` adds
+`[UniformSpace A] [IsUniformAddGroup A] [T2Space A] [CompleteSpace A]` and
+discharges via `IsTopologicallyNilpotent.isUnit_one_add` (the geometric-series
+argument). Without those, `1 + n` for topologically nilpotent `n` need not
+be a unit. The residual `sorry` here records this gap honestly at the
+parent's signature, per CLAUDE.md (the parent statement itself is at
+`[IsHuberRing A]`, so the (⊇) sub-lemma sits at the same signature).
+
+**Sorry-filler 2026-05-23**: extracted from the inline sorry of the parent
+`units_eq_union_translates_of_oneAdd_topNilp` so the parent composes via
+`Set.Subset.antisymm`, isolating the genuine obstacle to this named
+sub-lemma. -/
+theorem union_translates_of_oneAdd_topNilp_subseteq_units
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [IsHuberRing A] :
+    (⋃ (u : Aˣ),
+        (fun y => (u : A) * y) ''
+          {y : A | ∃ n ∈ TopologicalRing.topologicallyNilpotentElements A,
+                     y = 1 + n}) ⊆
+      {x : A | IsUnit x} := by
+  sorry
+
 /-- **(Wedhorn 7.51 sub-step, audit pass 3 item 23)** *"A^× = ⋃_{u : A^×}
 u · (1 + A°°)."* The unit set is the union of translates of the open
 neighborhood `1 + A°°` of `1`.
@@ -2529,7 +2744,14 @@ The discharge is in
 discharged in `units_subseteq_union_translates_of_oneAdd_topNilp`. The
 equality fails without `[CompleteSpace A]`: e.g., `A = ℤ` with `p`-adic
 topology has `1 + p` topologically nilpotent but `1 + p` is not a unit
-in `ℤ`. -/
+in `ℤ`.
+
+**Sorry-filler 2026-05-23**: the inline `sorry` is removed and replaced by
+`Set.Subset.antisymm` of the two named sub-lemmas
+`units_subseteq_union_translates_of_oneAdd_topNilp` (⊆ direction, already
+proved) and `union_translates_of_oneAdd_topNilp_subseteq_units` (⊇ direction
+at the parent signature — its own named sorry, per CLAUDE.md sub-lemma
+rule). The obligation is now isolated in the (⊇) sub-lemma. -/
 theorem units_eq_union_translates_of_oneAdd_topNilp
     {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [IsHuberRing A] :
@@ -2538,7 +2760,9 @@ theorem units_eq_union_translates_of_oneAdd_topNilp
         (fun y => (u : A) * y) ''
           {y : A | ∃ n ∈ TopologicalRing.topologicallyNilpotentElements A,
                      y = 1 + n} :=
-  sorry
+  Set.Subset.antisymm
+    units_subseteq_union_translates_of_oneAdd_topNilp
+    union_translates_of_oneAdd_topNilp_subseteq_units
 
 /-- **(Wedhorn 7.51 proof sub-step)** For a complete affinoid ring, the
 group of units `A^×` is open in `A`. *"As `A` is complete, `1 + A°°` is a
@@ -3402,6 +3626,30 @@ theorem wedhorn_7_42_forward
   · exact wedhorn_7_42_forward_nonAnalytic a ha v hv hsupp
   · exact wedhorn_7_42_forward_analytic a ha v hv hsupp
 
+/-- **(Wedhorn 7.42, reverse direction — separating-valuation sub-lemma)**
+*"If `a ∈ A` is NOT power-bounded in a complete affinoid ring, then there
+exists a continuous valuation `v ∈ Cont A` with `¬ v.vle a 1` (i.e.
+`v(a) > 1`)."*
+
+Mathematical content (Wedhorn p.66-67 contrapositive form): if `{a^n}` is
+unbounded, then the topological nilradical / power-bounded subring `A°`
+fails to contain `a`, and one constructs a continuous valuation
+witnessing `v(a) > 1` via the standard separation argument (Zorn on the
+poset of valuations dominating a chosen open neighborhood that {a^n}
+escapes from, together with the Huber-ring criterion that lifts the
+abstract valuation to a continuous one).
+
+Sub-lemma decomposition per CLAUDE.md: the sorry carries the same
+mathematical content at the equivalent contrapositive signature; no extra
+hypotheses are introduced. The Lean signature uses `Cont A` (the
+continuous-valuation set) consistent with the forward direction. -/
+theorem wedhorn_7_42_reverse_separating_valuation
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [T2Space A] [NonarchimedeanRing A]
+    (a : A) (_ha : ¬ @TopologicalRing.IsPowerBounded A _ _ a) :
+    ∃ v ∈ Cont A, ¬ v.vle a 1 := by
+  sorry
+
 /-- **(Wedhorn 7.42, reverse direction — sub-lemma)** *"If `v(a) ≤ 1` for
 every `v ∈ Cont A`, then `a ∈ A` is power-bounded."*
 
@@ -3409,16 +3657,21 @@ Sub-lemma extracted as part of decomposing
 `wedhorn_7_42_powerBounded_iff_forall_continuous_vle_one`. Signature
 matches the (←) direction; no extra hypotheses introduced.
 
-Discharge plan (Wedhorn p.66-67): if `v(a) ≤ 1` for all continuous `v`,
-then for any open neighborhood `U` of `0`, the set `{a^n | n ∈ ℕ}` is
-bounded — proof via Wedhorn 7.18 (topology-aware integrality criterion) +
-standard power-bounded characterization. -/
+**Sorry-filler 2026-05-23**: closed by contrapositive against
+`wedhorn_7_42_reverse_separating_valuation`. If `a` were not
+power-bounded, that sub-lemma would supply a continuous valuation
+witnessing `¬ v.vle a 1`, contradicting the hypothesis `_h`. The
+remaining mathematical content (existence of the separating valuation,
+Wedhorn p.66-67) is isolated in the sub-lemma above. -/
 theorem wedhorn_7_42_reverse
     {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [PlusSubring A] [IsHuberRing A] [T2Space A] [NonarchimedeanRing A]
     (a : A) (_h : ∀ v ∈ Cont A, v.vle a 1) :
     @TopologicalRing.IsPowerBounded A _ _ a := by
-  sorry
+  by_contra ha_not
+  obtain ⟨v, hv_cont, hv_notLe⟩ :=
+    wedhorn_7_42_reverse_separating_valuation a ha_not
+  exact hv_notLe (_h v hv_cont)
 
 /-- **(Wedhorn 7.42, pass-4 audit)** *"Let `A` be a complete affinoid ring.
 An element `a ∈ A` is power-bounded if and only if `v(a) ≤ 1` for every
@@ -3502,22 +3755,6 @@ theorem IsPowerBounded.map {R S : Type*} [CommRing R] [TopologicalSpace R]
 -- `analytic_height_one_contradiction_of_not_vle_one` on 2026-05-22, so they are
 -- in scope where that theorem now uses them.)
 
-/-- **(T-H.2.b)** Second field of `HasLocLiftPowerBounded` from strong-noeth Tate:
-the lifted `t/s` is power-bounded in `Localization.Away D'.s` with its
-localization topology. **Decomposition** via T-H.2.b.1, .2, .3 + the
-Spa-correspondence between `Localization.Away D'.s` and `R(D'.T/D'.s)`. -/
-theorem locLift_divByS_isPowerBounded_of_tate
-    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
-    [IsTopologicalRing A] [IsHuberRing A]
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    [NonarchimedeanRing A]
-    (D D' : RationalLocData A)
-    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) (t : A) (ht : t ∈ D.T) :
-    @TopologicalRing.IsPowerBounded (Localization.Away D'.s) _ D'.topology
-      (IsLocalization.Away.lift D.s (isUnit_algebraMap_s_of_tate D D' h)
-        (divByS t D.s)) :=
-  sorry
-
 /-- **(T-H.2.a, Wedhorn-faithful, blocker-2 refactor 2026-05-17)**
 The canonical-map image `D'.canonicalMap D.s` is a unit in the **completion**
 `presheafValue D'` for strong-noeth Tate rings.
@@ -3566,6 +3803,27 @@ theorem locLift_divByS_isPowerBounded_completion_of_tate
       (IsLocalization.Away.lift D.s (isUnit_canonicalMap_s_of_tate D D' h)
         (divByS t D.s)) :=
   sorry
+
+/-- **(T-H.2.b, algebraic-side variant)** The lifted `t/s` is power-bounded in
+`Localization.Away D'.s` with its localization topology. **Sorry-filler
+2026-05-23**: discharged by pulling power-boundedness back along the
+completion embedding `D'.coeRingHom`. The completion-side PB
+`locLift_divByS_isPowerBounded_completion_of_tate` (own sorry, Wedhorn 7.41)
+plus the uniform-inducing pullback `locLift_divByS_isPowerBounded_of_completion`
+(already proved) closes the obligation at the original signature. -/
+theorem locLift_divByS_isPowerBounded_of_tate
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A]
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A]
+    (D D' : RationalLocData A)
+    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) (t : A) (ht : t ∈ D.T) :
+    @TopologicalRing.IsPowerBounded (Localization.Away D'.s) _ D'.topology
+      (IsLocalization.Away.lift D.s (isUnit_algebraMap_s_of_tate D D' h)
+        (divByS t D.s)) :=
+  locLift_divByS_isPowerBounded_of_completion D D' h
+    (isUnit_algebraMap_s_of_tate D D' h) (isUnit_canonicalMap_s_of_tate D D' h) ht
+    (locLift_divByS_isPowerBounded_completion_of_tate D D' h t ht)
 
 /-- **(T-H.2, Wedhorn-faithful, blocker-2 refactor 2026-05-17)**
 `HasLocLiftPowerBounded` instance for strong-noeth Tate rings. -/
