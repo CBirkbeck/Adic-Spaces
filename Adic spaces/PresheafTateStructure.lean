@@ -1216,7 +1216,8 @@ S_n = {z | ∃ a, z·u^n = σ(a)} is closed if range(σ) is closed; S = ⋃ S_n 
 dense ascending subgroup; if S is non-meagre, Baire gives interior, hence
 open subgroup, hence dense+clopen=univ. The fatal step is "range(σ) closed",
 which fails in general.) -/
-@[deprecated "RETIRED — false in general (open-subgroup density step fails); use per-E surjectivity via productRestriction_faithfullyFlat_tate" (since := "2026-05-23")]
+@[deprecated "RETIRED — false in general; use per-E via productRestriction_faithfullyFlat_tate"
+  (since := "2026-05-23")]
 theorem restrictionMapHom_surj
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
@@ -1415,7 +1416,8 @@ injectivity forces `n = 0`. For cover-level content use
 Existing legacy callers in `LaurentRefinement.lean:3638, 3695` carry
 the resulting `sorry` transitively and should be refactored to the
 Cor 8.32 route in a separate ticket. -/
-@[deprecated "RETIRED — false in general (single-map injectivity needs Cor 8.32 faithful flatness); use productRestriction_injective_tate_via_prime_extension_closed via Cor832.lean" (since := "2026-05-23")]
+@[deprecated "RETIRED — false in general; use productRestriction_injective_tate_via_prime_extension_closed (Cor832.lean)"
+  (since := "2026-05-23")]
 theorem restrictionMapHom_injective
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     [NonarchimedeanRing A]
