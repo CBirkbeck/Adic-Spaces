@@ -273,7 +273,7 @@ theorem SpvAI.exists_rationalSubset_microbial [DecidableEq A]
   have h_vg0d_ge_one : 1 ≤ wv (g_0 * d) := by
     rw [map_mul]
     calc 1 = wv g_0 * (wv g_0)⁻¹ := (mul_inv_cancel₀ h_vg0_ne).symm
-      _ ≤ wv g_0 * wv d := mul_le_mul_left' h_inv_g0_le_vd _
+      _ ≤ wv g_0 * wv d := mul_le_mul_right h_inv_g0_le_vd _
   -- v(g_0 * d) ≠ 0 since 1 ≤ ... < ⊤.
   have h_vg0d_ne : wv (g_0 * d) ≠ 0 := by
     intro h_eq
@@ -298,7 +298,7 @@ theorem SpvAI.exists_rationalSubset_microbial [DecidableEq A]
         refine (Valuation.Compatible.vle_iff_le (v := wv) (i * d) (g_0 * d)).mpr ?_
         rw [map_mul, map_mul]
         have hvi_le := (Valuation.Compatible.vle_iff_le (v := wv) i g_0).mp (hg i hi)
-        exact mul_le_mul_right' hvi_le _
+        exact mul_le_mul_left hvi_le _
       · -- t = 1, v(1) ≤ v(g_0 * d) since 1 ≤ v(g_0 * d).
         rw [Finset.mem_singleton] at ht_one
         subst ht_one
@@ -411,7 +411,7 @@ theorem SpvAI.exists_rationalSubset_cofinality [DecidableEq A]
           obtain ⟨j, hj⟩ := Nat.exists_eq_add_of_le (Nat.le_of_lt h_K_ge)
           rw [hj, pow_add]
           conv_rhs => rw [← mul_one (wv s ^ (k_s s hs))]
-          exact mul_le_mul_left' (Left.pow_le_one_of_le h_vs_le_one _) _
+          exact mul_le_mul_right (Left.pow_le_one_of_le h_vs_le_one _) _
         exact lt_of_le_of_lt h_pow_mono (hk_s s hs) |>.le
   · -- SpvAI.rationalSubset I T' g_0 ⊆ W.
     intro w hw

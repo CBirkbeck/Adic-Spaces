@@ -110,7 +110,7 @@ theorem extendToLocalization_le_one_of_locSubring
       change ν_loc (divByS (t : A) s) ≤ 1
       simp only [divByS, hν_loc, Valuation.extendToLocalization_mk']
       calc ν (t : A) * (ν s)⁻¹
-          ≤ ν s * (ν s)⁻¹ := mul_le_mul_right' (hν_T t ht) _
+          ≤ ν s * (ν s)⁻¹ := mul_le_mul_left (hν_T t ht) _
         _ = 1 := mul_inv_cancel₀ hs_pos
   · -- 0 case: ν_loc 0 = 0 ≤ 1.
     change ν_loc 0 ≤ 1
@@ -246,7 +246,7 @@ theorem extendToLocalization_isContinuous_locTopology_of_bounded
     calc ν_loc ((r : locSubring P T s) : Localization.Away s) *
             ν_loc ((x : locSubring P T s) : Localization.Away s)
         ≤ 1 * ν_loc ((x : locSubring P T s) : Localization.Away s) :=
-          mul_le_mul_right' hr_le _
+          mul_le_mul_left hr_le _
       _ = ν_loc ((x : locSubring P T s) : Localization.Away s) := one_mul _
       _ < γ := hx
 

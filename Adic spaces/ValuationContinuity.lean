@@ -646,7 +646,7 @@ noncomputable def restrictToConvexBounded
         rw [huxy_eq]; intro hmem
         have hle_ux : Units.mk0 (v x) hx * Units.mk0 (v y) hy ≤ Units.mk0 (v x) hx :=
           Units.val_le_val.mp (show (v x) * (v y) ≤ v x from by
-            calc v x * v y ≤ v x * 1 := mul_le_mul_left' hvy_lt.le (v x)
+            calc v x * v y ≤ v x * 1 := mul_le_mul_right hvy_lt.le (v x)
               _ = v x := mul_one _)
         have hvx_le_one : Units.mk0 (v x) hx ≤ 1 := Units.val_le_val.mp hvx_lt.le
         exact not_mem_of_le' hmx hvx_le_one hle_ux hmem

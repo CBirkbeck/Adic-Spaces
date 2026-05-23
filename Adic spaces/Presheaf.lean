@@ -1698,7 +1698,7 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
             change V.valuation (ι (s ^ n * b)) ≤ V.valuation (ι (P.A₀.subtype (t₀ ^ n)))
             simp only [map_mul, map_pow, Subring.coe_subtype]
             calc V.valuation (ι s) ^ n * V.valuation (ι b)
-                ≤ V.valuation (ι s) ^ n * 1 := mul_le_mul_left' hval_b _
+                ≤ V.valuation (ι s) ^ n * 1 := mul_le_mul_right hval_b _
               _ = V.valuation (ι s) ^ n := mul_one _
           have ht_pow_ne : v₀_A₀ (t₀ ^ n) ≠ 0 := by
             rw [show (t₀ ^ n : P.A₀) = t₀ ^ n from rfl, map_pow]
@@ -1717,7 +1717,7 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
             rw [this, ← mul_pow, mul_inv_cancel₀ hv_r_ne, one_pow]
           calc v_r ⟨s ^ n * b, hn⟩ * (v_r ⟨s, hs_A₀⟩)⁻¹ ^ n
               ≤ v_r (t₀ ^ n) * (v_r ⟨s, hs_A₀⟩)⁻¹ ^ n := by
-                apply mul_le_mul_right' h_mono
+                apply mul_le_mul_left h_mono
             _ = v_r t₀ ^ n * (v_r ⟨s, hs_A₀⟩)⁻¹ ^ n := by rw [hv_r_pow]
             _ = 1 := hcancel
         · -- 1 < v_ext(x): use extension formula.
@@ -3433,10 +3433,10 @@ theorem analytic_height_one_contradiction_of_not_vle_one
     have hge : (1 : ValuativeRel.ValueGroupWithZero A) ≤ (w a) ^ n * w b := by
       rw [show (1 : ValuativeRel.ValueGroupWithZero A) = (w b)⁻¹ * w b from
         (inv_mul_cancel₀ hwb_ne).symm]
-      exact mul_le_mul_right' hn _
+      exact mul_le_mul_left hn _
     calc 1 < w a := hwa_gt
       _ = w a * 1 := (mul_one _).symm
-      _ ≤ w a * ((w a) ^ n * w b) := mul_le_mul_left' hge _
+      _ ≤ w a * ((w a) ^ n * w b) := mul_le_mul_right hge _
       _ = (w a) ^ n * w a * w b := by
             rw [show w a * ((w a) ^ n * w b) = (w a) ^ n * w b * w a from
               mul_comm _ _, mul_right_comm]

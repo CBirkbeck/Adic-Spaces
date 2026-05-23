@@ -142,7 +142,7 @@ lemma exists_uniform_pow_vle_on_compact
       rw [pow_add]
       calc (ValuativeRel.valuation A) π ^ N * (ValuativeRel.valuation A) π ^ k
           ≤ (ValuativeRel.valuation A) π ^ N * 1 :=
-            mul_le_mul_left' (Left.pow_le_one_of_le hπ_le_one k) _
+            mul_le_mul_right (Left.pow_le_one_of_le hπ_le_one k) _
         _ = (ValuativeRel.valuation A) π ^ N := mul_one _
     -- Now translate to vle.
     -- hwN_le : w.1.vle (π^N) a, i.e., v(π^N) ≤ v(a).
@@ -290,17 +290,55 @@ theorem isClosed_subtype_setOf_vle (g h : A) :
     IsClosed (Subtype.val ⁻¹' {v : Spv A | v.vle g h} : Set ↥(Spa A A⁺)) :=
   (isClosed_setOf_vle g h).preimage continuous_subtype_val
 
-/-- **Sub-lemma (genuine content of L1.3.a).** In the no-`hArch` Tate case,
-`ιSpv_bool '' Spa A A⁺` is closed in the discrete Bool product
-`(A × A → Bool)`. This is the genuine mathematical obligation behind
-`image_spa_ιSpv_bool_noHArch` (Wedhorn 7.30 / 7.49 without the mul-archimedean
-shortcut). Closing it requires the Spv(A, I)-spectral chain
-(`cont_isClosed_in_SpvAI` + Bool-coordinate translation of `SpvAI.isSpectralSpace`).
-Preserved as a named sub-lemma `sorry` per CLAUDE.md BINDING RULE — no
-signature change, no extra hypothesis. -/
-lemma isClosed_image_spa_ιSpv_bool_noHArch_aux :
+/-- **Genuine no-`hArch` Bool-image closedness (L1.3.a core, sub-sub-lemma α).**
+In the no-`hArch` Tate case, the Bool image `ιSpv_bool '' (Spa A A⁺)` is
+closed in the discrete Bool product `(A × A → Bool)`.
+
+This is the genuine mathematical content of L1.3.a, isolated from the
+existence-of-closed-target packaging. In the `hArch` case it follows from
+`isClosed_image_spa_ιSpv_bool_of_tate` (`SpaCompact.lean`) via the
+`{r | r(1, π) = false}` cylinder; without `hArch` the witness instead encodes
+the `Spv(A, I)`-spectrality coordinate constraints (Wedhorn 7.5 + 7.12 + 7.30),
+i.e. the cofinal/microbial alternative on `v`.
+
+**Decomposition (2026-05-23).** Per CLAUDE.md BINDING RULE this `sorry`-bodied
+sub-lemma carries the genuine no-`hArch` obligation; downstream packaging
+(`exists_closed_bool_target_noHArch`, `image_spa_ιSpv_bool_noHArch`) reduces
+to it via the trivial-witness trick `S := image`, breaking the previous
+circular dependency between the existence packaging and the closedness
+extraction. Tracked as the no-`hArch` Spv(A,I)-spectral leaf. -/
+private lemma isClosed_image_spa_ιSpv_bool_noHArch :
     IsClosed ((ιSpv_bool : Spv A → (A × A → Bool)) '' (Spa A A⁺)) := by
   sorry
+
+/-- **Closed Bool target set for `Spa A A⁺` in the no-`hArch` Tate case
+(L1.3.a, packaging).** A concrete closed subset of `A × A → Bool`
+into which `ιSpv_bool '' Spa A A⁺` exactly fits (relative to `range ιSpv_bool`).
+
+In the `hArch` case this would be `(⋂ a ∈ A⁺, {r | r(a,1) = true}) ∩
+{r | r(1, π) = false}` from `image_spa_ιSpv_bool_of_tate`; without `hArch`
+the description requires the Spv(A, I)-spectrality coordinate constraints
+(Wedhorn 7.5 + 7.12 + 7.30), all packaged into the genuine sub-lemma
+`isClosed_image_spa_ιSpv_bool_noHArch`.
+
+**Proof.** Trivial-witness trick: take `S` to be the image itself. Closedness
+comes from the named sub-lemma `isClosed_image_spa_ιSpv_bool_noHArch`, and
+`range ∩ image = image` since `image ⊆ range`. -/
+private lemma exists_closed_bool_target_noHArch :
+    ∃ S : Set (A × A → Bool), IsClosed S ∧
+      (ιSpv_bool : Spv A → (A × A → Bool)) '' (Spa A A⁺) =
+        Set.range (ιSpv_bool : Spv A → (A × A → Bool)) ∩ S :=
+  ⟨(ιSpv_bool : Spv A → (A × A → Bool)) '' (Spa A A⁺),
+    isClosed_image_spa_ιSpv_bool_noHArch,
+    (Set.inter_eq_right.mpr (Set.image_subset_range _ _)).symm⟩
+
+/-- **Sub-lemma (genuine content of L1.3.a).** In the no-`hArch` Tate case,
+`ιSpv_bool '' Spa A A⁺` is closed in the discrete Bool product
+`(A × A → Bool)`. Re-exports `isClosed_image_spa_ιSpv_bool_noHArch` under
+the legacy name expected by `image_spa_ιSpv_bool_noHArch` below. -/
+lemma isClosed_image_spa_ιSpv_bool_noHArch_aux :
+    IsClosed ((ιSpv_bool : Spv A → (A × A → Bool)) '' (Spa A A⁺)) :=
+  isClosed_image_spa_ιSpv_bool_noHArch
 
 /-- **Sub-lemma L1.3.a of T-COMPACT-NO-HARCH (work plan, `TATE-ACYCLICITY-WORK-PLAN.md`).**
 Closed Bool-image description for `Spa A A⁺` in the no-`hArch` Tate case.

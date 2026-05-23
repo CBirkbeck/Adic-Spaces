@@ -1189,7 +1189,7 @@ private theorem exists_ideal_pow_generators_dominated_for_half_space
         obtain ⟨k, hk⟩ := Nat.exists_eq_add_of_le h_count_ge_N
         rw [hk, pow_add]
         conv_rhs => rw [← mul_one (wv (L.P.A₀.subtype (↑c_star : L.P.A₀)) ^ N_star)]
-        exact mul_le_mul_left' (Left.pow_le_one_of_le h_wv_c_le_one k) _
+        exact mul_le_mul_right (Left.pow_le_one_of_le h_wv_c_le_one k) _
       -- (wv c_star)^N_star = wv (c_star^N_star) ≤ wv a from hN_c.
       have h_pow_eq : wv (L.P.A₀.subtype (↑c_star : L.P.A₀)) ^ N_star =
           wv ((L.P.A₀.subtype (↑c_star : L.P.A₀)) ^ N_star) := (map_pow _ _ _).symm

@@ -211,7 +211,7 @@ theorem cofinalValue_ideal_pow_lt {A : Type*} [CommRing A] [TopologicalSpace A]
           obtain ⟨k, hk⟩ := Nat.exists_eq_add_of_le h_count_ge_N
           rw [hk, pow_add]
           conv_rhs => rw [← mul_one (v (P.A₀.subtype (↑c_star : P.A₀)) ^ N_star)]
-          exact mul_le_mul_left' (Left.pow_le_one_of_le h_v_c_le_one_star k) _
+          exact mul_le_mul_right (Left.pow_le_one_of_le h_v_c_le_one_star k) _
         calc v (P.A₀.subtype (↑c_star : P.A₀)) ^ count
             ≤ v (P.A₀.subtype (↑c_star : P.A₀)) ^ N_star := h_pow_mono
           _ < γ := hN_c (↑c_star : P.A₀) c_star.2
@@ -222,7 +222,7 @@ theorem cofinalValue_ideal_pow_lt {A : Type*} [CommRing A] [TopologicalSpace A]
               (Finset.univ.filter (fun i : Fin n₀ => f i = c_star)).card
           ≤ 1 * v (P.A₀.subtype (↑c_star : P.A₀)) ^
               (Finset.univ.filter (fun i : Fin n₀ => f i = c_star)).card := by
-            exact mul_le_mul_right' h_others_le_one _
+            exact mul_le_mul_left h_others_le_one _
         _ = v (P.A₀.subtype (↑c_star : P.A₀)) ^
               (Finset.univ.filter (fun i : Fin n₀ => f i = c_star)).card := one_mul _
         _ < γ := h_c_star_lt
@@ -252,7 +252,7 @@ theorem cofinalValue_ideal_pow_lt {A : Type*} [CommRing A] [TopologicalSpace A]
     have hr_le : v (P.A₀.subtype r) ≤ 1 := h_le_one r
     calc v (P.A₀.subtype r) * v (P.A₀.subtype x)
         ≤ 1 * v (P.A₀.subtype x) := by
-          exact mul_le_mul_right' hr_le _
+          exact mul_le_mul_left hr_le _
       _ = v (P.A₀.subtype x) := one_mul _
       _ < γ := hx
 
