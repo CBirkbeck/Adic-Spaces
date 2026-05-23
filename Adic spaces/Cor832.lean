@@ -2062,7 +2062,7 @@ theorem coeRingHom_preserves_proper_of_closed
   -- so `1 ∈ coeRingHom⁻¹ (closure ...) = q`.
   have h1_loc_in_q : (1 : Localization.Away D.s) ∈ (q : Set _) := by
     rw [h_closure_eq]
-    show (D.coeRingHom : Localization.Away D.s → presheafValue D) 1 ∈
+    change (D.coeRingHom : Localization.Away D.s → presheafValue D) 1 ∈
       closure ((D.coeRingHom '' (q : Set _)) : Set (presheafValue D))
     rw [map_one]
     exact h1_closure

@@ -129,7 +129,7 @@ theorem gluing_of_finer_rational (C : RationalCovering A)
     -- LHS = restrictionMap D₁ D₃ (restrictionMap τ(D₁) D₁ (fC τ(D₁)))
     --     = restrictionMap τ(D₁) D₃ (fC τ(D₁))   via restrictionMap_comp
     -- Similarly for RHS, then use hC_compat.
-    show restrictionMap D₁.1 D₃ h₃₁ (restrictionMap (τ D₁).1 D₁.1 (hτ D₁) (fC (τ D₁))) =
+    change restrictionMap D₁.1 D₃ h₃₁ (restrictionMap (τ D₁).1 D₁.1 (hτ D₁) (fC (τ D₁))) =
       restrictionMap D₂.1 D₃ h₃₂ (restrictionMap (τ D₂).1 D₂.1 (hτ D₂) (fC (τ D₂)))
     have hc1 := restrictionMap_comp (τ D₁).1 D₁.1 D₃ (hτ D₁) h₃₁
     have hc2 := restrictionMap_comp (τ D₂).1 D₂.1 D₃ (hτ D₂) h₃₂

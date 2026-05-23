@@ -1493,7 +1493,7 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
           add_mem' := fun {a b} ha hb ↦ by
             change (↑(a + b) : K) * ι x ∈ R₀
             rw [Subring.coe_add, add_mul]; exact R₀.add_mem ha hb
-          zero_mem' := by show (0 : K) * ι x ∈ R₀; rw [zero_mul]; exact R₀.zero_mem
+          zero_mem' := by change (0 : K) * ι x ∈ R₀; rw [zero_mul]; exact R₀.zero_mem
           smul_mem' := fun r s hs ↦ by
             change (↑(r • s) : K) * ι x ∈ R₀
             simp only [smul_eq_mul, Subring.coe_mul, mul_assoc]
@@ -1633,7 +1633,7 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
               ⟨_, hA₀B a.property⟩)
         refine ⟨V.ValueGroup, inferInstance, V.valuation.comap ι, ?_, ?_, ?_⟩
         · -- v ≤ 1 on B
-          intro b hb; show V.valuation (ι b) ≤ 1
+          intro b hb; change V.valuation (ι b) ≤ 1
           rw [ValuationSubring.valuation_le_one_iff]
           exact hV_le (Subalgebra.algebraMap_mem (integralClosure B K) ⟨b, hb⟩)
         · -- 1 < v(x)
@@ -1810,7 +1810,7 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
   have hw_cont : (⟨w⟩ : Spv R).IsContinuous :=
     isContinuous_ofValuation_of wVal hwVal_cont
   have hw_B : ∀ b ∈ B, w.vle b 1 := by
-    intro b hb; show wVal b ≤ wVal 1; rw [map_one]; exact hw_B_val b hb
+    intro b hb; change wVal b ≤ wVal 1; rw [map_one]; exact hw_B_val b hb
   -- Apply topology-aware hypothesis: all continuous v with v ≤ 1 on B have v(x) ≤ 1.
   have hw_x : w.vle x 1 := hvle w hw_cont hw_B
   -- But wVal x > 1, so wVal x ≤ 1 is false. Contradiction.

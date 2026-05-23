@@ -834,7 +834,7 @@ private theorem discrete_gluing {A : Type*} [CommRing A]
       rw [mul_pow] at hann_K
       -- hann_K : D₁.s^K * D₂.s^K * (r' D₁ * D₂.s^N₀) = D₁.s^K * D₂.s^K * (r' D₂ * D₁.s^N₀)
       -- Goal: D₁.s^K * r' D₁ * D₂.s^(N₀+K) = D₂.s^K * r' D₂ * D₁.s^(N₀+K)
-      show D₁.1.s ^ K * r' D₁ * D₂.1.s ^ (N₀ + K) =
+      change D₁.1.s ^ K * r' D₁ * D₂.1.s ^ (N₀ + K) =
         D₂.1.s ^ K * r' D₂ * D₁.1.s ^ (N₀ + K)
       have hexpand₁ : D₁.1.s ^ K * r' D₁ * D₂.1.s ^ (N₀ + K) =
           D₁.1.s ^ K * D₂.1.s ^ K * (r' D₁ * D₂.1.s ^ N₀) := by ring

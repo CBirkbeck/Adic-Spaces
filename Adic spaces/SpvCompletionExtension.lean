@@ -59,7 +59,7 @@ theorem ne_zero_of_unit_completion
     funext y
     show UniformSpace.Completion.coe' (α * y) =
       UniformSpace.Completion.coeRingHom α * UniformSpace.Completion.coe' y
-    show UniformSpace.Completion.coe' (α * y) =
+    change UniformSpace.Completion.coe' (α * y) =
       UniformSpace.Completion.coe' α * UniformSpace.Completion.coe' y
     exact UniformSpace.Completion.coe_mul α y
   have hα_mul : Filter.Tendsto (fun y : R => α * y) F (nhds (1 : R)) := by

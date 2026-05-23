@@ -402,7 +402,7 @@ theorem SpvAI.exists_rationalSubset_cofinality [DecidableEq A]
         rw [map_pow]
         -- (v s)^K ≤ (v s)^{k_s s hs} < v g_0.
         have h_K_ge : K ≥ k_s s hs + 1 := by
-          show S.attach.sup (fun ⟨s, hs⟩ => k_s s hs) + 1 ≥ k_s s hs + 1
+          change S.attach.sup (fun ⟨s, hs⟩ => k_s s hs) + 1 ≥ k_s s hs + 1
           apply Nat.add_le_add_right
           exact Finset.le_sup (f := fun ⟨s', hs'⟩ => k_s s' hs') (Finset.mem_attach _ ⟨s, hs⟩)
         have h_vs_le_one : wv s ≤ 1 := (h_cofinal s hs).le_one

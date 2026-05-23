@@ -1415,7 +1415,7 @@ theorem lambdaMap_surjective [UniformSpace A] [IsUniformAddGroup A] [T2Space A] 
       exfalso; apply hs
       change (if s 0 = 0 then 0 else _) ∈ U
       rw [if_pos hs0]; exact mem_of_mem_nhds hU
-    · left; show s 0 < N
+    · left; change s 0 < N
       by_contra hlt
       apply hs
       change (if s 0 = 0 then 0 else _) ∈ U
@@ -1561,13 +1561,13 @@ theorem lambdaMap_surjective [UniformSpace A] [IsUniformAddGroup A] [T2Space A] 
   -- Helper: g.val at single 0 n = ∑' k, p(n+k, k).
   have hg_val : ∀ n, MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) n) g.val =
       ∑' k, MvPowerSeries.coeff (idx (n + k) k) p.val := by
-    intro n; show (fun s => ∑' k, MvPowerSeries.coeff (idx (s 0 + k) k) p.val)
+    intro n; change (fun s => ∑' k, MvPowerSeries.coeff (idx (s 0 + k) k) p.val)
       (Finsupp.single (0 : Fin 1) n) = _
     simp [Finsupp.single_eq_same]
   -- Helper: h.val at single 0 m = if m = 0 then 0 else ∑' k, p(k, m+k).
   have hh_val : ∀ m, MvPowerSeries.coeff (Finsupp.single (0 : Fin 1) m) h.val =
       if m = 0 then 0 else ∑' k, MvPowerSeries.coeff (idx k (m + k)) p.val := by
-    intro m; show (fun s => if s 0 = 0 then 0
+    intro m; change (fun s => if s 0 = 0 then 0
       else ∑' k, MvPowerSeries.coeff (idx k (s 0 + k)) p.val)
       (Finsupp.single (0 : Fin 1) m) = _
     simp [Finsupp.single_eq_same]

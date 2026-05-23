@@ -481,7 +481,7 @@ theorem banach_two_of_three
        rw [hf_quot.continuous_iff]
        have : ⇑eq.symm ∘ ⇑f = (QuotientAddGroup.mk : G → G ⧸ f.ker) := by
          ext g
-         show eq.symm (f g) = QuotientAddGroup.mk g
+         change eq.symm (f g) = QuotientAddGroup.mk g
          have h1 : eq (QuotientAddGroup.mk g) = f g := rfl
          rw [← h1]
          exact eq.symm_apply_apply (QuotientAddGroup.mk g)

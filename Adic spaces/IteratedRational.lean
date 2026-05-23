@@ -54,7 +54,7 @@ theorem restrictionMapHom_canonicalMap (D₀ D' : RationalLocData A)
   letI := D'.uniformSpace
   letI := D'.isTopologicalRing
   letI := D'.isUniformAddGroup
-  show restrictionMapHom D₀ D' h
+  change restrictionMapHom D₀ D' h
       (D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) a)) =
       D'.coeRingHom (algebraMap A (Localization.Away D'.s) a)
   -- `D₀.coeRingHom = UniformSpace.Completion.coeRingHom` and `restrictionMapHom = extensionHom`.
