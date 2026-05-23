@@ -1338,7 +1338,8 @@ theorem RationalCovering.restrictionMap_plusDatum_surjective_of_vle
     (hvle : ∀ v ∈ rationalOpen C.base.T C.base.s, v.vle f C.base.s) :
     Function.Surjective (restrictionMap C.base (C.plusDatum f)
       (C.plusDatum_subset_base f)) := by
-  -- Set equality `rationalOpen C.base.T C.base.s = rationalOpen (C.plusDatum f).T (C.plusDatum f).s`
+  -- Set equality `rationalOpen C.base.T C.base.s`
+  -- = `rationalOpen (C.plusDatum f).T (C.plusDatum f).s`
   -- combines the bridge lemma with `rationalOpen_insert_of_vle`.
   have h_eq : rationalOpen C.base.T C.base.s =
       rationalOpen (C.plusDatum f).T (C.plusDatum f).s := by
@@ -1728,7 +1729,8 @@ theorem RationalCovering.tateAcyclicity_Part2_from_standard_cover
 /-! ### Singleton-cover augmented Čech exactness (caller-ready, no Laurent machinery)
 
 For a singleton standard cover `S = {f}`, the plus-half recursion +
-minus-side bundle + Laurent gluing of the general `tateAcyclicity_augmentedCech_from_plusIH_and_minusBundle`
+minus-side bundle + Laurent gluing of the general
+`tateAcyclicity_augmentedCech_from_plusIH_and_minusBundle`
 all VANISH (no Laurent split at |S| = 1, no `step_witness` invocation).
 The caller's API at `|S| = 1` collapses to:
 
