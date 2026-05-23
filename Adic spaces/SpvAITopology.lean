@@ -226,7 +226,7 @@ theorem SpvAI.rationalSubset_inter_collapse [DecidableEq A]
 theorem SpvAI.mem_rationalSubset (I : Ideal A) (T : Finset A) (s : A) (v : Spv A) :
     v ∈ SpvAI.rationalSubset I T s ↔
       v ∈ SpvAI A I ∧ (∀ t ∈ T, v.vle t s) ∧ ¬ v.vle s 0 := by
-  simp only [SpvAI.rationalSubset, Set.mem_inter_iff, Set.mem_setOf_eq, and_assoc]
+  simp only [SpvAI.rationalSubset, Set.mem_inter_iff, Set.mem_setOf_eq]
 
 /-- **`SpvAI` membership characterisation.** -/
 theorem Spv.mem_SpvAI (v : Spv A) (I : Ideal A) :

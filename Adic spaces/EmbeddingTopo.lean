@@ -367,7 +367,7 @@ def twoElementSubtypePiHomeomorph
     rintro ⟨x, hx⟩
     by_cases h : x = a
     · subst h
-      simp only [dif_pos rfl]
+      simp only
       exact continuous_fst
     · have hxb : x = b := by
         simp only [Finset.mem_insert, Finset.mem_singleton] at hx

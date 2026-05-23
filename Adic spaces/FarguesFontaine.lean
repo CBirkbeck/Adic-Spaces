@@ -90,13 +90,14 @@ variable {E : Type u} [Field E] [TopologicalSpace E] [IsTopologicalRing E]
 
 /-- The `p`-adic topology on `W(O_E)`.
 
-This is the topology defined by the basis of open sets `p^n · W(O_E)` for `n ∈ ℕ`.
-The sorry can be filled by constructing the `p`-adic topology on the Witt vectors
-(which is the `Ideal.span {p}`-adic topology).
+This is the topology defined by the basis of open sets `p^n · W(O_E)` for `n ∈ ℕ`,
+i.e., the `Ideal.span {p}`-adic topology on Witt vectors.
 
 (Serre, *Local Fields*, Chapter II) -/
 instance WittVector.instTopologicalSpace :
-    TopologicalSpace (WittVector p ↥(powerBoundedSubring.toSubring E)) := sorry
+    TopologicalSpace (WittVector p ↥(powerBoundedSubring.toSubring E)) :=
+  Ideal.adicTopology
+    (Ideal.span {(p : WittVector p ↥(powerBoundedSubring.toSubring E))})
 
 /-- `W(O_E)` is a topological ring with respect to the `p`-adic topology.
 
@@ -248,7 +249,7 @@ theorem Y_FF_isOpen (π : PseudoUniformizer E) :
   convert continuous_subtype_val.isOpen_preimage _ hopen_union using 1
   ext v
   simp only [Set.mem_preimage, Y_FF, basicOpen_self, Set.mem_setOf_eq,
-    Set.mem_union, Set.mem_inter_iff]
+    Set.mem_union]
   refine ⟨fun h => ?_, fun h => ⟨v.2, ?_⟩⟩
   · -- h : ¬(v.1.vle pWitt 0 ∧ v.1.vle [π] 0) → ¬v.1.vle pWitt 0 ∨ ¬v.1.vle [π] 0
     rcases not_and_or.mp h.2 with h1 | h2
