@@ -2709,11 +2709,11 @@ theorem TA_B₁_gen_to_bivariateOverlap_outer_evalHom_X
 
 /-! #### Step 4: factor through the outer ideal `(1 - Ybar · X_out)` -/
 
+set_option maxHeartbeats 800000 in
+set_option synthInstance.maxHeartbeats 400000 in
 -- Bumped from defaults: bivariate Laurent overlap quotient construction
 -- exercises iterated typeclass synthesis through nested completions +
 -- TateAlgebra quotients; default heartbeats insufficient.
-set_option maxHeartbeats 800000 in
-set_option synthInstance.maxHeartbeats 400000 in
 /-- The outer ideal's generator `1 - Ybar · X_out` maps to 0 under the outer
 evalHom, where `Ybar = mk(TateAlgebra.X) ∈ B₁_gen b` and `X_out = TateAlgebra.X`
 is the outer TA variable.
@@ -3052,9 +3052,9 @@ theorem TA_B_bivariate_to_outerQuotient_evalHom₂_Y
 
 /-! #### Step 7: kernel lemmas + factored backward quotient hom -/
 
+set_option synthInstance.maxHeartbeats 400000 in
 -- Bumped from default: bivariate Laurent overlap kernel proof exercises
 -- nested typeclass synthesis through bivariate Tate algebra quotients.
-set_option synthInstance.maxHeartbeats 400000 in
 /-- Kernel lemma for `bivariateOverlapIdeal` generator `algMap b - TA₂.X`:
 `evalHom₂(algMap b - TA₂.X) = 0`. Uses `quotient_algebraMap_b_eq_X` in
 `B₁_gen b` (image of `algMap b = X` in plusFSubX quotient). -/
@@ -3077,9 +3077,9 @@ theorem TA_B_bivariate_to_outerQuotient_evalHom₂_algMap_b_sub_X_eq_zero
   rw [quotient_algebraMap_b_eq_X]
   exact sub_self _
 
+set_option maxHeartbeats 800000 in
 -- Bumped from default: backward quotient hom assembly through bivariate
 -- Laurent overlap typeclass chain requires elevated heartbeats.
-set_option maxHeartbeats 800000 in
 set_option synthInstance.maxHeartbeats 400000 in
 /-- Kernel lemma for `bivariateOverlapIdeal` generator `1 - algMap b · TA₂.Y`:
 `evalHom₂(1 - algMap b · TA₂.Y) = 0`. Uses `quotient_algebraMap_b_eq_X` +
