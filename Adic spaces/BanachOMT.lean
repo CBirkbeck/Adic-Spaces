@@ -170,7 +170,7 @@ theorem _sub_lemma_translation
   -- which is a nhds 0 by hf_zero.
   -- Step 1: V := {z : G | z + x ∈ U} is open nhds 0 in G.
   set V : Set G := (fun z => z + x) ⁻¹' U with hV_def
-  have hV_open : IsOpen V := hU_open.preimage (continuous_add_right x)
+  have hV_open : IsOpen V := hU_open.preimage (continuous_add_const x)
   have h0V : (0 : G) ∈ V := by simp [hV_def, hx_mem]
   have hV_nhds : V ∈ nhds (0 : G) := hV_open.mem_nhds h0V
   -- Step 2: f '' V ∈ nhds 0 in H.
