@@ -2710,10 +2710,10 @@ theorem TA_B₁_gen_to_bivariateOverlap_outer_evalHom_X
 /-! #### Step 4: factor through the outer ideal `(1 - Ybar · X_out)` -/
 
 set_option maxHeartbeats 800000 in
-set_option synthInstance.maxHeartbeats 400000 in
 -- Bumped from defaults: bivariate Laurent overlap quotient construction
 -- exercises iterated typeclass synthesis through nested completions +
 -- TateAlgebra quotients; default heartbeats insufficient.
+set_option synthInstance.maxHeartbeats 400000 in
 /-- The outer ideal's generator `1 - Ybar · X_out` maps to 0 under the outer
 evalHom, where `Ybar = mk(TateAlgebra.X) ∈ B₁_gen b` and `X_out = TateAlgebra.X`
 is the outer TA variable.
