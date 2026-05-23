@@ -4765,11 +4765,16 @@ unconditionally by plugging Lane-A's existential unpacking.
 **Caller tower** (in increasing level of abstraction; each uses the one
 below, all accept the same single upstream witness `(τ₁₂, hcompat_bridge)`):
 
-| Abstraction level | Theorem | Conclusion |
-|---|---|---|
-| algebraic δ | `laurentBridge_delta_eq_zero_via_compatible_bridge` | `deltaMap_gen (laurentPlusBridge uplus, laurentMinusBridge uminus) = 0` |
-| Laurent-pair presheaf gluing | `laurentCover_gluing_presheaf_via_compatible_bridge` | `∃ x, restrictionMap D₀ plus x = uplus ∧ restrictionMap D₀ minus x = uminus` |
-| V-cover presheaf gluing | `V_cover_gluing_from_laurentPair_via_compatible_bridge` | `∃ x, ∀ D ∈ V_covers, restrictionMap D₀ D x = fV D` |
+Three Lane-C theorems (descending abstraction):
+
+* **algebraic δ** (`laurentBridge_delta_eq_zero_via_compatible_bridge`):
+  `deltaMap_gen (laurentPlusBridge uplus, laurentMinusBridge uminus) = 0`
+* **Laurent-pair presheaf gluing**
+  (`laurentCover_gluing_presheaf_via_compatible_bridge`):
+  `∃ x, restrictionMap D₀ plus x = uplus ∧ restrictionMap D₀ minus x = uminus`
+* **V-cover presheaf gluing**
+  (`V_cover_gluing_from_laurentPair_via_compatible_bridge`):
+  `∃ x, ∀ D ∈ V_covers, restrictionMap D₀ D x = fV D`
 
 **Typical Lane-C usage pattern** (V-cover level):
 
