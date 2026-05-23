@@ -37,6 +37,9 @@ and `map_injective`. These work for `AdicCompletion I M` (the projective limit
 
 /-! ### Short exact sequences under completion -/
 
+-- Bumped from default 200000 to 400000: completion-preservation proof
+-- exercises Lean's typeclass synthesis heavily through nested completions
+-- + module instances.
 set_option maxHeartbeats 400000 in
 universe u in
 /-- **Completion preserves short exact sequences** of finitely generated modules
