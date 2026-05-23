@@ -143,11 +143,11 @@ theorem productRestrictionSub_isInducing_of_finer_rational
     (hV_subset : ∀ D ∈ V_covers, rationalOpen D.T D.s ⊆
       rationalOpen C.base.T C.base.s)
     (τ : { D // D ∈ V_covers } → { E // E ∈ C.covers })
-    (hτ : ∀ d : { D // D ∈ V_covers },
+    (_hτ : ∀ d : { D // D ∈ V_covers },
       rationalOpen d.1.T d.1.s ⊆ rationalOpen (τ d).1.T (τ d).1.s)
     (productRestrictionSub_V :
       presheafValue C.base → ∀ D : { D // D ∈ V_covers }, presheafValue D.1)
-    (hprV : productRestrictionSub_V =
+    (_hprV : productRestrictionSub_V =
       fun x ⟨D, hD⟩ => restrictionMap C.base D (hV_subset D hD) x)
     (hV_inducing : Topology.IsInducing productRestrictionSub_V)
     (φ : (∀ E : { E // E ∈ C.covers }, presheafValue E.1) →
@@ -314,7 +314,7 @@ theorem productRestrictionSub_isInducing_of_finer_rational_continuous
       rationalOpen C.base.T C.base.s)
     (productRestrictionSub_V :
       presheafValue C.base → ∀ D : { D // D ∈ V_covers }, presheafValue D.1)
-    (hprV : productRestrictionSub_V =
+    (_hprV : productRestrictionSub_V =
       fun x ⟨D, hD⟩ => restrictionMap C.base D (hV_subset D hD) x)
     (hV_inducing : Topology.IsInducing productRestrictionSub_V)
     (φ : (∀ E : { E // E ∈ C.covers }, presheafValue E.1) →
