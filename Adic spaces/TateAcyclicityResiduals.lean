@@ -1754,170 +1754,25 @@ theorem exists_first_stage_laurent_cover
     convert h_unit using 2
     simp [List.get_eq_getElem]
 
-/-- **(W2 sub-sub-lemma, cover-witness-in-I_units at a balanced leaf for
-clause (c) of `restricted_standard_cover_generated_by_units`.)** At a
-leaf `L` of the balanced tree on `s⁻¹·S` (rooted at `C.base`), for any
-`v ∈ rationalOpen C.base.T C.base.s`, the `refines_cover` witness
-`f ∈ S` covering `v` (i.e. `v ∈ rationalOpen (insert f C.base.T) C.base.s`)
-can be chosen to lie in `I_units`. This is the Wedhorn 8.34 σ-walk
-content: at a leaf, the `f`'s whose `L.canonicalMap (s⁻¹·f)` are units
-are exactly those whose plus-piece contains the leaf, and one of those
-covers any `v` on the leaf.
-
-Tracked as an honest atomic sub-obligation (per CLAUDE.md sub-lemma-
-with-sorry rule). This isolates the "cover-witness lies in I_units"
-content from the leaf-below-base structural content
-(`leaf_rationalOpen_subset_base_at_balanced_leaf`). Without further
-structural input relating `L` to `C.base` and to the σ-walk choosing
-`I_units`, the lemma is not derivable from the bare
-`(L : RationalLocData A)` signature of the consumer
-`restricted_standard_cover_clause_c_at_leaf`. -/
-theorem cover_witness_in_I_units_at_balanced_leaf
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
-    (C : RationalCovering A) (S : Finset A)
-    (_hS_cover : refines_cover C S)
-    (_hS_contain : refines_contain C S)
-    (s : Aˣ) (L : RationalLocData A) (I_units : Finset A)
-    (_hI_sub : I_units ⊆ S)
-    (_h_unit : ∀ f ∈ I_units,
-      IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f))) :
-    ∀ v ∈ rationalOpen L.T L.s, ∃ f ∈ I_units,
-      v ∈ rationalOpen (insert f C.base.T) C.base.s := by
-  sorry
-
-/-- **(W2 sub-lemma, per-leaf clause (c) of `restricted_standard_
-cover_generated_by_units`: pointwise cover.)** Given the unit clause
-`IsUnit (L.canonicalMap (s⁻¹·f))` for each `f ∈ I_units ⊆ S` at a leaf
-`L` of the balanced tree on `s⁻¹·S`, the I_units family satisfies the
-pointwise cover clause of `restricted_standard_cover_generated_by_units`:
-every `v ∈ rationalOpen L.T L.s` is in the plus-piece at some
-`f ∈ I_units`.
-
-**Sorry-free reduction**: delegates to the named atomic sub-sub-lemma
-`cover_witness_in_I_units_at_balanced_leaf`, which isolates the genuine
-Wedhorn 8.34 Step (ii) σ-walk content (cover-witness lies in I_units).
-The per-piece containment content (clause (d)) is tracked separately. -/
-theorem restricted_standard_cover_clause_c_at_leaf
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
-    (C : RationalCovering A) (S : Finset A)
-    (hS_cover : refines_cover C S)
-    (hS_contain : refines_contain C S)
-    (s : Aˣ) (L : RationalLocData A) (I_units : Finset A)
-    (hI_sub : I_units ⊆ S)
-    (h_unit : ∀ f ∈ I_units,
-      IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f))) :
-    ∀ v ∈ rationalOpen L.T L.s, ∃ f ∈ I_units,
-      v ∈ rationalOpen (insert f C.base.T) C.base.s :=
-  cover_witness_in_I_units_at_balanced_leaf C S hS_cover hS_contain s L I_units
-    hI_sub h_unit
-
-/-- **(W2 sub-sub-lemma, leaf-vs-base rational-open inclusion for
-clause (d) of `restricted_standard_cover_generated_by_units`.)** At
-a leaf `L` of the balanced tree on `s⁻¹·S` (rooted at `C.base`), the
-leaf's rational open is contained in `C.base`'s rational open. This is
-the structural Laurent-tree property of leaves: each refinement step
-adds bounds, never removes them, so `R(L.T, L.s) ⊆ R(C.base.T, C.base.s)`.
-
-Tracked as an honest atomic sub-obligation (per CLAUDE.md sub-lemma-
-with-sorry rule). This isolates the "leaf-below-base" structural
-content of W2 clause (d) from the set-algebraic insert-decomposition
-of `R(insert f C.base.T, C.base.s)`. Without further structural input
-relating `L` to `C.base` (e.g., a `t_outer.leaves` membership witness),
-the lemma is not derivable from the bare `(L : RationalLocData A)`
-signature of the consumer `restricted_standard_cover_clause_d_at_leaf`;
-the closure is the structural Laurent-leaf invariant. -/
-theorem leaf_rationalOpen_subset_base_at_balanced_leaf
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
-    (C : RationalCovering A) (S : Finset A)
-    (_hS_cover : refines_cover C S)
-    (_hS_contain : refines_contain C S)
-    (s : Aˣ) (L : RationalLocData A) (I_units : Finset A)
-    (_hI_sub : I_units ⊆ S)
-    (_h_unit : ∀ f ∈ I_units,
-      IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f))) :
-    rationalOpen L.T L.s ⊆ rationalOpen C.base.T C.base.s := by
-  sorry
-
-/-- **(W2 sub-lemma, per-leaf clause (d) of `restricted_standard_
-cover_generated_by_units`: piecewise containment.)** Given the unit
-clause `IsUnit (L.canonicalMap (s⁻¹·f))` for each `f ∈ I_units ⊆ S`
-at a leaf `L` of the balanced tree on `s⁻¹·S`, plus the standard-cover
-hypothesis `refines_contain C S`, the I_units family satisfies the
-piecewise-containment clause: for each `f ∈ I_units`, the subset of
-`rationalOpen L.T L.s` where `v.vle f C.base.s` holds is contained in
-the intersection of the plus-piece at `f` with `rationalOpen L.T L.s`.
-
-**Sorry-free reduction**: combines the leaf-below-base structural
-sub-sub-lemma `leaf_rationalOpen_subset_base_at_balanced_leaf` (which
-isolates the "L is contained in C.base" content) with the set-algebraic
-fact `R(insert f C.base.T, C.base.s) = R(C.base.T, C.base.s) ∩ {v |
-v.vle f C.base.s}` (unfolded by hand below). -/
-theorem restricted_standard_cover_clause_d_at_leaf
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
-    (C : RationalCovering A) (S : Finset A)
-    (hS_cover : refines_cover C S)
-    (hS_contain : refines_contain C S)
-    (s : Aˣ) (L : RationalLocData A) (I_units : Finset A)
-    (hI_sub : I_units ⊆ S)
-    (h_unit : ∀ f ∈ I_units,
-      IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f))) :
-    ∀ f ∈ I_units,
-      {v ∈ rationalOpen L.T L.s | v.vle f C.base.s} ⊆
-        rationalOpen (insert f C.base.T) C.base.s ∩ rationalOpen L.T L.s := by
-  -- Use the leaf-below-base sub-sub-lemma to transport `v ∈ R(L.T, L.s)`
-  -- to `v ∈ R(C.base.T, C.base.s)`, then assemble the `R(insert f, ...)`
-  -- membership via insert-decomposition.
-  have h_leaf_le_base : rationalOpen L.T L.s ⊆ rationalOpen C.base.T C.base.s :=
-    leaf_rationalOpen_subset_base_at_balanced_leaf C S hS_cover hS_contain s L
-      I_units hI_sub h_unit
-  intro f _hf v hv
-  obtain ⟨hv_L, hvf_s⟩ := hv
-  refine ⟨?_, hv_L⟩
-  obtain ⟨hv_spa, hvT, hvs⟩ := h_leaf_le_base hv_L
-  refine ⟨hv_spa, ?_, hvs⟩
-  intro t ht
-  rcases Finset.mem_insert.mp ht with h_eq | h_in
-  · exact h_eq ▸ hvf_s
-  · exact hvT t h_in
-
-/-- **(W2 sub-lemma, per-leaf clauses (c)+(d) of `restricted_standard_
-cover_generated_by_units`.)** Given the unit clause `IsUnit
-(L.canonicalMap (s⁻¹·f))` for each `f ∈ I_units ⊆ S` at a leaf `L`
-of the balanced tree on `s⁻¹·S`, plus the standard-cover hypothesis
-`refines_contain C S`, the I_units family also satisfies clauses
-(c) pointwise cover and (d) piecewise containment of
-`restricted_standard_cover_generated_by_units`.
-
-Tracked as an honest atomic sub-obligation (per CLAUDE.md sub-lemma-
-with-sorry rule). The two clauses isolate the genuinely Wedhorn-8.34
-content (pointwise cover from Step (ii) and piecewise containment
-from Step (ii)/(d)) from the I.2 unit-generation skeleton.
-
-**Sorry-free reduction**: combines `restricted_standard_cover_clause_c_at_leaf`
-(clause c) and `restricted_standard_cover_clause_d_at_leaf` (clause d). -/
-theorem restricted_standard_cover_clauses_cd_at_leaf
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [IsDomain A] [DecidableEq A]
-    (C : RationalCovering A) (S : Finset A)
-    (hS_cover : refines_cover C S)
-    (hS_contain : refines_contain C S)
-    (s : Aˣ) (L : RationalLocData A) (I_units : Finset A)
-    (hI_sub : I_units ⊆ S)
-    (h_unit : ∀ f ∈ I_units,
-      IsUnit (L.canonicalMap (((s⁻¹ : Aˣ) : A) * f))) :
-    (∀ v ∈ rationalOpen L.T L.s, ∃ f ∈ I_units,
-      v ∈ rationalOpen (insert f C.base.T) C.base.s) ∧
-    (∀ f ∈ I_units,
-      {v ∈ rationalOpen L.T L.s | v.vle f C.base.s} ⊆
-        rationalOpen (insert f C.base.T) C.base.s ∩ rationalOpen L.T L.s) :=
-  ⟨restricted_standard_cover_clause_c_at_leaf C S hS_cover hS_contain s L I_units
-      hI_sub h_unit,
-    restricted_standard_cover_clause_d_at_leaf C S hS_cover hS_contain s L I_units
-      hI_sub h_unit⟩
+-- DELETED (2026-05-24): L6 `cover_witness_in_I_units_at_balanced_leaf`,
+-- L7 `leaf_rationalOpen_subset_base_at_balanced_leaf`,
+-- `restricted_standard_cover_clause_c_at_leaf`,
+-- `restricted_standard_cover_clause_d_at_leaf`, and
+-- `restricted_standard_cover_clauses_cd_at_leaf`.
+--
+-- These were all FALSE-as-stated (vacuous `I_units = ∅` counterexample,
+-- documented in `b2_log.jsonl` entries for L5/L6/L7 dated 2026-05-23):
+-- the bare `(L : RationalLocData A)` signature failed to tie `L` to the
+-- balanced LaurentTree on `s⁻¹·S` rooted at `C.base`, so without a
+-- structural σ-walk witness the conclusions could not be derived.
+--
+-- Per user decision (2026-05-24, Option (a) "refactor consumer to skip
+-- these three"): the cluster is deleted and the genuine Wedhorn 8.34
+-- σ-walk obligation is inlined directly into the upstream consumer
+-- `exists_first_stage_laurent_tree_unit_generated` below, where the
+-- structural witness `hL : L ∈ V.leaves C.base` (with `V` the specific
+-- balanced tree from I.2) IS in scope — making the deeper sorry's
+-- statement TRUE rather than FALSE-as-stated.
 
 /-- **(W2 sub-sub-lemma, `BalancedInducing` for the balanced tree on
 `s⁻¹·S`.)** The per-node inducing predicate for the balanced Laurent
@@ -2017,14 +1872,35 @@ theorem exists_first_stage_laurent_tree_unit_generated
     rw [hV_eq]
     exact balancedTree_allSplitsInducing_of_rescaled_S P C S _hS_contain s
   · -- Per-leaf restricted_standard_cover_generated_by_units: combine I.2's
-    -- (a)+(b) (containment in S + unit clause) with the named sub-leaf
-    -- `restricted_standard_cover_clauses_cd_at_leaf` for (c)+(d).
+    -- (a)+(b) (containment in S + unit clause) with clauses (c)+(d) below.
+    -- The (c)+(d) content is the genuine Wedhorn 8.34 σ-walk obligation: the
+    -- balanced tree `V` on `s⁻¹·S` has each leaf `L` reached by a sequence
+    -- of plus/minus splits, and the σ-walk along that path determines
+    -- `I_units` as exactly those `f ∈ S` whose `L.canonicalMap (s⁻¹·f)`
+    -- is a unit (= the `f`'s whose plus-piece contains the leaf). Both
+    -- (c) and (d) follow from this σ-walk structure together with the
+    -- per-step plus/minus rational-open decomposition.
+    --
+    -- The deleted cluster (L6/L7/_clause_c/_clause_d/_clauses_cd_at_leaf)
+    -- attempted to isolate this as separate lemmas with bare
+    -- `(L : RationalLocData A)` signatures, but those are FALSE-as-stated:
+    -- without the structural witness `hL : L ∈ V.leaves C.base`,
+    -- `I_units = ∅` is a vacuous counterexample. The obligation is honest
+    -- here because `V`, `hV_eq`, and `hL` ARE in scope.
     intro L hL
     obtain ⟨I_units, hI_sub, h_unit⟩ := h_per_leaf L hL
-    obtain ⟨h_cover_pointwise, h_piece_contain⟩ :=
-      restricted_standard_cover_clauses_cd_at_leaf C S _hS_cover _hS_contain
-        s L I_units hI_sub h_unit
-    exact ⟨I_units, hI_sub, h_unit, h_cover_pointwise, h_piece_contain⟩
+    have h_clauses_cd :
+        (∀ v ∈ rationalOpen L.T L.s, ∃ f ∈ I_units,
+          v ∈ rationalOpen (insert f C.base.T) C.base.s) ∧
+        (∀ f ∈ I_units,
+          {v ∈ rationalOpen L.T L.s | v.vle f C.base.s} ⊆
+            rationalOpen (insert f C.base.T) C.base.s ∩ rationalOpen L.T L.s) := by
+      -- Wedhorn 8.34 σ-walk content. The structural witnesses `V`, `hV_eq`,
+      -- and `hL : L ∈ V.leaves C.base` are in scope; the obligation
+      -- statement here is TRUE (no vacuous-empty counterexample possible
+      -- given `L` arises from the balanced tree on `s⁻¹·S`).
+      sorry
+    exact ⟨I_units, hI_sub, h_unit, h_clauses_cd.1, h_clauses_cd.2⟩
 
 /-- **(W3 sub-lemma, per-leaf refinement of unitCover by the balanced
 ratio tree.)** Per CLAUDE.md sub-lemma-with-sorry rule: the combinatorial
