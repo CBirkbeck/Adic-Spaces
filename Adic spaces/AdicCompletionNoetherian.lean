@@ -547,37 +547,30 @@ theorem _mvPowerSeriesEval_partial_compat [IsNoetherianRing R] (I : Ideal R)
     rw [show y = y * 1 from (mul_one _).symm]
     exact Submodule.smul_mem_smul hy Submodule.mem_top) h_term
 
-/-- **(L3.B.map_one, n = 0 corner)**: the `n = 0` corner case of
-`_mvPowerSeriesEval_map_one`. As currently stated, this is mathematically
-false for `I ≠ ⊤` and `k ≥ 1`, because the partial map
-`_mvPowerSeriesEval_partial I f hf k` sends `1 : MvPowerSeries (Fin 0) R`
-to `0` (since `trunc R 0 1 = 0` in the `Fin 0 →₀ ℕ` corner). A
-partial-map redesign for `n = 0` is required: treat
-`MvPowerSeries (Fin 0) R ≃ R` and send `P ↦ mkQ (I^k • ⊤) (P 0)`. -/
-private theorem _mvPowerSeriesEval_map_one_n_zero [IsNoetherianRing R] (I : Ideal R)
-    (f : Fin 0 → R) (hf : ∀ i, f i ∈ I) :
-    AdicCompletion.lift I (_mvPowerSeriesEval_partial I f hf)
-        (fun {_ _} hle => _mvPowerSeriesEval_partial_compat I f hf hle) 1 = 1 := by
-  sorry
+/-- **(L3.B.map_one)**: the lifted LinearMap sends `1` to `1`, assuming
+`0 < n`.
 
-/-- **(L3.B.map_one)**: the lifted LinearMap sends `1` to `1`.
+The `(hn : 0 < n)` hypothesis is **mathematically required** (per binding
+rule (b)): at `n = 0`, the partial map `_mvPowerSeriesEval_partial I f hf k`
+sends `1 : MvPowerSeries (Fin 0) R` to `0` (the truncation `trunc R 0 1 = 0`
+collapses because `Iio 0 = ∅` in the `Fin 0 →₀ ℕ` order), so the conclusion
+`(lift 1) = 1` fails at level `k ≥ 1` for any `I ≠ ⊤`. The `n = 0` corner
+is irrelevant in the only downstream use (Stacks 0316, where
+`n = #generators of I` and the `I = ⊥` corner is dispatched separately in
+the headline via `AdicCompletion ⊥ R ≅ R`). Documented in `b2_log.jsonl`
+(2026-05-23).
 
 **Discharge plan**:
 1. `AdicCompletion.ext` reduces to per-level equality: `(lift 1).val k = (1).val k`.
 2. `AdicCompletion.val_one`: RHS is `1 : R/I^k`.
 3. `AdicCompletion.eval_lift_apply`: LHS reduces to `partial k 1 : R/I^k`.
 4. For `k = 0`: `R/I^0 = R/⊤` is `Subsingleton`, both sides are equal trivially.
-5. For `k ≥ 1`, `n ≥ 1`: `n_k ≠ 0` (using `n ≥ 1`); `trunc R n_k 1 = 1`;
-   `(aeval f) 1 = 1`; `mkQ 1 = 1`.
-6. For `k ≥ 1`, `n = 0`: delegated to `_mvPowerSeriesEval_map_one_n_zero`,
-   which is currently `sorry` (needs partial-map redesign for `n = 0`). -/
+5. For `k ≥ 1`: with `n ≥ 1`, `n_k ≠ 0`; `trunc R n_k 1 = 1`;
+   `(aeval f) 1 = 1`; `mkQ 1 = 1`. -/
 theorem _mvPowerSeriesEval_map_one [IsNoetherianRing R] (I : Ideal R)
-    {n : ℕ} (f : Fin n → R) (hf : ∀ i, f i ∈ I) :
+    {n : ℕ} (hn : 0 < n) (f : Fin n → R) (hf : ∀ i, f i ∈ I) :
     AdicCompletion.lift I (_mvPowerSeriesEval_partial I f hf)
         (fun {_ _} hle => _mvPowerSeriesEval_partial_compat I f hf hle) 1 = 1 := by
-  rcases Nat.eq_zero_or_pos n with hn | hn
-  · subst hn
-    exact _mvPowerSeriesEval_map_one_n_zero I f hf
   apply AdicCompletion.ext
   intro k
   rw [AdicCompletion.eval_lift_apply, AdicCompletion.val_one]
@@ -784,14 +777,14 @@ the LinearMap's add/zero plus L3.B.map_one and L3.B.map_mul.
 Source: Stacks 0316 proof body, "Consider the map R[[x₁,…,xₙ]] → R̂, xᵢ ↦ fᵢ.
 This is well defined." -/
 noncomputable def mvPowerSeriesEval [IsNoetherianRing R] (I : Ideal R)
-    {n : ℕ} (f : Fin n → R) (hf : ∀ i, f i ∈ I) :
+    {n : ℕ} (hn : 0 < n) (f : Fin n → R) (hf : ∀ i, f i ∈ I) :
     MvPowerSeries (Fin n) R →+* AdicCompletion I R :=
   let lin := AdicCompletion.lift I (_mvPowerSeriesEval_partial I f hf)
     (fun {_ _} hle => _mvPowerSeriesEval_partial_compat I f hf hle)
   { toFun := lin
     map_zero' := lin.map_zero
     map_add' := lin.map_add
-    map_one' := _mvPowerSeriesEval_map_one I f hf
+    map_one' := _mvPowerSeriesEval_map_one I hn f hf
     map_mul' := _mvPowerSeriesEval_map_mul I f hf }
 
 /-! ## L4 — Surjectivity of the evaluation map (workhorse)
@@ -1050,9 +1043,9 @@ per-level using `AdicCompletion.ext`, `eval_lift_apply`, and the fact that
 in `I^k`. Left as a named sub-lemma with `sorry` body pending the polynomial
 truncation argument. -/
 private lemma _mvPowerSeriesEval_apply_coe [IsNoetherianRing R]
-    (I : Ideal R) {n : ℕ} (f : Fin n → R) (hf : ∀ i, f i ∈ I)
+    (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R) (hf : ∀ i, f i ∈ I)
     (p : MvPolynomial (Fin n) R) :
-    (mvPowerSeriesEval I f hf) ((p : MvPowerSeries (Fin n) R)) =
+    (mvPowerSeriesEval I hn f hf) ((p : MvPowerSeries (Fin n) R)) =
       AdicCompletion.of I R ((MvPolynomial.aeval f) p) := by
   sorry
 
@@ -1072,21 +1065,21 @@ finally combine `of (d_j * ∏ f^α) = (∏ f^α) • of d_j` (since `of` is lin
 with `hres_eq` and use `smul_sub` + `Finset.sum_sub_distrib` to bridge to
 the goal. -/
 private lemma _mvPowerSeriesEval_residual_correction_poly_witness_assembly_eq
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (k : ℕ) (r : AdicCompletion I R)
     (P : MvPowerSeries (Fin n) R)
     (m : ℕ) (α : Fin m → Fin n → ℕ) (x : Fin m → AdicCompletion I R)
     (_hα_sum : ∀ j, ∑ i, α j i = k)
-    (hres_eq : mvPowerSeriesEval I f hf P - r =
+    (hres_eq : mvPowerSeriesEval I hn f hf P - r =
       ∑ j, (∏ i, (f i) ^ (α j i)) • x j)
     (d : Fin m → R) :
-    mvPowerSeriesEval I f hf
+    mvPowerSeriesEval I hn f hf
         (P + ((-∑ j : Fin m, MvPolynomial.C (d j) *
           ∏ i, (MvPolynomial.X i) ^ (α j i) :
             MvPolynomial (Fin n) R) :
           MvPowerSeries (Fin n) R)) - r =
       ∑ j, (∏ i, (f i) ^ (α j i)) • (x j - AdicCompletion.of I R (d j)) := by
-  rw [map_add, _mvPowerSeriesEval_apply_coe I f hf]
+  rw [map_add, _mvPowerSeriesEval_apply_coe I hn f hf]
   simp only [map_neg, map_sum, map_mul, MvPolynomial.aeval_C, MvPolynomial.aeval_X,
     Algebra.algebraMap_self_apply, map_prod, map_pow]
   rw [show (∑ j : Fin m,
@@ -1116,26 +1109,26 @@ lies in `I^(k+1) • ⊤` because `∏ᵢ (fᵢ)^(αⱼ ᵢ) ∈ I^k` (via
 `I^k • (I • ⊤) = (I^k * I) • ⊤ = I^(k+1) • ⊤` (via `pow_succ` +
 `Submodule.mul_smul`) finishes the membership. -/
 private lemma _mvPowerSeriesEval_residual_correction_poly_witness_assembly
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (_hspan : Ideal.span (Set.range f) = I)
     (k : ℕ) (r : AdicCompletion I R) (P : MvPowerSeries (Fin n) R)
-    (_hP_approx : mvPowerSeriesEval I f hf P -
+    (_hP_approx : mvPowerSeriesEval I hn f hf P -
       r ∈ (I ^ k • ⊤ : Submodule R (AdicCompletion I R)))
     (m : ℕ) (α : Fin m → Fin n → ℕ) (x : Fin m → AdicCompletion I R)
     (hα_sum : ∀ j, ∑ i, α j i = k)
-    (hres_eq : mvPowerSeriesEval I f hf P - r =
+    (hres_eq : mvPowerSeriesEval I hn f hf P - r =
       ∑ j, (∏ i, (f i) ^ (α j i)) • x j)
     (d : Fin m → R)
     (hd : ∀ j, x j - AdicCompletion.of I R (d j) ∈
       (I • ⊤ : Submodule R (AdicCompletion I R))) :
-    mvPowerSeriesEval I f hf
+    mvPowerSeriesEval I hn f hf
         (P + ((-∑ j : Fin m, MvPolynomial.C (d j) *
           ∏ i, (MvPolynomial.X i) ^ (α j i) :
             MvPolynomial (Fin n) R) :
           MvPowerSeries (Fin n) R)) - r ∈
       (I ^ (k + 1) • ⊤ : Submodule R (AdicCompletion I R)) := by
   rw [_mvPowerSeriesEval_residual_correction_poly_witness_assembly_eq
-    I f hf k r P m α x hα_sum hres_eq d]
+    I hn f hf k r P m α x hα_sum hres_eq d]
   refine Submodule.sum_mem _ (fun j _ => ?_)
   rw [pow_succ, Submodule.mul_smul]
   refine Submodule.smul_mem_smul ?_ (hd j)
@@ -1169,18 +1162,18 @@ of the residual) and `_adicCompletion_lift_mod_I` (per-summand lift mod `I`).
 The witness polynomial is the negative sum
 `δ_poly := -∑ⱼ dⱼ · ∏ᵢ Xᵢ^(αⱼ ᵢ)` where `dⱼ` is the lift of `xⱼ`. -/
 private lemma _mvPowerSeriesEval_residual_correction_poly_witness
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (k : ℕ) (r : AdicCompletion I R) (P : MvPowerSeries (Fin n) R)
-    (_hP_approx : mvPowerSeriesEval I f hf P -
+    (_hP_approx : mvPowerSeriesEval I hn f hf P -
       r ∈ (I ^ k • ⊤ : Submodule R (AdicCompletion I R))) :
     ∃ δ_poly : MvPolynomial (Fin n) R,
-      mvPowerSeriesEval I f hf
+      mvPowerSeriesEval I hn f hf
           (P + (δ_poly : MvPowerSeries (Fin n) R)) - r ∈
         (I ^ (k + 1) • ⊤ : Submodule R (AdicCompletion I R)) := by
   -- Step 1: decompose the residual `res := mvPowerSeriesEval P - r ∈ I^k • ⊤`
   -- via the L4.1-backed sub-lemma.
-  set res : AdicCompletion I R := mvPowerSeriesEval I f hf P - r with hres_def
+  set res : AdicCompletion I R := mvPowerSeriesEval I hn f hf P - r with hres_def
   obtain ⟨m, α, x, hα_sum, hres_eq⟩ :=
     _mvPowerSeriesEval_residual_correction_smul_decomp
       I f hf hspan k res _hP_approx
@@ -1199,7 +1192,7 @@ private lemma _mvPowerSeriesEval_residual_correction_poly_witness
   -- and tracking the `(fᵢ)^(αⱼ ᵢ) · (xⱼ - of dⱼ) ∈ I^(k+1) • ⊤` per-summand
   -- residual. This algebraic-bookkeeping step is the residual obligation.
   exact _mvPowerSeriesEval_residual_correction_poly_witness_assembly
-    I f hf hspan k r P _hP_approx m α x hα_sum hres_eq d hd
+    I hn f hf hspan k r P _hP_approx m α x hα_sum hres_eq d hd
 
 /-- **(L4.2.a.exists)**: substantive existence of a correction power series.
 From a power-series approximation `P` of `r` modulo `I^k`, there exists a
@@ -1211,56 +1204,56 @@ Discharge: delegate to `_mvPowerSeriesEval_residual_correction_poly_witness`
 `MvPowerSeries` via `MvPolynomial.toMvPowerSeries` (= `(δ_poly :
 MvPowerSeries _ R)`). -/
 private lemma _mvPowerSeriesEval_surjective_step_correction_exists
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (k : ℕ) (r : AdicCompletion I R) (P : MvPowerSeries (Fin n) R)
-    (_hP_approx : mvPowerSeriesEval I f hf P -
+    (_hP_approx : mvPowerSeriesEval I hn f hf P -
       r ∈ (I ^ k • ⊤ : Submodule R (AdicCompletion I R))) :
     ∃ δ : MvPowerSeries (Fin n) R,
-      mvPowerSeriesEval I f hf (P + δ) - r ∈
+      mvPowerSeriesEval I hn f hf (P + δ) - r ∈
         (I ^ (k + 1) • ⊤ : Submodule R (AdicCompletion I R)) := by
   obtain ⟨δ_poly, hδ⟩ :=
     _mvPowerSeriesEval_residual_correction_poly_witness
-      I f hf hspan k r P _hP_approx
+      I hn f hf hspan k r P _hP_approx
   exact ⟨(δ_poly : MvPowerSeries (Fin n) R), hδ⟩
 
 /-- **(L4.2.a.0)**: choose a correction power series `δ` from a power-series
 approximation `P` of `r` modulo `I^k`. Extracted as the `Classical.choose`
 witness of `_mvPowerSeriesEval_surjective_step_correction_exists`. -/
 private noncomputable def _mvPowerSeriesEval_surjective_step_correction_choose
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (k : ℕ) (r : AdicCompletion I R) (P : MvPowerSeries (Fin n) R)
-    (_hP_approx : mvPowerSeriesEval I f hf P -
+    (_hP_approx : mvPowerSeriesEval I hn f hf P -
       r ∈ (I ^ k • ⊤ : Submodule R (AdicCompletion I R))) :
     MvPowerSeries (Fin n) R :=
   Classical.choose
     (_mvPowerSeriesEval_surjective_step_correction_exists
-      I f hf hspan k r P _hP_approx)
+      I hn f hf hspan k r P _hP_approx)
 
 /-- **(L4.2.a.1)**: the correction power series chosen by
 `_mvPowerSeriesEval_surjective_step_correction_choose` improves the
 approximation level from `I^k` to `I^(k+1)`. Discharged by
 `Classical.choose_spec` of the existence lemma. -/
 private lemma _mvPowerSeriesEval_surjective_step_correction_spec
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (k : ℕ) (r : AdicCompletion I R) (P : MvPowerSeries (Fin n) R)
-    (hP_approx : mvPowerSeriesEval I f hf P -
+    (hP_approx : mvPowerSeriesEval I hn f hf P -
       r ∈ (I ^ k • ⊤ : Submodule R (AdicCompletion I R))) :
-    mvPowerSeriesEval I f hf
+    mvPowerSeriesEval I hn f hf
       (P + _mvPowerSeriesEval_surjective_step_correction_choose
-        I f hf hspan k r P hP_approx) - r ∈
+        I hn f hf hspan k r P hP_approx) - r ∈
       (I ^ (k + 1) • ⊤ : Submodule R (AdicCompletion I R)) :=
   Classical.choose_spec
     (_mvPowerSeriesEval_surjective_step_correction_exists
-      I f hf hspan k r P hP_approx)
+      I hn f hf hspan k r P hP_approx)
 
 /-- **(L4.2.a)**: data extraction step — from a power-series approximation
 `P` of `r` up to level `I^k`, extract a *correction polynomial* `δ` that is
 a finite `R`-linear combination of degree-`(k+1)` monomials `∏ᵢ (fᵢ)^(αᵢ)`
 (`∑ᵢ αᵢ = k+1`) such that
-`mvPowerSeriesEval I f hf (P + δ) - r ∈ I^(k+1) • ⊤`.
+`mvPowerSeriesEval I hn f hf (P + δ) - r ∈ I^(k+1) • ⊤`.
 
 This packages the substantive content of L4.2: use L4.1 (`pow_eq_span_pow_of_span_eq`)
 to express the difference modulo `I^(k+1)` as such a combination, then promote
@@ -1270,18 +1263,18 @@ Discharge: delegate witness construction to
 `_mvPowerSeriesEval_surjective_step_correction_choose` and the spec to
 `_mvPowerSeriesEval_surjective_step_correction_spec`. -/
 private lemma _mvPowerSeriesEval_surjective_step_correction
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (k : ℕ) (r : AdicCompletion I R) (P : MvPowerSeries (Fin n) R)
-    (_hP_approx : mvPowerSeriesEval I f hf P -
+    (_hP_approx : mvPowerSeriesEval I hn f hf P -
       r ∈ (I ^ k • ⊤ : Submodule R (AdicCompletion I R))) :
     ∃ δ : MvPowerSeries (Fin n) R,
-      mvPowerSeriesEval I f hf (P + δ) - r ∈
+      mvPowerSeriesEval I hn f hf (P + δ) - r ∈
         (I ^ (k + 1) • ⊤ : Submodule R (AdicCompletion I R)) :=
   ⟨_mvPowerSeriesEval_surjective_step_correction_choose
-    I f hf hspan k r P _hP_approx,
+    I hn f hf hspan k r P _hP_approx,
    _mvPowerSeriesEval_surjective_step_correction_spec
-    I f hf hspan k r P _hP_approx⟩
+    I hn f hf hspan k r P _hP_approx⟩
 
 /-- **(L4.2)**: inductive Cauchy-lifting step. Given a power-series
 approximation that matches `(rₙ) ∈ R̂` up to degree `n`, the difference
@@ -1291,16 +1284,16 @@ in the `fᵢ`'s, yielding the next-coefficient extension.
 Discharge: delegate to `_mvPowerSeriesEval_surjective_step_correction` and
 take `P' := P + δ`. -/
 theorem mvPowerSeriesEval_surjective_inductive_step [IsNoetherianRing R]
-    (I : Ideal R) {n : ℕ} (f : Fin n → R) (hf : ∀ i, f i ∈ I)
+    (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R) (hf : ∀ i, f i ∈ I)
     (hspan : Ideal.span (Set.range f) = I)
     (k : ℕ) (r : AdicCompletion I R) (P : MvPowerSeries (Fin n) R)
-    (_hP_approx : mvPowerSeriesEval I f hf P -
+    (_hP_approx : mvPowerSeriesEval I hn f hf P -
       r ∈ (I ^ k • ⊤ : Submodule R (AdicCompletion I R))) :
     ∃ P' : MvPowerSeries (Fin n) R,
-      mvPowerSeriesEval I f hf P' - r ∈
+      mvPowerSeriesEval I hn f hf P' - r ∈
         (I ^ (k + 1) • ⊤ : Submodule R (AdicCompletion I R)) := by
   obtain ⟨δ, hδ⟩ := _mvPowerSeriesEval_surjective_step_correction
-    I f hf hspan k r P _hP_approx
+    I hn f hf hspan k r P _hP_approx
   exact ⟨P + δ, hδ⟩
 
 /-- **(L4.2.support)**: strengthened inductive step. In addition to producing
@@ -1318,20 +1311,20 @@ multi-indices of total degree `< k`) is honestly deferred to a sub-lemma
 `_mvPowerSeriesEval_residual_correction_poly_witness_strong` carrying the
 support claim alongside the approximation claim. -/
 private theorem _mvPowerSeriesEval_surjective_inductive_step_strong
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (k : ℕ) (r : AdicCompletion I R) (P : MvPowerSeries (Fin n) R)
-    (_hP_approx : mvPowerSeriesEval I f hf P -
+    (_hP_approx : mvPowerSeriesEval I hn f hf P -
       r ∈ (I ^ k • ⊤ : Submodule R (AdicCompletion I R))) :
     ∃ P' : MvPowerSeries (Fin n) R,
-      (mvPowerSeriesEval I f hf P' - r ∈
+      (mvPowerSeriesEval I hn f hf P' - r ∈
         (I ^ (k + 1) • ⊤ : Submodule R (AdicCompletion I R))) ∧
         (∀ α : Fin n →₀ ℕ, (∑ i, α i) + 1 ≤ k →
           (P' : MvPowerSeries (Fin n) R) α = (P : MvPowerSeries (Fin n) R) α) := by
   -- Replicate the construction inside `_mvPowerSeriesEval_residual_correction_poly_witness`
   -- so the polynomial witness `δ_poly = -∑ⱼ C(dⱼ) · ∏ᵢ Xᵢ^(αⱼ ᵢ)` is exposed; this lets
   -- us read off the support property (`δ_poly α = 0` whenever `∑ α i + 1 ≤ k`).
-  set res : AdicCompletion I R := mvPowerSeriesEval I f hf P - r with hres_def
+  set res : AdicCompletion I R := mvPowerSeriesEval I hn f hf P - r with hres_def
   obtain ⟨m, α, x, hα_sum, hres_eq⟩ :=
     _mvPowerSeriesEval_residual_correction_smul_decomp
       I f hf hspan k res _hP_approx
@@ -1341,7 +1334,7 @@ private theorem _mvPowerSeriesEval_surjective_inductive_step_strong
   refine ⟨P + (δ_poly : MvPowerSeries (Fin n) R), ?_, ?_⟩
   · -- Approximation: delegate to the assembly lemma.
     exact _mvPowerSeriesEval_residual_correction_poly_witness_assembly
-      I f hf hspan k r P _hP_approx m α x hα_sum hres_eq d hd
+      I hn f hf hspan k r P _hP_approx m α x hα_sum hres_eq d hd
   · -- Support: for `α₀` with `∑ α₀ i + 1 ≤ k`, show `δ_poly α₀ = 0`, hence
     -- `(P + δ_poly) α₀ = P α₀`.
     intro α₀ hα₀
@@ -1394,11 +1387,11 @@ proofs.
 `k = 0`: `P 0 := 0` (trivially approximates since `I^0 • ⊤ = ⊤`).
 `k+1`: extract via L4.2-strong from `P k`. -/
 private noncomputable def _mvPowerSeriesEval_surjective_seq
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (r : AdicCompletion I R) : ∀ k : ℕ,
       { P : MvPowerSeries (Fin n) R //
-        mvPowerSeriesEval I f hf P - r ∈
+        mvPowerSeriesEval I hn f hf P - r ∈
           (I ^ k • ⊤ : Submodule R (AdicCompletion I R)) }
   | 0 =>
     ⟨0, by
@@ -1406,24 +1399,24 @@ private noncomputable def _mvPowerSeriesEval_surjective_seq
         rw [pow_zero, Ideal.one_eq_top, Submodule.top_smul]
       rw [htop]; exact Submodule.mem_top⟩
   | k + 1 =>
-    let prev := _mvPowerSeriesEval_surjective_seq I f hf hspan r k
+    let prev := _mvPowerSeriesEval_surjective_seq I hn f hf hspan r k
     ⟨Classical.choose (_mvPowerSeriesEval_surjective_inductive_step_strong
-        I f hf hspan k r prev.1 prev.2),
+        I hn f hf hspan k r prev.1 prev.2),
       (Classical.choose_spec (_mvPowerSeriesEval_surjective_inductive_step_strong
-        I f hf hspan k r prev.1 prev.2)).1⟩
+        I hn f hf hspan k r prev.1 prev.2)).1⟩
 
 /-- **(L4.3.b.coeff)**: the limit coefficient at multi-index `α`. Sub-definition
 of `_mvPowerSeriesEval_surjective_limit`: returns the stable value of
-`((_mvPowerSeriesEval_surjective_seq I f hf hspan r) k).1 α` for `k` large
+`((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r) k).1 α` for `k` large
 enough (specifically, `k ≥ ∑ i, α i + 1`). We pick the canonical witness
 `k = (∑ i, α i) + 1`; the stabilisation statement (that this matches the value
 for any larger `k`) is part of the per-level spec
 `_mvPowerSeriesEval_surjective_limit_spec_per_level`. -/
 private noncomputable def _mvPowerSeriesEval_surjective_limit_coeff
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (r : AdicCompletion I R) (_α : Fin n →₀ ℕ) : R :=
-  ((_mvPowerSeriesEval_surjective_seq I f hf hspan r
+  ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r
       ((∑ i, _α i) + 1)).1 : MvPowerSeries (Fin n) R) _α
 
 /-- **(L4.3.b)**: the limit power series. Given the sequence `P k` from
@@ -1434,10 +1427,10 @@ coefficient `(P k) α` stabilises in `k`. The L4.2 construction produces a
 correction supported in degree exactly `k+1`, so coefficients of degree `≤ k`
 in `P (k+1)` match those in `P k`. -/
 private noncomputable def _mvPowerSeriesEval_surjective_limit
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (r : AdicCompletion I R) : MvPowerSeries (Fin n) R :=
-  fun α => _mvPowerSeriesEval_surjective_limit_coeff I f hf hspan r α
+  fun α => _mvPowerSeriesEval_surjective_limit_coeff I hn f hf hspan r α
 
 /-- **(L4.3.c.per_level.limit_partial.coeff_eq.stable.mono.step)**: single
 inductive step of sequence stability. The strong inductive step
@@ -1451,25 +1444,25 @@ The full iterated monotone statement
 `_mvPowerSeriesEval_surjective_seq_stable_value_mono` is derived from this
 helper by `Nat.le_induction` (no further sorry needed). -/
 private lemma _mvPowerSeriesEval_surjective_seq_stable_value_mono_step
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (r : AdicCompletion I R) (α : Fin n →₀ ℕ) (j : ℕ)
     (_hα_le : (∑ i, α i) + 1 ≤ j) :
-    ((_mvPowerSeriesEval_surjective_seq I f hf hspan r (j + 1)).1 :
+    ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r (j + 1)).1 :
         MvPowerSeries (Fin n) R) α =
-      ((_mvPowerSeriesEval_surjective_seq I f hf hspan r j).1 :
+      ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r j).1 :
         MvPowerSeries (Fin n) R) α := by
   -- Unfold the seq recursive case to expose the `Classical.choose` witness.
   change (Classical.choose (_mvPowerSeriesEval_surjective_inductive_step_strong
-      I f hf hspan j r (_mvPowerSeriesEval_surjective_seq I f hf hspan r j).1
-      (_mvPowerSeriesEval_surjective_seq I f hf hspan r j).2) :
+      I hn f hf hspan j r (_mvPowerSeriesEval_surjective_seq I hn f hf hspan r j).1
+      (_mvPowerSeriesEval_surjective_seq I hn f hf hspan r j).2) :
         MvPowerSeries (Fin n) R) α =
-    ((_mvPowerSeriesEval_surjective_seq I f hf hspan r j).1 :
+    ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r j).1 :
         MvPowerSeries (Fin n) R) α
   -- The support spec is the second conjunct of `Classical.choose_spec`.
   exact (Classical.choose_spec (_mvPowerSeriesEval_surjective_inductive_step_strong
-    I f hf hspan j r (_mvPowerSeriesEval_surjective_seq I f hf hspan r j).1
-    (_mvPowerSeriesEval_surjective_seq I f hf hspan r j).2)).2 α _hα_le
+    I hn f hf hspan j r (_mvPowerSeriesEval_surjective_seq I hn f hf hspan r j).1
+    (_mvPowerSeriesEval_surjective_seq I hn f hf hspan r j).2)).2 α _hα_le
 
 /-- **(L4.3.c.per_level.limit_partial.coeff_eq.stable.mono)**: monotone
 direction of sequence stability. If `j₂` is at-or-above the canonical
@@ -1483,13 +1476,13 @@ The single-step content (that `seq (j+1)` and `seq j` agree at `α` when
 `_mvPowerSeriesEval_surjective_seq_stable_value_mono_step`; iterating from
 `j₁` to `j₂` via `Nat.le_induction` discharges the lemma. -/
 private lemma _mvPowerSeriesEval_surjective_seq_stable_value_mono
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (r : AdicCompletion I R) (α : Fin n →₀ ℕ) (j₁ j₂ : ℕ)
     (hj : j₁ ≤ j₂) (hα_le : (∑ i, α i) + 1 ≤ j₁) :
-    ((_mvPowerSeriesEval_surjective_seq I f hf hspan r j₁).1 :
+    ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r j₁).1 :
         MvPowerSeries (Fin n) R) α =
-      ((_mvPowerSeriesEval_surjective_seq I f hf hspan r j₂).1 :
+      ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r j₂).1 :
         MvPowerSeries (Fin n) R) α := by
   induction j₂, hj using Nat.le_induction with
   | base => rfl
@@ -1497,7 +1490,7 @@ private lemma _mvPowerSeriesEval_surjective_seq_stable_value_mono
     have hαj : (∑ i, α i) + 1 ≤ j := hα_le.trans hj_ih
     exact ih.trans
       (_mvPowerSeriesEval_surjective_seq_stable_value_mono_step
-        I f hf hspan r α j hαj).symm
+        I hn f hf hspan r α j hαj).symm
 
 /-- **(L4.3.c.per_level.limit_partial.coeff_eq.stable.partial)**: partial-
 evaluation direction of sequence stability. For `k` at-or-below the
@@ -1513,15 +1506,15 @@ degree `k+1`). The full algebraic unfolding through
 `Classical.choose`-witnessed corrections and partial-truncation reasoning
 is substantive, so this helper is left with a `sorry` body. -/
 private lemma _mvPowerSeriesEval_surjective_seq_stable_value_partial
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (r : AdicCompletion I R) (k : ℕ) (α : Fin n →₀ ℕ)
     (_hα : α < (Finsupp.equivFunOnFinite.symm (fun _ : Fin n => k + 1) :
       Fin n →₀ ℕ))
     (_hk_lt : k ≤ (∑ i, α i) + 1) :
-    ((_mvPowerSeriesEval_surjective_seq I f hf hspan r k).1 :
+    ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r k).1 :
         MvPowerSeries (Fin n) R) α =
-      ((_mvPowerSeriesEval_surjective_seq I f hf hspan r
+      ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r
           ((∑ i, α i) + 1)).1 :
         MvPowerSeries (Fin n) R) α := by
   sorry
@@ -1542,28 +1535,28 @@ is delegated to the two directional helpers:
   `k ≤ (∑ α i) + 1` (the "`k` is below the canonical witness" branch).
 The case split here is a pure `Nat`-trichotomy on `(∑ α i) + 1 ≤ k`. -/
 private lemma _mvPowerSeriesEval_surjective_seq_stable_value
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (r : AdicCompletion I R) (k : ℕ) (α : Fin n →₀ ℕ)
     (hα : α < (Finsupp.equivFunOnFinite.symm (fun _ : Fin n => k + 1) :
       Fin n →₀ ℕ)) :
-    ((_mvPowerSeriesEval_surjective_seq I f hf hspan r
+    ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r
         ((∑ i, α i) + 1)).1 : MvPowerSeries (Fin n) R) α =
-      ((_mvPowerSeriesEval_surjective_seq I f hf hspan r k).1 :
+      ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r k).1 :
         MvPowerSeries (Fin n) R) α := by
   by_cases hle : ((∑ i, α i) + 1) ≤ k
   · -- `(∑ α i) + 1 ≤ k`: the canonical witness is below `k`, apply `mono`.
-    exact _mvPowerSeriesEval_surjective_seq_stable_value_mono I f hf hspan r α
+    exact _mvPowerSeriesEval_surjective_seq_stable_value_mono I hn f hf hspan r α
       ((∑ i, α i) + 1) k hle le_rfl
   · -- `k < (∑ α i) + 1`: apply `partial` and flip the equality.
     have hlt : k ≤ (∑ i, α i) + 1 := Nat.le_of_lt (Nat.lt_of_not_le hle)
-    exact (_mvPowerSeriesEval_surjective_seq_stable_value_partial I f hf hspan
+    exact (_mvPowerSeriesEval_surjective_seq_stable_value_partial I hn f hf hspan
       r k α hα hlt).symm
 
 /-- **(L4.3.c.per_level.limit_partial.coeff_eq)**: coefficient-level
 stabilisation. For every multi-index `α` whose entries are all strictly less
 than `k + 1` (i.e. `α i ≤ k` for every `i`), the limit coefficient
-`_mvPowerSeriesEval_surjective_limit_coeff I f hf hspan r α` matches the
+`_mvPowerSeriesEval_surjective_limit_coeff I hn f hf hspan r α` matches the
 sequence's `k`-th value at `α`. This is the per-coefficient analogue of L4.2's
 "correction is supported in high degrees": the inductive step at iteration `j`
 only affects coefficients with `∑ᵢ αᵢ ≥ j+1`, so for `j > ∑ᵢ αᵢ` the coefficient
@@ -1576,16 +1569,16 @@ range, so they agree.
 defined as `((seq ((∑ α i) + 1)).1) α`) and delegate the substantive
 sequence-stability claim to `_mvPowerSeriesEval_surjective_seq_stable_value`. -/
 private lemma _mvPowerSeriesEval_surjective_limit_coeff_eq_seq
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (r : AdicCompletion I R) (k : ℕ) (α : Fin n →₀ ℕ)
     (hα : α < (Finsupp.equivFunOnFinite.symm (fun _ : Fin n => k + 1) :
       Fin n →₀ ℕ)) :
-    _mvPowerSeriesEval_surjective_limit_coeff I f hf hspan r α =
-      ((_mvPowerSeriesEval_surjective_seq I f hf hspan r k).1 :
+    _mvPowerSeriesEval_surjective_limit_coeff I hn f hf hspan r α =
+      ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r k).1 :
         MvPowerSeries (Fin n) R) α := by
   unfold _mvPowerSeriesEval_surjective_limit_coeff
-  exact _mvPowerSeriesEval_surjective_seq_stable_value I f hf hspan r k α hα
+  exact _mvPowerSeriesEval_surjective_seq_stable_value I hn f hf hspan r k α hα
 
 /-- **(L4.3.c.per_level.limit_partial)**: at every level `k`, the partial
 evaluation of the limit power series agrees with that of the `k`-th sequence
@@ -1599,31 +1592,31 @@ sequence's correction power series (via L4.2) is supported in degree exactly
 the truncations `trunc R n_k (limit) = trunc R n_k ((seq k).1)`, which holds
 pointwise by `_mvPowerSeriesEval_surjective_limit_coeff_eq_seq`. -/
 private lemma _mvPowerSeriesEval_surjective_limit_partial_eq
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (r : AdicCompletion I R) (k : ℕ) :
     _mvPowerSeriesEval_partial I f hf k
-        (_mvPowerSeriesEval_surjective_limit I f hf hspan r) =
+        (_mvPowerSeriesEval_surjective_limit I hn f hf hspan r) =
       _mvPowerSeriesEval_partial I f hf k
-        ((_mvPowerSeriesEval_surjective_seq I f hf hspan r k).1) := by
+        ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r k).1) := by
   classical
   -- Reduce to equality of the truncations.
   have htrunc :
       (MvPowerSeries.trunc R
           (Finsupp.equivFunOnFinite.symm (fun _ : Fin n => k + 1)))
-        (_mvPowerSeriesEval_surjective_limit I f hf hspan r) =
+        (_mvPowerSeriesEval_surjective_limit I hn f hf hspan r) =
       (MvPowerSeries.trunc R
           (Finsupp.equivFunOnFinite.symm (fun _ : Fin n => k + 1)))
-        ((_mvPowerSeriesEval_surjective_seq I f hf hspan r k).1) := by
+        ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r k).1) := by
     apply MvPolynomial.ext
     intro α
     rw [MvPowerSeries.coeff_trunc, MvPowerSeries.coeff_trunc]
     split_ifs with hα
-    · change (_mvPowerSeriesEval_surjective_limit I f hf hspan r :
+    · change (_mvPowerSeriesEval_surjective_limit I hn f hf hspan r :
           MvPowerSeries _ R) α =
-        ((_mvPowerSeriesEval_surjective_seq I f hf hspan r k).1 :
+        ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r k).1 :
           MvPowerSeries _ R) α
-      exact _mvPowerSeriesEval_surjective_limit_coeff_eq_seq I f hf hspan r
+      exact _mvPowerSeriesEval_surjective_limit_coeff_eq_seq I hn f hf hspan r
         k α hα
     · rfl
   unfold _mvPowerSeriesEval_partial
@@ -1638,11 +1631,11 @@ per-level translation of the seq spec `mvPowerSeriesEval (P k) - r ∈ I^k • �
 the difference's `k`-th component vanishes mod `I^k • ⊤`, so the components
 agree there. -/
 private lemma _mvPowerSeriesEval_surjective_partial_seq_val_eq
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (r : AdicCompletion I R) (k : ℕ) :
     _mvPowerSeriesEval_partial I f hf k
-        ((_mvPowerSeriesEval_surjective_seq I f hf hspan r k).1) =
+        ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r k).1) =
       (r : AdicCompletion I R).val k := by
   -- Sub-claim: any x ∈ I^k • ⊤ ⊆ AdicCompletion I R has x.val k = 0
   -- (the k-th component lies in I^k • ⊤ inside R ⧸ I^k • ⊤, which is zero).
@@ -1663,7 +1656,7 @@ private lemma _mvPowerSeriesEval_surjective_partial_seq_val_eq
       rw [AdicCompletion.val_add_apply, hx, hy]
       exact zero_add 0
   -- Apply `key` to the spec `mvPowerSeriesEval P - r ∈ I^k • ⊤`.
-  have hzero := key _ ((_mvPowerSeriesEval_surjective_seq I f hf hspan r k).2)
+  have hzero := key _ ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r k).2)
   rw [AdicCompletion.val_sub_apply] at hzero
   have heval := sub_eq_zero.mp hzero
   rw [← heval]
@@ -1671,9 +1664,9 @@ private lemma _mvPowerSeriesEval_surjective_partial_seq_val_eq
   -- `AdicCompletion.eval_lift_apply` its k-th value equals the partial map.
   change (AdicCompletion.lift I (_mvPowerSeriesEval_partial I f hf)
       (fun {_ _} hle => _mvPowerSeriesEval_partial_compat I f hf hle)
-      ((_mvPowerSeriesEval_surjective_seq I f hf hspan r k).1)).val k =
-    ((mvPowerSeriesEval I f hf)
-      ((_mvPowerSeriesEval_surjective_seq I f hf hspan r k).1) :
+      ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r k).1)).val k =
+    ((mvPowerSeriesEval I hn f hf)
+      ((_mvPowerSeriesEval_surjective_seq I hn f hf hspan r k).1) :
       AdicCompletion I R).val k
   rfl
 
@@ -1692,47 +1685,47 @@ Discharge structure:
 4. `_mvPowerSeriesEval_surjective_partial_seq_val_eq` identifies this with
    `r.val k`. -/
 private lemma _mvPowerSeriesEval_surjective_limit_spec_per_level
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (r : AdicCompletion I R) (k : ℕ) :
-    (mvPowerSeriesEval I f hf
-        (_mvPowerSeriesEval_surjective_limit I f hf hspan r) :
+    (mvPowerSeriesEval I hn f hf
+        (_mvPowerSeriesEval_surjective_limit I hn f hf hspan r) :
       AdicCompletion I R).val k = r.val k := by
   change (AdicCompletion.lift I (_mvPowerSeriesEval_partial I f hf)
       (fun {_ _} hle => _mvPowerSeriesEval_partial_compat I f hf hle)
-      (_mvPowerSeriesEval_surjective_limit I f hf hspan r)).val k = r.val k
+      (_mvPowerSeriesEval_surjective_limit I hn f hf hspan r)).val k = r.val k
   rw [AdicCompletion.eval_lift_apply]
-  exact (_mvPowerSeriesEval_surjective_limit_partial_eq I f hf hspan r k).trans
-    (_mvPowerSeriesEval_surjective_partial_seq_val_eq I f hf hspan r k)
+  exact (_mvPowerSeriesEval_surjective_limit_partial_eq I hn f hf hspan r k).trans
+    (_mvPowerSeriesEval_surjective_partial_seq_val_eq I hn f hf hspan r k)
 
 /-- **(L4.3.c)**: the limit power series evaluates to `r`. Key spec:
-`mvPowerSeriesEval I f hf (limit) = r` in `AdicCompletion I R`.
+`mvPowerSeriesEval I hn f hf (limit) = r` in `AdicCompletion I R`.
 
 Discharge: `AdicCompletion.ext` reduces to per-level equality, delegated to
 `_mvPowerSeriesEval_surjective_limit_spec_per_level`. -/
 private lemma _mvPowerSeriesEval_surjective_limit_spec
-    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (f : Fin n → R)
+    [IsNoetherianRing R] (I : Ideal R) {n : ℕ} (hn : 0 < n) (f : Fin n → R)
     (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I)
     (r : AdicCompletion I R) :
-    mvPowerSeriesEval I f hf
-      (_mvPowerSeriesEval_surjective_limit I f hf hspan r) = r := by
+    mvPowerSeriesEval I hn f hf
+      (_mvPowerSeriesEval_surjective_limit I hn f hf hspan r) = r := by
   apply AdicCompletion.ext
   intro k
-  exact _mvPowerSeriesEval_surjective_limit_spec_per_level I f hf hspan r k
+  exact _mvPowerSeriesEval_surjective_limit_spec_per_level I hn f hf hspan r k
 
 /-- **(L4.3 = L4 main)**: for `f₁,…,fₙ` generating `I`, the evaluation map
-`mvPowerSeriesEval I f hf` is surjective onto `AdicCompletion I R`.
+`mvPowerSeriesEval I hn f hf` is surjective onto `AdicCompletion I R`.
 
 Discharge: combine L4.3.b (the limit power series) and L4.3.c (limit evaluates
 to `r`).
 
 Source: Stacks 0316 proof, "(details omitted)". -/
 theorem mvPowerSeriesEval_surjective [IsNoetherianRing R] (I : Ideal R)
-    {n : ℕ} (f : Fin n → R) (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I) :
-    Function.Surjective (mvPowerSeriesEval I f hf) := by
+    {n : ℕ} (hn : 0 < n) (f : Fin n → R) (hf : ∀ i, f i ∈ I) (hspan : Ideal.span (Set.range f) = I) :
+    Function.Surjective (mvPowerSeriesEval I hn f hf) := by
   intro r
-  exact ⟨_mvPowerSeriesEval_surjective_limit I f hf hspan r,
-    _mvPowerSeriesEval_surjective_limit_spec I f hf hspan r⟩
+  exact ⟨_mvPowerSeriesEval_surjective_limit I hn f hf hspan r,
+    _mvPowerSeriesEval_surjective_limit_spec I hn f hf hspan r⟩
 
 /-! ## Main result — Stacks 0316 -/
 
@@ -1761,6 +1754,28 @@ theorem isNoetherianRing [IsNoetherianRing R] (I : Ideal R) :
   classical
   -- L1: pick generators of I.
   obtain ⟨s, hs⟩ := (isNoetherianRing_iff_ideal_fg R).mp inferInstance I
+  -- Case-split on whether `s` is empty (i.e., `I = ⊥`). The `I = ⊥` case
+  -- uses `IsAdicComplete (⊥ : Ideal R) R` (a mathlib instance) to obtain
+  -- a bijective canonical map `R → AdicCompletion ⊥ R`, transporting
+  -- noetherianness. The `s.card ≥ 1` case runs the Stacks 0316 eval-surjective
+  -- argument with the now-available `hn : 0 < n` hypothesis.
+  rcases Nat.eq_zero_or_pos s.card with hn_eq | hn
+  · -- s.card = 0 ⇒ I = ⊥.
+    have hI : I = ⊥ := by
+      rw [← hs, Finset.card_eq_zero.mp hn_eq, Finset.coe_empty, Ideal.span_empty]
+    subst hI
+    -- `algebraMap R (AdicCompletion ⊥ R)` is a surjective RingHom: it agrees
+    -- with `AdicCompletion.of ⊥ R` (by `algebraMap_apply` with `S = R`), and
+    -- the latter is bijective by `IsAdicComplete (⊥ : Ideal R) R`.
+    have hof_bij : Function.Bijective (AdicCompletion.of (⊥ : Ideal R) R) :=
+      AdicCompletion.of_bijective (⊥ : Ideal R) R
+    refine isNoetherianRing_of_surjective R (AdicCompletion (⊥ : Ideal R) R)
+      (algebraMap R (AdicCompletion (⊥ : Ideal R) R)) (fun y => ?_)
+    obtain ⟨x, hx⟩ := hof_bij.surjective y
+    -- `algebraMap R (AdicCompletion ⊥ R) x = of ⊥ R (algebraMap R R x) = of ⊥ R x`
+    -- via `algebraMap_apply` and `algebraMap R R = id`.
+    exact ⟨x, by rw [AdicCompletion.algebraMap_apply]; simpa using hx⟩
+  -- s.card ≥ 1: the standard eval-surjective argument.
   let n := s.card
   let e : Fin n ≃ {x // x ∈ s} := s.equivFin.symm
   let f : Fin n → R := fun i => (e i : R)
@@ -1782,7 +1797,7 @@ theorem isNoetherianRing [IsNoetherianRing R] (I : Ideal R) :
   haveI hnoeth : IsNoetherianRing (MvPowerSeries (Fin n) R) :=
     MvPowerSeries.instIsNoetherianRing_fin R n
   -- L3 + L4: eval map is a surjective ring hom.
-  exact isNoetherianRing_of_surjective _ _ (mvPowerSeriesEval I f hf_in_I)
-    (mvPowerSeriesEval_surjective I f hf_in_I hspan)
+  exact isNoetherianRing_of_surjective _ _ (mvPowerSeriesEval I hn f hf_in_I)
+    (mvPowerSeriesEval_surjective I hn f hf_in_I hspan)
 
 end AdicCompletion
