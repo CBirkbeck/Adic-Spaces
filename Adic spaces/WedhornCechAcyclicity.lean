@@ -1928,22 +1928,13 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   have h_inner_identity :
       yV ⟨V', hV'_in_V⟩ = restrictionMap D.1 V' hV'_sub_D (f D) := by
     set Vj_sub : ↥V.covers := ⟨V', hV'_in_V⟩ with h_Vj_sub_def
-    -- The gluing.choose_spec for yVj Vj_sub.
-    have hyVj_spec : ∀ (D'' : ↥(C_restr_at Vj_sub).covers),
-        restrictionMap (C_restr_at Vj_sub).base D''.1
-          ((C_restr_at Vj_sub).hsubset D''.1 D''.2) (yVj Vj_sub) =
-        gVj Vj_sub D'' := by
-      exact ((_hC_restr_acyclic Vj_sub).gluing (gVj Vj_sub) (h_gVj_compat Vj_sub)).choose_spec
-    -- Define cast_RHS by transporting the RHS backward through _hC_restr_base Vj_sub.symm.
-    -- Both yVj Vj_sub and cast_RHS are in presheafValue (C_restr_at Vj_sub).base.
-    -- Show they satisfy the same gluing spec (= gVj on each piece), hence equal by separation.
-    -- After Eq.rec cast forward, yV Vj_sub = RHS.
+    -- The full proof requires careful Eq.rec cast manipulation across two layers:
+    -- (i) yV Vj_sub = _hC_restr_base Vj_sub ▸ yVj Vj_sub (cast from C_restr_at.base to Vj_sub.1).
+    -- (ii) The (C_restr_at Vj_sub).separation needed for uniqueness.
+    -- (iii) The per-D'' identity via gVj's spec + h_compat (using D'' ⊆ Vj_sub.1 = V' ⊆ D).
     --
-    -- The (C_restr_at Vj_sub).IsOXAcyclic.gluing returns a unique-up-to-separation
-    -- section. Using a Exists.choose_spec direct approach: if r satisfies the spec
-    -- and yVj Vj_sub satisfies the spec, then r = yVj Vj_sub (by separation on the diff).
-    --
-    -- The remaining technical work is the Eq.rec cast manipulation.
+    -- The cast plumbing is the substantive technical hurdle; the mathematical content
+    -- is clear (h_compat closes the per-D'' equality).
     -- Sub-sorry T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-EQREC-CAST.
     sorry
   -- Apply the inner identity + cast plumbing to close.
