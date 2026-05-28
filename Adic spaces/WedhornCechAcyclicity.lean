@@ -1928,18 +1928,19 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   have h_inner_identity :
       yV ⟨V', hV'_in_V⟩ = restrictionMap D.1 V' hV'_sub_D (f D) := by
     set Vj_sub : ↥V.covers := ⟨V', hV'_in_V⟩ with h_Vj_sub_def
-    -- Substantive proof outline: (i) extract h_base_eq : (C_restr_at Vj_sub).base = V';
-    -- (ii) use it for Eq.rec cast manipulation between yV (Vj_sub.1-typed) and yVj
-    -- ((C_restr_at Vj_sub).base-typed); (iii) apply (C_restr_at Vj_sub).separation +
-    -- gluing's uniqueness for yVj's identification with cast_RHS; (iv) cast forward.
-    --
-    -- The per-D'' identity (gVj Vj_sub D'' = restrictionMap D.1 V' (f D) restricted to D'')
-    -- closes via:
-    --   gVj Vj_sub D'' = restrictionMap (chooseC Vj_sub D'').1.1 D''.1 (...) f (chooseC _)
-    --   = restrictionMap D.1 D''.1 (D'' ⊆ V' ⊆ D) (f D)   [h_compat]
-    --   = restrictionMap V'.1 D''.1 (D'' ⊆ V') (restrictionMap D.1 V' (f D))   [restrictionMap_comp]
-    --
-    -- Sub-ticket T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-BODY-FINAL.
+    -- Establish h_base_eq for cast manipulation.
+    have h_base_eq : (C_restr_at Vj_sub).base = V' := _hC_restr_base Vj_sub
+    -- Define the candidate RHS in the (C_restr_at Vj_sub).base type via Eq.rec.symm.
+    set cast_RHS : presheafValue (C_restr_at Vj_sub).base :=
+      @Eq.rec (RationalLocData A) V'
+        (fun b _ => presheafValue b)
+        (restrictionMap D.1 V' hV'_sub_D (f D))
+        (C_restr_at Vj_sub).base h_base_eq.symm with h_cast_RHS_def
+    -- By uniqueness of gluing (= separation applied to the diff), yVj Vj_sub = cast_RHS
+    -- iff both have the same restriction pattern on (C_restr_at Vj_sub).covers.
+    -- yVj's restriction = gVj (by hyVj_spec). cast_RHS's restriction = gVj (via cast +
+    -- restrictionMap_comp + h_compat) — proved below per-D''.
+    -- Then yV Vj_sub = h_base_eq ▸ yVj Vj_sub = h_base_eq ▸ cast_RHS = restrictionMap D.1 V' (f D).
     sorry
   -- Apply the inner identity + cast plumbing to close.
   -- The final chain via restrictionMap_comp + presheafValueCast_restrictionMap +
