@@ -1891,7 +1891,21 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   -- Apply separation. The result diff_cast = 0 implies diff_D = 0 (via Eq.rec cancel).
   suffices h_diff_cast_zero : diff_cast = 0 by
     -- diff_cast = 0 ↔ diff_D = 0 via the Eq.rec equivalence on h_base_eq.
-    -- Sub-sorry: Eq.rec cancel for the propositional equality.
+    -- The Eq.rec preserves zero: cast of 0 is 0 in the target type.
+    -- Conversely, if cast x = 0, then x = 0 by injectivity of the cast iso.
+    show diff_D = 0
+    -- diff_cast is defined as Eq.rec applied to diff_D with motive (fun b _ => presheafValue b).
+    -- The Eq.rec acts as a ring isomorphism, hence is injective.
+    -- For the zero element: Eq.rec 0 = 0 trivially since the motive is type-respecting.
+    -- Using generalize on (V_restr_at D).base introduces a free variable, allowing subst.
+    have h_zero : @Eq.rec (RationalLocData A) D.1
+        (fun b _ => presheafValue b) (0 : presheafValue D.1)
+        (V_restr_at D).base h_base_eq.symm = 0 := by
+      generalize h : (V_restr_at D).base = b at *
+      cases h_base_eq.symm  -- substitutes D.1 = b
+      rfl
+    -- Now: diff_cast = 0 = h_zero's RHS. By Eq.rec injectivity, diff_D = 0.
+    -- The injectivity comes from Eq.rec being a bijection on the underlying type.
     sorry
   -- Apply (V_restr_at D).IsOXAcyclic.separation.
   apply (_hV_restr_acyclic D).separation
