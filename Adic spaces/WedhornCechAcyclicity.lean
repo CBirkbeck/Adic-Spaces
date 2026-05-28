@@ -1853,11 +1853,15 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
     (RationalCovering.presheafValueCast (C := C) (C' := V) _hV_base).symm x'
   refine ⟨x, ?_⟩
   -- Step 8: verify x|D = f D for each D ∈ C.covers via V_restr_at(D).separation.
-  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY (analogue of propA3_part2 Step 7).
+  -- Pattern from propA3_part2_project_gluing Step 7 — substantive cast chain.
+  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY.
   intro D
   let _ := hx'
   let _ := x
   let _ := _hV_restr_acyclic
+  let _ := _hV_restr_pieces
+  let _ := _hV_restr_base
+  let _ := h_compat
   sorry
 
 /-- **Part (iv) sub-lemma (c)**: the Prop A.3(1) bridge step. Given a
