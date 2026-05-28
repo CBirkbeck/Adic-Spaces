@@ -9473,6 +9473,40 @@ Wedhorn p. 84. The Lean-side implementation choices (categorical vs hand chase,
 
 ### Reviewer-driven actions
 
+#### [T-WC-SINGLE-UNIT-GLU-ISO] **NEW (sub-ticket)** — gluing via V.base ≃ D₀ iso when both rationalOpens = Spa A
+
+- **Status**: OPEN (substantive)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: project's `presheafValue`/`canonicalMap` infrastructure +
+  `IsLocalization.atUnits` mathlib lemma
+- **Parent**: T-WC-SINGLE-UNIT-GLU
+- **Type**: theorem (deeper than expected)
+
+#### Issue
+
+The single-piece gluing field `isOXAcyclic_of_single_unit_piece_gluing`
+requires constructing `x ∈ presheafValue V.base` from `f D₀` when
+D₀.T = {1}, D₀.s = 1, V.covers = {D₀}.
+
+Mathematical: rationalOpen D₀ = Spa A forces rationalOpen V.base = Spa A
+(via hsubset), which forces V.base.s to be a unit in A. Hence
+Localization.Away V.base.s ≃ A (via `IsLocalization.atUnits`), so
+presheafValue V.base ≃ Completion(A) ≃ presheafValue D₀. Inverse iso
+applied to f D₀ gives x.
+
+#### Sketch
+
+1. Extract V.base.s ∈ A^× from rationalOpen V.base = Spa A.
+2. `IsLocalization.atUnits` to get `A ≃ₐ Localization.Away V.base.s`.
+3. Lift via `UniformSpace.Completion.mapRingEquiv` to get
+   `Completion(A) ≃+* presheafValue V.base`.
+4. Compose with presheafValue D₀ ≃+* Completion(A) (canonical).
+5. Apply the inverse to f D₀.
+
+Estimated ~80 LOC. Substantive due to the chain of equivalences.
+
+---
+
 #### [T-WC-RESTRICT-TO-PIECE-RECURSIVE-834] **NEW (sub-ticket)** — apply Wedhorn 8.34 recursively at 𝒪_X(D)
 
 - **Status**: OPEN (substantive — sorry-bodied at `restrictToPiece_acyclic_at_D`
