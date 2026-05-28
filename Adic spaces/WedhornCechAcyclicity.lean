@@ -1755,12 +1755,18 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
       ∃ V'' ∈ V.covers,
         rationalOpen V'.T V'.s ⊆ rationalOpen V''.T V''.s)
     (_hV_restr_acyclic : ∀ U : ↥C.covers, (V_restr_at U).IsOXAcyclic)
+    (_hV_restr_covers : ∀ U : ↥C.covers, ∀ v ∈ rationalOpen U.1.T U.1.s,
+      ∃ V' ∈ (V_restr_at U).covers, v ∈ rationalOpen V'.T V'.s ∧
+        rationalOpen V'.T V'.s ⊆ rationalOpen U.1.T U.1.s)
     (C_restr_at : ↥V.covers → RationalCovering A)
     (_hC_restr_base : ∀ Vj : ↥V.covers, (C_restr_at Vj).base = Vj.1)
     (_hC_restr_pieces : ∀ Vj : ↥V.covers, ∀ D' ∈ (C_restr_at Vj).covers,
       ∃ D ∈ C.covers,
         rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
-    (_hC_restr_acyclic : ∀ Vj : ↥V.covers, (C_restr_at Vj).IsOXAcyclic) :
+    (_hC_restr_acyclic : ∀ Vj : ↥V.covers, (C_restr_at Vj).IsOXAcyclic)
+    (_hC_restr_covers : ∀ Vj : ↥V.covers, ∀ v ∈ rationalOpen Vj.1.T Vj.1.s,
+      ∃ D' ∈ (C_restr_at Vj).covers, v ∈ rationalOpen D'.T D'.s ∧
+        rationalOpen D'.T D'.s ⊆ rationalOpen Vj.1.T Vj.1.s) :
     ∀ (f : ∀ (D : ↥C.covers), presheafValue D.1),
       (∀ (D₁ D₂ : ↥C.covers)
          (D₃ : RationalLocData A)
@@ -1883,14 +1889,21 @@ theorem wedhorn_lemma_834_propA3_part1_bridge
     (hC_restr_pieces : ∀ Vj : ↥V.covers, ∀ D' ∈ (C_restr_at Vj).covers,
       ∃ D ∈ C.covers,
         rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
-    (hC_restr_acyclic : ∀ Vj : ↥V.covers, (C_restr_at Vj).IsOXAcyclic) :
+    (hC_restr_acyclic : ∀ Vj : ↥V.covers, (C_restr_at Vj).IsOXAcyclic)
+    (hV_restr_covers : ∀ U : ↥C.covers, ∀ v ∈ rationalOpen U.1.T U.1.s,
+      ∃ V' ∈ (V_restr_at U).covers, v ∈ rationalOpen V'.T V'.s ∧
+        rationalOpen V'.T V'.s ⊆ rationalOpen U.1.T U.1.s)
+    (hC_restr_covers : ∀ Vj : ↥V.covers, ∀ v ∈ rationalOpen Vj.1.T Vj.1.s,
+      ∃ D' ∈ (C_restr_at Vj).covers, v ∈ rationalOpen D'.T D'.s ∧
+        rationalOpen D'.T D'.s ⊆ rationalOpen Vj.1.T Vj.1.s) :
     C.IsOXAcyclic :=
   { separation := wedhorn_lemma_834_propA3_part1_separation C V hV_base
       hV_acyclic h_V_refines_C V_restr_at hV_restr_base hV_restr_pieces
       hV_restr_acyclic
     gluing := wedhorn_lemma_834_propA3_part1_gluing C V hV_base
       hV_acyclic V_restr_at hV_restr_base hV_restr_pieces hV_restr_acyclic
-      C_restr_at hC_restr_base hC_restr_pieces hC_restr_acyclic }
+      hV_restr_covers C_restr_at hC_restr_base hC_restr_pieces hC_restr_acyclic
+      hC_restr_covers }
 
 /-- **NEW (T-WC-V-REFINES-C-FROM-DOM-UNIT, 2026-05-28)**: For the Laurent
 cover V from part (ii) of Lemma 8.34, V refines C — each V-piece sits in
