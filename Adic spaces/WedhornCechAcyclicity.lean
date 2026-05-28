@@ -1951,9 +1951,14 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
       show (restrictionMapHom (C_restr_at Vj_sub).base D''
           ((C_restr_at Vj_sub).hsubset D'' hD''_in)) _ = 0
       rw [map_sub, sub_eq_zero]
-      -- Goal: restrictionMap (C_restr_at Vj_sub).base D'' (yVj Vj_sub) =
-      --       restrictionMap (C_restr_at Vj_sub).base D'' cast_RHS.
-      -- LHS computation: by hyVj_spec ⟨D'', hD''_in⟩.
+      -- restrictionMapHom and restrictionMap are definitionally equal.
+      change restrictionMap (C_restr_at Vj_sub).base D''
+          ((C_restr_at Vj_sub).hsubset D'' hD''_in) (yVj Vj_sub) =
+        restrictionMap (C_restr_at Vj_sub).base D''
+          ((C_restr_at Vj_sub).hsubset D'' hD''_in) cast_RHS
+      rw [hyVj_spec ⟨D'', hD''_in⟩]
+      -- Goal: gVj Vj_sub ⟨D'', hD''_in⟩ =
+      --       restrictionMap (C_restr_at Vj_sub).base D'' (...) cast_RHS.
       -- Sub-sorry: per-D'' identity (cast eval + restrictionMap_comp + h_compat).
       -- T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-RHS-CAST-EVAL.
       sorry
