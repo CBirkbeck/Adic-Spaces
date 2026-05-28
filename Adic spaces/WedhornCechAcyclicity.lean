@@ -227,7 +227,7 @@ noncomputable def RationalCovering.restrictToPiece
     by_contra h_not
     have := hD'.2
     classical
-    simp [Classical.propDecidable] at this
+    simp at this
     exact h_not this
   hcover := by
     intro v hv
@@ -236,7 +236,7 @@ noncomputable def RationalCovering.restrictToPiece
     rw [Finset.mem_filter]
     refine ⟨hD'_in, ?_⟩
     classical
-    simp [Classical.propDecidable]
+    simp
     exact hD'_sub
 
 /-! ### Prop A.3(2) project bridge (moved here for forward use by Lemma 8.34)
@@ -2115,7 +2115,7 @@ theorem wedhorn_lemma_834 [DecidableEq A]
     simp only [V_restr_at, RationalCovering.restrictToPiece, Finset.mem_filter]
     refine ⟨hV'_in, ?_⟩
     classical
-    simp [Classical.propDecidable]
+    simp
     exact hV'_sub
   -- Uncurry C_at_Vj : ↥V.covers → RationalCovering A.
   let C_restr_at : ↥V.covers → RationalCovering A := fun Vj => C_at_Vj Vj.1 Vj.2
