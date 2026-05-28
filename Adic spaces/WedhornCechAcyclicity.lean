@@ -2194,6 +2194,12 @@ theorem exists_ideal_gen_refinement_covers_each_D [DecidableEq A] [IsDomain A]
       (∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
         ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
           rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) := by
+  -- Compose: use the original exists_ideal_gen_refinement + add cover-each direction.
+  obtain ⟨T, C', h_C'_gen, h_C'_base, h_C'_refines⟩ := exists_ideal_gen_refinement C
+  refine ⟨T, C', h_C'_gen, h_C'_base, h_C'_refines, ?_⟩
+  -- Cover-each direction: requires the per-E refinement structure from
+  -- exists_refines_cover_per_E_of_localBasisHyp + the bridge to C'-pieces.
+  -- Sub-ticket T-WC-EXISTS-IDEAL-GEN-COVERS-EACH-BODY-DIRECT.
   sorry
 
 /-! ##### Sub-lemmas for `IsOXAcyclic_of_refining_acyclic_cover` (Prop A.3(2) project bridge) -/
