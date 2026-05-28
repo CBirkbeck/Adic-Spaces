@@ -1591,6 +1591,35 @@ theorem wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent [DecidableEq A]
   -- the local ring or similar).
   sorry
 
+/-- **Strengthened version** (T-WC-834-PART-III-COVERS-EACH, 2026-05-28):
+`wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent` with the
+covering-each-D direction added.
+
+For the Laurent ratio refinement V of an ideal-generating C, every point of
+every C-piece is covered by some V-piece that lies INSIDE that specific
+C-piece (via the σ-walk on ratios picking the dominant generator).
+
+Wedhorn-faithful: the σ-walk for v selects the t ∈ T with v(t) maximal,
+which is exactly the t for which v ∈ R(T/t) ∈ C. So V_σ(v) ⊆ R(T/t).
+
+Sub-ticket T-WC-834-PART-III-COVERS-EACH-BODY: substantive sub-lemma. -/
+theorem wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent_covers_each_D
+    [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C : RationalCovering A) (hC_unit : C.IsUnitGenerated) :
+    ∃ (V : RationalCovering A) (fs : List A),
+      V.IsLaurentCover fs ∧
+      V.base = C.base ∧
+      (∀ V' ∈ V.covers, ∃ D ∈ C.covers,
+        rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s) ∧
+      (∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+        ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
+          rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s) := by
+  sorry
+
 /-! ##### Sub-lemmas for `wedhorn_lemma_834` (Prop A.3(1) composition) -/
 
 /-- **Part (iv) sub-lemma (a)**: for each Laurent piece `Vj ∈ V.covers`,
@@ -1604,24 +1633,17 @@ theorem wedhorn_lemma_834_C_restr_acyclic [DecidableEq A]
       CompleteSpace A]
     (C_restr : RationalCovering A) (_h_C_restr_unit : C_restr.IsUnitGenerated) :
     C_restr.IsOXAcyclic := by
-  -- Part (iii): C_restr refines to a Laurent cover.
-  obtain ⟨W, gs, hW_laurent, hW_base, hW_refines⟩ :=
-    wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent
+  -- Part (iii) strengthened: C_restr refines to a Laurent cover with
+  -- covering-each-D direction (T-WC-834-PART-III-COVERS-EACH).
+  obtain ⟨W, gs, hW_laurent, hW_base, hW_refines, hW_covers_each_D⟩ :=
+    wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent_covers_each_D
       C_restr _h_C_restr_unit
   -- Part (i): W (Laurent) is acyclic.
   have hW_acyclic : W.IsOXAcyclic :=
     wedhorn_lemma_834_part_i_laurent_acyclic W gs hW_laurent
-  -- Apply the Prop A.3(2) bridge (now available after file reorder).
-  -- Note: the strengthened bridge requires `h_W_covers_each_D` — the covering
-  -- direction of the refinement. For Laurent covers W obtained from
-  -- `wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent`, this should
-  -- follow from the construction but the current signature only returns the
-  -- one-sided refinement. Discharged below by `sorry` until that lemma's
-  -- signature is augmented (sub-ticket T-WC-834-PART-III-COVERS-EACH).
-  refine IsOXAcyclic_of_refining_acyclic_cover C_restr W hW_base hW_refines
-    hW_acyclic ?_ ?_
-  · -- h_C'_covers_each_D: pending strengthening of part-iii lemma.
-    sorry
+  -- Apply the Prop A.3(2) bridge.
+  apply IsOXAcyclic_of_refining_acyclic_cover C_restr W hW_base hW_refines
+    hW_acyclic hW_covers_each_D
   -- Double-restriction acyclicity: each E refining a piece of C_restr by W pieces.
   intro D hD E h_E_base h_E_pieces
   -- E inherits Laurent structure from W via part (i) restriction corollary.
@@ -1920,6 +1942,37 @@ theorem exists_ideal_gen_refinement [DecidableEq A] [IsDomain A]
     rationalCovering_from_idealGenSet C S hS_span hS_cover hS_contain
   exact ⟨S, C', h_C'_gen, h_C'_base, h_C'_refines⟩
 
+/-- **Strengthened version** (T-WC-EXISTS-IDEAL-GEN-COVERS-EACH, 2026-05-28):
+`exists_ideal_gen_refinement` augmented with the covering-each-D direction.
+
+For each piece `D ∈ C.covers` and each `v ∈ D.rationalOpen`, there is a C'-piece
+that contains `v` AND is contained in `D` (the *specific* D containing v).
+This is the substantive content of "the induced cover at D exists" needed by
+the strengthened Prop A.3(2) bridge.
+
+The proof requires either:
+(i) Augmenting `exists_standard_cover_refining` to also return per-E covering
+    data (`refines_cover_per_E` is already defined in `StandardCover.lean`).
+(ii) Restructuring `rationalCovering_from_idealGenSet` to expose the per-piece
+     containment for v-fitting.
+
+Sub-ticket T-WC-EXISTS-IDEAL-GEN-COVERS-EACH-BODY: substantive sub-lemma. -/
+theorem exists_ideal_gen_refinement_covers_each_D [DecidableEq A] [IsDomain A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C : RationalCovering A) :
+    ∃ (T : Finset A) (C' : RationalCovering A),
+      C'.IsGeneratedBy T ∧
+      C'.base = C.base ∧
+      (∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
+        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) ∧
+      (∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+        ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
+          rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) := by
+  sorry
+
 /-! ##### Sub-lemmas for `IsOXAcyclic_of_refining_acyclic_cover` (Prop A.3(2) project bridge) -/
 
 /-- **Project-side bridge 1** (CORRECTED 2026-05-28): a `RationalCovering A`
@@ -2084,24 +2137,19 @@ theorem every_rational_cover_is_OXAcyclic [DecidableEq A] [IsDomain A]
   -- > form U_t := R(T/t) with T ⊆ A generating A as an ideal (Lemma 7.54).
   -- > [...] Thus by Proposition A.3 (2) it suffices to show the following
   -- > lemma." → Lemma 8.34.
-  -- Step 1: Lemma 7.54 — obtain an ideal-generating refinement C'.
-  obtain ⟨T, C', h_C'_gen, h_C'_base, h_refines⟩ := exists_ideal_gen_refinement C
+  -- Step 1: Lemma 7.54 — obtain an ideal-generating refinement C' with
+  -- the covering-each-D direction (strengthened in
+  -- `exists_ideal_gen_refinement_covers_each_D`).
+  obtain ⟨T, C', h_C'_gen, h_C'_base, h_refines, h_C'_covers_each_D⟩ :=
+    exists_ideal_gen_refinement_covers_each_D C
   -- Step 2: Lemma 8.34 — C' is O_X-acyclic.
   have h_C'_acyclic : C'.IsOXAcyclic := wedhorn_lemma_834 C' T h_C'_gen
   -- Step 3: Prop A.3(2) — acyclicity transfers from C' to C.
-  -- Note: strengthened Prop A.3(2) needs `h_C'_covers_each_D`. For the
-  -- ideal-generating refinement C' from Lemma 7.54, this should follow
-  -- from `h_C'_gen` (an ideal-generating set defines a cover of all of X)
-  -- but requires augmenting `exists_ideal_gen_refinement`'s signature.
-  -- Discharged below by `sorry` until that lemma is strengthened
-  -- (sub-ticket T-WC-EXISTS-IDEAL-GEN-COVERS-EACH).
-  refine IsOXAcyclic_of_refining_acyclic_cover C C' h_C'_base h_refines
-    h_C'_acyclic ?_ ?_
-  · -- h_C'_covers_each_D: pending strengthening of exists_ideal_gen_refinement.
-    sorry
-  exact fun D hD E h_E_base h_E_pieces =>
-    double_restriction_acyclicity C C' T h_C'_gen h_C'_base h_refines
-      D hD E h_E_base h_E_pieces
+  exact IsOXAcyclic_of_refining_acyclic_cover C C' h_C'_base h_refines
+    h_C'_acyclic h_C'_covers_each_D
+    (fun D hD E h_E_base h_E_pieces =>
+      double_restriction_acyclicity C C' T h_C'_gen h_C'_base h_refines
+        D hD E h_E_base h_E_pieces)
 
 /-! ### Wedhorn Theorem 8.28(b) — the Wedhorn-clean form
 
