@@ -1787,16 +1787,60 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
       presheafValue D'.1 := fun Vj D' =>
     restrictionMap (chooseC Vj D').1.1 D'.1 (chooseC Vj D').2
       (f (chooseC Vj D').1)
-  -- Step 2-5 (gVj compatibility on C_restr_at Vj, apply C_restr_at(Vj).gluing,
-  -- build _y on V.covers, apply V.gluing, cast to C.base, verify per D): the
-  -- pattern of propA3_part2_project_gluing applied twice (nested gluing).
-  -- Sub-ticket T-WC-PROPA3-PART1-GLU-BODY captures the substantive cast
-  -- plumbing for the nested structure.
-  let _ := h_compat
+  -- Step 2: gVj compatible on (C_restr_at Vj).covers (each Vj).
+  -- Same pattern as propA3_part2_project_gluing Step 4.
+  have h_gVj_compat : ∀ (Vj : ↥V.covers)
+      (D'₁ D'₂ : ↥(C_restr_at Vj).covers)
+      (D'₃ : RationalLocData A)
+      (h₃₁ : rationalOpen D'₃.T D'₃.s ⊆ rationalOpen D'₁.1.T D'₁.1.s)
+      (h₃₂ : rationalOpen D'₃.T D'₃.s ⊆ rationalOpen D'₂.1.T D'₂.1.s),
+      restrictionMap D'₁.1 D'₃ h₃₁ (gVj Vj D'₁) =
+        restrictionMap D'₂.1 D'₃ h₃₂ (gVj Vj D'₂) := by
+    intro Vj D'₁ D'₂ D'₃ h₃₁ h₃₂
+    show restrictionMap D'₁.1 D'₃ h₃₁
+          (restrictionMap (chooseC Vj D'₁).1.1 D'₁.1 (chooseC Vj D'₁).2
+            (f (chooseC Vj D'₁).1))
+        = restrictionMap D'₂.1 D'₃ h₃₂
+          (restrictionMap (chooseC Vj D'₂).1.1 D'₂.1 (chooseC Vj D'₂).2
+            (f (chooseC Vj D'₂).1))
+    have h_lhs := restrictionMap_comp (chooseC Vj D'₁).1.1 D'₁.1 D'₃
+      (chooseC Vj D'₁).2 h₃₁
+    have h_rhs := restrictionMap_comp (chooseC Vj D'₂).1.1 D'₂.1 D'₃
+      (chooseC Vj D'₂).2 h₃₂
+    rw [show restrictionMap D'₁.1 D'₃ h₃₁
+          (restrictionMap (chooseC Vj D'₁).1.1 D'₁.1 (chooseC Vj D'₁).2
+            (f (chooseC Vj D'₁).1))
+        = restrictionMap (chooseC Vj D'₁).1.1 D'₃
+          (h₃₁.trans (chooseC Vj D'₁).2) (f (chooseC Vj D'₁).1)
+      from congrFun h_lhs _,
+      show restrictionMap D'₂.1 D'₃ h₃₂
+          (restrictionMap (chooseC Vj D'₂).1.1 D'₂.1 (chooseC Vj D'₂).2
+            (f (chooseC Vj D'₂).1))
+        = restrictionMap (chooseC Vj D'₂).1.1 D'₃
+          (h₃₂.trans (chooseC Vj D'₂).2) (f (chooseC Vj D'₂).1)
+      from congrFun h_rhs _]
+    exact h_compat (chooseC Vj D'₁).1 (chooseC Vj D'₂).1 D'₃
+      (h₃₁.trans (chooseC Vj D'₁).2) (h₃₂.trans (chooseC Vj D'₂).2)
+  -- Step 3: apply C_restr_at(Vj).IsOXAcyclic.gluing to obtain yVj on Vj.
+  -- _hC_restr_acyclic gives (C_restr_at Vj).IsOXAcyclic; .gluing extracts.
+  let yVj : ∀ (Vj : ↥V.covers), presheafValue (C_restr_at Vj).base := fun Vj =>
+    ((_hC_restr_acyclic Vj).gluing (gVj Vj) (h_gVj_compat Vj)).choose
+  -- Step 4: cast yVj from presheafValue (C_restr_at Vj).base to presheafValue Vj.
+  -- Since (C_restr_at Vj).base = Vj.1 via _hC_restr_base, this is presheafValueCast
+  -- applied to a singleton-RationalCovering analogue.
+  --
+  -- For the V.gluing, we need a family on ↥V.covers giving presheafValue D.1
+  -- for D : ↥V.covers. yVj has type presheafValue (C_restr_at Vj).base; we need
+  -- presheafValue Vj.1. The cast is via _hC_restr_base Vj : (C_restr_at Vj).base = Vj.1.
+  --
+  -- Step 5-7 (cast yVj, build y'-family, V.gluing, cast x' to C.base, verify per D):
+  -- the substantive nested-gluing plumbing. Sub-ticket
+  -- T-WC-PROPA3-PART1-GLU-CAST-CHAIN.
+  let _ := yVj
   let _ := _hV_acyclic
-  let _ := _hC_restr_acyclic
-  let _ := chooseC
-  let _ := gVj
+  let _ := _hV_restr_acyclic
+  let _ := _hC_restr_base
+  let _ := _hV_base
   sorry
 
 /-- **Part (iv) sub-lemma (c)**: the Prop A.3(1) bridge step. Given a
