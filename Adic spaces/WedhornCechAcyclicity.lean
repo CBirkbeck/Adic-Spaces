@@ -395,22 +395,64 @@ theorem propA3_part2_project_gluing
   have hE'_in_C' : E' ∈ C'.covers := by
     simp only [E_at, RationalCovering.restrictToPiece, Finset.mem_filter] at hE'_in
     exact hE'_in.1
-  -- LHS chain: restrictionMap D.1 E' (E_at D.hsubset E' _) (restrictionMap C.base D.1 _ x)
-  --   = restrictionMap C.base E' (combined inclusion) x       [restrictionMap_comp]
-  --   = restrictionMap C'.base E' (combined inclusion via _h_same_base) x'
-  --                                                            [presheafValueCast_restrictionMap]
-  --   = _g ⟨E', hE'_in_C'⟩                                     [hx']
-  --   = restrictionMap (chooseC _).1.1 E' (chooseC _).2 (f (chooseC _).1)  [def of _g]
-  -- RHS: restrictionMap D.1 E' (E_at_hsub) (f D)
-  -- LHS_last = RHS by h_compat applied to (chooseC _, D, E') with inclusions.
-  -- The full restated equality (LHS = RHS) becomes:
-  --   restrictionMap (chooseC _).1.1 E' (chooseC _).2 (f (chooseC _).1)
-  --     = restrictionMap D.1 E' (E_at_hsub) (f D)
-  -- which is exactly an h_compat instance.
-  -- Sub-ticket T-WC-PROPA3-PART2-GLU-VERIFY-RESTRICTION (the chain of rewrites
-  -- requires careful Eq.rec / proof-irrelevance handling for the inclusion
-  -- arguments — this turns out to be the substantive plumbing piece).
-  sorry
+  -- The chain LHS = RHS:
+  --   restrictionMapHom D.1 E' (E_at_hsub) (restrictionMap C.base D.1 (C.hsubset _ _) x)
+  --     = restrictionMap C.base E' (chained inclusion) x        [restrictionMap_comp]
+  -- Apply restrictionMap_comp to collapse the LHS double-restriction.
+  set E_at_hsub : rationalOpen E'.T E'.s ⊆ rationalOpen D.1.T D.1.s :=
+    (E_at D).hsubset E' hE'_in with hE_at_hsub_def
+  set chained : rationalOpen E'.T E'.s ⊆ rationalOpen C.base.T C.base.s :=
+    E_at_hsub.trans (C.hsubset D.1 D.2) with h_chained_def
+  have h_LHS_comp :
+      restrictionMap D.1 E' E_at_hsub
+        (restrictionMap C.base D.1 (C.hsubset D.1 D.2) x)
+        = restrictionMap C.base E' chained x := by
+    have := restrictionMap_comp C.base D.1 E' (C.hsubset D.1 D.2) E_at_hsub
+    exact congrFun this _
+  -- LHS as `restrictionMapHom` vs `restrictionMap` — definitionally equal.
+  show restrictionMap D.1 E' E_at_hsub
+      (restrictionMap C.base D.1 (C.hsubset D.1 D.2) x)
+      = restrictionMap D.1 E' E_at_hsub (f D)
+  rw [h_LHS_comp]
+  -- Now goal: restrictionMap C.base E' chained x = restrictionMap D.1 E' E_at_hsub (f D).
+  -- Apply presheafValueCast_restrictionMap to transport LHS through the cast.
+  -- x = (presheafValueCast _h_same_base).symm x', so the forward cast is x'.
+  -- presheafValueCast_restrictionMap with baseC=C.base, baseC'=C'.base, h=_h_same_base
+  -- gives: restrictionMap C'.base E' hsubC' (cast_forward x) = restrictionMap C.base E' chained x
+  have hsubC' : rationalOpen E'.T E'.s ⊆ rationalOpen C'.base.T C'.base.s := by
+    rw [_h_same_base]; exact chained
+  have h_cast : restrictionMap C'.base E' hsubC' x' = restrictionMap C.base E' chained x := by
+    have key := RationalCovering.presheafValueCast_restrictionMap
+      C.base C'.base _h_same_base E' chained hsubC' x
+    -- key: restrictionMap C'.base E' hsubC' (Eq.rec ... x) = restrictionMap C.base E' chained x
+    -- The Eq.rec applied to x is `presheafValueCast _h_same_base x`. Since
+    -- x := (presheafValueCast _h_same_base).symm x', the forward cast yields x'.
+    -- We use that `(presheafValueCast _h_same_base) ∘ (presheafValueCast _h_same_base).symm = id`.
+    have h_cast_cancel :
+        (RationalCovering.presheafValueCast (C := C) (C' := C') _h_same_base) x = x' := by
+      simp only [x, RingEquiv.apply_symm_apply]
+    -- Rewrite LHS of key via the cancel.
+    rw [show
+      (@Eq.rec (RationalLocData A) C.base
+        (fun b _ => presheafValue C.base ≃+* presheafValue b)
+        (RingEquiv.refl _) C'.base _h_same_base.symm x) =
+        ((RationalCovering.presheafValueCast (C := C) (C' := C') _h_same_base) x)
+      from rfl, h_cast_cancel] at key
+    exact key
+  -- After this, restrictionMap C.base E' chained x = restrictionMap C'.base E' hsubC' x'.
+  rw [← h_cast]
+  -- Apply hx' at ⟨E', hE'_in_C'⟩.
+  have h_hx' := hx' ⟨E', hE'_in_C'⟩
+  -- h_hx' : restrictionMap C'.base E' (C'.hsubset E' hE'_in_C') x' = _g ⟨E', hE'_in_C'⟩
+  -- By proof irrelevance, hsubC' = C'.hsubset E' hE'_in_C'.
+  have h_hsub_eq : hsubC' = C'.hsubset E' hE'_in_C' := rfl
+  rw [h_hsub_eq, h_hx']
+  -- _g ⟨E', hE'_in_C'⟩ unfolds to restrictionMap (chooseC _).1.1 E' (chooseC _).2 (f (chooseC _).1).
+  show restrictionMap (chooseC ⟨E', hE'_in_C'⟩).1.1 E' (chooseC ⟨E', hE'_in_C'⟩).2
+        (f (chooseC ⟨E', hE'_in_C'⟩).1)
+      = restrictionMap D.1 E' E_at_hsub (f D)
+  -- By h_compat (compatibility of f on C-covers).
+  exact h_compat (chooseC ⟨E', hE'_in_C'⟩).1 D E' (chooseC ⟨E', hE'_in_C'⟩).2 E_at_hsub
 
 /-- **Sub-lemma 2 of `every_rational_cover_is_OXAcyclic`** (Wedhorn Prop A.3(2)
 applied to project types): if `C'` refines `C` and `C'` is O_X-acyclic, and
