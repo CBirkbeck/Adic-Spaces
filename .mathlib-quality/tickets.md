@@ -9567,38 +9567,77 @@ from the 2-cover times the inductive Laurent cover. Estimated ~120 LOC.
 
 ---
 
-#### [T-WC-833-CHECK-ROW3-EXACT-EXISTS] **NEW** — investigation (FIRST PRIORITY per user)
+#### [T-WC-833-CHECK-ROW3-EXACT-EXISTS] **DONE** 2026-05-28 — investigation complete; row3_exact + bridges EXIST
 
-- **Status**: OPEN (priority 1 — cheap investigation)
-- **File**: `Adic spaces/` (search across files)
-- **Depends on**: none
-- **Parallel**: yes (blocks A4-A8 decomposition decision)
+- **Status**: DONE (2026-05-28; investigation succeeds — A4-A8 SUPERSEDED below)
+- **File**: investigation across `Adic spaces/`
 - **Type**: investigation
-- **Reviewer guidance** (ChatGPT, 2026-05-28): "If the project already has
-  a row-3 algebraic exactness theorem at the Tate-algebra quotient models,
-  the Wedhorn diagram-chase can be short-circuited via transport through
-  Examples 6.38/6.39."
 
-#### Investigation steps
+#### Findings
 
-1. Search `Adic spaces/Example638.lean`, `Adic spaces/PresheafTate*.lean`,
-   `Adic spaces/CechCohomology.lean`, `Adic spaces/TateAcyclicity*.lean` for
-   any theorem of shape `Exact (A → B₁ × B₂ → B₁₂)` or `Function.Surjective`
-   at the (f-ζ) / (1-fη) quotient level.
-2. Search for any abstract Čech-2-cover acyclicity theorem at the algebraic
-   level (not via 𝒪_X(R(...)) presheaf).
-3. If found: the body of `wedhorn_lemma_833_gluing_as_field` becomes
-   "transport (g₁, g₂) via Examples 6.38/6.39 to the quotient model → apply
-   the existing row3_exact → transport the resulting A-element back". Mark
-   A4-A8 as superseded.
-4. If not found: proceed with A4-A8 as planned.
+The project already has the algebraic row-3 exactness AND the full
+Route-B bridge to `presheafValue D₀`. Locations:
+
+1. **`LaurentCover.row3_exact`** at `Adic spaces/LaurentCoverExact.lean:1879`
+   — proves all three: `δ ∘ ε = 0`, `ker(δ) ⊆ im(ε)` (the gluing direction),
+   and `δ` surjective. Stated at the abstract algebraic level for
+   `B₁_gen f = (TateAlgebra A)/(f-X)`, `B₂_gen f = (TateAlgebra A)/(1-fX)`.
+
+2. **`laurentCover_gluing_presheaf_viaRow3`** at
+   `Adic spaces/LaurentRefinementCore.lean:3809` — bridges `row3_exact`
+   into the `presheafValue` framework. Takes type bridges `τ_plus,
+   τ_minus : presheafValue (laurentPlusDatum/MinusDatum D₀ f) ≃+*
+   B₁_gen/B₂_gen (D₀.canonicalMap f)` plus intertwining `htau_plus`,
+   `htau_minus` and a `deltaMap_gen ... = 0` kernel hypothesis;
+   returns `∃ x, restrictionMap-plus x = uplus ∧ restrictionMap-minus x = uminus`.
+
+3. **`laurentCover_gluing_presheaf_viaBridges`** at
+   `Adic spaces/LaurentRefinementCore.lean:3859` — final assembly using
+   the four Route-B bridges. The body is a single application of
+   `laurentCover_gluing_presheaf_viaRow3` with all bridges supplied.
+
+4. **`laurentPlusBridge`** at `LaurentRefinementCore.lean:2534` and
+   **`laurentMinusBridge`** — concrete constructions of `τ_plus`, `τ_minus`
+   from Example 6.38/6.39 isos composed with Wedhorn 2.13 iterated rational
+   identifications.
+
+5. **`laurentBridge_delta_eq_zero_of_compat`** at `LaurentRefinementCore.lean`
+   — translates the cocycle-style compat hypothesis to the
+   `deltaMap_gen ... = 0` kernel condition.
+
+**Conclusion**: the 5-lemma decomposition route (A4-A8) is **not needed**.
+The 5-lemma is already proved in the project at the algebraic level
+(`row3_exact`); only side-condition discharge remains for the
+`wedhorn_lemma_833_gluing_as_field` body — and that discharge is itself
+mostly assembled in `laurentCover_gluing_presheaf_viaBridges`.
+
+#### Consequence for T-WC-833-GLUING-FIELD
+
+`T-WC-833-GLUING-FIELD` body sketch is updated below to:
+
+1. Construct/select the `PairOfDefinition A` via `IsTateRing.principalPair A`.
+2. Discharge the six "B := presheafValue D₀ is strongly noetherian Tate"
+   side conditions for `laurentPlusBridge` / `laurentMinusBridge` /
+   `laurentCover_gluing_presheaf_viaBridges` (these propagate from `[IsStronglyNoetherian A]`).
+3. Discharge the bivariate setup (τ_preBiv, τ_alg, h_plus_compat, h_minus_compat).
+4. Apply `laurentCover_gluing_presheaf_viaBridges`.
+
+#### Sub-tickets superseded by this finding
+
+- T-WC-833-LAURENT-DECOMPOSE
+- T-WC-833-LAMBDA-SURJECTIVE
+- T-WC-833-LAMBDAPRIME-SURJECTIVE
+- T-WC-833-LAMBDA-KERNEL
+- T-WC-QUOTIENT-ROW-EXACT-CHASE
+- CLEANUP-WC-833-MID (no longer needed; no cluster of new 5-lemma proofs)
 
 ---
 
-#### [T-WC-833-LAURENT-DECOMPOSE] **NEW** — 5-lemma sub-lemma 1/5
+#### [T-WC-833-LAURENT-DECOMPOSE] **SUPERSEDED** 2026-05-28 — row3_exact found
 
-- **Status**: OPEN (blocked on T-WC-833-CHECK-ROW3-EXACT-EXISTS unless that
-  short-circuits the chain)
+- **Status**: SUPERSEDED 2026-05-28 by T-WC-833-CHECK-ROW3-EXACT-EXISTS finding.
+  `LaurentCover.row3_exact` already proves the algebraic 5-lemma; no separate
+  Laurent decomposition lemma is needed.
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean` (or new file
   `Adic spaces/LaurentTateDecomp.lean`)
 - **Depends on**: project's existing Laurent Tate algebra model
@@ -9620,9 +9659,10 @@ with the corresponding `posIncl`, `zetaInvMulNegIncl`, `posCoeff`, `zeroCoeff`,
 `negCoeff` API. Mathematical content: `A⟨ζ, ζ⁻¹⟩ = A⟨ζ⟩ + ζ⁻¹ A⟨ζ⁻¹⟩` (Wedhorn
 p. 84 verbatim equation, additive form). Estimated ~150 LOC including API.
 
-#### [T-WC-833-LAMBDA-SURJECTIVE] **NEW** — 5-lemma sub-lemma 2/5
+#### [T-WC-833-LAMBDA-SURJECTIVE] **SUPERSEDED** 2026-05-28 — row3_exact found
 
-- **Status**: OPEN
+- **Status**: SUPERSEDED 2026-05-28 (`deltaMap_gen_surjective` in
+  `LaurentCoverExact.lean:1653` covers this at the algebraic level)
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Depends on**: T-WC-833-LAURENT-DECOMPOSE
 - **Parallel**: yes
@@ -9639,9 +9679,10 @@ theorem lambda_surjective :
 
 where `λ(g(ζ), h(η)) := g(ζ) - h(ζ⁻¹)`. Estimated ~20 LOC.
 
-#### [T-WC-833-LAMBDAPRIME-SURJECTIVE] **NEW** — 5-lemma sub-lemma 3/5
+#### [T-WC-833-LAMBDAPRIME-SURJECTIVE] **SUPERSEDED** 2026-05-28 — row3_exact found
 
-- **Status**: OPEN
+- **Status**: SUPERSEDED 2026-05-28 (subsumed by `row3_exact`'s third
+  conjunct `δ surjective`)
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Depends on**: T-WC-833-LAURENT-DECOMPOSE
 - **Parallel**: yes
@@ -9663,9 +9704,10 @@ p. 84 verbatim equation, ideal form). Estimated ~40 LOC.
 
 ---
 
-#### [CLEANUP-WC-833-MID] **NEW** — cadence cleanup after 3rd new ticket
+#### [CLEANUP-WC-833-MID] **SUPERSEDED** 2026-05-28 — no 5-lemma cluster
 
-- **Status**: OPEN
+- **Status**: SUPERSEDED 2026-05-28 (no 3-ticket 5-lemma cluster materialized;
+  cadence cleanup not needed)
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Depends on**: T-WC-833-LAMBDAPRIME-SURJECTIVE (3rd of 5 new tickets)
 - **Type**: cleanup
@@ -9676,9 +9718,10 @@ p. 84 verbatim equation, ideal form). Estimated ~40 LOC.
 
 ---
 
-#### [T-WC-833-LAMBDA-KERNEL] **NEW** — 5-lemma sub-lemma 4/5
+#### [T-WC-833-LAMBDA-KERNEL] **SUPERSEDED** 2026-05-28 — row3_exact found
 
-- **Status**: OPEN
+- **Status**: SUPERSEDED 2026-05-28 (`ker_deltaMap_gen_le_range_epsilonHom_gen`
+  at `LaurentCoverExact.lean:1671` proves this at the algebraic level)
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Depends on**: T-WC-833-LAURENT-DECOMPOSE (for coefficient API)
 - **Parallel**: yes (with A4-A6)
@@ -9698,9 +9741,10 @@ Mathematical content: Wedhorn p. 84 verbatim — `0 = Σ aₖζᵏ - Σ bₖζ^{
 forces `aₖ = bₖ = 0` for `k > 0` and `a₀ = b₀`. Use `posCoeff/zeroCoeff/negCoeff`
 projections from A4's API. Estimated ~80 LOC.
 
-#### [T-WC-QUOTIENT-ROW-EXACT-CHASE] **NEW** — 5-lemma sub-lemma 5/5 (replaces `T-WC-COMPATIBLE-PAIR-5LEMMA`)
+#### [T-WC-QUOTIENT-ROW-EXACT-CHASE] **SUPERSEDED** 2026-05-28 — row3_exact found
 
-- **Status**: OPEN
+- **Status**: SUPERSEDED 2026-05-28 (`row3_exact` is exactly the abstract
+  chase the reviewer recommended building; already in the project)
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Depends on**: T-WC-833-LAURENT-DECOMPOSE, T-WC-833-LAMBDA-SURJECTIVE,
   T-WC-833-LAMBDAPRIME-SURJECTIVE, T-WC-833-LAMBDA-KERNEL
@@ -9734,26 +9778,55 @@ theorem quotient_row_exact_of_top_surj_and_middle_exact
 - **Reviewer guidance** (ChatGPT, 2026-05-28): "The 5-lemma sub-piece is the
   abstract chase, not a compatible-pair-lifts wrapper."
 
-#### [T-WC-833-GLUING-FIELD] **MODIFIED** — sketch simplified
+#### [T-WC-833-GLUING-FIELD] **MODIFIED** — sketch simplified via existing Route-B bridges
 
-- **Status**: OPEN (sketch updated)
-- **Depends on** (NEW): T-WC-QUOTIENT-ROW-EXACT-CHASE, T-WC-833-LAURENT-DECOMPOSE,
-  T-WC-833-LAMBDA-SURJECTIVE, T-WC-833-LAMBDAPRIME-SURJECTIVE,
-  T-WC-833-LAMBDA-KERNEL, T-WC-833-CHECK-ROW3-EXACT-EXISTS
+- **Status**: OPEN (sketch updated 2026-05-28 after investigation)
+- **Depends on** (REVISED): `laurentCover_gluing_presheaf_viaBridges` (exists
+  sorry-free at `LaurentRefinementCore.lean:3859`) + side-hypothesis discharge
+  for B := presheafValue D₀ being strongly noetherian Tate (Wedhorn 8.31
+  propagation).
 - **Reviewer guidance** (ChatGPT, 2026-05-28): "Body is only 'transport via
   Examples 6.38/6.39 → apply chase → transport back'."
+- **Investigation finding** (2026-05-28, T-WC-833-CHECK-ROW3-EXACT-EXISTS):
+  Route-B is fully assembled at `LaurentRefinementCore.lean:3859` as
+  `laurentCover_gluing_presheaf_viaBridges`. The "chase" is `row3_exact`;
+  the "transport" is `laurentPlusBridge`/`laurentMinusBridge`; the kernel
+  translation is `laurentBridge_delta_eq_zero_of_compat`. Only side-hypothesis
+  discharge remains.
 
-#### Sketch (revised)
+#### Sketch (revised after investigation)
 
 ```text
-1. Transport `g₁ : 𝒪_X(R(f/1))` and `g₂ : 𝒪_X(R(1/f))` to the quotient models
-   `A⟨ζ⟩/(f-ζ)` and `A⟨η⟩/(1-fη)` via the Examples 6.38/6.39 ring isos.
-2. Apply `quotient_row_exact_of_top_surj_and_middle_exact` (T-WC-QUOTIENT-ROW-EXACT-CHASE).
-3. Transport the resulting `a : A` back to `presheafValue D₀`, verifying
-   restrictions via the column intertwining.
+1. Obtain `P : PairOfDefinition A` from `IsTateRing.principalPair A`.
+2. Verify `[IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)]` and
+   `[LaurentNormalized D₀]` typeclass instances.
+3. Discharge the 6 side conditions about B := presheafValue D₀ being
+   strongly noetherian Tate:
+   - hNoeth_B (IsNoetherianRing (presheafValue D₀))
+   - hLocLift_B (HasLocLiftPowerBounded)
+   - hA₀Noeth_B (noetherian pair-subring A₀ for the principal pair of B)
+   - hA_complete_B (CompleteSpace under right-uniformity)
+   - hnoeth_B (noetherian TateAlgebra-pair-subring of B)
+   - hcont_forward_B (continuity of example638Plus_forwardHom over B)
+   - hcont_eval_B (continuity of tateQuotientToPresheafHom over B)
+   Each propagates from `[IsStronglyNoetherian A]` via Wedhorn 8.31.
+4. Discharge the bivariate setup:
+   - τ_preBiv : presheafValue (laurentOverlapDatum D₀ f) ≃+* bivariate quotient
+   - τ_alg : bivariate quotient ≃+* B₁₂_gen
+   - h_plus_compat, h_minus_compat (compatibility with posLift/negLift)
+5. Translate the lemma's compat hypothesis to the `hcompat` form expected
+   by `laurentBridge_delta_eq_zero_of_compat`.
+6. Apply `laurentCover_gluing_presheaf_viaBridges`.
 ```
 
-Estimated ~30 LOC for the wrapper after dependencies land.
+Estimated ~150-200 LOC for the wrapper (mostly side-condition discharge,
+which is mechanical given the existing project infrastructure).
+
+**Sub-tickets that may be spawned during execution**:
+- T-WC-833-SIDE-COND-PROPAGATION — bundle the 6+ side conditions as a single
+  "strongly noetherian Tate propagates to presheafValue D₀" instance/theorem.
+- T-WC-833-BIVARIATE-BRIDGE — extract τ_preBiv, τ_alg as named lemmas if not
+  already in the project.
 
 ### Summary
 
