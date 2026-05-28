@@ -435,11 +435,11 @@ theorem example_638_plus_side_cont_quotient_lift
       (quotientPlusFSubXIdealTopology A f)
       (inferInstance : TopologicalSpace (presheafValue (trivialPlusDatum A P f)))
       (example638Plus_forwardHom A P f) := by
-  -- The quotient topology is defined so that `Quotient.mk` is a
-  -- quotient map, and a map out of the quotient is continuous iff
-  -- the composition with `Quotient.mk` is. Since `forwardHom ∘ Quotient.mk
-  -- = evalHom`, continuity of evalHom gives continuity of forwardHom.
-  sorry
+  -- Universal property: `Continuous.quotient_lift` (mathlib) lifts a
+  -- continuous f through a Quotient setoid. `Ideal.Quotient` reduces to
+  -- the standard `Quotient` setoid; `quotientPlusFSubXIdealTopology` is
+  -- the inherited topology.
+  exact Continuous.quotient_lift h_evalHom _
 
 /-- **Side condition (c)** for `example638Plus_equiv`: the forward
 hom `A⟨ζ⟩/(f-ζ) → 𝒪_X(R(f/1))` is continuous. Composed from
@@ -506,7 +506,7 @@ theorem example_638_minus_side_cont_quotient_lift
       (tateQuotientToPresheafHom (trivialMinusDatum A P f)
         (invS_isPowerBounded_in_trivialMinus A P f)) := by
   -- Universal property of the quotient topology.
-  sorry
+  exact Continuous.quotient_lift h_evalHom _
 
 /-- **Side condition** for `example638Minus_equiv`: the eval hom
 `A⟨η⟩/(1-fη) → 𝒪_X(R(1/f))` is continuous (with respect to the quotient

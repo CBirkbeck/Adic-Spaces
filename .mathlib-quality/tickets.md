@@ -8298,7 +8298,7 @@ Project-internal.
 
 ### [T-WC-638-PLUS-CONT-QUOT] `example_638_plus_side_cont_quotient_lift`
 
-- **Status**: OPEN
+- **Status**: done (2026-05-28: closed via `Continuous.quotient_lift` mathlib lemma applied to h_evalHom)
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Depends on**: T-WC-638-PLUS-CONT-EVAL
 - **Parallel**: no
@@ -8351,7 +8351,7 @@ Project-internal.
 
 ### [T-WC-638-MINUS-CONT-QUOT] `example_638_minus_side_cont_quotient_lift`
 
-- **Status**: OPEN
+- **Status**: done (2026-05-28: closed via `Continuous.quotient_lift`)
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Depends on**: T-WC-638-MINUS-CONT-EVAL
 - **Parallel**: no
