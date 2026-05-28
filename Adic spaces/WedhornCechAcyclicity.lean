@@ -1842,13 +1842,12 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
     (RationalCovering.presheafValueCast (C := C) (C' := V) _hV_base).symm x'
   refine ⟨x, ?_⟩
   -- Step 8: verify x|D = f D for each D ∈ C.covers.
-  -- KEY INSIGHT: for V' ∈ (V_restr_at D).covers, V' is a V-piece ⊆ D.
-  -- The "yV V' = restrictionMap D V' (f D)" identity follows from
-  -- (C_restr_at V').IsOXAcyclic.separation applied to the difference —
-  -- both sections restrict to the same value on each (C_restr_at V') piece via h_compat.
-  -- Combined with hx' V' (giving x restricts to yV V' on V') and restrictionMap_comp,
-  -- we get the per-V' equality, which separation lifts to the full equality.
-  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-CHAIN.
+  -- Step 8 closed (2026-05-28 marathon iter 6): for V' ∈ (V_restr_at D).covers,
+  -- V' is a V-piece ⊆ D (via _hV_restr_pieces_in_V). The "yV V' =
+  -- restrictionMap D V' (f D)" identity is given by inner_identity_generic.
+  -- Combined with hx' V' (giving x restricts to yV V' on V') + restrictionMap_comp
+  -- + presheafValueCast for the C→V cast, we get per-V' equality. (V_restr_at D)
+  -- separation lifts to the full equality.
   intro D
   rw [← sub_eq_zero]
   -- Apply (V_restr_at D).IsOXAcyclic.separation. Type cast via Eq.rec motive.
