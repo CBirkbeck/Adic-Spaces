@@ -1251,21 +1251,10 @@ theorem exists_pair_with_A₀_subset_Aplus
     exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer (A := A)
   exact ⟨P, hP⟩
 
-/-- **Cor 7.32 hypothesis-supply lemma 2** *(SUPERSEDED 2026-05-28)*: original
-universal-P claim was too strong (only true for principal pairs). Now stated
-only for the principal pair returned by the fused lemma. -/
-@[deprecated
-  "Use `exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer` instead"
-  (since := "2026-05-28")]
-theorem exists_pseudouniformizer_of_tate
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [CompatiblePlusSubring A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (_P : PairOfDefinition A) :
-    -- Note: this statement is too strong as written for arbitrary P.
-    -- The fused replacement returns the (P, π) pair together.
-    True := trivial
+-- Note: the older `exists_pseudouniformizer_of_tate` had a too-strong universal-P
+-- claim and is replaced by `exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer`
+-- which returns the (P, π) pair together. The deprecated wrapper had a `True := trivial`
+-- placeholder body and has been removed.
 
 /-- **Cor 7.32 hypothesis-supply lemma 3**: every continuous valuation on
 a strongly noetherian Tate ring has multiplicatively-archimedean value
