@@ -1826,21 +1826,32 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   let yVj : ∀ (Vj : ↥V.covers), presheafValue (C_restr_at Vj).base := fun Vj =>
     ((_hC_restr_acyclic Vj).gluing (gVj Vj) (h_gVj_compat Vj)).choose
   -- Step 4: cast yVj from presheafValue (C_restr_at Vj).base to presheafValue Vj.
-  -- Since (C_restr_at Vj).base = Vj.1 via _hC_restr_base, this is presheafValueCast
-  -- applied to a singleton-RationalCovering analogue.
-  --
-  -- For the V.gluing, we need a family on ↥V.covers giving presheafValue D.1
-  -- for D : ↥V.covers. yVj has type presheafValue (C_restr_at Vj).base; we need
-  -- presheafValue Vj.1. The cast is via _hC_restr_base Vj : (C_restr_at Vj).base = Vj.1.
-  --
-  -- Step 5-7 (cast yVj, build y'-family, V.gluing, cast x' to C.base, verify per D):
-  -- the substantive nested-gluing plumbing. Sub-ticket
-  -- T-WC-PROPA3-PART1-GLU-CAST-CHAIN.
-  let _ := yVj
-  let _ := _hV_acyclic
+  -- Use Eq.rec via _hC_restr_base Vj : (C_restr_at Vj).base = Vj.1.
+  let yV : ∀ (Vj : ↥V.covers), presheafValue Vj.1 := fun Vj =>
+    _hC_restr_base Vj ▸ yVj Vj
+  -- Step 5: show yV is compatible on V (the substantive piece — requires
+  -- factoring through C_restr_at pieces + h_compat).
+  -- Sub-ticket T-WC-PROPA3-PART1-GLU-COMPAT-V (the V-compatibility analogue
+  -- of the C'-compatibility step in propA3_part2).
+  have h_yV_compat : ∀ (Vj₁ Vj₂ : ↥V.covers)
+      (Vj₃ : RationalLocData A)
+      (h₃₁ : rationalOpen Vj₃.T Vj₃.s ⊆ rationalOpen Vj₁.1.T Vj₁.1.s)
+      (h₃₂ : rationalOpen Vj₃.T Vj₃.s ⊆ rationalOpen Vj₂.1.T Vj₂.1.s),
+      restrictionMap Vj₁.1 Vj₃ h₃₁ (yV Vj₁) =
+        restrictionMap Vj₂.1 Vj₃ h₃₂ (yV Vj₂) := by
+    sorry
+  -- Step 6: apply V.IsOXAcyclic.gluing to (yV, h_yV_compat) to get x' on V.base.
+  obtain ⟨x', hx'⟩ := _hV_acyclic.gluing yV h_yV_compat
+  -- Step 7: cast x' to x : presheafValue C.base via presheafValueCast on _hV_base.
+  let x : presheafValue C.base :=
+    (RationalCovering.presheafValueCast (C := C) (C' := V) _hV_base).symm x'
+  refine ⟨x, ?_⟩
+  -- Step 8: verify x|D = f D for each D ∈ C.covers via V_restr_at(D).separation.
+  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY (analogue of propA3_part2 Step 7).
+  intro D
+  let _ := hx'
+  let _ := x
   let _ := _hV_restr_acyclic
-  let _ := _hC_restr_base
-  let _ := _hV_base
   sorry
 
 /-- **Part (iv) sub-lemma (c)**: the Prop A.3(1) bridge step. Given a
