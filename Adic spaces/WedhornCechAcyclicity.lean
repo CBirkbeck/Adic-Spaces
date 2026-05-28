@@ -1784,6 +1784,9 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
       CompleteSpace A]
     (C V : RationalCovering A) (_hV_base : V.base = C.base)
     (_hV_acyclic : V.IsOXAcyclic)
+    -- V refines C: every V-piece sits in some C-piece (matches propA3_part1_separation).
+    (_h_V_refines_C : ∀ V_j ∈ V.covers, ∃ U ∈ C.covers,
+      rationalOpen V_j.T V_j.s ⊆ rationalOpen U.T U.s)
     (V_restr_at : ↥C.covers → RationalCovering A)
     (_hV_restr_base : ∀ U : ↥C.covers, (V_restr_at U).base = U.1)
     (_hV_restr_pieces : ∀ U : ↥C.covers, ∀ V' ∈ (V_restr_at U).covers,
@@ -2124,9 +2127,9 @@ theorem wedhorn_lemma_834_propA3_part1_bridge
       hV_acyclic h_V_refines_C V_restr_at hV_restr_base hV_restr_pieces
       hV_restr_acyclic
     gluing := wedhorn_lemma_834_propA3_part1_gluing C V hV_base
-      hV_acyclic V_restr_at hV_restr_base hV_restr_pieces hV_restr_pieces_in_V
-      hV_restr_acyclic hV_restr_covers C_restr_at hC_restr_base hC_restr_pieces
-      hC_restr_acyclic hC_restr_covers }
+      hV_acyclic h_V_refines_C V_restr_at hV_restr_base hV_restr_pieces
+      hV_restr_pieces_in_V hV_restr_acyclic hV_restr_covers C_restr_at hC_restr_base
+      hC_restr_pieces hC_restr_acyclic hC_restr_covers }
 
 /-- **NEW (T-WC-V-REFINES-C-FROM-DOM-UNIT, 2026-05-28)**: For the Laurent
 cover V from part (ii) of Lemma 8.34, V refines C — each V-piece sits in
