@@ -2239,6 +2239,32 @@ theorem exists_ideal_gen_refinement [DecidableEq A] [IsDomain A]
     rationalCovering_from_idealGenSet C S hS_span hS_cover hS_contain
   exact ⟨S, C', h_C'_gen, h_C'_base, h_C'_refines⟩
 
+/-- **Companion lemma**: cover-each direction for an ideal-generating refinement.
+
+Given C and an ideal-generating refinement C' (via exists_ideal_gen_refinement),
+every C-piece D is covered point-wise by C'-pieces inside D. This is the
+per-E refinement structure from Wedhorn 7.54.
+
+Sub-ticket T-WC-IDEAL-GEN-COVERS-EACH-COMPANION. -/
+theorem ideal_gen_refinement_covers_each_piece [DecidableEq A] [IsDomain A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C : RationalCovering A) (T : Finset A) (C' : RationalCovering A)
+    (_h_C'_gen : C'.IsGeneratedBy T)
+    (_h_C'_base : C'.base = C.base)
+    (_h_C'_refines : ∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
+      rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
+    ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+      ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
+        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s := by
+  -- Per-E refinement: from Wedhorn 7.54's construction, for each D ∈ C.covers
+  -- and v ∈ D, the refined S has a witness f with v ∈ R(insert f C.base.T / C.base.s)
+  -- and R(insert f C.base.T / C.base.s) ⊆ D. The bridge to C'-pieces R(S/f)
+  -- requires the structural relationship from rationalCovering_from_idealGenSet.
+  sorry
+
 /-- **Strengthened version** (T-WC-EXISTS-IDEAL-GEN-COVERS-EACH, 2026-05-28):
 `exists_ideal_gen_refinement` augmented with the covering-each-D direction.
 
@@ -2268,13 +2294,11 @@ theorem exists_ideal_gen_refinement_covers_each_D [DecidableEq A] [IsDomain A]
       (∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
         ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
           rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) := by
-  -- Compose: use the original exists_ideal_gen_refinement + add cover-each direction.
+  -- Compose: use the original exists_ideal_gen_refinement + cover-each companion.
   obtain ⟨T, C', h_C'_gen, h_C'_base, h_C'_refines⟩ := exists_ideal_gen_refinement C
   refine ⟨T, C', h_C'_gen, h_C'_base, h_C'_refines, ?_⟩
-  -- Cover-each direction: requires the per-E refinement structure from
-  -- exists_refines_cover_per_E_of_localBasisHyp + the bridge to C'-pieces.
-  -- Sub-ticket T-WC-EXISTS-IDEAL-GEN-COVERS-EACH-BODY-DIRECT.
-  sorry
+  exact ideal_gen_refinement_covers_each_piece C T C'
+    h_C'_gen h_C'_base h_C'_refines
 
 /-! ##### Sub-lemmas for `IsOXAcyclic_of_refining_acyclic_cover` (Prop A.3(2) project bridge) -/
 
