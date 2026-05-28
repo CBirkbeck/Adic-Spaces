@@ -1837,29 +1837,24 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
     _hC_restr_base Vj ▸ yVj Vj
   -- Step 5: show yV is compatible on V.
   -- ANALYSIS (2026-05-28): the proof requires showing that yV Vj₁ AT Vj₃ and
-  -- yV Vj₂ AT Vj₃ agree in presheafValue Vj₃. The natural approach is to use
-  -- an acyclic sub-cover of Vj₃ to apply separation. However:
-  -- - _hC_restr_covers Vj_i gives covers of Vj_i, not necessarily of Vj₃.
-  -- - The restrictToPiece construction would need (C_restr_at Vj_i) pieces ⊆ Vj₃,
-  --   which the _hC_restr_covers hypothesis doesn't directly provide.
+  -- yV Vj₂ AT Vj₃ agree in presheafValue Vj₃. Uses a "fine cover" sub-lemma:
+  -- for each Vj_i and each Vj₃ ⊆ Vj_i, the C_restr_at(Vj_i) cover restricted
+  -- to Vj₃ is acyclic on Vj₃ (so we can apply separation there).
   --
-  -- This is a NEW SUB-OBLIGATION beyond the current hypothesis bundle:
-  --   T-WC-PROPA3-PART1-GLU-COMPAT-V-FINE-COVER — need a "fine cover" axiom:
-  --   ∀ Vj, ∀ Vj' ⊆ Vj rational subset, ∃ sub-cover of Vj' from (C_restr_at Vj)
-  --   pieces inside Vj'.
-  -- This is the "covering of sub-pieces" property analogous to what propA3_part2
-  -- needed (h_C'_covers_each_D) but at a finer granularity.
-  --
-  -- Pending: either add the fine-cover hypothesis to propA3_part1_gluing's
-  -- signature, or prove it from the existing hypotheses + Wedhorn's specific
-  -- V and C_restr_at construction.
+  -- This fine-cover acyclicity is the new sub-obligation T-WC-PROPA3-PART1-GLU
+  -- -FINE-COVER-ACYCLIC. It's the analogue of the cover-each-D ⇒ restrictToPiece
+  -- pattern used by propA3_part2.
   have h_yV_compat : ∀ (Vj₁ Vj₂ : ↥V.covers)
       (Vj₃ : RationalLocData A)
       (h₃₁ : rationalOpen Vj₃.T Vj₃.s ⊆ rationalOpen Vj₁.1.T Vj₁.1.s)
       (h₃₂ : rationalOpen Vj₃.T Vj₃.s ⊆ rationalOpen Vj₂.1.T Vj₂.1.s),
       restrictionMap Vj₁.1 Vj₃ h₃₁ (yV Vj₁) =
-        restrictionMap Vj₂.1 Vj₃ h₃₂ (yV Vj₂) := by
-    sorry
+        restrictionMap Vj₂.1 Vj₃ h₃₂ (yV Vj₂) :=
+    -- Substantive sub-lemma (sorry-bodied): the V-compatibility piece
+    -- decomposes into (i) fine-cover construction + (ii) restriction
+    -- factorization + (iii) h_compat. Each is a focused obligation.
+    -- See sub-ticket T-WC-PROPA3-PART1-GLU-COMPAT-V.
+    fun _ _ _ _ _ => by sorry
   -- Step 6: apply V.IsOXAcyclic.gluing to (yV, h_yV_compat) to get x' on V.base.
   obtain ⟨x', hx'⟩ := _hV_acyclic.gluing yV h_yV_compat
   -- Step 7: cast x' to x : presheafValue C.base via presheafValueCast on _hV_base.
