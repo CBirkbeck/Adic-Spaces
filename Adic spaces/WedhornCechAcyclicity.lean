@@ -1879,15 +1879,19 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-CHAIN.
   intro D
   rw [← sub_eq_zero]
-  -- (V_restr_at D).base = D.1 by _hV_restr_base D (Eq.rec cast).
-  -- Apply (V_restr_at D).separation after cast.
+  -- KEY SUB-LEMMA (sub-sorry T-WC-PROPA3-PART1-GLU-VERIFY-PER-V''):
+  -- For each V'' ∈ V.covers, yV V'' = (restrictionMap D V''_intersect_D (f D))_canonical
+  -- via (C_restr_at V'').separation on the difference, using h_compat.
+  -- This is the algebraic content of "yV is the f-induced section on V".
   --
-  -- The full chain (per-V' restriction = 0 via restrictionMap_comp +
-  -- presheafValueCast_restrictionMap + hx' + nested separation + h_compat)
-  -- is documented above. The cast plumbing involves _hV_restr_base D's
-  -- Eq.rec form which differs from the propA3_part2 case (where the cast
-  -- was through C ↔ C' rather than V_restr_at U ↔ U).
-  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-CHAIN.
+  -- With this sub-lemma, Step 8 unfolds: for V' ∈ (V_restr_at D).covers,
+  --   restrictionMap D V' (x_restrict - f D)
+  --   = restrictionMap V''.1 V' (yV V'' - canonical f on V''∩D)
+  --   = 0   [by the sub-lemma applied at V'']
+  -- Hence x_restrict = f D on each V', and (V_restr_at D).separation closes.
+  --
+  -- The cast plumbing through _hV_restr_base (Eq.rec from (V_restr_at D).base = D.1)
+  -- is the remaining technical work.
   let _ := hx'
   let _ := x
   let _ := _hV_restr_acyclic
