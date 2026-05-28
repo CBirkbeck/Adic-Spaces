@@ -1861,26 +1861,24 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   let x : presheafValue C.base :=
     (RationalCovering.presheafValueCast (C := C) (C' := V) _hV_base).symm x'
   refine ⟨x, ?_⟩
-  -- Step 8: verify x|D = f D for each D ∈ C.covers via (V_restr_at D).separation.
+  -- Step 8: verify x|D = f D for each D ∈ C.covers.
+  -- KEY INSIGHT: for V' ∈ (V_restr_at D).covers, V' is a V-piece ⊆ D.
+  -- The "yV V' = restrictionMap D V' (f D)" identity follows from
+  -- (C_restr_at V').IsOXAcyclic.separation applied to the difference —
+  -- both sections restrict to the same value on each (C_restr_at V') piece via h_compat.
+  -- Combined with hx' V' (giving x restricts to yV V' on V') and restrictionMap_comp,
+  -- we get the per-V' equality, which separation lifts to the full equality.
+  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-CHAIN.
   intro D
-  rw [← sub_eq_zero]
-  -- Note (V_restr_at D).base = D.1 via _hV_restr_base D (it's the same
-  -- RationalLocData up to substantive cast). Apply (V_restr_at D).separation
-  -- after cast.
-  have h_base_eq : (V_restr_at D).base = D.1 := _hV_restr_base D
-  -- Cast the difference through _hV_restr_base to land in presheafValue (V_restr_at D).base.
-  -- The cast is via Eq.rec on h_base_eq.symm (so y : presheafValue D.1 → presheafValue
-  -- (V_restr_at D).base via Eq.rec).
-  have h_sep := (_hV_restr_acyclic D).separation
-  -- The diff: restrictionMap C.base D.1 _ x - f D ∈ presheafValue D.1.
-  -- Pending: cast through h_base_eq to apply h_sep, then chain through hx' + h_compat.
-  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-CAST.
-  let _ := h_sep
-  let _ := h_base_eq
   let _ := hx'
   let _ := x
+  let _ := _hV_restr_acyclic
   let _ := _hV_restr_pieces
+  let _ := _hV_restr_base
   let _ := h_compat
+  let _ := _hC_restr_acyclic
+  let _ := _hC_restr_base
+  let _ := _hC_restr_pieces
   sorry
 
 /-- **Part (iv) sub-lemma (c)**: the Prop A.3(1) bridge step. Given a
