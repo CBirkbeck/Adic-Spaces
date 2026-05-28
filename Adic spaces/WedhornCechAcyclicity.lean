@@ -908,6 +908,7 @@ theorem laurent_empty_gen_eq_one [DecidableEq A] :
   simp only [List.sublists, List.map, List.foldr]
   rfl
 
+set_option synthInstance.maxHeartbeats 800000 in
 /-- **Part (i) base-case separation**: under the single-unit-piece
 hypothesis, the separation field of `IsOXAcyclic` holds.
 
@@ -916,7 +917,8 @@ to the identity (composed with iso to itself), so restricting to zero on
 the single piece forces the global section to be zero. -/
 theorem isOXAcyclic_of_single_unit_piece_separation
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (V : RationalCovering A)
@@ -924,10 +926,32 @@ theorem isOXAcyclic_of_single_unit_piece_separation
     ∀ (x : presheafValue V.base),
       (∀ (D : RationalLocData A) (hD : D ∈ V.covers),
         restrictionMap V.base D (V.hsubset D hD) x = 0) → x = 0 := by
-  -- Apply the single restriction (at D₀) and use that R({1}/1) =
-  -- V.base's rational open, so the restriction is an iso (identity in
-  -- the algebraic sense).
-  sorry
+  -- Use Cor 8.32: the product `presheafValue V.base → ∏ presheafValue D` over
+  -- D ∈ V.covers is faithfully flat, hence (algebraMap) injective. Apply this
+  -- pointwise to derive x = 0 from "restriction = 0 for every D".
+  intro x hx
+  letI : ∀ D : { D // D ∈ V.covers }, Algebra (presheafValue V.base)
+      (presheafValue D.1) := fun D =>
+    (restrictionMapHom V.base D.1 (V.hsubset D.1 D.2)).toAlgebra
+  haveI hff := cor_8_32_clean_proof (IsTateRing.principalPair A).toPairOfDefinition V
+  -- Use the same pattern as `injectivity_from_faithfullyFlat_2cover`.
+  have h_inj : Function.Injective
+      (fun (y : presheafValue V.base) =>
+        fun (D : { D // D ∈ V.covers }) =>
+          restrictionMap V.base D.1 (V.hsubset D.1 D.2) y) := by
+    have := FaithfulSMul.algebraMap_injective
+      (presheafValue V.base)
+      (∀ D : { D : RationalLocData A // D ∈ V.covers }, presheafValue D.1)
+    intro y₁ y₂ hy
+    apply this
+    funext D
+    exact congr_fun hy D
+  apply h_inj
+  funext D
+  show restrictionMap V.base D.1 (V.hsubset D.1 D.2) x =
+       restrictionMap V.base D.1 (V.hsubset D.1 D.2) 0
+  rw [hx D.1 D.2]
+  exact (map_zero (restrictionMapHom V.base D.1 (V.hsubset D.1 D.2))).symm
 
 /-- **Part (i) base-case gluing**: under the single-unit-piece hypothesis,
 the gluing field of `IsOXAcyclic` holds.
@@ -961,7 +985,8 @@ set `{D₀}` where `D₀.T = {1}` and `D₀.s = 1` is `O_X`-acyclic.
 Composed from the separation and gluing fields proved above. -/
 theorem isOXAcyclic_of_single_unit_piece
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (V : RationalCovering A)
@@ -1012,7 +1037,8 @@ theorem single_unit_piece_of_empty_laurent [DecidableEq A]
 
 theorem wedhorn_lemma_834_part_i_base [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (V : RationalCovering A) (hV_laurent : V.IsLaurentCover ([] : List A)) :
