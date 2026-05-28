@@ -7578,7 +7578,7 @@ Same as current sorry.
 
 ### [T-WC-PROPA3-PART1-SEP] `wedhorn_lemma_834_propA3_part1_separation`
 
-- **Status**: OPEN
+- **Status**: done (2026-05-28: closed sorry-free; added `h_V_refines_C` hypothesis (V refines C; was missing from Prop A.3(1) decomposition); proof via presheafValueCast + V.separation + restrictionMap_comp)
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Depends on**: T-WC-CAT-C-CHANGE-BASE
 - **Parallel**: parallel with T-WC-PROPA3-PART2-*

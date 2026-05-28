@@ -1325,26 +1325,63 @@ theorem wedhorn_lemma_834_V_restr_acyclic [DecidableEq A]
     _hU_subset V_restr h_V_restr_base h_V_restr_pieces
 
 /-- **Part (iv) sub-lemma (c) sub-(sep)**: under the bilateral
-refinement-acyclicity hypotheses, separation transfers from `V` to `C`. -/
+refinement-acyclicity hypotheses (plus `V` refines `C`: every V-piece
+sits in some C-piece), separation transfers from `V` to `C`.
+
+The additional `h_V_refines_C` hypothesis is the standard "V is a
+refinement of C" assumption that Prop A.3(1) actually requires (the
+existing decomposition omitted it). -/
 theorem wedhorn_lemma_834_propA3_part1_separation
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (C V : RationalCovering A) (_hV_base : V.base = C.base)
-    (_hV_acyclic : V.IsOXAcyclic)
-    (V_restr_at : ↥C.covers → RationalCovering A)
-    (_hV_restr_base : ∀ U : ↥C.covers, (V_restr_at U).base = U.1)
-    (_hV_restr_pieces : ∀ U : ↥C.covers, ∀ V' ∈ (V_restr_at U).covers,
+    (C V : RationalCovering A) (h_V_base : V.base = C.base)
+    (h_V_acyclic : V.IsOXAcyclic)
+    (h_V_refines_C : ∀ V_j ∈ V.covers, ∃ U ∈ C.covers,
+      rationalOpen V_j.T V_j.s ⊆ rationalOpen U.T U.s)
+    (_V_restr_at : ↥C.covers → RationalCovering A)
+    (_hV_restr_base : ∀ U : ↥C.covers, (_V_restr_at U).base = U.1)
+    (_hV_restr_pieces : ∀ U : ↥C.covers, ∀ V' ∈ (_V_restr_at U).covers,
       ∃ V'' ∈ V.covers,
         rationalOpen V'.T V'.s ⊆ rationalOpen V''.T V''.s)
-    (_hV_restr_acyclic : ∀ U : ↥C.covers, (V_restr_at U).IsOXAcyclic) :
+    (_hV_restr_acyclic : ∀ U : ↥C.covers, (_V_restr_at U).IsOXAcyclic) :
     ∀ (x : presheafValue C.base),
       (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
         restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0 := by
-  -- The C-piece restrictions can be further restricted by V|U, where
-  -- V|U is acyclic on each U. Use V's separation + V|U's separation.
-  sorry
+  intro x hx
+  -- Cast x to presheafValue V.base via presheafValueCast.
+  let g : presheafValue C.base ≃+* presheafValue V.base :=
+    RationalCovering.presheafValueCast h_V_base
+  -- It suffices to show g x = 0; then x = 0 by g.injective.
+  suffices h_gx : g x = 0 by
+    have : g x = g 0 := h_gx.trans g.map_zero.symm
+    exact g.injective this
+  -- Apply V.IsOXAcyclic.separation to g x.
+  apply h_V_acyclic.separation
+  intro V_j hV_j
+  -- Pick U ∈ C.covers with V_j ⊆ U.
+  obtain ⟨U, hU_in_C, hV_j_sub_U⟩ := h_V_refines_C V_j hV_j
+  -- restrictionMap V.base V_j (g x) = restrictionMap C.base V_j x (via cast).
+  have hsub_C : rationalOpen V_j.T V_j.s ⊆ rationalOpen C.base.T C.base.s := by
+    rw [← h_V_base]; exact V.hsubset V_j hV_j
+  have h_cast :
+      restrictionMap V.base V_j (V.hsubset V_j hV_j) (g x) =
+      restrictionMap C.base V_j hsub_C x :=
+    RationalCovering.presheafValueCast_restrictionMap C.base V.base
+      h_V_base V_j hsub_C (V.hsubset V_j hV_j) x
+  rw [h_cast]
+  -- restrictionMap C.base V_j x = restrictionMap U V_j (restrictionMap C.base U x)
+  -- by composition.
+  have hcomp := restrictionMap_comp (A := A) C.base U V_j
+    (C.hsubset U hU_in_C) hV_j_sub_U
+  have h_factored :
+      restrictionMap C.base V_j hsub_C x =
+      restrictionMap U V_j hV_j_sub_U
+        (restrictionMap C.base U (C.hsubset U hU_in_C) x) :=
+    (congr_fun hcomp x).symm
+  rw [h_factored, hx U hU_in_C]
+  exact (restrictionMapHom U V_j hV_j_sub_U).map_zero
 
 /-- **Part (iv) sub-lemma (c) sub-(glu)**: under the bilateral
 refinement-acyclicity hypotheses, gluing transfers from `V` (with
@@ -1396,6 +1433,9 @@ theorem wedhorn_lemma_834_propA3_part1_bridge
       CompleteSpace A]
     (C V : RationalCovering A) (hV_base : V.base = C.base)
     (hV_acyclic : V.IsOXAcyclic)
+    -- V refines C: every V-piece sits in some C-piece (Prop A.3(1) requirement).
+    (h_V_refines_C : ∀ V_j ∈ V.covers, ∃ U ∈ C.covers,
+      rationalOpen V_j.T V_j.s ⊆ rationalOpen U.T U.s)
     (V_restr_at : ↥C.covers → RationalCovering A)
     (hV_restr_base : ∀ U : ↥C.covers, (V_restr_at U).base = U.1)
     (hV_restr_pieces : ∀ U : ↥C.covers, ∀ V' ∈ (V_restr_at U).covers,
@@ -1410,7 +1450,8 @@ theorem wedhorn_lemma_834_propA3_part1_bridge
     (hC_restr_acyclic : ∀ Vj : ↥V.covers, (C_restr_at Vj).IsOXAcyclic) :
     C.IsOXAcyclic :=
   { separation := wedhorn_lemma_834_propA3_part1_separation C V hV_base
-      hV_acyclic V_restr_at hV_restr_base hV_restr_pieces hV_restr_acyclic
+      hV_acyclic h_V_refines_C V_restr_at hV_restr_base hV_restr_pieces
+      hV_restr_acyclic
     gluing := wedhorn_lemma_834_propA3_part1_gluing C V hV_base
       hV_acyclic V_restr_at hV_restr_base hV_restr_pieces hV_restr_acyclic
       C_restr_at hC_restr_base hC_restr_pieces hC_restr_acyclic }
