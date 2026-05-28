@@ -1936,11 +1936,15 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
         (fun b _ => presheafValue b)
         (restrictionMap D.1 V' hV'_sub_D (f D))
         (C_restr_at Vj_sub).base h_base_eq.symm with h_cast_RHS_def
-    -- By uniqueness of gluing (= separation applied to the diff), yVj Vj_sub = cast_RHS
-    -- iff both have the same restriction pattern on (C_restr_at Vj_sub).covers.
-    -- yVj's restriction = gVj (by hyVj_spec). cast_RHS's restriction = gVj (via cast +
-    -- restrictionMap_comp + h_compat) — proved below per-D''.
-    -- Then yV Vj_sub = h_base_eq ▸ yVj Vj_sub = h_base_eq ▸ cast_RHS = restrictionMap D.1 V' (f D).
+    -- Step 1: yVj Vj_sub = cast_RHS via gluing uniqueness (separation on diff).
+    -- Step 2: Eq.rec forward closes yV Vj_sub = restrictionMap D.1 V' (f D).
+    --
+    -- The two key per-D'' computations:
+    -- (A) yVj Vj_sub restricted to D'' = gVj Vj_sub D'' (by hyVj_spec).
+    -- (B) cast_RHS restricted to D'' = gVj Vj_sub D'' (via cast eval + restrictionMap_comp + h_compat).
+    --
+    -- Currently both require detailed Eq.rec evaluation. Captured as
+    -- T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-CAST-EVAL.
     sorry
   -- Apply the inner identity + cast plumbing to close.
   -- The final chain via restrictionMap_comp + presheafValueCast_restrictionMap +
