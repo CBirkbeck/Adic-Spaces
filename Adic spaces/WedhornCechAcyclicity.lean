@@ -1938,8 +1938,13 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
     -- Both yVj Vj_sub and cast_RHS are in presheafValue (C_restr_at Vj_sub).base.
     -- Show they satisfy the same gluing spec (= gVj on each piece), hence equal by separation.
     -- After Eq.rec cast forward, yV Vj_sub = RHS.
-    -- Sub-sorry T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-CHAIN.
-    let _ := hyVj_spec
+    --
+    -- The (C_restr_at Vj_sub).IsOXAcyclic.gluing returns a unique-up-to-separation
+    -- section. Using a Exists.choose_spec direct approach: if r satisfies the spec
+    -- and yVj Vj_sub satisfies the spec, then r = yVj Vj_sub (by separation on the diff).
+    --
+    -- The remaining technical work is the Eq.rec cast manipulation.
+    -- Sub-sorry T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-EQREC-CAST.
     sorry
   -- Apply the inner identity + cast plumbing to close.
   -- The final chain via restrictionMap_comp + presheafValueCast_restrictionMap +
