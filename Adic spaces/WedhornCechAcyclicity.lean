@@ -1852,28 +1852,25 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   let x : presheafValue C.base :=
     (RationalCovering.presheafValueCast (C := C) (C' := V) _hV_base).symm x'
   refine ⟨x, ?_⟩
-  -- Step 8: verify x|D = f D for each D ∈ C.covers via V_restr_at(D).separation.
-  -- Pattern from propA3_part2_project_gluing Step 7 — substantive cast chain.
-  -- The proof structure:
-  --   (a) Reduce to (restrictionMap C.base D.1 _ x - f D) = 0.
-  --   (b) Cast through _hV_restr_base D to land in presheafValue D.1 (= (V_restr_at D).base).
-  --   (c) Apply (V_restr_at D).IsOXAcyclic.separation: show ∀ V' ∈ (V_restr_at D).covers,
-  --       restriction of the difference to V' equals 0.
-  --   (d) For each V', use _hV_restr_pieces to find V'' ∈ V.covers with V' ⊆ V''.
-  --       Apply hx' V'' to express restrictionMap V.base V''.1 _ x' = yV V''.
-  --       Chain through restrictionMap_comp + presheafValueCast_restrictionMap
-  --       to express the LHS as a restriction of yV V''.
-  --       Then use yVj V''.gluing's spec (restricted via _hC_restr_base) to express yV V''
-  --       at V' as f at some C-piece restricted to V'.
-  --       Equate with restrictionMap D V' (f D) via h_compat.
-  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY (analogue of T-WC-PROPA3-PART2-GLU-VERIFY which
-  -- was the same kind of plumbing; that one was solved by the propA3_part2 commit 4d0d3c1).
+  -- Step 8: verify x|D = f D for each D ∈ C.covers via (V_restr_at D).separation.
   intro D
+  rw [← sub_eq_zero]
+  -- Note (V_restr_at D).base = D.1 via _hV_restr_base D (it's the same
+  -- RationalLocData up to substantive cast). Apply (V_restr_at D).separation
+  -- after cast.
+  have h_base_eq : (V_restr_at D).base = D.1 := _hV_restr_base D
+  -- Cast the difference through _hV_restr_base to land in presheafValue (V_restr_at D).base.
+  -- The cast is via Eq.rec on h_base_eq.symm (so y : presheafValue D.1 → presheafValue
+  -- (V_restr_at D).base via Eq.rec).
+  have h_sep := (_hV_restr_acyclic D).separation
+  -- The diff: restrictionMap C.base D.1 _ x - f D ∈ presheafValue D.1.
+  -- Pending: cast through h_base_eq to apply h_sep, then chain through hx' + h_compat.
+  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-CAST.
+  let _ := h_sep
+  let _ := h_base_eq
   let _ := hx'
   let _ := x
-  let _ := _hV_restr_acyclic
   let _ := _hV_restr_pieces
-  let _ := _hV_restr_base
   let _ := h_compat
   sorry
 
