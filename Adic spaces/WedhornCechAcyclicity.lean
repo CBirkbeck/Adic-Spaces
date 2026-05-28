@@ -1907,19 +1907,13 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   -- Show: ∀ V' ∈ (V_restr_at D).covers, restriction of diff_cast to V' = 0.
   intro V' hV'_in
   -- V' refines into some V'' ∈ V.covers via _hV_restr_pieces.
-  -- The chain: restrictionMap _ V' diff_cast unfolds (via Eq.rec) to
-  --   restrictionMap D.1 V' (V'⊆D via _hV_restr_base) diff_D
-  -- = restrictionMap D.1 V' (restrictionMap C.base D.1 _ x) - restrictionMap D.1 V' (f D)
-  -- The LHS first term collapses via restrictionMap_comp:
-  --   = restrictionMap C.base V' (chained) x
-  -- The cast through x = (presheafValueCast _hV_base).symm x' and
-  -- presheafValueCast_restrictionMap gives = restrictionMap V.base V' x'.
-  -- By hx' V'' and restrictionMap_comp, = restrictionMap V''.1 V' (yV V'').
-  -- For this to equal the RHS (restrictionMap D.1 V' (f D)), we need
-  -- the FINE-COVER-based separation argument on V':
-  --   yV V''|V' = f D|V' (proved by (C_restr_at V'').separation on the diff
-  --   if we have a fine cover of V' by C_restr_at(V'') pieces ⊆ V').
+  obtain ⟨V'', hV''_in_V, hV'_sub_V''⟩ := _hV_restr_pieces D V' hV'_in
+  -- Sub-sorry: the per-V' chain ending in "yV V''|V' = f D|V'" which
+  -- requires (C_restr_at V'').separation + fine-cover of V' by
+  -- C_restr_at(V'') pieces inside V'.
   -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-INNER-FINE.
+  let _ := hV''_in_V
+  let _ := hV'_sub_V''
   sorry
 
 /-- **Part (iv) sub-lemma (c)**: the Prop A.3(1) bridge step. Given a
