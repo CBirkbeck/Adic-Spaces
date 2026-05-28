@@ -1236,20 +1236,9 @@ theorem exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer
   -- all topologically nilpotent elements by definition).
   sorry
 
-/-- **Cor 7.32 hypothesis-supply lemma 1** *(SUPERSEDED 2026-05-28)*: replaced
-by `exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer`. -/
-@[deprecated
-  "Use `exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer` instead"
-  (since := "2026-05-28")]
-theorem exists_pair_with_A₀_subset_Aplus
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [CompatiblePlusSubring A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A] :
-    ∃ (P : PairOfDefinition A), P.A₀ ≤ A⁺ := by
-  obtain ⟨P, _, hP, _, _, _⟩ :=
-    exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer (A := A)
-  exact ⟨P, hP⟩
+-- Note: the older `exists_pair_with_A₀_subset_Aplus` (∃ P, P.A₀ ≤ A⁺) is
+-- superseded by `exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer`
+-- which returns the (P, π) pair together. The deprecated wrapper has been removed.
 
 -- Note: the older `exists_pseudouniformizer_of_tate` had a too-strong universal-P
 -- claim and is replaced by `exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer`
