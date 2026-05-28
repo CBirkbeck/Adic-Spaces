@@ -1762,6 +1762,11 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
     (_hV_restr_pieces : ∀ U : ↥C.covers, ∀ V' ∈ (V_restr_at U).covers,
       ∃ V'' ∈ V.covers,
         rationalOpen V'.T V'.s ⊆ rationalOpen V''.T V''.s)
+    -- NEW (2026-05-28 marathon): V_restr_at's pieces are V-pieces directly.
+    -- This is satisfied when V_restr_at = V.restrictToPiece (the natural consumer).
+    -- Allows direct hx' application without restriction-chasing through V''.
+    (_hV_restr_pieces_in_V : ∀ U : ↥C.covers, ∀ V' ∈ (V_restr_at U).covers,
+      V' ∈ V.covers)
     (_hV_restr_acyclic : ∀ U : ↥C.covers, (V_restr_at U).IsOXAcyclic)
     (_hV_restr_covers : ∀ U : ↥C.covers, ∀ v ∈ rationalOpen U.1.T U.1.s,
       ∃ V' ∈ (V_restr_at U).covers, v ∈ rationalOpen V'.T V'.s ∧
@@ -1939,6 +1944,8 @@ theorem wedhorn_lemma_834_propA3_part1_bridge
     (hV_restr_pieces : ∀ U : ↥C.covers, ∀ V' ∈ (V_restr_at U).covers,
       ∃ V'' ∈ V.covers,
         rationalOpen V'.T V'.s ⊆ rationalOpen V''.T V''.s)
+    (hV_restr_pieces_in_V : ∀ U : ↥C.covers, ∀ V' ∈ (V_restr_at U).covers,
+      V' ∈ V.covers)
     (hV_restr_acyclic : ∀ U : ↥C.covers, (V_restr_at U).IsOXAcyclic)
     (C_restr_at : ↥V.covers → RationalCovering A)
     (hC_restr_base : ∀ Vj : ↥V.covers, (C_restr_at Vj).base = Vj.1)
@@ -1957,9 +1964,9 @@ theorem wedhorn_lemma_834_propA3_part1_bridge
       hV_acyclic h_V_refines_C V_restr_at hV_restr_base hV_restr_pieces
       hV_restr_acyclic
     gluing := wedhorn_lemma_834_propA3_part1_gluing C V hV_base
-      hV_acyclic V_restr_at hV_restr_base hV_restr_pieces hV_restr_acyclic
-      hV_restr_covers C_restr_at hC_restr_base hC_restr_pieces hC_restr_acyclic
-      hC_restr_covers }
+      hV_acyclic V_restr_at hV_restr_base hV_restr_pieces hV_restr_pieces_in_V
+      hV_restr_acyclic hV_restr_covers C_restr_at hC_restr_base hC_restr_pieces
+      hC_restr_acyclic hC_restr_covers }
 
 /-- **NEW (T-WC-V-REFINES-C-FROM-DOM-UNIT, 2026-05-28)**: For the Laurent
 cover V from part (ii) of Lemma 8.34, V refines C — each V-piece sits in
@@ -2092,9 +2099,15 @@ theorem wedhorn_lemma_834 [DecidableEq A]
   have hC_restr_pieces' : ∀ Vj : ↥V.covers, ∀ D' ∈ (C_restr_at Vj).covers,
       ∃ D ∈ C.covers, rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s :=
     fun Vj => hC_at_pieces Vj.1 Vj.2
+  -- V_restr_at U = V.restrictToPiece, so its pieces are in V.covers (filter).
+  have hV_restr_pieces_in_V : ∀ U : ↥C.covers, ∀ V' ∈ (V_restr_at U).covers,
+      V' ∈ V.covers := by
+    intro U V' hV'_in
+    simp only [V_restr_at, RationalCovering.restrictToPiece, Finset.mem_filter] at hV'_in
+    exact hV'_in.1
   -- Now apply propA3_part1_bridge.
   refine wedhorn_lemma_834_propA3_part1_bridge C V hV_base _hV_acyclic _h_V_refines_C
-    V_restr_at hV_restr_base hV_restr_pieces hV_restr_acyclic
+    V_restr_at hV_restr_base hV_restr_pieces hV_restr_pieces_in_V hV_restr_acyclic
     C_restr_at hC_restr_base' hC_restr_pieces' ?_ hV_restr_covers ?_
   · -- C_restr_at acyclic — use wedhorn_lemma_834_C_restr_acyclic on each.
     intro Vj
