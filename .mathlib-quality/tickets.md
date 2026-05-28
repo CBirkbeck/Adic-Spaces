@@ -10017,3 +10017,441 @@ which is mechanical given the existing project infrastructure).
   - T-WC-833-GLUING-FIELD body simplified to transport-apply-transport
 - **Investigation priority**: T-WC-833-CHECK-ROW3-EXACT-EXISTS first (per
   user direction); may short-circuit A4-A8 chain.
+
+---
+
+## 2026-05-28 `/develop --continue` Path-A: 9 B2-candidate restatements (from decomposition audit)
+
+Per the 2026-05-28 adversarial decomposition (`.mathlib-quality/decomposition.md`),
+9 lemmas in `Adic spaces/WedhornCechAcyclicity.lean` have signature defects: V/fs
+declared generic when proof requires the specific Wedhorn construction. User chose
+**Path A** (restatement-first): add the missing structural hypotheses per CLAUDE.md
+clause (b). The Lean code changes will be `/beastmode`'s job in a subsequent session.
+
+### R3: Cleanup-cadence audit on 9 restatements
+
+The 9 restatements are signature-only changes (no new proof tickets being added).
+Each will land in 1-2 commits in `/beastmode`. No cleanup-cadence threshold crossed.
+Skipping cleanup ticket insertion per user direction. The existing
+CLEANUP-WC-FINAL-PER-FILE ticket will catch any final per-file work after these land.
+
+### R4: Applied updates (Path A approved by user)
+
+---
+
+#### [T-WC-PROPA3-PART3-BRIDGE-RESTATED-V2] **NEW** — replaces T-WC-PROPA3-PART3-BRIDGE-RESTATED
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-LAURENT-CONS-DECOMP (provides the product-decomposition fact V → ∃ Uf, Vgs_at)
+- **Parallel**: no
+- **Type**: theorem (restatement)
+- **Parent**: decomposition audit 2026-05-28
+- **Audit verdict**: B2-CANDIDATE (L7) — V unconstrained relative to product
+
+#### Restatement direction
+
+The original `propA3_part3_bridge_for_laurent_product` takes V as an unconstrained
+input. The fix: inline the product-decomposition hypothesis using
+`laurent_cons_decomp_as_product`'s output structure.
+
+Replace generic V with a *structural* hypothesis:
+
+```lean
+theorem propA3_part3_bridge_for_laurent_product
+    [IsTateRing A] [...]
+    (V : RationalCovering A) (Uf : RationalCovering A)
+    (Vgs_at : ↥Uf.covers → RationalCovering A)
+    (_hVgs_base : ∀ Uf_piece, (Vgs_at Uf_piece).base = Uf_piece.1)
+    (_hUf_acyclic : Uf.IsOXAcyclic)
+    (_h_each_Vgs_acyclic : ∀ Uf_piece, (Vgs_at Uf_piece).IsOXAcyclic)
+    -- NEW: V is structurally the cover-product (refines Uf, Vgs_at refines V).
+    (_hV_refines_Uf : ∀ V' ∈ V.covers, ∃ Uf_piece ∈ Uf.covers,
+        rationalOpen V'.T V'.s ⊆ rationalOpen Uf_piece.T Uf_piece.s)
+    (_h_Vgs_refines_V : ∀ Uf_piece : ↥Uf.covers, ∀ V_piece ∈ (Vgs_at Uf_piece).covers,
+        ∃ V' ∈ V.covers, rationalOpen V_piece.T V_piece.s ⊆ rationalOpen V'.T V'.s) :
+    V.IsOXAcyclic
+```
+
+#### Cascade consumers
+
+- `wedhorn_lemma_834_part_i_step` (line 1112) — calls
+  `propA3_part3_bridge_for_laurent_product` with V from `laurent_cons_decomp_as_product`'s
+  decomposition. Need to thread the new structural hypotheses (available from the
+  decomposition output).
+
+#### Source
+
+Wedhorn 2019 Prop A.3(3), p. 116.
+
+---
+
+#### [T-WC-MUL-ARCH-7-40-RESTATED] **NEW** — replaces T-WC-MUL-ARCH-7-40
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-740-6-VIA-CONVEX-CHAIN (eventually)
+- **Parallel**: yes
+- **Type**: theorem (restatement)
+- **Parent**: decomposition audit 2026-05-28
+- **Audit verdict**: B2-CANDIDATE (L10) — over-stated for arbitrary v ∈ Spv A
+
+#### Restatement direction
+
+Restrict v to Spa A A⁺ (continuous + integral) per Wedhorn 7.40(6)'s actual
+scope ("For an analytic continuous valuation x ..."):
+
+```lean
+theorem mulArchimedean_valueGroup_of_stronglyNoetherianTate
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    -- WAS: (v : Spv A)
+    (v : Spv A) (_hv : v ∈ Spa A A⁺) :
+    letI : ValuativeRel A := v.toValuativeRel
+    MulArchimedean (ValuativeRel.ValueGroupWithZero A)
+```
+
+#### Cascade consumers
+
+- `cor_7_32_dominating_unit` (line 1283-1287) — calls
+  `mulArchimedean_valueGroup_of_stronglyNoetherianTate (A := A)` as a function
+  from Spv A to MulArchimedean. After restatement, it becomes a function from
+  `{v ∈ Spa A A⁺}` to MulArchimedean. The consumer `exists_dominating_unit`
+  already operates within Spa A A⁺ (per `_hT_noCommonZero : ∀ v ∈ Spa A A⁺, ...`),
+  so threading the membership witness is mechanical.
+
+#### Source
+
+Wedhorn 2019 Remark 7.40(6), p. 66.
+
+---
+
+#### [T-WC-INDEX-SELECTION-RESTATED-V2] **NEW** — replaces T-WC-INDEX-SELECTION-RESTATED
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: `laurent_cover_from_dominating_unit` (T-WC-LAURENT-COVER-FROM-DOM-UNIT, READY)
+- **Parallel**: yes
+- **Type**: theorem (restatement)
+- **Parent**: decomposition audit 2026-05-28
+- **Audit verdict**: B2-CANDIDATE (L12) — V unconstrained, σ-walk has nothing to walk
+
+#### Restatement direction
+
+Add Laurent-structure hypothesis tying V to the s⁻¹·T construction:
+
+```lean
+theorem index_selection_on_laurent_piece
+    [DecidableEq A] [IsTateRing A] [...]
+    (T : Finset A) (s : Aˣ) (V : RationalCovering A)
+    -- NEW: V is the specific Laurent cover by s⁻¹·T.
+    (_hV_laurent : V.IsLaurentCover
+        ((T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t)))
+    (Vj : RationalLocData A) (_hVj : Vj ∈ V.covers) :
+    ∃ t ∈ T, ∀ v ∈ rationalOpen Vj.T Vj.s,
+      v.vle (s : A) t
+```
+
+#### Cascade consumers
+
+- `unit_gen_restriction_of_dominating_laurent` (line 1363) — passes V, Vj into
+  this lemma. With the new hypothesis, the caller will need to also pass
+  `_hV_laurent`. Available at the caller because the V there will be the
+  specific dominating-unit construction (per L14 restatement below).
+
+#### Source
+
+Wedhorn 2019 Lemma 8.34(ii) σ-walk description, p. 84.
+
+---
+
+#### [T-WC-UNIT-GEN-RESTR-DOM-RESTATED] **NEW** — replaces T-WC-UNIT-GEN-RESTR-DOM
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-INDEX-SELECTION-RESTATED-V2, `canonical_unit_of_pointwise_lower_bound`
+- **Parallel**: no
+- **Type**: theorem (restatement)
+- **Parent**: decomposition audit 2026-05-28
+- **Audit verdict**: B2-CANDIDATE (L14) — V, Vj not tied to construction
+
+#### Restatement direction
+
+Add hypothesis that V is the s⁻¹·T-Laurent cover:
+
+```lean
+theorem unit_gen_restriction_of_dominating_laurent
+    [DecidableEq A] [IsTateRing A] [...]
+    (C : RationalCovering A) (T : Finset A) (_hC_gen : C.IsGeneratedBy T)
+    (s : Aˣ)
+    (_h_dom : ∀ v ∈ Spa A A⁺, ∃ t ∈ T,
+      v.vle (s : A) t ∧ ¬ v.vle t (s : A))
+    (V : RationalCovering A)
+    -- NEW: V tied to dominating-unit construction.
+    (_hV_laurent : V.IsLaurentCover
+        ((T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t)))
+    (_hV_base : V.base = C.base)
+    (Vj : RationalLocData A) (_hVj : Vj ∈ V.covers) :
+    ∃ (C_restr : RationalCovering A),
+      C_restr.base = Vj ∧
+      C_restr.IsUnitGenerated ∧
+      (∀ D' ∈ C_restr.covers, ∃ D ∈ C.covers,
+        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) ∧
+      (∀ v ∈ rationalOpen Vj.T Vj.s, ∃ D' ∈ C_restr.covers,
+        v ∈ rationalOpen D'.T D'.s)
+```
+
+#### Cascade consumers
+
+- `wedhorn_lemma_834_part_ii_unit_gen_via_dominating` (line 1386) — constructs
+  V via `laurent_cover_from_dominating_unit` and passes it through. The
+  construction's output already pins V's Laurent structure to s⁻¹·T (per L11
+  audit: READY-substantive with explicit fs constraint), so the new hypothesis
+  is directly available.
+
+#### Source
+
+Wedhorn 2019 Lemma 8.34(ii), p. 84.
+
+---
+
+#### [T-WC-RATIO-LAURENT-COVER-RESTATED] **NEW** — replaces T-WC-RATIO-LAURENT-COVER
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: existing project's `unitGenerators_of_unitGenCover` infrastructure
+- **Parallel**: yes
+- **Type**: theorem (restatement)
+- **Parent**: decomposition audit 2026-05-28
+- **Audit verdict**: B2-CANDIDATE (L15) — output unconstrains fs
+
+#### Restatement direction
+
+Add fs constraint in the conclusion, pinning fs to the ratio list:
+
+```lean
+theorem ratio_laurent_cover_of_units
+    [DecidableEq A] [IsTateRing A] [...]
+    (D₀ : RationalLocData A) (units : Finset A)
+    (_h_units_unit : ∀ f ∈ units, IsUnit (D₀.canonicalMap f)) :
+    ∃ (V : RationalCovering A) (fs : List A),
+      V.IsLaurentCover fs ∧
+      V.base = D₀ ∧
+      -- NEW: fs is the ratio list f_i · f_j⁻¹ over units × units.
+      (∀ x ∈ fs, ∃ f g : A, f ∈ units ∧ g ∈ units ∧
+        ∃ hg : IsUnit (D₀.canonicalMap g),
+          D₀.canonicalMap x = D₀.canonicalMap f * hg.unit⁻¹)
+```
+
+**Alternative (cleaner)**: define a separate `def ratioLaurentList`
+constructor returning the explicit list, and have the conclusion say
+`fs = ratioLaurentList units _h_units_unit`. This requires the constructor
+to be defined first as a helper.
+
+#### Cascade consumers
+
+- `wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent` and
+  `_covers_each_D` (~line 1510). These consumers use the V from this lemma's
+  output to build refinement. With the new fs constraint, the σ-walk in L16/L17
+  becomes provable.
+
+#### Source
+
+Wedhorn 2019 Lemma 8.34(iii), p. 84.
+
+---
+
+#### [T-WC-RATIO-COVERS-EACH-RESTATED] **NEW** — replaces T-WC-RATIO-LAURENT-COVERS-EACH (L16)
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-RATIO-LAURENT-COVER-RESTATED
+- **Parallel**: yes (with L17)
+- **Type**: theorem (restatement)
+- **Audit verdict**: B2-CANDIDATE (L16) — fs not tied to C's units
+
+#### Restatement direction
+
+Add hypothesis tying `fs` to the ratio list extracted from C's unit generators:
+
+```lean
+theorem ratio_laurent_covers_each_unit_gen_piece
+    [DecidableEq A] [IsTateRing A] [...]
+    (C : RationalCovering A) (hC_unit : C.IsUnitGenerated)
+    (V : RationalCovering A) (_hV_base : V.base = C.base)
+    (fs : List A) (_hV_laurent : V.IsLaurentCover fs)
+    -- NEW: fs is the ratio list from C's unit generators.
+    (_hfs_ratio : ∀ x ∈ fs, ∃ f g : A,
+      (∃ D ∈ C.covers, f ∈ D.T) ∧ (∃ D ∈ C.covers, g ∈ D.T) ∧
+      ∃ hg : IsUnit (C.base.canonicalMap g),
+        C.base.canonicalMap x = C.base.canonicalMap f * hg.unit⁻¹) :
+    ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+      ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
+        rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s
+```
+
+#### Cascade consumers
+
+- Part-iii body that constructs the ratio cover via L15 and feeds it here.
+- The new `_hfs_ratio` is automatically witnessed by L15's restated output.
+
+#### Source
+
+Wedhorn 2019 Lemma 8.34(iii) covers-each direction, p. 84.
+
+---
+
+#### [T-WC-RATIO-REFINES-RESTATED] **NEW** — replaces T-WC-RATIO-REFINES (L17)
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-RATIO-LAURENT-COVER-RESTATED
+- **Parallel**: yes (with L16)
+- **Type**: theorem (restatement)
+- **Audit verdict**: B2-CANDIDATE (L17) — same as L16
+
+#### Restatement direction
+
+Same `_hfs_ratio` hypothesis pattern as L16. The conclusion is the per-V' refinement
+(each V'-piece refines some C-piece).
+
+```lean
+theorem ratio_laurent_refines_unit_gen
+    [DecidableEq A] [IsTateRing A] [...]
+    (C : RationalCovering A) (hC_unit : C.IsUnitGenerated)
+    (V : RationalCovering A) (_hV_base : V.base = C.base)
+    (fs : List A) (_hV_laurent : V.IsLaurentCover fs)
+    -- NEW: same _hfs_ratio as L16.
+    (_hfs_ratio : (∀ x ∈ fs, ...))
+    (V' : RationalLocData A) (_hV' : V' ∈ V.covers) :
+    ∃ D ∈ C.covers, rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s
+```
+
+#### Source
+
+Wedhorn 2019 Lemma 8.34(iii) refinement direction, p. 84.
+
+---
+
+#### [T-WC-LAURENT-IDEALGEN-REFINES-RESTATED] **NEW** — replaces T-WC-LAURENT-IDEALGEN-REFINES (L18)
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: `cor_7_32_dominating_unit`, `laurent_cover_from_dominating_unit`
+- **Parallel**: yes (with L19)
+- **Type**: theorem (restatement)
+- **Audit verdict**: B2-CANDIDATE (L18) — fs not tied to s⁻¹·T
+
+#### Restatement direction
+
+Add hypothesis tying `fs` to the dominating-unit list `s⁻¹·T`:
+
+```lean
+theorem laurent_cover_refines_idealgen_cover
+    [DecidableEq A] [IsTateRing A] [...]
+    (C : RationalCovering A) (T : Finset A) (_hC_gen : C.IsGeneratedBy T)
+    (V : RationalCovering A) (fs : List A) (_hV_laurent : V.IsLaurentCover fs)
+    (_hV_base : V.base = C.base)
+    -- NEW: fs is the dominating-unit list s⁻¹·T for some s : Aˣ.
+    (s : Aˣ)
+    (_h_dom : ∀ v ∈ Spa A A⁺, ∃ t ∈ T,
+      v.vle (s : A) t ∧ ¬ v.vle t (s : A))
+    (_hfs_eq : fs = T.toList.map (fun t => ((s⁻¹ : Aˣ) : A) * t))
+    (_hV_unit_restrictions : ...) :
+    ∀ V_j ∈ V.covers, ∃ U ∈ C.covers,
+      rationalOpen V_j.T V_j.s ⊆ rationalOpen U.T U.s
+```
+
+#### Cascade consumers
+
+- `wedhorn_lemma_834_part_iv` body — provides V from
+  `laurent_cover_from_dominating_unit` (which has the explicit fs constraint),
+  so the new `_hfs_eq` is directly available.
+
+#### Source
+
+Wedhorn 2019 Lemma 8.34(ii) end paragraph + (iv), p. 84.
+
+---
+
+#### [T-WC-LAURENT-IDEALGEN-COVERS-EACH-RESTATED] **NEW** — replaces T-WC-LAURENT-IDEALGEN-COVERS-EACH (L19)
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-LAURENT-IDEALGEN-REFINES-RESTATED
+- **Parallel**: yes
+- **Type**: theorem (restatement)
+- **Audit verdict**: B2-CANDIDATE (L19) — same as L18
+
+#### Restatement direction
+
+Same `s, _h_dom, _hfs_eq` hypothesis pattern as L18. Conclusion is the
+cover-each-D direction (every C-piece point is in some V-piece refining into it).
+
+```lean
+theorem laurent_cover_covers_each_idealgen_piece
+    [DecidableEq A] [IsTateRing A] [...]
+    (C : RationalCovering A) (T : Finset A) (_hC_gen : C.IsGeneratedBy T)
+    (V : RationalCovering A) (fs : List A) (_hV_laurent : V.IsLaurentCover fs)
+    (_hV_base : V.base = C.base)
+    -- NEW: same s, _h_dom, _hfs_eq as L18.
+    (s : Aˣ)
+    (_h_dom : ∀ v ∈ Spa A A⁺, ...)
+    (_hfs_eq : fs = T.toList.map (...))
+    (_hV_unit_restrictions : ...) :
+    ∀ U ∈ C.covers, ∀ v ∈ rationalOpen U.T U.s,
+      ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
+        rationalOpen V'.T V'.s ⊆ rationalOpen U.T U.s
+```
+
+#### Source
+
+Wedhorn 2019 Lemma 8.34(iv) covers-each direction, p. 84.
+
+---
+
+### Old tickets superseded by Path-A restatements
+
+The following are marked SUPERSEDED — the new "RESTATED" / "RESTATED-V2" variants above replace them:
+
+- `T-WC-PROPA3-PART3-BRIDGE-RESTATED` → superseded by `T-WC-PROPA3-PART3-BRIDGE-RESTATED-V2`
+- `T-WC-MUL-ARCH-7-40` (the original ticket; the audit changes the signature) → superseded by `T-WC-MUL-ARCH-7-40-RESTATED`
+- `T-WC-INDEX-SELECTION-RESTATED` → superseded by `T-WC-INDEX-SELECTION-RESTATED-V2`
+- `T-WC-UNIT-GEN-RESTR-DOM` → superseded by `T-WC-UNIT-GEN-RESTR-DOM-RESTATED`
+- `T-WC-RATIO-LAURENT-COVER` → superseded by `T-WC-RATIO-LAURENT-COVER-RESTATED`
+- `T-WC-RATIO-LAURENT-COVERS-EACH` → superseded by `T-WC-RATIO-COVERS-EACH-RESTATED`
+- `T-WC-RATIO-REFINES` → superseded by `T-WC-RATIO-REFINES-RESTATED`
+- `T-WC-LAURENT-IDEALGEN-REFINES` → superseded by `T-WC-LAURENT-IDEALGEN-REFINES-RESTATED`
+- `T-WC-LAURENT-IDEALGEN-COVERS-EACH` → superseded by `T-WC-LAURENT-IDEALGEN-COVERS-EACH-RESTATED`
+
+### R5: Hand-off summary
+
+Path A applied. 9 restatement tickets added, 9 originals marked superseded. No
+cleanup-cadence tickets added (signature-only changes, not new proof tickets).
+
+**Next worker pickup priority** (for `/beastmode`):
+
+1. **`T-WC-LAURENT-COVER-FROM-DOM-UNIT`** (READY-substantive, L11) — foundational
+   constructor. Once landed, supplies the constructive Laurent cover that L12, L14,
+   L18, L19 reference.
+2. **`T-WC-RATIO-LAURENT-COVER-RESTATED`** (L15) — parallel foundational constructor
+   for the ratio cover. Supplies the cover for L16, L17.
+3. **L12/L14 chain** in order: index_selection → unit_gen_restriction → part-ii body.
+4. **L16/L17 chain**: covers-each + refines after L15 lands.
+5. **L18/L19**: laurent_idealgen-refines/covers-each after L11 lands.
+6. **L10 (mul-arch restated)**: independent; can pickup anytime.
+7. **L7 (propA3_part3 bridge)**: depends on `laurent_cons_decomp_as_product`.
+
+Independent of restatements (unchanged paths):
+- READY-substantive: example_638 continuity (L2/L3), exists_principal_pair (L9),
+  laurent_cons_decomp_as_product (L6), laurent_cover_from_dominating_unit (L11).
+- API-GAPs with sub-tickets: wedhorn_lemma_833_gluing_as_field (L4),
+  isOXAcyclic_of_single_unit_piece_gluing (L5), restrictToPiece_acyclic_at_D (L22),
+  ideal_gen_refinement_covers_each_piece (L21 cascade), canonical_unit_of_pointwise_lower_bound (L13),
+  example_638_plus_side_noeth_pairSubring (L1).
+- B2-confirmed (already on the board): laurent_restriction_isLaurent (L8) via
+  T-WC-LAURENT-RESTR-INDUCTION-DIRECT, rationalCovering_from_idealGenSet (L20).
+
+Run `/beastmode` to pick up the next available ticket. Default pickup is T-WC-LAURENT-COVER-FROM-DOM-UNIT (no dependencies, unblocks 4 downstream).
