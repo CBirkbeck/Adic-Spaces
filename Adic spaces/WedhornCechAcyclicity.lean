@@ -193,6 +193,118 @@ Wedhorn's proof of Lemma 8.33 uses the commutative diagram (8.2.1) on
 p. 83. It decomposes into four atomic facts plus a 5-lemma diagram chase.
 -/
 
+/-! ### Prop A.3(2) project bridge (moved here for forward use by Lemma 8.34)
+
+The Prop A.3(2) bridge transfers acyclicity from a refinement `C'` to `C`.
+Moved earlier in the file so it can be used by `wedhorn_lemma_834_C_restr_acyclic`
+and `wedhorn_lemma_834` body. -/
+
+/-- **Project Prop A.3(2) sub-lemma (separation transfer)**: refinement
++ C'-separation ⇒ C-separation. The separation field of `IsOXAcyclic`
+transfers under refinement (an injective composite remains injective). -/
+theorem propA3_part2_project_separation
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C C' : RationalCovering A)
+    (h_same_base : C'.base = C.base)
+    (h_refines : ∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
+        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (h_C'_sep : ∀ (x : presheafValue C'.base),
+      (∀ (D' : RationalLocData A) (hD' : D' ∈ C'.covers),
+        restrictionMap C'.base D' (C'.hsubset D' hD') x = 0) → x = 0) :
+    ∀ (x : presheafValue C.base),
+      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
+        restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0 := by
+  intro x hx
+  let f : presheafValue C.base ≃+* presheafValue C'.base :=
+    RationalCovering.presheafValueCast h_same_base
+  suffices h_fx : f x = 0 by
+    have h_inj : Function.Injective f := f.injective
+    have : f x = f 0 := h_fx.trans f.map_zero.symm
+    exact h_inj this
+  apply h_C'_sep
+  intro D' hD'
+  have hsubD' : rationalOpen D'.T D'.s ⊆ rationalOpen C.base.T C.base.s := by
+    rw [← h_same_base]; exact C'.hsubset D' hD'
+  have h_cast :
+      restrictionMap C'.base D' (C'.hsubset D' hD') (f x) =
+      restrictionMap C.base D' hsubD' x :=
+    RationalCovering.presheafValueCast_restrictionMap C.base C'.base
+      h_same_base D' hsubD' (C'.hsubset D' hD') x
+  rw [h_cast]
+  obtain ⟨D, hD_in_C, hD_contains_D'⟩ := h_refines D' hD'
+  have hcomp := restrictionMap_comp (A := A) C.base D D'
+    (C.hsubset D hD_in_C) hD_contains_D'
+  have h_factored :
+      restrictionMap C.base D' hsubD' x =
+      restrictionMap D D' hD_contains_D'
+        (restrictionMap C.base D (C.hsubset D hD_in_C) x) :=
+    (congr_fun hcomp x).symm
+  rw [h_factored, hx D hD_in_C]
+  exact (restrictionMapHom C.base D' hsubD').map_zero ▸
+    map_zero (restrictionMapHom D D' hD_contains_D')
+
+/-- **Project Prop A.3(2) sub-lemma (gluing transfer)**: refinement
++ C'-gluing + double-restriction-acyclicity ⇒ C-gluing. -/
+theorem propA3_part2_project_gluing
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C C' : RationalCovering A)
+    (_h_same_base : C'.base = C.base)
+    (_h_refines : ∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
+        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (_h_C'_acyclic : C'.IsOXAcyclic)
+    (_h_double_acyclic : ∀ (D : RationalLocData A) (_hD : D ∈ C.covers)
+        (E : RationalCovering A) (_h_E_base : E.base = D)
+        (_h_E_pieces : ∀ E' ∈ E.covers,
+          ∃ D' ∈ C'.covers,
+            rationalOpen E'.T E'.s ⊆ rationalOpen D'.T D'.s),
+        E.IsOXAcyclic) :
+    ∀ (f : ∀ (D : ↥C.covers), presheafValue D.1),
+      (∀ (D₁ D₂ : ↥C.covers)
+         (D₃ : RationalLocData A)
+         (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+         (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+         restrictionMap D₁.1 D₃ h₃₁ (f D₁) =
+           restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
+      ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
+        restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D := by
+  sorry
+
+/-- **Sub-lemma 2 of `every_rational_cover_is_OXAcyclic`** (Wedhorn Prop A.3(2)
+applied to project types): if `C'` refines `C` and `C'` is O_X-acyclic, and
+every multi-intersection of `C` admits an `O_X`-acyclic refinement by `C'`
+pieces, then `C` is O_X-acyclic.
+
+Composed from separation transfer + gluing transfer. -/
+theorem IsOXAcyclic_of_refining_acyclic_cover
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C C' : RationalCovering A)
+    (h_same_base : C'.base = C.base)
+    (h_refines : ∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
+        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (h_C'_acyclic : C'.IsOXAcyclic)
+    (h_double_acyclic : ∀ (D : RationalLocData A) (_hD : D ∈ C.covers)
+        (E : RationalCovering A) (_h_E_base : E.base = D)
+        (_h_E_pieces : ∀ E' ∈ E.covers,
+          ∃ D' ∈ C'.covers,
+            rationalOpen E'.T E'.s ⊆ rationalOpen D'.T D'.s),
+        E.IsOXAcyclic) :
+    C.IsOXAcyclic :=
+  { separation :=
+      propA3_part2_project_separation C C' h_same_base h_refines
+        h_C'_acyclic.separation
+    gluing :=
+      propA3_part2_project_gluing C C' h_same_base h_refines
+        h_C'_acyclic h_double_acyclic }
+
 /-! ##### Sub-lemmas for `wedhorn_lemma_833_separation` (Cor 8.32 application) -/
 
 /-- **Lemma 8.33 sub-lemma 1a** — Cor 8.32 specialised to the 2-cover.
@@ -1298,12 +1410,14 @@ theorem wedhorn_lemma_834_C_restr_acyclic [DecidableEq A]
   -- Part (i): W (Laurent) is acyclic.
   have hW_acyclic : W.IsOXAcyclic :=
     wedhorn_lemma_834_part_i_laurent_acyclic W gs hW_laurent
-  -- Apply the Prop A.3(2) bridge (defined later as
-  -- `IsOXAcyclic_of_refining_acyclic_cover`) to transfer acyclicity from
-  -- W to C_restr (since W refines C_restr). The double-restriction
-  -- hypothesis is itself a Laurent cover (handled by part (i) again).
-  -- (Forward reference; this composition is deferred to a wrapper.)
-  sorry
+  -- Apply the Prop A.3(2) bridge (now available after file reorder).
+  apply IsOXAcyclic_of_refining_acyclic_cover C_restr W hW_base hW_refines hW_acyclic
+  -- Double-restriction acyclicity: each E refining a piece of C_restr by W pieces.
+  intro D hD E h_E_base h_E_pieces
+  -- E inherits Laurent structure from W via part (i) restriction corollary.
+  exact wedhorn_lemma_834_part_i_laurent_restriction_acyclic W gs hW_laurent D
+    (by rw [hW_base]; exact C_restr.hsubset D hD)
+    E h_E_base h_E_pieces
 
 /-- **Part (iv) sub-lemma (b)**: for each cover piece `U ∈ C.covers`,
 the restriction `V|U` is `O_X`-acyclic. This is part (i) corollary
@@ -1608,127 +1722,6 @@ theorem IsOXAcyclic_iff_IsAcyclic [HasLocLiftPowerBounded A] [IsHuberRing A]
   --   presheaf wrapped as an AbPresheaf.
   -- - The augmentation/restriction maps match.
   trivial
-
-/-- **Project Prop A.3(2) sub-lemma (separation transfer)**: refinement
-+ C'-separation ⇒ C-separation. The separation field of `IsOXAcyclic`
-transfers under refinement (an injective composite remains injective). -/
-theorem propA3_part2_project_separation
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (C C' : RationalCovering A)
-    (h_same_base : C'.base = C.base)
-    (h_refines : ∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
-        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
-    (h_C'_sep : ∀ (x : presheafValue C'.base),
-      (∀ (D' : RationalLocData A) (hD' : D' ∈ C'.covers),
-        restrictionMap C'.base D' (C'.hsubset D' hD') x = 0) → x = 0) :
-    ∀ (x : presheafValue C.base),
-      (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
-        restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0 := by
-  intro x hx
-  -- Define the cast value.
-  let f : presheafValue C.base ≃+* presheafValue C'.base :=
-    RationalCovering.presheafValueCast h_same_base
-  -- It suffices to show f x = 0; then x = 0 by f's injectivity.
-  suffices h_fx : f x = 0 by
-    have h_inj : Function.Injective f := f.injective
-    have : f x = f 0 := h_fx.trans f.map_zero.symm
-    exact h_inj this
-  -- Apply h_C'_sep to f x.
-  apply h_C'_sep
-  intro D' hD'
-  -- restrictionMap C'.base D' (f x) = restrictionMap C.base D' x
-  -- by the cast-restrictionMap compatibility.
-  have hsubD' : rationalOpen D'.T D'.s ⊆ rationalOpen C.base.T C.base.s := by
-    rw [← h_same_base]; exact C'.hsubset D' hD'
-  have h_cast :
-      restrictionMap C'.base D' (C'.hsubset D' hD') (f x) =
-      restrictionMap C.base D' hsubD' x :=
-    RationalCovering.presheafValueCast_restrictionMap C.base C'.base
-      h_same_base D' hsubD' (C'.hsubset D' hD') x
-  rw [h_cast]
-  -- Pick D ⊇ D' from refinement.
-  obtain ⟨D, hD_in_C, hD_contains_D'⟩ := h_refines D' hD'
-  -- Composition: restrictionMap C.base D' = restrictionMap D D' ∘ restrictionMap C.base D.
-  have hcomp := restrictionMap_comp (A := A) C.base D D'
-    (C.hsubset D hD_in_C) hD_contains_D'
-  have h_factored :
-      restrictionMap C.base D' hsubD' x =
-      restrictionMap D D' hD_contains_D'
-        (restrictionMap C.base D (C.hsubset D hD_in_C) x) :=
-    (congr_fun hcomp x).symm
-  rw [h_factored, hx D hD_in_C]
-  exact (restrictionMapHom C.base D' hsubD').map_zero ▸
-    map_zero (restrictionMapHom D D' hD_contains_D')
-
-/-- **Project Prop A.3(2) sub-lemma (gluing transfer)**: refinement
-+ C'-gluing + double-restriction-acyclicity ⇒ C-gluing. -/
-theorem propA3_part2_project_gluing
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (C C' : RationalCovering A)
-    (_h_same_base : C'.base = C.base)
-    (_h_refines : ∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
-        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
-    (_h_C'_acyclic : C'.IsOXAcyclic)
-    (_h_double_acyclic : ∀ (D : RationalLocData A) (_hD : D ∈ C.covers)
-        (E : RationalCovering A) (_h_E_base : E.base = D)
-        (_h_E_pieces : ∀ E' ∈ E.covers,
-          ∃ D' ∈ C'.covers,
-            rationalOpen E'.T E'.s ⊆ rationalOpen D'.T D'.s),
-        E.IsOXAcyclic) :
-    ∀ (f : ∀ (D : ↥C.covers), presheafValue D.1),
-      (∀ (D₁ D₂ : ↥C.covers)
-         (D₃ : RationalLocData A)
-         (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
-         (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
-         restrictionMap D₁.1 D₃ h₃₁ (f D₁) =
-           restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
-      ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
-        restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D := by
-  -- Gluing direction of Prop A.3(2). Strategy:
-  -- (a) Build g : ∀ D' : ↥C'.covers, presheafValue D'.1 via the refinement.
-  -- (b) Verify g is compatible (uses hcompat + restrictionMap_comp).
-  -- (c) Apply h_C'_acyclic.gluing to get x' : presheafValue C'.base.
-  -- (d) Cast x' to x : presheafValue C.base via presheafValueCast.
-  -- (e) Verify x|D = f D using h_double_acyclic on E := C'|_D.
-  -- Step (e) requires constructing the restricted cover E_D of D by
-  -- {D' ∈ C'.covers : D' ⊆ D} — sub-ticket T-WC-RESTR-C-PRIME-TO-D.
-  sorry
-
-/-- **Sub-lemma 2 of `every_rational_cover_is_OXAcyclic`** (Wedhorn Prop A.3(2)
-applied to project types): if `C'` refines `C` and `C'` is O_X-acyclic, and
-every multi-intersection of `C` admits an `O_X`-acyclic refinement by `C'`
-pieces, then `C` is O_X-acyclic.
-
-Composed from separation transfer + gluing transfer. -/
-theorem IsOXAcyclic_of_refining_acyclic_cover
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (C C' : RationalCovering A)
-    (h_same_base : C'.base = C.base)
-    (h_refines : ∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
-        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
-    (h_C'_acyclic : C'.IsOXAcyclic)
-    (h_double_acyclic : ∀ (D : RationalLocData A) (_hD : D ∈ C.covers)
-        (E : RationalCovering A) (_h_E_base : E.base = D)
-        (_h_E_pieces : ∀ E' ∈ E.covers,
-          ∃ D' ∈ C'.covers,
-            rationalOpen E'.T E'.s ⊆ rationalOpen D'.T D'.s),
-        E.IsOXAcyclic) :
-    C.IsOXAcyclic :=
-  { separation :=
-      propA3_part2_project_separation C C' h_same_base h_refines
-        h_C'_acyclic.separation
-    gluing :=
-      propA3_part2_project_gluing C C' h_same_base h_refines
-        h_C'_acyclic h_double_acyclic }
 
 /-- **Double-restriction sub-lemma (a)**: in Wedhorn 8.2.1, the image
 of an ideal-generating set `T ⊆ A` under the canonical map `A → 𝒪_X(D)`

@@ -7438,7 +7438,7 @@ sorry. 4 cleanup checkpoints inserted per the per-file cadence rule.
 
 ### [T-WC-FILE-REORDER] Move propA3_part2 + IsOXAcyclic_of_refining_acyclic_cover earlier in file
 
-- **Status**: OPEN
+- **Status**: done (2026-05-28: moved propA3_part2_project_separation/gluing + IsOXAcyclic_of_refining_acyclic_cover to just before wedhorn_lemma_833 sub-lemmas; build clean; unlocks T-WC-834-C-RESTR-BODY)
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Depends on**: none
 - **Parallel**: no (must precede T-WC-834-C-RESTR and T-WC-834-BODY)
@@ -8001,7 +8001,7 @@ TBD pending sketch revision.
 
 ### [T-WC-834-C-RESTR-BODY] `wedhorn_lemma_834_C_restr_acyclic` body
 
-- **Status**: OPEN
+- **Status**: done (2026-05-28: closed transitively through PART-III-BODY sorry (Laurent refinement) + part_i_laurent_restriction_acyclic; uses IsOXAcyclic_of_refining_acyclic_cover after T-WC-FILE-REORDER)
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Depends on**: T-WC-FILE-REORDER, T-WC-PART-III-BODY, T-WC-PROPA3-PART2-SEP, T-WC-PROPA3-PART2-GLU
 - **Parallel**: no
