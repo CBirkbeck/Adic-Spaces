@@ -9473,6 +9473,46 @@ Wedhorn p. 84. The Lean-side implementation choices (categorical vs hand chase,
 
 ### Reviewer-driven actions
 
+#### [T-WC-WEDHORN-831-PROPAGATION] **NEW (infrastructure sub-ticket)** — Wedhorn 8.31: strongly noeth Tate propagates to presheafValue D₀
+
+- **Status**: OPEN (foundational; unblocks several substantive sorries)
+- **File**: `Adic spaces/PresheafTateStructure.lean` (or new file)
+- **Depends on**: existing `presheafValue_isTateRing`, project's Wedhorn 8.31 sketches
+- **Parent**: T-WC-833-GLUING-FIELD + several other tickets
+- **Type**: theorem chain
+- **Reviewer guidance** (ChatGPT, 2026-05-28): "B := presheafValue D₀ is
+  strongly noetherian Tate by Wedhorn 8.31 propagation; needed throughout"
+
+#### Statement
+
+Discharge each of the following 6 typeclass/instance facts about
+`presheafValue D₀` from the strongly-noeth-Tate hypothesis on A:
+
+```lean
+-- Given [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
+--       [HasLocLiftPowerBounded A] [CompleteSpace A] (right-uniformity)
+-- For D₀ : RationalLocData A:
+instance : IsNoetherianRing (presheafValue D₀)              -- Wedhorn 8.31(a)
+instance : IsStronglyNoetherian (presheafValue D₀)          -- Wedhorn 8.31(b)
+instance : HasLocLiftPowerBounded (presheafValue D₀)        -- structural
+instance : CompleteSpace (presheafValue D₀)                  -- automatic
+instance : T2Space (presheafValue D₀)                        -- structural
+instance : NonarchimedeanRing (presheafValue D₀)            -- structural
+```
+
+#### Source
+
+Wedhorn 2019 Lemma 8.31 (p. 81). "Let A = (A, A⁺) be a strongly noetherian
+Tate affinoid ring, and let U ⊆ X = Spa A be a rational subset. Then
+𝒪_X(U) is a strongly noetherian Tate ring."
+
+#### Sketch
+
+Mostly Wedhorn's argument. Substantial. Likely needs decomposition into
+6+ sub-tickets per typeclass.
+
+---
+
 #### [T-WC-SINGLE-UNIT-GLU-ISO] **NEW (sub-ticket)** — gluing via V.base ≃ D₀ iso when both rationalOpens = Spa A
 
 - **Status**: OPEN (substantive)
