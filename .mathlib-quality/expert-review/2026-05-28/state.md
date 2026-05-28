@@ -4,8 +4,9 @@
 - Audience: ChatGPT / general LLM (senior algebraic geometer)
 - Goal of brief: Specific blocker — two stuck points from the 2026-05-28 `/develop --continue` audit
 - Scope: narrow (B2 restatement direction + 5-lemma diagram body); skip bucket prioritization / tactical questions
-- Reply received: false
-- Reply integrated: false
+- Reply received: true (2026-05-28T00:00:00Z)
+- Reply integrated: true (2026-05-28T00:00:00Z)
+- Wedhorn cross-check performed (user-requested): see integration.md table
 
 ## Questions in the brief
 

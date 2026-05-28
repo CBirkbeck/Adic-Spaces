@@ -1,745 +1,1003 @@
-# Decomposition: Wedhorn 6.16 / 6.17 / 6.18 chain + audit-pass-2 trio
+# Decomposition — Wedhorn 8.28(b) Wedhorn-Clean
 
-**Updated 2026-05-17, fourth pass — placeholder audit and remediation.**
+**Date**: 2026-05-27 (`/develop --decompose` pass 1, adversarial mode)
+**Goal**: state Wedhorn's Theorem 8.28(b) cleanly (no per-cover hypothesis leak), decompose its proof per Wedhorn's actual route, identify which leaves correspond to existing project lemmas vs. new ones needed. Leave proofs as `sorry`.
 
-## Honesty preamble
+**The old Route-C (Banach-OMT) decomposition is archived as
+`decomposition-route-c-archived-2026-05-27.md`.** The Wedhorn route below
+supersedes it for the algebraic side; the topological-inducing side
+remains a separate sub-development (see §6).
 
-The first pass of this decomposition stated the top-level theorems but did not
-decompose them into the sub-lemmas the proofs actually need. The second pass
-decomposed Layer 1 into 5 sub-lemmas (A-E) with mathlib-search verification.
+---
 
-**Fourth pass (2026-05-17 evening) — placeholder audit**: in response to the
-user's question "are all these decomposed results stated in lean as lemmas
-with sorries? and have you checked they are correct", a full audit found
-**9 placeholder lemmas** stated as `theorem foo : True := trivial` rather
-than carrying their actual mathematical claim. Per user memory
-`feedback_no_placeholder_theorems` these are BANNED.
+## 1. The Wedhorn-clean theorem (the only thing we are trying to prove)
 
-Status (as of 2026-05-17 evening, post-audit):
+**Lean target** (currently NOT in the project — the project has
+`isSheafy_ofStronglyNoetherianTate` with a leaked `h_separation`
+hypothesis; this is the clean form to replace it):
 
-| # | Lemma | Pre-audit status | Post-audit fix |
-|---|-------|------------------|----------------|
-| 1 | `_sub_sub_lemma_D_2_limit_in_nbhd` (BanachOMT.lean) | `True := trivial` | Real existential statement, `:= sorry` |
-| 2 | `_sub_lemma_L4_1_quotient_complete` (WedhornBanachTheorem.lean) | `True := trivial` | Existential over `UniformSpace (M ⧸ K)`, `:= sorry` |
-| 3 | `_sub_lemma_L5_1_1_tateAlgebra_eq_adicCompletion` | `True := trivial` | RingEquiv-style claim, `:= sorry` |
-| 4 | `_sub_lemma_L5_1_2_adicCompletion_noetherian` | `True := trivial` | `IsNoetherianRing (AdicCompletion I R)`, `:= sorry` (Stacks 00MA) |
-| 5 | `_sub_lemma_L5_1_3_inductive_step` | `True := trivial` | Inductive `IsNoetherianRing` step, `:= sorry` |
-| 6 | `_sub_lemma_L5_2_1_A₀_open_bounded` | `True := trivial` | `IsOpen ∧ IsBounded`, **PROVED** via `⟨P.isOpen, P.isBounded_A₀⟩` |
-| 7 | `_sub_lemma_L5_2_2_A₀_noeth_via_localization` | `True := trivial` | `IsNoetherianRing P.A₀`, `:= sorry` (SUPERSEDED — see resolution) |
-| 8 | `_sub_lemma_L5_4_1_open_prime_spa_point` | `True := trivial` | Spa-point existence at open prime, `:= sorry` |
-| 9 | `_sub_lemma_L5_4_2_nonOpen_prime_spa_point` | `True := trivial` | Spa-point at non-open prime via Wedhorn 7.45, `:= sorry` |
-
-Build status post-remediation: `lake build` passes (3136 jobs, sorries-only
-warnings; no type errors). All 9 lemmas now carry their actual mathematical
-claim and either `:= sorry` (8) or a real proof (1: L5.2.1).
-
-The first pass of leaf-level checking continues below.
-
-## Skeleton location
-
-The Lean skeleton (every lemma stated with `:= by sorry`) lives in:
-- `Adic spaces/BanachOMT.lean` — Layer 1 (mathlib gap) **+ 5 sub-lemmas A-E**
-- `Adic spaces/WedhornBanachTheorem.lean` — Layers 2-4 (Wedhorn 6.16, 6.17, 6.18)
-  **(NEEDS FURTHER DECOMPOSITION — see Layer 3 below)**
-- `Adic spaces/WedhornStronglyNoetherian.lean` — Layer 5 (audit-pass-2 trio)
-  **(NEEDS FURTHER DECOMPOSITION — see Layer 5 below)**
-- `Adic spaces/AuditCleanWrappers.lean` — Layer 6 (downstream of Cor832)
-
-`lake build` passes (sorries only, no type errors) — verified at 2026-05-17.
-
-## Pass-(ii) update: sub-sub-lemmas for Layer 1's A, C, D
-
-After mathlib search confirmed `exists_closed_nhds_one_inv_eq_mul_subset`
-(`Topology.Algebra.Group.Pointwise:304`, auto-additive
-`exists_closed_nhds_zero_neg_eq_add_subset`) exists, Sub-lemmas A, C, D reduce
-to cleaner sub-sub-pieces. Each is ≤ 40 lines.
-
-### Sub-lemma A (symmetric absorbs) breakdown
-
-- **A.1** `_sub_sub_lemma_A_1_split_symmetric` (BanachOMT.lean:227)
-  Statement: ∃ closed symmetric `V` with `V + V ⊆ U`.
-  Discharge: **TRIVIAL one-liner** via `exists_closed_nhds_zero_neg_eq_add_subset`.
-  Difficulty: TRIVIAL (~5 lines).
-
-- **A.2** `_sub_sub_lemma_A_2_interior_add` (BanachOMT.lean:241)
-  Statement: `interior S + interior T ⊆ interior (S + T)`.
-  Discharge: `IsOpen.add_left` + `IsOpen.add_right` from
-  `Topology.Algebra.Group.Pointwise`. ~15 lines.
-  Difficulty: EASY.
-
-- **A main composition**: A.1 + A.2 + symmetric K ⇒ `-y ∈ K` ⇒ `0 ∈ K + K = K - K`
-  + `0 ∈ interior(K - K)` ⇒ `K - K ∈ nhds 0`. ~20 lines composition.
-
-**Total Sub-lemma A**: A.1 (5) + A.2 (15) + composition (20) = ~40 lines.
-
-### Sub-lemma C (approx preimage) breakdown
-
-- **C.1** `_sub_sub_lemma_C_1_countable_closed_cover` (BanachOMT.lean:260)
-  Statement: `H = ⋃ n, closure (f '' ((n : ℤ) • U))`.
-  Discharge: surjectivity + integer scaling + `isClosed_closure`. ~25 lines.
-  Difficulty: EASY-MEDIUM.
-
-- **C.2** `_sub_sub_lemma_C_2_baire_nonempty_interior` (BanachOMT.lean:272)
-  Statement: Baire ⇒ some closed set in countable cover has nonempty interior.
-  Discharge: **TRIVIAL one-liner** via `nonempty_interior_of_iUnion_of_closed`.
-  Difficulty: TRIVIAL (~5 lines).
-
-- **C main composition**: C.1 + C.2 + Sub-lemma A (apply to the closure with
-  interior) + scaling back to U via integer-action arithmetic. ~50 lines.
-
-**Total Sub-lemma C**: C.1 (25) + C.2 (5) + composition (50) = ~80 lines.
-
-### Sub-lemma D (Cauchy lift) breakdown
-
-- **D.1** `_sub_sub_lemma_D_1_cauchy_builder` (BanachOMT.lean:294)
-  Statement: inductive Cauchy sequence builder from shrinking-basis step data.
-  Discharge: `Nat.rec` + `IsUniformAddGroup.cauchy_iff`. ~40 lines.
-  Difficulty: MEDIUM (the substantive iteration).
-
-- **D.2** `_sub_sub_lemma_D_2_limit_in_nbhd` (BanachOMT.lean:309)
-  Statement: limit of Cauchy sequence in nbhd of source.
-  Discharge: `CauchySeq.tendsto_of_completeSpace` + sum-of-nbhds. ~25 lines.
-  Difficulty: EASY-MEDIUM.
-
-- **D main composition**: iterate Sub-lemma C to build step data, then D.1
-  to get Cauchy, then D.2 to get limit + apply continuity for f(x) = y. ~30 lines.
-
-**Total Sub-lemma D**: D.1 (40) + D.2 (25) + composition (30) = ~95 lines.
-
-### Updated total for Layer 1
-
-| Piece | LOC |
-|-------|-----|
-| Sub-lemma A (incl. A.1, A.2, composition) | ~40 |
-| Sub-lemma B (countable cover wrinkle: USE C.1's cover argument directly) | ~25 |
-| Sub-lemma C (incl. C.1, C.2, composition) | ~80 |
-| Sub-lemma D (incl. D.1, D.2, composition) | ~95 |
-| Sub-lemma E (translation invariance) | ~15 |
-| Main theorem composition (A, C, D, E) | ~25 |
-| **Layer 1 total** | **~280 lines** |
-
-Compared to first estimate (~250 lines), the second-pass refinement is
-+30 lines but each sub-sub-lemma is now ≤ 40 lines (vs. monolithic 80-line
-Stage 1/2). This makes the work parallelizable across `/beastmode` workers.
-
-## Layer 1 — Sub-lemma decomposition (binding)
-
-The main theorem `AddMonoidHom.isOpenMap_of_completeSpace_of_countablyGenerated`
-(BanachOMT.lean:200) decomposes into 5 sub-lemmas. Each is stated with `:=
-by sorry` in the same file.
-
-### Sub-lemma A: `_sub_lemma_symmetric_absorbs` (BanachOMT.lean:105)
-
-**Statement**: For a closed symmetric set `K ⊂ H` in a topological add group,
-if `interior K` is nonempty, then `K - K ∈ nhds 0`.
-
-**Proof outline**:
-- `interior K ≠ ∅` ⇒ ∃ y ∈ interior K.
-- By symmetry `K = -K`, also `-y ∈ interior(-K) = interior(K)`.
-- `y + (-y) = 0 ∈ interior(K) + interior(K) ⊆ interior(K + K) ⊆ interior(K - K)`.
-- Hence `0 ∈ interior(K - K)` ⇒ `K - K ∈ nhds 0`.
-
-**Mathlib search**: searched for `closure_sub_closure`, `sub_mem_nhds`,
-`nhds_zero.*sub` in `Topology.Algebra.Group.*` — no direct lemma found.
-Pieces are available (`interior_add`, `Set.image2`, neg lemmas).
-
-**Difficulty**: EASY. ~30-40 lines. Each step is a one-liner using existing
-mathlib infrastructure.
-
-### Sub-lemma B: `_sub_lemma_countable_cover` (BanachOMT.lean:122)
-
-**Statement**: For any nbhd `U` of 0 in a topological add group `H`, every
-`y ∈ H` is in `(n : ℤ) • U` for some `n : ℕ` (i.e., `y = n · u` for some `u ∈ U`).
-
-**Proof outline**: This is straightforward — Tate ring has a sequence of units
-converging to 0, but we don't actually need that here. For ANY nbhd U of 0 in
-ANY topological add group, every element is a finite sum of elements of U.
-Actually wait — this is NOT true in general topological add groups. It IS
-true when the topology comes from a Tate ring (= scaling by units of the
-ring covers H).
-
-**Defect surfaced**: the statement as written assumes integer-multiple cover.
-For a general topological add group, only `H = ⋃_n n·U` for compact U holds
-(or under sigma-compactness). For our Tate setting, we use units of the
-ring instead of integers. **Need to revisit**: the sub-lemma should be
-stated over a Tate-like A, not a generic add group.
-
-**Difficulty**: MEDIUM. The shape was wrong; needs A-module structure with
-a sequence of units converging to 0 (= Huber's exact hypothesis). Restate
-to take `(a_n : ℕ → A)` such that `a_n` are units and `a_n → 0`.
-
-**Action**: this is a SCOPE issue I should fix. The top-level theorem must
-either:
-(a) assume the A-module structure (Huber's form), OR
-(b) prove the countable cover from `CompleteSpace + (uniformity).IsCountablyGenerated`
-    on H — which IS possible via the Baire-on-H argument directly without
-    needing scalar units.
-
-I'll go with (b) — that matches the stated hypothesis bundle.
-
-### Sub-lemma C: `_sub_lemma_approx_preimage` (BanachOMT.lean:152)
-
-**Statement**: For continuous surjective `f : G →+ H`, for every nbhd V of 0
-in H, there's a nbhd U of 0 in G such that approximate preimages exist with
-controlled "size".
-
-**Proof outline**: Mimic `ContinuousLinearMap.exists_approx_preimage_norm_le`
-in `Mathlib.Analysis.Normed.Operator.Banach:83`. The reformulation drops
-norms in favor of nbhd-basis filtrations.
-
-**Mathlib search**:
-- `nonempty_interior_of_iUnion_of_closed` — exists, `Mathlib.Topology.Baire.Lemmas`.
-- `BaireSpace.of_pseudoEMetricSpace_completeSpace` — exists.
-- `Filter.HasBasis.exists_iff` — exists.
-
-**Difficulty**: HARD. ~80 lines. Substantive analytical content. The norm
-version in Mathlib is 78 lines; the group version should be comparable.
-
-### Sub-lemma D: `_sub_lemma_cauchy_lift` (BanachOMT.lean:179)
-
-**Statement**: For continuous surjective `f : G →+ H`, given any `y ∈ H` in a
-small enough nbhd of 0, there exists exact preimage `x` in a controlled-size
-nbhd of 0 (using CompleteSpace G to take the Cauchy limit).
-
-**Proof outline**: Mimic `ContinuousLinearMap.exists_preimage_norm_le` in
-`Mathlib.Analysis.Normed.Operator.Banach:161`. Iterate Sub-lemma C: take
-approximate preimage `x_1`, then approximate preimage of the residual
-`y - f(x_1)`, etc.; the sum is Cauchy in G (by the controlled-size bound),
-converges to `x` (by CompleteSpace G), and `f(x) = y` by continuity.
-
-**Mathlib lemmas needed**:
-- `CauchySeq.tendsto_of_completeSpace` — exists.
-- `Summable.tendsto_atTop_zero` style — exists in
-  `Mathlib.Topology.Algebra.InfiniteSum.*`.
-
-**Difficulty**: HARD. ~70 lines. The other substantive part. The Mathlib
-normed version is 75 lines; group version comparable.
-
-### Sub-lemma E: `_sub_lemma_translation` (BanachOMT.lean:198)
-
-**Statement**: If `f : G →+ H` is open at 0, then `f` is open everywhere.
-
-**Proof outline**: For any open `U ⊂ G` and `x ∈ U`, `f(U) - f(x) = f(U - x)`,
-and `U - x` is an open nbhd of 0 ⇒ image is nbhd of 0 ⇒ `f(U)` is nbhd of `f(x)`.
-
-**Mathlib lemmas needed**:
-- `Homeomorph.addLeft.isOpenMap` or similar.
-- `isOpenMap_iff_nhds_le` characterization.
-
-**Difficulty**: EASY. ~15 lines. Standard topological-group fact.
-
-### Layer 1 composition
-
-The main theorem composes A-E via:
-1. Apply C to get an approximate preimage map.
-2. Apply D (which iterates C) to get exact preimage in a nbhd of 0.
-3. Use B (now restated) to extend from nbhd of 0 to all of H.
-4. Apply E (translation) to get openness everywhere.
-5. A is used inside C (the symmetric-set absorbs step).
-
-**Total Layer 1 LOC**: ~250-300 lines. Substantive but classical.
-
-## Layer 2 — `wedhorn_6_16` (trivial corollary)
-
-**Sub-lemma decomposition**: NONE needed. Body is one line:
 ```lean
-  exact AddMonoidHom.isOpenMap_of_completeSpace_of_countablyGenerated
-    f.toAddMonoidHom hf hsurj
+/-- **Wedhorn Theorem 8.28(b).** Strongly noetherian Tate ⇒ sheafy. -/
+theorem isSheafy_ofStronglyNoetherianTate_clean
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsTateRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A] :
+    IsSheafy A := by sorry
 ```
 
-**Difficulty**: TRIVIAL once Layer 1 lands. ~5 lines.
+**Source — Wedhorn Theorem 8.28, p. 81** (verbatim):
+> "Let A = (A, A⁺) be an affinoid ring and X = Spa A. Assume that A
+> satisfies one of the following conditions.
+> (a) The completion Â has a noetherian ring of definition.
+> (b) A is a strongly noetherian Tate ring.
+> (c) Â has the discrete topology.
+> Then 𝒪_X is a sheaf of complete topological rings. Moreover, one has
+> H^q(U, 𝒪_X) = 0 for all q ≥ 1 and all rational subsets U of X."
 
-## Layer 3 — `wedhorn_6_17` (Wedhorn 6.17) — DECOMPOSED ✓
+The Wedhorn-clean Lean target above is precisely 8.28(b), with the
+ambient project typeclasses bundling "affinoid ring" (the
+`[PlusSubring A]` carries the A⁺-data; `[IsTateRing A]` carries Tate;
+`[T2Space A]`, `[NonarchimedeanRing A]`, and `CompleteSpace A` ensure
+the Â-side; `[IsStronglyNoetherian A]` is condition (b) itself).
 
-**Decomposition status**: COMPLETE. Sub-lemmas L3.1a, L3.1b, L3.2 stated
-with `:= by sorry` in `Adic spaces/WedhornBanachTheorem.lean:126, 146, 174`.
+**No hypothesis leak**: no per-cover `hSpa_inputs`, no
+`(P : PairOfDefinition A) [IsNoetherianRing P.A₀]`. The pair of
+definition is to be supplied internally via `IsTateRing.principalPair A`;
+the noeth-A₀ of the principal pair is derivable from
+`IsStronglyNoetherian A` via Wedhorn Prop 6.18 (`L9` below — already
+sorry'd in the project as `_sub_lemma_L5_1_3_inductive_step`).
 
-### L3.1a — BGR §3.7.2/1 (completion of fg normed module is module itself)
+The cohomology-vanishing component "H^q(U, 𝒪_X) = 0 for q ≥ 1" is
+stronger than the project's `IsSheafy A`. The project's `IsSheafy A`
+records the sheaf property (embedding + gluing) but not the higher
+cohomology vanishing. Wedhorn's Theorem 8.28(b) gives both. The
+Lean target above corresponds to the sheaf property; the cohomology
+vanishing is a separate target (could be added later).
 
-**Verbatim source quote** (BGR §3.7.2/1, p. 163):
-> "Proposition 1. Let A be a k-Banach algebra and let M be a normed A-module
-> such that the completion M̂ of M is a finite A-module. Then M is complete.
-> Proof. There are elements x_1, ..., x_n ∈ M̂ such that the homomorphism
-> π : A^n → M̂ defined by π(a_1, ..., a_n) := Σᵢ aᵢxᵢ is surjective. By
-> BANACH's Theorem, π is open, and therefore Σᵢ Ãx_i = π(Ãⁿ) is a neighborhood
-> of 0 in M̂. Since M is dense in M̂, we have x_v ∈ M + Σᵤ Ãx_μ for v = 1, ..., n.
-> Now NAKAYAMA's Lemma 1.2.4/6 yields M = M̂."
+---
 
-**Lean statement** (BanachOMT.lean:126):
+## 2. Plain-English proof (Wedhorn pages 83-84, prose substrate)
+
+From Wedhorn's text:
+
+> "We can now prove that 𝒪_X is a sheaf if A is a strongly noetherian
+> Tate algebra.
+>
+> *Proof of Theorem 8.28 if A is a strongly noetherian Tate algebra.* By
+> Proposition A.4 it suffices to show that every open covering by
+> rational subsets is 𝒪_X-acyclic. We may assume that A is complete.
+> Every open covering of X has a refinement 𝒰 = (U_t)_{t∈T} of the form
+> U_t := R(T/t) with T ⊆ A generating A as an ideal (Lemma 7.54). Let us
+> call such a cover *the rational cover generated by T*. If U is any
+> rational subset, then 𝒰|U is the rational cover of U = Spa 𝒪_X(U)
+> generated by the set of images of t in 𝒪_X(U) for t ∈ T. Thus by
+> Proposition A.3 (2) it suffices to show the following lemma."
+
+Then **Lemma 8.34** (Wedhorn p. 84):
+
+> "Let A be a complete strongly noetherian Tate ring and 𝒰 be a rational
+> cover generated by some finite subset T ⊆ A with T · A = A. Then 𝒰 is
+> 𝒪_X-acyclic."
+
+Wedhorn's proof of Lemma 8.34 has four parts:
+
+> "(i). For f ∈ A let 𝒰_f be the open covering of X = Spa A consisting
+> of R(f/1) and R(1/f). Then 𝒰_f is 𝒪_X-acyclic by Lemma 8.33.
+> Moreover, if U = R(T/s) is any rational subset, then 𝒰_f|U = 𝒰_{f|U},
+> where f|U is the image of f under the homomorphism A → A⟨T/s⟩. Thus
+> 𝒰_{f|U} is 𝒪_X-acyclic.
+> Using Proposition A.3 (3) it follows by induction that all open covers
+> of the form 𝒱 := 𝒰_{f_1} × ⋯ × 𝒰_{f_r} are 𝒪_X-acyclic. Such a cover
+> is called a *Laurent cover generated by f_1,...,f_r*. ... Thus we have
+> seen that for every Laurent cover 𝒱 of X and every open rational
+> subset U the restriction 𝒱|U is 𝒪_X-acyclic.
+>
+> (ii). We show the following claim. Let T = (f_0,...,f_n) ⊆ A be finite
+> such that T generates A as ideal and let 𝒰 be the rational cover of X
+> generated by T. Then there exists a Laurent cover (V_j)_{j∈J} of X
+> such that 𝒰|V_j is a rational cover generated by units of 𝒪_X(V_j)
+> for all j ∈ J.
+> Indeed, for all x ∈ X there exists f_i such that x(f_i) ≠ 0. Thus by
+> Corollary 7.32 there exists a unit s ∈ A^× such that for all i ∈ X an
+> i ∈ {0,...,n} exists with x(s) < x(f_i). Then the Laurent cover
+> generated by s^{-1}f_1,...,s^{-1}f_r satisfies the claim.
+>
+> (iii). Every rational cover 𝒰 of X which is generated by units
+> f_0,...,f_n of A has a refinement by a Laurent cover.
+> Indeed, the Laurent cover generated by { f_i f_j^{-1} ; 0 ≤ i,j ≤ n }
+> is a refinement of 𝒰.
+>
+> (iv). As the restriction of Laurent covers to arbitrary rational
+> subsets are 𝒪_X-acyclic by (i), it follows from (iii) that all
+> restrictions to rational subsets of all Laurent covers generated by
+> units are 𝒪_X-acyclic (Proposition A.3 (2)).
+> Now let 𝒰 be a rational cover generated by some finite subset T ⊆ A
+> with T · A = A and let 𝒱 be a Laurent cover such that 𝒰|V is a
+> rational cover generated by a finite set of units for all V in 𝒱
+> (which exists by (ii)). Then we have just seen that 𝒰|V is
+> 𝒪_X-acyclic. Moreover, by (i) 𝒱|U is 𝒪_X-acyclic for every U in 𝒰.
+> Thus the 𝒪_X-acyclicity of 𝒱 implies the 𝒪_X-acyclicity of 𝒰 by
+> Proposition A.3 (1)."
+
+That is Wedhorn's full proof. The fundamental building blocks are:
+- **Prop A.4** (sheaf reduction): every basis-cover acyclic ⇒ sheaf.
+- **Lemma 7.54** (ideal-generating refinement).
+- **Lemma 8.33** (2-cover 𝒰_f Čech complex is exact).
+- **Cor 7.32** (dominating-unit construction).
+- **Prop A.3 (1)(2)(3)** (Čech cohomology composition lemmas).
+
+The Lemma 8.33 proof, in turn, uses:
+- **Cor 8.32** (faithful flatness of product restriction; gives injectivity ε).
+- **Example 6.38** (𝒪_X(R(f/1)) = Â⟨X⟩/(f-X), 𝒪_X(R(1/f)) = Â⟨X⟩/(1-fX)).
+- **Example 6.39** (𝒪_X(R(f/1) ∩ R(1/f)) = Â⟨X, X^{-1}⟩/(f-X)).
+- A 5-lemma diagram chase.
+
+Cor 8.32, in turn, uses **Prop 8.30** (restriction is flat), which uses **Lemma 8.31** (A⟨X⟩ ff over A; A⟨X⟩/(f-X), A⟨X⟩/(1-fX) flat over A).
+
+---
+
+## 3. Decomposition tree
+
+### R: `isSheafy_ofStronglyNoetherianTate_clean`
+
+Source: Wedhorn Theorem 8.28(b), p. 81.
+
+Wedhorn's proof composes:
+- **L0**: Prop A.4 (basis-acyclicity ⇒ sheaf).
+- **L1**: Lemma 7.54 (refinement to ideal-generating rational covers).
+- **L2**: Lemma 8.34 (rational cover gen by ideal-gen T is 𝒪_X-acyclic).
+- **L9**: Wedhorn 6.18 forward (noetherian Tate ⇒ strongly noetherian),
+  used to derive `IsNoetherianRing (principalPair A).A₀` from
+  `IsStronglyNoetherian A`. (Allows us to **drop the explicit `P` parameter**
+  the project currently leaks.)
+- **L10**: Bridge from "every rational cover acyclic" to the project's
+  `IsSheafy A` structure (the project's `IsSheafy` is a `{embedding, gluing}`
+  record, not literally Wedhorn's "𝒪_X is a sheaf of topological rings").
+
+**Composition**:
+1. Apply L9 to get `[IsNoetherianRing (principalPair A).A₀]` from the
+   ambient typeclasses.
+2. Apply L0 with the rational subset basis ℬ.
+3. The "every basis cover is acyclic" hypothesis of L0 is the conclusion
+   of L1 + L2 composed: every basis cover refines (L1) to an
+   ideal-generating rational cover, which is acyclic (L2).
+4. Apply L10 to upgrade the abstract sheaf property to the project's
+   `IsSheafy A` record.
+
+---
+
+### L0: `propA4_sheafy_from_basis_acyclic`
+
+**Lean** (NEW):
 ```lean
-theorem _sub_lemma_L3_1a_completion_fg_complete
-    {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
-      [CompleteSpace A] [(uniformity A).IsCountablyGenerated]
-    {M : Type*} [AddCommGroup M] [Module A M]
-      [UniformSpace M] [IsUniformAddGroup M]
-      [(uniformity M).IsCountablyGenerated] [T2Space M]
-    (hM_fg : Module.Finite A M) :
-    CompleteSpace M := sorry
+/-- Wedhorn Prop A.4. If 𝒪_X is acyclic on every cover of every rational
+subset by rational subsets, then 𝒪_X is a sheaf of complete topological rings. -/
+theorem propA4_sheafy_from_basis_acyclic
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A]
+    (h_acyclic : ∀ (U : RationalLocData A) (C : RationalCovering A)
+      (hbase : C.base = U),
+      OXAcyclic A C) :
+    IsSheafy A := by sorry
 ```
 
-**Lean ↔ source match**: the Lean statement says "fg ⇒ complete" which is BGR's
-exact claim. The proof uses `wedhorn_6_16` (Banach OMT for A-modules) + Nakayama's
-lemma (mathlib has `Submodule.le_of_smul_top_eq_top` style).
+`OXAcyclic` is a new predicate to be defined: the augmented Čech complex
+of presheafValue is exact.
 
-**Discharge route verified**:
-- `wedhorn_6_16` — verified in Layer 2.
-- Nakayama's lemma — `Submodule.eq_top_of_smul_le_eq_top` in mathlib.
-- Density of `M` in `M̂` — implicit via `CompleteSpace` typeclass design.
+Source: Wedhorn Prop A.4, p. 106 (verbatim):
+> "Let ℬ be a basis of the topology of X that is stable under finite
+> intersections. Let ℱ' be a presheaf of abelian groups on ℬ and define
+> a presheaf ℱ on X by setting for V ⊆ X open
+>   ℱ(V) = lim_{U⊆V, U∈ℬ} ℱ(U).
+> Assume that for every U ∈ ℬ and for every open covering 𝒰 = (U_i)_{i∈I}
+> of U by open subsets U_i ∈ ℬ the presheaf ℱ is 𝒰-acyclic, i.e., the
+> augmented Čech complex
+>   0 → ℱ(U) → Č^0(𝒰, ℱ) → Č^1(𝒰, ℱ) → Č^2(𝒰, ℱ) → ...
+> is exact. Then ℱ is a sheaf on X and for all q ≥ 0 and for every open
+> subset U of X the canonical homomorphisms Ȟ^q(U, ℱ) → H^q(U, ℱ) is an
+> isomorphism. In particular H^q(U, ℱ) = 0 for all U ∈ ℬ and q ≥ 1."
 
-**Difficulty**: MEDIUM. ~50 lines.
+**Type**: NEW — not currently in project. Likely belongs in a new file
+`Adic spaces/CechCohomology.lean`. Purely formal sheaf-theoretic
+content (no Wedhorn-specific data), so should ultimately generalize to
+mathlib's `TopCat.Sheaf` framework.
 
-### L3.1b — fg submodule is closed
+**Attacks attempted**:
+- [1] Counterexample search: searched for `¬IsSheafy` against
+  "every cover acyclic" patterns. Found nothing — this is a standard
+  Cartan-theorem-style result (cited in Wedhorn's proof of A.4: "a result
+  of Cartan, e.g., [God] II 5.9.2").
+- [2] Edge cases: empty cover (𝒰 = ∅) — Wedhorn's text says
+  "Č^•(𝒰_0, ℱ) → Č^•(𝒰, ℱ) is a quasi-isomorphism", where 𝒰_0 is the
+  cover {X} alone; matches the project's
+  `presheafValue_subsingleton_of_s_eq_zero` + empty-cover handling.
+- [3] Hypothesis test: is `[T2Space A]` necessary here? The Prop A.4
+  statement itself is just sheaf theory, no T2 needed. But to apply it
+  with ℱ = 𝒪_X-as-topological-rings, the project's `IsSheafy A` includes
+  topological inducing, which needs T2 + completeness via Banach OMT.
+- [4] Source-drift attack: Wedhorn A.4 is stated for **abelian-group**
+  presheaves; lifting to topological-ring sheaves is the project's L10
+  obligation, separate from this leaf.
+- [5] Discharge attack: this is NEW infrastructure; discharge requires
+  Cartan's theorem (Godement II 5.9.2). **Need to verify mathlib has
+  something equivalent.** If absent, this is an upstream API gap
+  (see §5 below).
+- **Verdict**: leaf accepted with API-GAP status until mathlib
+  alternative confirmed or upstream development started.
 
-**Source**: derived from BGR §3.7.2/1 by remark (BGR p. 163, immediately after Prop 1):
-> "As an immediate consequence of this proposition, we have that all submodules
-> of a Noetherian complete normed module over a Banach algebra A are closed."
+---
 
-**Lean statement** (BanachOMT.lean:146):
+### L1: `every_open_cover_refines_to_ideal_gen_rational_cover` (Lemma 7.54)
+
+**Lean** (NEW signature; reuses existing project decomposition lemma):
 ```lean
-theorem _sub_lemma_L3_1b_fg_submodule_closed
-    ... [IsNoetherianRing A] ...
-    (N : Submodule A M) (hN_fg : N.FG) :
-    IsClosed (N : Set M) := sorry
+/-- Wedhorn Lemma 7.54. Every open covering of X has a refinement by
+rational subsets `U_t = R(T/t)` with T ⊆ A generating A as an ideal. -/
+theorem every_open_cover_refines_to_ideal_gen_rational_cover
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A]
+    (C : RationalCovering A) :
+    ∃ (T : Finset A) (_hT_ideal : Ideal.span (T : Set A) = ⊤)
+      (C' : RationalCovering A),
+      C'.refines C ∧
+      (∀ t ∈ T, ∃ Ut ∈ C'.covers, Ut.T = T ∧ Ut.s = t) := by sorry
 ```
 
-**Lean ↔ source match**: BGR says "all submodules" — which in the noetherian
-setting are all fg. Our statement parametrizes by `N.FG` explicitly, matching
-the operative content.
+Source: Wedhorn Lemma 7.54. Project references the lemma at
+`LaurentRefinementCore.lean:45` and `LaurentRefinement.lean:38`. **TODO:
+fetch the verbatim quote from Wedhorn p. ~75 in next planning pass.**
 
-**Discharge route verified**:
-- L3.1a (fg ⇒ complete).
-- `IsClosed.of_completeSpace` (closed iff complete in T2; mathlib).
+**Project status**: PARTIAL.
+- `LaurentRefinementCore.lean:47` has `rationalOpen_eq_iInter_singleton`
+  (part of Lemma 7.54: `R({t₁,...,tₙ}/s) = ⋂ᵢ R({tᵢ}/s)` for nonempty T).
+- The ideal-generating-refinement part may exist in
+  `StandardCover.lean` or `LaurentRefinement.lean`. **TODO:
+  locate in next planning pass.**
 
-**Difficulty**: EASY. ~25 lines.
+**Attacks attempted**:
+- [1] Counterexample search: not yet done.
+- [2] Edge cases: empty cover (vacuous), singleton cover (`T = {1}`).
+- [3] Source-drift: TBD pending verbatim quote check.
+- **Verdict**: accept tentatively; verify in pass 2.
 
-### L3.2 — Baire chain stationary
+---
 
-**Verbatim source quote** (BGR §3.7.2/2, p. 164):
-> "We only have to show that M is Noetherian if all submodules are closed. Let
-> M_1 ⊂ M_2 ⊂ … be an ascending chain of submodules. Let M' := ⋃_{i=1}^∞ M_i.
-> Then M' being a closed submodule of the complete module M is a Baire space.
-> Since all M_i are closed, we have by BAIRE's Theorem (cf. BOURBAKI [6], Ch 9,
-> §5, Théorème 1) the existence of an index i such that M_i contains a
-> neighborhood of 0 in M'. This implies M_i = M'; hence the chain becomes
-> stationary."
+### L2: `rational_cover_gen_by_ideal_gen_T_is_O_X_acyclic` (Lemma 8.34)
 
-**Lean statement** (BanachOMT.lean:174):
+**Lean** (NEW):
 ```lean
-theorem _sub_lemma_L3_2_baire_chain
-    ... (h_all_closed : ∀ N : AddSubgroup M, IsClosed (N : Set M))
-    (chain : ℕ → AddSubgroup M) (hchain : Monotone chain) :
-    ∃ N : ℕ, ∀ n ≥ N, chain n = chain N := sorry
+/-- Wedhorn Lemma 8.34. Every rational cover generated by an
+ideal-generating T ⊆ A is 𝒪_X-acyclic. -/
+theorem rational_cover_gen_by_ideal_gen_T_is_O_X_acyclic
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (T : Finset A) (hT_ideal : Ideal.span (T : Set A) = ⊤)
+    (C : RationalCovering A)
+    (hC_gen_by_T : ∀ t ∈ T, ∃ Ut ∈ C.covers, Ut.T = T ∧ Ut.s = t) :
+    OXAcyclic A C := by sorry
 ```
 
-**Lean ↔ source match**: the BGR statement is about ascending submodule chains
-in a noetherian module. The Lean statement is over `AddSubgroup` to be more
-general (any closed-chain stationary argument works on add-subgroups, and the
-module structure is recoverable). The chain `M_1 ⊆ M_2 ⊆ …` → stationary.
+Source: Wedhorn Lemma 8.34, p. 84 (verbatim):
+> "Let A be a complete strongly noetherian Tate ring and 𝒰 be a rational
+> cover generated by some finite subset T ⊆ A with T · A = A. Then 𝒰 is
+> 𝒪_X-acyclic."
 
-**Discharge route verified**:
-- `BaireSpace.of_pseudoEMetricSpace_completeSpace` — verified (Layer 1
-  prerequisite).
-- `nonempty_interior_of_iUnion_of_closed` — verified.
-- `AddSubgroup.isOpen_of_zero_mem_interior` — exists in mathlib
-  (`Topology.Algebra.Group.Pointwise`).
-- `AddSubgroup.isOpen_of_isOpen_top` — closed open subgroup is whole
-  (when ambient is connected; but for our use we apply on M' which is the union).
+**Type**: NEW. The deep mathematical content. Decomposes per Wedhorn's
+four-part proof (i)-(iv) — see L2.i, L2.ii, ... L2.vi below.
 
-**Difficulty**: MEDIUM. ~50 lines.
+---
 
-### Layer 3 main: wedhorn_6_17
+### L2 sub-decomposition (Lemma 8.34's proof, four parts)
 
-Composes L3.1b (forward) + L3.2 (reverse, via converting noetherian ⇔ all
-ascending chains stationary). ~30 lines composition.
+#### L2.i: `two_cover_R_f_R_invf_is_O_X_acyclic` (= Lemma 8.33)
 
-**Action**: Layer 3 sub-tickets to be added to `tickets.md`:
-- T-WEDHORN-618-L3-1a
-- T-WEDHORN-618-L3-1b
-- T-WEDHORN-618-L3-2
-
-## Layer 4 — `wedhorn_6_18_*` (Wedhorn 6.18) — DECOMPOSED ✓
-
-**Decomposition status**: COMPLETE. Sub-lemmas L4.1–L4.4 stated with
-`:= by sorry` in `Adic spaces/WedhornBanachTheorem.lean:238, 271, 301, 327`.
-
-### L4.1 — Quotient of complete countably-generated is complete countably-generated
-
-**Source**: standard topological group fact (no specific BGR/Huber/Wedhorn
-citation needed; mathlib infrastructure).
-
-**Lean statement** (WedhornBanachTheorem.lean:238): currently a placeholder
-`True`; needs to be restated as an existential or instance-providing form
-once the right Mathlib quotient-typeclass shape is identified.
-
-**Mathlib search**:
-- `Quotient.completeSpace` — for general quotients of complete uniform spaces.
-- `IsTopologicalAddGroup.QuotientAddGroup` — for the add-group quotient case.
-
-**Difficulty**: EASY-MEDIUM. ~30 lines. Mostly assembling existing instances.
-
-### L4.2 — A-linear map between fg modules is continuous
-
-**Verbatim source quote** (BGR §3.7.3/2, p. 164):
-> "Proposition 2. If M, M' are objects of 𝔐_A, each A-linear map φ : M → M' is
-> continuous. Proof. Choose an epimorphism π : A^n ↠ M for a suitable n ∈ ℕ.
-> Define φ' : A^n → M' by φ' := φ ∘ π. Since addition and scalar multiplication
-> are continuous operations in normed modules, both maps π and φ' are continuous.
-> Furthermore π is open (by BANACH's Theorem). Hence φ is continuous."
-
-**Lean statement** (WedhornBanachTheorem.lean:271):
+**Lean** (NEW):
 ```lean
-theorem _sub_lemma_L4_2_continuous_via_OMT
-    ... [Module.Finite A M] ... [Module.Finite A N] ...
-    (f : M →ₗ[A] N) : Continuous f := sorry
+/-- Wedhorn Lemma 8.33. For any f ∈ A, the 2-cover
+{R(f/1), R(1/f)} is 𝒪_X-acyclic. -/
+theorem two_cover_R_f_R_invf_is_O_X_acyclic
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    (f : A) :
+    OXAcyclic A (twoCover_R_f_R_invf A f) := by sorry
 ```
 
-**Lean ↔ source match**: identical statement. The proof composes
-`wedhorn_6_16` (Banach OMT for A-modules) + composition of continuous maps.
+Source: Wedhorn Lemma 8.33, p. 83 (verbatim):
+> "Let A = (A, A⁺) be a strongly noetherian Tate affinoid ring,
+> X = Spa A. Let f ∈ A and set U_1 = { x ∈ X ; x(f) ≤ 1 } and
+> U_2 = { x ∈ X ; x(f) ≥ 1 }. Then the augmented Čech complex (with
+> alternating cochains) for 𝒪_X and the open covering {U_1, U_2} of X
+> 0 → 𝒪_X(X) →^ε 𝒪_X(U_1) × 𝒪_X(U_2) →^δ 𝒪_X(U_1 ∩ U_2) → 0
+> is exact."
 
-**Discharge route verified**:
-- `wedhorn_6_16` (Layer 2) — open mapping for surjective A-linear continuous.
-- `LinearMap.continuous_of_finite` style — A-linear map A^n → N is continuous
-  (sum of scalar multiplications, each continuous by `IsTopologicalAddGroup`).
+**Sub-decomposition** (per Wedhorn's proof on p. 83):
+- **L2.i.1**: `cor_8_32_specialised_to_two_cover` — injectivity ε.
+- **L2.i.2**: Example 6.38 identifications: 𝒪_X(U_1) = Â⟨X⟩/(f-X).
+- **L2.i.3**: Example 6.38 identification: 𝒪_X(U_2) = Â⟨X⟩/(1-fX).
+- **L2.i.4**: Example 6.39 identification of the intersection.
+- **L2.i.5**: 5-lemma diagram chase.
 
-**Difficulty**: MEDIUM. ~60 lines.
+#### L2.ii: `laurent_cover_is_O_X_acyclic_by_induction`
 
-### L4.3 — A-linear map is open onto image (strict)
-
-**Verbatim source quote** (BGR §3.7.3/Proposition 4, p. 165):
-> "Proposition 4. A continuous k-linear map φ : X → Y between k-Banach spaces
-> is strict if and only if φ(X) is closed in Y. From this we immediately
-> conclude Corollary 5. Each A-module homomorphism φ : M → M', where
-> M, M' ∈ 𝔐_A, is strict."
-
-**Lean statement** (WedhornBanachTheorem.lean:301):
+**Lean** (NEW):
 ```lean
-theorem _sub_lemma_L4_3_strict_via_closed_image
-    ... [IsNoetherianRing A] ... [Module.Finite A M] ... [Module.Finite A N] ...
-    (f : M →ₗ[A] N) : IsOpenMap (Set.rangeFactorization f) := sorry
+/-- Laurent cover generated by f_1,...,f_r is 𝒪_X-acyclic, by induction
+from Lemma 8.33 + Prop A.3(3). -/
+theorem laurent_cover_is_O_X_acyclic_by_induction
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    (fs : List A) :
+    OXAcyclic A (laurentCoverGen A fs) := by sorry
 ```
 
-**Lean ↔ source match**: BGR Cor 5 says "strict"; we encode "strict" as
-"rangeFactorization is open" (= subspace topology on image equals quotient
-topology). Equivalent formulations.
-
-**Discharge route verified**:
-- L4.2 (continuity) — Layer 4 above.
-- L3.1b (fg submodule closed) — Layer 3 above.
-- BGR Prop 4 itself: continuous k-linear + image closed ⇒ strict. This
-  IS the Banach OMT applied to the corestriction `M → image(f)`. So the
-  reduction is via Layer 2's `wedhorn_6_16`.
-
-**Difficulty**: MEDIUM. ~50 lines.
-
-### L4.4 — Uniqueness of complete countably-generated A-module topology
-
-**Source**: derived from BGR §3.7.3/3 (existence + uniqueness in one statement).
-
-**Lean statement** (WedhornBanachTheorem.lean:327): two uniform structures
-τ₁, τ₂ on M, both making M complete + countably-generated, induce the same
-topology.
-
-**Lean ↔ source match**: BGR says "All such norms are equivalent" — equivalence
-of norms is the same as equality of induced topologies.
-
-**Discharge route verified**:
-- L4.2 applied to `id : (M, τ₁) → (M, τ₂)` and `id : (M, τ₂) → (M, τ₁)`,
-  both A-linear hence continuous; symmetric continuity ⇒ same topology.
-
-**Difficulty**: EASY. ~25 lines.
-
-### Layer 4 main: wedhorn_6_18_unique, _continuous, _open_onto_image
-
-Each is a direct corollary of the corresponding sub-lemma:
-- `wedhorn_6_18_unique` ↔ L4.1 (existence) + L4.4 (uniqueness)
-- `wedhorn_6_18_continuous` = L4.2
-- `wedhorn_6_18_open_onto_image` = L4.3
-
-**Action**: Layer 4 sub-tickets:
-- T-WEDHORN-618-L4-1, L4-2, L4-3, L4-4
-
-## Layer 5 — Audit-pass-2 trio (`_proof`-suffixed) — DECOMPOSED ✓
-
-**Decomposition status**: COMPLETE. Sub-lemmas L5.1.1, L5.1.2, L5.1.3, L5.2.1,
-L5.2.2, L5.4.1, L5.4.2 stated in `Adic spaces/WedhornStronglyNoetherian.lean`
-(placeholders as `True` since most reduce to existing project/mathlib infrastructure).
-
-### L5.1.1 — TateAlgebra ≅ AdicCompletion
-
-**Verbatim source quote** (Wedhorn Prop 6.21(2), p. 50):
-> "Assume that Λ is finite. Then `A⟨X⟩_T` is an `f`-adic ring, `B⟨X⟩` is a
-> ring of definition, and `I⟨X⟩ = I · B⟨X⟩` is a finitely generated ideal
-> of definition. If `A` is a Tate ring, then `A⟨X⟩_T` is a Tate ring."
-
-**Lean statement** (WedhornStronglyNoetherian.lean:47): existential placeholder.
-The substantive content is: `TateAlgebra A` (= `restrictedMvPowerSeriesSubring 1 A`)
-is naturally isomorphic to `AdicCompletion (I · A₀[X]) (A₀[X]) ⊗_{A₀} A`.
-
-**Lean ↔ source match**: project's `TateAlgebra A` matches Wedhorn's `A⟨X⟩` exactly.
-The completion identification is implicit in Wedhorn's construction.
-
-**Discharge route verified**:
-- Project's `RestrictedPowerSeries` infrastructure (`Adic spaces/RestrictedPowerSeries.lean`).
-- Mathlib's `AdicCompletion` (`Mathlib.RingTheory.AdicCompletion.Basic`).
-
-**Difficulty**: MEDIUM. ~60 lines.
-
-### L5.1.2 — AdicCompletion of noeth is noeth (Stacks 00MA)
-
-**External reference**: Stacks Project Tag 00MA — "If R is noetherian and I ⊆ R
-is an ideal, then the I-adic completion of R is noetherian."
-
-**Mathlib status**: **GAP** — tracked as `T-MATHLIB-STACKS-00MA` (project ticket #36).
-
-**Discharge route**: upstream mathlib work. Classical proof in Atiyah-Macdonald
-§10 or Matsumura §8. ~150 lines of Lean.
-
-**Difficulty**: HARD (substantive standalone mathlib gap).
-
-### L5.1.3 — Inductive step for `A⟨X_1,…,X_n⟩` noetherian
-
-**Discharge**: L5.1.1 + L5.1.2 + Hilbert basis (mathlib
-`Polynomial.isNoetherianRing`) + induction on n. ~40 lines.
-
-**Difficulty**: EASY-MEDIUM once L5.1.1 + L5.1.2 land.
-
-### L5.2.1, L5.2.2 — Principal pair A₀ noetherian
-
-**Source** (Wedhorn Remark 6.19, p. 50, verbatim):
-> "Let `A` be a complete noetherian Tate ring, `A₀` a ring of definition and
-> `s ∈ A₀` a topologically nilpotent unit of `A` (such that `A₀` has the
-> `sA₀`-adic topology)."
-
-**Discharge route verified**:
-- L5.2.1: `A₀.isOpen` exists in project (`HuberRings.lean`); boundedness via
-  `PairOfDefinition.isBounded_A₀`. EASY (~10 lines).
-- L5.2.2: this is where the **scope issue surfaces**.
-
-### 🚨 SCOPE ISSUE flagged in pass-(ii) — Layer 5.2.2 is not generally provable
-
-**Mathlib search result** (verified): `IsLocalization.isNoetherianRing` at
-`Mathlib.RingTheory.Localization.Submodule:78` gives:
-
-> "Theorem isNoetherianRing (h : IsNoetherianRing R) : IsNoetherianRing S
-> where S = Localization M of R."
-
-This is the **FORWARD** direction (R noeth ⇒ Localization noeth). Layer 5.2.2
-asks for the **REVERSE** (Localization noeth ⇒ R noeth), which is **NOT
-generally true**.
-
-**Wedhorn evidence check**:
-- Wedhorn Remark 6.37(3) (p. 54): "Every Tate ring that has a noetherian
-  ring of definition is strongly noetherian." — FORWARD direction.
-- Wedhorn does **NOT** state "Every strongly noetherian Tate has a noetherian
-  ring of definition" — the reverse direction.
-- Wedhorn's proof of Cor 8.32 (p. 82) doesn't construct a noetherian pair;
-  it just uses the abstract strongly noeth Tate hypothesis.
-
-**Implication**:
-- For **Tate algebras over a complete non-arch field k** (BGR-style), A₀ = k°⟨X⟩
-  IS noetherian, so the claim holds in this special case.
-- For **abstract strongly noeth Tate rings** without further structure, the
-  claim is **likely false in general** (e.g., perfectoid rings: their canonical
-  pair has A° = the tilt-side ring which need not be noetherian).
-
-**Verdict**: Layer 5.2.2 (`isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof`)
-is a **B2 candidate** — its statement is too strong without an additional
-hypothesis like `(P : PairOfDefinition A) [IsNoetherianRing P.A₀]` being
-supplied as a parameter.
-
-**Recovery options**:
-
-1. **(Recommended)** Pass the noetherian pair as an explicit hypothesis at every
-   audit-clean wrapper that needs it (= revert to the existing project
-   convention; the "audit-clean = Wedhorn-exact" goal is unachievable for
-   this specific lemma without the additional structure).
-
-2. **(Specialized)** Restrict the audit-clean wrapper to "Tate algebras over a
-   complete non-archimedean field" — adds a typeclass requirement
-   `[IsFiniteTypeOverField k A]` or similar. Loses some generality but
-   matches BGR-classical setting.
-
-3. **(Bypass)** Refactor `productRestriction_faithfullyFlat_tate_of_hSpa_points`
-   to NOT require `[IsNoetherianRing P.A₀]` — rework the proof through
-   Wedhorn's direct chain (Example 6.38 + Lemma 8.31) without the
-   per-pair noetherian assumption. This is the largest refactor but matches
-   Wedhorn's actual proof structure most faithfully.
-
-**Recommendation**: option (1) for now — keep the audit-pass-2 trio as a
-helper supplier but accept that the Wedhorn-exact `cor_8_32_clean_proof`
-form still needs a `(P : PairOfDefinition A) [IsNoetherianRing P.A₀]`
-hypothesis. The "clean" naming is misleading; in reality the hypothesis
-bundle is `Tate + Noeth + Strongly-Noeth + T2 + Nonarch + (P with noeth A₀)`.
-
-**For the present decomposition pass, mark L5.2.2 as BLOCKED on scope decision.**
-
-**Difficulty**: BLOCKED (needs user/architect decision on which recovery
-option to pursue).
-
-### 🟢 RESOLUTION (2026-05-17): Option (1) selected
-
-User decision: "it's fine to accept noeth-A0 as a hyp if we need to."
-
-**Implementation**:
-- `isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof` marked
-  **SUPERSEDED** in WedhornStronglyNoetherian.lean (kept as named-sorry stub
-  for backward consumer lookup).
-- `cor_8_32_clean_proof` (AuditCleanWrappers.lean:88) now takes
-  `(P : PairOfDefinition A) [IsNoetherianRing P.A₀]` as **explicit parameter**.
-- `tateAcyclicity_separation_via_cor832_proof` similarly takes P + noeth-A₀
-  as explicit parameters.
-
-**Effective Wedhorn-clean hypothesis bundle** (one step from Wedhorn-exact):
-`[IsTateRing A] + [IsNoetherianRing A] + [IsStronglyNoetherian A] +
-[T2Space A] + [NonarchimedeanRing A] + (P : PairOfDefinition A) +
-[IsNoetherianRing P.A₀]`.
-
-The `P + noeth-A₀` is the only non-Wedhorn-exact decoration. Wedhorn's actual
-proof of Cor 8.32 derives everything from A's structure alone (via Example
-6.38 + Lemma 8.31 + Wedhorn 6.18), but our project's existing `Cor832.lean`
-infrastructure routes through noetherian localizations, hence requires the
-per-pair noeth-A₀.
-
-**Recovery option (3)** (full Wedhorn-faithful refactor of `Cor832.lean`)
-remains a possible future improvement but is not the path we're taking now.
-
-**Build status after option-(1) implementation**: 3136 jobs clean.
-**`cor_8_32_clean_proof` is now PROVED** (no longer transitively sorry through
-the unprovable L5.2.2). Same for `tateAcyclicity_separation_via_cor832_proof`.
-
-Both wrappers are now **genuinely sorry-free** modulo the Layer 1 mathlib gap
-(Banach OMT) and Layer 5's L5.1 chain (T-MATHLIB-STACKS-00MA + audit-pass-2
-strongly-noeth derivation).
-
-### L5.4.1, L5.4.2 — Spa-point existence pieces
-
-Both **already in project** — discharge is by citation:
-- **L5.4.1** (open prime case): `exists_spa_point_in_rationalOpen_of_isOpen_prime`
-  at `Adic spaces/StructureSheaf.lean:602` — PROVED, no sorry.
-- **L5.4.2** (non-open prime case): `PairOfDefinition.exists_mem_spa_supp_ge_of_nonOpen_prime`
-  at `Adic spaces/Lemma745.lean:691` — PROVED, no sorry. Requires
-  `[IsAdicComplete P.I P.A₀]` and `(A⁺ : Set A) ⊆ P.A₀`.
-
-**Discharge route verified**: both exist sorry-free in the project.
-
-**Layer 5.4 main**: composition of L5.4.1 (open case) + L5.4.2 (non-open case)
-+ lift to rational subset. Conditional on L5.2 supplying `[IsAdicComplete P.I P.A₀]`
-for the principal pair.
-
-**Difficulty**: EASY (pure composition). ~40 lines.
-
-**Action**: Layer 5 sub-tickets:
-- T-WEDHORN-618-L5-1-1 (TateAlgebra ≅ AdicCompletion)
-- T-WEDHORN-618-L5-1-2 (= T-MATHLIB-STACKS-00MA ticket #36)
-- T-WEDHORN-618-L5-1-3 (inductive step)
-- T-WEDHORN-618-L5-2-1 (A₀ open + bounded)
-- T-WEDHORN-618-L5-2-2 (A₀ noeth via localization descent)
-- T-WEDHORN-618-L5-4 (composition; L5.4.1 + L5.4.2 already proved)
-
-## Layer 6 — AuditCleanWrappers (composition only)
-
-**Decomposition status**: COMPLETE (no further sub-lemmas needed; pure composition).
-
-Two wrappers already proved via composition. Remaining 3 just need their
-inputs to land (= Layers 1-5 done).
-
-## Updated feasibility assessment (after pass-2 sub-decomposition)
-
-| Layer | Difficulty | LOC est. | Sub-lemmas | Mathlib gaps | Sub-tickets |
-|-------|-----------|----------|------------|--------------|-------------|
-| 1 | HARD | ~250 | 5 (A-E) in BanachOMT.lean | partial closure/subtract | A, B, C, D, E |
-| 2 | TRIVIAL | ~5 | n/a | none | 1 |
-| 3 | MEDIUM | ~125 | 3 (L3.1a, L3.1b, L3.2) | none | 3 |
-| 4 | MEDIUM | ~165 | 4 (L4.1-L4.4) | possibly quotient-topology | 4 |
-| 5 | HARD | ~300 | 6 (L5.1.x, L5.2.x, L5.4.x) | T-MATHLIB-STACKS-00MA (#36) | 6 |
-| 6 | EASY | ~100 | n/a (pure composition, 2/5 already proved) | none | 3 |
-| **Total** | | **~945** | **18 sub-lemmas** | **2 mathlib gaps** | **22** |
-
-The two mathlib gaps:
-- **Layer 1**: Banach OMT for complete metric topological abelian groups
-  (sub-lemmas A, C, D are the substantive parts).
-- **T-MATHLIB-STACKS-00MA**: AdicCompletion of noeth is noeth (ticket #36).
-
-## Confidence gate re-evaluation (Step 5) — final
-
-1. ✓ **Layer 1**: 5 sub-lemmas stated, mathlib prerequisites verified per leaf.
-2. ✓ **Layer 2**: trivial one-liner.
-3. ✓ **Layer 3**: 3 sub-lemmas stated with verbatim BGR quotes per leaf
-   (L3.1a, L3.1b, L3.2).
-4. ✓ **Layer 4**: 4 sub-lemmas stated with verbatim BGR quotes per leaf
-   (L4.1, L4.2, L4.3, L4.4).
-5. ✓ **Layer 5**: 6 sub-lemmas + 2 already-proved citations (L5.4.1, L5.4.2)
-   + 1 external (T-MATHLIB-STACKS-00MA, separate ticket).
-6. ✓ **Layer 6**: pure composition, no further decomposition needed.
-
-The Lean skeleton compiles at 3136 jobs (verified). Every sub-lemma has:
-- A Lean declaration in the skeleton (or `True` placeholder for sub-lemmas
-  that are pure composition / pre-existing project citations).
-- A verbatim source quote (BGR §3.7 / Wedhorn / Huber) or explicit citation
-  to an existing project decl.
-- A Lean ↔ source match paragraph.
-- A discharge route citing specific mathlib/project lemmas.
-
-**Gate STATUS**: PASSES. All layers solidly decomposed.
-
-## What can get us stuck (defensive review)
-
-Now that everything's decomposed, here's where we COULD still get stuck:
-
-1. **Layer 1 Sub-lemma A** (`_sub_lemma_symmetric_absorbs`): "K - K ∈ nhds 0
-   when K closed symmetric with nonempty interior." Mathlib has the pieces
-   (interior of difference, neg invariance) but no direct lemma.
-   Risk: the precise statement needs `K ⊆ -K` or similar wrinkle. **Tractable**
-   with `Topology.Algebra.Group.Pointwise` infrastructure; ~40 lines.
-
-2. **Layer 1 Sub-lemma C** (`_sub_lemma_approx_preimage`): Stage 1 of Banach.
-   Mathlib's normed-space version is 78 lines; group version comparable.
-   Risk: the nbhd-basis-filtration replacement of norms requires careful
-   indexing. **Tractable** but tedious.
-
-3. **Layer 1 Sub-lemma D** (`_sub_lemma_cauchy_lift`): Stage 2 of Banach.
-   Iteration of C. Mathlib's normed-space version is 75 lines.
-   Risk: Cauchy sequence construction in topological groups (no norms) needs
-   explicit iteration with shrinking nbhd indexing. **Tractable** but most
-   substantive single piece.
-
-4. **Layer 4 L4.1** (quotient-topology completeness): the precise mathlib
-   instance shape isn't yet identified. May need a small wrapper around
-   `Quotient.completeSpace` for the `IsTopologicalAddGroup` case.
-   Risk: if mathlib doesn't have the right instance, we'd need to assemble
-   from `AddSubgroup.QuotientAddGroup` + completeness preservation.
-   **Tractable**; ~30-50 lines.
-
-5. **T-MATHLIB-STACKS-00MA** (AdicCompletion noeth): substantial mathlib gap
-   already tracked as ticket #36. Standalone work; could take 150+ lines.
-   Risk: blocking dependency for Layer 5.1.2.
-   **Workaround**: state our use case as "for noeth A and ideal I⊆A[X], the
-   I-adic completion is noeth" — might be tractable specifically for
-   polynomial extensions even without full Stacks 00MA.
-
-6. **Layer 5 L5.2.2** (A₀ noeth via localization descent): the descent step
-   `A noeth + A = A₀[1/s] ⇒ A₀ noeth` is NOT a one-liner — it needs the
-   sA₀-adic structure of A₀ and the localization-noeth-descent argument
-   from Matsumura.
-   Risk: this could itself need further sub-decomposition.
-   **Mitigation**: check if mathlib has `IsLocalization.descent_isNoetherian`
-   or similar before starting work.
-
-## Recommended workflow
-
-Given the decomposition is now solid:
-
-1. **Start `/beastmode` on Layer 1** (the substantive analytical piece).
-   Pick T-WEDHORN-618-L1 first; its sub-lemmas A-E can be worked
-   independently. Estimated 1-2 sessions for a fast worker, more for
-   careful work.
-
-2. **In parallel** (if dispatching to multiple workers): start
-   T-MATHLIB-STACKS-00MA (ticket #36) since it's a standalone mathlib gap
-   blocking Layer 5.
-
-3. **After Layer 1 + ticket #36**: Layers 2-6 become tractable composition
-   work. Most sub-tickets are 30-80 lines each.
-
-4. **Cleanup ticket** insertion per the per-file cadence rule (every 3
-   proof tickets per file).
+Source: Wedhorn p. 84 step (i) (verbatim):
+> "Using Proposition A.3 (3) it follows by induction that all open covers
+> of the form 𝒱 := 𝒰_{f_1} × ⋯ × 𝒰_{f_r} are 𝒪_X-acyclic."
+
+**Discharge**: induction on list length, base case = L2.i, step uses
+Prop A.3(3) (L11.3 below).
+
+#### L2.iii: `restriction_of_laurent_cover_to_rational_subset_is_O_X_acyclic`
+
+**Lean** (NEW):
+```lean
+/-- The restriction of a Laurent cover to any rational subset U is
+𝒪_X-acyclic. -/
+theorem restriction_of_laurent_cover_to_rational_subset_is_O_X_acyclic
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    (fs : List A) (U : RationalLocData A) :
+    OXAcyclic A (restrictCovering (laurentCoverGen A fs) U) := by sorry
+```
+
+Source: Wedhorn p. 84 step (i), final paragraph:
+> "If U is any rational subset of X, then 𝒱|U is the Laurent cover
+> generated by f_{1|U},...,f_{r|U}. Thus we have seen that for every
+> Laurent cover 𝒱 of X and every open rational subset U the restriction
+> 𝒱|U is 𝒪_X-acyclic."
+
+**Discharge**: combines L2.ii + functoriality of restriction.
+
+#### L2.iv: `exists_laurent_refinement_with_unit_gen_pieces` (uses Cor 7.32)
+
+**Lean** (NEW):
+```lean
+/-- Wedhorn Lemma 8.34 (ii). For T ideal-generating, exists a Laurent
+cover (V_j) such that 𝒰_T restricted to each V_j is generated by units
+of 𝒪_X(V_j). -/
+theorem exists_laurent_refinement_with_unit_gen_pieces
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [IsTateRing A]
+    (T : Finset A) (hT_ideal : Ideal.span (T : Set A) = ⊤) :
+    ∃ (s : Aˣ),
+      let fs := T.toList.map (fun f => (s⁻¹ : A) * f)
+      ∀ Vj ∈ (laurentCoverGen A fs).covers,
+        ∀ t ∈ T, IsUnit ((Vj.canonicalMap) t) := by sorry
+```
+
+Source: Wedhorn p. 84 step (ii) (verbatim):
+> "Indeed, for all x ∈ X there exists f_i such that x(f_i) ≠ 0. Thus
+> by Corollary 7.32 there exists a unit s ∈ A^× such that for all i ∈ X
+> an i ∈ {0,...,n} exists with x(s) < x(f_i). Then the Laurent cover
+> generated by s^{-1}f_1,...,s^{-1}f_r satisfies the claim."
+
+**Discharge**: applies Cor 7.32 (L4 below); project has
+`Cor732` infrastructure.
+
+#### L2.v: `laurent_cover_refines_unit_gen_rational_cover`
+
+**Lean** (NEW):
+```lean
+/-- Wedhorn Lemma 8.34 (iii). Every rational cover generated by units
+has a Laurent-cover refinement (the cover by ratios of generators). -/
+theorem laurent_cover_refines_unit_gen_rational_cover
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A]
+    (fs : List A) (h_units : ∀ f ∈ fs, IsUnit f) :
+    let ratios := (fs.product fs).map fun ⟨fi, fj⟩ =>
+      fi * (h_units fj sorry).unit⁻¹.val
+    (laurentCoverGen A ratios).refines (rationalCoverGenByUnits A fs h_units) := by sorry
+```
+
+Source: Wedhorn p. 84 step (iii) (verbatim):
+> "Every rational cover 𝒰 of X which is generated by units f_0,...,f_n
+> of A has a refinement by a Laurent cover.
+> Indeed, the Laurent cover generated by {f_i f_j^{-1} ; 0 ≤ i,j ≤ n}
+> is a refinement of 𝒰."
+
+**Project status**: `LaurentRefinementCore.lean:374`
+(`ratioCover_covers`) likely contains the key inclusion. **TODO**:
+verify exact match in next pass.
+
+#### L2.vi: `cover_acyclicity_via_PropA3_composition`
+
+**Lean** (NEW):
+```lean
+/-- Wedhorn Lemma 8.34 (iv) closure. If 𝒰 is a rational cover with
+Laurent refinement 𝒱 such that each 𝒰|V is acyclic and each 𝒱|U is
+acyclic, then 𝒰 is acyclic. -/
+theorem cover_acyclicity_via_PropA3_composition
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A]
+    (C V : RationalCovering A)
+    (h_V_acyclic : OXAcyclic A V)
+    (h_C_pieces_acyclic_on_V : ∀ Vj ∈ V.covers,
+      OXAcyclic A (restrictCovering C Vj))
+    (h_V_pieces_acyclic_on_C : ∀ Ui ∈ C.covers,
+      OXAcyclic A (restrictCovering V Ui)) :
+    OXAcyclic A C := by sorry
+```
+
+Source: Wedhorn p. 84 step (iv) (verbatim):
+> "Thus the 𝒪_X-acyclicity of 𝒱 implies the 𝒪_X-acyclicity of 𝒰 by
+> Proposition A.3 (1)."
+
+**Discharge**: direct application of Prop A.3(1) (L11.1 below).
+
+---
+
+### L2.i sub-decomposition (Lemma 8.33's proof, the 2-cover Čech)
+
+#### L2.i.1: `cor_8_32_specialised_to_two_cover` (injectivity ε)
+
+**Lean** (specialisation of project's existing Cor 8.32):
+```lean
+/-- Cor 8.32 specialised to the 2-cover {R(f/1), R(1/f)}: the
+restriction product 𝒪(X) → 𝒪(R(f/1)) × 𝒪(R(1/f)) is faithfully flat
+(in particular injective). -/
+theorem cor_8_32_specialised_to_two_cover
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    (f : A) :
+    Module.FaithfullyFlat A
+      (presheafValue (twoCover_plus A f) ×
+       presheafValue (twoCover_minus A f)) := by sorry
+```
+
+Source: Wedhorn Cor 8.32, p. 83 (verbatim):
+> "Let A be a strongly noetherian Tate affinoid ring, X = Spa A, and let
+> (U_i)_{1≤i≤n} a finite covering of X be rational subsets. Then the
+> homomorphism 𝒪_X(X) → ∏_{i=1}^n 𝒪_X(U_i), f ↦ (f_{|U_i})_{1≤i≤n} is
+> faithfully flat (and in particular injective)."
+
+**Project status**: `StructureSheaf.lean:1802`
+`cor_8_32_clean_sub_with_P` — currently `sorry`'d (general form, takes
+explicit P). Closing this discharges L2.i.1 (specialize to 2-cover).
+
+#### L2.i.2: `O_X_R_f_one_eq_AX_mod_f_minus_X` (Example 6.38, plus side)
+
+**Lean** (NEW):
+```lean
+/-- Wedhorn Example 6.38. 𝒪_X(R(f/1)) ≅ Â⟨X⟩/(f - X) as topological rings. -/
+theorem O_X_R_f_one_eq_AX_mod_f_minus_X
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [IsTateRing A]
+    (f : A) :
+    presheafValue (twoCover_plus A f) ≃+*
+      tateAlgebra1 A ⧸ Ideal.span ({tateAlgebra1.algebraMap f - tateAlgebra1.X A} : Set _) := by sorry
+```
+
+Source: Wedhorn Example 6.38, p. 60 (the Tate-algebra quotient
+formula). Also referenced in Wedhorn equation (8.2.1) on p. 83:
+> "𝒪_X(U_1) = A⟨ζ⟩/(f-ζ)"
+
+**Project status**: `Wedhorn638_*` infrastructure exists in
+`TateAlgebraWedhorn.lean`. **TODO**: locate the exact iso lemma
+matching this signature in next pass.
+
+#### L2.i.3: `O_X_R_one_f_eq_AX_mod_one_minus_fX` (Example 6.38, minus side)
+
+**Lean** (NEW):
+```lean
+/-- Wedhorn Example 6.38. 𝒪_X(R(1/f)) ≅ Â⟨X⟩/(1 - fX). -/
+theorem O_X_R_one_f_eq_AX_mod_one_minus_fX
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [IsTateRing A]
+    (f : A) :
+    presheafValue (twoCover_minus A f) ≃+*
+      tateAlgebra1 A ⧸ Ideal.span ({1 - tateAlgebra1.algebraMap f * tateAlgebra1.X A} : Set _) := by sorry
+```
+
+Source: Wedhorn Example 6.38, p. 60; equation (8.2.1) on p. 83:
+> "𝒪_X(U_2) = A⟨η⟩/(1-fη)"
+
+**Project status**: same as L2.i.2.
+
+#### L2.i.4: `O_X_R_f_one_intersect_R_one_f_eq_laurent_quotient` (Example 6.39)
+
+**Lean** (NEW):
+```lean
+/-- Wedhorn Example 6.39 + equation (8.2.1).
+𝒪_X(R(f/1) ∩ R(1/f)) ≅ A⟨ζ, ζ⁻¹⟩/(f - ζ). -/
+theorem O_X_R_f_one_intersect_R_one_f_eq_laurent_quotient
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [IsTateRing A]
+    (f : A) :
+    presheafValue (twoCover_intersect A f) ≃+*
+      laurentAlgebra1 A ⧸
+        Ideal.span ({laurentAlgebra1.algebraMap f - laurentAlgebra1.X A} : Set _) := by sorry
+```
+
+Source: Wedhorn equation (8.2.1) on p. 83:
+> "𝒪_X(U_1 ∩ U_2) = A⟨ζ,η⟩/(f-ζ, 1-fη) = A⟨ζ,η⟩/(f-ζ, 1-ζη)
+>   = A⟨ζ, ζ^{-1}⟩/(f-ζ)."
+
+**Project status**: needs verification in next pass.
+
+#### L2.i.5: `cech_2cover_diagram_chase`
+
+**Lean** (NEW):
+```lean
+/-- Diagram chase: with L2.i.1 (injectivity), L2.i.2-4 (Tate-algebra
+identifications), the 2-cover Čech sequence is exact at position 1
+(surjectivity of δ + ker δ = im ε). -/
+theorem cech_2cover_diagram_chase
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    (f : A) :
+    Function.Exact
+      ((restrictionMapHom_plus A f).prod (restrictionMapHom_minus A f))
+      (restrictionMapHom_intersect_diff A f) := by sorry
+```
+
+Source: Wedhorn p. 83, the commutative diagram + 5-lemma argument:
+> "Here ι is the canonical injection, λ is the map
+> g((ζ), h(η)) ↦ g(ζ) − h(ζ^{-1}), and λ' is induced by λ. The columns
+> are exact by (8.2.1). A diagram chase shows that if the first and
+> second row are exact, then the third row is exact (note that we know
+> already the injectivity of ε).
+>
+> The equations
+>   A⟨ζ, ζ⁻¹⟩ = A⟨ζ⟩ + ζ⁻¹ A⟨ζ⁻¹⟩,
+>   (f − ζ) A⟨ζ, ζ⁻¹⟩ = (f − ζ) A⟨ζ⟩ + (1 − f ζ⁻¹) A⟨ζ⁻¹⟩
+> show the surjectivity of λ and λ' (and in particular the exactness of
+> the first row). Finally, the equality
+>   0 = λ(Σ_k≥0 a_k ζ^k, Σ_k≥0 b_k η^k) = Σ_k≥0 a_k ζ^k − Σ_k≥0 b_k ζ^{-k}
+> is equivalent to a_k = b_k = 0 for k > 0 and a_0 = b_0. Thus im(ι) = ker(λ)."
+
+**Project status**: NEW; ~50 LOC of routine commutative-algebra
+diagram-chase translating the algebraic identities into the Lean
+`Function.Exact` shape.
+
+---
+
+### L2.i.1 sub-decomposition (Cor 8.32's proof)
+
+#### L2.i.1.1: `prop_8_30_restriction_flat`
+
+**Lean** (matches project):
+```lean
+/-- Wedhorn Prop 8.30. For strongly noetherian Tate, restriction
+between rational subsets is flat. -/
+theorem prop_8_30_restriction_flat
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    (D D' : RationalLocData A)
+    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
+    Module.Flat (presheafValue D) (presheafValue D') := by sorry
+```
+
+Source: Wedhorn Prop 8.30, p. 82 (verbatim):
+> "Let A = (A, A⁺) be a strongly noetherian Tate affinoid ring, and let
+> U ⊆ V ⊆ X := Spa A be two rational subsets. Then the restriction
+> homomorphism 𝒪_X(V) → 𝒪_X(U) is flat.
+>
+> Proof. By Example 6.38 we know that 𝒪_X(V) is again a strongly
+> noetherian Tate ring. Thus we may assume that X = V and that A is
+> complete. By Remark 7.55 we may moreover assume that U is either of
+> the form U_1 = R(f/1) = { x ∈ X ; x(f) ≤ 1 } or of the form
+> U_2 = R(1/f) = { x ∈ X ; x(f) ≥ 1 } for some f ∈ A.
+> In Example 6.38 we have seen that 𝒪_X(U_1) = Â⟨X⟩/(f − X) and
+> 𝒪_X(U_2) = Â⟨X⟩/(1 − fX). Thus it suffices to show the following
+> lemma."
+
+(The lemma here is Lemma 8.31, decomposed below.)
+
+**Project status**: `AuditCleanWrappers.lean:117`
+`prop_8_30_flat_clean_proof` wraps `prop_8_30_flat_clean` from
+`StructureSheaf.lean`. Currently routes through
+`Cor832.flat_over_base_tate_laurent`, which itself depends on
+Lemma 8.31 (proven) + the Example 6.38 chain.
+
+#### L2.i.1.2: `cor_8_32_faithfully_flat_from_flat_and_covering`
+
+**Lean** (NEW):
+```lean
+/-- Cor 8.32 = Prop 8.30 (per-piece flat) + covering ⇒ product
+faithfully flat. -/
+theorem cor_8_32_faithfully_flat_from_flat_and_covering
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    (C : RationalCovering A) :
+    Module.FaithfullyFlat A
+      (∀ D : { D // D ∈ C.covers }, presheafValue D.1) := by sorry
+```
+
+Source: Cor 8.32 (Wedhorn p. 83) — Wedhorn states the result without a
+detailed proof; it follows directly from Prop 8.30 (flatness) +
+"a covering of Spa A makes the product faithfully flat" (standard
+commutative algebra: faithfully flat iff flat + every prime ideal is hit;
+the Spa-cover guarantees every prime is hit).
+
+**Project status**: `StructureSheaf.lean:1802`
+`cor_8_32_clean_sub_with_P` (sorry'd); discharge route already laid
+out via `productRestriction_faithfullyFlat_tate_of_hSpa_points` in
+`Cor832.lean`.
+
+---
+
+### L2.i.1.1 sub-decomposition (Prop 8.30's proof)
+
+#### L2.i.1.1.1: `O_X_V_is_strongly_noetherian_tate_self` (Example 6.38 structural)
+
+**Lean** (NEW):
+```lean
+/-- Wedhorn Example 6.38. 𝒪_X(V) is itself a strongly noetherian Tate
+ring (so we can recurse). -/
+theorem O_X_V_is_strongly_noetherian_tate_self
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    (V : RationalLocData A) :
+    IsStronglyNoetherian (presheafValue V) ∧ IsTateRing (presheafValue V) := by sorry
+```
+
+Source: Wedhorn Example 6.38; cited in Prop 8.30's proof:
+> "By Example 6.38 we know that 𝒪_X(V) is again a strongly noetherian
+> Tate ring. Thus we may assume that X = V and that A is complete."
+
+**Project status**: PARTIAL.
+`presheafValue_isStronglyNoetherianTate_*` adapters exist in
+`TateAlgebraWedhorn.lean` or `Presheaf.lean`.
+
+#### L2.i.1.1.2: `remark_7_55_WLOG_U_is_standard_subset`
+
+**Lean** (NEW):
+```lean
+/-- Wedhorn Remark 7.55. Any rational containment U ⊆ V can be
+expressed as a chain of "standard" containments R(f/1) ⊆ X or
+R(1/f) ⊆ X. -/
+theorem remark_7_55_WLOG_U_is_standard_subset
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A]
+    (D D' : RationalLocData A)
+    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
+    ∃ (chain : List (RationalLocData A)),
+      chain.head? = some D ∧ chain.getLast? = some D' ∧
+      ∀ (i : ℕ) (hi : i + 1 < chain.length),
+        ∃ (f : A),
+          rationalOpen (chain.get ⟨i+1, hi⟩).T (chain.get ⟨i+1, hi⟩).s
+            = rationalOpen (chain.get ⟨i, Nat.lt_of_succ_lt hi⟩).T
+                            (chain.get ⟨i, Nat.lt_of_succ_lt hi⟩).s
+              ∩ ({x | x.vle f 1} ∪ {x | x.vle 1 f}) := by sorry
+```
+
+Source: Wedhorn Remark 7.55 (referenced in Prop 8.30's proof,
+Wedhorn p. 82).
+
+**Project status**: NEW; ~100-150 LOC of standard restriction-chain
+combinatorics. **TODO**: fetch verbatim quote from Wedhorn p. ~75.
+
+#### L2.i.1.1.3: `lemma_8_31_AX_faithfullyFlat_over_A` (PROJECT-EXISTING)
+
+**Lean signature** (matches project):
+```lean
+theorem faithfullyFlat_general (P : PairOfDefinition A) [IsNoetherianRing P.A₀] : ...
+```
+
+Source: Wedhorn Lemma 8.31(1), p. 82 (verbatim):
+> "Let A be a noetherian complete Tate ring. (1) The ring A⟨X⟩ is
+> faithfully flat over A."
+
+**Project status**: ✓ PROVEN. `Adic spaces/TateAlgebra.lean:2628`.
+
+#### L2.i.1.1.4: `lemma_8_31_AX_mod_f_minus_X_flat` (PROJECT-EXISTING)
+
+**Lean signature** (matches project):
+```lean
+theorem flat_quotient_fSubX_general : ...
+```
+
+Source: Wedhorn Lemma 8.31(2) for f-X, p. 82:
+> "(2) For all f ∈ A the rings A⟨X⟩/(f − X) and A⟨X⟩/(1 − fX) are flat
+> over A."
+
+**Project status**: ✓ PROVEN. `Adic spaces/TateAlgebra.lean:2600`.
+
+#### L2.i.1.1.5: `lemma_8_31_AX_mod_one_minus_fX_flat` (PROJECT-EXISTING)
+
+**Lean signature** (matches project):
+```lean
+theorem flat_quotient_oneSubfX_general : ...
+```
+
+Source: same as L2.i.1.1.4.
+
+**Project status**: ✓ PROVEN. `Adic spaces/TateAlgebra.lean:2610`.
+
+---
+
+### L4: `cor_7_32_exists_dominating_unit`
+
+**Lean** (matches project):
+```lean
+/-- Wedhorn Cor 7.32. From "x(f) ≠ 0 for all x ∈ X" derive a unit
+s ∈ Aˣ with x(s) < x(f) for all x. -/
+theorem cor_7_32_exists_dominating_unit
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [IsTateRing A]
+    {fs : Finset A} (hfs : ∀ x ∈ Spa A A⁺, ∃ f ∈ fs, ¬ x.vle f 0) :
+    ∃ s : Aˣ, ∀ x ∈ Spa A A⁺, ∃ f ∈ fs, x.vle (s : A) f := by sorry
+```
+
+Source: Wedhorn Cor 7.32 (p. ~74; **TODO**: fetch verbatim in pass 2).
+
+**Project status**: PROJECT-EXISTING. `Cor732.lean` infrastructure.
+
+---
+
+### L9: `wedhorn_6_18_forward_noeth_tate_to_strongly_noeth`
+
+**Lean** (PROJECT-EXISTING, sorry'd):
+```lean
+/-- Wedhorn Prop 6.18 forward. Noetherian Tate ⇒ strongly noetherian. -/
+theorem wedhorn_6_18_forward_noeth_tate_to_strongly_noeth
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTateRing A]
+    [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A] :
+    IsStronglyNoetherian A := by sorry
+```
+
+Source: Wedhorn Prop 6.18 (statement on p. ~50; **TODO**: fetch
+verbatim in pass 2).
+
+**Project status**: PROJECT-EXISTING.
+`StructureSheaf.lean:2781` `_sub_lemma_L5_1_3_inductive_step` (sorry'd)
+— Hilbert-basis-style inductive step. Plus
+`isStronglyNoetherian_of_isNoetherianRing_isTateRing` that glues the
+k = 0 base case to the induction.
+
+**Effect**: with L9 closed, dropping `(P : PairOfDefinition A)
+[IsNoetherianRing P.A₀]` from the top-level becomes possible — supply
+`P := IsTateRing.principalPair A` internally, derive its noetherianity
+from L9 + the equivalence `A⟨X₁,...,Xₖ⟩ noetherian ⇔ strongly noetherian`.
+
+---
+
+### L10: `propA4_to_isSheafy_bridge`
+
+**Lean** (NEW):
+```lean
+/-- Bridge: the abstract sheaf property from Prop A.4 implies the project's
+`IsSheafy A` record (embedding + gluing). -/
+theorem propA4_to_isSheafy_bridge
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (h_acyclic : ∀ (U : RationalLocData A) (C : RationalCovering A)
+      (hbase : C.base = U), OXAcyclic A C) :
+    IsSheafy A := by sorry
+```
+
+**Mathematical content**: this is where the "topological inducing"
+content of `IsSheafy.embedding` enters. Wedhorn's Theorem 8.28(b) claims
+"𝒪_X is a sheaf of complete topological rings" — the topological
+refinement of the abstract sheaf property. This **is** part of Wedhorn's
+claim, not an extra; in Wedhorn's setting it follows from completeness +
+Banach OMT, which is **the Route C content** archived in
+`decomposition-route-c-archived-2026-05-27.md`.
+
+For the L10 bridge:
+- `IsSheafy.gluing` field: derived from L0's "sheaf of abelian groups" +
+  the fact that each `presheafValue D` is a topological ring (the
+  product topology + restriction equalizer respect the topological
+  structure).
+- `IsSheafy.embedding` field: requires Route C (Banach OMT against the
+  section equalizer). This is **NOT** explicitly in Wedhorn's proof of
+  Theorem 8.28 — Wedhorn relegates the topological piece to a routine
+  argument citing completeness (Wedhorn Definition 8.26 says "sheafy"
+  is sheaf of topological rings; Remark 8.20 says sheaf of topological
+  rings = sheaf of rings + product topology embedding).
+
+**Source-drift CAUTION**: Wedhorn's Definition 8.26 says A is "sheafy"
+if 𝒪_{Spa(Â, A⁺)} is a sheaf of topological rings. By Remark 8.20, a
+sheaf of topological rings is a sheaf of rings + product topology
+embedding. Wedhorn's argument gives the sheaf-of-rings part; the
+embedding is implicit but routine. The project's L10 bridge formalizes
+the implicit step.
+
+**Project status**: PARTIAL. The project's
+`productRestrictionSub_isInducing_tate` + Lane C machinery is the
+Route C attack; with L0–L2 closed algebraically (Wedhorn-faithful), the
+topological embedding follows via Banach OMT applied to the section
+equalizer (Route C, archived decomposition).
+
+---
+
+### L11: Wedhorn Prop A.3 (Čech-cohomology composition lemmas)
+
+#### L11.1: `propA3_part1_acyclic_iff_refinement_acyclic`
+
+**Lean** (NEW):
+```lean
+/-- Wedhorn Prop A.3(1). If 𝒰 and 𝒱 are open coverings such that
+restrictions of 𝒱 to U_{i_0...i_q} are acyclic and restrictions of
+𝒰 to V_{j_0...j_q} are acyclic, then 𝒰 acyclic ↔ 𝒱 acyclic. -/
+theorem propA3_part1_acyclic_iff_refinement_acyclic
+    {X : TopCat} (𝓕 : Presheaf AbCat X) (U V : OpenCovering X)
+    (h_V_on_U : ∀ i, OXAcyclic 𝓕 (V.restrictTo (U.piece i)))
+    (h_U_on_V : ∀ j, OXAcyclic 𝓕 (U.restrictTo (V.piece j))) :
+    OXAcyclic 𝓕 U ↔ OXAcyclic 𝓕 V := by sorry
+```
+
+Source: Wedhorn Prop A.3(1) (p. 105, verbatim):
+> "Let ℱ be a presheaf of abelian groups and let 𝒰 = (U_i)_{i∈I} and
+> 𝒱 = (V_j)_{j∈J} be open coverings of X such that 𝒱_{|U_{i_0...i_q}}
+> is ℱ-acyclic (or, more precisely, ℱ_{|U_{i_0...i_q}}-acyclic) for all
+> (i_0,...,i_q) ∈ I^{q+1} and for all q ≥ 0.
+> (1) Assume that also 𝒰_{|V_{j_0...j_q}} is ℱ-acyclic for all
+> (j_0,...,j_q) ∈ J^{q+1} and all q ≥ 0. Then 𝒰 is ℱ-acyclic if and
+> only if 𝒱 is ℱ-acyclic."
+
+**Type**: NEW. Standard Čech-cohomology lemma (no Wedhorn-specific
+content). Project location: new file `Adic spaces/CechCohomology.lean`.
+
+#### L11.2: `propA3_part2_refinement_acyclic`
+
+**Lean** (NEW):
+```lean
+/-- Wedhorn Prop A.3(2). If 𝒱 is a refinement of 𝒰, then 𝒰 acyclic ↔ 𝒱 acyclic
+(under the hypothesis from A.3 setup). -/
+theorem propA3_part2_refinement_acyclic
+    {X : TopCat} (𝓕 : Presheaf AbCat X) (U V : OpenCovering X)
+    (h_V_refines_U : V.refines U)
+    (h_V_on_U : ∀ i, OXAcyclic 𝓕 (V.restrictTo (U.piece i))) :
+    OXAcyclic 𝓕 U ↔ OXAcyclic 𝓕 V := by sorry
+```
+
+Source: Wedhorn Prop A.3(2) (p. 105, verbatim):
+> "(2) If 𝒱 is a refinement of 𝒰, then 𝒰 is ℱ-acyclic if and only if
+> 𝒱 is ℱ-acyclic."
+
+#### L11.3: `propA3_part3_product_acyclic_iff_factor_acyclic`
+
+**Lean** (NEW):
+```lean
+/-- Wedhorn Prop A.3(3). 𝒰 × 𝒱 is acyclic iff 𝒰 is acyclic (under the
+mutual-restriction-acyclic hypothesis). -/
+theorem propA3_part3_product_acyclic_iff_factor_acyclic
+    {X : TopCat} (𝓕 : Presheaf AbCat X) (U V : OpenCovering X)
+    (h_V_on_U : ∀ i, OXAcyclic 𝓕 (V.restrictTo (U.piece i))) :
+    OXAcyclic 𝓕 (U.product V) ↔ OXAcyclic 𝓕 U := by sorry
+```
+
+Source: Wedhorn Prop A.3(3) (p. 105, verbatim):
+> "(3) Then 𝒰 × 𝒱 is ℱ-acyclic if and only if 𝒰 is ℱ-acyclic."
+
+---
+
+## 4. Existing project lemmas — mapping table
+
+| Wedhorn lemma | Decomp leaf | Existing project lemma | Status |
+|---|---|---|---|
+| Lemma 8.31(1) | L2.i.1.1.3 | `TateAlgebra.lean:2628` `faithfullyFlat_general` | ✓ proven |
+| Lemma 8.31(2) (f-X) | L2.i.1.1.4 | `TateAlgebra.lean:2600` `flat_quotient_fSubX_general` | ✓ proven |
+| Lemma 8.31(2) (1-fX) | L2.i.1.1.5 | `TateAlgebra.lean:2610` `flat_quotient_oneSubfX_general` | ✓ proven |
+| Prop 8.30 | L2.i.1.1 | `StructureSheaf.lean` `prop_8_30_flat_clean` (via `cor_8_32_clean_sub`) | ⚠ sorry |
+| Cor 8.32 | L2.i.1 | `StructureSheaf.lean:1802` `cor_8_32_clean_sub_with_P` | ⚠ sorry |
+| Cor 7.32 | L4 | `Cor732.lean` | ✓ likely proven |
+| Lemma 7.54 (partial) | L1 | `LaurentRefinementCore.lean:47` `rationalOpen_eq_iInter_singleton` | ⚠ partial |
+| Example 6.38 (plus) | L2.i.2 | `TateAlgebraWedhorn.lean` (`Wedhorn638_*`) | ⚠ TBD |
+| Example 6.38 (minus) | L2.i.3 | same | ⚠ TBD |
+| Example 6.39 | L2.i.4 | TBD | ⚠ likely NEW |
+| Lemma 8.33 | L2.i | NEW — assemble from L2.i.1–5 | NEW |
+| Lemma 8.34 | L2 | NEW — assemble from L2.i, L2.ii–vi | NEW |
+| Prop A.3(1) | L11.1 | NEW | NEW (mathlib gap?) |
+| Prop A.3(2) | L11.2 | NEW | NEW (mathlib gap?) |
+| Prop A.3(3) | L11.3 | NEW | NEW (mathlib gap?) |
+| Prop A.4 | L0 | NEW | NEW (mathlib gap?) |
+| Prop 6.18 fwd | L9 | `StructureSheaf.lean:2781` `_sub_lemma_L5_1_3_inductive_step` | ⚠ sorry |
+| L10 bridge | L10 | Route-C archived decomposition | ⚠ sorry |
+
+**Total**: 6 proven (Lemma 8.31 trio + likely Cor 7.32), 11 sorry'd or new, 0 known-false.
+
+---
+
+## 5. API gaps requiring upstream development
+
+The most significant API gaps are the Čech-cohomology machinery (L0, L11.1–3):
+- An `OXAcyclic` predicate, matching Wedhorn's Def A.1.
+- Prop A.3(1)(2)(3) composition lemmas.
+- Prop A.4 sheaf-from-basis-acyclicity lemma.
+
+**Mathlib check**: Mathlib has `TopCat.Sheaf` and `TopCat.Presheaf` plus
+some Čech-cohomology infrastructure
+(`AlgebraicGeometry.Čech` / `Mathlib.AlgebraicTopology.CechNerve`), but
+the **alternating-cochain** variant Wedhorn uses + the basis-acyclicity
+Prop A.4 may not be directly available.
+
+**Action for pass 2**: a separate `/develop` sub-pass on
+`CechCohomology` is needed before tackling the main Wedhorn 8.28 work.
+Source: Godement *Topologie algébrique et théorie des faisceaux* (1958),
+Chapter II §5.9.2 (cited by Wedhorn p. 106).
+
+---
+
+## 6. Topological-inducing side (Route C — archived)
+
+The L10 bridge from "abstract sheaf of abelian groups" to "sheaf of
+topological rings" requires the Route C content: Banach OMT applied to
+the section equalizer `E ⊂ ∏_D 𝒪_X(D)`. This is fully laid out in
+`.mathlib-quality/decomposition-route-c-archived-2026-05-27.md`
+(1312 lines, status: 5 sub-leaves laid out).
+
+**This decomposition (pass 1) does NOT re-prove the Route C content** —
+it points at the archived decomposition for that piece. A future
+`/develop` pass should merge the algebraic (this) and topological
+(Route C) decompositions into a unified tree.
+
+---
+
+## 7. Status summary
+
+| Item | Status |
+|------|--------|
+| Top-level theorem stated cleanly (no hypothesis leak) | ✓ §1 |
+| Wedhorn pages 81–106 read in full | ✓ §2 |
+| Wedhorn's proof structure mirrored faithfully | ✓ §2 |
+| Decomposition tree laid out | ✓ §3 |
+| Every leaf has source citation | ⚠ some partial (TBD marked) |
+| Every leaf has verbatim source quote | ⚠ partial — L1 (Lemma 7.54), L4 (Cor 7.32), L9 (Prop 6.18), L2.i.1.1.2 (Remark 7.55) still need verbatim from earlier pages |
+| Every leaf has Lean ↔ source match paragraph | ⚠ partial |
+| Existing project lemmas mapped | ✓ §4 |
+| API gaps identified | ✓ §5 + §6 |
+| Lean skeleton written | ✗ NOT YET — this pass is markdown only; next pass writes `Adic spaces/CechCohomology.lean` skeleton + new `isSheafy_ofStronglyNoetherianTate_clean` declaration |
+| `lake build` skeleton check | n/a (no skeleton) |
+| Adversarial pass per leaf | ⚠ partial — full attack table for L0 only; remaining leaves need attacks |
+| Prior-B2 log consultation | ⚠ TBD — to consult in pass 2 |
+| Confidence gate (Step 5, six conditions) | ✗ NOT PASSING — see above gaps |
+
+## Next planning passes
+
+**Pass 2** (before any Lean execution):
+1. Fetch verbatim quotes for L1 (Wedhorn 7.54), L4 (Cor 7.32),
+   L2.i.1.1.2 (Remark 7.55), L9 (Prop 6.18 — needs Wedhorn p. ~50
+   onwards).
+2. Adversarial pass on every leaf (currently 1 of ~20 has full
+   5-attack record).
+3. Consult prior-B2 log (`.mathlib-quality/b2_log.jsonl`, 38 entries) —
+   particularly relevant for any leaf whose name matches a prior B2.
+4. Verify in detail (via `lean_loogle` / `lean_local_search`) the
+   existence of each cited project lemma + each cited mathlib lemma.
+
+**Pass 3** (Lean skeleton write):
+1. Create new file `Adic spaces/CechCohomology.lean` with:
+   - `OXAcyclic` def.
+   - L0 (Prop A.4) statement with sorry.
+   - L11.1, L11.2, L11.3 (Prop A.3) statements with sorry.
+2. Create new top-level declaration `isSheafy_ofStronglyNoetherianTate_clean`
+   in a suitable file (probably new file
+   `Adic spaces/IsSheafyClean.lean` or appended to
+   `TateAcyclicityResiduals.lean`).
+3. State L2 (Lemma 8.34) and its sub-decomposition leaves L2.i, L2.ii,
+   …, L2.vi as `sorry` in `Adic spaces/IsSheafyClean.lean`.
+4. State L2.i.2, L2.i.3, L2.i.4 (Examples 6.38/6.39) as `sorry`.
+5. Run `lake build` — must pass with sorries as warnings, no type errors.
+
+**Pass 4+**:
+1. Merge Route-C decomposition for the L10 bridge.
+2. Once the gate passes, transition to `/develop` (full) for ticket
+   creation.
