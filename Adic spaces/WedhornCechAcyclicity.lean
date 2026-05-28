@@ -171,6 +171,21 @@ noncomputable def RationalCovering.presheafValueCast
     (fun b _ => presheafValue C.base ≃+* presheafValue b)
     (RingEquiv.refl _) C'.base h.symm
 
+/-- Restriction map respects a direct Eq.rec base cast on presheafValue.
+This is a generalized version (without RingEquiv motive) of
+`presheafValueCast_restrictionMap`, used by propA3_part1_gluing Step 8. -/
+theorem RationalCovering.eqRec_restrictionMap_direct
+    [HasLocLiftPowerBounded A] (baseC baseC' : RationalLocData A)
+    (h : baseC = baseC') (D : RationalLocData A)
+    (hsubC : rationalOpen D.T D.s ⊆ rationalOpen baseC.T baseC.s)
+    (hsubC' : rationalOpen D.T D.s ⊆ rationalOpen baseC'.T baseC'.s)
+    (x : presheafValue baseC) :
+    restrictionMap baseC' D hsubC'
+      (@Eq.rec (RationalLocData A) baseC (fun b _ => presheafValue b) x baseC' h) =
+      restrictionMap baseC D hsubC x := by
+  subst h
+  rfl
+
 /-- Restriction map respects the base cast (variable-base form). -/
 theorem RationalCovering.presheafValueCast_restrictionMap
     [HasLocLiftPowerBounded A] (baseC baseC' : RationalLocData A)
@@ -1980,9 +1995,10 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
             ((C_restr_at Vj_sub).hsubset D'' hD''_in) cast_RHS =
           restrictionMap V' D'' h_D''_sub_V'
             (restrictionMap D.1 V' hV'_sub_D (f D)) := by
-        -- Direct Eq.rec evaluation: substitute h_base_eq.symm and simplify.
-        -- Sub-sorry: T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-CAST-EVAL-DETAIL.
-        sorry
+        exact RationalCovering.eqRec_restrictionMap_direct V'
+          (C_restr_at Vj_sub).base (_hC_restr_base Vj_sub).symm D''
+          h_D''_sub_V' ((C_restr_at Vj_sub).hsubset D'' hD''_in)
+          (restrictionMap D.1 V' hV'_sub_D (f D))
       rw [h_cast_eval]
       -- Now RHS = restrictionMap V' D'' h_D''_sub_V' (restrictionMap D.1 V' hV'_sub_D (f D))
       --        = (restrictionMap_comp) restrictionMap D.1 D'' h_D''_sub_D (f D).
