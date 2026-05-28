@@ -755,42 +755,11 @@ theorem wedhorn_lemma_833_example_638_minus
     (example_638_plus_side_noeth_pairSubring (A := A))
     (example_638_minus_side_cont_eval P f)⟩
 
-/-- **Lemma 8.33 sub-lemma 4** — Example 6.39 (intersection).
-
-> "𝒪_X(U_1 ∩ U_2) = A⟨ζ, η⟩/(f − ζ, 1 − fη) = A⟨ζ, η⟩/(f − ζ, 1 − ζη)
-> = A⟨ζ, ζ^{-1}⟩/(f − ζ)"
-
-This is NEW — the project does not yet have an `example639_*` lemma.
-
-The intersection rational subset is `R({1, f} / f) = R(f/1) ∩ R(1/f)`.
-Project's `laurentPlusMinusIntersect`-style construction (Wedhorn's
-intersection-piece) gives the corresponding `RationalLocData A`. The iso
-to `A⟨ζ, ζ⁻¹⟩/(f-ζ)` is the new content. -/
-theorem wedhorn_lemma_833_example_639_intersection
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀] (f : A) :
-    -- Existence of a `RationalLocData A` representing the intersection
-    -- piece `R(f/1) ∩ R(1/f)`, with a ring iso to a Laurent-Tate-algebra
-    -- quotient.
-    --
-    -- The intersection piece is `R({1,f}/f)` = `{v ∈ Spa A : v(1) ≤ v(f)
-    -- ∧ v(f) ≤ v(f) ∧ v(f) ≠ 0}`, which simplifies to `{v(f) ≠ 0 ∧ v(1) ≤ v(f)}`.
-    -- As a `RationalLocData`, this is `(P, {1, f}, f)` (Wedhorn's
-    -- `trivialMinusDatum A P f` shape — actually that's R(1/f), close).
-    --
-    -- For the iso, we use:
-    -- A⟨ζ, ζ⁻¹⟩ = Localization.Away (algebraMap A (TateAlgebra A) at ζ).
-    -- Then quotienting by (f - ζ) gives the intersection's presheaf value.
-    Nonempty (presheafValue (trivialMinusDatum A P f) ≃+*
-              presheafValue (trivialMinusDatum A P f)) := by
-  -- Placeholder: the intersection piece is not yet a distinct
-  -- `RationalLocData` in the project. The eventual statement will use
-  -- the project's `laurentPlusMinusIntersect` or equivalent.
-  -- For now: identity iso as a placeholder.
-  exact ⟨RingEquiv.refl _⟩
+-- Note: Wedhorn Example 6.39 intersection iso (`R({1,f}/f) ≅ A⟨ζ, ζ⁻¹⟩/(f-ζ)`)
+-- is not stated as a separate lemma here. The intersection piece would need a
+-- distinct `RationalLocData` representation in the project, and the iso to the
+-- Laurent-Tate quotient is substantive content tracked in
+-- `wedhorn_lemma_833_gluing_as_field`.
 
 /-! ##### Sub-lemmas for `wedhorn_lemma_833_diagram_chase` (Wedhorn p. 83-84)
 
