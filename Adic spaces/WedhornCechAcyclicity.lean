@@ -1309,18 +1309,23 @@ theorem laurent_cover_from_dominating_unit [DecidableEq A]
 there exists an index `i` such that `v(t_i) ≥ v(s)` for every
 `v ∈ V_j`. (This is the "selection" step: the Laurent piece picks out a
 distinguished generator from `T`.) -/
-theorem index_selection_on_laurent_piece
+theorem index_selection_on_laurent_piece [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (T : Finset A) (s : Aˣ) (V : RationalCovering A)
+    -- Construction hypotheses (2026-05-28 top-down restate): V is the s⁻¹·T
+    -- Laurent cover, so Vj is a sign-vector piece — the σ-walk needs this.
+    (_fs : List A) (_hV_laurent : V.IsLaurentCover _fs)
+    (_hfs_eq : _fs = (T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t))
     (Vj : RationalLocData A) (_hVj : Vj ∈ V.covers) :
     ∃ t ∈ T, ∀ v ∈ rationalOpen Vj.T Vj.s,
       v.vle (s : A) t := by
   -- The Laurent piece V_j is characterised by sign conditions on
   -- {s⁻¹·t_i : t_i ∈ T}. Specifically, V_j corresponds to choosing
   -- one t_i (or its negation) as the "dominant" generator on V_j.
+  -- Now provable: `_hfs_eq` pins V to the s⁻¹·T cover.
   sorry
 
 /-- **Step (b)**: the canonical image of `t` in `𝒪_X(V_j)` is a unit when
@@ -1360,7 +1365,7 @@ theorem restricted_cover_construction
 the restriction of an ideal-generating cover `C` to each Laurent piece
 `V_j` is unit-generated (the canonical images of the original T-elements
 in `𝒪_X(V_j)` are units). -/
-theorem unit_gen_restriction_of_dominating_laurent
+theorem unit_gen_restriction_of_dominating_laurent [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
@@ -1369,7 +1374,13 @@ theorem unit_gen_restriction_of_dominating_laurent
     (s : Aˣ)
     (_h_dom : ∀ v ∈ Spa A A⁺, ∃ t ∈ T,
       v.vle (s : A) t ∧ ¬ v.vle t (s : A))
-    (V : RationalCovering A) (Vj : RationalLocData A) (_hVj : Vj ∈ V.covers) :
+    (V : RationalCovering A)
+    -- Construction hypotheses (2026-05-28 top-down restate): V is the s⁻¹·T
+    -- Laurent cover, so Vj is a sign-vector piece — required by the
+    -- index-selection σ-walk (step a). Threaded from `part_ii`.
+    (_fs : List A) (_hV_laurent : V.IsLaurentCover _fs)
+    (_hfs_eq : _fs = (T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t))
+    (Vj : RationalLocData A) (_hVj : Vj ∈ V.covers) :
     ∃ (C_restr : RationalCovering A),
       C_restr.base = Vj ∧
       C_restr.IsUnitGenerated ∧
@@ -1418,7 +1429,8 @@ theorem wedhorn_lemma_834_part_ii_unit_gen_via_dominating [DecidableEq A]
   refine ⟨V, fs, s, hV_laurent, hV_base, hs, hV_eq, ?_⟩
   -- Step d: For each V_j, restriction of C to V_j is unit-gen.
   intro Vj hVj
-  exact unit_gen_restriction_of_dominating_laurent C T hC_gen s hs V Vj hVj
+  exact unit_gen_restriction_of_dominating_laurent C T hC_gen s hs V fs hV_laurent
+    hV_eq Vj hVj
 
 /-! ##### Sub-lemmas for Lemma 8.34 part (iii) — ratio Laurent refinement -/
 
