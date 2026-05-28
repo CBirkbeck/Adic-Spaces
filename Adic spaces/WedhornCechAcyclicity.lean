@@ -1936,15 +1936,27 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
         (fun b _ => presheafValue b)
         (restrictionMap D.1 V' hV'_sub_D (f D))
         (C_restr_at Vj_sub).base h_base_eq.symm with h_cast_RHS_def
-    -- Step 1: yVj Vj_sub = cast_RHS via gluing uniqueness (separation on diff).
-    -- Step 2: Eq.rec forward closes yV Vj_sub = restrictionMap D.1 V' (f D).
-    --
-    -- The two key per-D'' computations:
-    -- (A) yVj Vj_sub restricted to D'' = gVj Vj_sub D'' (by hyVj_spec).
-    -- (B) cast_RHS restricted to D'' = gVj Vj_sub D'' (via cast eval + restrictionMap_comp + h_compat).
-    --
-    -- Currently both require detailed Eq.rec evaluation. Captured as
-    -- T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-CAST-EVAL.
+    -- Step 1: prove yVj Vj_sub = cast_RHS via (C_restr_at Vj_sub).separation.
+    have step1 : yVj Vj_sub = cast_RHS := by
+      rw [← sub_eq_zero]
+      apply (_hC_restr_acyclic Vj_sub).separation
+      intro D'' hD''_in
+      -- restrictionMap _ D'' (yVj - cast_RHS) = restrictionMap _ D'' yVj - restrictionMap _ D'' cast_RHS.
+      show (restrictionMapHom (C_restr_at Vj_sub).base D''
+          ((C_restr_at Vj_sub).hsubset D'' hD''_in)) _ = 0
+      rw [map_sub, sub_eq_zero]
+      -- Goal: restrictionMap (C_restr_at Vj_sub).base D'' (yVj Vj_sub) =
+      --       restrictionMap (C_restr_at Vj_sub).base D'' cast_RHS.
+      -- LHS = gVj Vj_sub ⟨D'', hD''_in⟩ (by hyVj_spec).
+      -- RHS needs cast evaluation + restrictionMap_comp + h_compat.
+      -- Sub-sorry T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-CAST-EVAL-PERD.
+      sorry
+    -- Step 2: cast forward to get the conclusion.
+    -- yV Vj_sub = _hC_restr_base Vj_sub ▸ yVj Vj_sub = (by step1) _hC_restr_base Vj_sub ▸ cast_RHS.
+    -- The Eq.rec on h_base_eq applied to cast_RHS (which is Eq.rec on h_base_eq.symm of RHS)
+    -- cancels back to RHS = restrictionMap D.1 V' hV'_sub_D (f D).
+    -- Sub-sorry T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-FORWARD-CAST.
+    let _ := step1
     sorry
   -- Apply the inner identity + cast plumbing to close.
   -- The final chain via restrictionMap_comp + presheafValueCast_restrictionMap +
