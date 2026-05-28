@@ -9473,6 +9473,48 @@ Wedhorn p. 84. The Lean-side implementation choices (categorical vs hand chase,
 
 ### Reviewer-driven actions
 
+#### [T-WC-740-6-VIA-CONVEX-CHAIN] **NEW (sub-ticket)** — route mulArchimedean via Presheaf.lean's convex-subgroup chain
+
+- **Status**: OPEN (substantive; depends on Presheaf.lean sub-lemma chain)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean` (proof body) +
+  `Adic spaces/Presheaf.lean` (sub-lemmas to be made public + sorry to close)
+- **Depends on**: closing `convexSubgroup_eq_top_of_ne_bot_of_analytic`
+  (Presheaf.lean:3991 — sorry-bodied; needs Wedhorn Remark 4.12 +
+  microbial-height-1 from Remark 7.40(5))
+- **Parent**: T-WC-MUL-ARCH-7-40
+- **Type**: theorem chain
+
+#### Issue
+
+`mulArchimedean_valueGroup_of_stronglyNoetherianTate` for arbitrary
+`v : Spv A` requires Wedhorn 7.40(6) full proof. The Presheaf.lean
+infrastructure has the structural chain:
+
+- `convexSubgroup_units_valueGroup_trivial_of_analytic` (line 4024,
+  private, sorry-bodied at the deep step) — for analytic v.
+- For non-analytic v (trivial valuation): MulArchimedean trivially.
+
+#### Sketch
+
+1. Case split on `v` analytic (`¬ IsOpen v.supp`) vs trivial.
+2. Trivial case: MulArchimedean follows from value group ≅ {0, 1}.
+3. Analytic case: apply `convexSubgroup_units_valueGroup_trivial_of_analytic`
+   + `OrderedGroupConvex.mulArchimedean_of_no_proper_nontrivial` (verify
+   mathlib lemma name).
+4. Make the Presheaf.lean sub-lemmas public (`private` → public) or expose
+   via a public wrapper.
+
+#### Remaining sorry chain
+
+After this ticket: still depends on `convexSubgroup_eq_top_of_ne_bot_of_analytic`
+which itself needs Wedhorn Remark 4.12 (convex subgroups ↔ vertical
+generalizations bijection — not in project or mathlib).
+
+Estimated: ~80 LOC for the wrapping, plus the deep Remark 4.12 work as
+its own sub-ticket.
+
+---
+
 #### [T-WC-WEDHORN-831-PROPAGATION] **NEW (infrastructure sub-ticket)** — Wedhorn 8.31: strongly noeth Tate propagates to presheafValue D₀
 
 - **Status**: OPEN (foundational; unblocks several substantive sorries)
