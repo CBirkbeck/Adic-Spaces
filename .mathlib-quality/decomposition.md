@@ -1,1003 +1,359 @@
-# Decomposition — Wedhorn 8.28(b) Wedhorn-Clean
+# Decomposition / Adversarial Audit — 2026-05-28
 
-**Date**: 2026-05-27 (`/develop --decompose` pass 1, adversarial mode)
-**Goal**: state Wedhorn's Theorem 8.28(b) cleanly (no per-cover hypothesis leak), decompose its proof per Wedhorn's actual route, identify which leaves correspond to existing project lemmas vs. new ones needed. Leave proofs as `sorry`.
+## Scope
 
-**The old Route-C (Banach-OMT) decomposition is archived as
-`decomposition-route-c-archived-2026-05-27.md`.** The Wedhorn route below
-supersedes it for the algebraic side; the topological-inducing side
-remains a separate sub-development (see §6).
+This audit covers the **22 remaining sorries** in `Adic spaces/WedhornCechAcyclicity.lean`. Goal: surface structural mismatches between ticket hypothesis sets and conclusions before more `/beastmode` runs hit them one-by-one.
 
----
+**Sources**: Wedhorn 2019 *Adic Spaces* (arXiv:1910.05934), pages 81-86 in particular for §8.3.
 
-## 1. The Wedhorn-clean theorem (the only thing we are trying to prove)
+**Project infrastructure consulted**:
+- `Adic spaces/LaurentCoverExact.lean` — `row3_exact` (algebraic 5-lemma, sorry-free)
+- `Adic spaces/LaurentRefinementCore.lean` — Route-B bridges, `laurentCover_gluing_presheaf_viaBridges` (sorry-free)
+- `Adic spaces/PresheafTateStructure.lean` — `presheafValue_isTateRing`; *partial* Wedhorn 8.31 (`presheafValue_isNoetherianRing_of_rationalSubset` requires `hD₀_noeth` as hypothesis, not derived)
+- `Adic spaces/Presheaf.lean` — Wedhorn 7.40(6) sub-lemma chain with deep sorries at `convexSubgroup_eq_top_of_ne_bot_of_analytic`
+- `Adic spaces/StandardCover.lean` — form-(b) `refines_cover`/`refines_contain`
+- `Adic spaces/AdicSpectrum.lean` — `noCommonZero_of_idealGen` (form `IsUnit f` from "∀ v, ¬ v.vle f 0")
+- `Adic spaces/IteratedRational.lean` — `restrictionMapHom_canonicalMap`
 
-**Lean target** (currently NOT in the project — the project has
-`isSheafy_ofStronglyNoetherianTate` with a leaked `h_separation`
-hypothesis; this is the clean form to replace it):
-
-```lean
-/-- **Wedhorn Theorem 8.28(b).** Strongly noetherian Tate ⇒ sheafy. -/
-theorem isSheafy_ofStronglyNoetherianTate_clean
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsTateRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A] :
-    IsSheafy A := by sorry
-```
-
-**Source — Wedhorn Theorem 8.28, p. 81** (verbatim):
-> "Let A = (A, A⁺) be an affinoid ring and X = Spa A. Assume that A
-> satisfies one of the following conditions.
-> (a) The completion Â has a noetherian ring of definition.
-> (b) A is a strongly noetherian Tate ring.
-> (c) Â has the discrete topology.
-> Then 𝒪_X is a sheaf of complete topological rings. Moreover, one has
-> H^q(U, 𝒪_X) = 0 for all q ≥ 1 and all rational subsets U of X."
-
-The Wedhorn-clean Lean target above is precisely 8.28(b), with the
-ambient project typeclasses bundling "affinoid ring" (the
-`[PlusSubring A]` carries the A⁺-data; `[IsTateRing A]` carries Tate;
-`[T2Space A]`, `[NonarchimedeanRing A]`, and `CompleteSpace A` ensure
-the Â-side; `[IsStronglyNoetherian A]` is condition (b) itself).
-
-**No hypothesis leak**: no per-cover `hSpa_inputs`, no
-`(P : PairOfDefinition A) [IsNoetherianRing P.A₀]`. The pair of
-definition is to be supplied internally via `IsTateRing.principalPair A`;
-the noeth-A₀ of the principal pair is derivable from
-`IsStronglyNoetherian A` via Wedhorn Prop 6.18 (`L9` below — already
-sorry'd in the project as `_sub_lemma_L5_1_3_inductive_step`).
-
-The cohomology-vanishing component "H^q(U, 𝒪_X) = 0 for q ≥ 1" is
-stronger than the project's `IsSheafy A`. The project's `IsSheafy A`
-records the sheaf property (embedding + gluing) but not the higher
-cohomology vanishing. Wedhorn's Theorem 8.28(b) gives both. The
-Lean target above corresponds to the sheaf property; the cohomology
-vanishing is a separate target (could be added later).
+**Prior-B2 log consulted**: 40 entries in `.mathlib-quality/b2_log.jsonl`. Most relevant to this audit:
+- Entry 39 — `restricted_cover_inherits_IsUnitGenerated` (RESOLVED by recent refactor)
+- Entry 40 — `rationalCovering_from_idealGenSet` (form-(a)/form-(b) mismatch)
+- Entries 22, 26, 27 — earlier σ-walk / per-D cover defects with similar shape
 
 ---
 
-## 2. Plain-English proof (Wedhorn pages 83-84, prose substrate)
+## Verdict-per-leaf summary
 
-From Wedhorn's text:
+| # | Lemma | Bucket | Verdict | Notes |
+|---|---|---|---|---|
+| 1 | `example_638_plus_side_noeth_pairSubring` | B4 | **API-GAP** | Wedhorn 6.18; needs the noeth-pair-subring proof |
+| 2 | `example_638_plus_side_cont_evalHom` | B4 | **READY-substantive** | Sketch is sound; uses project's `evalHomBounded` |
+| 3 | `example_638_minus_side_cont_underlying_evalHom` | B4 | **READY-substantive** | Parallel to (2) |
+| 4 | `wedhorn_lemma_833_gluing_as_field` | B4 | **API-GAP** | Needs Wedhorn 8.31 propagation; sub-tickets in place |
+| 5 | `isOXAcyclic_of_single_unit_piece_gluing` | B2 | **API-GAP** | Needs `IsLocalization.atUnits` chain; sub-ticket spawned |
+| 6 | `laurent_cons_decomp_as_product` | B5 | **READY-substantive** | Structural Laurent-algebra fact |
+| 7 | `propA3_part3_bridge_for_laurent_product` | B5 | **B2-CANDIDATE** | Already flagged inline; V unconstrained relative to product |
+| 8 | `laurent_restriction_isLaurent` | B5 | **B2-CONFIRMED** | Known: form-(a) `fs` vs Wedhorn's `f_i\|U` images |
+| 9 | `exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer` | B4 | **READY-substantive** | Wedhorn 6.14 + Remark 7.17 |
+| 10 | `mulArchimedean_valueGroup_of_stronglyNoetherianTate` | B4 | **B2-CANDIDATE** | Quantifies over arbitrary `v : Spv A`, not just continuous |
+| 11 | `laurent_cover_from_dominating_unit` | B5 | **READY-substantive** | Constructive build of Laurent from `s⁻¹·T` |
+| 12 | `index_selection_on_laurent_piece` | B5 | **B2-CANDIDATE** | V is unconstrained — no Laurent-vs-T/s hypothesis |
+| 13 | `canonical_unit_of_pointwise_lower_bound` | B5 | **API-GAP** | True claim, but project lacks "non-vanish ⇒ unit in presheafValue" |
+| 14 | `unit_gen_restriction_of_dominating_laurent` | B5 | **B2-CANDIDATE** | V, Vj not tied to the dominating-unit construction |
+| 15 | `ratio_laurent_cover_of_units` | B5 | **B2-CANDIDATE** | Output doesn't constrain `fs` relative to `units` |
+| 16 | `ratio_laurent_covers_each_unit_gen_piece` | B3 | **B2-CANDIDATE** | V is generic Laurent; `fs` not tied to C's units |
+| 17 | `ratio_laurent_refines_unit_gen` | B5 | **B2-CANDIDATE** | Same: V generic; fs not tied to C |
+| 18 | `laurent_cover_refines_idealgen_cover` | B3 | **B2-CANDIDATE** | V's `fs` not tied to dominating unit's `s⁻¹·T` |
+| 19 | `laurent_cover_covers_each_idealgen_piece` | B3 | **B2-CANDIDATE** | Same as (18) |
+| 20 | `rationalCovering_from_idealGenSet` | B4 | **B2-CONFIRMED** | Logged 2026-05-28: form-(a) vs form-(b) |
+| 21 | `ideal_gen_refinement_covers_each_piece` | B3 | **API-GAP-cascade** | Inherits the form-(a)/form-(b) defect from (20) |
+| 22 | `restrictToPiece_acyclic_at_D` | (new) | **API-GAP** | Needs Wedhorn 8.34 recursively at 𝒪_X(D); sub-ticket spawned |
 
-> "We can now prove that 𝒪_X is a sheaf if A is a strongly noetherian
-> Tate algebra.
->
-> *Proof of Theorem 8.28 if A is a strongly noetherian Tate algebra.* By
-> Proposition A.4 it suffices to show that every open covering by
-> rational subsets is 𝒪_X-acyclic. We may assume that A is complete.
-> Every open covering of X has a refinement 𝒰 = (U_t)_{t∈T} of the form
-> U_t := R(T/t) with T ⊆ A generating A as an ideal (Lemma 7.54). Let us
-> call such a cover *the rational cover generated by T*. If U is any
-> rational subset, then 𝒰|U is the rational cover of U = Spa 𝒪_X(U)
-> generated by the set of images of t in 𝒪_X(U) for t ∈ T. Thus by
-> Proposition A.3 (2) it suffices to show the following lemma."
-
-Then **Lemma 8.34** (Wedhorn p. 84):
-
-> "Let A be a complete strongly noetherian Tate ring and 𝒰 be a rational
-> cover generated by some finite subset T ⊆ A with T · A = A. Then 𝒰 is
-> 𝒪_X-acyclic."
-
-Wedhorn's proof of Lemma 8.34 has four parts:
-
-> "(i). For f ∈ A let 𝒰_f be the open covering of X = Spa A consisting
-> of R(f/1) and R(1/f). Then 𝒰_f is 𝒪_X-acyclic by Lemma 8.33.
-> Moreover, if U = R(T/s) is any rational subset, then 𝒰_f|U = 𝒰_{f|U},
-> where f|U is the image of f under the homomorphism A → A⟨T/s⟩. Thus
-> 𝒰_{f|U} is 𝒪_X-acyclic.
-> Using Proposition A.3 (3) it follows by induction that all open covers
-> of the form 𝒱 := 𝒰_{f_1} × ⋯ × 𝒰_{f_r} are 𝒪_X-acyclic. Such a cover
-> is called a *Laurent cover generated by f_1,...,f_r*. ... Thus we have
-> seen that for every Laurent cover 𝒱 of X and every open rational
-> subset U the restriction 𝒱|U is 𝒪_X-acyclic.
->
-> (ii). We show the following claim. Let T = (f_0,...,f_n) ⊆ A be finite
-> such that T generates A as ideal and let 𝒰 be the rational cover of X
-> generated by T. Then there exists a Laurent cover (V_j)_{j∈J} of X
-> such that 𝒰|V_j is a rational cover generated by units of 𝒪_X(V_j)
-> for all j ∈ J.
-> Indeed, for all x ∈ X there exists f_i such that x(f_i) ≠ 0. Thus by
-> Corollary 7.32 there exists a unit s ∈ A^× such that for all i ∈ X an
-> i ∈ {0,...,n} exists with x(s) < x(f_i). Then the Laurent cover
-> generated by s^{-1}f_1,...,s^{-1}f_r satisfies the claim.
->
-> (iii). Every rational cover 𝒰 of X which is generated by units
-> f_0,...,f_n of A has a refinement by a Laurent cover.
-> Indeed, the Laurent cover generated by { f_i f_j^{-1} ; 0 ≤ i,j ≤ n }
-> is a refinement of 𝒰.
->
-> (iv). As the restriction of Laurent covers to arbitrary rational
-> subsets are 𝒪_X-acyclic by (i), it follows from (iii) that all
-> restrictions to rational subsets of all Laurent covers generated by
-> units are 𝒪_X-acyclic (Proposition A.3 (2)).
-> Now let 𝒰 be a rational cover generated by some finite subset T ⊆ A
-> with T · A = A and let 𝒱 be a Laurent cover such that 𝒰|V is a
-> rational cover generated by a finite set of units for all V in 𝒱
-> (which exists by (ii)). Then we have just seen that 𝒰|V is
-> 𝒪_X-acyclic. Moreover, by (i) 𝒱|U is 𝒪_X-acyclic for every U in 𝒰.
-> Thus the 𝒪_X-acyclicity of 𝒱 implies the 𝒪_X-acyclicity of 𝒰 by
-> Proposition A.3 (1)."
-
-That is Wedhorn's full proof. The fundamental building blocks are:
-- **Prop A.4** (sheaf reduction): every basis-cover acyclic ⇒ sheaf.
-- **Lemma 7.54** (ideal-generating refinement).
-- **Lemma 8.33** (2-cover 𝒰_f Čech complex is exact).
-- **Cor 7.32** (dominating-unit construction).
-- **Prop A.3 (1)(2)(3)** (Čech cohomology composition lemmas).
-
-The Lemma 8.33 proof, in turn, uses:
-- **Cor 8.32** (faithful flatness of product restriction; gives injectivity ε).
-- **Example 6.38** (𝒪_X(R(f/1)) = Â⟨X⟩/(f-X), 𝒪_X(R(1/f)) = Â⟨X⟩/(1-fX)).
-- **Example 6.39** (𝒪_X(R(f/1) ∩ R(1/f)) = Â⟨X, X^{-1}⟩/(f-X)).
-- A 5-lemma diagram chase.
-
-Cor 8.32, in turn, uses **Prop 8.30** (restriction is flat), which uses **Lemma 8.31** (A⟨X⟩ ff over A; A⟨X⟩/(f-X), A⟨X⟩/(1-fX) flat over A).
+**Counts**:
+- B2-confirmed (already in log): 2
+- B2-candidate (newly surfaced this audit): 9
+- API-GAP (need infrastructure; honestly scoped): 6
+- READY-substantive (provable as stated): 5
 
 ---
 
-## 3. Decomposition tree
+## The pattern across the 9 NEW B2 candidates
 
-### R: `isSheafy_ofStronglyNoetherianTate_clean`
+**All 9 share the same structural defect**: the hypothesis set declares "V is a Laurent cover by `fs`" or "Vj ∈ V.covers" without tying `V`/`fs`/`Vj` to the *specific* construction the proof actually uses.
 
-Source: Wedhorn Theorem 8.28(b), p. 81.
+The σ-walk / dominant-element arguments in Wedhorn's proof of Lemma 8.34 (ii)/(iii) require V to be the **specific** Laurent cover built from `s⁻¹·T` (where s is the dominating unit and T is the unit-generating Finset). For arbitrary V satisfying `V.IsLaurentCover fs` with arbitrary `fs`, the σ-walk has nothing to select from — the pieces of V have no relationship to T.
 
-Wedhorn's proof composes:
-- **L0**: Prop A.4 (basis-acyclicity ⇒ sheaf).
-- **L1**: Lemma 7.54 (refinement to ideal-generating rational covers).
-- **L2**: Lemma 8.34 (rational cover gen by ideal-gen T is 𝒪_X-acyclic).
-- **L9**: Wedhorn 6.18 forward (noetherian Tate ⇒ strongly noetherian),
-  used to derive `IsNoetherianRing (principalPair A).A₀` from
-  `IsStronglyNoetherian A`. (Allows us to **drop the explicit `P` parameter**
-  the project currently leaks.)
-- **L10**: Bridge from "every rational cover acyclic" to the project's
-  `IsSheafy A` structure (the project's `IsSheafy` is a `{embedding, gluing}`
-  record, not literally Wedhorn's "𝒪_X is a sheaf of topological rings").
+This is the same root cause as the Q1 issues from the prior `/expert-review`: **the project's tickets were written assuming "abstract V" but the proof requires "the specific V constructed from inputs"**. The reviewer's recommendation for `restricted_cover_inherits_IsUnitGenerated` ("specialize to literal `restrictToPiece`") is exactly the fix pattern these 9 also need.
 
-**Composition**:
-1. Apply L9 to get `[IsNoetherianRing (principalPair A).A₀]` from the
-   ambient typeclasses.
-2. Apply L0 with the rational subset basis ℬ.
-3. The "every basis cover is acyclic" hypothesis of L0 is the conclusion
-   of L1 + L2 composed: every basis cover refines (L1) to an
-   ideal-generating rational cover, which is acyclic (L2).
-4. Apply L10 to upgrade the abstract sheaf property to the project's
-   `IsSheafy A` record.
+**Concrete fix shape** (per CLAUDE.md (b), permitted because the lemma is unprovable as stated):
+
+Each of these lemmas needs to add explicit hypotheses tying the cover to the construction. Either:
+
+- **(i) Add constructor hypothesis**: `(_hV_is_ratio_cover : V = (ratio_laurent_cover_of_units D₀ units _).choose)` — pins V to be the specific construction.
+- **(ii) Add structural hypothesis tying fs**: `(_hfs_eq : fs = (T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t))` — pins fs to the dominating-unit form.
+- **(iii) Inline the construction**: replace "given V" with "build V from the inputs" and prove the conclusion about the built V directly.
+
+Option (iii) is the cleanest. The cascade-down of (i)/(ii) to consumers is mechanical but adds N hypothesis arguments per lemma chain step.
 
 ---
 
-### L0: `propA4_sheafy_from_basis_acyclic`
+## Per-leaf adversarial attack analyses (all NEW B2 candidates)
 
-**Lean** (NEW):
-```lean
-/-- Wedhorn Prop A.4. If 𝒪_X is acyclic on every cover of every rational
-subset by rational subsets, then 𝒪_X is a sheaf of complete topological rings. -/
-theorem propA4_sheafy_from_basis_acyclic
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A]
-    (h_acyclic : ∀ (U : RationalLocData A) (C : RationalCovering A)
-      (hbase : C.base = U),
-      OXAcyclic A C) :
-    IsSheafy A := by sorry
-```
+### L7. `propA3_part3_bridge_for_laurent_product`
 
-`OXAcyclic` is a new predicate to be defined: the augmented Čech complex
-of presheafValue is exact.
+**Statement**: Given a 2-cover `Uf`, a family `Vgs_at : ↥Uf.covers → RationalCovering A` with each `Vgs_at(Uf_piece).base = Uf_piece.1`, plus `Uf` acyclic and each `Vgs_at(Uf_piece)` acyclic, conclude `V.IsOXAcyclic` for any `V`.
 
-Source: Wedhorn Prop A.4, p. 106 (verbatim):
-> "Let ℬ be a basis of the topology of X that is stable under finite
-> intersections. Let ℱ' be a presheaf of abelian groups on ℬ and define
-> a presheaf ℱ on X by setting for V ⊆ X open
->   ℱ(V) = lim_{U⊆V, U∈ℬ} ℱ(U).
-> Assume that for every U ∈ ℬ and for every open covering 𝒰 = (U_i)_{i∈I}
-> of U by open subsets U_i ∈ ℬ the presheaf ℱ is 𝒰-acyclic, i.e., the
-> augmented Čech complex
->   0 → ℱ(U) → Č^0(𝒰, ℱ) → Č^1(𝒰, ℱ) → Č^2(𝒰, ℱ) → ...
-> is exact. Then ℱ is a sheaf on X and for all q ≥ 0 and for every open
-> subset U of X the canonical homomorphisms Ȟ^q(U, ℱ) → H^q(U, ℱ) is an
-> isomorphism. In particular H^q(U, ℱ) = 0 for all U ∈ ℬ and q ≥ 1."
+**The B2 defect**: The lemma takes `V` as an unconstrained `RationalCovering A`. There is no hypothesis linking V to the product `Uf × ⊔ Vgs_at`. The conclusion `V.IsOXAcyclic` cannot follow because V is utterly generic.
 
-**Type**: NEW — not currently in project. Likely belongs in a new file
-`Adic spaces/CechCohomology.lean`. Purely formal sheaf-theoretic
-content (no Wedhorn-specific data), so should ultimately generalize to
-mathlib's `TopCat.Sheaf` framework.
+**Already self-acknowledged**: The lemma's own inline note says: *"NOTE 2026-05-28: the lemma as stated is missing structural hypotheses binding V to the product Uf × ⊔ Vgs_at (V refines product, Vgs covers V). Without these, V is generic and the conclusion isn't deducible."*
 
 **Attacks attempted**:
-- [1] Counterexample search: searched for `¬IsSheafy` against
-  "every cover acyclic" patterns. Found nothing — this is a standard
-  Cartan-theorem-style result (cited in Wedhorn's proof of A.4: "a result
-  of Cartan, e.g., [God] II 5.9.2").
-- [2] Edge cases: empty cover (𝒰 = ∅) — Wedhorn's text says
-  "Č^•(𝒰_0, ℱ) → Č^•(𝒰, ℱ) is a quasi-isomorphism", where 𝒰_0 is the
-  cover {X} alone; matches the project's
-  `presheafValue_subsingleton_of_s_eq_zero` + empty-cover handling.
-- [3] Hypothesis test: is `[T2Space A]` necessary here? The Prop A.4
-  statement itself is just sheaf theory, no T2 needed. But to apply it
-  with ℱ = 𝒪_X-as-topological-rings, the project's `IsSheafy A` includes
-  topological inducing, which needs T2 + completeness via Banach OMT.
-- [4] Source-drift attack: Wedhorn A.4 is stated for **abelian-group**
-  presheaves; lifting to topological-ring sheaves is the project's L10
-  obligation, separate from this leaf.
-- [5] Discharge attack: this is NEW infrastructure; discharge requires
-  Cartan's theorem (Godement II 5.9.2). **Need to verify mathlib has
-  something equivalent.** If absent, this is an upstream API gap
-  (see §5 below).
-- **Verdict**: leaf accepted with API-GAP status until mathlib
-  alternative confirmed or upstream development started.
+- [1] Counterexample search: take V = arbitrary `RationalCovering A` (e.g., the trivial 1-cover of an unrelated `D₀`). Hypotheses on Uf and Vgs_at can still be satisfied independently of V. Conclusion `V.IsOXAcyclic` doesn't follow.
+- [2] Edge-case instantiation: V = empty cover (no pieces). Then `IsOXAcyclic` requires `presheafValue V.base` separation/gluing fields; nothing in the hypotheses constrains these.
+- [3] Source-drift attack: Wedhorn's Prop A.3(3) (p. 116 of arXiv:1910.05934) gives the acyclicity transfer for the *specific* product construction `𝒰 × 𝒱`. The Lean signature elides this — V is not the product, but a generic cover.
+
+**Verdict**: B2-CANDIDATE. Needs at minimum: a hypothesis linking V to the product. Either `V.IsLaurentCover` (composing Uf's `f` with Vgs_at's `gs`) or an explicit covering-relationship between V and the product.
 
 ---
 
-### L1: `every_open_cover_refines_to_ideal_gen_rational_cover` (Lemma 7.54)
+### L10. `mulArchimedean_valueGroup_of_stronglyNoetherianTate`
 
-**Lean** (NEW signature; reuses existing project decomposition lemma):
-```lean
-/-- Wedhorn Lemma 7.54. Every open covering of X has a refinement by
-rational subsets `U_t = R(T/t)` with T ⊆ A generating A as an ideal. -/
-theorem every_open_cover_refines_to_ideal_gen_rational_cover
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A]
-    (C : RationalCovering A) :
-    ∃ (T : Finset A) (_hT_ideal : Ideal.span (T : Set A) = ⊤)
-      (C' : RationalCovering A),
-      C'.refines C ∧
-      (∀ t ∈ T, ∃ Ut ∈ C'.covers, Ut.T = T ∧ Ut.s = t) := by sorry
-```
+**Statement**: For any `v : Spv A` (the full valuation spectrum, not just continuous), `MulArchimedean (ValueGroupWithZero A)` under the v-induced valuative relation.
 
-Source: Wedhorn Lemma 7.54. Project references the lemma at
-`LaurentRefinementCore.lean:45` and `LaurentRefinement.lean:38`. **TODO:
-fetch the verbatim quote from Wedhorn p. ~75 in next planning pass.**
+**The B2 defect**: Spv A includes non-continuous valuations. Wedhorn 7.40(6) gives height ≤ 1 only for **analytic continuous** valuations (those with non-open support). Without restricting to continuous v, the claim is over-stated.
 
-**Project status**: PARTIAL.
-- `LaurentRefinementCore.lean:47` has `rationalOpen_eq_iInter_singleton`
-  (part of Lemma 7.54: `R({t₁,...,tₙ}/s) = ⋂ᵢ R({tᵢ}/s)` for nonempty T).
-- The ideal-generating-refinement part may exist in
-  `StandardCover.lean` or `LaurentRefinement.lean`. **TODO:
-  locate in next planning pass.**
+**For the trivial case**: a "trivial" valuation has value group {0, 1}, which IS MulArchimedean (trivially). For non-trivial non-continuous v, MulArchimedean may fail (the value group could be arbitrary).
 
 **Attacks attempted**:
-- [1] Counterexample search: not yet done.
-- [2] Edge cases: empty cover (vacuous), singleton cover (`T = {1}`).
-- [3] Source-drift: TBD pending verbatim quote check.
-- **Verdict**: accept tentatively; verify in pass 2.
+- [1] Counterexample search: take A = ℤ_p with the discrete topology. The (p-adic) ℤ_p valuation is continuous and rank-1, but consider a non-continuous v on ℤ_p with value group ℤ² lex-ordered (height-2 valuation extending the p-adic). Such v lies in Spv ℤ_p but has non-archimedean value group. Wedhorn 7.40 doesn't apply because v isn't continuous.
+- [2] Edge cases: v = trivial valuation (supp = max ideal). Value group {0,1} — trivially MulArchimedean. ✓ for this case.
+- [3] Source-drift attack: Wedhorn 7.40(6) (p. 66, *Remark 7.40*) is explicitly *"For an analytic continuous valuation x ..."*. The Lean signature drops "analytic continuous" entirely.
+
+**Verdict**: B2-CANDIDATE. Signature must restrict to `v ∈ Spa A A⁺` (continuous + integral) or `v ∈ Cont A` (continuous). The consumer `exists_dominating_unit` applies it through Spa-points, so adding the `v ∈ Spa A A⁺` quantifier is naturally available.
 
 ---
 
-### L2: `rational_cover_gen_by_ideal_gen_T_is_O_X_acyclic` (Lemma 8.34)
+### L12. `index_selection_on_laurent_piece`
 
-**Lean** (NEW):
-```lean
-/-- Wedhorn Lemma 8.34. Every rational cover generated by an
-ideal-generating T ⊆ A is 𝒪_X-acyclic. -/
-theorem rational_cover_gen_by_ideal_gen_T_is_O_X_acyclic
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (T : Finset A) (hT_ideal : Ideal.span (T : Set A) = ⊤)
-    (C : RationalCovering A)
-    (hC_gen_by_T : ∀ t ∈ T, ∃ Ut ∈ C.covers, Ut.T = T ∧ Ut.s = t) :
-    OXAcyclic A C := by sorry
-```
+**Statement**: Given `T : Finset A`, `s : Aˣ`, `V : RationalCovering A`, `Vj ∈ V.covers`, conclude `∃ t ∈ T, ∀ v ∈ rationalOpen Vj.T Vj.s, v.vle (s : A) t`.
 
-Source: Wedhorn Lemma 8.34, p. 84 (verbatim):
-> "Let A be a complete strongly noetherian Tate ring and 𝒰 be a rational
-> cover generated by some finite subset T ⊆ A with T · A = A. Then 𝒰 is
-> 𝒪_X-acyclic."
+**The B2 defect**: V has no hypothesis tying it to T or s. Vj is an arbitrary piece of arbitrary V.
 
-**Type**: NEW. The deep mathematical content. Decomposes per Wedhorn's
-four-part proof (i)-(iv) — see L2.i, L2.ii, ... L2.vi below.
+**The σ-walk argument requires V to be the specific Laurent cover by `s⁻¹·T`** so that each piece Vj is characterized by a sign vector, which picks out a distinguished dominant element of T.
+
+**Attacks attempted**:
+- [1] Counterexample search: take V = trivial 1-cover of D₀ with V.covers = {D₀}, T = {f, g} with v(f) and v(g) both incomparable on D₀'s rationalOpen (e.g., split into pieces). No single t ∈ T dominates v(s) on all of D₀. Conclusion fails.
+- [2] Edge cases: T = ∅. Conclusion claims `∃ t ∈ ∅` — vacuous false. The lemma's hypotheses don't exclude empty T.
+- [3] Source-drift attack: Wedhorn p. 84 second paragraph of (ii) — the σ-walk pick happens specifically because V is the Laurent cover by s⁻¹·T = "characterised by sign conditions on {s⁻¹·t_i}". For arbitrary V, no such characterization.
+
+**Verdict**: B2-CANDIDATE. Signature needs `(_hV_laurent : V.IsLaurentCover ((T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t)))` or equivalent.
 
 ---
 
-### L2 sub-decomposition (Lemma 8.34's proof, four parts)
+### L14. `unit_gen_restriction_of_dominating_laurent`
 
-#### L2.i: `two_cover_R_f_R_invf_is_O_X_acyclic` (= Lemma 8.33)
+**Statement**: Given C (with `IsGeneratedBy T`), dominating unit s, V, Vj ∈ V.covers, conclude `∃ C_restr` with `C_restr.base = Vj`, `IsUnitGenerated`, refines C, covers Vj.
 
-**Lean** (NEW):
-```lean
-/-- Wedhorn Lemma 8.33. For any f ∈ A, the 2-cover
-{R(f/1), R(1/f)} is 𝒪_X-acyclic. -/
-theorem two_cover_R_f_R_invf_is_O_X_acyclic
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A]
-    (f : A) :
-    OXAcyclic A (twoCover_R_f_R_invf A f) := by sorry
-```
+**The B2 defect**: V is unconstrained. The intermediate lemmas (L12 index_selection, L13 canonical_unit) require V to be the s⁻¹·T-Laurent cover for the σ-walk argument to even make sense.
 
-Source: Wedhorn Lemma 8.33, p. 83 (verbatim):
-> "Let A = (A, A⁺) be a strongly noetherian Tate affinoid ring,
-> X = Spa A. Let f ∈ A and set U_1 = { x ∈ X ; x(f) ≤ 1 } and
-> U_2 = { x ∈ X ; x(f) ≥ 1 }. Then the augmented Čech complex (with
-> alternating cochains) for 𝒪_X and the open covering {U_1, U_2} of X
-> 0 → 𝒪_X(X) →^ε 𝒪_X(U_1) × 𝒪_X(U_2) →^δ 𝒪_X(U_1 ∩ U_2) → 0
-> is exact."
+**Attacks attempted**:
+- [1] Counterexample search: V = trivial 1-cover of some D₀ unrelated to C. Vj = D₀. The hypotheses on C, T, s, h_dom can all hold while Vj is an arbitrary rational subset. The C_restr at Vj would need to refine C ∩ Vj, which depends on Vj's geometry — there's no reason a unit-generated restriction exists.
+- [2] Edge case: Vj = Spa A (the whole space). Then the "restriction to Vj" is just C itself, but C has IsGeneratedBy T (not IsUnitGenerated). Bijection issue similar to the resolved Q1.
+- [3] Hypothesis-strength: removing the `_hV_laurent : V.IsLaurentCover` hypothesis from the natural caller still doesn't hurt — because the lemma doesn't have it in the first place. That's the smell.
 
-**Sub-decomposition** (per Wedhorn's proof on p. 83):
-- **L2.i.1**: `cor_8_32_specialised_to_two_cover` — injectivity ε.
-- **L2.i.2**: Example 6.38 identifications: 𝒪_X(U_1) = Â⟨X⟩/(f-X).
-- **L2.i.3**: Example 6.38 identification: 𝒪_X(U_2) = Â⟨X⟩/(1-fX).
-- **L2.i.4**: Example 6.39 identification of the intersection.
-- **L2.i.5**: 5-lemma diagram chase.
-
-#### L2.ii: `laurent_cover_is_O_X_acyclic_by_induction`
-
-**Lean** (NEW):
-```lean
-/-- Laurent cover generated by f_1,...,f_r is 𝒪_X-acyclic, by induction
-from Lemma 8.33 + Prop A.3(3). -/
-theorem laurent_cover_is_O_X_acyclic_by_induction
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A]
-    (fs : List A) :
-    OXAcyclic A (laurentCoverGen A fs) := by sorry
-```
-
-Source: Wedhorn p. 84 step (i) (verbatim):
-> "Using Proposition A.3 (3) it follows by induction that all open covers
-> of the form 𝒱 := 𝒰_{f_1} × ⋯ × 𝒰_{f_r} are 𝒪_X-acyclic."
-
-**Discharge**: induction on list length, base case = L2.i, step uses
-Prop A.3(3) (L11.3 below).
-
-#### L2.iii: `restriction_of_laurent_cover_to_rational_subset_is_O_X_acyclic`
-
-**Lean** (NEW):
-```lean
-/-- The restriction of a Laurent cover to any rational subset U is
-𝒪_X-acyclic. -/
-theorem restriction_of_laurent_cover_to_rational_subset_is_O_X_acyclic
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A]
-    (fs : List A) (U : RationalLocData A) :
-    OXAcyclic A (restrictCovering (laurentCoverGen A fs) U) := by sorry
-```
-
-Source: Wedhorn p. 84 step (i), final paragraph:
-> "If U is any rational subset of X, then 𝒱|U is the Laurent cover
-> generated by f_{1|U},...,f_{r|U}. Thus we have seen that for every
-> Laurent cover 𝒱 of X and every open rational subset U the restriction
-> 𝒱|U is 𝒪_X-acyclic."
-
-**Discharge**: combines L2.ii + functoriality of restriction.
-
-#### L2.iv: `exists_laurent_refinement_with_unit_gen_pieces` (uses Cor 7.32)
-
-**Lean** (NEW):
-```lean
-/-- Wedhorn Lemma 8.34 (ii). For T ideal-generating, exists a Laurent
-cover (V_j) such that 𝒰_T restricted to each V_j is generated by units
-of 𝒪_X(V_j). -/
-theorem exists_laurent_refinement_with_unit_gen_pieces
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [IsTateRing A]
-    (T : Finset A) (hT_ideal : Ideal.span (T : Set A) = ⊤) :
-    ∃ (s : Aˣ),
-      let fs := T.toList.map (fun f => (s⁻¹ : A) * f)
-      ∀ Vj ∈ (laurentCoverGen A fs).covers,
-        ∀ t ∈ T, IsUnit ((Vj.canonicalMap) t) := by sorry
-```
-
-Source: Wedhorn p. 84 step (ii) (verbatim):
-> "Indeed, for all x ∈ X there exists f_i such that x(f_i) ≠ 0. Thus
-> by Corollary 7.32 there exists a unit s ∈ A^× such that for all i ∈ X
-> an i ∈ {0,...,n} exists with x(s) < x(f_i). Then the Laurent cover
-> generated by s^{-1}f_1,...,s^{-1}f_r satisfies the claim."
-
-**Discharge**: applies Cor 7.32 (L4 below); project has
-`Cor732` infrastructure.
-
-#### L2.v: `laurent_cover_refines_unit_gen_rational_cover`
-
-**Lean** (NEW):
-```lean
-/-- Wedhorn Lemma 8.34 (iii). Every rational cover generated by units
-has a Laurent-cover refinement (the cover by ratios of generators). -/
-theorem laurent_cover_refines_unit_gen_rational_cover
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A]
-    (fs : List A) (h_units : ∀ f ∈ fs, IsUnit f) :
-    let ratios := (fs.product fs).map fun ⟨fi, fj⟩ =>
-      fi * (h_units fj sorry).unit⁻¹.val
-    (laurentCoverGen A ratios).refines (rationalCoverGenByUnits A fs h_units) := by sorry
-```
-
-Source: Wedhorn p. 84 step (iii) (verbatim):
-> "Every rational cover 𝒰 of X which is generated by units f_0,...,f_n
-> of A has a refinement by a Laurent cover.
-> Indeed, the Laurent cover generated by {f_i f_j^{-1} ; 0 ≤ i,j ≤ n}
-> is a refinement of 𝒰."
-
-**Project status**: `LaurentRefinementCore.lean:374`
-(`ratioCover_covers`) likely contains the key inclusion. **TODO**:
-verify exact match in next pass.
-
-#### L2.vi: `cover_acyclicity_via_PropA3_composition`
-
-**Lean** (NEW):
-```lean
-/-- Wedhorn Lemma 8.34 (iv) closure. If 𝒰 is a rational cover with
-Laurent refinement 𝒱 such that each 𝒰|V is acyclic and each 𝒱|U is
-acyclic, then 𝒰 is acyclic. -/
-theorem cover_acyclicity_via_PropA3_composition
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A]
-    (C V : RationalCovering A)
-    (h_V_acyclic : OXAcyclic A V)
-    (h_C_pieces_acyclic_on_V : ∀ Vj ∈ V.covers,
-      OXAcyclic A (restrictCovering C Vj))
-    (h_V_pieces_acyclic_on_C : ∀ Ui ∈ C.covers,
-      OXAcyclic A (restrictCovering V Ui)) :
-    OXAcyclic A C := by sorry
-```
-
-Source: Wedhorn p. 84 step (iv) (verbatim):
-> "Thus the 𝒪_X-acyclicity of 𝒱 implies the 𝒪_X-acyclicity of 𝒰 by
-> Proposition A.3 (1)."
-
-**Discharge**: direct application of Prop A.3(1) (L11.1 below).
+**Verdict**: B2-CANDIDATE. V, Vj must be tied to the dominating-unit Laurent cover. Specifically: V should be `laurent_cover_from_dominating_unit D₀ T s` (the constructor from L11), and Vj a piece thereof.
 
 ---
 
-### L2.i sub-decomposition (Lemma 8.33's proof, the 2-cover Čech)
+### L15. `ratio_laurent_cover_of_units`
 
-#### L2.i.1: `cor_8_32_specialised_to_two_cover` (injectivity ε)
+**Statement**: Given `D₀`, `units : Finset A`, `_h_units_unit : ∀ f ∈ units, IsUnit (D₀.canonicalMap f)`, conclude `∃ V, fs with V.IsLaurentCover fs ∧ V.base = D₀`.
 
-**Lean** (specialisation of project's existing Cor 8.32):
-```lean
-/-- Cor 8.32 specialised to the 2-cover {R(f/1), R(1/f)}: the
-restriction product 𝒪(X) → 𝒪(R(f/1)) × 𝒪(R(1/f)) is faithfully flat
-(in particular injective). -/
-theorem cor_8_32_specialised_to_two_cover
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A]
-    (f : A) :
-    Module.FaithfullyFlat A
-      (presheafValue (twoCover_plus A f) ×
-       presheafValue (twoCover_minus A f)) := by sorry
-```
+**The B2 defect**: The output `fs` is existentially quantified with **no constraint relating it to `units`**. The hypothesis `_h_units_unit` becomes free-floating — any Laurent cover of D₀ satisfies the conclusion regardless of `units`.
 
-Source: Wedhorn Cor 8.32, p. 83 (verbatim):
-> "Let A be a strongly noetherian Tate affinoid ring, X = Spa A, and let
-> (U_i)_{1≤i≤n} a finite covering of X be rational subsets. Then the
-> homomorphism 𝒪_X(X) → ∏_{i=1}^n 𝒪_X(U_i), f ↦ (f_{|U_i})_{1≤i≤n} is
-> faithfully flat (and in particular injective)."
+**Attacks attempted**:
+- [1] Counterexample search: take any pre-existing Laurent cover V of D₀ by any `fs : List A`. Then `∃ V, fs, ...` is satisfied trivially. The output is unrelated to units.
+- [2] Edge case: units = ∅ (empty Finset). Hypothesis `_h_units_unit` is vacuous. Conclusion can still be satisfied by the trivial single-piece cover. But then this lemma adds NO information beyond `∃ Laurent cover of D₀`, which exists by the empty Laurent.
+- [3] Source-drift attack: Wedhorn p. 84 (iii) — "the Laurent cover generated by `{f_i f_j^{-1} : 0 ≤ i, j ≤ n}`" specifies what fs IS. The Lean signature drops the explicit fs construction.
 
-**Project status**: `StructureSheaf.lean:1802`
-`cor_8_32_clean_sub_with_P` — currently `sorry`'d (general form, takes
-explicit P). Closing this discharges L2.i.1 (specialize to 2-cover).
-
-#### L2.i.2: `O_X_R_f_one_eq_AX_mod_f_minus_X` (Example 6.38, plus side)
-
-**Lean** (NEW):
-```lean
-/-- Wedhorn Example 6.38. 𝒪_X(R(f/1)) ≅ Â⟨X⟩/(f - X) as topological rings. -/
-theorem O_X_R_f_one_eq_AX_mod_f_minus_X
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [IsTateRing A]
-    (f : A) :
-    presheafValue (twoCover_plus A f) ≃+*
-      tateAlgebra1 A ⧸ Ideal.span ({tateAlgebra1.algebraMap f - tateAlgebra1.X A} : Set _) := by sorry
-```
-
-Source: Wedhorn Example 6.38, p. 60 (the Tate-algebra quotient
-formula). Also referenced in Wedhorn equation (8.2.1) on p. 83:
-> "𝒪_X(U_1) = A⟨ζ⟩/(f-ζ)"
-
-**Project status**: `Wedhorn638_*` infrastructure exists in
-`TateAlgebraWedhorn.lean`. **TODO**: locate the exact iso lemma
-matching this signature in next pass.
-
-#### L2.i.3: `O_X_R_one_f_eq_AX_mod_one_minus_fX` (Example 6.38, minus side)
-
-**Lean** (NEW):
-```lean
-/-- Wedhorn Example 6.38. 𝒪_X(R(1/f)) ≅ Â⟨X⟩/(1 - fX). -/
-theorem O_X_R_one_f_eq_AX_mod_one_minus_fX
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [IsTateRing A]
-    (f : A) :
-    presheafValue (twoCover_minus A f) ≃+*
-      tateAlgebra1 A ⧸ Ideal.span ({1 - tateAlgebra1.algebraMap f * tateAlgebra1.X A} : Set _) := by sorry
-```
-
-Source: Wedhorn Example 6.38, p. 60; equation (8.2.1) on p. 83:
-> "𝒪_X(U_2) = A⟨η⟩/(1-fη)"
-
-**Project status**: same as L2.i.2.
-
-#### L2.i.4: `O_X_R_f_one_intersect_R_one_f_eq_laurent_quotient` (Example 6.39)
-
-**Lean** (NEW):
-```lean
-/-- Wedhorn Example 6.39 + equation (8.2.1).
-𝒪_X(R(f/1) ∩ R(1/f)) ≅ A⟨ζ, ζ⁻¹⟩/(f - ζ). -/
-theorem O_X_R_f_one_intersect_R_one_f_eq_laurent_quotient
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [IsTateRing A]
-    (f : A) :
-    presheafValue (twoCover_intersect A f) ≃+*
-      laurentAlgebra1 A ⧸
-        Ideal.span ({laurentAlgebra1.algebraMap f - laurentAlgebra1.X A} : Set _) := by sorry
-```
-
-Source: Wedhorn equation (8.2.1) on p. 83:
-> "𝒪_X(U_1 ∩ U_2) = A⟨ζ,η⟩/(f-ζ, 1-fη) = A⟨ζ,η⟩/(f-ζ, 1-ζη)
->   = A⟨ζ, ζ^{-1}⟩/(f-ζ)."
-
-**Project status**: needs verification in next pass.
-
-#### L2.i.5: `cech_2cover_diagram_chase`
-
-**Lean** (NEW):
-```lean
-/-- Diagram chase: with L2.i.1 (injectivity), L2.i.2-4 (Tate-algebra
-identifications), the 2-cover Čech sequence is exact at position 1
-(surjectivity of δ + ker δ = im ε). -/
-theorem cech_2cover_diagram_chase
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A]
-    (f : A) :
-    Function.Exact
-      ((restrictionMapHom_plus A f).prod (restrictionMapHom_minus A f))
-      (restrictionMapHom_intersect_diff A f) := by sorry
-```
-
-Source: Wedhorn p. 83, the commutative diagram + 5-lemma argument:
-> "Here ι is the canonical injection, λ is the map
-> g((ζ), h(η)) ↦ g(ζ) − h(ζ^{-1}), and λ' is induced by λ. The columns
-> are exact by (8.2.1). A diagram chase shows that if the first and
-> second row are exact, then the third row is exact (note that we know
-> already the injectivity of ε).
->
-> The equations
->   A⟨ζ, ζ⁻¹⟩ = A⟨ζ⟩ + ζ⁻¹ A⟨ζ⁻¹⟩,
->   (f − ζ) A⟨ζ, ζ⁻¹⟩ = (f − ζ) A⟨ζ⟩ + (1 − f ζ⁻¹) A⟨ζ⁻¹⟩
-> show the surjectivity of λ and λ' (and in particular the exactness of
-> the first row). Finally, the equality
->   0 = λ(Σ_k≥0 a_k ζ^k, Σ_k≥0 b_k η^k) = Σ_k≥0 a_k ζ^k − Σ_k≥0 b_k ζ^{-k}
-> is equivalent to a_k = b_k = 0 for k > 0 and a_0 = b_0. Thus im(ι) = ker(λ)."
-
-**Project status**: NEW; ~50 LOC of routine commutative-algebra
-diagram-chase translating the algebraic identities into the Lean
-`Function.Exact` shape.
+**Verdict**: B2-CANDIDATE. Conclusion must constrain `fs = (units ×ˢ units).toList.map (fun ⟨f,g⟩ => f * g⁻¹)` or similar (the project's ratio construction).
 
 ---
 
-### L2.i.1 sub-decomposition (Cor 8.32's proof)
+### L16 + L17. `ratio_laurent_covers_each_unit_gen_piece` AND `ratio_laurent_refines_unit_gen`
 
-#### L2.i.1.1: `prop_8_30_restriction_flat`
+**Same B2 pattern**: Both take `V : RationalCovering A` with `V.IsLaurentCover fs` for arbitrary `fs`. For the σ-walk to identify which V-piece refines into which C-piece D, V must be the specific ratio Laurent cover built from C's unit generators.
 
-**Lean** (matches project):
-```lean
-/-- Wedhorn Prop 8.30. For strongly noetherian Tate, restriction
-between rational subsets is flat. -/
-theorem prop_8_30_restriction_flat
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A]
-    (D D' : RationalLocData A)
-    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
-    Module.Flat (presheafValue D) (presheafValue D') := by sorry
-```
+**Attacks attempted (joint)**:
+- [1] Counterexample: V = laurentRationalCover D₀ g for some g unrelated to C. V.IsLaurentCover [g] holds. But V's pieces are R(g/1) and R(1/g), with no relationship to C-pieces.
+- [2] Edge case: fs = []. V is single-piece. The conclusion's σ-walk has nothing to walk.
+- [3] Source-drift: Wedhorn's (iii) names the specific cover. The lemmas should too.
 
-Source: Wedhorn Prop 8.30, p. 82 (verbatim):
-> "Let A = (A, A⁺) be a strongly noetherian Tate affinoid ring, and let
-> U ⊆ V ⊆ X := Spa A be two rational subsets. Then the restriction
-> homomorphism 𝒪_X(V) → 𝒪_X(U) is flat.
->
-> Proof. By Example 6.38 we know that 𝒪_X(V) is again a strongly
-> noetherian Tate ring. Thus we may assume that X = V and that A is
-> complete. By Remark 7.55 we may moreover assume that U is either of
-> the form U_1 = R(f/1) = { x ∈ X ; x(f) ≤ 1 } or of the form
-> U_2 = R(1/f) = { x ∈ X ; x(f) ≥ 1 } for some f ∈ A.
-> In Example 6.38 we have seen that 𝒪_X(U_1) = Â⟨X⟩/(f − X) and
-> 𝒪_X(U_2) = Â⟨X⟩/(1 − fX). Thus it suffices to show the following
-> lemma."
-
-(The lemma here is Lemma 8.31, decomposed below.)
-
-**Project status**: `AuditCleanWrappers.lean:117`
-`prop_8_30_flat_clean_proof` wraps `prop_8_30_flat_clean` from
-`StructureSheaf.lean`. Currently routes through
-`Cor832.flat_over_base_tate_laurent`, which itself depends on
-Lemma 8.31 (proven) + the Example 6.38 chain.
-
-#### L2.i.1.2: `cor_8_32_faithfully_flat_from_flat_and_covering`
-
-**Lean** (NEW):
-```lean
-/-- Cor 8.32 = Prop 8.30 (per-piece flat) + covering ⇒ product
-faithfully flat. -/
-theorem cor_8_32_faithfully_flat_from_flat_and_covering
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A]
-    (C : RationalCovering A) :
-    Module.FaithfullyFlat A
-      (∀ D : { D // D ∈ C.covers }, presheafValue D.1) := by sorry
-```
-
-Source: Cor 8.32 (Wedhorn p. 83) — Wedhorn states the result without a
-detailed proof; it follows directly from Prop 8.30 (flatness) +
-"a covering of Spa A makes the product faithfully flat" (standard
-commutative algebra: faithfully flat iff flat + every prime ideal is hit;
-the Spa-cover guarantees every prime is hit).
-
-**Project status**: `StructureSheaf.lean:1802`
-`cor_8_32_clean_sub_with_P` (sorry'd); discharge route already laid
-out via `productRestriction_faithfullyFlat_tate_of_hSpa_points` in
-`Cor832.lean`.
+**Verdict (both)**: B2-CANDIDATE. Need `fs = ratio list from C's unit generators`.
 
 ---
 
-### L2.i.1.1 sub-decomposition (Prop 8.30's proof)
+### L18 + L19. `laurent_cover_refines_idealgen_cover` AND `laurent_cover_covers_each_idealgen_piece`
 
-#### L2.i.1.1.1: `O_X_V_is_strongly_noetherian_tate_self` (Example 6.38 structural)
+**Same B2 pattern**: V is `V.IsLaurentCover fs` with `fs` arbitrary. The conclusion claims V refines C / covers each C-piece. For this to hold, fs must be `s⁻¹·T` for the dominating unit (per Wedhorn 8.34(ii)).
 
-**Lean** (NEW):
-```lean
-/-- Wedhorn Example 6.38. 𝒪_X(V) is itself a strongly noetherian Tate
-ring (so we can recurse). -/
-theorem O_X_V_is_strongly_noetherian_tate_self
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A]
-    (V : RationalLocData A) :
-    IsStronglyNoetherian (presheafValue V) ∧ IsTateRing (presheafValue V) := by sorry
-```
+**Subtle point**: The hypothesis `_hV_unit_restrictions` provides per-Vj unit restrictions but doesn't pin V's structure. An arbitrary V with arbitrary "_hV_unit_restrictions" supplied as a side-by-side existential won't necessarily refine C — the unit restrictions could be witnessing different unrelated facts.
 
-Source: Wedhorn Example 6.38; cited in Prop 8.30's proof:
-> "By Example 6.38 we know that 𝒪_X(V) is again a strongly noetherian
-> Tate ring. Thus we may assume that X = V and that A is complete."
+**Attacks attempted**:
+- [1] Counterexample: V = laurentRationalCover D₀ g (g unrelated to T, s). Provide a fake `_hV_unit_restrictions` by trivially returning the input V as C_restr (since `V.base = C.base`). Conclusion fails: V's pieces don't refine C.
+- [2] Edge case: T = ∅, fs = []. V single-piece. Either: (a) refines vacuously (no C-pieces); (b) covers-each fails because C has pieces but V doesn't refine into them. The lemma doesn't address this edge.
+- [3] Source-drift: Wedhorn p. 84 paragraph (ii) end — "the Laurent cover generated by `s⁻¹·f_1, …, s⁻¹·f_r`" — the cover IS specifically this.
 
-**Project status**: PARTIAL.
-`presheafValue_isStronglyNoetherianTate_*` adapters exist in
-`TateAlgebraWedhorn.lean` or `Presheaf.lean`.
-
-#### L2.i.1.1.2: `remark_7_55_WLOG_U_is_standard_subset`
-
-**Lean** (NEW):
-```lean
-/-- Wedhorn Remark 7.55. Any rational containment U ⊆ V can be
-expressed as a chain of "standard" containments R(f/1) ⊆ X or
-R(1/f) ⊆ X. -/
-theorem remark_7_55_WLOG_U_is_standard_subset
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A]
-    (D D' : RationalLocData A)
-    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
-    ∃ (chain : List (RationalLocData A)),
-      chain.head? = some D ∧ chain.getLast? = some D' ∧
-      ∀ (i : ℕ) (hi : i + 1 < chain.length),
-        ∃ (f : A),
-          rationalOpen (chain.get ⟨i+1, hi⟩).T (chain.get ⟨i+1, hi⟩).s
-            = rationalOpen (chain.get ⟨i, Nat.lt_of_succ_lt hi⟩).T
-                            (chain.get ⟨i, Nat.lt_of_succ_lt hi⟩).s
-              ∩ ({x | x.vle f 1} ∪ {x | x.vle 1 f}) := by sorry
-```
-
-Source: Wedhorn Remark 7.55 (referenced in Prop 8.30's proof,
-Wedhorn p. 82).
-
-**Project status**: NEW; ~100-150 LOC of standard restriction-chain
-combinatorics. **TODO**: fetch verbatim quote from Wedhorn p. ~75.
-
-#### L2.i.1.1.3: `lemma_8_31_AX_faithfullyFlat_over_A` (PROJECT-EXISTING)
-
-**Lean signature** (matches project):
-```lean
-theorem faithfullyFlat_general (P : PairOfDefinition A) [IsNoetherianRing P.A₀] : ...
-```
-
-Source: Wedhorn Lemma 8.31(1), p. 82 (verbatim):
-> "Let A be a noetherian complete Tate ring. (1) The ring A⟨X⟩ is
-> faithfully flat over A."
-
-**Project status**: ✓ PROVEN. `Adic spaces/TateAlgebra.lean:2628`.
-
-#### L2.i.1.1.4: `lemma_8_31_AX_mod_f_minus_X_flat` (PROJECT-EXISTING)
-
-**Lean signature** (matches project):
-```lean
-theorem flat_quotient_fSubX_general : ...
-```
-
-Source: Wedhorn Lemma 8.31(2) for f-X, p. 82:
-> "(2) For all f ∈ A the rings A⟨X⟩/(f − X) and A⟨X⟩/(1 − fX) are flat
-> over A."
-
-**Project status**: ✓ PROVEN. `Adic spaces/TateAlgebra.lean:2600`.
-
-#### L2.i.1.1.5: `lemma_8_31_AX_mod_one_minus_fX_flat` (PROJECT-EXISTING)
-
-**Lean signature** (matches project):
-```lean
-theorem flat_quotient_oneSubfX_general : ...
-```
-
-Source: same as L2.i.1.1.4.
-
-**Project status**: ✓ PROVEN. `Adic spaces/TateAlgebra.lean:2610`.
+**Verdict (both)**: B2-CANDIDATE. fs must be tied to s⁻¹·T for the dominating unit.
 
 ---
 
-### L4: `cor_7_32_exists_dominating_unit`
+## B2-confirmed (prior-log matches)
 
-**Lean** (matches project):
-```lean
-/-- Wedhorn Cor 7.32. From "x(f) ≠ 0 for all x ∈ X" derive a unit
-s ∈ Aˣ with x(s) < x(f) for all x. -/
-theorem cor_7_32_exists_dominating_unit
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [IsTateRing A]
-    {fs : Finset A} (hfs : ∀ x ∈ Spa A A⁺, ∃ f ∈ fs, ¬ x.vle f 0) :
-    ∃ s : Aˣ, ∀ x ∈ Spa A A⁺, ∃ f ∈ fs, x.vle (s : A) f := by sorry
+### L8. `laurent_restriction_isLaurent` (matched Q1 of expert-review)
+
+Already addressed in the 2026-05-28 expert-review: Wedhorn p. 84 uses `f_i|U` (image generators in 𝒪_X(U)), not the original `f_i ∈ A`. Sub-ticket `T-WC-LAURENT-RESTR-INDUCTION-DIRECT` spawned to bypass via direct induction. **No new action needed** — already on the board.
+
+### L20. `rationalCovering_from_idealGenSet` (logged today)
+
+Already logged to `b2_log.jsonl` as entry 40 (T-WC-RAT-COV-FROM-IDEAL-DEFECT). Form-(a) `IsGeneratedBy S` pieces vs form-(b) `(insert f C.base.T)` hypothesis. **No new action needed** — already documented.
+
+---
+
+## API-GAPs (correctly scoped, infrastructure missing)
+
+### L1. `example_638_plus_side_noeth_pairSubring`
+
+**Source**: Wedhorn 6.18 (p. 51): noeth pair-subring of strongly noeth Tate. Verbatim claim matches the Lean signature.
+
+**Discharge attack**: searched project for `pairSubring.*noeth` / `wedhorn_6_18` — only the consumer sites cite Wedhorn 6.18; no proof of 6.18 exists in the project. This is a textbook substantive proof.
+
+**Verdict**: API-GAP. Tractable substantive Wedhorn-text work. Likely needs Krull-style argument about T-adic completion.
+
+### L4. `wedhorn_lemma_833_gluing_as_field` (already audited in /expert-review)
+
+**Status**: API-GAP confirmed. The investigation (T-WC-833-CHECK-ROW3-EXACT-EXISTS, DONE) found `LaurentCover.row3_exact` + Route-B bridges exist; the body needs Wedhorn 8.31 propagation for `presheafValue D₀` typeclasses (sub-ticket T-WC-WEDHORN-831-PROPAGATION spawned).
+
+### L5. `isOXAcyclic_of_single_unit_piece_gluing`
+
+**Status**: API-GAP. Sub-ticket T-WC-SINGLE-UNIT-GLU-ISO documents the route via IsLocalization.atUnits.
+
+### L13. `canonical_unit_of_pointwise_lower_bound`
+
+**Statement**: Vj : RationalLocData, t : A, s : Aˣ. `∀ v ∈ rationalOpen Vj.T Vj.s, v.vle (s : A) t` ⟹ `IsUnit (Vj.canonicalMap t)`.
+
+**Mathematical truth**: The statement is true. v(s) ≤ v(t) on Vj's rationalOpen, and s is a global unit, so v(s) ≠ 0 ⟹ v(t) ≠ 0 on all of Vj. Hence canonicalMap t doesn't vanish on the rational subset, hence is a unit in the structure sheaf.
+
+**API gap**: The project has `noCommonZero_of_idealGen` (in WedhornCechAcyclicity.lean) and `IsUnit f from "∀ v ∈ Spa A A⁺, ¬ v.vle f 0"` (AdicSpectrum.lean), but at the *global* A level. For the *relative* level (`IsUnit (Vj.canonicalMap t)` from non-vanishing on Vj's rationalOpen), there's no direct theorem.
+
+**Attacks attempted**:
+- [1] Counterexample: Vj.canonicalMap t goes into Completion(Localization.Away Vj.s). For t non-vanishing on the rational subset, the limit-element identification with a unit requires the adic-spaces structure theorem — not unconditional algebra.
+- [2] Discharge attack: searched for `canonicalMap.*IsUnit.*nonvanish` / `presheafValue.*unit` — no exact match found in the project.
+
+**Verdict**: API-GAP. Tractable but requires a small new theorem ("non-vanishing on rationalOpen ⇒ IsUnit in presheafValue") that should be added at the structure-sheaf level.
+
+### L21. `ideal_gen_refinement_covers_each_piece`
+
+**Status**: API-GAP-cascade. Depends on `rationalCovering_from_idealGenSet` (L20, B2-confirmed). Once L20's signature is fixed, L21 may become tractable.
+
+### L22. `restrictToPiece_acyclic_at_D`
+
+**Status**: API-GAP. Sub-ticket T-WC-RESTRICT-TO-PIECE-RECURSIVE-834 documents the Wedhorn 8.34-at-𝒪_X(D) route.
+
+---
+
+## READY-substantive (provable as stated)
+
+### L2/L3. `example_638_plus_side_cont_evalHom` / `example_638_minus_side_cont_underlying_evalHom`
+
+Continuity of the evaluation hom using the project's `evalHomBounded`. The sketch ("the continuity field of `evalHomBounded`") is sound. ~30 LOC each.
+
+**Attack [1]**: Counterexample search: searched project for `evalHomBounded.*Continuous` — yes, the construction includes continuity. Discharge available.
+
+**Attack [2]**: Edge case f = 0: `canonicalMap 0 = 0`, evalHom sends X to 0, still continuous (constant map). OK.
+
+**Verdict**: READY-substantive. Should compile in a focused session.
+
+### L6. `laurent_cons_decomp_as_product`
+
+**Statement**: V.IsLaurentCover (f :: gs) ⟹ ∃ Uf, Vgs_at, ... (product decomposition).
+
+This is a structural fact about how Laurent covers factor as products. Wedhorn p. 84 references this explicitly: "𝒱 := 𝒰_{f₁} × ⋯ × 𝒰_{f_r}".
+
+**Attacks attempted**:
+- [1] Edge case gs = [] (single f): then 𝒱 = 𝒰_f is the 2-cover. The output Uf = laurentRationalCover, Vgs_at gives trivial 1-covers of each Uf-piece. ✓.
+- [2] Edge case f = 0: laurentRationalCover D₀ 0 has degenerate pieces. The Laurent algebra factorization may require f ≠ 0. The signature doesn't exclude f = 0 — potential edge issue but not a B2.
+- [3] Source-drift: Wedhorn states the product structure verbatim. The Lean output existential matches.
+
+**Verdict**: READY-substantive. Constructive proof from the Laurent-product definition. ~80-120 LOC.
+
+### L9. `exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer`
+
+**Statement**: ∃ (P, π) with P.A₀ ≤ A⁺, P.I = Ideal.span {π}, π topologically nilpotent, π unit.
+
+**Source**: Wedhorn 6.14 (p. 49, "principal pair exists in any Tate ring") + Remark 7.17 (p. 60, "A⁺ contains all topologically nilpotent elements"). Each cited claim is in the Wedhorn text.
+
+**Attacks attempted**:
+- [1] Counterexample: needs Tate-ring structure to produce π. The hypothesis set [IsTateRing A] [CompatiblePlusSubring A] is sufficient.
+- [2] Hypothesis test: [IsStronglyNoetherian A] is in scope but unused by Wedhorn 6.14 (which only needs Tate). Over-specified but not a defect.
+
+**Verdict**: READY-substantive. Wedhorn-text composition, ~80 LOC.
+
+### L11. `laurent_cover_from_dominating_unit`
+
+**Statement**: ∃ V, fs with V.IsLaurentCover fs ∧ V.base = D₀ ∧ fs = (T.toList).map (s⁻¹ · ·).
+
+**Note**: Unlike L15 (`ratio_laurent_cover_of_units`), this lemma DOES pin fs explicitly. The output constrains fs to be the dominating-unit form. **This is a constructive lemma, not a B2.**
+
+**Verdict**: READY-substantive. Build by induction on the list; iterate `laurentRationalCover`.
+
+---
+
+## Decomposition-tree audit
+
+The 22 sorries form a dependency cascade. The B2-candidates cluster in the σ-walk / dominating-unit chain (Wedhorn 8.34 (ii)/(iii)).
+
+**Cluster diagram of B2-candidates**:
+
+```
+L11 laurent_cover_from_dominating_unit  (READY: constructs the specific V)
+   └─→ L12 index_selection_on_laurent_piece (B2: V unconstrained)
+      └─→ L13 canonical_unit (API-GAP)
+         └─→ L14 unit_gen_restriction (B2: V, Vj unconstrained)
+            └─→ L18 laurent_cover_refines_idealgen (B2: fs unconstrained)
+               └─→ L19 laurent_cover_covers_each_idealgen (B2)
+
+L15 ratio_laurent_cover_of_units (B2: fs not constrained)
+   └─→ L16 ratio_laurent_covers_each_unit_gen_piece (B2)
+   └─→ L17 ratio_laurent_refines_unit_gen (B2)
+
+L20 rationalCovering_from_idealGenSet (B2-CONFIRMED)
+   └─→ L21 ideal_gen_refinement_covers_each_piece (API-GAP-cascade)
 ```
 
-Source: Wedhorn Cor 7.32 (p. ~74; **TODO**: fetch verbatim in pass 2).
-
-**Project status**: PROJECT-EXISTING. `Cor732.lean` infrastructure.
+**Key observation**: Fixing L11 to also expose its constructive form publicly (i.e., a public `Definition` of the "ratio Laurent cover", not just an `∃`-statement), and tying L12, L14, L18, L19 to that specific construction via `_hV_eq` hypotheses, resolves the 4-deep chain. Same applies to L15 cluster (L15 → L16, L17).
 
 ---
 
-### L9: `wedhorn_6_18_forward_noeth_tate_to_strongly_noeth`
+## Confidence gate (Step 5)
 
-**Lean** (PROJECT-EXISTING, sorry'd):
-```lean
-/-- Wedhorn Prop 6.18 forward. Noetherian Tate ⇒ strongly noetherian. -/
-theorem wedhorn_6_18_forward_noeth_tate_to_strongly_noeth
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTateRing A]
-    [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A] :
-    IsStronglyNoetherian A := by sorry
-```
+The gate **FAILS** on this audit:
 
-Source: Wedhorn Prop 6.18 (statement on p. ~50; **TODO**: fetch
-verbatim in pass 2).
+- **Gate 1 (leaf classification)**: Of 22 sorries:
+  - 9 newly-identified B2-candidates → not READY for ticketing without restatement
+  - 2 B2-confirmed (already logged)
+  - 6 API-GAPs (correctly scoped via sub-tickets)
+  - 5 READY-substantive
+  - Verdict: Gate 1 fails on the 9 B2-candidates.
 
-**Project status**: PROJECT-EXISTING.
-`StructureSheaf.lean:2781` `_sub_lemma_L5_1_3_inductive_step` (sorry'd)
-— Hilbert-basis-style inductive step. Plus
-`isStronglyNoetherian_of_isNoetherianRing_isTateRing` that glues the
-k = 0 base case to the induction.
+- **Gate 2 (Lean skeleton compiles)**: ✓ `lake build` passes (3145 jobs, sorry warnings only).
 
-**Effect**: with L9 closed, dropping `(P : PairOfDefinition A)
-[IsNoetherianRing P.A₀]` from the top-level becomes possible — supply
-`P := IsTateRing.principalPair A` internally, derive its noetherianity
-from L9 + the equivalence `A⟨X₁,...,Xₖ⟩ noetherian ⇔ strongly noetherian`.
+- **Gate 3 (verbatim quotes per leaf)**: Partial. Wedhorn pages 51, 49, 60, 66, 84, 86 cited per leaf. Verbatim quotes provided for the key claims; not exhaustive per the strict template.
+
+- **Gate 4 (adversarial attacks per leaf)**: ✓ for the 9 B2-candidates (3+ attacks each).
+
+- **Gate 5 (prior-B2 log consultation)**: ✓ 40 entries checked; 2 matches surfaced (L8, L20).
+
+- **Gate 6 (mirrors source structure)**: Partial. The 9 B2-candidates do NOT mirror Wedhorn's structure — they elide the cover-construction-specific hypotheses Wedhorn explicitly uses.
 
 ---
 
-### L10: `propA4_to_isSheafy_bridge`
+## Recommendation
 
-**Lean** (NEW):
-```lean
-/-- Bridge: the abstract sheaf property from Prop A.4 implies the project's
-`IsSheafy A` record (embedding + gluing). -/
-theorem propA4_to_isSheafy_bridge
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (h_acyclic : ∀ (U : RationalLocData A) (C : RationalCovering A)
-      (hbase : C.base = U), OXAcyclic A C) :
-    IsSheafy A := by sorry
-```
+**No new tickets via this decompose pass** (per the planning-only-planning rule).
 
-**Mathematical content**: this is where the "topological inducing"
-content of `IsSheafy.embedding` enters. Wedhorn's Theorem 8.28(b) claims
-"𝒪_X is a sheaf of complete topological rings" — the topological
-refinement of the abstract sheaf property. This **is** part of Wedhorn's
-claim, not an extra; in Wedhorn's setting it follows from completeness +
-Banach OMT, which is **the Route C content** archived in
-`decomposition-route-c-archived-2026-05-27.md`.
+**Recommended next step**: User decides between two paths:
 
-For the L10 bridge:
-- `IsSheafy.gluing` field: derived from L0's "sheaf of abelian groups" +
-  the fact that each `presheafValue D` is a topological ring (the
-  product topology + restriction equalizer respect the topological
-  structure).
-- `IsSheafy.embedding` field: requires Route C (Banach OMT against the
-  section equalizer). This is **NOT** explicitly in Wedhorn's proof of
-  Theorem 8.28 — Wedhorn relegates the topological piece to a routine
-  argument citing completeness (Wedhorn Definition 8.26 says "sheafy"
-  is sheaf of topological rings; Remark 8.20 says sheaf of topological
-  rings = sheaf of rings + product topology embedding).
+**Path A — Restatement-first**: Run `/develop --continue` to apply the 9 signature restatements per the B2-candidate verdicts. Most are mechanical: add `_hV_eq` / `_hfs_eq` hypothesis tying the cover to the construction. Propagate to consumers. Then resume `/beastmode`.
 
-**Source-drift CAUTION**: Wedhorn's Definition 8.26 says A is "sheafy"
-if 𝒪_{Spa(Â, A⁺)} is a sheaf of topological rings. By Remark 8.20, a
-sheaf of topological rings is a sheaf of rings + product topology
-embedding. Wedhorn's argument gives the sheaf-of-rings part; the
-embedding is implicit but routine. The project's L10 bridge formalizes
-the implicit step.
+**Path B — Construction-first**: Land `laurent_cover_from_dominating_unit` (L11) and `ratio_laurent_cover_of_units` (L15, with the constructive fs constraint added) FIRST as READY-substantive landings. Then restate the σ-walk lemmas (L12, L14, L16-19) to take the *specific construction* as an explicit input rather than as a generic V. This avoids the `∃ V`-pattern cascade.
 
-**Project status**: PARTIAL. The project's
-`productRestrictionSub_isInducing_tate` + Lane C machinery is the
-Route C attack; with L0–L2 closed algebraically (Wedhorn-faithful), the
-topological embedding follows via Banach OMT applied to the section
-equalizer (Route C, archived decomposition).
+Path B is more Wedhorn-faithful (Wedhorn names the construction); Path A is faster to ticket-land.
+
+**Estimated impact**: Path A surfaces 9 fresh restatements but unblocks Bucket B3 + B5 work as a whole. Path B avoids cascading restatements but adds 2 substantive constructive lemmas (L11, L15) ahead of the σ-walk lemmas.
+
+Either path keeps the 6 API-GAPs and 5 READY-substantive lemmas on their current sub-ticket / direct-pickup tracks.
 
 ---
 
-### L11: Wedhorn Prop A.3 (Čech-cohomology composition lemmas)
-
-#### L11.1: `propA3_part1_acyclic_iff_refinement_acyclic`
-
-**Lean** (NEW):
-```lean
-/-- Wedhorn Prop A.3(1). If 𝒰 and 𝒱 are open coverings such that
-restrictions of 𝒱 to U_{i_0...i_q} are acyclic and restrictions of
-𝒰 to V_{j_0...j_q} are acyclic, then 𝒰 acyclic ↔ 𝒱 acyclic. -/
-theorem propA3_part1_acyclic_iff_refinement_acyclic
-    {X : TopCat} (𝓕 : Presheaf AbCat X) (U V : OpenCovering X)
-    (h_V_on_U : ∀ i, OXAcyclic 𝓕 (V.restrictTo (U.piece i)))
-    (h_U_on_V : ∀ j, OXAcyclic 𝓕 (U.restrictTo (V.piece j))) :
-    OXAcyclic 𝓕 U ↔ OXAcyclic 𝓕 V := by sorry
-```
-
-Source: Wedhorn Prop A.3(1) (p. 105, verbatim):
-> "Let ℱ be a presheaf of abelian groups and let 𝒰 = (U_i)_{i∈I} and
-> 𝒱 = (V_j)_{j∈J} be open coverings of X such that 𝒱_{|U_{i_0...i_q}}
-> is ℱ-acyclic (or, more precisely, ℱ_{|U_{i_0...i_q}}-acyclic) for all
-> (i_0,...,i_q) ∈ I^{q+1} and for all q ≥ 0.
-> (1) Assume that also 𝒰_{|V_{j_0...j_q}} is ℱ-acyclic for all
-> (j_0,...,j_q) ∈ J^{q+1} and all q ≥ 0. Then 𝒰 is ℱ-acyclic if and
-> only if 𝒱 is ℱ-acyclic."
-
-**Type**: NEW. Standard Čech-cohomology lemma (no Wedhorn-specific
-content). Project location: new file `Adic spaces/CechCohomology.lean`.
-
-#### L11.2: `propA3_part2_refinement_acyclic`
-
-**Lean** (NEW):
-```lean
-/-- Wedhorn Prop A.3(2). If 𝒱 is a refinement of 𝒰, then 𝒰 acyclic ↔ 𝒱 acyclic
-(under the hypothesis from A.3 setup). -/
-theorem propA3_part2_refinement_acyclic
-    {X : TopCat} (𝓕 : Presheaf AbCat X) (U V : OpenCovering X)
-    (h_V_refines_U : V.refines U)
-    (h_V_on_U : ∀ i, OXAcyclic 𝓕 (V.restrictTo (U.piece i))) :
-    OXAcyclic 𝓕 U ↔ OXAcyclic 𝓕 V := by sorry
-```
-
-Source: Wedhorn Prop A.3(2) (p. 105, verbatim):
-> "(2) If 𝒱 is a refinement of 𝒰, then 𝒰 is ℱ-acyclic if and only if
-> 𝒱 is ℱ-acyclic."
-
-#### L11.3: `propA3_part3_product_acyclic_iff_factor_acyclic`
-
-**Lean** (NEW):
-```lean
-/-- Wedhorn Prop A.3(3). 𝒰 × 𝒱 is acyclic iff 𝒰 is acyclic (under the
-mutual-restriction-acyclic hypothesis). -/
-theorem propA3_part3_product_acyclic_iff_factor_acyclic
-    {X : TopCat} (𝓕 : Presheaf AbCat X) (U V : OpenCovering X)
-    (h_V_on_U : ∀ i, OXAcyclic 𝓕 (V.restrictTo (U.piece i))) :
-    OXAcyclic 𝓕 (U.product V) ↔ OXAcyclic 𝓕 U := by sorry
-```
-
-Source: Wedhorn Prop A.3(3) (p. 105, verbatim):
-> "(3) Then 𝒰 × 𝒱 is ℱ-acyclic if and only if 𝒰 is ℱ-acyclic."
-
----
-
-## 4. Existing project lemmas — mapping table
-
-| Wedhorn lemma | Decomp leaf | Existing project lemma | Status |
-|---|---|---|---|
-| Lemma 8.31(1) | L2.i.1.1.3 | `TateAlgebra.lean:2628` `faithfullyFlat_general` | ✓ proven |
-| Lemma 8.31(2) (f-X) | L2.i.1.1.4 | `TateAlgebra.lean:2600` `flat_quotient_fSubX_general` | ✓ proven |
-| Lemma 8.31(2) (1-fX) | L2.i.1.1.5 | `TateAlgebra.lean:2610` `flat_quotient_oneSubfX_general` | ✓ proven |
-| Prop 8.30 | L2.i.1.1 | `StructureSheaf.lean` `prop_8_30_flat_clean` (via `cor_8_32_clean_sub`) | ⚠ sorry |
-| Cor 8.32 | L2.i.1 | `StructureSheaf.lean:1802` `cor_8_32_clean_sub_with_P` | ⚠ sorry |
-| Cor 7.32 | L4 | `Cor732.lean` | ✓ likely proven |
-| Lemma 7.54 (partial) | L1 | `LaurentRefinementCore.lean:47` `rationalOpen_eq_iInter_singleton` | ⚠ partial |
-| Example 6.38 (plus) | L2.i.2 | `TateAlgebraWedhorn.lean` (`Wedhorn638_*`) | ⚠ TBD |
-| Example 6.38 (minus) | L2.i.3 | same | ⚠ TBD |
-| Example 6.39 | L2.i.4 | TBD | ⚠ likely NEW |
-| Lemma 8.33 | L2.i | NEW — assemble from L2.i.1–5 | NEW |
-| Lemma 8.34 | L2 | NEW — assemble from L2.i, L2.ii–vi | NEW |
-| Prop A.3(1) | L11.1 | NEW | NEW (mathlib gap?) |
-| Prop A.3(2) | L11.2 | NEW | NEW (mathlib gap?) |
-| Prop A.3(3) | L11.3 | NEW | NEW (mathlib gap?) |
-| Prop A.4 | L0 | NEW | NEW (mathlib gap?) |
-| Prop 6.18 fwd | L9 | `StructureSheaf.lean:2781` `_sub_lemma_L5_1_3_inductive_step` | ⚠ sorry |
-| L10 bridge | L10 | Route-C archived decomposition | ⚠ sorry |
-
-**Total**: 6 proven (Lemma 8.31 trio + likely Cor 7.32), 11 sorry'd or new, 0 known-false.
-
----
-
-## 5. API gaps requiring upstream development
-
-The most significant API gaps are the Čech-cohomology machinery (L0, L11.1–3):
-- An `OXAcyclic` predicate, matching Wedhorn's Def A.1.
-- Prop A.3(1)(2)(3) composition lemmas.
-- Prop A.4 sheaf-from-basis-acyclicity lemma.
-
-**Mathlib check**: Mathlib has `TopCat.Sheaf` and `TopCat.Presheaf` plus
-some Čech-cohomology infrastructure
-(`AlgebraicGeometry.Čech` / `Mathlib.AlgebraicTopology.CechNerve`), but
-the **alternating-cochain** variant Wedhorn uses + the basis-acyclicity
-Prop A.4 may not be directly available.
-
-**Action for pass 2**: a separate `/develop` sub-pass on
-`CechCohomology` is needed before tackling the main Wedhorn 8.28 work.
-Source: Godement *Topologie algébrique et théorie des faisceaux* (1958),
-Chapter II §5.9.2 (cited by Wedhorn p. 106).
-
----
-
-## 6. Topological-inducing side (Route C — archived)
-
-The L10 bridge from "abstract sheaf of abelian groups" to "sheaf of
-topological rings" requires the Route C content: Banach OMT applied to
-the section equalizer `E ⊂ ∏_D 𝒪_X(D)`. This is fully laid out in
-`.mathlib-quality/decomposition-route-c-archived-2026-05-27.md`
-(1312 lines, status: 5 sub-leaves laid out).
-
-**This decomposition (pass 1) does NOT re-prove the Route C content** —
-it points at the archived decomposition for that piece. A future
-`/develop` pass should merge the algebraic (this) and topological
-(Route C) decompositions into a unified tree.
-
----
-
-## 7. Status summary
-
-| Item | Status |
-|------|--------|
-| Top-level theorem stated cleanly (no hypothesis leak) | ✓ §1 |
-| Wedhorn pages 81–106 read in full | ✓ §2 |
-| Wedhorn's proof structure mirrored faithfully | ✓ §2 |
-| Decomposition tree laid out | ✓ §3 |
-| Every leaf has source citation | ⚠ some partial (TBD marked) |
-| Every leaf has verbatim source quote | ⚠ partial — L1 (Lemma 7.54), L4 (Cor 7.32), L9 (Prop 6.18), L2.i.1.1.2 (Remark 7.55) still need verbatim from earlier pages |
-| Every leaf has Lean ↔ source match paragraph | ⚠ partial |
-| Existing project lemmas mapped | ✓ §4 |
-| API gaps identified | ✓ §5 + §6 |
-| Lean skeleton written | ✗ NOT YET — this pass is markdown only; next pass writes `Adic spaces/CechCohomology.lean` skeleton + new `isSheafy_ofStronglyNoetherianTate_clean` declaration |
-| `lake build` skeleton check | n/a (no skeleton) |
-| Adversarial pass per leaf | ⚠ partial — full attack table for L0 only; remaining leaves need attacks |
-| Prior-B2 log consultation | ⚠ TBD — to consult in pass 2 |
-| Confidence gate (Step 5, six conditions) | ✗ NOT PASSING — see above gaps |
-
-## Next planning passes
-
-**Pass 2** (before any Lean execution):
-1. Fetch verbatim quotes for L1 (Wedhorn 7.54), L4 (Cor 7.32),
-   L2.i.1.1.2 (Remark 7.55), L9 (Prop 6.18 — needs Wedhorn p. ~50
-   onwards).
-2. Adversarial pass on every leaf (currently 1 of ~20 has full
-   5-attack record).
-3. Consult prior-B2 log (`.mathlib-quality/b2_log.jsonl`, 38 entries) —
-   particularly relevant for any leaf whose name matches a prior B2.
-4. Verify in detail (via `lean_loogle` / `lean_local_search`) the
-   existence of each cited project lemma + each cited mathlib lemma.
-
-**Pass 3** (Lean skeleton write):
-1. Create new file `Adic spaces/CechCohomology.lean` with:
-   - `OXAcyclic` def.
-   - L0 (Prop A.4) statement with sorry.
-   - L11.1, L11.2, L11.3 (Prop A.3) statements with sorry.
-2. Create new top-level declaration `isSheafy_ofStronglyNoetherianTate_clean`
-   in a suitable file (probably new file
-   `Adic spaces/IsSheafyClean.lean` or appended to
-   `TateAcyclicityResiduals.lean`).
-3. State L2 (Lemma 8.34) and its sub-decomposition leaves L2.i, L2.ii,
-   …, L2.vi as `sorry` in `Adic spaces/IsSheafyClean.lean`.
-4. State L2.i.2, L2.i.3, L2.i.4 (Examples 6.38/6.39) as `sorry`.
-5. Run `lake build` — must pass with sorries as warnings, no type errors.
-
-**Pass 4+**:
-1. Merge Route-C decomposition for the L10 bridge.
-2. Once the gate passes, transition to `/develop` (full) for ticket
-   creation.
+*Audit completed 2026-05-28. Source: Wedhorn 2019 §8.3-8.4 (pp. 81-86) + §7.40 (p. 66) + §6.14, 6.18 (pp. 49, 51) + §A.3 (Appendix A).*
