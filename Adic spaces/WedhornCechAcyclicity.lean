@@ -1770,8 +1770,33 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
            restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
       ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
         restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D := by
-  -- For each Vj, glue f|C_restr_at(Vj) into a section at Vj using
-  -- C_restr_at(Vj)'s acyclicity. Then glue these Vj-sections via V's gluing.
+  -- Prop A.3(1) gluing transfer.
+  intro f h_compat
+  -- Step 1: For each Vj ∈ V.covers, build the restricted family on C_restr_at Vj
+  -- and apply C_restr_at(Vj).IsOXAcyclic.gluing to get yVj : presheafValue Vj.
+  -- The restricted family at Vj: for each D' ∈ (C_restr_at Vj).covers, take
+  -- f at the C-piece refining D' (via _hC_restr_pieces).
+  let chooseC : ∀ (Vj : ↥V.covers) (D' : ↥(C_restr_at Vj).covers),
+      { D : ↥C.covers //
+        rationalOpen D'.1.T D'.1.s ⊆ rationalOpen D.1.T D.1.s } := fun Vj D' =>
+    ⟨⟨(_hC_restr_pieces Vj D'.1 D'.2).choose,
+       (_hC_restr_pieces Vj D'.1 D'.2).choose_spec.1⟩,
+     (_hC_restr_pieces Vj D'.1 D'.2).choose_spec.2⟩
+  -- Restricted family at Vj.
+  let gVj : ∀ (Vj : ↥V.covers) (D' : ↥(C_restr_at Vj).covers),
+      presheafValue D'.1 := fun Vj D' =>
+    restrictionMap (chooseC Vj D').1.1 D'.1 (chooseC Vj D').2
+      (f (chooseC Vj D').1)
+  -- Step 2-5 (gVj compatibility on C_restr_at Vj, apply C_restr_at(Vj).gluing,
+  -- build _y on V.covers, apply V.gluing, cast to C.base, verify per D): the
+  -- pattern of propA3_part2_project_gluing applied twice (nested gluing).
+  -- Sub-ticket T-WC-PROPA3-PART1-GLU-BODY captures the substantive cast
+  -- plumbing for the nested structure.
+  let _ := h_compat
+  let _ := _hV_acyclic
+  let _ := _hC_restr_acyclic
+  let _ := chooseC
+  let _ := gVj
   sorry
 
 /-- **Part (iv) sub-lemma (c)**: the Prop A.3(1) bridge step. Given a
