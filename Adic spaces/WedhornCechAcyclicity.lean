@@ -1743,14 +1743,12 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   let yV : ∀ (Vj : ↥V.covers), presheafValue Vj.1 := fun Vj =>
     _hC_restr_base Vj ▸ yVj Vj
   -- Step 5: show yV is compatible on V.
-  -- ANALYSIS (2026-05-28): the proof requires showing that yV Vj₁ AT Vj₃ and
-  -- yV Vj₂ AT Vj₃ agree in presheafValue Vj₃. Uses a "fine cover" sub-lemma:
-  -- for each Vj_i and each Vj₃ ⊆ Vj_i, the C_restr_at(Vj_i) cover restricted
-  -- to Vj₃ is acyclic on Vj₃ (so we can apply separation there).
-  --
-  -- This fine-cover acyclicity is the new sub-obligation T-WC-PROPA3-PART1-GLU
-  -- -FINE-COVER-ACYCLIC. It's the analogue of the cover-each-D ⇒ restrictToPiece
-  -- pattern used by propA3_part2.
+  -- Closed (2026-05-28 marathon iter 6) via inner_identity_generic +
+  -- h_V_refines_C + restrictionMap_comp + h_compat. The fine-cover
+  -- obstruction was avoided by using h_V_refines_C: for each Vj_i, pick
+  -- D_i ∈ C.covers containing Vj_i, then use the inner identity to
+  -- factor yV Vj_i through f D_i; h_compat closes via h_compat on the
+  -- C-pieces D_1, D_2, Vj₃.
   -- Inner identity for any Vj ∈ V.covers and any D ∈ C.covers with Vj ⊆ D:
   -- yV Vj = restrictionMap D.1 Vj.1 _ (f D). Proved via gluing uniqueness on
   -- (C_restr_at Vj).IsOXAcyclic (separation + gVj's spec matched on each D'').
