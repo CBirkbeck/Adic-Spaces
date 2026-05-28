@@ -1988,11 +1988,60 @@ theorem wedhorn_lemma_834 [DecidableEq A]
     laurent_cover_refines_idealgen_cover C T _hC_gen V fs hV_laurent hV_base
       hV_unit_restrictions
   -- C_restr_at family: comes from `hV_unit_restrictions`.
-  choose _C_at_Vj _hC_at_base _hC_at_unit _hC_at_pieces _hC_at_cover using
+  choose C_at_Vj hC_at_base hC_at_unit hC_at_pieces hC_at_cover using
     fun Vj (hVj : Vj ∈ V.covers) => hV_unit_restrictions Vj hVj
-  -- V_restr_at family: structurally restrict V's Laurent generators to each
-  -- U ∈ C.covers. (Needs T-WC-LAURENT-CONS-DECOMP + restriction; deferred.)
-  sorry
+  -- V_restr_at family: V restricted to each U ∈ C.covers via restrictToPiece.
+  -- This requires the cover-each-U direction (every v ∈ U is in some V-piece
+  -- ⊆ U). Sub-ticket T-WC-LEMMA-834-V-COVER-EACH-U.
+  have h_V_covers_each_U : ∀ U ∈ C.covers, ∀ v ∈ rationalOpen U.T U.s,
+      ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
+        rationalOpen V'.T V'.s ⊆ rationalOpen U.T U.s := by
+    sorry
+  let V_restr_at : ↥C.covers → RationalCovering A := fun U =>
+    V.restrictToPiece U.1 (h_V_covers_each_U U.1 U.2)
+  have hV_restr_base : ∀ U : ↥C.covers, (V_restr_at U).base = U.1 := fun _ => rfl
+  have hV_restr_pieces : ∀ U : ↥C.covers, ∀ V' ∈ (V_restr_at U).covers,
+      ∃ V'' ∈ V.covers, rationalOpen V'.T V'.s ⊆ rationalOpen V''.T V''.s := by
+    intro U V' hV'
+    simp only [V_restr_at, RationalCovering.restrictToPiece, Finset.mem_filter] at hV'
+    exact ⟨V', hV'.1, subset_rfl⟩
+  -- Sub-ticket: T-WC-LEMMA-834-V-RESTR-ACYCLIC (need each V_restr_at U acyclic).
+  -- For the Laurent V, the restriction to U is a Laurent sub-cover of U; its
+  -- acyclicity follows from part (i)'s Laurent acyclicity at the sub-cover level.
+  have hV_restr_acyclic : ∀ U : ↥C.covers, (V_restr_at U).IsOXAcyclic := by
+    intro U
+    -- Sub-sorry: V_restr_at U is a Laurent sub-cover of U, hence acyclic.
+    sorry
+  have hV_restr_covers : ∀ U : ↥C.covers, ∀ v ∈ rationalOpen U.1.T U.1.s,
+      ∃ V' ∈ (V_restr_at U).covers, v ∈ rationalOpen V'.T V'.s ∧
+        rationalOpen V'.T V'.s ⊆ rationalOpen U.1.T U.1.s := by
+    intro U v hv
+    obtain ⟨V', hV'_in, hv_in_V', hV'_sub⟩ := h_V_covers_each_U U.1 U.2 v hv
+    refine ⟨V', ?_, hv_in_V', hV'_sub⟩
+    simp only [V_restr_at, RationalCovering.restrictToPiece, Finset.mem_filter]
+    refine ⟨hV'_in, ?_⟩
+    classical
+    simp [Classical.propDecidable]
+    exact hV'_sub
+  -- Uncurry C_at_Vj : ↥V.covers → RationalCovering A.
+  let C_restr_at : ↥V.covers → RationalCovering A := fun Vj => C_at_Vj Vj.1 Vj.2
+  have hC_restr_base' : ∀ Vj : ↥V.covers, (C_restr_at Vj).base = Vj.1 :=
+    fun Vj => hC_at_base Vj.1 Vj.2
+  have hC_restr_pieces' : ∀ Vj : ↥V.covers, ∀ D' ∈ (C_restr_at Vj).covers,
+      ∃ D ∈ C.covers, rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s :=
+    fun Vj => hC_at_pieces Vj.1 Vj.2
+  -- Now apply propA3_part1_bridge.
+  refine wedhorn_lemma_834_propA3_part1_bridge C V hV_base _hV_acyclic _h_V_refines_C
+    V_restr_at hV_restr_base hV_restr_pieces hV_restr_acyclic
+    C_restr_at hC_restr_base' hC_restr_pieces' ?_ hV_restr_covers ?_
+  · -- C_restr_at acyclic — use wedhorn_lemma_834_C_restr_acyclic on each.
+    intro Vj
+    exact wedhorn_lemma_834_C_restr_acyclic (C_restr_at Vj) (hC_at_unit Vj.1 Vj.2)
+  · -- C_restr_at covers each Vj.
+    intro Vj v hv
+    obtain ⟨D', hD'_in, hv_in⟩ := hC_at_cover Vj.1 Vj.2 v hv
+    -- Need D' ⊆ Vj — sub-sorry, depends on the refinement structure.
+    sorry
 
 /-! ### Sub-lemmas for `every_rational_cover_is_OXAcyclic`
 
