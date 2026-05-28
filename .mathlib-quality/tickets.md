@@ -8133,7 +8133,7 @@ Project-internal.
 
 ### [T-WC-TO-REFINEMENT] `RationalCovering.toRefinement`
 
-- **Status**: OPEN
+- **Status**: done (2026-05-28: closed sorry-free; map via Classical.choose on h_refines, subset via destructure C/C' + subst h_same_base + simp)
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Depends on**: T-WC-TO-FINITE-COVER
 - **Parallel**: no
@@ -9000,7 +9000,7 @@ theorem restricted_cover_inherits_IsUnitGenerated ... :
 
 ### [T-WC-PRESHEAFVALUECAST-FINITECOVER-HELPER] **NEW** — cast helper for FiniteCover carrier change
 
-- **Status**: OPEN
+- **Status**: done (2026-05-28: inlined into RationalCovering.toRefinement.subset via destructure C/C' + subst h_same_base; no separate helper lemma needed)
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Parent**: T-WC-TO-REFINEMENT
 - **Type**: lemma

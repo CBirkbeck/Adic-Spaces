@@ -1787,7 +1787,11 @@ def RationalCovering.toFiniteCover [IsHuberRing A] (C : RationalCovering A) :
 /-- **Project-side bridge 2**: a `RationalCovering` refinement gives a
 `Refinement` (in the `CechCohomology.lean` sense) of the corresponding
 `FiniteCover`s. Requires the cast on the base equality (post-2026-05-28
-toFiniteCover signature has carrier `↥(rationalOpen base...)`). -/
+toFiniteCover signature has carrier `↥(rationalOpen base...)`).
+
+Approach (T-WC-PRESHEAFVALUECAST-FINITECOVER-HELPER, 2026-05-28):
+destructure C and C' so h_same_base is between free RationalLocData values,
+then `subst h_same_base` collapses the cast to identity. -/
 noncomputable def RationalCovering.toRefinement [IsHuberRing A]
     {C C' : RationalCovering A}
     (h_same_base : C'.base = C.base)
@@ -1798,21 +1802,15 @@ noncomputable def RationalCovering.toRefinement [IsHuberRing A]
     ⟨(h_refines D'.1 D'.2).choose, (h_refines D'.1 D'.2).choose_spec.1⟩
   subset := by
     intro D'
-    -- The subset reduces to V.sets D' ⊆ U.sets (map D') in the appropriate
-    -- carrier. Both are preimages of rationalOpen sets; the inclusion comes
-    -- from h_refines.choose_spec.2 (D'.rationalOpen ⊆ D.rationalOpen).
     have hsub := (h_refines D'.1 D'.2).choose_spec.2
-    -- After the cast, V.sets uses C.base's carrier; the underlying inclusion
-    -- still holds.
+    -- Destructure C and C' so h_same_base is between free values.
+    obtain ⟨baseC, _, _, _⟩ := C
+    obtain ⟨baseC', _, _, _⟩ := C'
+    simp only at h_same_base
+    subst h_same_base
     intro v hv
-    -- v : carrier (after cast)
-    -- hv : v ∈ V.sets D' = preimage of D'.rationalOpen
-    -- Need v ∈ U.sets (map D') = preimage of (map D').1.rationalOpen
-    -- (map D').1 is the chosen D from h_refines.choose
-    -- hsub: D'.rationalOpen ⊆ D.rationalOpen
-    -- So v ∈ preimage of D' ⊆ preimage of D, done.
-    -- The cast doesn't change the set-level structure.
-    sorry
+    simp only [RationalCovering.toFiniteCover, Set.mem_preimage] at hv ⊢
+    exact hsub hv
 
 /-- **Project-side bridge 3**: project's `IsOXAcyclic C` (separation +
 gluing on `presheafValue`) is equivalent to abstract `IsAcyclic
