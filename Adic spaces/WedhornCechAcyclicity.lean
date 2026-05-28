@@ -1887,17 +1887,92 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   -- This fine-cover acyclicity is the new sub-obligation T-WC-PROPA3-PART1-GLU
   -- -FINE-COVER-ACYCLIC. It's the analogue of the cover-each-D ⇒ restrictToPiece
   -- pattern used by propA3_part2.
+  -- Inner identity for any Vj ∈ V.covers and any D ∈ C.covers with Vj ⊆ D:
+  -- yV Vj = restrictionMap D.1 Vj.1 _ (f D). Proved via gluing uniqueness on
+  -- (C_restr_at Vj).IsOXAcyclic (separation + gVj's spec matched on each D'').
+  have inner_identity_generic : ∀ (Vj : ↥V.covers) (D : ↥C.covers)
+      (h_sub : rationalOpen Vj.1.T Vj.1.s ⊆ rationalOpen D.1.T D.1.s),
+      yV Vj = restrictionMap D.1 Vj.1 h_sub (f D) := by
+    intro Vj D h_sub
+    have h_base_eq : (C_restr_at Vj).base = Vj.1 := _hC_restr_base Vj
+    have hyVj_spec : ∀ (D'' : ↥(C_restr_at Vj).covers),
+        restrictionMap (C_restr_at Vj).base D''.1
+          ((C_restr_at Vj).hsubset D''.1 D''.2) (yVj Vj) = gVj Vj D'' :=
+      ((_hC_restr_acyclic Vj).gluing (gVj Vj) (h_gVj_compat Vj)).choose_spec
+    set cast_RHS : presheafValue (C_restr_at Vj).base :=
+      @Eq.rec (RationalLocData A) Vj.1
+        (fun b _ => presheafValue b) (restrictionMap D.1 Vj.1 h_sub (f D))
+        (C_restr_at Vj).base h_base_eq.symm
+    have step1 : yVj Vj = cast_RHS := by
+      rw [← sub_eq_zero]
+      apply (_hC_restr_acyclic Vj).separation
+      intro D'' hD''_in
+      show (restrictionMapHom (C_restr_at Vj).base D''
+          ((C_restr_at Vj).hsubset D'' hD''_in)) _ = 0
+      rw [map_sub, sub_eq_zero]
+      change restrictionMap (C_restr_at Vj).base D''
+          ((C_restr_at Vj).hsubset D'' hD''_in) (yVj Vj) =
+        restrictionMap (C_restr_at Vj).base D''
+          ((C_restr_at Vj).hsubset D'' hD''_in) cast_RHS
+      rw [hyVj_spec ⟨D'', hD''_in⟩]
+      have h_D''_sub_Vj : rationalOpen D''.T D''.s ⊆ rationalOpen Vj.1.T Vj.1.s := by
+        have := (C_restr_at Vj).hsubset D'' hD''_in
+        rw [_hC_restr_base Vj] at this
+        exact this
+      have h_D''_sub_D : rationalOpen D''.T D''.s ⊆ rationalOpen D.1.T D.1.s :=
+        h_D''_sub_Vj.trans h_sub
+      show restrictionMap (chooseC Vj ⟨D'', hD''_in⟩).1.1 D''
+            (chooseC Vj ⟨D'', hD''_in⟩).2 (f (chooseC Vj ⟨D'', hD''_in⟩).1) =
+          restrictionMap (C_restr_at Vj).base D''
+            ((C_restr_at Vj).hsubset D'' hD''_in) cast_RHS
+      rw [h_compat (chooseC Vj ⟨D'', hD''_in⟩).1 D D''
+        (chooseC Vj ⟨D'', hD''_in⟩).2 h_D''_sub_D]
+      have h_cast_eval :
+          restrictionMap (C_restr_at Vj).base D''
+            ((C_restr_at Vj).hsubset D'' hD''_in) cast_RHS =
+          restrictionMap Vj.1 D'' h_D''_sub_Vj
+            (restrictionMap D.1 Vj.1 h_sub (f D)) :=
+        RationalCovering.eqRec_restrictionMap_direct Vj.1
+          (C_restr_at Vj).base (_hC_restr_base Vj).symm D''
+          h_D''_sub_Vj ((C_restr_at Vj).hsubset D'' hD''_in)
+          (restrictionMap D.1 Vj.1 h_sub (f D))
+      rw [h_cast_eval]
+      have h_comp := restrictionMap_comp D.1 Vj.1 D'' h_sub h_D''_sub_Vj
+      exact (congrFun h_comp (f D)).symm
+    show @Eq.rec (RationalLocData A) (C_restr_at Vj).base
+        (fun b _ => presheafValue b) (yVj Vj) Vj.1 (_hC_restr_base Vj) =
+      restrictionMap D.1 Vj.1 h_sub (f D)
+    rw [step1]
+    exact RationalCovering.presheafValue_eqRec_double_cancel_forward
+      (C_restr_at Vj).base Vj.1 (_hC_restr_base Vj)
+      (restrictionMap D.1 Vj.1 h_sub (f D))
+  -- Now use inner_identity_generic for h_yV_compat.
   have h_yV_compat : ∀ (Vj₁ Vj₂ : ↥V.covers)
       (Vj₃ : RationalLocData A)
       (h₃₁ : rationalOpen Vj₃.T Vj₃.s ⊆ rationalOpen Vj₁.1.T Vj₁.1.s)
       (h₃₂ : rationalOpen Vj₃.T Vj₃.s ⊆ rationalOpen Vj₂.1.T Vj₂.1.s),
       restrictionMap Vj₁.1 Vj₃ h₃₁ (yV Vj₁) =
-        restrictionMap Vj₂.1 Vj₃ h₃₂ (yV Vj₂) :=
-    -- Substantive sub-lemma (sorry-bodied): the V-compatibility piece
-    -- decomposes into (i) fine-cover construction + (ii) restriction
-    -- factorization + (iii) h_compat. Each is a focused obligation.
-    -- See sub-ticket T-WC-PROPA3-PART1-GLU-COMPAT-V.
-    fun _ _ _ _ _ => by sorry
+        restrictionMap Vj₂.1 Vj₃ h₃₂ (yV Vj₂) := by
+    intro Vj₁ Vj₂ Vj₃ h₃₁ h₃₂
+    obtain ⟨D_1, hD_1_in_C, hVj_1_sub_D_1⟩ := _h_V_refines_C Vj₁.1 Vj₁.2
+    obtain ⟨D_2, hD_2_in_C, hVj_2_sub_D_2⟩ := _h_V_refines_C Vj₂.1 Vj₂.2
+    rw [inner_identity_generic Vj₁ ⟨D_1, hD_1_in_C⟩ hVj_1_sub_D_1]
+    rw [inner_identity_generic Vj₂ ⟨D_2, hD_2_in_C⟩ hVj_2_sub_D_2]
+    -- LHS = restrictionMap Vj₁ Vj₃ (restrictionMap D_1 Vj₁ ... (f D_1))
+    --     = restrictionMap D_1 Vj₃ (chained) (f D_1) [restrictionMap_comp]
+    have h_LHS_comp := restrictionMap_comp D_1 Vj₁.1 Vj₃ hVj_1_sub_D_1 h₃₁
+    have h_RHS_comp := restrictionMap_comp D_2 Vj₂.1 Vj₃ hVj_2_sub_D_2 h₃₂
+    rw [show restrictionMap Vj₁.1 Vj₃ h₃₁
+          (restrictionMap D_1 Vj₁.1 hVj_1_sub_D_1 (f ⟨D_1, hD_1_in_C⟩)) =
+        restrictionMap D_1 Vj₃ (h₃₁.trans hVj_1_sub_D_1) (f ⟨D_1, hD_1_in_C⟩)
+      from congrFun h_LHS_comp _]
+    rw [show restrictionMap Vj₂.1 Vj₃ h₃₂
+          (restrictionMap D_2 Vj₂.1 hVj_2_sub_D_2 (f ⟨D_2, hD_2_in_C⟩)) =
+        restrictionMap D_2 Vj₃ (h₃₂.trans hVj_2_sub_D_2) (f ⟨D_2, hD_2_in_C⟩)
+      from congrFun h_RHS_comp _]
+    -- By h_compat applied to ⟨D_1, hD_1_in_C⟩, ⟨D_2, hD_2_in_C⟩, Vj₃.
+    exact h_compat ⟨D_1, hD_1_in_C⟩ ⟨D_2, hD_2_in_C⟩ Vj₃
+      (h₃₁.trans hVj_1_sub_D_1) (h₃₂.trans hVj_2_sub_D_2)
   -- Step 6: apply V.IsOXAcyclic.gluing to (yV, h_yV_compat) to get x' on V.base.
   obtain ⟨x', hx'⟩ := _hV_acyclic.gluing yV h_yV_compat
   -- Step 7: cast x' to x : presheafValue C.base via presheafValueCast on _hV_base.
