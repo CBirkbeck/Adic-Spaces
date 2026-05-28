@@ -1919,8 +1919,12 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
     rw [h_base_eq_loc] at this
     exact this
   -- KEY IDENTITY (sub-sorry): yV ⟨V', hV'_in_V⟩ = restrictionMap D.1 V' hV'_sub_D (f D).
-  -- Both have type presheafValue V'.1 = presheafValue V'.
-  -- Proof via (C_restr_at V').separation + gVj + h_compat.
+  -- Both have type presheafValue V'.1.
+  -- Strategy: rewrite as (diff) = 0 and apply (C_restr_at V').separation after cast
+  -- through _hC_restr_base. For each D'' ∈ C_restr_at(V').covers, restriction agrees
+  -- via gVj's spec + h_compat (D'' ⊆ V' ⊆ D, so h_compat applies on C-pieces).
+  --
+  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-INNER-IDENTITY-BODY.
   have h_inner_identity :
       yV ⟨V', hV'_in_V⟩ = restrictionMap D.1 V' hV'_sub_D (f D) := by
     sorry
