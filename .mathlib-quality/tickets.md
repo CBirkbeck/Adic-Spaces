@@ -8863,3 +8863,236 @@ theorem index_selection_on_dominating_laurent_piece
 - **T-WC-PROPA3-PART2-GLU**: dependency added to T-WC-EPRIME-RESTRICT-TO-D.
 - **T-WC-PROPA3-PART1-GLU**: dependency added to T-WC-EPRIME-RESTRICT-TO-D.
 
+
+---
+
+## 2026-05-28 /develop --continue (batch 2): 8 ticket statement-fixes + 3 new sub-tickets
+
+This batch resolves the 8 statement-level / under-constrained ticket issues
+identified during beastmode iterations 5-6. Each fix updates the statement
+or adds the missing hypothesis; 3 new helper sub-tickets are added to
+unblock specific composition chains.
+
+### [T-WC-PROPA3-PART2-GLU-RESTATED] **REPLACES T-WC-PROPA3-PART2-GLU**
+
+- **Status**: OPEN (statement-fixed: added `h_C'_covers_each_D` hypothesis)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-CAT-C-CHANGE-BASE, T-WC-EPRIME-RESTRICT-TO-D
+- **Parallel**: yes
+- **Type**: theorem
+
+#### Statement (corrected — adds h_C'_covers_each_D)
+```lean
+theorem propA3_part2_project_gluing
+    ... (existing C, C', h_same_base, h_refines, h_C'_acyclic ...)
+    (h_C'_covers_each_D : ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+      ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
+        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (h_double_acyclic : ...) :
+    ∀ f, compatible-on-C → ∃ x : presheafValue C.base, x glues f
+```
+
+#### Proof sketch
+1. Build E_D := `RationalCovering.restrictToPiece C' D (h_C'_covers_each_D D hD)` for each D ∈ C.covers.
+2. h_double_acyclic gives E_D.IsOXAcyclic (apply with E := E_D).
+3. Build compatible family g(D') := f(D)|D' on C'.covers using h_refines + hcompat (f's compatibility).
+4. Apply h_C'_acyclic.gluing to g, get x' : presheafValue C'.base.
+5. Cast x' to x : presheafValue C.base via presheafValueCast h_same_base.symm.
+6. Verify x|D = f D for each D ∈ C: use E_D.separation on (x|D - f D); both restrict to 0 on each E_D piece via hcompat + step 3.
+
+#### Mathlib lemmas needed
+- restrictToPiece (closed)
+- presheafValueCast (closed)
+- restrictionMap_comp (project)
+
+### [T-WC-PROPA3-PART1-GLU-RESTATED] **REPLACES T-WC-PROPA3-PART1-GLU**
+
+- **Status**: OPEN (statement-fixed: added `h_C_restr_at_covers` hypothesis)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-CAT-C-CHANGE-BASE
+- **Type**: theorem
+
+#### Statement (corrected)
+Add hypothesis to existing PART1-GLU:
+```
+(h_C_restr_at_covers : ∀ Vj : ↥V.covers, ∀ v ∈ rationalOpen Vj.1.T Vj.1.s,
+  ∃ D' ∈ (C_restr_at Vj).covers, v ∈ rationalOpen D'.T D'.s)
+```
+
+This ensures the C_restr_at Vj family actually covers each V-piece. Now the
+Prop A.3(1) gluing works analogously to PART2-GLU.
+
+### [T-WC-PROPA3-PART3-BRIDGE-RESTATED] **REPLACES T-WC-PROPA3-PART3-BRIDGE**
+
+- **Status**: OPEN (statement-fixed: V is now structurally tied to Uf × Vgs_at)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-CAT-C-CHANGE-BASE
+- **Type**: theorem
+
+#### Statement (corrected — V tied to Uf and Vgs_at)
+```lean
+theorem propA3_part3_bridge_for_laurent_product
+    ...
+    (V Uf : RationalCovering A)
+    (Vgs_at : ↥Uf.covers → RationalCovering A)
+    (hVgs_base : ∀ Uf_piece, (Vgs_at Uf_piece).base = Uf_piece.1)
+    (hUf_acyclic : Uf.IsOXAcyclic)
+    (h_each_Vgs_acyclic : ∀ Uf_piece, (Vgs_at Uf_piece).IsOXAcyclic)
+    -- NEW: V is the assembly of {Vgs_at Uf_piece}:
+    (hV_base : V.base = Uf.base)
+    (hV_pieces_in_Vgs : ∀ V' ∈ V.covers, ∃ Uf_piece : ↥Uf.covers,
+      ∃ Vgs' ∈ (Vgs_at Uf_piece).covers,
+        rationalOpen V'.T V'.s ⊆ rationalOpen Vgs'.T Vgs'.s)
+    (hV_covers_each_Uf : ∀ Uf_piece : ↥Uf.covers,
+      ∀ v ∈ rationalOpen Uf_piece.1.T Uf_piece.1.s,
+        ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s) :
+    V.IsOXAcyclic
+```
+
+#### Proof sketch
+Prop A.3(3): V refines into the product Uf × ⊔ Vgs_at. Use the product
+acyclicity (via Uf-acyclic + each Vgs_at acyclic) to transfer to V.
+
+### [T-WC-V-REFINES-C-FROM-DOM-UNIT-RESTATED] **REPLACES T-WC-V-REFINES-C-FROM-DOM-UNIT**
+
+- **Status**: OPEN (statement-fixed: V tied to dominating-unit construction)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Type**: theorem
+
+#### Statement (corrected — V is specifically the dominating-unit Laurent cover)
+```lean
+theorem laurent_cover_refines_idealgen_cover
+    ...
+    (C : RationalCovering A) (T : Finset A) (hC_gen : C.IsGeneratedBy T)
+    (s : Aˣ) (h_dom : ∀ v ∈ Spa A A⁺, ∃ t ∈ T,
+      v.vle (s : A) t ∧ ¬ v.vle t (s : A))
+    (V : RationalCovering A) (fs : List A)
+    -- NEW: V was built via laurent_cover_from_dominating_unit
+    (h_V_from_dom : V.base = C.base ∧
+      fs = (T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t) ∧
+      V.IsLaurentCover fs) :
+    ∀ V_j ∈ V.covers, ∃ U ∈ C.covers,
+      rationalOpen V_j.T V_j.s ⊆ rationalOpen U.T U.s
+```
+
+#### Proof sketch
+σ-walk on the dominating-unit Laurent cover: V_j corresponds to a sign vector
+σ on T. The σ-choice picks t_{i_max} as the dominant generator (the one with
+σ(i_max) = "+"). On V_j, v(t_{i_max}) ≥ v(s) > 0, so v(t_{i_max}) ≠ 0 and
+v(t) ≤ v(t_{i_max}) for all t ∈ T (by σ being the dominance choice). Hence
+V_j ⊆ R(T/t_{i_max}) = the C-piece D_{t_{i_max}}.
+
+### [T-WC-RESTR-INHERIT-GEN-RESTATED-SUBDECOMPOSED] **REFINES T-WC-RESTR-INHERIT-GEN-RESTATED**
+
+- **Status**: OPEN (sub-decomposed into 2 sub-tickets)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-CANONICAL-MAP-UNIT-FROM-T (new sub-ticket below)
+
+#### Statement (sub-decomposition)
+```lean
+theorem restricted_cover_inherits_IsUnitGenerated ... :
+    E.IsUnitGenerated := by
+  intro E' hE' t ht
+  -- Use T-WC-CANONICAL-MAP-UNIT-FROM-T: t ∈ E'.T ⇒ t ∈ T (via the C'-refines structure)
+  -- ⇒ canonicalMap t is a unit in presheafValue E.base.
+  ...
+```
+
+### [T-WC-PRESHEAFVALUECAST-FINITECOVER-HELPER] **NEW** — cast helper for FiniteCover carrier change
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Parent**: T-WC-TO-REFINEMENT
+- **Type**: lemma
+
+#### Statement
+```lean
+/-- Cast helper: a `FiniteCover` with carrier `↥X` and a base equality `Y = X`
+gives, via `h ▸`, a `FiniteCover` with carrier `↥Y`. The `sets` field of the
+cast equals the original `sets` (up to defEq via `Eq.rec`). -/
+theorem RationalCovering.toFiniteCover_cast_sets [IsHuberRing A]
+    {C C' : RationalCovering A} (h : C'.base = C.base) (D' : ↥C'.covers) :
+    (h ▸ C'.toFiniteCover).sets D' =
+      (h ▸ (fun D' => Subtype.val ⁻¹'
+        (Subtype.val ⁻¹' rationalOpen D'.1.T D'.1.s : Set ↥(Spa A A⁺)))) D' := by
+  -- Unfold the cast via `Eq.rec` on `h`.
+  cases h; rfl
+```
+
+#### Proof sketch
+`cases h` reduces to identity; `rfl` closes.
+
+### [T-WC-CANONICAL-MAP-UNIT-FROM-T] **NEW** — canonicalMap t is unit when t comes from IsGeneratedBy T set
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Parent**: T-WC-RESTR-INHERIT-GEN-RESTATED-SUBDECOMPOSED
+- **Type**: lemma
+
+#### Statement
+```lean
+/-- When `C'.IsGeneratedBy T`, each `t ∈ T` has canonical image in
+`presheafValue D` (for any `D ⊆ C'.base`) that is a unit. -/
+theorem canonicalMap_unit_of_IsGeneratedBy
+    (C' : RationalCovering A) (T : Finset A) (h_C'_gen : C'.IsGeneratedBy T)
+    (t : A) (ht : t ∈ T)
+    (D : RationalLocData A) (hD_sub : rationalOpen D.T D.s ⊆ rationalOpen C'.base.T C'.base.s)
+    (hD_in_some_C'_piece : ∃ D' ∈ C'.covers,
+      rationalOpen D.T D.s ⊆ rationalOpen D'.T D'.s) :
+    IsUnit (D.canonicalMap t) := by
+  sorry
+```
+
+#### Proof sketch
+1. Extract D' ∈ C'.covers with D ⊆ D'.
+2. By IsGeneratedBy structure, D'.T = T, so t ∈ D'.T.
+3. Show: canonicalMap_D' (for D'-localization) inverts t (since t ∈ T ⊆ D'.T means t / D'.s is in locSubring, but more specifically the ratio t over a chosen element makes t a unit).
+4. Transfer to D via the restriction map D' → D.
+
+### [T-WC-RATIO-LAURENT-CONS-RECURSION] **NEW** — inductive ratio Laurent cover construction
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Parent**: T-WC-RATIO-LAURENT-COVER
+- **Type**: theorem
+
+#### Statement
+```lean
+/-- Recursive construction of the ratio Laurent cover from a list of units.
+Given units `f_1, ..., f_n`, the ratio Laurent cover is iterated as
+`laurentRationalCover` over `{f_i · f_j⁻¹}` for all pairs (i, j). -/
+theorem ratio_laurent_cover_recursion
+    (D₀ : RationalLocData A) (units : List A)
+    (h_units_unit : ∀ f ∈ units, IsUnit f) :
+    ∃ (V : RationalCovering A) (fs : List A),
+      V.IsLaurentCover fs ∧
+      V.base = D₀ ∧
+      fs = List.product units units |>.map (fun ⟨i, j⟩ =>
+        i * (h_units_unit j (by sorry)).unit⁻¹.val) := by
+  sorry
+```
+
+(Inductive on `units`.)
+
+### Updates to existing tickets in this batch
+
+Mark superseded:
+- T-WC-PROPA3-PART2-GLU → T-WC-PROPA3-PART2-GLU-RESTATED
+- T-WC-PROPA3-PART1-GLU → T-WC-PROPA3-PART1-GLU-RESTATED
+- T-WC-PROPA3-PART3-BRIDGE → T-WC-PROPA3-PART3-BRIDGE-RESTATED
+- T-WC-V-REFINES-C-FROM-DOM-UNIT → T-WC-V-REFINES-C-FROM-DOM-UNIT-RESTATED
+- T-WC-RESTR-INHERIT-GEN-RESTATED → T-WC-RESTR-INHERIT-GEN-RESTATED-SUBDECOMPOSED
+
+Add dependencies:
+- T-WC-PROPA3-PART2-GLU-RESTATED depends on T-WC-EPRIME-RESTRICT-TO-D (closed)
+- T-WC-RESTR-INHERIT-GEN-RESTATED-SUBDECOMPOSED depends on T-WC-CANONICAL-MAP-UNIT-FROM-T
+- T-WC-RATIO-LAURENT-COVER depends on T-WC-RATIO-LAURENT-CONS-RECURSION
+- T-WC-TO-REFINEMENT depends on T-WC-PRESHEAFVALUECAST-FINITECOVER-HELPER
+
+### Updates to plan.md
+
+The 8 fixes resolve all current B2/scope issues. The remaining 19 substantial
+tickets (Wedhorn 6.18, 7.40(6), 5-lemma, single-piece sep/glu, evalHom
+continuity, combinatorial constructions) have clear paths and don't need
+replanning — only focused work via /beastmode.
+
