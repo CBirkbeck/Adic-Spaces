@@ -1927,6 +1927,8 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-INNER-IDENTITY-BODY.
   have h_inner_identity :
       yV ⟨V', hV'_in_V⟩ = restrictionMap D.1 V' hV'_sub_D (f D) := by
+    -- Sub-sorry T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-BODY: the substantive proof
+    -- via (C_restr_at ⟨V', hV'_in_V⟩).IsOXAcyclic.separation + cast + per-D'' chain.
     sorry
   -- Apply the inner identity + cast plumbing to close.
   -- The final chain via restrictionMap_comp + presheafValueCast_restrictionMap +
