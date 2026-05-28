@@ -39,19 +39,25 @@ Wedhorn's Lemmas 8.33 + 8.34 + Prop A.4 to derive sheafiness.
 
 * [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], §8 + Appendix A.
 
-## Pass 1 status
+## Status (2026-05-28)
 
-All Wedhorn-specific theorems below are `sorry`'d. They are stated
-exactly as Wedhorn states them; the proofs will be discharged in
-subsequent passes via:
+The top-level compositions are landed and the entire Wedhorn Prop A.3 chain
+(parts 1+2, both separation and gluing) is SORRY-FREE. Substantive
+sub-lemmas with sorries remain for:
 
-* Lemma 8.33: combine Cor 8.32 (faithful flatness, project's
-  `cor_8_32_clean_sub_with_P`) + Examples 6.38/6.39 + 5-lemma diagram chase.
-* Lemma 8.34: induction over Wedhorn's four-part proof (parts (i)–(iv)),
-  using `wedhorn_lemma_833` + Prop A.3.
-* `isSheafy_ofStronglyNoetherianTate_clean`: apply Wedhorn Prop A.4 (=
-  `propA4_degreeZeroAcyclic_of_basis_acyclic`) + Lemma 7.54
-  (refinement to ideal-generating cover) + `wedhorn_lemma_834`.
+* Lemma 8.33 gluing: 5-lemma diagram chase + Example 6.38/6.39 column
+  exactness (in `wedhorn_lemma_833_gluing_as_field`).
+* Lemma 8.34 sub-lemmas: Laurent combinatorial constructions
+  (`laurent_cons_decomp_as_product`, `ratio_laurent_cover_of_units`),
+  σ-walk arguments (`ratio_laurent_refines_unit_gen`,
+  `laurent_cover_refines_idealgen_cover`, σ-walk cover-each variants),
+  Wedhorn 6.14 + 7.40(6) project lemmas.
+* `isSheafy_ofStronglyNoetherianTate_clean`: top-level composed and
+  closed; depends transitively on the substantive sub-sorries above.
+
+Reusable infrastructure: `RationalCovering.eqRec_restrictionMap_direct`
++ `presheafValue_eqRec_double_cancel_forward` extracted for general
+Eq.rec cast manipulation on `presheafValue`.
 -/
 
 namespace ValuationSpectrum
