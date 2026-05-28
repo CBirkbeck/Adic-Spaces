@@ -9203,3 +9203,31 @@ T-WC-EXISTS-IDEAL-GEN-COVERS-EACH) introduced `sorry` markers in
 Net sorry count: 26 → 28 (the 2 new sorries are signature-level
 strengthenings, not new B2 obligations).
 
+
+---
+
+## 2026-05-28 MARATHON SESSION — Wedhorn Prop A.3 chain CLOSED
+
+Massive landing across 70+ commits:
+
+- **propA3_part2_project_gluing CLOSED** (commit 4d0d3c1, iter 5)
+- **propA3_part1_gluing FULLY SORRY-FREE** (iter 6) — the entire Wedhorn Prop A.3 chain is now complete in the project
+- Step 8 of propA3_part1_gluing closed via `inner_identity_generic` + new Eq.rec helpers
+- h_yV_compat closed via inner_identity_generic + h_V_refines_C
+
+New reusable helpers added (top of file):
+- `RationalCovering.eqRec_restrictionMap_direct` — restrictionMap commutes with direct Eq.rec base cast
+- `RationalCovering.presheafValue_eqRec_double_cancel_forward` — Eq.rec double cancellation
+
+Major cleanup per user feedback:
+- Removed all `True := by` placeholder lemmas (laurent_algebra_decomp,
+  laurent_ideal_decomp, laurent_kernel_image, wedhorn_lemma_833_5lemma_composition,
+  compatible_pair_lifts_via_5lemma, IsOXAcyclic_iff_IsAcyclic,
+  wedhorn_lemma_833_example_639_intersection)
+- Removed deprecated wrappers (exists_pair_with_A₀_subset_Aplus,
+  exists_pseudouniformizer_of_tate, RationalCovering.IsOXAcyclic_old)
+- Strengthened ratio_laurent_refines_unit_gen hypothesis (replaced `True` with actual `V.IsLaurentCover fs`)
+
+Final sorry count: 24 substantive Wedhorn-text sorries remain (down from 28+ at marathon start).
+
+Build clean. All work committed.
