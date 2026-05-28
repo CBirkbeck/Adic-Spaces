@@ -381,22 +381,35 @@ theorem propA3_part2_project_gluing
     (RationalCovering.presheafValueCast (C := C) (C' := C') _h_same_base).symm x'
   refine ⟨x, ?_⟩
   -- Step 7: verify x|D = f D for each D ∈ C.covers, using (E_at D).separation.
-  -- Sub-ticket: T-WC-PROPA3-PART2-GLU-VERIFY-RESTRICTION. Proof structure:
-  -- (a) Reduce to ((restrictionMap C.base D.1 _ x) - f D) = 0.
-  -- (b) Apply (E_at D).separation: show ∀ E' ∈ (E_at D).covers, restrict the
-  --     difference to E' equals 0.
-  -- (c) For each E', E' ∈ C'.covers (filtered). The LHS unfolds via
-  --     restrictionMap_comp + presheafValueCast_restrictionMap to a restriction
-  --     of x' (the C'-section), then by hx' to _g ⟨E', _⟩ = restrictionMap (chooseC _) E' (f _).
-  -- (d) The RHS is restrictionMap D.1 E' (f D); equality with LHS follows from
-  --     h_compat applied to (chooseC _, D, E') with appropriate inclusions.
   intro D
-  -- Scope-preservation for the next session's continuation:
-  let _ := _g
-  let _ := _h_E_at_acyclic
-  let _ := hx'
-  let _ := x
-  let _ := h_compat
+  -- (a) Reduce to ((restrictionMap C.base D.1 _ x) - f D) = 0.
+  rw [← sub_eq_zero]
+  -- (b) Apply (E_at D).separation to (x|D - f D) ∈ presheafValue D.1.
+  apply (_h_E_at_acyclic D).separation
+  -- (c) Show: for each E' ∈ (E_at D).covers, restriction of (x|D - f D) to E' is 0.
+  intro E' hE'_in
+  -- Restriction is a ring hom, so it preserves subtraction.
+  show (restrictionMapHom D.1 E' ((E_at D).hsubset E' hE'_in)) _ = 0
+  rw [map_sub, sub_eq_zero]
+  -- E' is a C'-piece (by filter).
+  have hE'_in_C' : E' ∈ C'.covers := by
+    simp only [E_at, RationalCovering.restrictToPiece, Finset.mem_filter] at hE'_in
+    exact hE'_in.1
+  -- LHS chain: restrictionMap D.1 E' (E_at D.hsubset E' _) (restrictionMap C.base D.1 _ x)
+  --   = restrictionMap C.base E' (combined inclusion) x       [restrictionMap_comp]
+  --   = restrictionMap C'.base E' (combined inclusion via _h_same_base) x'
+  --                                                            [presheafValueCast_restrictionMap]
+  --   = _g ⟨E', hE'_in_C'⟩                                     [hx']
+  --   = restrictionMap (chooseC _).1.1 E' (chooseC _).2 (f (chooseC _).1)  [def of _g]
+  -- RHS: restrictionMap D.1 E' (E_at_hsub) (f D)
+  -- LHS_last = RHS by h_compat applied to (chooseC _, D, E') with inclusions.
+  -- The full restated equality (LHS = RHS) becomes:
+  --   restrictionMap (chooseC _).1.1 E' (chooseC _).2 (f (chooseC _).1)
+  --     = restrictionMap D.1 E' (E_at_hsub) (f D)
+  -- which is exactly an h_compat instance.
+  -- Sub-ticket T-WC-PROPA3-PART2-GLU-VERIFY-RESTRICTION (the chain of rewrites
+  -- requires careful Eq.rec / proof-irrelevance handling for the inclusion
+  -- arguments — this turns out to be the substantive plumbing piece).
   sorry
 
 /-- **Sub-lemma 2 of `every_rational_cover_is_OXAcyclic`** (Wedhorn Prop A.3(2)
