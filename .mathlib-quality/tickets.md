@@ -9096,3 +9096,103 @@ tickets (Wedhorn 6.18, 7.40(6), 5-lemma, single-piece sep/glu, evalHom
 continuity, combinatorial constructions) have clear paths and don't need
 replanning — only focused work via /beastmode.
 
+---
+
+## 2026-05-28 PROPA3-PART2 cascade work (commit ca8b6f4)
+
+### [T-WC-PROPA3-PART2-GLU-RESTATED] — STATUS UPDATE
+
+**Status change**: Lean signature now matches RESTATED ticket text.
+
+The Lean theorem `propA3_part2_project_gluing` in
+`Adic spaces/WedhornCechAcyclicity.lean` now carries the
+`h_C'_covers_each_D` hypothesis (matches RESTATED text). The cascade
+through `IsOXAcyclic_of_refining_acyclic_cover` is also complete.
+
+**Open**: The proof body itself is still `sorry` (line 287). Per the
+proof sketch in the RESTATED ticket, this requires steps 1-6 (build E_D,
+apply h_double_acyclic, build g, apply C'.gluing, cast x', verify x|D =
+f D via E_D.separation). Substantive work pending.
+
+### [T-WC-834-PART-III-COVERS-EACH] **NEW** — strengthen part-iii return value
+
+- **Status**: OPEN (sub-ticket from cascade)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-PART-III-BODY
+- **Type**: signature augmentation + structural proof
+
+#### Statement (proposed strengthening)
+
+Augment `wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent` to also
+return the covering direction of the refinement:
+
+```lean
+∃ (V : RationalCovering A) (fs : List A),
+  V.IsLaurentCover fs ∧
+  V.base = C.base ∧
+  (∀ V' ∈ V.covers, ∃ D ∈ C.covers,
+    rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s) ∧
+  -- NEW: covering-each-D direction (Wedhorn-faithful tightening)
+  (∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+    ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
+      rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s)
+```
+
+#### Proof sketch (why covering-each-D holds for the ratio Laurent
+construction)
+
+V is the Laurent cover by ratios {t_i / t_j : t_i, t_j ∈ T}. For each
+D = R(T/t_α) ∈ C and v ∈ R(T/t_α), the σ-walk for v picks i_max such
+that v(t_{i_max}) ≥ v(t_j) for all j. Since v ∈ R(T/t_α), v(t_α) is
+maximal — so i_max = α (with appropriate index normalization). Hence
+V'_σ(v) is the Laurent piece refining into R(T/t_α) = D.
+
+#### Mathlib lemmas needed
+- σ-walk lemma (T-WC-INDEX-SELECTION strengthened version)
+
+### [T-WC-EXISTS-IDEAL-GEN-COVERS-EACH] **NEW** — strengthen exists_ideal_gen_refinement
+
+- **Status**: OPEN (sub-ticket from cascade)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-RAT-COV-FROM-IDEAL, exists_standard_cover_refining
+- **Type**: signature augmentation + structural proof
+
+#### Statement (proposed strengthening)
+
+Augment `exists_ideal_gen_refinement` (line 1773) to also return the
+covering direction:
+
+```lean
+∃ (T : Finset A) (C' : RationalCovering A),
+  C'.IsGeneratedBy T ∧
+  C'.base = C.base ∧
+  (∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
+    rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) ∧
+  -- NEW: covering-each-D direction
+  (∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+    ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
+      rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+```
+
+#### Proof sketch
+
+By Wedhorn 7.54, the refining S has elements indexed by pieces of C
+(each s ∈ S corresponds to a specific R(T_α / s_α)). For v ∈ R(C.T_α /
+C.s_α), the s-piece R(S / s_α) contains v (Wedhorn 7.54's construction).
+This is exactly the covering-each-D direction.
+
+#### Mathlib lemmas needed
+- Strengthen `exists_standard_cover_refining` to return the per-α
+  covering data (or expose the construction's α-indexing).
+
+### Cascade impact
+
+Both new sub-tickets (T-WC-834-PART-III-COVERS-EACH,
+T-WC-EXISTS-IDEAL-GEN-COVERS-EACH) introduced `sorry` markers in
+`wedhorn_lemma_834_C_restr_acyclic` (line 1456) and
+`every_rational_cover_is_OXAcyclic` (line 1959) at the
+`h_C'_covers_each_D` argument of `IsOXAcyclic_of_refining_acyclic_cover`.
+
+Net sorry count: 26 → 28 (the 2 new sorries are signature-level
+strengthenings, not new B2 obligations).
+
