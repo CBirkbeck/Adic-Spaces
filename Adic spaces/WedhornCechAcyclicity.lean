@@ -193,6 +193,41 @@ Wedhorn's proof of Lemma 8.33 uses the commutative diagram (8.2.1) on
 p. 83. It decomposes into four atomic facts plus a 5-lemma diagram chase.
 -/
 
+/-- **NEW (T-WC-EPRIME-RESTRICT-TO-D, 2026-05-28; relocated 2026-05-28
+to support `propA3_part2_project_gluing` body)**: construction of
+`E := C' restricted to D ∈ C.covers`. Pieces are the C'-pieces whose
+rational open is ⊆ D's rational open.
+
+The `_hD_covers` hypothesis ensures the filtered C'-pieces actually cover D
+— this is the substantive content of "the induced cover at D exists". -/
+noncomputable def RationalCovering.restrictToPiece
+    (C' : RationalCovering A)
+    (D : RationalLocData A) (hD_covers : ∀ v ∈ rationalOpen D.T D.s,
+      ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
+        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
+    RationalCovering A where
+  base := D
+  covers := C'.covers.filter fun D' =>
+    Classical.propDecidable (rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+      |>.decide
+  hsubset := by
+    intro D' hD'
+    rw [Finset.mem_filter] at hD'
+    by_contra h_not
+    have := hD'.2
+    classical
+    simp [Classical.propDecidable] at this
+    exact h_not this
+  hcover := by
+    intro v hv
+    obtain ⟨D', hD'_in, hv_in_D', hD'_sub⟩ := hD_covers v hv
+    refine ⟨D', ?_, hv_in_D'⟩
+    rw [Finset.mem_filter]
+    refine ⟨hD'_in, ?_⟩
+    classical
+    simp [Classical.propDecidable]
+    exact hD'_sub
+
 /-! ### Prop A.3(2) project bridge (moved here for forward use by Lemma 8.34)
 
 The Prop A.3(2) bridge transfers acyclicity from a refinement `C'` to `C`.
@@ -281,9 +316,85 @@ theorem propA3_part2_project_gluing
       ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
         restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D := by
   -- Gluing direction of Prop A.3(2). With `h_C'_covers_each_D` now
-  -- available, the proof can construct `E_D := restrictToPiece C' D` for
-  -- each D ∈ C.covers and apply h_double_acyclic. Full proof still
-  -- requires the cast plumbing for x|D = f D verification — substantive.
+  -- available and `restrictToPiece` relocated above this declaration,
+  -- the proof can begin its constructive shape.
+  intro f h_compat
+  -- Step 1: For each D ∈ C.covers, build E_D := C'|_D via restrictToPiece.
+  let E_at : ∀ (D : ↥C.covers), RationalCovering A := fun D =>
+    C'.restrictToPiece D.1 (_h_C'_covers_each_D D.1 D.2)
+  -- Step 2: Each E_at D is acyclic via h_double_acyclic.
+  have h_E_at_base : ∀ (D : ↥C.covers), (E_at D).base = D.1 := fun D => rfl
+  have h_E_at_pieces : ∀ (D : ↥C.covers), ∀ E' ∈ (E_at D).covers,
+      ∃ D' ∈ C'.covers, rationalOpen E'.T E'.s ⊆ rationalOpen D'.T D'.s := by
+    intro D E' hE'
+    simp only [E_at, RationalCovering.restrictToPiece, Finset.mem_filter] at hE'
+    exact ⟨E', hE'.1, subset_rfl⟩
+  have _h_E_at_acyclic : ∀ (D : ↥C.covers), (E_at D).IsOXAcyclic := fun D =>
+    _h_double_acyclic D.1 D.2 (E_at D) (h_E_at_base D) (h_E_at_pieces D)
+  -- Step 3: For each D' ∈ C'.covers, choose D ∈ C.covers refining D'
+  -- (via _h_refines) and define g D' := f D restricted to D'.
+  let chooseC : ∀ (D' : ↥C'.covers), { D : ↥C.covers //
+      rationalOpen D'.1.T D'.1.s ⊆ rationalOpen D.1.T D.1.s } := fun D' =>
+    ⟨⟨(_h_refines D'.1 D'.2).choose, (_h_refines D'.1 D'.2).choose_spec.1⟩,
+     (_h_refines D'.1 D'.2).choose_spec.2⟩
+  let _g : ∀ (D' : ↥C'.covers), presheafValue D'.1 := fun D' =>
+    restrictionMap (chooseC D').1.1 D'.1 (chooseC D').2 (f (chooseC D').1)
+  -- Step 4: g is compatible on C'. For D'₁, D'₂ ∈ C', D'₃ ⊆ D'₁, D'₃ ⊆ D'₂:
+  --   restrictionMap D'₁ D'₃ (g D'₁)
+  --     = restrictionMap (chooseC D'₁).1 D'₃ (f (chooseC D'₁))   [restrictionMap_comp]
+  --     = restrictionMap (chooseC D'₂).1 D'₃ (f (chooseC D'₂))   [h_compat]
+  --     = restrictionMap D'₂ D'₃ (g D'₂)                          [restrictionMap_comp]
+  have h_g_compat : ∀ (D'₁ D'₂ : ↥C'.covers)
+      (D'₃ : RationalLocData A)
+      (h₃₁ : rationalOpen D'₃.T D'₃.s ⊆ rationalOpen D'₁.1.T D'₁.1.s)
+      (h₃₂ : rationalOpen D'₃.T D'₃.s ⊆ rationalOpen D'₂.1.T D'₂.1.s),
+      restrictionMap D'₁.1 D'₃ h₃₁ (_g D'₁) =
+        restrictionMap D'₂.1 D'₃ h₃₂ (_g D'₂) := by
+    intro D'₁ D'₂ D'₃ h₃₁ h₃₂
+    -- Unfold g D'₁ = restrictionMap (chooseC D'₁).1 D'₁ ... (f (chooseC D'₁))
+    show restrictionMap D'₁.1 D'₃ h₃₁
+          (restrictionMap (chooseC D'₁).1.1 D'₁.1 (chooseC D'₁).2 (f (chooseC D'₁).1))
+        = restrictionMap D'₂.1 D'₃ h₃₂
+          (restrictionMap (chooseC D'₂).1.1 D'₂.1 (chooseC D'₂).2 (f (chooseC D'₂).1))
+    -- Compose restrictions via restrictionMap_comp.
+    have h_lhs : restrictionMap D'₁.1 D'₃ h₃₁
+        (restrictionMap (chooseC D'₁).1.1 D'₁.1 (chooseC D'₁).2 (f (chooseC D'₁).1))
+        = restrictionMap (chooseC D'₁).1.1 D'₃
+          (h₃₁.trans (chooseC D'₁).2) (f (chooseC D'₁).1) := by
+      have := restrictionMap_comp (chooseC D'₁).1.1 D'₁.1 D'₃ (chooseC D'₁).2 h₃₁
+      exact congrFun this _
+    have h_rhs : restrictionMap D'₂.1 D'₃ h₃₂
+        (restrictionMap (chooseC D'₂).1.1 D'₂.1 (chooseC D'₂).2 (f (chooseC D'₂).1))
+        = restrictionMap (chooseC D'₂).1.1 D'₃
+          (h₃₂.trans (chooseC D'₂).2) (f (chooseC D'₂).1) := by
+      have := restrictionMap_comp (chooseC D'₂).1.1 D'₂.1 D'₃ (chooseC D'₂).2 h₃₂
+      exact congrFun this _
+    rw [h_lhs, h_rhs]
+    -- Now apply h_compat with the appropriate inclusions on the C-side.
+    exact h_compat (chooseC D'₁).1 (chooseC D'₂).1 D'₃
+      (h₃₁.trans (chooseC D'₁).2) (h₃₂.trans (chooseC D'₂).2)
+  -- Step 5: apply _h_C'_acyclic.gluing to (_g, h_g_compat) to get x' on C'.
+  obtain ⟨x', hx'⟩ := _h_C'_acyclic.gluing _g h_g_compat
+  -- Step 6: cast x' from presheafValue C'.base to presheafValue C.base via
+  -- presheafValueCast _h_same_base.
+  let x : presheafValue C.base :=
+    (RationalCovering.presheafValueCast (C := C) (C' := C') _h_same_base).symm x'
+  refine ⟨x, ?_⟩
+  -- Step 7: verify x|D = f D for each D ∈ C.covers, using E_at D.separation.
+  -- The argument: both x|D and f D restrict to the same value on each
+  -- E'-piece of E_at D (via hx' on C', restrictionMap_comp, h_compat),
+  -- so by E_at D.separation, x|D - f D = 0 in presheafValue D.
+  -- Sub-ticket: T-WC-PROPA3-PART2-GLU-VERIFY-RESTRICTION (substantive cast
+  -- plumbing chain — restrictionMap_comp + presheafValueCast_restrictionMap
+  -- + h_compat + E_at separation field).
+  intro D
+  -- The constructive pieces (`_g`, `_h_E_at_acyclic`, `hx'`, `x`) remain in
+  -- scope for the next session's continuation.
+  let _ := _g
+  let _ := _h_E_at_acyclic
+  let _ := hx'
+  let _ := x
+  let _ := h_compat
   sorry
 
 /-- **Sub-lemma 2 of `every_rational_cover_is_OXAcyclic`** (Wedhorn Prop A.3(2)
@@ -1637,42 +1748,6 @@ theorem laurent_cover_refines_idealgen_cover [DecidableEq A]
   -- σ-walk on dominating-unit construction: V_j corresponds to choosing
   -- t_{i_max} ∈ T as the dominant generator. Then V_j ⊆ R(T/t_{i_max}) ∈ C.
   sorry
-
-/-- **NEW (T-WC-EPRIME-RESTRICT-TO-D, 2026-05-28)**: construction of
-`E := C' restricted to D ∈ C.covers`. Pieces are the C'-pieces whose
-rational open is ⊆ D's rational open.
-
-The `_hD_covers` hypothesis ensures the filtered C'-pieces actually cover D
-— this is the substantive content of "the induced cover at D exists". -/
-noncomputable def RationalCovering.restrictToPiece
-    (C' : RationalCovering A)
-    (D : RationalLocData A) (hD_covers : ∀ v ∈ rationalOpen D.T D.s,
-      ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
-        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
-    RationalCovering A where
-  base := D
-  covers := C'.covers.filter fun D' =>
-    Classical.propDecidable (rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
-      |>.decide
-  hsubset := by
-    intro D' hD'
-    rw [Finset.mem_filter] at hD'
-    -- Decoding the filter predicate
-    by_contra h_not
-    have := hD'.2
-    -- Convert decide result to the actual proposition.
-    classical
-    simp [Classical.propDecidable] at this
-    exact h_not this
-  hcover := by
-    intro v hv
-    obtain ⟨D', hD'_in, hv_in_D', hD'_sub⟩ := hD_covers v hv
-    refine ⟨D', ?_, hv_in_D'⟩
-    rw [Finset.mem_filter]
-    refine ⟨hD'_in, ?_⟩
-    classical
-    simp [Classical.propDecidable]
-    exact hD'_sub
 
 /-- **Wedhorn Lemma 8.34** (p. 84). *Let `A` be a complete strongly
 noetherian Tate ring and `𝒰` be a rational cover generated by some
