@@ -1913,17 +1913,22 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   intro V' hV'_in
   -- V' is directly in V.covers via _hV_restr_pieces_in_V.
   have hV'_in_V : V' ∈ V.covers := _hV_restr_pieces_in_V D V' hV'_in
-  -- KEY IDENTITY: yV ⟨V', hV'_in_V⟩ = restrictionMap D.1 V' (V'⊆D) (f D) in presheafValue V'.
-  -- Proof via (C_restr_at ⟨V', hV'_in_V⟩).IsOXAcyclic.separation on the difference:
-  -- for each D'' ∈ (C_restr_at V').covers, both sides restrict to f at some C-piece
-  -- (via gVj's gluing spec + h_compat) — same value.
-  --
-  -- This sub-identity captures the "yV V' = f D|V'" content used in Step 8.
-  -- Sub-sorry: T-WC-PROPA3-PART1-GLU-VERIFY-INNER-IDENTITY.
-  let _ := hV'_in_V
+  have hV'_sub_D : rationalOpen V'.T V'.s ⊆ rationalOpen D.1.T D.1.s := by
+    have h_base_eq_loc : (V_restr_at D).base = D.1 := _hV_restr_base D
+    have := (V_restr_at D).hsubset V' hV'_in
+    rw [h_base_eq_loc] at this
+    exact this
+  -- KEY IDENTITY (sub-sorry): yV ⟨V', hV'_in_V⟩ = restrictionMap D.1 V' hV'_sub_D (f D).
+  -- Both have type presheafValue V'.1 = presheafValue V'.
+  -- Proof via (C_restr_at V').separation + gVj + h_compat.
+  have h_inner_identity :
+      yV ⟨V', hV'_in_V⟩ = restrictionMap D.1 V' hV'_sub_D (f D) := by
+    sorry
+  -- Apply the inner identity + cast plumbing to close.
+  -- The final chain via restrictionMap_comp + presheafValueCast_restrictionMap +
+  -- hx' + h_inner_identity gives the per-V' equality.
+  let _ := h_inner_identity
   let _ := hx'
-  let _ := h_compat
-  let _ := _hC_restr_acyclic
   sorry
 
 /-- **Part (iv) sub-lemma (c)**: the Prop A.3(1) bridge step. Given a
