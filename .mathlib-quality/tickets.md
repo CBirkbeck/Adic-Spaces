@@ -4458,7 +4458,7 @@ CLEANUP-WEDHORN-213 (final per-file cleanup)
 
 ### [CLEANUP-WEDHORN-213] Run /cleanup on RelativeRationalLocData.lean
 
-- **Status**: OPEN
+- **Status**: PARTIAL (2026-05-27). General `relativeRationalLocData` chain deleted (~257 LOC removed) — the dead sub-lemma `_divByS_one_mem_locSubring`, the `_hopen_proof`, and the unused general `relativeRationalLocData` + `_T` + `_s` declarations all gone. Only LaurentNormalized variant + downstream machinery remains (axiom-clean). b2_log entry 35 logs the deletion. Final `/cleanup` polish (golfing, docstring tightening) deferred.
 - **File**: `Adic spaces/RelativeRationalLocData.lean`
 - **Depends on**: T-WEDHORN-213-INTERTWINE
 - **Type**: cleanup
@@ -4837,8 +4837,7 @@ prescribed the following new tickets and reframings. See the integration record 
 
 ### [T-LAURENT-REFINEMENT-TREE] Finite Laurent refinement tree from standard cover
 
-- **Status**: SPLIT (2026-05-13). The DATA STRUCTURE has landed; the
-  EXISTENCE THEOREM (Wedhorn 8.34) is the remaining work.
+- **Status**: SPLIT (2026-05-13; re-audited 2026-05-27 — sole live residual sorry is `balancedTree_BalancedInducing_of_rescaled_S` at `TateAcyclicityResiduals.lean:1789`). The DATA STRUCTURE has landed; the EXISTENCE THEOREM (Wedhorn 8.34) is the remaining work — see Round-6 re-audit at the end of this file for the sharpened close-out plan.
 - **Priority**: medium (blocks T-LANE-C-REFINEMENT-INDUCTION)
 
 #### Data-structure stage — DONE (2026-05-13, commit `f5dc330`)
@@ -4974,9 +4973,7 @@ family may depend on `j`.
 
 ### [T-WEDHORN-STAGE-1] First-stage Laurent cover for Wedhorn 8.34
 
-- **Status**: PARTIAL (2026-05-13 round 5 + beastmode session). The
-  STRUCTURAL infrastructure is landed; the Cor 7.32 application +
-  per-leaf restriction-as-units characterisation remains.
+- **Status**: PARTIAL (2026-05-13 round 5 + beastmode session; re-audited 2026-05-27 — live residual sorries are `strengthened_cover_of_basic_cover` at `TateAcyclicityResiduals.lean:439`, `outside_rescue_of_per_D_cover` at line 458, and `exists_first_stage_laurent_tree_unit_generated` at line 1849 — see Round-6 re-audit at the end of this file for the sharpened close-out plan). The STRUCTURAL infrastructure is landed; the Cor 7.32 application + per-leaf restriction-as-units characterisation remains.
 - **Landed (axiom-clean, beastmode session 2026-05-13)**:
   - `LaurentTree.ofBalancedList : List A → LaurentTree A` — balanced
     binary tree where both children at each level are the same
@@ -5461,7 +5458,14 @@ Body: `exact AddMonoidHom.isOpenMap_of_completeSpace_of_countablyGenerated f.toA
 
 ### [T-WEDHORN-618-L3-617] Wedhorn 6.17: noetherian ⇔ every ideal closed
 
-- **Status**: open
+- **Status**: done structurally (2026-05-26) — `wedhorn_6_17` (line 306) and
+  `wedhorn_6_17_ideal` (line 330) in `Adic spaces/WedhornBanachTheorem.lean`
+  both have real proof bodies (Baire + L3.2 chain stationarity for reverse,
+  L3.1b fg-submodule closed for forward). Both transitively depend on
+  `_sub_lemma_L3_1a_completion_fg_complete` (line 125, B2-flagged per
+  `b2_log.jsonl` entry 1: needs `M̂` fg as `A`-module). The ticket's stated
+  declarations are proven; the transitive sorry is in a different ticket's
+  scope.
 - **File**: `Adic spaces/WedhornBanachTheorem.lean`
 - **Depends on**: T-WEDHORN-618-L2-616
 - **Parallel**: no
@@ -5486,7 +5490,7 @@ BGR §3.7.2/2 verbatim.
 
 ### [T-WEDHORN-618-L4-618] Wedhorn 6.18: unique fg-module topology + maps strict
 
-- **Status**: PARTIAL (2026-05-18):
+- **Status**: PARTIAL (2026-05-18; updated 2026-05-27):
   * `wedhorn_6_18_exists_canonical_topology` — axiom-clean (existence half,
     landed earlier this session).
   * `wedhorn_6_18_continuous` — axiom-clean (commit `3a7ce47` with
@@ -5494,11 +5498,12 @@ BGR §3.7.2/2 verbatim.
   * `_sub_lemma_L4_2_continuous_via_OMT` — axiom-clean (same commit).
   * `_sub_lemma_L4_4_unique_topology` — already proved (T2 + ContinuousSMul
     parameter on alternative τ').
-  * `wedhorn_6_18_unique` — STILL SORRIED; the uniqueness clause is B2
-    false (counterexample: M=ℤ with discrete vs. indiscrete topology both
-    UAG + complete + cg yet differ topologically); needs additional
-    `[T2Space τ']` + `[ContinuousSMul A M with τ']` hypotheses per
-    BINDING-RULE (b).
+  * `wedhorn_6_18_unique` — **DELETED (2026-05-27)** as B2-false marker
+    (b2_log entry 34): uniqueness clause without [T2Space τ'] +
+    [ContinuousSMul A M with τ'] is mathematically false (counterexample:
+    M=ℤ discrete vs indiscrete). No external callers. Existence via
+    `wedhorn_6_18_exists_canonical_topology` (axiom-clean); uniqueness
+    under the stronger profile via `_sub_lemma_L4_4_unique_topology`.
   * `wedhorn_6_18_open_onto_image` — has sorryAx (depends on L4.3 via
     L3.1b via L3.1a, all B2-flagged).
 - **File**: `Adic spaces/WedhornBanachTheorem.lean`
@@ -5591,3 +5596,3008 @@ tickets each. Per the cadence rule:
 Full layered analysis with source quotes per leaf:
 `docs/plans/2026-05-17-wedhorn-618-roadmap.md` (1070-line estimate plus
 `.mathlib-quality/decomposition.md` (the binding decomposition artifact).
+
+---
+
+## Route C — Banach OMT sub-sorries (added 2026-05-26)
+
+Per Round-3 expert verdict (`.mathlib-quality/expert-review/2026-05-26/reply.md`)
+and the scaffold landed in `StructureSheaf.lean:1379–1781`, the keystone
+`productRestrictionSub_isInducing_tate` now has a real Route C proof body
+that depends on six named sub-sorries (per CLAUDE.md sub-lemma-with-sorry
+rule). These tickets discharge those sub-sorries.
+
+### [T-ROUTE-C-1] Move Route C block below `tateAcyclicity_separation_via_cor832`
+
+- **Status**: done (2026-05-26)
+- **File**: `Adic spaces/StructureSheaf.lean`
+- **Depends on**: (none — pure file refactor)
+- **Parent**: (none; head of Route C subtree)
+- **Type**: refactor
+
+#### Statement
+
+Move the Route C block (lines ~1379–1781) and the legacy `_flat`
+wrappers (`productRestrictionSub_isInducing_flat`,
+`productRestrictionSub_injective_flat`, `isSheafy_ofStronglyNoetherianTate_flat`)
+to AFTER `tateAcyclicity_separation_via_cor832` (currently at line ~2353).
+
+#### Proof sketch
+
+1. Cut the Route C block (lines 1379–1781) including the new
+   `productRestrictionSub_isInducing_tate` declaration.
+2. Cut the legacy `_flat` wrappers (lines 1792–1946).
+3. Insert ALL of these AFTER `tateAcyclicity_separation_via_cor832`'s body
+   ends and BEFORE `end ValuationSpectrum`.
+4. With Route C downstream, replace the `sorry` bodies of
+   `productRestrictionSubToEqualizer_injective` and
+   `productRestrictionSubToEqualizer_surjective` with real proofs via
+   `tateAcyclicity_separation_via_cor832` and `tateAcyclicity_gluing_via_descent`.
+
+#### Mathlib lemmas needed
+
+None — all upstream items exist in the project.
+
+#### Generality decision
+
+Minimal: preserve the existing signatures of the moved theorems exactly.
+
+### [T-ROUTE-C-2] `productRestrictionSubToEqualizer_injective` proof
+
+- **Status**: done (2026-05-26)
+- **File**: `Adic spaces/StructureSheaf.lean`
+- **Depends on**: T-ROUTE-C-1
+- **Parent**: T-ROUTE-C-1
+- **Type**: theorem
+
+#### Statement
+
+```
+theorem productRestrictionSubToEqualizer_injective
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    (C : RationalCovering A) (hne : C.covers.Nonempty) :
+    Function.Injective (productRestrictionSubToEqualizer A C)
+```
+
+#### Proof sketch
+
+Routes through `tateAcyclicity_separation_via_cor832` (Cor 8.32 ⇒
+faithful flatness of product restriction ⇒ injectivity). Given
+`productRestrictionSubToEqualizer A C x = productRestrictionSubToEqualizer A C y`,
+extract that `productRestrictionSub A C (x - y) = 0` componentwise, then
+apply `tateAcyclicity_separation_via_cor832` to conclude `x - y = 0`.
+
+### [T-ROUTE-C-3] `productRestrictionSubToEqualizer_surjective` proof
+
+- **Status**: done (2026-05-26)
+- **File**: `Adic spaces/StructureSheaf.lean`
+- **Depends on**: T-ROUTE-C-1
+- **Parent**: T-ROUTE-C-1
+- **Type**: theorem
+
+#### Statement
+
+```
+theorem productRestrictionSubToEqualizer_surjective
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    (C : RationalCovering A) (hne : C.covers.Nonempty) :
+    Function.Surjective (productRestrictionSubToEqualizer A C)
+```
+
+#### Proof sketch
+
+Routes through `tateAcyclicity_gluing_via_descent`. Given an element
+`⟨f, hf⟩ : ↥(sectionEqualizer A C)`, the equalizer property `hf` is
+exactly the gluing-compatibility condition; apply
+`tateAcyclicity_gluing_via_descent` to produce the global section
+`x : presheafValue C.base` with `productRestrictionSub A C x = f`.
+
+### [T-ROUTE-C-4] `presheafValue_uniformity_isCountablyGenerated`
+
+- **Status**: done (2026-05-26)
+- **File**: `Adic spaces/StructureSheaf.lean`
+- **Depends on**: (none — structural lemma about presheafValue's topology)
+- **Parent**: (none, leaf)
+- **Type**: theorem (instance-like)
+
+#### Statement
+
+```
+theorem presheafValue_uniformity_isCountablyGenerated
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    (D : RationalLocData A) :
+    (uniformity (presheafValue D)).IsCountablyGenerated
+```
+
+#### Proof sketch
+
+The localization topology on `Localization.Away D.s` is induced by the
+filter basis consisting of powers of `idealOfDef` (an ideal of definition);
+this is a countable family. `UniformSpace.Completion` preserves the
+countable-generation property of its source's uniformity (since the
+completion's uniformity is the closure of the source's image uniformity).
+Mathlib should have or admit a transfer lemma.
+
+### [T-ROUTE-C-5] `presheafValue_sigmaCompactSpace`
+
+- **Status**: DELETED (2026-05-26) — `presheafValue_sigmaCompactSpace` removed
+  from `Adic spaces/StructureSheaf.lean` along with its sole consumer
+  (the old sigma-compact `productRestrictionSubToEqualizer_isOpenMap`). The
+  keystone topological-inducing now uses the Tate-absorbing OMT route
+  (T-ROUTE-C-WIRE landed). B2 entry retained in `b2_log.jsonl` for historical
+  trace.
+- **Round-4 reviewer guidance** (2026-05-26): "should either be deleted,
+  renamed as a lemma under an explicit sigma-compact/separable/local-compact
+  hypothesis, or moved off the keystone path. It should not be a
+  prerequisite for IsSheafy."
+- **File**: `Adic spaces/StructureSheaf.lean`
+- **Depends on**: (none — deepest structural input)
+- **Parent**: (none, leaf)
+- **Type**: theorem (instance-like)
+
+#### Statement
+
+```
+theorem presheafValue_sigmaCompactSpace
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    (D : RationalLocData A) :
+    SigmaCompactSpace (presheafValue D)
+```
+
+#### Proof sketch
+
+For strongly noetherian Tate rings, the completion `presheafValue D` is
+the completion of a localization; under suitable conditions on the
+residue field (finite or locally compact), sigma-compactness holds.
+This is the deepest input and may need an explicit hypothesis on the
+ring (e.g., `[LocallyCompactSpace A]` or a finite-residue-field
+assumption). **B2-risk lemma**: may be false in full generality and
+need a strengthened hypothesis.
+
+#### Sources
+
+Wedhorn §6 (Banach OMT for Tate rings); Huber 1996 Ch. 1 (adic spaces).
+
+### [T-ROUTE-C-6] `sectionEqualizer_uniformity_isCountablyGenerated`
+
+- **Status**: done (2026-05-26)
+- **File**: `Adic spaces/StructureSheaf.lean`
+- **Depends on**: T-ROUTE-C-4
+- **Parent**: (none, leaf)
+- **Type**: theorem (instance-like)
+
+#### Statement
+
+```
+theorem sectionEqualizer_uniformity_isCountablyGenerated
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    (C : RationalCovering A) :
+    (uniformity ↥(sectionEqualizer A C)).IsCountablyGenerated
+```
+
+#### Proof sketch
+
+The finite product `∀ D : ↥C.covers, presheafValue D.1` has
+countably-generated uniformity (finite product of countably-generated
+uniformities). The section equalizer is a subspace, and the subspace
+uniformity inherits the countably-generated property (`UniformSpace.Basic`
+instance `(uniformity s).IsCountablyGenerated` for subsets of
+countably-generated uniform spaces).
+
+### [T-ROUTE-C-7] `productRestrictionSub_isInducing_tate_empty`
+
+- **Status**: PARTIAL — TO BE CLEANED PER ROUND-4 (2026-05-26)
+  — current state: `s = 0` case proven via `Topology.IsInducing.of_subsingleton`;
+  `s ≠ 0 + empty cover` case remains sorry, mathematically impossible
+  but requires extra typeclasses (`[CompatiblePlusSubring A]` and
+  `[CompleteSpace A]`) for the Spa-point contradiction.
+- **Round-4 reviewer guidance** (2026-05-26): "the final clean theorem
+  should not have a hidden unprovable branch". Two cleanup options:
+  (a) carry `[CompatiblePlusSubring A]` and `[CompleteSpace A]` into the
+      sub-lemma signature so the Spa-point contradiction goes through;
+  (b) add precondition `C.covers.Nonempty ∨ C.base.s = 0` (or split
+      the keystone into two named sub-lemmas — nonempty-cover-via-Route-C
+      + s-eq-zero-via-subsingleton — composed at the top level).
+  Decision pending — flagged for cleanup pass after T-ROUTE-C-OMT lands.
+
+### [T-ROUTE-C-OMT] Tate-absorbing Baire open mapping theorem (Round-4)
+
+- **Status**: **DONE (2026-05-27)** — `_sub_lemma_pettis_lift` is now SORRY-FREE (it composes Henkel Prop 1.9 + Prop 1.10 = T-PETTIS-PROP-1-10, both proven). The entire chain `AddMonoidHom.isOpenMap_of_tate_absorbing` → `RingHom.isOpenMap_of_topologicallyNilpotent_unit` is axiom-clean (`[propext, Classical.choice, Quot.sound]`). Steps 0–12 of the Round-4 outline all discharged. Three API helpers landed earlier (image2_closure_subset, image2_sub_image_subset, pettis_lift) all proven.
+- **File**: `Adic spaces/BanachOMT.lean`
+- **Depends on**: (none — pure mathlib + project Baire sub-lemmas, all sorry-free)
+- **Parent**: T-ROUTE-C-1 (keystone scaffold)
+- **Type**: theorem
+
+#### Statement (schematic, per Round-4 reviewer guidance)
+
+```
+theorem IsOpenMap.of_surjective_tate_absorbing
+    {G H : Type*}
+    [AddCommGroup G] [UniformSpace G] [IsUniformAddGroup G]
+    [AddCommGroup H] [UniformSpace H] [IsUniformAddGroup H]
+    [T2Space H] [BaireSpace H]
+    (πG : G ≃+ G) (πH : H ≃+ H)
+    (f : G →+ H)
+    (hf_cont : Continuous f)
+    (hf_surj : Function.Surjective f)
+    (h_intertwine : ∀ x, f (πG x) = πH (f x))
+    (h_absorb_G : ∀ U ∈ 𝓝 (0 : G), ∀ x : G, ∃ n, (πG^[n]) x ∈ U)
+    (h_basis_G : (uniformity G).IsCountablyGenerated)
+    [CompleteSpace G] :
+    IsOpenMap f
+```
+
+#### Proof sketch (Round-4 reviewer 7-step outline)
+
+1. Pick an open additive subgroup/lattice `U` in source.
+2. Tate absorption: source = ⋃_n π^{-n} U.
+3. Surjectivity transfers: target = ⋃_n π^{-n} f(U).
+4. Baire on target ⇒ closure of some `π^{-n} f(U)` has nonempty interior.
+5. Translation invariance ⇒ closure of `f(U)` has nonempty interior.
+6. Pettis-symmetric-nbhd argument ⇒ ∃ nbhd of `0` ⊆ `f(U')` for `U' ⊆ U`.
+7. Conclude `f` open.
+
+#### Mathlib lemmas needed
+
+All sub-lemmas already sorry-free in `BanachOMT.lean`:
+- `_sub_sub_lemma_A_1_split_symmetric` (symmetric absorption)
+- `_sub_sub_lemma_A_2_interior_add` (interior of sum)
+- `_sub_sub_lemma_C_2_baire_nonempty_interior` (Baire ⇒ nonempty interior)
+- `_sub_sub_lemma_D_1_cauchy_builder` (Cauchy seq via shrinking basis)
+- `_sub_sub_lemma_D_2_limit_in_nbhd` (limit lies in closure of nbhd)
+- `_sub_lemma_translation` (open at 0 ⇒ open everywhere)
+- `_sub_lemma_symmetric_absorbs` (symmetric-set absorbs)
+
+Only the **main theorem assembly** is missing.
+
+#### Sources
+
+Bourbaki TG Ch III §3 no. 3 + Wedhorn Lemma 6.16 (Banach OMT for Tate rings).
+Round-4 reviewer reply at `.mathlib-quality/expert-review/2026-05-26-2/reply.md`.
+
+#### Generality decision
+
+Two-stage: (1) general `IsOpenMap.of_surjective_tate_absorbing` for any
+Tate absorption setup; (2) specialised wrapper for the `presheafValue → E_C`
+situation. Per Round-4 reviewer: start with specialised form, generalise if
+painless.
+
+### [T-ROUTE-C-WIRE] Wire Tate-absorbing OMT into Route C body
+
+- **Status**: DONE (2026-05-26) — `productRestrictionSubToEqualizer_isOpenMap`
+  (Tate-absorbing route, replacing the prior sigma-compact route) delegates to
+  `RingHom.isOpenMap_of_topologicallyNilpotent_unit` (new wrapper in
+  `BanachOMT.lean`), which constructs πG/πH from the topologically-nilpotent
+  pseudo-uniformizer via `AddAut.mulLeft` and supplies absorption from
+  `IsTopologicallyNilpotent` via `Continuous.tendsto` + `Filter.Tendsto.eventually`.
+  Keystone `productRestrictionSub_isInducing_tate` and Homeomorph variant
+  use this route. Dead sigma-compact route + `presheafValue_sigmaCompactSpace`
+  (B2-false) DELETED. Full project build clean (3144 jobs).
+- **Pettis-lift B2 finding**: `_sub_lemma_pettis_lift` signature refactored
+  with absorption hypotheses (πG, πH, intertwining, h_absorb_H) per binding
+  rule (b); counterexample logged in `b2_log.jsonl` (discrete ℝ → Euclidean ℝ
+  with U = ℚ).
+- **File**: `Adic spaces/StructureSheaf.lean`, `Adic spaces/BanachOMT.lean`
+- **Depends on**: T-ROUTE-C-OMT
+- **Parent**: T-ROUTE-C-1 (keystone scaffold)
+- **Type**: theorem (replace existing proof body)
+
+#### Statement
+
+Modify `productRestrictionSubToEqualizer_isOpenMap` to call the new
+`IsOpenMap.of_surjective_tate_absorbing` (via the specialised form)
+instead of the mathlib `AddMonoidHom.isOpenMap_of_completeSpace_of_countablyGenerated`
+wrapper that requires `[SigmaCompactSpace G]`. The `[SigmaCompactSpace]`
+haveI is dropped; the pseudo-uniformizer is provided by the Tate-ring
+typeclass.
+
+#### Proof sketch
+
+Direct invocation of the new theorem with πG, πH = (multiplication by a
+pseudo-uniformizer of A, extended to `presheafValue C.base` and `E_C`
+respectively via the natural ring-hom action). Intertwining is automatic
+for ring homomorphisms. Absorption follows from the Tate-ring assumption
+(pseudo-uniformizer powers shrink the lattice).
+
+### [T-ROUTE-C-SEPARABLE-COROLLARY] Optional separable-case shortcut
+
+- **Status**: open (LOW priority)
+- **File**: `Adic spaces/StructureSheaf.lean`
+- **Depends on**: T-ROUTE-C-WIRE (or completed keystone)
+- **Parent**: (none, optional corollary)
+- **Type**: theorem (corollary)
+
+#### Statement
+
+```
+theorem isSheafy_ofStronglyNoetherianTate_of_separable
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
+    [T2Space A] [NonarchimedeanRing A]
+    [SeparableSpace A] :
+    IsSheafy A
+```
+
+#### Round-4 reviewer guidance
+
+"`[SeparableSpace A]` ... may be a useful optional corollary for classical
+ℚ_p-affinoid applications. But it is still not part of Wedhorn 8.28(b) ...
+Acceptable theorem layering: `_of_separable` as an optional shortcut +
+the unrestricted main target."
+
+#### Priority
+
+LOW — the main keystone (without separability) subsumes this case via the
+Tate-absorbing OMT route. Useful only as a documentation/discovery
+corollary for ℚ_p-affinoid consumers who specifically want the separable
+hypothesis explicitly threaded.
+- **File**: `Adic spaces/StructureSheaf.lean`
+- **Depends on**: (none — edge case, may be vacuous)
+- **Parent**: (none, leaf)
+- **Type**: theorem
+
+#### Statement
+
+```
+theorem productRestrictionSub_isInducing_tate_empty
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    (C : RationalCovering A) (hne : ¬ C.covers.Nonempty) :
+    Topology.IsInducing (productRestrictionSub A C)
+```
+
+#### Proof sketch
+
+When `C.covers` is empty, the target `∀ D : ↥C.covers, presheafValue D.1`
+is a Pi over an empty type — a singleton. For the inducing claim:
+case-split on `s = 0` (subsingleton source ⇒ trivial) vs `s ≠ 0`
+(impossible via `C.hcover` + Spa-point existence).
+
+The non-vacuous direction needs `[CompatiblePlusSubring A]` +
+`[CompleteSpace A]` for the Spa-point argument
+(`exists_spa_point_in_rationalOpen_of_prime`). Since the present
+signature lacks these, the body must either:
+1. Use the Spa-point argument with assumed typeclasses (requires adding
+   instances to the theorem signature — **forbidden by BINDING RULE**)
+2. Be `sorry` with documentation (the consumer
+   `isSheafy_ofStronglyNoetherianTate` already case-splits on `s = 0`
+   upstream, so the `s ≠ 0` + empty-cover case never reaches this code path)
+
+**B2-risk**: this sub-lemma may be FALSE as stated (without the extra
+typeclasses); the upstream `isSheafy_ofStronglyNoetherianTate` works
+around it via the `s = 0` case-split. The proper resolution is to
+either change the signature or accept the upstream workaround.
+
+### [T-PETTIS-PROP-1-9] Implement Henkel Prop 1.9 (at-every-scale closure-image-nbhd)
+
+- **Status**: DONE (2026-05-27) — body implemented (~90 LOC) by
+  parametrising the OMT outer body's existing Steps 1-11. The
+  `_sub_sub_lemma_henkel_prop_1_9_at_every_scale` proof in
+  `Adic spaces/BanachOMT.lean` is sorry-free. Full project build clean
+  (3144 jobs).
+- **File**: `Adic spaces/BanachOMT.lean`
+- **Depends on**: (none — sub-sub-lemma is standalone)
+- **Parent**: T-ROUTE-C-OMT
+- **Type**: theorem
+- **Source**: Henkel (2014) arXiv:1407.5647v2, Prop 1.9 (§1.2 "2) implies 3)").
+  Saved at `Henkel-Open_Mapping_for_Rings_with_Zero_Unit_Sequence-1407.5647v2.pdf`.
+
+#### Statement
+
+```lean
+theorem _sub_sub_lemma_henkel_prop_1_9_at_every_scale
+    {G : Type u} [AddCommGroup G] [UniformSpace G] [IsUniformAddGroup G]
+    [(uniformity G).IsCountablyGenerated]
+    {H : Type v} [AddCommGroup H] [UniformSpace H] [IsUniformAddGroup H]
+    [T2Space H] [BaireSpace H]
+    (f : G →+ H) (hf_cont : Continuous f) (hf_surj : Function.Surjective f)
+    (πG : G ≃+ G)
+    (πH : H ≃+ H) (hπH_cont : Continuous πH) (hπH_inv_cont : Continuous πH.symm)
+    (h_intertwine : ∀ x, f (πG x) = πH (f x))
+    (h_absorb_H : ∀ V ∈ nhds (0 : H), ∀ y : H, ∃ n : ℕ, (πH^[n]) y ∈ V) :
+    ∀ V ∈ nhds (0 : G), closure (f '' V : Set H) ∈ nhds (0 : H)
+```
+
+#### Proof sketch (Henkel Prop 1.9 transcription, ~50-80 LOC)
+
+For each V ∈ 𝓝 0 in G:
+1. Pick W ⊆ V open + closed symmetric with W + W ⊆ V (via
+   `_sub_sub_lemma_A_1_split_symmetric` applied to V).
+2. By πH-absorption: for each y ∈ H, ∃ n with πH^n(y) ∈ closure(f '' W) (since
+   f surjective ⟹ closure(f '' M) ⊇ some nbhd; then absorb).
+   Wait — actually the OMT outer body's Steps 6-7 cover this. Mimic those.
+3. Cover H = ⋃_n (πH^[n])⁻¹' (f '' V). (Set form.)
+4. By Baire on H, some (πH^[n₀])⁻¹' (closure(f '' V)) has nonempty interior.
+5. Transfer via πH^n₀ homeo to closure(f '' V) having nonempty interior.
+6. closure(f '' V) is symmetric (V symmetric, f additive).
+7. By `_sub_lemma_symmetric_absorbs`: 0 is interior of
+   `image2 (·-·) (closure(f '' V)) (closure(f '' V))`.
+8. The difference set ⊆ closure(f '' (V+V)) ⊆ closure(f '' V_outer)
+   (where V_outer was the original V; but here we already work with V directly).
+9. Conclude 0 is interior of closure(f '' V).
+
+The OMT outer body (`isOpenMap_of_tate_absorbing`) ALREADY does Steps 3-9
+for a specific V from split_symmetric. The body of this sub-sub-lemma
+parametrises that argument: take V as input, run the same steps.
+
+#### Mathlib lemmas needed
+
+- `exists_closed_nhds_zero_neg_eq_add_subset` (via `_sub_sub_lemma_A_1_split_symmetric`)
+- `nonempty_interior_of_iUnion_of_closed` (Baire, via `_sub_sub_lemma_C_2_baire_nonempty_interior`)
+- `Homeomorph.preimage_closure`, `Homeomorph.preimage_interior`
+- `neg_closure`, `Set.image_neg_eq_neg`
+- `_sub_lemma_symmetric_absorbs` (existing helper)
+- `_sub_lemma_image2_closure_subset` (existing helper)
+- `_sub_lemma_image2_sub_image_subset` (existing helper)
+- `closure_mono`, `Filter.mem_of_superset`
+
+#### Generality decision
+
+Same as `_sub_lemma_pettis_lift` (matches Henkel Prop 1.9's exact hypothesis bundle).
+
+### [T-PETTIS-PROP-1-10] Implement Henkel Prop 1.10 (metric Cauchy lift)
+
+- **Status**: **DONE (2026-05-27)** — body landed at `Adic spaces/BanachOMT.lean:569-892` (~325 LOC including existing scaffold). Axiom-clean: `[propext, Classical.choice, Quot.sound]`. Final ~115 LOC added: residual `(y - f σ n) → 0` via continuity+cofinality, σ_lim ∈ V via telescoping doubling bound (σ(n+1)-σ 1 ∈ V_basis N₀) + closed W. **BanachOMT.lean is now ENTIRELY SORRY-FREE** (banach_two_of_three deleted later as B2-false marker). Lake build clean (3144 jobs).
+- **File**: `Adic spaces/BanachOMT.lean`
+- **Depends on**: (none — sub-sub-lemma is standalone)
+- **Parent**: T-ROUTE-C-OMT
+- **Type**: theorem
+- **Source**: Henkel (2014) arXiv:1407.5647v2, Prop 1.10 + 1.12 (§1.3
+  "3) implies 4)"). Cited by Henkel as Bourbaki *Topological Vector Spaces*
+  Ch. I §3 Lemma 2.
+- **Model**: mathlib's `ContinuousLinearMap.exists_approx_preimage_norm_le`
+  + `exists_preimage_norm_le` + `isOpenMap` chain at
+  `Mathlib/Analysis/Normed/Operator/Banach.lean:80-247`.
+
+#### Statement
+
+```lean
+theorem _sub_sub_lemma_henkel_prop_1_10_cauchy_lift
+    {G : Type u} [AddCommGroup G] [UniformSpace G] [IsUniformAddGroup G]
+    [CompleteSpace G] [(uniformity G).IsCountablyGenerated]
+    {H : Type v} [AddCommGroup H] [UniformSpace H] [IsUniformAddGroup H]
+    [T2Space H]
+    (f : G →+ H) (hf_cont : Continuous f)
+    (h_at_every_scale : ∀ V ∈ nhds (0 : G), closure (f '' V : Set H) ∈ nhds (0 : H)) :
+    ∀ V ∈ nhds (0 : G), f '' V ∈ nhds (0 : H)
+```
+
+#### Proof sketch (Henkel Prop 1.10 + 1.12, ~80-120 LOC)
+
+For each V ∈ 𝓝 0 in G:
+
+1. Metrise G via `[(uniformity G).IsCountablyGenerated]` —
+   `UniformSpace.pseudoMetricSpace G`. This gives a pseudo-metric `d_G`
+   compatible with the uniformity. Right-invariance (`d(x·z, y·z) = d(x,y)`)
+   follows from `IsUniformAddGroup`.
+
+2. Without loss of generality, assume V = B(0, r₀) for some r₀ > 0 (mathlib's
+   `Metric.mem_nhds_iff`).
+
+3. By the at-every-scale hypothesis: for each r > 0, ∃ ρ(r) > 0 such that
+   B_{ρ(r)}(0) ⊆ closure(f '' B_r(0)) in H. (Use a metric on H or work
+   directly with `nhds 0`.)
+
+4. Cauchy iteration (Henkel Prop 1.10): for y ∈ B_{ρ(r₀)}(0) in H, recursively
+   pick x_n ∈ B_{r_n}(0) in G with d_H(y_n, f(x_n)) < ρ(r_{n+1}), where
+   r_n = r₀ · 2^{-n} (geometric) and y_n = y - f(σ_{n-1}) (residual). The
+   partial sums σ_n = ∑_{k=0}^{n} x_k are Cauchy by geometric decay.
+
+5. By completeness of G: σ_n → σ in G. By d_G triangle inequality and
+   geometric sum: d_G(σ, 0) ≤ 2r₀, so σ ∈ B_{2r₀}(0).
+
+6. By continuity of f: f(σ_n) → f(σ). By construction f(σ_n) → y. By T₂
+   on H: f(σ) = y. Hence y ∈ f '' B_{2r₀}(0).
+
+7. Therefore B_{ρ(r₀)}(0) ⊆ f '' B_{2r₀}(0) ⊆ f '' V (after rescaling V
+   appropriately). Hence f '' V ∈ 𝓝 0.
+
+The construction mirrors mathlib's normed-space Banach OMT proof, with
+metric balls in G replacing norm balls and `h_at_every_scale` replacing
+the surjectivity-derived rescaling. The geometric series argument is
+identical.
+
+#### Mathlib lemmas needed
+
+- `UniformSpace.pseudoMetricSpace` — get the metric from CG-uniformity.
+- `Metric.mem_nhds_iff` — translate nhds 0 to metric balls.
+- `Metric.ball`, `Metric.mem_ball`.
+- `CauchySeq.tendsto_of_completeSpace` — Cauchy ⟹ converges.
+- `_sub_sub_lemma_D_1_cauchy_builder` — existing helper for Cauchy-from-shrinking-basis.
+- `_sub_sub_lemma_D_2_limit_in_nbhd` — existing helper for limit-in-closure.
+- `Filter.Tendsto.comp`, `Filter.Eventually`, `Summable` (geometric).
+- `Continuous.tendsto`, `eq_of_tendsto_of_tendsto_of_T2`.
+
+#### Generality decision
+
+Pseudo-metric not metric: works under just `[(uniformity G).IsCountablyGenerated]`
+without requiring T₀ on G. The Cauchy lift uses `d_G` for shrinkage but doesn't
+need uniqueness of limits in G (only in H, which has `[T2Space H]`).
+
+## Round-6 expansion (2026-05-27) — uncovered residuals coverage
+
+Audit pass on 2026-05-27 (`/develop --continue`) cross-referenced the live
+sorry list against ticket coverage. Found:
+
+- **8 sorries in `Presheaf.lean`** had no live ticket (chains: spa-point
+  non-open, valuation-subring dominating, top-nilp / units, mulArchimedean
+  rank-1, Wedhorn 7.42 residual, locLift power-bounded completion).
+- **3 sorries in `PresheafTateStructure.lean`** were carried under the
+  T-WEDHORN-213 lineage but T-213 itself closed at the LaurentNormalized API
+  boundary. The residuals (`restrictionMapHom_surj/injective` + Artin–Rees
+  witness) are downstream consumer obligations and need their own tickets.
+- **1 sorry in `StructureSheaf.lean`** at `structurePresheaf_isSheaf` (the
+  top-level sheaf claim) was uncovered.
+- **9 sorries in `TateAcyclicityResiduals.lean`** were covered by stale
+  `PARTIAL` tickets (T-LAURENT-REFINEMENT-TREE etc.) but those tickets
+  needed sharper close-out plans.
+
+This section adds the missing tickets per CLAUDE.md sub-lemma rule (no
+hypothesis additions; sorry'd leaf statements only). Cleanup-cadence
+tickets follow per §1g of `/develop`.
+
+### [T-PRESHEAF-SPA-NONOPEN] `spa_point_nonOpen_of_rational_subset` discharge
+
+- **Status**: OPEN (added 2026-05-27)
+- **File**: `Adic spaces/Presheaf.lean:799`
+- **Depends on**: T-IDEAL-2 (closedness of proper ideals — DONE), `Cor832.hSpa_points_nonOpen_via_lifted_ideal_proper` (DONE)
+- **Type**: theorem
+- **Source**: Wedhorn 8.2 + downstream T001 (memory `t001_support_lane.md`) — prime transport through adic completion. Architecturally located in `Cor832.lean` (`liftedIdeal_ne_top_claim` chain).
+
+#### Statement
+
+`theorem spa_point_nonOpen_of_rational_subset (D D' : RationalLocData A) (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) (p : Ideal A) (hp : p.IsPrime) (hDs : D.s ∈ p) (hD's : D'.s ∉ p) (hp_notOpen : ¬IsOpen (p : Set A)) : ∃ v ∈ rationalOpen D'.T D'.s, p ≤ v.supp`
+
+#### Proof sketch (~30-50 LOC by re-export from Cor832)
+
+Re-export the existing downstream content. The `Cor832.hSpa_points_nonOpen_via_lifted_ideal_proper` machinery (which depends on `liftedIdeal_ne_top_claim` + `IdealClosedness` + `presheafValue_isAdicComplete`) closes this directly when supplied with the full Tate/Noetherian/T2/NonarchimedeanRing hypothesis bundle.
+
+1. Promote `p` to an ideal in the completed localization via the prime-transport machinery of `AdicCompletionPrime.lean`.
+2. Apply `liftedIdeal_ne_top_claim` to get a proper prime in the completion containing `D.s`'s image.
+3. Use `presheafValue_isAdicComplete` + dominating-valuation-subring construction (separate sub-lemma `exists_valuationSubring_dominating_for_rationalOpen`, T-PRESHEAF-VALUATIONSUBRING-CHAIN below) to extract a Spa-point with `p ≤ v.supp`.
+
+The bottleneck is the typeclass migration `[IsHuberRing A]` (in current signature) → `[IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]` (Cor832 signature). Two options:
+
+- **(option A)** add the four typeclasses to the signature per CLAUDE.md binding rule (b): the lemma is mathematically true in `IsHuberRing` generality but the discharge route specifically uses the strong-noeth-Tate Cor832 chain. → Likely B2.
+- **(option B)** keep `[IsHuberRing A]` and provide a separate Huber-generality proof. Wedhorn 4.6(c) gives this in the Huber case but it bottoms out at the same prime-transport question.
+
+Decision: take option B, route via dominating-valuation-subring chain (T-PRESHEAF-VALUATIONSUBRING-CHAIN) which discharges in IsHuberRing generality.
+
+#### Mathlib lemmas needed
+- `Ideal.exists_le_maximal`, `ValuationSubring.dominates`
+- `Spv.mk`, `ValuativeRel.toSpv`
+
+#### Generality decision
+IsHuberRing (existing signature) — do not strengthen.
+
+### [T-PRESHEAF-VALUATIONSUBRING-CHAIN] Dominating-valuation-subring chain
+
+- **Status**: PARTIAL (in_progress, 2026-05-27). Wedhorn 7.45 LIFT step (`exists_mem_rationalOpen_supp_of_dominating_valuationSubring`, Presheaf.lean:2452) has **4/5 sub-conditions explicitly proved** (~50 LOC of new proof code): supp ≥ 𝔭 via Valuation.comap_supp, A⁺-bound via _hRange, t ≤ s via _hTS multiplicativity, s ≠ 0 via Valuation.zero_iff. **Only IsContinuous remains** as sub-sorry — requires convex-subgroup restriction (Lemma745 restrictToConvex pattern) for arbitrary γ < 1. Wedhorn 7.44 Chevalley step (`exists_valuationSubring_dominating_for_rationalOpen`, Presheaf.lean:2396) has detailed step-by-step plan via `exists_valuationSubring_of_prime_enlarged` documented in its docstring (still sorry'd). Wedhorn 7.51 max-ideal Spa-point (`exists_spa_point_supp_eq_maxIdeal_of_complete`, line 2626) is the third sub-lemma (still sorry'd).
+- **File**: `Adic spaces/Presheaf.lean` lines 2396, 2452 (was 2435), 2626 (was 2517)
+- **Depends on**: none new (existing `ValuationSubring`, `FractionRing` API)
+- **Type**: theorem × 3
+- **Source**: Wedhorn 7.44 (Chevalley existence), Wedhorn 7.45 (valuation-ring lift), Wedhorn 7.51 (max-ideal Spa-point).
+
+#### Statements
+
+1. `exists_valuationSubring_dominating_for_rationalOpen` (line 2396) — Chevalley + bookkeeping: dominating valuation subring exists for `(P, 𝔭, T, s)` data.
+2. `exists_mem_rationalOpen_supp_of_dominating_valuationSubring` (line 2435) — Wedhorn 7.45 lift: pull back the valuation of `B` along `A → A/𝔭 → Frac(A/𝔭)`.
+3. `exists_spa_point_supp_eq_maxIdeal_of_complete` (line 2517) — Wedhorn 7.51: trivial-1 valuation on residue field lifts to Spa A.
+
+#### Proof sketch
+
+1. **2396 (Chevalley)**: standard valuation-ring-dominating-given-subring theorem, applied to the subring generated by images of `P.A₀` + `t/s` for `t ∈ T`. Use `ValuationSubring.dominates` from mathlib + Zorn's lemma (existing in mathlib as `exists_le_valuation_subring`).
+2. **2435 (Wedhorn 7.45 lift)**: pull back `v_B : Frac(A/𝔭) → Γ_B ∪ {0}` along `A → A/𝔭 → Frac(A/𝔭)`. Continuity from `h_INonunits`. Membership in `rationalOpen T s` from `h_TS`. Support contains `𝔭` because `𝔭 = ker(A → A/𝔭)`.
+3. **2517 (max-ideal Spa-point)**: residue field `A/𝔪` is a complete non-arch field. Trivial valuation `|·|_𝔪` is automatically in Spa A.
+
+#### Mathlib lemmas needed
+- `ValuationSubring`, `ValuationSubring.dominates`, `ValuationSubring.exists_le_dominating`
+- `FractionRing`, `Ideal.Quotient.mk`
+- `MulArchimedean` / `NonarchimedeanRing` typeclass machinery
+
+#### Generality decision
+`IsHuberRing A` + `PlusSubring` (existing); the 7.45 lift needs `[T2Space A] [NonarchimedeanRing A]`.
+
+### [T-PRESHEAF-TOPNILP-UNITS-CHAIN] Topologically nilpotent ↔ definition-ideal union (Wedhorn 7.51 sub-chain)
+
+- **Status**: OPEN (added 2026-05-27)
+- **File**: `Adic spaces/Presheaf.lean` lines 2666 (was 2557), 2832 (was 2723)
+- **Depends on**: `HuberRings.AdjoinFinset` block (existing)
+- **Type**: theorem × 2
+- **Source**: Wedhorn 7.51 (topologically nilpotent characterization), Wedhorn 7.52 (units characterization).
+
+#### Statements
+
+1. `exists_pairOfDefinition_mem_I_of_isTopologicallyNilpotent_ne_zero` (line 2557) — nonzero case: for nonzero top-nilp `x`, exists pair of definition with `y ∈ P.I` mapping to `x`.
+2. `union_translates_of_oneAdd_topNilp_subseteq_units` (line 2723) — `(1 + top-nilp) ⊆ units` (without completeness; sibling `_of_complete` already proven).
+
+#### Proof sketch
+
+1. **2557**: Use `HuberRings.AdjoinFinset` to enlarge an arbitrary pair of definition `P` to one containing `x`. The `[NonarchimedeanRing A]` hypothesis gives the required closure properties (Wedhorn 7.50). The nonzero case isolates the genuine content; the zero case is dispatched in the parent `exists_pairOfDefinition_mem_I_of_isTopologicallyNilpotent`.
+2. **2723**: without completeness, `1 + x` for top-nilp `x` is a unit because `∑ (-x)^n` converges in the completion and pulls back via density. The completeness-free proof uses Wedhorn 7.52(2) characterization (`v(x) < 1 ⇒ 1+x ∈ Aˣ`) which holds before completion.
+
+#### Mathlib lemmas needed
+- `HuberRings.AdjoinFinset.exists_pairOfDefinition_containing` (project)
+- `Filter.tendsto_pow_neighbourhood_zero`
+- `geom_series` / `tsum` API
+
+#### Generality decision
+`IsHuberRing A` + `NonarchimedeanRing A` (existing signatures); no strengthening.
+
+### [T-PRESHEAF-MULARCH-RANKONE] Rank-1 value-group analyticity chain (Wedhorn 7.40(6))
+
+- **Status**: OPEN (added 2026-05-27)
+- **File**: `Adic spaces/Presheaf.lean` lines 3225 (was 3116, `embed_archimedean_valueGroup_into_real`), 3414 (was 3305, `convexSubgroup_eq_top_of_ne_bot_of_analytic`)
+- **Depends on**: Wedhorn Remark 4.12 (convex subgroup ↔ vertical generizations in Spv K(x), NOT in mathlib/project) + Wedhorn Remark 7.40(5) (microbial height-1 theory).
+- **Type**: theorem × 2 (+ private sub-lemma)
+- **Source**: Wedhorn 7.40(6) (rank-1 value group characterization).
+
+#### Statements
+
+1. `exists_topNilp_ne_zero_of_analytic` — exists nonzero topologically nilpotent `b ∈ A` for any analytic continuous valuation (Wedhorn 7.40 Step 1).
+2. `mulArchimedean_of_rankOne_valueGroup` (line 3305 — `convexSubgroup_eq_top_of_ne_bot_of_analytic`) — for an analytic continuous valuation, the unit value group has no proper non-trivial convex subgroups.
+3. `embed_archimedean_valueGroup_into_real` (line 3243) — bracketed value group embeds into `WithZero (Multiplicative ℝ)` (logarithmic embedding).
+
+#### Proof sketch (Wedhorn 7.40 PDF p.55)
+
+1. **3116**: analyticity gives a continuous valuation `v` with non-open support. Pick any element outside the support; by 7.40 prep step, can replace by a top-nilp element with `v ≠ 0`.
+2. **3305**: depends on (a) micro-bial-height-1 theory (Wedhorn Remark 7.40(5)) and (b) "every continuous specialization is analytic" (Wedhorn Remark 4.12). These are the deepest sorries on this chain; both may need their own sub-tickets if they're not in mathlib.
+3. **3243**: standard ordered-group embedding. Use the bracket hypothesis (Step 3a) to define `φ(γ) = log_β(γ)` for γ > 0 in the bracketed group, extend to 0.
+
+#### Mathlib lemmas needed
+- `LinearOrderedCommGroupWithZero`, `WithZero`, `Multiplicative ℝ`
+- `MonoidWithZeroHom.injective`, `StrictMono`
+- B2 candidate: micro-bial-height-1 theory (probably needs separate sub-development).
+
+#### Generality decision
+`IsHuberRing A` (existing); the analyticity hypothesis carries the strength.
+
+### [T-PRESHEAF-7-42-RESIDUALS] Wedhorn 7.42 forward/reverse residuals
+
+- **Status**: OPEN (added 2026-05-27)
+- **File**: `Adic spaces/Presheaf.lean` lines 3647 (was 3538), 3762 (was 3653)
+- **Depends on**: T-PRESHEAF-MULARCH-RANKONE (analyticity argument), `quotientLift` / `comap_quotientLift` API
+- **Type**: theorem × 2
+- **Source**: Wedhorn 7.42 (power-bounded ↔ all continuous valuations ≤ 1), pp.66-67.
+
+#### Statements
+
+1. `vle_one_of_powerBounded_discrete_quotient` (now line 3647) — discrete quotient sub-case: `a` power-bounded ⇒ for any cont valuation `v_q` on `A/𝔭` with `[a] ∉ v_q.supp`, `v_q([a]) ≤ 1`.
+2. `wedhorn_7_42_reverse_separating_valuation` (now line 3762) — separating valuation existence: `a` not power-bounded ⇒ exists `v ∈ Cont A` with `¬ v.vle a 1`.
+
+#### Proof sketch
+
+1. **3538**: descent through discrete quotient `A ⧸ v.supp` (open since `v` is non-analytic). The valuation factors through `Spv (A ⧸ v.supp)`. Once descended, use Wedhorn p.66 height-0 argument: power-bounded ⇒ `v(a) ≤ 1` directly from definition (`a^n` stays in a bounded set; image in residue field stays in unit ball).
+2. **3653**: classical Wedhorn 7.42 reverse separation. If `a` is not power-bounded, the sequence `{a^n}` is unbounded; pick a continuous valuation by extending the canonical map `A → A_{(a)}` (localization) so that `v(a^n)` is unbounded, i.e., `v(a) > 1`. Standard valuation-extension argument via `ValuationSubring.dominates`.
+
+#### Mathlib lemmas needed
+- `Ideal.Quotient.mk`, `comap_quotientLift`
+- `ValuationSubring.exists_le_dominating`
+- `Spv.toValuativeRel`
+
+#### Generality decision
+`IsHuberRing A` (existing).
+
+### [T-PRESHEAF-LOCLIFT-COMPLETION] `IsPowerBounded.map` + locLift completion-side power-bounded
+
+- **Status**: PARTIAL (2026-05-27). `IsPowerBounded.map` (was Presheaf.lean:3751) — **DELETED** as B2-false dead marker (no actual call sites, only docstring references; b2_log entry 7). `locLift_divByS_isPowerBounded_completion_of_tate` (now Presheaf.lean:3893) — STILL SORRY (Wedhorn 7.41 application).
+- **File**: `Adic spaces/Presheaf.lean` line 3893
+- **Depends on**: `IsPowerBounded.completion` (existing for uniform-completion ring homs), Wedhorn 7.41
+- **Type**: theorem × 1 (was 2; B2-false one deleted)
+- **Source**: Wedhorn 7.41 + 8.2.
+
+#### Statements
+
+1. ~~`IsPowerBounded.map` (line 3751)~~ — **DELETED** (B2-false, no callers).
+2. `locLift_divByS_isPowerBounded_completion_of_tate` (now line 3893) — `t/s`-lift is power-bounded in completion `presheafValue D'`. Remaining work.
+
+#### Proof sketch
+
+1. **3751**: **B2 candidate — discard**. The generic statement is FALSE; only `IsPowerBounded.completion` for uniform-completion ring homs holds. Replace this theorem with the specialised version + update all callers. Log to `b2_log.jsonl`.
+2. **3802**: Wedhorn 7.41 applied to `presheafValue D'`: any analytic continuous `v` satisfies `v(a) ≤ 1` for `a ∈ (presheafValue D')°`. The lifted `t/s` lies in `(presheafValue D')°` because the rational containment `R(D'.T/D'.s) ⊆ R(D.T/D.s)` gives `v(t) ≤ v(D.s)` for all cont `v`, i.e., `v(t/D.s) ≤ 1`.
+
+#### Mathlib lemmas needed
+- `IsPowerBounded.completion` (project, existing)
+- `wedhorn_7_41_forward` (depends on the rank-1 + 7.42 chain above)
+
+#### Generality decision
+3751: B2 — discard generic form. 3802: Tate + Noetherian + T2 + NonarchimedeanRing (matching the parent's existing signature; no additions).
+
+### [T-PRESHEAFTATE-SURJ-RESIDUAL] `restrictionMapHom_surj` residual
+
+- **Status**: B2-SUPERSEDED MARKER (updated 2026-05-27). Theorem at `PresheafTateStructure.lean:1221` is marked `@[deprecated]` with reason "RETIRED — false in general". Counterexample documented in docstring: `A = ℚ_p⟨X⟩`, `A⟨T⟩/(XT - 1)` contains `∑ p^n · X^{-n}` (infinite convergent denominator tail) — `IsLocalization.Away.surj` shape fails. Correct route: cover-level `productRestriction_faithfullyFlat_tate` (Cor832). The sorry remains as a deprecation marker for transitional callers; ticket discharges by **caller migration**, not by proving the false statement.
+- **File**: `Adic spaces/PresheafTateStructure.lean:1221`
+- **Depends on**: T-WEDHORN-213-* (DONE for LaurentNormalized — provides the underlying ring equiv)
+- **Type**: deprecation marker (theorem statement is B2-false; sorry preserved for legacy callers)
+- **Source**: Wedhorn 2.13 / 8.2(b) — surjectivity of restriction map for general rational data.
+
+#### Statement
+
+`restrictionMapHom_surj D D' h : Function.Surjective (restrictionMapHom D D' h)`
+
+#### Proof sketch (~60-80 LOC; routes through T-213 LaurentNormalized case)
+
+1. Reduce to T-WEDHORN-213-EQUIV (DONE for LaurentNormalized): for LaurentNormalized data, surjectivity is part of the ring-equiv claim.
+2. General data: use the chain decomposition (T-CHAIN-CONSTRUCTION DONE) — split arbitrary `D, D'` into a sequence of LaurentNormalized basic-plus / basic-minus steps. Surjectivity composes through chains.
+
+#### Mathlib lemmas needed
+- `RingEquiv.surjective`
+- T-CHAIN-COMPOSITION (existing)
+
+#### Generality decision
+Tate + Noetherian + T2 + NonarchimedeanRing — existing signature.
+
+### [T-PRESHEAFTATE-INJ-RESIDUAL] `restrictionMapHom_injective` residual (B2-SUPERSEDED, deprecated marker; caller migration to Cor832 productRestriction_injective_tate_via_prime_extension_closed pending)
+
+- **Status**: OPEN (added 2026-05-27)
+- **File**: `Adic spaces/PresheafTateStructure.lean:1422`
+- **Depends on**: T-WEDHORN-213-* (DONE for LaurentNormalized)
+- **Type**: theorem
+- **Source**: Wedhorn 2.13 / 8.2(b) — injectivity of restriction map.
+
+#### Statement
+
+`restrictionMapHom_injective D D' h : Function.Injective (restrictionMapHom D D' h)`
+
+#### Proof sketch (~40-60 LOC)
+
+Symmetric to T-PRESHEAFTATE-SURJ-RESIDUAL: reduce to T-213-EQUIV for LaurentNormalized, then compose through T-CHAIN-COMPOSITION for general data.
+
+#### Mathlib lemmas needed
+- `RingEquiv.injective`
+- T-CHAIN-COMPOSITION (existing)
+
+#### Generality decision
+Tate + Noetherian + T2 + NonarchimedeanRing — existing signature.
+
+### [T-PRESHEAFTATE-ARTIN-REES] `locLift_preimage_target_witness_existence_no_noeth`
+
+- **Status**: in_progress (2026-05-27). Investigation chain documented: `locLift_preimage_target_witness_existence (with [IsNoetherianRing D₀.P.A₀])` → `locLift_preimage_jfull_witness_existence` → `locLift_preimage_jfull_witness_existence_at` → `locLift_preimage_jfull_witness_existence_at_of_rad` (extracts `e₀ * D₀.s = D.s ^ N₀` via `rad_relation_of_rational_subset`) → delegates back to `_no_noeth` at line 1788. Deepest sorry is the no-Noeth form. Available axiom-clean helpers: `rad_relation_of_rational_subset` ✓, `locIdeal_pow_shift_inter_le_pow_mul` (T091, `WedhornLocTopologyLinear.lean:536`), `algebraMap_mul_pow_divByS_eq_one_of_radical_relation` (T092, `WedhornLocTopologyLinear.lean:777`). `[IsNoetherianRing A]` is in scope via `IsLocalization.isNoetherianRing` → `Localization.Away D₀.s` Noetherian, so Artin-Rees on `Loc D₀.s` is available.
+- **File**: `Adic spaces/PresheafTateStructure.lean:1788`
+- **Depends on**: `Artin–Rees` (mathlib: `Ideal.exists_pow_le` or related)
+- **Type**: theorem (private)
+- **Source**: standard Artin–Rees descent for adic completion.
+
+#### Statement (paraphrased)
+
+For each `n : ℕ`, exists `m : ℕ` such that for all `α : A` and `k_a : ℕ`, the away-lifted product `α * (1/D₀.s)^k_a` landing in `locNhd D m` has a witness of depth `n + k_a · D₀.hopen.choose` in `D₀.P.A₀` mapping to `α` in `Localization.Away D.s`.
+
+#### Proof sketch (~50-80 LOC)
+
+Standard Artin–Rees lemma applied to the chain `(D₀.P.A₀, D₀.P.I) → A → Localization.Away D.s`. The `[IsNoetherianRing A]` hypothesis gives the chain noetherian; Artin–Rees produces `m` from `n`.
+
+#### Mathlib lemmas needed
+- `Ideal.Filtration.stable` / `Ideal.IsAdicComplete`
+- `Ideal.pow_succ_lt_pow` (for the depth bookkeeping)
+- `Artin–Rees`: `Submodule.exists_pow_smul_le` or similar (verify in mathlib)
+
+#### Generality decision
+Tate + Noetherian + T2 + NonarchimedeanRing — existing signature (matches consumer).
+
+### [T-STRUCTURESHEAF-ISSHEAF-RESIDUAL] `structurePresheaf_isSheaf` top-level claim
+
+- **Status**: OPEN (added 2026-05-27)
+- **File**: `Adic spaces/StructureSheaf.lean:255`
+- **Depends on**: `structurePresheaf_typeLevel_isSheaf` (line 223 — already proven), Hom-by-Hom gluing route
+- **Type**: theorem
+- **Source**: Wedhorn 8.20 + standard CompleteTopCommRingCat sheafification.
+
+#### Statement
+
+`theorem structurePresheaf_isSheaf [IsHuberRing A] [PlusSubring A] : (structurePresheaf A).IsSheaf`
+
+#### Proof sketch (~30-50 LOC)
+
+Per the existing docstring: for each `E : CompleteTopCommRingCat`, the presheaf `U ↦ Hom(E, structurePresheaf U)` is a sheaf of types, verified by gluing continuous ring homs piecewise. Continuity of the global lift uses that rational covers are finite.
+
+1. Reduce to the type-level sheaf claim `structurePresheaf_typeLevel_isSheaf` (DONE) via the Yoneda-like Hom-by-Hom encoding.
+2. For each `E`, glue continuous ring homs `E → presheafValue D` piecewise across a finite cover.
+3. Continuity comes from finite intersection of preimages.
+
+#### Mathlib lemmas needed
+- `Sheaf.IsSheaf_iff_forall_lift` (mathlib if exists, or project alternative)
+- `CategoryTheory.Presheaf.isSheaf_of_isSheaf_forget` style
+- `RingHom.continuous_iff_continuousAt`
+
+#### Generality decision
+`IsHuberRing A` + `PlusSubring A` (existing); no strengthening.
+
+### [T-TATEACYC-LAURENT-LEAVES] TateAcyclicityResiduals.lean leaves
+
+- **Status**: OPEN (added 2026-05-27 — explicit naming of 9 sorries)
+- **File**: `Adic spaces/TateAcyclicityResiduals.lean` lines 236, 439, 458, 1789, 1849, 1922, 1959, 2138, 2381
+- **Depends on**: T-LAURENT-REFINEMENT-TREE, T-WEDHORN-STAGE-1, T-LAURENT-TREE-GRAFT (all PARTIAL — see Round-6 audit below), T-NULL-PER-E-FIN (OPEN), T-LANE-C-REFINEMENT-INDUCTION (TREE ITERATION DONE)
+- **Type**: theorem × 9 (leaf-level)
+- **Source**: Wedhorn 8.34 (geometric reduction), Hübner Lemma 3.8, project Lane C induction.
+
+#### Statements and routing
+
+| Line | Theorem | Routing |
+|------|---------|---------|
+| 236 | `localBasisHyp_of_strongly_noetherian` | T-NULL-PER-E-FIN consumer |
+| 439 | `strengthened_cover_of_basic_cover` | T-WEDHORN-STAGE-1 application |
+| 458 | `outside_rescue_of_per_D_cover` | T-WEDHORN-STAGE-1 sub-step |
+| 1789 | `balancedTree_BalancedInducing_of_rescaled_S` | T-LAURENT-REFINEMENT-TREE existence |
+| 1849 | `exists_first_stage_laurent_tree_unit_generated` | T-WEDHORN-STAGE-1 main theorem |
+| 1922 | `unitCover_refines_relative_balanced_ratio_tree_leaves` | T-LAURENT-TREE-RELATIVE-LABELS |
+| 1959 | `balancedInducing_of_relative_unit_ratios` | T-LAURENT-TREE-RELATIVE-LABELS |
+| 2138 | `relative_laurent_tree_to_absolute` | T-LAURENT-TREE-GRAFT |
+| 2381 | `exists_inner_laurent_refinement_per_leaf` | T-WEDHORN-STAGE-2 application |
+
+#### Discharge plan
+
+Each leaf is closed when its routing-parent ticket lands. No additional sketch — see the routing-parent's existing sketch. This ticket exists to name the 9 sorries so the project tracker can mark them DONE as each parent closes.
+
+### Round-6 re-audit: stale PARTIAL Laurent tickets
+
+The following tickets have been PARTIAL since 2026-05-13 (14 days). Sharper close-out plans below.
+
+#### T-LAURENT-REFINEMENT-TREE re-audit
+
+- **Live sorries on file** (`TateAcyclicityResiduals.lean`): 1789 (`balancedTree_BalancedInducing_of_rescaled_S`).
+- **Remaining work**: the EXISTENCE THEOREM (Wedhorn 8.34) — given a rational cover `C` over a Tate ring with `[IsStronglyNoetherian]`, construct a `LaurentTree` whose leaves refine `C`'s rational opens. The data structure has landed (axiom-clean); the existence is the structural induction on the cover's generating set.
+- **Estimated effort**: 100-150 LOC. Uses `LaurentTree.ofBalancedList` (DONE) + balanced-tree leaves bijection (DONE) + the per-leaf inducing claim (the 1789 sorry).
+
+#### T-WEDHORN-STAGE-1 re-audit
+
+- **Live sorries on file** (`TateAcyclicityResiduals.lean`): 439, 458, 1849.
+- **Remaining work**: the Cor 7.32 application (for each leaf, get a unit-generated rational sub-cover). The structural infrastructure has landed; this is the "per-leaf restriction-as-units" step.
+- **Estimated effort**: ~80 LOC per sub-sorry. Uses Cor 7.32 (`Cor732.exists_dominating_unit_noHArch` — itself sorry'd at line 543; see [T-PRESHEAF-MULARCH-RANKONE] above for the deepest dependency).
+
+### Cleanup-cadence tickets (per /develop §1g)
+
+#### [CLEANUP-BANACHOMT] Run /cleanup on BanachOMT.lean
+
+- **Status**: OPEN (cadence)
+- **Trigger**: after T-PETTIS-PROP-1-10 lands.
+- **Scope**: golf the ~1400-line file; identify dead helper sub-sub-lemmas; collapse redundant binders; tighten docstrings.
+
+#### [CLEANUP-STRUCTURESHEAF] Run /cleanup on StructureSheaf.lean
+
+- **Status**: OPEN (cadence)
+- **Trigger**: after T-STRUCTURESHEAF-ISSHEAF-RESIDUAL + T-ROUTE-C-OMT + the `_aux_noeth_A0_generic_of_stronglyNoetherianTate` B2 close-out have all landed.
+- **Scope**: remove SUPERSEDED docstring noise; consolidate the `_proof`-suffixed wrappers chain; verify all callers route through the audit-clean variants.
+
+#### [CLEANUP-TATEACYC] Run /cleanup on TateAcyclicityResiduals.lean
+
+- **Status**: OPEN (cadence)
+- **Trigger**: after T-TATEACYC-LAURENT-LEAVES closes (all 9 leaves).
+- **Scope**: golf the Laurent-tree induction proofs; collapse the 9 leaf consumers into the canonical balanced-tree existence + grafting form.
+
+#### [CLEANUP-PRESHEAFTATE] Run /cleanup on PresheafTateStructure.lean
+
+- **Status**: OPEN (cadence)
+- **Trigger**: after T-PRESHEAFTATE-SURJ-RESIDUAL + T-PRESHEAFTATE-INJ-RESIDUAL + T-PRESHEAFTATE-ARTIN-REES all land.
+- **Scope**: collapse the surj/inj duality into a single Tate-completion ring-equiv form; verify the Artin–Rees witness threading.
+
+#### [CLEANUP-WEDHORN-STRONGNOETH] Run /cleanup on WedhornStronglyNoetherian.lean
+
+- **Status**: OPEN (cadence)
+- **Trigger**: after T-WEDHORN-618-L5-AUDIT + T-WEDHORN-618-L6-CLEANWRAPS close.
+- **Scope**: remove SUPERSEDED noeth-A₀ claims; verify all callers route through `[IsNoetherianRing P.A₀]` explicit hypothesis.
+
+#### [CLEANUP-PRESHEAF] Run /cleanup on Presheaf.lean
+
+- **Status**: OPEN (cadence)
+- **Trigger**: after T-PRESHEAF-* (6 tickets above) all land.
+- **Scope**: 893-line file with 12 sorries currently — major restructure expected once the 6 R6 tickets close. Particular focus: 7.42 chain consolidation, dominating-valuation-subring chain bundling, rank-1/mulArch chain bundling.
+
+#### [CLEANUP-ALL-1] Pre-IsSheafy-milestone full cleanup
+
+- **Status**: OPEN (cadence)
+- **Trigger**: before the IsSheafy milestone is claimed (i.e., before `isSheafy_ofStronglyNoetherianTate` and `tateAcyclicity_Part2_end_to_end` are claimed sorry-free).
+- **Scope**: `/cleanup-all` across the entire project. Run after all proof tickets in the IsSheafy chain close.
+
+#### [CLEANUP-FINAL] Final `/cleanup-all`
+
+- **Status**: OPEN (cadence; LAST TICKET)
+- **Trigger**: after the IsSheafy milestone is sorry-free and all per-file cleanups above are DONE.
+- **Scope**: final repo-wide pass: namespace tidying, docstring polish, simp-attribute audit, axioms audit (`#print axioms` clean on the milestone theorems).
+
+## Round-7 decomposition (2026-05-27) — sub-ticket decomposition for stuck obligations
+
+`/develop --continue` Round-7 pass (per user directive "plan out the parts you are stuck on"). 12 new sub-tickets decompose the major remaining obligations into focused proof steps with clear discharge routes.
+
+### [T-WED-745-CONT-A] Convex subgroup from P.I image (Lemma745 u_max+H_gen pattern) — CORRECTED A′ SEMANTICS
+
+- **Status**: DONE (landed 2026-05-27 as `WedhornLift745.convexSubgroup_from_PI_image_corrected` in Presheaf.lean before line 2545; ~80 LOC, lake build green; uses `ConvexSubgroup.exists_inv_pow_lt_of_mem_convexGenerated` for cofinality + `Submodule.span_induction` for the no-hRange P.I-valuation-zero contrapositive)
+- **Status original**: OPEN (re-plan applied 2026-05-27 per round-5 expert review)
+- **History**: original signature was SIGNATURE-DEFECTIVE (second conjunct "P.I units ∉ H" unprovable in Case A). Reviewer (round-5) confirmed and prescribed corrected A′/B′/C′ decomposition. Memory: [[project-t-wed-745-cont-a-signature-defect]] and [[feedback-round-5-review]].
+
+#### Corrected statement (A′)
+
+```lean
+private theorem WedhornLift745.convexSubgroup_from_PI_image_corrected
+    (P : PairOfDefinition A) {𝔭 : Ideal A} [𝔭.IsPrime]
+    (B : ValuationSubring (FractionRing (A ⧸ 𝔭)))
+    (hINonunits : (P.toFractionQuotient 𝔭).range.subtype ''
+      (Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I : Set _) ⊆
+      B.nonunits)
+    (h_PI_nonzero : ∃ a ∈ P.I, B.valuation (P.toFractionQuotient 𝔭 a) ≠ 0) :
+    ∃ (u_max : B.ValueGroupˣ) (H : ConvexSubgroup B.ValueGroupˣ),
+      (u_max : B.ValueGroup) < 1 ∧
+      u_max ∈ H ∧
+      (∀ h ∈ H, ∃ n : ℕ, (u_max ^ n : B.ValueGroup) ≤ (h : B.ValueGroup))
+```
+
+Crucial corrections from the old (defective) signature:
+- **No "P.I units ∉ H" conjunct**: P.I-image units may be inside H; that is what the cofinality argument exploits.
+- **Add explicit `h_PI_nonzero` hypothesis**: skip the Case-B trivial branch by requiring at least one nonzero P.I-image — Case B (all P.I maps to 0 in B) is downstream-handleable separately and not the real obstruction.
+- **Output bundle is `(u_max, H)` with three properties**: `u_max < 1`, `u_max ∈ H`, and the cofinality `∀ h ∈ H, ∃ n, u_max^n ≤ h`. The cofinality is the actual semantic content used by downstream continuity.
+
+#### Proof sketch (mirroring Lemma745 lines 437-488)
+
+1. P.fg → finite generating set S ⊆ P.I.
+2. Set `u_max := Units.mk0 (S.sup' hSne (fun t => B.valuation (φ t))) (ne_of_gt h_PI_nonzero_in_sup)`.
+3. `u_max < 1` via `Finset.sup'_lt_iff` + hINonunits.
+4. `u_max ∈ H := convexGenerated u_max⁻¹` via the inv-inv argument: `u_max = (u_max⁻¹)⁻¹ ∈ H` because `self_mem_convexGenerated` + `inv_mem`.
+5. Cofinality `∀ h ∈ H, ∃ n, u_max^n ≤ h` is the **project's existing** `exists_inv_pow_lt_of_mem_convexGenerated` lemma (OrderedGroupConvex.lean:489), applied with `y := u_max⁻¹`.
+
+- **File**: `Adic spaces/Presheaf.lean` (new private helper near line 2452, before the parent theorem `exists_mem_rationalOpen_supp_of_dominating_valuationSubring`)
+- **Depends on**: `Lemma745` pattern (Lemma745.lean:437-488), `convexGenerated` API (OrderedGroupConvex.lean), `exists_inv_pow_lt_of_mem_convexGenerated`.
+- **Parent**: T-PRESHEAF-VALUATIONSUBRING-CHAIN
+- **Type**: theorem (private helper)
+- **LOC estimate**: ~30 LOC structural code following Lemma745 lines 437-488.
+- **File**: `Adic spaces/Presheaf.lean` (new private helper near line 2452)
+- **Depends on**: none (uses existing mathlib + Lemma745 patterns)
+- **Parent**: T-PRESHEAF-VALUATIONSUBRING-CHAIN (Wedhorn 7.45 lift IsContinuous sub-step)
+- **Type**: theorem (private helper)
+- **Source**: Lemma745.lean lines 437-485 (mirror the `u_max + H_gen` construction).
+
+#### Statement
+
+```lean
+private theorem convexSubgroup_from_PI_image
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A]
+    (P : PairOfDefinition A) {𝔭 : Ideal A} [𝔭.IsPrime]
+    (B : ValuationSubring (FractionRing (A ⧸ 𝔭)))
+    (hINonunits : (P.toFractionQuotient 𝔭).range.subtype ''
+      (Ideal.map (P.toFractionQuotient 𝔭).rangeRestrict P.I : Set _) ⊆
+      B.nonunits) :
+    ∃ H : ConvexSubgroup B.ValueGroupˣ,
+      (∀ a : A, ∀ ha : a ∈ P.A₀.subtype.range,
+        ∀ hv : B.valuation (φ_full a) ≠ 0,
+        1 ≤ B.valuation (φ_full a) →
+          Units.mk0 (B.valuation (φ_full a)) hv ∈ H) ∧
+      (∀ a ∈ P.I, ∀ hv : B.valuation (φ_full (P.A₀.subtype a)) ≠ 0,
+          Units.mk0 _ hv ∉ H)
+```
+
+#### Proof sketch
+
+1. P.I is finitely generated (mathlib `Submodule.fg`); let S ⊆ P.I be a finite generating set. By `hINonunits`, for each s ∈ S the value `B.valuation (φ_full s)` is in `B.nonunits`, equivalently < 1 (`ValuationSubring.nonunits_iff_lt_one`).
+2. Take `u_max := Units.mk0 (S.sup' ... (fun s => B.valuation (φ_full s)))` (the finite-supremum of nonunit values). Show `u_max < 1` via `Finset.sup'_lt_iff` (every generator's image is < 1; finite max stays < 1 in a linearly ordered group with zero).
+3. Define `H := ConvexSubgroup.convexGenerated (one_lt_inv_of_inv hu_max_lt_one : (1 : Γ₀ˣ) < u_max⁻¹)`. By Lemma745 pattern, H contains every γ ∈ [u_max, u_max⁻¹] in the unit value group.
+4. **First conjunct** (H contains ≥1 image-of-A₀ values): for `a ∈ P.A₀.subtype.range`, `B.valuation (φ_full a) ≤ 1` (by `_hRange` from outer hypothesis). If additionally `≥ 1`, then `= 1`, and `1 ∈ H` always (any convex subgroup contains the identity).
+5. **Second conjunct** (P.I images outside H): for `a ∈ P.I`, `B.valuation (φ_full a) ≤ u_max < 1` (by step 2). So `Units.mk0 _ hv ≤ u_max`, hence in `[u_max, u_max⁻¹]` only if `≥ u_max`, but the convex subgroup `convexGenerated u_max⁻¹` excludes everything strictly between 0 and u_max (it captures values `[u_max^k, u_max^{-k}]` for k ∈ ℤ). Hence P.I-image units lie strictly below H.
+
+#### Mathlib lemmas needed
+
+- `ValuationSubring.nonunits_iff_lt_one` — characterise B.nonunits.
+- `Finset.sup'_lt_iff` — finite sup strictly less than 1.
+- `ConvexSubgroup.convexGenerated` (project) — Lemma745's helper.
+- `one_lt_inv_of_inv` — flip u_max < 1 ⇒ 1 < u_max⁻¹.
+
+#### Generality decision
+
+Operates on a general PairOfDefinition + dominating valuation subring; no extra hypotheses beyond what `exists_valuationSubring_dominating_for_rationalOpen` already provides.
+
+### [T-WED-745-CONT-B] `restrictToConvexBounded` valuation construction — CORRECTED B′
+
+- **Status**: DONE (landed 2026-05-27 as `WedhornLift745.PI_pow_valuation_bound` in Presheaf.lean before line ~2620; ~40 LOC, lake build green; provides `∀ n, ∀ a ∈ P.I^n, B.valuation (φ a) ≤ u_max^n` via induction on n + `Submodule.mul_induction_on` for the multiplicative step. The "build restrictToConvexBounded" framing turned out to be unnecessary: the depth-power decay bound is the substantive content C′ needs)
+- **Status original**: OPEN (re-plan applied 2026-05-27 per round-5 expert review)
+- **Corrected target (B′)**: prove the boundedness conditions for the restricted valuation:
+  - $\forall a \in P.A_0$, $v|_H(\phi(a)) \le 1$
+  - $\forall t \in T$, $v|_H(\phi(t)) \le v|_H(\phi(s))$
+  - $\forall n,\ \forall a \in P.I^n$, $v|_H(\phi(a)) \le u_{\max}^n$ in $\mathrm{WithZero}(H)$ — the depth-power decay bound that downstream continuity exploits.
+- **Note**: the third bullet is the cofinality-prep that makes Lemma745's continuity proof work. Use the A′ output `(u_max, H)` and apply `restrictToConvexBounded` from `ValuationContinuity.lean:585` directly.
+- **File**: `Adic spaces/Presheaf.lean` (new private definition near line 2452)
+- **Depends on**: T-WED-745-CONT-A
+- **Parent**: T-PRESHEAF-VALUATIONSUBRING-CHAIN
+- **Type**: noncomputable def + 1 API lemma
+- **Source**: `ValuationContinuity.lean:585` (`restrictToConvexBounded`, sorry-free).
+
+#### Statement
+
+```lean
+private noncomputable def v_restricted_PI
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A]
+    (P : PairOfDefinition A) {𝔭 : Ideal A} [𝔭.IsPrime]
+    (B : ValuationSubring (FractionRing (A ⧸ 𝔭)))
+    (H : ConvexSubgroup B.ValueGroupˣ)
+    (hH_ge : ∀ a : A, ∀ ha : (B.valuation.comap φ_full) a ≠ 0,
+      1 ≤ (B.valuation.comap φ_full) a → Units.mk0 _ ha ∈ H) :
+    Valuation A (WithZero H.toSubgroup) :=
+  (B.valuation.comap φ_full).restrictToConvexBounded H hH_ge
+
+private theorem v_restricted_PI_apply_zero_iff
+    -- standard "v_restricted_PI a = 0 iff a ∈ supp(v_val) ∪ (values < min-of-H)"
+```
+
+#### Proof sketch
+
+1. The `def` is a one-line construction using mathlib's `Valuation.restrictToConvexBounded` (ValuationContinuity.lean:585).
+2. The API lemma `v_restricted_PI_apply_zero_iff`: standard unfolding of `restrictToConvexBounded`'s `toFun` — zero on supp + zero on units outside H.
+
+#### Mathlib lemmas needed
+
+- `Valuation.restrictToConvexBounded` (project, ValuationContinuity.lean:585).
+- `Valuation.restrictToConvexBounded_unfold` (if exists; else unfold definition manually).
+
+#### Generality decision
+
+Matches Wedhorn 7.45 lift's hypothesis bundle; no additional assumptions.
+
+### [T-WED-745-CONT-C] IsContinuous of the restricted valuation — CORRECTED C′
+
+- **Status**: STRUCTURED-WITH-SUB-SORRIES (2026-05-27) — two sub-helpers landed in Presheaf.lean before the parent (`WedhornLift745.dominating_B_caseA_existential` and `WedhornLift745.dominating_B_caseB_existential`), each with `sorry` body and clear discharge plan. Per CLAUDE.md, named sub-lemmas with `sorry` bodies are the legal "sub-lemma" pattern.
+  - **Case A helper** (~10 LOC stub + sub-sorry): produces the Spa-point in `rationalOpen T s` with `supp ≥ 𝔭` using A′ + B′ + `Lemma745.exists_valuation_extension`. ~100-150 LOC residual.
+  - **Case B helper** (DONE 2026-05-27 round-5 beastmode session, ~90 LOC, axiom-clean, lake build green): closed sorry-free with the cosets-of-open-subgroup argument (`P.idealOfDefinition_pow_isOpen n=1` + ultra-metric). Constructs the Spa-point via `ofValuation v_val` with all five conjuncts (IsContinuous via `isContinuous_ofValuation_of`, A⁺ ≤ 1, T ≤ s, s ≠ 0, 𝔭 ≤ supp).
+  - **Parent wiring** (DONE 2026-05-27 round-5 beastmode session): parent `exists_mem_rationalOpen_supp_of_dominating_valuationSubring` refactored to case-split + delegate to Case A/B helpers. Legacy inline proof preserved in `/- ... -/` comment block. Net effect: Case B path is fully closed sorry-free; Case A path retains the vExtFun-assembly sub-sorry.
+- **Status original**: OPEN (re-plan applied 2026-05-27 per round-5 expert review)
+- **Corrected target (C′)**: given A′ output `(u_max, H)` with cofinality `∀ h ∈ H, ∃ n, u_max^n ≤ h`, and B′ output `v_r := v.restrictToConvexBounded H hH_ge` with `∀ a ∈ P.I^n,\ v_r(a) \le u_max^n`, prove `v_r.IsContinuous`.
+- **Proof strategy**: by `isContinuous_iff_units`, for each `γ ∈ (WithZero H.toSubgroup)ˣ`, show `{a | v_r(a) < γ}` is open. Lift γ to `H` via the unit-of-WithZero structure. By A′ cofinality, ∃ n with `u_max^n ≤ γ`. Then by B′ depth-power decay, `P.I^n ⊆ {a | v_r(a) ≤ u_max^n ≤ γ}` — strict inequality from u_max < 1 (so u_max^n < 1). Since P.I^n is open in A (P is a pair of definition), the set `{a | v_r(a) < γ}` contains the open P.I^n, hence is open.
+- **File**: `Adic spaces/Presheaf.lean` (new private theorem near line 2452)
+- **Depends on**: T-WED-745-CONT-A, T-WED-745-CONT-B
+- **Parent**: T-PRESHEAF-VALUATIONSUBRING-CHAIN
+- **Type**: theorem
+- **Source**: Lemma745 `exists_spa_point_via_restrictToConvex` Steps 7-8 (mirror).
+
+#### Statement
+
+```lean
+private theorem v_restricted_PI_isContinuous
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A]
+    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
+    {𝔭 : Ideal A} [𝔭.IsPrime]
+    (B : ValuationSubring (FractionRing (A ⧸ 𝔭)))
+    (H : ConvexSubgroup B.ValueGroupˣ)
+    (hH_ge : ∀ a : A, ∀ ha : (B.valuation.comap φ_full) a ≠ 0,
+      1 ≤ (B.valuation.comap φ_full) a → Units.mk0 _ ha ∈ H)
+    (hH_strict_lt_PI : ∀ a ∈ P.I, ∀ ha : (B.valuation.comap φ_full) (P.A₀.subtype a) ≠ 0,
+      Units.mk0 _ ha ∉ H) :
+    (v_restricted_PI P B H hH_ge).IsContinuous
+```
+
+#### Proof sketch
+
+1. By `isContinuous_iff_units`, reduce to: for every γ ∈ (WithZero H.toSubgroup)ˣ, `{a | v_restricted_PI a < γ}` is open in A.
+2. For γ ∈ unit group: by T-WED-745-CONT-A, P.I-image elements have v_val outside H, hence `v_restricted_PI a = 0 < γ` (since γ is a unit). So `P.A₀.subtype '' P.I ⊆ {a | v_restricted_PI a < γ}`.
+3. `P.A₀.subtype '' P.I` (the image of P.I in A) is contained in `P.idealOfDefinition` (definition of pair of definition), which is OPEN in A (`P.isOpen_idealOfDefinition` from HuberRings).
+4. By `Valuation.ltAddSubgroup`, `{a | v_restricted_PI a < γ}` is an AddSubgroup. An AddSubgroup containing an open set is itself open (translation-invariance). Therefore the set is open.
+
+#### Mathlib lemmas needed
+
+- `Valuation.isContinuous_iff_units` (project, ContinuousValuations.lean:40).
+- `Valuation.ltAddSubgroup` (mathlib, RingTheory/Valuation/Basic.lean:567).
+- `AddSubgroup.isOpen_of_mem_nhds` (mathlib).
+- `PairOfDefinition.isOpen` (project, definition of pair of definition).
+
+#### Generality decision
+
+The `[IsAdicComplete P.I P.A₀]` is inherited from `exists_mem_rationalOpen_supp_of_dominating_valuationSubring`'s signature.
+
+### [T-AR-1] Artin-Rees in `Localization.Away D₀.s`
+
+- **Status**: DONE (landed 2026-05-27 as `artinRees_locAway` in PresheafTateStructure.lean before line 1788, ~20 LOC, axiom-clean, lake build green)
+- **File**: `Adic spaces/PresheafTateStructure.lean` (new private helper before line 1788)
+- **Depends on**: `[IsNoetherianRing A]` + IsLocalization machinery (existing)
+- **Parent**: T-PRESHEAFTATE-ARTIN-REES
+- **Type**: theorem (private helper)
+- **Source**: mathlib `Mathlib.RingTheory.Filtration` `Ideal.exists_pow_inf_eq_pow_smul` (the canonical Artin-Rees lemma).
+
+#### Statement
+
+```lean
+private theorem artinRees_locAway
+    {A : Type*} [CommRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A)
+    (K : Ideal (Localization.Away D₀.s)) :
+    ∃ k₀ : ℕ, ∀ n : ℕ, k₀ ≤ n →
+      ((Ideal.map (algebraMap A (Localization.Away D₀.s)) D₀.P.idealOfDefinition) ^ n) ⊓ K ≤
+      ((Ideal.map (algebraMap A (Localization.Away D₀.s)) D₀.P.idealOfDefinition) ^ (n - k₀)) * K
+```
+
+#### Proof sketch
+
+1. `Localization.Away D₀.s` is Noetherian via `IsLocalization.isNoetherianRing` from `[IsNoetherianRing A]`.
+2. Apply mathlib's `Ideal.exists_pow_inf_eq_pow_smul` (Artin-Rees lemma) with `I := the map of D₀.P.idealOfDefinition` (an ideal in the Noetherian Localization.Away D₀.s).
+3. The intersection-subset form follows directly; the standard `Ideal.pow_le_pow_right` discharges the depth comparison `n + k₀ ≥ k₀`.
+
+#### Mathlib lemmas needed
+
+- `IsLocalization.isNoetherianRing` (mathlib).
+- `Ideal.exists_pow_inf_eq_pow_smul` (mathlib, `Mathlib/RingTheory/Filtration.lean:395`).
+- `Ideal.pow_le_pow_right` (mathlib).
+
+#### Generality decision
+
+`[IsNoetherianRing A]` (already in parent's signature, T-PRESHEAFTATE-ARTIN-REES).
+
+### [T-AR-2] Radical-relation denominator lift
+
+- **Status**: DONE (landed 2026-05-27 as `rad_denom_lift_in_target` in PresheafTateStructure.lean before line 1788, ~30 LOC, axiom-clean, lake build green)
+- **File**: `Adic spaces/PresheafTateStructure.lean` (new private helper before line 1788)
+- **Depends on**: `rad_relation_of_rational_subset` (existing), T092 helper (existing)
+- **Parent**: T-PRESHEAFTATE-ARTIN-REES
+- **Type**: theorem (private helper)
+- **Source**: T092 helper at `WedhornLocTopologyLinear.lean:777` (`algebraMap_mul_pow_divByS_eq_one_of_radical_relation`).
+
+#### Statement
+
+```lean
+private theorem rad_denom_lift_in_target
+    {A : Type*} [CommRing A] (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s)
+    (N₀ : ℕ) (e₀ : A) (h_rad : e₀ * D₀.s = D.s ^ N₀)
+    (k_a : ℕ) (α : A) :
+    -- The pulled-back image of `α · (1/D₀.s)^k_a` in Localization.Away D.s
+    -- equals algebraMap (α · e₀^k_a) · (1/D.s)^(k_a · N₀) modulo a unit factor.
+    locLift D₀ D h (algebraMap A α * (divByS (1 : A) D₀.s)^k_a) =
+      algebraMap A (Localization.Away D.s) (α * e₀ ^ k_a) *
+        (divByS (1 : A) D.s) ^ (k_a * N₀)
+```
+
+#### Proof sketch
+
+1. Unfold `locLift` via `IsLocalization.Away.lift_eq` to a formula in terms of `algebraMap A (Localization.Away D.s)` and the unit `D₀.s` becomes via the radical relation.
+2. Use T092's `algebraMap_mul_pow_divByS_eq_one_of_radical_relation`: in Localization.Away D.s, `algebraMap D₀.s * (algebraMap e₀ * (divByS 1 D.s)^N₀) = 1`. So `(algebraMap D₀.s)⁻¹ = algebraMap e₀ * (divByS 1 D.s)^N₀`. Apply k_a-many times: `(algebraMap D₀.s)⁻¹^k_a = algebraMap (e₀^k_a) * (divByS 1 D.s)^(k_a · N₀)`.
+3. Substitute and simplify with `map_mul`, `map_pow`.
+
+#### Mathlib lemmas needed
+
+- `IsLocalization.Away.lift_eq` (mathlib).
+- `algebraMap_mul_pow_divByS_eq_one_of_radical_relation` (project, T092).
+- `map_mul`, `map_pow` (mathlib).
+
+#### Generality decision
+
+`[CommRing A]` only; no Noetherian needed for this step (purely algebraic).
+
+### [T-AR-3] Per-n witness extraction in A₀ — RESTATED AS IDEAL-CONTAINMENT (round-5 review)
+
+- **Status**: STRUCTURED-WITH-SUB-SORRIES (2026-05-27) — `locLift_preimage_target_containment_no_noeth` helper landed in PresheafTateStructure.lean before line 1921, with `sorry` body and ideal-containment statement matching the reviewer's recommended shape. The element-witness derivation (`α' ∈ D₀.P.I^(...)` with matching `algebraMap`) requires an additional step from the containment that depends on D.s-torsion structure — preserved as future work on the parent `locLift_preimage_target_witness_existence_no_noeth`.
+- **Status original**: OPEN (restated 2026-05-27 per round-5 expert review)
+- **Reviewer directive** (verbatim): "For T-AR-3, isolate the algebraic statement as an ideal-containment lemma before proving the element witness version. A better target is something like: (target smallness of α · e^k) ⇒ α ∈ I^(n + k·c) + kernel(A → A[1/D.s]). Then derive the existential α' form. This is usually easier than constructing α' directly."
+- **Restated step 1 (T-AR-3-CONTAINMENT)**: prove the ideal-level containment
+  $$\{\, \alpha \in A : \exists k_a,\ \mathrm{algebraMap}_A^{A[1/D.s]}(\alpha \cdot e_0^{k_a}) \in \mathrm{locNhd}(D, m) \,\} \subseteq P.I^{n + k_a \cdot D_0.\mathrm{hopen}} + \ker(\mathrm{algebraMap}_A^{A[1/D.s]})$$
+  for suitably chosen m (= m(n) from T-AR-1's Artin-Rees absorption + T-AR-2's denominator lift). This is an ideal containment in $A$, parameterised by $(n, k_a, \alpha)$.
+- **Restated step 2 (T-AR-3-WITNESS)**: derive the element form `∃ α' ∈ P.I^(n + k_a · D_0.hopen), algebraMap α = algebraMap α'` as a corollary by unpacking the ideal-containment witness through the ker-quotient.
+- **Why this is easier**: step 1 is closer to standard Artin-Rees + radical-rewrite arithmetic, manipulable via mathlib's ideal API (`Submodule.mem_sup`, `Ideal.add_mem`, ring-hom-kernel-membership). Step 2 is a one-step element extraction.
+- **File**: `Adic spaces/PresheafTateStructure.lean` (new private helpers before line 1788)
+- **Depends on**: T-AR-1 (DONE), T-AR-2 (DONE), `rad_relation_of_rational_subset`
+- **Parent**: T-PRESHEAFTATE-ARTIN-REES
+- **Type**: theorem × 2 (containment + witness)
+- **LOC estimate**: ~80-100 LOC for containment, ~30 LOC for witness derivation. Lower than the original ~150 LOC estimate for the direct element approach.
+- **File**: `Adic spaces/PresheafTateStructure.lean` (new private helper before line 1788)
+- **Depends on**: T-AR-1, T-AR-2, `rad_relation_of_rational_subset`
+- **Parent**: T-PRESHEAFTATE-ARTIN-REES
+- **Type**: theorem (private helper)
+- **Source**: section docstring at PresheafTateStructure.lean:1709-1740 (T089 strategy).
+
+#### Statement
+
+```lean
+private theorem per_n_A0_witness
+    {A : Type*} [CommRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
+    [IsTateRing A]
+    (D₀ D : RationalLocData A)
+    (h : rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s)
+    (n : ℕ) :
+    ∃ m : ℕ, ∀ (α : A) (k_a : ℕ),
+      locLift D₀ D h (algebraMap A α * (divByS (1 : A) D₀.s)^k_a) ∈
+        (locNhd D.P D.T D.s m : Set (Localization.Away D.s)) →
+      ∃ α' : D₀.P.A₀,
+        (α' : D₀.P.A₀) ∈ D₀.P.I ^ (n + k_a * (D₀.hopen.choose)) ∧
+        algebraMap A (Localization.Away D.s) α =
+          algebraMap A (Localization.Away D.s) ((α' : D₀.P.A₀) : A)
+```
+
+#### Proof sketch
+
+1. Extract radical relation `(N₀, e₀, h_rad)` via `rad_relation_of_rational_subset D₀ D h` (existing, sorry-free).
+2. Apply T-AR-1 with `K := RingHom.ker (algebraMap A (Localization.Away D.s))`. Get k₀ such that Artin-Rees absorption holds.
+3. Pick `m := n + k₀ + k_a · N₀ + extra-clearing`. The exact depth bookkeeping follows the section docstring.
+4. Given `locLift (algebraMap α · invS₀^k_a) ∈ locNhd D m`: by T-AR-2, this equals `algebraMap (α · e₀^k_a) · invS^(k_a · N₀)` in Localization.Away D.s. The locNhd condition translates to a kernel-difference condition.
+5. Apply Artin-Rees absorption (T-AR-1) to extract α' from `α · e₀^k_a` modulo the kernel, with depth `n + k_a · D₀.hopen.choose`.
+6. The matching `algebraMap` identity follows from the depth-shifted Artin-Rees decomposition.
+
+#### Mathlib lemmas needed
+
+- T-AR-1, T-AR-2 (this ticket's own deps).
+- `rad_relation_of_rational_subset` (PresheafTateStructure.lean:1067, existing).
+- `Ideal.mem_pow_iff` / `Ideal.exists_mem_pow_smul_of_mem_pow_inf` (mathlib).
+
+#### Generality decision
+
+Matches T-PRESHEAFTATE-ARTIN-REES parent's hypothesis bundle (no `[IsNoetherianRing D₀.P.A₀]` — this is precisely the "no-Noeth source pair" sibling).
+
+### [T-AR-4] Final assembly = `locLift_preimage_target_witness_existence_no_noeth`
+
+- **Status**: OPEN (added 2026-05-27)
+- **File**: `Adic spaces/PresheafTateStructure.lean:1788` (replace sorry)
+- **Depends on**: T-AR-3
+- **Parent**: T-PRESHEAFTATE-ARTIN-REES
+- **Type**: theorem body (replace sorry)
+- **Source**: T-AR-3 + identity composition.
+
+#### Statement
+
+(Already stated at PresheafTateStructure.lean:1788 — `locLift_preimage_target_witness_existence_no_noeth`. The replacement closes the sorry.)
+
+#### Proof sketch
+
+```lean
+intro n
+obtain ⟨m, hm⟩ := per_n_A0_witness D₀ D h n  -- T-AR-3 application
+exact ⟨m, hm⟩
+```
+
+One-liner: T-AR-3 produces exactly the existential the parent asserts.
+
+#### Generality decision
+
+n/a (closes existing sorry; signature unchanged).
+
+### [T-EXPERT-REVIEW-740] Open /expert-review for Wedhorn Remark 4.12 + Remark 7.40(5)
+
+- **Status**: OPEN (added 2026-05-27)
+- **File**: triggers `.mathlib-quality/expert-review/<date>/` artifact generation
+- **Depends on**: none (planning artifact)
+- **Parent**: T-PRESHEAF-MULARCH-RANKONE
+- **Type**: review-pending escalation
+- **Source**: project_round_6_audit.md notes Wedhorn 7.40(6) chain (Presheaf.lean:3414 `convexSubgroup_eq_top_of_ne_bot_of_analytic`) needs (a) Wedhorn Remark 4.12 (convex subgroup ↔ vertical generizations in Spv(K(x))) and (b) Wedhorn Remark 7.40(5) (microbial-height-1 theory), neither in mathlib.
+
+#### Statement
+
+This is a planning artifact, not a Lean theorem. Invoke `/expert-review` (or write `REVIEW_BRIEF.md` directly) with the question:
+
+> "Formalising Wedhorn's *Adic Spaces*, we need:
+> (1) Wedhorn Remark 4.12 (p. 31): for a valuation x ∈ Spv A, there is a bijection between convex subgroups of (x.value_group)ˣ and vertical generizations of x in Spv(A) (equivalently, in Spv(K(x))).
+> (2) Wedhorn Remark 7.40(5) (p. 64): an analytic continuous valuation on a Huber ring is microbial — its value group has rank ≤ 1.
+> Neither is in mathlib. Would you (a) point us at an existing formalisation we may have missed, (b) sketch the cleanest proof skeleton if we have to formalise it, or (c) suggest a workaround that avoids this chain (e.g. routing the Spa-point existence through Wedhorn 7.45's direct dominating-valuation construction instead of 7.40(6))?"
+
+#### Proof sketch
+
+n/a — once the review reply lands (via `/expert-review --reply`), re-decompose T-PRESHEAF-MULARCH-RANKONE per the reviewer's guidance and create the resulting tickets in a follow-up `/develop` pass.
+
+#### Generality decision
+
+n/a.
+
+### [T-SP-SHEAF-A] CompleteTopCommRingCat-presheaf sheaf condition via Hom-presheaves
+
+- **Status**: DONE (landed 2026-05-27 as `isSheaf_of_homPresheaves_isSheaf` in StructureSheaf.lean before line 255; uses Presieve.IsSheaf form so the identity discharges the unfolding; structurePresheaf_isSheaf now applies it leaving the Hom-presheaf sub-sorry as the substantive T-SP-SHEAF-B residual)
+- **File**: `Adic spaces/StructureSheaf.lean` (new helper before line 255)
+- **Depends on**: mathlib `CategoryTheory.Sites.Sheaf`
+- **Parent**: T-STRUCTURESHEAF-ISSHEAF-RESIDUAL
+- **Type**: theorem (helper / direct definition unfolding)
+- **Source**: mathlib `Mathlib/CategoryTheory/Sites/Sheaf.lean:683` (`isSheaf_iff_isSheaf_forget`).
+
+#### Statement
+
+```lean
+theorem isSheaf_of_homPresheaves_isSheaf
+    (F : Presheaf CompleteTopCommRingCat (SpaTop A))
+    (h : ∀ (E : CompleteTopCommRingCat),
+      Presheaf.IsSheaf (Opens.grothendieckTopology (SpaTop A))
+        (F ⋙ coyoneda.obj (Opposite.op E))) :
+    F.IsSheaf
+```
+
+#### Proof sketch
+
+This is essentially the **definition** of `Presheaf.IsSheaf` for a presheaf valued in a general category — mathlib's `CategoryTheory.Presheaf.IsSheaf` unfolds to "the type-presheaf `Hom(E, F·)` is a sheaf of types for every E". The proof is a one-liner: unfold definitions / apply `isSheaf_iff_isSheaf_forget`-style equivalence at the Yoneda level.
+
+```lean
+intro h E
+exact h E
+```
+
+(or `rfl` / `Iff.mpr` depending on exact mathlib API form).
+
+#### Mathlib lemmas needed
+
+- `Presheaf.IsSheaf` definition for general category targets (mathlib `Sites/Sheaf.lean`).
+
+#### Generality decision
+
+Fully general over the value category and topology — this is a category-theory generality lemma, useful beyond this specific application.
+
+### [T-SP-SHEAF-B] Hom-presheaves of structurePresheaf are sheaves (discrete topology)
+
+- **Status**: PERMANENTLY-SCOPED-OUT (round-5 expert review, 2026-05-27)
+- **Reviewer directive** (verbatim): "For T-SP-SHEAF-B, stop. The full-open Hom-presheaf theorem is false with the current discrete placeholder topology. Keep the project's IsSheafy typeclass as the target, and treat full Presheaf.IsSheaf as a later project after the correct limit topology on arbitrary opens is defined."
+- **Future project route** (if/when needed): rational-cover site sheaf → correct limit topology on arbitrary opens → full opens-site `Presheaf.IsSheaf`. NOT part of current Wedhorn 8.28(b) critical path.
+- **Status original**: SIGNATURE-DEFECTIVE — needs re-plan (flagged 2026-05-27)
+- **Defect**: `presheafSectionsObj A U` uses discrete topology as a placeholder (StructureSheaf.lean:130-133 docstring explicitly states this). With discrete-target topology, continuous ring homs `E → sectionsSubring U` require `ker(f)` to be open in E. For arbitrary (infinite) open covers `(U_α)` in `Opens.grothendieckTopology (SpaTop A)`, gluing compatible families `(f_α)` produces a global `f` with `ker(f) = ⋂_α ker(f_α)` — an infinite intersection of open ideals, which need not be open in a non-discrete E. So the IsSheaf statement over ALL of `Opens.grothendieckTopology` fails when E is non-discrete (e.g., E = ℤ_p with p-adic topology).
+- **Resolution route**: the intended target is the Wedhorn 8.28(b) sheaf condition on **rational covers** (finite by construction), not on arbitrary opens. Either (a) restate T-SP-SHEAF-B as a sheaf condition relative to a coarser site (rational covers only), then need a site-comparison argument to lift to `Opens.grothendieckTopology`, or (b) replace the discrete topology placeholder on `sectionsSubring U` with the correct **limit topology over rational covers** (StructureSheaf.lean:131-133 acknowledges this as future work). Route (b) effectively repackages the whole project's Wedhorn 8.28(b) goal.
+- **Status original**: OPEN (added 2026-05-27)
+- **File**: `Adic spaces/StructureSheaf.lean` (new helper before line 255)
+- **Depends on**: T-SP-SHEAF-A, `structurePresheaf_typeLevel_isSheaf` (existing, sorry-free at line 223)
+- **Parent**: T-STRUCTURESHEAF-ISSHEAF-RESIDUAL
+- **Type**: theorem
+- **Source**: Wedhorn 8.20 + standard Hom-presheaf-of-sheaf-is-sheaf for concrete categories with discrete target.
+
+#### Statement
+
+```lean
+theorem structurePresheaf_homPresheaf_isSheaf [IsHuberRing A] [PlusSubring A]
+    (E : CompleteTopCommRingCat) :
+    Presheaf.IsSheaf (Opens.grothendieckTopology (SpaTop A))
+      (structurePresheaf A ⋙ coyoneda.obj (Opposite.op E))
+```
+
+#### Proof sketch
+
+1. Unfold the Hom-presheaf: `(structurePresheaf A ⋙ coyoneda.obj (op E)).obj (op U) = (E ⟶ presheafSectionsObj A U)` = continuous ring homs from E into `sectionsSubring U` with discrete uniformity on the target.
+2. A continuous ring hom into a discrete target is **locally constant** — i.e., factors through a quotient by an open ideal of E.
+3. For a finite rational cover, gluing locally-constant ring homs piecewise is straightforward: continuity follows from finite intersection of preimages of points in the discrete target.
+4. Reduce to the type-level sheaf condition: `structurePresheaf_typeLevel_isSheaf` (line 223, sorry-free) gives that the underlying type-presheaf is a sheaf of types. Lift to ring homs via Yoneda + the locally-constant equivalence.
+
+#### Mathlib lemmas needed
+
+- `structurePresheaf_typeLevel_isSheaf` (project, line 223).
+- `CategoryTheory.Sheaf.IsSheaf_of_iso_iff` or equivalent (mathlib).
+- `CompleteTopCommRingCat` API for continuous ring homs into discrete targets.
+
+#### Generality decision
+
+The discrete topology on `sectionsSubring U` is a project-specific choice (line 137). The proof exploits this discreteness; under non-discrete topology a richer argument would be needed (per the existing docstring at line 247-249).
+
+### [T-LEGACY-TATEACYCLICITY-MIGRATE] Migrate LaurentRefinementAcyclic callers off deprecated single-map injectivity — DONE (round-5 review)
+
+- **Status**: DONE (2026-05-27 round-5 beastmode session, full cascade migration)
+- **`tateAcyclicity_gluing_via_refinement` migration: DONE** (LaurentRefinementAcyclic.lean). Added explicit `hE_sep` per-E separation hypothesis. Removed the line 96 `restrictionMapHom_injective` use. Restructured body to delegate to `gluing_of_finer_rational`.
+- **Full cascade migration: DONE** — `h_separation` threaded through ~22 theorems across 7 files. The B2-FALSE `restrictionMapHom_injective` call inside `tateAcyclicity` Part 1 is replaced with `exact h_separation`. Final assembly at the top is via Cor832's `tateAcyclicity_part1_separation_via_cor832` (TateAcyclicityResiduals.lean:`tateAcyclicityComplete`).
+- **Files updated (full cascade)**:
+  - `LaurentRefinementAcyclic.lean`: `tateAcyclicity_gluing_via_refinement`, `tateAcyclicity`, `rationalCovering_hasSeparation`, `rationalCovering_hasGluing`.
+  - `StructureSheaf.lean`: 13 theorems (`tateQuotientProductRestriction_injective_on_algebraMap`, `tateQuotientProductRestriction_injective`, `separation_ofStronglyNoetherianTate`, `productRestriction_injective_of_laurentRefinement`, `isSheafy_ofStronglyNoetherianTate_flat_of_topo_inducing`, `tateAcyclicity_gluing_via_descent_with_P`, `tateAcyclicity_gluing_via_descent`, `productRestrictionSubToEqualizer_surjective`, `productRestrictionSubToEqualizer_isOpenMap`, `productRestrictionSubToEqualizerHomeomorph`, `productRestrictionSub_isInducing_tate`, `productRestrictionSub_isInducing_flat`, `productRestrictionSub_injective_flat`, `isSheafy_ofStronglyNoetherianTate_flat`, `isSheafy_ofStronglyNoetherianTate`).
+  - `Cor832.lean`: `productRestriction_injective_tate`.
+  - `StandardCover.lean`: `tateAcyclicity_via_standard_cover`.
+  - `EmbeddingTopo.lean`: `isSheafy_ofStronglyNoetherianTate_flat_of_wedhorn_tree_existence`.
+  - `TateAcyclicityResiduals.lean`: `tateAcyclicity_part2_gluing_via_flat_descent`, `tateAcyclicityComplete`, `isSheafyComplete`.
+  - `AuditCleanWrappers.lean`: `tateAcyclicity_separation_via_cor832_proof`, `tateAcyclicity_gluing_via_descent_proof`, `isSheafy_ofStronglyNoetherianTate_proof`.
+- **Lake build**: clean (3144 jobs) after full cascade.
+- **Net effect**: the B2-FALSE `restrictionMapHom_injective` dependency is removed from the IsSheafy critical path. Top-level consumers of `isSheafy_ofStronglyNoetherianTate` now require an explicit `h_separation` hypothesis (supplied via the Cor832 chain at `tateAcyclicityComplete`).
+- **`isSheafyRealized` landed (2026-05-27)**: end-to-end wired theorem at the top of TateAcyclicityResiduals.lean. Takes only `(P, [IsNoetherianRing P.A_0], hSpa_inputs)` and produces `IsSheafy A`. Internally derives `h_separation` per cover via `tateAcyclicity_part1_separation_via_cor832` (Cor832 chain) + empty-cover handling via `isSheafy_separation_empty_cover_of_stronglyNoetherianTate`. The Path-α realization is now fully composable — callers no longer need to supply h_separation as a separate hypothesis; only the Wedhorn-style side conditions in `hSpa_inputs` (noeth-A_0 + noeth-locSubring + A^+ ⊆ A_0 + canonicalMap continuous + h_lifted_ne_top_for_nonOpen). Lake build green.
+- **Bonus: `restrictionMapHom_injective` DELETED** (PresheafTateStructure.lean). After the cascade migration, no remaining call sites used it. The B2-FALSE deprecated theorem and its `sorry` body are now fully retired. Net sorry removal: −1.
+- **Note: `restrictionMapHom_surj` retained** (PresheafTateStructure.lean:1221) — still has one active caller at line 2976 (producing `IsLocalization.Away` for `restrictionMapHom`). Deletion would require additional refactor; flagged for future work but lower priority.
+- **Status original**: HIGH-PRIORITY OPEN (priority-bumped 2026-05-27 per round-5 expert review)
+- **Reviewer directive** (verbatim): "Prioritize this. False single-map injectivity/surjectivity should not remain load-bearing. If the two callers need per-E separation, thread that as an explicit cover-level product-injectivity hypothesis until the final Cor 8.32 path is wired."
+- **Migration plan reaffirmed**: thread a `(perE_inj : ∀ E ∈ C.covers, cover-level-product-injectivity-at-E)` hypothesis through `tateAcyclicity_gluing_via_refinement` and `tateAcyclicity` Part 1; update the two caller sites in `LaurentRefinementAcyclic.lean` lines 96 and 332; delete the deprecated `restrictionMapHom_injective` (PresheafTateStructure.lean:1422) and `restrictionMapHom_surj` (line 1221) once no callers remain. Net sorry deletion: −2.
+- **Original status (added 2026-05-27; replaces T-PRESHEAFTATE-SURJ-RESIDUAL and T-PRESHEAFTATE-INJ-RESIDUAL)**
+- **File**: `Adic spaces/LaurentRefinementAcyclic.lean` (refactor), `Adic spaces/PresheafTateStructure.lean` (delete deprecated theorems), `Adic spaces/TateAcyclicityFinalAssembly.lean` (downstream wrapper)
+- **Depends on**: `productRestriction_injective_tate_via_prime_extension_closed` (Cor832.lean, existing)
+- **Parent**: replaces T-PRESHEAFTATE-SURJ-RESIDUAL + T-PRESHEAFTATE-INJ-RESIDUAL
+- **Type**: refactor + deletion
+- **Source**: LaurentRefinementAcyclic.lean docstrings at line 83-93 and 320-329 (explicit project guidance).
+
+#### Statement
+
+(Refactor, not a single theorem; per binding-rule (b), introduces per-E injectivity as explicit hypothesis since the conclusion is otherwise B2-false.)
+
+#### Proof sketch
+
+1. **Refactor `tateAcyclicity_gluing_via_refinement`** (LaurentRefinementAcyclic.lean:55) to take an additional hypothesis `perE_inj : ∀ E ∈ C.covers, separation-clause-via-Cor832`. Replace the line-96 use of `restrictionMapHom_injective` with `perE_inj` application.
+2. **Refactor `tateAcyclicity`** (LaurentRefinementAcyclic.lean:302) similarly: Part 1 takes per-E separation, Part 2 unchanged. Replace line-332 use of `restrictionMapHom_injective`.
+3. **Update Cor832.lean:462 caller** to supply the per-E separation hypothesis when calling `(tateAcyclicity P C hne).1 x hx`. The per-E separation is `productRestriction_injective_tate_via_prime_extension_closed` (Cor832.lean, existing).
+4. **Delete the deprecated** `restrictionMapHom_surj` (PresheafTateStructure.lean:1221) and `restrictionMapHom_injective` (line 1422) — both B2-false markers, now caller-free after migration. Net sorry: −2.
+5. Add downstream wrapper in TateAcyclicityFinalAssembly.lean if needed for cycle-free import.
+
+#### Mathlib lemmas needed
+
+- `productRestriction_injective_tate_via_prime_extension_closed` (Cor832.lean, existing).
+
+#### Generality decision
+
+Binding-rule (b) compliant: the per-E hypothesis IS mathematically necessary (the single-map version is B2-false; counterexample in PresheafTateStructure.lean docstrings).
+
+### [T-ROUTE-B-PAIR-INVARIANCE] (umbrella) presheafValue invariant under change of D.P (Wedhorn-faithful)
+
+- **Status**: DECOMPOSED into T-ROUTE-B-1 through T-ROUTE-B-6 (2026-05-27, /develop --continue planning pass).
+- **Why**: Wedhorn 8.28(b)'s rational subsets `R(T/s)` are defined by `(T, s)` only — no pair-of-definition data. The project's `RationalLocData` carries a pair `P`, which is auxiliary scaffolding. The current `isSheafyRealized` requires per-cover `hSpa_inputs` because each cover piece may carry a different `P`. Route B closes this by proving `presheafValue D` is invariant under change of `D.P` (for fixed `T`, `s`), aligning with Wedhorn's pair-free formulation.
+- **Decomposition (read /beastmode picks one at a time)**:
+  - T-ROUTE-B-1: `divByS_isPowerBounded_locTopology` (~50 LOC).
+  - T-ROUTE-B-2: `nonarchimedean_locTopology` instance helper (~10 LOC).
+  - T-ROUTE-B-3: `locTopology_pair_invariant` (~50 LOC, depends on B-1, B-2).
+  - T-ROUTE-B-4: `presheafValue_pair_invariant` (~40 LOC, depends on B-3).
+  - T-ROUTE-B-5: `RationalLocData.normalizeToPrincipal` def + canonical iso (~40 LOC, depends on B-4).
+  - T-ROUTE-B-6: `isSheafy_wedhornClean` top-level theorem (~80 LOC, depends on B-5).
+  - CLEANUP-ROUTE-B: cadence cleanup on Presheaf.lean Route-B block.
+- **Source: Wedhorn §5.51, Prop 8.2, Example 6.38** — the universal property of the localization topology. Topology is uniquely determined by (i) algebraMap continuity, (ii) divByS power-boundedness — both pair-invariant.
+
+### [T-ROUTE-B-1] `divByS_isPowerBounded_locTopology`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/Presheaf.lean` (replace the body of the existing sorry'd lemma)
+- **Depends on**: none (uses existing `divByS_mem_locSubring`, `locBasis`, `locNhd`)
+- **Parallel**: yes (independent of B-2)
+- **Type**: theorem
+
+#### Statement
+
+```lean
+theorem divByS_isPowerBounded_locTopology
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s)
+    {t : A} (ht : t ∈ T) :
+    letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
+    haveI : IsTopologicalRing (Localization.Away s) :=
+      (locBasis P T s hopen).toRingFilterBasis.isTopologicalRing
+    TopologicalRing.IsPowerBounded (divByS t s)
+```
+
+#### Proof sketch
+
+The set `{(divByS t s)^n | n : ℕ}` is bounded in `locTopology P T s`. Proof strategy: in the localization topology, neighborhoods at 0 are `locNhd P T s n` (the image of `(locIdeal P T s)^n`). The set `{(divByS t s)^n}` lies entirely in `locSubring P T s` (since `divByS t s ∈ locSubring` and locSubring is closed under multiplication). The locSubring acts on locNhd's by left-multiplication (locSubring is a subring containing the locIdeal). So for any neighborhood `U = locNhd P T s n`, choosing `V = locNhd P T s n` gives `{(divByS t s)^k} · V ⊆ locNhd P T s n = U`.
+
+Concretely:
+1. **Unfold `IsPowerBounded`** to `IsBounded (Set.range ((divByS t s)^·))`.
+2. **Unfold `IsBounded`**: ∀ U ∈ nhds 0, ∃ V ∈ nhds 0, range · V ⊆ U.
+3. **Reduce to basic neighborhoods** of locTopology: from `(locBasis P T s hopen).hasBasis_nhds_zero`, any U ∈ nhds 0 contains some `locNhd P T s n`.
+4. **Take V = locNhd P T s n** (same n).
+5. **Show range · V ⊆ U**: for `y = (divByS t s)^k · v` with `v ∈ locNhd P T s n`:
+   - `(divByS t s) ∈ locSubring P T s` by `divByS_mem_locSubring P T s ht`.
+   - `(divByS t s)^k ∈ locSubring P T s` by repeated multiplication (locSubring is a subring).
+   - `locNhd P T s n` is closed under left-multiplication by `locSubring` (this is `locNhd_leftMul P T s hopen` from the locBasis structure, OR direct argument via the locIdeal ideal-multiplication structure).
+   - So `(divByS t s)^k · v ∈ locNhd P T s n ⊆ U`.
+
+#### Mathlib lemmas needed
+
+- `TopologicalRing.IsBounded` (project, Bounded.lean:65): the bounded-set definition.
+- `TopologicalRing.IsPowerBounded` (project, Bounded.lean:124): unfolded.
+- `Set.mul_subset_iff_forall_mem` (mathlib, for the set-multiplication unfold).
+- `RingSubgroupsBasis.hasBasis_nhds_zero` (mathlib).
+
+#### Project lemmas needed
+
+- `divByS_mem_locSubring P T s ht` (LocalizationTopology.lean:66): `divByS t s ∈ locSubring P T s` for `t ∈ T`.
+- `locNhd_leftMul P T s hopen` (LocalizationTopology.lean, the ring-subgroups basis input): locSubring acts on locNhd by left-multiplication. *Verify exists; if not, prove inline.*
+- Alternatively, use `Subring.mem_closure_iff` to derive `(divByS t s)^k ∈ locSubring`, plus the `locNhd` ideal structure.
+
+#### Sources
+
+- [Wedhorn 2019] *Adic Spaces*, §5.51 + Remark 5.33: localization topology + bounded elements in localization. Specifically the ring of definition `A₀[T/s]` (= our `locSubring`) is bounded; elements of a bounded subring are power-bounded.
+
+#### Generality decision
+
+- `[CommRing A] [TopologicalSpace A] [IsTopologicalRing A]` — minimal hypotheses; no Tate / Huber assumed.
+- The signature uses `letI`/`haveI` to inject the locTopology + IsTopologicalRing instances since `Localization.Away s` doesn't have these as canonical instances.
+
+### [T-ROUTE-B-2] `nonarchimedean_locTopology` instance helper
+
+- **Status**: OPEN
+- **File**: `Adic spaces/LocalizationTopology.lean` (add as a helper before line 269 — after `locTopology` def)
+- **Depends on**: none (uses existing `locBasis` + `RingSubgroupsBasis.nonarchimedean`)
+- **Parallel**: yes
+- **Type**: theorem (helper, exposed for use in B-3)
+
+#### Statement
+
+```lean
+theorem nonarchimedean_locTopology
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P T s) :
+    @NonarchimedeanRing (Localization.Away s) _ (locTopology P T s hopen)
+```
+
+#### Proof sketch
+
+Direct application of `RingSubgroupsBasis.nonarchimedean` to the `locBasis`. The `locTopology` is defined as `(locBasis P T s hopen).topology`, and `RingSubgroupsBasis.nonarchimedean` says any topology from a `RingSubgroupsBasis` is `NonarchimedeanRing`.
+
+```lean
+exact (locBasis P T s hopen).nonarchimedean
+```
+
+May need to thread the IsTopologicalRing instance via `(locBasis P T s hopen).toRingFilterBasis.isTopologicalRing`. Two-or-three-liner.
+
+#### Mathlib lemmas needed
+
+- `RingSubgroupsBasis.nonarchimedean` (`Mathlib.Topology.Algebra.Nonarchimedean.Bases`).
+
+#### Sources
+
+- [Wedhorn 2019] §5: nonarchimedean topology from ring-subgroups basis.
+
+#### Generality decision
+
+Same hypothesis bundle as `divByS_isPowerBounded_locTopology`.
+
+### [T-ROUTE-B-3] `locTopology_pair_invariant`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/Presheaf.lean` (replace the body of the existing sorry'd lemma)
+- **Depends on**: T-ROUTE-B-1, T-ROUTE-B-2
+- **Parallel**: no (waits on B-1, B-2)
+- **Type**: theorem
+
+#### Statement
+
+```lean
+theorem locTopology_pair_invariant
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    (P₁ P₂ : PairOfDefinition A) (T : Finset A) (s : A)
+    (hopen₁ : ∃ N : ℕ, ∀ b : P₁.A₀, b ∈ P₁.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P₁ T s)
+    (hopen₂ : ∃ N : ℕ, ∀ b : P₂.A₀, b ∈ P₂.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P₂ T s) :
+    locTopology P₁ T s hopen₁ = locTopology P₂ T s hopen₂
+```
+
+#### Proof sketch
+
+The two topologies are equal via `le_antisymm`. Show `id` is continuous in both directions; each direction translates to a `≤` relation between the topologies.
+
+1. **Establish virtual RationalLocData D₁ = ⟨P₁, T, s, hopen₁⟩ and D₂ = ⟨P₂, T, s, hopen₂⟩** as `let`-bindings, so we can reuse `algebraMap_continuous_loc`.
+2. **Establish NonarchimedeanRing on both topologies** via `nonarchimedean_locTopology` (B-2) — needed as a typeclass argument for `locTopology_continuous_lift`.
+3. **Continuity in direction P₁ → P₂** (i.e., `id` continuous from locTopology P₁ to locTopology P₂):
+   ```lean
+   have h₁₂ : @Continuous _ _ (locTopology P₁ T s hopen₁) (locTopology P₂ T s hopen₂) id :=
+     locTopology_continuous_lift P₁ T s hopen₁ (RingHom.id _)
+       (by exact algebraMap_continuous_loc ⟨P₂, T, s, hopen₂⟩)
+       (fun t ht => divByS_isPowerBounded_locTopology P₂ T s hopen₂ ht)
+   ```
+4. **Continuity in direction P₂ → P₁** (symmetric):
+   ```lean
+   have h₂₁ : @Continuous _ _ (locTopology P₂ T s hopen₂) (locTopology P₁ T s hopen₁) id :=
+     locTopology_continuous_lift P₂ T s hopen₂ (RingHom.id _)
+       (by exact algebraMap_continuous_loc ⟨P₁, T, s, hopen₁⟩)
+       (fun t ht => divByS_isPowerBounded_locTopology P₁ T s hopen₁ ht)
+   ```
+5. **Extract topology equality from id-continuity both directions**:
+   ```lean
+   -- h₁₂ continuous means: every locTopology P₂-open has id-preimage open in locTopology P₁
+   --                    ⟺ locTopology P₂ ≤ locTopology P₁
+   -- h₂₁ continuous means: every locTopology P₁-open has id-preimage open in locTopology P₂
+   --                    ⟺ locTopology P₁ ≤ locTopology P₂
+   -- By le_antisymm, the topologies are equal.
+   refine le_antisymm ?_ ?_
+   · exact fun U hU => h₂₁.isOpen_preimage U hU  -- locTopology P₁ ≤ P₂
+   · exact fun U hU => h₁₂.isOpen_preimage U hU  -- locTopology P₂ ≤ P₁
+   ```
+
+#### Mathlib lemmas needed
+
+- `Continuous.isOpen_preimage` — `(f : X → Y) (h : Continuous f) (U : Set Y) (hU : IsOpen U) : IsOpen (f ⁻¹' U)`.
+- `TopologicalSpace.le_def` or `le_antisymm` on `TopologicalSpace`.
+
+#### Project lemmas needed
+
+- `locTopology_continuous_lift` (LocalizationTopology.lean:360).
+- `algebraMap_continuous_loc` (PresheafIdentification.lean:864).
+- `divByS_isPowerBounded_locTopology` (T-ROUTE-B-1).
+- `nonarchimedean_locTopology` (T-ROUTE-B-2).
+
+#### Sources
+
+- Same as B-1.
+
+#### Generality decision
+
+Same hypothesis bundle as B-1.
+
+### [T-ROUTE-B-4] `presheafValue_pair_invariant`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/Presheaf.lean` (replace the body of the existing sorry'd def)
+- **Depends on**: T-ROUTE-B-3
+- **Parallel**: no
+- **Type**: noncomputable def (returns a `≃+*`)
+
+#### Statement
+
+```lean
+noncomputable def presheafValue_pair_invariant
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A]
+    {P₁ P₂ : PairOfDefinition A} {T : Finset A} {s : A}
+    (hopen₁ : ∃ N : ℕ, ∀ b : P₁.A₀, b ∈ P₁.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P₁ T s)
+    (hopen₂ : ∃ N : ℕ, ∀ b : P₂.A₀, b ∈ P₂.I ^ N →
+      divByS (↑b : A) s ∈ locSubring P₂ T s) :
+    presheafValue (⟨P₁, T, s, hopen₁⟩ : RationalLocData A) ≃+*
+      presheafValue (⟨P₂, T, s, hopen₂⟩ : RationalLocData A)
+```
+
+#### Proof sketch
+
+By `locTopology_pair_invariant` (B-3), the underlying topologies on `Localization.Away s` are equal. Hence:
+- `D₁.uniformSpace = D₂.uniformSpace` (both `IsTopologicalAddGroup.rightUniformSpace` from the same topology).
+- `UniformSpace.Completion (Loc.Away s) D₁.uniformSpace = UniformSpace.Completion (Loc.Away s) D₂.uniformSpace` as types (since the completion only depends on the uniform structure).
+
+Construct the `≃+*` via `RingEquiv.refl` after rewriting the topologies to be equal. Concretely:
+```lean
+have htop : (⟨P₁, T, s, hopen₁⟩ : RationalLocData A).topology =
+            (⟨P₂, T, s, hopen₂⟩ : RationalLocData A).topology :=
+  locTopology_pair_invariant P₁ P₂ T s hopen₁ hopen₂
+-- The presheafValue types are def-equal since both reduce to
+-- UniformSpace.Completion (Loc.Away s) (uniformSpace from htop).
+-- Use `RingEquiv.refl` modulo a rewrite via `htop`.
+```
+
+Possible issues:
+- The completion type may not be literally def-equal even when the uniform structures are equal (Lean may not propagate the equality through the type constructor).
+- May need to use `RingEquiv.cast` / `Equiv.cast` style construction with explicit type-equality.
+
+If a direct `RingEquiv.refl` doesn't work, fall back to:
+- `Equiv.ringEquiv` from a manual definition using `cast` on the type-equality from `htop`.
+
+#### Mathlib lemmas needed
+
+- `RingEquiv.refl`, `Equiv.cast`, `RingEquiv.cast` (if available).
+- `UniformSpace.Completion` definitional unfolding.
+
+#### Project lemmas needed
+
+- `locTopology_pair_invariant` (T-ROUTE-B-3).
+
+#### Sources
+
+Same as B-1 (Wedhorn Example 6.38).
+
+#### Generality decision
+
+Includes `[PlusSubring A]` since `RationalLocData A` requires it (via the file's variable block). Otherwise minimal.
+
+### [T-ROUTE-B-5] `RationalLocData.normalizeToPrincipal` + canonical iso
+
+- **Status**: OPEN
+- **File**: `Adic spaces/Presheaf.lean` (new private def + theorem, after `presheafValue_pair_invariant`)
+- **Depends on**: T-ROUTE-B-4
+- **Parallel**: no
+- **Type**: noncomputable def + theorem
+
+#### Statement
+
+```lean
+/-- For a Tate ring A, every `D : RationalLocData A` has a canonical normalization
+to use the principal pair of definition. -/
+noncomputable def RationalLocData.normalizeToPrincipal
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsTateRing A]
+    (D : RationalLocData A) : RationalLocData A := by
+  -- The principal pair has its own `hopen` for any (T, s) where T satisfies
+  -- the rational-subset openness condition. Construct the normalized D using
+  -- the principal pair's hopen for (D.T, D.s).
+  sorry
+
+/-- The canonical iso from `presheafValue D` to its principal-pair normalization. -/
+noncomputable def RationalLocData.presheafValue_normalizeToPrincipal
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [PlusSubring A] [IsTateRing A]
+    (D : RationalLocData A) :
+    presheafValue D ≃+* presheafValue D.normalizeToPrincipal :=
+  presheafValue_pair_invariant D.hopen D.normalizeToPrincipal.hopen
+```
+
+#### Proof sketch
+
+1. **Construct the principal-pair normalization**: take `P' := IsTateRing.principalPair A`. Need to construct `hopen' : ∃ N, ∀ b : P'.A₀, b ∈ P'.I^N → divByS b s ∈ locSubring P' T s`. This is the principal-pair-specific openness condition for the SAME (T, s).
+2. **Show the principal-pair openness condition holds for any (T, s) that satisfies SOME pair's openness condition**: this is the substantive content. The "rational subset" property is intrinsic to (T, s) (i.e., `T · A` open) and shouldn't depend on the chosen P. For the principal pair, we need to show the explicit `hopen'` condition.
+
+Note: the openness condition `∃ N, P.I^N → divByS ∈ locSubring P T s` IS pair-specific in shape but should be derivable for any pair from the universal rational-subset condition (T · A open).
+
+3. **The canonical iso** is then a direct application of `presheafValue_pair_invariant` with D.P and `principalPair`.
+
+**Sub-sorry: deriving hopen' for the principal pair from D.hopen** is the substantive content of this ticket (~20-30 LOC). May involve showing equivalence of openness conditions across pairs (which IS a consequence of pair-invariance, but stated for hopen specifically).
+
+#### Mathlib lemmas needed
+
+None beyond standard.
+
+#### Project lemmas needed
+
+- `presheafValue_pair_invariant` (T-ROUTE-B-4).
+- `IsTateRing.principalPair` (existing).
+- The pair-invariance of the openness condition (might need a new lemma `hopen_pair_invariant`).
+
+#### Sources
+
+Same as B-1.
+
+#### Generality decision
+
+Adds `[IsTateRing A]` for the principal pair to exist.
+
+### [T-ROUTE-B-6] `isSheafy_wedhornClean` top-level theorem
+
+- **Status**: OPEN
+- **File**: `Adic spaces/TateAcyclicityResiduals.lean` (after `isSheafyRealized`)
+- **Depends on**: T-ROUTE-B-5
+- **Parallel**: no
+- **Type**: theorem
+
+#### Statement
+
+```lean
+/-- **Wedhorn 8.28(b), Wedhorn-clean form.** Strongly noetherian Tate ⇒ sheafy.
+No per-cover hypothesis bundle: the cover-level conditions are derived
+internally via the pair-invariance of `presheafValue` + Cor 8.32 chain. -/
+theorem isSheafy_wedhornClean
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [IsDomain A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A]
+    -- Only the principal pair's noeth-A₀ and the single global compatibility
+    -- conditions are needed.
+    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
+    [IsNoetherianRing
+      (locSubring (IsTateRing.principalPair A).toPairOfDefinition
+        ∅ (1 : A))]  -- principal pair's locSubring for trivial cover; needs adjustment
+    (hSpa_principal : ∀ (T : Finset A) (s : A) (hs : T · A = ⊤),
+        ∀ (p : Ideal A), p.IsPrime → s ∉ p → ¬IsOpen (p : Set A) →
+        (Ideal.map (algebraMap A ...) p) ≠ ⊤) :
+    IsSheafy A
+```
+
+#### Proof sketch
+
+For each cover `C : RationalCovering A`, the per-cover `hSpa_inputs` are derived from the principal-pair version via `presheafValue_normalizeToPrincipal` (B-5):
+
+1. **Take any C**. For each cover piece `D ∈ C.covers`, normalize to `D.normalizeToPrincipal` via B-5. The cover `C.normalizeToPrincipal` has every cover piece's `.P` equal to the principal pair.
+2. **For the normalized cover, the per-cover hypotheses become per-(T, s) hypotheses for the principal pair** — these can be derived from the single global `hSpa_principal` hypothesis.
+3. **Apply `isSheafyRealized`** to the normalized cover, then transport back via the iso.
+
+This is the structural composition that produces a Wedhorn-clean theorem.
+
+**Caveats**:
+- The exact form of `hSpa_principal` needs careful crafting — it should universally quantify over (T, s) that form rational subsets.
+- The "transport back via the iso" step uses `presheafValue_pair_invariant`'s canonical iso to identify the normalized cover's sheafy property with the original cover's.
+
+#### Mathlib lemmas needed
+
+None beyond standard.
+
+#### Project lemmas needed
+
+- `isSheafyRealized` (existing, TateAcyclicityResiduals.lean).
+- `RationalLocData.normalizeToPrincipal` (T-ROUTE-B-5).
+- Cor 8.32 chain for `h_lifted_ne_top` (existing).
+
+#### Sources
+
+[Wedhorn 2019] Theorem 8.28(b).
+
+#### Generality decision
+
+Drops the explicit `(P : PairOfDefinition A) [IsNoetherianRing P.A₀]` parameter that `isSheafyRealized` requires; replaced by a typeclass-only formulation using the principal pair.
+
+### [CLEANUP-ROUTE-B] Run /cleanup on Presheaf.lean Route-B block
+
+- **Status**: OPEN (cadence)
+- **Depends on**: T-ROUTE-B-4 (the in-Presheaf-lean Route B work)
+- **Type**: cleanup
+- **Scope**: golf the three Route-B lemmas + the normalize-to-principal definition; consolidate docstrings; verify axiom-cleanness.
+
+### Round-7 cleanup cadence sync
+
+After the 11 new sub-tickets and the legacy-migration refactor land, the cleanup cadence requires:
+- **CLEANUP-PRESHEAFTATE** (already exists OPEN) — triggers after T-AR-4 + T-LEGACY-TATEACYCLICITY-MIGRATE land.
+- **CLEANUP-STRUCTURESHEAF** (already exists OPEN) — triggers after T-SP-SHEAF-A + T-SP-SHEAF-B + T-STRUCTURESHEAF-ISSHEAF-RESIDUAL close.
+- No new cleanup tickets needed — existing cadence absorbs the new proof tickets.
+
+---
+
+## Round-5 expert-review integration (2026-05-27) — path-α scope clarification
+
+Per round-5 expert review (`.mathlib-quality/expert-review/2026-05-27/reply.md`), the project's current sheafy target is explicitly path-α (with explicit noetherian `P.A_0` hypothesis), NOT the full Wedhorn-clean strongly-noetherian theorem. Adding a documentation ticket:
+
+### [T-PATH-ALPHA-RESTRICTED-NAMING] Document the path-α scope and rename main sheafy target
+
+- **Status**: OPEN (added 2026-05-27 per round-5 expert review)
+- **Reviewer directive** (verbatim): "Path α is the right current policy, but it should be documented as a restricted theorem, not Wedhorn's full strongly-noetherian theorem. So the long-term structure should be: `isSheafy_ofStronglyNoetherianTate_with_noetherian_pair (P : PairOfDefinition A) [IsNoetherianRing P.A_0] : IsSheafy A` (current proven theorem); `isSheafy_ofStronglyNoetherianTate : [IsStronglyNoetherian A] → IsSheafy A` (future Wedhorn-clean theorem, if/when available)."
+- **Action**: introduce explicit naming convention `isSheafy_ofStronglyNoetherianTate_with_noetherian_pair` in the project's public-API layer (StructureSheaf.lean or a new wrapper file). The Wedhorn-clean variant becomes a future ticket — explicitly *not* on the current critical path.
+- **Why**: clarifies the scope of what's been proved versus what remains. Avoids the rhetorical drift of claiming "Wedhorn 8.28(b)" when we've proved a slightly weaker conditional version.
+- **File**: StructureSheaf.lean (rename/wrapper); CLAUDE.md or docs/STATUS.md (documentation).
+- **LOC estimate**: ~15 LOC for the renamed wrapper + a few lines of documentation.
+
+### [T-DELETE-RETIRED-NOETH-A0-HELPERS] Delete `_aux_noeth_A0_generic_of_stronglyNoetherianTate` and propagate noeth-A₀ explicit hypothesis
+
+- **Status**: OPEN (added 2026-05-27 per round-5 expert review)
+- **Reviewer directive** (verbatim): "Do not keep retired 'strong noetherian ⇒ noetherian A₀' helpers in active imports, even with sorry."
+- **Action**:
+  1. Identify consumers of `_aux_noeth_A0_generic_of_stronglyNoetherianTate` and `_aux_noeth_principalPair_A0_of_stronglyNoetherianTate` (StructureSheaf.lean:1606, 1621).
+  2. For each consumer, migrate to take explicit `(P : PairOfDefinition A) [IsNoetherianRing P.A_0]` parameter at the public-API boundary.
+  3. Delete the two retired helpers.
+- **Scope**: ~30 references in StructureSheaf.lean and downstream. Multi-file refactor; needs care.
+- **Risk**: high — touches many active call sites. Should be done in a dedicated session with `lake build` verification between each migration.
+- **LOC estimate**: ~50-100 LOC of mechanical hypothesis-threading across files.
+
+### Round-5 execution-order recommendation (verbatim from reviewer)
+
+> 1. Fix `T-WED-745-CONT-A/B/C` signatures using the corrected convex/cofinality semantics.
+> 2. Finish Wedhorn 7.45 continuity by abstracting Lemma745.
+> 3. Finish T-AR-3 as an ideal-containment lemma, then T-AR-4.
+> 4. Migrate legacy Tate acyclicity callers off false single-map injectivity.
+> 5. Keep structure sheaf `Presheaf.IsSheaf` out of the critical path.
+> 6. Continue Path α assembly with explicit noetherian-pair hypotheses.
+
+This supersedes the earlier "Round-7 ordering" implicit in the ticket creation order.
+
+---
+
+## 2026-05-28 /develop --continue: new ticket batch for WedhornCechAcyclicity.lean
+
+This batch reflects the Wedhorn-Čech route established in
+`Adic spaces/WedhornCechAcyclicity.lean` (committed at 809b78e). See
+`plan.md` (regenerated 2026-05-28) for the full decomposition.
+
+Top-level target: `isSheafy_ofStronglyNoetherianTate_clean` (Wedhorn-faithful,
+no per-cover hypothesis leaks). 33 atomic sorries remain; one ticket per
+sorry. 4 cleanup checkpoints inserted per the per-file cadence rule.
+
+### [T-WC-FILE-REORDER] Move propA3_part2 + IsOXAcyclic_of_refining_acyclic_cover earlier in file
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: no (must precede T-WC-834-C-RESTR and T-WC-834-BODY)
+- **Type**: refactor
+
+#### Statement
+No new declarations; structural move only. Reorder the file so that
+`propA3_part2_project_separation`, `propA3_part2_project_gluing`, and
+`IsOXAcyclic_of_refining_acyclic_cover` are defined BEFORE
+`wedhorn_lemma_834_C_restr_acyclic` (currently they're at line ~1550, but
+needed at line ~1240).
+
+#### Proof sketch
+1. Cut lines 1525–1610 (the propA3_part2_* + IsOXAcyclic_of_refining block).
+2. Paste before `wedhorn_lemma_834_C_restr_acyclic` (around line 1240).
+3. Re-run `lake build`; should be clean.
+
+#### Mathlib lemmas needed
+None.
+
+#### Sources
+None (project structural move).
+
+#### Generality decision
+None (no API change).
+
+### [T-WC-CAT-C-CHANGE-BASE] `RationalCovering.changeBase` helper to internalise the C'.base = C.base cast
+
+- **Status**: done (2026-05-28: presheafValueCast + presheafValueCast_restrictionMap landed sorry-free in WedhornCechAcyclicity.lean:163-188; variable-base form for subst-friendly use)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes (parallel with all Cat. B and Cat. D tickets)
+- **Type**: def + 4 lemma compositions
+
+#### Statement
+```lean
+/-- Transport a presheaf section along a base equality. -/
+noncomputable def RationalCovering.presheafValueCast
+    {C C' : RationalCovering A} (h : C'.base = C.base) :
+    presheafValue C.base ≃+* presheafValue C'.base := by
+  rw [h]
+  exact RingEquiv.refl _
+
+/-- Restriction map respects the base cast. -/
+theorem RationalCovering.presheafValueCast_restrictionMap
+    {C C' : RationalCovering A} (h : C'.base = C.base)
+    (D : RationalLocData A) (hD : D ∈ C.covers)
+    (hD' : D ∈ C'.covers)
+    (hsubC : rationalOpen D.T D.s ⊆ rationalOpen C.base.T C.base.s)
+    (hsubC' : rationalOpen D.T D.s ⊆ rationalOpen C'.base.T C'.base.s)
+    (x : presheafValue C.base) :
+    restrictionMap C'.base D hsubC' ((presheafValueCast h) x) =
+      restrictionMap C.base D hsubC x := by sorry
+```
+
+#### Proof sketch
+1. `presheafValueCast` is defined by case-splitting on `h` to make `C.base ≡ C'.base`.
+2. The restrictionMap-respect lemma reduces to `rfl` after the case-split.
+
+This helper internalises the cast plumbing that blocks
+`propA3_part2_project_separation`, `propA3_part2_project_gluing`,
+`wedhorn_lemma_834_propA3_part1_separation`, and
+`wedhorn_lemma_834_propA3_part1_gluing` (all four become routine after this
+helper exists).
+
+#### Mathlib lemmas needed
+- `RingEquiv.refl`
+- Standard `Eq.rec` / `▸` patterns
+
+#### Sources
+None (technical infrastructure).
+
+#### Generality decision
+Stated generically over any two `RationalCovering A` with the base equality;
+not specialised to refinements.
+
+### [T-WC-PROPA3-PART2-SEP] `propA3_part2_project_separation` via changeBase helper
+
+- **Status**: done (2026-05-28: closed sorry-free at WedhornCechAcyclicity.lean:1583-1620; uses presheafValueCast + restrictionMap_comp + (restrictionMapHom _).map_zero)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-CAT-C-CHANGE-BASE
+- **Parallel**: no
+- **Type**: theorem
+
+#### Statement
+The existing `propA3_part2_project_separation` (line ~1550, currently sorry).
+Conclusion unchanged: C'-separation + refinement ⇒ C-separation.
+
+#### Proof sketch
+1. Intro `x : presheafValue C.base`, `hx : ∀ D ∈ C.covers, x|D = 0`.
+2. Cast `x' := presheafValueCast h_same_base.symm x : presheafValue C'.base`.
+3. Apply `h_C'_sep` to `x'`: it suffices to show `x'|D' = 0` for all `D' ∈ C'.covers`.
+4. For each `D' ∈ C'.covers`, pick `D ⊇ D'` from refinement.
+5. `restrictionMap C'.base D' x' = restrictionMap D D' (restrictionMap C'.base D x')`
+   by `restrictionMap_comp` (project lemma).
+6. `restrictionMap C'.base D x' = restrictionMap C.base D x` by `presheafValueCast_restrictionMap`.
+7. By `hx D`, this is 0; restriction of 0 is 0; done.
+
+#### Mathlib lemmas needed
+- `restrictionMap_comp` (project, `Presheaf.lean:1362`)
+- `map_zero`
+
+#### Sources
+Wedhorn, *Adic Spaces*, §A.3.
+
+#### Generality decision
+Same as the current sorry'd statement.
+
+### [T-WC-PROPA3-PART2-GLU] `propA3_part2_project_gluing` via changeBase helper
+
+- **Status**: in_progress (started 2026-05-28; needs E := C'|_D construction sub-lemma — non-trivial structural construction; deferred)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-CAT-C-CHANGE-BASE
+- **Parallel**: parallel with T-WC-PROPA3-PART2-SEP
+- **Type**: theorem
+
+#### Statement
+The existing `propA3_part2_project_gluing` (line ~1583, currently sorry).
+Conclusion: C'-acyclicity + double-restriction-acyclicity + refinement ⇒
+C-gluing.
+
+#### Proof sketch
+1. For each `D ∈ C.covers`, use `_h_double_acyclic` on `E := C'|_D` to glue
+   `f(D)` from {f(D')|D' refining into D} (compatible family).
+2. Lift the result to a section `x' : presheafValue C'.base` via `h_C'_acyclic.gluing`.
+3. Transport `x'` back to `presheafValue C.base` via `presheafValueCast`.
+4. Verify `x|D = f(D)` for each `D ∈ C.covers` by step-1 construction.
+
+#### Mathlib lemmas needed
+- Standard restriction map composition
+
+#### Sources
+Wedhorn, *Adic Spaces*, §A.3.
+
+#### Generality decision
+Same as current sorry.
+
+### [T-WC-PROPA3-PART1-SEP] `wedhorn_lemma_834_propA3_part1_separation`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-CAT-C-CHANGE-BASE
+- **Parallel**: parallel with T-WC-PROPA3-PART2-*
+- **Type**: theorem
+
+#### Statement
+The existing `wedhorn_lemma_834_propA3_part1_separation` (line ~1304).
+Conclusion: under Prop A.3(1)-style mutual refinement, separation transfers
+from V to C.
+
+#### Proof sketch
+Same shape as T-WC-PROPA3-PART2-SEP, with `V_restr_at` family used instead
+of the universal refinement.
+
+#### Mathlib lemmas needed
+Same as PART2-SEP.
+
+#### Sources
+Wedhorn, *Adic Spaces*, §A.3, Prop A.3(1).
+
+#### Generality decision
+Same as current sorry.
+
+### [T-WC-PROPA3-PART1-GLU] `wedhorn_lemma_834_propA3_part1_gluing`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-CAT-C-CHANGE-BASE
+- **Parallel**: parallel with T-WC-PROPA3-PART1-SEP
+- **Type**: theorem
+
+#### Statement
+The existing `wedhorn_lemma_834_propA3_part1_gluing` (line ~1339).
+
+#### Proof sketch
+Same as T-WC-PROPA3-PART2-GLU but using V_restr_at + C_restr_at families.
+
+#### Mathlib lemmas needed
+Same as PART2-GLU.
+
+#### Sources
+Wedhorn, *Adic Spaces*, §A.3, Prop A.3(1).
+
+#### Generality decision
+Same.
+
+### [CLEANUP-WC-1] /cleanup on WedhornCechAcyclicity.lean (after Cat. C done)
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-PROPA3-PART2-SEP, T-WC-PROPA3-PART2-GLU, T-WC-PROPA3-PART1-SEP, T-WC-PROPA3-PART1-GLU, T-WC-FILE-REORDER
+- **Parallel**: no
+- **Type**: cleanup
+- **Description**: Run /cleanup on the file after Cat. C (cast plumbing)
+  closes 4 sorries. Targets: golf the changeBase helper, ensure naming
+  consistency, deduplicate similar proofs.
+
+### [T-WC-SINGLE-UNIT-SEP] `isOXAcyclic_of_single_unit_piece_separation`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: theorem
+
+#### Statement
+The existing `isOXAcyclic_of_single_unit_piece_separation` (line ~690).
+Single piece R({1}/1) ⇒ separation.
+
+#### Proof sketch
+1. Unpack the `_h_one_piece` to get `D₀` with `V.covers = {D₀}, D₀.T = {1}, D₀.s = 1`.
+2. R({1}/1) = `rationalOpen` evaluates to {v : v(1) ≠ 0} = whole Spa (since v(1) = 1 always).
+3. The single restriction `restrictionMap V.base D₀` is an iso (R({1}/1) = whole space).
+4. So x|D₀ = 0 ⇒ x = 0 via the iso.
+
+#### Mathlib lemmas needed
+- `Finset.eq_of_mem_singleton`
+- `rationalOpen` evaluation at T = {1}, s = 1
+
+#### Sources
+Wedhorn p. 84 (base case of Lemma 8.34 part (i) induction).
+
+#### Generality decision
+Same as current sorry.
+
+### [T-WC-SINGLE-UNIT-GLU] `isOXAcyclic_of_single_unit_piece_gluing`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: theorem
+
+#### Statement
+The existing `isOXAcyclic_of_single_unit_piece_gluing` (line ~716).
+Single piece ⇒ gluing.
+
+#### Proof sketch
+1. Unpack `_h_one_piece` to get `D₀ ∈ V.covers, D₀.T = {1}, D₀.s = 1`.
+2. The cover has one element; the compatibility family is just `f(D₀)`.
+3. Use the iso `V.base → D₀` to pull `f(D₀)` back to a global section.
+
+#### Mathlib lemmas needed
+Same as SEP.
+
+#### Sources
+Wedhorn p. 84.
+
+#### Generality decision
+Same.
+
+### [T-WC-LAURENT-CONS-DECOMP] `laurent_cons_decomp_as_product`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: theorem
+
+#### Statement
+The existing `laurent_cons_decomp_as_product` (line ~804).
+`V.IsLaurentCover (f :: gs)` ⇒ V refines a product structure with 𝒰_f and 𝒱_gs.
+
+#### Proof sketch
+1. Build Uf := `laurentRationalCover V.base f` (2-cover by R(f/1), R(1/f)).
+2. For each piece Uf_j of Uf, construct Vgs_at Uf_j as the restriction of
+   V's gs-generators to Uf_j.
+3. Show Vgs_at Uf_j.IsLaurentCover gs structurally.
+
+This is the project-side instance of Wedhorn p. 84's
+`𝒱_{f::gs} := 𝒰_f × 𝒱_{gs}` identification.
+
+#### Mathlib lemmas needed
+- `laurentRationalCover` (project def)
+- Sublist/foldr combinatorics for the gs-product Finset
+
+#### Sources
+Wedhorn, *Adic Spaces*, p. 84.
+
+#### Generality decision
+Project-internal; minimal hypotheses.
+
+### [T-WC-PROPA3-PART3-BRIDGE] `propA3_part3_bridge_for_laurent_product` — B2 candidate
+
+- **Status**: OPEN (B2 review needed before work)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-LAURENT-CONS-DECOMP
+- **Parallel**: no
+- **Type**: theorem
+- **B2 note**: current statement has unconstrained V (no link to Uf, Vgs_at).
+  Needs strengthened hypothesis `V is the product/refinement of Uf and Vgs_at`.
+
+#### Statement (corrected)
+```lean
+theorem propA3_part3_bridge_for_laurent_product
+    (V Uf : RationalCovering A)
+    (Vgs_at : ↥Uf.covers → RationalCovering A)
+    (_hVgs_base : ∀ Uf_piece, (Vgs_at Uf_piece).base = Uf_piece.1)
+    (_hUf_acyclic : Uf.IsOXAcyclic)
+    (_h_each_Vgs_acyclic : ∀ (Uf_piece : ↥Uf.covers),
+      (Vgs_at Uf_piece).IsOXAcyclic)
+    -- NEW: V is the product of Uf and Vgs_at, expressed as:
+    -- every V-piece V' refines into some (Vgs_at Uf_j).covers piece.
+    (h_V_is_product : ∀ V' ∈ V.covers,
+      ∃ Uf_j : ↥Uf.covers, ∃ Vgs_piece ∈ (Vgs_at Uf_j).covers,
+        rationalOpen V'.T V'.s ⊆ rationalOpen Vgs_piece.T Vgs_piece.s)
+    (h_V_base : V.base = Uf.base) :
+    V.IsOXAcyclic
+```
+
+#### Proof sketch
+1. The acyclicity of Uf gives separation/gluing for sections on Uf.base = V.base.
+2. The acyclicity of each Vgs_at Uf_j gives sections on Uf_j.
+3. The product structure transfers V's separation/gluing from these.
+
+#### Mathlib lemmas needed
+- Standard restriction map composition
+
+#### Sources
+Wedhorn, *Adic Spaces*, §A.3, Prop A.3(3).
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-LAURENT-RESTR-IS-LAURENT] `laurent_restriction_isLaurent`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-LAURENT-CONS-DECOMP
+- **Parallel**: yes
+- **Type**: theorem
+
+#### Statement
+The existing `laurent_restriction_isLaurent` (line ~891).
+V_restrict (refining V on U ⊆ V.base) ⇒ V_restrict.IsLaurentCover fs.
+
+#### Proof sketch
+The restricted cover inherits the Laurent structure via the canonical map
+A → 𝒪_X(U). Each Laurent piece of V_restrict corresponds 1-1 to a sign-vector
+on fs, and the restricted pieces preserve this structure.
+
+#### Mathlib lemmas needed
+- `Finset.bij` constructions
+- Laurent-product Finset combinatorics
+
+#### Sources
+Wedhorn, *Adic Spaces*, p. 84 ("If U is any rational subset, then 𝒱|U is the
+Laurent cover generated by f_{1|U},...,f_{r|U}").
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-LAURENT-COVER-FROM-DOM-UNIT] `laurent_cover_from_dominating_unit`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: theorem
+
+#### Statement
+The existing `laurent_cover_from_dominating_unit` (line ~1035).
+Given D₀, T (Finset A), s : Aˣ, build a Laurent cover by s⁻¹·T.
+
+#### Proof sketch
+1. Iterate `laurentRationalCover` over the list (T.toList).map (fun t => s⁻¹ * t).
+2. Each step adds a 2-cover by R(s⁻¹t / 1), R(1 / s⁻¹t).
+3. The accumulated cover is the Laurent cover by s⁻¹·T.
+
+#### Mathlib lemmas needed
+- `laurentRationalCover` (project def)
+- `List.map`, `Finset.toList`
+
+#### Sources
+Wedhorn, *Adic Spaces*, §7 (Cor 7.32 application).
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-INDEX-SELECTION] `index_selection_on_laurent_piece`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-LAURENT-COVER-FROM-DOM-UNIT
+- **Parallel**: no
+- **Type**: theorem
+
+#### Statement
+The existing `index_selection_on_laurent_piece` (line ~1055).
+On each Laurent piece V_j with dominating unit s, ∃ t ∈ T with v(t) ≥ v(s) on V_j.
+
+#### Proof sketch
+1. V_j corresponds to a sign vector σ : T → Bool.
+2. Pick t such that σ t = "positive" (i.e., v(s⁻¹·t) ≥ 1 on V_j).
+3. Then v(t) ≥ v(s) on V_j.
+
+#### Mathlib lemmas needed
+- Laurent-cover sign-vector structure
+
+#### Sources
+Wedhorn, *Adic Spaces*, p. 84.
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-CANONICAL-UNIT] `canonical_unit_of_pointwise_lower_bound`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: theorem
+
+#### Statement
+The existing `canonical_unit_of_pointwise_lower_bound` (line ~1069).
+v(t) ≥ v(s) on V_j ⇒ canonicalMap t is a unit in 𝒪_X(V_j).
+
+#### Proof sketch
+1. The pointwise lower bound means t doesn't vanish on V_j.
+2. The canonical map A → 𝒪_X(V_j) factors through Localization.Away t (with t a unit).
+3. Image of t in 𝒪_X(V_j) is therefore a unit.
+
+#### Mathlib lemmas needed
+- `IsLocalization.isUnit_of_mem`
+- Project's canonicalMap continuity
+
+#### Sources
+Wedhorn, *Adic Spaces*, Lemma 7.5.
+
+#### Generality decision
+Project-internal.
+
+### [CLEANUP-WC-2] /cleanup on WedhornCechAcyclicity.lean (after Cat. D + part of B)
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-SINGLE-UNIT-SEP, T-WC-SINGLE-UNIT-GLU, T-WC-LAURENT-CONS-DECOMP, T-WC-LAURENT-RESTR-IS-LAURENT, T-WC-LAURENT-COVER-FROM-DOM-UNIT, T-WC-INDEX-SELECTION, T-WC-CANONICAL-UNIT, T-WC-PROPA3-PART3-BRIDGE
+- **Parallel**: no
+- **Type**: cleanup
+
+### [T-WC-UNIT-GEN-RESTR-DOM] `unit_gen_restriction_of_dominating_laurent`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-INDEX-SELECTION, T-WC-CANONICAL-UNIT
+- **Parallel**: no
+- **Type**: theorem
+
+#### Statement
+The existing `unit_gen_restriction_of_dominating_laurent` (line ~1115).
+Composition of index-selection + canonical-unit + restricted-cover-construction.
+
+#### Proof sketch
+1. By index_selection, pick t with v(t) ≥ v(s) on V_j.
+2. By canonical_unit, canonicalMap t is a unit in 𝒪_X(V_j).
+3. By restricted_cover_construction (already proved), build C_restr.
+4. C_restr.IsUnitGenerated follows from canonicalMap t being a unit + the
+   refinement property.
+
+#### Mathlib lemmas needed
+None beyond the sub-lemmas.
+
+#### Sources
+Wedhorn, *Adic Spaces*, §8.3.
+
+#### Generality decision
+Same as current sorry.
+
+### [T-WC-RATIO-LAURENT-COVER] `ratio_laurent_cover_of_units`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-LAURENT-COVER-FROM-DOM-UNIT
+- **Parallel**: yes
+- **Type**: theorem
+
+#### Statement
+The existing `ratio_laurent_cover_of_units` (line ~1185).
+Given D₀, units (Finset A) of A-units, build a Laurent cover by ratios f_i · f_j⁻¹.
+
+#### Proof sketch
+1. Enumerate pairs (i, j) ∈ units × units as a list.
+2. For each pair, the ratio f_i · (f_j⁻¹) is a unit in A.
+3. Iterate `laurentRationalCover` over the ratio list.
+
+#### Mathlib lemmas needed
+- `Finset.product`, `Finset.toList`
+- IsUnit composition
+
+#### Sources
+Wedhorn, *Adic Spaces*, p. 84.
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-RATIO-REFINES] `ratio_laurent_refines_unit_gen`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-RATIO-LAURENT-COVER, T-WC-INDEX-SELECTION
+- **Parallel**: no
+- **Type**: theorem
+
+#### Statement
+The existing `ratio_laurent_refines_unit_gen` (line ~1206).
+Each piece of the ratio Laurent cover is contained in some C-piece D.
+
+#### Proof sketch
+σ-walk argument: V' corresponds to a sign vector σ on the ratios; the
+σ-walk selects a maximal generator f_{i_max}; V' is contained in the C-piece
+D with D.T containing f_{i_max}.
+
+#### Mathlib lemmas needed
+- Laurent-piece sign-vector structure
+- max selection on a finite set
+
+#### Sources
+Wedhorn, *Adic Spaces*, p. 84.
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-PART-III-BODY] `wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent` — B2 candidate
+
+- **Status**: OPEN (B2 review needed)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-RATIO-LAURENT-COVER, T-WC-RATIO-REFINES
+- **Parallel**: no
+- **Type**: theorem
+- **B2 note**: current body requires lifting `IsUnit (canonicalMap f)` to
+  `f ∈ A^×`, which is the wrong direction. Mathematical fix: ratios should
+  be at the 𝒪_X(C.base) level, not at the A level. Needs sketch revision.
+
+#### Statement (corrected sketch)
+The body composes T-WC-RATIO-LAURENT-COVER + T-WC-RATIO-REFINES. The wrong
+direction is the `f ∈ Aˣ` lift — instead, work entirely with the canonical
+images in `presheafValue C.base`.
+
+#### Proof sketch
+1. Extract `units : Finset A` such that `∀ f ∈ units, IsUnit (canonicalMap f)`.
+2. Build the ratio Laurent cover from `units` using T-WC-RATIO-LAURENT-COVER
+   IN `𝒪_X(C.base)`, NOT in A. (The ratios `f_i · f_j⁻¹` exist as elements of
+   `presheafValue C.base`, not necessarily A.)
+3. By T-WC-RATIO-REFINES, this Laurent cover refines C.
+
+If the `presheafValue C.base`-level construction is not supported by the
+project's current Laurent cover def, this becomes a B2 stop requiring
+re-plan.
+
+#### Mathlib lemmas needed
+TBD pending sketch revision.
+
+#### Sources
+Wedhorn, *Adic Spaces*, p. 84 (verbatim quote: "Every rational cover 𝒰 of X
+which is generated by units f_0,...,f_n of A has a refinement by a Laurent
+cover.").
+
+#### Generality decision
+TBD pending sketch revision.
+
+### [T-WC-834-C-RESTR-BODY] `wedhorn_lemma_834_C_restr_acyclic` body
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-FILE-REORDER, T-WC-PART-III-BODY, T-WC-PROPA3-PART2-SEP, T-WC-PROPA3-PART2-GLU
+- **Parallel**: no
+- **Type**: theorem
+
+#### Statement
+The existing `wedhorn_lemma_834_C_restr_acyclic` (line ~1263) body, which
+currently has a forward-reference sorry.
+
+#### Proof sketch
+After T-WC-FILE-REORDER, `IsOXAcyclic_of_refining_acyclic_cover` is in scope.
+The body becomes:
+1. C_restr refines a Laurent cover W by part (iii) (T-WC-PART-III-BODY).
+2. W.IsOXAcyclic by part (i) (already composed).
+3. Apply IsOXAcyclic_of_refining_acyclic_cover to transfer W's acyclicity to C_restr.
+4. Double-restriction sub-acyclicity discharge: via part (i)'s laurent_restriction.
+
+#### Mathlib lemmas needed
+None.
+
+#### Sources
+Wedhorn, *Adic Spaces*, §8.3, Lemma 8.34 part (iv).
+
+#### Generality decision
+Same as current sorry.
+
+### [T-WC-834-BODY] `wedhorn_lemma_834` body
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-FILE-REORDER, T-WC-834-C-RESTR-BODY, T-WC-PROPA3-PART1-SEP, T-WC-PROPA3-PART1-GLU
+- **Parallel**: no
+- **Type**: theorem
+
+#### Statement
+The existing `wedhorn_lemma_834` (line ~1411) body, composing parts (i)-(iv)
+via the Prop A.3(1) bridge.
+
+#### Proof sketch
+Use `wedhorn_lemma_834_propA3_part1_bridge` (composed from PART1-SEP + PART1-GLU)
+with:
+- V := Laurent cover from part (ii)
+- V_restr_at := per-C-piece Laurent restriction
+- C_restr_at := per-V-piece unit-gen restriction (via T-WC-834-C-RESTR-BODY)
+
+#### Mathlib lemmas needed
+None.
+
+#### Sources
+Wedhorn, *Adic Spaces*, §8.3, Lemma 8.34 part (iv) verbatim.
+
+#### Generality decision
+Same as current sorry.
+
+### [CLEANUP-WC-3] /cleanup on WedhornCechAcyclicity.lean (after Lemma 8.34 fully composed)
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-834-BODY, T-WC-UNIT-GEN-RESTR-DOM, T-WC-RATIO-REFINES
+- **Parallel**: no
+- **Type**: cleanup
+
+### [T-WC-RAT-COV-FROM-IDEAL] `rationalCovering_from_idealGenSet`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: theorem
+
+#### Statement
+The existing `rationalCovering_from_idealGenSet` (line ~1458).
+Given S (Finset A, spanning ⊤) and cover/contain data, produce a
+RationalCovering generated by S.
+
+#### Proof sketch
+1. For each t ∈ S, define `D_t := { P, T := S, s := t, hopen := ... }`.
+2. The collection {D_t : t ∈ S} forms a RationalCovering of C.base.
+3. The hopen proofs use `divByS_*_mem_locSubring` (existing project infra) +
+   the standard Wedhorn 8.2.1 base-change identities.
+4. The IsGeneratedBy property: bijection φ : S → {D_t : t ∈ S} sending t ↦ D_t.
+
+#### Mathlib lemmas needed
+- Project's `divByS_*` infrastructure (`LocalizationTopology.lean`)
+- `Finset.bij`, `Function.Bijective`
+
+#### Sources
+Wedhorn, *Adic Spaces*, p. 83 ("every open covering of X has a refinement
+𝒰 = (U_t)_{t∈T} of the form U_t := R(T/t)").
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-TO-FINITE-COVER] `RationalCovering.toFiniteCover` — B2 candidate
+
+- **Status**: OPEN (B2 review needed)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: def
+- **B2 note**: current signature targets `FiniteCover ↥(Spa A A⁺) C.covers`,
+  but C covers `C.base.rationalOpen`, not all of Spa. Signature must be
+  `FiniteCover ↥(rationalOpen C.base.T C.base.s) C.covers` (or similar).
+
+#### Statement (corrected)
+```lean
+def RationalCovering.toFiniteCover [IsHuberRing A] (C : RationalCovering A) :
+    FiniteCover ↥(rationalOpen C.base.T C.base.s) ↥C.covers where
+  sets D := Subtype.val ⁻¹' (rationalOpen D.1.T D.1.s)
+  isOpen D := isOpen_rationalOpen.preimage continuous_subtype_val
+  isCover := by
+    -- ⋃ D : ↥C.covers, Subtype.val ⁻¹' (rationalOpen D.1.T D.1.s) = univ
+    -- because C.hcover says every v ∈ C.base.rationalOpen is in some D-piece.
+    sorry
+```
+
+#### Proof sketch
+The cover relation follows from `C.hcover`.
+
+#### Mathlib lemmas needed
+- `isOpen_rationalOpen` (project)
+- `continuous_subtype_val`
+
+#### Sources
+Project-side bridge to abstract Čech (CechCohomology.lean).
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-TO-REFINEMENT] `RationalCovering.toRefinement`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-TO-FINITE-COVER
+- **Parallel**: no
+- **Type**: def
+
+#### Statement
+The existing `RationalCovering.toRefinement` (line ~1510), after the
+toFiniteCover signature is fixed.
+
+#### Proof sketch
+Construct: index map κ → ι sends each C'-piece D' to a C-piece D containing
+it; the subset proof comes from h_refines.
+
+#### Mathlib lemmas needed
+- `Refinement` structure from `CechCohomology.lean`
+
+#### Sources
+`CechCohomology.lean` Refinement def.
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-RESTR-INHERIT-GEN] `restricted_cover_inherits_IsGeneratedBy` — B2 candidate
+
+- **Status**: OPEN (B2 review needed)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: theorem
+- **B2 note**: current statement requires `E.covers` in bijection with `T`
+  (via `IsGeneratedBy T`), but the construction of E doesn't guarantee this.
+
+#### Statement (B2-resolution-pending)
+Either:
+- (Option α) restate to weaken `IsGeneratedBy`'s bijection requirement, or
+- (Option β) restate to require `E` is constructed specifically from T via
+  `rationalCovering_from_idealGenSet`.
+
+#### Proof sketch
+Pending B2 resolution.
+
+#### Mathlib lemmas needed
+TBD.
+
+#### Sources
+Wedhorn, *Adic Spaces*, §8.2.1.
+
+#### Generality decision
+TBD.
+
+### [T-WC-INJECTIVITY-FF] `injectivity_from_faithfullyFlat_2cover` (Pi.algebra plumbing)
+
+- **Status**: done (2026-05-28: closed via `Module.FaithfullyFlat → FaithfulSMul → algebraMap_injective` after raising `synthInstance.maxHeartbeats` to 800000)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: theorem
+
+#### Statement
+The existing `injectivity_from_faithfullyFlat_2cover` (line ~207). Converts
+`Module.FaithfullyFlat` output of `cor_8_32_for_2cover` to function-form
+injectivity.
+
+#### Proof sketch
+1. `cor_8_32_for_2cover` gives `Module.FaithfullyFlat (presheafValue base)
+   (Π D, presheafValue D)`.
+2. Apply `Module.FaithfullyFlat.faithfulSMul` to get `FaithfulSMul`.
+3. `FaithfulSMul.algebraMap_injective` gives `Function.Injective (algebraMap _ _)`.
+4. Under `Pi.algebra` + `RingHom.toAlgebra`, `algebraMap r d` evaluates to
+   `restrictionMapHom base D.1 r`.
+5. So the function `fun x D => restrictionMap base D.1 x` equals the algebraMap;
+   conclude injectivity.
+
+The challenging part is step 4: the heartbeat-heavy defEq between Pi.algebra
+and the chosen `RingHom.toAlgebra` instances. Workaround: provide an explicit
+`change` step or use `funext` + componentwise reasoning.
+
+#### Mathlib lemmas needed
+- `Module.FaithfullyFlat.faithfulSMul` (mathlib, verified to exist)
+- `FaithfulSMul.algebraMap_injective` (mathlib, verified)
+- `Pi.algebraMap_apply`
+- `RingHom.toAlgebra` interaction with `algebraMap`
+
+#### Sources
+Wedhorn, *Adic Spaces*, §8.2.32 (Cor 8.32 application).
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-638-PLUS-NOETH] `example_638_plus_side_noeth_pairSubring` (Wedhorn 6.18)
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: theorem (substantive Wedhorn-text leaf, ~80 LOC)
+
+#### Statement
+The existing `example_638_plus_side_noeth_pairSubring` (line ~249).
+`IsNoetherianRing (TateAlgebra.pairSubring (IsTateRing.principalPair A).toPairOfDefinition)`
+for strongly noetherian Tate A.
+
+#### Proof sketch
+Wedhorn 6.18: a strongly noetherian Tate ring's `A₀⟨X⟩` is noetherian.
+1. Construct iso `TateAlgebra.pairSubring P ≅+* restrictedMvPowerSeriesSubring 1 P.A₀`
+   (project def of `pairSubring` is the coefficient-constraint version; mathlib's
+   `restrictedMvPowerSeriesSubring 1` is the convergence version).
+2. Transport `IsNoetherianRing` along the iso.
+3. `IsStronglyNoetherian A` provides `isNoetherianRing_restricted 1`, which is
+   `IsNoetherianRing (restrictedMvPowerSeriesSubring 1 A)` — but we need it for
+   `A₀`, not `A`. Either:
+   - (Option α) iso `restrictedMvPowerSeriesSubring 1 P.A₀` to a subring of
+     `restrictedMvPowerSeriesSubring 1 A`, transport via subring containment.
+   - (Option β) directly prove via Hilbert basis on `P.A₀⟨X⟩`.
+
+#### Mathlib lemmas needed
+- `IsNoetherianRing` transfer along iso
+- Hilbert basis (`Polynomial.isNoetherianRing` for `A₀[X]`, but pairSubring is
+  power series — needs the topological version)
+
+#### Sources
+Wedhorn, *Adic Spaces*, Proposition 6.18 (p. 51-52).
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-638-PLUS-CONT-EVAL] `example_638_plus_side_cont_evalHom`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: theorem
+- **Mathlib gap**: `evalHomBounded_continuous` is marked UNPROVABLE in
+  TateAlgebraWedhorn.lean:690 with the T-topology. Needs alternative via
+  completion comparison.
+
+#### Statement
+The existing `example_638_plus_side_cont_evalHom` (line ~267).
+`Continuous (example638Plus_evalHom A P f)`.
+
+#### Proof sketch (after Wedhorn 6.18-based completion comparison)
+1. The T-topology on `A⟨X⟩` equals the J-adic topology under Wedhorn 6.18
+   (where J = `(I · A⟨X⟩)`-adic).
+2. Under J-adic topology, `evalHomBounded` is continuous because eval at a
+   bounded element preserves J-adic convergence.
+3. Use completion comparison: `tateEvalPresheafHom = evalHomBounded` via
+   `evalHomBounded`'s continuous extension to the completion.
+
+If T-topology = J-adic isn't directly available, we need to factor through
+`presheafValue_iteratedPlus_equiv` or similar.
+
+#### Mathlib lemmas needed
+- Topology comparison via completion (project's TopologyComparison.lean if it
+  exists; otherwise spawn sub-ticket)
+
+#### Sources
+Wedhorn, *Adic Spaces*, Example 6.38 + Prop 6.18.
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-638-PLUS-CONT-QUOT] `example_638_plus_side_cont_quotient_lift`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-638-PLUS-CONT-EVAL
+- **Parallel**: no
+- **Type**: theorem
+
+#### Statement
+The existing `example_638_plus_side_cont_quotient_lift` (line ~287).
+Continuity of `example638Plus_forwardHom` = lift of `evalHom` through
+`plusFSubXIdeal A f` quotient.
+
+#### Proof sketch
+Universal property of quotient topology: `forwardHom ∘ Quotient.mk = evalHom`
+by construction. Continuity of `Quotient.mk` + continuity of `evalHom` ⇒
+continuity of `forwardHom`.
+
+#### Mathlib lemmas needed
+- `Quotient.mk_continuous` or `IdealQuotient.mk_continuous`
+- `continuous_quotient_lift`
+
+#### Sources
+Standard quotient topology.
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-638-MINUS-CONT-EVAL] `example_638_minus_side_cont_underlying_evalHom`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes (parallel with T-WC-638-PLUS-CONT-EVAL)
+- **Type**: theorem
+- **Mathlib gap**: same as plus side.
+
+#### Statement
+The existing `example_638_minus_side_cont_underlying_evalHom` (line ~336).
+
+#### Proof sketch
+Parallel to T-WC-638-PLUS-CONT-EVAL, using the minus-branch evalHom
+(at invS = 1/canonicalMap b).
+
+#### Mathlib lemmas needed
+Same.
+
+#### Sources
+Wedhorn, *Adic Spaces*, Example 6.38 minus branch.
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-638-MINUS-CONT-QUOT] `example_638_minus_side_cont_quotient_lift`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-638-MINUS-CONT-EVAL
+- **Parallel**: no
+- **Type**: theorem
+
+#### Statement
+The existing `example_638_minus_side_cont_quotient_lift` (line ~354).
+
+#### Proof sketch
+Universal property of quotient topology, parallel to plus side.
+
+#### Mathlib lemmas needed
+Same.
+
+#### Sources
+Standard quotient topology.
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-EXISTS-PAIR-A0-APLUS] `exists_pair_with_A₀_subset_Aplus`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: theorem (substantive Wedhorn-text leaf)
+
+#### Statement
+The existing `exists_pair_with_A₀_subset_Aplus` (line ~961).
+For strongly noetherian Tate A, ∃ pair P with P.A₀ ≤ A⁺.
+
+#### Proof sketch
+1. The principal pair `IsTateRing.principalPair A` has A₀ that may or may not
+   be ≤ A⁺ depending on definitions.
+2. If `CompatiblePlusSubring A` is assumed (project class), then the
+   principal pair's A₀ is constructed to satisfy this.
+3. Discharge by direct use of `CompatiblePlusSubring`.
+
+#### Mathlib lemmas needed
+- `CompatiblePlusSubring` (project class)
+- `IsTateRing.principalPair`
+
+#### Sources
+Wedhorn, *Adic Spaces*, §7.
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-EXISTS-PSEUDO] `exists_pseudouniformizer_of_tate`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: theorem (substantive)
+
+#### Statement
+The existing `exists_pseudouniformizer_of_tate` (line ~977).
+For Tate A and any pair P, ∃ π ∈ P.A₀ generating P.I with π a topologically
+nilpotent unit.
+
+#### Proof sketch
+1. Tate ring ⇒ ∃ topologically nilpotent unit `π ∈ A` (definition of Tate).
+2. Choose `P.I := Ideal.span {π}` (or use the existing P.I and find a
+   generator).
+3. π is in P.A₀ via the smallest-A₀-containing-P.I definition.
+
+#### Mathlib lemmas needed
+- `IsTateRing.exists_topologically_nilpotent_unit` (project — check it exists)
+- `Ideal.span_singleton_isPrincipal`
+
+#### Sources
+Wedhorn, *Adic Spaces*, §7 (definition of Tate ring + Cor 7.32).
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-MUL-ARCH-7-40] `mulArchimedean_valueGroup_of_stronglyNoetherianTate` (Wedhorn 7.40(6))
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: theorem (substantive Wedhorn-text leaf, ~150 LOC)
+
+#### Statement
+The existing `mulArchimedean_valueGroup_of_stronglyNoetherianTate` (line ~995).
+For strongly noetherian Tate A and any v ∈ Spv A, the value group is
+multiplicatively archimedean.
+
+#### Proof sketch
+Wedhorn 7.40(6): analytic continuous valuations on strongly noetherian Tate
+are height ≤ 1.
+1. For Tate A, every v ∈ Spv A is analytic (project's `IsTateRing.isAnalytic`).
+2. Analytic + strongly noetherian Tate ⇒ height ≤ 1 (Wedhorn 7.40(6)).
+3. Height ≤ 1 ⇒ value group is multiplicatively archimedean.
+
+The (2) step is the substantive content. Wedhorn proves it via the
+characterisation of analytic points + the structure of strongly noetherian
+Tate rings.
+
+This is a multi-session ticket — sub-tickets may be needed for:
+- (a) characterisation of analytic valuations
+- (b) height ≤ 1 inference
+
+#### Mathlib lemmas needed
+- `IsTateRing.isAnalytic` (project)
+- `MulArchimedean` definition from mathlib
+- Possibly: `Valuation.IsContinuous.height_le_one`
+
+#### Sources
+Wedhorn, *Adic Spaces*, Proposition 7.40 (p. 70), specifically item (6) on p. 71.
+
+#### Generality decision
+Project-internal.
+
+### [CLEANUP-WC-FINAL] /cleanup-all on WedhornCechAcyclicity.lean (final pass)
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: all T-WC-* tickets
+- **Parallel**: no
+- **Type**: cleanup
+- **Description**: Final cleanup pass after all proof tickets done. Targets:
+  golf, mathlib-style naming, dead code removal, deduplication of similar
+  proofs, ensure axiom hygiene (`#print axioms isSheafy_ofStronglyNoetherianTate_clean`
+  shows only standard set).
+
+### [T-WC-COMPATIBLE-PAIR-5LEMMA] `compatible_pair_lifts_via_5lemma`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: theorem (substantive Wedhorn-text leaf, ~120 LOC)
+
+#### Statement
+The existing `compatible_pair_lifts_via_5lemma` (line ~548).
+Compatible pair (α, β) on (R(f/1), R(1/f)) lifts via 5-lemma to a section on D₀.
+
+#### Proof sketch
+Wedhorn p. 84 5-lemma argument:
+- Row 1: `0 → (f-ζ)A⟨ζ⟩ × (1-fη)A⟨η⟩ → (f-ζ)A⟨ζ,ζ⁻¹⟩ → 0` (exact by Laurent ideal decomp).
+- Row 2: `0 → A → A⟨ζ⟩ × A⟨η⟩ → A⟨ζ,ζ⁻¹⟩ → 0` (exact by Laurent algebra decomp + kernel-image).
+- Row 3: `0 → 𝒪(X) → 𝒪(U_1) × 𝒪(U_2) → 𝒪(U_1∩U_2) → 0` (the goal).
+- Columns: row1 → row2 → row3 by passage to quotient (Examples 6.38 + 6.39).
+- Conclusion: row 3 is exact (snake lemma / 5-lemma).
+
+This requires either:
+- (Option α) instantiate mathlib's `CategoryTheory.ShortComplex.Exact` /
+  snake-lemma infrastructure
+- (Option β) write a direct algebraic 5-lemma argument
+
+#### Mathlib lemmas needed
+- Possibly `CategoryTheory.snake_lemma` (verify it exists)
+- Examples 6.38/6.39 isos (project, partial)
+
+#### Sources
+Wedhorn, *Adic Spaces*, p. 84.
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-833-GLUING-FIELD] `wedhorn_lemma_833_gluing_as_field`
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-COMPATIBLE-PAIR-5LEMMA
+- **Parallel**: no
+- **Type**: theorem
+
+#### Statement
+The existing `wedhorn_lemma_833_gluing_as_field` (line ~576).
+Gluing field of `IsOXAcyclic (laurentRationalCover D₀ f)`.
+
+#### Proof sketch
+1. Use `laurentRationalCover_pieces_identified` (proved) to extract the two
+   pieces U₁ = laurentPlusDatum, U₂ = laurentMinusDatum.
+2. Use `compatible_pair_lifts_via_5lemma` (T-WC-COMPATIBLE-PAIR-5LEMMA) to
+   lift the compatible pair (g(U₁), g(U₂)) to a section γ on D₀.
+3. Verify γ|U₁ = g(U₁) and γ|U₂ = g(U₂).
+
+#### Mathlib lemmas needed
+None beyond sub-tickets.
+
+#### Sources
+Wedhorn, *Adic Spaces*, §8.3, Lemma 8.33.
+
+#### Generality decision
+Project-internal.
+
+---
+
+## Dependency graph for the 2026-05-28 batch
+
+```
+T-WC-FILE-REORDER (no deps)
+T-WC-CAT-C-CHANGE-BASE (no deps)
+├── T-WC-PROPA3-PART2-SEP
+├── T-WC-PROPA3-PART2-GLU
+├── T-WC-PROPA3-PART1-SEP
+└── T-WC-PROPA3-PART1-GLU
+CLEANUP-WC-1 (after Cat. C done + FILE-REORDER)
+
+T-WC-SINGLE-UNIT-SEP, T-WC-SINGLE-UNIT-GLU (parallel)
+T-WC-LAURENT-CONS-DECOMP
+├── T-WC-PROPA3-PART3-BRIDGE
+└── T-WC-LAURENT-RESTR-IS-LAURENT
+T-WC-LAURENT-COVER-FROM-DOM-UNIT
+├── T-WC-INDEX-SELECTION
+T-WC-CANONICAL-UNIT (parallel)
+CLEANUP-WC-2 (after the above)
+
+T-WC-INDEX-SELECTION + T-WC-CANONICAL-UNIT
+└── T-WC-UNIT-GEN-RESTR-DOM
+T-WC-RATIO-LAURENT-COVER
+├── T-WC-RATIO-REFINES
+└── T-WC-PART-III-BODY (B2)
+T-WC-834-C-RESTR-BODY (deps: FILE-REORDER, PART-III-BODY, PROPA3-PART2-*)
+T-WC-834-BODY (deps: 834-C-RESTR-BODY, PROPA3-PART1-*)
+CLEANUP-WC-3 (after 834 fully composed)
+
+T-WC-RAT-COV-FROM-IDEAL (no deps)
+T-WC-TO-FINITE-COVER (B2, no deps)
+└── T-WC-TO-REFINEMENT
+T-WC-RESTR-INHERIT-GEN (B2, no deps)
+
+T-WC-INJECTIVITY-FF (no deps)
+
+T-WC-638-PLUS-NOETH (substantive, ~80 LOC)
+T-WC-638-PLUS-CONT-EVAL (mathlib gap, T-WC-PLUS-CONT-QUOT depends on this)
+T-WC-638-MINUS-CONT-EVAL (parallel; MINUS-CONT-QUOT depends)
+
+T-WC-EXISTS-PAIR-A0-APLUS
+T-WC-EXISTS-PSEUDO
+T-WC-MUL-ARCH-7-40 (substantive, ~150 LOC, multi-session candidate)
+
+T-WC-COMPATIBLE-PAIR-5LEMMA (substantive, ~120 LOC)
+└── T-WC-833-GLUING-FIELD
+
+CLEANUP-WC-FINAL (after all)
+```
+
+Total new tickets: 33 proof tickets + 4 cleanup tickets = 37.
+
+Parallel capacity: at peak, ~8-10 tickets can run in parallel (Cat. A
+substantive leaves are all independent; Cat. B combinatorics has some chain
+dependencies; Cat. C all branch off CHANGE-BASE).

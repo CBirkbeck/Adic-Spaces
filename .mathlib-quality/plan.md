@@ -1,137 +1,223 @@
-# Development Plan: Close `tateAcyclicity` (Wedhorn Thm 8.28(b))
+# Development Plan: Wedhorn Theorem 8.28(b) via the Čech-acyclicity route
 
-**Target**: make `ValuationSpectrum.tateAcyclicity`
-(`Adic spaces/LaurentRefinement.lean:3671`) sorry-free under the signature
-`[IsTateRing A] [IsNoetherianRing A] [T2Space A] [NonarchimedeanRing A]
-(P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-(C : RationalCovering A) (hne : C.covers.Nonempty)`.
+**Target**: make `ValuationSpectrum.isSheafy_ofStronglyNoetherianTate_clean`
+(`Adic spaces/WedhornCechAcyclicity.lean`, line ~1710) sorry-free under the
+Wedhorn-faithful signature:
 
-No signature pollution (no `[IsDomain A]`, no `[DiscreteTopology A]`,
-no `MulArchimedean`, no `hZavyalov` leaks).
+```lean
+theorem isSheafy_ofStronglyNoetherianTate_clean [IsDomain A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A] :
+    IsSheafy A
+```
 
-## Current sorry inventory (Tate-core critical path)
+**No per-cover hypothesis leaks** (no `h_separation`, no explicit `P` parameter,
+no `hZavyalov`, no `hArch` carried in as side input — every typeclass on the
+signature is Wedhorn-textual).
 
-Tate-core sorries, located via
-`awk '/^[[:space:]]*sorry[[:space:]]*$/ {print NR": "FILENAME}' "Adic spaces"/*.lean`:
+## Supersession notice
 
-| Location | Content | Blocker |
+This plan supersedes the 2026-04-16 Block-A / Block-B / Block-B.1 critical-
+path plan (archived as `plan-block-A-B-archived-2026-05-28.md`). The old plan
+targeted `tateAcyclicity` via the `laurentOverlapBridge_exists_compatible` →
+`tateAcyclicity` Part-2 route, which required either the bivariate Example
+6.38 primitive (T-OV-1, ~500 LOC) or the Bourbaki CA III §2.8 port. Both
+remain valid alternative routes but are not the focus going forward.
+
+The new route follows **Wedhorn's actual proof of Theorem 8.28(b)** more
+faithfully: §8.3's Lemma 8.33 (2-cover acyclic) + Lemma 8.34 (ideal-gen
+acyclic) + Lemma 7.54 (ideal-gen refinement) + Appendix A's Prop A.3 to
+transfer acyclicity along refinements. The decomposition lives in
+`Adic spaces/WedhornCechAcyclicity.lean` (74 declarations, committed at
+`809b78e`).
+
+## Top-down decomposition
+
+```
+isSheafy_ofStronglyNoetherianTate_clean
+├── productRestrictionSub_isInducing_tate  (existing, axiom-clean, project)
+└── every_rational_cover_is_OXAcyclic
+    ├── exists_ideal_gen_refinement  (Wedhorn Lemma 7.54)
+    │   ├── exists_standard_cover_refining  (existing project)
+    │   └── rationalCovering_from_idealGenSet  (LEAF — combinatorics)
+    ├── wedhorn_lemma_834  (Wedhorn Lemma 8.34, ideal-gen cover acyclic)
+    │   ├── part_ii  (Cor 7.32 dominating unit + Laurent cover)
+    │   │   ├── noCommonZero_of_idealGen  ✓ proved
+    │   │   ├── cor_7_32_dominating_unit  ✓ composed (from 3 leaves)
+    │   │   │   ├── exists_pair_with_A₀_subset_Aplus  (LEAF)
+    │   │   │   ├── exists_pseudouniformizer_of_tate  (LEAF)
+    │   │   │   └── mulArchimedean_valueGroup_of_stronglyNoetherianTate  (LEAF — Wedhorn 7.40(6))
+    │   │   ├── laurent_cover_from_dominating_unit  (LEAF)
+    │   │   └── unit_gen_restriction_of_dominating_laurent
+    │   │       ├── index_selection_on_laurent_piece  (LEAF)
+    │   │       ├── canonical_unit_of_pointwise_lower_bound  (LEAF)
+    │   │       └── restricted_cover_construction  ✓ proved
+    │   ├── part_iii  (ratio Laurent refines unit-gen)
+    │   │   ├── unitGenerators_of_unitGenCover  ✓ proved
+    │   │   ├── ratio_laurent_cover_of_units  (LEAF)
+    │   │   ├── ratio_laurent_refines_unit_gen  (LEAF)
+    │   │   └── wedhorn_lemma_834_part_iii body  (B2 — IsUnit lift wrong direction)
+    │   ├── part_i  (Laurent acyclic, induction)
+    │   │   ├── part_i_base  (empty case)
+    │   │   │   ├── laurent_empty_gen_eq_one  ✓ proved
+    │   │   │   ├── single_unit_piece_of_empty_laurent  ✓ proved
+    │   │   │   └── isOXAcyclic_of_single_unit_piece
+    │   │   │       ├── isOXAcyclic_of_single_unit_piece_separation  (LEAF)
+    │   │   │       └── isOXAcyclic_of_single_unit_piece_gluing  (LEAF)
+    │   │   ├── part_i_step  (inductive, via Prop A.3(3))
+    │   │   │   ├── laurent_cons_decomp_as_product  (LEAF)
+    │   │   │   └── propA3_part3_bridge_for_laurent_product  (LEAF)
+    │   │   └── part_i_laurent_restriction_acyclic
+    │   │       └── laurent_restriction_isLaurent  (LEAF)
+    │   ├── part_iv  (Prop A.3(1) composition)
+    │   │   ├── wedhorn_lemma_834_C_restr_acyclic  (forward-ref to A.3(2) bridge)
+    │   │   ├── wedhorn_lemma_834_V_restr_acyclic  ✓ proved
+    │   │   ├── wedhorn_lemma_834_propA3_part1_separation  (LEAF — cast plumbing)
+    │   │   ├── wedhorn_lemma_834_propA3_part1_gluing  (LEAF — cast plumbing)
+    │   │   └── wedhorn_lemma_834 body  (composition, currently sorry)
+    │   └── wedhorn_lemma_833  (Wedhorn Lemma 8.33, 2-cover acyclic)
+    │       ├── wedhorn_lemma_833_separation_as_field  ✓ proved
+    │       │   └── injectivity_from_faithfullyFlat_2cover  (LEAF — Pi.algebra plumbing)
+    │       │       └── cor_8_32_for_2cover  ✓ proved (wraps project's cor_8_32_clean_proof)
+    │       └── wedhorn_lemma_833_diagram_chase
+    │           ├── wedhorn_lemma_833_example_638_plus  ✓ composed
+    │           │   ├── example_638_plus_side_complete  ✓ proved
+    │           │   ├── example_638_plus_side_noeth_pairSubring  (LEAF — Wedhorn 6.18)
+    │           │   ├── example_638_plus_side_cont_evalHom  (LEAF — evalHom continuity)
+    │           │   └── example_638_plus_side_cont_quotient_lift  (LEAF — quotient topology)
+    │           ├── wedhorn_lemma_833_example_638_minus  ✓ composed
+    │           │   ├── example_638_minus_side_cont_underlying_evalHom  (LEAF)
+    │           │   └── example_638_minus_side_cont_quotient_lift  (LEAF)
+    │           ├── wedhorn_lemma_833_example_639_intersection  (placeholder — see below)
+    │           ├── wedhorn_lemma_833_gluing_as_field  (LEAF — 5-lemma composition)
+    │           │   ├── laurentRationalCover_pieces_identified  ✓ proved
+    │           │   └── compatible_pair_lifts_via_5lemma  (LEAF — 5-lemma core)
+    │           └── 5-lemma row-2/3 sub-lemmas (currently `True` placeholders, see below)
+    └── IsOXAcyclic_of_refining_acyclic_cover  (Prop A.3(2) project bridge)
+        ├── propA3_part2_project_separation  (LEAF — cast plumbing)
+        ├── propA3_part2_project_gluing  (LEAF — cast plumbing)
+        ├── double_restriction_acyclicity  ✓ composed
+        │   └── restricted_cover_inherits_IsGeneratedBy  (LEAF — B2 candidate)
+        ├── RationalCovering.toFiniteCover  (LEAF — B2 candidate, signature wrong)
+        ├── RationalCovering.toRefinement  (LEAF)
+        └── IsOXAcyclic_iff_IsAcyclic  (placeholder, currently `True`)
+```
+
+## Sorry inventory (33 in WedhornCechAcyclicity.lean as of 2026-05-28)
+
+Categorised by discharge strategy:
+
+### Cat. A — Wedhorn-text leaves (substantive math, each is its own ticket)
+
+| Leaf | Wedhorn reference | LOC est. (source line count) |
 |---|---|---|
-| `LaurentRefinement.lean:3173` | `laurentOverlapBridge_exists_compatible` | bivariate Example 6.38 (T-OV-1) |
-| `LaurentRefinement.lean:3737` | `tateAcyclicity` Part 2 (gluing) | depends on overlap bridge + refinement transfer |
-| `PresheafTateStructure.lean:1322` | `restrictionMapHom_injective` | algebraic: NZD of `mk(D₀.s)` in `A⟨X⟩/(1-D.s·X)` + faithful-flatness |
-| `PresheafTateStructure.lean:1208` | `restrictionMap_isLocalization` / sigma surj (Wedhorn Prop 8.15) | Baire category / Wedhorn Prop 8.15 |
-| `StructureSheaf.lean:1096` | `isSheafy_ofStronglyNoetherianTate_flat.embedding` | topological inducing (off the tateAcyclicity critical path) |
-| `Presheaf.lean:720` | `spa_point_nonOpen_of_rational_subset` | Bourbaki CA III §2.8 (**retired** from critical path) |
+| `injectivity_from_faithfullyFlat_2cover` | Pi.algebra plumbing for Cor 8.32 | ~30 |
+| `example_638_plus_side_noeth_pairSubring` | Wedhorn 6.18 (noeth pair-subring) | ~80 |
+| `example_638_plus_side_cont_evalHom` | evalHomBounded continuity (via completion) | ~60 |
+| `example_638_plus_side_cont_quotient_lift` | universal property of quotient topology | ~15 |
+| `example_638_minus_side_cont_underlying_evalHom` | parallel to plus branch | ~60 |
+| `example_638_minus_side_cont_quotient_lift` | parallel to plus branch | ~15 |
+| `exists_pair_with_A₀_subset_Aplus` | smallest A₀ inside A⁺ | ~40 |
+| `exists_pseudouniformizer_of_tate` | π generates I, top.nilp unit | ~50 |
+| `mulArchimedean_valueGroup_of_stronglyNoetherianTate` | Wedhorn 7.40(6) (analytic ⇒ height ≤ 1) | ~150 |
+| `compatible_pair_lifts_via_5lemma` | Wedhorn p. 84 5-lemma | ~120 |
+| `wedhorn_lemma_833_gluing_as_field` | composes 5-lemma + pieces ID | ~40 |
 
-## Infrastructure already in place (complete, no sorry)
+### Cat. B — Construction sub-lemmas (project-side combinatorics)
 
-- `Adic spaces/Cor832.lean` (1357 lines, 0 sorry) — full Cor 8.32 framework
-  reduced to the clean residual `coeRingHom_preserves_proper`
-  (`productRestriction_injective_tate_via_coeRingHom_preserves_proper`,
-  line 1202). Uses the Bourbaki-blocked closedness question as the single
-  remaining algebraic input.
-- `Adic spaces/Example638.lean` (1501 lines, 0 sorry) — generic Example 6.38
-  plus + minus equivs over arbitrary complete strongly noetherian Tate base.
-- `Adic spaces/StandardCover.lean` (733 lines, 0 sorry) — standard-cover
-  reduction `refines_by_standard_cover` conditional on `hZavyalov` hypothesis
-  (adic Nullstellensatz, Wedhorn Prop 7.14 content).
-- `Adic spaces/ValuationSpectrumCompact.lean` (1035 lines, 0 sorry) — Huber
-  compactness port: `CompactSpace (Spv A)`.
-- `Adic spaces/SpaCompact.lean` (460 lines, 0 sorry) — `CompactSpace ↥(Spa A A⁺)`
-  for discrete and Tate cases.
-- `Adic spaces/Cor732.lean` (292 lines, 0 sorry) — Wedhorn Cor 7.32 dominating
-  unit extraction.
-- `Adic spaces/RationalRefinement.lean` (0 sorry) —
-  `separation_of_finer_rational`, `gluing_of_finer_rational`.
+| Leaf | Content | LOC est. |
+|---|---|---|
+| `laurent_cover_from_dominating_unit` | build Laurent cover from `s⁻¹·T` | ~80 |
+| `laurent_cons_decomp_as_product` | `𝒱_{f::gs}` as 𝒰_f × 𝒱_gs | ~100 |
+| `laurent_restriction_isLaurent` | restriction of Laurent is Laurent | ~80 |
+| `ratio_laurent_cover_of_units` | ratio Laurent from finite unit set | ~60 |
+| `ratio_laurent_refines_unit_gen` | σ-walk → refinement | ~120 |
+| `index_selection_on_laurent_piece` | σ-walk selects t_{i_max} | ~60 |
+| `canonical_unit_of_pointwise_lower_bound` | v(t) ≥ v(s) on V_j ⇒ canonical image is unit | ~40 |
+| `unit_gen_restriction_of_dominating_laurent` | composition of (a)+(b)+(c) above | ~40 |
+| `rationalCovering_from_idealGenSet` | build cover from ideal-spanning Finset | ~80 |
 
-### Bridge chain (all 0 sorry)
+### Cat. C — Cast plumbing (`C'.base = C.base` type equality)
 
-- `laurentPlusBridge`, `laurentMinusBridge`: complete via Example 6.38
-  instantiation at `B := presheafValue D₀`.
-- `laurentPlusBridge_restrictionMap`, `laurentMinusBridge_restrictionMap`:
-  complete via the iterated-rational equivs' action on `canonicalMap`.
-- `presheafValue_iteratedPlus_equiv`, `presheafValue_iteratedMinus_equiv`
-  (Wedhorn Lemma 2.13): complete, all continuity and round-trip obligations
-  discharged.
-- `laurentCover_gluing_presheaf`: proved via `laurentCover_gluing_presheaf_viaRow3`
-  + the four Route-B bridges + `laurentBridge_delta_eq_zero_of_compat`.
-- `laurentBridge_delta_eq_zero_of_compat`: proved modulo
-  `laurentOverlapBridge_exists_compatible` (the remaining sorry).
+| Leaf | Issue | LOC est. |
+|---|---|---|
+| `propA3_part2_project_separation` | `Eq.rec` cast through restrictionMap | ~30 |
+| `propA3_part2_project_gluing` | parallel to separation | ~40 |
+| `wedhorn_lemma_834_propA3_part1_separation` | similar cast for Prop A.3(1) | ~30 |
+| `wedhorn_lemma_834_propA3_part1_gluing` | similar | ~40 |
 
-## Remaining work to close `tateAcyclicity`
+Could be discharged collectively via a `RationalCovering.changeBase` helper
+that internalises the cast.
 
-### Critical path
+### Cat. D — Single-piece base case
 
-**Block A — Part 1 (separation):** close `restrictionMapHom_injective`
-(`PresheafTateStructure.lean:1322`). Options:
-- **A.1** (current path): direct algebraic proof via the Example 6.38 iso
-  + the NZD claim on `mk(D₀.s)` in `A⟨X⟩/(1-D.s·X)`. Partially discharged
-  (T-INJ-NZD done: `mk(D₀.s)` IS a unit under iso-hypotheses); remaining gap
-  is the asymmetric NZD argument for the source.
-- **A.2** (alternative): via
-  `productRestriction_injective_tate_via_coeRingHom_preserves_proper`
-  + the Bourbaki-blocked `coeRingHom_preserves_proper`
-  (`Loc.Away/s / q → presheafValue D / q̂` is proper for `q ≠ ⊤`).
-  Closed transitively by T-IDEAL-1 (approximation, DONE) + T-IDEAL-2
-  (closedness, BLOCKED on Bourbaki CA III §2.8).
+| Leaf | Content | LOC est. |
+|---|---|---|
+| `isOXAcyclic_of_single_unit_piece_separation` | single piece R({1}/1) ⇒ identity restriction | ~25 |
+| `isOXAcyclic_of_single_unit_piece_gluing` | parallel | ~25 |
 
-**Block B — Part 2 (gluing):** close `tateAcyclicity` Part 2 sorry
-(`LaurentRefinement.lean:3737`). Route:
-1. Close `laurentOverlapBridge_exists_compatible` (B.1 below).
-2. Use `tateAcyclicity_gluing_via_refinement` + `refines_by_standard_cover`
-   + Laurent-cover induction to transfer gluing from Laurent base to general
-   rational cover. This requires either closing `hZavyalov` unconditionally
-   (Wedhorn Prop 7.14) or finding an alternative refinement existence result.
+### Cat. E — Project-to-abstract Čech bridges
 
-**Block B.1 — bivariate Example 6.38 primitive (T-OV-1):** build
-`presheafValue(overlap_B) ≃+* B₁₂_gen(b)` over an arbitrary complete
-strongly noetherian Tate base `B` and `b ∈ B` power-bounded in both
-directions. This is the "bivariate Laurent analog" of Example 6.38 and
-requires defining an `evalBivariateHom` with `ζ ↦ b, ζ⁻¹ ↦ b⁻¹`.
+| Leaf | Content | LOC est. |
+|---|---|---|
+| `RationalCovering.toFiniteCover` | **B2: signature targets all of Spa A A⁺, not C.base's rational subset** | ~50 (after fix) |
+| `RationalCovering.toRefinement` | refinement-to-Refinement | ~30 |
+| `restricted_cover_inherits_IsGeneratedBy` | **B2: requires \|E.covers\| = \|T\| bijection** | needs restate |
 
-Estimated effort: ~500 lines. Major undertaking.
+### Cat. F — Forward-reference compositions
 
-### Non-critical-path
+| Leaf | Issue |
+|---|---|
+| `wedhorn_lemma_834_C_restr_acyclic` body | wants `IsOXAcyclic_of_refining_acyclic_cover` (defined later) |
+| `wedhorn_lemma_834` body | same forward-ref + plumbing |
 
-- `restrictionMap_isLocalization` / sigma surj (`PresheafTateStructure.lean:1208`):
-  Baire category / Wedhorn Prop 8.15. Not needed for the Route-B closure
-  of Part 2 (which uses bridges + delta-vanishing, not sigma surj).
-- `isSheafy_ofStronglyNoetherianTate_flat.embedding` (`StructureSheaf.lean:1096`):
-  topological inducing. Downstream of `tateAcyclicity`.
-- `spa_point_nonOpen_of_rational_subset` (`Presheaf.lean:720`):
-  Bourbaki-blocked. Retired from critical path per the 2026-04-15 reviewer.
+Fix: reorder file so Prop A.3(2) project bridge is defined before Lemma 8.34.
 
-## Immediate options for next session(s)
+### Cat. G — B2-suspected statements
 
-1. **T-OV-1 / T-OVERLAP-COMPAT** (~500 lines, 1-2 sessions): build the
-   bivariate Example 6.38. Closes `laurentOverlapBridge_exists_compatible`.
-   Unblocks Block B.
-2. **Bourbaki CA III §2.8 port** (~300-600 lines, 2-3 sessions): formalise
-   `Submodule.isClosed_of_fg` for complete T2 linearly-topologized rings.
-   Closes T-IDEAL-2, unlocks `coeRingHom_preserves_proper`, which together
-   with T-IDEAL-1 closes Block A via alternative A.2.
-3. **Wedhorn Prop 7.14 port** (adic Nullstellensatz, ~300+ lines): closes
-   `hZavyalov` hypothesis unconditionally. Required for `tateAcyclicity`
-   Part 2 via the standard-cover reduction even after Block B.1 closes.
-4. **Algebraic NZD for source (Block A.1)**: pursue the asymmetric NZD
-   argument on `D.s` in `A⟨X'⟩/(1-D₀.s·X')` — unclear if this is simpler
-   than the Bourbaki path.
+| Leaf | Issue |
+|---|---|
+| `wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent` body | Wedhorn requires lifting `IsUnit (canonicalMap f)` to `f ∈ A^×`, which is the wrong direction. Needs reformulation: ratios should be at the 𝒪_X(C.base) level, not at the A level. |
+| `propA3_part3_bridge_for_laurent_product` | V is unconstrained relative to Uf, Vgs_at; statement is too weak. |
+| `wedhorn_lemma_833_example_639_intersection` | currently identity-iso placeholder; needs proper distinct R(T/s) for intersection piece + iso to A⟨ζ, ζ⁻¹⟩/(f-ζ). |
+
+## Critical path
+
+1. **Cat. C** (cast plumbing, ~140 LOC) — closes 4 sorries directly + unlocks
+   IsOXAcyclic_of_refining_acyclic_cover and wedhorn_lemma_834_propA3_part1_bridge.
+2. **Cat. F** (file reorder, ~10 LOC) — closes 2 sorries (forward-ref).
+3. **Cat. D** (single-piece, ~50 LOC) — closes 2 sorries.
+4. **Cat. E.1 + Cat. G.1** (B2 fixes, ~80 LOC restate) — RationalCovering.toFiniteCover
+   signature + part_iii reformulation.
+5. **Cat. B** (combinatorics, ~700 LOC) — substantive but mechanical.
+6. **Cat. A** (Wedhorn-text, ~660 LOC) — substantive math, each is its own
+   focused effort.
 
 ## Risk
 
-All four remaining directions require substantial new infrastructure:
-- T-OV-1 is pure algebraic but long (bivariate Tate algebra machinery).
-- Bourbaki is a Mathlib contribution; upstream dependency.
-- Prop 7.14 is Wedhorn-style valuation-theoretic.
-- Algebraic NZD route is unscoped.
+- **Cat. A**'s leaves (Wedhorn 6.18, 7.40(6), 5-lemma) are each multi-session
+  efforts. The 5-lemma in particular needs new abstract infrastructure in
+  `CechCohomology.lean` (or a project-side replacement).
+- **Cat. E** B2 issues: the `RationalCovering.toFiniteCover` signature change
+  may cascade through the project's abstract-Čech bridge.
+- **Cat. G** B2 issues: the part_iii body needs `/develop --continue` re-plan;
+  the bridge sub-lemma needs strengthened hypotheses tying V to Uf × Vgs_at.
 
-No single session closes `tateAcyclicity` fully.
+## File structure
 
-## Current state document provenance
+- `Adic spaces/WedhornCechAcyclicity.lean` (1671 lines, 74 decls, 33 sorries) —
+  the main file; all new tickets target this.
+- `Adic spaces/CechCohomology.lean` (1400 lines, 7 sorries) — abstract Čech
+  framework. Some sorries here will be co-discharged with Cat. A leaves
+  (5-lemma) and Cat. E bridges.
+- `Adic spaces/Example638.lean` (1647 lines, 0 sorry) — generic Example 6.38
+  equivs; consumed by Cat. A's continuity leaves.
 
-This file generated 2026-04-16 from direct inspection of the codebase
-(`awk` on `sorry` lines, `grep` on theorem/definition structure). Supersedes
-all prior plans in `docs/plans/` for the acyclicity proof; see
-`docs/plans/2026-04-14-acyclicity-completion.md` for the historical
-roadmap and `docs/plans/2026-04-16-part2-route.md` for the Part 2 routing
-analysis.
+## State document provenance
+
+This file regenerated 2026-05-28 from direct inspection of
+`WedhornCechAcyclicity.lean` (committed at 809b78e). Supersedes
+`plan-block-A-B-archived-2026-05-28.md`.

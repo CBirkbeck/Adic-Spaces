@@ -154,6 +154,39 @@ noncomputable def laurentRationalCover (D₀ : RationalLocData A) (f : A) :
     · refine ⟨laurentMinusDatum D₀ f, ?_, h_minus⟩
       simp [Finset.mem_insert]
 
+/-! ### `RationalCovering.presheafValueCast` — the C.base = C'.base bridge
+
+When `C, C' : RationalCovering A` share a base (`h : C'.base = C.base`), the
+two `presheafValue`s are propositionally equal but Lean treats them as
+distinct types. `presheafValueCast` provides the canonical ring isomorphism
+between them, and `presheafValueCast_restrictionMap` says restriction maps
+commute with the cast. -/
+
+/-- Transport a presheaf section along a base equality. -/
+noncomputable def RationalCovering.presheafValueCast
+    [HasLocLiftPowerBounded A] {C C' : RationalCovering A}
+    (h : C'.base = C.base) :
+    presheafValue C.base ≃+* presheafValue C'.base :=
+  @Eq.rec (RationalLocData A) C.base
+    (fun b _ => presheafValue C.base ≃+* presheafValue b)
+    (RingEquiv.refl _) C'.base h.symm
+
+/-- Restriction map respects the base cast (variable-base form). -/
+theorem RationalCovering.presheafValueCast_restrictionMap
+    [HasLocLiftPowerBounded A] (baseC baseC' : RationalLocData A)
+    (h : baseC' = baseC) (D : RationalLocData A)
+    (hsubC : rationalOpen D.T D.s ⊆ rationalOpen baseC.T baseC.s)
+    (hsubC' : rationalOpen D.T D.s ⊆ rationalOpen baseC'.T baseC'.s)
+    (x : presheafValue baseC) :
+    restrictionMap baseC' D hsubC'
+      (@Eq.rec (RationalLocData A) baseC
+        (fun b _ => presheafValue baseC ≃+* presheafValue b)
+        (RingEquiv.refl _) baseC' h.symm x) =
+      restrictionMap baseC D hsubC x := by
+  -- Now h is between free variables; subst works.
+  subst h
+  rfl
+
 /-! ### Sub-lemmas for Lemma 8.33 — Wedhorn's diagram chase on p. 83
 
 Wedhorn's proof of Lemma 8.33 uses the commutative diagram (8.2.1) on
@@ -183,6 +216,7 @@ theorem cor_8_32_for_2cover
   cor_8_32_clean_proof (IsTateRing.principalPair A).toPairOfDefinition
     (laurentRationalCover D₀ f)
 
+set_option synthInstance.maxHeartbeats 800000 in
 /-- **Lemma 8.33 sub-lemma 1b** — converting Cor 8.32's faithful-flatness
 output into the function-form injectivity needed by the separation field.
 
@@ -199,12 +233,21 @@ theorem injectivity_from_faithfullyFlat_2cover
       fun (D : { D : RationalLocData A // D ∈ (laurentRationalCover D₀ f).covers }) =>
         restrictionMap (laurentRationalCover D₀ f).base D.1
           ((laurentRationalCover D₀ f).hsubset D.1 D.2) x) := by
-  -- Composition: cor_8_32_for_2cover gives Module.FaithfullyFlat;
-  -- this gives FaithfulSMul (instance Module.FaithfullyFlat.faithfulSMul);
-  -- then FaithfulSMul.algebraMap_injective gives the injectivity of the
-  -- algebraMap, which equals the function-form restriction.
-  -- (Pi.algebra ↔ restrictionMapHom plumbing is the residual.)
-  sorry
+  -- Module.FaithfullyFlat from cor_8_32_for_2cover → FaithfulSMul (instance)
+  -- → algebraMap_injective. The function form equals algebraMap via
+  -- Pi.algebra + RingHom.toAlgebra unfolding.
+  letI : ∀ D : { D // D ∈ (laurentRationalCover D₀ f).covers },
+      Algebra (presheafValue (laurentRationalCover D₀ f).base)
+        (presheafValue D.1) := fun D =>
+    (restrictionMapHom (laurentRationalCover D₀ f).base D.1
+      ((laurentRationalCover D₀ f).hsubset D.1 D.2)).toAlgebra
+  haveI hff := cor_8_32_for_2cover D₀ f
+  -- The pi-algebra `algebraMap` is the function form. Cite the algebraMap
+  -- injectivity (derived from FaithfulSMul, derived from FaithfullyFlat).
+  exact FaithfulSMul.algebraMap_injective
+    (presheafValue (laurentRationalCover D₀ f).base)
+    (∀ D : { D : RationalLocData A // D ∈ (laurentRationalCover D₀ f).covers },
+      presheafValue D.1)
 
 /-- **Lemma 8.33 sub-lemma 1** — injectivity of ε from Cor 8.32.
 
@@ -1543,11 +1586,41 @@ theorem propA3_part2_project_separation
     ∀ (x : presheafValue C.base),
       (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
         restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0 := by
-  -- Plumbing: restrictionMap depends on RationalLocData via presheafValue,
-  -- and `C'.base = C.base` is not a free-variable equality. The proof
-  -- requires `Eq.rec`/`▸` maneuvering. (Mathematical content: refinement
-  -- factors restriction → C'-separation + refinement ⇒ C-separation.)
-  sorry
+  intro x hx
+  -- Define the cast value.
+  let f : presheafValue C.base ≃+* presheafValue C'.base :=
+    RationalCovering.presheafValueCast h_same_base
+  -- It suffices to show f x = 0; then x = 0 by f's injectivity.
+  suffices h_fx : f x = 0 by
+    have h_inj : Function.Injective f := f.injective
+    have : f x = f 0 := h_fx.trans f.map_zero.symm
+    exact h_inj this
+  -- Apply h_C'_sep to f x.
+  apply h_C'_sep
+  intro D' hD'
+  -- restrictionMap C'.base D' (f x) = restrictionMap C.base D' x
+  -- by the cast-restrictionMap compatibility.
+  have hsubD' : rationalOpen D'.T D'.s ⊆ rationalOpen C.base.T C.base.s := by
+    rw [← h_same_base]; exact C'.hsubset D' hD'
+  have h_cast :
+      restrictionMap C'.base D' (C'.hsubset D' hD') (f x) =
+      restrictionMap C.base D' hsubD' x :=
+    RationalCovering.presheafValueCast_restrictionMap C.base C'.base
+      h_same_base D' hsubD' (C'.hsubset D' hD') x
+  rw [h_cast]
+  -- Pick D ⊇ D' from refinement.
+  obtain ⟨D, hD_in_C, hD_contains_D'⟩ := h_refines D' hD'
+  -- Composition: restrictionMap C.base D' = restrictionMap D D' ∘ restrictionMap C.base D.
+  have hcomp := restrictionMap_comp (A := A) C.base D D'
+    (C.hsubset D hD_in_C) hD_contains_D'
+  have h_factored :
+      restrictionMap C.base D' hsubD' x =
+      restrictionMap D D' hD_contains_D'
+        (restrictionMap C.base D (C.hsubset D hD_in_C) x) :=
+    (congr_fun hcomp x).symm
+  rw [h_factored, hx D hD_in_C]
+  exact (restrictionMapHom C.base D' hsubD').map_zero ▸
+    map_zero (restrictionMapHom D D' hD_contains_D')
 
 /-- **Project Prop A.3(2) sub-lemma (gluing transfer)**: refinement
 + C'-gluing + double-restriction-acyclicity ⇒ C-gluing. -/
@@ -1576,10 +1649,14 @@ theorem propA3_part2_project_gluing
            restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
       ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
         restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D := by
-  -- For each D ∈ C.covers, use double_restriction_acyclicity on the
-  -- restricted cover (E := C'|_D) to glue f_D into a section at D.
-  -- Then use C'-gluing to glue the family at the C'-level, and use the
-  -- refinement to descend back to C.
+  -- Gluing direction of Prop A.3(2). Strategy:
+  -- (a) Build g : ∀ D' : ↥C'.covers, presheafValue D'.1 via the refinement.
+  -- (b) Verify g is compatible (uses hcompat + restrictionMap_comp).
+  -- (c) Apply h_C'_acyclic.gluing to get x' : presheafValue C'.base.
+  -- (d) Cast x' to x : presheafValue C.base via presheafValueCast.
+  -- (e) Verify x|D = f D using h_double_acyclic on E := C'|_D.
+  -- Step (e) requires constructing the restricted cover E_D of D by
+  -- {D' ∈ C'.covers : D' ⊆ D} — sub-ticket T-WC-RESTR-C-PRIME-TO-D.
   sorry
 
 /-- **Sub-lemma 2 of `every_rational_cover_is_OXAcyclic`** (Wedhorn Prop A.3(2)
