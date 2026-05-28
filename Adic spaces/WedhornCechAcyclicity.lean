@@ -2005,13 +2005,13 @@ theorem wedhorn_lemma_834 [DecidableEq A]
     intro U V' hV'
     simp only [V_restr_at, RationalCovering.restrictToPiece, Finset.mem_filter] at hV'
     exact ⟨V', hV'.1, subset_rfl⟩
-  -- Sub-ticket: T-WC-LEMMA-834-V-RESTR-ACYCLIC (need each V_restr_at U acyclic).
-  -- For the Laurent V, the restriction to U is a Laurent sub-cover of U; its
-  -- acyclicity follows from part (i)'s Laurent acyclicity at the sub-cover level.
+  -- Each V_restr_at U is a Laurent sub-cover of U; acyclic via part (i).
   have hV_restr_acyclic : ∀ U : ↥C.covers, (V_restr_at U).IsOXAcyclic := by
     intro U
-    -- Sub-sorry: V_restr_at U is a Laurent sub-cover of U, hence acyclic.
-    sorry
+    apply wedhorn_lemma_834_part_i_laurent_restriction_acyclic V fs hV_laurent U.1
+    · rw [hV_base]; exact C.hsubset U.1 U.2
+    · exact hV_restr_base U
+    · exact hV_restr_pieces U
   have hV_restr_covers : ∀ U : ↥C.covers, ∀ v ∈ rationalOpen U.1.T U.1.s,
       ∃ V' ∈ (V_restr_at U).covers, v ∈ rationalOpen V'.T V'.s ∧
         rationalOpen V'.T V'.s ⊆ rationalOpen U.1.T U.1.s := by
