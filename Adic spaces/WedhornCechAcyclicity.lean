@@ -1974,13 +1974,21 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
       -- LHS via h_compat = restrictionMap D.1 D'' h_D''_sub_D (f D).
       rw [h_compat (chooseC Vj_sub ⟨D'', hD''_in⟩).1 D D''
         (chooseC Vj_sub ⟨D'', hD''_in⟩).2 h_D''_sub_D]
-      -- Now: restrictionMap D.1 D'' h_D''_sub_D (f D) =
-      --      restrictionMap (C_restr_at Vj_sub).base D'' (...) cast_RHS.
-      -- The RHS reduces via Eq.rec eval to restrictionMap V' D'' h_D''_sub_V'
-      --   (restrictionMap D.1 V' hV'_sub_D (f D))
-      -- then by restrictionMap_comp = restrictionMap D.1 D'' (chained) (f D).
-      -- Sub-sorry: T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-CAST-RHS-FINAL.
-      sorry
+      -- For the RHS: apply presheafValueCast_restrictionMap to evaluate Eq.rec.
+      have h_cast_eval :
+          restrictionMap (C_restr_at Vj_sub).base D''
+            ((C_restr_at Vj_sub).hsubset D'' hD''_in) cast_RHS =
+          restrictionMap V' D'' h_D''_sub_V'
+            (restrictionMap D.1 V' hV'_sub_D (f D)) := by
+        -- Direct Eq.rec evaluation: substitute h_base_eq.symm and simplify.
+        -- The cast_RHS becomes restrictionMap D.1 V' (f D) after Eq.rec eval,
+        -- and the restrictionMap composes via h_base_eq.
+        sorry
+      rw [h_cast_eval]
+      -- Now RHS = restrictionMap V' D'' h_D''_sub_V' (restrictionMap D.1 V' hV'_sub_D (f D))
+      --        = (restrictionMap_comp) restrictionMap D.1 D'' h_D''_sub_D (f D).
+      have h_comp := restrictionMap_comp D.1 V' D'' hV'_sub_D h_D''_sub_V'
+      exact (congrFun h_comp (f D)).symm
     -- Step 2: cast forward to get the conclusion.
     -- yV Vj_sub = _hC_restr_base Vj_sub ▸ yVj Vj_sub = (by step1) _hC_restr_base Vj_sub ▸ cast_RHS.
     -- The Eq.rec on h_base_eq applied to cast_RHS (which is Eq.rec on h_base_eq.symm of RHS)
