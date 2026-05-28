@@ -1835,10 +1835,24 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   -- Use Eq.rec via _hC_restr_base Vj : (C_restr_at Vj).base = Vj.1.
   let yV : ∀ (Vj : ↥V.covers), presheafValue Vj.1 := fun Vj =>
     _hC_restr_base Vj ▸ yVj Vj
-  -- Step 5: show yV is compatible on V (the substantive piece — requires
-  -- factoring through C_restr_at pieces + h_compat).
-  -- Sub-ticket T-WC-PROPA3-PART1-GLU-COMPAT-V (the V-compatibility analogue
-  -- of the C'-compatibility step in propA3_part2).
+  -- Step 5: show yV is compatible on V.
+  -- ANALYSIS (2026-05-28): the proof requires showing that yV Vj₁ AT Vj₃ and
+  -- yV Vj₂ AT Vj₃ agree in presheafValue Vj₃. The natural approach is to use
+  -- an acyclic sub-cover of Vj₃ to apply separation. However:
+  -- - _hC_restr_covers Vj_i gives covers of Vj_i, not necessarily of Vj₃.
+  -- - The restrictToPiece construction would need (C_restr_at Vj_i) pieces ⊆ Vj₃,
+  --   which the _hC_restr_covers hypothesis doesn't directly provide.
+  --
+  -- This is a NEW SUB-OBLIGATION beyond the current hypothesis bundle:
+  --   T-WC-PROPA3-PART1-GLU-COMPAT-V-FINE-COVER — need a "fine cover" axiom:
+  --   ∀ Vj, ∀ Vj' ⊆ Vj rational subset, ∃ sub-cover of Vj' from (C_restr_at Vj)
+  --   pieces inside Vj'.
+  -- This is the "covering of sub-pieces" property analogous to what propA3_part2
+  -- needed (h_C'_covers_each_D) but at a finer granularity.
+  --
+  -- Pending: either add the fine-cover hypothesis to propA3_part1_gluing's
+  -- signature, or prove it from the existing hypotheses + Wedhorn's specific
+  -- V and C_restr_at construction.
   have h_yV_compat : ∀ (Vj₁ Vj₂ : ↥V.covers)
       (Vj₃ : RationalLocData A)
       (h₃₁ : rationalOpen Vj₃.T Vj₃.s ⊆ rationalOpen Vj₁.1.T Vj₁.1.s)
