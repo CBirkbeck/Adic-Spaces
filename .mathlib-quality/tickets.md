@@ -7961,9 +7961,9 @@ Wedhorn, *Adic Spaces*, p. 84.
 #### Generality decision
 Project-internal.
 
-### [T-WC-PART-III-BODY] `wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent` — B2 candidate
+### [T-WC-PART-III-BODY] `wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent` — B2 RESOLVED 2026-05-28
 
-- **Status**: OPEN (B2 review needed)
+- **Status**: OPEN (B2 resolved 2026-05-28: ratios computed in 𝒪_X(C.base), not A)
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Depends on**: T-WC-RATIO-LAURENT-COVER, T-WC-RATIO-REFINES
 - **Parallel**: no
@@ -8601,3 +8601,265 @@ Total new tickets: 33 proof tickets + 4 cleanup tickets = 37.
 Parallel capacity: at peak, ~8-10 tickets can run in parallel (Cat. A
 substantive leaves are all independent; Cat. B combinatorics has some chain
 dependencies; Cat. C all branch off CHANGE-BASE).
+
+---
+
+## 2026-05-28 /develop --continue: B2/scope ticket fixes batch
+
+This batch resolves 8 B2/scope issues identified during beastmode execution.
+6 ticket statements are corrected; 2 are fused; 2 new sub-tickets are spawned
+to unblock PROPA3-PART2-GLU + wedhorn_lemma_834 body.
+
+### [T-WC-EXISTS-PRINCIPAL-PAIR-IN-APLUS] **NEW** — fused: principal pair with A₀ ⊆ A⁺ + topnilp generator
+
+- **Status**: OPEN (supersedes T-WC-EXISTS-PAIR-A0-APLUS + T-WC-EXISTS-PSEUDO)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: theorem
+
+#### Statement
+```lean
+theorem exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A] :
+    ∃ (P : PairOfDefinition A) (π : P.A₀),
+      P.A₀ ≤ A⁺ ∧
+      P.I = Ideal.span {π} ∧
+      IsTopologicallyNilpotent (P.A₀.subtype π) ∧
+      IsUnit (P.A₀.subtype π) := by
+  sorry
+```
+
+#### Proof sketch
+Wedhorn 6.14 gives ∃ (P, π) with P.I = (π) and π unit (no A⁺ constraint). To
+add A₀ ⊆ A⁺: refine to the smallest A₀ containing π and its powers.
+1. Apply `IsTateRing.exists_principal_pairOfDefinition` to get (P₀, π) with
+   P₀.I = Ideal.span {π}, IsUnit (π).
+2. π is topologically nilpotent (Wedhorn 6.14, π generates ideal of definition).
+3. For A₀ ⊆ A⁺ constraint: construct P.A₀ := Subring.closure {π^n · a : n ∈ ℕ, a ∈ ℤ⟨π⟩}
+   or simply note that "every topologically nilpotent unit's powers generate a
+   sub-A₀ inside A⁺" (since A⁺ contains all topologically nilpotent elements
+   by definition of A⁺).
+
+#### Mathlib lemmas needed
+- `IsTateRing.exists_principal_pairOfDefinition` (project)
+- `CompatiblePlusSubring.aplus_le_A₀` (project — provides A⁺ ⊆ A₀ direction; we want reverse, but constructively achievable)
+- `Subring.closure_le`
+
+#### Sources
+- Wedhorn, *Adic Spaces*, Lemma 6.14 (p. 50), Remark 7.17 (p. 70).
+
+#### Generality decision
+Project-internal. Requires [CompatiblePlusSubring A].
+
+### [T-WC-EXISTS-PAIR-A0-APLUS] *(SUPERSEDED 2026-05-28)*
+
+- **Status**: superseded by T-WC-EXISTS-PRINCIPAL-PAIR-IN-APLUS (fused)
+
+### [T-WC-EXISTS-PSEUDO] *(SUPERSEDED 2026-05-28)*
+
+- **Status**: superseded by T-WC-EXISTS-PRINCIPAL-PAIR-IN-APLUS (fused)
+- **B2 note**: original statement required ∀ P, ∃ π principal generator — only
+  true for principal pairs. Fixed by restricting to the principal pair (fused
+  ticket constructs both P and π).
+
+### [T-WC-EPRIME-RESTRICT-TO-D] **NEW** — construction of E := C'|_D as a RationalCovering of D
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: def + lemma
+- **Parent**: T-WC-PROPA3-PART2-GLU (unblocks the gluing direction of Prop A.3(2))
+
+#### Statement
+```lean
+/-- Restricted cover E := C' restricted to D ∈ C.covers. Pieces are
+the C'-pieces refining into D. Requires that C'-pieces actually cover D
+(an existence assumption). -/
+noncomputable def RationalCovering.restrictToPiece
+    (C C' : RationalCovering A) (h_same_base : C'.base = C.base)
+    (h_refines : ∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
+      rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (h_C'_covers_each : ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+      ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
+        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (D : RationalLocData A) (hD : D ∈ C.covers) :
+    RationalCovering A := sorry  -- struct: base = D, covers = {D' ∈ C'.covers : D' refines into D}, hsubset = trivial, hcover by h_C'_covers_each
+```
+
+#### Proof sketch
+1. Filter C'.covers to {D' : ∃ proof D' refines into D}.
+2. Build RationalCovering with base = D, covers = filtered set.
+3. hsubset: each D' ∈ filtered set has rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s by construction.
+4. hcover: requires every v ∈ D's rational open to be in some D' ∈ filtered set. This is the `h_C'_covers_each` hypothesis.
+
+#### Mathlib lemmas needed
+- `Finset.filter`
+- Standard `RationalCovering` constructor
+
+#### Sources
+Wedhorn, *Adic Spaces*, §A.3 (refinement induced cover).
+
+#### Generality decision
+Project-internal.
+
+### [T-WC-V-REFINES-C-FROM-DOM-UNIT] **NEW** — extract h_V_refines_C from dominating-unit construction
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: theorem
+- **Parent**: wedhorn_lemma_834 body
+
+#### Statement
+```lean
+/-- For the Laurent cover V from part (ii) of Lemma 8.34, V refines C: each
+V-piece sits in some C-piece (via the dominant generator). -/
+theorem laurent_cover_refines_idealgen_cover [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C : RationalCovering A) (T : Finset A) (hC_gen : C.IsGeneratedBy T)
+    (V : RationalCovering A) (fs : List A) (hV_laurent : V.IsLaurentCover fs)
+    (hV_base : V.base = C.base)
+    (hV_unit_restrictions : ∀ Vj ∈ V.covers,
+      ∃ (C_restr : RationalCovering A),
+        C_restr.base = Vj ∧
+        C_restr.IsUnitGenerated ∧
+        (∀ D' ∈ C_restr.covers, ∃ D ∈ C.covers,
+          rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) ∧
+        (∀ v ∈ rationalOpen Vj.T Vj.s, ∃ D' ∈ C_restr.covers,
+          v ∈ rationalOpen D'.T D'.s)) :
+    ∀ V_j ∈ V.covers, ∃ U ∈ C.covers,
+      rationalOpen V_j.T V_j.s ⊆ rationalOpen U.T U.s := by
+  sorry
+```
+
+#### Proof sketch
+The Laurent cover V is built from a dominating unit s (via `cor_7_32_dominating_unit`).
+Each V-piece V_j corresponds to a sign vector σ on T (via s⁻¹·T). The "dominant"
+index i_max chosen by σ has v(t_{i_max}) ≥ v(s) on V_j, so v(t_{i_max}) ≠ 0
+(s is a unit). Then V_j is contained in R(T/t_{i_max}) = C's piece indexed by t_{i_max}.
+
+1. Pull out the C_restr witness for V_j from hV_unit_restrictions.
+2. Pick any D' ∈ C_restr.covers (assume non-empty; otherwise V_j is empty, trivial).
+3. The chosen D' refines into some D ∈ C.covers (by C_restr-refines-C).
+4. Verify V_j ⊆ D by showing each v ∈ V_j is in D (use the cover-property of C_restr + D' ⊆ D).
+
+#### Mathlib lemmas needed
+- Standard valuation reasoning on rationalOpen membership
+
+#### Sources
+Wedhorn, *Adic Spaces*, p. 84 (the σ-walk argument in part (iii)).
+
+#### Generality decision
+Project-internal. Designed to plug into wedhorn_lemma_834 body.
+
+### [T-WC-RESTR-INHERIT-GEN-RESTATED] **REPLACES T-WC-RESTR-INHERIT-GEN**
+
+- **Status**: OPEN (B2 RESOLVED: weakened conclusion)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: theorem
+
+#### Statement (weakened)
+```lean
+/-- E inherits an `IsUnitGenerated` witness from C', not full `IsGeneratedBy`.
+The weakening: `IsUnitGenerated` doesn't require the bijection `|E.covers| = |T|`. -/
+theorem restricted_cover_inherits_IsUnitGenerated
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C' : RationalCovering A) (T : Finset A) (h_C'_gen : C'.IsGeneratedBy T)
+    (D : RationalLocData A)
+    (E : RationalCovering A) (_h_E_base : E.base = D)
+    (_h_E_pieces : ∀ E' ∈ E.covers, ∃ D' ∈ C'.covers,
+        rationalOpen E'.T E'.s ⊆ rationalOpen D'.T D'.s) :
+    E.IsUnitGenerated := by
+  sorry
+```
+
+#### Proof sketch
+1. Each E-piece E' refines into some D' ∈ C'.covers.
+2. D' has T-shape (D'.T = T), so each t ∈ E'.T has been chosen from T.
+3. Canonical image of t in 𝒪_X(E') is a unit (uses isUnit_canonicalMap_s if t = E'.s, or general non-vanishing argument).
+
+### [T-WC-RESTR-INHERIT-GEN] *(SUPERSEDED 2026-05-28)*
+
+- **Status**: superseded by T-WC-RESTR-INHERIT-GEN-RESTATED (conclusion weakened to `IsUnitGenerated`)
+
+### [T-WC-TO-FINITE-COVER-RESTATED] **REPLACES T-WC-TO-FINITE-COVER**
+
+- **Status**: OPEN (B2 RESOLVED: signature targets correct base)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: none
+- **Parallel**: yes
+- **Type**: def
+
+#### Statement (corrected)
+```lean
+/-- The corrected version targeting C.base's rational open. -/
+def RationalCovering.toFiniteCover [IsHuberRing A] (C : RationalCovering A) :
+    FiniteCover ↥(rationalOpen C.base.T C.base.s : Set ↥(Spa A A⁺)) ↥C.covers where
+  sets D := Subtype.val ⁻¹' (rationalOpen D.1.T D.1.s)
+  isOpen D := by sorry
+  isCover := by sorry
+```
+
+#### Proof sketch
+1. `sets D := Subtype.val ⁻¹' (rationalOpen D.1.T D.1.s)` — the preimage of D's rational open under the inclusion C.base ↪ Spa.
+2. `isOpen D`: the rational open is open in Spa; preimage under continuous inclusion is open.
+3. `isCover`: union over all D ∈ C.covers covers C.base's rational open (by `C.hcover`).
+
+### [T-WC-TO-FINITE-COVER] *(SUPERSEDED 2026-05-28)*
+
+- **Status**: superseded by T-WC-TO-FINITE-COVER-RESTATED
+
+### [T-WC-INDEX-SELECTION-RESTATED] **REPLACES T-WC-INDEX-SELECTION**
+
+- **Status**: OPEN (B2 RESOLVED: V tied to T and s)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-LAURENT-COVER-FROM-DOM-UNIT
+- **Parallel**: no
+- **Type**: theorem
+
+#### Statement (with V tied to T and s)
+```lean
+/-- When V is the Laurent cover from `laurent_cover_from_dominating_unit T s`,
+each piece V_j has a distinguished generator t ∈ T with v(t) ≥ v(s) on V_j. -/
+theorem index_selection_on_dominating_laurent_piece
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [DecidableEq A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (s : Aˣ)
+    -- V and fs are the witnesses from laurent_cover_from_dominating_unit
+    (V : RationalCovering A) (fs : List A)
+    (hV_laurent : V.IsLaurentCover fs)
+    (h_V_from_dom : V.base = D₀ ∧
+      fs = (T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t))
+    (Vj : RationalLocData A) (hVj : Vj ∈ V.covers) :
+    ∃ t ∈ T, ∀ v ∈ rationalOpen Vj.T Vj.s, v.vle (s : A) t := by
+  sorry
+```
+
+### [T-WC-INDEX-SELECTION] *(SUPERSEDED 2026-05-28)*
+
+- **Status**: superseded by T-WC-INDEX-SELECTION-RESTATED
+
+### Updates to existing tickets
+
+- **wedhorn_lemma_834** body: sketch updated to use T-WC-V-REFINES-C-FROM-DOM-UNIT
+  to provide h_V_refines_C input to propA3_part1_bridge.
+- **T-WC-PROPA3-PART2-GLU**: dependency added to T-WC-EPRIME-RESTRICT-TO-D.
+- **T-WC-PROPA3-PART1-GLU**: dependency added to T-WC-EPRIME-RESTRICT-TO-D.
+
