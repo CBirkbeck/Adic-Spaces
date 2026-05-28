@@ -1533,12 +1533,12 @@ theorem ratio_laurent_cover_of_units [DecidableEq A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (units : Finset A)
-    (_h_units_unit : ∀ f ∈ units, IsUnit f) :
+    (_h_units_unit : ∀ f ∈ units, IsUnit (D₀.canonicalMap f)) :
     ∃ (V : RationalCovering A) (fs : List A),
       V.IsLaurentCover fs ∧
       V.base = D₀ := by
   -- Construction: iterate `laurentRationalCover` over the ratio list
-  -- {f_i · f_j⁻¹ : i, j ∈ units}.
+  -- {f_i · f_j⁻¹ : i, j ∈ units} (interpreted in 𝒪_X(D₀)).
   sorry
 
 /-- **Part (iii) sub-lemma 3**: each piece of the ratio Laurent cover is
@@ -1587,14 +1587,10 @@ theorem wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent [DecidableEq A]
   -- refinement.
   obtain ⟨units, h_units_unit, h_T_in_units⟩ := unitGenerators_of_unitGenCover C hC_unit
   -- Step (a): construct the ratio Laurent cover at C.base.
+  -- `unitGenerators_of_unitGenCover` returns IsUnit (C.base.canonicalMap f) for each f ∈ units,
+  -- matching `ratio_laurent_cover_of_units`'s updated hypothesis directly.
   obtain ⟨V, fs, hV_laurent, hV_base⟩ :=
-    ratio_laurent_cover_of_units C.base units
-      (fun f hf => by
-        -- Lift `IsUnit (C.base.canonicalMap f)` to `IsUnit f` is generally
-        -- impossible without further hypotheses; for `ratio_laurent_cover_of_units`
-        -- we instead require IsUnit f directly. This sub-step is the
-        -- canonical-unit-lift obligation (sub-ticket T-WC-CANONICAL-UNIT-LIFT).
-        sorry)
+    ratio_laurent_cover_of_units C.base units h_units_unit
   -- Step (b): each V-piece refines into some C-piece (the σ-walk
   -- direction). Uses ratio_laurent_refines_unit_gen.
   refine ⟨V, fs, hV_laurent, hV_base, ?_⟩
