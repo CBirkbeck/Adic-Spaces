@@ -1854,7 +1854,20 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   refine ⟨x, ?_⟩
   -- Step 8: verify x|D = f D for each D ∈ C.covers via V_restr_at(D).separation.
   -- Pattern from propA3_part2_project_gluing Step 7 — substantive cast chain.
-  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY.
+  -- The proof structure:
+  --   (a) Reduce to (restrictionMap C.base D.1 _ x - f D) = 0.
+  --   (b) Cast through _hV_restr_base D to land in presheafValue D.1 (= (V_restr_at D).base).
+  --   (c) Apply (V_restr_at D).IsOXAcyclic.separation: show ∀ V' ∈ (V_restr_at D).covers,
+  --       restriction of the difference to V' equals 0.
+  --   (d) For each V', use _hV_restr_pieces to find V'' ∈ V.covers with V' ⊆ V''.
+  --       Apply hx' V'' to express restrictionMap V.base V''.1 _ x' = yV V''.
+  --       Chain through restrictionMap_comp + presheafValueCast_restrictionMap
+  --       to express the LHS as a restriction of yV V''.
+  --       Then use yVj V''.gluing's spec (restricted via _hC_restr_base) to express yV V''
+  --       at V' as f at some C-piece restricted to V'.
+  --       Equate with restrictionMap D V' (f D) via h_compat.
+  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY (analogue of T-WC-PROPA3-PART2-GLU-VERIFY which
+  -- was the same kind of plumbing; that one was solved by the propA3_part2 commit 4d0d3c1).
   intro D
   let _ := hx'
   let _ := x
