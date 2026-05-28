@@ -1879,21 +1879,26 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-CHAIN.
   intro D
   rw [← sub_eq_zero]
-  -- Apply (V_restr_at D).IsOXAcyclic.separation after type cast through _hV_restr_base D.
-  -- The Eq.rec form requires careful motive specification — using the existing
-  -- presheafValueCast pattern doesn't directly apply since the cast here is between
-  -- RationalLocData values (not RationalCovering).
-  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-CAST-MOTIVE.
-  let _ := hx'
-  let _ := x
-  let _ := _hV_restr_acyclic
-  let _ := _hV_restr_pieces
-  let _ := _hV_restr_base
-  let _ := h_compat
-  let _ := _hC_restr_acyclic
-  let _ := _hC_restr_base
-  let _ := _hC_restr_pieces
-  let _ := _hC_restr_covers
+  -- Apply (V_restr_at D).IsOXAcyclic.separation. Type cast via Eq.rec motive.
+  have h_base_eq : (V_restr_at D).base = D.1 := _hV_restr_base D
+  -- The diff: restrictionMap C.base D.1 _ x - f D ∈ presheafValue D.1.
+  -- Cast to presheafValue (V_restr_at D).base via Eq.rec on h_base_eq.symm.
+  set diff_D : presheafValue D.1 :=
+    restrictionMap C.base D.1 (C.hsubset D.1 D.2) x - f D
+  let diff_cast : presheafValue (V_restr_at D).base :=
+    @Eq.rec (RationalLocData A) D.1
+      (fun b _ => presheafValue b) diff_D (V_restr_at D).base h_base_eq.symm
+  -- Apply separation. The result diff_cast = 0 implies diff_D = 0 (via Eq.rec cancel).
+  suffices h_diff_cast_zero : diff_cast = 0 by
+    -- diff_cast = 0 ↔ diff_D = 0 via the Eq.rec equivalence on h_base_eq.
+    -- Sub-sorry: Eq.rec cancel for the propositional equality.
+    sorry
+  -- Apply (V_restr_at D).IsOXAcyclic.separation.
+  apply (_hV_restr_acyclic D).separation
+  -- Show: ∀ V' ∈ (V_restr_at D).covers, restriction of diff_cast to V' = 0.
+  intro V' hV'_in
+  -- Sub-sorry: the per-V' chain via hx', restrictionMap_comp, h_compat, and
+  -- nested (C_restr_at V'').separation.
   sorry
 
 /-- **Part (iv) sub-lemma (c)**: the Prop A.3(1) bridge step. Given a
