@@ -104,28 +104,6 @@ structure RationalCovering.IsOXAcyclic [HasLocLiftPowerBounded A]
     ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
       restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D
 
--- Old `def`-form, kept as a deprecated alias for callers that grep for it.
--- The structure form (above) gives projection lemmas `IsOXAcyclic.separation`
--- and `IsOXAcyclic.gluing` for free.
-@[deprecated "Use `RationalCovering.IsOXAcyclic` (structure form) directly"
-  (since := "2026-05-27")]
-def RationalCovering.IsOXAcyclic_old [HasLocLiftPowerBounded A]
-    (C : RationalCovering A) : Prop :=
-  -- (Separation) the product restriction is injective:
-  Function.Injective (fun (x : presheafValue C.base) =>
-    fun (D : { D : RationalLocData A // D ∈ C.covers }) =>
-      restrictionMap C.base D.1 (C.hsubset D.1 D.2) x) ∧
-  -- (Gluing) every compatible family arises from a global section:
-  ∀ (f : ∀ (D : ↥C.covers), presheafValue D.1),
-    (∀ (D₁ D₂ : ↥C.covers)
-       (D₃ : RationalLocData A)
-       (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
-       (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
-       restrictionMap D₁.1 D₃ h₃₁ (f D₁) =
-         restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
-    ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
-      restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D
-
 /-! ### Wedhorn Lemma 8.33 — the 2-cover {R(f/1), R(1/f)}
 
 For any `D₀ : RationalLocData A` and `f : A`, the 2-element cover
