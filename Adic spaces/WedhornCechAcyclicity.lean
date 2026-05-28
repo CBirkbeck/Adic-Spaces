@@ -1879,14 +1879,14 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-CHAIN.
   intro D
   rw [← sub_eq_zero]
-  -- (V_restr_at D).base = D.1 by _hV_restr_base D (rfl for restrictToPiece).
-  -- Apply (V_restr_at D).separation to (x|D - f D) ∈ presheafValue D.1.
-  -- We need to express the type alignment: presheafValue D.1 = presheafValue
-  -- (V_restr_at D).base via _hV_restr_base D.
-  -- For the general parametric form of V_restr_at, we use Eq.rec.
+  -- (V_restr_at D).base = D.1 by _hV_restr_base D (Eq.rec cast).
+  -- Apply (V_restr_at D).separation after cast.
   --
-  -- The proof body (per-V' restriction = 0 chain via hx' + h_compat + nested
-  -- separation on (C_restr_at V'').covers) is documented but pending.
+  -- The full chain (per-V' restriction = 0 via restrictionMap_comp +
+  -- presheafValueCast_restrictionMap + hx' + nested separation + h_compat)
+  -- is documented above. The cast plumbing involves _hV_restr_base D's
+  -- Eq.rec form which differs from the propA3_part2 case (where the cast
+  -- was through C ↔ C' rather than V_restr_at U ↔ U).
   -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-CHAIN.
   let _ := hx'
   let _ := x
@@ -1897,6 +1897,7 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   let _ := _hC_restr_acyclic
   let _ := _hC_restr_base
   let _ := _hC_restr_pieces
+  let _ := _hC_restr_covers
   sorry
 
 /-- **Part (iv) sub-lemma (c)**: the Prop A.3(1) bridge step. Given a
