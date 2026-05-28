@@ -7549,7 +7549,7 @@ Same as the current sorry'd statement.
 
 ### [T-WC-PROPA3-PART2-GLU] `propA3_part2_project_gluing` via changeBase helper
 
-- **Status**: in_progress (started 2026-05-28; needs E := C'|_D construction sub-lemma — non-trivial structural construction; deferred)
+- **Status**: superseded by T-WC-PROPA3-PART2-GLU-RESTATED (which landed at commit 4d0d3c1, 2026-05-28); the RESTATED variant added `h_C'_covers_each_D` hypothesis that was missing from the original decomposition
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Depends on**: T-WC-CAT-C-CHANGE-BASE
 - **Parallel**: parallel with T-WC-PROPA3-PART2-SEP
@@ -7604,7 +7604,7 @@ Same as current sorry.
 
 ### [T-WC-PROPA3-PART1-GLU] `wedhorn_lemma_834_propA3_part1_gluing`
 
-- **Status**: OPEN
+- **Status**: superseded by T-WC-PROPA3-PART1-GLU-RESTATED (which landed at commit d29fdee, 2026-05-28); the RESTATED variant added `h_C_restr_at_covers` + `h_V_refines_C` hypotheses missing from the original decomposition
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Depends on**: T-WC-CAT-C-CHANGE-BASE
 - **Parallel**: parallel with T-WC-PROPA3-PART1-SEP
@@ -9231,3 +9231,225 @@ Major cleanup per user feedback:
 Final sorry count: 24 substantive Wedhorn-text sorries remain (down from 28+ at marathon start).
 
 Build clean. All work committed.
+
+---
+
+## 2026-05-28 `/develop --continue` audit — board refresh
+
+This section adds tickets surfaced by the audit, marks the cleanup-cadence rule
+that was skipped during the marathon, and re-categorises the 24 remaining sorries
+into actionable buckets.
+
+### A. New sub-decomposition tickets (4 new sorries surfaced during marathon)
+
+The marathon introduced 4 sub-decomposition sorries that are not yet tracked as
+their own tickets. Each is a per-V'-piece or per-E-piece companion to an existing
+ticket, extracted at the right abstraction level for the σ-walk argument.
+
+#### [T-WC-RATIO-LAURENT-COVERS-EACH] `ratio_laurent_covers_each_unit_gen_piece`
+
+- **Status**: OPEN (extracted 2026-05-28; companion to T-WC-RATIO-REFINES)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean` (line 1446)
+- **Depends on**: T-WC-RATIO-LAURENT-COVER, T-WC-INDEX-SELECTION-RESTATED
+- **Parent**: T-WC-PART-III-BODY (covers-each-D direction)
+- **Type**: theorem
+- **Sketch**: For each unit-generated C-piece D ∈ C.covers and each v ∈ R(D.T/D.s),
+  the σ-walk picks a Laurent piece V' ⊆ V whose rationalOpen contains v and refines
+  into D. This is the per-V'-piece direction of the covers-each-D condition.
+
+#### [T-WC-LAURENT-IDEALGEN-REFINES] `laurent_cover_refines_idealgen_cover`
+
+- **Status**: OPEN (extracted 2026-05-28)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean` (line 2016)
+- **Depends on**: T-WC-EXISTS-IDEAL-GEN-COVERS-EACH, T-WC-PART-III-BODY
+- **Type**: theorem
+- **Sketch**: The Laurent cover constructed from a dominating unit refines the
+  ideal-generated cover (Wedhorn 8.34 part (iv) σ-walk).
+
+#### [T-WC-LAURENT-IDEALGEN-COVERS-EACH] `laurent_cover_covers_each_idealgen_piece`
+
+- **Status**: OPEN (extracted 2026-05-28; companion to T-WC-LAURENT-IDEALGEN-REFINES)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean` (line 2044)
+- **Depends on**: T-WC-LAURENT-IDEALGEN-REFINES
+- **Type**: theorem
+- **Sketch**: For each piece U of the ideal-generated cover and each v ∈ U, the
+  Laurent cover has a piece V' containing v that refines into U. σ-walk picks
+  the dominant element.
+
+#### [T-WC-IDEAL-GEN-COVERS-EACH-PIECE] `ideal_gen_refinement_covers_each_piece`
+
+- **Status**: OPEN (extracted 2026-05-28; discharge for T-WC-EXISTS-IDEAL-GEN-COVERS-EACH)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean` (line 2249)
+- **Depends on**: T-WC-RAT-COV-FROM-IDEAL (Wedhorn 7.54 strengthening)
+- **Type**: theorem
+- **Sketch**: For each piece D of the original cover C and each v ∈ D, the
+  ideal-generated refinement has a piece D' containing v that refines into D.
+  Wedhorn 7.54's construction gives the per-α covering data.
+
+### B. B2-defect tickets (new — surfaced during audit)
+
+#### [T-WC-RESTRICTED-INHERITS-UG-DEFECT] `restricted_cover_inherits_IsUnitGenerated` — B2 SIGNATURE DEFECT
+
+- **Status**: OPEN (B2 — logged 2026-05-28 to `.mathlib-quality/b2_log.jsonl`)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean` (line 2364)
+- **Type**: B2 statement-error
+- **Issue**: Conclusion `E.IsUnitGenerated` requires `IsUnit (E.base.canonicalMap t)`
+  for arbitrary `t ∈ E'.T`. Given hypotheses provide IsUnit for `t ∈ T = D'.T`
+  in `C'.base.canonicalMap`. Two missing structural facts:
+  (a) `E.base ⊆ C'.base` — needed for refinement ring hom to transfer IsUnit
+  (b) `E'.T` vs `T` relationship — without this, t ∈ E'.T has no link to T
+- **Resolution direction**: Add `_hE_base_subset` and `_h_E_pieces_T_eq`
+  hypotheses (both naturally satisfied at consumers via `restrictToPiece` +
+  `C.hsubset`). Propagate through `double_restriction_acyclicity` (line 2409)
+  and `wedhorn_lemma_834_E_acyclic`.
+- **Same defect on companion**: `restricted_cover_inherits_IsGeneratedBy` has
+  the additional bijection-fail issue (|E.covers| can be smaller than |T|).
+
+### C. Cleanup-cadence tickets (4 missing — burst exceeded 3-ticket threshold)
+
+The marathon closed 11 proof tickets on `WedhornCechAcyclicity.lean` without any
+cleanup interleaved. Per the cadence rule (every 3 proof tickets → cleanup) the
+following are required:
+
+#### [CLEANUP-WC-1] Run /cleanup on WedhornCechAcyclicity.lean — first cadence
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: T-WC-PROPA3-PART2-GLU-RESTATED (3rd proof ticket of the burst)
+- **Type**: cleanup
+- **Description**: First cadence cleanup. Targets: golfing, docstring tightening,
+  remove unused variables (linter warned ~10× `[DecidableEq (RationalLocData A)]`
+  unused section vars), audit Eq.rec helpers placement.
+
+#### [CLEANUP-WC-2] Run /cleanup on WedhornCechAcyclicity.lean — second cadence
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: CLEANUP-WC-1, T-WC-EPRIME-RESTRICT-TO-D (6th proof ticket)
+- **Type**: cleanup
+- **Description**: Second cadence cleanup. Targets: review propA3 chain proofs
+  for golfing opportunities; consolidate cast plumbing patterns; verify the
+  cover-each companions are extracted at the right granularity.
+
+#### [CLEANUP-WC-3] Run /cleanup on WedhornCechAcyclicity.lean — third cadence
+
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: CLEANUP-WC-2, T-WC-PROPA3-PART1-GLU-RESTATED (9th proof ticket)
+- **Type**: cleanup
+- **Description**: Third cadence cleanup. Targets: review propA3_part1 closure
+  pattern; verify `inner_identity_generic` is at the right scope (parametric
+  vs project-level); audit B2 candidates.
+
+#### [CLEANUP-WC-FINAL-PER-FILE] Final per-file cleanup for WedhornCechAcyclicity.lean
+
+- **Status**: OPEN (blocked on remaining 24 sorries)
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: all open T-WC- proof tickets
+- **Type**: cleanup
+- **Description**: Final pass on WedhornCechAcyclicity.lean before milestone.
+  Includes import audit, namespace consolidation, removal of forward-reference
+  comments after T-WC-FILE-REORDER fully settled.
+
+#### [CLEANUP-ALL-WC-BODY] /cleanup-all before wedhorn_lemma_834 milestone
+
+- **Status**: OPEN (blocked on milestone-required tickets)
+- **Type**: cleanup-all
+- **Depends on**: All T-WC- tickets reaching DONE
+- **Description**: Project-wide cleanup before T-WC-834-BODY (the milestone
+  proving wedhorn_lemma_834). Per cadence rule pre-milestone.
+
+#### [CLEANUP-FINAL] Final /cleanup-all on the whole project
+
+- **Status**: OPEN (blocks all)
+- **Type**: cleanup-all
+- **Depends on**: All proof tickets across all files
+- **Description**: Final cleanup of the whole project before pre-submit.
+
+### D. Re-plan: actionable buckets for the 24 remaining WedhornCechAcyclicity sorries
+
+Re-categorised by tractability for `/beastmode` execution:
+
+**Bucket 1 — B2 statement fixes (need user/architect input before code work)**
+
+Tickets in this bucket need user approval on signature restatement. Per CLAUDE.md
+clause (b), adding hypotheses is permitted when the result is genuinely false
+without them. Each of these is documented as B2 with a counterexample.
+
+- T-WC-RESTRICTED-INHERITS-UG-DEFECT (`restricted_cover_inherits_IsUnitGenerated`,
+  line 2379) — needs hypothesis additions
+- `restricted_cover_inherits_IsGeneratedBy` (line 2403) — needs both hypothesis
+  AND bijection (probably can't be saved at this signature; collapse into
+  IsUnitGenerated bridge)
+- `laurent_restriction_isLaurent` (line 1147) — `IsLaurentCover fs` conclusion
+  for restriction with same `fs` is false (Wedhorn's claim uses `f_i|U`
+  images, not `f_i` in A). Either restate using image-tracking variant, or
+  reformulate the consumer `wedhorn_lemma_834_part_i_laurent_restriction_acyclic`
+  to use direct refinement transfer instead.
+- `propA3_part3_bridge_for_laurent_product` (line 1079) — currently has an
+  in-file NOTE acknowledging the signature is missing structural hypotheses
+
+**Bucket 2 — Single-piece base case (small, structural; 2 sorries)**
+
+These are the easiest substantive sorries — single-piece R({1}/1) gives identity
+restrictions, separation/gluing are direct.
+
+- `isOXAcyclic_of_single_unit_piece_separation` (line 940) — ~25 LOC sketch
+- `isOXAcyclic_of_single_unit_piece_gluing` (line 966) — ~25 LOC sketch
+
+**Bucket 3 — Cast plumbing (cover-each companions; 4 sorries)**
+
+The newly extracted companions follow the σ-walk pattern from existing
+infrastructure (T-WC-RATIO-REFINES, T-WC-INDEX-SELECTION-RESTATED).
+
+- `ratio_laurent_covers_each_unit_gen_piece` (line 1459)
+- `laurent_cover_refines_idealgen_cover` (line 2037)
+- `laurent_cover_covers_each_idealgen_piece` (line 2066)
+- `ideal_gen_refinement_covers_each_piece` (line 2266)
+
+These are tightly coupled to T-WC-RATIO-REFINES + T-WC-INDEX-SELECTION-RESTATED
+and would be most efficiently discharged together.
+
+**Bucket 4 — Wedhorn-text leaves (substantive math; 7 sorries, each multi-session)**
+
+Each of these requires reading Wedhorn carefully and may surface its own
+sub-decomposition. Best handled with `/develop --decompose` per leaf.
+
+- `example_638_plus_side_noeth_pairSubring` (Wedhorn 6.18, ~80 LOC) — line 597
+- `example_638_plus_side_cont_evalHom` (evalHomBounded continuity, ~60 LOC) — line 615
+- `example_638_minus_side_cont_underlying_evalHom` (parallel, ~60 LOC) — line 684
+- `wedhorn_lemma_833_gluing_as_field` (5-lemma body, ~120 LOC) — line 826
+- `exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer` (Wedhorn 6.14 + Remark 7.17, ~90 LOC) — line 1221
+- `mulArchimedean_valueGroup_of_stronglyNoetherianTate` (Wedhorn 7.40(6), ~150 LOC) — line 1248
+- `rationalCovering_from_idealGenSet` (Wedhorn 7.54, ~80 LOC) — line 2213
+
+**Bucket 5 — Combinatorial construction (substantive but mechanical; 7 sorries)**
+
+- `laurent_cons_decomp_as_product` (line 1054, ~100 LOC)
+- `laurent_cover_from_dominating_unit` (line 1288, ~80 LOC)
+- `index_selection_on_laurent_piece` (line 1308, ~60 LOC)
+- `canonical_unit_of_pointwise_lower_bound` (line 1322, ~40 LOC)
+- `unit_gen_restriction_of_dominating_laurent` (line 1368, composes B2 sub-lemmas; resolve B2 first)
+- `ratio_laurent_cover_of_units` (line 1438, ~60 LOC)
+- `ratio_laurent_refines_unit_gen` (line 1481, σ-walk, ~120 LOC)
+
+**Suggested priority ordering for next sessions**:
+1. Bucket 1 (B2 fixes) — user review needed; some can be inlined via consumer
+   refactor.
+2. Bucket 2 (single-piece base case) — easiest substantive landings.
+3. Bucket 4 leaf `wedhorn_lemma_833_gluing_as_field` (the 5-lemma) — unlocks
+   wedhorn_lemma_833 and the entire Lemma 8.33 chain.
+4. Bucket 4 leaf `mulArchimedean_valueGroup_of_stronglyNoetherianTate`
+   (Wedhorn 7.40(6)) — substantive math but a single textbook proof.
+5. Bucket 5 in dependency order (laurent_cover_from_dominating_unit first).
+6. Bucket 3 cover-each companions (coupled, do as a chain).
+7. Remaining Bucket 4 (parallel Wedhorn-text proofs).
+
+### Audit summary
+
+- Stale tickets marked superseded: **2** (T-WC-PROPA3-PART2-GLU, T-WC-PROPA3-PART1-GLU)
+- New sub-decomposition tickets added: **4** (the cover-each companions)
+- New B2 ticket added: **1** (T-WC-RESTRICTED-INHERITS-UG-DEFECT)
+- Cleanup cadence tickets added: **6** (4 cadence + 1 pre-milestone CLEANUP-ALL + 1 CLEANUP-FINAL)
+- Net new tickets: 11; net stale tickets resolved: 2
+
