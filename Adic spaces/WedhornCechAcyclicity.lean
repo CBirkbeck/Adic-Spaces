@@ -1879,19 +1879,11 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-CHAIN.
   intro D
   rw [← sub_eq_zero]
-  -- KEY SUB-LEMMA (sub-sorry T-WC-PROPA3-PART1-GLU-VERIFY-PER-V''):
-  -- For each V'' ∈ V.covers, yV V'' = (restrictionMap D V''_intersect_D (f D))_canonical
-  -- via (C_restr_at V'').separation on the difference, using h_compat.
-  -- This is the algebraic content of "yV is the f-induced section on V".
-  --
-  -- With this sub-lemma, Step 8 unfolds: for V' ∈ (V_restr_at D).covers,
-  --   restrictionMap D V' (x_restrict - f D)
-  --   = restrictionMap V''.1 V' (yV V'' - canonical f on V''∩D)
-  --   = 0   [by the sub-lemma applied at V'']
-  -- Hence x_restrict = f D on each V', and (V_restr_at D).separation closes.
-  --
-  -- The cast plumbing through _hV_restr_base (Eq.rec from (V_restr_at D).base = D.1)
-  -- is the remaining technical work.
+  -- Apply (V_restr_at D).IsOXAcyclic.separation after type cast through _hV_restr_base D.
+  -- The Eq.rec form requires careful motive specification — using the existing
+  -- presheafValueCast pattern doesn't directly apply since the cast here is between
+  -- RationalLocData values (not RationalCovering).
+  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-CAST-MOTIVE.
   let _ := hx'
   let _ := x
   let _ := _hV_restr_acyclic
