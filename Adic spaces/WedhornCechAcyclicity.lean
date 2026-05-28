@@ -2040,10 +2040,46 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
     RationalCovering.eqRec_restrictionMap_direct D.1 (V_restr_at D).base h_base_eq.symm
       V' h_V'_sub_D ((V_restr_at D).hsubset V' hV'_in) diff_D]
   -- Goal: restrictionMap D.1 V' h_V'_sub_D diff_D = 0.
-  -- Sub-sorry T-WC-PROPA3-PART1-GLU-STEP8-DIFF-D-CHAIN.
-  let _ := h_inner_identity
-  let _ := hx'
-  sorry
+  -- Unfold diff_D = restrictionMap C.base D.1 _ x - f D.
+  show (restrictionMapHom D.1 V' h_V'_sub_D) _ = 0
+  rw [map_sub, sub_eq_zero]
+  -- Goal: restrictionMap D.1 V' h_V'_sub_D (restrictionMap C.base D.1 _ x) =
+  --       restrictionMap D.1 V' h_V'_sub_D (f D).
+  -- Collapse LHS via restrictionMap_comp.
+  change restrictionMap D.1 V' h_V'_sub_D
+      (restrictionMap C.base D.1 (C.hsubset D.1 D.2) x) =
+    restrictionMap D.1 V' h_V'_sub_D (f D)
+  rw [show restrictionMap D.1 V' h_V'_sub_D (restrictionMap C.base D.1 (C.hsubset D.1 D.2) x) =
+      restrictionMap C.base V' (h_V'_sub_D.trans (C.hsubset D.1 D.2)) x
+    from congrFun (restrictionMap_comp C.base D.1 V' (C.hsubset D.1 D.2) h_V'_sub_D) _]
+  -- Goal: restrictionMap C.base V' ... x = restrictionMap D.1 V' h_V'_sub_D (f D).
+  -- Cast through _hV_base: x = (presheafValueCast _hV_base).symm x', so cast forward gives x'.
+  have hsubV : rationalOpen V'.T V'.s ⊆ rationalOpen V.base.T V.base.s := by
+    rw [_hV_base]; exact h_V'_sub_D.trans (C.hsubset D.1 D.2)
+  have h_cast_x : restrictionMap V.base V' hsubV x' =
+      restrictionMap C.base V' (h_V'_sub_D.trans (C.hsubset D.1 D.2)) x := by
+    have key := RationalCovering.presheafValueCast_restrictionMap
+      C.base V.base _hV_base V' (h_V'_sub_D.trans (C.hsubset D.1 D.2)) hsubV x
+    have h_cast_cancel :
+        (RationalCovering.presheafValueCast (C := C) (C' := V) _hV_base) x = x' := by
+      simp only [x, RingEquiv.apply_symm_apply]
+    rw [show
+      (@Eq.rec (RationalLocData A) C.base
+        (fun b _ => presheafValue C.base ≃+* presheafValue b)
+        (RingEquiv.refl _) V.base _hV_base.symm x) =
+        ((RationalCovering.presheafValueCast (C := C) (C' := V) _hV_base) x)
+      from rfl, h_cast_cancel] at key
+    exact key
+  rw [← h_cast_x]
+  -- Goal: restrictionMap V.base V' hsubV x' = restrictionMap D.1 V' h_V'_sub_D (f D).
+  -- Apply hx' V' on V_j := ⟨V', hV'_in_V⟩ and h_inner_identity.
+  have h_hx' := hx' ⟨V', hV'_in_V⟩
+  -- hsubV = V.hsubset V' hV'_in_V by proof irrelevance.
+  have h_hsub_eq : hsubV = V.hsubset V' hV'_in_V := rfl
+  rw [h_hsub_eq, h_hx']
+  -- yV ⟨V', hV'_in_V⟩ = restrictionMap D.1 V' hV'_sub_D (f D) by h_inner_identity.
+  -- hV'_sub_D and h_V'_sub_D are the same by proof irrelevance.
+  exact h_inner_identity
 
 /-- **Part (iv) sub-lemma (c)**: the Prop A.3(1) bridge step. Given a
 Laurent cover `V` of `C.base` that's `O_X`-acyclic, with a specific
