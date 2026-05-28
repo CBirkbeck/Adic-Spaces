@@ -1158,6 +1158,12 @@ theorem propA3_part3_bridge_for_laurent_product
     V.IsOXAcyclic := by
   -- This is the project-side instance of Prop A.3(3) for Laurent
   -- products. The abstract version is `propA3_part3` in CechCohomology.
+  --
+  -- NOTE 2026-05-28: the lemma as stated is missing structural hypotheses
+  -- binding V to the product Uf × ⊔ Vgs_at (V refines product, Vgs covers V).
+  -- Without these, V is generic and the conclusion isn't deducible.
+  -- Sub-ticket T-WC-PROPA3-PART3-LAURENT-PRODUCT-RESTATED to add the
+  -- structural hypotheses.
   sorry
 
 /-- **Lemma 8.34 part (i) inductive step**: when `fs = f :: gs`, the
