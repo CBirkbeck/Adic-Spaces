@@ -1913,14 +1913,17 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   intro V' hV'_in
   -- V' is directly in V.covers via _hV_restr_pieces_in_V.
   have hV'_in_V : V' ∈ V.covers := _hV_restr_pieces_in_V D V' hV'_in
-  -- Apply hx' on ⟨V', hV'_in_V⟩ directly to get the f-induced section on V'.
-  have h_hx' := hx' ⟨V', hV'_in_V⟩
-  -- h_hx' : restrictionMap V.base V' (V.hsubset V' hV'_in_V) x' = yV ⟨V', hV'_in_V⟩
-  -- The remaining inner chain: relate yV V' to f D|V' via (C_restr_at V').separation
-  -- + h_compat. The (C_restr_at V').covers refine into C.covers; pick the right one
-  -- and use h_compat. Plus the Eq.rec cast through diff_cast.
-  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-INNER-DIRECT.
-  let _ := h_hx'
+  -- KEY IDENTITY: yV ⟨V', hV'_in_V⟩ = restrictionMap D.1 V' (V'⊆D) (f D) in presheafValue V'.
+  -- Proof via (C_restr_at ⟨V', hV'_in_V⟩).IsOXAcyclic.separation on the difference:
+  -- for each D'' ∈ (C_restr_at V').covers, both sides restrict to f at some C-piece
+  -- (via gVj's gluing spec + h_compat) — same value.
+  --
+  -- This sub-identity captures the "yV V' = f D|V'" content used in Step 8.
+  -- Sub-sorry: T-WC-PROPA3-PART1-GLU-VERIFY-INNER-IDENTITY.
+  let _ := hV'_in_V
+  let _ := hx'
+  let _ := h_compat
+  let _ := _hC_restr_acyclic
   sorry
 
 /-- **Part (iv) sub-lemma (c)**: the Prop A.3(1) bridge step. Given a
