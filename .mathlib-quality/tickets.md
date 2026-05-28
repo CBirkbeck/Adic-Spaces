@@ -8668,7 +8668,7 @@ Project-internal. Requires [CompatiblePlusSubring A].
 
 ### [T-WC-EPRIME-RESTRICT-TO-D] **NEW** — construction of E := C'|_D as a RationalCovering of D
 
-- **Status**: OPEN
+- **Status**: done (2026-05-28: closed sorry-free as `RationalCovering.restrictToPiece` via Finset.filter on covers + Classical.propDecidable; takes `hD_covers` as hypothesis)
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Depends on**: none
 - **Parallel**: yes
@@ -8764,7 +8764,7 @@ Project-internal. Designed to plug into wedhorn_lemma_834 body.
 
 ### [T-WC-RESTR-INHERIT-GEN-RESTATED] **REPLACES T-WC-RESTR-INHERIT-GEN**
 
-- **Status**: OPEN (B2 RESOLVED: weakened conclusion)
+- **Status**: in_progress (2026-05-28: `restricted_cover_inherits_IsUnitGenerated` declared with sorry body; double_restriction_acyclicity chained through it via wedhorn_lemma_834_C_restr_acyclic)
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Depends on**: none
 - **Parallel**: yes
@@ -8799,7 +8799,7 @@ theorem restricted_cover_inherits_IsUnitGenerated
 
 ### [T-WC-TO-FINITE-COVER-RESTATED] **REPLACES T-WC-TO-FINITE-COVER**
 
-- **Status**: OPEN (B2 RESOLVED: signature targets correct base)
+- **Status**: done (2026-05-28: closed sorry-free; carrier is `↥(Subtype.val ⁻¹' rationalOpen C.base.T C.base.s : Set ↥(Spa A A⁺))`; isCover uses C.hcover; isOpen uses rationalOpen_isOpen)
 - **File**: `Adic spaces/WedhornCechAcyclicity.lean`
 - **Depends on**: none
 - **Parallel**: yes
