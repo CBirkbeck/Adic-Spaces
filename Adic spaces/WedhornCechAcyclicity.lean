@@ -2027,8 +2027,7 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
       (C_restr_at Vj_sub).base V' (_hC_restr_base Vj_sub)
       (restrictionMap D.1 V' hV'_sub_D (f D))
   -- Apply the inner identity + cast plumbing to close.
-  -- The final chain via restrictionMap_comp + presheafValueCast_restrictionMap +
-  -- hx' + h_inner_identity gives the per-V' equality.
+  -- Sub-sorry T-WC-PROPA3-PART1-GLU-STEP8-FINAL-CHAIN.
   let _ := h_inner_identity
   let _ := hx'
   sorry
