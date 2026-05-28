@@ -9100,19 +9100,26 @@ replanning — only focused work via /beastmode.
 
 ## 2026-05-28 PROPA3-PART2 cascade work (commit ca8b6f4)
 
-### [T-WC-PROPA3-PART2-GLU-RESTATED] — STATUS UPDATE
+### [T-WC-PROPA3-PART2-GLU-RESTATED] — **DONE** (2026-05-28, commit 4d0d3c1)
 
-**Status change**: Lean signature now matches RESTATED ticket text.
+**Status**: DONE. The Lean theorem `propA3_part2_project_gluing` is
+sorry-free.
 
-The Lean theorem `propA3_part2_project_gluing` in
-`Adic spaces/WedhornCechAcyclicity.lean` now carries the
-`h_C'_covers_each_D` hypothesis (matches RESTATED text). The cascade
-through `IsOXAcyclic_of_refining_acyclic_cover` is also complete.
+**Proof landed** (commit 4d0d3c1):
+- Steps 1-6 (E_at construction, _g family, C'.gluing application, cast):
+  the structural/constructive pieces.
+- Step 7 (verify x|D = f D for each D ∈ C.covers): uses E_at D.separation
+  via the chain:
+  - restrictionMap_comp to collapse double-restriction
+  - presheafValueCast_restrictionMap to transport through the cast
+    (with cast-symm-cancel via RingEquiv.apply_symm_apply)
+  - hx' from C'.gluing to express the section in terms of _g
+  - h_compat to equate the (chooseC _, D)-section restrictions on E'
 
-**Open**: The proof body itself is still `sorry` (line 287). Per the
-proof sketch in the RESTATED ticket, this requires steps 1-6 (build E_D,
-apply h_double_acyclic, build g, apply C'.gluing, cast x', verify x|D =
-f D via E_D.separation). Substantive work pending.
+**Remaining downstream**: The 2 cascade sorries
+(T-WC-834-PART-III-COVERS-EACH and T-WC-EXISTS-IDEAL-GEN-COVERS-EACH)
+are still open — they're the covering-each-D witnesses required when
+applying `IsOXAcyclic_of_refining_acyclic_cover` from its consumers.
 
 ### [T-WC-834-PART-III-COVERS-EACH] **NEW** — strengthen part-iii return value
 
