@@ -171,6 +171,18 @@ noncomputable def RationalCovering.presheafValueCast
     (fun b _ => presheafValue C.base ≃+* presheafValue b)
     (RingEquiv.refl _) C'.base h.symm
 
+/-- Eq.rec double cancellation for presheafValue (forward direction): for h : a = b
+and x : presheafValue b, casting back via h.symm then forward via h recovers x. -/
+theorem RationalCovering.presheafValue_eqRec_double_cancel_forward
+    [HasLocLiftPowerBounded A] (a b : RationalLocData A) (h : a = b)
+    (x : presheafValue b) :
+    @Eq.rec (RationalLocData A) a
+      (fun b _ => presheafValue b)
+      (@Eq.rec (RationalLocData A) b (fun b _ => presheafValue b) x a h.symm)
+      b h = x := by
+  subst h
+  rfl
+
 /-- Restriction map respects a direct Eq.rec base cast on presheafValue.
 This is a generalized version (without RingEquiv motive) of
 `presheafValueCast_restrictionMap`, used by propA3_part1_gluing Step 8. -/
@@ -2005,9 +2017,15 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
       have h_comp := restrictionMap_comp D.1 V' D'' hV'_sub_D h_D''_sub_V'
       exact (congrFun h_comp (f D)).symm
     -- Step 2: cast forward via Eq.rec double-cancel.
-    -- Sub-sorry T-WC-PROPA3-PART1-GLU-EQREC-DOUBLE-CANCEL.
-    let _ := step1
-    sorry
+    -- yV Vj_sub = h ▸ yVj Vj_sub = (step1) h ▸ cast_RHS
+    --          = h ▸ (h.symm ▸ RHS_orig) = RHS_orig (by presheafValue_eqRec_double_cancel_forward).
+    show @Eq.rec (RationalLocData A) (C_restr_at Vj_sub).base
+        (fun b _ => presheafValue b) (yVj Vj_sub) V' (_hC_restr_base Vj_sub) =
+      restrictionMap D.1 V' hV'_sub_D (f D)
+    rw [step1]
+    exact RationalCovering.presheafValue_eqRec_double_cancel_forward
+      (C_restr_at Vj_sub).base V' (_hC_restr_base Vj_sub)
+      (restrictionMap D.1 V' hV'_sub_D (f D))
   -- Apply the inner identity + cast plumbing to close.
   -- The final chain via restrictionMap_comp + presheafValueCast_restrictionMap +
   -- hx' + h_inner_identity gives the per-V' equality.
