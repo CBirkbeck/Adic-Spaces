@@ -1928,14 +1928,18 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   have h_inner_identity :
       yV ⟨V', hV'_in_V⟩ = restrictionMap D.1 V' hV'_sub_D (f D) := by
     set Vj_sub : ↥V.covers := ⟨V', hV'_in_V⟩ with h_Vj_sub_def
-    -- The full proof requires careful Eq.rec cast manipulation across two layers:
-    -- (i) yV Vj_sub = _hC_restr_base Vj_sub ▸ yVj Vj_sub (cast from C_restr_at.base to Vj_sub.1).
-    -- (ii) The (C_restr_at Vj_sub).separation needed for uniqueness.
-    -- (iii) The per-D'' identity via gVj's spec + h_compat (using D'' ⊆ Vj_sub.1 = V' ⊆ D).
+    -- Define both elements via Eq.rec on the C_restr_at.base equation, then apply
+    -- (C_restr_at Vj_sub).separation to show they're equal there. Generalize the
+    -- target type via h_base_eq_V', then cast back.
     --
-    -- The cast plumbing is the substantive technical hurdle; the mathematical content
-    -- is clear (h_compat closes the per-D'' equality).
-    -- Sub-sorry T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-EQREC-CAST.
+    -- Approach: show the equation in presheafValue (C_restr_at Vj_sub).base by
+    -- using the Eq.rec inverse cast.
+    have h_base_eq_V' : (C_restr_at Vj_sub).base = V' := _hC_restr_base Vj_sub
+    -- After generalize + subst, the cast becomes trivial.
+    -- However, the local lets (yV, yVj, gVj, chooseC) all depend on C_restr_at Vj_sub.base
+    -- which makes subst tricky. The clean way is to write a separate helper lemma
+    -- that takes (C_restr_at Vj_sub).base = b as an equation and proves the result
+    -- modulo Eq.rec on b. Sub-ticket T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-HELPER.
     sorry
   -- Apply the inner identity + cast plumbing to close.
   -- The final chain via restrictionMap_comp + presheafValueCast_restrictionMap +
