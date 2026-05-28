@@ -1927,16 +1927,12 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-INNER-IDENTITY-BODY.
   have h_inner_identity :
       yV ⟨V', hV'_in_V⟩ = restrictionMap D.1 V' hV'_sub_D (f D) := by
-    -- Generalize over the cast: introduce the (C_restr_at ⟨V', _⟩).base as a free var
-    -- via subst on _hC_restr_base ⟨V', _⟩.
     set Vj_sub : ↥V.covers := ⟨V', hV'_in_V⟩ with h_Vj_sub_def
-    have h_base_eq_V' : (C_restr_at Vj_sub).base = V' := _hC_restr_base Vj_sub
-    -- Apply (C_restr_at Vj_sub).IsOXAcyclic.separation.
-    -- Both sides need to be cast to presheafValue (C_restr_at Vj_sub).base.
-    -- For yV Vj_sub: = _hC_restr_base Vj_sub ▸ yVj Vj_sub.
-    -- For the RHS: cast restrictionMap D.1 V' hV'_sub_D (f D) backward via h_base_eq_V'.symm.
-    -- Then on each D'' ∈ (C_restr_at Vj_sub).covers, both restrictions agree via gVj + h_compat.
-    -- Sub-sorry T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-CAST.
+    -- Strategy: rewrite as (diff) = 0 then apply (C_restr_at Vj_sub).separation.
+    rw [← sub_eq_zero]
+    -- Show ∀ D'' ∈ (C_restr_at Vj_sub).covers, restrictionMap V'.1 D''.1 (...) (diff) = 0.
+    -- This requires casting through _hC_restr_base Vj_sub to apply separation.
+    -- Sub-sorry T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-SEPARATION-APPLY.
     sorry
   -- Apply the inner identity + cast plumbing to close.
   -- The final chain via restrictionMap_comp + presheafValueCast_restrictionMap +
