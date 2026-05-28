@@ -2004,12 +2004,8 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
       --        = (restrictionMap_comp) restrictionMap D.1 D'' h_D''_sub_D (f D).
       have h_comp := restrictionMap_comp D.1 V' D'' hV'_sub_D h_D''_sub_V'
       exact (congrFun h_comp (f D)).symm
-    -- Step 2: cast forward to get the conclusion.
-    -- yV Vj_sub = _hC_restr_base Vj_sub ▸ yVj Vj_sub.
-    -- By step1, yVj Vj_sub = cast_RHS. So yV Vj_sub = _hC_restr_base Vj_sub ▸ cast_RHS.
-    -- cast_RHS Eq.rec then h ▸ cancels (double Eq.rec).
-    -- Sub-sorry: Eq.rec double-cancellation in propA3_part1_gluing.
-    -- Sub-ticket T-WC-PROPA3-PART1-GLU-EQREC-DOUBLE-CANCEL.
+    -- Step 2: cast forward via Eq.rec double-cancel.
+    -- Sub-sorry T-WC-PROPA3-PART1-GLU-EQREC-DOUBLE-CANCEL.
     let _ := step1
     sorry
   -- Apply the inner identity + cast plumbing to close.
