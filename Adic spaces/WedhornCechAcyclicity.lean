@@ -1959,15 +1959,27 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
       rw [hyVj_spec ⟨D'', hD''_in⟩]
       -- Goal: gVj Vj_sub ⟨D'', hD''_in⟩ =
       --       restrictionMap (C_restr_at Vj_sub).base D'' (...) cast_RHS.
+      -- Establish D'' ⊆ V' (via cast through h_base_eq) and chained D'' ⊆ D.
+      have h_D''_sub_V' : rationalOpen D''.T D''.s ⊆ rationalOpen V'.T V'.s := by
+        have := (C_restr_at Vj_sub).hsubset D'' hD''_in
+        rw [_hC_restr_base Vj_sub] at this
+        exact this
+      have h_D''_sub_D : rationalOpen D''.T D''.s ⊆ rationalOpen D.1.T D.1.s :=
+        h_D''_sub_V'.trans hV'_sub_D
       -- Unfold gVj on LHS.
       show restrictionMap (chooseC Vj_sub ⟨D'', hD''_in⟩).1.1 D''
             (chooseC Vj_sub ⟨D'', hD''_in⟩).2 (f (chooseC Vj_sub ⟨D'', hD''_in⟩).1) =
           restrictionMap (C_restr_at Vj_sub).base D''
             ((C_restr_at Vj_sub).hsubset D'' hD''_in) cast_RHS
-      -- The RHS reduces via Eq.rec eval to restrictionMap V' D'' ... (restrictionMap D.1 V' (f D))
-      -- and then via restrictionMap_comp to restrictionMap D.1 D'' (chained) (f D).
-      -- By h_compat applied to (chooseC Vj_sub _).1 and D and D'', equal.
-      -- Sub-sorry: T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-RHS-CAST-EVAL.
+      -- LHS via h_compat = restrictionMap D.1 D'' h_D''_sub_D (f D).
+      rw [h_compat (chooseC Vj_sub ⟨D'', hD''_in⟩).1 D D''
+        (chooseC Vj_sub ⟨D'', hD''_in⟩).2 h_D''_sub_D]
+      -- Now: restrictionMap D.1 D'' h_D''_sub_D (f D) =
+      --      restrictionMap (C_restr_at Vj_sub).base D'' (...) cast_RHS.
+      -- The RHS reduces via Eq.rec eval to restrictionMap V' D'' h_D''_sub_V'
+      --   (restrictionMap D.1 V' hV'_sub_D (f D))
+      -- then by restrictionMap_comp = restrictionMap D.1 D'' (chained) (f D).
+      -- Sub-sorry: T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-CAST-RHS-FINAL.
       sorry
     -- Step 2: cast forward to get the conclusion.
     -- yV Vj_sub = _hC_restr_base Vj_sub ▸ yVj Vj_sub = (by step1) _hC_restr_base Vj_sub ▸ cast_RHS.
