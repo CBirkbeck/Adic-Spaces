@@ -1503,7 +1503,7 @@ theorem wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent [DecidableEq A]
   -- refinement of 𝒰."
   -- Compose: extract unit generators, build ratio Laurent cover, verify
   -- refinement.
-  obtain ⟨units, h_units_unit, h_T_in_units⟩ := unitGenerators_of_unitGenCover C hC_unit
+  obtain ⟨units, h_units_unit, _h_T_in_units⟩ := unitGenerators_of_unitGenCover C hC_unit
   -- Step (a): construct the ratio Laurent cover at C.base.
   -- `unitGenerators_of_unitGenCover` returns IsUnit (C.base.canonicalMap f) for each f ∈ units,
   -- matching `ratio_laurent_cover_of_units`'s updated hypothesis directly.
