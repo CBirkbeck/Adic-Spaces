@@ -10455,3 +10455,93 @@ Independent of restatements (unchanged paths):
   T-WC-LAURENT-RESTR-INDUCTION-DIRECT, rationalCovering_from_idealGenSet (L20).
 
 Run `/beastmode` to pick up the next available ticket. Default pickup is T-WC-LAURENT-COVER-FROM-DOM-UNIT (no dependencies, unblocks 4 downstream).
+
+---
+
+## 2026-05-28 `/develop --continue` RE-AUDIT update (Path I) — 3 more restatements
+
+Re-audit (decomposition.md, 2026-05-28) found 2 new B2s on previously "READY" lemmas, plus L11 already logged. Applying Path-A treatment:
+
+### [T-WC-638-PLUS-CONT-EVAL-RESTATED] **NEW** — replace `T-WC-638-PLUS-CONT-EVAL` (L2)
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean` + new infra in `Adic spaces/Example638.lean` or `TopologyComparison.lean`
+- **Depends on**: new `+`-side analogue of `tateQuotientToPresheafHom_continuous`
+- **Type**: theorem (restatement + infrastructure)
+- **Audit verdict**: B2 (logged) — evalHomBounded continuity UNPROVABLE per `TateAlgebraWedhorn.lean:688-709`
+
+#### Restatement direction
+Original sketch ("use evalHomBounded's continuity") is invalid. Choose one route:
+- **(a) Route via Wedhorn 6.18**: prove J-adic = T-topology on `A⟨X⟩`, then evalHom is continuous from J-adic. Estimated ~500 LOC.
+- **(b) Route via abstract completion comparison**: build `+`-side analogue of `tateQuotientToPresheafHom_continuous` (which exists for `−`-side at `TopologyComparison.lean:1416`). Estimated ~300 LOC.
+- **(c) Restate the conclusion**: change `example638Plus_evalHom` to land in a quotient model where continuity is already proven via the project's existing infra. Estimated ~80 LOC.
+
+Recommend (c) as smallest scope. The Examples 6.38 plus-branch route should mirror the project's existing minus-branch which DOES use the quotient route via `tateQuotientToPresheafHom`.
+
+#### [T-WC-638-PLUS-CONT-EVAL] *(SUPERSEDED 2026-05-28)*
+- **Status**: superseded by T-WC-638-PLUS-CONT-EVAL-RESTATED
+
+---
+
+### [T-WC-638-MINUS-CONT-EVAL-RESTATED] **NEW** — replace `T-WC-638-MINUS-CONT-EVAL` (L3)
+- **Status**: OPEN
+- **File**: same as L2
+- **Depends on**: same options as L2
+- **Type**: theorem (restatement + infrastructure)
+- **Audit verdict**: B2 (logged 2026-05-28) — same defect as L2
+
+#### Restatement direction
+Same 3 options as L2. The `−`-side has the additional benefit that `tateQuotientToPresheafHom_continuous` already exists for the quotient-route variant (route c is essentially "use the existing project theorem directly"). Estimated ~50 LOC if route (c).
+
+#### [T-WC-638-MINUS-CONT-EVAL] *(SUPERSEDED 2026-05-28)*
+- **Status**: superseded by T-WC-638-MINUS-CONT-EVAL-RESTATED
+
+---
+
+### [T-WC-EXISTS-PRINCIPAL-PAIR-RESTATED] **NEW** — replace `T-WC-EXISTS-PRINCIPAL-PAIR-IN-APLUS` (L9)
+- **Status**: OPEN
+- **File**: `Adic spaces/WedhornCechAcyclicity.lean`
+- **Depends on**: existing `IsTateRing.principalPair`, Wedhorn 6.14, Remark 7.17
+- **Type**: theorem (restatement: drop false conjunct)
+- **Audit verdict**: B2 (logged 2026-05-28) — direction-flip on A⁺ vs A₀
+
+#### Restatement direction
+Drop the `P.A₀ ≤ A⁺` conjunct (it's the OPPOSITE of what CompatiblePlusSubring gives). The consumer chain (`exists_dominating_unit` → `cor_7_32_dominating_unit`) needs only "topologically nilpotent unit π with π ∈ A⁺" — derivable directly from Wedhorn Remark 7.17 without claiming A₀ ⊆ A⁺.
+
+New conclusion:
+```lean
+theorem exists_topnilp_unit_in_Aplus ... :
+    ∃ (P : PairOfDefinition A) (π : A),
+      π ∈ A⁺ ∧
+      IsUnit π ∧
+      IsTopologicallyNilpotent π ∧
+      P.I = Ideal.span {algebraMap P.A₀ A ⟨π, ?_⟩}
+```
+
+Or simpler (no Pi at all):
+```lean
+theorem exists_topnilp_unit_in_Aplus ... :
+    ∃ (π : A), π ∈ A⁺ ∧ IsUnit π ∧ IsTopologicallyNilpotent π
+```
+
+Consumer cascade through `exists_dominating_unit` will need consultation; the simpler form is preferable.
+
+#### [T-WC-EXISTS-PRINCIPAL-PAIR-IN-APLUS] *(SUPERSEDED 2026-05-28)*
+- **Status**: superseded by T-WC-EXISTS-PRINCIPAL-PAIR-RESTATED
+
+---
+
+### R5: Re-audit summary
+
+After 3 audit passes (2026-05-27 narrow-Q1/Q2 expert review, 2026-05-28 first decompose, 2026-05-28 re-audit Path I), the **final picture**:
+
+- Total sorries: 22
+- B2-confirmed (Path I logged): 6 (L2, L3, L8, L9, L11, L20)
+- B2-candidate (restatements queued via prior Path-A): 9
+- API-GAP (sub-tickets in place): 6
+- READY-substantive (truly provable): 1 (L6)
+
+**14 restatement tickets queued** for /beastmode: 9 prior Path-A + 3 from this RE-AUDIT (L2, L3, L9) + 2 from /beastmode encounter (L11 handled via L18/L19 restated; sub-ticket route for L11 itself).
+
+**Sole READY pickup**: `T-WC-LAURENT-CONS-DECOMP` (L6, ~150 LOC, Wedhorn p. 84 explicit product factorization). All other tickets require either restatement work or sub-ticket infrastructure.
+
+Run `/beastmode` to start. Default pickup is T-WC-LAURENT-CONS-DECOMP.
