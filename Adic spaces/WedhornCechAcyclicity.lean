@@ -2026,8 +2026,21 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
     exact RationalCovering.presheafValue_eqRec_double_cancel_forward
       (C_restr_at Vj_sub).base V' (_hC_restr_base Vj_sub)
       (restrictionMap D.1 V' hV'_sub_D (f D))
-  -- Apply the inner identity + cast plumbing to close.
-  -- Sub-sorry T-WC-PROPA3-PART1-GLU-STEP8-FINAL-CHAIN.
+  -- Outer chain: cast diff_cast via eqRec_restrictionMap_direct → diff_D, then standard chain.
+  -- (V_restr_at D).hsubset V' hV'_in gives V' ⊆ (V_restr_at D).base.
+  -- Cast through h_base_eq: V' ⊆ D.1.
+  have h_V'_sub_D : rationalOpen V'.T V'.s ⊆ rationalOpen D.1.T D.1.s := by
+    have := (V_restr_at D).hsubset V' hV'_in
+    rw [h_base_eq] at this
+    exact this
+  -- Goal: restrictionMap (V_restr_at D).base V' ((V_restr_at D).hsubset V' hV'_in) diff_cast = 0.
+  -- Use eqRec_restrictionMap_direct (with baseC := D.1, baseC' := (V_restr_at D).base, h := h_base_eq.symm).
+  rw [show restrictionMap (V_restr_at D).base V' ((V_restr_at D).hsubset V' hV'_in) diff_cast =
+      restrictionMap D.1 V' h_V'_sub_D diff_D from
+    RationalCovering.eqRec_restrictionMap_direct D.1 (V_restr_at D).base h_base_eq.symm
+      V' h_V'_sub_D ((V_restr_at D).hsubset V' hV'_in) diff_D]
+  -- Goal: restrictionMap D.1 V' h_V'_sub_D diff_D = 0.
+  -- Sub-sorry T-WC-PROPA3-PART1-GLU-STEP8-DIFF-D-CHAIN.
   let _ := h_inner_identity
   let _ := hx'
   sorry
