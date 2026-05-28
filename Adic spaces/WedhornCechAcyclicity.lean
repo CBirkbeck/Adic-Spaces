@@ -1928,10 +1928,20 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   have h_inner_identity :
       yV ⟨V', hV'_in_V⟩ = restrictionMap D.1 V' hV'_sub_D (f D) := by
     set Vj_sub : ↥V.covers := ⟨V', hV'_in_V⟩ with h_Vj_sub_def
-    -- Use _hC_restr_base Vj_sub to align types and apply (C_restr_at Vj_sub).separation.
-    -- The Eq.rec form: (presheafValue Vj_sub.1) ≃ (presheafValue (C_restr_at Vj_sub).base) via Eq.rec.
-    -- After cast, apply separation, show per-D'' restriction = 0 via gVj's spec + h_compat.
-    -- Sub-sorry T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-FULL-PROOF.
+    -- The gluing.choose_spec for yVj Vj_sub gives: ∀ D'' ∈ (C_restr_at Vj_sub).covers,
+    --   restrictionMap (C_restr_at Vj_sub).base D'' (...) (yVj Vj_sub) = gVj Vj_sub D''
+    have hyVj_spec : ∀ (D'' : ↥(C_restr_at Vj_sub).covers),
+        restrictionMap (C_restr_at Vj_sub).base D''.1
+          ((C_restr_at Vj_sub).hsubset D''.1 D''.2) (yVj Vj_sub) =
+        gVj Vj_sub D'' := by
+      exact ((_hC_restr_acyclic Vj_sub).gluing (gVj Vj_sub) (h_gVj_compat Vj_sub)).choose_spec
+    -- The key claim: for each D'' ∈ (C_restr_at Vj_sub).covers, the restriction of the RHS
+    -- (restrictionMap D.1 V' hV'_sub_D (f D)) to D'' equals gVj Vj_sub D''.
+    -- This follows from restrictionMap_comp + h_compat.
+    -- Then by (C_restr_at Vj_sub).separation, RHS = yVj Vj_sub (in presheafValue (C_restr_at Vj_sub).base).
+    -- After cast to presheafValue V'.1, yV Vj_sub = RHS.
+    -- Sub-sorry T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-CHAIN.
+    let _ := hyVj_spec
     sorry
   -- Apply the inner identity + cast plumbing to close.
   -- The final chain via restrictionMap_comp + presheafValueCast_restrictionMap +
