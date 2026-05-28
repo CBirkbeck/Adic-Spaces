@@ -1628,6 +1628,12 @@ theorem wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent_covers_each_D
       (∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
         ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
           rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s) := by
+  -- Compose: use the original part-iii lemma + add cover-each direction sub-proof.
+  obtain ⟨V, fs, hV_laurent, hV_base, hV_refines⟩ :=
+    wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent C hC_unit
+  refine ⟨V, fs, hV_laurent, hV_base, hV_refines, ?_⟩
+  -- Cover-each direction: requires σ-walk on the ratio Laurent construction.
+  -- Sub-ticket T-WC-834-PART-III-COVERS-EACH-BODY-DIRECT.
   sorry
 
 /-! ##### Sub-lemmas for `wedhorn_lemma_834` (Prop A.3(1) composition) -/
