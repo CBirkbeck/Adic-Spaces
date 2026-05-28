@@ -1911,14 +1911,16 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   apply (_hV_restr_acyclic D).separation
   -- Show: ∀ V' ∈ (V_restr_at D).covers, restriction of diff_cast to V' = 0.
   intro V' hV'_in
-  -- V' refines into some V'' ∈ V.covers via _hV_restr_pieces.
-  obtain ⟨V'', hV''_in_V, hV'_sub_V''⟩ := _hV_restr_pieces D V' hV'_in
-  -- Sub-sorry: the per-V' chain ending in "yV V''|V' = f D|V'" which
-  -- requires (C_restr_at V'').separation + fine-cover of V' by
-  -- C_restr_at(V'') pieces inside V'.
-  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-INNER-FINE.
-  let _ := hV''_in_V
-  let _ := hV'_sub_V''
+  -- V' is directly in V.covers via _hV_restr_pieces_in_V.
+  have hV'_in_V : V' ∈ V.covers := _hV_restr_pieces_in_V D V' hV'_in
+  -- Apply hx' on ⟨V', hV'_in_V⟩ directly to get the f-induced section on V'.
+  have h_hx' := hx' ⟨V', hV'_in_V⟩
+  -- h_hx' : restrictionMap V.base V' (V.hsubset V' hV'_in_V) x' = yV ⟨V', hV'_in_V⟩
+  -- The remaining inner chain: relate yV V' to f D|V' via (C_restr_at V').separation
+  -- + h_compat. The (C_restr_at V').covers refine into C.covers; pick the right one
+  -- and use h_compat. Plus the Eq.rec cast through diff_cast.
+  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-INNER-DIRECT.
+  let _ := h_hx'
   sorry
 
 /-- **Part (iv) sub-lemma (c)**: the Prop A.3(1) bridge step. Given a
