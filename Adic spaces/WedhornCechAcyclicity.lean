@@ -1437,6 +1437,27 @@ theorem ratio_laurent_cover_of_units [DecidableEq A]
   -- {f_i · f_j⁻¹ : i, j ∈ units} (interpreted in 𝒪_X(D₀)).
   sorry
 
+/-- **Part (iii) sub-lemma 3 — covers-each companion**: per-D version of
+ratio_laurent_refines_unit_gen. For each C-piece D and v ∈ D, the ratio
+Laurent cover V has a piece V' with v ∈ V' AND V' ⊆ D.
+
+Same σ-walk argument as `ratio_laurent_refines_unit_gen` but quantified
+per-D instead of per-V'. Sub-ticket T-WC-RATIO-LAURENT-COVERS-EACH-BODY. -/
+theorem ratio_laurent_covers_each_unit_gen_piece [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C : RationalCovering A) (_hC_unit : C.IsUnitGenerated)
+    (V : RationalCovering A) (_hV_base : V.base = C.base)
+    (_fs : List A) (_hV_laurent : V.IsLaurentCover _fs) :
+    ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+      ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
+        rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s := by
+  -- σ-walk per-D: for v ∈ R(T/t_α), v(t_α) is maximal among T,
+  -- so the σ-walk picks i_max = α, hence V_σ(v) ⊆ R(T/t_α) = D.
+  sorry
+
 /-- **Part (iii) sub-lemma 3**: each piece of the ratio Laurent cover is
 contained in some C-piece (the "ratio refines unit-gen" content).
 
@@ -1521,13 +1542,12 @@ theorem wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent_covers_each_D
       (∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
         ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
           rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s) := by
-  -- Compose: use the original part-iii lemma + add cover-each direction sub-proof.
+  -- Compose: use the original part-iii lemma + cover-each companion.
   obtain ⟨V, fs, hV_laurent, hV_base, hV_refines⟩ :=
     wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent C hC_unit
   refine ⟨V, fs, hV_laurent, hV_base, hV_refines, ?_⟩
-  -- Cover-each direction: requires σ-walk on the ratio Laurent construction.
-  -- Sub-ticket T-WC-834-PART-III-COVERS-EACH-BODY-DIRECT.
-  sorry
+  -- Cover-each direction: companion lemma ratio_laurent_covers_each_unit_gen_piece.
+  exact ratio_laurent_covers_each_unit_gen_piece C hC_unit V hV_base fs hV_laurent
 
 /-! ##### Sub-lemmas for `wedhorn_lemma_834` (Prop A.3(1) composition) -/
 
