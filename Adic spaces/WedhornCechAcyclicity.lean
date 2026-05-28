@@ -1870,6 +1870,16 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   -- we get the per-V' equality, which separation lifts to the full equality.
   -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-CHAIN.
   intro D
+  rw [← sub_eq_zero]
+  -- (V_restr_at D).base = D.1 by _hV_restr_base D (rfl for restrictToPiece).
+  -- Apply (V_restr_at D).separation to (x|D - f D) ∈ presheafValue D.1.
+  -- We need to express the type alignment: presheafValue D.1 = presheafValue
+  -- (V_restr_at D).base via _hV_restr_base D.
+  -- For the general parametric form of V_restr_at, we use Eq.rec.
+  --
+  -- The proof body (per-V' restriction = 0 chain via hx' + h_compat + nested
+  -- separation on (C_restr_at V'').covers) is documented but pending.
+  -- Sub-ticket T-WC-PROPA3-PART1-GLU-VERIFY-CHAIN.
   let _ := hx'
   let _ := x
   let _ := _hV_restr_acyclic
