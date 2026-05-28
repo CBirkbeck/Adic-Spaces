@@ -1928,11 +1928,10 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
   have h_inner_identity :
       yV ⟨V', hV'_in_V⟩ = restrictionMap D.1 V' hV'_sub_D (f D) := by
     set Vj_sub : ↥V.covers := ⟨V', hV'_in_V⟩ with h_Vj_sub_def
-    -- Strategy: rewrite as (diff) = 0 then apply (C_restr_at Vj_sub).separation.
-    rw [← sub_eq_zero]
-    -- Show ∀ D'' ∈ (C_restr_at Vj_sub).covers, restrictionMap V'.1 D''.1 (...) (diff) = 0.
-    -- This requires casting through _hC_restr_base Vj_sub to apply separation.
-    -- Sub-sorry T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-SEPARATION-APPLY.
+    -- Use _hC_restr_base Vj_sub to align types and apply (C_restr_at Vj_sub).separation.
+    -- The Eq.rec form: (presheafValue Vj_sub.1) ≃ (presheafValue (C_restr_at Vj_sub).base) via Eq.rec.
+    -- After cast, apply separation, show per-D'' restriction = 0 via gVj's spec + h_compat.
+    -- Sub-sorry T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-FULL-PROOF.
     sorry
   -- Apply the inner identity + cast plumbing to close.
   -- The final chain via restrictionMap_comp + presheafValueCast_restrictionMap +
