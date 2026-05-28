@@ -1981,8 +1981,7 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
           restrictionMap V' D'' h_D''_sub_V'
             (restrictionMap D.1 V' hV'_sub_D (f D)) := by
         -- Direct Eq.rec evaluation: substitute h_base_eq.symm and simplify.
-        -- The cast_RHS becomes restrictionMap D.1 V' (f D) after Eq.rec eval,
-        -- and the restrictionMap composes via h_base_eq.
+        -- Sub-sorry: T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-CAST-EVAL-DETAIL.
         sorry
       rw [h_cast_eval]
       -- Now RHS = restrictionMap V' D'' h_D''_sub_V' (restrictionMap D.1 V' hV'_sub_D (f D))
