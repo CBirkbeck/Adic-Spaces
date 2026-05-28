@@ -1585,11 +1585,20 @@ theorem wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent [DecidableEq A]
   -- Compose: extract unit generators, build ratio Laurent cover, verify
   -- refinement.
   obtain ⟨units, h_units_unit, h_T_in_units⟩ := unitGenerators_of_unitGenCover C hC_unit
-  -- The "IsUnit f" in `h_units_unit` is for the canonical image; lift to "f ∈ Aˣ"
-  -- using the unit structure. For the construction, we use that each f in
-  -- units corresponds to an actual unit (via canonicalMap injectivity in
-  -- the local ring or similar).
-  sorry
+  -- Step (a): construct the ratio Laurent cover at C.base.
+  obtain ⟨V, fs, hV_laurent, hV_base⟩ :=
+    ratio_laurent_cover_of_units C.base units
+      (fun f hf => by
+        -- Lift `IsUnit (C.base.canonicalMap f)` to `IsUnit f` is generally
+        -- impossible without further hypotheses; for `ratio_laurent_cover_of_units`
+        -- we instead require IsUnit f directly. This sub-step is the
+        -- canonical-unit-lift obligation (sub-ticket T-WC-CANONICAL-UNIT-LIFT).
+        sorry)
+  -- Step (b): each V-piece refines into some C-piece (the σ-walk
+  -- direction). Uses ratio_laurent_refines_unit_gen.
+  refine ⟨V, fs, hV_laurent, hV_base, ?_⟩
+  intro V' hV'
+  exact ratio_laurent_refines_unit_gen C hC_unit V hV_base trivial V' hV'
 
 /-- **Strengthened version** (T-WC-834-PART-III-COVERS-EACH, 2026-05-28):
 `wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent` with the
