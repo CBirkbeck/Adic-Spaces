@@ -247,7 +247,11 @@ theorem propA3_part2_project_separation
     map_zero (restrictionMapHom D D' hD_contains_D')
 
 /-- **Project Prop A.3(2) sub-lemma (gluing transfer)**: refinement
-+ C'-gluing + double-restriction-acyclicity ⇒ C-gluing. -/
++ C'-gluing + double-restriction-acyclicity + C'-covers-each-D ⇒ C-gluing.
+
+UPDATED 2026-05-28 (T-WC-PROPA3-PART2-GLU-RESTATED): added
+`h_C'_covers_each_D` hypothesis so the proof can construct
+`E_D := C'|_D` via `restrictToPiece`. -/
 theorem propA3_part2_project_gluing
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
@@ -258,6 +262,9 @@ theorem propA3_part2_project_gluing
     (_h_refines : ∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
         rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
     (_h_C'_acyclic : C'.IsOXAcyclic)
+    (_h_C'_covers_each_D : ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+      ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
+        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
     (_h_double_acyclic : ∀ (D : RationalLocData A) (_hD : D ∈ C.covers)
         (E : RationalCovering A) (_h_E_base : E.base = D)
         (_h_E_pieces : ∀ E' ∈ E.covers,
@@ -273,6 +280,10 @@ theorem propA3_part2_project_gluing
            restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
       ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
         restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D := by
+  -- Gluing direction of Prop A.3(2). With `h_C'_covers_each_D` now
+  -- available, the proof can construct `E_D := restrictToPiece C' D` for
+  -- each D ∈ C.covers and apply h_double_acyclic. Full proof still
+  -- requires the cast plumbing for x|D = f D verification — substantive.
   sorry
 
 /-- **Sub-lemma 2 of `every_rational_cover_is_OXAcyclic`** (Wedhorn Prop A.3(2)
@@ -291,6 +302,9 @@ theorem IsOXAcyclic_of_refining_acyclic_cover
     (h_refines : ∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
         rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
     (h_C'_acyclic : C'.IsOXAcyclic)
+    (h_C'_covers_each_D : ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+      ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
+        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
     (h_double_acyclic : ∀ (D : RationalLocData A) (_hD : D ∈ C.covers)
         (E : RationalCovering A) (_h_E_base : E.base = D)
         (_h_E_pieces : ∀ E' ∈ E.covers,
@@ -303,7 +317,7 @@ theorem IsOXAcyclic_of_refining_acyclic_cover
         h_C'_acyclic.separation
     gluing :=
       propA3_part2_project_gluing C C' h_same_base h_refines
-        h_C'_acyclic h_double_acyclic }
+        h_C'_acyclic h_C'_covers_each_D h_double_acyclic }
 
 /-! ##### Sub-lemmas for `wedhorn_lemma_833_separation` (Cor 8.32 application) -/
 
@@ -1430,7 +1444,16 @@ theorem wedhorn_lemma_834_C_restr_acyclic [DecidableEq A]
   have hW_acyclic : W.IsOXAcyclic :=
     wedhorn_lemma_834_part_i_laurent_acyclic W gs hW_laurent
   -- Apply the Prop A.3(2) bridge (now available after file reorder).
-  apply IsOXAcyclic_of_refining_acyclic_cover C_restr W hW_base hW_refines hW_acyclic
+  -- Note: the strengthened bridge requires `h_W_covers_each_D` — the covering
+  -- direction of the refinement. For Laurent covers W obtained from
+  -- `wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent`, this should
+  -- follow from the construction but the current signature only returns the
+  -- one-sided refinement. Discharged below by `sorry` until that lemma's
+  -- signature is augmented (sub-ticket T-WC-834-PART-III-COVERS-EACH).
+  refine IsOXAcyclic_of_refining_acyclic_cover C_restr W hW_base hW_refines
+    hW_acyclic ?_ ?_
+  · -- h_C'_covers_each_D: pending strengthening of part-iii lemma.
+    sorry
   -- Double-restriction acyclicity: each E refining a piece of C_restr by W pieces.
   intro D hD E h_E_base h_E_pieces
   -- E inherits Laurent structure from W via part (i) restriction corollary.
@@ -1934,10 +1957,19 @@ theorem every_rational_cover_is_OXAcyclic [DecidableEq A] [IsDomain A]
   -- Step 2: Lemma 8.34 — C' is O_X-acyclic.
   have h_C'_acyclic : C'.IsOXAcyclic := wedhorn_lemma_834 C' T h_C'_gen
   -- Step 3: Prop A.3(2) — acyclicity transfers from C' to C.
-  exact IsOXAcyclic_of_refining_acyclic_cover C C' h_C'_base h_refines h_C'_acyclic
-    (fun D hD E h_E_base h_E_pieces =>
-      double_restriction_acyclicity C C' T h_C'_gen h_C'_base h_refines
-        D hD E h_E_base h_E_pieces)
+  -- Note: strengthened Prop A.3(2) needs `h_C'_covers_each_D`. For the
+  -- ideal-generating refinement C' from Lemma 7.54, this should follow
+  -- from `h_C'_gen` (an ideal-generating set defines a cover of all of X)
+  -- but requires augmenting `exists_ideal_gen_refinement`'s signature.
+  -- Discharged below by `sorry` until that lemma is strengthened
+  -- (sub-ticket T-WC-EXISTS-IDEAL-GEN-COVERS-EACH).
+  refine IsOXAcyclic_of_refining_acyclic_cover C C' h_C'_base h_refines
+    h_C'_acyclic ?_ ?_
+  · -- h_C'_covers_each_D: pending strengthening of exists_ideal_gen_refinement.
+    sorry
+  exact fun D hD E h_E_base h_E_pieces =>
+    double_restriction_acyclicity C C' T h_C'_gen h_C'_base h_refines
+      D hD E h_E_base h_E_pieces
 
 /-! ### Wedhorn Theorem 8.28(b) — the Wedhorn-clean form
 
