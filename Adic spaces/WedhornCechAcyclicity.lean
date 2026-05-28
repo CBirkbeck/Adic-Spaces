@@ -311,12 +311,8 @@ theorem propA3_part2_project_gluing
     (_h_C'_covers_each_D : ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
       ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
         rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
-    (_h_double_acyclic : ∀ (D : RationalLocData A) (_hD : D ∈ C.covers)
-        (E : RationalCovering A) (_h_E_base : E.base = D)
-        (_h_E_pieces : ∀ E' ∈ E.covers,
-          ∃ D' ∈ C'.covers,
-            rationalOpen E'.T E'.s ⊆ rationalOpen D'.T D'.s),
-        E.IsOXAcyclic) :
+    (_h_E_at_acyclic : ∀ (D : ↥C.covers),
+        (C'.restrictToPiece D.1 (_h_C'_covers_each_D D.1 D.2)).IsOXAcyclic) :
     ∀ (f : ∀ (D : ↥C.covers), presheafValue D.1),
       (∀ (D₁ D₂ : ↥C.covers)
          (D₃ : RationalLocData A)
@@ -326,22 +322,20 @@ theorem propA3_part2_project_gluing
            restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
       ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
         restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D := by
-  -- Gluing direction of Prop A.3(2). With `h_C'_covers_each_D` now
-  -- available and `restrictToPiece` relocated above this declaration,
-  -- the proof can begin its constructive shape.
+  -- Gluing direction of Prop A.3(2). Reviewer-recommended specialized form
+  -- (ChatGPT, 2026-05-28): `_h_E_at_acyclic` is now stated for the literal
+  -- `restrictToPiece` form, not arbitrary E. This is mathematically sound
+  -- (the arbitrary-E version is unprovable; see reviewer guidance §Q1).
   intro f h_compat
-  -- Step 1: For each D ∈ C.covers, build E_D := C'|_D via restrictToPiece.
+  -- Step 1: For each D ∈ C.covers, the E_D := C'|_D acyclicity is the hypothesis.
   let E_at : ∀ (D : ↥C.covers), RationalCovering A := fun D =>
     C'.restrictToPiece D.1 (_h_C'_covers_each_D D.1 D.2)
-  -- Step 2: Each E_at D is acyclic via h_double_acyclic.
   have h_E_at_base : ∀ (D : ↥C.covers), (E_at D).base = D.1 := fun D => rfl
   have h_E_at_pieces : ∀ (D : ↥C.covers), ∀ E' ∈ (E_at D).covers,
       ∃ D' ∈ C'.covers, rationalOpen E'.T E'.s ⊆ rationalOpen D'.T D'.s := by
     intro D E' hE'
     simp only [E_at, RationalCovering.restrictToPiece, Finset.mem_filter] at hE'
     exact ⟨E', hE'.1, subset_rfl⟩
-  have _h_E_at_acyclic : ∀ (D : ↥C.covers), (E_at D).IsOXAcyclic := fun D =>
-    _h_double_acyclic D.1 D.2 (E_at D) (h_E_at_base D) (h_E_at_pieces D)
   -- Step 3: For each D' ∈ C'.covers, choose D ∈ C.covers refining D'
   -- (via _h_refines) and define g D' := f D restricted to D'.
   let chooseC : ∀ (D' : ↥C'.covers), { D : ↥C.covers //
@@ -484,19 +478,15 @@ theorem IsOXAcyclic_of_refining_acyclic_cover
     (h_C'_covers_each_D : ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
       ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
         rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
-    (h_double_acyclic : ∀ (D : RationalLocData A) (_hD : D ∈ C.covers)
-        (E : RationalCovering A) (_h_E_base : E.base = D)
-        (_h_E_pieces : ∀ E' ∈ E.covers,
-          ∃ D' ∈ C'.covers,
-            rationalOpen E'.T E'.s ⊆ rationalOpen D'.T D'.s),
-        E.IsOXAcyclic) :
+    (h_E_at_acyclic : ∀ (D : ↥C.covers),
+        (C'.restrictToPiece D.1 (h_C'_covers_each_D D.1 D.2)).IsOXAcyclic) :
     C.IsOXAcyclic :=
   { separation :=
       propA3_part2_project_separation C C' h_same_base h_refines
         h_C'_acyclic.separation
     gluing :=
       propA3_part2_project_gluing C C' h_same_base h_refines
-        h_C'_acyclic h_C'_covers_each_D h_double_acyclic }
+        h_C'_acyclic h_C'_covers_each_D h_E_at_acyclic }
 
 /-! ##### Sub-lemmas for `wedhorn_lemma_833_separation` (Cor 8.32 application) -/
 
@@ -1570,15 +1560,20 @@ theorem wedhorn_lemma_834_C_restr_acyclic [DecidableEq A]
   -- Part (i): W (Laurent) is acyclic.
   have hW_acyclic : W.IsOXAcyclic :=
     wedhorn_lemma_834_part_i_laurent_acyclic W gs hW_laurent
-  -- Apply the Prop A.3(2) bridge.
+  -- Apply the Prop A.3(2) bridge with the specialized E_at = W.restrictToPiece D form.
   apply IsOXAcyclic_of_refining_acyclic_cover C_restr W hW_base hW_refines
     hW_acyclic hW_covers_each_D
-  -- Double-restriction acyclicity: each E refining a piece of C_restr by W pieces.
-  intro D hD E h_E_base h_E_pieces
-  -- E inherits Laurent structure from W via part (i) restriction corollary.
-  exact wedhorn_lemma_834_part_i_laurent_restriction_acyclic W gs hW_laurent D
-    (by rw [hW_base]; exact C_restr.hsubset D hD)
-    E h_E_base h_E_pieces
+  intro D
+  -- W.restrictToPiece D inherits Laurent structure from W via part (i) restriction corollary.
+  -- The restricted cover keeps W-pieces unchanged (filter), so it satisfies
+  -- the laurent_restriction_acyclic hypothesis with E = W.restrictToPiece D.
+  apply wedhorn_lemma_834_part_i_laurent_restriction_acyclic W gs hW_laurent D.1
+    (by rw [hW_base]; exact C_restr.hsubset D.1 D.2)
+  · rfl
+  · intro E' hE'
+    -- E' ∈ (W.restrictToPiece D.1 _).covers means E' ∈ W.covers (unchanged) refining D.1.
+    simp only [RationalCovering.restrictToPiece, Finset.mem_filter] at hE'
+    exact ⟨E', hE'.1, subset_rfl⟩
 
 /-- **Part (iv) sub-lemma (b)**: for each cover piece `U ∈ C.covers`,
 the restriction `V|U` is `O_X`-acyclic. This is part (i) corollary
@@ -2353,82 +2348,94 @@ noncomputable def RationalCovering.toRefinement [IsHuberRing A]
 -- augmentation/restriction maps — substantive bridging work not blocking the
 -- main 8.28(b) sheafiness chain. Tracked separately.
 
-/-- **Double-restriction sub-lemma (a-weakened) (NEW 2026-05-28)**: the
-restricted cover `E` of `D` inherits an `IsUnitGenerated` witness from `C'`'s
-`IsGeneratedBy T`. This is the *weakened* form — the original `IsGeneratedBy`
-required `|E.covers| = |T|` which the construction doesn't enforce.
+/-- **Double-restriction sub-lemma (RESTRICTED-TO-PIECE form, 2026-05-28)**:
+The restrict-to-piece of `C'` at `D` inherits `IsUnitGenerated` from `C'`'s
+`IsUnitGenerated`.
 
-Mathematical content: each piece E' of E refines into some C'-piece D'. The
-image of T's elements in 𝒪_X(D) makes them non-vanishing on E', so they
-become units in `presheafValue D`. -/
-theorem restricted_cover_inherits_IsUnitGenerated
+Reviewer-recommended form (ChatGPT, 2026-05-28): specialize the inheritance
+to the literal `restrictToPiece` situation with `D ⊆ C'.base` included.
+Arbitrary-refinement form is unprovable without generator-transport.
+
+Mathematical content: each kept piece is *literally* a `C'`-piece (filter
+doesn't modify pieces). For each `t ∈ E.T`, IsUnit follows from `hC'` at
+the `C'.base` level, then transports through `restrictionMapHom` to
+`presheafValue D` using `restrictionMapHom_canonicalMap`. -/
+theorem restrictedToPiece_inherits_IsUnitGenerated
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (C' : RationalCovering A) (T : Finset A)
-    (_h_C'_gen : C'.IsGeneratedBy T)
-    (D : RationalLocData A)
-    (E : RationalCovering A) (_h_E_base : E.base = D)
-    (_h_E_pieces : ∀ E' ∈ E.covers, ∃ D' ∈ C'.covers,
-      rationalOpen E'.T E'.s ⊆ rationalOpen D'.T D'.s) :
-    E.IsUnitGenerated := by
-  -- For each E-piece E' and each t ∈ E'.T, show canonicalMap t is a unit
-  -- in presheafValue E.base. The pieces E' refine into C'-pieces whose
-  -- generators come from T (via h_C'_gen).
-  sorry
+    (C' : RationalCovering A) (D : RationalLocData A)
+    (hDbase : rationalOpen D.T D.s ⊆ rationalOpen C'.base.T C'.base.s)
+    (hD_covers : ∀ v ∈ rationalOpen D.T D.s,
+        ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
+          rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (hC' : C'.IsUnitGenerated) :
+    (C'.restrictToPiece D hD_covers).IsUnitGenerated := by
+  -- Per reviewer (ChatGPT, 2026-05-28):
+  --   1. Take a kept piece E ∈ (C'.restrictToPiece D).covers.
+  --   2. Recover E ∈ C'.covers (filter keeps pieces unchanged).
+  --   3. For t ∈ E.T, use hC' to get IsUnit (C'.base.canonicalMap t).
+  --   4. Apply restrictionMapHom C'.base D hDbase, transport via
+  --      restrictionMapHom_canonicalMap to get IsUnit (D.canonicalMap t).
+  --   5. (C'.restrictToPiece D).base = D, so this is the required clause.
+  intro E hE t htT
+  -- Step 1+2: E ∈ C'.covers (filter doesn't change pieces).
+  simp only [RationalCovering.restrictToPiece, Finset.mem_filter] at hE
+  obtain ⟨hE_in_C', _⟩ := hE
+  -- Step 3: IsUnit (C'.base.canonicalMap t).
+  have h_unit_C' : IsUnit (C'.base.canonicalMap t) := hC' E hE_in_C' t htT
+  -- Step 4: transport via restrictionMapHom.
+  have h_eq : restrictionMapHom C'.base D hDbase (C'.base.canonicalMap t) =
+      D.canonicalMap t := restrictionMapHom_canonicalMap C'.base D hDbase t
+  -- IsUnit preserved by ring hom.
+  have h_unit_D : IsUnit (D.canonicalMap t) := by
+    rw [← h_eq]; exact h_unit_C'.map (restrictionMapHom C'.base D hDbase)
+  -- Step 5: (C'.restrictToPiece D).base = D definitionally.
+  exact h_unit_D
 
-/-- **Double-restriction sub-lemma (a)**: in Wedhorn 8.2.1, the image
-of an ideal-generating set `T ⊆ A` under the canonical map `A → 𝒪_X(D)`
-generates the unit ideal of `𝒪_X(D)`. So the restricted cover `E` of `D`
-inherits an `IsGeneratedBy` witness from `C'`'s. -/
-theorem restricted_cover_inherits_IsGeneratedBy
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (C' : RationalCovering A) (T : Finset A)
-    (_h_C'_gen : C'.IsGeneratedBy T)
-    (D : RationalLocData A)
-    (E : RationalCovering A) (_h_E_base : E.base = D)
-    (_h_E_pieces : ∀ E' ∈ E.covers,
-      ∃ D' ∈ C'.covers,
-        rationalOpen E'.T E'.s ⊆ rationalOpen D'.T D'.s) :
-    -- E is generated by T (as a Finset of A; the canonical images in
-    -- 𝒪_X(D) generate the unit ideal there).
-    E.IsGeneratedBy T := by
-  -- Wedhorn 8.2.1: the canonical map A → 𝒪_X(D) is a ring hom; the
-  -- image of the unit ideal is the unit ideal. Plus the pieces of E
-  -- are by construction R(T/t) for t ∈ T, restricted to D.
-  sorry
+-- Note 2026-05-28: the previous `double_restriction_acyclicity` (arbitrary-E
+-- form) was REPLACED by `restrictToPiece_acyclic_at_D` below per reviewer
+-- guidance (ChatGPT, 2026-05-28). The arbitrary-E form was mathematically
+-- unprovable.
 
-/-- **Sub-lemma 3 of `every_rational_cover_is_OXAcyclic`**: the
-double-restriction acyclicity hypothesis required by Prop A.3(2).
+/-- **Restriction-to-piece acyclicity (specialized form, 2026-05-28)**:
+For C' an ideal-generated refinement of C, and D ∈ C.covers, the
+`C'.restrictToPiece D` is `𝒪_X`-acyclic.
 
-Composed: inherit ideal-generation (sub-lemma a) + apply Lemma 8.34. -/
-theorem double_restriction_acyclicity [DecidableEq A]
+Reviewer-recommended specialization (ChatGPT, 2026-05-28): replaces the
+arbitrary-E `double_restriction_acyclicity` that was mathematically
+unprovable. The proof requires applying Wedhorn 8.34 RECURSIVELY at
+the level of `𝒪_X(D)` with the canonical-images of T as the
+ideal-generating set — currently a substantive sub-lemma. -/
+theorem restrictToPiece_acyclic_at_D [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
     [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (C C' : RationalCovering A) (T : Finset A)
-    (h_C'_gen : C'.IsGeneratedBy T)
-    (_h_C'_base : C'.base = C.base)
+    (_h_C'_gen : C'.IsGeneratedBy T)
+    (h_C'_base : C'.base = C.base)
     (_h_refines : ∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
       rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
-    (D : RationalLocData A) (_hD : D ∈ C.covers)
-    (E : RationalCovering A) (h_E_base : E.base = D)
-    (h_E_pieces : ∀ E' ∈ E.covers,
-      ∃ D' ∈ C'.covers,
-        rationalOpen E'.T E'.s ⊆ rationalOpen D'.T D'.s) :
-    E.IsOXAcyclic := by
-  -- Step a: E inherits IsUnitGenerated from C' (weakened from IsGeneratedBy;
-  -- 2026-05-28 B2 fix).
-  have h_E_unit : E.IsUnitGenerated :=
-    restricted_cover_inherits_IsUnitGenerated C' T h_C'_gen D E h_E_base h_E_pieces
-  -- Step b: apply C_restr_acyclic (the unit-gen → acyclic chain).
-  exact wedhorn_lemma_834_C_restr_acyclic E h_E_unit
+    (h_C'_covers_each_D : ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+      ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
+        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (D : ↥C.covers) :
+    (C'.restrictToPiece D.1 (h_C'_covers_each_D D.1 D.2)).IsOXAcyclic := by
+  -- Wedhorn's strategy: apply Lemma 8.34 RECURSIVELY at the level of 𝒪_X(D).
+  -- The canonical-image of T in 𝒪_X(D) spans the unit ideal (Ideal.span T = ⊤
+  -- in A, ring-hom-image preserves this). Apply wedhorn_lemma_834 over the
+  -- presheafValue D₀ as a "strongly noeth Tate" base (Wedhorn 8.31 propagation).
+  --
+  -- This requires:
+  --   (a) a "Lemma 8.34 over arbitrary strongly noeth Tate base B" version, OR
+  --   (b) extracting the IsGeneratedBy structure on the restricted cover at
+  --       the level of 𝒪_X(D) and applying the existing wedhorn_lemma_834.
+  --
+  -- Both are substantive; tracked as T-WC-RESTRICT-TO-PIECE-RECURSIVE-834.
+  sorry
 
 /-! ### Main intermediate: every rational cover is `O_X`-acyclic
 
@@ -2462,11 +2469,12 @@ theorem every_rational_cover_is_OXAcyclic [DecidableEq A] [IsDomain A]
   -- Step 2: Lemma 8.34 — C' is O_X-acyclic.
   have h_C'_acyclic : C'.IsOXAcyclic := wedhorn_lemma_834 C' T h_C'_gen
   -- Step 3: Prop A.3(2) — acyclicity transfers from C' to C.
+  -- For each D ∈ C.covers, supply (C'.restrictToPiece D).IsOXAcyclic via
+  -- `restrictToPiece_acyclic_at_D` (substantive sub-lemma; sorry-bodied at present).
   exact IsOXAcyclic_of_refining_acyclic_cover C C' h_C'_base h_refines
     h_C'_acyclic h_C'_covers_each_D
-    (fun D hD E h_E_base h_E_pieces =>
-      double_restriction_acyclicity C C' T h_C'_gen h_C'_base h_refines
-        D hD E h_E_base h_E_pieces)
+    (fun D => restrictToPiece_acyclic_at_D C C' T h_C'_gen h_C'_base h_refines
+      h_C'_covers_each_D D)
 
 /-! ### Wedhorn Theorem 8.28(b) — the Wedhorn-clean form
 
