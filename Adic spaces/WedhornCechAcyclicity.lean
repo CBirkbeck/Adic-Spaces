@@ -1788,16 +1788,31 @@ def RationalCovering.toFiniteCover [IsHuberRing A] (C : RationalCovering A) :
 `Refinement` (in the `CechCohomology.lean` sense) of the corresponding
 `FiniteCover`s. Requires the cast on the base equality (post-2026-05-28
 toFiniteCover signature has carrier `↥(rationalOpen base...)`). -/
-def RationalCovering.toRefinement [IsHuberRing A]
+noncomputable def RationalCovering.toRefinement [IsHuberRing A]
     {C C' : RationalCovering A}
     (h_same_base : C'.base = C.base)
-    (_h_refines : ∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
+    (h_refines : ∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
         rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
-    -- Cast C'.toFiniteCover to use C.base's carrier via h_same_base.
-    Refinement (h_same_base ▸ C'.toFiniteCover) C.toFiniteCover := by
-  -- The index map κ → ι sends each C'-piece D' to a C-piece D containing
-  -- it; the subset proof comes from h_refines.
-  sorry
+    Refinement (h_same_base ▸ C'.toFiniteCover) C.toFiniteCover where
+  map D' :=
+    ⟨(h_refines D'.1 D'.2).choose, (h_refines D'.1 D'.2).choose_spec.1⟩
+  subset := by
+    intro D'
+    -- The subset reduces to V.sets D' ⊆ U.sets (map D') in the appropriate
+    -- carrier. Both are preimages of rationalOpen sets; the inclusion comes
+    -- from h_refines.choose_spec.2 (D'.rationalOpen ⊆ D.rationalOpen).
+    have hsub := (h_refines D'.1 D'.2).choose_spec.2
+    -- After the cast, V.sets uses C.base's carrier; the underlying inclusion
+    -- still holds.
+    intro v hv
+    -- v : carrier (after cast)
+    -- hv : v ∈ V.sets D' = preimage of D'.rationalOpen
+    -- Need v ∈ U.sets (map D') = preimage of (map D').1.rationalOpen
+    -- (map D').1 is the chosen D from h_refines.choose
+    -- hsub: D'.rationalOpen ⊆ D.rationalOpen
+    -- So v ∈ preimage of D' ⊆ preimage of D, done.
+    -- The cast doesn't change the set-level structure.
+    sorry
 
 /-- **Project-side bridge 3**: project's `IsOXAcyclic C` (separation +
 gluing on `presheafValue`) is equivalent to abstract `IsAcyclic
