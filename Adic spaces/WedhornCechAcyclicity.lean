@@ -380,16 +380,18 @@ theorem propA3_part2_project_gluing
   let x : presheafValue C.base :=
     (RationalCovering.presheafValueCast (C := C) (C' := C') _h_same_base).symm x'
   refine ⟨x, ?_⟩
-  -- Step 7: verify x|D = f D for each D ∈ C.covers, using E_at D.separation.
-  -- The argument: both x|D and f D restrict to the same value on each
-  -- E'-piece of E_at D (via hx' on C', restrictionMap_comp, h_compat),
-  -- so by E_at D.separation, x|D - f D = 0 in presheafValue D.
-  -- Sub-ticket: T-WC-PROPA3-PART2-GLU-VERIFY-RESTRICTION (substantive cast
-  -- plumbing chain — restrictionMap_comp + presheafValueCast_restrictionMap
-  -- + h_compat + E_at separation field).
+  -- Step 7: verify x|D = f D for each D ∈ C.covers, using (E_at D).separation.
+  -- Sub-ticket: T-WC-PROPA3-PART2-GLU-VERIFY-RESTRICTION. Proof structure:
+  -- (a) Reduce to ((restrictionMap C.base D.1 _ x) - f D) = 0.
+  -- (b) Apply (E_at D).separation: show ∀ E' ∈ (E_at D).covers, restrict the
+  --     difference to E' equals 0.
+  -- (c) For each E', E' ∈ C'.covers (filtered). The LHS unfolds via
+  --     restrictionMap_comp + presheafValueCast_restrictionMap to a restriction
+  --     of x' (the C'-section), then by hx' to _g ⟨E', _⟩ = restrictionMap (chooseC _) E' (f _).
+  -- (d) The RHS is restrictionMap D.1 E' (f D); equality with LHS follows from
+  --     h_compat applied to (chooseC _, D, E') with appropriate inclusions.
   intro D
-  -- The constructive pieces (`_g`, `_h_E_at_acyclic`, `hx'`, `x`) remain in
-  -- scope for the next session's continuation.
+  -- Scope-preservation for the next session's continuation:
   let _ := _g
   let _ := _h_E_at_acyclic
   let _ := hx'
