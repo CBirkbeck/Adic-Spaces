@@ -792,67 +792,18 @@ theorem wedhorn_lemma_833_example_639_intersection
   -- For now: identity iso as a placeholder.
   exact ⟨RingEquiv.refl _⟩
 
-/-! ##### Sub-lemmas for `wedhorn_lemma_833_diagram_chase` (Wedhorn p. 83-84) -/
+/-! ##### Sub-lemmas for `wedhorn_lemma_833_diagram_chase` (Wedhorn p. 83-84)
 
-/-- **Diagram chase sub-lemma (a)**: Laurent decomposition of `A⟨ζ, ζ⁻¹⟩`.
+The Wedhorn 5-lemma argument requires the following row/column exactness sub-results:
+- (a) Laurent algebra decomposition: A⟨ζ, ζ⁻¹⟩ = A⟨ζ⟩ + ζ⁻¹ A⟨ζ⁻¹⟩
+- (b) Ideal-level Laurent decomposition: (f - ζ) A⟨ζ, ζ⁻¹⟩ = (f - ζ) A⟨ζ⟩ + (1 - fζ⁻¹) A⟨ζ⁻¹⟩
+- (c) Kernel-image identification: im(ι) = ker(λ)
+- (d) 5-lemma composition
 
-Wedhorn p. 84 verbatim: *"A⟨ζ, ζ⁻¹⟩ = A⟨ζ⟩ + ζ⁻¹ A⟨ζ⁻¹⟩."*
-
-This is the algebraic identity that `A⟨ζ, ζ⁻¹⟩` decomposes as a sum
-of the two halves. -/
-theorem laurent_algebra_decomp (f : A) :
-    -- Every element of A⟨ζ, ζ⁻¹⟩ can be written as a sum of an
-    -- A⟨ζ⟩-element and a ζ⁻¹ A⟨ζ⁻¹⟩-element.
-    True := by
-  -- Concrete statement: Wedhorn's "A⟨ζ, ζ⁻¹⟩ = A⟨ζ⟩ + ζ⁻¹ A⟨ζ⁻¹⟩".
-  -- This is a Laurent polynomial decomposition into non-negative-power
-  -- + strictly-negative-power parts. Standard.
-  trivial
-
-/-- **Diagram chase sub-lemma (b)**: ideal-level Laurent decomposition.
-
-Wedhorn p. 84 verbatim: *"(f − ζ) A⟨ζ, ζ⁻¹⟩ = (f − ζ) A⟨ζ⟩ + (1 − fζ⁻¹) A⟨ζ⁻¹⟩."*
-
-This is the ideal-level decomposition that gives surjectivity of λ and λ'
-in the diagram chase. -/
-theorem laurent_ideal_decomp (f : A) :
-    -- The principal ideal (f - ζ) in A⟨ζ, ζ⁻¹⟩ decomposes as the sum
-    -- of (f - ζ) A⟨ζ⟩ and (1 - f ζ⁻¹) A⟨ζ⁻¹⟩.
-    True := by
-  -- Multiply the previous identity by (f - ζ) on the relevant side,
-  -- using ζ · ζ⁻¹ = 1 to simplify `(f - ζ) · ζ⁻¹ = f ζ⁻¹ - 1`.
-  trivial
-
-/-- **Diagram chase sub-lemma (c)**: kernel-image identification.
-
-Wedhorn p. 84 verbatim: *"the equality
-`0 = λ(Σ a_k ζ^k, Σ b_k η^k) = Σ a_k ζ^k − Σ b_k ζ⁻ᵏ`
-is equivalent to a_k = b_k = 0 for k > 0 and a_0 = b_0. Thus im(ι) = ker(λ)."*
-
-This is the key kernel computation: an element `(a, b) ∈ A⟨ζ⟩ × A⟨η⟩`
-maps to zero under `λ : (a, b) ↦ a − b(ζ⁻¹)` iff `a` and `b` are
-constants and equal — which is exactly the image of `ι : A ↪ A⟨ζ⟩ × A⟨η⟩`. -/
-theorem laurent_kernel_image (f : A) :
-    True := by
-  -- Direct from the coefficient comparison: Σ a_k ζ^k = Σ b_k ζ⁻ᵏ in
-  -- A⟨ζ, ζ⁻¹⟩ forces all positive-power and negative-power coefficients
-  -- to vanish (modulo the (f-ζ)-relation).
-  trivial
-
-/-- **Diagram chase sub-lemma (d)**: the 5-lemma composition.
-
-Given the row exactness (from (a)-(b)) and column exactness (from
-Example 6.38), a 5-lemma argument gives the third row exact (the Čech
-sequence). -/
-theorem wedhorn_lemma_833_5lemma_composition (f : A) :
-    True := by
-  -- Standard 5-lemma argument. Given:
-  -- Row 1: 0 → (f-ζ)A⟨ζ⟩ × (1-fη)A⟨η⟩ → (f-ζ)A⟨ζ,ζ⁻¹⟩ → 0 (exact by (b))
-  -- Row 2: 0 → A → A⟨ζ⟩ × A⟨η⟩ → A⟨ζ,ζ⁻¹⟩ → 0 (exact by (a) + (c))
-  -- Row 3: 0 → 𝒪(X) → 𝒪(U_1) × 𝒪(U_2) → 𝒪(U_1∩U_2) → 0 (the goal)
-  -- Columns: row1 → row2 → row3 by passage to quotient (column-exact).
-  -- Conclusion: row 3 is exact (by Snake lemma / 5-lemma).
-  trivial
+These are mathematically substantive but require the algebraic Laurent-polynomial
+machinery that is not yet formalized in the project. They are tracked separately
+via the substantive sorry in `wedhorn_lemma_833_gluing_as_field`.
+-/
 
 /-- **Diagram-chase sub-lemma (separation)**: the separation field of
 `IsOXAcyclic` for the 2-cover `laurentRationalCover D₀ f`. This is
@@ -889,28 +840,9 @@ theorem laurentRationalCover_pieces_identified
   -- Direct from the definition: pieces are `laurentPlusDatum`, `laurentMinusDatum`.
   ⟨laurentPlusDatum D₀ f, laurentMinusDatum D₀ f, rfl⟩
 
-/-- **Gluing sub-lemma (b)**: a compatible pair on `{R(f/1), R(1/f)}`
-matches the row-2 image condition in Wedhorn's diagram (8.2.1). I.e.,
-sections `(α, β) ∈ A⟨ζ⟩/(f-ζ) × A⟨η⟩/(1-fη)` whose restrictions agree
-on `R({1,f}/f)` arise from a unique section `γ ∈ A` via Examples 6.38. -/
-theorem compatible_pair_lifts_via_5lemma
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (D₀ : RationalLocData A) (f : A)
-    (U₁ U₂ : RationalLocData A)
-    (_h_covers : (laurentRationalCover D₀ f).covers = {U₁, U₂})
-    (α : presheafValue U₁) (β : presheafValue U₂)
-    (_h_compat : True) :  -- Placeholder for the intersection compatibility.
-    ∃ γ : presheafValue D₀,
-      -- γ|U₁ = α and γ|U₂ = β.
-      True := by
-  -- The conclusion is `∃ γ : presheafValue D₀, True` (placeholder),
-  -- trivially satisfied by any γ. The substantive 5-lemma content
-  -- (γ|U₁ = α and γ|U₂ = β as set-equalities) lives in the
-  -- callers that use this lemma's `True` conclusion as a marker.
-  exact ⟨0, trivial⟩
+-- Note: the placeholder lemma `compatible_pair_lifts_via_5lemma` is removed.
+-- Its substantive content (lifting (α, β) on {R(f/1), R(1/f)} to γ ∈ presheafValue D₀
+-- via Examples 6.38) lives in `wedhorn_lemma_833_gluing_as_field`'s sorry body.
 
 /-- **Diagram-chase sub-lemma (gluing)**: the gluing field of
 `IsOXAcyclic` for the 2-cover. This is the surjectivity in row 3 of
@@ -1580,14 +1512,15 @@ contained in some C-piece (the "ratio refines unit-gen" content).
 Specifically: a piece V' of the ratio Laurent cover at multi-index σ
 selects a maximal element `f_{i_max}` (by σ-walk over ratios), and the
 piece V' is contained in the C-piece D with D.T containing `f_{i_max}`. -/
-theorem ratio_laurent_refines_unit_gen
+theorem ratio_laurent_refines_unit_gen [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (C : RationalCovering A) (_hC_unit : C.IsUnitGenerated)
     (V : RationalCovering A) (_hV_base : V.base = C.base)
-    (_h_V_is_ratio_laurent : True)  -- (precise hypothesis: V is the ratio Laurent cover)
+    -- V is a Laurent cover by the ratios extracted from C's unit generators.
+    (_fs : List A) (_hV_laurent : V.IsLaurentCover _fs)
     (V' : RationalLocData A) (_hV' : V' ∈ V.covers) :
     ∃ D ∈ C.covers, rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s := by
   -- σ-walk argument: V' corresponds to a sign vector σ on the ratios;
@@ -1628,7 +1561,7 @@ theorem wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent [DecidableEq A]
   -- direction). Uses ratio_laurent_refines_unit_gen.
   refine ⟨V, fs, hV_laurent, hV_base, ?_⟩
   intro V' hV'
-  exact ratio_laurent_refines_unit_gen C hC_unit V hV_base trivial V' hV'
+  exact ratio_laurent_refines_unit_gen C hC_unit V hV_base fs hV_laurent V' hV'
 
 /-- **Strengthened version** (T-WC-834-PART-III-COVERS-EACH, 2026-05-28):
 `wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent` with the
@@ -2442,21 +2375,11 @@ noncomputable def RationalCovering.toRefinement [IsHuberRing A]
     simp only [RationalCovering.toFiniteCover, Set.mem_preimage] at hv ⊢
     exact hsub hv
 
-/-- **Project-side bridge 3**: project's `IsOXAcyclic C` (separation +
-gluing on `presheafValue`) is equivalent to abstract `IsAcyclic
-(presheafValueAb) C.toFiniteCover` (with `presheafValueAb` being the
-abelian-group presheaf wrapper of `O_X`).
-
-This is the conceptual bridge between the project's algebraic statement
-and the abstract Čech-cohomology framework. -/
-theorem IsOXAcyclic_iff_IsAcyclic [HasLocLiftPowerBounded A] [IsHuberRing A]
-    (C : RationalCovering A) :
-    True := by
-  -- TBD: state the precise iff. Needs:
-  -- - presheafValueAb : AbPresheaf ↥(Spa A A⁺) — the project's structure
-  --   presheaf wrapped as an AbPresheaf.
-  -- - The augmentation/restriction maps match.
-  trivial
+-- Note: the conceptual bridge `IsOXAcyclic_iff_IsAcyclic` (project's IsOXAcyclic
+-- vs. abstract IsAcyclic from CechCohomology) is not stated here. It would require
+-- wrapping the project's structure presheaf as an AbPresheaf and matching the
+-- augmentation/restriction maps — substantive bridging work not blocking the
+-- main 8.28(b) sheafiness chain. Tracked separately.
 
 /-- **Double-restriction sub-lemma (a-weakened) (NEW 2026-05-28)**: the
 restricted cover `E` of `D` inherits an `IsUnitGenerated` witness from `C'`'s
