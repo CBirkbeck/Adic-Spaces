@@ -1389,9 +1389,14 @@ theorem wedhorn_lemma_834_part_ii_unit_gen_via_dominating [DecidableEq A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (C : RationalCovering A) (T : Finset A) (hC_gen : C.IsGeneratedBy T) :
-    ∃ (V : RationalCovering A) (fs : List A),
+    ∃ (V : RationalCovering A) (fs : List A) (s : Aˣ),
       V.IsLaurentCover fs ∧
       V.base = C.base ∧
+      -- Construction data exposed (2026-05-28 top-down restate): the dominating
+      -- unit `s` and the `fs = s⁻¹·T` equation, needed by the σ-walk lemmas
+      -- `laurent_cover_refines_idealgen_cover` / `_covers_each_idealgen_piece`.
+      (∀ v ∈ Spa A A⁺, ∃ t ∈ T, v.vle (s : A) t ∧ ¬ v.vle t (s : A)) ∧
+      fs = (T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t) ∧
       ∀ Vj ∈ V.covers,
         ∃ (C_restr : RationalCovering A),
           C_restr.base = Vj ∧
@@ -1408,9 +1413,9 @@ theorem wedhorn_lemma_834_part_ii_unit_gen_via_dominating [DecidableEq A]
   -- Step b: Cor 7.32 gives dominating unit s.
   obtain ⟨s, hs⟩ := cor_7_32_dominating_unit T h_noCommonZero
   -- Step c: Construct Laurent cover from s.
-  obtain ⟨V, fs, hV_laurent, hV_base, _hV_eq⟩ :=
+  obtain ⟨V, fs, hV_laurent, hV_base, hV_eq⟩ :=
     laurent_cover_from_dominating_unit C.base T s
-  refine ⟨V, fs, hV_laurent, hV_base, ?_⟩
+  refine ⟨V, fs, s, hV_laurent, hV_base, hs, hV_eq, ?_⟩
   -- Step d: For each V_j, restriction of C to V_j is unit-gen.
   intro Vj hVj
   exact unit_gen_restriction_of_dominating_laurent C T hC_gen s hs V Vj hVj
@@ -2043,18 +2048,19 @@ theorem laurent_cover_refines_idealgen_cover [DecidableEq A]
     (C : RationalCovering A) (_T : Finset A) (_hC_gen : C.IsGeneratedBy _T)
     (V : RationalCovering A) (_fs : List A) (_hV_laurent : V.IsLaurentCover _fs)
     (_hV_base : V.base = C.base)
-    (_hV_unit_restrictions : ∀ Vj ∈ V.covers,
-      ∃ (C_restr : RationalCovering A),
-        C_restr.base = Vj ∧
-        C_restr.IsUnitGenerated ∧
-        (∀ D' ∈ C_restr.covers, ∃ D ∈ C.covers,
-          rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) ∧
-        (∀ v ∈ rationalOpen Vj.T Vj.s, ∃ D' ∈ C_restr.covers,
-          v ∈ rationalOpen D'.T D'.s)) :
+    -- Construction hypotheses (2026-05-28 top-down restate): V is the SPECIFIC
+    -- Laurent cover by `s⁻¹·T` from `laurent_cover_from_dominating_unit`, with `s`
+    -- the dominating unit from Cor 7.32. The σ-walk needs the construction, not just
+    -- an opaque Laurent cover. Threaded from `part_ii` where these are in scope.
+    (s : Aˣ)
+    (_hs : ∀ v ∈ Spa A A⁺, ∃ t ∈ _T, v.vle (s : A) t ∧ ¬ v.vle t (s : A))
+    (_hfs_eq : _fs = (_T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t)) :
     ∀ V_j ∈ V.covers, ∃ U ∈ C.covers,
       rationalOpen V_j.T V_j.s ⊆ rationalOpen U.T U.s := by
   -- σ-walk on dominating-unit construction: V_j corresponds to choosing
   -- t_{i_max} ∈ T as the dominant generator. Then V_j ⊆ R(T/t_{i_max}) ∈ C.
+  -- Now provable: `_hfs_eq` pins fs = s⁻¹·T and `_hs` gives the dominating
+  -- property, so the σ-walk has the data it needs.
   sorry
 
 /-- **NEW companion (T-WC-LAURENT-COVERS-EACH-IDEALGEN, 2026-05-28)**: the
@@ -2071,14 +2077,11 @@ theorem laurent_cover_covers_each_idealgen_piece [DecidableEq A]
     (C : RationalCovering A) (_T : Finset A) (_hC_gen : C.IsGeneratedBy _T)
     (V : RationalCovering A) (_fs : List A) (_hV_laurent : V.IsLaurentCover _fs)
     (_hV_base : V.base = C.base)
-    (_hV_unit_restrictions : ∀ Vj ∈ V.covers,
-      ∃ (C_restr : RationalCovering A),
-        C_restr.base = Vj ∧
-        C_restr.IsUnitGenerated ∧
-        (∀ D' ∈ C_restr.covers, ∃ D ∈ C.covers,
-          rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) ∧
-        (∀ v ∈ rationalOpen Vj.T Vj.s, ∃ D' ∈ C_restr.covers,
-          v ∈ rationalOpen D'.T D'.s)) :
+    -- Construction hypotheses (2026-05-28 top-down restate): same as
+    -- `laurent_cover_refines_idealgen_cover` — V is the s⁻¹·T Laurent cover.
+    (s : Aˣ)
+    (_hs : ∀ v ∈ Spa A A⁺, ∃ t ∈ _T, v.vle (s : A) t ∧ ¬ v.vle t (s : A))
+    (_hfs_eq : _fs = (_T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t)) :
     ∀ U ∈ C.covers, ∀ v ∈ rationalOpen U.T U.s,
       ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
         rationalOpen V'.T V'.s ⊆ rationalOpen U.T U.s := by
@@ -2109,26 +2112,29 @@ theorem wedhorn_lemma_834 [DecidableEq A]
   -- > 𝒪_X-acyclic. Moreover, by (i) 𝒱|U is 𝒪_X-acyclic for every U in 𝒰.
   -- > Thus the 𝒪_X-acyclicity of 𝒱 implies the 𝒪_X-acyclicity of 𝒰 by
   -- > Proposition A.3 (1)."
-  obtain ⟨V, fs, hV_laurent, hV_base, hV_unit_restrictions⟩ :=
+  obtain ⟨V, fs, s, hV_laurent, hV_base, hs, hfs_eq, hV_unit_restrictions⟩ :=
     wedhorn_lemma_834_part_ii_unit_gen_via_dominating C T _hC_gen
   -- 𝒱 is itself acyclic (Laurent cover) — part (i):
   have _hV_acyclic : V.IsOXAcyclic :=
     wedhorn_lemma_834_part_i_laurent_acyclic V fs hV_laurent
-  -- V refines C (T-WC-V-REFINES-C-FROM-DOM-UNIT, 2026-05-28):
+  -- V refines C (T-WC-V-REFINES-C-FROM-DOM-UNIT, 2026-05-28). Now threaded with
+  -- the construction data `s`, `hs`, `hfs_eq` exposed by `part_ii` — the σ-walk
+  -- lemma is provable from these (it was unprovable when V was opaque).
   have _h_V_refines_C : ∀ V_j ∈ V.covers, ∃ U ∈ C.covers,
       rationalOpen V_j.T V_j.s ⊆ rationalOpen U.T U.s :=
     laurent_cover_refines_idealgen_cover C T _hC_gen V fs hV_laurent hV_base
-      hV_unit_restrictions
+      s hs hfs_eq
   -- C_restr_at family: comes from `hV_unit_restrictions`.
   choose C_at_Vj hC_at_base hC_at_unit hC_at_pieces hC_at_cover using
     fun Vj (hVj : Vj ∈ V.covers) => hV_unit_restrictions Vj hVj
   -- V_restr_at family: V restricted to each U ∈ C.covers via restrictToPiece.
-  -- Uses the cover-each-U direction from laurent_cover_covers_each_idealgen_piece.
+  -- Uses the cover-each-U direction from laurent_cover_covers_each_idealgen_piece,
+  -- now also threaded with `s`, `hs`, `hfs_eq`.
   have h_V_covers_each_U : ∀ U ∈ C.covers, ∀ v ∈ rationalOpen U.T U.s,
       ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
         rationalOpen V'.T V'.s ⊆ rationalOpen U.T U.s :=
     laurent_cover_covers_each_idealgen_piece C T _hC_gen V fs hV_laurent hV_base
-      hV_unit_restrictions
+      s hs hfs_eq
   let V_restr_at : ↥C.covers → RationalCovering A := fun U =>
     V.restrictToPiece U.1 (h_V_covers_each_U U.1 U.2)
   have hV_restr_base : ∀ U : ↥C.covers, (V_restr_at U).base = U.1 := fun _ => rfl
