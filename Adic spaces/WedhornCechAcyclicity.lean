@@ -1936,6 +1936,12 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
         (fun b _ => presheafValue b)
         (restrictionMap D.1 V' hV'_sub_D (f D))
         (C_restr_at Vj_sub).base h_base_eq.symm with h_cast_RHS_def
+    -- Extract yVj's gluing spec.
+    have hyVj_spec : ∀ (D'' : ↥(C_restr_at Vj_sub).covers),
+        restrictionMap (C_restr_at Vj_sub).base D''.1
+          ((C_restr_at Vj_sub).hsubset D''.1 D''.2) (yVj Vj_sub) =
+        gVj Vj_sub D'' :=
+      ((_hC_restr_acyclic Vj_sub).gluing (gVj Vj_sub) (h_gVj_compat Vj_sub)).choose_spec
     -- Step 1: prove yVj Vj_sub = cast_RHS via (C_restr_at Vj_sub).separation.
     have step1 : yVj Vj_sub = cast_RHS := by
       rw [← sub_eq_zero]
@@ -1947,9 +1953,9 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
       rw [map_sub, sub_eq_zero]
       -- Goal: restrictionMap (C_restr_at Vj_sub).base D'' (yVj Vj_sub) =
       --       restrictionMap (C_restr_at Vj_sub).base D'' cast_RHS.
-      -- LHS = gVj Vj_sub ⟨D'', hD''_in⟩ (by hyVj_spec).
-      -- RHS needs cast evaluation + restrictionMap_comp + h_compat.
-      -- Sub-sorry T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-CAST-EVAL-PERD.
+      -- LHS computation: by hyVj_spec ⟨D'', hD''_in⟩.
+      -- Sub-sorry: per-D'' identity (cast eval + restrictionMap_comp + h_compat).
+      -- T-WC-PROPA3-PART1-GLU-INNER-IDENTITY-RHS-CAST-EVAL.
       sorry
     -- Step 2: cast forward to get the conclusion.
     -- yV Vj_sub = _hC_restr_base Vj_sub ▸ yVj Vj_sub = (by step1) _hC_restr_base Vj_sub ▸ cast_RHS.
