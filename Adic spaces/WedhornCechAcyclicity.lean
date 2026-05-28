@@ -2040,8 +2040,13 @@ theorem wedhorn_lemma_834 [DecidableEq A]
   · -- C_restr_at covers each Vj.
     intro Vj v hv
     obtain ⟨D', hD'_in, hv_in⟩ := hC_at_cover Vj.1 Vj.2 v hv
-    -- Need D' ⊆ Vj — sub-sorry, depends on the refinement structure.
-    sorry
+    refine ⟨D', hD'_in, hv_in, ?_⟩
+    -- D' ⊆ Vj from C_restr_at(Vj).hsubset (since C_restr_at(Vj).base = Vj).
+    have h_sub : rationalOpen D'.T D'.s ⊆
+        rationalOpen (C_restr_at Vj).base.T (C_restr_at Vj).base.s :=
+      (C_restr_at Vj).hsubset D' hD'_in
+    rw [hC_restr_base' Vj] at h_sub
+    exact h_sub
 
 /-! ### Sub-lemmas for `every_rational_cover_is_OXAcyclic`
 
