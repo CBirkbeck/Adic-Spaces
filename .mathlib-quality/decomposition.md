@@ -982,3 +982,32 @@ Nakayama argument) → f.g. submodule closed (§3.7.2/2) → strictness (§3.7.3
 `restrictedModule_map_exact` → `muMap_injective` → `lemma_8_31` flatness → `prop_8_30` → `cor_8_32`.
 (`CompleteSpace.of_isModuleTopology_finite` already gives the Prop 6.18(1) *completeness* half by a
 separate quotient-of-free route.)
+
+### ★ MILESTONE 2026-06-02 (cont.) — BGR §3.7.2/1 ALGEBRAIC CORE complete, commit ff88fba
+
+The full *algebraic* core of the case-(b) keystone (BGR §3.7.2/1, the Nakayama step) is now
+sorry-free in `Bounded.lean`:
+  - `IsTopologicallyNilpotent.isUnit_one_sub_matrix` (matrix Nakayama, BGR 1.2.4/6) — DONE.
+  - `eq_zero_of_isUnit_matrix_of_forall_sum_smul_eq_zero` (unit matrix injective on `n → P`,
+    any `A`-module `P`) — DONE.
+  - `eq_zero_of_forall_eq_sum_topNilp_smul` (`yᵢ = ∑ⱼ Ãᵢⱼ • yⱼ`, `Ã` top-nilp ⟹ `y = 0`) — DONE.
+
+**What remains for §3.7.2/1 = the faithful `_sub_lemma_L3_1a` (WedhornBanachTheorem.lean:125).**
+The current statement is B2-FALSE (`Module.Finite A M → CompleteSpace M`); BGR's actual
+hypothesis (docstring quote, verbatim) is **`M̂ = completion finite**. The proof, now that the
+algebraic core is done, is the ANALYTIC extraction:
+  (i)   `M̂ := UniformSpace.Completion M`: A-module (mathlib instance), `M ↪ M̂` dense, M̂
+        complete + cg + T2. [mathlib instances — tractable]
+  (ii)  `M̂` finite ⟹ surjective continuous A-linear `π : Aⁿ → M̂`. [tractable from `Module.Finite`]
+  (iii) `wedhorn_6_16` (OMT) ⟹ `π` open. [need: `Aⁿ` complete cg SigmaCompact, `M̂` complete cg T2]
+  (iv)  `π(A°°ⁿ)` is a nbhd of `0` in `M̂` (A°° ⊇ ϖ·A° is a nbhd of 0 in a Tate ring; π open). [moderate]
+  (v)   `M` dense ⟹ each generator `yᵥ = mᵥ + ∑μ ãᵥμ yμ`, `mᵥ ∈ M`, `ãᵥμ ∈ A°°` top-nilp. [FIDDLIEST]
+  (vi)  Pass to `P := M̂ / (im M)`; relation becomes `ȳᵥ = ∑ ãᵥμ ȳμ` ⟹ (by
+        `eq_zero_of_forall_eq_sum_topNilp_smul`) `ȳ = 0` ⟹ `yᵥ ∈ im M` ⟹ `M̂ = im M` ⟹ `M = M̂`
+        ⟹ `CompleteSpace M`. [tractable — this is where the new corollary plugs in]
+
+Steps (i)–(iii) + (vi) are tractable scaffolding; (iv)–(v) (the density/A°°-nbhd extraction) are the
+remaining substantial functional-analysis. Restating `L3_1a` to the faithful M̂-finite form also
+requires adjusting the consumer `_sub_lemma_L3_1b` (N̂ = closure_M(N) finite needs M a noetherian
+module, i.e. M f.g. — true for the real consumer `M = Aᵐ`). Chain above §3.7.2/1 unchanged:
+L3_1b → L4_3 (strictness) → `wedhorn_6_18_open_onto_image`, and separately `muMap_injective` → 8.31.
