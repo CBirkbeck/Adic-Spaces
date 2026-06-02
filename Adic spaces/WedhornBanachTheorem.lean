@@ -200,6 +200,231 @@ theorem _omt_almost_open
     exact (Set.image_mono hV_add)
   exact Filter.mem_of_superset hWW_nhds hWW_sub
 
+open scoped Pointwise in
+/-- **Completion-upgrade half of Wedhorn 6.16**: if `f` is continuous with `M` complete and
+`f` is "almost open" (`closure (f '' U) ∈ nhds 0` for every nbhd `U`), then `f` is open at `0`
+(`f '' U ∈ nhds 0`). Classical Banach iterated-approximation: build `xₖ ∈ Wₖ` with
+`y - f(x₁+…+xₖ) → 0`, sum is Cauchy (shrinking basis), limit `x ∈ closure W₀ ⊆ U`, `f x = y`. -/
+theorem _omt_open_at_zero
+    {A : Type u} [CommRing A] [TopologicalSpace A]
+    {M : Type*} [AddCommGroup M] [Module A M] [UniformSpace M] [IsUniformAddGroup M]
+      [CompleteSpace M] [(uniformity M).IsCountablyGenerated]
+    {N : Type*} [AddCommGroup N] [Module A N] [UniformSpace N] [IsUniformAddGroup N]
+      [T2Space N]
+    (f : M →ₗ[A] N) (hf : Continuous f)
+    (h_almost : ∀ U ∈ nhds (0 : M), closure (f '' U) ∈ nhds (0 : N))
+    {U : Set M} (hU : U ∈ nhds (0 : M)) :
+    f '' U ∈ nhds (0 : N) := by
+  classical
+  -- Step 1: countable antitone basis `B` of `nhds (0:M)`.
+  obtain ⟨B, hB_basis, _hB_anti⟩ := (nhds (0 : M)).exists_antitone_basis
+  -- Step 2: build a closed symmetric shrinking cofinal basis `W : ℕ → Set M` by recursion.
+  -- `pick P hP` packages a closed symmetric nbhd `V` of `0` with `V + V ⊆ P`.
+  let pick : (P : Set M) → P ∈ nhds (0 : M) →
+      {V : Set M // V ∈ nhds (0 : M) ∧ IsClosed V ∧ -V = V} := fun P hP =>
+    ⟨(AddMonoidHom._sub_sub_lemma_A_1_split_symmetric P hP).choose,
+      (AddMonoidHom._sub_sub_lemma_A_1_split_symmetric P hP).choose_spec.1,
+      (AddMonoidHom._sub_sub_lemma_A_1_split_symmetric P hP).choose_spec.2.1,
+      (AddMonoidHom._sub_sub_lemma_A_1_split_symmetric P hP).choose_spec.2.2.1⟩
+  -- The defining add-property of the picked set, kept separately (uniform motive needs it out).
+  have pick_add : ∀ (P : Set M) (hP : P ∈ nhds (0 : M)),
+      (pick P hP).1 + (pick P hP).1 ⊆ P := fun P hP =>
+    (AddMonoidHom._sub_sub_lemma_A_1_split_symmetric P hP).choose_spec.2.2.2
+  -- `Wdat n` packages `W n`; at step 0 we cut with `U ∩ B 0`, at step n+1 with `(W n) ∩ B (n+1)`.
+  let Wdat : (n : ℕ) → {V : Set M // V ∈ nhds (0 : M) ∧ IsClosed V ∧ -V = V} := fun n =>
+    Nat.rec
+      (motive := fun _ => {V : Set M // V ∈ nhds (0 : M) ∧ IsClosed V ∧ -V = V})
+      (pick (U ∩ B 0) (Filter.inter_mem hU (hB_basis.mem_of_mem trivial)))
+      (fun n prev =>
+        pick (prev.1 ∩ B (n + 1)) (Filter.inter_mem prev.2.1 (hB_basis.mem_of_mem trivial)))
+      n
+  set W : ℕ → Set M := fun n => (Wdat n).1 with hW_def
+  -- Easy properties from the packaged data.
+  have hW_nhds : ∀ n, W n ∈ nhds (0 : M) := fun n => (Wdat n).2.1
+  have hW_closed : ∀ n, IsClosed (W n) := fun n => (Wdat n).2.2.1
+  have hW_symm : ∀ n, -W n = W n := fun n => (Wdat n).2.2.2
+  have hW_zero : ∀ n, (0 : M) ∈ W n := fun n => mem_of_mem_nhds (hW_nhds n)
+  -- The defining additive containments (from `pick_add`, matching the `Wdat` definition).
+  have hW_add0 : W 0 + W 0 ⊆ U ∩ B 0 :=
+    pick_add (U ∩ B 0) (Filter.inter_mem hU (hB_basis.mem_of_mem trivial))
+  have hW_addS : ∀ n, W (n + 1) + W (n + 1) ⊆ W n ∩ B (n + 1) := fun n =>
+    pick_add ((Wdat n).1 ∩ B (n + 1)) (Filter.inter_mem (Wdat n).2.1 (hB_basis.mem_of_mem trivial))
+  -- Shrinking: `W (n+1) + W (n+1) ⊆ W n`.
+  have hW_shrink : ∀ n, W (n + 1) + W (n + 1) ⊆ W n := fun n =>
+    (hW_addS n).trans Set.inter_subset_left
+  -- `W (n) ⊆ W (n) + W (n)` since `0 ∈ W n`.
+  have hW_self_subset_add : ∀ n, W n ⊆ W n + W n := fun n x hx =>
+    ⟨x, hx, 0, hW_zero n, add_zero x⟩
+  -- `W 0 ⊆ U`.
+  have hW0_subU : W 0 ⊆ U :=
+    (hW_self_subset_add 0).trans (hW_add0.trans Set.inter_subset_left)
+  -- `W n ⊆ B n` (cofinality ingredient).
+  have hW_subB : ∀ n, W n ⊆ B n := by
+    intro n
+    cases n with
+    | zero => exact (hW_self_subset_add 0).trans (hW_add0.trans Set.inter_subset_right)
+    | succ k => exact (hW_self_subset_add (k + 1)).trans ((hW_addS k).trans Set.inter_subset_right)
+  -- Cofinality: every nbhd of `0` contains some `W n`.
+  have hW_cofinal : ∀ V ∈ nhds (0 : M), ∃ n, W n ⊆ V := by
+    intro V hV
+    obtain ⟨n, _, hn⟩ := hB_basis.mem_iff.mp hV
+    exact ⟨n, (hW_subB n).trans hn⟩
+  -- Step 3: closures of `f '' W n` are nbhds of `0` (almost-openness).
+  have hclos : ∀ n, closure (f '' W n) ∈ nhds (0 : N) := fun n => h_almost (W n) (hW_nhds n)
+  -- Step 4: the key claim — `closure (f '' W 1) ⊆ f '' W 0`.
+  -- Auxiliary: `z - C` is a nbhd of `z` whenever `C` is a nbhd of `0`.
+  have hnsub : ∀ (z : N) (C : Set N), C ∈ nhds (0 : N) → (fun a => z - a) '' C ∈ nhds z := by
+    intro z C hC
+    have h1 : (Homeomorph.subLeft z) '' C ∈ nhds (Homeomorph.subLeft z 0) :=
+      (Homeomorph.subLeft z).isOpenMap.image_mem_nhds hC
+    simpa using h1
+  -- Micro-step: an approximant in `closure (f '' W (k+1))` can be improved by an element
+  -- of `W (k+1)`, leaving a residual in `closure (f '' W (k+2))`.
+  have h_micro : ∀ (z : N) (k : ℕ), z ∈ closure (f '' W (k + 1)) →
+      ∃ w ∈ W (k + 1), z - f w ∈ closure (f '' W (k + 2)) := by
+    intro z k hz
+    have hnbhd : (fun a => z - a) '' closure (f '' W (k + 2)) ∈ nhds z :=
+      hnsub z _ (hclos (k + 2))
+    obtain ⟨p, hp_mem, hp_im⟩ := (mem_closure_iff_nhds.mp hz) _ hnbhd
+    obtain ⟨c, hc_mem, hc_eq⟩ := hp_mem
+    obtain ⟨w, hw_mem, hw_eq⟩ := hp_im
+    refine ⟨w, hw_mem, ?_⟩
+    rw [hw_eq, ← hc_eq]
+    simpa using hc_mem
+  have h_key : closure (f '' W 1) ⊆ f '' W 0 := by
+    intro y hy
+    -- Build partial sums `S k` with invariant `y - f (S k) ∈ closure (f '' W (k+1))`.
+    let D : (k : ℕ) → {s : M // y - f s ∈ closure (f '' W (k + 1))} := fun k =>
+      Nat.rec
+        (motive := fun k => {s : M // y - f s ∈ closure (f '' W (k + 1))})
+        ⟨0, by simpa using hy⟩
+        (fun k prev =>
+          ⟨prev.1 + (h_micro (y - f prev.1) k prev.2).choose, by
+            have hspec := (h_micro (y - f prev.1) k prev.2).choose_spec.2
+            simpa [map_add, sub_add_eq_sub_sub] using hspec⟩)
+        k
+    set S : ℕ → M := fun k => (D k).1 with hS_def
+    -- Invariant.
+    have hS_inv : ∀ k, y - f (S k) ∈ closure (f '' W (k + 1)) := fun k => (D k).2
+    -- Increment: `S (k+1) - S k ∈ W (k+1)`.
+    have hS_incr : ∀ k, S (k + 1) - S k ∈ W (k + 1) := fun k => by
+      have hSeq : S (k + 1) = S k + (h_micro (y - f (D k).1) k (D k).2).choose := rfl
+      rw [hSeq, add_sub_cancel_left]
+      exact (h_micro (y - f (D k).1) k (D k).2).choose_spec.1
+    -- `W` is decreasing (each `W (n+1) ⊆ W n`).
+    have hW_dec : ∀ n, W (n + 1) ⊆ W n := fun n x hx =>
+      hW_shrink n ⟨x, hx, 0, hW_zero (n + 1), add_zero x⟩
+    -- `S` is Cauchy (shrinking basis builder D.1).
+    have hcauchy : CauchySeq S :=
+      AddMonoidHom._sub_sub_lemma_D_1_cauchy_builder W hW_nhds hW_shrink hW_cofinal S
+        (fun n => hW_dec n (hS_incr n))
+    -- Limit `x` of `S`.
+    obtain ⟨x, hx_tend⟩ := cauchySeq_tendsto_of_complete hcauchy
+    -- Doubling sum lemma (mirrors the internal `hsum_lemma` of D.1): a sum of terms
+    -- `xs i ∈ W (n + 1 + i)` lands in `W n`.
+    have hsum_W : ∀ (k : ℕ) (n : ℕ) (xs : Fin k → M),
+        (∀ i : Fin k, xs i ∈ W (n + 1 + i)) → ∑ i, xs i ∈ W n := by
+      intro k
+      induction k with
+      | zero =>
+        intro n xs _
+        simp only [Finset.univ_eq_empty, Finset.sum_empty]; exact hW_zero _
+      | succ k ih =>
+        intro n xs hxs
+        rw [Fin.sum_univ_succ]
+        have h0 : xs 0 ∈ W (n + 1) := by have := hxs 0; simpa using this
+        have hrest : ∑ i, xs (Fin.succ i) ∈ W (n + 1) := by
+          apply ih (n + 1)
+          intro i
+          have := hxs (Fin.succ i)
+          convert this using 2
+          simp [Fin.val_succ]; ring
+        exact hW_shrink _ (Set.add_mem_add h0 hrest)
+    -- Each partial sum `S k` lies in `W 0` (telescoping with offset `0`).
+    have hpartial : ∀ k, S k ∈ W 0 := by
+      intro k
+      have hsum_eq : S k - S 0 =
+          ∑ i ∈ Finset.range k, (S (i + 1) - S i) :=
+        (Finset.sum_range_sub S k).symm
+      have hS0 : S 0 = 0 := rfl
+      rw [hS0, sub_zero] at hsum_eq
+      rw [hsum_eq, ← Fin.sum_univ_eq_sum_range]
+      apply hsum_W k 0
+      intro j
+      have hji := hS_incr (j : ℕ)
+      have : (0 + 1 + (j : ℕ)) = (j : ℕ) + 1 := by ring
+      rw [this]
+      exact hji
+    -- `x ∈ W 0` (closed set containing the convergent sequence).
+    have hx_W0 : x ∈ W 0 :=
+      (hW_closed 0).mem_of_tendsto hx_tend (Filter.Eventually.of_forall hpartial)
+    -- `W` is antitone.
+    have hW_anti : Antitone W := antitone_nat_of_succ_le hW_dec
+    -- `f x = y`: show `f (S k) → y` (residuals shrink to `0`) and `f (S k) → f x`,
+    -- then use uniqueness of limits (`N` is T2).
+    have hf_Sx : Filter.Tendsto (fun k => f (S k)) Filter.atTop (nhds (f x)) :=
+      (hf.continuousAt (x := x)).tendsto.comp hx_tend
+    -- Residual `y - f (S k) → 0` via the closed-neighbourhood basis at `0`.
+    have htend0 : Filter.Tendsto (fun k => y - f (S k)) Filter.atTop (nhds (0 : N)) := by
+      rw [(closed_nhds_basis (0 : N)).tendsto_right_iff]
+      rintro Z ⟨hZ_nhds, hZ_closed⟩
+      -- `f ⁻¹' Z` is a nbhd of `0` in `M`.
+      have hpre : f ⁻¹' Z ∈ nhds (0 : M) := by
+        have h0 : f (0 : M) = 0 := map_zero f
+        exact hf.continuousAt (h0 ▸ hZ_nhds)
+      obtain ⟨n, hn⟩ := hW_cofinal _ hpre
+      -- `closure (f '' W n) ⊆ Z`.
+      have hcl_sub : closure (f '' W n) ⊆ Z := by
+        refine hZ_closed.closure_subset_iff.mpr ?_
+        rintro _ ⟨m, hm, rfl⟩
+        exact hn hm
+      -- For `k ≥ n`, `y - f (S k) ∈ closure (f '' W (k+1)) ⊆ closure (f '' W n) ⊆ Z`.
+      filter_upwards [Filter.eventually_ge_atTop n] with k hk
+      have hkn : n ≤ k + 1 := by omega
+      have hsub : closure (f '' W (k + 1)) ⊆ closure (f '' W n) :=
+        closure_mono (Set.image_mono (hW_anti hkn))
+      exact hcl_sub (hsub (hS_inv k))
+    have hf_Sy : Filter.Tendsto (fun k => f (S k)) Filter.atTop (nhds y) := by
+      have heq : (fun k => f (S k)) = fun k => y - (y - f (S k)) := by
+        funext k; abel
+      have hlim : Filter.Tendsto (fun k => y - (y - f (S k))) Filter.atTop (nhds (y - 0)) :=
+        tendsto_const_nhds.sub htend0
+      rw [sub_zero] at hlim
+      rw [heq]
+      exact hlim
+    have hfx_eq : f x = y := tendsto_nhds_unique hf_Sx hf_Sy
+    -- Conclude `y = f x ∈ f '' W 0`.
+    exact ⟨x, hx_W0, hfx_eq⟩
+  -- Conclude: `f '' U ⊇ f '' W 0 ⊇ closure (f '' W 1) ∈ nhds 0`.
+  refine Filter.mem_of_superset (hclos 1) (h_key.trans (Set.image_mono hW0_subU))
+
+open scoped Pointwise in
+/-- **Wedhorn 6.16, faithful form** — Banach's open mapping theorem for topological `A`-modules
+over a ring with a topologically nilpotent *unit* `ϖ`, with NO σ-compactness hypothesis (which is
+unfulfillable for the Tate rings of interest: `Aⁿ` over `ℂ_p` / a Tate algebra is not σ-compact).
+The "sequence of units → 0" structure supplies the Baire cover by dilation instead. This is the
+form Wedhorn actually states (his proof is "Missing", deferring to BGR §3.7.2/1, which uses exactly
+this module/units structure). -/
+theorem wedhorn_6_16_of_topNilpUnit
+    {A : Type u} [CommRing A] [TopologicalSpace A]
+    {M : Type*} [AddCommGroup M] [Module A M] [UniformSpace M] [IsUniformAddGroup M]
+      [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [ContinuousSMul A M]
+    {N : Type*} [AddCommGroup N] [Module A N] [UniformSpace N] [IsUniformAddGroup N]
+      [CompleteSpace N] [(uniformity N).IsCountablyGenerated] [T2Space N] [ContinuousSMul A N]
+    {ϖ : A} (hϖ : IsTopologicallyNilpotent ϖ) (hϖu : IsUnit ϖ)
+    (f : M →ₗ[A] N) (hf : Continuous f) (hsurj : Function.Surjective f) :
+    IsOpenMap f := by
+  -- `N` is a Baire space: complete + countably-generated uniformity ⇒ metrizable ⇒ Baire.
+  haveI : BaireSpace N := inferInstance
+  -- Almost-open half (the dilation-cover Baire step replaces σ-compactness).
+  have h_almost : ∀ U ∈ nhds (0 : M), closure (f '' U) ∈ nhds (0 : N) :=
+    fun U hU => _omt_almost_open hϖ hϖu f hsurj hU
+  -- Completion-upgrade half: almost-open + completeness of `M` ⇒ open at `0`.
+  have h_zero : ∀ U ∈ nhds (0 : M), f '' U ∈ nhds (0 : N) :=
+    fun U hU => _omt_open_at_zero f hf h_almost hU
+  -- Translation invariance: open at `0` ⇒ open everywhere.
+  exact AddMonoidHom._sub_lemma_translation f.toAddMonoidHom h_zero
+
 /-! ## Wedhorn 6.17 (= BGR §3.7.2/2) — noetherian iff every (sub)module closed
 
 For a complete Tate-like ring `A` and a complete topological `A`-module `M`
