@@ -864,35 +864,13 @@ private theorem presheafValue_isNoetherianRing_faithful
     IsNoetherianRing (presheafValue D) :=
   presheafValue_isNoetherianRing_residual D
 
-/-- **Step 1 of Prop 8.30 — Example 6.38, linear-topology part** (Wedhorn p. 81,
-`wedhorn.txt:4095`). The presheaf value `B := presheafValue D` carries a linear topology
-(`IsLinearTopology B B`), the last instance `lemma_8_31_*` need over the base `B`.
-
-FAITHFUL: depends only on `D` and the ambient `A`-bundle (which includes the assumed
-`[IsLinearTopology A A]`).
-
-GENUINE RESIDUAL (single inner `sorry`, isolated as `presheafValue_isLinearTopology_residual`):
-`presheafValue D` is the completion of `Localization.Away D.s` carrying the *localization*
-topology `locTopology P D.T D.s`. Wedhorn's Example 6.38 says this completion is linearly
-topologized. The faithful chain is: (i) `isLinearTopology_locTopology` — the localization topology
-on `Localization.Away D.s` is `R`-linear (the open `B`-spans `Submodule.span B (locNhd n)` form a
-nbhd basis of `0`; `WedhornLocTopologyLinear.lean` supplies `locNhd_span_isOpen` and the
-Artin–Rees shrinking ingredients but NOT yet the full `IsLinearTopology` assembly — the documented
-repo gap); then (ii) completion preserves `IsLinearTopology` (open submodules lift to open
-submodules of the completion). Both are genuine topological obligations independent of the
-noeth-`A₀` question; they consume only the ambient `[IsLinearTopology A A]` + the localization
-structure, no `pairSubring`/`A₀⟨X⟩` noetherianness. -/
-private theorem presheafValue_isLinearTopology_residual
-    [IsTateRing A] [IsNoetherianRing A] (D : RationalLocData A) :
-    @IsLinearTopology (presheafValue D) (presheafValue D) _ _ Semiring.toModule _ := by
-  -- Localization topology is `R`-linear (`isLinearTopology_locTopology`, repo gap), and
-  -- completion preserves linear topology. See docstring; genuine topological residual.
-  sorry
-
-private theorem presheafValue_isLinearTopology_faithful
-    [IsTateRing A] [IsNoetherianRing A] (D : RationalLocData A) :
-    @IsLinearTopology (presheafValue D) (presheafValue D) _ _ Semiring.toModule _ :=
-  presheafValue_isLinearTopology_residual D
+-- REMOVED (2026-06-03): `presheafValue_isLinearTopology_{residual,faithful}` asserted
+-- `IsLinearTopology (presheafValue D)`, which is FALSE for a Tate ring (no proper open ideals,
+-- since a topologically nilpotent unit puts a unit in every open ideal). After the A°-layer
+-- migration (`IsLinearTopology A A` → `NonarchimedeanAddGroup`, Wedhorn Prop 5.30), `lemma_8_31_*`
+-- over the base `B := presheafValue D` no longer require `[IsLinearTopology B B]`, so this false
+-- obligation is gone — `prop_8_30_flat_of_faithful_base` now needs only the Tate + noetherian
+-- instances on `B`.
 
 /-- **Steps 2–4 of Prop 8.30 — Remark 7.55 + Example 6.38 over `B` + Lemma 8.31** (Wedhorn
 p. 81, `wedhorn.txt:4097`–`4104`). Given that `B := presheafValue D` is a complete strongly
@@ -925,8 +903,7 @@ private theorem prop_8_30_flat_of_faithful_base
     (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
     (hTate : IsTateRing (presheafValue D))
-    (hNoeth : IsNoetherianRing (presheafValue D))
-    (hLin : @IsLinearTopology (presheafValue D) (presheafValue D) _ _ Semiring.toModule _) :
+    (hNoeth : IsNoetherianRing (presheafValue D)) :
     @Module.Flat (presheafValue D) (presheafValue D') _ _
       (restrictionMapHom D D' h).toModule := by
   -- `B := presheafValue D` now has the full bundle `lemma_8_31_*` consume:
@@ -936,7 +913,6 @@ private theorem prop_8_30_flat_of_faithful_base
   haveI := hTate
   haveI := hNoeth
   haveI : IsHuberRing (presheafValue D) := hTate.toIsHuberRing
-  haveI : @IsLinearTopology (presheafValue D) (presheafValue D) _ _ Semiring.toModule _ := hLin
   -- With this bundle, the Step-4 inputs `lemma_8_31_fSubX_flat (presheafValue D) f` and
   -- `lemma_8_31_oneSubfX_flat (presheafValue D) f` are available over `B` (case (b), NO
   -- `PairOfDefinition`/noeth-`A₀`; these consume `[IsNoetherianRing B]` only — NOT
@@ -990,7 +966,6 @@ theorem prop_8_30_restriction_flat (D D' : RationalLocData A)
   prop_8_30_flat_of_faithful_base D D' h
     (presheafValue_isTateRing_faithful D)
     (presheafValue_isNoetherianRing_faithful D)
-    (presheafValue_isLinearTopology_faithful D)
 
 /-- **Prime-surjectivity for a rational covering** — the geometric input to the
 *faithful* half of Cor 8.32: every prime `p` of `O_X(X)` is the contraction of a prime
