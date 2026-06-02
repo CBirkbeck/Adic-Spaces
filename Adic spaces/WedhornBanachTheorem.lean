@@ -492,6 +492,154 @@ theorem _sub_lemma_L3_1a_completion_fg_complete
   -- - The closure-span = span argument (Nakayama for fg M̂).
   sorry
 
+open scoped Pointwise in
+/-- **BGR §3.7.2/1 (faithful, closure form)**: a submodule `N` of a complete Tate-`A`-module `M`
+whose topological closure is module-finite over `A` is itself closed. (Wedhorn 6.17/6.18 route;
+proof "Missing" in Wedhorn → BGR §3.7.2/1.) The completion `M̂` of `N` is its closure `N̄ ⊆ M`;
+`N̄` finite ⟹ via the faithful OMT `π : Aⁿ ↠ N̄` is open, so a top-nilpotent nbhd dilates onto a
+nbhd of 0; density of `N` in `N̄` writes each generator `yᵥ = mᵥ + Σ ǎᵥμ yμ` (`ǎ` top-nilp,
+`mᵥ ∈ N`); the matrix Nakayama (`eq_zero_of_forall_eq_sum_topNilp_smul`) in `M ⧸ N` forces every
+`yᵥ ∈ N`, so `N̄ = N`.
+
+**Source** (BGR §3.7.2/1, p. 163, verbatim): see `_sub_lemma_L3_1a_completion_fg_complete`. -/
+theorem fg_topologicalClosure_isClosed
+    {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
+      [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
+      [IsTateRing A] [IsLinearTopology A A]
+    {M : Type*} [AddCommGroup M] [Module A M] [UniformSpace M] [IsUniformAddGroup M]
+      [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M] [ContinuousSMul A M]
+    (N : Submodule A M) (hfin : Module.Finite A N.topologicalClosure) :
+    IsClosed (N : Set M) := by
+  classical
+  -- It suffices to prove `N̄ ≤ N` (then `N̄ = N`, so `N` is closed).
+  set Nbar : Submodule A M := N.topologicalClosure with hNbar_def
+  -- `↥N̄` is a complete cg T2 `A`-module (closed subspace of complete `M`).
+  have hNbar_closed : IsClosed (Nbar : Set M) := N.isClosed_topologicalClosure
+  haveI : IsUniformAddGroup ↥Nbar :=
+    show IsUniformAddGroup ↥Nbar.toAddSubgroup from inferInstance
+  haveI : (uniformity ↥Nbar).IsCountablyGenerated := Filter.comap.isCountablyGenerated _ _
+  haveI : CompleteSpace ↥Nbar := hNbar_closed.completeSpace_coe
+  haveI : T2Space ↥Nbar := inferInstance
+  haveI : ContinuousSMul A ↥Nbar := ⟨by
+    refine Topology.IsInducing.subtypeVal.continuous_iff.mpr ?_
+    exact continuous_smul.comp
+      ((continuous_fst).prodMk (continuous_subtype_val.comp continuous_snd))⟩
+  -- `N` as a submodule of `↥N̄`.
+  set N' : Submodule A ↥Nbar := N.comap Nbar.subtype with hN'_def
+  -- **Density**: `N'` is dense in `↥N̄`.
+  have hN_le_Nbar : N ≤ Nbar := N.le_topologicalClosure
+  have hN'_dense : Dense (N' : Set ↥Nbar) := by
+    have himg : Subtype.val '' (N' : Set ↥Nbar) = (N : Set M) := by
+      ext z
+      exact ⟨fun ⟨⟨w, _⟩, hwN, hwz⟩ => hwz ▸ hwN, fun hz => ⟨⟨z, hN_le_Nbar hz⟩, hz, rfl⟩⟩
+    intro x
+    rw [closure_subtype, himg, ← N.topologicalClosure_coe]
+    exact x.2
+  -- **Step 1**: generators of `↥N̄` and the OMT-open map `π : Aⁿ → ↥N̄`.
+  obtain ⟨n, g, hg_span⟩ := Module.Finite.exists_fin (R := A) (M := ↥Nbar)
+  let π : (Fin n → A) →ₗ[A] ↥Nbar :=
+    { toFun := fun a => ∑ i, a i • g i
+      map_add' := fun x y => by
+        simp only [Pi.add_apply, add_smul, Finset.sum_add_distrib]
+      map_smul' := fun a x => by
+        simp only [Pi.smul_apply, smul_eq_mul, RingHom.id_apply, Finset.smul_sum, smul_smul] }
+  have hπ_cont : Continuous π := by
+    change Continuous fun a : (Fin n → A) => ∑ i, a i • g i
+    exact continuous_finset_sum _ fun i _ => (continuous_apply i).smul continuous_const
+  have hπ_surj : Function.Surjective π := by
+    intro x
+    have hx : x ∈ Submodule.span A (Set.range g) := hg_span ▸ Submodule.mem_top
+    rw [Submodule.mem_span_range_iff_exists_fun] at hx
+    obtain ⟨c, hc⟩ := hx
+    exact ⟨c, hc⟩
+  -- topologically nilpotent unit `ϖ`.
+  obtain ⟨ϖ, hϖ_nil⟩ := ‹IsTateRing A›.exists_topologicallyNilpotent_unit
+  have hπ_open : IsOpenMap π :=
+    wedhorn_6_16_of_topNilpUnit hϖ_nil ϖ.isUnit π hπ_cont hπ_surj
+  -- **Step 2**: a top-nilpotent nbhd `W` of `0` in `A`, and the dilation nbhd `Ω` of `0` in `↥N̄`.
+  obtain ⟨P⟩ := (‹IsTateRing A›.toIsHuberRing).exists_pairOfDefinition
+  set W : Set A := (ϖ : A) • (TopologicalRing.powerBoundedSubring A : Set A) with hW_def
+  have hW_nhds : W ∈ nhds (0 : A) :=
+    (ϖ.isUnit.isOpenMap_smul _ P.isOpen_powerBoundedSubring).mem_nhds
+      ⟨0, (TopologicalRing.powerBoundedSubring.toSubring A).zero_mem, smul_zero _⟩
+  have hW_tn : ∀ a ∈ W, IsTopologicallyNilpotent a := by
+    rintro _ ⟨b, hb, rfl⟩
+    simp only [smul_eq_mul]
+    rw [mul_comm]
+    exact hb.isTopologicallyNilpotent_mul hϖ_nil
+  -- The product nbhd in `Aⁿ`.
+  set Wpi : Set (Fin n → A) := Set.univ.pi (fun _ => W) with hWpi_def
+  have hWpi_nhds : Wpi ∈ nhds (0 : Fin n → A) := by
+    rw [hWpi_def]
+    exact set_pi_mem_nhds Set.finite_univ (fun i _ => by simpa using hW_nhds)
+  set Ω : Set ↥Nbar := π '' Wpi with hΩ_def
+  have hΩ_nhds : Ω ∈ nhds (0 : ↥Nbar) := by
+    have h0 : π (0 : Fin n → A) = 0 := map_zero π
+    have := hπ_open.image_mem_nhds (x := (0 : Fin n → A)) hWpi_nhds
+    rwa [h0] at this
+  -- **Step 3 + 4 + 5**: density extraction + Nakayama in `M ⧸ N` + conclusion.
+  -- The quotient map `q : M →ₗ[A] M ⧸ N`.
+  -- For each generator `gᵥ`, density gives `m'ᵥ ∈ N'` with `gᵥ - m'ᵥ ∈ Ω`, i.e.
+  -- `(gᵥ : M) - (m'ᵥ : M) = ∑ⱼ aᵥⱼ • (gⱼ : M)` with `aᵥⱼ ∈ W` top-nilp.
+  have hgen_in_N : ∀ v : Fin n, ((g v : ↥Nbar) : M) ∈ N := by
+    -- **Step 3** (density extraction): for each generator `gᵥ`, write
+    -- `gᵥ = m'ᵥ + ∑ⱼ aᵥⱼ • gⱼ` with `m'ᵥ ∈ N'` and every `aᵥⱼ ∈ W` (topologically nilpotent).
+    have hextract : ∀ v : Fin n, ∃ (a : Fin n → A), (∀ j, a j ∈ W) ∧
+        ∃ m' ∈ N', (g v : ↥Nbar) = m' + ∑ j, a j • g j := by
+      intro v
+      have hnb : (fun z : ↥Nbar => g v - z) ⁻¹' Ω ∈ nhds (g v) := by
+        have hcont : Continuous (fun z : ↥Nbar => g v - z) := continuous_const.sub continuous_id
+        refine hcont.continuousAt.preimage_mem_nhds ?_
+        show Ω ∈ nhds (g v - g v)
+        rw [sub_self]; exact hΩ_nhds
+      obtain ⟨w, hwU, hwN'⟩ := mem_closure_iff_nhds.mp (hN'_dense (g v)) _ hnb
+      obtain ⟨a, haW, ha_eq⟩ := hwU
+      refine ⟨a, fun j => (Set.mem_univ_pi.mp haW) j, w, hwN', ?_⟩
+      have hpa : (∑ j, a j • g j) = g v - w := ha_eq
+      rw [hpa]; abel
+    -- Choose the matrix entries and the `N`-correctors.
+    choose a haW m' hm'N' hrel using hextract
+    set Atil : Matrix (Fin n) (Fin n) A := fun v j => a v j with hAtil
+    set q : M →ₗ[A] M ⧸ N := N.mkQ with hq
+    set ybar : Fin n → M ⧸ N := fun v => q ((g v : ↥Nbar) : M) with hybar
+    have hmem : ∀ v, ((m' v : ↥Nbar) : M) ∈ N := fun v => hm'N' v
+    -- Push the `↥N̄`-relation down to `M`.
+    have hrelM : ∀ v, ((g v : ↥Nbar) : M)
+        = ((m' v : ↥Nbar) : M) + ∑ j, a v j • ((g j : ↥Nbar) : M) := by
+      intro v
+      have hcoe := congrArg (Subtype.val) (hrel v)
+      rw [Submodule.coe_add, Submodule.coe_sum] at hcoe
+      simpa [Submodule.coe_smul] using hcoe
+    -- **Step 4** (Nakayama in `M ⧸ N`): the relation becomes `ȳᵥ = ∑ⱼ Ãᵥⱼ • ȳⱼ`.
+    have hy : ∀ v, ybar v = ∑ j, Atil v j • ybar j := by
+      intro v
+      have hq0 : q ((m' v : ↥Nbar) : M) = 0 := (Submodule.Quotient.mk_eq_zero N).2 (hmem v)
+      simp only [hybar, hAtil]
+      rw [hrelM v, map_add, map_sum, hq0]
+      simp only [map_smul]
+      exact zero_add _
+    -- The matrix `1 - Ã` is invertible (all entries top-nilp), so `ȳ = 0`.
+    have hzero := eq_zero_of_forall_eq_sum_topNilp_smul (B := Atil)
+      (fun i j => hW_tn _ (haW i j)) hy
+    -- `ȳᵥ = q gᵥ = 0` means `gᵥ ∈ N`.
+    intro v
+    exact (Submodule.Quotient.mk_eq_zero N).1 (hzero v)
+  -- **Step 5**: `N̄ ≤ N` from the generators.
+  have hNbar_le_N : Nbar ≤ N := by
+    intro m hm
+    have hx : (⟨m, hm⟩ : ↥Nbar) ∈ Submodule.span A (Set.range g) := hg_span ▸ Submodule.mem_top
+    rw [Submodule.mem_span_range_iff_exists_fun] at hx
+    obtain ⟨c, hc⟩ := hx
+    have hval : ((∑ i, c i • g i : ↥Nbar) : M) = m := by rw [hc]
+    rw [← hval, Submodule.coe_sum]
+    exact N.sum_mem fun i _ => by
+      rw [Submodule.coe_smul]
+      exact N.smul_mem _ (hgen_in_N i)
+  -- Conclude.
+  have : Nbar = N := le_antisymm hNbar_le_N hN_le_Nbar
+  rw [← this]
+  exact hNbar_closed
+
 /-- **Sub-lemma L3.1b — fg submodule of complete noeth module is closed**.
 
 Direct corollary of L3.1a applied to the submodule N ⊆ M (with N inheriting
