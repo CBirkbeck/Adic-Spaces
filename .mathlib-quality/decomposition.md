@@ -964,3 +964,21 @@ Then `isUnit_one_sub_matrix` moves with it (its proof is unchanged). Net: this D
 of the matrix Nakayama. Ingredients all confirmed present: `IsTopologicallyNilpotent.add` (mathlib,
 needs `[IsLinearTopology A A]`), `IsPowerBounded.isTopologicallyNilpotent_mul`, `IsTopologicallyNilpotent.isPowerBounded`,
 `powerBoundedSubring.toSubring`, `Matrix.isUnit_iff_isUnit_det`, scalar `isUnit_one_sub`.
+
+### ★ MILESTONE 2026-06-02 — matrix Nakayama COMPLETE (sorry-free), commit 32ffa81
+
+`Bounded.lean`: `topNilpIdeal : Ideal A°`, `one_sub_det_one_sub_matrix`, and
+`IsTopologicallyNilpotent.isUnit_one_sub_matrix` (BGR 1.2.4/6: `1 - B` invertible for top-nilp
+matrix `B`) are all PROVEN sorry-free via the A°-quotient + `RingHom.mapMatrix`/`RingHom.map_det`
+route. Build green (3145 jobs). This is the crux at the bottom of the flatness chain.
+
+**Plumbing lessons (for the rest of the chain over `A ⧸ topNilpIdeal`):** the quotient ring's `0`/`1`
+are opaque through the `topNilpIdeal` def, so `sub_zero`/`sub_self`/`Matrix.det_one`/`(... = 0)` do
+NOT close by `rw`/`simp` — use `abel` (additive-group normalize) for `1-0=1`, `1-1=0`, `0=0`, and
+`exact Matrix.det_one`; entry equalities through `A° ↪ A` need `map_sub` in the `simp` set.
+
+**Next:** use `isUnit_one_sub_matrix` to prove BGR §3.7.2/1 ("M̂ finite ⇒ M = M̂", the `(I-B)x = m`
+Nakayama argument) → f.g. submodule closed (§3.7.2/2) → strictness (§3.7.3 Cor 5) →
+`restrictedModule_map_exact` → `muMap_injective` → `lemma_8_31` flatness → `prop_8_30` → `cor_8_32`.
+(`CompleteSpace.of_isModuleTopology_finite` already gives the Prop 6.18(1) *completeness* half by a
+separate quotient-of-free route.)
