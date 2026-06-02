@@ -871,3 +871,41 @@ session unit.
 **Proven this session, reducing the keystone to exactly this crux:** `CompleteSpace.of_isModuleTopology_finite`
 (Prop 6.18(1) completeness), `muMap_naturality`. Remaining for `muMap_injective`: the free-case μ-iso
 (computational) + `restrictedModule_map_exact` (needs `u : Aⁿ → Aᵐ` strict = the BGR closed-submodule fact).
+
+### ★★ VERDICT CORRECTION (read BGR §3.7.2–3.7.4 directly, PDF pp.171–175 = book 163–167)
+
+**My B3 "multi-week wall / BGR-lattice-Nakayama-over-non-noetherian-A°" verdict was WRONG** — the
+product of NOT reading BGR (reasoning second-hand). The actual BGR skeleton + a real mathlib search show
+the keystone is a **tractable focused build; every ingredient is already in hand.**
+
+BGR's actual chain (over a complete non-arch field k; Wedhorn substitutes his group-level OMT 6.16 for
+BGR's k-Banach-space Banach theorem, so **NO complete-field base is needed**):
+- **§3.7.2/1** (book p.163): `M̂` (completion) finite over A ⇒ `M` complete. Proof: `π : Aⁿ ↠ M̂` open
+  by **Banach OMT** ⇒ `Σ Ã·xᵢ = π(Ã ⁿ)` is a nbhd of 0 ⇒ (M dense) `M̂ = M + Ã·M̂` ⇒ **Nakayama** ⇒ `M = M̂`.
+- **§3.7.2/2**: `M` Noetherian ⟺ all submodules closed (§3.7.2/1 + **Baire** on the ascending chain).
+- **§3.7.3/1**: submodules of finite modules closed; **Cor 5**: A-homs between finite modules are
+  **strict** (Prop 4: continuous k-linear is strict ⟺ image closed, via OMT).
+- **§3.7.3/6**: `M ⊗_A N → M ⊗̂_A N` **bijective** (free resolution `Aᵐ→Aⁿ→M→0` + 5-lemma + Cor-5 strictness)
+  — this **IS** `muMap` / Remark 8.29.
+
+**Every ingredient is available (verified this session):**
+- OMT: `wedhorn_6_16` (sorry-free) = mathlib `AddMonoidHom.isOpenMap_of_sigmaCompact`.
+- **Nakayama**: mathlib `Submodule.le_of_le_smul_of_le_jacobson_bot` (`N'.FG → I ≤ ⊥.jacobson → N' ≤ N ⊔ I•N' → N' ≤ N`).
+- **I ⊆ Jacobson**: project `Ideal.le_jacobson_bot_of_forall_isTopologicallyNilpotent` /
+  `IsAdicComplete.le_jacobson_bot` (`IdealClosedness.lean`) + `IsTopologicallyNilpotent.isUnit_one_sub`.
+- Baire: mathlib `BaireSpace` (project `_sub_lemma_L3_2_baire_chain_submodule` already attempts this).
+- Completeness of f.g. module (module-top): `CompleteSpace.of_isModuleTopology_finite` (PROVEN this session).
+- μ naturality: `muMap_naturality` (PROVEN this session).
+
+**THE BUG (root cause of the project's stalled/false Banach attempts):** `_sub_lemma_L3_1a` is stated
+with **`M` finite** (false) where BGR §3.7.2/1 requires **`M̂` (completion) finite**. Fix the statement to
+BGR's, then OMT + the mathlib Nakayama closes it. (The Krull route is a red herring — BGR never uses it;
+it uses OMT + Nakayama, both available.)
+
+**REVISED build plan (focused, ~6 lemmas, all ingredients in hand):**
+1. `bgr_3_7_2_1`: `M̂` finite ⇒ `M` complete (`wedhorn_6_16` + `le_of_le_smul_of_le_jacobson_bot`).
+2. `bgr_3_7_2_2` / closed submodules: §3.7.2/1 + Baire.
+3. strictness (Cor 5): continuous A-linear between finite modules is open-onto-image (image closed + OMT).
+4. `restrictedModule_map_exact`: the ⟨X⟩ functor preserves strict-exact (diagonal lift, template = `restrictedModule_map_surjective`, now with strictness from (3)).
+5. `muMap_injective`: 5-lemma (`muMap_naturality` ✓ + free-case + (4)).
+6. `lemma_8_31` flatness ⇒ `prop_8_30` ⇒ `cor_8_32`.
