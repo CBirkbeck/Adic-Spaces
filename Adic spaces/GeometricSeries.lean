@@ -4,7 +4,6 @@ Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import Mathlib.Topology.Algebra.InfiniteSum.Nonarchimedean
 import Mathlib.Topology.Algebra.TopologicallyNilpotent
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
 
 /-!
 # Geometric Series in Nonarchimedean Rings
@@ -62,38 +61,4 @@ theorem IsTopologicallyNilpotent.isUnit_one_add {a : A} (ha : IsTopologicallyNil
     IsUnit (1 + a) := by
   rw [← sub_neg_eq_add]
   exact ha.neg.isUnit_one_sub
-
-/-! ### Matrix Nakayama (topologically nilpotent matrices)
-
-For BGR §3.7.2/1 (Remark 8.29 / Lemma 8.31) one needs `1 - B` to be a unit when `B` is an
-`n × n` matrix all of whose entries are topologically nilpotent. Because `A` is commutative we
-reduce to the scalar `isUnit_one_sub` via the determinant: `det (1 - B) = 1 - t` with `t`
-topologically nilpotent (every monomial of the expansion other than the constant `1` carries a
-topologically nilpotent entry of `B`), and `Matrix.isUnit_iff_isUnit_det` lifts the result back.
-This is the correct form of "Nakayama 1.2.4/6": the topologically nilpotent *elements* of a Tate
-ring generate the unit ideal, so the ideal-theoretic Nakayama is vacuous; the matrix/determinant
-form is what BGR's Prop 1 actually uses. -/
-
-/-- The complement `1 - det (1 - B)` is topologically nilpotent when every entry of `B` is.
-Expanding `det (1 - B)`, the identity permutation contributes `∏ᵢ (1 - Bᵢᵢ) = 1 - (top. nilp.)`
-and every other permutation contributes a product containing an off-diagonal `-Bᵢⱼ` factor
-(topologically nilpotent); topological nilpotence is closed under the relevant products and finite
-sums. (The clean discharge is over the power-bounded subring `A°` — where the topologically
-nilpotent elements form an ideal — so this lemma is relocated to `Bounded.lean` where `A°` is in
-scope; see the `decomposition.md` execution log.) -/
-theorem IsTopologicallyNilpotent.one_sub_det_one_sub_matrix
-    {n : Type*} [Fintype n] [DecidableEq n] (B : Matrix n n A)
-    (hB : ∀ i j, IsTopologicallyNilpotent (B i j)) :
-    IsTopologicallyNilpotent (1 - (1 - B).det) := by
-  sorry
-
-/-- **Matrix Nakayama** (BGR Lemma 1.2.4/6, the form used in §3.7.2/1): for a complete Hausdorff
-nonarchimedean commutative ring `A`, if every entry of an `n × n` matrix `B` is topologically
-nilpotent then `1 - B` is invertible. -/
-theorem IsTopologicallyNilpotent.isUnit_one_sub_matrix
-    {n : Type*} [Fintype n] [DecidableEq n] (B : Matrix n n A)
-    (hB : ∀ i j, IsTopologicallyNilpotent (B i j)) :
-    IsUnit (1 - B) := by
-  rw [Matrix.isUnit_iff_isUnit_det]
-  simpa using (IsTopologicallyNilpotent.one_sub_det_one_sub_matrix B hB).isUnit_one_sub
 

@@ -9,6 +9,8 @@ import Mathlib.RingTheory.IntegralClosure.IsIntegral.Defs
 import Mathlib.RingTheory.Polynomial.Basic
 import Mathlib.Data.Nat.Choose.Sum
 import Mathlib.Topology.Algebra.LinearTopology
+import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+import Mathlib.RingTheory.Ideal.Quotient.Operations
 import «Adic spaces».GeometricSeries
 
 /-!
@@ -358,3 +360,55 @@ theorem IsTopologicallyNilpotent.isUnit_one_sub_mul_of_isPowerBounded_left
     (hy : TopologicalRing.IsPowerBounded y) :
     IsUnit (1 - y * a) :=
   (hy.isTopologicallyNilpotent_mul ha).isUnit_one_sub
+
+/-! ### Matrix Nakayama (BGR Lemma 1.2.4/6, for Remark 8.29 / Lemma 8.31)
+
+`1 - B` is invertible when every entry of an `n × n` matrix `B` is topologically nilpotent.
+Reduce to the scalar `isUnit_one_sub` via the determinant: over the power-bounded subring `A°`
+(where the topologically nilpotent elements form the ideal `topNilpIdeal`), reduction mod
+`topNilpIdeal` sends `1 - B` to the identity, so `det (1 - B) ≡ 1` and `det (1 - B) - 1` is
+topologically nilpotent; `Matrix.isUnit_iff_isUnit_det` lifts the result back. This is the correct
+form of "Nakayama 1.2.4/6": over a Tate ring the topologically nilpotent *elements* generate the
+unit ideal (so the ideal-theoretic Nakayama is vacuous), but they form a genuine ideal of `A°`,
+which is what the determinant argument uses. -/
+
+open TopologicalRing in
+/-- The topologically nilpotent elements form an ideal of the power-bounded subring `A°`. -/
+def topNilpIdeal [IsLinearTopology A A] : Ideal (powerBoundedSubring.toSubring A) where
+  carrier := {x | IsTopologicallyNilpotent (x : A)}
+  zero_mem' := by
+    show IsTopologicallyNilpotent ((0 : powerBoundedSubring.toSubring A) : A)
+    exact IsTopologicallyNilpotent.zero
+  add_mem' := by
+    intro x y hx hy
+    show IsTopologicallyNilpotent ((x + y : powerBoundedSubring.toSubring A) : A)
+    rw [Subring.coe_add]; exact hx.add hy
+  smul_mem' := by
+    intro c x hx
+    show IsTopologicallyNilpotent ((c • x : powerBoundedSubring.toSubring A) : A)
+    rw [smul_eq_mul, Subring.coe_mul]
+    exact (c.2 : IsPowerBounded (c : A)).isTopologicallyNilpotent_mul hx
+
+open TopologicalRing in
+/-- `1 - det (1 - B)` is topologically nilpotent when every entry of `B` is. -/
+theorem IsTopologicallyNilpotent.one_sub_det_one_sub_matrix [IsLinearTopology A A]
+    {n : Type*} [Fintype n] [DecidableEq n] (B : Matrix n n A)
+    (hB : ∀ i j, IsTopologicallyNilpotent (B i j)) :
+    IsTopologicallyNilpotent (1 - (1 - B).det) := by
+  -- Mathematical proof (over `A°`, via `topNilpIdeal` + `RingHom.map_det`): reduction mod
+  -- `topNilpIdeal` sends `1 - B'` to `1`, so `det (1 - B') ≡ 1` and `det (1 - B') - 1 ∈
+  -- topNilpIdeal` is topologically nilpotent; transfer back via `A° ↪ A`. The full term is
+  -- drafted (see `.mathlib-quality/decomposition.md`); it currently stalls only on Lean
+  -- instance plumbing for the quotient ring's `0`/`1` (`sub_zero`/`Matrix.det_one` not firing
+  -- up-to-`OfNat`/`DecidableEq` instance). Left as a focused tactic-plumbing step.
+  sorry
+
+/-- **Matrix Nakayama** (BGR Lemma 1.2.4/6, the form used in §3.7.2/1): if every entry of an
+`n × n` matrix `B` over a complete Hausdorff nonarchimedean commutative ring `A` is topologically
+nilpotent then `1 - B` is invertible. -/
+theorem IsTopologicallyNilpotent.isUnit_one_sub_matrix [IsLinearTopology A A]
+    {n : Type*} [Fintype n] [DecidableEq n] (B : Matrix n n A)
+    (hB : ∀ i j, IsTopologicallyNilpotent (B i j)) :
+    IsUnit (1 - B) := by
+  rw [Matrix.isUnit_iff_isUnit_det]
+  simpa using (IsTopologicallyNilpotent.one_sub_det_one_sub_matrix B hB).isUnit_one_sub
