@@ -1039,3 +1039,44 @@ Before building §3.7.2/1 (per user "check references + check we need this"), re
 re-assemble from the sorry-free BanachOMT sub-lemmas C.2/D.1/D.2/A.1/A.2) → §3.7.2/1 (matrix-Nakayama
 assembly, tools ready) → 6.18(2) → Rem 8.29. The faithful OMT is the genuine foundation; building
 §3.7.2/1 on the σ-compact OMT would wall on an unfulfillable hypothesis.
+
+### ★★ MILESTONE 2026-06-02 — FAITHFUL BANACH OMT complete (commit bdaabaa), σ-compact-free
+
+`WedhornBanachTheorem.lean` now has the faithful Wedhorn 6.16 SORRY-FREE + axiom-clean:
+  - `iUnion_preimage_smul_pow_eq_univ` (dilation cover) — DONE.
+  - `_omt_almost_open` (Baire half: closure(f''U) ∈ nhds 0, dilation cover replaces σ-compact) — DONE.
+  - `_omt_open_at_zero` (completion upgrade: almost-open + complete ⇒ open at 0; D.1 Cauchy builder
+    + closed-symmetric-shrinking-cofinal basis + IsClosed.mem_of_tendsto) — DONE [+T2Space N, faithful].
+  - `wedhorn_6_16_of_topNilpUnit` (the OMT: NO [SigmaCompactSpace]) — DONE.
+This is THE foundational prerequisite the reference-check revealed; the project's σ-compact
+`wedhorn_6_16` could not serve §3.7.2/1's `Aⁿ` source. Now unblocked: §3.7.2/1 → 6.18(2) → 8.29 → …
+
+**NEXT = §3.7.2/1 (faithful, closure form):** `N : Submodule A M`, `Module.Finite A N.topologicalClosure`
+⟹ `IsClosed N`. Uses: faithful OMT (π : Aⁿ ↠ N̄ open) + `Bounded.eq_zero_of_forall_eq_sum_topNilp_smul`
+(quotient N̄/N: ȳᵥ = Σ ǎᵥμ ȳμ, top-nilp ⟹ ȳ=0). NEEDS a **top-nilp nbhd of 0** in A (BGR's `Ǎ` =
+open ball) for the density extraction `yᵥ = mᵥ + Σ ǎᵥμ yμ` — i.e. `ϖ·A°` (top-nilp unit × open A°).
+
+### ★★★ KEYSTONE 2026-06-02 — muMap_injective (Remark 8.29) PROVEN (commit 4bdd4b5)
+
+THE faithful keystone of case-(b) is done. `TateAlgebra.muMap_injective` (μ_M : M⊗A⟨X⟩→M⟨X⟩
+injective for f.g. M over a complete noetherian Tate ring) is SORRY-FREE + axiom-clean, via the
+5-lemma over Aⁿ→Aᵐ→M→0: `muMap_free_injective` (free case) + `muMap_middle_exact` (ker p⟨X⟩ ⊆ im u⟨X⟩,
+convergent lift through the open u↠ker p via 6.18(2)+restrictedModule_map_surjective) + naturality +
+surjective. Added `import WedhornBanachTheorem` to TateAlgebra (cycle-safe) for 6.18(2). TateAlgebra.lean
+now ZERO sorries.
+
+**SIGNATURE DECISION (sign-off-worthy):** muMap_injective gained `[CompleteSpace A][IsTateRing A]
+[IsLinearTopology A A]` beyond the original `[IsNoetherianRing A]`. This MATCHES Wedhorn 8.29 VERBATIM
+("Let A be a complete noetherian Tate ring", wedhorn.txt:4074) — the prior signature was under-specified
+vs the source. Faithful (Wedhorn-faithfulness rule = mirror the source), NOT work-dodging: the consumer
+chain (8.31→8.30→8.32→sheafy) is ENTIRELY in the complete strongly-noetherian Tate setting, so consumers
+supply these. NO noeth-A₀, NO IsDomain.
+
+**Whole analytic+keystone foundation DONE (this session):** matrix Nakayama, faithful OMT (no σ-compact),
+§3.7.2/1, 6.18(2), muMap_injective — all sorry-free/axiom-clean/faithful. Commits 32ffa81 ff88fba a7b1110
+22af8c6 bdaabaa 5be8e4c 915caa2 4bdd4b5.
+
+**NEXT = Lemma 8.31** (Wedhorn828.lean:75-94, sorry'd): (1) A⟨X⟩ faithfully flat — now UNBLOCKED via
+muMap_injective: i:N↪M f.g. ⟹ i⊗A⟨X⟩ inj (muMap isos + restrictedModule_map_injective) ⟹ flat; +ff via
+prime q over p. (2) A⟨X⟩/(f−X),/(1−fX) flat — (+)-recursion for f−X already done (noeth_zero_of_mul_shift),
+1−fX easy, w_g via muMap. Then Prop 8.30 → Cor 8.32 (MAXIMALS criterion) → isSheafy_of_stronglyNoetherian_828b.
