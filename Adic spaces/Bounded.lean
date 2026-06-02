@@ -435,3 +435,52 @@ theorem IsTopologicallyNilpotent.isUnit_one_sub_matrix [IsLinearTopology A A]
     IsUnit (1 - B) := by
   rw [Matrix.isUnit_iff_isUnit_det]
   simpa using (IsTopologicallyNilpotent.one_sub_det_one_sub_matrix B hB).isUnit_one_sub
+
+omit [UniformSpace A] [T2Space A] [CompleteSpace A] [IsTopologicalRing A]
+  [IsUniformAddGroup A] [NonarchimedeanAddGroup A] in
+/-- **A unit matrix acts injectively on module-valued vectors.** If `B : Matrix n n A` is a
+unit and `∑ⱼ Bᵢⱼ • yⱼ = 0` for every `i`, where `y : n → P` and `P` is any `A`-module, then
+`y = 0`. This is the linear-algebra core of the Nakayama step in BGR §3.7.2/1: after passing
+to the quotient `M̂ / M`, the defining relation becomes `∑ⱼ (1 - Ã)ᵥμ • ȳμ = 0` with `1 - Ã`
+invertible, forcing `ȳ = 0`. -/
+theorem eq_zero_of_isUnit_matrix_of_forall_sum_smul_eq_zero
+    {n : Type*} [Fintype n] [DecidableEq n]
+    {P : Type*} [AddCommGroup P] [Module A P]
+    {B : Matrix n n A} (hB : IsUnit B) {y : n → P}
+    (hy : ∀ i, ∑ j, B i j • y j = 0) (k : n) : y k = 0 := by
+  obtain ⟨u, rfl⟩ := hB
+  obtain ⟨C, hC1, -⟩ : ∃ C : Matrix n n A,
+      C * (↑u : Matrix n n A) = 1 ∧ (↑u : Matrix n n A) * C = 1 :=
+    ⟨((u⁻¹ : (Matrix n n A)ˣ) : Matrix n n A), u.inv_mul, u.mul_inv⟩
+  calc y k
+      = ∑ j, (1 : Matrix n n A) k j • y j := by
+        rw [Finset.sum_eq_single k
+          (fun j _ hjk => by rw [Matrix.one_apply_ne hjk.symm, zero_smul])
+          (fun h => absurd (Finset.mem_univ k) h), Matrix.one_apply_eq, one_smul]
+    _ = ∑ j, (C * (↑u : Matrix n n A)) k j • y j := by rw [hC1]
+    _ = ∑ j, (∑ i, C k i * (↑u : Matrix n n A) i j) • y j := by simp_rw [Matrix.mul_apply]
+    _ = ∑ j, ∑ i, (C k i * (↑u : Matrix n n A) i j) • y j := by simp_rw [Finset.sum_smul]
+    _ = ∑ i, ∑ j, (C k i * (↑u : Matrix n n A) i j) • y j := Finset.sum_comm
+    _ = ∑ i, C k i • ∑ j, (↑u : Matrix n n A) i j • y j := by
+        simp_rw [Finset.smul_sum, mul_smul]
+    _ = 0 := by simp [hy]
+
+/-- The form of the matrix Nakayama used in BGR §3.7.2/1: if every entry of `B` is
+topologically nilpotent and `yᵢ = ∑ⱼ Bᵢⱼ • yⱼ` for all `i` (a `P`-valued fixed-point
+relation, `P` any `A`-module), then `y = 0`. -/
+theorem eq_zero_of_forall_eq_sum_topNilp_smul [IsLinearTopology A A]
+    {n : Type*} [Fintype n] [DecidableEq n]
+    {P : Type*} [AddCommGroup P] [Module A P]
+    {B : Matrix n n A} (hB : ∀ i j, IsTopologicallyNilpotent (B i j))
+    {y : n → P} (hy : ∀ i, y i = ∑ j, B i j • y j) (k : n) : y k = 0 := by
+  refine eq_zero_of_isUnit_matrix_of_forall_sum_smul_eq_zero
+    (IsTopologicallyNilpotent.isUnit_one_sub_matrix B hB) (y := y) ?_ k
+  intro i
+  have h1 : ∑ j, (1 - B : Matrix n n A) i j • y j
+      = (∑ j, (1 : Matrix n n A) i j • y j) - ∑ j, B i j • y j := by
+    simp_rw [Matrix.sub_apply, sub_smul, Finset.sum_sub_distrib]
+  rw [h1, show (∑ j, (1 : Matrix n n A) i j • y j) = y i from by
+    rw [Finset.sum_eq_single i
+      (fun j _ hji => by rw [Matrix.one_apply_ne hji.symm, zero_smul])
+      (fun h => absurd (Finset.mem_univ i) h), Matrix.one_apply_eq, one_smul],
+    ← hy i, sub_self]
