@@ -1603,6 +1603,31 @@ theorem muMap_surjective
   congr 1
   simp [Finset.sum_apply, Pi.single_apply]
 
+/-- **Remark 8.29, injective half** (Wedhorn *Adic Spaces* p. 81, `wedhorn.txt:4074`): the
+natural map `μ_M : M ⊗_A A⟨X⟩ → M⟨X⟩`, `m ⊗ a ↦ ma`, is **injective** for a finitely
+generated module `M` over a (complete) **noetherian Tate ring** `A`.
+
+This is the faithful keystone of Lemma 8.31 (hence Prop 8.30 / Cor 8.32 / Thm 8.28(b)).
+Wedhorn's proof: take a presentation `Aⁿ →u Aᵐ →p M → 0` (`A` noetherian ⇒ the kernel is
+finitely generated); by **Prop 6.18(2)** the maps `u, p` are continuous and open onto their
+image (`wedhorn_6_18_open_onto_image`); the restricted-power-series functor then gives an
+exact sequence `Aᵐ⟨X⟩ → Aⁿ⟨X⟩ → M⟨X⟩ → 0`; the 5-lemma yields bijectivity
+(`muMap_surjective` is the right exactness, this is injectivity).
+
+**Faithfulness:** uses `[IsNoetherianRing A]` — noetherianity of the **Tate ring** `A`, the
+`k = 0` instance of `IsStronglyNoetherian A` — and **never** a noetherian ring of definition
+`A₀`. This is the Wedhorn-faithful replacement for the divergent noeth-`A₀` Artin–Rees route
+`TateAlgebra.tateAlgebra_flat (P) [IsNoetherianRing P.A₀]`. See
+`.mathlib-quality/decomposition.md` §LEAF A1 (2026-06-02 authoritative decompose). -/
+theorem muMap_injective
+    [IsNoetherianRing A]
+    {M : Type u} [AddCommGroup M] [Module A M]
+    [TopologicalSpace M] [IsTopologicalAddGroup M]
+    [ContinuousSMul A M] [ContinuousConstSMul A M]
+    [IsModuleTopology A M] [Module.Finite A M] [T2Space M] :
+    Function.Injective (muMap (A := A) (M := M)) := by
+  sorry
+
 end MuMapSurjective
 
 /-! ### Quotient equivalence (moved outside namespace for typeclass inference) -/

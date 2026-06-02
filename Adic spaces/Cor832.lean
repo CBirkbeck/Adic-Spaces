@@ -1504,7 +1504,7 @@ foundation of the non-open prime case in `hSpa_points`. -/
 theorem presheafValue_isAdicComplete
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
+    (D₀ : RationalLocData A) :
     IsAdicComplete (presheafValue_idealOfDef D₀) (presheafValue_ringOfDef D₀) := by
   have hadic : IsAdic (presheafValue_idealOfDef D₀) := presheafValue_isAdic D₀
   -- Equip `presheafValue_ringOfDef D₀` with the subspace UniformSpace structure
@@ -1553,6 +1553,38 @@ private theorem completedLocSubring_eq_presheafValue_ringOfDef (D : RationalLocD
   · exact closure_mono h_sub_eq.le
   · exact closure_mono h_sub_eq.ge
 
+/-- **[T-KS4] Keystone unit-ness via the complete-affinoid Nullstellensatz (no T001).**
+`D.s` maps to a unit in `presheafValue D'` when `R(D'.T/D'.s) ⊆ R(D.T/D.s)`, proved by applying
+Wedhorn 7.52(2) (`isUnit_iff_forall_not_vle_zero_of_complete`, axiom-clean) to the **noeth-free**
+complete-affinoid bundle on `presheafValue D'` (T-KS1–T-KS3), discharging non-vanishing via the
+`comap` into `rationalOpen D' ⊆ rationalOpen D`. Faithful replacement for the
+`isUnit_canonicalMap_s_of_huber` route through the T001 `spa_point_nonOpen` sorry. -/
+theorem isUnit_canonicalMap_s_via_nullstellensatz
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D D' : RationalLocData A)
+    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (hAplus : (A⁺ : Set A) ⊆ D'.P.A₀)
+    (hcont : Continuous D'.canonicalMap) :
+    IsUnit (D'.canonicalMap D.s) := by
+  haveI hcomplete : IsAdicComplete (presheafValue_pairOfDefinition_concrete P D').I
+      (presheafValue_pairOfDefinition_concrete P D').A₀ := presheafValue_isAdicComplete P D'
+  have hAplus_B : ((presheafValue D')⁺ : Set (presheafValue D')) ⊆
+      ((presheafValue_pairOfDefinition_concrete P D').A₀ : Set (presheafValue D')) := by
+    intro y hy
+    show y ∈ (presheafValue_ringOfDef D' : Set (presheafValue D'))
+    rw [← completedLocSubring_eq_presheafValue_ringOfDef D']
+    exact D'.completedPlusSubring_le_completedLocSubring hAplus hy
+  rw [PairOfDefinition.isUnit_iff_forall_not_vle_zero_of_complete
+      (presheafValue_pairOfDefinition_concrete P D') hAplus_B (D'.canonicalMap D.s)]
+  intro w hw
+  have hv_ro : comap D'.canonicalMap w ∈ rationalOpen D'.T D'.s := by
+    refine ⟨comap_mem_spa hcont D'.canonicalMap_integral hw, ?_, ?_⟩
+    · intro t ht; rw [comap_vle]; exact D'.comap_canonicalMap_vle hw.2 ht
+    · exact @RationalLocData.comap_canonicalMap_not_vle_s_zero A _ _ _ D' w.toValuativeRel
+  intro hvle
+  exact (h hv_ro).2.2 (by rw [comap_vle, map_zero]; exact hvle)
+
 omit [IsHuberRing A] [HasLocLiftPowerBounded A] in
 /-- **Lifting non-open primes from `presheafValue C.base` via Lemma 7.45.**
 
@@ -1564,29 +1596,31 @@ This packages `Lemma745.exists_mem_spa_supp_ge_of_nonOpen_prime` for our
 specific completion setting. The `IsAdicComplete` instance is supplied via
 `presheafValue_isAdicComplete`. -/
 theorem exists_spa_point_supp_ge_in_presheafValue
-    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A] [PlusSubring A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)
     [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ C.base.P.A₀)
     {𝔭 : Ideal (presheafValue C.base)} [𝔭.IsPrime]
     (h𝔭_notOpen : ¬IsOpen (𝔭 : Set (presheafValue C.base))) :
-    ∃ w ∈ Spa (presheafValue C.base) C.base.completedLocSubring,
+    ∃ w ∈ Spa (presheafValue C.base) (presheafValue C.base)⁺,
       𝔭 ≤ w.supp := by
   -- Set up: get the concrete pair of definition + IsAdicComplete instance.
   let PB := presheafValue_pairOfDefinition_concrete P C.base
   haveI : IsAdicComplete PB.I PB.A₀ := presheafValue_isAdicComplete P C.base
-  -- The PlusSubring is `presheafValuePlusSubring`, which sets `B⁺ = completedLocSubring`.
-  -- The hypothesis `(B⁺ : Set _) ⊆ PB.A₀` becomes `completedLocSubring ⊆ ringOfDef`,
-  -- which holds because the two subrings have the same underlying set.
+  -- The PlusSubring is `presheafValuePlusSubring`, now `B⁺ = completedPlusSubring`
+  -- (A⁺-based, Wedhorn 8.2). The hypothesis `(B⁺ : Set _) ⊆ PB.A₀` follows from
+  -- `completedPlusSubring ⊆ completedLocSubring = ringOfDef` (since `A⁺ ⊆ A₀`).
   have hBplus_le_B₀ : ((PlusSubring.toSubring (A := presheafValue C.base) :
       Subring (presheafValue C.base)) : Set (presheafValue C.base)) ⊆
       (PB.A₀ : Set (presheafValue C.base)) := by
-    change (C.base.completedLocSubring : Set (presheafValue C.base)) ⊆
-      (presheafValue_ringOfDef C.base : Set (presheafValue C.base))
-    rw [completedLocSubring_eq_presheafValue_ringOfDef]
+    intro x hx
+    have hx' : x ∈ (C.base.completedLocSubring : Set (presheafValue C.base)) :=
+      C.base.completedPlusSubring_le_completedLocSubring hAplus_le_A₀ hx
+    rwa [completedLocSubring_eq_presheafValue_ringOfDef] at hx'
   obtain ⟨w, hw_spa, hw_supp, _⟩ :=
     PB.exists_mem_spa_supp_ge_of_nonOpen_prime (𝔭 := 𝔭) h𝔭_notOpen hBplus_le_B₀
-  -- The output Spa is w.r.t. `(presheafValue C.base)⁺ = completedLocSubring`.
+  -- The output Spa is w.r.t. `(presheafValue C.base)⁺ = completedPlusSubring`.
   exact ⟨w, hw_spa, hw_supp⟩
 
 omit [IsHuberRing A] [HasLocLiftPowerBounded A] in
@@ -1637,7 +1671,7 @@ theorem hSpa_points_nonOpen_via_lifted_ideal_proper
   -- Step 3: Apply Lemma 7.45 (via the completion route) to get a Spa point of
   -- presheafValue C.base with 𝔭 in its support.
   obtain ⟨w, hw_spa, hw_supp⟩ :=
-    exists_spa_point_supp_ge_in_presheafValue P C h𝔭_notOpen
+    exists_spa_point_supp_ge_in_presheafValue P C hAplus_le_A₀ h𝔭_notOpen
   -- Step 4: liftedIdeal p ≤ 𝔭 ≤ w.supp.
   have hw_supp_lifted :
       (Ideal.map C.base.canonicalMap p : Ideal (presheafValue C.base)) ≤ w.supp :=

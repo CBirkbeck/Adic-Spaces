@@ -244,39 +244,14 @@ theorem isStronglyNoetherian_of_isNoetherianRing_isTateRing_proof
   -- modulo the single `_sub_lemma_L5_1_3_inductive_step` sorry in StructureSheaf.
   isStronglyNoetherian_of_isNoetherianRing_isTateRing
 
-/-- **🚨 SUPERSEDED — see decomposition.md "Pass-(iii) SCOPE finding"**.
-
-This statement claimed "strongly noeth Tate ⇒ noeth A₀ for principal pair",
-but pass-(iii) review confirmed Wedhorn never asserts this and it's not generally
-true. User decision (2026-05-17): accept noeth-A₀ as **explicit hypothesis** at
-audit-clean wrappers (option (1) from the recovery analysis).
-
-Statement preserved as a named `False`-derivable obligation so any consumer that
-references it can be located via the type system. New consumers should instead
-take `(P : PairOfDefinition A) [IsNoetherianRing P.A₀]` as a parameter. -/
-theorem isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A] :
-    IsNoetherianRing ↥(IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
-  sorry  -- ⚠ Cannot be proved unconditionally; see option (1) decision.
-
-/-- **🚨 SUPERSEDED — see decomposition.md "Pass-(iii) SCOPE finding"**, same
-as the principal-pair version above. The general-pair version inherits the
-same B2 finding: "strongly noeth Tate ⇒ noeth A₀" is NOT in Wedhorn and the
-localization-descent direction is false in general. User decision
-(2026-05-17): accept noeth-A₀ as **explicit hypothesis** at audit-clean
-wrappers (option (1)).
-
-Statement preserved as a named `False`-derivable obligation so any consumer
-that references it can be located via the type system. New consumers should
-instead take `(P : PairOfDefinition A) [IsNoetherianRing P.A₀]` as a
-parameter. -/
-theorem isNoetherianRing_A₀_of_stronglyNoetherianTate_proof
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
-    [T2Space A] [NonarchimedeanRing A]
-    (P : PairOfDefinition A) :
-    IsNoetherianRing ↥P.A₀ :=
-  sorry  -- ⚠ SUPERSEDED — see option (1) decision in decomposition.md
+-- **[P0 / T#57 — DELETED 2026-06-02] two FALSE `_proof` orphans removed:**
+-- `isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate_proof` and
+-- `isNoetherianRing_A₀_of_stronglyNoetherianTate_proof`. Both asserted "strongly-noeth-Tate ⇒
+-- noeth ring-of-definition A₀" — the CONVERSE of Wedhorn Remark 6.37(3), FALSE for ℂ_p — and
+-- their own docstrings already conceded "Wedhorn never asserts this and it's not generally true"
+-- / "Cannot be proved unconditionally". They were dead (no code consumers) `sorry`-lemmas.
+-- Faithful route for any genuine need: `IsStronglyNoetherian A ⇒ IsNoetherianRing A⟨X⟩`
+-- (Example 6.38), never A₀ (P1 / T#58).
 
 /-- **Wedhorn 7.45 globalised**: for a strongly noetherian Tate ring, every
 prime `p` of `A` with `s ∉ p` (for any `s ∈ A`) admits a Spa-point `v` whose

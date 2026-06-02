@@ -69,7 +69,7 @@ theorem valuationLocalizationLift_of_spa_rationalOpen
     (P : PairOfDefinition A) (T : Finset A) (s : A)
     (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
       divByS (↑b : A) s ∈ locSubring P T s)
-    (hA₀_le : P.A₀ ≤ A⁺)
+    (_hA₀_le : P.A₀ ≤ A⁺)
     {v : Spv A} (hv_rat : v ∈ rationalOpen T s) :
     letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
     ∃ w : Spv (Localization.Away s),
@@ -79,10 +79,8 @@ theorem valuationLocalizationLift_of_spa_rationalOpen
   letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
   -- Unpack rationalOpen membership.
   obtain ⟨hv, hv_T, hvs⟩ := hv_rat
-  -- Discharge hν_A₀ : ∀ a ∈ A₀, v.vle a 1 via P.A₀ ≤ A⁺ + vle_one_of_mem_spa.
-  have hν_A₀ : ∀ a ∈ P.A₀, v.vle a 1 := fun a ha =>
-    vle_one_of_mem_spa hv (hA₀_le ha)
-  -- Apply the bounded lift theorem.
-  exact valuationLocalizationLift_of_bounded P T s hopen hv hν_A₀ hv_T hvs
+  -- The lift's continuity needs only `v(tᵢ) ≤ v(s)` (Wedhorn 8.2:3738); the A₀-coefficients
+  -- are absorbed into the ideal of definition. No `A₀ ⊆ A⁺` needed (Wedhorn §8.1 absorption).
+  exact valuationLocalizationLift_of_bounded P T s hopen hv hv_T hvs
 
 end ValuationSpectrum

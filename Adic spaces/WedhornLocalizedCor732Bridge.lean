@@ -142,7 +142,7 @@ theorem valuationLocalizationLift_of_spa_rationalOpen_locSubring
     vle_one_of_mem_spa hv (hA₀_le ha)
   have h_cont : (localizationLift (Submonoid.powers s) (Localization.Away s) v hS).IsContinuous :=
     localizationLift_isContinuous_locTopology_of_bounded P T s hopen
-      hv.1 hν_A₀ hv_T hS
+      hv.1 hv_T hS
   refine ⟨localizationLift (Submonoid.powers s) (Localization.Away s) v hS,
     ?_, comap_localizationLift _ _ v _⟩
   refine ⟨h_cont, fun f hf => ?_⟩

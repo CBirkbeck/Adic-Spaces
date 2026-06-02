@@ -2671,7 +2671,7 @@ theorem isSheafy_ofStronglyNoetherianTate_clean [IsDomain A]
     have h_sep := hCacyc.separation
     -- Topological inducing from the project's existing scaffolding.
     have h_inducing : Topology.IsInducing (productRestrictionSub A C) :=
-      productRestrictionSub_isInducing_tate (A := A) C h_sep
+      productRestrictionSub_isInducing_tate (A := A) C
     -- Injectivity of `productRestrictionSub` from the separation.
     have h_inj : Function.Injective (productRestrictionSub A C) := by
       intro x y hxy

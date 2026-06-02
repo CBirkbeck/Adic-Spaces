@@ -7,6 +7,7 @@ import Mathlib.RingTheory.AdicCompletion.Topology
 import Mathlib.RingTheory.AdicCompletion.Algebra
 import Mathlib.RingTheory.AdicCompletion.Exactness
 import Mathlib.RingTheory.AdicCompletion.AsTensorProduct
+import Mathlib.RingTheory.Finiteness.Subalgebra
 import Mathlib.Topology.UniformSpace.AbstractCompletion
 import Mathlib.Topology.UniformSpace.Completion
 import Mathlib.Topology.Algebra.UniformRing
@@ -436,6 +437,210 @@ theorem ker_evalₐ_eq {R : Type*} [CommRing R] (I : Ideal R)
         simp only [ideal_smul_top_eq_self] at h; exact h
       exact Ideal.mul_mem_left _ c (Ideal.mem_map_of_mem _ ha_mem)
     · intro _ _ h1 h2; simp only [map_add]; exact Ideal.add_mem _ h1 h2
+  · rw [Ideal.map_le_iff_le_comap]; intro a ha
+    simp only [Ideal.mem_comap, RingHom.mem_ker]
+    change (AdicCompletion.evalₐ I n) (AdicCompletion.of I R a) = 0
+    rw [AdicCompletion.evalₐ_of]; exact Ideal.Quotient.eq_zero_iff_mem.mpr ha
+
+/-- **[T-KS1-A]** The `I`-adic completion of a surjection is a surjection (Stacks 10.96.1(2),
+tag 0315 — **noeth-free**, no finiteness on `M`/`N`). Linchpin of the noeth-free
+`ker_evalₐ_eq_of_fg` (Stacks 05GG): the genuine content is that the kernel tower
+`K/(K ∩ IᵏM)` (`K = ker f`) has surjective transitions (quotients of a fixed `K`), so the
+inverse limit of the levelwise-surjective `f mod Iᵏ` is surjective — NO non-f.g.-syzygy obstruction.
+Mathlib upstreamable. -/
+theorem map_surjective_of_surjective {R : Type*} [CommRing R] (I : Ideal R)
+    {M N : Type*} [AddCommGroup M] [Module R M] [AddCommGroup N] [Module R N]
+    (f : M →ₗ[R] N) (hf : Function.Surjective f) :
+    Function.Surjective (AdicCompletion.map I f) := by
+  classical
+  intro y
+  obtain ⟨b, rfl⟩ := AdicCompletion.mk_surjective I N y
+  have hmaptop : Submodule.map f ⊤ = ⊤ := by
+    rw [Submodule.map_top, LinearMap.range_eq_top]; exact hf
+  have hmap : ∀ j : ℕ,
+      Submodule.map f (I ^ j • ⊤ : Submodule R M) = (I ^ j • ⊤ : Submodule R N) := by
+    intro j; rw [Submodule.map_smul'', hmaptop]
+  have hδ : ∀ j : ℕ, ∃ d : M, d ∈ (I ^ j • ⊤ : Submodule R M) ∧ f d = b (j + 1) - b j := by
+    intro j
+    have hb : (b (j + 1) - b j) ∈ (I ^ j • ⊤ : Submodule R N) := by
+      have h := (b.2 (Nat.le_succ j)).symm
+      rwa [SModEq.sub_mem] at h
+    rw [← hmap j, Submodule.mem_map] at hb
+    obtain ⟨d, hd, hfd⟩ := hb
+    exact ⟨d, hd, hfd⟩
+  obtain ⟨a₀, ha₀f⟩ := hf (b 0)
+  set δ : ℕ → M := fun j => (hδ j).choose with hδdef
+  have hδmem : ∀ j, δ j ∈ (I ^ j • ⊤ : Submodule R M) := fun j => (hδ j).choose_spec.1
+  have hδf : ∀ j, f (δ j) = b (j + 1) - b j := fun j => (hδ j).choose_spec.2
+  set a : ℕ → M := fun k => a₀ + ∑ j ∈ Finset.range k, δ j with hadef
+  have haf : ∀ k, f (a k) = b k := by
+    intro k
+    simp only [hadef, map_add, map_sum, ha₀f, hδf]
+    rw [Finset.sum_range_sub (fun j => (b : ℕ → N) j)]
+    abel
+  have hCauchy : AdicCompletion.IsAdicCauchy I M a := by
+    intro m n hmn
+    rw [SModEq.sub_mem]
+    have hsub : a m - a n = - ∑ j ∈ Finset.Ico m n, δ j := by
+      simp only [hadef]
+      rw [← Finset.sum_range_add_sum_Ico δ hmn]; abel
+    rw [hsub]
+    refine Submodule.neg_mem _ (Submodule.sum_mem _ fun j hj => ?_)
+    exact Submodule.smul_mono_left (Ideal.pow_le_pow_right (Finset.mem_Ico.mp hj).1) (hδmem j)
+  refine ⟨AdicCompletion.mk I M ⟨a, hCauchy⟩, ?_⟩
+  rw [AdicCompletion.map_mk]
+  congr 1
+  ext k
+  simp only [AdicCompletion.AdicCauchySequence.map_apply_coe]
+  exact haf k
+
+/-- **Noeth-free, finitely-generated version of `ker_evalₐ_eq`**
+(Wedhorn Prop 5.37(2), wedhorn.txt:1903 / Bourbaki [BouAC] III §2.12).
+
+For a **finitely generated** ideal `I`,
+`ker(AdicCompletion.evalₐ I n) = (Iⁿ)·Â`.
+
+`ker_evalₐ_eq` (above) proves the hard inclusion via `AdicCompletion.map_exact`, which Mathlib
+states with `[IsNoetherianRing R]`. But the identity holds noeth-free for f.g. `I` (Prop 5.37),
+and this is the faithful form the project's `presheafValue_isAdic` needs — `locIdeal` is f.g.
+noeth-free (`locIdeal_fg = P.fg.map _`), so threading `[IsNoetherianRing (locSubring)]` through the
+whole `presheafValue` adic-structure chain is a tool-choice artifact, not a mathematical necessity
+(and that hypothesis is ℂ_p-false: the ring of definition of ℂ_p is not noetherian).
+
+* **Easy inclusion `(Iⁿ)·Â ≤ ker`** — proven below, noeth-free.
+* **Hard inclusion `ker ≤ (Iⁿ)·Â`** — `sorry`. This is the only step in `ker_evalₐ_eq`'s proof that
+  uses more than `Module.Finite (Iⁿ•⊤)` (which `hI` supplies via `Ideal.FG.pow`): the single
+  `AdicCompletion.map_exact` call establishing `ker(map mkQ) = range(map subtype)` for the SES
+  `0 → Iⁿ → R → R/Iⁿ → 0`.
+
+  **Discharge route (Stacks 10.96.3, tag 05GG — verbatim noeth-free,
+  via `map_surjective_of_surjective`).**
+  Stacks: `IⁿM^∧ = Ker(M^∧ → M/IⁿM) = (IⁿM)^∧`. For `M = R`: `ker(evalₐ I n) = Iⁿ·Â`.
+  The earlier "solution-set Sₘ with surjective transitions" route was WRONG (those transitions are
+  NOT surjective; ℤ_p counterexample in `b2_log.jsonl`). The correct inverse system is the kernel
+  tower, handled noeth-free by `map_surjective_of_surjective`. Two steps:
+  * **Step 1** `ker(evalₐ n) ≤ range(map I (subtype (Iⁿ•⊤)))`: for `x = mk c ∈ ker`, `c_n ∈ Iⁿ•⊤`,
+    so `c_m ∈ Iⁿ•⊤` for all `m ≥ n` (Cauchy). The **shifted** sequence `d_m := c_{m+n} ∈ Iⁿ•⊤` is
+    `IsAdicCauchy` *in the submodule* `Iⁿ•⊤` because `d_m − d_{m'} ∈ I^{m+n}•⊤ = Iᵐ•(Iⁿ•⊤)`
+    (ideal-smul composes — NO Artin-Rees). Then `x̃ := mk_{Iⁿ•⊤} d` satisfies
+    `map I subtype x̃ = x`.
+  * **Step 2** `range(map I subtype) ≤ Iⁿ·Â`: `map_surjective_of_surjective` on the corestriction
+    `Rʳ ↠ Iⁿ•⊤` (gens of `Iⁿ`) writes `x̃ = map I ψ' η`, so `x = map I (subtype∘ψ') η = map I ψ η`,
+    and `map I ψ` is `R`-linear in `ψ = Σ gᵢ•projᵢ`, so `x = Σ gᵢ•(…) ∈ Iⁿ·Â`. -/
+theorem ker_evalₐ_eq_of_fg {R : Type*} [CommRing R] (I : Ideal R) (hI : I.FG) (n : ℕ) :
+    RingHom.ker (AdicCompletion.evalₐ I n) =
+    Ideal.map (algebraMap R (AdicCompletion I R)) (I ^ n) := by
+  apply le_antisymm
+  · -- HARD inclusion, Stacks 05GG (noeth-free). `p := Iⁿ•⊤` as a submodule of `R`.
+    intro x hx
+    classical
+    -- Step 1: `x` is in the image of the completed inclusion of `Iⁿ•⊤`.
+    have hstep1 : x ∈ LinearMap.range
+        (AdicCompletion.map I (Submodule.subtype (I ^ n • ⊤ : Submodule R R))) := by
+      obtain ⟨c, rfl⟩ := AdicCompletion.mk_surjective I R x
+      set p : Submodule R R := I ^ n • ⊤ with hp
+      -- `c.val n ∈ Iⁿ•⊤` from `mk c ∈ ker(evalₐ n)`.
+      have hcn : c.val n ∈ p := by
+        have h0 : AdicCompletion.evalₐ I n (AdicCompletion.mk I R c) = 0 := RingHom.mem_ker.mp hx
+        rw [AdicCompletion.evalₐ_mk] at h0
+        have : c.val n ∈ (I ^ n : Ideal R) := Ideal.Quotient.eq_zero_iff_mem.mp h0
+        simpa [hp] using this
+      -- hence `c.val k ∈ Iⁿ•⊤` for all `k ≥ n` (Cauchy).
+      have hck : ∀ k, n ≤ k → c.val k ∈ p := by
+        intro k hk
+        have h1 : c.val k - c.val n ∈ p := SModEq.sub_mem.mp (c.2 hk).symm
+        have he : c.val k = (c.val k - c.val n) + c.val n := by abel
+        rw [he]; exact Submodule.add_mem _ h1 hcn
+      -- the shifted sequence `d k = c.val (k+n)`, Cauchy in the submodule `Iⁿ•⊤`.
+      let d : ℕ → ↥p := fun k => ⟨c.val (k + n), hck (k + n) (Nat.le_add_left n k)⟩
+      have hd : AdicCompletion.IsAdicCauchy I ↥p d := by
+        intro m m' hmm
+        rw [SModEq.sub_mem, Submodule.mem_smul_top_iff]
+        have hsmul : (I ^ m • p : Submodule R R) = I ^ (m + n) • ⊤ := by
+          rw [hp, ← mul_smul, ← pow_add]
+        have hco : ((d m - d m' : ↥p) : R) = c.val (m + n) - c.val (m' + n) := rfl
+        rw [hco, hsmul]
+        exact SModEq.sub_mem.mp (c.2 (by omega : m + n ≤ m' + n))
+      -- `map subtype (mk d) = mk c` by shift-invariance.
+      refine ⟨AdicCompletion.mk I ↥p ⟨d, hd⟩, ?_⟩
+      rw [AdicCompletion.map_mk]
+      refine AdicCompletion.ext fun k => ?_
+      rw [AdicCompletion.mk_apply_coe, AdicCompletion.mk_apply_coe]
+      simp only [AdicCompletion.AdicCauchySequence.map_apply_coe, Submodule.coe_subtype]
+      rw [Submodule.mkQ_apply, Submodule.mkQ_apply, Submodule.Quotient.eq]
+      exact SModEq.sub_mem.mp (c.2 (Nat.le_add_right k n)).symm
+    -- Step 2: that image lands in `Iⁿ·Â`.
+    have hstep2 : ∀ z : AdicCompletion I R,
+        z ∈ LinearMap.range (AdicCompletion.map I (Submodule.subtype (I ^ n • ⊤ : Submodule R R))) →
+        z ∈ Ideal.map (algebraMap R (AdicCompletion I R)) (I ^ n) := by
+      have hpowfg : ∀ m : ℕ, (I ^ m).FG := by
+        intro m
+        induction m with
+        | zero => rw [pow_zero, Ideal.one_eq_top]; exact Module.Finite.fg_top
+        | succ k ih => rw [pow_succ]; exact Submodule.FG.mul ih hI
+      have hpfg : (I ^ n • ⊤ : Submodule R R).FG := by
+        have he : (I ^ n • ⊤ : Submodule R R) = (I ^ n : Ideal R) := by simp
+        rw [he]; exact hpowfg n
+      obtain ⟨r, w, hw⟩ := Submodule.fg_iff_exists_fin_generating_family.mp hpfg
+      have hwmem : ∀ i, w i ∈ (I ^ n : Ideal R) := by
+        intro i
+        have hmem : w i ∈ (I ^ n • ⊤ : Submodule R R) := by
+          rw [← hw]; exact Submodule.subset_span ⟨i, rfl⟩
+        simpa using hmem
+      set φ : (Fin r → R) →ₗ[R] R := ∑ i, w i • LinearMap.proj i with hφdef
+      have hφrange : ∀ c, φ c ∈ (I ^ n • ⊤ : Submodule R R) := by
+        intro c
+        rw [← hw, hφdef]
+        simp only [LinearMap.coe_sum, Finset.sum_apply, LinearMap.smul_apply,
+          LinearMap.proj_apply, smul_eq_mul]
+        refine Submodule.sum_mem _ fun i _ => ?_
+        rw [mul_comm]
+        exact Submodule.smul_mem _ _ (Submodule.subset_span ⟨i, rfl⟩)
+      have hφsingle : ∀ i, φ (Pi.single i 1) = w i := by
+        intro i
+        simp only [hφdef, LinearMap.coe_sum, Finset.sum_apply, LinearMap.smul_apply,
+          LinearMap.proj_apply, smul_eq_mul, Pi.single_apply, mul_ite, mul_one, mul_zero]
+        rw [Finset.sum_ite_eq' Finset.univ i]
+        simp
+      have hσsurj : Function.Surjective (LinearMap.codRestrict _ φ hφrange) := by
+        rintro ⟨y, hy⟩
+        rw [← hw] at hy
+        have hsub : Submodule.span R (Set.range w) ≤ LinearMap.range φ := by
+          rw [Submodule.span_le]
+          rintro _ ⟨i, rfl⟩
+          exact ⟨Pi.single i 1, hφsingle i⟩
+        obtain ⟨c, hc⟩ := hsub hy
+        exact ⟨c, Subtype.ext (by rw [LinearMap.codRestrict_apply]; exact hc)⟩
+      have hdecomp : ∀ η : AdicCompletion I (Fin r → R),
+          AdicCompletion.map I φ η
+            = ∑ i, w i • AdicCompletion.map I (LinearMap.proj i) η := by
+        intro η
+        obtain ⟨e, rfl⟩ := AdicCompletion.mk_surjective I _ η
+        simp only [AdicCompletion.map_mk, ← map_smul, ← map_sum]
+        congr 1
+        apply Subtype.ext
+        funext m
+        simp only [AdicCompletion.AdicCauchySequence.map_apply_coe, hφdef, LinearMap.coe_sum,
+          Finset.sum_apply, LinearMap.smul_apply, LinearMap.proj_apply, smul_eq_mul]
+        rw [show (∑ x, (AdicCompletion.AdicCauchySequence.map I (LinearMap.proj x)) (w x • e)) m
+              = ∑ x, ((AdicCompletion.AdicCauchySequence.map I (LinearMap.proj x)) (w x • e)) m
+            from ?_]
+        · refine Finset.sum_congr rfl fun i _ => ?_
+          rw [AdicCompletion.AdicCauchySequence.map_apply_coe, LinearMap.proj_apply,
+            AdicCompletion.AdicCauchySequence.smul_apply, Pi.smul_apply, smul_eq_mul]
+        · exact map_sum (AddMonoidHom.mk' (fun g : AdicCompletion.AdicCauchySequence I R => g m)
+              (fun a b => AdicCompletion.AdicCauchySequence.add_apply m a b))
+            (fun x => (AdicCompletion.AdicCauchySequence.map I (LinearMap.proj x)) (w x • e))
+            Finset.univ
+      intro z hz
+      obtain ⟨xt, rfl⟩ := hz
+      have hmsurj := map_surjective_of_surjective I (LinearMap.codRestrict _ φ hφrange) hσsurj
+      obtain ⟨η, rfl⟩ := hmsurj xt
+      rw [AdicCompletion.map_comp_apply, LinearMap.subtype_comp_codRestrict, hdecomp η]
+      refine Ideal.sum_mem _ fun i _ => ?_
+      rw [Algebra.smul_def]
+      exact Ideal.mul_mem_right _ _ (Ideal.mem_map_of_mem _ (hwmem i))
+    exact hstep2 x hstep1
   · rw [Ideal.map_le_iff_le_comap]; intro a ha
     simp only [Ideal.mem_comap, RingHom.mem_ker]
     change (AdicCompletion.evalₐ I n) (AdicCompletion.of I R a) = 0

@@ -133,6 +133,98 @@ theorem extendToLocalization_le_one_of_locSubring
     rw [map_mul]
     exact mul_le_one' ha hb
 
+/-- **(Wedhorn §8.1 absorption — valuation version)** For `x ∈ locSubring P T s`
+and `b ∈ P.Iᵐ`, the extended valuation satisfies `ν_loc(x · algebraMap b) < γ`,
+**given only** `ν(Iᵐ) < γ` (the `A`-continuity bound) and `ν(tᵢ) ≤ ν(s)` — with **no
+`ν ≤ 1` on `A₀`**. This is Wedhorn's absorption (`wedhorn.txt:3669`): the `A₀`-coefficients
+of `x` are swallowed by the `Iᵐ` factor (since `I` is an `A₀`-ideal, `a₀·b ∈ Iᵐ`), and the
+`tᵢ/s` factors have `ν_loc ≤ 1` (from `ν(tᵢ) ≤ ν(s)`). The valuation analogue of
+`locTopology_continuous_lift`'s `hfull`; proved by the same finite-generator induction. -/
+theorem extendToLocalization_mul_pow_lt
+    (P : PairOfDefinition A) (T : Finset A) (s : A)
+    {Γ : Type*} [LinearOrderedCommGroupWithZero Γ]
+    (ν : Valuation A Γ)
+    (hν_T : ∀ t ∈ T, ν t ≤ ν s)
+    (hS : Submonoid.powers s ≤ ν.supp.primeCompl)
+    {γ : Γ} (hγ : γ ≠ 0) {m : ℕ}
+    (hm : ∀ b : ↥P.A₀, b ∈ P.I ^ m → ν (b : A) < γ) :
+    ∀ x ∈ locSubring P T s, ∀ b : ↥P.A₀, b ∈ P.I ^ m →
+      (ν.extendToLocalization hS (Localization.Away s))
+        (x * algebraMap A (Localization.Away s) (b : A)) < γ := by
+  set ν_loc := ν.extendToLocalization hS (Localization.Away s) with hν_loc
+  have hs_pos : ν s ≠ 0 := fun h0 =>
+    hS (Submonoid.mem_powers s) ((Valuation.mem_supp_iff ν s).mpr h0)
+  have hdiv_le : ∀ t ∈ T, ν_loc (divByS t s) ≤ 1 := by
+    intro t ht
+    simp only [divByS, hν_loc, Valuation.extendToLocalization_mk']
+    calc ν t * (ν s)⁻¹ ≤ ν s * (ν s)⁻¹ := mul_le_mul_right' (hν_T t ht) _
+      _ = 1 := mul_inv_cancel₀ hs_pos
+  suffices haux : ∀ (U : Finset A), (∀ t ∈ U, ν_loc (divByS t s) ≤ 1) →
+      ∀ x ∈ locSubring P U s, ∀ b : ↥P.A₀, b ∈ P.I ^ m →
+        ν_loc (x * algebraMap A (Localization.Away s) (b : A)) < γ by
+    exact haux T hdiv_le
+  classical
+  intro U
+  induction U using Finset.induction with
+  | empty =>
+    intro _ x hx b hb
+    have hempty : locSubring P ∅ s = P.A₀.map (algebraMap A (Localization.Away s)) := by
+      unfold locSubring
+      simp only [Set.range_eq_empty, Set.union_empty]
+      rw [← Subring.coe_map]; exact Subring.closure_eq _
+    rw [hempty] at hx
+    obtain ⟨a₀, ha₀, rfl⟩ := hx
+    rw [← map_mul, hν_loc, Valuation.extendToLocalization_apply_map_apply]
+    exact hm ⟨a₀ * (b : A), P.A₀.mul_mem ha₀ b.property⟩
+      (Ideal.mul_mem_left _ ⟨a₀, ha₀⟩ hb)
+  | insert t U' ht ih =>
+    intro hdivU x hx b hb
+    have hinsert_le : locSubring P (insert t U') s ≤
+        Subring.closure ((locSubring P U' s : Set _) ∪ {divByS t s}) := by
+      unfold locSubring
+      apply Subring.closure_le.mpr
+      rintro y (⟨a₀, ha₀, rfl⟩ | ⟨⟨t', ht'⟩, rfl⟩)
+      · exact Subring.subset_closure (Or.inl (Subring.subset_closure (Or.inl ⟨a₀, ha₀, rfl⟩)))
+      · simp only [Finset.mem_insert] at ht'
+        rcases ht' with rfl | ht'U
+        · exact Subring.subset_closure (Or.inr rfl)
+        · exact Subring.subset_closure (Or.inl (Subring.subset_closure (Or.inr
+            ⟨⟨t', ht'U⟩, rfl⟩)))
+    have hx_in_adj : x ∈ Algebra.adjoin ↥(locSubring P U' s)
+        ({divByS t s} : Set (Localization.Away s)) := by
+      have h_le : Subring.closure
+          ((locSubring P U' s : Set (Localization.Away s)) ∪ {divByS t s}) ≤
+            (Algebra.adjoin ↥(locSubring P U' s) ({divByS t s} : Set _)).toSubring := by
+        rw [Subring.closure_le]
+        rintro w (hw | rfl)
+        · exact Subalgebra.algebraMap_mem _ (⟨w, hw⟩ : ↥(locSubring P U' s))
+        · exact Algebra.subset_adjoin rfl
+      exact h_le (hinsert_le hx)
+    rw [Algebra.adjoin_singleton_eq_range_aeval, AlgHom.mem_range] at hx_in_adj
+    obtain ⟨p, hp⟩ := hx_in_adj
+    rw [← hp, Polynomial.aeval_eq_sum_range, Finset.sum_mul]
+    refine Valuation.map_sum_lt ν_loc hγ (fun i _ => ?_)
+    rw [Algebra.smul_def, Algebra.algebraMap_ofSubsemiring_apply,
+      show ((p.coeff i : Localization.Away s) * (divByS t s) ^ i) *
+            algebraMap A (Localization.Away s) (b : A) =
+          ((p.coeff i : Localization.Away s) *
+            algebraMap A (Localization.Away s) (b : A)) * (divByS t s) ^ i from by ring,
+      map_mul, map_pow]
+    have h_coeff : ν_loc ((p.coeff i : Localization.Away s) *
+        algebraMap A (Localization.Away s) (b : A)) < γ :=
+      ih (fun t' ht' => hdivU t' (Finset.mem_insert_of_mem ht')) _ (p.coeff i).property b hb
+    calc ν_loc ((p.coeff i : Localization.Away s)
+            * algebraMap A (Localization.Away s) (b : A)) * ν_loc (divByS t s) ^ i
+        ≤ ν_loc ((p.coeff i : Localization.Away s)
+            * algebraMap A (Localization.Away s) (b : A)) * 1 := by
+          apply mul_le_mul_left'
+          calc ν_loc (divByS t s) ^ i ≤ (1 : Γ) ^ i :=
+                pow_le_pow_left' (hdivU t (Finset.mem_insert_self t U')) i
+            _ = 1 := one_pow i
+      _ = ν_loc ((p.coeff i : Localization.Away s)
+            * algebraMap A (Localization.Away s) (b : A)) := mul_one _
+      _ < γ := h_coeff
+
 /-- **Strengthened continuity of `extendToLocalization` under
 `locTopology`** (the natural Wedhorn-callsite version).
 
@@ -168,7 +260,6 @@ theorem extendToLocalization_isContinuous_locTopology_of_bounded
       divByS (↑b : A) s ∈ locSubring P T s)
     {Γ : Type*} [LinearOrderedCommGroupWithZero Γ]
     (ν : Valuation A Γ) (hν_cont : ν.IsContinuous)
-    (hν_A₀ : ∀ a ∈ P.A₀, ν a ≤ 1)
     (hν_T : ∀ t ∈ T, ν t ≤ ν s)
     (hS : Submonoid.powers s ≤ ν.supp.primeCompl) :
     letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
@@ -177,9 +268,6 @@ theorem extendToLocalization_isContinuous_locTopology_of_bounded
   haveI : IsTopologicalRing (Localization.Away s) :=
     (locBasis P T s hopen).toRingFilterBasis.isTopologicalRing
   set ν_loc := ν.extendToLocalization hS (Localization.Away s) with hν_loc
-  -- The locSubring bound (step 1).
-  have h_locSubring_bound : ∀ x ∈ locSubring P T s, ν_loc x ≤ 1 :=
-    fun x hx => extendToLocalization_le_one_of_locSubring P T s ν hν_A₀ hν_T hS hx
   -- For continuity, it suffices (by IsTopologicalAddGroup) to verify continuity at 0.
   -- For each γ ∈ Γ, need {b | ν_loc b < γ} to be open.
   -- We show it contains a locNhd m for some m.
@@ -209,45 +297,53 @@ theorem extendToLocalization_isContinuous_locTopology_of_bounded
   -- Goal: subtype.val d' ∈ ↑(ν_loc.ltAddSubgroup γu).
   change ν_loc ((d' : locSubring P T s) : Localization.Away s) < γ
   rw [locIdeal, ← Ideal.map_pow, ← Ideal.span_eq (P.I^m), Ideal.map_span] at hd'_mem
-  refine Submodule.span_induction (p := fun x _ =>
-    ν_loc (((x : locSubring P T s) : Localization.Away s)) < γ)
-    ?_ ?_ ?_ ?_ hd'_mem
-  · -- Generator case: x = algebraMapD b for b ∈ P.I^m.
-    rintro x ⟨b, hb, rfl⟩
-    change ν_loc ((algebraMapD P T s b : locSubring P T s)
-      : Localization.Away s) < γ
-    have heq : ((algebraMapD P T s b : locSubring P T s) :
-        Localization.Away s) = algebraMap A (Localization.Away s) (b : A) :=
-      rfl
-    rw [heq, hν_loc, Valuation.extendToLocalization_apply_map_apply]
-    exact hm ⟨b, hb, rfl⟩
-  · -- Zero case.
-    change ν_loc (((0 : locSubring P T s) : Localization.Away s)) < γ
-    simp [zero_lt_iff.mpr hγ]
-  · -- Sum case.
-    intro x y _ _ hx hy
-    change ν_loc (((x + y : locSubring P T s) : Localization.Away s)) < γ
-    have h_add : ((x + y : locSubring P T s) : Localization.Away s) =
-        ((x : locSubring P T s) : Localization.Away s) +
-          ((y : locSubring P T s) : Localization.Away s) := rfl
-    rw [h_add]
-    refine lt_of_le_of_lt (ν_loc.map_add _ _) ?_
-    exact max_lt hx hy
-  · -- Smul case (locSubring acting on (locIdeal)^m).
-    intro r x _ hx
-    change ν_loc (((r • x : locSubring P T s) : Localization.Away s)) < γ
-    have h_smul : ((r • x : locSubring P T s) : Localization.Away s) =
-        ((r : locSubring P T s) : Localization.Away s) *
-          ((x : locSubring P T s) : Localization.Away s) :=
-      rfl
-    rw [h_smul, map_mul]
-    have hr_le : ν_loc ((r : locSubring P T s) : Localization.Away s) ≤ 1 :=
-      h_locSubring_bound _ r.property
-    calc ν_loc ((r : locSubring P T s) : Localization.Away s) *
-            ν_loc ((x : locSubring P T s) : Localization.Away s)
-        ≤ 1 * ν_loc ((x : locSubring P T s) : Localization.Away s) :=
-          mul_le_mul_left hr_le _
-      _ = ν_loc ((x : locSubring P T s) : Localization.Away s) := one_mul _
-      _ < γ := hx
+  -- Wedhorn §8.1 absorption: any `locSubring`-multiple of an `algebraMap(Iᵐ)` generator has
+  -- its `A₀`-coefficients swallowed by `Iᵐ`, so NO `ν ≤ 1` on `A₀` is needed. We prove the
+  -- smul-stable strengthening `∀ r, ν_loc(↑r · ↑d') < γ` by span-induction (generator case =
+  -- `extendToLocalization_mul_pow_lt`, smul case reassociates `r · (c • x) = (r·c) • x`), then
+  -- specialise `r = 1`.
+  have hm' : ∀ b : ↥P.A₀, b ∈ P.I ^ m → ν (b : A) < γ := fun b hb => hm ⟨b, hb, rfl⟩
+  have key : ∀ r : ↥(locSubring P T s),
+      ν_loc ((r : Localization.Away s)
+        * ((d' : locSubring P T s) : Localization.Away s)) < γ := by
+    refine Submodule.span_induction (p := fun x _ => ∀ r : ↥(locSubring P T s),
+      ν_loc ((r : Localization.Away s)
+        * ((x : locSubring P T s) : Localization.Away s)) < γ)
+      ?_ ?_ ?_ ?_ hd'_mem
+    · -- Generator case: x = algebraMapD b (b ∈ P.Iᵐ) — exactly the absorption lemma.
+      rintro x ⟨b, hb, rfl⟩ r
+      exact extendToLocalization_mul_pow_lt P T s ν hν_T hS hγ hm'
+        (r : Localization.Away s) r.property b hb
+    · -- Zero case.
+      intro r
+      simp only [ZeroMemClass.coe_zero, mul_zero, map_zero]
+      exact zero_lt_iff.mpr hγ
+    · -- Sum case.
+      intro x y _ _ hx hy r
+      have h_add : (r : Localization.Away s)
+            * ((x + y : locSubring P T s) : Localization.Away s) =
+          (r : Localization.Away s) * ((x : locSubring P T s) : Localization.Away s)
+          + (r : Localization.Away s) * ((y : locSubring P T s) : Localization.Away s) := by
+        rw [show ((x + y : locSubring P T s) : Localization.Away s) =
+          ((x : locSubring P T s) : Localization.Away s) +
+          ((y : locSubring P T s) : Localization.Away s) from rfl]; ring
+      rw [h_add]
+      exact lt_of_le_of_lt (ν_loc.map_add _ _) (max_lt (hx r) (hy r))
+    · -- Smul case: reassociate `r · (c • x) = (r · c) · x`, apply IH at `r · c`.
+      intro c x _ hx r
+      have h_smul : (r : Localization.Away s)
+            * ((c • x : locSubring P T s) : Localization.Away s) =
+          ((r * c : locSubring P T s) : Localization.Away s)
+            * ((x : locSubring P T s) : Localization.Away s) := by
+        rw [show ((c • x : locSubring P T s) : Localization.Away s) =
+            ((c : locSubring P T s) : Localization.Away s) *
+            ((x : locSubring P T s) : Localization.Away s) from rfl,
+          show ((r * c : locSubring P T s) : Localization.Away s) =
+            (r : Localization.Away s) * ((c : locSubring P T s) : Localization.Away s) from rfl]
+        ring
+      rw [h_smul]
+      exact hx (r * c)
+  have hfinal := key 1
+  simpa using hfinal
 
 end ValuationSpectrum

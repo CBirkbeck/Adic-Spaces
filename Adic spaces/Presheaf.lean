@@ -330,21 +330,110 @@ theorem RationalLocData.completedLocSubring_isOpen (D : RationalLocData A) :
     ).closure_image_mem_nhds hmem
   rwa [UniformSpace.Completion.coe_zero] at hcl
 
-/-- `PlusSubring` on `presheafValue D`, with `B⁺ = completedLocSubring D`.
-This is the natural plus-subring for the completion route: it contains
-the image of `A⁺` (via `canonicalMap_Aplus_le_completedLocSubring`) and
-is bounded for valuations in `Spa(presheafValue D, completedLocSubring D)`. -/
+/-! ### A⁺-based plus subring (Wedhorn 8.2: `A(T/s)⁺ = A⁺[t/s]int`)
+
+Wedhorn (*Adic Spaces*, §8.1, wedhorn.txt:3680) defines the plus subring of the
+rational localisation as `C =` the integral closure of `A⁺[t₁/s,…,tₙ/s]` in `Aₛ`,
+and `O_X(R(T/s))⁺ = Ĉ` (its completion). We model `A⁺[t/s]` by the *generated*
+subring `locPlusSubring` (the A⁺-analogue of `locSubring`, which is A₀-based for
+the ring of definition). Since a valuation is `≤ 1` on `A⁺[t/s]` iff it is `≤ 1` on
+its integral closure `C` (a valuation integer is integrally closed,
+`Valuation.Integers.mem_of_integral`), `Spa` taken w.r.t. the generated subring and
+w.r.t. `C` coincide — so this is the faithful object for the homeomorphism
+`Spa O_X(R(T/s)) ≅ R(T/s)` (Wedhorn 8.2:3717). The project's `PlusSubring` class
+carries no integrally-closed obligation, so the generated subring is a valid plus
+subring. This is DISTINCT from `completedLocSubring` (the A₀-based ring of
+definition), which is retained for the strong-noetherian/base-change machinery. -/
+
+/-- The A⁺-based subring `A⁺[t₁/s,…,tₙ/s]` of `Localization.Away D.s`
+(Wedhorn 8.2:3680, the generator of `A(T/s)⁺`). The A⁺-analogue of `locSubring`. -/
+noncomputable def RationalLocData.locPlusSubring (D : RationalLocData A) [PlusSubring A] :
+    Subring (Localization.Away D.s) :=
+  Subring.closure
+    ((algebraMap A (Localization.Away D.s)) '' (A⁺ : Set A) ∪
+     Set.range (fun t : D.T ↦ divByS (t : A) D.s))
+
+/-- `algebraMap` sends `A⁺` into `locPlusSubring`. -/
+theorem RationalLocData.algebraMap_Aplus_mem_locPlusSubring (D : RationalLocData A)
+    [PlusSubring A] {a : A} (ha : a ∈ (A⁺ : Set A)) :
+    algebraMap A (Localization.Away D.s) a ∈ D.locPlusSubring :=
+  Subring.subset_closure (Set.mem_union_left _ ⟨a, ha, rfl⟩)
+
+/-- Each `t/s` (for `t ∈ D.T`) belongs to `locPlusSubring`. -/
+theorem RationalLocData.divByS_mem_locPlusSubring (D : RationalLocData A)
+    [PlusSubring A] {t : A} (ht : t ∈ D.T) :
+    divByS t D.s ∈ D.locPlusSubring :=
+  Subring.subset_closure (Set.mem_union_right _ ⟨⟨t, ht⟩, rfl⟩)
+
+/-- The completion plus subring `O_X(R(T/s))⁺ = Ĉ`: the topological closure of the
+image of `locPlusSubring` in `presheafValue D`. The A⁺-analogue of
+`completedLocSubring`. -/
+noncomputable def RationalLocData.completedPlusSubring (D : RationalLocData A) [PlusSubring A] :
+    Subring (presheafValue D) :=
+  (D.locPlusSubring.map D.coeRingHom).topologicalClosure
+
+/-- The image of `locPlusSubring` under `coeRingHom` is contained in
+`completedPlusSubring` (the closure contains the image). -/
+theorem RationalLocData.coeRingHom_locPlusSubring_le_completedPlusSubring
+    (D : RationalLocData A) [PlusSubring A] :
+    (D.locPlusSubring).map D.coeRingHom ≤ D.completedPlusSubring :=
+  Subring.le_topologicalClosure _
+
+/-- An element of `locPlusSubring` maps into `completedPlusSubring`. -/
+theorem RationalLocData.coeRingHom_mem_completedPlusSubring
+    (D : RationalLocData A) [PlusSubring A] {x : Localization.Away D.s}
+    (hx : x ∈ D.locPlusSubring) :
+    D.coeRingHom x ∈ D.completedPlusSubring :=
+  D.coeRingHom_locPlusSubring_le_completedPlusSubring ⟨x, hx, rfl⟩
+
+/-- `locPlusSubring ≤ locSubring` when `A⁺ ⊆ A₀` (the A⁺-based generators are among
+the A₀-based ones). -/
+theorem RationalLocData.locPlusSubring_le_locSubring (D : RationalLocData A)
+    [PlusSubring A] (hAplus_le_A₀ : (A⁺ : Set A) ⊆ D.P.A₀) :
+    D.locPlusSubring ≤ locSubring D.P D.T D.s := by
+  rw [RationalLocData.locPlusSubring, Subring.closure_le]
+  rintro x (⟨a, ha, rfl⟩ | ⟨t, rfl⟩)
+  · exact algebraMap_mem_locSubring D.P D.T D.s (hAplus_le_A₀ ha)
+  · exact divByS_mem_locSubring D.P D.T D.s t.2
+
+/-- `completedPlusSubring ≤ completedLocSubring` when `A⁺ ⊆ A₀`: the A⁺-based plus
+subring sits inside the A₀-based ring of definition. (Used to convert A₀-based
+`Spa` membership into A⁺-based membership via `spa_antitone`.) -/
+theorem RationalLocData.completedPlusSubring_le_completedLocSubring (D : RationalLocData A)
+    [PlusSubring A] (hAplus_le_A₀ : (A⁺ : Set A) ⊆ D.P.A₀) :
+    D.completedPlusSubring ≤ D.completedLocSubring := by
+  apply Subring.topologicalClosure_mono
+  rintro y ⟨x, hx, rfl⟩
+  exact ⟨x, D.locPlusSubring_le_locSubring hAplus_le_A₀ hx, rfl⟩
+
+/-- The image of `A⁺` under `canonicalMap` lands in `completedPlusSubring`
+(Wedhorn 8.2: `A⁺ ⊆ A(T/s)⁺`). No `A⁺ ⊆ A₀` hypothesis needed — `A⁺` generates
+`locPlusSubring` directly. -/
+theorem RationalLocData.canonicalMap_Aplus_le_completedPlusSubring
+    (D : RationalLocData A) [PlusSubring A] :
+    ∀ a ∈ (A⁺ : Set A), D.canonicalMap a ∈ D.completedPlusSubring := by
+  intro a ha
+  exact D.coeRingHom_mem_completedPlusSubring (D.algebraMap_Aplus_mem_locPlusSubring ha)
+
+/-- `PlusSubring` on `presheafValue D`, with `B⁺ = completedPlusSubring D` — the
+faithful A⁺-based plus subring `O_X(R(T/s))⁺ = Ĉ` (Wedhorn 8.2). It contains the
+image of `A⁺` (via `canonicalMap_Aplus_le_completedPlusSubring`); the A₀-based
+`completedLocSubring` is retained separately as the ring of definition. -/
 noncomputable instance RationalLocData.presheafValuePlusSubring
-    (D : RationalLocData A) : PlusSubring (presheafValue D) where
-  toSubring := D.completedLocSubring
+    (D : RationalLocData A) [PlusSubring A] : PlusSubring (presheafValue D) where
+  toSubring := D.completedPlusSubring
 
 /-- The canonical map `A →+* presheafValue D` sends `A⁺` into `B⁺`. -/
 theorem RationalLocData.canonicalMap_integral (D : RationalLocData A)
-    [PlusSubring A] (hAplus_le_A₀ : (A⁺ : Set A) ⊆ D.P.A₀) :
+    [PlusSubring A] :
     (A⁺ : Subring A) ≤ (PlusSubring.toSubring (A := presheafValue D)).comap
       D.canonicalMap := by
+  -- `PlusSubring.toSubring (presheafValue D) = completedPlusSubring` (A⁺-based,
+  -- Wedhorn 8.2): `A⁺` generates `locPlusSubring` directly — no `A⁺ ⊆ A₀` detour,
+  -- so no `hAplus_le_A₀` hypothesis (the old A₀-based subring needed it; this one
+  -- doesn't).
   intro a ha
-  exact D.canonicalMap_Aplus_le_completedLocSubring hAplus_le_A₀ a ha
+  exact D.canonicalMap_Aplus_le_completedPlusSubring a ha
 
 /-- The pullback of a Spa point on the completion satisfies the rational-open
 valuation conditions `v(t) ≤ v(s)` for `t ∈ T` and `v(s) ≠ 0`.
@@ -354,13 +443,15 @@ This is the algebraic core of the completion route for Wedhorn Thm 8.28:
   the Spa condition gives `w(t/s) ≤ 1`, so by multiplicativity `w(t) ≤ w(s)`
 - `v(s) ≠ 0`: because `s` is a unit in `Localization.Away s`, hence
   `canonicalMap s` is a unit in `presheafValue D` -/
-theorem RationalLocData.comap_canonicalMap_vle (D : RationalLocData A)
+theorem RationalLocData.comap_canonicalMap_vle (D : RationalLocData A) [PlusSubring A]
     {w : ValuativeRel (presheafValue D)}
-    (hw_bdd : ∀ d ∈ D.completedLocSubring, w.vle d 1)
+    (hw_bdd : ∀ d ∈ D.completedPlusSubring, w.vle d 1)
     {t : A} (ht : t ∈ D.T) :
     w.vle (D.canonicalMap t) (D.canonicalMap D.s) := by
-  have hmem : D.coeRingHom (divByS t D.s) ∈ D.completedLocSubring :=
-    D.coeRingHom_mem_completedLocSubring (divByS_mem_locSubring D.P D.T D.s ht)
+  -- `t/s ∈ locPlusSubring` (A⁺-based), since `t/s` is one of the generators of
+  -- `A(T/s)⁺` regardless of `A⁺` vs `A₀`. So the A⁺-based Spa bound suffices.
+  have hmem : D.coeRingHom (divByS t D.s) ∈ D.completedPlusSubring :=
+    D.coeRingHom_mem_completedPlusSubring (D.divByS_mem_locPlusSubring ht)
   have hle := hw_bdd _ hmem
   have hspec : divByS t D.s * algebraMap A (Localization.Away D.s) D.s =
       algebraMap A (Localization.Away D.s) t :=
@@ -516,15 +607,18 @@ into the existential needed by `mem_prime_of_rational_subset_nonOpen`.
 
 Assumes `Continuous D.canonicalMap` (proved in PresheafIdentification.lean). -/
 theorem RationalLocData.exists_rationalOpen_of_completion_spa (D : RationalLocData A)
-    [PlusSubring A] (hAplus_le_A₀ : (A⁺ : Set A) ⊆ D.P.A₀)
+    [PlusSubring A] (_hAplus_le_A₀ : (A⁺ : Set A) ⊆ D.P.A₀)
     (hcont : Continuous D.canonicalMap)
     {p : Ideal A} [p.IsPrime] (_hs : D.s ∉ p)
     {w : Spv (presheafValue D)}
-    (hw : w ∈ Spa (presheafValue D) D.completedLocSubring)
+    (hw : w ∈ Spa (presheafValue D) (presheafValue D)⁺)
     (hw_supp : D.liftedIdeal p ≤ w.supp) :
     ∃ v ∈ rationalOpen D.T D.s, p ≤ v.supp := by
   refine ⟨comap D.canonicalMap w, ?_, D.supp_comap_ge_of_liftedIdeal_le hw_supp⟩
-  refine ⟨comap_mem_spa hcont (D.canonicalMap_integral hAplus_le_A₀) hw, ?_, ?_⟩
+  -- `hw` is A⁺-based (`(presheafValue D)⁺ = completedPlusSubring`, Wedhorn 8.2),
+  -- matching `comap_mem_spa` and `comap_canonicalMap_vle` directly. `canonicalMap_integral`
+  -- no longer needs `A⁺ ⊆ A₀` (the A⁺-based plus subring contains `A⁺` directly).
+  refine ⟨comap_mem_spa hcont D.canonicalMap_integral hw, ?_, ?_⟩
   · intro t ht
     rw [comap_vle]
     exact D.comap_canonicalMap_vle hw.2 ht
@@ -1112,27 +1206,53 @@ theorem restrictionMapAlg_continuous_of_huber_completion
       (@UniformSpace.toTopologicalSpace _
         (@UniformSpace.Completion.uniformSpace _ D'.uniformSpace))
       (IsLocalization.Away.lift D.s hu_can) := by
-  -- Identify the lift with the algebraic-side composition.
-  have hu_loc : IsUnit (algebraMap A (Localization.Away D'.s) D.s) :=
-    isUnit_algebraMap_s_of_huber D D' h
-  have heq : (IsLocalization.Away.lift D.s hu_can :
-      Localization.Away D.s →+* presheafValue D') =
-      D'.coeRingHom.comp (IsLocalization.Away.lift D.s hu_loc) := by
-    refine IsLocalization.ringHom_ext (Submonoid.powers D.s) ?_
-    ext r
-    simp [IsLocalization.Away.lift_eq, RationalLocData.canonicalMap]
-  -- Transfer power-boundedness from completion to localization for each generator.
-  have hpb_loc : ∀ t ∈ D.T, @TopologicalRing.IsPowerBounded
-      (Localization.Away D'.s) _ D'.topology
-      (IsLocalization.Away.lift D.s hu_loc (divByS t D.s)) :=
-    fun t ht => locLift_divByS_isPowerBounded_of_completion D D' h hu_loc hu_can ht
-      (_hpb t ht)
-  -- Reduce the goal to continuity of the algebraic-side composition.
-  rw [show (⇑(IsLocalization.Away.lift D.s hu_can) :
-      Localization.Away D.s → presheafValue D') =
-      ⇑(D'.coeRingHom.comp (IsLocalization.Away.lift D.s hu_loc)) from
-        congrArg DFunLike.coe heq]
-  exact restrictionMapAlg_continuous_of_huber D D' h hu_loc hpb_loc
+  -- **De-poisoned (T-KS5)**: prove continuity DIRECTLY at the completion target via
+  -- `locTopology_continuous_lift` + the completion-side power-boundedness hypothesis `_hpb`,
+  -- with NO derivation of the localization-level unit `isUnit_algebraMap_s_of_huber` (= the
+  -- T001 `spa_point_nonOpen` route). Mirrors `restrictionMapAlg_continuous_of_huber` (above)
+  -- but with target `presheafValue D'` (the completion) instead of `Localization.Away D'.s`.
+  haveI : IsTopologicalRing A := IsHuberRing.toIsTopologicalRing
+  letI : UniformSpace (Localization.Away D'.s) := D'.uniformSpace
+  letI : IsUniformAddGroup (Localization.Away D'.s) := D'.isUniformAddGroup
+  -- NonarchimedeanRing on the completion `presheafValue D'` (inline; the downstream
+  -- `presheafValueNonarchimedeanRing` is not importable here).
+  haveI hag_loc : @NonarchimedeanAddGroup (Localization.Away D'.s) _ D'.topology := by
+    have hbasis := locBasis D'.P D'.T D'.s D'.hopen
+    exact @NonarchimedeanAddGroup.mk _ _ D'.topology D'.isTopologicalAddGroup (by
+      intro U hU
+      obtain ⟨V, ⟨n, rfl⟩, hVU⟩ :=
+        hbasis.toRingFilterBasis.toAddGroupFilterBasis.nhds_zero_hasBasis.mem_iff.mp hU
+      exact ⟨hbasis.openAddSubgroup n, hVU⟩)
+  haveI hag : NonarchimedeanAddGroup (presheafValue D') :=
+    @instNonarchimedeanAddGroupCompletion _ _ D'.uniformSpace D'.isUniformAddGroup hag_loc
+  haveI : NonarchimedeanRing (presheafValue D') := ⟨hag.is_nonarchimedean⟩
+  -- `lift hu_can ∘ algebraMap = canonicalMap = coeRingHom ∘ algebraMap`, continuous via
+  -- `coeRingHom` (completion map) ∘ `algebraMap` (continuous into `D'.topology`).
+  have hf_alg : Continuous ((IsLocalization.Away.lift D.s hu_can).comp
+      (algebraMap A (Localization.Away D.s))) := by
+    have h_eq : (IsLocalization.Away.lift D.s hu_can).comp (algebraMap A (Localization.Away D.s))
+        = D'.coeRingHom.comp (algebraMap A (Localization.Away D'.s)) := by
+      ext a
+      simp only [RingHom.comp_apply, IsLocalization.Away.lift_eq, RationalLocData.canonicalMap]
+    rw [show ⇑((IsLocalization.Away.lift D.s hu_can).comp (algebraMap A (Localization.Away D.s)))
+        = ⇑(D'.coeRingHom.comp (algebraMap A (Localization.Away D'.s))) from congrArg _ h_eq,
+      RingHom.coe_comp]
+    refine (@UniformSpace.Completion.continuous_coe _ D'.uniformSpace).comp ?_
+    -- `algebraMap A (Localization.Away D'.s)` is continuous into `D'.topology`.
+    apply continuous_of_continuousAt_zero
+      (algebraMap A (Localization.Away D'.s)).toAddMonoidHom
+    rw [ContinuousAt, map_zero, Filter.tendsto_def]
+    intro S hS
+    obtain ⟨n, -, hn⟩ :=
+      (locBasis D'.P D'.T D'.s D'.hopen).hasBasis_nhds_zero.mem_iff.mp hS
+    apply Filter.mem_of_superset (D'.P.hasBasis_nhds_zero.mem_of_mem (i := n) trivial)
+    intro a ha
+    obtain ⟨⟨b, hb⟩, hbn, hab⟩ := ha
+    rw [← hab]
+    exact hn ⟨algebraMapD D'.P D'.T D'.s ⟨b, hb⟩,
+      by rw [locIdeal, ← Ideal.map_pow]; exact Ideal.mem_map_of_mem _ hbn, rfl⟩
+  exact locTopology_continuous_lift D.P D.T D.s D.hopen
+    (IsLocalization.Away.lift D.s hu_can) hf_alg _hpb
 
 /-- The algebraic restriction map is continuous (Proposition 8.2 of Wedhorn).
 Requires `[HasLocLiftPowerBounded A]` (the adic Nullstellensatz for power-boundedness
@@ -3026,8 +3146,8 @@ without `[MulArchimedean Γ₀ˣ]`: e.g.
 the smaller copy not bracketed by any integer power of `β` from the larger
 copy. Adding the typeclass is therefore authorized by CLAUDE.md rule (b)
 (result genuinely false without it). The caller
-`rankOne_embedding_of_topNilp_witness` supplies the witness from the
-analytic-Huber hypothesis chain via `mulArchimedean_valueGroup_of_analytic`.
+`rankOne_embedding_of_topNilp_witness` supplies the `MulArchimedean`
+instance from its own explicit `hArch` hypothesis.
 
 **Proof sketch.** Set `βu := Units.mk0 β`, `γu := Units.mk0 γ` in `Γ₀ˣ`.
 From `β < 1` we get `1 < βu⁻¹` in `Γ₀ˣ`. Apply `MulArchimedean.arch` to
@@ -3180,37 +3300,27 @@ private theorem rankOne_embedding_of_topNilp_witness
   -- Step 3b: bracket property gives the rank-1 embedding into the reals.
   exact embed_archimedean_valueGroup_into_real hvb_pos hvb_lt_one h_bracket
 
-/-- **(T-H.2.b.2.α, Wedhorn 7.40(6) — audit pass 3 item 14)** *"Let `v` be
-a continuous analytic valuation on a Huber ring `A`. Then `v` has height
-≤ 1, i.e., its value group has rank ≤ 1 (embeds order-monomorphically into
-`ℝ>0`)."*
+/-- **(Hölder rank-1 embedding for an archimedean analytic value group.)**
+*Given a continuous analytic valuation `v` on a Huber ring `A` **whose value
+group is `MulArchimedean`** (hypothesis `hArch`), the value group embeds
+order-monomorphically (strictly monotone + injective `MonoidWithZeroHom`) into
+`WithZero (Multiplicative ℝ)`.*
 
-This is the **first half** of `mulArchimedean_valueGroup_of_analytic`: the
-analytic + continuous hypotheses upgrade to rank-1. The rank-1 → archimedean
-step is `mulArchimedean_of_rankOne_valueGroup` (below).
+The `MulArchimedean` hypothesis is **required**, not decorative: an analytic
+continuous valuation need NOT have height ≤ 1 — it is only *microbial* — so the
+embedding is genuinely false without `hArch` (CLAUDE.md rule (b)). Given `hArch`
+this is the classical Hölder rank-1 embedding; the analytic + continuous
+hypotheses serve only to produce a topologically nilpotent `b` with `v(b) ≠ 0`.
 
-Discharge plan: Wedhorn 7.40(6) proof on p.55: choose a topologically
-nilpotent `b` with `v(b) ≠ 0` (Wedhorn 7.40(1)); for any `c ∈ A` with
-`v(c) > 0`, the chain `v(c · b^n)` becomes cofinal in `v`'s value group as
-`n → ∞`. This forces height ≤ 1. The statement here uses Mathlib's
-`Valuation.IsRankOne` predicate (verify exact name).
+Decomposed into named sub-lemmas (each with its own `sorry` where unfinished):
+* `topNilp_vle_one_of_continuous` — continuity + top-nilpotence ⇒ `v(b) < 1`.
+* `valueGroup_archimedean_pair_of_topNilp_lt_one` — under `[MulArchimedean Γ₀ˣ]`,
+  every non-zero element is bracketed between two consecutive powers of `v(b)`.
+* `embed_archimedean_valueGroup_into_real` — the bracket property yields the
+  logarithmic embedding into `WithZero (Multiplicative ℝ)`.
 
-**Note (2026-05-22):** moved above `analytic_height_one_contradiction_of_not_vle_one`
-so the latter can directly use the archimedean instance.
-
-**Sorry-filler 2026-05-22**: decomposed into three named sub-lemmas
-(each with its own `sorry`) per CLAUDE.md sub-lemma rule:
-
-* `topNilp_vle_one_of_continuous` (Step 2): continuity + top-nilpotence ⇒
-  `v(b) ≤ 1` and `v(b) ≠ 0` strengthens to `v(b) < 1` (in `ValueGroupWithZero`).
-* `valueGroup_archimedean_pair_of_topNilp_lt_one` (Step 3a): any non-zero
-  element of `ValueGroupWithZero A` is bounded between two powers of an
-  element `< 1` (the cofinal-chain property used in Wedhorn 7.40(6)).
-* `embed_archimedean_valueGroup_into_real` (Step 3b): an
-  `LinearOrderedCommGroupWithZero` whose non-zero elements lie between two
-  powers of a fixed element `< 1` admits a strictly monotone injective
-  `MonoidWithZeroHom` to `WithZero (Multiplicative ℝ)` (logarithmic
-  embedding). -/
+NOTE: currently **unused** — the false `analytic ⟹ MulArchimedean` consumer that
+once called it was deleted 2026-05-31. Retained as a true, reusable fact. -/
 theorem rankOne_valueGroup_of_analytic
     {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
     [PlusSubring A] [IsHuberRing A]
@@ -3276,427 +3386,6 @@ private theorem mulArchimedean_withZero_of_mulArchimedean_units
     rw [← Units.val_le_val] at hn
     simpa using hn
 
-/-- **(Wedhorn 7.40(6) sub-lemma — the deep content).** *For a continuous
-analytic valuation `x : Spv A` on a Huber ring, every non-trivial convex
-subgroup `H` of `(ValueGroupWithZero A)ˣ` equals `⊤`.*
-
-This sub-lemma captures the GENUINE Wedhorn 7.40(6) "height ≤ 1" content:
-any non-trivial convex subgroup of the unit value group is everything.
-
-**Wedhorn's actual proof (p.66, proof of Remark 7.40(6)).** By (4), an
-analytic continuous valuation `x` has no proper *horizontal*
-specializations. By Remark 4.12, vertical generizations of `x` lie within
-`Spv K(x)` (the valuation spectrum of the residue field). The vertical
-generizations of `x` correspond bijectively to proper convex subgroups of
-`Γᵛˣ` (the value group): a non-trivial convex subgroup `H` would give a
-vertical generization `x_{/H}` with strictly larger value group. By Remark
-7.40(5), `x` is microbial (the topologically-nilpotent witness `b` ensures
-`v(b)^n → 0`), so `x` is its own vertical maximal point. Therefore
-`x` admits no proper vertical generizations, hence every non-trivial
-convex subgroup `H` of `Γᵛˣ` is `⊤`.
-
-**Status (2026-05-22).** The full Lean formalization of this argument
-requires: (a) the bijection between convex subgroups and vertical
-generizations in `Spv K(x)` (Wedhorn Remark 4.12 — not yet in mathlib or
-this project), and (b) microbial-height-1 theory (Wedhorn Remark 7.40(5)).
-Per CLAUDE.md sub-lemma rule, this is left as a `sorry`-body in a named
-sub-lemma (the statement here is the original obligation in convex-subgroup
-form, not a hypothesis-deferral). -/
-private theorem convexSubgroup_eq_top_of_ne_bot_of_analytic
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A]
-    (x : Spv A) (_hx_an : ¬ IsOpen (x.supp : Set A))
-    (_hx_cont : x ∈ Cont A) :
-    letI : ValuativeRel A := x.toValuativeRel
-    ∀ H : ConvexSubgroup (ValuativeRel.ValueGroupWithZero A)ˣ,
-      H ≠ ⊥ → H = ⊤ :=
-  sorry
-
-/-- **(Wedhorn 7.40(6) core — convex-subgroup triviality).** *For a
-continuous analytic valuation on a Huber ring, the unit value group
-`(ValueGroupWithZero A)ˣ` has no proper non-trivial convex subgroups.*
-
-This is the deep mathematical content of Wedhorn 7.40(6): the
-topologically-nilpotent unit `b` (obtained from analyticity) together
-with `v(b) < 1` (from continuity, `topNilp_vle_one_of_continuous`)
-force any nontrivial convex subgroup of `(ValueGroupWithZero A)ˣ` to
-contain all of `Γᵛˣ`. Concretely, if `H ⊊ Γᵛˣ` is a proper convex
-subgroup and `γ ∈ Γᵛˣ \ H`, the chain `v(b)^n` is cofinal in
-`Γᵛˣ_<1`, so either γ or γ⁻¹ lies between two consecutive powers of
-`v(b)`, contradicting the convexity / non-containment.
-
-Combined with `OrderedGroupConvex.mulArchimedean_of_no_proper_nontrivial`,
-this yields `MulArchimedean (ValueGroupWithZero A)ˣ` (the independent
-archimedean route required by the post-B2 chain).
-
-**Sorry-filler 2026-05-22**: closed via case-split on `H = ⊥` and
-delegation to `convexSubgroup_eq_top_of_ne_bot_of_analytic` (a named
-sub-lemma carrying the genuine Wedhorn 7.40(6) "height ≤ 1" content,
-with its own `sorry`-body per CLAUDE.md sub-lemma rule). The obligation
-here is now fully discharged at this site; the genuine sorry lives in
-the sub-lemma whose statement matches the deep mathematical claim. -/
-private theorem convexSubgroup_units_valueGroup_trivial_of_analytic
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A]
-    (x : Spv A) (hx_an : ¬ IsOpen (x.supp : Set A))
-    (hx_cont : x ∈ Cont A) :
-    letI : ValuativeRel A := x.toValuativeRel
-    ∀ H : ConvexSubgroup (ValuativeRel.ValueGroupWithZero A)ˣ,
-      H = ⊥ ∨ H = ⊤ := by
-  letI : ValuativeRel A := x.toValuativeRel
-  intro H
-  by_cases hH : H = ⊥
-  · exact Or.inl hH
-  · exact Or.inr (convexSubgroup_eq_top_of_ne_bot_of_analytic x hx_an hx_cont H hH)
-
-/-- **(T-H.2.b.2, Wedhorn 1.14 / 7.40(6))** *For a continuous analytic
-valuation `x : Spv A` on a Huber ring `A`, the value group
-`(ValueGroupWithZero A)` is `MulArchimedean`.*
-
-**Lean encoding:** Mathlib's `MulArchimedean` typeclass on the
-`LinearOrderedCommGroupWithZero`.
-
-**Discharge route (2026-05-22, post-B2-fix).** The previous composition
-`rankOne_valueGroup_of_analytic ∘ mulArchimedean_of_rankOne_valueGroup`
-became circular after the B2 fix on
-`valueGroup_archimedean_pair_of_topNilp_lt_one` added
-`[MulArchimedean Γ₀ˣ]` to its signature (the abstract pair statement is
-*false* without it — lex-ordered counterexample). The independent route
-used here is **convex-subgroup triviality** on `(ValueGroupWithZero A)ˣ`:
-
-1. `convexSubgroup_units_valueGroup_trivial_of_analytic` (Wedhorn 7.40(6)
-   deep content): the only convex subgroups of `Γᵛˣ` are `⊥` and `⊤`.
-2. `OrderedGroupConvex.mulArchimedean_of_no_proper_nontrivial`: this
-   gives `MulArchimedean Γᵛˣ`.
-3. `mulArchimedean_withZero_of_mulArchimedean_units`: constructive
-   transfer to `MulArchimedean Γᵛ` (the goal).
-
-Each sub-lemma is a named theorem above (one with `sorry`, two
-constructively proved), per the CLAUDE.md sub-lemma rule. -/
-theorem mulArchimedean_valueGroup_of_analytic
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A]
-    (x : Spv A) (hx_an : ¬ IsOpen (x.supp : Set A))
-    (hx_cont : x ∈ Cont A) :
-    letI : ValuativeRel A := x.toValuativeRel
-    MulArchimedean (ValuativeRel.ValueGroupWithZero A) := by
-  letI : ValuativeRel A := x.toValuativeRel
-  -- Step 1+2 (Wedhorn 7.40(6) deep content): convex subgroups of `Γᵛˣ`
-  -- are trivial.
-  have h_conv := convexSubgroup_units_valueGroup_trivial_of_analytic x hx_an hx_cont
-  -- Step 3: convex-subgroup triviality ⇒ `MulArchimedean Γᵛˣ`.
-  haveI h_units : MulArchimedean (ValuativeRel.ValueGroupWithZero A)ˣ :=
-    ConvexSubgroup.mulArchimedean_of_no_proper_nontrivial h_conv
-  -- Step 4: constructive lift `MulArchimedean Γᵛˣ → MulArchimedean Γᵛ`.
-  exact mulArchimedean_withZero_of_mulArchimedean_units
-
-/-- **(Wedhorn 7.41 contradiction core)** Sub-lemma of
-`analytic_height_one_vle_one_on_powerBounded`: under the hypotheses of
-Wedhorn 7.41 plus the **negation** of the conclusion (`¬ x.vle a 1`,
-i.e. `1 < x(a)`), derive `False`.
-
-The hypothesis `hvle : ¬ x.vle a 1` is derivable from the parent theorem's
-goal by `by_contra`, so this sub-lemma honestly factors out the contradiction
-content of Wedhorn 7.41 without adding hypotheses that are not derivable
-from the parent setting (per CLAUDE.md sub-lemma rule).
-
-**Mathematical content (Wedhorn p.65-66).** Combine:
-* `exists_topNilp_ne_zero_of_analytic` (T-H.2.b.1, proved above): pick `b`
-  topologically nilpotent with `¬ x.vle b 0` (i.e. `x(b) ≠ 0`).
-* `mulArchimedean_valueGroup_of_analytic` (T-H.2.b.2, proved below at
-  line 3001): the value group is archimedean, so for `α = x(a) > 1` and
-  `β = x(b)⁻¹` there exists `n` with `α^n > β`, hence `x(a^n · b) > 1`.
-* Continuity of `x` (`hx : x ∈ Cont A`): the set `{y | x.vle y 1}` is open,
-  contains `0`, hence is a `𝓝 0`-neighborhood. Since `a^n · b` is
-  topologically nilpotent (`IsTopologicallyNilpotent.mul_left`), the
-  sequence `(a^n · b)^k → 0`, so eventually it lies in the neighborhood,
-  giving `x.vle (a^n · b) 1`. This contradicts `x(a^n · b) > 1`. -/
-theorem analytic_height_one_contradiction_of_not_vle_one
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A]
-    (x : Spv A) (hx : x ∈ Cont A) (hx_an : ¬ IsOpen (x.supp : Set A))
-    (a : A) (ha : @TopologicalRing.IsPowerBounded A _ _ a)
-    (hvle : ¬ x.vle a 1) :
-    False := by
-  letI : ValuativeRel A := x.toValuativeRel
-  set w := ValuativeRel.valuation A with hw_def
-  -- Step 1 (Wedhorn 7.40(1)): extract topologically nilpotent `b` with `w b ≠ 0`.
-  obtain ⟨b, hb_tn, hb_notSupp⟩ := exists_topNilp_ne_zero_of_analytic x hx hx_an
-  have hwb_ne : w b ≠ 0 := fun h => hb_notSupp <| by
-    rw [(Valuation.Compatible.vle_iff_le (v := w) b 0)]; simp [h]
-  -- Step 2: translate `¬ x.vle a 1` to `1 < w a`.
-  have hwa_gt : 1 < w a := by
-    have : ¬ w a ≤ w 1 := fun h => hvle ((Valuation.Compatible.vle_iff_le _ _).mpr h)
-    rw [map_one] at this
-    exact not_le.mp this
-  -- Step 3 (Wedhorn 1.14): value group is archimedean.
-  haveI : MulArchimedean (ValuativeRel.ValueGroupWithZero A) :=
-    mulArchimedean_valueGroup_of_analytic x hx_an hx
-  obtain ⟨n, hn⟩ := MulArchimedean.arch (w b)⁻¹ hwa_gt
-  -- Step 4: deduce `1 < w (a^(n+1) * b) = (w a)^(n+1) * w b`.
-  -- From `(w b)⁻¹ ≤ (w a)^n` we get `1 ≤ (w a)^n * w b`, then multiply by `w a > 1`.
-  have hwa_pow_b_gt : 1 < w (a ^ (n + 1) * b) := by
-    rw [map_mul, map_pow, pow_succ]
-    have hge : (1 : ValuativeRel.ValueGroupWithZero A) ≤ (w a) ^ n * w b := by
-      rw [show (1 : ValuativeRel.ValueGroupWithZero A) = (w b)⁻¹ * w b from
-        (inv_mul_cancel₀ hwb_ne).symm]
-      exact mul_le_mul_left hn _
-    calc 1 < w a := hwa_gt
-      _ = w a * 1 := (mul_one _).symm
-      _ ≤ w a * ((w a) ^ n * w b) := mul_le_mul_right hge _
-      _ = (w a) ^ n * w a * w b := by
-            rw [show w a * ((w a) ^ n * w b) = (w a) ^ n * w b * w a from
-              mul_comm _ _, mul_right_comm]
-  -- Step 5: `a^(n+1)` is power-bounded (composing the bounded set of powers of `a`).
-  have ha_pow : @TopologicalRing.IsPowerBounded A _ _ (a ^ (n + 1)) := by
-    intro U hU
-    obtain ⟨V, hV, hVU⟩ := ha U hU
-    refine ⟨V, hV, ?_⟩
-    rintro _ ⟨_, ⟨m, rfl⟩, v, hv, rfl⟩
-    refine hVU (Set.mul_mem_mul ⟨m * (n + 1), ?_⟩ hv)
-    change a ^ (m * (n + 1)) = (a ^ (n + 1)) ^ m
-    rw [mul_comm, pow_mul]
-  -- Hence `a^(n+1) * b` is topologically nilpotent (Wedhorn 5.30, A°·A°° ⊆ A°°).
-  have h_tn : IsTopologicallyNilpotent (a ^ (n + 1) * b) :=
-    ha_pow.isTopologicallyNilpotent_mul hb_tn
-  -- Step 6: continuity of `w` gives `{y | w y < 1}` open and containing `0`.
-  have h_open : IsOpen {y : A | w y < w 1} := by
-    rw [map_one]; exact hx 1
-  have h0_mem : (0 : A) ∈ {y : A | w y < w 1} := by
-    simp only [Set.mem_setOf_eq, map_zero, map_one]
-    exact zero_lt_iff.mpr
-      (ValuativeRel.valuation_posSubmonoid_ne_zero
-        ⟨1, ValuativeRel.zero_vlt_one⟩)
-  -- Since `(a^(n+1)*b)^k → 0`, eventually `(a^(n+1)*b)^k` lies in `{w < 1}`.
-  obtain ⟨k, hk⟩ := (h_tn.eventually (h_open.mem_nhds h0_mem)).exists
-  simp only [map_pow, map_one] at hk
-  -- For `k = 0` the bound is `1 < 1`, immediate contradiction; for `k ≥ 1`,
-  -- `w(a^(n+1)*b) > 1` implies `(w(a^(n+1)*b))^k > 1`, contradicting `hk`.
-  rcases Nat.eq_zero_or_pos k with hk0 | hk0
-  · subst hk0; simp at hk
-  · exact not_lt_of_gt (one_lt_pow₀ hwa_pow_b_gt hk0.ne') hk
-
-/-- **(T-H.2.b.3, Wedhorn 7.41 main)** Analytic height-1 valuation `x ∈ Cont(A)_a`
-satisfies `x(a) ≤ 1` for all `a ∈ A°` (power-bounded). Proof by contradiction:
-assume x(a) > 1; pick b ∈ A°° with x(b) ≠ 0 (T-H.2.b.1); height-1 ⇒ archimedean
-(T-H.2.b.2) gives n with x(a^n b) > 1; but a^n b ∈ A°° + continuity ⇒ x(a^n b) < 1.
-
-**Note (2026-05-22):** moved above `wedhorn_7_42_forward_analytic` so the
-latter can discharge directly via this lemma (sub-lemma decomposition keeps
-the obligation here).
-
-**Sorry-filler 2026-05-22**: closed via `by_contra` + delegation to
-`analytic_height_one_contradiction_of_not_vle_one` (sub-lemma capturing
-the Wedhorn 7.41 contradiction core; signature obtains an extra hypothesis
-`¬ x.vle a 1` that is *derivable* from the goal via `by_contra`, so the
-sub-lemma is honest per CLAUDE.md sub-lemma rule). -/
-theorem analytic_height_one_vle_one_on_powerBounded
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A]
-    (x : Spv A) (hx : x ∈ Cont A) (hx_an : ¬ IsOpen (x.supp : Set A))
-    (a : A) (ha : @TopologicalRing.IsPowerBounded A _ _ a) :
-    x.vle a 1 := by
-  by_contra hvle
-  exact analytic_height_one_contradiction_of_not_vle_one x hx hx_an a ha hvle
-
-/-- **(Wedhorn 7.42, forward direction — analytic sub-case)** *"If `a ∈ A`
-is power-bounded and `v ∈ Cont A` is analytic (`¬ IsOpen v.supp`), then
-`v(a) ≤ 1`."*
-
-Sub-lemma of `wedhorn_7_42_forward`. The non-trivial (height-1 archimedean)
-case of Wedhorn 7.42; its statement matches Wedhorn 7.41 (this is the
-restriction of the forward direction to analytic points).
-
-**Sorry-filler 2026-05-22**: discharged via
-`analytic_height_one_vle_one_on_powerBounded` (now placed above this lemma).
-The obligation remains in `analytic_height_one_vle_one_on_powerBounded`. -/
-theorem wedhorn_7_42_forward_analytic
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [T2Space A] [NonarchimedeanRing A]
-    (a : A) (ha : @TopologicalRing.IsPowerBounded A _ _ a)
-    (v : Spv A) (hv : v ∈ Cont A) (hv_an : ¬ IsOpen (v.supp : Set A)) :
-    v.vle a 1 :=
-  analytic_height_one_vle_one_on_powerBounded v hv hv_an a ha
-
-/-- **(Wedhorn 7.42, discrete-quotient sub-step)** *"For a continuous valuation
-`v_q : Spv (A ⧸ I)` on the discrete quotient `A ⧸ I`, every power-bounded
-element of `A ⧸ I` with nonzero `v_q`-value has `v_q ≤ 1`."*
-
-Sub-lemma carrying the height-≤-1 fragment of Wedhorn 7.42 forward direction
-in the **discrete** quotient setting. Decomposed out of
-`wedhorn_7_42_forward_nonAnalytic_notInSupp` per CLAUDE.md sub-lemma rule:
-the sorry here carries the residual height-1 bound after the descent
-through `A ⧸ v.supp`.
-
-Discharge plan: in a discrete topological ring, every valuation is
-continuous (`cont_eq_univ_of_discreteTopology`), so we can apply the
-Wedhorn 7.42 forward direction in the discrete setting. The actual content
-is that in discrete topology the height-1 archimedean argument trivialises
-(value group rank-≤-0 sub-case), but the bound `v_q [a] ≤ 1` still requires
-the standard "power-bounded ⇒ |·| ≤ 1 on the unit group of `Frac(A ⧸ I)`"
-argument from Wedhorn p.66 (height-0 sub-case of the same proof). -/
-theorem vle_one_of_powerBounded_discrete_quotient
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    (I : Ideal A) [I.IsPrime] (_hI_open : IsOpen (I : Set A))
-    (a : A) (_ha : @TopologicalRing.IsPowerBounded A _ _ a)
-    (v_q : Spv (A ⧸ I)) (_ha_notQuotZero : (Ideal.Quotient.mk I) a ∉ v_q.supp) :
-    v_q.vle ((Ideal.Quotient.mk I) a) 1 := by
-  sorry
-
-/-- **(Wedhorn 7.42, forward direction — non-analytic sub-case, `a ∉ supp v`)**
-*"If `a ∈ A` is power-bounded, `v ∈ Cont A` has open support (non-analytic),
-and `a ∉ v.supp`, then `v(a) ≤ 1`."*
-
-The genuinely non-trivial sub-case of `wedhorn_7_42_forward_nonAnalytic`,
-isolated via the support split. Sub-lemma decomposition per CLAUDE.md: the
-sorry carries the same obligation at the original signature plus the
-`a ∉ v.supp` refinement (the `a ∈ v.supp` case is dispatched trivially in
-`wedhorn_7_42_forward_nonAnalytic` via `v.vle_trans ... (v.zero_vle 1)`).
-
-**Sorry-filler 2026-05-22**: discharged by descent through the discrete
-quotient `A ⧸ v.supp` (open since `v` is non-analytic). The valuation `v`
-factors through `Spv (A ⧸ v.supp)` via `quotientLift` (with `comap`
-reconstruction `comap_quotientLift`), reducing `v.vle a 1` to
-`v_q.vle [a] 1`, which is the new sub-lemma
-`vle_one_of_powerBounded_discrete_quotient`. The residual obligation
-(height-≤-1 bound in the discrete-quotient setting) lives there. -/
-theorem wedhorn_7_42_forward_nonAnalytic_notInSupp
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [T2Space A] [NonarchimedeanRing A]
-    (a : A) (_ha : @TopologicalRing.IsPowerBounded A _ _ a)
-    (v : Spv A) (_hv : v ∈ Cont A) (_hv_nonAn : IsOpen (v.supp : Set A))
-    (_ha_notSupp : a ∉ v.supp) :
-    v.vle a 1 := by
-  -- Descent through the discrete quotient `A ⧸ v.supp`.
-  set I : Ideal A := v.supp with hI_def
-  set v_q : Spv (A ⧸ I) := ValuationSpectrum.quotientLift I v (le_refl _) with hv_q_def
-  have hv_eq : ValuationSpectrum.comap (Ideal.Quotient.mk I) v_q = v :=
-    ValuationSpectrum.comap_quotientLift I v (le_refl _)
-  -- Express `v.vle a 1` via the comap identity to push the goal into `v_q`.
-  have h_notQuotZero : (Ideal.Quotient.mk I) a ∉ v_q.supp := by
-    intro hmem
-    rw [ValuationSpectrum.mem_supp_iff] at hmem
-    have hvle : v.vle a 0 := by
-      have := (ValuationSpectrum.comap_vle (Ideal.Quotient.mk I) v_q a 0).symm ▸ hmem
-      rw [hv_eq] at this; simpa using this
-    exact _ha_notSupp ((ValuationSpectrum.mem_supp_iff v a).mpr hvle)
-  have h_quot :=
-    vle_one_of_powerBounded_discrete_quotient I _hv_nonAn a _ha v_q h_notQuotZero
-  -- Pull back via comap to recover `v.vle a 1`.
-  have : (ValuationSpectrum.comap (Ideal.Quotient.mk I) v_q).vle a 1 := by
-    rw [ValuationSpectrum.comap_vle]; simpa using h_quot
-  rw [hv_eq] at this; exact this
-
-/-- **(Wedhorn 7.42, forward direction — non-analytic sub-case)** *"If
-`a ∈ A` is power-bounded and `v ∈ Cont A` has open support (non-analytic),
-then `v(a) ≤ 1`."*
-
-Sub-lemma of `wedhorn_7_42_forward`. The "easy" half: for non-analytic
-`v`, the induced valuation on `A / supp v` is trivial of rank ≤ 0, so
-`v(a) ≤ v(1)` holds either trivially (`a ∈ supp v`, hence `v(a) = 0`) or
-from the trivial-on-the-quotient bound on the unit group of `A / supp v`.
-
-**Sorry-filler 2026-05-22**: closed by `by_cases` on `a ∈ v.supp`. The
-`a ∈ v.supp` branch closes via `v.vle a 0 → v.vle 0 1 → v.vle a 1`
-(`v.vle_trans` composed with `v.zero_vle 1`). The `a ∉ v.supp` branch
-delegates to `wedhorn_7_42_forward_nonAnalytic_notInSupp` (same signature
-with the refined hypothesis), per CLAUDE.md sub-lemma decomposition. -/
-theorem wedhorn_7_42_forward_nonAnalytic
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [T2Space A] [NonarchimedeanRing A]
-    (a : A) (_ha : @TopologicalRing.IsPowerBounded A _ _ a)
-    (v : Spv A) (_hv : v ∈ Cont A) (_hv_nonAn : IsOpen (v.supp : Set A)) :
-    v.vle a 1 := by
-  by_cases ha_supp : a ∈ v.supp
-  · exact v.vle_trans ((ValuationSpectrum.mem_supp_iff v a).mp ha_supp) (v.zero_vle 1)
-  · exact wedhorn_7_42_forward_nonAnalytic_notInSupp a _ha v _hv _hv_nonAn ha_supp
-
-/-- **(Wedhorn 7.42, forward direction — sub-lemma)** *"If `a ∈ A` is
-power-bounded in a complete affinoid ring `A`, then `v(a) ≤ 1` for every
-`v ∈ Cont A`."*
-
-Sub-lemma extracted as part of decomposing
-`wedhorn_7_42_powerBounded_iff_forall_continuous_vle_one`. Signature
-matches the (→) direction; no extra hypotheses introduced.
-
-**Sorry-filler 2026-05-22**: closed by `by_cases` on `IsOpen v.supp`,
-delegating to `wedhorn_7_42_forward_analytic` (`¬ IsOpen v.supp` branch)
-and `wedhorn_7_42_forward_nonAnalytic` (`IsOpen v.supp` branch). Each
-sub-case carries its own sorry per CLAUDE.md sub-lemma decomposition. -/
-theorem wedhorn_7_42_forward
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [T2Space A] [NonarchimedeanRing A]
-    (a : A) (ha : @TopologicalRing.IsPowerBounded A _ _ a) :
-    ∀ v ∈ Cont A, v.vle a 1 := by
-  intro v hv
-  by_cases hsupp : IsOpen (v.supp : Set A)
-  · exact wedhorn_7_42_forward_nonAnalytic a ha v hv hsupp
-  · exact wedhorn_7_42_forward_analytic a ha v hv hsupp
-
-/-- **(Wedhorn 7.42, reverse direction — separating-valuation sub-lemma)**
-*"If `a ∈ A` is NOT power-bounded in a complete affinoid ring, then there
-exists a continuous valuation `v ∈ Cont A` with `¬ v.vle a 1` (i.e.
-`v(a) > 1`)."*
-
-Mathematical content (Wedhorn p.66-67 contrapositive form): if `{a^n}` is
-unbounded, then the topological nilradical / power-bounded subring `A°`
-fails to contain `a`, and one constructs a continuous valuation
-witnessing `v(a) > 1` via the standard separation argument (Zorn on the
-poset of valuations dominating a chosen open neighborhood that {a^n}
-escapes from, together with the Huber-ring criterion that lifts the
-abstract valuation to a continuous one).
-
-Sub-lemma decomposition per CLAUDE.md: the sorry carries the same
-mathematical content at the equivalent contrapositive signature; no extra
-hypotheses are introduced. The Lean signature uses `Cont A` (the
-continuous-valuation set) consistent with the forward direction. -/
-theorem wedhorn_7_42_reverse_separating_valuation
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [T2Space A] [NonarchimedeanRing A]
-    (a : A) (_ha : ¬ @TopologicalRing.IsPowerBounded A _ _ a) :
-    ∃ v ∈ Cont A, ¬ v.vle a 1 := by
-  sorry
-
-/-- **(Wedhorn 7.42, reverse direction — sub-lemma)** *"If `v(a) ≤ 1` for
-every `v ∈ Cont A`, then `a ∈ A` is power-bounded."*
-
-Sub-lemma extracted as part of decomposing
-`wedhorn_7_42_powerBounded_iff_forall_continuous_vle_one`. Signature
-matches the (←) direction; no extra hypotheses introduced.
-
-**Sorry-filler 2026-05-23**: closed by contrapositive against
-`wedhorn_7_42_reverse_separating_valuation`. If `a` were not
-power-bounded, that sub-lemma would supply a continuous valuation
-witnessing `¬ v.vle a 1`, contradicting the hypothesis `_h`. The
-remaining mathematical content (existence of the separating valuation,
-Wedhorn p.66-67) is isolated in the sub-lemma above. -/
-theorem wedhorn_7_42_reverse
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [T2Space A] [NonarchimedeanRing A]
-    (a : A) (_h : ∀ v ∈ Cont A, v.vle a 1) :
-    @TopologicalRing.IsPowerBounded A _ _ a := by
-  by_contra ha_not
-  obtain ⟨v, hv_cont, hv_notLe⟩ :=
-    wedhorn_7_42_reverse_separating_valuation a ha_not
-  exact hv_notLe (_h v hv_cont)
-
-/-- **(Wedhorn 7.42, pass-4 audit)** *"Let `A` be a complete affinoid ring.
-An element `a ∈ A` is power-bounded if and only if `v(a) ≤ 1` for every
-continuous valuation `v ∈ Cont A`."*
-
-**Sorry-filler 2026-05-22**: closed by combining the two sub-lemmas
-`wedhorn_7_42_forward` and `wedhorn_7_42_reverse` (each carrying its own
-sorry, per the CLAUDE.md sub-lemma-decomposition rule). The previous
-inline `sorry` is removed; the mathematical content of the two directions
-is now isolated in named sub-lemmas above. -/
-theorem wedhorn_7_42_powerBounded_iff_forall_continuous_vle_one
-    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-    [PlusSubring A] [IsHuberRing A] [T2Space A] [NonarchimedeanRing A]
-    (a : A) :
-    @TopologicalRing.IsPowerBounded A _ _ a ↔
-      ∀ v ∈ Cont A, v.vle a 1 :=
-  ⟨wedhorn_7_42_forward a, wedhorn_7_42_reverse a⟩
-
 /-- **(Wedhorn 7.52(2), clean version — pass-4 audit)** *"Let `A` be a
 complete affinoid ring. An element `f ∈ A` is a unit if and only if
 `v(f) ≠ 0` for every `v ∈ Spa(A, A⁺)`."*
@@ -3756,11 +3445,12 @@ theorem IsPowerBounded.map {R S : Type*} [CommRing R] [TopologicalSpace R]
     TopologicalRing.IsPowerBounded (φ x) :=
   sorry
 
--- (Duplicate of `isPowerBounded_of_discrete_presheafValue` moved earlier removed here.)
--- (`rankOne_valueGroup_of_analytic`, `mulArchimedean_of_rankOne_valueGroup`, and
--- `mulArchimedean_valueGroup_of_analytic` were moved above
--- `analytic_height_one_contradiction_of_not_vle_one` on 2026-05-22, so they are
--- in scope where that theorem now uses them.)
+-- NOTE: the `analytic ⟹ MulArchimedean / height-1` chain that previously lived
+-- below (`mulArchimedean_valueGroup_of_analytic`, `analytic_height_one_*`,
+-- `wedhorn_7_42_*`) was DELETED 2026-05-31: those statements were FALSE (analytic
+-- only gives *microbial*, not height ≤ 1, so for height-≥2 analytic valuations the
+-- conclusions fail). The `rankOne_*` / `archimedean_*` sub-lemmas above are true
+-- (each carries the archimedean hypothesis explicitly) but are currently unused.
 
 /-- **(T-H.2.a, Wedhorn-faithful, blocker-2 refactor 2026-05-17)**
 The canonical-map image `D'.canonicalMap D.s` is a unit in the **completion**

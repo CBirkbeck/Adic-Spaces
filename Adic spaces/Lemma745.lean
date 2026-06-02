@@ -694,4 +694,51 @@ theorem exists_mem_spa_supp_ge_of_nonOpen_prime (P : PairOfDefinition A)
     ∃ v ∈ Spa A A⁺, 𝔭 ≤ v.supp ∧ ¬P.idealOfDefinition ≤ v.supp :=
   P.exists_spa_point_via_restrictToConvex h𝔭 hAplus_le_A₀
 
+/-- **Containment form of complete-affinoid Spa-point existence (Wedhorn 7.45 + 7.51).**
+For a maximal ideal `𝔪` of a complete affinoid ring `(A, A⁺)` with pair of definition `P`,
+there is `v ∈ Spa(A, A⁺)` with `𝔪 ≤ supp(v)`.
+
+* **Open case**: the trivial valuation on `A/𝔪` (Prop 7.51, `exists_mem_spa_supp_eq`)
+  gives `supp(v) = 𝔪`, hence `𝔪 ≤ supp(v)`.
+* **Non-open case**: Lemma 7.45 (`exists_mem_spa_supp_ge_of_nonOpen_prime`) gives
+  `𝔪 ≤ supp(v)` directly.
+
+Unlike the exact form `supp(v) = 𝔪` (which in the non-open case needs the rank-1
+domination theorem), this **containment** form is axiom-clean and is exactly what the
+Nullstellensatz unit criterion 7.52(2) consumes (a non-unit `f` lies in a maximal `𝔪`,
+and `𝔪 ≤ supp(v)` already forces `v(f) = 0`). -/
+theorem exists_spa_point_supp_ge_maxIdeal_of_complete
+    [IsTopologicalRing A] (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
+    [PlusSubring A] (𝔪 : Ideal A) [𝔪.IsMaximal]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
+    ∃ v ∈ Spa A A⁺, 𝔪 ≤ v.supp := by
+  by_cases h𝔪_open : IsOpen (𝔪 : Set A)
+  · obtain ⟨v, hv, hsupp⟩ := exists_mem_spa_supp_eq 𝔪 h𝔪_open
+    exact ⟨v, hv, le_of_eq hsupp.symm⟩
+  · haveI : 𝔪.IsPrime := inferInstance
+    obtain ⟨v, hv, hsupp, _⟩ :=
+      P.exists_mem_spa_supp_ge_of_nonOpen_prime h𝔪_open hAplus_le_A₀
+    exact ⟨v, hv, hsupp⟩
+
+/-- **Wedhorn 7.52(2) for complete affinoid rings (Nullstellensatz unit criterion).**
+For a complete affinoid ring `(A, A⁺)` with pair of definition `P`, an element `f` is a
+unit iff `v(f) ≠ 0` for every `v ∈ Spa(A, A⁺)`.
+
+This is the axiom-clean form: the reverse direction (non-vanishing ⟹ unit) is discharged
+via `exists_spa_point_supp_ge_maxIdeal_of_complete` — a non-unit `f` lies in some maximal
+ideal `𝔪`, which yields a Spa point `v` with `𝔪 ≤ supp(v)`, so `f ∈ supp(v)`, i.e.
+`v(f) = 0`. Only the **containment** `𝔪 ≤ supp(v)` is needed, not the exact support
+equality, so this avoids the rank-1 domination residual. -/
+theorem isUnit_iff_forall_not_vle_zero_of_complete
+    [IsTopologicalRing A] (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
+    [PlusSubring A] (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) (f : A) :
+    IsUnit f ↔ ∀ v ∈ Spa A A⁺, ¬ v.vle f 0 := by
+  refine ⟨fun hu v _ => not_vle_zero_of_isUnit hu v, fun h => ?_⟩
+  by_contra hf
+  obtain ⟨𝔪, h𝔪, hf𝔪⟩ :=
+    Ideal.exists_le_maximal (Ideal.span {f}) (Ideal.span_singleton_ne_top hf)
+  haveI := h𝔪
+  obtain ⟨v, hv, hsupp⟩ := P.exists_spa_point_supp_ge_maxIdeal_of_complete 𝔪 hAplus_le_A₀
+  exact h v hv ((v.mem_supp_iff f).mp (hsupp (hf𝔪 (Ideal.mem_span_singleton_self f))))
+
 end PairOfDefinition

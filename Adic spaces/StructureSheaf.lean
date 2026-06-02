@@ -1731,37 +1731,15 @@ theorem faithfullyFlat_descent_equalizer
     exact h_cocycle
   exact faithfullyFlat_cocycle_kernel_eq_algebraMap_range R S s h
 
-/-- **Sub-lemma — noetherian A₀ for any pair of definition, upstream form.**
-
-Upstream-located variant of `isNoetherianRing_A₀_of_stronglyNoetherianTate` (the
-generic-pair public theorem further down in this file). Sole `sorry`-carrier
-for the Wedhorn 6.18 / Def 6.36 corollary content (strongly-noetherian-Tate ⇒
-ring-of-definition is noetherian for any pair of definition). Both the
-public principal-pair wrapper `_aux_noeth_principalPair_A0_of_stronglyNoetherianTate`
-(directly below) and the public generic wrapper
-`isNoetherianRing_A₀_of_stronglyNoetherianTate` route through this single
-upstream sub-lemma, so the project tracks exactly ONE sorry for this content. -/
-theorem _aux_noeth_A0_generic_of_stronglyNoetherianTate
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A]
-    (P : PairOfDefinition A) :
-    IsNoetherianRing ↥P.A₀ :=
-  sorry
-
-/-- **Sub-lemma — noetherian A₀ for the principal pair, upstream form.**
-
-Identical statement to `isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate`
-(line ~1779 below) but declared upstream so `tateAcyclicity_gluing_via_descent`
-(K.2) below can route through it. Discharged via the generic-pair upstream
-sub-lemma `_aux_noeth_A0_generic_of_stronglyNoetherianTate` applied to
-`(IsTateRing.principalPair A).toPairOfDefinition`. The substantive Wedhorn 6.18
-content lives entirely in the generic upstream sub-lemma. -/
-theorem _aux_noeth_principalPair_A0_of_stronglyNoetherianTate
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] :
-    IsNoetherianRing ↥(IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
-  _aux_noeth_A0_generic_of_stronglyNoetherianTate
-    (A := A) (IsTateRing.principalPair A).toPairOfDefinition
+-- **[P0 / T#57 — DELETED 2026-06-02] two FALSE orphan lemmas removed:**
+-- `_aux_noeth_A0_generic_of_stronglyNoetherianTate` and
+-- `_aux_noeth_principalPair_A0_of_stronglyNoetherianTate` asserted
+-- "strongly-noetherian-Tate ⇒ ring-of-definition A₀ is noetherian", which is the CONVERSE
+-- of Wedhorn Remark 6.37(3) and is FALSE (ℂ_p is strongly-noeth-Tate with a non-noetherian
+-- ring of definition; Wedhorn 8.28(b) holds for it). They were `sorry`-bodied and only served
+-- to smuggle a case-(a) "noetherian ring of definition" hypothesis into case-(b) results.
+-- Their use-sites now carry an honest local `sorry`; the faithful discharge is
+-- `IsStronglyNoetherian A ⇒ IsNoetherianRing A⟨X⟩` (Example 6.38), pursued in P1 (T#58).
 
 /-- **Sub-lemma — gluing with explicit P (Wedhorn 8.28(b) Case (a) profile).**
 
@@ -1805,7 +1783,11 @@ theorem tateAcyclicity_gluing_via_descent
     ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
       restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D :=
   haveI : IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
-    _aux_noeth_principalPair_A0_of_stronglyNoetherianTate (A := A)
+    -- P0/T#57: was `_aux_noeth_principalPair_A0_of_stronglyNoetherianTate` — a FALSE lemma
+    -- (strong-noeth ⇒ noeth-A₀, ℂ_p-counterexample). Deleted; the noeth-A₀ obligation is now an
+    -- honest open `sorry`, to be discharged faithfully via `IsStronglyNoetherian ⇒ A⟨X⟩-noetherian`
+    -- (Example 6.38) in P1/T#58, NOT via a noetherian ring of definition (case (a)).
+    sorry
   tateAcyclicity_gluing_via_descent_with_P (A := A)
     (IsTateRing.principalPair A).toPairOfDefinition C hne f hcompat
 
@@ -1870,7 +1852,11 @@ theorem prop_8_30_flat_clean
   letI : Algebra (presheafValue D) (presheafValue D') :=
     (restrictionMapHom D D' h).toAlgebra
   haveI : IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
-    _aux_noeth_principalPair_A0_of_stronglyNoetherianTate (A := A)
+    -- P0/T#57: was `_aux_noeth_principalPair_A0_of_stronglyNoetherianTate` — a FALSE lemma
+    -- (strong-noeth ⇒ noeth-A₀, ℂ_p-counterexample). Deleted; the noeth-A₀ obligation is now an
+    -- honest open `sorry`, to be discharged faithfully via `IsStronglyNoetherian ⇒ A⟨X⟩-noetherian`
+    -- (Example 6.38) in P1/T#58, NOT via a noetherian ring of definition (case (a)).
+    sorry
   haveI : @IsLocalization.Away (presheafValue D) _
       (D.canonicalMap D'.s) (presheafValue D') _
       (restrictionMapHom D D' h).toAlgebra :=
@@ -1929,7 +1915,11 @@ theorem cor_8_32_clean_sub
     Module.FaithfullyFlat (presheafValue C.base)
       (∀ D : { D // D ∈ C.covers }, presheafValue D.1) :=
   haveI : IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
-    _aux_noeth_principalPair_A0_of_stronglyNoetherianTate (A := A)
+    -- P0/T#57: was `_aux_noeth_principalPair_A0_of_stronglyNoetherianTate` — a FALSE lemma
+    -- (strong-noeth ⇒ noeth-A₀, ℂ_p-counterexample). Deleted; the noeth-A₀ obligation is now an
+    -- honest open `sorry`, to be discharged faithfully via `IsStronglyNoetherian ⇒ A⟨X⟩-noetherian`
+    -- (Example 6.38) in P1/T#58, NOT via a noetherian ring of definition (case (a)).
+    sorry
   cor_8_32_clean_sub_with_P (A := A) (IsTateRing.principalPair A).toPairOfDefinition C
 
 /-- **(Wedhorn Cor 8.32 — Wedhorn-exact)** For strongly noetherian Tate `A`
@@ -2115,51 +2105,14 @@ pair of definition". The lemma name
 in the docstring of `isSheafy_ofStronglyNoetherianTate` (above) but was
 never actually stated. Add it here. -/
 
-/-- **(Wedhorn 6.18 / Def 6.36 corollary)** *"If `A` is strongly noetherian
-Tate, then the ring of definition of the canonical principal pair is
-noetherian."*
-
-This is the converse direction of Wedhorn Def 6.36: by definition `A` is
-strongly noetherian iff `A⟨X₁,…,Xₖ⟩` is noetherian for all `k`; the case
-`k = 0` is `A⟨⟩ = A` being noetherian (which we have from `[IsNoetherianRing A]`).
-The non-trivial implication is `A` noetherian + strongly-noeth ⇒ the ring of
-definition `A₀` (a *subring*, not a quotient) is noetherian.
-
-Discharge plan: route through Wedhorn 6.18 (open mapping theorem for module
-topologies). `A₀ ⊆ A` is open, hence closed, hence (since A complete T2) a
-complete topological ring; pick a topologically nilpotent unit `π` to write
-`A = A₀[1/π]`; noetherianness of `A` then descends to `A₀` via
-`Localization.isNoetherianRing_of_isLocalization` (Mathlib) — but with the
-adic topology twist that requires Wedhorn's Prop 6.18 chain. -/
-theorem isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] :
-    IsNoetherianRing ↥(IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
-  -- Delegate to the upstream named sub-lemma
-  -- `_aux_noeth_principalPair_A0_of_stronglyNoetherianTate` (line ~1490), which has the
-  -- identical signature and carries the substantive obligation (Wedhorn 6.18 / Def 6.36
-  -- corollary). Only one `sorry` (in the aux) now remains for this content; both lemmas
-  -- close simultaneously when the aux is discharged.
-  _aux_noeth_principalPair_A0_of_stronglyNoetherianTate (A := A)
-
-/-- **(Wedhorn 6.18 corollary — generic pair version)** *"If `A` is strongly
-noetherian Tate, then the ring of definition of ANY pair of definition is
-noetherian."*
-
-This is needed for `presheafValue_isTateRing_clean` because the canonical
-construction uses arbitrary pairs.
-
-Discharged via the upstream sub-lemma `_aux_noeth_A0_generic_of_stronglyNoetherianTate`
-(in the first `ValuationSpectrum` block, line ~1490), which is the sole
-`sorry`-carrier for the Wedhorn 6.18 / Def 6.36 content. The substantive
-discharge plan (Wedhorn 6.18 + commensurability of rings of definition) lives
-there. -/
-theorem isNoetherianRing_A₀_of_stronglyNoetherianTate
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A]
-    (P : PairOfDefinition A) :
-    IsNoetherianRing ↥P.A₀ :=
-  _aux_noeth_A0_generic_of_stronglyNoetherianTate (A := A) P
+-- **[P0 / T#57 — DELETED 2026-06-02] two FALSE public wrappers removed:**
+-- `isNoetherianRing_principalPair_A₀_of_stronglyNoetherianTate` and
+-- `isNoetherianRing_A₀_of_stronglyNoetherianTate` asserted "strongly-noetherian-Tate ⇒
+-- ring-of-definition A₀ noetherian" — the CONVERSE of Wedhorn Remark 6.37(3), FALSE for ℂ_p
+-- (strongly-noeth-Tate, non-noetherian ring of definition; Wedhorn 8.28(b) holds for it).
+-- Wedhorn 8.28(b) is an ALTERNATIVE to 8.28(a)'s "noetherian ring of definition" — a case-(b)
+-- result must not require it. The faithful route is `IsStronglyNoetherian A ⇒ IsNoetherianRing
+-- A⟨X⟩` (the Tate ALGEBRA, Example 6.38), never A₀; pursued in P1 (T#58).
 
 omit [PlusSubring A] [IsHuberRing A] in
 /-- **Sub-lemma L5.1.3 — `A⟨X⟩` noetherian inductive step** (named sub-lemma

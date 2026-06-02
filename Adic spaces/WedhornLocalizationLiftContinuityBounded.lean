@@ -94,7 +94,6 @@ theorem localizationLift_isContinuous_locTopology_of_bounded
     (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
       divByS (↑b : A) s ∈ locSubring P T s)
     {v : Spv A} (hv_cont : v.IsContinuous)
-    (hν_A₀ : ∀ a ∈ P.A₀, v.vle a 1)
     (hv_T : ∀ t ∈ T, v.vle t s)
     (hS : Submonoid.powers s ≤ v.supp.primeCompl) :
     letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
@@ -111,12 +110,6 @@ theorem localizationLift_isContinuous_locTopology_of_bounded
   have hcompat : (ν : Valuation A _).Compatible := inferInstance
   -- ν.IsContinuous follows from v.IsContinuous (definitional).
   have hν_cont : ν.IsContinuous := hv_cont
-  -- ν bounded by 1 on A₀: from hν_A₀ via vle_iff_le.
-  have hν_A₀_val : ∀ a ∈ P.A₀, ν a ≤ 1 := by
-    intro a ha
-    have := hν_A₀ a ha
-    have h_eq := (Valuation.Compatible.vle_iff_le (v := ν) a 1).mp this
-    rw [map_one] at h_eq; exact h_eq
   -- ν t ≤ ν s on T: from hv_T via vle_iff_le.
   have hν_T_val : ∀ t ∈ T, ν t ≤ ν s := by
     intro t ht
@@ -129,7 +122,7 @@ theorem localizationLift_isContinuous_locTopology_of_bounded
     rw [← @ValuativeRel.supp_eq_valuation_supp A _ v.toValuativeRel]
     exact hS hx
   exact extendToLocalization_isContinuous_locTopology_of_bounded
-    P T s hopen ν hν_cont hν_A₀_val hν_T_val hS'
+    P T s hopen ν hν_cont hν_T_val hS'
 
 /-- **Full localization lift under bounded hypotheses** (Wedhorn 8.34(ii)
 callsite-ready).
@@ -154,7 +147,6 @@ theorem valuationLocalizationLift_of_bounded
     (hopen : ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
       divByS (↑b : A) s ∈ locSubring P T s)
     {v : Spv A} (hv : v ∈ Spa A A⁺)
-    (hν_A₀ : ∀ a ∈ P.A₀, v.vle a 1)
     (hv_T : ∀ t ∈ T, v.vle t s)
     (hvs : ¬ v.vle s 0) :
     letI : TopologicalSpace (Localization.Away s) := locTopology P T s hopen
@@ -168,7 +160,7 @@ theorem valuationLocalizationLift_of_bounded
   -- Apply the bounded continuity bridge.
   have h_cont : (localizationLift (Submonoid.powers s) (Localization.Away s) v hS).IsContinuous :=
     localizationLift_isContinuous_locTopology_of_bounded P T s hopen
-      hv.1 hν_A₀ hv_T hS
+      hv.1 hv_T hS
   -- Apply valuationLocalizationLift_via_continuity.
   exact valuationLocalizationLift_via_continuity P T s hopen hv hvs h_cont
 

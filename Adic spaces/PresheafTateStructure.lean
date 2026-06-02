@@ -194,8 +194,7 @@ noncomputable def presheafValue_idealOfDef (D₀ : RationalLocData A) :
 
 omit [PlusSubring A] in
 /-- The ideal of definition is finitely generated. -/
-theorem presheafValue_idealOfDef_fg (D₀ : RationalLocData A)
-    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
+theorem presheafValue_idealOfDef_fg (D₀ : RationalLocData A) :
     (presheafValue_idealOfDef D₀).FG :=
   (locIdeal_fg D₀.P D₀.T D₀.s).map _
 
@@ -308,8 +307,7 @@ omit [PlusSubring A] in
 is closed. And `closure_locNhd_sub_idealOfDef_pow` USES this result.
 
 **See also**: `locSubring_subspace_eq_adic`, `AdicCompletionBridge.lean`. -/
-private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
-    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] (n : ℕ) :
+private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A) (n : ℕ) :
     IsClosed (Subtype.val '' ((presheafValue_idealOfDef D₀ ^ n :
       Ideal (presheafValue_ringOfDef D₀)) :
       Set (presheafValue_ringOfDef D₀)) : Set (presheafValue D₀)) := by
@@ -708,7 +706,7 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
         -- hx : πc (eRE x) = 0. By hπc_eq: evalₐ (eAC (eRE x)) = 0.
         have hmem_ker : eAC (eRE x) ∈ RingHom.ker (AdicCompletion.evalₐ J n) := by
           rw [RingHom.mem_ker]; rwa [← hπc_eq]
-        rw [AdicCompletionBridge.ker_evalₐ_eq] at hmem_ker
+        rw [AdicCompletionBridge.ker_evalₐ_eq_of_fg J (locIdeal_fg D₀.P D₀.T D₀.s) n] at hmem_ker
         -- hmem_ker : eAC (eRE x) ∈ Ideal.map algebraMap (J^n)
         -- x = eRE.symm (eAC.symm (eAC (eRE x)))
         -- x = (eRE.symm ∘ eAC.symm)(eAC(eRE(x))):
@@ -769,8 +767,7 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A)
     exact closure_minimal hgJn_sub hclosed
 
 omit [PlusSubring A] in
-private theorem closure_locNhd_sub_idealOfDef_pow (D₀ : RationalLocData A)
-    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] (n : ℕ) :
+private theorem closure_locNhd_sub_idealOfDef_pow (D₀ : RationalLocData A) (n : ℕ) :
     (closure ((D₀.coeRingHom : Localization.Away D₀.s → presheafValue D₀) ''
       (locNhd D₀.P D₀.T D₀.s n : Set (Localization.Away D₀.s)))) ∩
     (presheafValue_ringOfDef D₀ : Set (presheafValue D₀)) ⊆
@@ -804,8 +801,7 @@ The proof uses `isAdic_iff`, reducing to two conditions:
 Both follow from the interleaving of ideal powers with the completion nhds
 basis `closure(coe '' locNhd n)`, established by the helper lemmas
 `idealOfDef_pow_val_sub_closure` and `closure_locNhd_sub_idealOfDef_pow`. -/
-theorem presheafValue_isAdic (D₀ : RationalLocData A)
-    [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
+theorem presheafValue_isAdic (D₀ : RationalLocData A) :
     @IsAdic (presheafValue_ringOfDef D₀) _
       (TopologicalSpace.induced Subtype.val inferInstance)
       (presheafValue_idealOfDef D₀) := by
@@ -870,7 +866,7 @@ the `Nonempty.some` of `presheafValue_pairOfDefinition` which is opaque). -/
 noncomputable def presheafValue_pairOfDefinition_concrete
     [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
+    (D₀ : RationalLocData A) :
     PairOfDefinition (presheafValue D₀) :=
   { A₀ := presheafValue_ringOfDef D₀
     I := presheafValue_idealOfDef D₀
@@ -885,7 +881,7 @@ in iterated-rational continuity proofs. -/
 theorem presheafValue_pairOfDefinition_concrete_A₀
     [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
+    (D₀ : RationalLocData A) :
     (presheafValue_pairOfDefinition_concrete P D₀).A₀ = presheafValue_ringOfDef D₀ :=
   rfl
 
@@ -895,7 +891,7 @@ pair of definition, making it a Huber ring. Combined with
 `presheafValue_topNilUnit`, this gives `IsTateRing`. -/
 theorem presheafValue_pairOfDefinition [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
+    (D₀ : RationalLocData A) :
     Nonempty (PairOfDefinition (presheafValue D₀)) :=
   ⟨presheafValue_pairOfDefinition_concrete P D₀⟩
 
@@ -907,7 +903,7 @@ Combines:
 - `presheafValue_topNilUnit`: a topologically nilpotent unit exists -/
 theorem presheafValue_isTateRing [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
+    (D₀ : RationalLocData A) :
     IsTateRing (presheafValue D₀) :=
   { exists_pairOfDefinition := presheafValue_pairOfDefinition P D₀
     exists_topologicallyNilpotent_unit := presheafValue_topNilUnit D₀ }
@@ -921,7 +917,7 @@ Path α: takes `(P : PairOfDefinition A) [IsNoetherianRing P.A₀]` as explicit
 parameters (per the binding rule `feedback_assume_noeth_A0.md`). -/
 theorem presheafValue_isHuberRing [IsTateRing A] [IsNoetherianRing A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
-    (D₀ : RationalLocData A) [IsNoetherianRing (locSubring D₀.P D₀.T D₀.s)] :
+    (D₀ : RationalLocData A) :
     IsHuberRing (presheafValue D₀) :=
   (presheafValue_isTateRing P D₀).toIsHuberRing
 

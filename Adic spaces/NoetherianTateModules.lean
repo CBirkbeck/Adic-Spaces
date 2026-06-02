@@ -5,6 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 import Mathlib.Topology.Algebra.Module.ModuleTopology
 import Mathlib.Topology.Algebra.Nonarchimedean.Bases
 import Mathlib.Topology.Algebra.Group.OpenMapping
+import Mathlib.Topology.Algebra.IsUniformGroup.Basic
 import Mathlib.RingTheory.Filtration
 import Mathlib.RingTheory.AdicCompletion.Topology
 import Mathlib.Topology.Algebra.Ring.Ideal
@@ -131,6 +132,80 @@ theorem IsModuleTopology.isStrictLinearMap_surjective
   isStrictLinearMap_of_isOpenMap (IsModuleTopology.isOpenMap_of_surjective_of_finite f hf)
 
 end ModuleTopologyFG
+
+/-! ### Completeness of the module topology on finitely generated modules (Prop 6.18(1)) -/
+
+section ModuleTopologyComplete
+
+/-- **Wedhorn Prop 6.18(1), completeness half** (p. 50, `wedhorn.txt:4076`): a finitely
+generated module `M` over a complete, first-countable topological ring `A`, carrying its
+module topology, is complete.
+
+The module topology presents `M` as an *open quotient* image `Aⁿ ↠ M` (Prop 6.18(2),
+`IsModuleTopology.isOpenMap_of_surjective_of_finite`). `Aⁿ` is complete and first countable,
+so the additive quotient `Aⁿ ⧸ ker` is complete (`QuotientAddGroup.completeSpace`), and the
+canonical add-equiv `Aⁿ ⧸ ker ≃+ M` is a uniform isomorphism (continuous + open between
+uniform additive groups), transporting completeness to `M`.
+
+**Faithfulness:** uses `[CompleteSpace A]` + the module topology only — *no* noetherianity of
+`A` and *no* ring of definition `A₀`. This is the Wedhorn-faithful (case-(b)) input to
+Prop 6.18 / Remark 8.29 / Lemma 8.31. -/
+theorem CompleteSpace.of_isModuleTopology_finite
+    {A : Type*} [CommRing A] [UniformSpace A] [IsUniformAddGroup A] [IsTopologicalRing A]
+      [CompleteSpace A] [(uniformity A).IsCountablyGenerated]
+    {M : Type*} [AddCommGroup M] [Module A M] [UniformSpace M] [IsUniformAddGroup M]
+      [IsModuleTopology A M] [Module.Finite A M] :
+    CompleteSpace M := by
+  obtain ⟨n, ν, hν⟩ := Module.Finite.exists_fin' A M
+  haveI : CompleteSpace (Fin n → A) := inferInstance
+  haveI : FirstCountableTopology A := UniformSpace.firstCountableTopology A
+  haveI : FirstCountableTopology (Fin n → A) := inferInstance
+  have hν_cont : Continuous ⇑ν := IsModuleTopology.continuous_linearMap_of_finite ν
+  have hν_open : IsOpenMap ⇑ν := IsModuleTopology.isOpenMap_of_surjective_of_finite ν hν
+  -- Right uniformity on the quotient (mirrors `wedhorn_6_18_exists_canonical_topology`).
+  letI τQ : UniformSpace ((Fin n → A) ⧸ ν.toAddMonoidHom.ker) :=
+    IsTopologicalAddGroup.rightUniformSpace _
+  haveI : @IsUniformAddGroup _ τQ _ := isUniformAddGroup_of_addCommGroup
+  haveI : @CompleteSpace _ τQ :=
+    QuotientAddGroup.completeSpace_right (Fin n → A) ν.toAddMonoidHom.ker
+  -- The canonical add-equiv from the quotient to `M`.
+  let e : ((Fin n → A) ⧸ ν.toAddMonoidHom.ker) ≃+ M :=
+    QuotientAddGroup.quotientKerEquivOfSurjective ν.toAddMonoidHom hν
+  have hq_surj : Function.Surjective ⇑(QuotientAddGroup.mk' ν.toAddMonoidHom.ker) :=
+    QuotientAddGroup.mk'_surjective _
+  have hq_cont : Continuous ⇑(QuotientAddGroup.mk' ν.toAddMonoidHom.ker) :=
+    continuous_quot_mk
+  have he_mk : ⇑e ∘ ⇑(QuotientAddGroup.mk' ν.toAddMonoidHom.ker) = ⇑ν := by ext x; rfl
+  -- `e` is continuous via the quotient universal property.
+  have he_cont : Continuous ⇑e := by
+    rw [continuous_def]
+    intro U hU
+    have : ⇑(QuotientAddGroup.mk' ν.toAddMonoidHom.ker) ⁻¹' (⇑e ⁻¹' U) = ⇑ν ⁻¹' U := by
+      rw [← Set.preimage_comp, he_mk]
+    have hopen : IsOpen (⇑(QuotientAddGroup.mk' ν.toAddMonoidHom.ker) ⁻¹' (⇑e ⁻¹' U)) := by
+      rw [this]; exact hU.preimage hν_cont
+    exact (QuotientAddGroup.isOpenQuotientMap_mk
+      (N := ν.toAddMonoidHom.ker)).isQuotientMap.isOpen_preimage.mp hopen
+  -- `e` is open: `e '' U = ν '' (mk ⁻¹' U)`.
+  have he_open : IsOpenMap ⇑e := by
+    intro U hU
+    have himg : ⇑e '' U = ⇑ν '' (⇑(QuotientAddGroup.mk' ν.toAddMonoidHom.ker) ⁻¹' U) := by
+      rw [← he_mk, Set.image_comp, Set.image_preimage_eq U hq_surj]
+    rw [himg]
+    exact hν_open _ (hU.preimage hq_cont)
+  -- `e.symm` is continuous (continuous + open bijection).
+  have he_symm_cont : Continuous ⇑e.symm := by
+    have := (e.toEquiv.toHomeomorphOfContinuousOpen he_cont he_open).symm.continuous
+    simpa using this
+  -- Package as a uniform isomorphism and transport completeness.
+  let ue : ((Fin n → A) ⧸ ν.toAddMonoidHom.ker) ≃ᵤ M :=
+    { toEquiv := e.toEquiv
+      uniformContinuous_toFun := uniformContinuous_addMonoidHom_of_continuous (f := e) he_cont
+      uniformContinuous_invFun :=
+        uniformContinuous_addMonoidHom_of_continuous (f := e.symm) he_symm_cont }
+  exact ue.completeSpace_iff.mp inferInstance
+
+end ModuleTopologyComplete
 
 /-! ### Open mapping theorem for complete metrizable topological groups
 
