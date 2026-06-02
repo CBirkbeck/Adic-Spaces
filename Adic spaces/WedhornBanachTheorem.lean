@@ -981,22 +981,24 @@ theorem _sub_lemma_L4_2_continuous_via_OMT
 
 **Lean statement**: the rangeFactorization of f is open.
 
-**Discharge route**:
-- f continuous by L4.2.
-- Image f(M) is fg submodule of N (since M fg + linear map), hence closed by
-  Wedhorn 6.17 forward direction (or directly L3.1b).
-- Image with subspace topology = quotient topology by Banach OMT (Layer 2,
-  applied to the rangeFactorization which is surjective onto its image).
+**Discharge route** (faithful, σ-compact-free):
+- `f` is continuous (BGR §3.7.3/2 inlined via the faithful OMT
+  `wedhorn_6_16_of_topNilpUnit`, using `[IsTateRing A]`'s topologically nilpotent unit).
+- Image `f(M)` is fg (image of fg under a linear map); its topological closure is a
+  submodule of the noetherian `A`-module `N` (`[IsNoetherianRing A]` + `Module.Finite A N`),
+  hence module-finite, hence `f(M)` is closed by `fg_topologicalClosure_isClosed` (BGR §3.7.2/1).
+- Image with subspace topology = quotient topology by the faithful Banach OMT
+  `wedhorn_6_16_of_topNilpUnit`, applied to `f.rangeRestrict` (surjective onto its image).
 
-**Difficulty**: MEDIUM. ~50 lines. -/
+**Difficulty**: MEDIUM. ~70 lines. -/
 theorem _sub_lemma_L4_3_strict_via_closed_image
     {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
       [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
-      [SigmaCompactSpace A] [IsNoetherianRing A]
+      [IsTateRing A] [IsLinearTopology A A] [IsNoetherianRing A]
     {M : Type*} [AddCommGroup M] [Module A M] [Module.Finite A M]
       [UniformSpace M] [IsUniformAddGroup M]
       [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
-      [SigmaCompactSpace M] [ContinuousSMul A M]
+      [ContinuousSMul A M]
     {N : Type*} [AddCommGroup N] [Module A N] [Module.Finite A N]
       [UniformSpace N] [IsUniformAddGroup N]
       [CompleteSpace N] [(uniformity N).IsCountablyGenerated] [T2Space N]
@@ -1004,18 +1006,27 @@ theorem _sub_lemma_L4_3_strict_via_closed_image
     (f : M →ₗ[A] N) :
     IsOpenMap (Set.rangeFactorization f) := by
   -- BGR §3.7.3/Cor 5: f.range is fg (image of fg under linear map), so closed in
-  -- N by L3.1b. Then ↥(f.range) inherits a complete T2 cg uag subspace structure,
-  -- and wedhorn_6_16 applied to f.rangeRestrict (= f viewed as map to its range)
-  -- gives openness. Set.rangeFactorization = f.rangeRestrict up to type identity.
-  --
+  -- N by BGR §3.7.2/1 (`fg_topologicalClosure_isClosed`). Then ↥(f.range) inherits
+  -- a complete T2 cg uag subspace structure, and the faithful OMT
+  -- `wedhorn_6_16_of_topNilpUnit` applied to f.rangeRestrict (= f viewed as map to
+  -- its range) gives openness. Set.rangeFactorization = f.rangeRestrict up to type
+  -- identity.
+  classical
+  -- A topologically nilpotent unit `ϖ` of `A` (Tate ring), reused throughout.
+  obtain ⟨ϖ, hϖ_nil⟩ := ‹IsTateRing A›.exists_topologicallyNilpotent_unit
   -- Step 1: f.range as Submodule A N is fg (image of ⊤ under f, which is fg).
-  have htop_fg : (⊤ : Submodule A M).FG := Module.Finite.fg_top
   have hrange_fg : (LinearMap.range f).FG := by
     rw [LinearMap.range_eq_map]
-    exact htop_fg.map f
-  -- Step 2: f.range is closed via L3.1b.
+    exact Module.Finite.fg_top.map f
+  -- Step 2: f.range is closed via BGR §3.7.2/1 (`fg_topologicalClosure_isClosed`).
+  -- Its topological closure is a submodule of the noetherian module `N`
+  -- (`N` finite over the noetherian ring `A`), hence finitely generated, hence
+  -- module-finite over `A`.
+  have hclos_fin : Module.Finite A ↥((LinearMap.range f).topologicalClosure) :=
+    (Module.Finite.iff_fg (N := (LinearMap.range f).topologicalClosure)).mpr
+      (IsNoetherian.noetherian (LinearMap.range f).topologicalClosure)
   have hrange_closed : IsClosed (LinearMap.range f : Set N) :=
-    _sub_lemma_L3_1b_fg_submodule_closed (LinearMap.range f) hrange_fg
+    fg_topologicalClosure_isClosed (LinearMap.range f) hclos_fin
   -- Step 3: subspace typeclass setup on ↥f.range.
   haveI : IsUniformAddGroup ↥(LinearMap.range f) :=
     show IsUniformAddGroup ↥(LinearMap.range f).toAddSubgroup from inferInstance
@@ -1040,18 +1051,46 @@ theorem _sub_lemma_L4_3_strict_via_closed_image
     refine Topology.IsInducing.subtypeVal.continuous_iff.mpr ?_
     exact continuous_smul.comp ((continuous_fst).prodMk
       ((continuous_subtype_val.comp continuous_snd)))
-  -- Now apply wedhorn_6_16 to f.rangeRestrict.
-  have hf_rangeRestrict_cont : Continuous (f.rangeRestrict : M →ₗ[A] LinearMap.range f) := by
-    -- f.rangeRestrict composed with Subtype.val = f, so by inducing, f.rangeRestrict
-    -- continuous iff f continuous.
-    refine Topology.IsInducing.subtypeVal.continuous_iff.mpr ?_
-    -- Subtype.val ∘ f.rangeRestrict = f (definitionally)
-    exact _sub_lemma_L4_2_continuous_via_OMT f
+  -- Step 4a: `f` is continuous (BGR §3.7.3/2, inlined with the faithful OMT
+  -- `wedhorn_6_16_of_topNilpUnit`, since the σ-compact `_sub_lemma_L4_2_continuous_via_OMT`
+  -- is unavailable here). Pick a finite generating set `s : Fin n → M`, build the
+  -- surjection `ν : (Fin n → A) → M`, which is open by the faithful OMT, hence a
+  -- quotient map; then `f = (f ∘ ν) ∘ ν⁻¹` is continuous.
+  have hf_cont : Continuous f := by
+    obtain ⟨n, s, hs⟩ := Module.Finite.exists_fin (R := A) (M := M)
+    let ν : (Fin n → A) →ₗ[A] M :=
+      { toFun := fun a => ∑ i, a i • s i
+        map_add' := fun x y => by
+          simp only [Pi.add_apply, add_smul, Finset.sum_add_distrib]
+        map_smul' := fun a x => by
+          simp only [Pi.smul_apply, smul_eq_mul, RingHom.id_apply, Finset.smul_sum,
+            smul_smul] }
+    have hν_cont : Continuous ν := by
+      change Continuous fun a : (Fin n → A) => ∑ i, a i • s i
+      exact continuous_finset_sum _ fun i _ => (continuous_apply i).smul continuous_const
+    have hν_surj : Function.Surjective ν := by
+      intro m
+      have hm : m ∈ Submodule.span A (Set.range s) := hs ▸ Submodule.mem_top
+      rw [Submodule.mem_span_range_iff_exists_fun] at hm
+      obtain ⟨c, hc⟩ := hm
+      exact ⟨c, hc⟩
+    have hν_open : IsOpenMap ν :=
+      wedhorn_6_16_of_topNilpUnit hϖ_nil ϖ.isUnit ν hν_cont hν_surj
+    have hν_quot : Topology.IsQuotientMap ν := hν_open.isQuotientMap hν_cont hν_surj
+    have hfν_cont : Continuous (f ∘ ν) := by
+      change Continuous fun a : (Fin n → A) => f (∑ i, a i • s i)
+      simp only [map_sum, map_smul]
+      exact continuous_finset_sum _ fun i _ => (continuous_apply i).smul continuous_const
+    exact hν_quot.continuous_iff.mpr hfν_cont
+  -- Step 4b: `f.rangeRestrict` is continuous (Subtype.val ∘ f.rangeRestrict = f).
+  have hf_rangeRestrict_cont : Continuous (f.rangeRestrict : M →ₗ[A] LinearMap.range f) :=
+    Topology.IsInducing.subtypeVal.continuous_iff.mpr hf_cont
   have hf_rangeRestrict_surj : Function.Surjective f.rangeRestrict :=
     LinearMap.surjective_rangeRestrict f
-  -- wedhorn_6_16 gives IsOpenMap (f.rangeRestrict).
+  -- Step 4c: the faithful OMT gives IsOpenMap (f.rangeRestrict).
   have hf_rangeRestrict_open : IsOpenMap f.rangeRestrict :=
-    wedhorn_6_16 f.rangeRestrict hf_rangeRestrict_cont hf_rangeRestrict_surj
+    wedhorn_6_16_of_topNilpUnit hϖ_nil ϖ.isUnit f.rangeRestrict
+      hf_rangeRestrict_cont hf_rangeRestrict_surj
   -- Convert: Set.rangeFactorization f and f.rangeRestrict are defeq as functions
   -- M → ↥(LinearMap.range f) (via Set.range f = LinearMap.range f as Set N).
   convert hf_rangeRestrict_open using 1
@@ -1234,11 +1273,11 @@ quotient topology), equivalently, `f : M → f(M)` is open.
 theorem wedhorn_6_18_open_onto_image
     {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
       [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
-      [SigmaCompactSpace A] [IsNoetherianRing A]
+      [IsTateRing A] [IsLinearTopology A A] [IsNoetherianRing A]
     {M : Type*} [AddCommGroup M] [Module A M] [Module.Finite A M]
       [UniformSpace M] [IsUniformAddGroup M]
       [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
-      [SigmaCompactSpace M] [ContinuousSMul A M]
+      [ContinuousSMul A M]
     {N : Type*} [AddCommGroup N] [Module A N] [Module.Finite A N]
       [UniformSpace N] [IsUniformAddGroup N]
       [CompleteSpace N] [(uniformity N).IsCountablyGenerated] [T2Space N]
