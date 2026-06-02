@@ -909,3 +909,58 @@ it uses OMT + Nakayama, both available.)
 4. `restrictedModule_map_exact`: the ⟨X⟩ functor preserves strict-exact (diagonal lift, template = `restrictedModule_map_surjective`, now with strictness from (3)).
 5. `muMap_injective`: 5-lemma (`muMap_naturality` ✓ + free-case + (4)).
 6. `lemma_8_31` flatness ⇒ `prop_8_30` ⇒ `cor_8_32`.
+
+### EXECUTION 2026-06-02 (cont.) — matrix Nakayama det sub-lemma: DRAFTED, needs relocation to Bounded.lean
+
+The matrix Nakayama assembly `IsTopologicallyNilpotent.isUnit_one_sub_matrix` is committed (`6f92ed9`,
+GeometricSeries.lean, green) reducing to `one_sub_det_one_sub_matrix` (det(1-B)=1-top-nilp). The clean
+proof of that sub-lemma uses the **A°-quotient** route, which needs `A° = powerBoundedSubring.toSubring`
+(in `Bounded.lean`). **Placement constraint:** `Bounded` imports `GeometricSeries`, so the sub-lemma
+cannot live in `GeometricSeries` — it must move to `Bounded.lean` (or later), in a NEW section with a
+`[UniformSpace A]`-based variable block (NOT `[TopologicalSpace A]`, to avoid the UniformSpace↔TopologicalSpace
+diamond), reopening `namespace TopologicalRing` so `powerBoundedSubring.toSubring` resolves.
+
+**Paste-ready drafted proof** (verified to elaborate modulo the `Unknown identifier powerBoundedSubring.toSubring`
+import issue; the one name to confirm by LSP is `RingHom.map_det`):
+
+```lean
+-- in Bounded.lean (new section, [UniformSpace A][IsUniformAddGroup A][CompleteSpace A][T2Space A]
+--   [IsTopologicalRing A][NonarchimedeanAddGroup A][IsLinearTopology A A], inside namespace TopologicalRing)
+def topNilpIdeal : Ideal (powerBoundedSubring.toSubring A) where
+  carrier := {x | IsTopologicallyNilpotent (x : A)}
+  zero_mem' := by show IsTopologicallyNilpotent ((0 : powerBoundedSubring.toSubring A) : A);
+    simpa using isTopologicallyNilpotent_zero
+  add_mem' := by intro x y hx hy;
+    show IsTopologicallyNilpotent ((x + y : powerBoundedSubring.toSubring A) : A)
+    rw [Subring.coe_add]; exact hx.add hy
+  smul_mem' := by intro c x hx;
+    show IsTopologicallyNilpotent ((c • x : powerBoundedSubring.toSubring A) : A)
+    rw [smul_eq_mul, Subring.coe_mul]
+    exact (c.2 : IsPowerBounded (c : A)).isTopologicallyNilpotent_mul hx
+
+theorem one_sub_det_one_sub_matrix {n : Type*} [Fintype n] [DecidableEq n] (B : Matrix n n A)
+    (hB : ∀ i j, IsTopologicallyNilpotent (B i j)) : IsTopologicallyNilpotent (1 - (1 - B).det) := by
+  let B' : Matrix n n (powerBoundedSubring.toSubring A) := fun i j => ⟨B i j, (hB i j).isPowerBounded⟩
+  have hB'_mem : ∀ i j, B' i j ∈ topNilpIdeal := fun i j => hB i j
+  have hquot : Ideal.Quotient.mk topNilpIdeal (1 - B').det = 1 := by
+    rw [← RingHom.map_det]
+    have h1 : (1 - B').map (Ideal.Quotient.mk topNilpIdeal) = 1 := by
+      ext i j; rw [Matrix.map_apply, Matrix.sub_apply, map_sub, Matrix.one_apply, Matrix.one_apply]
+      rw [(Ideal.Quotient.eq_zero_iff_mem).2 (hB'_mem i j)]; split_ifs <;> simp
+    rw [h1, Matrix.det_one]
+  have hmem : IsTopologicallyNilpotent (((1 - B').det - 1 : powerBoundedSubring.toSubring A) : A) := by
+    have : ((1 - B').det - 1 : powerBoundedSubring.toSubring A) ∈ topNilpIdeal := by
+      rw [← Ideal.Quotient.eq_zero_iff_mem, map_sub, hquot, map_one, sub_self]
+    exact this
+  have hdet_eq : (1 - B).det = ((1 - B').det : A) := by
+    rw [← RingHom.map_det (powerBoundedSubring.toSubring A).subtype]
+    congr 1; ext i j; simp [B', Matrix.map_apply, Matrix.sub_apply, Matrix.one_apply]
+  rw [hdet_eq, show (1 : A) - ((1 - B').det : A)
+      = -(((1 - B').det - 1 : powerBoundedSubring.toSubring A) : A) by push_cast; ring]
+  exact hmem.neg
+```
+
+Then `isUnit_one_sub_matrix` moves with it (its proof is unchanged). Net: this DISCHARGES the only sorry
+of the matrix Nakayama. Ingredients all confirmed present: `IsTopologicallyNilpotent.add` (mathlib,
+needs `[IsLinearTopology A A]`), `IsPowerBounded.isTopologicallyNilpotent_mul`, `IsTopologicallyNilpotent.isPowerBounded`,
+`powerBoundedSubring.toSubring`, `Matrix.isUnit_iff_isUnit_det`, scalar `isUnit_one_sub`.

@@ -78,7 +78,9 @@ form is what BGR's Prop 1 actually uses. -/
 Expanding `det (1 - B)`, the identity permutation contributes `∏ᵢ (1 - Bᵢᵢ) = 1 - (top. nilp.)`
 and every other permutation contributes a product containing an off-diagonal `-Bᵢⱼ` factor
 (topologically nilpotent); topological nilpotence is closed under the relevant products and finite
-sums. -/
+sums. (The clean discharge is over the power-bounded subring `A°` — where the topologically
+nilpotent elements form an ideal — so this lemma is relocated to `Bounded.lean` where `A°` is in
+scope; see the `decomposition.md` execution log.) -/
 theorem IsTopologicallyNilpotent.one_sub_det_one_sub_matrix
     {n : Type*} [Fintype n] [DecidableEq n] (B : Matrix n n A)
     (hB : ∀ i j, IsTopologicallyNilpotent (B i j)) :
