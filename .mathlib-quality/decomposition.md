@@ -845,3 +845,29 @@ generalization to a f.g. submodule `N ⊆ Aᵐ` is:
 
 This is a well-scoped ~150-LOC focused development with ONE genuine new piece (module-adic basis on
 `Aᵐ`); everything else is template-adaptation or available infrastructure. No fundamental wall.
+
+### ★ CORRECTION (same session) — the Krull route is NOT faithful for case (b); the gap is genuinely BGR §3.7.2/1
+
+The execution-log step-1 above ("Krull on Aᵐ/N, one new piece = module-adic basis") is **WRONG for
+case (b)**. Verified:
+- **Krull route fails over `A` (the Tate ring):** `isClosed_ideal_of_adicComplete_noetherian` needs
+  `IsAdic J` for `J : Ideal A`. A Tate ring's topology is **f-adic, NOT `IsAdic` as an ideal of `A`**
+  (a pseudo-uniformizer `s ∈ I` is a *unit* of `A`, so any open ideal `= A`). So `IsAdic` is false for `A`.
+- **Krull route over `A₀` (ring of definition) = case (a):** `A₀` IS `IsAdic` (`PairOfDefinition.isAdic`),
+  but Krull needs `[IsNoetherianRing A₀]` — the noeth-ring-of-definition hypothesis, **ℂₚ-false**.
+- **Naive topological Nakayama over `A` fails:** no proper open ideal of `A` is `⊆ rad(A)` (open ideals
+  contain a unit pseudo-uniformizer ⇒ `= A`). Matches `[[project_faithful_direction_residual]]`
+  ("uncompleted-ring Jacobson FAILS").
+
+**Therefore the faithful (case-b, ℂₚ-valid) route is genuinely BGR §3.7.2/1**: the non-archimedean
+Banach OMT + **lattice-Nakayama over the power-bounded subring `A°`** (`A°` complete, `A°° ⊆ rad(A°)`,
+but `A°` **need not be noetherian** — for ℂₚ, `A° = O_{ℂₚ}` is a non-noetherian rank-1 valuation ring).
+BGR's Prop 1 transfers finiteness-over-`A` to the lattice via the OMT-open image + density + Nakayama
+over `A°` (no `A°`-noetherianity). This is substantial non-archimedean functional analysis that mathlib
+lacks and the project has long-parked (`BanachOMT.lean`, `WedhornBanachTheorem.lean` L3 chain — the
+persistent/partly-false sorries are exactly this). It is a multi-week formalization, not a beastmode
+session unit.
+
+**Proven this session, reducing the keystone to exactly this crux:** `CompleteSpace.of_isModuleTopology_finite`
+(Prop 6.18(1) completeness), `muMap_naturality`. Remaining for `muMap_injective`: the free-case μ-iso
+(computational) + `restrictedModule_map_exact` (needs `u : Aⁿ → Aᵐ` strict = the BGR closed-submodule fact).
