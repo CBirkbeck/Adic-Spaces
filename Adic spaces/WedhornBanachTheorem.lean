@@ -505,7 +505,7 @@ nbhd of 0; density of `N` in `N̄` writes each generator `yᵥ = mᵥ + Σ ǎᵥ
 theorem fg_topologicalClosure_isClosed
     {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
       [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
-      [IsTateRing A] [IsLinearTopology A A]
+      [IsTateRing A]
     {M : Type*} [AddCommGroup M] [Module A M] [UniformSpace M] [IsUniformAddGroup M]
       [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M] [ContinuousSMul A M]
     (N : Submodule A M) (hfin : Module.Finite A N.topologicalClosure) :
@@ -994,7 +994,7 @@ theorem _sub_lemma_L4_2_continuous_via_OMT
 theorem _sub_lemma_L4_3_strict_via_closed_image
     {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
       [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
-      [IsTateRing A] [IsLinearTopology A A] [IsNoetherianRing A]
+      [IsTateRing A] [IsNoetherianRing A]
     {M : Type*} [AddCommGroup M] [Module A M] [Module.Finite A M]
       [UniformSpace M] [IsUniformAddGroup M]
       [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]
@@ -1273,7 +1273,7 @@ quotient topology), equivalently, `f : M → f(M)` is open.
 theorem wedhorn_6_18_open_onto_image
     {A : Type u} [CommRing A] [UniformSpace A] [IsUniformAddGroup A]
       [CompleteSpace A] [(uniformity A).IsCountablyGenerated] [T2Space A]
-      [IsTateRing A] [IsLinearTopology A A] [IsNoetherianRing A]
+      [IsTateRing A] [IsNoetherianRing A]
     {M : Type*} [AddCommGroup M] [Module A M] [Module.Finite A M]
       [UniformSpace M] [IsUniformAddGroup M]
       [CompleteSpace M] [(uniformity M).IsCountablyGenerated] [T2Space M]

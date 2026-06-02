@@ -1682,7 +1682,7 @@ open surjection (`wedhorn_6_18_open_onto_image`), so the surjection-lifting lemm
 `c.val s ∈ ker p = range u` converge to `0`) to `b ∈ Aⁿ⟨X⟩` with `u⟨X⟩ b = c`. -/
 private theorem muMap_middle_exact
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A]
-    [IsTateRing A] [IsLinearTopology A A] [IsNoetherianRing A]
+    [IsTateRing A] [IsNoetherianRing A]
     {M : Type u} [AddCommGroup M] [Module A M]
     [TopologicalSpace M] [IsTopologicalAddGroup M]
     [ContinuousSMul A M] [ContinuousConstSMul A M] [T2Space M]
@@ -1711,7 +1711,7 @@ private theorem muMap_middle_exact
   -- open map.  This is exactly `ValuationSpectrum.wedhorn_6_18_open_onto_image u`
   -- (axiom-clean) in `WedhornBanachTheorem.lean`, which `TateAlgebra.lean` does not import;
   -- it discharges to that one lemma (a `UniformSpace A := rightUniformSpace A` bundle with
-  -- `[CompleteSpace A] [IsTateRing A] [IsLinearTopology A A]`, and `range u` closed via
+  -- `[CompleteSpace A] [IsTateRing A] [IsNoetherianRing A]`, and `range u` closed via
   -- `fg_topologicalClosure_isClosed` since it is fg over the noetherian Tate ring).
   have hu'_open : IsOpenMap (u.rangeRestrict) := by
     letI uA : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A
@@ -1769,8 +1769,11 @@ exact sequence `Aᵐ⟨X⟩ → Aⁿ⟨X⟩ → M⟨X⟩ → 0`; the 5-lemma yie
 *open-onto-image* (strictness) half is the Banach open mapping theorem and therefore needs
 `A` complete and Tate. Accordingly this declaration carries exactly Wedhorn's bundle:
 `[CompleteSpace A]` (w.r.t. the right uniformity of the topological add group),
-`[IsTateRing A]`, `[IsLinearTopology A A]`, `[IsNoetherianRing A]` — the same bundle on the
+`[IsTateRing A]`, `[IsNoetherianRing A]` — the same bundle on the
 binder of `muMap_middle_exact` and of `ValuationSpectrum.wedhorn_6_18_open_onto_image`.
+(No `[IsLinearTopology A A]`: it is unsatisfiable for a Tate ring, and the `A°`-layer
+obligations it used to feed are now discharged via `[IsHuberRing A]`'s
+`NonarchimedeanAddGroup` instance.)
 These are **not** work-deferral hypotheses (the open-mapping work is fully discharged by
 `muMap_middle_exact`/`wedhorn_6_18_open_onto_image`); they are the literal premises of
 Remark 8.29, without which Prop 6.18(2) — hence the middle-exactness step — is unavailable.
@@ -1782,7 +1785,7 @@ Remark 8.29, without which Prop 6.18(2) — hence the middle-exactness step — 
 `.mathlib-quality/decomposition.md` §LEAF A1 (2026-06-02 authoritative decompose). -/
 theorem muMap_injective
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A]
-    [IsTateRing A] [IsLinearTopology A A] [IsNoetherianRing A]
+    [IsTateRing A] [IsNoetherianRing A]
     {M : Type u} [AddCommGroup M] [Module A M]
     [TopologicalSpace M] [IsTopologicalAddGroup M]
     [ContinuousSMul A M] [ContinuousConstSMul A M]

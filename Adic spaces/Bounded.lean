@@ -57,6 +57,21 @@ elements** for topological rings, following §5 of [Wedhorn, *Adic Spaces*].
 
 open Filter Topology Pointwise Polynomial
 
+-- INFRASTRUCTURE (not in Wedhorn): a linear topology (open *ideals* form a neighbourhood basis
+-- at `0`) is in particular non-archimedean (open *additive subgroups* form a neighbourhood basis),
+-- since every ideal is an additive subgroup. This lets any genuine `[IsLinearTopology A A]`
+-- consumer reuse the non-archimedean `A°` API (`powerBoundedSubring.toSubring`,
+-- `isPowerBounded_add`) without restating hypotheses. Kept as a plain lemma (NOT a global
+-- `instance`) so it does not enlarge typeclass search for `NonarchimedeanAddGroup` elsewhere;
+-- supply it locally with `haveI := IsLinearTopology.nonarchimedeanAddGroup`. -/
+theorem IsLinearTopology.nonarchimedeanAddGroup
+    {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A] [IsLinearTopology A A] :
+    NonarchimedeanAddGroup A where
+  is_nonarchimedean := by
+    intro U hU
+    obtain ⟨I, hIopen, hIU⟩ := (IsLinearTopology.hasBasis_open_ideal (R := A)).mem_iff.mp hU
+    exact ⟨⟨I.toAddSubgroup, hIopen⟩, hIU⟩
+
 namespace TopologicalRing
 
 /-! ### Bounded subsets -/
@@ -154,25 +169,27 @@ theorem isPowerBounded_mul {a b : A}
   simp only [mul_pow]; exact Set.mul_mem_mul ⟨n, rfl⟩ ⟨n, rfl⟩
 
 /-- Sum of two power-bounded elements is power-bounded in a nonarchimedean ring (Prop 5.30(3)). -/
-theorem isPowerBounded_add [IsTopologicalRing A] [IsLinearTopology A A]
+theorem isPowerBounded_add [IsTopologicalRing A] [NonarchimedeanAddGroup A]
     {a b : A} (ha : IsPowerBounded a) (hb : IsPowerBounded b) :
     IsPowerBounded (a + b) := by
+  -- Wedhorn Prop 5.30: the non-archimedean (open additive subgroup) structure, NOT a linear
+  -- (open-ideal) topology — Tate rings have no proper open ideals, so `IsLinearTopology A A`
+  -- is false for them; an open additive subgroup `G` absorbs both `∑` and ℕ-multiplication.
   have hS := ha.mul hb
   intro U hU
-  obtain ⟨J, hJ, hJU⟩ := (IsLinearTopology.hasBasis_open_ideal (R := A)).mem_iff.mp hU
-  obtain ⟨V, hV, hSV⟩ := hS (J : Set A) (hJ.mem_nhds J.zero_mem)
+  obtain ⟨G, hGU⟩ := NonarchimedeanAddGroup.is_nonarchimedean U hU
+  obtain ⟨V, hV, hSV⟩ := hS (G : Set A) (G.isOpen.mem_nhds G.zero_mem')
   refine ⟨V, hV, ?_⟩
   rintro _ ⟨_, ⟨n, rfl⟩, v, hv, rfl⟩
-  apply hJU; change (a + b) ^ n * v ∈ _; rw [add_pow, Finset.sum_mul]
-  refine Submodule.sum_mem J fun m _ ↦ ?_
+  apply hGU; change (a + b) ^ n * v ∈ (G : Set A); rw [add_pow, Finset.sum_mul]
+  refine sum_mem fun m _ ↦ ?_
   rw [show a ^ m * b ^ (n - m) * ↑(n.choose m) * v =
-      ↑(n.choose m) * (a ^ m * b ^ (n - m) * v) by ring]
-  exact Ideal.mul_mem_left J _
-    (hSV (Set.mul_mem_mul (Set.mul_mem_mul ⟨m, rfl⟩ ⟨n - m, rfl⟩) hv))
+      ↑(n.choose m) * (a ^ m * b ^ (n - m) * v) by ring, ← nsmul_eq_mul]
+  exact nsmul_mem (hSV (Set.mul_mem_mul (Set.mul_mem_mul ⟨m, rfl⟩ ⟨n - m, rfl⟩) hv)) _
 
 /-- `A°` is a subring in a nonarchimedean topological ring (Prop 5.30(3)). -/
 def powerBoundedSubring.toSubring (A : Type*) [CommRing A] [TopologicalSpace A]
-    [IsTopologicalRing A] [IsLinearTopology A A] : Subring A where
+    [IsTopologicalRing A] [NonarchimedeanAddGroup A] : Subring A where
   carrier := powerBoundedSubring A
   mul_mem' := isPowerBounded_mul
   one_mem' := isPowerBounded_one
@@ -204,6 +221,54 @@ theorem IsTopologicallyNilpotent.isPowerBounded [IsTopologicalRing A] {a : A}
   · exact hV_sub ⟨n, hn⟩
       (Set.mem_mul.mpr ⟨a ^ n, rfl, c, Set.mem_iInter.mp hc.2 ⟨n, hn⟩, rfl⟩)
   · exact hprod (Set.mk_mem_prod (hN n (by omega)) hc.1)
+
+/-- Sum of two topologically nilpotent elements is topologically nilpotent in a
+nonarchimedean ring (Wedhorn Remark 5.28(5) + Prop 5.30(1), the two-case binomial bound).
+
+This is the non-archimedean replacement for mathlib's `IsTopologicallyNilpotent.add`, which is
+stated with `[IsLinearTopology R R]` — the wrong hypothesis for Tate rings (a topologically
+nilpotent unit forces every open ideal to be `⊤`, so `IsLinearTopology` is unsatisfiable). The
+open *additive subgroup* basis supplied by `NonarchimedeanAddGroup` absorbs both the binomial
+sum and the `ℕ`-multiplication, which is all the argument needs. -/
+theorem IsTopologicallyNilpotent.add_of_nonarch [IsTopologicalRing A] [NonarchimedeanAddGroup A]
+    {a b : A} (ha : IsTopologicallyNilpotent a) (hb : IsTopologicallyNilpotent b) :
+    IsTopologicallyNilpotent (a + b) := by
+  -- `IsTopologicallyNilpotent x = Tendsto (x ^ ·) atTop (𝓝 0)`.
+  have toPB : ∀ {x : A}, IsTopologicallyNilpotent x → IsPowerBounded x :=
+    IsTopologicallyNilpotent.isPowerBounded
+  have ha_pb : IsPowerBounded a := toPB ha
+  have hb_pb : IsPowerBounded b := toPB hb
+  rw [IsTopologicallyNilpotent, Filter.tendsto_def]
+  intro U hU
+  -- Shrink `U` to an open additive subgroup `G ⊆ U`.
+  obtain ⟨G, hGU⟩ := NonarchimedeanAddGroup.is_nonarchimedean U hU
+  -- `a` power-bounded at `G`: `range (a ^ ·) * Wa ⊆ G`; `b ^ j ∈ Wa` for `j ≥ Mb`.
+  obtain ⟨Wa, hWa, hWa_sub⟩ := ha_pb (G : Set A) (G.isOpen.mem_nhds G.zero_mem')
+  obtain ⟨Mb, hMb⟩ :=
+    (Filter.Tendsto.eventually_mem hb hWa).exists_forall_of_atTop
+  -- `b` power-bounded at `G`: `range (b ^ ·) * Wb ⊆ G`; `a ^ k ∈ Wb` for `k ≥ Ma`.
+  obtain ⟨Wb, hWb, hWb_sub⟩ := hb_pb (G : Set A) (G.isOpen.mem_nhds G.zero_mem')
+  obtain ⟨Ma, hMa⟩ :=
+    (Filter.Tendsto.eventually_mem ha hWb).exists_forall_of_atTop
+  -- For `n ≥ Ma + Mb`, every binomial term `aᵏ b^(n-k)` lands in `G`.
+  rw [Filter.mem_atTop_sets]
+  refine ⟨Ma + Mb, fun n hn ↦ ?_⟩
+  rw [Set.mem_preimage]
+  apply hGU
+  show (a + b) ^ n ∈ (G : Set A)
+  rw [add_pow]
+  refine sum_mem fun k hk ↦ ?_
+  rw [mul_comm, ← nsmul_eq_mul]
+  refine nsmul_mem ?_ _
+  rw [Finset.mem_range] at hk
+  -- Either `n - k ≥ Mb` (use `a` power-bounded) or `k ≥ Ma` (use `b` power-bounded).
+  by_cases hcase : Mb ≤ n - k
+  · -- `aᵏ · b^(n-k) ∈ range (a ^ ·) * Wa ⊆ G`.
+    exact hWa_sub (Set.mul_mem_mul ⟨k, rfl⟩ (hMb (n - k) hcase))
+  · -- Then `k ≥ Ma`, so `aᵏ · b^(n-k) = b^(n-k) · aᵏ ∈ range (b ^ ·) * Wb ⊆ G`.
+    have hk_ge : Ma ≤ k := by omega
+    rw [mul_comm]
+    exact hWb_sub (Set.mul_mem_mul ⟨n - k, rfl⟩ (hMa k hk_ge))
 
 /-- `A°°` is contained in `A°` (Remark 5.28(4)). -/
 theorem topologicallyNilpotentElements_subset_powerBoundedSubring [IsTopologicalRing A] :
@@ -374,7 +439,7 @@ which is what the determinant argument uses. -/
 
 open TopologicalRing in
 /-- The topologically nilpotent elements form an ideal of the power-bounded subring `A°`. -/
-def topNilpIdeal [IsLinearTopology A A] : Ideal (powerBoundedSubring.toSubring A) where
+def topNilpIdeal : Ideal (powerBoundedSubring.toSubring A) where
   carrier := {x | IsTopologicallyNilpotent (x : A)}
   zero_mem' := by
     show IsTopologicallyNilpotent ((0 : powerBoundedSubring.toSubring A) : A)
@@ -382,7 +447,10 @@ def topNilpIdeal [IsLinearTopology A A] : Ideal (powerBoundedSubring.toSubring A
   add_mem' := by
     intro x y hx hy
     show IsTopologicallyNilpotent ((x + y : powerBoundedSubring.toSubring A) : A)
-    rw [Subring.coe_add]; exact hx.add hy
+    rw [Subring.coe_add]
+    -- Wedhorn Remark 5.28(5): non-archimedean replacement for the linear-topology
+    -- `IsTopologicallyNilpotent.add` (which is unsatisfiable for Tate rings).
+    exact IsTopologicallyNilpotent.add_of_nonarch hx hy
   smul_mem' := by
     intro c x hx
     show IsTopologicallyNilpotent ((c • x : powerBoundedSubring.toSubring A) : A)
@@ -391,8 +459,7 @@ def topNilpIdeal [IsLinearTopology A A] : Ideal (powerBoundedSubring.toSubring A
 
 open TopologicalRing in
 /-- `1 - det (1 - B)` is topologically nilpotent when every entry of `B` is. -/
-theorem IsTopologicallyNilpotent.one_sub_det_one_sub_matrix [IsLinearTopology A A]
-    {n : Type*} [Fintype n] [DecidableEq n] (B : Matrix n n A)
+theorem IsTopologicallyNilpotent.one_sub_det_one_sub_matrix    {n : Type*} [Fintype n] [DecidableEq n] (B : Matrix n n A)
     (hB : ∀ i j, IsTopologicallyNilpotent (B i j)) :
     IsTopologicallyNilpotent (1 - (1 - B).det) := by
   let B' : Matrix n n (powerBoundedSubring.toSubring A) :=
@@ -429,8 +496,7 @@ theorem IsTopologicallyNilpotent.one_sub_det_one_sub_matrix [IsLinearTopology A 
 /-- **Matrix Nakayama** (BGR Lemma 1.2.4/6, the form used in §3.7.2/1): if every entry of an
 `n × n` matrix `B` over a complete Hausdorff nonarchimedean commutative ring `A` is topologically
 nilpotent then `1 - B` is invertible. -/
-theorem IsTopologicallyNilpotent.isUnit_one_sub_matrix [IsLinearTopology A A]
-    {n : Type*} [Fintype n] [DecidableEq n] (B : Matrix n n A)
+theorem IsTopologicallyNilpotent.isUnit_one_sub_matrix    {n : Type*} [Fintype n] [DecidableEq n] (B : Matrix n n A)
     (hB : ∀ i j, IsTopologicallyNilpotent (B i j)) :
     IsUnit (1 - B) := by
   rw [Matrix.isUnit_iff_isUnit_det]
@@ -468,8 +534,7 @@ theorem eq_zero_of_isUnit_matrix_of_forall_sum_smul_eq_zero
 /-- The form of the matrix Nakayama used in BGR §3.7.2/1: if every entry of `B` is
 topologically nilpotent and `yᵢ = ∑ⱼ Bᵢⱼ • yⱼ` for all `i` (a `P`-valued fixed-point
 relation, `P` any `A`-module), then `y = 0`. -/
-theorem eq_zero_of_forall_eq_sum_topNilp_smul [IsLinearTopology A A]
-    {n : Type*} [Fintype n] [DecidableEq n]
+theorem eq_zero_of_forall_eq_sum_topNilp_smul    {n : Type*} [Fintype n] [DecidableEq n]
     {P : Type*} [AddCommGroup P] [Module A P]
     {B : Matrix n n A} (hB : ∀ i j, IsTopologicallyNilpotent (B i j))
     {y : n → P} (hy : ∀ i, y i = ∑ j, B i j • y j) (k : n) : y k = 0 := by

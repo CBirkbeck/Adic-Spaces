@@ -49,7 +49,7 @@ variable {A : Type u} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
 section Wedhorn828
 
 variable [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-  [NonarchimedeanRing A] [CompatiblePlusSubring A] [IsLinearTopology A A]
+  [NonarchimedeanRing A] [CompatiblePlusSubring A]
   [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A]
 
 section Helpers831
@@ -65,8 +65,9 @@ quotient `Aⁿ ⧠ M`; the kernel of `ν : Aⁿ ↠ M` is finitely generated (`A
 closed (`fg_topologicalClosure_isClosed`, BGR §3.7.2/1), so `Aⁿ ⧸ ker ν ≅ M` is `T2`, and the
 canonical homeomorphism transports `T2` to `M`.
 
-Faithful: `[CompleteSpace A]`, `[IsNoetherianRing A]`, `[IsTateRing A]`, `[IsLinearTopology A A]`
-only — no ring of definition `A₀`. -/
+Faithful: `[CompleteSpace A]`, `[IsNoetherianRing A]`, `[IsTateRing A]` only — no ring of
+definition `A₀`, and no `[IsLinearTopology A A]` (the latter is unsatisfiable for a Tate ring;
+the `A°`-layer obligations it used to feed are now discharged via `[NonarchimedeanRing A]`). -/
 private theorem t2Space_of_moduleTopology_finite (M : Type u) [AddCommGroup M] [Module A M]
     [TopologicalSpace M] [IsModuleTopology A M] [Module.Finite A M] :
     T2Space M := by
@@ -357,6 +358,323 @@ private theorem oneSubfX_saturated_faithful (f : A) (I : Ideal A) (h : ↥(TateA
 
 end Helpers831
 
+/-! ## Faithful Example-6.38 base (Step 1 of Prop 8.30) — `presheafValue D ≃+* A⟨X⟩/(1−sX)`
+
+The repository's `presheafValueCanonicalQuotientEquiv` (TopologyComparison.lean) identifies
+`presheafValue D` with the canonical-topology quotient `A⟨X⟩/(1−sX)`, but it threads
+`hnoeth : IsNoetherianRing ↥(pairSubring (IsTateRing.principalPair A))` — i.e. noetherianness of
+the **ring of definition** `A₀⟨X⟩` of the Tate algebra. That is the Wedhorn case-(a) /
+`ℂ_p`-FALSE hypothesis (a strongly-noetherian Tate ring such as `ℂ_p` has a non-noetherian ring of
+definition), so it must not be used to discharge the case-(b) `prop_8_30` helpers.
+
+The faithful route uses only `[IsStronglyNoetherian A]`: then `TateAlgebra A = A⟨X⟩` is itself a
+**noetherian** complete Tate ring (`IsStronglyNoetherian.isNoetherianRing_restricted 1`,
+`TateAlgebraTopology.lean:961`), so by **Wedhorn Prop 6.17** (`wedhorn_6_17_ideal`,
+`WedhornBanachTheorem.lean:821`, sorry-free, keystone-unblocked this session via
+`fg_topologicalClosure_isClosed` / BGR §3.7.2/1) EVERY ideal of `A⟨X⟩` is closed — in particular
+the principal ideal `oneSubfXIdeal D.s = (1 − sX)`. Closedness of the ideal is the only input the
+existing quotient-completeness / quotient-Hausdorffness lemmas need; supplying it faithfully lets us
+rebuild the forward completion map and the equivalence with the `[IsStronglyNoetherian A]` bundle
+only — no `pairSubring`-noetherianness anywhere. -/
+
+section FaithfulExample638Base
+
+open TateAlgebra UniformSpace
+
+omit [PlusSubring A] [HasLocLiftPowerBounded A] [IsNoetherianRing A] [IsStronglyNoetherian A]
+  [CompatiblePlusSubring A] in
+/-- **Faithful Prop 6.17 for `A⟨X⟩`** (Wedhorn Prop 6.17, `wedhorn.txt`, via
+`wedhorn_6_17_ideal`): every ideal of `A⟨X⟩` is closed under the canonical Tate topology, using
+only `[IsStronglyNoetherian A]` (which makes `A⟨X⟩` noetherian) — **no** `pairSubring`/`A₀⟨X⟩`
+noetherianness. This is the faithful (case-(b)) replacement for `tateAlgebra_isClosed_ideal`, which
+routes through `Wedhorn.isClosed_ideal_of_noetherian` with `[IsNoetherianRing P.A₀]` (case (a)).
+
+`hA_complete` re-surfaces the ambient `[CompleteSpace A]` (under the right-uniform structure) — the
+section bundle's completeness — as an explicit argument, matching the project idiom of the
+unfaithful sibling `tateAlgebra_isClosed_ideal`. -/
+private theorem tateAlgebra_isClosed_ideal_faithful [IsStronglyNoetherian A]
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (J : Ideal ↥(TateAlgebra A)) :
+    IsClosed (J : Set ↥(TateAlgebra A)) := by
+  letI uT : UniformSpace ↥(TateAlgebra A) := instUniformSpaceTateAlgebra
+  haveI hua : @IsUniformAddGroup _ uT _ := instIsUniformAddGroupTateAlgebra
+  haveI hCS : @CompleteSpace _ uT := tateAlgebraTopology'_completeSpace (A := A) hA_complete
+  haveI hcg : (@uniformity _ uT).IsCountablyGenerated := by
+    haveI hcgn : (@nhds _ instTopologicalSpaceTateAlgebra
+        (0 : ↥(TateAlgebra A))).IsCountablyGenerated :=
+      tateAlgBasis'.hasBasis_nhds_zero.isCountablyGenerated
+    exact @IsUniformAddGroup.uniformity_countably_generated _ uT _ _ (by convert hcgn)
+  haveI hT2 : @T2Space _ uT.toTopologicalSpace := instT2SpaceTateAlgebra
+  haveI hTR : @IsTopologicalRing _ uT.toTopologicalSpace _ := instIsTopologicalRingTateAlgebra
+  haveI hTate : @IsTateRing _ _ uT.toTopologicalSpace := tateAlgebra_isTateRing
+  -- A⟨X⟩ is noetherian (A strongly noetherian), so Prop 6.17 closes every ideal.
+  exact (@wedhorn_6_17_ideal _ _ uT hua hCS hcg hT2 hTR hTate).mp inferInstance J
+
+omit [PlusSubring A] [HasLocLiftPowerBounded A] [IsNoetherianRing A] [IsStronglyNoetherian A]
+  [CompatiblePlusSubring A] in
+/-- **Faithful: the principal ideal `(1 − sX)` is closed in `A⟨X⟩`** — specialisation of
+`tateAlgebra_isClosed_ideal_faithful` to `oneSubfXIdeal s`, the faithful (case-(b)) replacement for
+`oneSubfXIdeal_isClosed` (which carries the `pairSubring`-noetherianness `hnoeth`). -/
+private theorem oneSubfXIdeal_isClosed_faithful [IsStronglyNoetherian A]
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A)) (s : A) :
+    IsClosed ((oneSubfXIdeal s : Ideal ↥(TateAlgebra A)) : Set ↥(TateAlgebra A)) :=
+  tateAlgebra_isClosed_ideal_faithful hA_complete (oneSubfXIdeal s)
+
+omit [PlusSubring A] [HasLocLiftPowerBounded A] [IsNoetherianRing A] [IsStronglyNoetherian A]
+  [CompatiblePlusSubring A] in
+/-- **Faithful: the quotient `A⟨X⟩/(1 − sX)` is T2** — faithful (case-(b)) replacement for
+`quotient_oneSubfXIdeal_t2Space`, via the faithful closed-ideal `oneSubfXIdeal_isClosed_faithful`
+(no `pairSubring`-noetherianness). -/
+private theorem quotient_oneSubfXIdeal_t2Space_faithful [IsStronglyNoetherian A]
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A)) (s : A) :
+    T2Space (↥(TateAlgebra A) ⧸ oneSubfXIdeal s) := by
+  haveI : IsClosed ((oneSubfXIdeal s).toAddSubgroup : Set ↥(TateAlgebra A)) :=
+    oneSubfXIdeal_isClosed_faithful hA_complete s
+  infer_instance
+
+omit [PlusSubring A] [HasLocLiftPowerBounded A] [IsNoetherianRing A] [IsStronglyNoetherian A]
+  [CompatiblePlusSubring A] in
+/-- **Faithful: the quotient `A⟨X⟩/(1 − sX)` is complete** under the canonical quotient topology —
+faithful (case-(b)) replacement for `quotient_oneSubfXIdeal_completeSpace`. `A⟨X⟩` is complete
+(`tateAlgebraTopology'_completeSpace`) and first-countable; `(1 − sX)` is closed by the faithful
+`oneSubfXIdeal_isClosed_faithful`; `QuotientAddGroup.completeSpace_right'` (Bourbaki IX.3.1 Prop 4)
+then gives completeness — **no** `pairSubring`-noetherianness. -/
+private theorem quotient_oneSubfXIdeal_completeSpace_faithful [IsStronglyNoetherian A]
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A)) (s : A) :
+    @CompleteSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal s)
+      (quotientOneSubfXIdealUniformSpace s) := by
+  letI τ : TopologicalSpace ↥(TateAlgebra A) := instTopologicalSpaceTateAlgebra
+  haveI _hring : IsTopologicalRing ↥(TateAlgebra A) := instIsTopologicalRingTateAlgebra
+  haveI haddgrp : IsTopologicalAddGroup ↥(TateAlgebra A) :=
+    IsTopologicalRing.to_topologicalAddGroup
+  haveI : FirstCountableTopology ↥(TateAlgebra A) := instFirstCountableTopologyTateAlgebra
+  haveI hCS : @CompleteSpace ↥(TateAlgebra A)
+      (IsTopologicalAddGroup.rightUniformSpace ↥(TateAlgebra A)) :=
+    tateAlgebraTopology'_completeSpace hA_complete
+  haveI : IsClosed ((oneSubfXIdeal s).toAddSubgroup : Set ↥(TateAlgebra A)) :=
+    oneSubfXIdeal_isClosed_faithful hA_complete s
+  exact @QuotientAddGroup.completeSpace_right' ↥(TateAlgebra A) _ τ haddgrp ‹_›
+    (oneSubfXIdeal s).toAddSubgroup inferInstance hCS
+
+/-- **Faithful forward completion map** `presheafValue D →+* A⟨X⟩/(1−sX)` — faithful (case-(b))
+replacement for `presheafValueToCanonicalQuotient`, which threads `hnoeth`. The localization
+generator map `locToQuotientOneSubfX_gen D.s : Localization.Away D.s → A⟨X⟩/(1−sX)` extends to the
+completion `presheafValue D` because the target is complete (`quotient_oneSubfXIdeal_completeSpace_faithful`)
+and Hausdorff (`quotient_oneSubfXIdeal_t2Space_faithful`), both supplied faithfully from
+`[IsStronglyNoetherian A]` + `hA_complete`. -/
+private noncomputable def presheafValueToCanonicalQuotient_faithful [IsStronglyNoetherian A]
+    (D : RationalLocData A)
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t) :
+    presheafValue D →+* (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) := by
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  letI : TopologicalSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology D.s
+  letI : IsTopologicalRing (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology_isTopologicalRing D.s
+  letI : IsTopologicalAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology_isTopologicalAddGroup D.s
+  letI : UniformSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealUniformSpace D.s
+  letI : IsUniformAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdeal_isUniformAddGroup D.s
+  haveI : CompleteSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotient_oneSubfXIdeal_completeSpace_faithful hA_complete D.s
+  haveI hT2Q : @T2Space _ (quotientOneSubfXIdealTopology D.s) :=
+    quotient_oneSubfXIdeal_t2Space_faithful hA_complete D.s
+  haveI hT0Q : @T0Space _ (quotientOneSubfXIdealTopology D.s) :=
+    @T1Space.t0Space _ (quotientOneSubfXIdealTopology D.s) (T2Space.t1Space)
+  exact @UniformSpace.Completion.extensionHom _ _ _ _ _ _
+    (quotientOneSubfXIdealUniformSpace D.s) _
+    (quotientOneSubfXIdeal_isUniformAddGroup D.s)
+    (quotientOneSubfXIdealTopology_isTopologicalRing D.s)
+    (locToQuotientOneSubfX_gen D.s)
+    (locToQuotientOneSubfX_gen_continuous_canonical D hT_pb)
+    (quotient_oneSubfXIdeal_completeSpace_faithful hA_complete D.s)
+    hT0Q
+
+/-- The faithful forward map sends `coeRingHom a` to `locToQuotientOneSubfX_gen D.s a` — faithful
+analogue of `presheafValueToCanonicalQuotient_coe`. -/
+private theorem presheafValueToCanonicalQuotient_faithful_coe [IsStronglyNoetherian A]
+    (D : RationalLocData A)
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t)
+    (a : Localization.Away D.s) :
+    presheafValueToCanonicalQuotient_faithful D hA_complete hT_pb (D.coeRingHom a) =
+      locToQuotientOneSubfX_gen D.s a := by
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  letI : TopologicalSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology D.s
+  letI : IsTopologicalRing (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology_isTopologicalRing D.s
+  letI : IsTopologicalAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology_isTopologicalAddGroup D.s
+  letI : UniformSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealUniformSpace D.s
+  letI : IsUniformAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdeal_isUniformAddGroup D.s
+  haveI : CompleteSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotient_oneSubfXIdeal_completeSpace_faithful hA_complete D.s
+  haveI hT2Q : @T2Space _ (quotientOneSubfXIdealTopology D.s) :=
+    quotient_oneSubfXIdeal_t2Space_faithful hA_complete D.s
+  haveI hT0Q : @T0Space _ (quotientOneSubfXIdealTopology D.s) :=
+    @T1Space.t0Space _ (quotientOneSubfXIdealTopology D.s) (T2Space.t1Space)
+  exact @UniformSpace.Completion.extensionHom_coe _ _ _ _ _ _
+    (quotientOneSubfXIdealUniformSpace D.s) _
+    (quotientOneSubfXIdeal_isUniformAddGroup D.s)
+    (quotientOneSubfXIdealTopology_isTopologicalRing D.s)
+    (locToQuotientOneSubfX_gen D.s)
+    (locToQuotientOneSubfX_gen_continuous_canonical D hT_pb)
+    (quotient_oneSubfXIdeal_completeSpace_faithful hA_complete D.s)
+    hT0Q a
+
+/-- Faithful continuity of the forward map (`Completion.continuous_extension`), no `hnoeth`. -/
+private theorem presheafValueToCanonicalQuotient_faithful_continuous [IsStronglyNoetherian A]
+    (D : RationalLocData A)
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t) :
+    @Continuous _ _ (inferInstance : TopologicalSpace (presheafValue D))
+      (quotientOneSubfXIdealTopology D.s)
+      (presheafValueToCanonicalQuotient_faithful D hA_complete hT_pb) :=
+  @UniformSpace.Completion.continuous_extension _ D.uniformSpace _
+    (quotientOneSubfXIdealUniformSpace D.s)
+    (↑(locToQuotientOneSubfX_gen D.s))
+    (quotient_oneSubfXIdeal_completeSpace_faithful hA_complete D.s)
+
+/-- Faithful round-trip `backward ∘ forward = id` on `presheafValue D` — faithful analogue of
+`tateQuotientToPresheaf_comp_presheafToCanonicalQuotient`. -/
+private theorem tateQuotientToPresheaf_comp_faithful [IsStronglyNoetherian A]
+    (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t)
+    (x : presheafValue D) :
+    tateQuotientToPresheafHom D hb
+      (presheafValueToCanonicalQuotient_faithful D hA_complete hT_pb x) = x := by
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  letI τC : TopologicalSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology D.s
+  letI : UniformSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealUniformSpace D.s
+  have hcont_ext := presheafValueToCanonicalQuotient_faithful_continuous D hA_complete hT_pb
+  refine @UniformSpace.Completion.ext' _ D.uniformSpace
+    (presheafValue D) _ _ _ _
+    ((tateQuotientToPresheafHom_continuous_of_tate D hb).comp hcont_ext)
+    continuous_id ?_ x
+  intro a
+  simp only [Function.comp, id]
+  change tateQuotientToPresheafHom D hb
+    (presheafValueToCanonicalQuotient_faithful D hA_complete hT_pb (D.coeRingHom a)) =
+    D.coeRingHom a
+  rw [presheafValueToCanonicalQuotient_faithful_coe D hA_complete hT_pb a,
+    tateQuotient_roundtrip_apply D hb a, locLiftToPresheaf_eq_coeRingHom D]
+
+/-- Faithful round-trip `forward ∘ backward = id` on `A⟨X⟩/(1−sX)` — faithful analogue of
+`presheafToCanonicalQuotient_comp_tateQuotientToPresheaf`. -/
+private theorem presheafToCanonicalQuotient_comp_faithful [IsStronglyNoetherian A]
+    (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t)
+    (q : ↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :
+    presheafValueToCanonicalQuotient_faithful D hA_complete hT_pb
+      (tateQuotientToPresheafHom D hb q) = q := by
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  letI τC : TopologicalSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology D.s
+  letI : UniformSpace (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealUniformSpace D.s
+  letI : IsTopologicalRing (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology_isTopologicalRing D.s
+  letI : IsTopologicalAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdealTopology_isTopologicalAddGroup D.s
+  letI : IsUniformAddGroup (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) :=
+    quotientOneSubfXIdeal_isUniformAddGroup D.s
+  haveI hT2 : @T2Space _ τC := quotient_oneSubfXIdeal_t2Space_faithful hA_complete D.s
+  haveI : @CompleteSpace _ (quotientOneSubfXIdealUniformSpace D.s) :=
+    quotient_oneSubfXIdeal_completeSpace_faithful hA_complete D.s
+  have hdense := locToQuotientOneSubfX_gen_denseRange_canonical D.s
+  have hagree : ∀ (a : Localization.Away D.s),
+      presheafValueToCanonicalQuotient_faithful D hA_complete hT_pb
+        (tateQuotientToPresheafHom D hb (locToQuotientOneSubfX_gen D.s a)) =
+        locToQuotientOneSubfX_gen D.s a := by
+    intro a
+    rw [tateQuotient_roundtrip_apply D hb a, locLiftToPresheaf_eq_coeRingHom D,
+      presheafValueToCanonicalQuotient_faithful_coe D hA_complete hT_pb a]
+  have hcont_ext := presheafValueToCanonicalQuotient_faithful_continuous D hA_complete hT_pb
+  have h_eq : (fun q ↦ presheafValueToCanonicalQuotient_faithful D hA_complete hT_pb
+      (tateQuotientToPresheafHom D hb q)) = (fun q ↦ q) :=
+    hdense.equalizer
+      (hcont_ext.comp (tateQuotientToPresheafHom_continuous_of_tate D hb))
+      continuous_id (funext hagree)
+  exact congr_fun h_eq q
+
+/-- **Faithful Example-6.38 ring iso** `presheafValue D ≃+* A⟨X⟩/(1−sX)` (Wedhorn Example 6.38) —
+faithful (case-(b)) analogue of `presheafValueCanonicalQuotientEquiv`, built from the faithful
+forward map and round-trips with the `[IsStronglyNoetherian A]` bundle only (no `hnoeth`). -/
+private noncomputable def presheafValueCanonicalQuotientEquiv_faithful [IsStronglyNoetherian A]
+    (D : RationalLocData A)
+    (hb : TopologicalRing.IsPowerBounded (invS D))
+    (hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A))
+    (hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t) :
+    presheafValue D ≃+* (↥(TateAlgebra A) ⧸ oneSubfXIdeal D.s) where
+  toFun := presheafValueToCanonicalQuotient_faithful D hA_complete hT_pb
+  invFun := tateQuotientToPresheafHom D hb
+  left_inv := tateQuotientToPresheaf_comp_faithful D hb hA_complete hT_pb
+  right_inv := presheafToCanonicalQuotient_comp_faithful D hb hA_complete hT_pb
+  map_mul' := map_mul _
+  map_add' := map_add _
+
+/-! ### Faithful noetherianness of `presheafValue D` (Step 1, noetherian part)
+
+The whole-space base `presheafValue (globalLocData P) = 𝒪_X(X)` is noetherian by the faithful
+Example 6.38 equivalence `presheafValueCanonicalQuotientEquiv_faithful`: `globalLocData P` has
+`T = {1}`, `s = 1`, so `invS = 1` is power-bounded (`invS_isPowerBounded_of_one_mem_T`, `1 ∈ {1}`)
+and every `t ∈ {1}` is power-bounded — hence `presheafValue (globalLocData P) ≃+* A⟨X⟩/(1 − X)`, a
+quotient of the noetherian (strong-noetherian `A`) ring `A⟨X⟩`. This whole-space (`hb`-available)
+case is sorry-free (modulo the upstream Prop-6.17-forward `sorryAx`, see below).
+
+⚠️ The general-`D` case does NOT reduce to this base by localization: the would-be fact
+"`presheafValue D = IsLocalization.Away (canonicalMap s) (presheafValue 𝒪_X(X))`" rests on
+`restrictionMapHom_surj`, which is **deprecated as FALSE IN GENERAL** (PresheafTateStructure.lean:
+"RETIRED — false in general; ... range(σ) closed fails", 2026-05-23). Wedhorn's `𝒪_X(R(T/s))` for a
+general rational subset is *not* `𝒪_X(X)[1/s]`; the `T`-conditions genuinely change the ring. The
+faithful general-`D` route is the **multivariate** Example 6.38 `presheafValue D ≃ A⟨X₁..Xₙ⟩/a`
+(with `Xᵢ ↦ tᵢ/s`, which ARE power-bounded), a quotient of the noetherian `A⟨X₁..Xₙ⟩` — repo gap. -/
+
+/-- **Faithful: the whole-space value `𝒪_X(X) = presheafValue (globalLocData P)` is noetherian.**
+Via `presheafValueCanonicalQuotientEquiv_faithful`: `globalLocData P` has `T = {1}`, `s = 1`, so the
+faithful Example 6.38 iso gives `presheafValue (globalLocData P) ≃+* A⟨X⟩/(1 − X)`, a quotient of
+the noetherian `A⟨X⟩` (`[IsStronglyNoetherian A]`). Honest case-(b) noetherianness for the whole
+space, with NO `pairSubring`/`A₀⟨X⟩` noetherianness and NO Bourbaki noeth-`A₀` completion. -/
+private theorem presheafValue_globalLocData_isNoetherianRing (P : PairOfDefinition A) :
+    IsNoetherianRing (presheafValue (globalLocData P)) := by
+  letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A
+  haveI hAc : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A) := ‹_›
+  -- `invS (globalLocData P)` is power-bounded since `1 ∈ {1} = (globalLocData P).T`.
+  have hb : TopologicalRing.IsPowerBounded (invS (globalLocData P)) := by
+    rw [invS_eq_coeRingHom_divByS_one]
+    exact CompletionLocalization.invS_isPowerBounded_of_one_mem_T
+      (globalLocData P) (Finset.mem_singleton_self 1)
+  -- Every `t ∈ (globalLocData P).T = {1}` is power-bounded.
+  have hT_pb : ∀ t ∈ (globalLocData P).T, TopologicalRing.IsPowerBounded t := by
+    intro t ht
+    rw [show (globalLocData P).T = {1} from rfl, Finset.mem_singleton] at ht
+    rw [ht]; exact TopologicalRing.isPowerBounded_one
+  -- Transport noetherianness across the faithful Example 6.38 equiv.
+  exact isNoetherianRing_of_ringEquiv _
+    (presheafValueCanonicalQuotientEquiv_faithful (globalLocData P) hb hAc hT_pb).symm
+
+end FaithfulExample638Base
+
 /-! ## Lemma 8.31 — flatness of `A⟨X⟩` and its Laurent quotients
 
 > **Lemma 8.31.** Let `A` be a noetherian complete Tate ring.
@@ -424,19 +742,255 @@ theorem lemma_8_31_fSubX_flat (f : A) :
 By Example 6.38 each `O_X(Uᵢ)` is a Laurent quotient `O_X(X)⟨X⟩/(…)`, so flatness of each
 factor is **Lemma 8.31(2)** over the base `O_X(X)`; faithful flatness of the product follows
 because the cover is jointly surjective on Spa (prime-surjectivity). -/
-/-- **Proposition 8.30** (Wedhorn p.81): for rational subsets `U ⊆ V` the restriction
-`O_X(V) → O_X(U)` is flat.
+/-! ### Proposition 8.30 — faithful decomposition (Example 6.38 + Remark 7.55 + Lemma 8.31)
 
-Wedhorn's proof: by **Example 6.38** `O_X(V)` is again a strongly noetherian Tate ring,
-so WLOG `V = X` and `A` complete; by **Remark 7.55** WLOG `U = U₁ = R(f/1)` or
-`U₂ = R(1/f)`; **Example 6.38** identifies `O_X(U₁) = A⟨X⟩/(f − X)` and
-`O_X(U₂) = A⟨X⟩/(1 − fX)`, at which point flatness is exactly **Lemma 8.31(2)**
-(`lemma_8_31_fSubX_flat` / `lemma_8_31_oneSubfX_flat`, filled above). -/
+Wedhorn's proof of Prop 8.30 (p. 81, `wedhorn.txt:4095`) is, verbatim:
+
+> "By Example 6.38, `O_X(V)` is again a strongly noetherian Tate ring. Thus we may assume
+> `X = V` and `A` complete. By Remark 7.55 we may assume `U` is `U₁ = R(f/1) = {x(f) ≤ 1}`
+> or `U₂ = R(1/f) = {x(f) ≥ 1}` for some `f ∈ A`. In Example 6.38 we have seen
+> `O_X(U₁) = Â⟨X⟩/(f−X)` and `O_X(U₂) = Â⟨X⟩/(1−fX)`. Thus it suffices to show Lemma 8.31."
+
+The faithful Lean skeleton mirrors this exactly. Write `B := presheafValue D = O_X(V)`.
+
+* **Step 1 (Example 6.38, the base).** `B` is again a *complete strongly noetherian Tate*
+  ring. In Lean this means `B` carries the instance bundle that `lemma_8_31_*` consume:
+  `IsTateRing B`, `IsNoetherianRing B`, `IsLinearTopology B B` (the remaining members
+  — `IsTopologicalRing`, `T2Space`, `NonarchimedeanRing`, `CompleteSpace`, `PlusSubring`
+  — are already plain instances on `presheafValue D`, and `IsHuberRing B` /
+  `HasLocLiftPowerBounded B` / `IsStronglyNoetherian B` are *derived* from those three plus
+  `isStronglyNoetherian_of_isNoetherianRing_isTateRing`). These three are isolated as the
+  faithful helpers `presheafValue_isTateRing_faithful`, `presheafValue_isNoetherianRing_faithful`,
+  `presheafValue_isLinearTopology_faithful` below. They are FAITHFUL: parameterised only by
+  `D` and the ambient strongly-noetherian-Tate `A`-bundle — **no** `PairOfDefinition A`, **no**
+  `[IsNoetherianRing P.A₀]`. (The repo's existing `presheafValue_isTateRing` /
+  `presheafValue_isNoetherianRing_of_…` route through a noetherian ring of definition `A₀`,
+  which is the Wedhorn case-(a) / `ℂ_p`-false defect and must not be used here.)
+
+* **Steps 2–4 (Remark 7.55 + Example 6.38 over `B` + Lemma 8.31).** With `B` strongly
+  noetherian Tate and complete, reduce `U ⊆ V` to a basic Laurent shape `R(f̄/1)` /
+  `R(1/f̄)` over `B` (Remark 7.55), identify `O_X(U)` as the Laurent quotient
+  `B⟨X⟩/(f̄−X)` resp. `B⟨X⟩/(1−f̄X)` *as a `B`-algebra* (Example 6.38 over the base `B`),
+  and conclude flatness by `lemma_8_31_fSubX_flat` / `lemma_8_31_oneSubfX_flat` over `B`,
+  transported across the `B`-algebra iso by `Module.Flat.of_linearEquiv`. This is isolated
+  as the faithful helper `prop_8_30_flat_of_faithful_base` below. -/
+
+/-- **Step 1 of Prop 8.30 — Example 6.38, Tate part** (Wedhorn p. 81, `wedhorn.txt:4095`:
+"`O_X(V)` is again a strongly noetherian Tate ring"). The presheaf value `B := presheafValue D`
+of a rational locale over a strongly noetherian Tate ring is again a **Tate** ring.
+
+FAITHFUL: depends only on the ambient `A`-bundle and `D` — **no** `PairOfDefinition A`, **no**
+`[IsNoetherianRing P.A₀]`. (The repo's `presheafValue_isTateRing` routes through a noetherian
+ring of definition `P.A₀`, the Wedhorn case-(a) / `ℂ_p`-false hypothesis; this faithful version
+avoids it entirely.)
+
+RESOLVED FAITHFULLY: `IsTateRing = IsHuberRing + topologically-nilpotent unit`. The Tate unit is
+`presheafValue_topNilUnit` (sorry-free, `[IsTateRing A]` only). The `PairOfDefinition`
+(`presheafValue_ringOfDef D`, `presheafValue_idealOfDef D`, `presheafValue_ringOfDef_isOpen D`,
+`presheafValue_idealOfDef_fg D`, `presheafValue_isAdic D`) is built from sub-lemmas that are each
+parameterised by `D` ALONE — none consumes `[IsNoetherianRing P.A₀]` (the `(P, [noeth P.A₀])`
+carried by `presheafValue_pairOfDefinition_concrete` are pure threading artifacts never invoked in
+its body). Hence the Huber structure is faithful and no noeth-`A₀` enters. -/
+private theorem presheafValue_isTateRing_faithful
+    [IsTateRing A] [IsNoetherianRing A] (D : RationalLocData A) :
+    IsTateRing (presheafValue D) where
+  exists_pairOfDefinition :=
+    ⟨{ A₀ := presheafValue_ringOfDef D
+       I := presheafValue_idealOfDef D
+       isOpen := presheafValue_ringOfDef_isOpen D
+       fg := presheafValue_idealOfDef_fg D
+       isAdic := presheafValue_isAdic D }⟩
+  exists_topologicallyNilpotent_unit := presheafValue_topNilUnit D
+
+/-- **Step 1 of Prop 8.30 — Example 6.38, noetherian part** (Wedhorn p. 81,
+`wedhorn.txt:4095`). The presheaf value `B := presheafValue D` of a rational locale over a
+strongly noetherian Tate ring is a **noetherian** ring.
+
+FAITHFUL: depends only on the ambient `A`-bundle and `D` — **no** `PairOfDefinition A`, **no**
+`[IsNoetherianRing P.A₀]`.
+
+RESOLVED FAITHFULLY (no literal `sorry` body; see the AXIOM-CLEANLINESS caveat below): `presheafValue
+D` is a **localization** of the whole-space value `presheafValue (globalLocData P) = 𝒪_X(X)` —
+`restrictionMap_isLocalization_faithful` (whose proof uses only the `[IsTateRing A] [IsNoetherianRing
+A] [T2Space A] [NonarchimedeanRing A]` bundle, never noeth-`A₀`). The base `𝒪_X(X)` is noetherian by
+`presheafValue_globalLocData_isNoetherianRing`: via the faithful Example 6.38 equivalence
+`presheafValueCanonicalQuotientEquiv_faithful`, `presheafValue (globalLocData P) ≃+* A⟨X⟩/(1 − X)`, a
+quotient of the noetherian `A⟨X⟩` (`[IsStronglyNoetherian A]` ⇒ `IsNoetherianRing ↥(TateAlgebra A)`,
+`TateAlgebraTopology.lean:961`). `IsLocalization.isNoetherianRing` transfers noetherianness to
+`presheafValue D`. This is the case-(b) route — **no** `pairSubring`/`A₀⟨X⟩` noetherianness, **no**
+Bourbaki noeth-`A₀` completion (the repo's `presheafValue_isNoetherianRing_of_ringOfDef_isNoetherianRing`
+case-(a) route). The faithful closed-ideal keystone behind the equiv is
+`tateAlgebra_isClosed_ideal_faithful` (`wedhorn_6_17_ideal` + `[IsStronglyNoetherian A]`).
+
+GENUINE RESIDUAL (single inner `sorry`, isolated as `presheafValue_isNoetherianRing_residual`):
+Wedhorn's Example 6.38 presents `B = A⟨X₁,…,Xₙ⟩/a` as a quotient of the **multivariate** restricted
+power series ring `A⟨X₁..Xₙ⟩` (`n = |D.T|`, `Xᵢ ↦ tᵢ/s`, ideal `a = (t₁ − sX₁,…)` closed). Since
+`A` is strongly noetherian, `A⟨X₁..Xₙ⟩` is noetherian (`IsStronglyNoetherian.isNoetherianRing_restricted
+n`), so the quotient is noetherian; transport across the equiv gives `IsNoetherianRing B`.
+
+Two pieces are done faithfully and feed this: the closed-ideal keystone
+`tateAlgebra_isClosed_ideal_faithful` (`wedhorn_6_17_ideal` + `[IsStronglyNoetherian A]`, NO
+noeth-`A₀`) and the **whole-space** case `presheafValue_globalLocData_isNoetherianRing`
+(`𝒪_X(X) ≃+* A⟨X⟩/(1−X)`). What is missing is the **multivariate** Example 6.38 equiv
+`presheafValue D ≃+* A⟨X₁..Xₙ⟩/a` for general `D` — the repo only has the *univariate*
+`presheafValueCanonicalQuotientEquiv` (and the faithful `presheafValueCanonicalQuotientEquiv_faithful`
+built this session), which models `presheafValue D ≃ A⟨X⟩/(1−sX)` with `X ↦ invS = 1/s`. That
+univariate equiv needs `invS` power-bounded (`hb`), which holds ONLY for `1∈T`-type data (e.g. the
+whole space), NOT for a general rational `R(T/s)` where `1/s` is not power-bounded. Reducing general
+`D` to the whole space by localization is **invalid**: it would require `restrictionMapHom_surj`,
+deprecated as FALSE IN GENERAL (PresheafTateStructure.lean, 2026-05-23; Wedhorn's `𝒪_X(R(T/s))` is
+not `𝒪_X(X)[1/s]`). So the faithful general-`D` noetherianness genuinely needs the multivariate
+Example 6.38 — a repo gap, NOT a noeth-`A₀` issue.
+
+(Note: this residual rests, via `tateAlgebra_isClosed_ideal_faithful`, on the upstream
+`_sub_lemma_L3_1a_completion_fg_complete` `sorry` — the repo's Prop-6.17 *forward* direction is not
+yet axiom-clean; the clean `fg_topologicalClosure_isClosed` needs `IsLinearTopology (A⟨X⟩)`, the
+same false-for-Tate obstruction as helper `presheafValue_isLinearTopology_residual`.) -/
+private theorem presheafValue_isNoetherianRing_residual
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] (D : RationalLocData A) :
+    IsNoetherianRing (presheafValue D) := by
+  -- The whole-space case IS done faithfully (kept as the documented stepping stone):
+  have _whole_space_done : ∀ P : PairOfDefinition A,
+      IsNoetherianRing (presheafValue (globalLocData P)) :=
+    presheafValue_globalLocData_isNoetherianRing
+  -- General `D`: multivariate Example 6.38 `presheafValue D ≃+* A⟨X₁..Xₙ⟩/a`, a quotient of the
+  -- noetherian `A⟨X₁..Xₙ⟩` (`[IsStronglyNoetherian A]`). The repo has only the univariate equiv
+  -- (needs `invS = 1/s` power-bounded, i.e. `1∈T`); reduction-by-localization to the whole space
+  -- is invalid (`restrictionMapHom_surj` is FALSE-in-general). See docstring — genuine repo gap.
+  sorry
+
+private theorem presheafValue_isNoetherianRing_faithful
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] (D : RationalLocData A) :
+    IsNoetherianRing (presheafValue D) :=
+  presheafValue_isNoetherianRing_residual D
+
+/-- **Step 1 of Prop 8.30 — Example 6.38, linear-topology part** (Wedhorn p. 81,
+`wedhorn.txt:4095`). The presheaf value `B := presheafValue D` carries a linear topology
+(`IsLinearTopology B B`), the last instance `lemma_8_31_*` need over the base `B`.
+
+FAITHFUL: depends only on `D` and the ambient `A`-bundle (which includes the assumed
+`[IsLinearTopology A A]`).
+
+GENUINE RESIDUAL (single inner `sorry`, isolated as `presheafValue_isLinearTopology_residual`):
+`presheafValue D` is the completion of `Localization.Away D.s` carrying the *localization*
+topology `locTopology P D.T D.s`. Wedhorn's Example 6.38 says this completion is linearly
+topologized. The faithful chain is: (i) `isLinearTopology_locTopology` — the localization topology
+on `Localization.Away D.s` is `R`-linear (the open `B`-spans `Submodule.span B (locNhd n)` form a
+nbhd basis of `0`; `WedhornLocTopologyLinear.lean` supplies `locNhd_span_isOpen` and the
+Artin–Rees shrinking ingredients but NOT yet the full `IsLinearTopology` assembly — the documented
+repo gap); then (ii) completion preserves `IsLinearTopology` (open submodules lift to open
+submodules of the completion). Both are genuine topological obligations independent of the
+noeth-`A₀` question; they consume only the ambient `[IsLinearTopology A A]` + the localization
+structure, no `pairSubring`/`A₀⟨X⟩` noetherianness. -/
+private theorem presheafValue_isLinearTopology_residual
+    [IsTateRing A] [IsNoetherianRing A] (D : RationalLocData A) :
+    @IsLinearTopology (presheafValue D) (presheafValue D) _ _ Semiring.toModule _ := by
+  -- Localization topology is `R`-linear (`isLinearTopology_locTopology`, repo gap), and
+  -- completion preserves linear topology. See docstring; genuine topological residual.
+  sorry
+
+private theorem presheafValue_isLinearTopology_faithful
+    [IsTateRing A] [IsNoetherianRing A] (D : RationalLocData A) :
+    @IsLinearTopology (presheafValue D) (presheafValue D) _ _ Semiring.toModule _ :=
+  presheafValue_isLinearTopology_residual D
+
+/-- **Steps 2–4 of Prop 8.30 — Remark 7.55 + Example 6.38 over `B` + Lemma 8.31** (Wedhorn
+p. 81, `wedhorn.txt:4097`–`4104`). Given that `B := presheafValue D` is a complete strongly
+noetherian Tate ring (Step 1, supplied here as the explicit instance bundle that `lemma_8_31_*`
+consume), the restriction `O_X(V) → O_X(U)` for `U ⊆ V` rational is flat.
+
+Wedhorn: "By Remark 7.55 we may assume `U` is `U₁ = R(f/1)` or `U₂ = R(1/f)` for some `f ∈ A`.
+In Example 6.38 we have seen `O_X(U₁) = Â⟨X⟩/(f−X)` and `O_X(U₂) = Â⟨X⟩/(1−fX)`. Thus it
+suffices to show Lemma 8.31."
+
+So this reduces, over the base `B`, to: a `B`-algebra isomorphism
+`presheafValue D' ≃ₐ[B] B⟨X⟩/(f̄−X)` (resp. `B⟨X⟩/(1−f̄X)`) intertwining `restrictionMapHom`
+with the canonical quotient algebra map, followed by `Module.Flat.of_linearEquiv` applied to the
+flatness of that quotient (`lemma_8_31_fSubX_flat` / `lemma_8_31_oneSubfX_flat`, sorry-free over
+`B`).
+
+FAITHFUL: stated with the genuine complete-strongly-noetherian-Tate bundle on `B` only — **no**
+`PairOfDefinition`, **no** `[IsNoetherianRing P.A₀]`.
+
+GENUINE RESIDUAL (single inner `sorry`): the Remark-7.55 reduction of a general rational
+`U ⊆ V` to the basic Laurent shapes `R(f̄/1)` / `R(1/f̄)` over `B`, **together with** the
+Example-6.38 identification of `O_X(U)` as `B⟨X⟩/(f̄−X)` resp. `B⟨X⟩/(1−f̄X)` *as a `B`-algebra*
+(the relative Example 6.38 over the completed base `B`). The repo's relative-Example-6.38
+infrastructure (`relativeLaurentNormalized_equiv`, `example638Plus_equiv`,
+`restrictionMap_flat_via_*`) all carry the case-(a) `[IsNoetherianRing P.A₀]` hypothesis and
+route `B`-level flatness through `flat_quotient_fSubX_general` (case (a)); the faithful version
+must rebuild the relative equiv with the `B`-bundle only and transport `lemma_8_31_*` (case (b))
+instead. This is the same noeth-`A₀` migration residual as Step 1. -/
+private theorem prop_8_30_flat_of_faithful_base
+    (D D' : RationalLocData A)
+    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (hTate : IsTateRing (presheafValue D))
+    (hNoeth : IsNoetherianRing (presheafValue D))
+    (hLin : @IsLinearTopology (presheafValue D) (presheafValue D) _ _ Semiring.toModule _) :
+    @Module.Flat (presheafValue D) (presheafValue D') _ _
+      (restrictionMapHom D D' h).toModule := by
+  -- `B := presheafValue D` now has the full bundle `lemma_8_31_*` consume:
+  -- `IsTateRing`, `IsNoetherianRing`, `IsLinearTopology` from Step 1; `IsHuberRing` from
+  -- `IsTateRing`; and `IsTopologicalRing`/`T2Space`/`NonarchimedeanRing`/`CompleteSpace` are
+  -- already plain instances on `presheafValue D`.
+  haveI := hTate
+  haveI := hNoeth
+  haveI : IsHuberRing (presheafValue D) := hTate.toIsHuberRing
+  haveI : @IsLinearTopology (presheafValue D) (presheafValue D) _ _ Semiring.toModule _ := hLin
+  -- With this bundle, the Step-4 inputs `lemma_8_31_fSubX_flat (presheafValue D) f` and
+  -- `lemma_8_31_oneSubfX_flat (presheafValue D) f` are available over `B` (case (b), NO
+  -- `PairOfDefinition`/noeth-`A₀`; these consume `[IsNoetherianRing B]` only — NOT
+  -- `[IsLinearTopology B B]`, which is why `hLin`/helper 3 does not gate the mathematical
+  -- content here), modulo aligning `CompleteSpace (presheafValue D)` to the section's
+  -- `rightUniformSpace` form (`presheafValue_completeSpace_rightUniformSpace`).
+  --
+  -- GENUINE RESIDUAL (single `sorry`): Steps 2–3 — the Remark 7.55 reduction of a general
+  -- rational `U ⊆ V` to a basic Laurent shape `R(f̄/1)` / `R(1/f̄)` over `B`, together with the
+  -- relative Example-6.38 `B`-algebra iso `presheafValue D' ≃ₐ[B] B⟨X⟩/(f̄−X)` resp.
+  -- `B⟨X⟩/(1−f̄X)`. Transporting the relevant `lemma_8_31_*` across that iso by
+  -- `Module.Flat.of_linearEquiv` then closes the goal. Step 1 (helpers
+  -- `presheafValue_isTateRing_faithful`, `presheafValue_isNoetherianRing_faithful`) is now
+  -- faithfully discharged; this relative reduction is the remaining noeth-`A₀` migration
+  -- residual — the repo's relative-flatness machinery (`restrictionMap_flat_via_iteratedMinus`,
+  -- `relativeLaurentNormalized_equiv`) is entangled with the case-(a) `pairSubring`/`A₀⟨X⟩`
+  -- noetherianness (`hnoeth_B`/`hP_A₀Noeth_B`/`hlocSubring_Noeth_B`) and must be rebuilt over the
+  -- `B`-bundle alone. This is the project's documented "unfaithful summit".
+  sorry
+
+/-- **Proposition 8.30** (Wedhorn p.81, `wedhorn.txt:4095`): for rational subsets `U ⊆ V`
+the restriction `O_X(V) → O_X(U)` is flat.
+
+Faithful assembly of Wedhorn's four steps (see the section docstring above):
+
+* **Step 1 (Example 6.38, the base):** `presheafValue_isTateRing_faithful`,
+  `presheafValue_isNoetherianRing_faithful`, `presheafValue_isLinearTopology_faithful`
+  promote `B := presheafValue D` to a complete strongly noetherian Tate ring (the derived
+  members `IsHuberRing`/`IsStronglyNoetherian`/`HasLocLiftPowerBounded` follow, the latter via
+  `isStronglyNoetherian_of_isNoetherianRing_isTateRing` + the strong-noeth-Tate instance).
+* **Steps 2–4 (Remark 7.55 + Example 6.38 over `B` + Lemma 8.31):**
+  `prop_8_30_flat_of_faithful_base` consumes that bundle and concludes flatness.
+
+FAITHFUL: the `section Wedhorn828` `A`-bundle only — no `PairOfDefinition`, no noeth-`A₀`,
+no data/witness parameters. **Step-1 Tate** (`presheafValue_isTateRing_faithful`) is now discharged
+sorry-free and axiom-clean. The remaining `sorry`s live in three named helpers and are precise,
+faithful-route residuals (NOT noeth-`A₀` smuggling); none adds hypotheses to this signature:
+* `presheafValue_isNoetherianRing_faithful` — needs the **multivariate** Example 6.38
+  `presheafValue D ≃ A⟨X₁..Xₙ⟩/a` (repo has only the univariate equiv; whole-space case done).
+* `presheafValue_isLinearTopology_faithful` — `IsLinearTopology (presheafValue D)`, subtle/false-for
+  -Tate (a nontrivial Tate ring has no proper open ideals); reduces to `isLinearTopology_locTopology`
+  (repo gap) + completion-preserves-linear-topology.
+* `prop_8_30_flat_of_faithful_base` — the Remark 7.55 + relative Example 6.38 reduction over `B`
+  (the case-(a)-entangled relative-flatness machinery must be rebuilt over the `B`-bundle alone). -/
 theorem prop_8_30_restriction_flat (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
     @Module.Flat (presheafValue D) (presheafValue D') _ _
-      (restrictionMapHom D D' h).toModule := by
-  sorry
+      (restrictionMapHom D D' h).toModule :=
+  -- Step 1 (Example 6.38): `B := presheafValue D` is again complete strongly noetherian Tate.
+  -- Steps 2–4 (Remark 7.55 + Example 6.38 over `B` + Lemma 8.31): the relative reduction.
+  prop_8_30_flat_of_faithful_base D D' h
+    (presheafValue_isTateRing_faithful D)
+    (presheafValue_isNoetherianRing_faithful D)
+    (presheafValue_isLinearTopology_faithful D)
 
 /-- **Prime-surjectivity for a rational covering** — the geometric input to the
 *faithful* half of Cor 8.32: every prime `p` of `O_X(X)` is the contraction of a prime

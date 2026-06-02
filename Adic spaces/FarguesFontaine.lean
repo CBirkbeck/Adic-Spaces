@@ -74,6 +74,12 @@ open TopologicalRing ValuationSpectrum
 
 universe u
 
+-- `A°` (`powerBoundedSubring.toSubring`) is now stated with `[NonarchimedeanAddGroup A]`. For the
+-- genuine linear-topology setting of this file that follows from `[IsLinearTopology E E]` (open
+-- ideals are open additive subgroups). Kept file-`local` so it does not affect typeclass search
+-- elsewhere.
+attribute [local instance] IsLinearTopology.nonarchimedeanAddGroup
+
 noncomputable section
 
 /-! ### The ring of Witt vectors of O_E as a Huber pair

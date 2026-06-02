@@ -41,6 +41,12 @@ open TopologicalRing ValuationSpectrum
 
 universe u
 
+-- `A°` (`powerBoundedSubring.toSubring`) and the power-bounded `A°`-subring API are now stated
+-- with `[NonarchimedeanAddGroup A]`. For the genuine linear-topology setting used in this file,
+-- that follows from `[IsLinearTopology A A]` (open ideals are open additive subgroups). Kept
+-- file-`local` so it does not affect typeclass search in other modules.
+attribute [local instance] IsLinearTopology.nonarchimedeanAddGroup
+
 /-! ### Perfectoid rings -/
 
 /-- A Tate ring `A` is a **perfectoid ring** (for a prime `p`) if:

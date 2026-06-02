@@ -189,6 +189,19 @@ theorem mem_powerBoundedSubring (P : PairOfDefinition A) {a : A} (ha : a ∈ P.A
     TopologicalRing.IsPowerBounded a :=
   P.isBounded_A₀.subset (Set.range_subset_iff.mpr fun n ↦ P.A₀.pow_mem ha n)
 
+/-- A pair of definition makes `A` a non-archimedean additive group: the images of the powers
+`Iⁿ` of the ideal of definition form an open additive-subgroup basis at `0`
+(Corollary 6.4(1) of Wedhorn). -/
+def nonarchimedeanAddGroup (P : PairOfDefinition A) : NonarchimedeanAddGroup A where
+  is_nonarchimedean := by
+    intro U hU
+    obtain ⟨n, -, hn⟩ := P.hasBasis_nhds_zero.mem_iff.mp hU
+    refine ⟨⟨(P.I ^ n).toAddSubgroup.map P.A₀.subtype.toAddMonoidHom, ?_⟩, ?_⟩
+    · change IsOpen (Subtype.val '' ((P.I ^ n).toAddSubgroup : Set P.A₀))
+      rw [Submodule.coe_toAddSubgroup]; exact P.pow_image_isOpen n
+    · change Subtype.val '' ((P.I ^ n).toAddSubgroup : Set P.A₀) ⊆ U
+      rw [Submodule.coe_toAddSubgroup]; exact hn
+
 /-! ### Connection to the topological nilradical (Remark 6.7 of Wedhorn) -/
 
 section LinearTopology
@@ -237,9 +250,15 @@ theorem isTopologicallyNilpotent_mem_idealOfDefinition_radical (P : PairOfDefini
   exact Ideal.mem_radical_iff.mpr
     ⟨n, by rw [← hval, idealOfDefinition]; exact Ideal.mem_map_of_mem _ (pow_one P.I ▸ hy)⟩
 
-/-- The power-bounded subring `A°` is open in any Huber ring (Proposition 6.4(4) of Wedhorn). -/
-theorem isOpen_powerBoundedSubring (P : PairOfDefinition A) [IsLinearTopology A A] :
+/-- The power-bounded subring `A°` is open in any Huber ring (Proposition 6.4(4) of Wedhorn).
+The proof uses only the pair of definition `P` (a `PairOfDefinition` always exists for a Huber
+ring), so it needs no `[IsLinearTopology A A]` — which is in any case unsatisfiable for Tate
+rings. -/
+theorem isOpen_powerBoundedSubring (P : PairOfDefinition A) :
     IsOpen (TopologicalRing.powerBoundedSubring A) := by
+  -- `A°` is realised as an `AddSubgroup` via `powerBoundedSubring.toSubring`, which is a
+  -- subring precisely because `A` is non-archimedean — a structure supplied directly by `P`.
+  haveI : NonarchimedeanAddGroup A := P.nonarchimedeanAddGroup
   have h_le : P.A₀.toAddSubgroup ≤
       (TopologicalRing.powerBoundedSubring.toSubring A).toAddSubgroup :=
     fun _ ha ↦ P.mem_powerBoundedSubring ha
@@ -255,16 +274,8 @@ end PairOfDefinition
 /-- A Huber ring has a nonarchimedean additive group topology: every neighborhood of `0`
 contains an open additive subgroup (Corollary 6.4(1) of Wedhorn). -/
 instance IsHuberRing.nonarchimedeanAddGroup {A : Type*} [CommRing A] [TopologicalSpace A]
-    [IsHuberRing A] : NonarchimedeanAddGroup A where
-  is_nonarchimedean := by
-    obtain ⟨P⟩ := ‹IsHuberRing A›.exists_pairOfDefinition
-    intro U hU
-    obtain ⟨n, -, hn⟩ := P.hasBasis_nhds_zero.mem_iff.mp hU
-    refine ⟨⟨(P.I ^ n).toAddSubgroup.map P.A₀.subtype.toAddMonoidHom, ?_⟩, ?_⟩
-    · change IsOpen (Subtype.val '' ((P.I ^ n).toAddSubgroup : Set P.A₀))
-      rw [Submodule.coe_toAddSubgroup]; exact P.pow_image_isOpen n
-    · change Subtype.val '' ((P.I ^ n).toAddSubgroup : Set P.A₀) ⊆ U
-      rw [Submodule.coe_toAddSubgroup]; exact hn
+    [IsHuberRing A] : NonarchimedeanAddGroup A :=
+  (‹IsHuberRing A›.exists_pairOfDefinition.some).nonarchimedeanAddGroup
 
 /-- A Huber ring is first countable: the pair of definition gives a countable
 neighborhood basis `{I^n}` at 0, and translations extend this to every point.
