@@ -82,6 +82,23 @@ theorem wedhorn_6_16
   -- L1 docstring + `b2_log.jsonl` entry 3.
   AddMonoidHom.isOpenMap_of_completeSpace_of_countablyGenerated f.toAddMonoidHom hf hsurj
 
+/-- **Dilation cover** — the `A`-module input that replaces σ-compactness in Wedhorn 6.16.
+For a topological `A`-module `M` with continuous scalar multiplication and a topologically
+nilpotent element `ϖ`, every neighbourhood `U` of `0` dilates to cover `M`: every `m : M`
+satisfies `ϖ ^ n • m ∈ U` for some `n` (because `ϖ ^ n • m → 0`). This is exactly the
+countable cover Baire's theorem needs, and it is what Wedhorn's "sequence of units → 0"
+hypothesis supplies — no σ-compactness or separability of `M` required. -/
+theorem iUnion_preimage_smul_pow_eq_univ
+    {A : Type*} [CommRing A] [TopologicalSpace A]
+    {M : Type*} [AddCommGroup M] [Module A M] [TopologicalSpace M] [ContinuousSMul A M]
+    {ϖ : A} (hϖ : IsTopologicallyNilpotent ϖ) {U : Set M} (hU : U ∈ nhds (0 : M)) :
+    ⋃ n : ℕ, {m : M | ϖ ^ n • m ∈ U} = Set.univ := by
+  refine Set.eq_univ_of_forall fun m => Set.mem_iUnion.2 ?_
+  have hT : Filter.Tendsto (fun n : ℕ => ϖ ^ n) Filter.atTop (nhds (0 : A)) := hϖ
+  have htend : Filter.Tendsto (fun n : ℕ => ϖ ^ n • m) Filter.atTop (nhds (0 : M)) := by
+    simpa using hT.smul_const m
+  exact (htend.eventually hU).exists
+
 /-! ## Wedhorn 6.17 (= BGR §3.7.2/2) — noetherian iff every (sub)module closed
 
 For a complete Tate-like ring `A` and a complete topological `A`-module `M`
