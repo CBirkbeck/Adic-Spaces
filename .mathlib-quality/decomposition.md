@@ -802,3 +802,46 @@ This is planning-only (no tickets). To execute: re-state A1 (`muMap_injective`, 
 8.31) + A4 (maximals `faithfullyFlat_pi` sibling) as sorry leaves in the skeleton, retype B1/B2 noeth-A₀
 → noeth-A, then `/develop --continue` to ticket and `/beastmode` to discharge — closing Prop 6.18 first
 (it unblocks A1 → A2 → A3 → A4 → B1 → B2 → top).
+
+---
+
+## ★ EXECUTION LOG 2026-06-02 (post-decompose) — Prop 6.18 / Remark 8.29 critical path
+
+Worked the faithful critical path (Prop 6.18 first). **Landed, committed, build-green (3145 jobs):**
+- `NoetherianTateModules.CompleteSpace.of_isModuleTopology_finite` — PROVEN. Prop 6.18(1)
+  completeness half: f.g. module with module topology over complete first-countable ring is
+  complete (`Aⁿ ↠ M` open quotient + `QuotientAddGroup.completeSpace_right` + uniform iso).
+  `[CompleteSpace A]` only — no noetherianity, no `A₀`.
+- `TateAlgebra.muMap_injective` — STATED (faithful `[IsNoetherianRing A]` sig, sorry).
+- `TateAlgebra.muMap_naturality` — PROVEN. `(f⟨X⟩)∘μ_M = μ_N∘(f⊗id)`, the 5-lemma naturality square.
+- `Wedhorn828.lemma_8_31_*` ×3 — RE-STATED faithfully (noeth-A, no `(P)[IsNoetherianRing P.A₀]`).
+
+**DEFINITIVE gap characterization (every route converges here):** the flatness keystone
+`muMap_injective` (Remark 8.29) reduces by the 5-lemma to a single crux —
+`restrictedModule_map_exact`: the `⟨X⟩` functor preserves the strict-exact presentation
+`Aⁿ →u Aᵐ →p M → 0`, i.e. `ker(p⟨X⟩) = range(u⟨X⟩)`. The diagonal lift (mirroring the PROVEN
+`restrictedModule_map_surjective`) needs **`u : Aⁿ → Aᵐ` strict (open onto image)**. That is exactly:
+
+  **f.g. submodule `range u = ker p` is closed in `Aᵐ`, and `u : Aⁿ ↠ ker p` is open** (= Wedhorn 6.17 /
+  BGR §3.7.2/1 for the FREE module `Aᵐ`).
+
+The WedhornBanachTheorem L3 chain (`_sub_lemma_L3_1a/1b`) bottoms at the SAME fact. So Prop 6.18(2)
+strictness, Remark 8.29, Lemma 8.31, and Cor 8.32 all rest on this one closed-submodule fact.
+
+**FAITHFUL TRACTABLE ROUTE (no BGR-Nakayama-from-scratch needed):** the project already proves the
+**closed-IDEAL** case via **Krull intersection** — `isClosed_ideal_of_adicComplete_noetherian`
+(`NoetherianTateModules.lean:390`, uses `Ideal.iInf_pow_smul_eq_bot_of_le_jacobson` +
+`IsAdicComplete.le_jacobson_bot`, on the quotient `R/J`, sidestepping subspace topology). The
+generalization to a f.g. submodule `N ⊆ Aᵐ` is:
+  1. `ker p` closed in `Aᵐ`: Krull on `Aᵐ/ker p` (`⨅ Iⁿ•(Aᵐ/ker p) = ⊥`, the Krull lemma is already
+     module-general). **Needs:** the module-level adic neighborhood basis `hasBasis (Iⁿ • Aᵐ)` on the
+     FREE module `Aᵐ` (the project has `IsAdic`/`hasBasis_nhds` only at RING level — this is the one
+     genuine infrastructure piece to build; the free-module case is the product of the ring-adic basis).
+  2. `u : Aⁿ ↠ ker p` open: Banach OMT (`wedhorn_6_16` / `AddMonoidHom.isOpenMap_of_sigmaCompact`,
+     available) — `ker p` complete since closed in complete `Aᵐ` (`Pi.complete`).
+  3. `restrictedModule_map_exact` via the diagonal lift (template = `restrictedModule_map_surjective`).
+  4. `muMap_injective` via the element chase (`muMap_naturality` ✓ + free-case μ-iso + map_exact).
+  5. `lemma_8_31` flatness from `muMap_injective` + the `(+)`-recursion (`noeth_zero_of_mul_shift` ✓).
+
+This is a well-scoped ~150-LOC focused development with ONE genuine new piece (module-adic basis on
+`Aᵐ`); everything else is template-adaptation or available infrastructure. No fundamental wall.
