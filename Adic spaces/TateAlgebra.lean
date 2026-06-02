@@ -1603,6 +1603,24 @@ theorem muMap_surjective
   congr 1
   simp [Finset.sum_apply, Pi.single_apply]
 
+omit [IsTopologicalRing A] [T2Space A] [FirstCountableTopology A] in
+/-- **Naturality of `μ`** (Remark 8.29): for an `A`-linear continuous `f : M → N`, the square
+`μ_N ∘ (f ⊗ id) = (f⟨X⟩) ∘ μ_M` commutes, where `f⟨X⟩ = restrictedModule.map f`. This is the
+naturality that drives the 5-lemma proof of `muMap_injective`. -/
+theorem muMap_naturality
+    {M : Type u} [AddCommGroup M] [Module A M] [TopologicalSpace M]
+      [IsTopologicalAddGroup M] [ContinuousSMul A M] [ContinuousConstSMul A M]
+    {N : Type u} [AddCommGroup N] [Module A N] [TopologicalSpace N]
+      [IsTopologicalAddGroup N] [ContinuousSMul A N] [ContinuousConstSMul A N]
+    (f : M →ₗ[A] N) (hf : Continuous f) :
+    (restrictedModule.map f hf).comp (muMap (A := A) (M := M)) =
+      (muMap (A := A) (M := N)).comp (TensorProduct.map f LinearMap.id) := by
+  apply TensorProduct.ext'
+  intro m a
+  apply Subtype.ext
+  funext s
+  exact map_smul f (a.val s) m
+
 /-- **Remark 8.29, injective half** (Wedhorn *Adic Spaces* p. 81, `wedhorn.txt:4074`): the
 natural map `μ_M : M ⊗_A A⟨X⟩ → M⟨X⟩`, `m ⊗ a ↦ ma`, is **injective** for a finitely
 generated module `M` over a (complete) **noetherian Tate ring** `A`.
