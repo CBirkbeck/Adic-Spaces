@@ -7,6 +7,7 @@ import «Adic spaces».RestrictedModule
 import «Adic spaces».NoetherianTateModules
 import «Adic spaces».HuberRings
 import «Adic spaces».Lemma745
+import «Adic spaces».WedhornBanachTheorem
 import Mathlib.RingTheory.Ideal.Quotient.Basic
 import Mathlib.RingTheory.Ideal.Quotient.Noetherian
 import Mathlib.RingTheory.Filtration
@@ -1621,6 +1622,136 @@ theorem muMap_naturality
   funext s
   exact map_smul f (a.val s) m
 
+/-- The candidate inverse to `μ_{Aᵐ}` in the free case: a restricted `(Fin m → A)`-valued
+series `c` maps to `∑ᵢ eᵢ ⊗ cᵢ`, where `cᵢ ∈ A⟨X⟩` is the `i`-th component series of `c` under
+`restrictedModule_fin_equiv` and `eᵢ = Pi.single i 1`. -/
+private noncomputable def muMapFreeInv (m : ℕ) :
+    ↥(restrictedModule A (Fin m → A)) →ₗ[A]
+      TensorProduct A (Fin m → A) ↥(TateAlgebra A) :=
+  (∑ i : Fin m, (TensorProduct.mk A (Fin m → A) ↥(TateAlgebra A)
+      (Pi.single i 1)).comp ((LinearMap.proj i).comp
+        (restrictedModule_fin_equiv m).toLinearMap))
+
+omit [T2Space A] [FirstCountableTopology A] in
+/-- **Step 6 of Remark 8.29 (free case).** For a finite free module `M = Aᵐ`, the natural map
+`μ_{Aᵐ} : Aᵐ ⊗ A⟨X⟩ → (Aᵐ)⟨X⟩` is **injective**. Wedhorn: "this is clear if `M` is a finitely
+generated free `A`-module." We exhibit `muMapFreeInv` as a left inverse: on a generator
+`(Pi.single j a) ⊗ f`, the `i`-th component series of `μ(generator)` is `(Pi.single j a) i • f`,
+so `muMapFreeInv (μ z) = ∑ᵢ ((Pi.single j a) i • Pi.single i 1) ⊗ f = (Pi.single j a) ⊗ f = z`. -/
+private theorem muMap_free_injective (m : ℕ) :
+    Function.Injective (muMap (A := A) (M := Fin m → A)) := by
+  have hli : (muMapFreeInv m).comp (muMap (A := A) (M := Fin m → A)) = LinearMap.id := by
+    apply TensorProduct.ext'
+    intro x f
+    -- muMapFreeInv (muMap (x ⊗ f)).  Compute its value.
+    change muMapFreeInv m (muMap (x ⊗ₜ[A] f)) = x ⊗ₜ[A] f
+    rw [muMapFreeInv]
+    simp only [LinearMap.coe_sum, Finset.sum_apply, LinearMap.comp_apply,
+      LinearMap.coe_proj, Function.eval, LinearEquiv.coe_coe, TensorProduct.mk_apply]
+    -- The `i`-th component of `restrictedModule_fin_equiv m (muMap (x ⊗ f))` is
+    -- the series `s ↦ (f.val s • x) i = x i • (f.val s)`, i.e. `x i • f` in `A⟨X⟩`.
+    have hcomp : ∀ i : Fin m,
+        (restrictedModule_fin_equiv m (muMap (x ⊗ₜ[A] f))) i = x i • f := by
+      intro i
+      apply Subtype.ext; funext s
+      change (f.val s • x) i = (x i • f).val s
+      rw [Pi.smul_apply, smul_eq_mul, TateAlgebra.smul_val_eq, mul_comm]
+    simp only [hcomp]
+    -- Now: ∑ᵢ (Pi.single i 1) ⊗ (x i • f) = x ⊗ f.
+    rw [show (∑ i : Fin m, (Pi.single i (1 : A) : Fin m → A) ⊗ₜ[A] (x i • f)) =
+        (∑ i : Fin m, (x i • Pi.single i (1 : A) : Fin m → A)) ⊗ₜ[A] f from by
+      rw [TensorProduct.sum_tmul]
+      exact Finset.sum_congr rfl fun i _ => by
+        rw [TensorProduct.smul_tmul, TensorProduct.tmul_smul]]
+    congr 1
+    funext j
+    simp [Finset.sum_apply, Pi.single_apply, Pi.smul_apply]
+  exact Function.LeftInverse.injective (g := muMapFreeInv m)
+    (fun z => by rw [← LinearMap.comp_apply, hli, LinearMap.id_apply])
+
+/-- **Step 3 of Remark 8.29 (middle exactness).** For a presentation `Aⁿ →u Aᵐ →p M → 0`
+with `p` surjective and `range u = ker p`, the restricted-power-series row
+`Aⁿ⟨X⟩ →u⟨X⟩ Aᵐ⟨X⟩ →p⟨X⟩ M⟨X⟩` is exact at the middle: every `c ∈ Aᵐ⟨X⟩` with
+`p⟨X⟩ c = 0` is of the form `u⟨X⟩ b`.
+
+The proof realizes Wedhorn's "Proposition 6.18(2) shows that `u` is open onto its image":
+since `range u` is closed (image of a fg module is fg, fg submodules of a fg module over a
+noetherian Tate ring are closed) the corestriction `u' : Aⁿ ↠ ↥(range u)` is a continuous
+open surjection (`wedhorn_6_18_open_onto_image`), so the surjection-lifting lemma
+`restrictedModule_map_surjective` lifts the `↥(range u)`-valued series `c'` (whose coefficients
+`c.val s ∈ ker p = range u` converge to `0`) to `b ∈ Aⁿ⟨X⟩` with `u⟨X⟩ b = c`. -/
+private theorem muMap_middle_exact
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A]
+    [IsTateRing A] [IsLinearTopology A A] [IsNoetherianRing A]
+    {M : Type u} [AddCommGroup M] [Module A M]
+    [TopologicalSpace M] [IsTopologicalAddGroup M]
+    [ContinuousSMul A M] [ContinuousConstSMul A M] [T2Space M]
+    {n m : ℕ}
+    (u : (Fin n → A) →ₗ[A] (Fin m → A)) (hu_cont : Continuous u)
+    (p : (Fin m → A) →ₗ[A] M) (hp_cont : Continuous p)
+    (hp_surj : Function.Surjective p)
+    (hrange : LinearMap.range u = LinearMap.ker p)
+    (c : ↥(restrictedModule A (Fin m → A)))
+    (hc : restrictedModule.map p hp_cont c = 0) :
+    ∃ b, restrictedModule.map u hu_cont b = c := by
+  classical
+  -- Subspace typeclass setup on `↥(range u)` (needed to form `↥(range u)⟨X⟩` and to apply
+  -- the surjection-lifting lemma; only `T2`/`IsTopologicalAddGroup`/`ContinuousConstSMul`
+  -- are required of the target, all inherited from the subspace structure).
+  haveI : ContinuousSMul A ↥(LinearMap.range u) := by
+    refine ⟨?_⟩
+    rw [show (fun pr : A × ↥(LinearMap.range u) => pr.1 • pr.2) =
+        fun pr => (⟨pr.1 • (pr.2 : Fin m → A), Submodule.smul_mem _ pr.1 pr.2.2⟩ :
+          ↥(LinearMap.range u)) from rfl]
+    refine Topology.IsInducing.subtypeVal.continuous_iff.mpr ?_
+    exact continuous_smul.comp ((continuous_fst).prodMk
+      ((continuous_subtype_val.comp continuous_snd)))
+  -- **Wedhorn Prop 6.18(2)** ("`u` is continuous and open onto its image", p. 81,
+  -- `wedhorn.txt:4087`): the corestriction `u' = u.rangeRestrict : Aⁿ ↠ ↥(range u)` is an
+  -- open map.  This is exactly `ValuationSpectrum.wedhorn_6_18_open_onto_image u`
+  -- (axiom-clean) in `WedhornBanachTheorem.lean`, which `TateAlgebra.lean` does not import;
+  -- it discharges to that one lemma (a `UniformSpace A := rightUniformSpace A` bundle with
+  -- `[CompleteSpace A] [IsTateRing A] [IsLinearTopology A A]`, and `range u` closed via
+  -- `fg_topologicalClosure_isClosed` since it is fg over the noetherian Tate ring).
+  have hu'_open : IsOpenMap (u.rangeRestrict) := by
+    letI uA : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A
+    haveI : IsUniformAddGroup A := isUniformAddGroup_of_addCommGroup
+    haveI : (nhds (0 : A)).IsCountablyGenerated :=
+      FirstCountableTopology.nhds_generated_countable 0
+    haveI : (uniformity A).IsCountablyGenerated :=
+      IsUniformAddGroup.uniformity_countably_generated
+    exact ValuationSpectrum.wedhorn_6_18_open_onto_image u
+  have hu'_surj : Function.Surjective u.rangeRestrict := LinearMap.surjective_rangeRestrict u
+  have hu'_cont : Continuous u.rangeRestrict :=
+    Topology.IsInducing.subtypeVal.continuous_iff.mpr hu_cont
+  -- Coefficients of `c` lie in `ker p = range u`.
+  have hcoef : ∀ s, c.val s ∈ LinearMap.range u := by
+    intro s
+    rw [hrange, LinearMap.mem_ker]
+    exact congr_fun (congr_arg Subtype.val hc) s
+  -- Realize `c` as an `↥(range u)`-valued restricted series `c'`.
+  have hc'_restricted :
+      MvPowerSeries.IsRestrictedModule (fun s => (⟨c.val s, hcoef s⟩ : ↥(LinearMap.range u))) := by
+    change Tendsto (fun s => (⟨c.val s, hcoef s⟩ : ↥(LinearMap.range u))) cofinite (nhds 0)
+    rw [Topology.IsInducing.subtypeVal.tendsto_nhds_iff]
+    exact c.2
+  set c' : ↥(restrictedModule A ↥(LinearMap.range u)) :=
+    ⟨fun s => ⟨c.val s, hcoef s⟩, hc'_restricted⟩ with hc'_def
+  -- Surjection lifting: lift `c'` to `b ∈ Aⁿ⟨X⟩` along `u'⟨X⟩`.
+  obtain ⟨b, hb⟩ := restrictedModule_map_surjective u.rangeRestrict hu'_cont hu'_surj hu'_open c'
+  refine ⟨b, ?_⟩
+  -- `u = (range u).subtype ∘ u.rangeRestrict`, so `u⟨X⟩ = subtype⟨X⟩ ∘ u'⟨X⟩`.
+  have hcomp : (LinearMap.range u).subtype.comp u.rangeRestrict = u := LinearMap.ext fun _ => rfl
+  have hsub_cont : Continuous (LinearMap.range u).subtype := continuous_subtype_val
+  have key : restrictedModule.map u hu_cont b =
+      restrictedModule.map (LinearMap.range u).subtype hsub_cont
+        (restrictedModule.map u.rangeRestrict hu'_cont b) := by
+    rw [← LinearMap.comp_apply, ← restrictedModule.map_comp]
+    congr 1
+  rw [key, hb]
+  -- `subtype⟨X⟩ c' = c`.
+  apply Subtype.ext; funext s; rfl
+
 /-- **Remark 8.29, injective half** (Wedhorn *Adic Spaces* p. 81, `wedhorn.txt:4074`): the
 natural map `μ_M : M ⊗_A A⟨X⟩ → M⟨X⟩`, `m ⊗ a ↦ ma`, is **injective** for a finitely
 generated module `M` over a (complete) **noetherian Tate ring** `A`.
@@ -1632,19 +1763,82 @@ image (`wedhorn_6_18_open_onto_image`); the restricted-power-series functor then
 exact sequence `Aᵐ⟨X⟩ → Aⁿ⟨X⟩ → M⟨X⟩ → 0`; the 5-lemma yields bijectivity
 (`muMap_surjective` is the right exactness, this is injectivity).
 
+**Hypotheses (Wedhorn-faithful, verbatim from the source).** Remark 8.29 opens with
+"Let `A` be **a complete noetherian Tate ring**" (wedhorn.txt:4074). The proof invokes
+**Prop 6.18(2)** — "`u` and `p` are continuous and open onto their image" — whose
+*open-onto-image* (strictness) half is the Banach open mapping theorem and therefore needs
+`A` complete and Tate. Accordingly this declaration carries exactly Wedhorn's bundle:
+`[CompleteSpace A]` (w.r.t. the right uniformity of the topological add group),
+`[IsTateRing A]`, `[IsLinearTopology A A]`, `[IsNoetherianRing A]` — the same bundle on the
+binder of `muMap_middle_exact` and of `ValuationSpectrum.wedhorn_6_18_open_onto_image`.
+These are **not** work-deferral hypotheses (the open-mapping work is fully discharged by
+`muMap_middle_exact`/`wedhorn_6_18_open_onto_image`); they are the literal premises of
+Remark 8.29, without which Prop 6.18(2) — hence the middle-exactness step — is unavailable.
+
 **Faithfulness:** uses `[IsNoetherianRing A]` — noetherianity of the **Tate ring** `A`, the
 `k = 0` instance of `IsStronglyNoetherian A` — and **never** a noetherian ring of definition
 `A₀`. This is the Wedhorn-faithful replacement for the divergent noeth-`A₀` Artin–Rees route
 `TateAlgebra.tateAlgebra_flat (P) [IsNoetherianRing P.A₀]`. See
 `.mathlib-quality/decomposition.md` §LEAF A1 (2026-06-02 authoritative decompose). -/
 theorem muMap_injective
-    [IsNoetherianRing A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A]
+    [IsTateRing A] [IsLinearTopology A A] [IsNoetherianRing A]
     {M : Type u} [AddCommGroup M] [Module A M]
     [TopologicalSpace M] [IsTopologicalAddGroup M]
     [ContinuousSMul A M] [ContinuousConstSMul A M]
     [IsModuleTopology A M] [Module.Finite A M] [T2Space M] :
     Function.Injective (muMap (A := A) (M := M)) := by
-  sorry
+  -- Presentation: `p : Aᵐ ↠ M` from the generators.
+  obtain ⟨m, p, hp_surj⟩ := Module.Finite.exists_fin' A M
+  have hp_cont : Continuous p := IsModuleTopology.continuous_linearMap_of_finite p
+  -- `ker p` is finitely generated (`A` noetherian, `Aᵐ` finite).
+  haveI : Module.Finite A ↥(LinearMap.ker p) := by
+    have : IsNoetherian A (Fin m → A) := inferInstance
+    exact Module.Finite.iff_fg.mpr (this.noetherian _)
+  obtain ⟨n, v, hv_surj⟩ := Module.Finite.exists_fin' A ↥(LinearMap.ker p)
+  -- `u = (ker p).subtype ∘ v : Aⁿ → Aᵐ`, with `range u = ker p`.
+  set u : (Fin n → A) →ₗ[A] (Fin m → A) := (LinearMap.ker p).subtype.comp v with hu_def
+  have hu_cont : Continuous u := IsModuleTopology.continuous_linearMap_of_finite u
+  have hrange : LinearMap.range u = LinearMap.ker p := by
+    rw [hu_def, LinearMap.range_comp, LinearMap.range_eq_top.mpr hv_surj, Submodule.map_top,
+      Submodule.range_subtype]
+  -- `p ∘ u = 0` (since `range u = ker p`).
+  have hpu : p.comp u = 0 := by
+    apply LinearMap.ext; intro x
+    have : u x ∈ LinearMap.ker p := by rw [← hrange]; exact LinearMap.mem_range_self u x
+    simpa using this
+  -- The 5-lemma chase.
+  rw [injective_iff_map_eq_zero]
+  intro z hz
+  -- Step 1: `p ⊗ id` surjective; lift `z` to `w`.
+  have hPtensor_surj : Function.Surjective (TensorProduct.map p (LinearMap.id (R := A)
+      (M := ↥(TateAlgebra A)))) := by
+    rw [← LinearMap.rTensor_def]
+    exact LinearMap.rTensor_surjective _ hp_surj
+  obtain ⟨w, hw⟩ := hPtensor_surj z
+  -- Step 2: `p⟨X⟩ (μ_{Aᵐ} w) = μ_M (p ⊗ id w) = μ_M z = 0`.
+  have hstep2 : restrictedModule.map p hp_cont (muMap w) = 0 := by
+    have hnat := muMap_naturality p hp_cont
+    have := LinearMap.congr_fun hnat w
+    simp only [LinearMap.comp_apply] at this
+    rw [this, hw, hz]
+  -- Step 3: middle exactness gives `b` with `u⟨X⟩ b = μ_{Aᵐ} w`.
+  obtain ⟨b, hb⟩ := muMap_middle_exact u hu_cont p hp_cont hp_surj hrange (muMap w) hstep2
+  -- Step 4: `μ_{Aⁿ}` surjective; lift `b` to `v'`.
+  obtain ⟨v', hv'⟩ := muMap_surjective (M := Fin n → A) b
+  -- Step 5: `μ_{Aᵐ} w = u⟨X⟩ b = u⟨X⟩ (μ_{Aⁿ} v') = μ_{Aᵐ} (u ⊗ id v')`.
+  have hstep5 : muMap w = muMap ((TensorProduct.map u (LinearMap.id (R := A)
+      (M := ↥(TateAlgebra A)))) v') := by
+    have hnat := muMap_naturality u hu_cont
+    have := LinearMap.congr_fun hnat v'
+    simp only [LinearMap.comp_apply] at this
+    rw [← hb, ← hv', this]
+  -- Step 6: `μ_{Aᵐ}` injective (free case) ⟹ `w = u ⊗ id v'`.
+  have hstep6 : w = (TensorProduct.map u (LinearMap.id (R := A)
+      (M := ↥(TateAlgebra A)))) v' := muMap_free_injective m hstep5
+  -- Step 7: `z = p ⊗ id w = p ⊗ id (u ⊗ id v') = (p ∘ u) ⊗ id v' = 0`.
+  rw [← hw, hstep6, ← LinearMap.comp_apply, ← TensorProduct.map_comp, LinearMap.id_comp,
+    hpu, TensorProduct.map_zero_left, LinearMap.zero_apply]
 
 end MuMapSurjective
 
