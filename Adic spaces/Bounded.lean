@@ -395,13 +395,36 @@ theorem IsTopologicallyNilpotent.one_sub_det_one_sub_matrix [IsLinearTopology A 
     {n : Type*} [Fintype n] [DecidableEq n] (B : Matrix n n A)
     (hB : ∀ i j, IsTopologicallyNilpotent (B i j)) :
     IsTopologicallyNilpotent (1 - (1 - B).det) := by
-  -- Mathematical proof (over `A°`, via `topNilpIdeal` + `RingHom.map_det`): reduction mod
-  -- `topNilpIdeal` sends `1 - B'` to `1`, so `det (1 - B') ≡ 1` and `det (1 - B') - 1 ∈
-  -- topNilpIdeal` is topologically nilpotent; transfer back via `A° ↪ A`. The full term is
-  -- drafted (see `.mathlib-quality/decomposition.md`); it currently stalls only on Lean
-  -- instance plumbing for the quotient ring's `0`/`1` (`sub_zero`/`Matrix.det_one` not firing
-  -- up-to-`OfNat`/`DecidableEq` instance). Left as a focused tactic-plumbing step.
-  sorry
+  let B' : Matrix n n (powerBoundedSubring.toSubring A) :=
+    fun i j => ⟨B i j, (hB i j).isPowerBounded⟩
+  have hB'_mem : ∀ i j, B' i j ∈ topNilpIdeal := fun i j => hB i j
+  -- Reduction mod `topNilpIdeal` kills `B'`, so (working with the ring hom `mk.mapMatrix`)
+  -- `mk.mapMatrix (1 - B') = 1`, hence `det (1 - B') ≡ 1`.
+  have hzQ : (Ideal.Quotient.mk topNilpIdeal).mapMatrix B' = 0 := by
+    ext i j
+    rw [RingHom.mapMatrix_apply, Matrix.map_apply, Matrix.zero_apply,
+      (Ideal.Quotient.eq_zero_iff_mem).2 (hB'_mem i j)]
+  have hone : (Ideal.Quotient.mk topNilpIdeal).mapMatrix (1 - B') = 1 := by
+    rw [map_sub, map_one, hzQ]; abel
+  have hquot : Ideal.Quotient.mk topNilpIdeal (1 - B').det = 1 := by
+    rw [RingHom.map_det, hone]; exact Matrix.det_one
+  -- Hence `det (1 - B') - 1 ∈ topNilpIdeal`, i.e. is topologically nilpotent.
+  have hmem : IsTopologicallyNilpotent
+      (((1 - B').det - 1 : powerBoundedSubring.toSubring A) : A) :=
+    show ((1 - B').det - 1 : powerBoundedSubring.toSubring A) ∈ topNilpIdeal by
+      rw [← Ideal.Quotient.eq_zero_iff_mem, map_sub, hquot, map_one]; abel
+  -- Transfer back to `A`: the subring inclusion `mapMatrix` sends `1 - B'` to `1 - B`.
+  have hsub : (powerBoundedSubring.toSubring A).subtype.mapMatrix (1 - B') = 1 - B := by
+    ext i j
+    simp [RingHom.mapMatrix_apply, Matrix.map_apply, Matrix.sub_apply, Matrix.one_apply,
+      map_sub, B']
+  have hdet_eq : (1 - B).det
+      = (powerBoundedSubring.toSubring A).subtype ((1 - B').det) := by
+    rw [RingHom.map_det, hsub]
+  rw [hdet_eq, show (1 : A) - (powerBoundedSubring.toSubring A).subtype ((1 - B').det)
+      = -((powerBoundedSubring.toSubring A).subtype ((1 - B').det - 1)) by
+      rw [map_sub, map_one]; ring]
+  exact hmem.neg
 
 /-- **Matrix Nakayama** (BGR Lemma 1.2.4/6, the form used in §3.7.2/1): if every entry of an
 `n × n` matrix `B` over a complete Hausdorff nonarchimedean commutative ring `A` is topologically
