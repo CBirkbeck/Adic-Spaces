@@ -1011,3 +1011,31 @@ remaining substantial functional-analysis. Restating `L3_1a` to the faithful M̂
 requires adjusting the consumer `_sub_lemma_L3_1b` (N̂ = closure_M(N) finite needs M a noetherian
 module, i.e. M f.g. — true for the real consumer `M = Aᵐ`). Chain above §3.7.2/1 unchanged:
 L3_1b → L4_3 (strictness) → `wedhorn_6_18_open_onto_image`, and separately `muMap_injective` → 8.31.
+
+### ★ REFERENCE-CHECK FINDING 2026-06-02 — the OMT is fixed at the wrong abstraction level
+
+Before building §3.7.2/1 (per user "check references + check we need this"), read Wedhorn 6.16/6.17/
+6.18/8.29-8.32 (wedhorn.txt) + BGR §3.7.2/1 + §3.7.3 (PDF pp.163-165) directly. Results:
+
+1. **§3.7.2/1 IS on the critical path** (CONFIRMED): 8.28(b)→Cor8.32→8.30→8.31→**Rem 8.29**
+   (wedhorn.txt:4091 uses "**6.18(2)**: u,p continuous + **open onto image**")→ BGR §3.7.3 Cor5
+   (strict)→ §3.7.2/2 (submodules closed)→ **§3.7.2/1** (M̂ finite ⟹ M complete). Wedhorn's
+   6.17/6.18 proofs are "Missing" ⟹ route is BGR.
+2. **Matrix Nakayama + corollary are the RIGHT tools** (CONFIRMED): BGR PDF shows coefficients in
+   **Ǎ = open ball = top-nilp** (not power-bounded Ã), so `1-B` = `1 - top-nilp` = `isUnit_one_sub_matrix`,
+   and the quotient relation = `eq_zero_of_forall_eq_sum_topNilp_smul`. (The L3_1a docstring's "Ã"
+   was an OCR collapse of the caron.)
+3. **⚠ FOUNDATIONAL PREREQUISITE — `wedhorn_6_16` σ-compact is unfulfillable + a divergence.**
+   §3.7.2/1's OMT source is `Aⁿ`; project's `wedhorn_6_16` carries `[SigmaCompactSpace M]`
+   (delegates to mathlib `AddMonoidHom.isOpenMap_of_sigmaCompact`). But `Aⁿ` for A = ℂ_p / a Tate
+   algebra is NOT σ-compact (∞-dim Banach, not loc. compact). **Wedhorn's actual 6.16 has NO
+   σ-compactness** — it is an A-MODULE statement over "a ring with a sequence of units → 0", and that
+   gives the Baire cover directly: `M = ⋃ₙ sₙ⁻¹·U` (since `sₙ·x→0` by ContinuousSMul + units→0) ⟹
+   `N = ⋃ₙ sₙ⁻¹·u(U)` countable. The b2_log-entry-3 ℝ-discrete counterexample is only valid at the
+   GROUP level (ℝ-disc is NOT a top. module over a Tate ring w/ ContinuousSMul: `ϖⁿ·x ↛ 0`). The
+   project dropped the module/units structure (→ bare group OMT) and patched with σ-compact.
+
+**REVISED PLAN:** faithful `wedhorn_6_16` (module-level, units→0 dilation-cover Baire, NO σ-compact;
+re-assemble from the sorry-free BanachOMT sub-lemmas C.2/D.1/D.2/A.1/A.2) → §3.7.2/1 (matrix-Nakayama
+assembly, tools ready) → 6.18(2) → Rem 8.29. The faithful OMT is the genuine foundation; building
+§3.7.2/1 on the σ-compact OMT would wall on an unfulfillable hypothesis.
