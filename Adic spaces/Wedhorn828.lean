@@ -1041,33 +1041,200 @@ theorem example638_evalHom_X [IsTateRing A] [IsNoetherianRing A]
   mvEvalHomBounded_X _ _ _ _ j
 
 set_option linter.unusedSectionVars false in
-/-- **Example 6.38 surjectivity (single genuine residual)** (Wedhorn p. 56, `wedhorn.txt:2693`).
-The multivariate evaluation `example638_evalHom : A⟨X₁,…,Xₙ⟩ → presheafValue D`, `Xᵢ ↦ tᵢ/s`, is
-**surjective** onto `presheafValue D = Â⟨T/s⟩`.
+/-- **Density helper (faithful):** every `D.coeRingHom`-image of an element of the ring of
+definition `locSubring D.P D.T D.s = A₀[t/s]` lies in the range of `example638_evalHom D`.
 
-This is the irreducible analytic core of Example 6.38, isolated as a single named `sorry`. Its
-two ingredients are each the genuine Wedhorn content (NOT mathlib-mechanical):
+The two generating families of `locSubring` (Wedhorn §8.1) both lie in the range:
+`algebraMap A₀`-images go to `D.canonicalMap a = example638_evalHom (algebraMap a)`
+(`example638_evalHom_algebraMap`), and `divByS t D.s` (for `t ∈ D.T`) goes to the rational
+generator `tᵢ/s = example638_evalHom Xᵢ` (`example638_evalHom_X` at the index
+`D.T.equivFin ⟨t, _⟩`). Closure under the ring operations is automatic since the range of a ring
+hom is a subring (`Subring.closure_induction`). NO topology on `A⟨X₁..Xₙ⟩` is used. -/
+private theorem coeRingHom_locSubring_mem_range [IsTateRing A] [IsNoetherianRing A]
+    (D : RationalLocData A) {x : Localization.Away D.s}
+    (hx : x ∈ locSubring D.P D.T D.s) :
+    D.coeRingHom x ∈ (example638_evalHom D).range := by
+  classical
+  refine Subring.closure_induction
+    (p := fun x _ => D.coeRingHom x ∈ (example638_evalHom D).range)
+    ?_ ?_ ?_ ?_ ?_ ?_ hx
+  · -- generators: `algebraMap A₀` images and `divByS t s` for `t ∈ D.T`.
+    rintro _ (⟨a, -, rfl⟩ | ⟨⟨t, ht⟩, rfl⟩)
+    · -- `coeRingHom (algebraMap a) = canonicalMap a = example638_evalHom (algebraMap a)`.
+      refine ⟨algebraMap A _ a, ?_⟩
+      rw [example638_evalHom_algebraMap]; rfl
+    · -- `coeRingHom (divByS t s) = example638_genTuple (equivFin ⟨t, ht⟩) = evalHom Xⱼ`.
+      refine ⟨⟨MvPowerSeries.X (D.T.equivFin ⟨t, ht⟩),
+        MvPowerSeries.X_isRestricted _⟩, ?_⟩
+      rw [example638_evalHom_X]
+      simp only [example638_genTuple, Equiv.symm_apply_apply]
+  · -- 0
+    exact ⟨0, by rw [map_zero, map_zero]⟩
+  · -- 1
+    exact ⟨1, by rw [map_one, map_one]⟩
+  · -- add
+    rintro x y - - ⟨px, hpx⟩ ⟨py, hpy⟩
+    exact ⟨px + py, by rw [map_add, map_add, hpx, hpy]⟩
+  · -- neg
+    rintro x - ⟨px, hpx⟩
+    exact ⟨-px, by rw [map_neg, map_neg, hpx]⟩
+  · -- mul
+    rintro x y - - ⟨px, hpx⟩ ⟨py, hpy⟩
+    exact ⟨px * py, by rw [map_mul, map_mul, hpx, hpy]⟩
 
-1. **Density.** The image of `example638_evalHom` is dense in `presheafValue D`. Wedhorn
-   identifies `Â⟨T/s⟩` as the completion in which the rational algebra `A⟨T/s⟩` (the restricted
-   *series* in the `tᵢ/s`, not merely polynomials) is dense; every element is a convergent
-   `∑ aᵥ (t/s)ᵛ` with `aᵥ → 0`, which is exactly `example638_evalHom (⟨∑ aᵥ Xᵛ⟩)`. (In
-   particular `1/s = invS D` is itself such a series on the rational subset — the `Σ tᵢgᵢ = sᵏ`
-   relation — which is why polynomial density alone is insufficient and the restricted-series
-   evaluation is essential.)
-2. **Closedness.** The image is closed: `presheafValue D ≅ C/a` with `a = (tⱼ − s·Xⱼ)` a closed
-   ideal of the complete ring `C = A⟨X⟩` (`Example638.lean` proves the `Fin 1` analogue via
-   `plusFSubXIdeal_isClosed` + completeness of the quotient), so `example638_evalHom` factors as
-   the quotient surjection `C ↠ C/a` composed with the iso.
+set_option linter.unusedSectionVars false in
+/-- **`1/s = invS D` lies in the range of `example638_evalHom D`** — the linchpin density fact,
+proved faithfully from the **Tate** hypothesis and the rational `hopen` datum (NO topology on
+`A⟨X₁..Xₙ⟩`, NO `Σ tᵢ gᵢ = sᵏ` series).
 
-Concretely: `example638_evalHom` is the general-`n` companion of the `Fin 1` `example638Plus`
-chain (`example638Plus_equiv`, `Example638.lean:1035`), which is proved bijective via Banach OMT
-on the closed-ideal quotient. The general-`n` quotient-iso
-(`presheafValue_eq_quotient_AlangleX_iterated`, `IteratedRational.lean`, also `sorry`) would
-discharge this; it is the documented repo gap. -/
-theorem example638_evalHom_surjective [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
-    (D : RationalLocData A) : Function.Surjective (example638_evalHom D) :=
+Wedhorn (Example 6.38): `A[M]` is dense in `Â⟨T/s⟩`, where `M = {tᵢ/s}`; this is where `1/s`
+enters, since `A` is Tate. Concretely: as `A` is Tate it has a topologically nilpotent unit `u`
+(Definition 6.10); some power `uᵐ` lands in the image of `Iᴺ` (the `hopen` depth), so
+`uᵐ = ↑b` for `b ∈ Iᴺ ⊆ A₀`. By `hopen`, `divByS (uᵐ) s ∈ locSubring = A₀[t/s]`, hence (via
+`coeRingHom_locSubring_mem_range`) `D.coeRingHom (divByS (uᵐ) s) = D.canonicalMap (uᵐ) · invS`
+lies in the range. Since `uᵐ` is a **unit** of `A`, `D.canonicalMap (uᵐ)` is invertible with
+inverse `D.canonicalMap ((uᵐ)⁻¹) ∈ range`, so
+`invS = D.canonicalMap ((uᵐ)⁻¹) · (D.canonicalMap (uᵐ) · invS)` lies in the range. -/
+private theorem invS_mem_range [IsTateRing A] [IsNoetherianRing A] (D : RationalLocData A) :
+    invS D ∈ (example638_evalHom D).range := by
+  obtain ⟨u, hu⟩ := IsTateRing.exists_topologicallyNilpotent_unit (A := A)
+  obtain ⟨N, hN⟩ := D.hopen
+  -- The image of `Iᴺ` in `A` is a neighbourhood of `0`.
+  have hmem : Subtype.val '' ((D.P.I ^ N : Ideal D.P.A₀) : Set D.P.A₀) ∈ nhds (0 : A) :=
+    D.P.hasBasis_nhds_zero.mem_of_mem (i := N) trivial
+  -- Some power `uᵐ` lands in that neighbourhood.
+  obtain ⟨m, b, hbI, hbval⟩ := (hu.eventually hmem).exists
+  -- `hbval : ↑b = (↑u)ᵐ`. By `hopen`, `divByS (↑b) s ∈ locSubring`.
+  have hdiv : divByS (↑b : A) D.s ∈ locSubring D.P D.T D.s := hN b hbI
+  have hrange_w : D.coeRingHom (divByS (↑b : A) D.s) ∈ (example638_evalHom D).range :=
+    coeRingHom_locSubring_mem_range D hdiv
+  -- `coeRingHom (divByS (↑b) s) = canonicalMap (↑b) · invS`.
+  have hdivfac : divByS (↑b : A) D.s =
+      algebraMap A (Localization.Away D.s) (↑b : A) * divByS 1 D.s := by
+    rw [← IsLocalization.mk'_one (M := Submonoid.powers D.s) (S := Localization.Away D.s) (↑b : A)]
+    unfold divByS
+    rw [← IsLocalization.mk'_mul, mul_one, one_mul]
+  have hcoe : D.coeRingHom (divByS (↑b : A) D.s) = D.canonicalMap (↑b : A) * invS D := by
+    rw [hdivfac, map_mul, ← invS_eq_coeRingHom_divByS_one]; rfl
+  -- `↑b = uᵐ` is a unit of `A`, so `canonicalMap (↑b)` is a unit; let `c := (↑b)⁻¹`.
+  have hbunit : IsUnit (↑b : A) := by rw [hbval]; exact (u ^ m).isUnit
+  set ub := hbunit.unit with hub
+  -- `canonicalMap (↑ub⁻¹) ∈ range` and `canonicalMap (↑ub⁻¹) · canonicalMap (↑b) = 1`.
+  have hinv_range : D.canonicalMap (↑ub⁻¹ : A) ∈ (example638_evalHom D).range :=
+    ⟨algebraMap A _ (↑ub⁻¹ : A), example638_evalHom_algebraMap D (↑ub⁻¹ : A)⟩
+  -- `invS = canonicalMap (↑ub⁻¹) · (canonicalMap (↑b) · invS)`.
+  have hfinal : invS D = D.canonicalMap (↑ub⁻¹ : A) * D.coeRingHom (divByS (↑b : A) D.s) := by
+    rw [hcoe, ← mul_assoc, ← map_mul]
+    rw [show (↑ub⁻¹ : A) * (↑b : A) = 1 from by
+      rw [hub]; exact Units.inv_mul_eq_one.mpr (by rw [IsUnit.unit_spec])]
+    rw [map_one, one_mul]
+  rw [hfinal]
+  exact (example638_evalHom D).range.mul_mem hinv_range hrange_w
+
+set_option linter.unusedSectionVars false in
+/-- **The whole dense subring `range D.coeRingHom` lies in `range (example638_evalHom D)`.**
+Every element of `Localization.Away D.s` is `a/sᵏ`, whose `coeRingHom`-image is
+`D.canonicalMap a · (invS D)ᵏ`; both factors lie in the range (`example638_evalHom_algebraMap`
+and `invS_mem_range`), so the product does. NO topology on `A⟨X₁..Xₙ⟩` is used. -/
+private theorem coeRingHom_mem_range [IsTateRing A] [IsNoetherianRing A]
+    (D : RationalLocData A) (y : Localization.Away D.s) :
+    D.coeRingHom y ∈ (example638_evalHom D).range := by
+  induction y using Localization.induction_on with
+  | H p =>
+    obtain ⟨a, sk, hk⟩ := p
+    obtain ⟨k, rfl⟩ := hk
+    -- `coeRingHom (mk a ⟨sᵏ, _⟩) = canonicalMap a · invSᵏ`.
+    have hformula : D.coeRingHom (Localization.mk a ⟨D.s ^ k, k, rfl⟩) =
+        D.canonicalMap a * (invS D) ^ k := by
+      have key : D.coeRingHom (Localization.mk a ⟨D.s ^ k, k, rfl⟩) *
+          (D.canonicalMap D.s) ^ k = D.canonicalMap a := by
+        rw [← map_pow]
+        change D.coeRingHom _ * D.coeRingHom _ = D.coeRingHom _
+        rw [← map_mul]
+        congr 1
+        rw [← Localization.mk_one_eq_algebraMap, ← Localization.mk_one_eq_algebraMap,
+          Localization.mk_mul, Localization.mk_eq_mk_iff, Localization.r_iff_exists]
+        exact ⟨1, by simp [mul_comm]⟩
+      rw [← key, mul_assoc,
+        show (D.canonicalMap D.s) ^ k * (invS D) ^ k = 1 from by
+          rw [← mul_pow, canonicalMap_s_mul_invS, one_pow],
+        mul_one]
+    rw [hformula]
+    exact (example638_evalHom D).range.mul_mem
+      ⟨algebraMap A _ a, example638_evalHom_algebraMap D a⟩
+      ((example638_evalHom D).range.pow_mem (invS_mem_range D) k)
+
+set_option linter.unusedSectionVars false in
+/-- **Density of the image (faithful):** `example638_evalHom D` has dense range.
+`presheafValue D = Completion (Localization.Away D.s)`, in which `range D.coeRingHom` is dense
+(`UniformSpace.Completion.denseRange_coe`); that dense subring is contained in
+`range (example638_evalHom D)` (`coeRingHom_mem_range`), so the larger set is dense too. This is
+Wedhorn's "`A[M]` dense in `Â⟨T/s⟩`" (Example 6.38). NO topology on `A⟨X₁..Xₙ⟩` is used. -/
+private theorem example638_evalHom_denseRange [IsTateRing A] [IsNoetherianRing A]
+    (D : RationalLocData A) : DenseRange (example638_evalHom D) := by
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  have hdense : DenseRange (D.coeRingHom : Localization.Away D.s → presheafValue D) := by
+    change DenseRange (UniformSpace.Completion.coeRingHom :
+      Localization.Away D.s → presheafValue D)
+    exact UniformSpace.Completion.denseRange_coe
+  -- `range coeRingHom ⊆ range example638_evalHom`, so the latter is dense too.
+  refine hdense.mono ?_
+  rintro _ ⟨y, rfl⟩
+  exact coeRingHom_mem_range D y
+
+set_option linter.unusedSectionVars false in
+/-- **GENUINE RESIDUAL — closedness of the Example-6.38 image** (Wedhorn p. 56,
+`wedhorn.txt:2698`–`2701`). The range of `example638_evalHom D : A⟨X₁..Xₙ⟩ → presheafValue D` is
+**closed**.
+
+This is Wedhorn's "closedness" ingredient: *"If `A` is a strongly noetherian Tate ring, we may
+represent `Â⟨T/s⟩` as a quotient of a ring of restricted power series. Set `C = Â⟨Xᵢ,ₜ⟩` and let `a`
+be the ideal generated by `{t − sᵢ Xᵢ,ₜ}`. By hypothesis `C` is noetherian and hence `a` is a
+closed ideal (Proposition 6.17)."* Concretely `range (example638_evalHom D) = range ē` where
+`ē : C/ker ↪ presheafValue D` is the (injective) factorisation through the kernel; closedness of
+`ker` makes `C/ker` complete and `ē` a closed embedding, so the range is closed.
+
+**This is the single isolated repo gap.** It is the *only* place a topology on the **general-`n`**
+restricted Tate algebra `C = restrictedMvPowerSeriesSubring n A` is needed — together with its
+completeness and **Prop 6.17** (every ideal of the noetherian `C` closed). The repo currently has
+the canonical Tate topology + completeness + the faithful Prop 6.17
+(`tateAlgebra_isClosed_ideal_faithful`, this file) **only for `n = 1`** (`TateAlgebra A =
+restrictedMvPowerSeriesSubring 1 A`, `instUniformSpaceTateAlgebra`,
+`tateAlgebraTopology'_completeSpace`) and `n = 2` (`TateAlgebra₂`). For general `n = D.T.card` the
+type `restrictedMvPowerSeriesSubring n A` carries **no** `TopologicalSpace`/`UniformSpace` instance
+at all (`RestrictedPowerSeries.lean:75`: a bare `Subring`), so neither "`ker` closed" nor
+"`C/ker` complete" can even be *stated*, let alone proved. Building the general-`n` Tate topology,
+its completeness, and the multivariate Prop 6.17 is substantial new infrastructure (strictly larger
+than the `n = 1` machinery) and is left as this single named residual rather than fabricated.
+
+By contrast the **density** half (`example638_evalHom_denseRange`, including the linchpin
+`invS_mem_range`: `1/s ∈ range` from Tate + the rational `hopen` datum) is now proved sorry-free and
+faithfully, with no topology on `A⟨X₁..Xₙ⟩`. -/
+private theorem example638_evalHom_range_isClosed
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] (D : RationalLocData A) :
+    IsClosed (Set.range (example638_evalHom D)) :=
   sorry
+
+set_option linter.unusedSectionVars false in
+/-- **Example 6.38 surjectivity** (Wedhorn p. 56, `wedhorn.txt:2693`). The multivariate evaluation
+`example638_evalHom : A⟨X₁,…,Xₙ⟩ → presheafValue D`, `Xᵢ ↦ tᵢ/s`, is **surjective** onto
+`presheafValue D = Â⟨T/s⟩`.
+
+Assembled from Wedhorn's two ingredients (a dense range whose closure is the whole completion ⟹
+`range = closure range = univ`):
+
+1. **Density** — `example638_evalHom_denseRange` (proved sorry-free): Wedhorn's `A[M]` is dense in
+   `Â⟨T/s⟩`. The non-obvious content `1/s ∈ range` is `invS_mem_range`, proved faithfully from the
+   **Tate** hypothesis (a topologically nilpotent unit lands in `Iᴺ`) and the rational `hopen`
+   datum — NO `Σ tᵢ gᵢ = sᵏ` series, NO topology on `A⟨X₁..Xₙ⟩`.
+2. **Closedness** — `example638_evalHom_range_isClosed` (the single named residual): Wedhorn's
+   `Â⟨T/s⟩ = C/a` with `a` closed by Prop 6.17, needing the general-`n` Tate topology that the repo
+   only has for `n ≤ 2`. See that lemma's docstring for the precise gap. -/
+theorem example638_evalHom_surjective [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
+    (D : RationalLocData A) : Function.Surjective (example638_evalHom D) := by
+  rw [← Set.range_eq_univ, ← (example638_evalHom_range_isClosed D).closure_eq]
+  exact (example638_evalHom_denseRange D).closure_range
 
 set_option linter.unusedSectionVars false in
 /-- **GENUINE RESIDUAL — Example 6.38, multivariate presentation** (Wedhorn p. 56,
