@@ -802,6 +802,274 @@ private theorem presheafValue_isTateRing_faithful
        isAdic := presheafValue_isAdic D }⟩
   exists_topologicallyNilpotent_unit := presheafValue_topNilUnit D
 
+/-! ## Multivariate restricted-power-series evaluation (Example 6.38 engine)
+
+The `Fin n` generalization of `evalHomBounded`/`evalHomBounded₂` (`TateAlgebraWedhorn.lean`):
+given a continuous ring hom `g : A →+* B` into a complete nonarchimedean ring `B` and a tuple
+`b : Fin n → B` of power-bounded elements, the evaluation
+`A⟨X₁,…,Xₙ⟩ →+* B`, `Σ aᵥ Xᵛ ↦ Σ aᵥ ∏ᵢ bᵢ^(vᵢ)`, is a ring homomorphism (multivariate
+nonarchimedean Cauchy product), and it sends `algebraMap a ↦ g a` and `Xᵢ ↦ bᵢ`.
+
+INFRASTRUCTURE (not in Wedhorn at this granularity): a general-`n` lift of the existing
+`Fin 1`/`Fin 2` machinery; mirrors `evalHomBounded₂` line for line. -/
+
+section MvEvalHom
+
+variable {R S : Type*} [CommRing R] [TopologicalSpace R] [NonarchimedeanRing R]
+  [CommRing S] [UniformSpace S] [IsUniformAddGroup S] [IsTopologicalRing S]
+  [NonarchimedeanRing S] [CompleteSpace S] [T0Space S]
+
+/-- The `v`-th term of the `n`-variate evaluation series:
+`g(coeff_v h) · ∏ᵢ bᵢ^(v i)`. -/
+noncomputable def mvEvalTerm {n : ℕ} (g : R →+* S) (b : Fin n → S)
+    (h : ↥(restrictedMvPowerSeriesSubring n R)) (v : Fin n →₀ ℕ) : S :=
+  g (MvPowerSeries.coeff v h.val) * ∏ i, b i ^ (v i)
+
+omit [IsUniformAddGroup S] [NonarchimedeanRing S] [CompleteSpace S] [T0Space S] in
+/-- The range of `v ↦ ∏_{i ∈ s} bᵢ^(v i)` over `Fin n →₀ ℕ` is bounded whenever each `bᵢ` is
+power-bounded, for any finite index set `s`. Proved by `Finset.induction`, reducing to
+`IsBounded.mul` (the product set `range (bₐ ^ ·) * (previous range)`). -/
+private theorem mvRangeProdOn_isBounded {n : ℕ} (b : Fin n → S)
+    (hb : ∀ i, TopologicalRing.IsBounded (Set.range (b i ^ · : ℕ → S)))
+    (s : Finset (Fin n)) :
+    TopologicalRing.IsBounded
+      (Set.range (fun v : Fin n →₀ ℕ => ∏ i ∈ s, b i ^ (v i))) := by
+  classical
+  induction s using Finset.induction with
+  | empty => simpa using TopologicalRing.isBounded_singleton (1 : S)
+  | insert a s ha ih =>
+      -- range over `insert a s` ⊆ range(bₐ ^ ·) * range over `s`.
+      refine ((hb a).mul ih).subset ?_
+      rintro _ ⟨v, rfl⟩
+      change ∏ i ∈ insert a s, b i ^ (v i) ∈ _
+      rw [Finset.prod_insert ha]
+      exact Set.mul_mem_mul ⟨v a, rfl⟩ ⟨v, rfl⟩
+
+omit [IsUniformAddGroup S] [NonarchimedeanRing S] [CompleteSpace S] [T0Space S] in
+/-- The range of `v ↦ ∏ᵢ bᵢ^(v i)` over `Fin n →₀ ℕ` is bounded whenever each `bᵢ` is
+power-bounded. The full-`univ` case of `mvRangeProdOn_isBounded`. -/
+private theorem mvRangeProd_isBounded {n : ℕ} (b : Fin n → S)
+    (hb : ∀ i, TopologicalRing.IsBounded (Set.range (b i ^ · : ℕ → S))) :
+    TopologicalRing.IsBounded
+      (Set.range (fun v : Fin n →₀ ℕ => ∏ i, b i ^ (v i))) :=
+  mvRangeProdOn_isBounded b hb Finset.univ
+
+omit [IsUniformAddGroup S] [NonarchimedeanRing S] [CompleteSpace S] [T0Space S] in
+/-- The `n`-variate evaluation terms tend to `0` along the cofinite filter on `Fin n →₀ ℕ`.
+Uses continuity of `g` (the coefficients form a null family) and boundedness of the product
+power range. Mirrors `evalTerm₂_tendsto_zero`. -/
+theorem mvEvalTerm_tendsto_zero {n : ℕ} (g : R →+* S) (hg : Continuous g) (b : Fin n → S)
+    (hb : ∀ i, TopologicalRing.IsBounded (Set.range (b i ^ · : ℕ → S)))
+    (h : ↥(restrictedMvPowerSeriesSubring n R)) :
+    Filter.Tendsto (mvEvalTerm g b h) Filter.cofinite (nhds 0) := by
+  have hc : Filter.Tendsto (fun v : Fin n →₀ ℕ => g (MvPowerSeries.coeff v h.val))
+      Filter.cofinite (nhds 0) :=
+    map_zero g ▸ hg.continuousAt.tendsto.comp h.prop
+  have hd := mvRangeProd_isBounded b hb
+  intro U hU
+  obtain ⟨V, hV, hSV⟩ := hd U hU
+  have hcV := hc hV
+  rw [Filter.mem_map] at hcV ⊢
+  refine Filter.mem_of_superset hcV (fun v (hv : _ ∈ V) => ?_)
+  change g (MvPowerSeries.coeff v h.val) * (∏ i, b i ^ (v i)) ∈ U
+  rw [mul_comm]
+  exact hSV (Set.mul_mem_mul ⟨v, rfl⟩ hv)
+
+omit [T0Space S] in
+/-- The `n`-variate eval terms are summable in a complete nonarchimedean ring. -/
+theorem mvEvalTerm_summable {n : ℕ} (g : R →+* S) (hg : Continuous g) (b : Fin n → S)
+    (hb : ∀ i, TopologicalRing.IsBounded (Set.range (b i ^ · : ℕ → S)))
+    (h : ↥(restrictedMvPowerSeriesSubring n R)) :
+    Summable (mvEvalTerm g b h) :=
+  NonarchimedeanAddGroup.summable_of_tendsto_cofinite_zero
+    (mvEvalTerm_tendsto_zero g hg b hb h)
+
+omit [IsUniformAddGroup S] [NonarchimedeanRing S] [CompleteSpace S] [T0Space S] in
+/-- Multivariate convolution: `coeff_v (f · h) = ∑_{p+q=v} coeff_p f · coeff_q h`,
+directly from `MvPowerSeries.coeff_mul`. -/
+private theorem mvCoeff_mul_antidiag {n : ℕ} (f h : ↥(restrictedMvPowerSeriesSubring n R))
+    (v : Fin n →₀ ℕ) :
+    MvPowerSeries.coeff v ((f * h : ↥(restrictedMvPowerSeriesSubring n R)).val) =
+      ∑ p ∈ Finset.antidiagonal v,
+        MvPowerSeries.coeff p.1 f.val * MvPowerSeries.coeff p.2 h.val := by
+  rw [Subring.coe_mul, MvPowerSeries.coeff_mul]
+
+/-- **Multivariate evaluation ring homomorphism** `A⟨X₁,…,Xₙ⟩ →+* B` at a tuple `b : Fin n → B`
+of power-bounded elements, sending `h = Σ aᵥ Xᵛ ↦ Σ aᵥ ∏ᵢ bᵢ^(v i)`.
+
+`map_mul'` uses the nonarchimedean Cauchy product
+(`Summable.tsum_mul_tsum_eq_tsum_sum_antidiagonal` over `Fin n →₀ ℕ`) and the multivariate
+convolution formula. The `Fin n` generalization of `evalHomBounded`/`evalHomBounded₂`. -/
+noncomputable def mvEvalHomBounded {n : ℕ} (g : R →+* S) (hg : Continuous g) (b : Fin n → S)
+    (hb : ∀ i, TopologicalRing.IsBounded (Set.range (b i ^ · : ℕ → S))) :
+    ↥(restrictedMvPowerSeriesSubring n R) →+* S where
+  toFun h := ∑' v, mvEvalTerm g b h v
+  map_zero' := by
+    simp only [mvEvalTerm, ZeroMemClass.coe_zero, map_zero, zero_mul]
+    exact tsum_zero
+  map_one' := by
+    rw [tsum_eq_single 0]
+    · simp only [mvEvalTerm, OneMemClass.coe_one, Finsupp.coe_zero, Pi.zero_apply,
+        pow_zero, Finset.prod_const_one, mul_one]
+      classical
+      rw [MvPowerSeries.coeff_one, if_pos rfl, map_one]
+    · intro v hv
+      simp only [mvEvalTerm, OneMemClass.coe_one]
+      classical
+      rw [MvPowerSeries.coeff_one, if_neg hv, map_zero, zero_mul]
+  map_add' f h := by
+    have hterm : ∀ v, mvEvalTerm g b (f + h) v =
+        mvEvalTerm g b f v + mvEvalTerm g b h v := fun v => by
+      simp only [mvEvalTerm, Subring.coe_add, map_add, add_mul]
+    conv_lhs => arg 1; ext v; rw [hterm v]
+    exact (mvEvalTerm_summable g hg b hb f).tsum_add (mvEvalTerm_summable g hg b hb h)
+  map_mul' f h := by
+    rw [Summable.tsum_mul_tsum_eq_tsum_sum_antidiagonal
+      (mvEvalTerm_summable g hg b hb f) (mvEvalTerm_summable g hg b hb h)
+      ((mvEvalTerm_summable g hg b hb f).mul_of_nonarchimedean
+        (mvEvalTerm_summable g hg b hb h))]
+    congr 1
+    ext v
+    simp only [mvEvalTerm, mvCoeff_mul_antidiag, map_sum, map_mul, Finset.sum_mul]
+    refine Finset.sum_congr rfl (fun ⟨p, q⟩ hpq => ?_)
+    have hpq_add : p + q = v := Finset.mem_antidiagonal.mp hpq
+    have hprod : (∏ i, b i ^ (p i)) * (∏ i, b i ^ (q i)) = ∏ i, b i ^ (v i) := by
+      rw [← Finset.prod_mul_distrib]
+      refine Finset.prod_congr rfl (fun i _ => ?_)
+      rw [← pow_add, ← Finsupp.add_apply, hpq_add]
+    calc g (MvPowerSeries.coeff p f.val) * g (MvPowerSeries.coeff q h.val) *
+            ∏ i, b i ^ (v i)
+        = (g (MvPowerSeries.coeff p f.val) * ∏ i, b i ^ (p i)) *
+            (g (MvPowerSeries.coeff q h.val) * ∏ i, b i ^ (q i)) := by
+          rw [← hprod]; ring
+      _ = _ := rfl
+
+/-- `mvEvalHomBounded` sends `algebraMap a ↦ g a`. -/
+theorem mvEvalHomBounded_algebraMap {n : ℕ} (g : R →+* S) (hg : Continuous g) (b : Fin n → S)
+    (hb : ∀ i, TopologicalRing.IsBounded (Set.range (b i ^ · : ℕ → S))) (a : R) :
+    mvEvalHomBounded g hg b hb
+      (algebraMap R ↥(restrictedMvPowerSeriesSubring n R) a) = g a := by
+  change ∑' v, mvEvalTerm g b (algebraMap R ↥(restrictedMvPowerSeriesSubring n R) a) v = g a
+  rw [tsum_eq_single 0]
+  · simp only [mvEvalTerm, Finsupp.coe_zero, Pi.zero_apply, pow_zero, Finset.prod_const_one,
+      mul_one]
+    change g ((MvPowerSeries.coeff 0) (MvPowerSeries.C (σ := Fin n) a)) = g a
+    classical
+    rw [MvPowerSeries.coeff_C, if_pos rfl]
+  · intro v hv
+    simp only [mvEvalTerm]
+    have hcoeff : (MvPowerSeries.coeff (R := R) v)
+        ((algebraMap R ↥(restrictedMvPowerSeriesSubring n R) a).val) = 0 := by
+      change (MvPowerSeries.coeff (R := R) v) (MvPowerSeries.C (σ := Fin n) a) = 0
+      classical
+      rw [MvPowerSeries.coeff_C, if_neg hv]
+    rw [hcoeff, map_zero, zero_mul]
+
+/-- `mvEvalHomBounded` sends the `j`-th variable `Xⱼ ↦ bⱼ`. -/
+theorem mvEvalHomBounded_X {n : ℕ} (g : R →+* S) (hg : Continuous g) (b : Fin n → S)
+    (hb : ∀ i, TopologicalRing.IsBounded (Set.range (b i ^ · : ℕ → S))) (j : Fin n) :
+    mvEvalHomBounded g hg b hb
+      ⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ = b j := by
+  change ∑' v, mvEvalTerm g b (⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ :
+    ↥(restrictedMvPowerSeriesSubring n R)) v = b j
+  classical
+  rw [tsum_eq_single (Finsupp.single j 1)]
+  · simp only [mvEvalTerm]
+    rw [show (MvPowerSeries.coeff (R := R) (Finsupp.single j 1)) (MvPowerSeries.X j) = 1 by
+          rw [MvPowerSeries.coeff_X, if_pos rfl], map_one, one_mul]
+    rw [Finset.prod_eq_single j]
+    · rw [Finsupp.single_eq_same, pow_one]
+    · intro i _ hij
+      rw [Finsupp.single_apply, if_neg (by exact fun h => hij h.symm), pow_zero]
+    · intro hj; exact absurd (Finset.mem_univ j) hj
+  · intro v hv
+    simp only [mvEvalTerm]
+    have hcoeff : (MvPowerSeries.coeff (R := R) v) (MvPowerSeries.X (σ := Fin n) j) = 0 := by
+      rw [MvPowerSeries.coeff_X]; exact if_neg hv
+    rw [hcoeff, map_zero, zero_mul]
+
+end MvEvalHom
+
+set_option linter.unusedSectionVars false in
+/-- The `i`-th rational generator `tᵢ/s ∈ presheafValue D` (`i : Fin D.T.card`):
+the image under `D.coeRingHom` of `divByS (i-th element of D.T) D.s`. -/
+noncomputable def example638_genTuple [IsTateRing A] [IsNoetherianRing A]
+    (D : RationalLocData A) : Fin D.T.card → presheafValue D :=
+  fun i => D.coeRingHom (divByS (↑(D.T.equivFin.symm i) : A) D.s)
+
+set_option linter.unusedSectionVars false in
+/-- Each rational generator `tᵢ/s` is power-bounded in `presheafValue D`: its powers lie in
+the image of the bounded ring of definition `locSubring`
+(`CompletionLocalization.coeRingHom_image_locSubring_isBounded`). Inlines the pure argument of
+`relativeRationalLocData_generators_powerBounded` (no `LaurentNormalized`/`E` side conditions). -/
+theorem example638_genTuple_isBounded [IsTateRing A] [IsNoetherianRing A]
+    (D : RationalLocData A) (i : Fin D.T.card) :
+    TopologicalRing.IsBounded
+      (Set.range (example638_genTuple D i ^ · : ℕ → presheafValue D)) := by
+  have hmem : divByS (↑(D.T.equivFin.symm i) : A) D.s ∈ locSubring D.P D.T D.s :=
+    divByS_mem_locSubring D.P D.T D.s (D.T.equivFin.symm i).2
+  have hbdd := CompletionLocalization.coeRingHom_image_locSubring_isBounded D
+  apply hbdd.subset
+  rintro _ ⟨n, rfl⟩
+  exact ⟨(divByS (↑(D.T.equivFin.symm i) : A) D.s) ^ n, pow_mem hmem n, by
+    rw [map_pow]; rfl⟩
+
+set_option linter.unusedSectionVars false in
+/-- The multivariate Example-6.38 evaluation hom
+`C = A⟨X₁,…,Xₙ⟩ →+* presheafValue D`, `Xᵢ ↦ tᵢ/s`, `a ↦ canonicalMap a`
+(`n = D.T.card`). Built from the general `mvEvalHomBounded` at the power-bounded rational
+generators `example638_genTuple`. -/
+noncomputable def example638_evalHom [IsTateRing A] [IsNoetherianRing A]
+    (D : RationalLocData A) :
+    (restrictedMvPowerSeriesSubring D.T.card A) →+* presheafValue D :=
+  mvEvalHomBounded D.canonicalMap (canonicalMap_continuous D)
+    (example638_genTuple D) (example638_genTuple_isBounded D)
+
+set_option linter.unusedSectionVars false in
+/-- `example638_evalHom` sends the constant series `algebraMap a ↦ canonicalMap a`. -/
+theorem example638_evalHom_algebraMap [IsTateRing A] [IsNoetherianRing A]
+    (D : RationalLocData A) (a : A) :
+    example638_evalHom D (algebraMap A _ a) = D.canonicalMap a :=
+  mvEvalHomBounded_algebraMap _ _ _ _ a
+
+set_option linter.unusedSectionVars false in
+/-- `example638_evalHom` sends the `j`-th variable `Xⱼ ↦ tⱼ/s` (the `j`-th rational generator). -/
+theorem example638_evalHom_X [IsTateRing A] [IsNoetherianRing A]
+    (D : RationalLocData A) (j : Fin D.T.card) :
+    example638_evalHom D ⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ =
+      example638_genTuple D j :=
+  mvEvalHomBounded_X _ _ _ _ j
+
+set_option linter.unusedSectionVars false in
+/-- **Example 6.38 surjectivity (single genuine residual)** (Wedhorn p. 56, `wedhorn.txt:2693`).
+The multivariate evaluation `example638_evalHom : A⟨X₁,…,Xₙ⟩ → presheafValue D`, `Xᵢ ↦ tᵢ/s`, is
+**surjective** onto `presheafValue D = Â⟨T/s⟩`.
+
+This is the irreducible analytic core of Example 6.38, isolated as a single named `sorry`. Its
+two ingredients are each the genuine Wedhorn content (NOT mathlib-mechanical):
+
+1. **Density.** The image of `example638_evalHom` is dense in `presheafValue D`. Wedhorn
+   identifies `Â⟨T/s⟩` as the completion in which the rational algebra `A⟨T/s⟩` (the restricted
+   *series* in the `tᵢ/s`, not merely polynomials) is dense; every element is a convergent
+   `∑ aᵥ (t/s)ᵛ` with `aᵥ → 0`, which is exactly `example638_evalHom (⟨∑ aᵥ Xᵛ⟩)`. (In
+   particular `1/s = invS D` is itself such a series on the rational subset — the `Σ tᵢgᵢ = sᵏ`
+   relation — which is why polynomial density alone is insufficient and the restricted-series
+   evaluation is essential.)
+2. **Closedness.** The image is closed: `presheafValue D ≅ C/a` with `a = (tⱼ − s·Xⱼ)` a closed
+   ideal of the complete ring `C = A⟨X⟩` (`Example638.lean` proves the `Fin 1` analogue via
+   `plusFSubXIdeal_isClosed` + completeness of the quotient), so `example638_evalHom` factors as
+   the quotient surjection `C ↠ C/a` composed with the iso.
+
+Concretely: `example638_evalHom` is the general-`n` companion of the `Fin 1` `example638Plus`
+chain (`example638Plus_equiv`, `Example638.lean:1035`), which is proved bijective via Banach OMT
+on the closed-ideal quotient. The general-`n` quotient-iso
+(`presheafValue_eq_quotient_AlangleX_iterated`, `IteratedRational.lean`, also `sorry`) would
+discharge this; it is the documented repo gap. -/
+theorem example638_evalHom_surjective [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A]
+    (D : RationalLocData A) : Function.Surjective (example638_evalHom D) :=
+  sorry
+
+set_option linter.unusedSectionVars false in
 /-- **GENUINE RESIDUAL — Example 6.38, multivariate presentation** (Wedhorn p. 56,
 `wedhorn.txt:2693`–`2707`). For a strongly noetherian Tate ring `A` and a rational locale
 `D = R(T/s)` with `|D.T| = n`, the canonical ring homomorphism
@@ -842,7 +1110,7 @@ private theorem example638_multivariate_surjection
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] (D : RationalLocData A) :
     ∃ φ : (restrictedMvPowerSeriesSubring D.T.card A) →+* presheafValue D,
       Function.Surjective φ :=
-  sorry
+  ⟨example638_evalHom D, example638_evalHom_surjective D⟩
 
 /-- **Step 1 of Prop 8.30 — Example 6.38, noetherian part** (Wedhorn p. 81, `wedhorn.txt:4099`).
 `B := presheafValue D` is a **noetherian** ring. FAITHFUL: depends only on the ambient `A`-bundle
