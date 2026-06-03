@@ -802,50 +802,58 @@ private theorem presheafValue_isTateRing_faithful
        isAdic := presheafValue_isAdic D }⟩
   exists_topologicallyNilpotent_unit := presheafValue_topNilUnit D
 
-/-- **Step 1 of Prop 8.30 — Example 6.38, noetherian part** (Wedhorn p. 81,
-`wedhorn.txt:4095`). The presheaf value `B := presheafValue D` of a rational locale over a
-strongly noetherian Tate ring is a **noetherian** ring.
+/-- **GENUINE RESIDUAL — Example 6.38, multivariate presentation** (Wedhorn p. 56,
+`wedhorn.txt:2693`–`2707`). For a strongly noetherian Tate ring `A` and a rational locale
+`D = R(T/s)` with `|D.T| = n`, the canonical ring homomorphism
 
-FAITHFUL: depends only on the ambient `A`-bundle and `D` — **no** `PairOfDefinition A`, **no**
-`[IsNoetherianRing P.A₀]`.
+  `C := A⟨X₁, …, Xₙ⟩ = restrictedMvPowerSeriesSubring n A  ⟶  presheafValue D = Â⟨T/s⟩`,
+  `Xᵢ ↦ tᵢ/s`
 
-RESOLVED FAITHFULLY (no literal `sorry` body; see the AXIOM-CLEANLINESS caveat below): `presheafValue
-D` is a **localization** of the whole-space value `presheafValue (globalLocData P) = 𝒪_X(X)` —
-`restrictionMap_isLocalization_faithful` (whose proof uses only the `[IsTateRing A] [IsNoetherianRing
-A] [T2Space A] [NonarchimedeanRing A]` bundle, never noeth-`A₀`). The base `𝒪_X(X)` is noetherian by
-`presheafValue_globalLocData_isNoetherianRing`: via the faithful Example 6.38 equivalence
-`presheafValueCanonicalQuotientEquiv_faithful`, `presheafValue (globalLocData P) ≃+* A⟨X⟩/(1 − X)`, a
-quotient of the noetherian `A⟨X⟩` (`[IsStronglyNoetherian A]` ⇒ `IsNoetherianRing ↥(TateAlgebra A)`,
-`TateAlgebraTopology.lean:961`). `IsLocalization.isNoetherianRing` transfers noetherianness to
-`presheafValue D`. This is the case-(b) route — **no** `pairSubring`/`A₀⟨X⟩` noetherianness, **no**
-Bourbaki noeth-`A₀` completion (the repo's `presheafValue_isNoetherianRing_of_ringOfDef_isNoetherianRing`
-case-(a) route). The faithful closed-ideal keystone behind the equiv is
-`tateAlgebra_isClosed_ideal_faithful` (`wedhorn_6_17_ideal` + `[IsStronglyNoetherian A]`).
+is **surjective** (Wedhorn: `Â⟨T/s⟩ = C/a`, `a = (t − s·Xₜ)` — a *quotient* of `C`, so the
+composite `C ↠ C/a ≅ presheafValue D` is onto). This is the **minimal** Example-6.38 content
+needed for faithful noetherianness: it does NOT require the full ring iso, only the surjection,
+because `IsNoetherianRing` transfers along surjections from a noetherian source
+(`isNoetherianRing_of_surjective`), and `C = restrictedMvPowerSeriesSubring n A` is noetherian by
+`IsStronglyNoetherian.isNoetherianRing_restricted n` (NO `pairSubring`/`A₀⟨X⟩` noetherianness, NO
+noeth-`A₀` — the faithful case-(b) source of noetherianness).
 
-GENUINE RESIDUAL (single inner `sorry`, isolated as `presheafValue_isNoetherianRing_residual`):
-Wedhorn's Example 6.38 presents `B = A⟨X₁,…,Xₙ⟩/a` as a quotient of the **multivariate** restricted
-power series ring `A⟨X₁..Xₙ⟩` (`n = |D.T|`, `Xᵢ ↦ tᵢ/s`, ideal `a = (t₁ − sX₁,…)` closed). Since
-`A` is strongly noetherian, `A⟨X₁..Xₙ⟩` is noetherian (`IsStronglyNoetherian.isNoetherianRing_restricted
-n`), so the quotient is noetherian; transport across the equiv gives `IsNoetherianRing B`.
+**This is the documented repo gap.** The repo has the multivariate noetherian *ring*
+`restrictedMvPowerSeriesSubring n A` (general `n : ℕ`) and its strong-noeth instance
+(`RestrictedPowerSeries.lean:238` / `TateAlgebraTopology.lean:961` for `n = 1`), but it has only
+the **univariate** (`Fin 1`) and **bivariate** (`Fin 2`) restricted-power-series *evaluation*
+machinery (`TateAlgebraWedhorn.lean:423` `evalHomBounded`, `:566` `evalHomBounded₂`). The general
+`Fin n` evaluation map `A⟨X₁..Xₙ⟩ →+* B` at a tuple of power-bounded elements `(t₁/s, …, tₙ/s)` —
+together with its surjectivity onto the completion `presheafValue D` (dense image, since `A[M]` is
+dense by Example 6.38, plus `C` complete ⇒ image closed) — is genuinely **absent**. Building it is
+a substantial construction (multivariate summability of `∑ aᵥ (t/s)ᵛ` over `Fin n →₀ ℕ`, the
+multivariate nonarchimedean Cauchy product for `map_mul`, and the density/completeness surjectivity
+argument), strictly larger than the univariate `evalHomBounded`. Hence it is isolated here as the
+single named residual rather than fabricated.
 
-Two pieces are done faithfully and feed this: the closed-ideal keystone
-`tateAlgebra_isClosed_ideal_faithful` (`wedhorn_6_17_ideal` + `[IsStronglyNoetherian A]`, NO
-noeth-`A₀`) and the **whole-space** case `presheafValue_globalLocData_isNoetherianRing`
-(`𝒪_X(X) ≃+* A⟨X⟩/(1−X)`). What is missing is the **multivariate** Example 6.38 equiv
-`presheafValue D ≃+* A⟨X₁..Xₙ⟩/a` for general `D` — the repo only has the *univariate*
-`presheafValueCanonicalQuotientEquiv` (and the faithful `presheafValueCanonicalQuotientEquiv_faithful`
-built this session), which models `presheafValue D ≃ A⟨X⟩/(1−sX)` with `X ↦ invS = 1/s`. That
-univariate equiv needs `invS` power-bounded (`hb`), which holds ONLY for `1∈T`-type data (e.g. the
-whole space), NOT for a general rational `R(T/s)` where `1/s` is not power-bounded. Reducing general
-`D` to the whole space by localization is **invalid**: it would require `restrictionMapHom_surj`,
-deprecated as FALSE IN GENERAL (PresheafTateStructure.lean, 2026-05-23; Wedhorn's `𝒪_X(R(T/s))` is
-not `𝒪_X(X)[1/s]`). So the faithful general-`D` noetherianness genuinely needs the multivariate
-Example 6.38 — a repo gap, NOT a noeth-`A₀` issue.
+**Why the univariate equiv does not suffice.** `presheafValueCanonicalQuotientEquiv_faithful`
+models `presheafValue D ≃+* A⟨X⟩/(1 − sX)` with `X ↦ invS = 1/s`, which needs `invS` power-bounded
+(`hb`); that holds only for `1 ∈ T`-type data (e.g. the whole space, discharged in
+`presheafValue_globalLocData_isNoetherianRing`), NOT for a general `R(T/s)` where `1/s` is not
+power-bounded. The Wedhorn-faithful presentation for general `D` is the multivariate one above with
+`Xᵢ ↦ tᵢ/s` (power-bounded on the rational subset). Reducing general `D` to the whole space by
+localization is invalid (`restrictionMapHom_surj`, deprecated FALSE-in-general,
+`PresheafTateStructure.lean`). -/
+private theorem example638_multivariate_surjection
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] (D : RationalLocData A) :
+    ∃ φ : (restrictedMvPowerSeriesSubring D.T.card A) →+* presheafValue D,
+      Function.Surjective φ :=
+  sorry
 
-(Note: this residual rests, via `tateAlgebra_isClosed_ideal_faithful`, on the upstream
-`_sub_lemma_L3_1a_completion_fg_complete` `sorry` — the repo's Prop-6.17 *forward* direction is not
-yet axiom-clean; the clean `fg_topologicalClosure_isClosed` needs `IsLinearTopology (A⟨X⟩)`, the
-same false-for-Tate obstruction as helper `presheafValue_isLinearTopology_residual`.) -/
+/-- **Step 1 of Prop 8.30 — Example 6.38, noetherian part** (Wedhorn p. 81, `wedhorn.txt:4099`).
+`B := presheafValue D` is a **noetherian** ring. FAITHFUL: depends only on the ambient `A`-bundle
+and `D` — **no** `PairOfDefinition A`, **no** `[IsNoetherianRing P.A₀]`.
+
+Body is sorry-free: noetherianness is transferred along the multivariate Example-6.38 surjection
+`C = A⟨X₁..Xₙ⟩ ↠ presheafValue D` (`isNoetherianRing_of_surjective`) from the noetherian source
+`C = restrictedMvPowerSeriesSubring D.T.card A` (`IsStronglyNoetherian.isNoetherianRing_restricted`,
+case (b)). The single genuine residual — the surjection itself — is isolated in
+`example638_multivariate_surjection`; see its docstring for the precise repo gap (the general
+`Fin n` restricted-power-series evaluation map, present only for `Fin 1`/`Fin 2`). -/
 private theorem presheafValue_isNoetherianRing_residual
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] (D : RationalLocData A) :
     IsNoetherianRing (presheafValue D) := by
@@ -853,11 +861,13 @@ private theorem presheafValue_isNoetherianRing_residual
   have _whole_space_done : ∀ P : PairOfDefinition A,
       IsNoetherianRing (presheafValue (globalLocData P)) :=
     presheafValue_globalLocData_isNoetherianRing
-  -- General `D`: multivariate Example 6.38 `presheafValue D ≃+* A⟨X₁..Xₙ⟩/a`, a quotient of the
-  -- noetherian `A⟨X₁..Xₙ⟩` (`[IsStronglyNoetherian A]`). The repo has only the univariate equiv
-  -- (needs `invS = 1/s` power-bounded, i.e. `1∈T`); reduction-by-localization to the whole space
-  -- is invalid (`restrictionMapHom_surj` is FALSE-in-general). See docstring — genuine repo gap.
-  sorry
+  -- The source `C = A⟨X₁..Xₙ⟩` is noetherian (case-(b): strongly noetherian `A`).
+  haveI hC : IsNoetherianRing (restrictedMvPowerSeriesSubring D.T.card A) :=
+    IsStronglyNoetherian.isNoetherianRing_restricted (A := A) D.T.card
+  -- Example 6.38 (multivariate): `C ↠ presheafValue D` with `Xᵢ ↦ tᵢ/s`. The ONLY residual.
+  -- Noetherianness then transfers along this surjection from the noetherian source `C`.
+  obtain ⟨φ, hφ⟩ := example638_multivariate_surjection D
+  exact isNoetherianRing_of_surjective _ _ φ hφ
 
 private theorem presheafValue_isNoetherianRing_faithful
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] (D : RationalLocData A) :
@@ -872,33 +882,53 @@ private theorem presheafValue_isNoetherianRing_faithful
 -- obligation is gone — `prop_8_30_flat_of_faithful_base` now needs only the Tate + noetherian
 -- instances on `B`.
 
-/-- **Steps 2–4 of Prop 8.30 — Remark 7.55 + Example 6.38 over `B` + Lemma 8.31** (Wedhorn
-p. 81, `wedhorn.txt:4097`–`4104`). Given that `B := presheafValue D` is a complete strongly
-noetherian Tate ring (Step 1, supplied here as the explicit instance bundle that `lemma_8_31_*`
-consume), the restriction `O_X(V) → O_X(U)` for `U ⊆ V` rational is flat.
+/-- **GENUINE RESIDUAL — Steps 2–3 of Prop 8.30: Remark 7.55 + relative Example 6.38 over `B`**
+(Wedhorn p. 81, `wedhorn.txt:4100`–`4104`, and Remark 7.55, `wedhorn.txt:3504`–`3517`).
 
-Wedhorn: "By Remark 7.55 we may assume `U` is `U₁ = R(f/1)` or `U₂ = R(1/f)` for some `f ∈ A`.
-In Example 6.38 we have seen `O_X(U₁) = Â⟨X⟩/(f−X)` and `O_X(U₂) = Â⟨X⟩/(1−fX)`. Thus it
-suffices to show Lemma 8.31."
+`B := presheafValue D = O_X(V)` is a complete strongly noetherian Tate ring (Step 1), supplied
+here as the explicit FAITHFUL instance bundle that the transport consumes: `IsTateRing B`,
+`IsNoetherianRing B`, `NonarchimedeanRing B`, `T2Space B`, `IsHuberRing B`, `IsStronglyNoetherian B`
+— **all derived from `hTate`/`hNoeth` and the plain `presheafValue` instances, with NO
+`PairOfDefinition`, NO `[IsNoetherianRing P.A₀]`** (the `A`-bundle's `CompatiblePlusSubring` /
+`HasLocLiftPowerBounded` are NOT used at the `B`-level here).
 
-So this reduces, over the base `B`, to: a `B`-algebra isomorphism
-`presheafValue D' ≃ₐ[B] B⟨X⟩/(f̄−X)` (resp. `B⟨X⟩/(1−f̄X)`) intertwining `restrictionMapHom`
-with the canonical quotient algebra map, followed by `Module.Flat.of_linearEquiv` applied to the
-flatness of that quotient (`lemma_8_31_fSubX_flat` / `lemma_8_31_oneSubfX_flat`, sorry-free over
-`B`).
+Wedhorn: "By Remark 7.55 we may assume `U` is `U₁ = R(f/1)` or `U₂ = R(1/f)` for some `f ∈ B`.
+In Example 6.38 we have seen `O_X(U₁) = B̂⟨X⟩/(f−X)` and `O_X(U₂) = B̂⟨X⟩/(1−fX)`." Remark 7.55
+(`wedhorn.txt:3517`) is in fact a **chain** `Spa B ⊇ X₀ ⊇ X₁ ⊇ ⋯ ⊇ Xₙ = U`, each `Xᵢ ⊆ Xᵢ₋₁` a
+basic Laurent shape; flatness of `O_X(V) → O_X(U)` is the **composite** of the basic-Laurent
+restrictions, each flat by Lemma 8.31(2). So `restrictionMapHom D D' h` is `B`-flat.
 
-FAITHFUL: stated with the genuine complete-strongly-noetherian-Tate bundle on `B` only — **no**
-`PairOfDefinition`, **no** `[IsNoetherianRing P.A₀]`.
+**This is the genuine repo gap** (the "unfaithful summit"). The faithful inputs are present —
+`lemma_8_31_fSubX_flat (presheafValue D) f` and `lemma_8_31_oneSubfX_flat (presheafValue D) f` are
+sorry-free over `B` (case (b), `[IsNoetherianRing B]` only, no noeth-`A₀`). What is MISSING is the
+**relative reduction object**: the Remark-7.55 chain of basic-Laurent sub-locales of `Spa B`
+together with the relative Example-6.38 `B`-algebra/`B`-linear identifications
+`O_X(Xᵢ) ≃ₗ[B] (O_X(Xᵢ₋₁))⟨X⟩/(f̄−X)` resp. `/(1−f̄X)` intertwining `restrictionMapHom`, which would
+let `Module.Flat.of_linearEquiv` + composition close the goal. The repo's relative-Example-6.38
+machinery (`relativeLaurentNormalized_equiv`, `restrictionMap_flat_of_rational_subset_via_relative`,
+`presheafValue_relative_equiv`) is **irreducibly entangled** with the case-(a) hypotheses
+`(P : PairOfDefinition A) [IsNoetherianRing P.A₀]`, `[IsNoetherianRing (locSubring E.P E.T E.s)]`,
+`hnoeth_B` (pairSubring noeth), `hP_A₀Noeth_B`, and routes `B`-level flatness through
+`presheafValue_flat_of_canonical` → `flat_quotient_oneSubfX_general P` (Wedhorn case (a),
+ℂ_p-false). The faithful version must rebuild that relative equiv over the `B`-bundle alone — the
+same `Fin n`/relative Example-6.38 construction gap as `example638_multivariate_surjection`
+(Residual 1). It is therefore isolated here as the single named residual rather than discharged via
+the existing case-(a) route. (Note: `prop_8_30_flat_clean` in `StructureSheaf.lean` has this exact
+signature but is OFF-LIMITS: it routes through `restrictionMap_isLocalization` = the RETIRED
+`restrictionMapHom_surj`, FALSE-in-general, plus a FALSE noeth-`A₀` `sorry`.) -/
+private theorem prop_8_30_relative_laurent_flat
+    (D D' : RationalLocData A)
+    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    [hTate : IsTateRing (presheafValue D)]
+    [hNoeth : IsNoetherianRing (presheafValue D)]
+    [IsHuberRing (presheafValue D)]
+    [NonarchimedeanRing (presheafValue D)]
+    [T2Space (presheafValue D)]
+    [IsStronglyNoetherian (presheafValue D)] :
+    @Module.Flat (presheafValue D) (presheafValue D') _ _
+      (restrictionMapHom D D' h).toModule :=
+  sorry
 
-GENUINE RESIDUAL (single inner `sorry`): the Remark-7.55 reduction of a general rational
-`U ⊆ V` to the basic Laurent shapes `R(f̄/1)` / `R(1/f̄)` over `B`, **together with** the
-Example-6.38 identification of `O_X(U)` as `B⟨X⟩/(f̄−X)` resp. `B⟨X⟩/(1−f̄X)` *as a `B`-algebra*
-(the relative Example 6.38 over the completed base `B`). The repo's relative-Example-6.38
-infrastructure (`relativeLaurentNormalized_equiv`, `example638Plus_equiv`,
-`restrictionMap_flat_via_*`) all carry the case-(a) `[IsNoetherianRing P.A₀]` hypothesis and
-route `B`-level flatness through `flat_quotient_fSubX_general` (case (a)); the faithful version
-must rebuild the relative equiv with the `B`-bundle only and transport `lemma_8_31_*` (case (b))
-instead. This is the same noeth-`A₀` migration residual as Step 1. -/
 private theorem prop_8_30_flat_of_faithful_base
     (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
@@ -906,32 +936,21 @@ private theorem prop_8_30_flat_of_faithful_base
     (hNoeth : IsNoetherianRing (presheafValue D)) :
     @Module.Flat (presheafValue D) (presheafValue D') _ _
       (restrictionMapHom D D' h).toModule := by
-  -- `B := presheafValue D` now has the full bundle `lemma_8_31_*` consume:
-  -- `IsTateRing`, `IsNoetherianRing`, `IsLinearTopology` from Step 1; `IsHuberRing` from
-  -- `IsTateRing`; and `IsTopologicalRing`/`T2Space`/`NonarchimedeanRing`/`CompleteSpace` are
-  -- already plain instances on `presheafValue D`.
+  -- Step 1 (faithful): assemble the complete strongly-noetherian-Tate bundle on `B := presheafValue
+  -- D`. `IsTateRing`/`IsNoetherianRing` come in as `hTate`/`hNoeth`; `IsHuberRing` from `IsTateRing`;
+  -- `NonarchimedeanRing`/`T2Space` are derivable from the plain `presheafValue` (completion)
+  -- instances; `IsStronglyNoetherian` from `isStronglyNoetherian_of_isNoetherianRing_isTateRing`.
+  -- None of this uses any `PairOfDefinition` / noeth-`A₀`.
   haveI := hTate
   haveI := hNoeth
   haveI : IsHuberRing (presheafValue D) := hTate.toIsHuberRing
-  -- With this bundle, the Step-4 inputs `lemma_8_31_fSubX_flat (presheafValue D) f` and
-  -- `lemma_8_31_oneSubfX_flat (presheafValue D) f` are available over `B` (case (b), NO
-  -- `PairOfDefinition`/noeth-`A₀`; these consume `[IsNoetherianRing B]` only — NOT
-  -- `[IsLinearTopology B B]`, which is why `hLin`/helper 3 does not gate the mathematical
-  -- content here), modulo aligning `CompleteSpace (presheafValue D)` to the section's
-  -- `rightUniformSpace` form (`presheafValue_completeSpace_rightUniformSpace`).
-  --
-  -- GENUINE RESIDUAL (single `sorry`): Steps 2–3 — the Remark 7.55 reduction of a general
-  -- rational `U ⊆ V` to a basic Laurent shape `R(f̄/1)` / `R(1/f̄)` over `B`, together with the
-  -- relative Example-6.38 `B`-algebra iso `presheafValue D' ≃ₐ[B] B⟨X⟩/(f̄−X)` resp.
-  -- `B⟨X⟩/(1−f̄X)`. Transporting the relevant `lemma_8_31_*` across that iso by
-  -- `Module.Flat.of_linearEquiv` then closes the goal. Step 1 (helpers
-  -- `presheafValue_isTateRing_faithful`, `presheafValue_isNoetherianRing_faithful`) is now
-  -- faithfully discharged; this relative reduction is the remaining noeth-`A₀` migration
-  -- residual — the repo's relative-flatness machinery (`restrictionMap_flat_via_iteratedMinus`,
-  -- `relativeLaurentNormalized_equiv`) is entangled with the case-(a) `pairSubring`/`A₀⟨X⟩`
-  -- noetherianness (`hnoeth_B`/`hP_A₀Noeth_B`/`hlocSubring_Noeth_B`) and must be rebuilt over the
-  -- `B`-bundle alone. This is the project's documented "unfaithful summit".
-  sorry
+  haveI : NonarchimedeanRing (presheafValue D) := inferInstance
+  haveI : T2Space (presheafValue D) := inferInstance
+  haveI : IsStronglyNoetherian (presheafValue D) :=
+    isStronglyNoetherian_of_isNoetherianRing_isTateRing
+  -- Steps 2–4 (Remark 7.55 + relative Example 6.38 over `B` + Lemma 8.31): the single genuine
+  -- residual, isolated faithfully (NO noeth-`A₀`). See `prop_8_30_relative_laurent_flat`.
+  exact prop_8_30_relative_laurent_flat D D' h
 
 /-- **Proposition 8.30** (Wedhorn p.81, `wedhorn.txt:4095`): for rational subsets `U ⊆ V`
 the restriction `O_X(V) → O_X(U)` is flat.
