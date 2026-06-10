@@ -13468,9 +13468,34 @@ theorem genRestrictedCover_isOXAcyclic_of_spanTop [DecidableEq A]
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
     (hspan : Ideal.span (T : Set A) = ⊤)
-    (_hplus : (A⁺ : Set A) ⊆ D₀.P.A₀) :
+    (hplus : (A⁺ : Set A) ⊆ D₀.P.A₀) :
     (genRestrictedCover D₀ T hspan).IsOXAcyclic := by
-  sorry
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) :=
+    presheafValue_isTateRing_faithful D₀
+  haveI : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  haveI : NonarchimedeanRing (presheafValue D₀) := inferInstance
+  haveI : T2Space (presheafValue D₀) := inferInstance
+  letI : DecidableEq (presheafValue D₀) := Classical.decEq _
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  haveI : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  -- Wedhorn Lemma 8.34 INSTANTIATED at B := 𝒪_X(D₀), applied to the image
+  -- cover (the faithful "recursive" step of p. 84 — no circularity: 8.34 is
+  -- a closed ∀-rings theorem).
+  have h834B : (imageGenCover D₀ T hspan).IsOXAcyclic :=
+    wedhorn_lemma_834 (imageGenCover D₀ T hspan)
+      (T.image D₀.canonicalMap) (imageGenCover_isGeneratedBy D₀ T hspan)
+      (fun U hU => by
+        obtain ⟨u, hu, rfl⟩ := Finset.mem_image.mp hU
+        rfl)
+      (completedPlusSubring_le_ringOfDef D₀ hplus)
+  exact genRestrictedCover_isOXAcyclic_of_B D₀ T hspan h834B
 
 /-! ### Main intermediate: every rational cover is `O_X`-acyclic
 
