@@ -7478,6 +7478,167 @@ theorem RationalCovering.IsGeneratedByUnits.isUnitGenerated
   rw [hDT] at ht
   exact h_units t ht
 
+/-! ##### Relocated G0 gen-cover defs (γ-restructure 2026-06-10): needed by
+the T-form part-(ii) packages below (were defined after them). -/
+
+/-- A `vle`-maximal element of a nonempty `Finset` (the value group is totally
+preordered via `vle_total`). -/
+theorem exists_vle_max_mem (v : Spv A) {S : Finset A} (hS : S.Nonempty) :
+    ∃ m ∈ S, ∀ y ∈ S, v.vle y m := by
+  induction hS using Finset.Nonempty.cons_induction with
+  | singleton x =>
+    exact ⟨x, Finset.mem_singleton_self x, fun y hy => by
+      rw [Finset.mem_singleton] at hy; subst hy; exact (v.vle_total y y).elim id id⟩
+  | cons a s _ha _hsne ih =>
+    obtain ⟨m, hm, hmax⟩ := ih
+    rcases v.vle_total m a with h | h
+    · exact ⟨a, Finset.mem_cons_self a s, fun y hy => (Finset.mem_cons.mp hy).elim
+        (fun e => e ▸ (v.vle_total y y).elim id id) (fun hy' => v.vle_trans (hmax y hy') h)⟩
+    · exact ⟨m, Finset.mem_cons.mpr (Or.inr hm), fun y hy => (Finset.mem_cons.mp hy).elim
+        (fun e => e ▸ h) (fun hy' => hmax y hy')⟩
+
+/-- **Per-component cover (the covering half of Cor 7.53):** if `T` spans the unit
+ideal then for every `v ∈ Spa A A⁺` there is `t ∈ T` with `v ∈ R(T/t)` — take the
+`vle`-maximal `t`. (Forward direction only — elementary, no pair/Nullstellensatz
+needed: `span T = ⊤` and the support being proper give a non-vanishing generator.) -/
+theorem exists_mem_rationalOpen_of_spanTop [DecidableEq A] (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) {v : Spv A} (hv : v ∈ Spa A A⁺) :
+    ∃ t ∈ T, v ∈ rationalOpen T t := by
+  have hnz : ∃ t ∈ T, ¬ v.vle t 0 := by
+    by_contra h
+    push_neg at h
+    have hle : Ideal.span (T : Set A) ≤ v.supp :=
+      Ideal.span_le.mpr fun t ht => (v.mem_supp_iff t).mpr (h t ht)
+    rw [hspan] at hle
+    exact (instIsPrimeSupp v).ne_top (top_le_iff.mp hle)
+  obtain ⟨t₀, ht₀, ht₀0⟩ := hnz
+  obtain ⟨tm, htm, hmax⟩ := exists_vle_max_mem v ⟨t₀, ht₀⟩
+  exact ⟨tm, htm, hv, fun t ht => hmax t ht,
+    fun h0 => ht₀0 (v.vle_trans (hmax t₀ ht₀) h0)⟩
+
+/-- **Absorption (Wedhorn §8.1-style)**: a high power of the ideal of definition
+multiplies any finitely many fixed ring elements into `A₀` (continuity of
+multiplication + openness of `A₀` + the `I`-adic neighborhood basis). -/
+theorem pod_absorb_finset_mul_pow (P : PairOfDefinition A) (S : Finset A) :
+    ∃ N : ℕ, ∀ a ∈ S, ∀ b : P.A₀, b ∈ P.I ^ N → (↑b : A) * a ∈ P.A₀ := by
+  classical
+  have hone : ∀ a : A, ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N → (↑b : A) * a ∈ P.A₀ := by
+    intro a
+    have hcont : Continuous (fun x : P.A₀ => (↑x : A) * a) :=
+      continuous_subtype_val.mul continuous_const
+    have h0 : (fun x : P.A₀ => (↑x : A) * a) 0 ∈ (P.A₀ : Set A) := by
+      simp only [ZeroMemClass.coe_zero, zero_mul]
+      exact P.A₀.zero_mem
+    have hpre : (fun x : P.A₀ => (↑x : A) * a) ⁻¹' (P.A₀ : Set A) ∈
+        nhds (0 : P.A₀) :=
+      hcont.continuousAt.preimage_mem_nhds (P.isOpen.mem_nhds h0)
+    obtain ⟨n, -, hn⟩ := P.isAdic.hasBasis_nhds_zero.mem_iff.mp hpre
+    exact ⟨n, fun b hb => hn hb⟩
+  choose Nf hNf using hone
+  refine ⟨S.sup Nf, fun a ha b hb => hNf a b ?_⟩
+  exact Ideal.pow_le_pow_right (Finset.le_sup ha) hb
+
+/-- **General gen-set piece openness**: for `T` spanning the unit ideal and `t ∈ T`,
+the piece `R(T/t)` satisfies the `hopen`-condition — high `I`-powers divide by `t`
+into the ring of definition, via the span-combination `1 = Σ c_{t'}·t'` and
+absorption of the coefficients (Wedhorn p. 83, the `U_t := R(T/t)` cover form). -/
+theorem genPiece_hopen (P : PairOfDefinition A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) t ∈ locSubring P T t := by
+  classical
+  have h1 : (1 : A) ∈ Ideal.span (T : Set A) := hspan ▸ Submodule.mem_top
+  obtain ⟨c, _hc_supp, hc⟩ := Submodule.mem_span_finset.mp h1
+  obtain ⟨N, hN⟩ := pod_absorb_finset_mul_pow P (T.image c)
+  refine ⟨N, fun b hb => ?_⟩
+  -- `divByS b t = Σ_{t' ∈ T} aM (b·c t') · divByS t' t` (cancel the away-unit `aM t`)
+  have hkey : divByS (↑b : A) t = ∑ t' ∈ T,
+      algebraMap A (Localization.Away t) ((↑b : A) * c t') * divByS t' t := by
+    refine (IsLocalization.Away.algebraMap_isUnit
+      (S := Localization.Away t) t).mul_left_cancel ?_
+    have hL : algebraMap A (Localization.Away t) t * divByS (↑b : A) t =
+        algebraMap A (Localization.Away t) (↑b : A) := by
+      unfold divByS
+      exact IsLocalization.mk'_spec' (M := Submonoid.powers t)
+        (Localization.Away t) (↑b : A) ⟨t, 1, pow_one t⟩
+    rw [hL, Finset.mul_sum]
+    have hterm : ∀ t' ∈ T, algebraMap A (Localization.Away t) t *
+        (algebraMap A (Localization.Away t) ((↑b : A) * c t') * divByS t' t) =
+        algebraMap A (Localization.Away t) ((↑b : A) * c t' * t') := by
+      intro t' _
+      have h2 : algebraMap A (Localization.Away t) t * divByS t' t =
+          algebraMap A (Localization.Away t) t' := by
+        unfold divByS
+        exact IsLocalization.mk'_spec' (M := Submonoid.powers t)
+          (Localization.Away t) t' ⟨t, 1, pow_one t⟩
+      rw [show algebraMap A (Localization.Away t) t *
+          (algebraMap A (Localization.Away t) ((↑b : A) * c t') * divByS t' t) =
+        algebraMap A (Localization.Away t) ((↑b : A) * c t') *
+          (algebraMap A (Localization.Away t) t * divByS t' t) from by ring]
+      rw [h2, ← map_mul]
+    rw [Finset.sum_congr rfl hterm, ← map_sum]
+    congr 1
+    calc (↑b : A) = (↑b : A) * 1 := (mul_one _).symm
+      _ = (↑b : A) * ∑ t' ∈ T, c t' * t' := by
+          rw [show ∑ t' ∈ T, c t' * t' = (1 : A) from by
+            simpa only [smul_eq_mul] using hc]
+      _ = ∑ t' ∈ T, (↑b : A) * c t' * t' := by rw [Finset.mul_sum]; ring_nf
+  rw [hkey]
+  refine Subring.sum_mem _ (fun t' ht' => Subring.mul_mem _ ?_ ?_)
+  · exact algebraMap_mem_locSubring P T t
+      (hN (c t') (Finset.mem_image_of_mem c ht') b hb)
+  · exact divByS_mem_locSubring P T t ht'
+
+set_option linter.unusedSectionVars false in
+/-- The span of the image of an ideal-generating set is the unit ideal. -/
+theorem span_image_canonicalMap_eq_top
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    Ideal.span (D₀.canonicalMap '' (T : Set A)) = ⊤ := by
+  rw [← Ideal.map_span D₀.canonicalMap, hspan]
+  exact Ideal.map_top _
+
+/-- **The A-side gen-set piece** `R(T/t)` (Wedhorn p. 83's `U_t := R(T/t)` cover form),
+with the `hopen`-condition supplied by `genPiece_hopen` (span + absorption). -/
+noncomputable def genPieceDatum (P : PairOfDefinition A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) : RationalLocData A :=
+  { P := P
+    T := T
+    s := t
+    hopen := genPiece_hopen P T t hspan }
+
+@[simp] theorem genPieceDatum_P (P : PairOfDefinition A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) : (genPieceDatum P T t hspan).P = P := rfl
+
+@[simp] theorem genPieceDatum_T (P : PairOfDefinition A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) : (genPieceDatum P T t hspan).T = T := rfl
+
+@[simp] theorem genPieceDatum_s (P : PairOfDefinition A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) : (genPieceDatum P T t hspan).s = t := rfl
+
+/-- **The A-level restricted gen-cover (G3c-0)**: base `D₀`, pieces `D₀ ∩ R(T/t)`
+(the A-side of Wedhorn 8.34's `U|D₀`). -/
+noncomputable def genRestrictedCover
+    [IsTateRing A] [IsNoetherianRing A] [DecidableEq A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    RationalCovering A :=
+  { base := D₀
+    covers := T.image (fun t => D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl)
+    hsubset := by
+      intro D hD
+      rw [Finset.mem_image] at hD
+      obtain ⟨t, ht, rfl⟩ := hD
+      exact RationalLocData.interSamePair_subset_left _ _ _
+    hcover := by
+      intro v hv
+      obtain ⟨t, ht, hv'⟩ := exists_mem_rationalOpen_of_spanTop T hspan hv.1
+      refine ⟨D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl,
+        Finset.mem_image_of_mem _ ht, ?_⟩
+      rw [RationalLocData.interSamePair_rationalOpen]
+      exact ⟨hv, hv'⟩ }
+
 /-! ##### Sub-lemmas for Lemma 8.34 part (ii) — Cor 7.32 application -/
 
 /-- **Part (ii) sub-lemma 1**: `T · A = A` (T spans the unit ideal)
@@ -7804,16 +7965,16 @@ theorem unit_gen_restriction_of_dominating_laurent [DecidableEq A]
     (_fs : List A) (_hV_laurent : V.IsLaurentProdCover _fs)
     (_hfs_eq : _fs = (T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t))
     (Vj : RationalLocData A) (_hVj : Vj ∈ V.covers) :
-    ∃ (C_restr : RationalCovering A),
-      C_restr.base = Vj ∧
-      C_restr.IsGeneratedByUnits ∧
-      -- encoding invariant: the restricted pieces are formed at Vj's pair
-      -- of definition (the construction intersects C-pieces with Vj).
-      (∀ D' ∈ C_restr.covers, D'.P = Vj.P) ∧
-      (∀ D' ∈ C_restr.covers, ∃ D ∈ C.covers,
-        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) ∧
-      (∀ v ∈ rationalOpen Vj.T Vj.s, ∃ D' ∈ C_restr.covers,
-        v ∈ rationalOpen D'.T D'.s) := by
+    -- T-form package (2026-06-10 γ-restructure): the restricted cover IS
+    -- `genRestrictedCover Vj S` for a spanning set S of canonical-image
+    -- units of 𝒪_X(Vj); Wedhorn p. 84 (ii): "𝒰|V is a rational cover
+    -- generated by a finite set of units" — the generators are the s⁻¹tᵢ
+    -- images, units on the Laurent piece by the dominating σ-walk.
+    ∃ (S : Finset A) (hS : Ideal.span (S : Set A) = ⊤),
+      S.Nonempty ∧
+      (∀ t ∈ S, IsUnit (Vj.canonicalMap t)) ∧
+      (∀ D' ∈ (genRestrictedCover Vj S hS).covers, ∃ D ∈ C.covers,
+        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) := by
   -- Compose: select the distinguished t_i on V_j (step a), upgrade to
   -- "canonical image is a unit" (step b), construct the restricted
   -- cover (step c). Unit-gen + refinement + cover-property follow from
@@ -7835,14 +7996,11 @@ theorem wedhorn_lemma_834_part_ii_unit_gen_via_dominating [DecidableEq A]
       (∀ v ∈ Spa A A⁺, ∃ t ∈ T, v.vle (s : A) t ∧ ¬ v.vle t (s : A)) ∧
       fs = (T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t) ∧
       ∀ Vj ∈ V.covers,
-        ∃ (C_restr : RationalCovering A),
-          C_restr.base = Vj ∧
-          C_restr.IsGeneratedByUnits ∧
-          (∀ D' ∈ C_restr.covers, D'.P = Vj.P) ∧
-          (∀ D' ∈ C_restr.covers, ∃ D ∈ C.covers,
-            rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) ∧
-          (∀ v ∈ rationalOpen Vj.T Vj.s, ∃ D' ∈ C_restr.covers,
-            v ∈ rationalOpen D'.T D'.s) := by
+        ∃ (S : Finset A) (hS : Ideal.span (S : Set A) = ⊤),
+          S.Nonempty ∧
+          (∀ t ∈ S, IsUnit (Vj.canonicalMap t)) ∧
+          (∀ D' ∈ (genRestrictedCover Vj S hS).covers, ∃ D ∈ C.covers,
+            rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) := by
   -- Compose: (a) no-common-zero, (b) Cor 7.32 dominating unit,
   -- (c) construct Laurent cover, (d) verify unit-gen restriction.
   -- Step a: T spans top ⇒ no common zero.
@@ -7858,441 +8016,6 @@ theorem wedhorn_lemma_834_part_ii_unit_gen_via_dominating [DecidableEq A]
   intro Vj hVj
   exact unit_gen_restriction_of_dominating_laurent C T hC_gen s hs V fs hV_laurent
     hV_eq Vj hVj
-
-/-! ##### Sub-lemmas for Lemma 8.34 part (iii) — ratio Laurent refinement -/
-
-/-- **Part (iii) sub-lemma 1**: extract a finite list of unit generators from
-a unit-generated rational cover. Each `D.T` consists of elements whose
-canonical images in `𝒪_X(C.base)` are units. -/
-theorem unitGenerators_of_unitGenCover [DecidableEq A]
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (C : RationalCovering A) (hC_unit : C.IsUnitGenerated) :
-    ∃ (units : Finset A),
-      (∀ f ∈ units, IsUnit (C.base.canonicalMap f)) ∧
-      (∀ D ∈ C.covers, ∀ t ∈ D.T, t ∈ units) := by
-  -- Construct `units := C.covers.biUnion (fun D => D.T)`.
-  refine ⟨C.covers.biUnion (fun D => D.T), ?_, ?_⟩
-  · intro f hf
-    obtain ⟨D, hD_mem, hf_in_T⟩ := Finset.mem_biUnion.mp hf
-    exact hC_unit D hD_mem f hf_in_T
-  · intro D hD t ht
-    exact Finset.mem_biUnion.mpr ⟨D, hD, ht⟩
-
-/-- **Wedhorn 8.34(iii) (faithful; wedhorn.txt:4246-4249)**: *"Every rational cover `U`
-of `X` which is generated by units `f₀,…,fₙ` of `A` has a refinement by a Laurent
-cover. Indeed, the Laurent cover generated by `{fᵢfⱼ⁻¹}` is a refinement of `U`."*
-The σ-walk: each Laurent piece fixes the sign of every ratio `fᵢfⱼ⁻¹`, totally
-preordering the units piece-wide; the piece-wide `vle`-maximal unit `f*` gives
-`piece ⊆ R(units/f*)`, a `U`-piece. Stated with RING units (the 2026-05-28
-`canonicalMap`-unit trio is B2-logged: the ratio list needs ring inverses). -/
-theorem ratio_laurent_refines_unitGen_cover [DecidableEq A]
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (C : RationalCovering A) (units : Finset A) (hne : units.Nonempty)
-    (hC_gen : C.IsGeneratedBy units) (h_units : ∀ f ∈ units, IsUnit f) :
-    ∃ (fs : List A) (V : RationalCovering A),
-      V.IsLaurentProdCover fs ∧ V.base = C.base ∧
-      ∀ V' ∈ V.covers, ∃ D ∈ C.covers,
-        rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s := by
-  classical
-  set ratios : List A := (units.attach.toList.product units.attach.toList).map
-    (fun p => (p.1 : A) * ↑((h_units p.2 p.2.2).unit⁻¹)) with hratios
-  refine ⟨ratios, laurentProdCoverOf C.base ratios,
-    laurentProdCoverOf_isLaurentProd _ _, rfl, ?_⟩
-  intro V' hV'
-  have hV'' : V' ∈ laurentProdLeaves C.base ratios := hV'
-  -- the piece-wide comparison from the ratio-sign dichotomy
-  have hcmp : ∀ f ∈ units, ∀ g ∈ units,
-      (∀ v ∈ rationalOpen V'.T V'.s, v.vle f g) ∨
-      (∀ v ∈ rationalOpen V'.T V'.s, v.vle g f) := by
-    intro f hf g hg
-    have hmem : (f * ↑((h_units g hg).unit⁻¹) : A) ∈ ratios := by
-      rw [hratios]
-      exact List.mem_map.mpr ⟨(⟨f, hf⟩, ⟨g, hg⟩),
-        List.mem_product.mpr ⟨Finset.mem_toList.mpr (Finset.mem_attach _ _),
-          Finset.mem_toList.mpr (Finset.mem_attach _ _)⟩, rfl⟩
-    have hspec : (↑(h_units g hg).unit : A) = g := (h_units g hg).unit_spec
-    have hinv : ((↑(h_units g hg).unit⁻¹ : A) * g) = 1 := by
-      rw [show ((↑(h_units g hg).unit⁻¹ : A) * g) =
-        ((↑(h_units g hg).unit⁻¹ : A) * ↑(h_units g hg).unit) from by rw [hspec]]
-      exact (h_units g hg).unit.inv_mul
-    rcases laurentProdLeaves_sign_dichotomy ratios C.base hV''
-      (f * ↑((h_units g hg).unit⁻¹)) hmem with h | h
-    · left
-      intro v hv
-      have h2 := v.mul_vle_mul_left (h v hv) g
-      rwa [one_mul, mul_assoc, hinv, mul_one] at h2
-    · right
-      intro v hv
-      have h2 := v.mul_vle_mul_left (h v hv) g
-      rwa [one_mul, mul_assoc, hinv, mul_one] at h2
-  -- the piece-wide maximal unit (induction over subsets of `units`)
-  have hmax : ∀ (S : Finset A), S.Nonempty → S ⊆ units →
-      ∃ m ∈ S, ∀ g ∈ S, ∀ v ∈ rationalOpen V'.T V'.s, v.vle g m := by
-    intro S hS
-    induction hS using Finset.Nonempty.cons_induction with
-    | singleton x =>
-      intro _
-      exact ⟨x, Finset.mem_singleton_self x, fun g hg v hv => by
-        rw [Finset.mem_singleton] at hg; subst hg
-        exact (v.vle_total g g).elim id id⟩
-    | cons a s ha hsne ih =>
-      intro hsub
-      obtain ⟨m, hm, hmmax⟩ := ih (fun x hx => hsub (Finset.mem_cons_of_mem hx))
-      rcases hcmp m (hsub (Finset.mem_cons_of_mem hm)) a
-          (hsub (Finset.mem_cons_self a s)) with h | h
-      · exact ⟨a, Finset.mem_cons_self a s, fun g hg v hv =>
-          (Finset.mem_cons.mp hg).elim
-            (fun e => e ▸ (v.vle_total g g).elim id id)
-            (fun hg' => v.vle_trans (hmmax g hg' v hv) (h v hv))⟩
-      · exact ⟨m, Finset.mem_cons.mpr (Or.inr hm), fun g hg v hv =>
-          (Finset.mem_cons.mp hg).elim
-            (fun e => e ▸ h v hv)
-            (fun hg' => hmmax g hg' v hv)⟩
-  obtain ⟨m, hm, hmmax⟩ := hmax units hne (Finset.Subset.refl units)
-  -- the `m`-piece of `C`
-  obtain ⟨-, φ, hφ_bij, hφ_eq⟩ := hC_gen
-  refine ⟨(φ ⟨m, hm⟩).1, (φ ⟨m, hm⟩).2, ?_⟩
-  intro v hv
-  rw [(hφ_eq ⟨m, hm⟩).1, (hφ_eq ⟨m, hm⟩).2]
-  exact ⟨hv.1, fun g hg => hmmax g hg v hv,
-    not_vle_zero_of_isUnit (h_units m hm) v⟩
-
-/-- **Wedhorn 8.34(iii), bundled faithful form (wedhorn.txt:4246-4249)**: for a
-rational cover generated by RING units, the `{fᵢfⱼ⁻¹}`-ratio Laurent cover both
-refines it AND covers each piece from inside (the sign-selecting σ-walk keeps
-the piece's own denominator dominant: for `v ∈ R(units/u)`,
-`laurentProdLeaves_cover_sign_select` with the `u`-ratios marked picks a leaf
-on which `w(g) ≤ w(u)` holds piece-wide). This is the bilateral form consumed
-by the Prop A.3(2) bridge (`IsOXAcyclic_of_refining_acyclic_cover`) — applied
-at `B := 𝒪_X(Vj)`, where the part-(ii) generators ARE ring units. -/
-theorem ratio_laurent_unitGen_bundle [DecidableEq A]
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (C : RationalCovering A) (units : Finset A) (hne : units.Nonempty)
-    (hC_gen : C.IsGeneratedBy units) (h_units : ∀ f ∈ units, IsUnit f) :
-    ∃ (fs : List A) (V : RationalCovering A),
-      V.IsLaurentProdCover fs ∧ V.base = C.base ∧
-      (∀ V' ∈ V.covers, ∃ D ∈ C.covers,
-        rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s) ∧
-      (∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
-        ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
-          rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s) := by
-  classical
-  obtain ⟨fs, V, hV_laurent, hV_base, h_refines⟩ :=
-    ratio_laurent_refines_unitGen_cover C units hne hC_gen h_units
-  -- The refines-lemma's V is definitionally `laurentProdCoverOf C.base ratios`
-  -- for the explicit ratio list; re-derive the cover-each direction for the
-  -- SAME V from the construction data. Since the ∃ hides the list, we instead
-  -- rebuild: take the explicit ratio cover and prove both directions for it.
-  clear h_refines hV_laurent hV_base V fs
-  set ratios : List A := (units.attach.toList.product units.attach.toList).map
-    (fun p => (p.1 : A) * ↑((h_units p.2 p.2.2).unit⁻¹)) with hratios
-  refine ⟨ratios, laurentProdCoverOf C.base ratios,
-    laurentProdCoverOf_isLaurentProd _ _, rfl, ?_, ?_⟩
-  · -- refines: delegate to the proven σ-walk lemma's argument by re-running it
-    -- on the explicit cover (the proven lemma's witness IS this cover, but the
-    -- ∃ hides the identification; the dichotomy+max argument re-applies).
-    intro V' hV'
-    have hV'' : V' ∈ laurentProdLeaves C.base ratios := hV'
-    have hcmp : ∀ f ∈ units, ∀ g ∈ units,
-        (∀ v ∈ rationalOpen V'.T V'.s, v.vle f g) ∨
-        (∀ v ∈ rationalOpen V'.T V'.s, v.vle g f) := by
-      intro f hf g hg
-      have hmem : (f * ↑((h_units g hg).unit⁻¹) : A) ∈ ratios := by
-        rw [hratios]
-        exact List.mem_map.mpr ⟨(⟨f, hf⟩, ⟨g, hg⟩),
-          List.mem_product.mpr ⟨Finset.mem_toList.mpr (Finset.mem_attach _ _),
-            Finset.mem_toList.mpr (Finset.mem_attach _ _)⟩, rfl⟩
-      have hspec : (↑(h_units g hg).unit : A) = g := (h_units g hg).unit_spec
-      have hinv : ((↑(h_units g hg).unit⁻¹ : A) * g) = 1 := by
-        rw [show ((↑(h_units g hg).unit⁻¹ : A) * g) =
-          ((↑(h_units g hg).unit⁻¹ : A) * ↑(h_units g hg).unit) from by
-            rw [hspec]]
-        exact (h_units g hg).unit.inv_mul
-      rcases laurentProdLeaves_sign_dichotomy ratios C.base hV''
-        (f * ↑((h_units g hg).unit⁻¹)) hmem with h | h
-      · left
-        intro v hv
-        have h2 := v.mul_vle_mul_left (h v hv) g
-        rwa [one_mul, mul_assoc, hinv, mul_one] at h2
-      · right
-        intro v hv
-        have h2 := v.mul_vle_mul_left (h v hv) g
-        rwa [one_mul, mul_assoc, hinv, mul_one] at h2
-    have hmax : ∀ (S : Finset A), S.Nonempty → S ⊆ units →
-        ∃ m ∈ S, ∀ g ∈ S, ∀ v ∈ rationalOpen V'.T V'.s, v.vle g m := by
-      intro S hS
-      induction hS using Finset.Nonempty.cons_induction with
-      | singleton x =>
-        intro _
-        exact ⟨x, Finset.mem_singleton_self x, fun g hg v hv => by
-          rw [Finset.mem_singleton] at hg; subst hg
-          exact (v.vle_total g g).elim id id⟩
-      | cons a s ha hsne ih =>
-        intro hsub
-        obtain ⟨m, hm, hmmax⟩ := ih (fun x hx => hsub (Finset.mem_cons_of_mem hx))
-        rcases hcmp m (hsub (Finset.mem_cons_of_mem hm)) a
-            (hsub (Finset.mem_cons_self a s)) with h | h
-        · exact ⟨a, Finset.mem_cons_self a s, fun g hg v hv =>
-            (Finset.mem_cons.mp hg).elim
-              (fun e => e ▸ (v.vle_total g g).elim id id)
-              (fun hg' => v.vle_trans (hmmax g hg' v hv) (h v hv))⟩
-        · exact ⟨m, Finset.mem_cons.mpr (Or.inr hm), fun g hg v hv =>
-            (Finset.mem_cons.mp hg).elim
-              (fun e => e ▸ h v hv)
-              (fun hg' => hmmax g hg' v hv)⟩
-    obtain ⟨m, hm, hmmax⟩ := hmax units hne (Finset.Subset.refl units)
-    obtain ⟨-, φ, hφ_bij, hφ_eq⟩ := hC_gen
-    refine ⟨(φ ⟨m, hm⟩).1, (φ ⟨m, hm⟩).2, ?_⟩
-    intro v hv
-    rw [(hφ_eq ⟨m, hm⟩).1, (hφ_eq ⟨m, hm⟩).2]
-    exact ⟨hv.1, fun g hg => hmmax g hg v hv,
-      not_vle_zero_of_isUnit (h_units m hm) v⟩
-  · -- cover-each: sign-selecting σ-walk keeping the piece's denominator
-    -- dominant.
-    intro D hD v hv
-    obtain ⟨-, φ, hφ_bij, hφ_eq⟩ := hC_gen
-    obtain ⟨t, ht⟩ := hφ_bij.2 ⟨D, hD⟩
-    have hval : (φ t).1 = D := congrArg Subtype.val ht
-    have hT : D.T = units := hval ▸ (hφ_eq t).1
-    have hs : D.s = ↑t := hval ▸ (hφ_eq t).2
-    have hu : (↑t : A) ∈ units := t.2
-    have hspec : (↑(h_units ↑t hu).unit : A) = ↑t := (h_units ↑t hu).unit_spec
-    have hinv_l : ((↑(h_units ↑t hu).unit⁻¹ : A) * ↑t) = 1 := by
-      rw [show ((↑(h_units ↑t hu).unit⁻¹ : A) * ↑t) =
-        ((↑(h_units ↑t hu).unit⁻¹ : A) * ↑(h_units ↑t hu).unit) from by
-          rw [hspec]]
-      exact (h_units ↑t hu).unit.inv_mul
-    have hinv_r : ((↑t : A) * ↑((h_units ↑t hu).unit⁻¹)) = 1 := by
-      rw [show ((↑t : A) * ↑((h_units ↑t hu).unit⁻¹)) =
-        ((↑(h_units ↑t hu).unit : A) * ↑((h_units ↑t hu).unit⁻¹)) from by
-          rw [hspec]]
-      exact (h_units ↑t hu).unit.mul_inv
-    -- v's bounds on D give the preferred signs for the t-ratios.
-    have hv_base : v ∈ rationalOpen C.base.T C.base.s := C.hsubset D hD hv
-    have hvg : ∀ g ∈ units, v.vle g ↑t := by
-      intro g hg
-      have h0 := hv.2.1 g (by rw [hT]; exact hg)
-      rwa [hs] at h0
-    -- the preferred-sign condition at v
-    have hPv : ∀ f ∈ ratios,
-        (∃ g ∈ units, f = g * ↑((h_units ↑t hu).unit⁻¹)) → v.vle f 1 := by
-      rintro f hf ⟨g, hg, rfl⟩
-      have h2 := v.mul_vle_mul_left (hvg g hg) (↑((h_units ↑t hu).unit⁻¹) : A)
-      rwa [hinv_r] at h2
-    obtain ⟨V', hV'_leaf, hvV', hbound⟩ :=
-      laurentProdLeaves_cover_sign_select ratios
-        (fun r => ∃ g ∈ units, r = g * ↑((h_units ↑t hu).unit⁻¹))
-        C.base hv_base hPv
-    refine ⟨V', hV'_leaf, hvV', ?_⟩
-    intro w hw
-    rw [hT, hs]
-    refine ⟨hw.1, ?_, not_vle_zero_of_isUnit (h_units ↑t hu) w⟩
-    intro g hg
-    have hmem : (g * ↑((h_units ↑t hu).unit⁻¹) : A) ∈ ratios := by
-      rw [hratios]
-      exact List.mem_map.mpr ⟨(⟨g, hg⟩, ⟨↑t, hu⟩),
-        List.mem_product.mpr ⟨Finset.mem_toList.mpr (Finset.mem_attach _ _),
-          Finset.mem_toList.mpr (Finset.mem_attach _ _)⟩, rfl⟩
-    have h1 := hbound w hw _ hmem ⟨g, hg, rfl⟩
-    have h2 := w.mul_vle_mul_left h1 (↑t : A)
-    rwa [one_mul, mul_assoc, hinv_l, mul_one] at h2
-
-/-- **Part (iii) sub-lemma 2**: construct the ratio Laurent cover from a finite
-list of unit generators. The Laurent generators are `{f_i · f_j⁻¹ : i, j}`. -/
-theorem ratio_laurent_cover_of_units [DecidableEq A]
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (D₀ : RationalLocData A) (units : Finset A)
-    (_h_units_unit : ∀ f ∈ units, IsUnit (D₀.canonicalMap f)) :
-    ∃ (V : RationalCovering A) (fs : List A),
-      V.IsLaurentProdCover fs ∧
-      V.base = D₀ := by
-  -- Construction: iterate `laurentRationalCover` over the ratio list
-  -- {f_i · f_j⁻¹ : i, j ∈ units} (interpreted in 𝒪_X(D₀)).
-  sorry
-
-/-- **Part (iii) sub-lemma 3 — covers-each companion**: per-D version of
-ratio_laurent_refines_unit_gen. For each C-piece D and v ∈ D, the ratio
-Laurent cover V has a piece V' with v ∈ V' AND V' ⊆ D.
-
-Same σ-walk argument as `ratio_laurent_refines_unit_gen` but quantified
-per-D instead of per-V'. Sub-ticket T-WC-RATIO-LAURENT-COVERS-EACH-BODY. -/
-theorem ratio_laurent_covers_each_unit_gen_piece [DecidableEq A]
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (C : RationalCovering A) (_hC_unit : C.IsGeneratedByUnits)
-    (V : RationalCovering A) (_hV_base : V.base = C.base)
-    (_fs : List A) (_hV_laurent : V.IsLaurentProdCover _fs) :
-    ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
-      ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
-        rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s := by
-  -- σ-walk per-D: for v ∈ R(units/u_α), v(u_α) is maximal among units,
-  -- so the σ-walk picks i_max = α, hence V_σ(v) ⊆ R(units/u_α) = D.
-  -- Wedhorn-faithful: needs `IsGeneratedByUnits` so the C-piece D = R(units/u_α)
-  -- with s-element u_α exists (the σ-walk's target).
-  sorry
-
-/-- **Part (iii) sub-lemma 3**: each piece of the ratio Laurent cover is
-contained in some C-piece (the "ratio refines unit-gen" content).
-
-Specifically: a piece V' of the ratio Laurent cover at multi-index σ
-selects a maximal element `f_{i_max}` (by σ-walk over ratios), and the
-piece V' is contained in the C-piece D with D.T containing `f_{i_max}`. -/
-theorem ratio_laurent_refines_unit_gen [DecidableEq A]
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (C : RationalCovering A) (_hC_unit : C.IsGeneratedByUnits)
-    (V : RationalCovering A) (_hV_base : V.base = C.base)
-    -- V is a Laurent cover by the ratios extracted from C's unit generators.
-    (_fs : List A) (_hV_laurent : V.IsLaurentProdCover _fs)
-    (V' : RationalLocData A) (_hV' : V' ∈ V.covers) :
-    ∃ D ∈ C.covers, rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s := by
-  -- σ-walk argument: V' corresponds to a sign vector σ on the ratios;
-  -- the σ-walk selects a maximal generator u_{i_max}; the corresponding
-  -- C-piece is `R(units/u_{i_max})` ∈ C (exists by `IsGeneratedByUnits`).
-  sorry
-
-/-- **Lemma 8.34 part (iii)** (Wedhorn p. 84). *Every rational cover generated
-by units `f_0,...,f_n` of `A` has a refinement by the Laurent cover
-generated by the ratios `{f_i f_j^{-1} ; 0 ≤ i, j ≤ n}`.*
-
-Composed: extract units (sub-lemma 1) + construct ratio Laurent cover
-(sub-lemma 2) + verify refinement (sub-lemma 3). -/
-theorem wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent [DecidableEq A]
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (C : RationalCovering A) (hC_unit : C.IsGeneratedByUnits) :
-    ∃ (V : RationalCovering A) (fs : List A),
-      V.IsLaurentProdCover fs ∧
-      V.base = C.base ∧
-      (∀ V' ∈ V.covers, ∃ D ∈ C.covers,
-        rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s) := by
-  -- Wedhorn p. 84: "Every rational cover 𝒰 of X which is generated by
-  -- units f_0,...,f_n of A has a refinement by a Laurent cover. Indeed,
-  -- the Laurent cover generated by {f_i f_j^{-1} ; 0 ≤ i,j ≤ n} is a
-  -- refinement of 𝒰."
-  -- Compose: extract unit generators, build ratio Laurent cover, verify
-  -- refinement.
-  obtain ⟨units, h_units_unit, _h_T_in_units⟩ :=
-    unitGenerators_of_unitGenCover C hC_unit.isUnitGenerated
-  -- Step (a): construct the ratio Laurent cover at C.base.
-  -- `unitGenerators_of_unitGenCover` returns IsUnit (C.base.canonicalMap f) for each f ∈ units,
-  -- matching `ratio_laurent_cover_of_units`'s updated hypothesis directly.
-  obtain ⟨V, fs, hV_laurent, hV_base⟩ :=
-    ratio_laurent_cover_of_units C.base units h_units_unit
-  -- Step (b): each V-piece refines into some C-piece (the σ-walk
-  -- direction). Uses ratio_laurent_refines_unit_gen.
-  refine ⟨V, fs, hV_laurent, hV_base, ?_⟩
-  intro V' hV'
-  exact ratio_laurent_refines_unit_gen C hC_unit V hV_base fs hV_laurent V' hV'
-
-/-- **Strengthened version** (T-WC-834-PART-III-COVERS-EACH, 2026-05-28):
-`wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent` with the
-covering-each-D direction added.
-
-For the Laurent ratio refinement V of an ideal-generating C, every point of
-every C-piece is covered by some V-piece that lies INSIDE that specific
-C-piece (via the σ-walk on ratios picking the dominant generator).
-
-Wedhorn-faithful: the σ-walk for v selects the t ∈ T with v(t) maximal,
-which is exactly the t for which v ∈ R(T/t) ∈ C. So V_σ(v) ⊆ R(T/t).
-
-Sub-ticket T-WC-834-PART-III-COVERS-EACH-BODY: substantive sub-lemma. -/
-theorem wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent_covers_each_D
-    [DecidableEq A]
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (C : RationalCovering A) (hC_unit : C.IsGeneratedByUnits) :
-    ∃ (V : RationalCovering A) (fs : List A),
-      V.IsLaurentProdCover fs ∧
-      V.base = C.base ∧
-      (∀ V' ∈ V.covers, ∃ D ∈ C.covers,
-        rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s) ∧
-      (∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
-        ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
-          rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s) := by
-  -- Compose: use the original part-iii lemma + cover-each companion.
-  obtain ⟨V, fs, hV_laurent, hV_base, hV_refines⟩ :=
-    wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent C hC_unit
-  refine ⟨V, fs, hV_laurent, hV_base, hV_refines, ?_⟩
-  -- Cover-each direction: companion lemma ratio_laurent_covers_each_unit_gen_piece.
-  exact ratio_laurent_covers_each_unit_gen_piece C hC_unit V hV_base fs hV_laurent
-
-/-! ##### Sub-lemmas for `wedhorn_lemma_834` (Prop A.3(1) composition) -/
-
-/-- **Part (iv) sub-lemma (a)**: for each Laurent piece `Vj ∈ V.covers`,
-the restricted cover `C|Vj` (= `C_restr`) is `O_X`-acyclic. Composes
-parts (iii) (refines by a Laurent cover) and (i) (Laurent acyclic). -/
-theorem wedhorn_lemma_834_C_restr_acyclic [DecidableEq A]
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (C_restr : RationalCovering A) (_h_C_restr_unit : C_restr.IsGeneratedByUnits)
-    (hplus_base : (A⁺ : Set A) ⊆ C_restr.base.P.A₀)
-    (hplus_pieces : ∀ D ∈ C_restr.covers, (A⁺ : Set A) ⊆ ↑D.P.A₀) :
-    C_restr.IsOXAcyclic := by
-  -- Part (iii) strengthened: C_restr refines to a Laurent cover with
-  -- covering-each-D direction (T-WC-834-PART-III-COVERS-EACH).
-  obtain ⟨W, gs, hW_laurent, hW_base, hW_refines, hW_covers_each_D⟩ :=
-    wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent_covers_each_D
-      C_restr _h_C_restr_unit
-  -- Part (i): W (Laurent) is acyclic.
-  have hW_acyclic : W.IsOXAcyclic :=
-    wedhorn_lemma_834_part_i_laurent_acyclic W gs hW_laurent
-      (by rw [hW_base]; exact hplus_base)
-  -- Apply the Prop A.3(2) bridge with the specialized E_at = W.restrictToPiece D form.
-  apply IsOXAcyclic_of_refining_acyclic_cover C_restr W hW_base hW_refines
-    hW_acyclic hW_covers_each_D
-  intro D
-  -- W.restrictToPiece D inherits Laurent structure from W via part (i) restriction corollary.
-  -- The restricted cover keeps W-pieces unchanged (filter), so it satisfies
-  -- the laurent_restriction_acyclic hypothesis with E = W.restrictToPiece D.
-  apply wedhorn_lemma_834_part_i_laurent_restriction_acyclic W gs hW_laurent D.1
-    (by rw [hW_base]; exact C_restr.hsubset D.1 D.2) (hplus_pieces D.1 D.2)
-  · rfl
-  · intro E' hE'
-    -- E' ∈ (W.restrictToPiece D.1 _).covers means E' ∈ W.covers (unchanged) refining D.1.
-    simp only [RationalCovering.restrictToPiece, Finset.mem_filter] at hE'
-    exact ⟨E', hE'.1, subset_rfl⟩
-
-/-- **Part (iv) sub-lemma (b)**: for each cover piece `U ∈ C.covers`,
-the restriction `V|U` is `O_X`-acyclic. This is part (i) corollary
-applied to the Laurent cover restricted to U. -/
-theorem wedhorn_lemma_834_V_restr_acyclic [DecidableEq A]
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (V : RationalCovering A) (fs : List A) (hV_laurent : V.IsLaurentProdCover fs)
-    (U : RationalLocData A)
-    (_hU_subset : rationalOpen U.T U.s ⊆ rationalOpen V.base.T V.base.s)
-    (hplus : (A⁺ : Set A) ⊆ U.P.A₀)
-    (V_restr : RationalCovering A) (h_V_restr_base : V_restr.base = U)
-    (h_V_restr_pieces : ∀ V' ∈ V_restr.covers, ∃ V'' ∈ V.covers,
-      rationalOpen V'.T V'.s ⊆ rationalOpen V''.T V''.s) :
-    V_restr.IsOXAcyclic :=
-  wedhorn_lemma_834_part_i_laurent_restriction_acyclic V fs hV_laurent U
-    _hU_subset hplus V_restr h_V_restr_base h_V_restr_pieces
 
 /-- **Part (iv) sub-lemma (c) sub-(sep)** — Wedhorn Prop A.3(1) separation
 transfer, p. 105 (wedhorn.txt:5315-5325), refinement-free form.
@@ -8951,236 +8674,6 @@ theorem RationalCovering.interProdOn_isGeneratedByUnits
   rw [map_mul]
   exact (hu₁ x hx).mul (hu₂ y hy)
 
-/-- **Part (iv) pair-instances of the Prop A.3(1) standing hypothesis**
-(Wedhorn Prop A.3, p. 105, wedhorn.txt:5316-5318: "`U | V_{j₀…j_q}` is
-`F`-acyclic for all `(j₀,…,j_q) ∈ J^{q+1}`" — the `q = 1` instances; Wedhorn
-p. 84 (wedhorn.txt:4244-4247) discharges them by the same part-(ii)
-construction: "let 𝒱 be a Laurent cover such that 𝒰|V is a rational cover
-generated by a finite set of units for all V in 𝒱 (which exists by (ii))" —
-on the intersection `Vj₁ ∩ Vj₂` the part-(ii) units of `𝒪_X(Vjᵢ)` restrict to
-units, so `𝒰|Vj₁∩Vj₂` is again generated by units, hence acyclic).
-
-For each pair of `V`-pieces: a rational datum `I` realising the intersection
-and an acyclic covering `W` of `I` whose pieces lie inside single pieces of
-the two single-index restrictions `C|Vj₁`, `C|Vj₂`.
-
-Implementation route: `I := Vj₁.interSamePair Vj₂` (Laurent leaves share the
-base pair: `laurentPlusDatum`/`laurentMinusDatum` both set `P := D₀.P`);
-`W := pairwise interSamePair product of (C_restr_at Vj₁) and (C_restr_at Vj₂)`
-(pieces `D'₁ ∩ D'₂` tautologically inside both factors, covering by the two
-covers-properties); `W.IsGeneratedByUnits` via the product unit set
-`units₁ * units₂` (`Ideal.span_mul_span`, units restrict to units along
-`restrictionMapHom_canonicalMap`); acyclicity via
-`wedhorn_lemma_834_C_restr_acyclic`. -/
-theorem wedhorn_lemma_834_pair_package_exists [DecidableEq A]
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (V : RationalCovering A) (_fs : List A)
-    (_hV_laurent : V.IsLaurentProdCover _fs)
-    (C_restr_at : ↥V.covers → RationalCovering A)
-    (hC_restr_base : ∀ Vj : ↥V.covers, (C_restr_at Vj).base = Vj.1)
-    (hC_restr_unit : ∀ Vj : ↥V.covers, (C_restr_at Vj).IsGeneratedByUnits)
-    (hC_restr_P : ∀ Vj : ↥V.covers, ∀ D' ∈ (C_restr_at Vj).covers,
-      D'.P = Vj.1.P)
-    (Vj₁ Vj₂ : ↥V.covers)
-    (hplus₁ : (A⁺ : Set A) ⊆ ↑Vj₁.1.P.A₀) :
-    ∃ (I : RationalLocData A) (W : RationalCovering A),
-      rationalOpen I.T I.s =
-        rationalOpen Vj₁.1.T Vj₁.1.s ∩ rationalOpen Vj₂.1.T Vj₂.1.s ∧
-      W.base = I ∧
-      W.IsOXAcyclic ∧
-      (∀ W' ∈ W.covers, ∃ D'₁ ∈ (C_restr_at Vj₁).covers,
-        rationalOpen W'.T W'.s ⊆ rationalOpen D'₁.T D'₁.s) ∧
-      (∀ W' ∈ W.covers, ∃ D'₂ ∈ (C_restr_at Vj₂).covers,
-        rationalOpen W'.T W'.s ⊆ rationalOpen D'₂.T D'₂.s) := by
-  classical
-  -- Laurent pieces share the base pair of definition.
-  have hVP₁ : Vj₁.1.P = V.base.P :=
-    laurentProdLeaves_pair _fs V.base
-      ((Finset.ext_iff.mp _hV_laurent Vj₁.1).mp Vj₁.2)
-  have hVP₂ : Vj₂.1.P = V.base.P :=
-    laurentProdLeaves_pair _fs V.base
-      ((Finset.ext_iff.mp _hV_laurent Vj₂.1).mp Vj₂.2)
-  have hP : Vj₂.1.P = Vj₁.1.P := hVP₂.trans hVP₁.symm
-  -- C_restr data at the two pieces.
-  obtain ⟨units₁, hgen₁, hunits₁⟩ := hC_restr_unit Vj₁
-  obtain ⟨units₂, hgen₂, hunits₂⟩ := hC_restr_unit Vj₂
-  have hbase₁ := hC_restr_base Vj₁
-  have hbase₂ := hC_restr_base Vj₂
-  -- The canonical intersection datum and its open.
-  have hI : rationalOpen (Vj₁.1.interSamePair Vj₂.1 hP).T
-      (Vj₁.1.interSamePair Vj₂.1 hP).s =
-      rationalOpen (C_restr_at Vj₁).base.T (C_restr_at Vj₁).base.s ∩
-        rationalOpen (C_restr_at Vj₂).base.T (C_restr_at Vj₂).base.s := by
-    rw [hbase₁, hbase₂]
-    exact RationalLocData.interSamePair_rationalOpen Vj₁.1 Vj₂.1 hP
-  have hI_sub₁ : rationalOpen (Vj₁.1.interSamePair Vj₂.1 hP).T
-      (Vj₁.1.interSamePair Vj₂.1 hP).s ⊆ rationalOpen Vj₁.1.T Vj₁.1.s :=
-    RationalLocData.interSamePair_subset_left Vj₁.1 Vj₂.1 hP
-  have hI_sub₂ : rationalOpen (Vj₁.1.interSamePair Vj₂.1 hP).T
-      (Vj₁.1.interSamePair Vj₂.1 hP).s ⊆ rationalOpen Vj₂.1.T Vj₂.1.s :=
-    RationalLocData.interSamePair_subset_right Vj₁.1 Vj₂.1 hP
-  refine ⟨Vj₁.1.interSamePair Vj₂.1 hP,
-    (C_restr_at Vj₁).interProdOn (C_restr_at Vj₂)
-      (Vj₁.1.interSamePair Vj₂.1 hP) hI
-      (fun D₁ hD₁ D₂ hD₂ =>
-        ((fun D₂' hD₂' => (hC_restr_P Vj₂ D₂' hD₂').trans hP) D₂ hD₂).trans
-          ((hC_restr_P Vj₁) D₁ hD₁).symm),
-    RationalLocData.interSamePair_rationalOpen Vj₁.1 Vj₂.1 hP, rfl, ?_, ?_, ?_⟩
-  · -- IsOXAcyclic via the unit-generated product cover.
-    refine wedhorn_lemma_834_C_restr_acyclic _ ?_ hplus₁ ?_
-    · refine RationalCovering.interProdOn_isGeneratedByUnits
-        (C_restr_at Vj₁) (C_restr_at Vj₂) (Vj₁.1.interSamePair Vj₂.1 hP) hI
-        Vj₁.1.P (hC_restr_P Vj₁)
-        (fun D₂' hD₂' => (hC_restr_P Vj₂ D₂' hD₂').trans hP)
-        units₁ units₂ hgen₁ hgen₂ ?_ ?_
-      · intro u hu
-        have h0 := hunits₁ u hu
-        rw [hbase₁] at h0
-        exact isUnit_canonicalMap_of_subset Vj₁.1 _ hI_sub₁ u h0
-      · intro u hu
-        have h0 := hunits₂ u hu
-        rw [hbase₂] at h0
-        exact isUnit_canonicalMap_of_subset Vj₂.1 _ hI_sub₂ u h0
-    · intro D' hD'
-      obtain ⟨D₁, hD₁, D₂, hD₂, hEeq⟩ :=
-        RationalCovering.exists_of_mem_interProdOn _ _ _ hI _ D' hD'
-      rw [hEeq]
-      show (A⁺ : Set A) ⊆ ↑D₁.P.A₀
-      rw [hC_restr_P Vj₁ D₁ hD₁]
-      exact hplus₁
-  · -- pieces lie inside single pieces of C|Vj₁.
-    intro W' hW'
-    obtain ⟨D₁, hD₁, D₂, hD₂, hEeq⟩ :=
-      RationalCovering.exists_of_mem_interProdOn _ _ _ hI _ W' hW'
-    refine ⟨D₁, hD₁, ?_⟩
-    rw [hEeq]
-    exact RationalLocData.interSamePair_subset_left D₁ D₂ _
-  · -- pieces lie inside single pieces of C|Vj₂.
-    intro W' hW'
-    obtain ⟨D₁, hD₁, D₂, hD₂, hEeq⟩ :=
-      RationalCovering.exists_of_mem_interProdOn _ _ _ hI _ W' hW'
-    refine ⟨D₂, hD₂, ?_⟩
-    rw [hEeq]
-    exact RationalLocData.interSamePair_subset_right D₁ D₂ _
-
-/-- **Wedhorn Lemma 8.34** (p. 84). *Let `A` be a complete strongly
-noetherian Tate ring and `𝒰` be a rational cover generated by some
-finite subset `T ⊆ A` with `T · A = A`. Then `𝒰` is `𝒪_X`-acyclic.*
-
-Composed from sub-lemmas (a) + (b) + (c) above; the Prop A.3(1) bridge
-takes only the bilateral restriction-acyclicity packages (no refinement
-hypothesis — faithful to wedhorn.txt:5315-5325). -/
-theorem wedhorn_lemma_834 [DecidableEq A]
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (C : RationalCovering A) (T : Finset A)
-    (_hC_gen : C.IsGeneratedBy T) :
-    C.IsOXAcyclic := by
-  -- Wedhorn p. 84 four-part composition (verbatim, part (iv)):
-  -- > "Now let 𝒰 be a rational cover generated by some finite subset T ⊆ A
-  -- > with T · A = A and let 𝒱 be a Laurent cover such that 𝒰|V is a
-  -- > rational cover generated by a finite set of units for all V in 𝒱
-  -- > (which exists by (ii)). Then we have just seen that 𝒰|V is
-  -- > 𝒪_X-acyclic. Moreover, by (i) 𝒱|U is 𝒪_X-acyclic for every U in 𝒰.
-  -- > Thus the 𝒪_X-acyclicity of 𝒱 implies the 𝒪_X-acyclicity of 𝒰 by
-  -- > Proposition A.3 (1)."
-  obtain ⟨V, fs, s, hV_laurent, hV_base, hs, hfs_eq, hV_unit_restrictions⟩ :=
-    wedhorn_lemma_834_part_ii_unit_gen_via_dominating C T _hC_gen
-  -- 𝒱 is itself acyclic (Laurent cover) — part (i):
-  have _hV_acyclic : V.IsOXAcyclic :=
-    wedhorn_lemma_834_part_i_laurent_acyclic V fs hV_laurent
-      (CompatiblePlusSubring.aplus_le_A₀ V.base)
-  -- NOTE (2026-06-10): no "V refines C" fact is needed — Prop A.3(1)
-  -- (wedhorn.txt:5318-5320) has no refinement hypothesis; the bilateral
-  -- restriction-acyclicity packages below are its exact data.
-  -- C_restr_at family: comes from `hV_unit_restrictions`.
-  choose C_at_Vj hC_at_base hC_at_unit hC_at_P hC_at_pieces hC_at_cover using
-    fun Vj (hVj : Vj ∈ V.covers) => hV_unit_restrictions Vj hVj
-  -- V_restr_at family: V restricted to each U ∈ C.covers via restrictToPiece.
-  -- Uses the cover-each-U direction from laurent_cover_covers_each_idealgen_piece,
-  -- now also threaded with `s`, `hs`, `hfs_eq`.
-  have h_V_covers_each_U : ∀ U ∈ C.covers, ∀ v ∈ rationalOpen U.T U.s,
-      ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
-        rationalOpen V'.T V'.s ⊆ rationalOpen U.T U.s :=
-    laurent_cover_covers_each_idealgen_piece C T _hC_gen V fs hV_laurent hV_base
-      s hs hfs_eq
-  let V_restr_at : ↥C.covers → RationalCovering A := fun U =>
-    V.restrictToPiece U.1 (h_V_covers_each_U U.1 U.2)
-  have hV_restr_base : ∀ U : ↥C.covers, (V_restr_at U).base = U.1 := fun _ => rfl
-  have hV_restr_pieces : ∀ U : ↥C.covers, ∀ V' ∈ (V_restr_at U).covers,
-      ∃ V'' ∈ V.covers, rationalOpen V'.T V'.s ⊆ rationalOpen V''.T V''.s := by
-    intro U V' hV'
-    simp only [V_restr_at, RationalCovering.restrictToPiece, Finset.mem_filter] at hV'
-    exact ⟨V', hV'.1, subset_rfl⟩
-  -- Each V_restr_at U is a Laurent sub-cover of U; acyclic via part (i).
-  have hV_restr_acyclic : ∀ U : ↥C.covers, (V_restr_at U).IsOXAcyclic := by
-    intro U
-    apply wedhorn_lemma_834_part_i_laurent_restriction_acyclic V fs hV_laurent U.1
-    · rw [hV_base]; exact C.hsubset U.1 U.2
-    · exact CompatiblePlusSubring.aplus_le_A₀ U.1
-    · exact hV_restr_base U
-    · exact hV_restr_pieces U
-  have hV_restr_covers : ∀ U : ↥C.covers, ∀ v ∈ rationalOpen U.1.T U.1.s,
-      ∃ V' ∈ (V_restr_at U).covers, v ∈ rationalOpen V'.T V'.s ∧
-        rationalOpen V'.T V'.s ⊆ rationalOpen U.1.T U.1.s := by
-    intro U v hv
-    obtain ⟨V', hV'_in, hv_in_V', hV'_sub⟩ := h_V_covers_each_U U.1 U.2 v hv
-    refine ⟨V', ?_, hv_in_V', hV'_sub⟩
-    simp only [V_restr_at, RationalCovering.restrictToPiece, Finset.mem_filter]
-    refine ⟨hV'_in, ?_⟩
-    classical
-    simp
-    exact hV'_sub
-  -- Uncurry C_at_Vj : ↥V.covers → RationalCovering A.
-  let C_restr_at : ↥V.covers → RationalCovering A := fun Vj => C_at_Vj Vj.1 Vj.2
-  have hC_restr_base' : ∀ Vj : ↥V.covers, (C_restr_at Vj).base = Vj.1 :=
-    fun Vj => hC_at_base Vj.1 Vj.2
-  have hC_restr_pieces' : ∀ Vj : ↥V.covers, ∀ D' ∈ (C_restr_at Vj).covers,
-      ∃ D ∈ C.covers, rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s :=
-    fun Vj => hC_at_pieces Vj.1 Vj.2
-  -- V_restr_at U = V.restrictToPiece, so its pieces are in V.covers (filter).
-  have hV_restr_pieces_in_V : ∀ U : ↥C.covers, ∀ V' ∈ (V_restr_at U).covers,
-      V' ∈ V.covers := by
-    intro U V' hV'_in
-    simp only [V_restr_at, RationalCovering.restrictToPiece, Finset.mem_filter] at hV'_in
-    exact hV'_in.1
-  -- Pair-level package: q=1 instances of the A.3(1) standing hypothesis,
-  -- discharged by the part-(ii) construction on intersections.
-  have h_pair := fun (Vj₁ Vj₂ : ↥V.covers) =>
-    wedhorn_lemma_834_pair_package_exists V fs hV_laurent
-      C_restr_at hC_restr_base' (fun Vj => hC_at_unit Vj.1 Vj.2)
-      (fun Vj => hC_at_P Vj.1 Vj.2) Vj₁ Vj₂
-      (CompatiblePlusSubring.aplus_le_A₀ Vj₁.1)
-  choose I_at W_at hI_open hW_base hW_acyclic hW_pieces₁ hW_pieces₂ using h_pair
-  -- Now apply propA3_part1_bridge.
-  refine wedhorn_lemma_834_propA3_part1_bridge C V hV_base _hV_acyclic
-    V_restr_at hV_restr_base hV_restr_pieces hV_restr_pieces_in_V hV_restr_acyclic
-    C_restr_at hC_restr_base' hC_restr_pieces' ?_ hV_restr_covers ?_
-    I_at hI_open W_at hW_base hW_pieces₁ hW_pieces₂ hW_acyclic
-  · -- C_restr_at acyclic — use wedhorn_lemma_834_C_restr_acyclic on each.
-    intro Vj
-    refine wedhorn_lemma_834_C_restr_acyclic (C_restr_at Vj) (hC_at_unit Vj.1 Vj.2)
-      ?_ ?_
-    · rw [hC_restr_base' Vj]
-      exact CompatiblePlusSubring.aplus_le_A₀ Vj.1
-    · intro D hD
-      rw [hC_at_P Vj.1 Vj.2 D hD]
-      exact CompatiblePlusSubring.aplus_le_A₀ Vj.1
-  · -- C_restr_at covers each Vj.
-    intro Vj v hv
-    obtain ⟨D', hD'_in, hv_in⟩ := hC_at_cover Vj.1 Vj.2 v hv
-    refine ⟨D', hD'_in, hv_in, ?_⟩
-    -- D' ⊆ Vj from C_restr_at(Vj).hsubset (since C_restr_at(Vj).base = Vj).
-    have h_sub : rationalOpen D'.T D'.s ⊆
-        rationalOpen (C_restr_at Vj).base.T (C_restr_at Vj).base.s :=
-      (C_restr_at Vj).hsubset D' hD'_in
-    rw [hC_restr_base' Vj] at h_sub
-    exact h_sub
 
 /-! ### Sub-lemmas for `every_rational_cover_is_OXAcyclic`
 
@@ -9306,40 +8799,6 @@ theorem prod_mem_distinguishedProducts [DecidableEq A]
       exact Finset.mul_mem_mul (hmem hd List.mem_cons_self)
         (ih (fun p hp => hmem p (List.mem_cons_of_mem _ hp)) ⟨e, he', hee⟩)
 
-/-- A `vle`-maximal element of a nonempty `Finset` (the value group is totally
-preordered via `vle_total`). -/
-theorem exists_vle_max_mem (v : Spv A) {S : Finset A} (hS : S.Nonempty) :
-    ∃ m ∈ S, ∀ y ∈ S, v.vle y m := by
-  induction hS using Finset.Nonempty.cons_induction with
-  | singleton x =>
-    exact ⟨x, Finset.mem_singleton_self x, fun y hy => by
-      rw [Finset.mem_singleton] at hy; subst hy; exact (v.vle_total y y).elim id id⟩
-  | cons a s _ha _hsne ih =>
-    obtain ⟨m, hm, hmax⟩ := ih
-    rcases v.vle_total m a with h | h
-    · exact ⟨a, Finset.mem_cons_self a s, fun y hy => (Finset.mem_cons.mp hy).elim
-        (fun e => e ▸ (v.vle_total y y).elim id id) (fun hy' => v.vle_trans (hmax y hy') h)⟩
-    · exact ⟨m, Finset.mem_cons.mpr (Or.inr hm), fun y hy => (Finset.mem_cons.mp hy).elim
-        (fun e => e ▸ h) (fun hy' => hmax y hy')⟩
-
-/-- **Per-component cover (the covering half of Cor 7.53):** if `T` spans the unit
-ideal then for every `v ∈ Spa A A⁺` there is `t ∈ T` with `v ∈ R(T/t)` — take the
-`vle`-maximal `t`. (Forward direction only — elementary, no pair/Nullstellensatz
-needed: `span T = ⊤` and the support being proper give a non-vanishing generator.) -/
-theorem exists_mem_rationalOpen_of_spanTop [DecidableEq A] (T : Finset A)
-    (hspan : Ideal.span (T : Set A) = ⊤) {v : Spv A} (hv : v ∈ Spa A A⁺) :
-    ∃ t ∈ T, v ∈ rationalOpen T t := by
-  have hnz : ∃ t ∈ T, ¬ v.vle t 0 := by
-    by_contra h
-    push_neg at h
-    have hle : Ideal.span (T : Set A) ≤ v.supp :=
-      Ideal.span_le.mpr fun t ht => (v.mem_supp_iff t).mpr (h t ht)
-    rw [hspan] at hle
-    exact (instIsPrimeSupp v).ne_top (top_le_iff.mp hle)
-  obtain ⟨t₀, ht₀, ht₀0⟩ := hnz
-  obtain ⟨tm, htm, hmax⟩ := exists_vle_max_mem v ⟨t₀, ht₀⟩
-  exact ⟨tm, htm, hv, fun t ht => hmax t ht,
-    fun h0 => ht₀0 (v.vle_trans (hmax t₀ ht₀) h0)⟩
 
 /-- **The transversal-product cover covers `Spa`** (every normalised family covers):
 for `v ∈ Spa A A⁺`, if every `Tᵢ` contains `1` (so spans `⊤`), there is a transversal
@@ -9490,106 +8949,6 @@ theorem distinguishedProducts_refines [DecidableEq A] (LP : List (Finset A × A)
         (rationalOpen_mul_subset_denomFactor hd.1
           (transversalProducts (tl.map Prod.fst)) t g ht).trans hsub⟩
 
-/-- **Absorption (Wedhorn §8.1-style)**: a high power of the ideal of definition
-multiplies any finitely many fixed ring elements into `A₀` (continuity of
-multiplication + openness of `A₀` + the `I`-adic neighborhood basis). -/
-theorem pod_absorb_finset_mul_pow (P : PairOfDefinition A) (S : Finset A) :
-    ∃ N : ℕ, ∀ a ∈ S, ∀ b : P.A₀, b ∈ P.I ^ N → (↑b : A) * a ∈ P.A₀ := by
-  classical
-  have hone : ∀ a : A, ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N → (↑b : A) * a ∈ P.A₀ := by
-    intro a
-    have hcont : Continuous (fun x : P.A₀ => (↑x : A) * a) :=
-      continuous_subtype_val.mul continuous_const
-    have h0 : (fun x : P.A₀ => (↑x : A) * a) 0 ∈ (P.A₀ : Set A) := by
-      simp only [ZeroMemClass.coe_zero, zero_mul]
-      exact P.A₀.zero_mem
-    have hpre : (fun x : P.A₀ => (↑x : A) * a) ⁻¹' (P.A₀ : Set A) ∈
-        nhds (0 : P.A₀) :=
-      hcont.continuousAt.preimage_mem_nhds (P.isOpen.mem_nhds h0)
-    obtain ⟨n, -, hn⟩ := P.isAdic.hasBasis_nhds_zero.mem_iff.mp hpre
-    exact ⟨n, fun b hb => hn hb⟩
-  choose Nf hNf using hone
-  refine ⟨S.sup Nf, fun a ha b hb => hNf a b ?_⟩
-  exact Ideal.pow_le_pow_right (Finset.le_sup ha) hb
-
-/-- **General gen-set piece openness**: for `T` spanning the unit ideal and `t ∈ T`,
-the piece `R(T/t)` satisfies the `hopen`-condition — high `I`-powers divide by `t`
-into the ring of definition, via the span-combination `1 = Σ c_{t'}·t'` and
-absorption of the coefficients (Wedhorn p. 83, the `U_t := R(T/t)` cover form). -/
-theorem genPiece_hopen (P : PairOfDefinition A) (T : Finset A) (t : A)
-    (hspan : Ideal.span (T : Set A) = ⊤) :
-    ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
-      divByS (↑b : A) t ∈ locSubring P T t := by
-  classical
-  have h1 : (1 : A) ∈ Ideal.span (T : Set A) := hspan ▸ Submodule.mem_top
-  obtain ⟨c, _hc_supp, hc⟩ := Submodule.mem_span_finset.mp h1
-  obtain ⟨N, hN⟩ := pod_absorb_finset_mul_pow P (T.image c)
-  refine ⟨N, fun b hb => ?_⟩
-  -- `divByS b t = Σ_{t' ∈ T} aM (b·c t') · divByS t' t` (cancel the away-unit `aM t`)
-  have hkey : divByS (↑b : A) t = ∑ t' ∈ T,
-      algebraMap A (Localization.Away t) ((↑b : A) * c t') * divByS t' t := by
-    refine (IsLocalization.Away.algebraMap_isUnit
-      (S := Localization.Away t) t).mul_left_cancel ?_
-    have hL : algebraMap A (Localization.Away t) t * divByS (↑b : A) t =
-        algebraMap A (Localization.Away t) (↑b : A) := by
-      unfold divByS
-      exact IsLocalization.mk'_spec' (M := Submonoid.powers t)
-        (Localization.Away t) (↑b : A) ⟨t, 1, pow_one t⟩
-    rw [hL, Finset.mul_sum]
-    have hterm : ∀ t' ∈ T, algebraMap A (Localization.Away t) t *
-        (algebraMap A (Localization.Away t) ((↑b : A) * c t') * divByS t' t) =
-        algebraMap A (Localization.Away t) ((↑b : A) * c t' * t') := by
-      intro t' _
-      have h2 : algebraMap A (Localization.Away t) t * divByS t' t =
-          algebraMap A (Localization.Away t) t' := by
-        unfold divByS
-        exact IsLocalization.mk'_spec' (M := Submonoid.powers t)
-          (Localization.Away t) t' ⟨t, 1, pow_one t⟩
-      rw [show algebraMap A (Localization.Away t) t *
-          (algebraMap A (Localization.Away t) ((↑b : A) * c t') * divByS t' t) =
-        algebraMap A (Localization.Away t) ((↑b : A) * c t') *
-          (algebraMap A (Localization.Away t) t * divByS t' t) from by ring]
-      rw [h2, ← map_mul]
-    rw [Finset.sum_congr rfl hterm, ← map_sum]
-    congr 1
-    calc (↑b : A) = (↑b : A) * 1 := (mul_one _).symm
-      _ = (↑b : A) * ∑ t' ∈ T, c t' * t' := by
-          rw [show ∑ t' ∈ T, c t' * t' = (1 : A) from by
-            simpa only [smul_eq_mul] using hc]
-      _ = ∑ t' ∈ T, (↑b : A) * c t' * t' := by rw [Finset.mul_sum]; ring_nf
-  rw [hkey]
-  refine Subring.sum_mem _ (fun t' ht' => Subring.mul_mem _ ?_ ?_)
-  · exact algebraMap_mem_locSubring P T t
-      (hN (c t') (Finset.mem_image_of_mem c ht') b hb)
-  · exact divByS_mem_locSubring P T t ht'
-
-set_option linter.unusedSectionVars false in
-/-- The span of the image of an ideal-generating set is the unit ideal. -/
-theorem span_image_canonicalMap_eq_top
-    [IsTateRing A] [IsNoetherianRing A]
-    (D₀ : RationalLocData A) (T : Finset A)
-    (hspan : Ideal.span (T : Set A) = ⊤) :
-    Ideal.span (D₀.canonicalMap '' (T : Set A)) = ⊤ := by
-  rw [← Ideal.map_span D₀.canonicalMap, hspan]
-  exact Ideal.map_top _
-
-/-- **The A-side gen-set piece** `R(T/t)` (Wedhorn p. 83's `U_t := R(T/t)` cover form),
-with the `hopen`-condition supplied by `genPiece_hopen` (span + absorption). -/
-noncomputable def genPieceDatum (P : PairOfDefinition A) (T : Finset A) (t : A)
-    (hspan : Ideal.span (T : Set A) = ⊤) : RationalLocData A :=
-  { P := P
-    T := T
-    s := t
-    hopen := genPiece_hopen P T t hspan }
-
-@[simp] theorem genPieceDatum_P (P : PairOfDefinition A) (T : Finset A) (t : A)
-    (hspan : Ideal.span (T : Set A) = ⊤) : (genPieceDatum P T t hspan).P = P := rfl
-
-@[simp] theorem genPieceDatum_T (P : PairOfDefinition A) (T : Finset A) (t : A)
-    (hspan : Ideal.span (T : Set A) = ⊤) : (genPieceDatum P T t hspan).T = T := rfl
-
-@[simp] theorem genPieceDatum_s (P : PairOfDefinition A) (T : Finset A) (t : A)
-    (hspan : Ideal.span (T : Set A) = ⊤) : (genPieceDatum P T t hspan).s = t := rfl
 
 /-- **The B-side image piece** `R(canMap T / canMap t)` over `B = presheafValue D₀`
 (Wedhorn Remark 8.4 / Prop 8.2(1) vocabulary: the rational subset of `Spa 𝒪_X(D₀)`
@@ -10553,27 +9912,6 @@ theorem globalSections_equiv_apply
     (P : PairOfDefinition A) (a : A) :
     globalSections_equiv P a = (globalLocData P).canonicalMap a := rfl
 
-/-- **The A-level restricted gen-cover (G3c-0)**: base `D₀`, pieces `D₀ ∩ R(T/t)`
-(the A-side of Wedhorn 8.34's `U|D₀`). -/
-noncomputable def genRestrictedCover
-    [IsTateRing A] [IsNoetherianRing A] [DecidableEq A]
-    (D₀ : RationalLocData A) (T : Finset A)
-    (hspan : Ideal.span (T : Set A) = ⊤) :
-    RationalCovering A :=
-  { base := D₀
-    covers := T.image (fun t => D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl)
-    hsubset := by
-      intro D hD
-      rw [Finset.mem_image] at hD
-      obtain ⟨t, ht, rfl⟩ := hD
-      exact RationalLocData.interSamePair_subset_left _ _ _
-    hcover := by
-      intro v hv
-      obtain ⟨t, ht, hv'⟩ := exists_mem_rationalOpen_of_spanTop T hspan hv.1
-      refine ⟨D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl,
-        Finset.mem_image_of_mem _ ht, ?_⟩
-      rw [RationalLocData.interSamePair_rationalOpen]
-      exact ⟨hv, hv'⟩ }
 
 set_option linter.unusedSectionVars false in
 /-- The B-side image piece equals the `genPieceDatum`-at-`B` piece (the `hopen`-proofs
@@ -12444,6 +11782,231 @@ theorem genRestrictedCover_isOXAcyclic_of_B
     obtain ⟨t, ht, rfl⟩ := hD'
     exact hx t ht
 
+/-- **Wedhorn 8.34(iii) (faithful; wedhorn.txt:4246-4249)**: *"Every rational cover `U`
+of `X` which is generated by units `f₀,…,fₙ` of `A` has a refinement by a Laurent
+cover. Indeed, the Laurent cover generated by `{fᵢfⱼ⁻¹}` is a refinement of `U`."*
+The σ-walk: each Laurent piece fixes the sign of every ratio `fᵢfⱼ⁻¹`, totally
+preordering the units piece-wide; the piece-wide `vle`-maximal unit `f*` gives
+`piece ⊆ R(units/f*)`, a `U`-piece. Stated with RING units (the 2026-05-28
+`canonicalMap`-unit trio is B2-logged: the ratio list needs ring inverses). -/
+theorem ratio_laurent_refines_unitGen_cover [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C : RationalCovering A) (units : Finset A) (hne : units.Nonempty)
+    (hC_gen : C.IsGeneratedBy units) (h_units : ∀ f ∈ units, IsUnit f) :
+    ∃ (fs : List A) (V : RationalCovering A),
+      V.IsLaurentProdCover fs ∧ V.base = C.base ∧
+      ∀ V' ∈ V.covers, ∃ D ∈ C.covers,
+        rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s := by
+  classical
+  set ratios : List A := (units.attach.toList.product units.attach.toList).map
+    (fun p => (p.1 : A) * ↑((h_units p.2 p.2.2).unit⁻¹)) with hratios
+  refine ⟨ratios, laurentProdCoverOf C.base ratios,
+    laurentProdCoverOf_isLaurentProd _ _, rfl, ?_⟩
+  intro V' hV'
+  have hV'' : V' ∈ laurentProdLeaves C.base ratios := hV'
+  -- the piece-wide comparison from the ratio-sign dichotomy
+  have hcmp : ∀ f ∈ units, ∀ g ∈ units,
+      (∀ v ∈ rationalOpen V'.T V'.s, v.vle f g) ∨
+      (∀ v ∈ rationalOpen V'.T V'.s, v.vle g f) := by
+    intro f hf g hg
+    have hmem : (f * ↑((h_units g hg).unit⁻¹) : A) ∈ ratios := by
+      rw [hratios]
+      exact List.mem_map.mpr ⟨(⟨f, hf⟩, ⟨g, hg⟩),
+        List.mem_product.mpr ⟨Finset.mem_toList.mpr (Finset.mem_attach _ _),
+          Finset.mem_toList.mpr (Finset.mem_attach _ _)⟩, rfl⟩
+    have hspec : (↑(h_units g hg).unit : A) = g := (h_units g hg).unit_spec
+    have hinv : ((↑(h_units g hg).unit⁻¹ : A) * g) = 1 := by
+      rw [show ((↑(h_units g hg).unit⁻¹ : A) * g) =
+        ((↑(h_units g hg).unit⁻¹ : A) * ↑(h_units g hg).unit) from by rw [hspec]]
+      exact (h_units g hg).unit.inv_mul
+    rcases laurentProdLeaves_sign_dichotomy ratios C.base hV''
+      (f * ↑((h_units g hg).unit⁻¹)) hmem with h | h
+    · left
+      intro v hv
+      have h2 := v.mul_vle_mul_left (h v hv) g
+      rwa [one_mul, mul_assoc, hinv, mul_one] at h2
+    · right
+      intro v hv
+      have h2 := v.mul_vle_mul_left (h v hv) g
+      rwa [one_mul, mul_assoc, hinv, mul_one] at h2
+  -- the piece-wide maximal unit (induction over subsets of `units`)
+  have hmax : ∀ (S : Finset A), S.Nonempty → S ⊆ units →
+      ∃ m ∈ S, ∀ g ∈ S, ∀ v ∈ rationalOpen V'.T V'.s, v.vle g m := by
+    intro S hS
+    induction hS using Finset.Nonempty.cons_induction with
+    | singleton x =>
+      intro _
+      exact ⟨x, Finset.mem_singleton_self x, fun g hg v hv => by
+        rw [Finset.mem_singleton] at hg; subst hg
+        exact (v.vle_total g g).elim id id⟩
+    | cons a s ha hsne ih =>
+      intro hsub
+      obtain ⟨m, hm, hmmax⟩ := ih (fun x hx => hsub (Finset.mem_cons_of_mem hx))
+      rcases hcmp m (hsub (Finset.mem_cons_of_mem hm)) a
+          (hsub (Finset.mem_cons_self a s)) with h | h
+      · exact ⟨a, Finset.mem_cons_self a s, fun g hg v hv =>
+          (Finset.mem_cons.mp hg).elim
+            (fun e => e ▸ (v.vle_total g g).elim id id)
+            (fun hg' => v.vle_trans (hmmax g hg' v hv) (h v hv))⟩
+      · exact ⟨m, Finset.mem_cons.mpr (Or.inr hm), fun g hg v hv =>
+          (Finset.mem_cons.mp hg).elim
+            (fun e => e ▸ h v hv)
+            (fun hg' => hmmax g hg' v hv)⟩
+  obtain ⟨m, hm, hmmax⟩ := hmax units hne (Finset.Subset.refl units)
+  -- the `m`-piece of `C`
+  obtain ⟨-, φ, hφ_bij, hφ_eq⟩ := hC_gen
+  refine ⟨(φ ⟨m, hm⟩).1, (φ ⟨m, hm⟩).2, ?_⟩
+  intro v hv
+  rw [(hφ_eq ⟨m, hm⟩).1, (hφ_eq ⟨m, hm⟩).2]
+  exact ⟨hv.1, fun g hg => hmmax g hg v hv,
+    not_vle_zero_of_isUnit (h_units m hm) v⟩
+
+/-- **Wedhorn 8.34(iii), bundled faithful form (wedhorn.txt:4246-4249)**: for a
+rational cover generated by RING units, the `{fᵢfⱼ⁻¹}`-ratio Laurent cover both
+refines it AND covers each piece from inside (the sign-selecting σ-walk keeps
+the piece's own denominator dominant: for `v ∈ R(units/u)`,
+`laurentProdLeaves_cover_sign_select` with the `u`-ratios marked picks a leaf
+on which `w(g) ≤ w(u)` holds piece-wide). This is the bilateral form consumed
+by the Prop A.3(2) bridge (`IsOXAcyclic_of_refining_acyclic_cover`) — applied
+at `B := 𝒪_X(Vj)`, where the part-(ii) generators ARE ring units. -/
+theorem ratio_laurent_unitGen_bundle [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C : RationalCovering A) (units : Finset A) (hne : units.Nonempty)
+    (hC_gen : C.IsGeneratedBy units) (h_units : ∀ f ∈ units, IsUnit f) :
+    ∃ (fs : List A) (V : RationalCovering A),
+      V.IsLaurentProdCover fs ∧ V.base = C.base ∧
+      (∀ V' ∈ V.covers, ∃ D ∈ C.covers,
+        rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s) ∧
+      (∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+        ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
+          rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s) := by
+  classical
+  obtain ⟨fs, V, hV_laurent, hV_base, h_refines⟩ :=
+    ratio_laurent_refines_unitGen_cover C units hne hC_gen h_units
+  -- The refines-lemma's V is definitionally `laurentProdCoverOf C.base ratios`
+  -- for the explicit ratio list; re-derive the cover-each direction for the
+  -- SAME V from the construction data. Since the ∃ hides the list, we instead
+  -- rebuild: take the explicit ratio cover and prove both directions for it.
+  clear h_refines hV_laurent hV_base V fs
+  set ratios : List A := (units.attach.toList.product units.attach.toList).map
+    (fun p => (p.1 : A) * ↑((h_units p.2 p.2.2).unit⁻¹)) with hratios
+  refine ⟨ratios, laurentProdCoverOf C.base ratios,
+    laurentProdCoverOf_isLaurentProd _ _, rfl, ?_, ?_⟩
+  · -- refines: delegate to the proven σ-walk lemma's argument by re-running it
+    -- on the explicit cover (the proven lemma's witness IS this cover, but the
+    -- ∃ hides the identification; the dichotomy+max argument re-applies).
+    intro V' hV'
+    have hV'' : V' ∈ laurentProdLeaves C.base ratios := hV'
+    have hcmp : ∀ f ∈ units, ∀ g ∈ units,
+        (∀ v ∈ rationalOpen V'.T V'.s, v.vle f g) ∨
+        (∀ v ∈ rationalOpen V'.T V'.s, v.vle g f) := by
+      intro f hf g hg
+      have hmem : (f * ↑((h_units g hg).unit⁻¹) : A) ∈ ratios := by
+        rw [hratios]
+        exact List.mem_map.mpr ⟨(⟨f, hf⟩, ⟨g, hg⟩),
+          List.mem_product.mpr ⟨Finset.mem_toList.mpr (Finset.mem_attach _ _),
+            Finset.mem_toList.mpr (Finset.mem_attach _ _)⟩, rfl⟩
+      have hspec : (↑(h_units g hg).unit : A) = g := (h_units g hg).unit_spec
+      have hinv : ((↑(h_units g hg).unit⁻¹ : A) * g) = 1 := by
+        rw [show ((↑(h_units g hg).unit⁻¹ : A) * g) =
+          ((↑(h_units g hg).unit⁻¹ : A) * ↑(h_units g hg).unit) from by
+            rw [hspec]]
+        exact (h_units g hg).unit.inv_mul
+      rcases laurentProdLeaves_sign_dichotomy ratios C.base hV''
+        (f * ↑((h_units g hg).unit⁻¹)) hmem with h | h
+      · left
+        intro v hv
+        have h2 := v.mul_vle_mul_left (h v hv) g
+        rwa [one_mul, mul_assoc, hinv, mul_one] at h2
+      · right
+        intro v hv
+        have h2 := v.mul_vle_mul_left (h v hv) g
+        rwa [one_mul, mul_assoc, hinv, mul_one] at h2
+    have hmax : ∀ (S : Finset A), S.Nonempty → S ⊆ units →
+        ∃ m ∈ S, ∀ g ∈ S, ∀ v ∈ rationalOpen V'.T V'.s, v.vle g m := by
+      intro S hS
+      induction hS using Finset.Nonempty.cons_induction with
+      | singleton x =>
+        intro _
+        exact ⟨x, Finset.mem_singleton_self x, fun g hg v hv => by
+          rw [Finset.mem_singleton] at hg; subst hg
+          exact (v.vle_total g g).elim id id⟩
+      | cons a s ha hsne ih =>
+        intro hsub
+        obtain ⟨m, hm, hmmax⟩ := ih (fun x hx => hsub (Finset.mem_cons_of_mem hx))
+        rcases hcmp m (hsub (Finset.mem_cons_of_mem hm)) a
+            (hsub (Finset.mem_cons_self a s)) with h | h
+        · exact ⟨a, Finset.mem_cons_self a s, fun g hg v hv =>
+            (Finset.mem_cons.mp hg).elim
+              (fun e => e ▸ (v.vle_total g g).elim id id)
+              (fun hg' => v.vle_trans (hmmax g hg' v hv) (h v hv))⟩
+        · exact ⟨m, Finset.mem_cons.mpr (Or.inr hm), fun g hg v hv =>
+            (Finset.mem_cons.mp hg).elim
+              (fun e => e ▸ h v hv)
+              (fun hg' => hmmax g hg' v hv)⟩
+    obtain ⟨m, hm, hmmax⟩ := hmax units hne (Finset.Subset.refl units)
+    obtain ⟨-, φ, hφ_bij, hφ_eq⟩ := hC_gen
+    refine ⟨(φ ⟨m, hm⟩).1, (φ ⟨m, hm⟩).2, ?_⟩
+    intro v hv
+    rw [(hφ_eq ⟨m, hm⟩).1, (hφ_eq ⟨m, hm⟩).2]
+    exact ⟨hv.1, fun g hg => hmmax g hg v hv,
+      not_vle_zero_of_isUnit (h_units m hm) v⟩
+  · -- cover-each: sign-selecting σ-walk keeping the piece's denominator
+    -- dominant.
+    intro D hD v hv
+    obtain ⟨-, φ, hφ_bij, hφ_eq⟩ := hC_gen
+    obtain ⟨t, ht⟩ := hφ_bij.2 ⟨D, hD⟩
+    have hval : (φ t).1 = D := congrArg Subtype.val ht
+    have hT : D.T = units := hval ▸ (hφ_eq t).1
+    have hs : D.s = ↑t := hval ▸ (hφ_eq t).2
+    have hu : (↑t : A) ∈ units := t.2
+    have hspec : (↑(h_units ↑t hu).unit : A) = ↑t := (h_units ↑t hu).unit_spec
+    have hinv_l : ((↑(h_units ↑t hu).unit⁻¹ : A) * ↑t) = 1 := by
+      rw [show ((↑(h_units ↑t hu).unit⁻¹ : A) * ↑t) =
+        ((↑(h_units ↑t hu).unit⁻¹ : A) * ↑(h_units ↑t hu).unit) from by
+          rw [hspec]]
+      exact (h_units ↑t hu).unit.inv_mul
+    have hinv_r : ((↑t : A) * ↑((h_units ↑t hu).unit⁻¹)) = 1 := by
+      rw [show ((↑t : A) * ↑((h_units ↑t hu).unit⁻¹)) =
+        ((↑(h_units ↑t hu).unit : A) * ↑((h_units ↑t hu).unit⁻¹)) from by
+          rw [hspec]]
+      exact (h_units ↑t hu).unit.mul_inv
+    -- v's bounds on D give the preferred signs for the t-ratios.
+    have hv_base : v ∈ rationalOpen C.base.T C.base.s := C.hsubset D hD hv
+    have hvg : ∀ g ∈ units, v.vle g ↑t := by
+      intro g hg
+      have h0 := hv.2.1 g (by rw [hT]; exact hg)
+      rwa [hs] at h0
+    -- the preferred-sign condition at v
+    have hPv : ∀ f ∈ ratios,
+        (∃ g ∈ units, f = g * ↑((h_units ↑t hu).unit⁻¹)) → v.vle f 1 := by
+      rintro f hf ⟨g, hg, rfl⟩
+      have h2 := v.mul_vle_mul_left (hvg g hg) (↑((h_units ↑t hu).unit⁻¹) : A)
+      rwa [hinv_r] at h2
+    obtain ⟨V', hV'_leaf, hvV', hbound⟩ :=
+      laurentProdLeaves_cover_sign_select ratios
+        (fun r => ∃ g ∈ units, r = g * ↑((h_units ↑t hu).unit⁻¹))
+        C.base hv_base hPv
+    refine ⟨V', hV'_leaf, hvV', ?_⟩
+    intro w hw
+    rw [hT, hs]
+    refine ⟨hw.1, ?_, not_vle_zero_of_isUnit (h_units ↑t hu) w⟩
+    intro g hg
+    have hmem : (g * ↑((h_units ↑t hu).unit⁻¹) : A) ∈ ratios := by
+      rw [hratios]
+      exact List.mem_map.mpr ⟨(⟨g, hg⟩, ⟨↑t, hu⟩),
+        List.mem_product.mpr ⟨Finset.mem_toList.mpr (Finset.mem_attach _ _),
+          Finset.mem_toList.mpr (Finset.mem_attach _ _)⟩, rfl⟩
+    have h1 := hbound w hw _ hmem ⟨g, hg, rfl⟩
+    have h2 := w.mul_vle_mul_left h1 (↑t : A)
+    rwa [one_mul, mul_assoc, hinv_l, mul_one] at h2
+
 set_option linter.unusedSectionVars false in
 /-- **B-side per-pair plus-containment** (Wedhorn Prop 8.2 base change of
 Remark 7.17): if `A⁺ ⊆ D₀.P.A₀`, then `B⁺ = completedPlusSubring D₀` lies in
@@ -12569,6 +12132,223 @@ theorem genRestrictedCover_isOXAcyclic_of_units
   genRestrictedCover_isOXAcyclic_of_B D₀ T hspan
     (imageGenCover_isOXAcyclic_of_units D₀ T hspan hne h_units
       (CompatiblePlusSubring.aplus_le_A₀ D₀))
+
+/-- **Part (iv) pair-instances of the Prop A.3(1) standing hypothesis**
+(Wedhorn Prop A.3, p. 105, wedhorn.txt:5316-5318: "`U | V_{j₀…j_q}` is
+`F`-acyclic for all `(j₀,…,j_q) ∈ J^{q+1}`" — the `q = 1` instances; Wedhorn
+p. 84 (wedhorn.txt:4244-4247) discharges them by the same part-(ii)
+construction: "let 𝒱 be a Laurent cover such that 𝒰|V is a rational cover
+generated by a finite set of units for all V in 𝒱 (which exists by (ii))" —
+on the intersection `Vj₁ ∩ Vj₂` the part-(ii) units of `𝒪_X(Vjᵢ)` restrict to
+units, so `𝒰|Vj₁∩Vj₂` is again generated by units, hence acyclic).
+
+For each pair of `V`-pieces: a rational datum `I` realising the intersection
+and an acyclic covering `W` of `I` whose pieces lie inside single pieces of
+the two single-index restrictions `C|Vj₁`, `C|Vj₂`.
+
+Implementation route: `I := Vj₁.interSamePair Vj₂` (Laurent leaves share the
+base pair: `laurentPlusDatum`/`laurentMinusDatum` both set `P := D₀.P`);
+`W := pairwise interSamePair product of (C_restr_at Vj₁) and (C_restr_at Vj₂)`
+(pieces `D'₁ ∩ D'₂` tautologically inside both factors, covering by the two
+covers-properties); `W.IsGeneratedByUnits` via the product unit set
+`units₁ * units₂` (`Ideal.span_mul_span`, units restrict to units along
+`restrictionMapHom_canonicalMap`); acyclicity via
+`wedhorn_lemma_834_C_restr_acyclic`. -/
+theorem wedhorn_lemma_834_pair_package_exists [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (V : RationalCovering A) (_fs : List A)
+    (_hV_laurent : V.IsLaurentProdCover _fs)
+    (S_at : ↥V.covers → Finset A)
+    (hS_at : ∀ Vj : ↥V.covers, Ideal.span ((S_at Vj : Finset A) : Set A) = ⊤)
+    (hSne_at : ∀ Vj : ↥V.covers, (S_at Vj).Nonempty)
+    (hSunits_at : ∀ Vj : ↥V.covers, ∀ t ∈ S_at Vj,
+      IsUnit (Vj.1.canonicalMap t))
+    (Vj₁ Vj₂ : ↥V.covers) :
+    ∃ (I : RationalLocData A) (W : RationalCovering A),
+      rationalOpen I.T I.s =
+        rationalOpen Vj₁.1.T Vj₁.1.s ∩ rationalOpen Vj₂.1.T Vj₂.1.s ∧
+      W.base = I ∧
+      W.IsOXAcyclic ∧
+      (∀ W' ∈ W.covers, ∃ D'₁ ∈
+        (genRestrictedCover Vj₁.1 (S_at Vj₁) (hS_at Vj₁)).covers,
+        rationalOpen W'.T W'.s ⊆ rationalOpen D'₁.T D'₁.s) ∧
+      (∀ W' ∈ W.covers, ∃ D'₂ ∈
+        (genRestrictedCover Vj₂.1 (S_at Vj₂) (hS_at Vj₂)).covers,
+        rationalOpen W'.T W'.s ⊆ rationalOpen D'₂.T D'₂.s) := by
+  classical
+  -- Laurent pieces share the base pair of definition.
+  have hVP₁ : Vj₁.1.P = V.base.P :=
+    laurentProdLeaves_pair _fs V.base
+      ((Finset.ext_iff.mp _hV_laurent Vj₁.1).mp Vj₁.2)
+  have hVP₂ : Vj₂.1.P = V.base.P :=
+    laurentProdLeaves_pair _fs V.base
+      ((Finset.ext_iff.mp _hV_laurent Vj₂.1).mp Vj₂.2)
+  have hP : Vj₂.1.P = Vj₁.1.P := hVP₂.trans hVP₁.symm
+  -- the product unit set spans
+  have hspanW : Ideal.span ((S_at Vj₁ * S_at Vj₂ : Finset A) : Set A) = ⊤ := by
+    rw [Finset.coe_mul, ← Ideal.span_mul_span', hS_at Vj₁, hS_at Vj₂,
+      Ideal.top_mul]
+  refine ⟨Vj₁.1.interSamePair Vj₂.1 hP,
+    genRestrictedCover (Vj₁.1.interSamePair Vj₂.1 hP) (S_at Vj₁ * S_at Vj₂)
+      hspanW,
+    RationalLocData.interSamePair_rationalOpen Vj₁.1 Vj₂.1 hP, rfl, ?_, ?_, ?_⟩
+  · -- acyclicity via the faithful B-engine: products of units restrict to
+    -- units on the intersection.
+    refine genRestrictedCover_isOXAcyclic_of_units _ _ hspanW
+      ((hSne_at Vj₁).mul (hSne_at Vj₂)) ?_
+    intro t ht
+    obtain ⟨x, hx, y, hy, rfl⟩ := Finset.mem_mul.mp ht
+    rw [map_mul]
+    exact (isUnit_canonicalMap_of_subset Vj₁.1 _
+        (RationalLocData.interSamePair_subset_left Vj₁.1 Vj₂.1 hP) x
+        (hSunits_at Vj₁ x hx)).mul
+      (isUnit_canonicalMap_of_subset Vj₂.1 _
+        (RationalLocData.interSamePair_subset_right Vj₁.1 Vj₂.1 hP) y
+        (hSunits_at Vj₂ y hy))
+  · -- pieces lie inside single pieces of genRestrictedCover Vj₁ S₁.
+    intro W' hW'
+    obtain ⟨t, ht, rfl⟩ := Finset.mem_image.mp hW'
+    obtain ⟨x, hx, y, hy, rfl⟩ := Finset.mem_mul.mp ht
+    refine ⟨Vj₁.1.interSamePair
+      (genPieceDatum Vj₁.1.P (S_at Vj₁) x (hS_at Vj₁)) rfl,
+      Finset.mem_image_of_mem _ hx, ?_⟩
+    rw [RationalLocData.interSamePair_rationalOpen Vj₁.1
+        (genPieceDatum Vj₁.1.P (S_at Vj₁) x (hS_at Vj₁)) rfl,
+      RationalLocData.interSamePair_rationalOpen
+        (Vj₁.1.interSamePair Vj₂.1 hP)
+        (genPieceDatum (Vj₁.1.interSamePair Vj₂.1 hP).P
+          (S_at Vj₁ * S_at Vj₂) (x * y) hspanW) rfl,
+      RationalLocData.interSamePair_rationalOpen Vj₁.1 Vj₂.1 hP,
+      genPieceDatum_T, genPieceDatum_s, genPieceDatum_T, genPieceDatum_s,
+      ← rationalOpen_inter (S_at Vj₁) (S_at Vj₂) x y hx hy]
+    exact fun v hv => ⟨hv.1.1, hv.2.1⟩
+  · -- pieces lie inside single pieces of genRestrictedCover Vj₂ S₂.
+    intro W' hW'
+    obtain ⟨t, ht, rfl⟩ := Finset.mem_image.mp hW'
+    obtain ⟨x, hx, y, hy, rfl⟩ := Finset.mem_mul.mp ht
+    refine ⟨Vj₂.1.interSamePair
+      (genPieceDatum Vj₂.1.P (S_at Vj₂) y (hS_at Vj₂)) rfl,
+      Finset.mem_image_of_mem _ hy, ?_⟩
+    rw [RationalLocData.interSamePair_rationalOpen Vj₂.1
+        (genPieceDatum Vj₂.1.P (S_at Vj₂) y (hS_at Vj₂)) rfl,
+      RationalLocData.interSamePair_rationalOpen
+        (Vj₁.1.interSamePair Vj₂.1 hP)
+        (genPieceDatum (Vj₁.1.interSamePair Vj₂.1 hP).P
+          (S_at Vj₁ * S_at Vj₂) (x * y) hspanW) rfl,
+      RationalLocData.interSamePair_rationalOpen Vj₁.1 Vj₂.1 hP,
+      genPieceDatum_T, genPieceDatum_s, genPieceDatum_T, genPieceDatum_s,
+      ← rationalOpen_inter (S_at Vj₁) (S_at Vj₂) x y hx hy]
+    exact fun v hv => ⟨hv.1.2, hv.2.2⟩
+
+/-- **Wedhorn Lemma 8.34** (p. 84). *Let `A` be a complete strongly
+noetherian Tate ring and `𝒰` be a rational cover generated by some
+finite subset `T ⊆ A` with `T · A = A`. Then `𝒰` is `𝒪_X`-acyclic.*
+
+Composed from sub-lemmas (a) + (b) + (c) above; the Prop A.3(1) bridge
+takes only the bilateral restriction-acyclicity packages (no refinement
+hypothesis — faithful to wedhorn.txt:5315-5325). -/
+theorem wedhorn_lemma_834 [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C : RationalCovering A) (T : Finset A)
+    (_hC_gen : C.IsGeneratedBy T) :
+    C.IsOXAcyclic := by
+  -- Wedhorn p. 84 four-part composition (verbatim, part (iv)):
+  -- > "Now let 𝒰 be a rational cover generated by some finite subset T ⊆ A
+  -- > with T · A = A and let 𝒱 be a Laurent cover such that 𝒰|V is a
+  -- > rational cover generated by a finite set of units for all V in 𝒱
+  -- > (which exists by (ii)). Then we have just seen that 𝒰|V is
+  -- > 𝒪_X-acyclic. Moreover, by (i) 𝒱|U is 𝒪_X-acyclic for every U in 𝒰.
+  -- > Thus the 𝒪_X-acyclicity of 𝒱 implies the 𝒪_X-acyclicity of 𝒰 by
+  -- > Proposition A.3 (1)."
+  obtain ⟨V, fs, s, hV_laurent, hV_base, hs, hfs_eq, hV_unit_restrictions⟩ :=
+    wedhorn_lemma_834_part_ii_unit_gen_via_dominating C T _hC_gen
+  -- 𝒱 is itself acyclic (Laurent cover) — part (i):
+  have _hV_acyclic : V.IsOXAcyclic :=
+    wedhorn_lemma_834_part_i_laurent_acyclic V fs hV_laurent
+      (CompatiblePlusSubring.aplus_le_A₀ V.base)
+  -- NOTE (2026-06-10): no "V refines C" fact is needed — Prop A.3(1)
+  -- (wedhorn.txt:5318-5320) has no refinement hypothesis; the bilateral
+  -- restriction-acyclicity packages below are its exact data.
+  -- C_restr_at family: comes from `hV_unit_restrictions` (T-form, 2026-06-10:
+  -- the restricted cover IS genRestrictedCover over the per-Vj unit set).
+  choose S_at hS_at hSne_at hSunits_at hSpieces_at using
+    fun Vj (hVj : Vj ∈ V.covers) => hV_unit_restrictions Vj hVj
+  -- V_restr_at family: V restricted to each U ∈ C.covers via restrictToPiece.
+  -- Uses the cover-each-U direction from laurent_cover_covers_each_idealgen_piece,
+  -- now also threaded with `s`, `hs`, `hfs_eq`.
+  have h_V_covers_each_U : ∀ U ∈ C.covers, ∀ v ∈ rationalOpen U.T U.s,
+      ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
+        rationalOpen V'.T V'.s ⊆ rationalOpen U.T U.s :=
+    laurent_cover_covers_each_idealgen_piece C T _hC_gen V fs hV_laurent hV_base
+      s hs hfs_eq
+  let V_restr_at : ↥C.covers → RationalCovering A := fun U =>
+    V.restrictToPiece U.1 (h_V_covers_each_U U.1 U.2)
+  have hV_restr_base : ∀ U : ↥C.covers, (V_restr_at U).base = U.1 := fun _ => rfl
+  have hV_restr_pieces : ∀ U : ↥C.covers, ∀ V' ∈ (V_restr_at U).covers,
+      ∃ V'' ∈ V.covers, rationalOpen V'.T V'.s ⊆ rationalOpen V''.T V''.s := by
+    intro U V' hV'
+    simp only [V_restr_at, RationalCovering.restrictToPiece, Finset.mem_filter] at hV'
+    exact ⟨V', hV'.1, subset_rfl⟩
+  -- Each V_restr_at U is a Laurent sub-cover of U; acyclic via part (i).
+  have hV_restr_acyclic : ∀ U : ↥C.covers, (V_restr_at U).IsOXAcyclic := by
+    intro U
+    apply wedhorn_lemma_834_part_i_laurent_restriction_acyclic V fs hV_laurent U.1
+    · rw [hV_base]; exact C.hsubset U.1 U.2
+    · exact CompatiblePlusSubring.aplus_le_A₀ U.1
+    · exact hV_restr_base U
+    · exact hV_restr_pieces U
+  have hV_restr_covers : ∀ U : ↥C.covers, ∀ v ∈ rationalOpen U.1.T U.1.s,
+      ∃ V' ∈ (V_restr_at U).covers, v ∈ rationalOpen V'.T V'.s ∧
+        rationalOpen V'.T V'.s ⊆ rationalOpen U.1.T U.1.s := by
+    intro U v hv
+    obtain ⟨V', hV'_in, hv_in_V', hV'_sub⟩ := h_V_covers_each_U U.1 U.2 v hv
+    refine ⟨V', ?_, hv_in_V', hV'_sub⟩
+    simp only [V_restr_at, RationalCovering.restrictToPiece, Finset.mem_filter]
+    refine ⟨hV'_in, ?_⟩
+    classical
+    simp
+    exact hV'_sub
+  -- The restricted covers: genRestrictedCover over the per-Vj unit sets.
+  let C_restr_at : ↥V.covers → RationalCovering A := fun Vj =>
+    genRestrictedCover Vj.1 (S_at Vj.1 Vj.2) (hS_at Vj.1 Vj.2)
+  have hC_restr_base' : ∀ Vj : ↥V.covers, (C_restr_at Vj).base = Vj.1 :=
+    fun _ => rfl
+  have hC_restr_pieces' : ∀ Vj : ↥V.covers, ∀ D' ∈ (C_restr_at Vj).covers,
+      ∃ D ∈ C.covers, rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s :=
+    fun Vj => hSpieces_at Vj.1 Vj.2
+  -- V_restr_at U = V.restrictToPiece, so its pieces are in V.covers (filter).
+  have hV_restr_pieces_in_V : ∀ U : ↥C.covers, ∀ V' ∈ (V_restr_at U).covers,
+      V' ∈ V.covers := by
+    intro U V' hV'_in
+    simp only [V_restr_at, RationalCovering.restrictToPiece, Finset.mem_filter] at hV'_in
+    exact hV'_in.1
+  -- Pair-level package: q=1 instances of the A.3(1) standing hypothesis,
+  -- discharged by the part-(ii) construction on intersections.
+  have h_pair := fun (Vj₁ Vj₂ : ↥V.covers) =>
+    wedhorn_lemma_834_pair_package_exists V fs hV_laurent
+      (fun Vj => S_at Vj.1 Vj.2) (fun Vj => hS_at Vj.1 Vj.2)
+      (fun Vj => hSne_at Vj.1 Vj.2) (fun Vj => hSunits_at Vj.1 Vj.2)
+      Vj₁ Vj₂
+  choose I_at W_at hI_open hW_base hW_acyclic hW_pieces₁ hW_pieces₂ using h_pair
+  -- Now apply propA3_part1_bridge.
+  refine wedhorn_lemma_834_propA3_part1_bridge C V hV_base _hV_acyclic
+    V_restr_at hV_restr_base hV_restr_pieces hV_restr_pieces_in_V hV_restr_acyclic
+    C_restr_at hC_restr_base' hC_restr_pieces' ?_ hV_restr_covers ?_
+    I_at hI_open W_at hW_base hW_pieces₁ hW_pieces₂ hW_acyclic
+  · -- C_restr_at acyclic — the faithful B-engine on each genRestrictedCover.
+    intro Vj
+    exact genRestrictedCover_isOXAcyclic_of_units Vj.1 (S_at Vj.1 Vj.2)
+      (hS_at Vj.1 Vj.2) (hSne_at Vj.1 Vj.2) (hSunits_at Vj.1 Vj.2)
+  · -- C_restr_at covers each Vj (genRestrictedCover's own hcover + hsubset).
+    intro Vj v hv
+    obtain ⟨D', hD'_in, hv_in⟩ := (C_restr_at Vj).hcover v hv
+    exact ⟨D', hD'_in, hv_in, (C_restr_at Vj).hsubset D' hD'_in⟩
 
 /-- **Sub-lemma for `exists_ideal_gen_refinement`** — converting a
 standard cover (Finset S spanning top + refinement data) into a concrete
