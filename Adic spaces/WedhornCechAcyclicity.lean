@@ -7951,7 +7951,7 @@ the restriction of an ideal-generating cover `C` to each Laurent piece
 in `𝒪_X(V_j)` are units). -/
 theorem unit_gen_restriction_of_dominating_laurent [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (C : RationalCovering A) (T : Finset A) (_hC_gen : C.IsGeneratedBy T)
@@ -7977,15 +7977,58 @@ theorem unit_gen_restriction_of_dominating_laurent [DecidableEq A]
         rationalOpen (Vj.interSamePair
             (genPieceDatum Vj.P T t _hC_gen.1) rfl).T
           (Vj.interSamePair (genPieceDatum Vj.P T t _hC_gen.1) rfl).s = ∅) := by
-  -- Compose: select the distinguished t_i on V_j (step a), upgrade to
-  -- "canonical image is a unit" (step b), construct the restricted
-  -- cover (step c). Unit-gen + refinement + cover-property follow from
-  -- the canonical-unit property and the construction.
-  sorry
+  classical
+  -- leaf membership in the `s⁻¹·T` Laurent-product cover
+  have hVj' : Vj ∈ laurentProdLeaves V.base _fs := by
+    rw [RationalCovering.IsLaurentProdCover] at _hV_laurent
+    rw [← _hV_laurent]; exact _hVj
+  -- arithmetic transports (as in `index_selection_on_laurent_piece`)
+  have harith₁ : ∀ (t : A) (v : Spv A), v.vle 1 (((s⁻¹ : Aˣ) : A) * t) →
+      v.vle (s : A) t := by
+    intro t v h
+    letI : ValuativeRel A := v.toValuativeRel
+    have h2 := ValuativeRel.mul_vle_mul_left h (s : A)
+    rwa [one_mul, mul_comm (((s⁻¹ : Aˣ) : A) * t) (s : A), ← mul_assoc,
+      Units.mul_inv, one_mul] at h2
+  have harith₂ : ∀ (t : A) (v : Spv A), v.vle (((s⁻¹ : Aˣ) : A) * t) 1 →
+      v.vle t (s : A) := by
+    intro t v h
+    letI : ValuativeRel A := v.toValuativeRel
+    have h2 := ValuativeRel.mul_vle_mul_left h (s : A)
+    rwa [one_mul, mul_comm (((s⁻¹ : Aˣ) : A) * t) (s : A), ← mul_assoc,
+      Units.mul_inv, one_mul] at h2
+  refine ⟨T.filter (fun t => ∀ v ∈ rationalOpen Vj.T Vj.s, v.vle (s : A) t),
+    Finset.filter_subset _ _, ?_, ?_⟩
+  · -- σ₊: piece-wide `v(s) ≤ v(t)` upgrades to a canonical-image unit
+    -- (the landed Nullstellensatz keystone).
+    intro t ht
+    rw [Finset.mem_filter] at ht
+    exact canonical_unit_of_pointwise_lower_bound Vj t s ht.2
+  · -- σ₋: the piece-trace is empty (dominance beats `v(t) ≤ v(s)`).
+    intro t ht htn
+    rw [Finset.mem_filter, not_and] at htn
+    have hnot := htn ht
+    have hdich := laurentProdLeaves_sign_dichotomy _fs V.base hVj'
+      (((s⁻¹ : Aˣ) : A) * t)
+      (by rw [_hfs_eq]
+          exact List.mem_map.mpr ⟨t, Finset.mem_toList.mpr ht, rfl⟩)
+    have hle : ∀ v ∈ rationalOpen Vj.T Vj.s, v.vle t (s : A) := by
+      rcases hdich with h | h
+      · exact fun v hv => harith₂ t v (h v hv)
+      · exact absurd (fun v hv => harith₁ t v (h v hv)) hnot
+    rw [Set.eq_empty_iff_forall_notMem]
+    intro v hv
+    rw [RationalLocData.interSamePair_rationalOpen] at hv
+    have hcond : ∀ u ∈ T, v.vle u t := by
+      intro u hu
+      have h0 := hv.2.2.1 u (by rw [genPieceDatum_T]; exact hu)
+      rwa [genPieceDatum_s] at h0
+    obtain ⟨u, hu, -, hstrict⟩ := _h_dom v hv.1.1
+    exact hstrict (v.vle_trans (hcond u hu) (hle v hv.1))
 
 theorem wedhorn_lemma_834_part_ii_unit_gen_via_dominating [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (C : RationalCovering A) (T : Finset A) (hC_gen : C.IsGeneratedBy T) :
