@@ -13436,41 +13436,26 @@ theorem restrictedToPiece_inherits_IsUnitGenerated
 -- guidance (ChatGPT, 2026-05-28). The arbitrary-E form was mathematically
 -- unprovable.
 
-/-- **Restriction-to-piece acyclicity (specialized form, 2026-05-28)**:
-For C' an ideal-generated refinement of C, and D ∈ C.covers, the
-`C'.restrictToPiece D` is `𝒪_X`-acyclic.
-
-Reviewer-recommended specialization (ChatGPT, 2026-05-28): replaces the
-arbitrary-E `double_restriction_acyclicity` that was mathematically
-unprovable. The proof requires applying Wedhorn 8.34 RECURSIVELY at
-the level of `𝒪_X(D)` with the canonical-images of T as the
-ideal-generating set — currently a substantive sub-lemma. -/
-theorem restrictToPiece_acyclic_at_D [DecidableEq A]
+/-- **The general-`T` restricted-cover acyclicity** (Wedhorn p. 84, the
+recursive "apply Lemma 8.34 at the level of `𝒪_X(D)`" step): for ANY
+finite spanning set `T` and ANY rational subset `D₀`, the restricted cover
+`{D₀ ∩ R(T/t) : t ∈ T}` is `O_X`-acyclic. This is the σ₊-dichotomy engine's
+general-`T` sibling: the faithful route is `wedhorn_lemma_834` INSTANTIATED
+at `B := 𝒪_X(D₀)` applied to the image cover (`imageGenCover`,
+`IsGeneratedBy` the image of `T` by `imageGenCover_isGeneratedBy`; the
+`hCP`-side is `rfl` — all pieces carry the concrete pair), then the G4
+transport `genRestrictedCover_isOXAcyclic_of_B` descends. BLOCKED on the
+final CPS-demotion of `wedhorn_lemma_834`'s remaining class-uses (the
+part-(ii) keystone chain) — the class is unbuildable at `B`.
+Tracked as T-WC-RESTRICT-TO-PIECE-RECURSIVE-834. -/
+theorem genRestrictedCover_isOXAcyclic_of_spanTop [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (C C' : RationalCovering A) (T : Finset A)
-    (_h_C'_gen : C'.IsGeneratedBy T)
-    (h_C'_base : C'.base = C.base)
-    (_h_refines : ∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
-      rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
-    (h_C'_covers_each_D : ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
-      ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
-        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
-    (D : ↥C.covers) :
-    (C'.restrictToPiece D.1 (h_C'_covers_each_D D.1 D.2)).IsOXAcyclic := by
-  -- Wedhorn's strategy: apply Lemma 8.34 RECURSIVELY at the level of 𝒪_X(D).
-  -- The canonical-image of T in 𝒪_X(D) spans the unit ideal (Ideal.span T = ⊤
-  -- in A, ring-hom-image preserves this). Apply wedhorn_lemma_834 over the
-  -- presheafValue D₀ as a "strongly noeth Tate" base (Wedhorn 8.31 propagation).
-  --
-  -- This requires:
-  --   (a) a "Lemma 8.34 over arbitrary strongly noeth Tate base B" version, OR
-  --   (b) extracting the IsGeneratedBy structure on the restricted cover at
-  --       the level of 𝒪_X(D) and applying the existing wedhorn_lemma_834.
-  --
-  -- Both are substantive; tracked as T-WC-RESTRICT-TO-PIECE-RECURSIVE-834.
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    (genRestrictedCover D₀ T hspan).IsOXAcyclic := by
   sorry
 
 /-! ### Main intermediate: every rational cover is `O_X`-acyclic
@@ -13506,15 +13491,21 @@ theorem every_rational_cover_is_OXAcyclic [DecidableEq A]
   -- Step 3: Prop A.3(2) — acyclicity transfers from C' to C.
   -- For each D ∈ C.covers, supply (C'.restrictToPiece D).IsOXAcyclic via
   -- `restrictToPiece_acyclic_at_D` (substantive sub-lemma; sorry-bodied at present).
-  exact IsOXAcyclic_of_refining_acyclic_cover C C' h_C'_base h_refines
+  -- per-piece refinement covers: the GEN-form D ∩ R(T/t) (open-equal to
+  -- Wedhorn's restricted cover; pieces sit inside the C'-pieces R(T/t)).
+  obtain ⟨-, φC', hφC'_bij, hφC'_eq⟩ := id h_C'_gen
+  refine IsOXAcyclic_of_refining_acyclic_cover C C' h_C'_base h_refines
     h_C'_acyclic h_C'_covers_each_D
-    (fun D => C'.restrictToPiece D.1 (h_C'_covers_each_D D.1 D.2))
+    (fun D => genRestrictedCover D.1 T h_C'_gen.1)
     (fun D => rfl)
-    (fun D E' hE' => by
-      simp only [RationalCovering.restrictToPiece, Finset.mem_filter] at hE'
-      exact ⟨E', hE'.1, subset_rfl⟩)
-    (fun D => restrictToPiece_acyclic_at_D C C' T h_C'_gen h_C'_base h_refines
-      h_C'_covers_each_D D)
+    (fun D E' hE' => ?_)
+    (fun D => genRestrictedCover_isOXAcyclic_of_spanTop D.1 T h_C'_gen.1)
+  obtain ⟨t, ht, rfl⟩ := Finset.mem_image.mp hE'
+  refine ⟨(φC' ⟨t, ht⟩).1, (φC' ⟨t, ht⟩).2, ?_⟩
+  rw [(hφC'_eq ⟨t, ht⟩).1, (hφC'_eq ⟨t, ht⟩).2]
+  have h := RationalLocData.interSamePair_subset_right D.1
+    (genPieceDatum D.1.P T t h_C'_gen.1) rfl
+  rwa [genPieceDatum_T, genPieceDatum_s] at h
 
 /-! ### Wedhorn Theorem 8.28(b) — the Wedhorn-clean form
 
