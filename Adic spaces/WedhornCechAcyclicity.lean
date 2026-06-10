@@ -8,6 +8,7 @@ import «Adic spaces».Presheaf
 import «Adic spaces».StructureSheaf
 import «Adic spaces».TateAcyclicityResiduals
 import «Adic spaces».AuditCleanWrappers
+import «Adic spaces».Wedhorn828
 
 /-!
 # Wedhorn-Čech acyclicity: bridge to `IsSheafy`
@@ -49,8 +50,8 @@ sub-lemmas with sorries remain for:
   exactness (in `wedhorn_lemma_833_gluing_as_field`).
 * Lemma 8.34 sub-lemmas: Laurent combinatorial constructions
   (`laurent_cons_decomp_as_product`, `ratio_laurent_cover_of_units`),
-  σ-walk arguments (`ratio_laurent_refines_unit_gen`,
-  `laurent_cover_refines_idealgen_cover`, σ-walk cover-each variants),
+  σ-walk arguments (`ratio_laurent_refines_unit_gen`, σ-walk cover-each
+  variants),
   Wedhorn 6.14 + 7.40(6) project lemmas.
 * `isSheafy_ofStronglyNoetherianTate_clean`: top-level composed and
   closed; depends transitively on the substantive sub-sorries above.
@@ -166,6 +167,18 @@ theorem RationalCovering.presheafValue_eqRec_double_cancel_forward
       b h = x := by
   subst h
   rfl
+
+/-- A direct Eq.rec base cast on presheafValue vanishes iff the original
+element vanishes. Used by the refinement-free Prop A.3(1) separation
+transfer (2026-06-10) to pull `x|Vⱼ = 0` back through the
+`(C_restr_at Vⱼ).base = Vⱼ` cast. -/
+theorem RationalCovering.presheafValue_eqRec_eq_zero_iff
+    [HasLocLiftPowerBounded A] (a b : RationalLocData A) (h : a = b)
+    (x : presheafValue a) :
+    (@Eq.rec (RationalLocData A) a (fun b _ => presheafValue b) x b h) = 0 ↔
+      x = 0 := by
+  subst h
+  exact Iff.rfl
 
 /-- Restriction map respects a direct Eq.rec base cast on presheafValue.
 This is a generalized version (without RingEquiv motive) of
@@ -488,371 +501,6 @@ theorem IsOXAcyclic_of_refining_acyclic_cover
       propA3_part2_project_gluing C C' h_same_base h_refines
         h_C'_acyclic h_C'_covers_each_D h_E_at_acyclic }
 
-/-! ##### Sub-lemmas for `wedhorn_lemma_833_separation` (Cor 8.32 application) -/
-
-/-- **Lemma 8.33 sub-lemma 1a** — Cor 8.32 specialised to the 2-cover.
-Faithful flatness of the product restriction. -/
-theorem cor_8_32_for_2cover
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (D₀ : RationalLocData A) (f : A) :
-    letI : ∀ D : { D // D ∈ (laurentRationalCover D₀ f).covers },
-        Algebra (presheafValue (laurentRationalCover D₀ f).base)
-          (presheafValue D.1) := fun D =>
-      (restrictionMapHom (laurentRationalCover D₀ f).base D.1
-        ((laurentRationalCover D₀ f).hsubset D.1 D.2)).toAlgebra
-    Module.FaithfullyFlat (presheafValue (laurentRationalCover D₀ f).base)
-      (∀ D : { D // D ∈ (laurentRationalCover D₀ f).covers },
-        presheafValue D.1) :=
-  -- Direct from the project's `cor_8_32_clean_proof` applied to the principal pair.
-  cor_8_32_clean_proof (IsTateRing.principalPair A).toPairOfDefinition
-    (laurentRationalCover D₀ f)
-
-set_option synthInstance.maxHeartbeats 800000 in
-/-- **Lemma 8.33 sub-lemma 1b** — converting Cor 8.32's faithful-flatness
-output into the function-form injectivity needed by the separation field.
-
-Discharge: `Module.FaithfullyFlat.faithfulSMul` → `FaithfulSMul.algebraMap_injective`,
-applied to the product algebra structure. -/
-theorem injectivity_from_faithfullyFlat_2cover
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (D₀ : RationalLocData A) (f : A) :
-    Function.Injective (fun (x : presheafValue (laurentRationalCover D₀ f).base) =>
-      fun (D : { D : RationalLocData A // D ∈ (laurentRationalCover D₀ f).covers }) =>
-        restrictionMap (laurentRationalCover D₀ f).base D.1
-          ((laurentRationalCover D₀ f).hsubset D.1 D.2) x) := by
-  -- Module.FaithfullyFlat from cor_8_32_for_2cover → FaithfulSMul (instance)
-  -- → algebraMap_injective. The function form equals algebraMap via
-  -- Pi.algebra + RingHom.toAlgebra unfolding.
-  letI : ∀ D : { D // D ∈ (laurentRationalCover D₀ f).covers },
-      Algebra (presheafValue (laurentRationalCover D₀ f).base)
-        (presheafValue D.1) := fun D =>
-    (restrictionMapHom (laurentRationalCover D₀ f).base D.1
-      ((laurentRationalCover D₀ f).hsubset D.1 D.2)).toAlgebra
-  haveI hff := cor_8_32_for_2cover D₀ f
-  -- The pi-algebra `algebraMap` is the function form. Cite the algebraMap
-  -- injectivity (derived from FaithfulSMul, derived from FaithfullyFlat).
-  exact FaithfulSMul.algebraMap_injective
-    (presheafValue (laurentRationalCover D₀ f).base)
-    (∀ D : { D : RationalLocData A // D ∈ (laurentRationalCover D₀ f).covers },
-      presheafValue D.1)
-
-/-- **Lemma 8.33 sub-lemma 1** — injectivity of ε from Cor 8.32.
-
-> "We have already seen that ε is injective (Corollary 8.32)."
-
-Composed: faithful-flat from `cor_8_32_for_2cover` + injectivity converter. -/
-theorem wedhorn_lemma_833_separation
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (D₀ : RationalLocData A) (f : A) :
-    Function.Injective (fun (x : presheafValue (laurentRationalCover D₀ f).base) =>
-      fun (D : { D : RationalLocData A // D ∈ (laurentRationalCover D₀ f).covers }) =>
-        restrictionMap (laurentRationalCover D₀ f).base D.1
-          ((laurentRationalCover D₀ f).hsubset D.1 D.2) x) :=
-  injectivity_from_faithfullyFlat_2cover D₀ f
-
-/-- **Side condition (a)** for `example638Plus_equiv`: the right
-uniform structure on `A` is complete. This is the standing hypothesis
-`CompleteSpace A` under the right uniform space — recorded as a lemma
-for explicit threading. -/
-theorem example_638_plus_side_complete
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A] :
-    @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A) :=
-  inferInstance
-
-/-- **Side condition (b)** for `example638Plus_equiv`: the pair-subring of
-the principal pair of a strongly noetherian Tate ring is noetherian.
-This is Wedhorn 6.18 applied to the principal pair. -/
-theorem example_638_plus_side_noeth_pairSubring
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A] :
-    IsNoetherianRing
-      ↥(TateAlgebra.pairSubring (IsTateRing.principalPair A).toPairOfDefinition) := by
-  -- Wedhorn 6.18: A strongly noetherian Tate ring has noetherian
-  -- pair-subring of the Tate algebra.
-  sorry
-
-/-- **Side condition (c) sub-lemma (a)**: the `evalHom` part of the
-forward hom is continuous. This is the `TateAlgebra A → 𝒪_X(R(f/1))`
-map sending `X ↦ canonicalMap f`. Continuity comes from the project's
-`evalHomBounded`: the canonical-image of a power-bounded element gives
-a continuous evaluation. -/
-theorem example_638_plus_side_cont_evalHom
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀] (f : A) :
-    Continuous (example638Plus_evalHom A P f) := by
-  -- Direct from the project's `evalHomBounded` construction: the
-  -- continuity of evalHom (with `b ↦ canonicalMap b`) is built into
-  -- `evalHomBounded`'s definition. The Mathlib lemma to invoke is the
-  -- continuity field of `evalHomBounded`.
-  sorry
-
-/-- **Side condition (c) sub-lemma (b)**: lifting the evalHom through
-the quotient `↥(TateAlgebra A) ⧸ plusFSubXIdeal A f` preserves continuity.
-Universal property of the quotient topology. -/
-theorem example_638_plus_side_cont_quotient_lift
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀] (f : A)
-    (h_evalHom : Continuous (example638Plus_evalHom A P f)) :
-    @Continuous _ _
-      (quotientPlusFSubXIdealTopology A f)
-      (inferInstance : TopologicalSpace (presheafValue (trivialPlusDatum A P f)))
-      (example638Plus_forwardHom A P f) := by
-  -- Universal property: `Continuous.quotient_lift` (mathlib) lifts a
-  -- continuous f through a Quotient setoid. `Ideal.Quotient` reduces to
-  -- the standard `Quotient` setoid; `quotientPlusFSubXIdealTopology` is
-  -- the inherited topology.
-  exact Continuous.quotient_lift h_evalHom _
-
-/-- **Side condition (c)** for `example638Plus_equiv`: the forward
-hom `A⟨ζ⟩/(f-ζ) → 𝒪_X(R(f/1))` is continuous. Composed from
-continuity of `evalHom` + universal property of quotient topology. -/
-theorem example_638_plus_side_cont_forward
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀] (f : A) :
-    @Continuous _ _
-      (quotientPlusFSubXIdealTopology A f)
-      (inferInstance : TopologicalSpace (presheafValue (trivialPlusDatum A P f)))
-      (example638Plus_forwardHom A P f) :=
-  example_638_plus_side_cont_quotient_lift P f
-    (example_638_plus_side_cont_evalHom P f)
-
-/-- **Lemma 8.33 sub-lemma 2** — Example 6.38 plus branch.
-
-> "𝒪_X(U_1) = A⟨ζ⟩/(f − ζ)"
-
-Composed from the three side conditions discharged above. -/
-theorem wedhorn_lemma_833_example_638_plus
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀] (f : A) :
-    -- 𝒪_X(R(f/1)) ≅ A⟨ζ⟩/(f - ζ).
-    Nonempty (↥(TateAlgebra A) ⧸ plusFSubXIdeal A f ≃+*
-              presheafValue (trivialPlusDatum A P f)) :=
-  ⟨example638Plus_equiv A P f
-    (example_638_plus_side_complete (A := A))
-    (example_638_plus_side_noeth_pairSubring (A := A))
-    (example_638_plus_side_cont_forward P f)⟩
-
-/-- **Side condition sub-lemma (a) for minus branch**: the underlying
-`tateEvalPresheafHom` is continuous. -/
-theorem example_638_minus_side_cont_underlying_evalHom
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀] (f : A) :
-    Continuous (tateEvalPresheafHom (trivialMinusDatum A P f)
-      (invS_isPowerBounded_in_trivialMinus A P f)) := by
-  -- `tateEvalPresheafHom` is `evalHomBounded`; continuity comes from
-  -- its construction (canonical map continuity + power-bounded value).
-  sorry
-
-/-- **Side condition sub-lemma (b) for minus branch**: the lift through
-the `oneSubfXIdeal` quotient preserves continuity. -/
-theorem example_638_minus_side_cont_quotient_lift
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀] (f : A)
-    (h_evalHom : Continuous (tateEvalPresheafHom (trivialMinusDatum A P f)
-      (invS_isPowerBounded_in_trivialMinus A P f))) :
-    @Continuous _ _
-      (TateAlgebra.quotientOneSubfXIdealTopology f)
-      (inferInstance : TopologicalSpace (presheafValue (trivialMinusDatum A P f)))
-      (tateQuotientToPresheafHom (trivialMinusDatum A P f)
-        (invS_isPowerBounded_in_trivialMinus A P f)) := by
-  -- Universal property of the quotient topology.
-  exact Continuous.quotient_lift h_evalHom _
-
-/-- **Side condition** for `example638Minus_equiv`: the eval hom
-`A⟨η⟩/(1-fη) → 𝒪_X(R(1/f))` is continuous (with respect to the quotient
-topology on the domain and the presheaf topology on the codomain).
-Composed from continuity of `evalHom` + quotient lift. -/
-theorem example_638_minus_side_cont_eval
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀] (f : A) :
-    @Continuous _ _
-      (TateAlgebra.quotientOneSubfXIdealTopology f)
-      (inferInstance : TopologicalSpace (presheafValue (trivialMinusDatum A P f)))
-      (tateQuotientToPresheafHom (trivialMinusDatum A P f)
-        (invS_isPowerBounded_in_trivialMinus A P f)) :=
-  example_638_minus_side_cont_quotient_lift P f
-    (example_638_minus_side_cont_underlying_evalHom P f)
-
-/-- **Lemma 8.33 sub-lemma 3** — Example 6.38 minus branch.
-
-> "𝒪_X(U_2) = A⟨η⟩/(1 − fη)"
-
-Composed via the project's `example638Minus_equiv` with the side
-conditions discharged above. -/
-theorem wedhorn_lemma_833_example_638_minus
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀] (f : A) :
-    -- 𝒪_X(R(1/f)) ≅ A⟨η⟩/(1 - fη).
-    Nonempty (↥(TateAlgebra A) ⧸ oneSubfXIdeal f ≃+*
-              presheafValue (trivialMinusDatum A P f)) :=
-  ⟨example638Minus_equiv A P f
-    (example_638_plus_side_complete (A := A))
-    (example_638_plus_side_noeth_pairSubring (A := A))
-    (example_638_minus_side_cont_eval P f)⟩
-
--- Note: Wedhorn Example 6.39 intersection iso (`R({1,f}/f) ≅ A⟨ζ, ζ⁻¹⟩/(f-ζ)`)
--- is not stated as a separate lemma here. The intersection piece would need a
--- distinct `RationalLocData` representation in the project, and the iso to the
--- Laurent-Tate quotient is substantive content tracked in
--- `wedhorn_lemma_833_gluing_as_field`.
-
-/-! ##### Sub-lemmas for `wedhorn_lemma_833_diagram_chase` (Wedhorn p. 83-84)
-
-The Wedhorn 5-lemma argument requires the following row/column exactness sub-results:
-- (a) Laurent algebra decomposition: A⟨ζ, ζ⁻¹⟩ = A⟨ζ⟩ + ζ⁻¹ A⟨ζ⁻¹⟩
-- (b) Ideal-level Laurent decomposition: (f - ζ) A⟨ζ, ζ⁻¹⟩ = (f - ζ) A⟨ζ⟩ + (1 - fζ⁻¹) A⟨ζ⁻¹⟩
-- (c) Kernel-image identification: im(ι) = ker(λ)
-- (d) 5-lemma composition
-
-These are mathematically substantive but require the algebraic Laurent-polynomial
-machinery that is not yet formalized in the project. They are tracked separately
-via the substantive sorry in `wedhorn_lemma_833_gluing_as_field`.
--/
-
-/-- **Diagram-chase sub-lemma (separation)**: the separation field of
-`IsOXAcyclic` for the 2-cover `laurentRationalCover D₀ f`. This is
-exactly the ε-injectivity from Cor 8.32 = `wedhorn_lemma_833_separation`,
-restated as the structural field of `IsOXAcyclic`. -/
-theorem wedhorn_lemma_833_separation_as_field
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (D₀ : RationalLocData A) (f : A) :
-    ∀ (x : presheafValue (laurentRationalCover D₀ f).base),
-      (∀ (D : RationalLocData A) (hD : D ∈ (laurentRationalCover D₀ f).covers),
-        restrictionMap (laurentRationalCover D₀ f).base D
-          ((laurentRationalCover D₀ f).hsubset D hD) x = 0) → x = 0 := by
-  -- Apply wedhorn_lemma_833_separation (= injectivity_from_faithfullyFlat_2cover).
-  intro x hx
-  apply wedhorn_lemma_833_separation D₀ f (a₁ := x) (a₂ := 0)
-  funext D
-  show restrictionMap (laurentRationalCover D₀ f).base D.1
-        ((laurentRationalCover D₀ f).hsubset D.1 D.2) x =
-    restrictionMap (laurentRationalCover D₀ f).base D.1
-        ((laurentRationalCover D₀ f).hsubset D.1 D.2) 0
-  rw [hx D.1 D.2]
-  exact (map_zero _).symm
-
-/-- **Gluing sub-lemma (a)**: identify the two pieces of
-`laurentRationalCover D₀ f`. -/
-theorem laurentRationalCover_pieces_identified
-    (D₀ : RationalLocData A) (f : A) :
-    ∃ (U₁ U₂ : RationalLocData A),
-      (laurentRationalCover D₀ f).covers = {U₁, U₂} :=
-  -- Direct from the definition: pieces are `laurentPlusDatum`, `laurentMinusDatum`.
-  ⟨laurentPlusDatum D₀ f, laurentMinusDatum D₀ f, rfl⟩
-
--- Note: the placeholder lemma `compatible_pair_lifts_via_5lemma` is removed.
--- Its substantive content (lifting (α, β) on {R(f/1), R(1/f)} to γ ∈ presheafValue D₀
--- via Examples 6.38) lives in `wedhorn_lemma_833_gluing_as_field`'s sorry body.
-
-/-- **Diagram-chase sub-lemma (gluing)**: the gluing field of
-`IsOXAcyclic` for the 2-cover. This is the surjectivity in row 3 of
-Wedhorn's diagram (8.2.1), which the 5-lemma produces from row-1 and
-row-2 exactness (sub-lemmas a/b/c/d) + column exactness (Examples 6.38/
-6.39).
-
-Composed from pieces-identified + 5-lemma lift. -/
-theorem wedhorn_lemma_833_gluing_as_field
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (D₀ : RationalLocData A) (f : A) :
-    ∀ (g : ∀ (D : ↥(laurentRationalCover D₀ f).covers), presheafValue D.1),
-      (∀ (D₁ D₂ : ↥(laurentRationalCover D₀ f).covers)
-         (D₃ : RationalLocData A)
-         (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
-         (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
-         restrictionMap D₁.1 D₃ h₃₁ (g D₁) =
-           restrictionMap D₂.1 D₃ h₃₂ (g D₂)) →
-      ∃ x : presheafValue (laurentRationalCover D₀ f).base,
-        ∀ (D : ↥(laurentRationalCover D₀ f).covers),
-          restrictionMap (laurentRationalCover D₀ f).base D.1
-            ((laurentRationalCover D₀ f).hsubset D.1 D.2) x = g D := by
-  -- The 5-lemma argument from Wedhorn p. 84 lifts a compatible pair
-  -- (g(U₁), g(U₂)) on (R(f/1), R(1/f)) to a section on X = D₀.
-  sorry
-
-/-- **Lemma 8.33 sub-lemma 5** — the 5-lemma diagram chase.
-
-> "Consider the following commutative diagram [...]. The columns are
-> exact by (8.2.1). A diagram chase shows that if the first and second
-> row are exact, then the third row is exact (note that we know already
-> the injectivity of ε)."
-
-Composed: separation (= ε injective via Cor 8.32) + gluing (via 5-lemma). -/
-theorem wedhorn_lemma_833_diagram_chase
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (D₀ : RationalLocData A) (f : A) :
-    (laurentRationalCover D₀ f).IsOXAcyclic :=
-  { separation := wedhorn_lemma_833_separation_as_field D₀ f
-    gluing := wedhorn_lemma_833_gluing_as_field D₀ f }
-
-/-- **Wedhorn Lemma 8.33** (p. 83). *Let `A = (A, A⁺)` be a strongly
-noetherian Tate affinoid ring, `X = Spa A`. Let `f ∈ A` and set
-`U₁ = R(f/1)`, `U₂ = R(1/f)`. Then the augmented Čech complex (with
-alternating cochains) for `𝒪_X` and the open covering `{U₁, U₂}` of `X`
-is exact.*
-
-Restated in project types: the 2-element Laurent cover is `O_X`-acyclic
-(in degree ≤ 0). -/
-theorem wedhorn_lemma_833
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (D₀ : RationalLocData A) (f : A) :
-    (laurentRationalCover D₀ f).IsOXAcyclic :=
-  -- Direct from the 5-lemma diagram chase sub-lemma, which itself
-  -- composes the Cor 8.32 injectivity + Example 6.38/6.39 identifications.
-  wedhorn_lemma_833_diagram_chase D₀ f
 
 /-! ### Wedhorn Lemma 8.34 — the ideal-generating rational cover
 
@@ -876,6 +524,442 @@ def RationalCovering.IsGeneratedBy (C : RationalCovering A) (T : Finset A) : Pro
   (∃ φ : T → C.covers, Function.Bijective φ ∧
     ∀ t : T, (φ t).1.T = T ∧ (φ t).1.s = (t : A))
 
+/-! ### Relative Laurent cover — `laurentLeaves` / `laurentCoverOf` (Wedhorn 8.34(i), relativized)
+
+Wedhorn p. 84 (wedhorn.txt:4230-4234): a Laurent cover generated by `f₁,…,fr`
+is `𝒰_{f₁} × ⋯ × 𝒰_{fr}`, and its restriction to a rational subset `U` is the
+Laurent cover *of* `U` generated by the images `fᵢ|U`. We model BOTH uniformly by
+iterating the relative 2-element split `laurentPlusDatum`/`laurentMinusDatum` of
+the base. On the whole-space base (`T={1}, s=1`) this reduces to the absolute
+"rational cover generated by the products `{∏_{J} fⱼ}`" (4231); see
+`isLaurentCover_wholeSpace_*`. -/
+
+/-- The `2^|fs|` leaves of the relative Laurent cover of `D₀` by `fs`: the
+sign-vector chain of `laurentPlusDatum`/`laurentMinusDatum` refinements. -/
+noncomputable def laurentLeaves [DecidableEq A] (D₀ : RationalLocData A) :
+    List A → Finset (RationalLocData A)
+  | [] => {D₀}
+  | (f :: gs) => laurentLeaves (laurentPlusDatum D₀ f) gs ∪
+      laurentLeaves (laurentMinusDatum D₀ f) gs
+
+@[simp] theorem laurentLeaves_nil [DecidableEq A] (D₀ : RationalLocData A) :
+    laurentLeaves D₀ ([] : List A) = {D₀} := rfl
+
+theorem laurentLeaves_cons [DecidableEq A] (D₀ : RationalLocData A) (f : A)
+    (gs : List A) :
+    laurentLeaves D₀ (f :: gs) = laurentLeaves (laurentPlusDatum D₀ f) gs ∪
+      laurentLeaves (laurentMinusDatum D₀ f) gs := rfl
+
+/-- Every leaf of the relative Laurent cover is contained in the base. -/
+theorem laurentLeaves_subset [DecidableEq A] (fs : List A) :
+    ∀ (D₀ : RationalLocData A) {D : RationalLocData A}, D ∈ laurentLeaves D₀ fs →
+      rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s := by
+  induction fs with
+  | nil => intro D₀ D hD; rw [laurentLeaves_nil, Finset.mem_singleton] at hD; rw [hD]
+  | cons f gs ih =>
+    intro D₀ D hD
+    rw [laurentLeaves_cons, Finset.mem_union] at hD
+    rcases hD with hD | hD
+    · exact (ih (laurentPlusDatum D₀ f) hD).trans (laurentPlus_subset D₀ f)
+    · exact (ih (laurentMinusDatum D₀ f) hD).trans (laurentMinus_subset D₀ f)
+
+/-- The leaves of the relative Laurent cover cover the base. -/
+theorem laurentLeaves_cover [DecidableEq A] (fs : List A) :
+    ∀ (D₀ : RationalLocData A) {v : Spv A}, v ∈ rationalOpen D₀.T D₀.s →
+      ∃ D ∈ laurentLeaves D₀ fs, v ∈ rationalOpen D.T D.s := by
+  induction fs with
+  | nil =>
+    intro D₀ v hv
+    exact ⟨D₀, by rw [laurentLeaves_nil]; exact Finset.mem_singleton_self D₀, hv⟩
+  | cons f gs ih =>
+    intro D₀ v hv
+    rcases laurentCover_covers D₀ f v hv with h | h
+    · obtain ⟨D, hD, hvD⟩ := ih (laurentPlusDatum D₀ f) h
+      exact ⟨D, by rw [laurentLeaves_cons]; exact Finset.mem_union_left _ hD, hvD⟩
+    · obtain ⟨D, hD, hvD⟩ := ih (laurentMinusDatum D₀ f) h
+      exact ⟨D, by rw [laurentLeaves_cons]; exact Finset.mem_union_right _ hD, hvD⟩
+
+/-- The canonical relative Laurent cover of `D₀` generated by `fs`
+(Wedhorn 8.34(i), relativized: the iterated `laurentPlus`/`laurentMinus` split). -/
+noncomputable def laurentCoverOf [DecidableEq A] (D₀ : RationalLocData A)
+    (fs : List A) : RationalCovering A where
+  base := D₀
+  covers := laurentLeaves D₀ fs
+  hsubset D hD := laurentLeaves_subset fs D₀ hD
+  hcover v hv := laurentLeaves_cover fs D₀ hv
+
+@[simp] theorem laurentCoverOf_base [DecidableEq A] (D₀ : RationalLocData A)
+    (fs : List A) : (laurentCoverOf D₀ fs).base = D₀ := rfl
+
+@[simp] theorem laurentCoverOf_covers [DecidableEq A] (D₀ : RationalLocData A)
+    (fs : List A) : (laurentCoverOf D₀ fs).covers = laurentLeaves D₀ fs := rfl
+
+/-- **Product (intersection) cover** of two coverings with a common base and a
+common pair of definition: pieces are the pairwise intersections
+`interSamePair P Q` (`P ∈ Uf`, `Q ∈ V`). This is Wedhorn's `𝒰 × 𝒱` (p. 105) at
+the rational-localisation level — the keystone for applying the abstract
+A.3(3) `isDegreeZeroAcyclic_prod` to the structure presheaf. -/
+noncomputable def RationalCovering.interProd (Uf V : RationalCovering A)
+    (hbase : V.base = Uf.base)
+    (hUfP : ∀ P ∈ Uf.covers, P.P = Uf.base.P)
+    (hVP : ∀ Q ∈ V.covers, Q.P = Uf.base.P) :
+    RationalCovering A where
+  base := Uf.base
+  covers := (Uf.covers ×ˢ V.covers).attach.image (fun pq =>
+    pq.1.1.interSamePair pq.1.2
+      ((hVP _ (Finset.mem_product.mp pq.2).2).trans
+        (hUfP _ (Finset.mem_product.mp pq.2).1).symm))
+  hsubset := by
+    intro D hD
+    rw [Finset.mem_image] at hD
+    obtain ⟨pq, -, rfl⟩ := hD
+    exact (RationalLocData.interSamePair_subset_left pq.1.1 pq.1.2 _).trans
+      (Uf.hsubset pq.1.1 (Finset.mem_product.mp pq.2).1)
+  hcover := by
+    intro v hv
+    obtain ⟨P, hP, hvP⟩ := Uf.hcover v hv
+    obtain ⟨Q, hQ, hvQ⟩ := V.hcover v (by rw [hbase]; exact hv)
+    refine ⟨P.interSamePair Q ((hVP Q hQ).trans (hUfP P hP).symm), ?_, ?_⟩
+    · rw [Finset.mem_image]
+      exact ⟨⟨(P, Q), Finset.mem_product.mpr ⟨hP, hQ⟩⟩, Finset.mem_attach _ _, rfl⟩
+    · rw [RationalLocData.interSamePair_rationalOpen]; exact ⟨hvP, hvQ⟩
+
+omit [IsHuberRing A] in
+@[simp] theorem RationalCovering.interProd_base (Uf V : RationalCovering A)
+    (hbase : V.base = Uf.base)
+    (hUfP : ∀ P ∈ Uf.covers, P.P = Uf.base.P)
+    (hVP : ∀ Q ∈ V.covers, Q.P = Uf.base.P) :
+    (Uf.interProd V hbase hUfP hVP).base = Uf.base := rfl
+
+omit [IsHuberRing A] in
+theorem RationalCovering.interProd_covers (Uf V : RationalCovering A)
+    (hbase : V.base = Uf.base)
+    (hUfP : ∀ P ∈ Uf.covers, P.P = Uf.base.P)
+    (hVP : ∀ Q ∈ V.covers, Q.P = Uf.base.P) :
+    (Uf.interProd V hbase hUfP hVP).covers =
+      (Uf.covers ×ˢ V.covers).attach.image (fun pq =>
+        pq.1.1.interSamePair pq.1.2
+          ((hVP _ (Finset.mem_product.mp pq.2).2).trans
+            (hUfP _ (Finset.mem_product.mp pq.2).1).symm)) := rfl
+
+/-- **Restriction of a covering to a rational sub-base** `D ⊆ V.base` (shared
+pair): pieces are `{Q ∩ D : Q ∈ V.covers}` via `interSamePair`. This is `V|_D`
+(Wedhorn p. 105) at the rational-localisation level, used to state the
+`q ≤ 1` intersection-acyclicity hypotheses of the explicit A.3(3). -/
+noncomputable def RationalCovering.restrictTo (V : RationalCovering A)
+    (D : RationalLocData A)
+    (hD : rationalOpen D.T D.s ⊆ rationalOpen V.base.T V.base.s)
+    (hDP : D.P = V.base.P) (hVP : ∀ Q ∈ V.covers, Q.P = V.base.P) :
+    RationalCovering A where
+  base := D
+  covers := V.covers.attach.image (fun Q =>
+    D.interSamePair Q.1 ((hVP _ Q.2).trans hDP.symm))
+  hsubset := by
+    intro E hE
+    rw [Finset.mem_image] at hE
+    obtain ⟨Q, -, rfl⟩ := hE
+    exact RationalLocData.interSamePair_subset_left D Q.1 _
+  hcover := by
+    intro v hv
+    obtain ⟨Q, hQ, hvQ⟩ := V.hcover v (hD hv)
+    refine ⟨D.interSamePair Q ((hVP Q hQ).trans hDP.symm), ?_, ?_⟩
+    · rw [Finset.mem_image]
+      exact ⟨⟨Q, hQ⟩, Finset.mem_attach _ _, rfl⟩
+    · rw [RationalLocData.interSamePair_rationalOpen]; exact ⟨hv, hvQ⟩
+
+omit [IsHuberRing A] in
+@[simp] theorem RationalCovering.restrictTo_base (V : RationalCovering A)
+    (D : RationalLocData A)
+    (hD : rationalOpen D.T D.s ⊆ rationalOpen V.base.T V.base.s)
+    (hDP : D.P = V.base.P) (hVP : ∀ Q ∈ V.covers, Q.P = V.base.P) :
+    (V.restrictTo D hD hDP hVP).base = D := rfl
+
+omit [IsHuberRing A] in
+theorem RationalCovering.restrictTo_covers (V : RationalCovering A)
+    (D : RationalLocData A)
+    (hD : rationalOpen D.T D.s ⊆ rationalOpen V.base.T V.base.s)
+    (hDP : D.P = V.base.P) (hVP : ∀ Q ∈ V.covers, Q.P = V.base.P) :
+    (V.restrictTo D hD hDP hVP).covers =
+      V.covers.attach.image (fun Q =>
+        D.interSamePair Q.1 ((hVP _ Q.2).trans hDP.symm)) := rfl
+
+omit [IsHuberRing A] in
+/-- A piece of `V|_P` (`P ∈ Uf.covers`) is a piece of `Uf × V`. -/
+theorem RationalCovering.restrictTo_mem_interProd (Uf V : RationalCovering A)
+    (hbase : V.base = Uf.base)
+    (hUfP : ∀ P ∈ Uf.covers, P.P = Uf.base.P)
+    (hVP : ∀ Q ∈ V.covers, Q.P = Uf.base.P)
+    (P : RationalLocData A) (hP : P ∈ Uf.covers)
+    (hD : rationalOpen P.T P.s ⊆ rationalOpen V.base.T V.base.s)
+    (hDP : P.P = V.base.P) (hVP' : ∀ Q ∈ V.covers, Q.P = V.base.P)
+    (E : RationalLocData A) (hE : E ∈ (V.restrictTo P hD hDP hVP').covers) :
+    E ∈ (Uf.interProd V hbase hUfP hVP).covers := by
+  rw [RationalCovering.restrictTo_covers, Finset.mem_image] at hE
+  obtain ⟨Q, -, rfl⟩ := hE
+  rw [RationalCovering.interProd_covers, Finset.mem_image]
+  exact ⟨⟨(P, Q.1), Finset.mem_product.mpr ⟨hP, Q.2⟩⟩, Finset.mem_attach _ _, rfl⟩
+
+/-- **Prop A.4 core**: `presheafValue` depends only on the rational subset
+`R(D)`, not the datum representative — when `R(D) = R(D')` the restriction maps
+both ways are mutually inverse ring isomorphisms. -/
+noncomputable def presheafValueCongr [HasLocLiftPowerBounded A]
+    (D D' : RationalLocData A)
+    (h : rationalOpen D.T D.s = rationalOpen D'.T D'.s) :
+    presheafValue D ≃+* presheafValue D' where
+  toFun := restrictionMap D D' h.ge
+  invFun := restrictionMap D' D h.le
+  left_inv x := by
+    have hc := congrFun (restrictionMap_comp D D' D h.ge h.le) x
+    rw [Function.comp_apply] at hc
+    rw [hc]; exact congrFun (restrictionMap_id D) x
+  right_inv x := by
+    have hc := congrFun (restrictionMap_comp D' D D' h.le h.ge) x
+    rw [Function.comp_apply] at hc
+    rw [hc]; exact congrFun (restrictionMap_id D') x
+  map_mul' x y := (restrictionMapHom D D' h.ge).map_mul x y
+  map_add' x y := (restrictionMapHom D D' h.ge).map_add x y
+
+omit [DecidableEq (RationalLocData A)] in
+/-- **Prop A.4 bridge** (data-vs-set): `IsOXAcyclic` depends only on the
+rational-subset sets. If `C`, `C'` share a base and their piece-sets carry the
+same rational subsets (each `C`-piece `R`-matches some `C'`-piece via `hCC'`, and
+conversely via `hC'C`), then `C'`-acyclicity gives `C`-acyclicity. (Resolves the
+Laurent-induction `hV0`/`hV1`: `restrictTo` and the on-the-sub-base cover have
+equal `R`-image sets but different datum representatives. The two-existence
+interface — no surjective function — is what the sign-vector correspondence
+`laurentProdLeaves_restrict` supplies.) -/
+theorem isOXAcyclic_congr [HasLocLiftPowerBounded A] (C C' : RationalCovering A)
+    (hbase : C.base = C'.base)
+    (hCC' : ∀ D ∈ C.covers, ∃ D' ∈ C'.covers,
+      rationalOpen D.T D.s = rationalOpen D'.T D'.s)
+    (hC'C : ∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
+      rationalOpen D.T D.s = rationalOpen D'.T D'.s)
+    (hC' : C'.IsOXAcyclic) : C.IsOXAcyclic := by
+  obtain ⟨b, cov, hsub, hcov⟩ := C
+  obtain ⟨b', cov', hsub', hcov'⟩ := C'
+  subst hbase
+  -- forward/backward choice functions (no surjectivity needed)
+  choose φ hφmem hφR using hCC'
+  choose ψ hψmem hψR using hC'C
+  refine ⟨fun x hx => ?_, ?_⟩
+  · -- SEPARATION: `x` zero on `cov` ⇒ zero on `cov'` (each `cov'`-piece `R`-matches a
+    -- `cov`-piece `ψ D'` via `hψR`, on which `x = 0`) ⇒ `x = 0` by `hC'.separation`.
+    refine hC'.separation x (fun D' hD' => ?_)
+    have h : rationalOpen (ψ D' hD').T (ψ D' hD').s = rationalOpen D'.T D'.s := hψR D' hD'
+    have hcomp := congrFun
+      (restrictionMap_comp b (ψ D' hD') D' (hsub _ (hψmem D' hD')) h.ge) x
+    rw [Function.comp_apply, hx _ (hψmem D' hD')] at hcomp
+    rw [← hcomp]
+    exact map_zero (restrictionMapHom (ψ D' hD') D' h.ge)
+  · -- GLUING: transfer the `cov`-cocycle `f` to a `cov'`-cocycle via `ψ` + the piece
+    -- isos, glue via `hC'`, pull back via `φ` + `R`-equality.
+    intro f hf
+    set g : ∀ D' : ↥cov', presheafValue D'.1 := fun D' =>
+      restrictionMap (ψ D'.1 D'.2) D'.1 (hψR D'.1 D'.2).ge
+        (f ⟨ψ D'.1 D'.2, hψmem D'.1 D'.2⟩) with hg_def
+    obtain ⟨x, hx⟩ := hC'.gluing g (fun D'₁ D'₂ D₃ h₃₁ h₃₂ => by
+      simp only [hg_def]
+      have c1 := congrFun (restrictionMap_comp (ψ D'₁.1 D'₁.2) D'₁.1 D₃
+        (hψR D'₁.1 D'₁.2).ge h₃₁) (f ⟨ψ D'₁.1 D'₁.2, hψmem D'₁.1 D'₁.2⟩)
+      have c2 := congrFun (restrictionMap_comp (ψ D'₂.1 D'₂.2) D'₂.1 D₃
+        (hψR D'₂.1 D'₂.2).ge h₃₂) (f ⟨ψ D'₂.1 D'₂.2, hψmem D'₂.1 D'₂.2⟩)
+      rw [Function.comp_apply] at c1 c2
+      rw [c1, c2]
+      exact hf ⟨ψ D'₁.1 D'₁.2, hψmem D'₁.1 D'₁.2⟩
+        ⟨ψ D'₂.1 D'₂.2, hψmem D'₂.1 D'₂.2⟩ D₃ _ _)
+    refine ⟨x, fun D => ?_⟩
+    have hRD : rationalOpen D.1.T D.1.s = rationalOpen (φ D.1 D.2).T (φ D.1 D.2).s :=
+      hφR D.1 D.2
+    have cD := congrFun (restrictionMap_comp b (φ D.1 D.2) D.1
+      (hsub' (φ D.1 D.2) (hφmem D.1 D.2)) hRD.le) x
+    rw [Function.comp_apply, hx ⟨φ D.1 D.2, hφmem D.1 D.2⟩] at cD
+    rw [← cD]
+    simp only [hg_def]
+    have cD2 := congrFun (restrictionMap_comp (ψ (φ D.1 D.2) (hφmem D.1 D.2))
+      (φ D.1 D.2) D.1 (hψR (φ D.1 D.2) (hφmem D.1 D.2)).ge hRD.le)
+      (f ⟨ψ (φ D.1 D.2) (hφmem D.1 D.2), hψmem (φ D.1 D.2) (hφmem D.1 D.2)⟩)
+    rw [Function.comp_apply] at cD2
+    rw [cD2, hf ⟨ψ (φ D.1 D.2) (hφmem D.1 D.2),
+      hψmem (φ D.1 D.2) (hφmem D.1 D.2)⟩ D D.1 _ (le_refl _)]
+    exact congrFun (restrictionMap_id D.1) (f D)
+
+omit [DecidableEq (RationalLocData A)] in
+/-- Restriction maps preserve subtraction (they are ring homs). -/
+theorem restrictionMap_sub [HasLocLiftPowerBounded A] (D D' : RationalLocData A)
+    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) (a b : presheafValue D) :
+    restrictionMap D D' h (a - b) =
+      restrictionMap D D' h a - restrictionMap D D' h b :=
+  map_sub (restrictionMapHom D D' h) a b
+
+/-- **Explicit Wedhorn A.3(3) in degree 0** for `RationalCovering`/`IsOXAcyclic`:
+the product cover `Uf × V` is `O_X`-acyclic given `Uf` is and `V` restricted to
+the `Uf`-pieces (`hV0`) and `Uf`-pairwise-intersections (`hV1`) is acyclic. This
+ports the abstract `isDegreeZeroAcyclic_prod` (CechCohomology.lean) to the
+explicit structure presheaf via `interProd`/`restrictTo`/`interSamePair`. The
+keystone of the Laurent-cover acyclicity induction (Wedhorn 8.34(i)). -/
+theorem isOXAcyclic_interProd [HasLocLiftPowerBounded A] (Uf V : RationalCovering A)
+    (hbase : V.base = Uf.base)
+    (hUfP : ∀ P ∈ Uf.covers, P.P = Uf.base.P)
+    (hVP : ∀ Q ∈ V.covers, Q.P = Uf.base.P)
+    (hU : Uf.IsOXAcyclic)
+    (hV0 : ∀ (P : RationalLocData A) (hP : P ∈ Uf.covers),
+      (V.restrictTo P (by rw [hbase]; exact Uf.hsubset P hP)
+        (by rw [hbase]; exact hUfP P hP)
+        (fun Q hQ => by rw [hbase]; exact hVP Q hQ)).IsOXAcyclic)
+    (hV1 : ∀ (P P' : RationalLocData A) (hP : P ∈ Uf.covers) (hP' : P' ∈ Uf.covers),
+      (V.restrictTo (P.interSamePair P' (by rw [hUfP P' hP', hUfP P hP]))
+        (by rw [hbase]
+            exact (RationalLocData.interSamePair_subset_left P P' _).trans
+              (Uf.hsubset P hP))
+        (by rw [hbase]; exact hUfP P hP)
+        (fun Q hQ => by rw [hbase]; exact hVP Q hQ)).IsOXAcyclic) :
+    (Uf.interProd V hbase hUfP hVP).IsOXAcyclic := by
+  refine ⟨fun x hx => ?_, ?_⟩
+  · -- SEPARATION: `x` zero on every `P ∩ Q` ⇒ (via `hV0`) zero on every `P` ⇒
+    -- (via `hU`) zero.
+    refine hU.separation x (fun P hP => ?_)
+    refine (hV0 P hP).separation _ (fun E hE => ?_)
+    rw [RationalCovering.restrictTo_covers, Finset.mem_image] at hE
+    obtain ⟨Q, -, rfl⟩ := hE
+    have hE' : (P.interSamePair Q.1 ((hVP _ Q.2).trans (hUfP P hP).symm))
+        ∈ (Uf.interProd V hbase hUfP hVP).covers := by
+      rw [RationalCovering.interProd_covers, Finset.mem_image]
+      exact ⟨⟨(P, Q.1), Finset.mem_product.mpr ⟨hP, Q.2⟩⟩,
+        Finset.mem_attach _ _, rfl⟩
+    simp only [RationalCovering.restrictTo_base]
+    have hcomp := congrFun (restrictionMap_comp Uf.base P
+      (P.interSamePair Q.1 ((hVP _ Q.2).trans (hUfP P hP).symm))
+      (Uf.hsubset P hP)
+      (RationalLocData.interSamePair_subset_left P Q.1 _)) x
+    rw [Function.comp_apply] at hcomp
+    rw [hcomp]
+    exact hx _ hE'
+  · -- GLUING (the A.3(3) cocycle): per-`P` glue via `hV0`, `Uf`-cocycle via `hV1`,
+    -- glue via `hU`.
+    intro f hf
+    choose g hg using fun (P : ↥Uf.covers) =>
+      (hV0 P.1 P.2).gluing
+        (fun E => f ⟨E.1, RationalCovering.restrictTo_mem_interProd Uf V hbase hUfP hVP
+          P.1 P.2 _ _ _ E.1 E.2⟩)
+        (fun E₁ E₂ D₃ h₃₁ h₃₂ =>
+          hf ⟨E₁.1, RationalCovering.restrictTo_mem_interProd Uf V hbase hUfP hVP
+              P.1 P.2 _ _ _ E₁.1 E₁.2⟩
+            ⟨E₂.1, RationalCovering.restrictTo_mem_interProd Uf V hbase hUfP hVP
+              P.1 P.2 _ _ _ E₂.1 E₂.2⟩ D₃ h₃₁ h₃₂)
+    have hgcoc : ∀ (P₁ P₂ : ↥Uf.covers) (D₃ : RationalLocData A)
+        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen P₁.1.T P₁.1.s)
+        (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen P₂.1.T P₂.1.s),
+        restrictionMap P₁.1 D₃ h₃₁ (g P₁) = restrictionMap P₂.1 D₃ h₃₂ (g P₂) := by
+      intro P₁ P₂ D₃ h₃₁ h₃₂
+      -- Agree on the canonical intersection `M = P₁ ∩ P₂` (via `hV1`), then restrict.
+      set M := P₁.1.interSamePair P₂.1
+        ((hUfP P₂.1 P₂.2).trans (hUfP P₁.1 P₁.2).symm) with hM
+      have hMP₁ : rationalOpen M.T M.s ⊆ rationalOpen P₁.1.T P₁.1.s :=
+        RationalLocData.interSamePair_subset_left _ _ _
+      have hMP₂ : rationalOpen M.T M.s ⊆ rationalOpen P₂.1.T P₂.1.s :=
+        RationalLocData.interSamePair_subset_right _ _ _
+      have hcanon : restrictionMap P₁.1 M hMP₁ (g P₁) =
+          restrictionMap P₂.1 M hMP₂ (g P₂) := by
+        rw [← sub_eq_zero]
+        refine (hV1 P₁.1 P₂.1 P₁.2 P₂.2).separation _ (fun E hE => ?_)
+        rw [RationalCovering.restrictTo_covers, Finset.mem_image] at hE
+        obtain ⟨Q, -, hQeq⟩ := hE
+        have hQP₁ : Q.1.P = P₁.1.P := (hVP Q.1 Q.2).trans (hUfP P₁.1 P₁.2).symm
+        have hQP₂ : Q.1.P = P₂.1.P := (hVP Q.1 Q.2).trans (hUfP P₂.1 P₂.2).symm
+        have hEP₁Q : rationalOpen E.T E.s ⊆
+            rationalOpen (P₁.1.interSamePair Q.1 hQP₁).T
+              (P₁.1.interSamePair Q.1 hQP₁).s := by
+          rw [← hQeq, RationalLocData.interSamePair_rationalOpen,
+            RationalLocData.interSamePair_rationalOpen,
+            RationalLocData.interSamePair_rationalOpen]
+          intro v hv; exact ⟨hv.1.1, hv.2⟩
+        have hEP₂Q : rationalOpen E.T E.s ⊆
+            rationalOpen (P₂.1.interSamePair Q.1 hQP₂).T
+              (P₂.1.interSamePair Q.1 hQP₂).s := by
+          rw [← hQeq, RationalLocData.interSamePair_rationalOpen,
+            RationalLocData.interSamePair_rationalOpen,
+            RationalLocData.interSamePair_rationalOpen]
+          intro v hv; exact ⟨hv.1.2, hv.2⟩
+        have hmem₁ : (P₁.1.interSamePair Q.1 hQP₁) ∈
+            (Uf.interProd V hbase hUfP hVP).covers := by
+          rw [RationalCovering.interProd_covers, Finset.mem_image]
+          exact ⟨⟨(P₁.1, Q.1), Finset.mem_product.mpr ⟨P₁.2, Q.2⟩⟩,
+            Finset.mem_attach _ _, rfl⟩
+        have hmem₂ : (P₂.1.interSamePair Q.1 hQP₂) ∈
+            (Uf.interProd V hbase hUfP hVP).covers := by
+          rw [RationalCovering.interProd_covers, Finset.mem_image]
+          exact ⟨⟨(P₂.1, Q.1), Finset.mem_product.mpr ⟨P₂.2, Q.2⟩⟩,
+            Finset.mem_attach _ _, rfl⟩
+        have hDmem₁ : (P₁.1.interSamePair Q.1 hQP₁) ∈
+            (V.restrictTo P₁.1 (by rw [hbase]; exact Uf.hsubset P₁.1 P₁.2)
+              (by rw [hbase]; exact hUfP P₁.1 P₁.2)
+              (fun Q hQ => by rw [hbase]; exact hVP Q hQ)).covers := by
+          rw [RationalCovering.restrictTo_covers, Finset.mem_image]
+          exact ⟨⟨Q.1, Q.2⟩, Finset.mem_attach _ _, rfl⟩
+        have hDmem₂ : (P₂.1.interSamePair Q.1 hQP₂) ∈
+            (V.restrictTo P₂.1 (by rw [hbase]; exact Uf.hsubset P₂.1 P₂.2)
+              (by rw [hbase]; exact hUfP P₂.1 P₂.2)
+              (fun Q hQ => by rw [hbase]; exact hVP Q hQ)).covers := by
+          rw [RationalCovering.restrictTo_covers, Finset.mem_image]
+          exact ⟨⟨Q.1, Q.2⟩, Finset.mem_attach _ _, rfl⟩
+        have hg₁ := hg P₁ ⟨_, hDmem₁⟩
+        have hg₂ := hg P₂ ⟨_, hDmem₂⟩
+        simp only [RationalCovering.restrictTo_base] at hg₁ hg₂
+        have hP₁Q : rationalOpen (P₁.1.interSamePair Q.1 hQP₁).T
+            (P₁.1.interSamePair Q.1 hQP₁).s ⊆ rationalOpen P₁.1.T P₁.1.s :=
+          RationalLocData.interSamePair_subset_left _ _ _
+        have hP₂Q : rationalOpen (P₂.1.interSamePair Q.1 hQP₂).T
+            (P₂.1.interSamePair Q.1 hQP₂).s ⊆ rationalOpen P₂.1.T P₂.1.s :=
+          RationalLocData.interSamePair_subset_left _ _ _
+        have hEM : rationalOpen E.T E.s ⊆ rationalOpen M.T M.s := by
+          rw [← hQeq]; exact RationalLocData.interSamePair_subset_left _ _ _
+        -- LHS = resMap (P₁∩Q) E (f ⟨P₁∩Q⟩); RHS = resMap (P₂∩Q) E (f ⟨P₂∩Q⟩); equal by `hf`.
+        have eL : restrictionMap M E hEM (restrictionMap P₁.1 M hMP₁ (g P₁)) =
+            restrictionMap (P₁.1.interSamePair Q.1 hQP₁) E hEP₁Q (f ⟨_, hmem₁⟩) := by
+          have c1 := congrFun (restrictionMap_comp P₁.1 M E hMP₁ hEM) (g P₁)
+          have c2 := congrFun (restrictionMap_comp P₁.1
+            (P₁.1.interSamePair Q.1 hQP₁) E hP₁Q hEP₁Q) (g P₁)
+          rw [Function.comp_apply] at c1 c2
+          rw [c1, ← c2, hg₁]
+        have eR : restrictionMap M E hEM (restrictionMap P₂.1 M hMP₂ (g P₂)) =
+            restrictionMap (P₂.1.interSamePair Q.1 hQP₂) E hEP₂Q (f ⟨_, hmem₂⟩) := by
+          have c1 := congrFun (restrictionMap_comp P₂.1 M E hMP₂ hEM) (g P₂)
+          have c2 := congrFun (restrictionMap_comp P₂.1
+            (P₂.1.interSamePair Q.1 hQP₂) E hP₂Q hEP₂Q) (g P₂)
+          rw [Function.comp_apply] at c1 c2
+          rw [c1, ← c2, hg₂]
+        change restrictionMap M E hEM
+          (restrictionMap P₁.1 M hMP₁ (g P₁) - restrictionMap P₂.1 M hMP₂ (g P₂)) = 0
+        rw [restrictionMap_sub, eL, eR]
+        exact sub_eq_zero_of_eq (hf ⟨_, hmem₁⟩ ⟨_, hmem₂⟩ E hEP₁Q hEP₂Q)
+      have hD₃M : rationalOpen D₃.T D₃.s ⊆ rationalOpen M.T M.s := by
+        rw [hM, RationalLocData.interSamePair_rationalOpen]
+        exact Set.subset_inter h₃₁ h₃₂
+      have c1 := congrFun (restrictionMap_comp P₁.1 M D₃ hMP₁ hD₃M) (g P₁)
+      have c2 := congrFun (restrictionMap_comp P₂.1 M D₃ hMP₂ hD₃M) (g P₂)
+      rw [Function.comp_apply] at c1 c2
+      rw [← c1, hcanon, c2]
+    obtain ⟨x, hx⟩ := hU.gluing g hgcoc
+    refine ⟨x, fun D => ?_⟩
+    obtain ⟨D₀, hD₀⟩ := D
+    have hD₀' := hD₀
+    rw [RationalCovering.interProd_covers, Finset.mem_image] at hD₀'
+    obtain ⟨⟨⟨P, Q⟩, hPQ⟩, -, hpq⟩ := hD₀'
+    obtain ⟨hP, hQ⟩ := Finset.mem_product.mp hPQ
+    have hDmem : D₀ ∈ (V.restrictTo P (by rw [hbase]; exact Uf.hsubset P hP)
+        (by rw [hbase]; exact hUfP P hP)
+        (fun Q hQ => by rw [hbase]; exact hVP Q hQ)).covers := by
+      rw [RationalCovering.restrictTo_covers, Finset.mem_image]
+      exact ⟨⟨Q, hQ⟩, Finset.mem_attach _ _, hpq⟩
+    have key := hg ⟨P, hP⟩ ⟨D₀, hDmem⟩
+    simp only [RationalCovering.restrictTo_base] at key
+    have hcomp := congrFun (restrictionMap_comp Uf.base P D₀ (Uf.hsubset P hP)
+      (by rw [← hpq]; exact RationalLocData.interSamePair_subset_left P Q _)) x
+    rw [Function.comp_apply] at hcomp
+    change restrictionMap Uf.base D₀
+      ((Uf.interProd V hbase hUfP hVP).hsubset D₀ hD₀) x = f ⟨D₀, hD₀⟩
+    rw [← hcomp, hx ⟨P, hP⟩, key]
+
 /-! ### Sub-lemmas for Lemma 8.34 — Wedhorn's four-part proof on p. 84
 
 Wedhorn's proof of Lemma 8.34 decomposes into four parts (i)–(iv).
@@ -891,284 +975,6252 @@ This is the induction from Lemma 8.33 via Prop A.3(3). The cover `𝒱` is
 the rational cover generated by `T = { ∏_{j ∈ J} f_j ; J ⊆ {1,...,r} }`. -/
 def RationalCovering.IsLaurentCover [DecidableEq A]
     (C : RationalCovering A) (fs : List A) : Prop :=
-  -- C is the rational cover of C.base generated by the products of subsets of fs.
-  -- (Wedhorn p. 84: 𝒱 := 𝒰_{f_1} × ⋯ × 𝒰_{f_r}.)
-  C.IsGeneratedBy ((fs.sublists.map fun J => J.foldr (· * ·) 1).toFinset)
+  -- C is the RELATIVE Laurent cover of C.base generated by fs: its pieces are
+  -- exactly the iterated laurentPlus/laurentMinus splits of C.base
+  -- (Wedhorn p. 84, 4230-4234: 𝒱 := 𝒰_{f_1} × ⋯ × 𝒰_{f_r}, and 𝒱|U is the
+  -- Laurent cover of U generated by the images fᵢ|U). On the whole-space base
+  -- (T={1}, s=1) this reduces to the absolute "rational cover generated by the
+  -- products {∏_{J} fⱼ}" (4231); see `isLaurentCover_wholeSpace_iff_isGeneratedBy`.
+  C.covers = laurentLeaves C.base fs
+
+/-- The canonical relative Laurent cover satisfies the predicate (definitional). -/
+@[simp] theorem laurentCoverOf_isLaurent [DecidableEq A] (D₀ : RationalLocData A)
+    (fs : List A) : (laurentCoverOf D₀ fs).IsLaurentCover fs := rfl
+
+/-- The empty relative Laurent cover of `C` is the trivial cover `{C.base}`. -/
+theorem isLaurentCover_nil_iff [DecidableEq A] (C : RationalCovering A) :
+    C.IsLaurentCover ([] : List A) ↔ C.covers = {C.base} := by
+  rw [RationalCovering.IsLaurentCover, laurentLeaves_nil]
+
+/-- **Anti-false-leaf anchor / single-generator case**: the relative Laurent cover
+by a single `f` has exactly the pieces of the existing 2-element cover
+`laurentRationalCover D₀ f` (`{R(f/1), R(1/f)}` relative to `D₀`). This ties the
+relativized definition to the independently-verified 2-cover; on the whole-space
+base (`T={1}, s=1`) those pieces are Wedhorn's `𝒰_f` (4230, `laurentPlusDatum
+(whole-space) f = R(f/1)`, `laurentMinusDatum = R(1/f)`). -/
+theorem laurentLeaves_singleton [DecidableEq A] (D₀ : RationalLocData A) (f : A) :
+    laurentLeaves D₀ [f] = (laurentRationalCover D₀ f).covers := by
+  rw [laurentLeaves_cons, laurentLeaves_nil, laurentLeaves_nil, Finset.singleton_union]
+  rfl
 
 /-! ##### Sub-lemmas for Lemma 8.34 part (i) (Laurent induction) -/
 
-/-- **Part (i) base case sub-lemma 1**: when the Laurent generators are
-empty, the generated set `T = {1}`.
+-- (Old whole-space base case `laurent_empty_gen_eq_one` +
+-- `isOXAcyclic_of_single_unit_piece{,_separation,_gluing}` DELETED 2026-06-04
+-- (T-CECH-LAURENT-REL): superseded by the relative `isOXAcyclic_of_trivial_cover`
+-- below — the empty Laurent cover is now `{C.base}`, not a whole-space `T={1}`
+-- singleton. This removed a dead `sorry` (the old `_gluing`) and a Cor-8.32
+-- dependency from the base case.)
 
-`([] : List A).sublists = [[]]`, and `[[]].map (fun J => J.foldr (· * ·) 1) = [1]`,
-which gives `Finset {1}`. -/
-theorem laurent_empty_gen_eq_one [DecidableEq A] :
-    (([] : List A).sublists.map fun J => J.foldr (· * ·) 1).toFinset
-      = ({1} : Finset A) := by
-  simp only [List.sublists, List.map, List.foldr]
+/-- **Part (i) base case (relative)**: the trivial cover `{C.base}` of its own
+base is `O_X`-acyclic. The single restriction `O_X(base) → O_X(base)` is the
+identity (`restrictionMap_id`), so separation and gluing are immediate. This is
+the relativized base of Lemma 8.34(i) (`laurentCoverOf D₀ [] = {D₀}`); it
+replaces the old whole-space `single_unit_piece` route (which needed Cor 8.32). -/
+theorem isOXAcyclic_of_trivial_cover [HasLocLiftPowerBounded A]
+    (V : RationalCovering A) (h_triv : V.covers = {V.base}) :
+    V.IsOXAcyclic := by
+  have hmem : V.base ∈ V.covers := by rw [h_triv]; exact Finset.mem_singleton_self _
+  refine ⟨?_, ?_⟩
+  · -- separation: restriction to the single piece V.base is the identity.
+    intro x hx
+    have hz := hx V.base hmem
+    have hid : restrictionMap V.base V.base (V.hsubset V.base hmem) = id :=
+      restrictionMap_id V.base
+    rwa [hid, id_eq] at hz
+  · -- gluing: the unique piece's section IS the global section.
+    intro f _hf
+    refine ⟨f ⟨V.base, hmem⟩, fun D => ?_⟩
+    obtain ⟨D_val, D_mem⟩ := D
+    have hD1 : D_val = V.base := by
+      rw [h_triv, Finset.mem_singleton] at D_mem; exact D_mem
+    subst hD1
+    have hid : restrictionMap V.base V.base (V.hsubset V.base D_mem) = id :=
+      restrictionMap_id V.base
+    rw [hid, id_eq]
+
+/-! ##### Base-independent (s=1) Laurent cover — the faithful Wedhorn 4231 model
+
+The relativized `laurentLeaves` (recursing through `laurentPlusDatum`, `s = base.s`)
+is **not** base-monotone, so it violates Wedhorn 4233 (restriction-of-Laurent =
+Laurent-of-restriction) and blocks the A.3(3) induction. We model Wedhorn's actual
+whole-space Laurent cover (4231) by recursing through the **base-independent**
+`interSamePair`-with-`unitDatum`/`coUnitDatum` split (conditions `v(fᵢ) ≤ 1` /
+`v(fᵢ) ≥ 1`). This DOES satisfy 4233 (`laurentProdLeaves_restrict`), which feeds the
+explicit A.3(3) `isOXAcyclic_interProd` via the Prop-A.4 bridge `isOXAcyclic_congr`. -/
+
+/-- The `2^|fs|` leaves of the **base-independent** Laurent cover of `D₀` by `fs`:
+the sign-vector chain of `interSamePair`-with-`unitDatum`/`coUnitDatum` refinements
+(base-independent conditions `v(fᵢ) ≤ 1` / `v(fᵢ) ≥ 1`). -/
+noncomputable def laurentProdLeaves [DecidableEq A] (D₀ : RationalLocData A) :
+    List A → Finset (RationalLocData A)
+  | [] => {D₀}
+  | (f :: gs) => laurentProdLeaves (D₀.interSamePair (unitDatum D₀.P f) rfl) gs ∪
+      laurentProdLeaves (D₀.interSamePair (coUnitDatum D₀.P f) rfl) gs
+
+@[simp] theorem laurentProdLeaves_nil [DecidableEq A] (D₀ : RationalLocData A) :
+    laurentProdLeaves D₀ ([] : List A) = {D₀} := rfl
+
+theorem laurentProdLeaves_cons [DecidableEq A] (D₀ : RationalLocData A) (f : A)
+    (gs : List A) :
+    laurentProdLeaves D₀ (f :: gs) =
+      laurentProdLeaves (D₀.interSamePair (unitDatum D₀.P f) rfl) gs ∪
+      laurentProdLeaves (D₀.interSamePair (coUnitDatum D₀.P f) rfl) gs := rfl
+
+/-- Base-independent leaves all share `D₀`'s pair of definition. -/
+theorem laurentProdLeaves_pair [DecidableEq A] (fs : List A) :
+    ∀ (D₀ : RationalLocData A) {D : RationalLocData A}, D ∈ laurentProdLeaves D₀ fs →
+      D.P = D₀.P := by
+  induction fs with
+  | nil => intro D₀ D hD; rw [laurentProdLeaves_nil, Finset.mem_singleton] at hD; rw [hD]
+  | cons f gs ih =>
+    intro D₀ D hD
+    rw [laurentProdLeaves_cons, Finset.mem_union] at hD
+    rcases hD with hD | hD
+    · exact ih (D₀.interSamePair (unitDatum D₀.P f) rfl) hD
+    · exact ih (D₀.interSamePair (coUnitDatum D₀.P f) rfl) hD
+
+/-- Every base-independent leaf is contained in the base (Wedhorn 4230). -/
+theorem laurentProdLeaves_subset [DecidableEq A] (fs : List A) :
+    ∀ (D₀ : RationalLocData A) {D : RationalLocData A}, D ∈ laurentProdLeaves D₀ fs →
+      rationalOpen D.T D.s ⊆ rationalOpen D₀.T D₀.s := by
+  induction fs with
+  | nil => intro D₀ D hD; rw [laurentProdLeaves_nil, Finset.mem_singleton] at hD; rw [hD]
+  | cons f gs ih =>
+    intro D₀ D hD
+    rw [laurentProdLeaves_cons, Finset.mem_union] at hD
+    rcases hD with hD | hD
+    · exact (ih (D₀.interSamePair (unitDatum D₀.P f) rfl) hD).trans
+        (RationalLocData.interSamePair_subset_left _ _ _)
+    · exact (ih (D₀.interSamePair (coUnitDatum D₀.P f) rfl) hD).trans
+        (RationalLocData.interSamePair_subset_left _ _ _)
+
+/-- The base-independent leaves cover the base (valuation trichotomy). -/
+theorem laurentProdLeaves_cover [DecidableEq A] (fs : List A) :
+    ∀ (D₀ : RationalLocData A) {v : Spv A}, v ∈ rationalOpen D₀.T D₀.s →
+      ∃ D ∈ laurentProdLeaves D₀ fs, v ∈ rationalOpen D.T D.s := by
+  induction fs with
+  | nil =>
+    intro D₀ v hv
+    exact ⟨D₀, by rw [laurentProdLeaves_nil]; exact Finset.mem_singleton_self D₀, hv⟩
+  | cons f gs ih =>
+    intro D₀ v hv
+    rcases unitCover_covers D₀ f hv with h | h
+    · obtain ⟨D, hD, hvD⟩ := ih (D₀.interSamePair (unitDatum D₀.P f) rfl) h
+      exact ⟨D, by rw [laurentProdLeaves_cons]; exact Finset.mem_union_left _ hD, hvD⟩
+    · obtain ⟨D, hD, hvD⟩ := ih (D₀.interSamePair (coUnitDatum D₀.P f) rfl) h
+      exact ⟨D, by rw [laurentProdLeaves_cons]; exact Finset.mem_union_right _ hD, hvD⟩
+
+/-- The **base-independent Laurent cover** of `D₀` generated by `fs` (Wedhorn 4231). -/
+noncomputable def laurentProdCoverOf [DecidableEq A] (D₀ : RationalLocData A)
+    (fs : List A) : RationalCovering A where
+  base := D₀
+  covers := laurentProdLeaves D₀ fs
+  hsubset D hD := laurentProdLeaves_subset fs D₀ hD
+  hcover v hv := laurentProdLeaves_cover fs D₀ hv
+
+@[simp] theorem laurentProdCoverOf_base [DecidableEq A] (D₀ : RationalLocData A)
+    (fs : List A) : (laurentProdCoverOf D₀ fs).base = D₀ := rfl
+
+@[simp] theorem laurentProdCoverOf_covers [DecidableEq A] (D₀ : RationalLocData A)
+    (fs : List A) : (laurentProdCoverOf D₀ fs).covers = laurentProdLeaves D₀ fs := rfl
+
+/-- **Base-independent Laurent cover predicate** (the faithful Wedhorn 4231 form):
+`C` is the base-independent Laurent cover of `C.base` by `fs`. Replaces the
+relativized `IsLaurentCover` (`laurentLeaves`/`laurentPlusDatum`) on the acyclicity
+path — the two are R-different at non-whole-space bases, and only this one satisfies
+restriction-commutation (`laurentProdLeaves_restrict`), hence is acyclic. -/
+def RationalCovering.IsLaurentProdCover [DecidableEq A] (C : RationalCovering A)
+    (fs : List A) : Prop :=
+  C.covers = laurentProdLeaves C.base fs
+
+@[simp] theorem laurentProdCoverOf_isLaurentProd [DecidableEq A]
+    (D₀ : RationalLocData A) (fs : List A) :
+    (laurentProdCoverOf D₀ fs).IsLaurentProdCover fs := rfl
+
+theorem isLaurentProdCover_nil_iff [DecidableEq A] (C : RationalCovering A) :
+    C.IsLaurentProdCover ([] : List A) ↔ C.covers = {C.base} := by
+  rw [RationalCovering.IsLaurentProdCover, laurentProdLeaves_nil]
+
+/-- **Restriction-commutation (Wedhorn 4233)** for the base-independent Laurent
+cover: for `P ⊆ D₀`, the rational subsets `{R(P) ∩ R(Q) : Q ∈ laurentProdLeaves D₀ fs}`
+and `{R(Q') : Q' ∈ laurentProdLeaves P fs}` coincide (both directions). This is
+"restriction of the Laurent cover = Laurent cover of the restriction" — the
+property the relativized `laurentLeaves` (`laurentPlusDatum`, `s=base.s`) LACKS,
+and the reason the base-independent model is needed. Proof by induction on `fs`:
+the key is that a leaf `Q ⊆ D₀⁺` already satisfies the `v(g)≤1` condition, so
+`R(P) ∩ R(Q) = R(P⁺) ∩ R(Q)` (base-independence makes the condition free). -/
+theorem laurentProdLeaves_restrict [DecidableEq A] (fs : List A) :
+    ∀ (D₀ P : RationalLocData A),
+      rationalOpen P.T P.s ⊆ rationalOpen D₀.T D₀.s →
+      (∀ Q ∈ laurentProdLeaves D₀ fs, ∃ Q' ∈ laurentProdLeaves P fs,
+        rationalOpen P.T P.s ∩ rationalOpen Q.T Q.s = rationalOpen Q'.T Q'.s) ∧
+      (∀ Q' ∈ laurentProdLeaves P fs, ∃ Q ∈ laurentProdLeaves D₀ fs,
+        rationalOpen P.T P.s ∩ rationalOpen Q.T Q.s = rationalOpen Q'.T Q'.s) := by
+  induction fs with
+  | nil =>
+    intro D₀ P hsub
+    refine ⟨fun Q hQ => ?_, fun Q' hQ' => ?_⟩
+    · rw [laurentProdLeaves_nil, Finset.mem_singleton] at hQ; subst hQ
+      exact ⟨P, by rw [laurentProdLeaves_nil]; exact Finset.mem_singleton_self _,
+        Set.inter_eq_left.mpr hsub⟩
+    · rw [laurentProdLeaves_nil, Finset.mem_singleton] at hQ'; subst hQ'
+      exact ⟨D₀, by rw [laurentProdLeaves_nil]; exact Finset.mem_singleton_self _,
+        Set.inter_eq_left.mpr hsub⟩
+  | cons g gs' ih =>
+    intro D₀ P hsub
+    have hR_unit : rationalOpen (unitDatum P.P g).T (unitDatum P.P g).s =
+        rationalOpen (unitDatum D₀.P g).T (unitDatum D₀.P g).s := rfl
+    have hR_counit : rationalOpen (coUnitDatum P.P g).T (coUnitDatum P.P g).s =
+        rationalOpen (coUnitDatum D₀.P g).T (coUnitDatum D₀.P g).s := rfl
+    have hsub_plus : rationalOpen (P.interSamePair (unitDatum P.P g) rfl).T
+          (P.interSamePair (unitDatum P.P g) rfl).s ⊆
+        rationalOpen (D₀.interSamePair (unitDatum D₀.P g) rfl).T
+          (D₀.interSamePair (unitDatum D₀.P g) rfl).s := by
+      rw [RationalLocData.interSamePair_rationalOpen,
+        RationalLocData.interSamePair_rationalOpen, hR_unit]
+      exact Set.inter_subset_inter hsub (subset_refl _)
+    have hsub_minus : rationalOpen (P.interSamePair (coUnitDatum P.P g) rfl).T
+          (P.interSamePair (coUnitDatum P.P g) rfl).s ⊆
+        rationalOpen (D₀.interSamePair (coUnitDatum D₀.P g) rfl).T
+          (D₀.interSamePair (coUnitDatum D₀.P g) rfl).s := by
+      rw [RationalLocData.interSamePair_rationalOpen,
+        RationalLocData.interSamePair_rationalOpen, hR_counit]
+      exact Set.inter_subset_inter hsub (subset_refl _)
+    obtain ⟨ihp_fwd, ihp_bwd⟩ := ih (D₀.interSamePair (unitDatum D₀.P g) rfl)
+      (P.interSamePair (unitDatum P.P g) rfl) hsub_plus
+    obtain ⟨ihm_fwd, ihm_bwd⟩ := ih (D₀.interSamePair (coUnitDatum D₀.P g) rfl)
+      (P.interSamePair (coUnitDatum P.P g) rfl) hsub_minus
+    -- key: a `D₀⁺`-leaf already satisfies `v(g)≤1`, so intersecting `P` with it
+    -- equals intersecting `P⁺` with it (base-independence of the condition).
+    have key_plus : ∀ Q ∈ laurentProdLeaves (D₀.interSamePair (unitDatum D₀.P g) rfl) gs',
+        rationalOpen P.T P.s ∩ rationalOpen Q.T Q.s =
+        rationalOpen (P.interSamePair (unitDatum P.P g) rfl).T
+          (P.interSamePair (unitDatum P.P g) rfl).s ∩ rationalOpen Q.T Q.s := by
+      intro Q hQ
+      have hQsub : rationalOpen Q.T Q.s ⊆
+          rationalOpen (unitDatum D₀.P g).T (unitDatum D₀.P g).s := by
+        refine (laurentProdLeaves_subset gs' _ hQ).trans ?_
+        rw [RationalLocData.interSamePair_rationalOpen]; exact Set.inter_subset_right
+      rw [RationalLocData.interSamePair_rationalOpen, hR_unit, Set.inter_assoc,
+        Set.inter_eq_right.mpr hQsub]
+    have key_minus : ∀ Q ∈ laurentProdLeaves (D₀.interSamePair (coUnitDatum D₀.P g) rfl) gs',
+        rationalOpen P.T P.s ∩ rationalOpen Q.T Q.s =
+        rationalOpen (P.interSamePair (coUnitDatum P.P g) rfl).T
+          (P.interSamePair (coUnitDatum P.P g) rfl).s ∩ rationalOpen Q.T Q.s := by
+      intro Q hQ
+      have hQsub : rationalOpen Q.T Q.s ⊆
+          rationalOpen (coUnitDatum D₀.P g).T (coUnitDatum D₀.P g).s := by
+        refine (laurentProdLeaves_subset gs' _ hQ).trans ?_
+        rw [RationalLocData.interSamePair_rationalOpen]; exact Set.inter_subset_right
+      rw [RationalLocData.interSamePair_rationalOpen, hR_counit, Set.inter_assoc,
+        Set.inter_eq_right.mpr hQsub]
+    refine ⟨fun Q hQ => ?_, fun Q' hQ' => ?_⟩
+    · rw [laurentProdLeaves_cons, Finset.mem_union] at hQ
+      rcases hQ with hQ | hQ
+      · obtain ⟨Q', hQ', hQeq⟩ := ihp_fwd Q hQ
+        exact ⟨Q', by rw [laurentProdLeaves_cons]; exact Finset.mem_union_left _ hQ',
+          (key_plus Q hQ).trans hQeq⟩
+      · obtain ⟨Q', hQ', hQeq⟩ := ihm_fwd Q hQ
+        exact ⟨Q', by rw [laurentProdLeaves_cons]; exact Finset.mem_union_right _ hQ',
+          (key_minus Q hQ).trans hQeq⟩
+    · rw [laurentProdLeaves_cons, Finset.mem_union] at hQ'
+      rcases hQ' with hQ' | hQ'
+      · obtain ⟨Q, hQ, hQeq⟩ := ihp_bwd Q' hQ'
+        exact ⟨Q, by rw [laurentProdLeaves_cons]; exact Finset.mem_union_left _ hQ,
+          (key_plus Q hQ).trans hQeq⟩
+      · obtain ⟨Q, hQ, hQeq⟩ := ihm_bwd Q' hQ'
+        exact ⟨Q, by rw [laurentProdLeaves_cons]; exact Finset.mem_union_right _ hQ,
+          (key_minus Q hQ).trans hQeq⟩
+
+/-! ### Wedhorn Example 6.38 with explicit kernel — the `unitDatum`/`coUnitDatum` cases
+
+For the base-independent halves `R(b/1)` (`unitDatum P b`: `T = {b}`, `s = 1`) and
+`R(1/b)` (`coUnitDatum P b`: `T = {1}`, `s = b`), Wedhorn's Example 6.38/6.39
+identification takes the explicit principal-kernel form of equation (8.2.1), p. 83:
+
+    O_X(R(b/1)) = A⟨ζ⟩/(b − ζ),        O_X(R(1/b)) = A⟨η⟩/(1 − bη).
+
+The evaluation `example638_evalHom` is surjective (`example638_evalHom_surjective`)
+with kernel exactly the principal ideal (closed by Prop 6.17 over the strongly
+noetherian base). `⊇` is the computation `evalHom(b − ζ) = canonicalMap b − b/1 = 0`;
+`⊆` is the completion comparison: the quotient by the closed principal ideal is
+complete Hausdorff, the localization lifts to it (`s` is trivially a unit mod the
+ideal: `s = 1` resp. `b·η ≡ 1`), the lift extends to `presheafValue`
+(`UniformSpace.Completion.extensionHom`), and the extension factors `mk` through
+`evalHom` on the dense polynomial subring (`mvPolynomialToTate_denseRange`).
+
+**TODO (next: the overlap bridge, `unitCover_bridgeOverlap`).** The two `ker_le_span`
+proofs below share one skeleton; the right generalisation (which also yields the
+`n = 3` overlap datum `T = {1, b, b²}`, `s = b`) is the parametric
+
+    datum_ker_le_span_of_unit_mod (D : RationalLocData A)
+        (aI : Ideal ↥(restrictedMvPowerSeriesSubring D.T.card A))
+        (haI_closed : IsClosed (aI : Set _))
+        (hUnit : IsUnit (mk aI (algebraMap D.s)))
+        (hgen : ∀ i, mk aI (algebraMap (genElt D i)) =
+                  mk aI (algebraMap D.s) * mk aI ⟨X i, _⟩) :
+        RingHom.ker (example638_evalHom D) ≤ aI
+
+— `ψ(tᵢ/s) = mk Xᵢ` is then DERIVED (`ψ(tᵢ/s)·mk s = mk tᵢ = mk s · mk Xᵢ`, cancel the
+unit), the rest of the skeleton (`mvQuot` instances, `locTopology_continuous_lift`,
+Φ/β opaquification, `mvPolynomialToTate_denseRange` + `ringHom_ext`) is verbatim at
+general `D.T.card`. The per-datum inputs are 3-line discharges (plus: `s = 1`; minus:
+`bη ≡ 1`; overlap: `bX₁ ≡ 1`). The `hUnit`/`hgen` hypotheses are NOT work-deferral:
+each consumer discharges them concretely on the spot (CLAUDE.md sub-lemma pattern). -/
+
+section Example638ExplicitKernel
+
+set_option linter.unusedSectionVars false in
+/-- For the plus-half `unitDatum P b` (`T = {b}`, `s = 1`), the unique rational
+generator is `b/1 = canonicalMap b`. -/
+private theorem unitDatum_genTuple_eq [IsTateRing A] [IsNoetherianRing A]
+    (P : PairOfDefinition A) (b : A) (i : Fin (unitDatum P b).T.card) :
+    example638_genTuple (unitDatum P b) i = (unitDatum P b).canonicalMap b := by
+  have hval : ((((unitDatum P b).T.equivFin.symm i) :
+      ((unitDatum P b).T : Finset A)) : A) = b :=
+    Finset.mem_singleton.mp ((unitDatum P b).T.equivFin.symm i).2
+  show (unitDatum P b).coeRingHom (divByS _ (unitDatum P b).s) = _
+  rw [hval]
+  show (unitDatum P b).coeRingHom (divByS b 1) = _
+  rw [divByS_eq_algebraMap]
   rfl
 
-set_option synthInstance.maxHeartbeats 800000 in
-/-- **Part (i) base-case separation**: under the single-unit-piece
-hypothesis, the separation field of `IsOXAcyclic` holds.
+set_option linter.unusedSectionVars false in
+/-- For the minus-half `coUnitDatum P b` (`T = {1}`, `s = b`), the unique rational
+generator is `1/b`. -/
+private theorem coUnitDatum_genTuple_eq [IsTateRing A] [IsNoetherianRing A]
+    (P : PairOfDefinition A) (b : A) (i : Fin (coUnitDatum P b).T.card) :
+    example638_genTuple (coUnitDatum P b) i =
+      (coUnitDatum P b).coeRingHom (divByS 1 b) := by
+  have hval : ((((coUnitDatum P b).T.equivFin.symm i) :
+      ((coUnitDatum P b).T : Finset A)) : A) = 1 :=
+    Finset.mem_singleton.mp ((coUnitDatum P b).T.equivFin.symm i).2
+  show (coUnitDatum P b).coeRingHom (divByS _ (coUnitDatum P b).s) = _
+  rw [hval]
+  rfl
 
-The restriction `V.base → D₀` where `D₀.T = {1}, D₀.s = 1` corresponds
-to the identity (composed with iso to itself), so restricting to zero on
-the single piece forces the global section to be zero. -/
-theorem isOXAcyclic_of_single_unit_piece_separation
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (V : RationalCovering A)
-    (_h_one_piece : ∃ D₀, V.covers = {D₀} ∧ D₀.T = {1} ∧ D₀.s = 1) :
-    ∀ (x : presheafValue V.base),
-      (∀ (D : RationalLocData A) (hD : D ∈ V.covers),
-        restrictionMap V.base D (V.hsubset D hD) x = 0) → x = 0 := by
-  -- Use Cor 8.32: the product `presheafValue V.base → ∏ presheafValue D` over
-  -- D ∈ V.covers is faithfully flat, hence (algebraMap) injective. Apply this
-  -- pointwise to derive x = 0 from "restriction = 0 for every D".
-  intro x hx
-  letI : ∀ D : { D // D ∈ V.covers }, Algebra (presheafValue V.base)
-      (presheafValue D.1) := fun D =>
-    (restrictionMapHom V.base D.1 (V.hsubset D.1 D.2)).toAlgebra
-  haveI hff := cor_8_32_clean_proof (IsTateRing.principalPair A).toPairOfDefinition V
-  -- Use the same pattern as `injectivity_from_faithfullyFlat_2cover`.
-  have h_inj : Function.Injective
-      (fun (y : presheafValue V.base) =>
-        fun (D : { D // D ∈ V.covers }) =>
-          restrictionMap V.base D.1 (V.hsubset D.1 D.2) y) := by
-    have := FaithfulSMul.algebraMap_injective
-      (presheafValue V.base)
-      (∀ D : { D : RationalLocData A // D ∈ V.covers }, presheafValue D.1)
-    intro y₁ y₂ hy
-    apply this
-    funext D
-    exact congr_fun hy D
-  apply h_inj
-  funext D
-  show restrictionMap V.base D.1 (V.hsubset D.1 D.2) x =
-       restrictionMap V.base D.1 (V.hsubset D.1 D.2) 0
-  rw [hx D.1 D.2]
-  exact (map_zero (restrictionMapHom V.base D.1 (V.hsubset D.1 D.2))).symm
-
-/-- **Part (i) base-case gluing**: under the single-unit-piece hypothesis,
-the gluing field of `IsOXAcyclic` holds.
-
-A compatible family on `{D₀}` (a single-element set) is just a single
-section `f D₀`; the global section is its pullback along the iso
-`V.base ≃ D₀`. -/
-theorem isOXAcyclic_of_single_unit_piece_gluing
+set_option linter.unusedSectionVars false in
+/-- `⊇` of (8.2.1)-plus: the generator `algebraMap b − ζ` is killed by the
+evaluation (`ζ ↦ b/1 = canonicalMap b`, `example638_evalHom_X` +
+`unitDatum_genTuple_eq`). -/
+private theorem unitDatum_span_le_ker
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (V : RationalCovering A)
-    (_h_one_piece : ∃ D₀, V.covers = {D₀} ∧ D₀.T = {1} ∧ D₀.s = 1) :
-    ∀ (f : ∀ (D : ↥V.covers), presheafValue D.1),
-      (∀ (D₁ D₂ : ↥V.covers)
-         (D₃ : RationalLocData A)
-         (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
-         (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
-         restrictionMap D₁.1 D₃ h₃₁ (f D₁) =
-           restrictionMap D₂.1 D₃ h₃₂ (f D₂)) →
-      ∃ x : presheafValue V.base, ∀ (D : ↥V.covers),
-        restrictionMap V.base D.1 (V.hsubset D.1 D.2) x = f D := by
-  -- The single-piece structure gives ↥V.covers ≃ Unit; pull back the
-  -- value f D₀ along the iso V.base ≃ D₀.
-  sorry
+    (P : PairOfDefinition A) (b : A) :
+    Ideal.span {algebraMap A ↥(TateAlgebra A) b - TateAlgebra.X} ≤
+      RingHom.ker (example638_evalHom (unitDatum P b)) := by
+  rw [Ideal.span_le, Set.singleton_subset_iff, SetLike.mem_coe, RingHom.mem_ker]
+  erw [map_sub, example638_evalHom_algebraMap,
+    example638_evalHom_X (unitDatum P b) ((0 : Fin 1) : Fin (unitDatum P b).T.card),
+    unitDatum_genTuple_eq]
+  exact sub_self _
 
-/-- **Part (i) base case sub-lemma 2**: a `RationalCovering` with cover
-set `{D₀}` where `D₀.T = {1}` and `D₀.s = 1` is `O_X`-acyclic.
-
-Composed from the separation and gluing fields proved above. -/
-theorem isOXAcyclic_of_single_unit_piece
+set_option linter.unusedSectionVars false in
+/-- `⊇` of (8.2.1)-minus: the generator `1 − algebraMap b · η` is killed by the
+evaluation (`η ↦ 1/b`, and `b · (1/b) = 1` in the localization). -/
+private theorem coUnitDatum_span_le_ker
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (V : RationalCovering A)
-    (h_one_piece : ∃ D₀, V.covers = {D₀} ∧ D₀.T = {1} ∧ D₀.s = 1) :
-    V.IsOXAcyclic :=
-  { separation := isOXAcyclic_of_single_unit_piece_separation V h_one_piece
-    gluing := isOXAcyclic_of_single_unit_piece_gluing V h_one_piece }
+    (P : PairOfDefinition A) (b : A) :
+    Ideal.span {1 - algebraMap A ↥(TateAlgebra A) b * TateAlgebra.X} ≤
+      RingHom.ker (example638_evalHom (coUnitDatum P b)) := by
+  rw [Ideal.span_le, Set.singleton_subset_iff, SetLike.mem_coe, RingHom.mem_ker]
+  erw [map_sub, map_one, map_mul, example638_evalHom_algebraMap,
+    example638_evalHom_X (coUnitDatum P b) ((0 : Fin 1) : Fin (coUnitDatum P b).T.card),
+    coUnitDatum_genTuple_eq]
+  -- `canonicalMap b · (1/b) = (b/1)·(1/b) = b/b = 1` in the localization image.
+  have hmul : (coUnitDatum P b).canonicalMap b *
+      (coUnitDatum P b).coeRingHom (divByS 1 b) = 1 := by
+    show (coUnitDatum P b).coeRingHom (algebraMap A (Localization.Away b) b) *
+        (coUnitDatum P b).coeRingHom (divByS 1 b) = 1
+    rw [← map_mul, ← map_one (coUnitDatum P b).coeRingHom]
+    congr 1
+    unfold divByS
+    exact (IsLocalization.mk'_spec' (Localization.Away b) 1
+      ⟨b, Submonoid.mem_powers b⟩).trans (map_one _)
+  rw [hmul, sub_self]
 
-/-- **Part (i) base sub-lemma**: extract the single-piece structure from
-`V.IsLaurentCover []`. The empty Laurent cover has its IsGeneratedBy-T
-equal to `{1}` (by `laurent_empty_gen_eq_one`), and the bijection
-`φ : {1} → V.covers` picks out a unique piece `D₀` with `D₀.T = {1}`,
-`D₀.s = 1`. -/
-theorem single_unit_piece_of_empty_laurent [DecidableEq A]
-    (V : RationalCovering A) (hV_laurent : V.IsLaurentCover ([] : List A)) :
-    ∃ D₀, V.covers = {D₀} ∧ D₀.T = {1} ∧ D₀.s = 1 := by
-  -- Unfold IsLaurentCover [] = IsGeneratedBy {1} via laurent_empty_gen_eq_one.
-  have h_T_eq : (([] : List A).sublists.map fun J => J.foldr (· * ·) 1).toFinset
-                = ({1} : Finset A) := laurent_empty_gen_eq_one
-  unfold RationalCovering.IsLaurentCover at hV_laurent
-  rw [h_T_eq] at hV_laurent
-  obtain ⟨_h_span, φ, hφ_bij, hφ_eq⟩ := hV_laurent
-  -- φ : ({1} : Finset A) → V.covers is a bijection.
-  -- The unique element of ({1} : Finset A) coerced to subtype is ⟨1, _⟩.
-  have h1_mem : (1 : A) ∈ ({1} : Finset A) := Finset.mem_singleton_self 1
-  set t₀ : ({1} : Finset A) := ⟨1, h1_mem⟩ with ht₀
-  set D₀_sub : ↥V.covers := φ t₀ with hD₀_sub
-  refine ⟨D₀_sub.1, ?_, ?_, ?_⟩
-  · -- V.covers = {D₀_sub.1}
-    -- bijection from singleton implies single element.
-    apply Finset.eq_singleton_iff_unique_mem.mpr
-    refine ⟨D₀_sub.2, ?_⟩
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- `⊆` of (8.2.1)-plus — the completion comparison. The quotient
+`A⟨ζ⟩ ⧸ (b − ζ)` is complete Hausdorff (the principal ideal is closed by Prop 6.17
+over the strongly noetherian base); the localization `A[1/s] = A[1/1]` lifts to it
+continuously (`s = 1` is trivially a unit mod the ideal); the lift extends to the
+completion `presheafValue (unitDatum P b)` (`UniformSpace.Completion.extensionHom`);
+and the extension factors `mk` through `example638_evalHom` on the dense polynomial
+subring (`mvPolynomialToTate_denseRange`). Hence `evalHom h = 0 ⟹ mk h = 0`. -/
+private theorem unitDatum_ker_le_span
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (P : PairOfDefinition A) (b : A) :
+    RingHom.ker (example638_evalHom (unitDatum P b)) ≤
+      Ideal.span {algebraMap A ↥(TateAlgebra A) b - TateAlgebra.X} := by
+  classical
+  set D := unitDatum P b with hD
+  set aI : Ideal ↥(restrictedMvPowerSeriesSubring 1 A) :=
+    Ideal.span {algebraMap A ↥(TateAlgebra A) b - TateAlgebra.X} with haI
+  -- source instances
+  letI τC : TopologicalSpace ↥(restrictedMvPowerSeriesSubring 1 A) :=
+    MvTateAlgebra.mvTateAlgebraTopology' 1
+  haveI hringC : IsTopologicalRing ↥(restrictedMvPowerSeriesSubring 1 A) :=
+    MvTateAlgebra.mvTateAlgebraTopology'_isTopologicalRing 1
+  have hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A) := ‹_›
+  have haI_closed : IsClosed (aI : Set ↥(restrictedMvPowerSeriesSubring 1 A)) :=
+    MvTateAlgebra.mvTate_isClosed_ideal 1 hA_complete aI
+  -- quotient instances (complete Hausdorff topological ring)
+  letI τQ : TopologicalSpace (↥(restrictedMvPowerSeriesSubring 1 A) ⧸ aI) :=
+    mvQuotTopology 1 aI
+  letI uQ : UniformSpace (↥(restrictedMvPowerSeriesSubring 1 A) ⧸ aI) :=
+    mvQuotUniformSpace 1 aI
+  haveI hringQ : @IsTopologicalRing _ τQ _ := mvQuot_isTopologicalRing 1 aI
+  haveI : @IsUniformAddGroup _ uQ _ := mvQuot_isUniformAddGroup 1 aI
+  haveI : @CompleteSpace _ uQ := mvQuot_completeSpace 1 aI hA_complete
+  haveI hT2Q : @T2Space _ τQ := mvQuot_t2Space 1 aI haI_closed
+  haveI : @T0Space _ τQ := @T1Space.t0Space _ τQ (@T2Space.t1Space _ τQ hT2Q)
+  haveI hNAQ : @NonarchimedeanRing _ _ τQ := mvQuot_nonarchimedean 1 aI
+  -- the localization lift `ψ` (the denominator `D.s = 1` is trivially a unit)
+  have hUnit1 : IsUnit ((Ideal.Quotient.mk aI).comp
+      (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A)) D.s) := by
+    show IsUnit ((Ideal.Quotient.mk aI).comp
+      (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A)) 1)
+    rw [map_one]; exact isUnit_one
+  set ψ : Localization.Away D.s →+* (↥(restrictedMvPowerSeriesSubring 1 A) ⧸ aI) :=
+    IsLocalization.Away.lift (x := D.s)
+      (g := (Ideal.Quotient.mk aI).comp
+        (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A))) hUnit1 with hψ
+  have hψ_alg : ∀ x : A, ψ (algebraMap A (Localization.Away D.s) x) =
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A) x) := by
+    intro x
+    rw [hψ, IsLocalization.Away.lift_eq]
+    rfl
+  -- the key congruence: `mk (algebraMap b) = mk ζ` modulo the principal ideal
+  have hmk_bX : Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A) b) =
+      Ideal.Quotient.mk aI (⟨MvPowerSeries.X (0 : Fin 1), MvPowerSeries.X_isRestricted 0⟩ :
+        ↥(restrictedMvPowerSeriesSubring 1 A)) := by
+    rw [Ideal.Quotient.eq]
+    exact Ideal.subset_span (Set.mem_singleton _)
+  -- `ψ` is continuous for the localization topology
+  have hψ_cont : @Continuous _ _ D.topology τQ ψ := by
+    change @Continuous _ _ (locTopology D.P D.T D.s D.hopen) τQ ψ
+    refine locTopology_continuous_lift D.P D.T D.s D.hopen ψ ?_ ?_
+    · have heq : ψ.comp (algebraMap A (Localization.Away D.s)) =
+          (Ideal.Quotient.mk aI).comp
+            (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A)) := by
+        ext x; exact hψ_alg x
+      rw [heq]
+      exact continuous_quotient_mk'.comp
+        (MvTateAlgebra.mvTateAlgebra_algebraMap_continuous (A := A) 1)
+    · intro t ht
+      rw [show (D.T : Finset A) = {b} from rfl, Finset.mem_singleton] at ht
+      subst ht
+      have h1 : ψ (divByS t D.s) = Ideal.Quotient.mk aI
+          (⟨MvPowerSeries.X (0 : Fin 1), MvPowerSeries.X_isRestricted 0⟩ :
+            ↥(restrictedMvPowerSeriesSubring 1 A)) := by
+        erw [divByS_eq_algebraMap, hψ_alg]
+        exact hmk_bX
+      rw [h1]
+      exact isPowerBounded_map_of_isOpenMap (Ideal.Quotient.mk aI)
+        continuous_quotient_mk' (@QuotientRing.isOpenMap_coe _ τC _ aI hringC)
+        (MvTateAlgebra.mvPowerSeries_X_isBounded (0 : Fin 1))
+  -- Opaquify the evaluation as a `Fin 1`-typed hom `Φ`: the `D.T.card ≡ 1` defeq is
+  -- paid ONCE here; every later composite is then cheaply `Fin 1`-typed (leaving the
+  -- evaluation at the `D.T.card`-type makes each `RingHom.comp` unification re-pay
+  -- the structural defeq and blow up `whnf`).
+  obtain ⟨Φ, hΦ_cont, hΦ_alg, hΦ_X, hΦ_ker⟩ :
+      ∃ Φ : ↥(restrictedMvPowerSeriesSubring 1 A) →+* presheafValue D,
+        @Continuous _ _ τC _ ⇑Φ ∧
+        (∀ x : A, Φ (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A) x) =
+          D.canonicalMap x) ∧
+        (Φ (⟨MvPowerSeries.X (0 : Fin 1), MvPowerSeries.X_isRestricted 0⟩ :
+            ↥(restrictedMvPowerSeriesSubring 1 A)) =
+          D.coeRingHom (algebraMap A (Localization.Away D.s) b)) ∧
+        RingHom.ker (example638_evalHom D) = RingHom.ker Φ := by
+    refine ⟨example638_evalHom D, example638_evalHom_continuous D,
+      fun x => example638_evalHom_algebraMap D x, ?_, rfl⟩
+    erw [example638_evalHom_X D ((0 : Fin 1) : Fin D.T.card), unitDatum_genTuple_eq]
+    rfl
+  -- extend to the completion, then make the extension OPAQUE (an existential
+  -- `obtain` yields a fresh `β` carrying only the two facts the rest needs —
+  -- unfolding the `extensionHom` term in every later unification blows up `whnf`)
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  obtain ⟨β, hβ_coe, hβ_cont⟩ :
+      ∃ β : presheafValue D →+* (↥(restrictedMvPowerSeriesSubring 1 A) ⧸ aI),
+        (∀ y : Localization.Away D.s, β (D.coeRingHom y) = ψ y) ∧
+          @Continuous _ _ _ τQ ⇑β := by
+    refine ⟨@UniformSpace.Completion.extensionHom (Localization.Away D.s) _ D.uniformSpace _ _
+      (↥(restrictedMvPowerSeriesSubring 1 A) ⧸ aI) uQ _ (mvQuot_isUniformAddGroup 1 aI)
+      (mvQuot_isTopologicalRing 1 aI) ψ hψ_cont ‹_› ‹_›, fun y => ?_, ?_⟩
+    · exact @UniformSpace.Completion.extensionHom_coe (Localization.Away D.s) _ D.uniformSpace
+        _ _ (↥(restrictedMvPowerSeriesSubring 1 A) ⧸ aI) uQ _ (mvQuot_isUniformAddGroup 1 aI)
+        (mvQuot_isTopologicalRing 1 aI) ψ hψ_cont ‹_› ‹_› y
+    · exact @UniformSpace.Completion.continuous_extension (Localization.Away D.s)
+        D.uniformSpace _ uQ (⇑ψ) ‹_›
+  -- `β ∘ Φ = mk` (continuous ring homs agreeing on the dense polynomials)
+  have hext : (⇑β ∘ ⇑Φ :
+      ↥(restrictedMvPowerSeriesSubring 1 A) → _) = ⇑(Ideal.Quotient.mk aI) := by
+    refine Continuous.ext_on
+      (MvTateAlgebra.mvPolynomialToTate_denseRange (A := A) 1)
+      (hβ_cont.comp hΦ_cont) continuous_quotient_mk' ?_
+    rintro _ ⟨p, rfl⟩
+    have hcomp : ((β.comp Φ).comp
+        (MvTateAlgebra.mvPolynomialToTate (A := A) 1)) =
+        (Ideal.Quotient.mk aI).comp (MvTateAlgebra.mvPolynomialToTate (A := A) 1) := by
+      refine MvPolynomial.ringHom_ext (fun c => ?_) (fun j => ?_)
+      · simp only [RingHom.comp_apply, MvTateAlgebra.mvPolynomialToTate_C]
+        rw [hΦ_alg]
+        show β (D.coeRingHom (algebraMap A (Localization.Away D.s) c)) = _
+        rw [hβ_coe, hψ_alg]
+      · simp only [RingHom.comp_apply, MvTateAlgebra.mvPolynomialToTate_X]
+        have hj : j = 0 := Subsingleton.elim j 0
+        subst hj
+        rw [hΦ_X, hβ_coe, hψ_alg, hmk_bX]
+    exact RingHom.congr_fun hcomp p
+  -- conclude: `Φ h = 0 ⟹ mk h = 0 ⟹ h ∈ span`
+  rw [hΦ_ker]
+  intro h hh
+  have hh' : Φ h = 0 := hh
+  have hfun := congrFun hext h
+  simp only [Function.comp_apply, hh', map_zero] at hfun
+  exact Ideal.Quotient.eq_zero_iff_mem.mp hfun.symm
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- `⊆` of (8.2.1)-minus — the completion comparison, mirror of
+`unitDatum_ker_le_span`. Here `s = b` and the lift exists because `b` is a unit
+modulo `(1 − bη)` (with inverse `η`). -/
+private theorem coUnitDatum_ker_le_span
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (P : PairOfDefinition A) (b : A) :
+    RingHom.ker (example638_evalHom (coUnitDatum P b)) ≤
+      Ideal.span {1 - algebraMap A ↥(TateAlgebra A) b * TateAlgebra.X} := by
+  classical
+  set D := coUnitDatum P b with hD
+  set aI : Ideal ↥(restrictedMvPowerSeriesSubring 1 A) :=
+    Ideal.span {1 - algebraMap A ↥(TateAlgebra A) b * TateAlgebra.X} with haI
+  letI τC : TopologicalSpace ↥(restrictedMvPowerSeriesSubring 1 A) :=
+    MvTateAlgebra.mvTateAlgebraTopology' 1
+  haveI hringC : IsTopologicalRing ↥(restrictedMvPowerSeriesSubring 1 A) :=
+    MvTateAlgebra.mvTateAlgebraTopology'_isTopologicalRing 1
+  have hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A) := ‹_›
+  have haI_closed : IsClosed (aI : Set ↥(restrictedMvPowerSeriesSubring 1 A)) :=
+    MvTateAlgebra.mvTate_isClosed_ideal 1 hA_complete aI
+  letI τQ : TopologicalSpace (↥(restrictedMvPowerSeriesSubring 1 A) ⧸ aI) :=
+    mvQuotTopology 1 aI
+  letI uQ : UniformSpace (↥(restrictedMvPowerSeriesSubring 1 A) ⧸ aI) :=
+    mvQuotUniformSpace 1 aI
+  haveI hringQ : @IsTopologicalRing _ τQ _ := mvQuot_isTopologicalRing 1 aI
+  haveI : @IsUniformAddGroup _ uQ _ := mvQuot_isUniformAddGroup 1 aI
+  haveI : @CompleteSpace _ uQ := mvQuot_completeSpace 1 aI hA_complete
+  haveI hT2Q : @T2Space _ τQ := mvQuot_t2Space 1 aI haI_closed
+  haveI : @T0Space _ τQ := @T1Space.t0Space _ τQ (@T2Space.t1Space _ τQ hT2Q)
+  haveI hNAQ : @NonarchimedeanRing _ _ τQ := mvQuot_nonarchimedean 1 aI
+  -- `mk (algebraMap b) · mk η = 1` modulo `(1 − bη)`
+  have hmkX_mul : Ideal.Quotient.mk aI
+        (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A) b) *
+      Ideal.Quotient.mk aI
+        (⟨MvPowerSeries.X (0 : Fin 1), MvPowerSeries.X_isRestricted 0⟩ :
+          ↥(restrictedMvPowerSeriesSubring 1 A)) = 1 := by
+    rw [← map_mul, show (1 : ↥(restrictedMvPowerSeriesSubring 1 A) ⧸ aI) =
+      Ideal.Quotient.mk aI 1 from (map_one _).symm, Ideal.Quotient.eq]
+    have hgen : (1 - algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A) b *
+        (⟨MvPowerSeries.X (0 : Fin 1), MvPowerSeries.X_isRestricted 0⟩ :
+          ↥(restrictedMvPowerSeriesSubring 1 A))) ∈ aI :=
+      Ideal.subset_span (Set.mem_singleton _)
+    have hneg := aI.neg_mem hgen
+    rwa [neg_sub] at hneg
+  -- the localization lift `ψ` (`D.s = b` is a unit mod `(1 − bη)`)
+  have hUnitb : IsUnit ((Ideal.Quotient.mk aI).comp
+      (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A)) D.s) := by
+    rw [isUnit_iff_exists_inv]
+    exact ⟨Ideal.Quotient.mk aI
+      (⟨MvPowerSeries.X (0 : Fin 1), MvPowerSeries.X_isRestricted 0⟩ :
+        ↥(restrictedMvPowerSeriesSubring 1 A)), hmkX_mul⟩
+  set ψ : Localization.Away D.s →+* (↥(restrictedMvPowerSeriesSubring 1 A) ⧸ aI) :=
+    IsLocalization.Away.lift (x := D.s)
+      (g := (Ideal.Quotient.mk aI).comp
+        (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A))) hUnitb with hψ
+  have hψ_alg : ∀ x : A, ψ (algebraMap A (Localization.Away D.s) x) =
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A) x) := by
+    intro x
+    rw [hψ, IsLocalization.Away.lift_eq]
+    rfl
+  -- `ψ (1/b) = mk η` (cancel the unit `mk (algebraMap b)`)
+  have hψ_div : ψ (divByS (1 : A) D.s) = Ideal.Quotient.mk aI
+      (⟨MvPowerSeries.X (0 : Fin 1), MvPowerSeries.X_isRestricted 0⟩ :
+        ↥(restrictedMvPowerSeriesSubring 1 A)) := by
+    have hloc : algebraMap A (Localization.Away D.s) b * divByS (1 : A) D.s = 1 := by
+      erw [show divByS (1 : A) D.s = IsLocalization.mk' (Localization.Away b) (1 : A)
+        (⟨b, Submonoid.mem_powers b⟩ : Submonoid.powers b) from rfl]
+      exact (IsLocalization.mk'_spec' (Localization.Away b) 1
+        ⟨b, Submonoid.mem_powers b⟩).trans (map_one _)
+    have h1 : ψ (algebraMap A (Localization.Away D.s) b) * ψ (divByS (1 : A) D.s) = 1 := by
+      rw [← map_mul, hloc, map_one]
+    rw [hψ_alg] at h1
+    have hu : IsUnit (Ideal.Quotient.mk aI
+        (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A) b)) :=
+      isUnit_iff_exists_inv.mpr ⟨_, hmkX_mul⟩
+    exact hu.mul_left_cancel (h1.trans hmkX_mul.symm)
+  -- `ψ` is continuous for the localization topology
+  have hψ_cont : @Continuous _ _ D.topology τQ ψ := by
+    change @Continuous _ _ (locTopology D.P D.T D.s D.hopen) τQ ψ
+    refine locTopology_continuous_lift D.P D.T D.s D.hopen ψ ?_ ?_
+    · have heq : ψ.comp (algebraMap A (Localization.Away D.s)) =
+          (Ideal.Quotient.mk aI).comp
+            (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A)) := by
+        ext x; exact hψ_alg x
+      rw [heq]
+      exact continuous_quotient_mk'.comp
+        (MvTateAlgebra.mvTateAlgebra_algebraMap_continuous (A := A) 1)
+    · intro t ht
+      rw [show (D.T : Finset A) = {1} from rfl, Finset.mem_singleton] at ht
+      subst ht
+      rw [hψ_div]
+      exact isPowerBounded_map_of_isOpenMap (Ideal.Quotient.mk aI)
+        continuous_quotient_mk' (@QuotientRing.isOpenMap_coe _ τC _ aI hringC)
+        (MvTateAlgebra.mvPowerSeries_X_isBounded (0 : Fin 1))
+  -- opaquify the evaluation (pay the `D.T.card ≡ 1` defeq once)
+  obtain ⟨Φ, hΦ_cont, hΦ_alg, hΦ_X, hΦ_ker⟩ :
+      ∃ Φ : ↥(restrictedMvPowerSeriesSubring 1 A) →+* presheafValue D,
+        @Continuous _ _ τC _ ⇑Φ ∧
+        (∀ x : A, Φ (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A) x) =
+          D.canonicalMap x) ∧
+        (Φ (⟨MvPowerSeries.X (0 : Fin 1), MvPowerSeries.X_isRestricted 0⟩ :
+            ↥(restrictedMvPowerSeriesSubring 1 A)) =
+          D.coeRingHom (divByS (1 : A) D.s)) ∧
+        RingHom.ker (example638_evalHom (coUnitDatum P b)) = RingHom.ker Φ := by
+    refine ⟨example638_evalHom D, example638_evalHom_continuous D,
+      fun x => example638_evalHom_algebraMap D x, ?_, rfl⟩
+    erw [example638_evalHom_X D ((0 : Fin 1) : Fin D.T.card), coUnitDatum_genTuple_eq]
+    rfl
+  -- extend to the completion, opaquely
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  obtain ⟨β, hβ_coe, hβ_cont⟩ :
+      ∃ β : presheafValue D →+* (↥(restrictedMvPowerSeriesSubring 1 A) ⧸ aI),
+        (∀ y : Localization.Away D.s, β (D.coeRingHom y) = ψ y) ∧
+          @Continuous _ _ _ τQ ⇑β := by
+    refine ⟨@UniformSpace.Completion.extensionHom (Localization.Away D.s) _ D.uniformSpace _ _
+      (↥(restrictedMvPowerSeriesSubring 1 A) ⧸ aI) uQ _ (mvQuot_isUniformAddGroup 1 aI)
+      (mvQuot_isTopologicalRing 1 aI) ψ hψ_cont ‹_› ‹_›, fun y => ?_, ?_⟩
+    · exact @UniformSpace.Completion.extensionHom_coe (Localization.Away D.s) _ D.uniformSpace
+        _ _ (↥(restrictedMvPowerSeriesSubring 1 A) ⧸ aI) uQ _ (mvQuot_isUniformAddGroup 1 aI)
+        (mvQuot_isTopologicalRing 1 aI) ψ hψ_cont ‹_› ‹_› y
+    · exact @UniformSpace.Completion.continuous_extension (Localization.Away D.s)
+        D.uniformSpace _ uQ (⇑ψ) ‹_›
+  -- `β ∘ Φ = mk` on the dense polynomials
+  have hext : (⇑β ∘ ⇑Φ :
+      ↥(restrictedMvPowerSeriesSubring 1 A) → _) = ⇑(Ideal.Quotient.mk aI) := by
+    refine Continuous.ext_on
+      (MvTateAlgebra.mvPolynomialToTate_denseRange (A := A) 1)
+      (hβ_cont.comp hΦ_cont) continuous_quotient_mk' ?_
+    rintro _ ⟨p, rfl⟩
+    have hcomp : ((β.comp Φ).comp
+        (MvTateAlgebra.mvPolynomialToTate (A := A) 1)) =
+        (Ideal.Quotient.mk aI).comp (MvTateAlgebra.mvPolynomialToTate (A := A) 1) := by
+      refine MvPolynomial.ringHom_ext (fun c => ?_) (fun j => ?_)
+      · simp only [RingHom.comp_apply, MvTateAlgebra.mvPolynomialToTate_C]
+        rw [hΦ_alg]
+        show β (D.coeRingHom (algebraMap A (Localization.Away D.s) c)) = _
+        rw [hβ_coe, hψ_alg]
+      · simp only [RingHom.comp_apply, MvTateAlgebra.mvPolynomialToTate_X]
+        have hj : j = 0 := Subsingleton.elim j 0
+        subst hj
+        rw [hΦ_X, hβ_coe, hψ_div]
+    exact RingHom.congr_fun hcomp p
+  -- conclude
+  rw [hΦ_ker]
+  intro h hh
+  have hh2 : Φ h = 0 := hh
+  have hfun := congrFun hext h
+  simp only [Function.comp_apply, hh2, map_zero] at hfun
+  exact Ideal.Quotient.eq_zero_iff_mem.mp hfun.symm
+
+set_option linter.unusedSectionVars false in
+/-- **Wedhorn (8.2.1)-plus, explicit kernel**: `ker(evalHom) = (b − ζ)` for the
+plus-half `R(b/1)`. -/
+private theorem unitDatum_ker_eq_span
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (P : PairOfDefinition A) (b : A) :
+    RingHom.ker (example638_evalHom (unitDatum P b)) =
+      Ideal.span {algebraMap A ↥(TateAlgebra A) b - TateAlgebra.X} :=
+  le_antisymm (unitDatum_ker_le_span P b) (unitDatum_span_le_ker P b)
+
+set_option linter.unusedSectionVars false in
+/-- **Wedhorn (8.2.1)-minus, explicit kernel**: `ker(evalHom) = (1 − bη)` for the
+minus-half `R(1/b)`. -/
+private theorem coUnitDatum_ker_eq_span
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (P : PairOfDefinition A) (b : A) :
+    RingHom.ker (example638_evalHom (coUnitDatum P b)) =
+      Ideal.span {1 - algebraMap A ↥(TateAlgebra A) b * TateAlgebra.X} :=
+  le_antisymm (coUnitDatum_ker_le_span P b) (coUnitDatum_span_le_ker P b)
+
+set_option linter.unusedSectionVars false in
+/-- **Wedhorn Example 6.38, plus form (any strongly noetherian Tate base)**:
+`O_X(R(b/1)) ≃+* A⟨ζ⟩/(b − ζ)` — surjectivity (`example638_evalHom_surjective`)
+plus the explicit kernel (`unitDatum_ker_eq_span`). -/
+private noncomputable def unitDatum_quotEquiv
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (P : PairOfDefinition A) (b : A) :
+    presheafValue (unitDatum P b) ≃+*
+      (↥(TateAlgebra A) ⧸ Ideal.span {algebraMap A ↥(TateAlgebra A) b - TateAlgebra.X}) :=
+  ((RingHom.quotientKerEquivOfSurjective
+      (example638_evalHom_surjective (unitDatum P b))).symm).trans
+    (Ideal.quotEquivOfEq (unitDatum_ker_eq_span P b))
+
+set_option linter.unusedSectionVars false in
+/-- **Wedhorn Example 6.39, minus form (any strongly noetherian Tate base)**:
+`O_X(R(1/b)) ≃+* A⟨η⟩/(1 − bη)`. -/
+private noncomputable def coUnitDatum_quotEquiv
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (P : PairOfDefinition A) (b : A) :
+    presheafValue (coUnitDatum P b) ≃+*
+      (↥(TateAlgebra A) ⧸ Ideal.span {1 - algebraMap A ↥(TateAlgebra A) b * TateAlgebra.X}) :=
+  ((RingHom.quotientKerEquivOfSurjective
+      (example638_evalHom_surjective (coUnitDatum P b))).symm).trans
+    (Ideal.quotEquivOfEq (coUnitDatum_ker_eq_span P b))
+
+set_option linter.unusedSectionVars false in
+/-- The plus equivalence sends `canonicalMap x` to the constant class
+`mk (algebraMap x)`. -/
+private theorem unitDatum_quotEquiv_canonicalMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (P : PairOfDefinition A) (b : A) (x : A) :
+    unitDatum_quotEquiv P b ((unitDatum P b).canonicalMap x) =
+      Ideal.Quotient.mk _ (algebraMap A ↥(TateAlgebra A) x) := by
+  have h1 : (unitDatum P b).canonicalMap x =
+      example638_evalHom (unitDatum P b)
+        (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A) x) :=
+    (example638_evalHom_algebraMap _ x).symm
+  have h2 : (RingHom.quotientKerEquivOfSurjective
+      (example638_evalHom_surjective (unitDatum P b))).symm
+        (example638_evalHom (unitDatum P b)
+          (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A) x)) =
+      Ideal.Quotient.mk (RingHom.ker (example638_evalHom (unitDatum P b)))
+        (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A) x) := by
+    rw [RingEquiv.symm_apply_eq]
+    rfl
+  show (Ideal.quotEquivOfEq (unitDatum_ker_eq_span P b))
+      ((RingHom.quotientKerEquivOfSurjective
+        (example638_evalHom_surjective (unitDatum P b))).symm
+          ((unitDatum P b).canonicalMap x)) = _
+  rw [h1, h2]
+  erw [Ideal.quotEquivOfEq_mk]
+
+set_option linter.unusedSectionVars false in
+/-- The minus equivalence sends `canonicalMap x` to the constant class
+`mk (algebraMap x)`. -/
+private theorem coUnitDatum_quotEquiv_canonicalMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (P : PairOfDefinition A) (b : A) (x : A) :
+    coUnitDatum_quotEquiv P b ((coUnitDatum P b).canonicalMap x) =
+      Ideal.Quotient.mk _ (algebraMap A ↥(TateAlgebra A) x) := by
+  have h1 : (coUnitDatum P b).canonicalMap x =
+      example638_evalHom (coUnitDatum P b)
+        (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A) x) :=
+    (example638_evalHom_algebraMap _ x).symm
+  have h2 : (RingHom.quotientKerEquivOfSurjective
+      (example638_evalHom_surjective (coUnitDatum P b))).symm
+        (example638_evalHom (coUnitDatum P b)
+          (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A) x)) =
+      Ideal.Quotient.mk (RingHom.ker (example638_evalHom (coUnitDatum P b)))
+        (algebraMap A ↥(restrictedMvPowerSeriesSubring 1 A) x) := by
+    rw [RingEquiv.symm_apply_eq]
+    rfl
+  show (Ideal.quotEquivOfEq (coUnitDatum_ker_eq_span P b))
+      ((RingHom.quotientKerEquivOfSurjective
+        (example638_evalHom_surjective (coUnitDatum P b))).symm
+          ((coUnitDatum P b).canonicalMap x)) = _
+  rw [h1, h2]
+  erw [Ideal.quotEquivOfEq_mk]
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **General `ker ≤ aI` for the Example-6.38 evaluation** (the parametric form of the
+completion comparison; see the section TODO). Inputs: `aI` closed, the denominator a
+unit mod `aI`, and each generator relation `tᵢ ≡ s·Xᵢ (mod aI)`. The plus/minus/overlap
+instances discharge the three inputs in a few lines each. -/
+private theorem datum_ker_le_span_of_unit_mod
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D : RationalLocData A)
+    (aI : Ideal ↥(restrictedMvPowerSeriesSubring D.T.card A))
+    (haI_closed : @IsClosed _ (MvTateAlgebra.mvTateAlgebraTopology' D.T.card)
+      (aI : Set ↥(restrictedMvPowerSeriesSubring D.T.card A)))
+    (hUnit : IsUnit ((Ideal.Quotient.mk aI).comp
+      (algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A)) D.s))
+    (hgen : ∀ i : Fin D.T.card,
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A)
+          ((D.T.equivFin.symm i : D.T) : A)) =
+        Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A) D.s) *
+          Ideal.Quotient.mk aI (⟨MvPowerSeries.X i, MvPowerSeries.X_isRestricted i⟩ :
+            ↥(restrictedMvPowerSeriesSubring D.T.card A))) :
+    RingHom.ker (example638_evalHom D) ≤ aI := by
+  classical
+  letI τC : TopologicalSpace ↥(restrictedMvPowerSeriesSubring D.T.card A) :=
+    MvTateAlgebra.mvTateAlgebraTopology' D.T.card
+  haveI hringC : IsTopologicalRing ↥(restrictedMvPowerSeriesSubring D.T.card A) :=
+    MvTateAlgebra.mvTateAlgebraTopology'_isTopologicalRing D.T.card
+  have hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A) := ‹_›
+  letI τQ : TopologicalSpace (↥(restrictedMvPowerSeriesSubring D.T.card A) ⧸ aI) :=
+    mvQuotTopology D.T.card aI
+  letI uQ : UniformSpace (↥(restrictedMvPowerSeriesSubring D.T.card A) ⧸ aI) :=
+    mvQuotUniformSpace D.T.card aI
+  haveI hringQ : @IsTopologicalRing _ τQ _ := mvQuot_isTopologicalRing D.T.card aI
+  haveI : @IsUniformAddGroup _ uQ _ := mvQuot_isUniformAddGroup D.T.card aI
+  haveI : @CompleteSpace _ uQ := mvQuot_completeSpace D.T.card aI hA_complete
+  haveI hT2Q : @T2Space _ τQ := mvQuot_t2Space D.T.card aI haI_closed
+  haveI : @T0Space _ τQ := @T1Space.t0Space _ τQ (@T2Space.t1Space _ τQ hT2Q)
+  haveI hNAQ : @NonarchimedeanRing _ _ τQ := mvQuot_nonarchimedean D.T.card aI
+  -- the localization lift `ψ`
+  set ψ : Localization.Away D.s →+* (↥(restrictedMvPowerSeriesSubring D.T.card A) ⧸ aI) :=
+    IsLocalization.Away.lift (x := D.s)
+      (g := (Ideal.Quotient.mk aI).comp
+        (algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A))) hUnit with hψ
+  have hψ_alg : ∀ x : A, ψ (algebraMap A (Localization.Away D.s) x) =
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A) x) := by
+    intro x
+    rw [hψ, IsLocalization.Away.lift_eq]
+    rfl
+  -- DERIVED: `ψ(tᵢ/s) = mk Xᵢ` (cancel the unit `mk (algebraMap s)` using `hgen`)
+  have hψ_div : ∀ i : Fin D.T.card, ψ (divByS ((D.T.equivFin.symm i : D.T) : A) D.s) =
+      Ideal.Quotient.mk aI (⟨MvPowerSeries.X i, MvPowerSeries.X_isRestricted i⟩ :
+        ↥(restrictedMvPowerSeriesSubring D.T.card A)) := by
+    intro i
+    have hsmul : algebraMap A (Localization.Away D.s) D.s *
+        divByS ((D.T.equivFin.symm i : D.T) : A) D.s =
+        algebraMap A (Localization.Away D.s) ((D.T.equivFin.symm i : D.T) : A) := by
+      unfold divByS
+      rw [show algebraMap A (Localization.Away D.s) D.s =
+        IsLocalization.mk' (Localization.Away D.s) D.s
+          (1 : Submonoid.powers D.s) from (IsLocalization.mk'_one _ _).symm,
+        ← IsLocalization.mk'_mul]
+      rw [show algebraMap A (Localization.Away D.s) ((D.T.equivFin.symm i : D.T) : A) =
+        IsLocalization.mk' (Localization.Away D.s) ((D.T.equivFin.symm i : D.T) : A)
+          (1 : Submonoid.powers D.s) from (IsLocalization.mk'_one _ _).symm]
+      apply IsLocalization.mk'_eq_of_eq
+      simp [mul_comm]
+    have h1 : ψ (algebraMap A (Localization.Away D.s) D.s) *
+        ψ (divByS ((D.T.equivFin.symm i : D.T) : A) D.s) =
+        Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A)
+          ((D.T.equivFin.symm i : D.T) : A)) := by
+      rw [← map_mul, hsmul, hψ_alg]
+    rw [hψ_alg] at h1
+    have hu : IsUnit (Ideal.Quotient.mk aI
+        (algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A) D.s)) := hUnit
+    exact hu.mul_left_cancel (h1.trans (hgen i))
+  -- `ψ` is continuous for the localization topology
+  have hψ_cont : @Continuous _ _ D.topology τQ ψ := by
+    change @Continuous _ _ (locTopology D.P D.T D.s D.hopen) τQ ψ
+    refine locTopology_continuous_lift D.P D.T D.s D.hopen ψ ?_ ?_
+    · have heq : ψ.comp (algebraMap A (Localization.Away D.s)) =
+          (Ideal.Quotient.mk aI).comp
+            (algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A)) := by
+        ext x; exact hψ_alg x
+      rw [heq]
+      exact continuous_quotient_mk'.comp
+        (MvTateAlgebra.mvTateAlgebra_algebraMap_continuous (A := A) D.T.card)
+    · intro t ht
+      have hidx : t = ((D.T.equivFin.symm (D.T.equivFin ⟨t, ht⟩) : D.T) : A) := by
+        rw [Equiv.symm_apply_apply]
+      rw [hidx, hψ_div (D.T.equivFin ⟨t, ht⟩)]
+      exact isPowerBounded_map_of_isOpenMap (Ideal.Quotient.mk aI)
+        continuous_quotient_mk' (@QuotientRing.isOpenMap_coe _ τC _ aI hringC)
+        (MvTateAlgebra.mvPowerSeries_X_isBounded (D.T.equivFin ⟨t, ht⟩))
+  -- opaquify the evaluation
+  obtain ⟨Φ, hΦ_cont, hΦ_alg, hΦ_X, hΦ_ker⟩ :
+      ∃ Φ : ↥(restrictedMvPowerSeriesSubring D.T.card A) →+* presheafValue D,
+        @Continuous _ _ τC _ ⇑Φ ∧
+        (∀ x : A, Φ (algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A) x) =
+          D.canonicalMap x) ∧
+        (∀ i : Fin D.T.card, Φ (⟨MvPowerSeries.X i, MvPowerSeries.X_isRestricted i⟩ :
+            ↥(restrictedMvPowerSeriesSubring D.T.card A)) =
+          D.coeRingHom (divByS ((D.T.equivFin.symm i : D.T) : A) D.s)) ∧
+        RingHom.ker (example638_evalHom D) = RingHom.ker Φ := by
+    refine ⟨example638_evalHom D, example638_evalHom_continuous D,
+      fun x => example638_evalHom_algebraMap D x, fun i => ?_, rfl⟩
+    rw [example638_evalHom_X D i]
+    rfl
+  -- extend to the completion, opaquely
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  obtain ⟨β, hβ_coe, hβ_cont⟩ :
+      ∃ β : presheafValue D →+* (↥(restrictedMvPowerSeriesSubring D.T.card A) ⧸ aI),
+        (∀ y : Localization.Away D.s, β (D.coeRingHom y) = ψ y) ∧
+          @Continuous _ _ _ τQ ⇑β := by
+    refine ⟨@UniformSpace.Completion.extensionHom (Localization.Away D.s) _ D.uniformSpace _ _
+      (↥(restrictedMvPowerSeriesSubring D.T.card A) ⧸ aI) uQ _ (mvQuot_isUniformAddGroup D.T.card aI)
+      (mvQuot_isTopologicalRing D.T.card aI) ψ hψ_cont ‹_› ‹_›, fun y => ?_, ?_⟩
+    · exact @UniformSpace.Completion.extensionHom_coe (Localization.Away D.s) _ D.uniformSpace
+        _ _ (↥(restrictedMvPowerSeriesSubring D.T.card A) ⧸ aI) uQ _ (mvQuot_isUniformAddGroup D.T.card aI)
+        (mvQuot_isTopologicalRing D.T.card aI) ψ hψ_cont ‹_› ‹_› y
+    · exact @UniformSpace.Completion.continuous_extension (Localization.Away D.s)
+        D.uniformSpace _ uQ (⇑ψ) ‹_›
+  -- `β ∘ Φ = mk` on the dense polynomials
+  have hext : (⇑β ∘ ⇑Φ :
+      ↥(restrictedMvPowerSeriesSubring D.T.card A) → _) = ⇑(Ideal.Quotient.mk aI) := by
+    refine Continuous.ext_on
+      (MvTateAlgebra.mvPolynomialToTate_denseRange (A := A) D.T.card)
+      (hβ_cont.comp hΦ_cont) continuous_quotient_mk' ?_
+    rintro _ ⟨p, rfl⟩
+    have hcomp : ((β.comp Φ).comp
+        (MvTateAlgebra.mvPolynomialToTate (A := A) D.T.card)) =
+        (Ideal.Quotient.mk aI).comp (MvTateAlgebra.mvPolynomialToTate (A := A) D.T.card) := by
+      refine MvPolynomial.ringHom_ext (fun c => ?_) (fun j => ?_)
+      · simp only [RingHom.comp_apply, MvTateAlgebra.mvPolynomialToTate_C]
+        rw [hΦ_alg]
+        show β (D.coeRingHom (algebraMap A (Localization.Away D.s) c)) = _
+        rw [hβ_coe, hψ_alg]
+      · simp only [RingHom.comp_apply, MvTateAlgebra.mvPolynomialToTate_X]
+        rw [hΦ_X j, hβ_coe, hψ_div j]
+    exact RingHom.congr_fun hcomp p
+  -- conclude
+  rw [hΦ_ker]
+  intro h hh
+  have hh2 : Φ h = 0 := hh
+  have hfun := congrFun hext h
+  simp only [Function.comp_apply, hh2, map_zero] at hfun
+  exact Ideal.Quotient.eq_zero_iff_mem.mp hfun.symm
+
+set_option linter.unusedSectionVars false in
+/-- `s · (t/s) = t` in the localization. -/
+private theorem algebraMap_s_mul_divByS (D : RationalLocData A) (t : A) :
+    algebraMap A (Localization.Away D.s) D.s * divByS t D.s =
+      algebraMap A (Localization.Away D.s) t := by
+  unfold divByS
+  rw [show algebraMap A (Localization.Away D.s) D.s =
+      IsLocalization.mk' (Localization.Away D.s) D.s (1 : Submonoid.powers D.s) from
+      (IsLocalization.mk'_one _ _).symm, ← IsLocalization.mk'_mul,
+    show algebraMap A (Localization.Away D.s) t =
+      IsLocalization.mk' (Localization.Away D.s) t (1 : Submonoid.powers D.s) from
+      (IsLocalization.mk'_one _ _).symm]
+  apply IsLocalization.mk'_eq_of_eq
+  simp [mul_comm]
+
+set_option linter.unusedSectionVars false in
+/-- The general computational `⊇`: the tautological span `{tᵢ − s·Xᵢ}` is killed by
+the Example-6.38 evaluation (`Xᵢ ↦ tᵢ/s`, and `s·(tᵢ/s) = tᵢ`). -/
+private theorem datum_span_le_ker
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D : RationalLocData A) :
+    Ideal.span (Set.range (fun i : Fin D.T.card =>
+        algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A)
+          ((D.T.equivFin.symm i : D.T) : A) -
+        algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A) D.s *
+          (⟨MvPowerSeries.X i, MvPowerSeries.X_isRestricted i⟩ :
+            ↥(restrictedMvPowerSeriesSubring D.T.card A)))) ≤
+      RingHom.ker (example638_evalHom D) := by
+  rw [Ideal.span_le]
+  rintro _ ⟨i, rfl⟩
+  rw [SetLike.mem_coe, RingHom.mem_ker, map_sub, map_mul,
+    example638_evalHom_algebraMap, example638_evalHom_algebraMap,
+    example638_evalHom_X D i]
+  show D.coeRingHom (algebraMap A (Localization.Away D.s)
+        ((D.T.equivFin.symm i : D.T) : A)) -
+      D.coeRingHom (algebraMap A (Localization.Away D.s) D.s) *
+        D.coeRingHom (divByS ((D.T.equivFin.symm i : D.T) : A) D.s) = 0
+  rw [← map_mul, ← map_sub, algebraMap_s_mul_divByS, sub_self, map_zero]
+
+set_option linter.unusedSectionVars false in
+/-- **Wedhorn Example 6.38, explicit-kernel form (tautological span), for any datum
+with `1 ∈ T`**: `ker(evalHom D) = ({tᵢ − s·Xᵢ})`. The hypothesis `1 ∈ T` provides the
+unit (`1 ≡ s·Xᵢ₀` makes `s` invertible mod the span); the span is closed by Prop 6.17
+over the strongly noetherian base. The overlap datum (`T = {1, b, b²}`, `s = b`) is the
+target instance. -/
+private theorem datum_ker_eq_span_taut
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D : RationalLocData A) (h1 : (1 : A) ∈ D.T) :
+    RingHom.ker (example638_evalHom D) =
+      Ideal.span (Set.range (fun i : Fin D.T.card =>
+        algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A)
+          ((D.T.equivFin.symm i : D.T) : A) -
+        algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A) D.s *
+          (⟨MvPowerSeries.X i, MvPowerSeries.X_isRestricted i⟩ :
+            ↥(restrictedMvPowerSeriesSubring D.T.card A)))) := by
+  classical
+  set aI : Ideal ↥(restrictedMvPowerSeriesSubring D.T.card A) :=
+    Ideal.span (Set.range (fun i : Fin D.T.card =>
+      algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A)
+        ((D.T.equivFin.symm i : D.T) : A) -
+      algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A) D.s *
+        (⟨MvPowerSeries.X i, MvPowerSeries.X_isRestricted i⟩ :
+          ↥(restrictedMvPowerSeriesSubring D.T.card A)))) with haI
+  have hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A) := ‹_›
+  have hclosed : @IsClosed _ (MvTateAlgebra.mvTateAlgebraTopology' D.T.card)
+      (aI : Set ↥(restrictedMvPowerSeriesSubring D.T.card A)) :=
+    MvTateAlgebra.mvTate_isClosed_ideal D.T.card hA_complete aI
+  -- the tautological generator relations
+  have hgen : ∀ i : Fin D.T.card,
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A)
+          ((D.T.equivFin.symm i : D.T) : A)) =
+        Ideal.Quotient.mk aI
+          (algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A) D.s) *
+          Ideal.Quotient.mk aI (⟨MvPowerSeries.X i, MvPowerSeries.X_isRestricted i⟩ :
+            ↥(restrictedMvPowerSeriesSubring D.T.card A)) := by
+    intro i
+    rw [← map_mul, Ideal.Quotient.eq]
+    exact Ideal.subset_span ⟨i, rfl⟩
+  -- the unit from `1 ∈ T`
+  have hUnit : IsUnit ((Ideal.Quotient.mk aI).comp
+      (algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A)) D.s) := by
+    set i₁ : Fin D.T.card := D.T.equivFin ⟨1, h1⟩ with hi₁
+    have h1val : ((D.T.equivFin.symm i₁ : D.T) : A) = 1 := by
+      rw [hi₁, Equiv.symm_apply_apply]
+    have := hgen i₁
+    rw [h1val, map_one] at this
+    rw [isUnit_iff_exists_inv]
+    exact ⟨Ideal.Quotient.mk aI (⟨MvPowerSeries.X i₁, MvPowerSeries.X_isRestricted i₁⟩ :
+      ↥(restrictedMvPowerSeriesSubring D.T.card A)), this.symm⟩
+  exact le_antisymm
+    (datum_ker_le_span_of_unit_mod D aI hclosed hUnit hgen)
+    (datum_span_le_ker D)
+
+set_option linter.unusedSectionVars false in
+/-- **Wedhorn Example 6.38, quotient form (tautological span), for any datum with
+`1 ∈ T`**: `O_X(R(T/s)) ≃+* A⟨X₁..Xₙ⟩/({tᵢ − s·Xᵢ})`. Combines
+`example638_evalHom_surjective` with the explicit kernel `datum_ker_eq_span_taut`. -/
+private noncomputable def datum_quotEquiv_taut
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D : RationalLocData A) (h1 : (1 : A) ∈ D.T) :
+    presheafValue D ≃+*
+      (↥(restrictedMvPowerSeriesSubring D.T.card A) ⧸
+        Ideal.span (Set.range (fun i : Fin D.T.card =>
+          algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A)
+            ((D.T.equivFin.symm i : D.T) : A) -
+          algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A) D.s *
+            (⟨MvPowerSeries.X i, MvPowerSeries.X_isRestricted i⟩ :
+              ↥(restrictedMvPowerSeriesSubring D.T.card A))))) :=
+  ((RingHom.quotientKerEquivOfSurjective
+      (example638_evalHom_surjective D)).symm).trans
+    (Ideal.quotEquivOfEq (datum_ker_eq_span_taut D h1))
+
+set_option linter.unusedSectionVars false in
+/-- The tautological quotient equivalence sends `canonicalMap x` to the constant class
+`mk (algebraMap x)`. -/
+private theorem datum_quotEquiv_taut_canonicalMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D : RationalLocData A) (h1 : (1 : A) ∈ D.T) (x : A) :
+    datum_quotEquiv_taut D h1 (D.canonicalMap x) =
+      Ideal.Quotient.mk _
+        (algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A) x) := by
+  have hx : D.canonicalMap x =
+      example638_evalHom D
+        (algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A) x) :=
+    (example638_evalHom_algebraMap _ x).symm
+  have h2 : (RingHom.quotientKerEquivOfSurjective
+      (example638_evalHom_surjective D)).symm
+        (example638_evalHom D
+          (algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A) x)) =
+      Ideal.Quotient.mk (RingHom.ker (example638_evalHom D))
+        (algebraMap A ↥(restrictedMvPowerSeriesSubring D.T.card A) x) := by
+    rw [RingEquiv.symm_apply_eq]
+    rfl
+  show (Ideal.quotEquivOfEq (datum_ker_eq_span_taut D h1))
+      ((RingHom.quotientKerEquivOfSurjective
+        (example638_evalHom_surjective D)).symm (D.canonicalMap x)) = _
+  rw [hx, h2]
+  erw [Ideal.quotEquivOfEq_mk]
+
+set_option linter.unusedSectionVars false in
+/-- The two bivariate presentations of the annulus ring agree as ideals of `A⟨X,Y⟩`:
+`(b − X, 1 − bY) = (XY − 1, b − X)` (Wedhorn (8.2.1): `1 − bY ≡ 1 − XY (mod b − X)`). -/
+private theorem bivariateSpan_eq_laurentSup (b : A) :
+    Ideal.span {algebraMap A ↥(TateAlgebra₂ A) b - TateAlgebra₂.X,
+        1 - algebraMap A ↥(TateAlgebra₂ A) b * TateAlgebra₂.Y} =
+      laurentIdeal A ⊔
+        Ideal.span {algebraMap A ↥(TateAlgebra₂ A) b - TateAlgebra₂.X} := by
+  rw [laurentIdeal, ← Ideal.span_union]
+  apply le_antisymm <;> rw [Ideal.span_le]
+  · rintro x hx
+    rcases hx with rfl | rfl
+    · exact Ideal.subset_span (Set.mem_union_right _ (Set.mem_singleton _))
+    · -- `1 − bY = −(XY − 1) − (b − X)·Y`
+      have hid : (1 : ↥(TateAlgebra₂ A)) - algebraMap A ↥(TateAlgebra₂ A) b *
+          TateAlgebra₂.Y =
+          -(TateAlgebra₂.XY_sub_one) -
+            (algebraMap A ↥(TateAlgebra₂ A) b - TateAlgebra₂.X) * TateAlgebra₂.Y := by
+        rw [TateAlgebra₂.XY_sub_one]
+        ring
+      rw [SetLike.mem_coe, hid]
+      refine sub_mem (neg_mem (Ideal.subset_span ?_)) (Ideal.mul_mem_right _ _
+        (Ideal.subset_span ?_))
+      · exact Set.mem_union_left _ (Set.mem_singleton _)
+      · exact Set.mem_union_right _ (Set.mem_singleton _)
+  · rintro x hx
+    rcases hx with rfl | rfl
+    · -- `XY − 1 = −(1 − bY) − (b − X)·Y`
+      have hid : (TateAlgebra₂.XY_sub_one : ↥(TateAlgebra₂ A)) =
+          -((1 : ↥(TateAlgebra₂ A)) - algebraMap A ↥(TateAlgebra₂ A) b *
+            TateAlgebra₂.Y) -
+            (algebraMap A ↥(TateAlgebra₂ A) b - TateAlgebra₂.X) * TateAlgebra₂.Y := by
+        rw [TateAlgebra₂.XY_sub_one]
+        ring
+      rw [SetLike.mem_coe, hid]
+      refine sub_mem (neg_mem (Ideal.subset_span ?_)) (Ideal.mul_mem_right _ _
+        (Ideal.subset_span ?_))
+      · exact Set.mem_union_right _ (Set.mem_singleton _)
+      · exact Set.mem_union_left _ (Set.mem_singleton _)
+    · exact Ideal.subset_span (Set.mem_union_left _ (Set.mem_singleton _))
+
+set_option linter.unusedSectionVars false in
+/-- Pushing the `(b − X)`-span through the Laurent quotient gives the
+`(b − ζ)`-ideal: `(span {b − X}).map (mk (XY−1)) = laurentFSubZetaIdeal b`. -/
+private theorem map_span_bSubX_eq_laurentFSubZeta (b : A) :
+    (Ideal.span {algebraMap A ↥(TateAlgebra₂ A) b - TateAlgebra₂.X}).map
+        (Ideal.Quotient.mk (laurentIdeal A)) =
+      LaurentCover.laurentFSubZetaIdeal b := by
+  rw [Ideal.map_span, Set.image_singleton, LaurentCover.laurentFSubZetaIdeal]
+  have hg : (Ideal.Quotient.mk (laurentIdeal A))
+      ((algebraMap A ↥(TateAlgebra₂ A)) b - TateAlgebra₂.X) =
+      (algebraMap A (LaurentTateAlgebra A)) b - LaurentTateAlgebra.zeta := by
+    rw [map_sub]; rfl
+  rw [hg]
+  rfl
+
+set_option linter.unusedSectionVars false in
+/-- **The pure-algebra Laurent step of Wedhorn (8.2.1)**:
+`A⟨X,Y⟩/(b − X, 1 − bY) ≃+* A⟨ζ,ζ⁻¹⟩/(b − ζ) = B₁₂_gen b`. Double-quotient
+bookkeeping: the LHS ideal equals `(XY−1) ⊔ (b−X)` (`bivariateSpan_eq_laurentSup`),
+and quotienting in stages (`DoubleQuot.quotQuotEquivQuotSup`) lands in the Laurent
+algebra modulo the image ideal `(b − ζ)` (`map_span_bSubX_eq_laurentFSubZeta`). -/
+private noncomputable def bivariateSpan_equiv_B₁₂gen (b : A) :
+    (↥(TateAlgebra₂ A) ⧸ Ideal.span {algebraMap A ↥(TateAlgebra₂ A) b - TateAlgebra₂.X,
+        1 - algebraMap A ↥(TateAlgebra₂ A) b * TateAlgebra₂.Y}) ≃+*
+      LaurentCover.B₁₂_gen b :=
+  (Ideal.quotEquivOfEq (bivariateSpan_eq_laurentSup b)).trans
+    ((DoubleQuot.quotQuotEquivQuotSup (laurentIdeal A)
+        (Ideal.span {algebraMap A ↥(TateAlgebra₂ A) b - TateAlgebra₂.X})).symm.trans
+      (Ideal.quotEquivOfEq (map_span_bSubX_eq_laurentFSubZeta b)))
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Fully parametric backward engine** (membership-based; generalizes
+`datum_ker_le_span_of_unit_mod` to an arbitrary `m`-variable evaluation `Φ`, e.g. the
+bivariate annulus evaluation where `m ≠ D.T.card`). Inputs: `Φ` continuous with
+`algebraMap`-images `canonicalMap` and `Xⱼ`-images `(gen j)/s`; `aI` closed; `s` a unit
+mod `aI`; the per-generator relations `gen j ≡ s·Xⱼ (mod aI)`; and for EVERY `t ∈ D.T` a
+bounded witness `w` with `t ≡ s·w (mod aI)` (`w` in the principal pair subring, so its
+`mk`-image is power-bounded). Conclusion: `ker Φ ≤ aI`. -/
+private theorem tate_ker_le_of_backward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D : RationalLocData A) {m : ℕ}
+    (Φ : ↥(restrictedMvPowerSeriesSubring m A) →+* presheafValue D)
+    (hΦ_cont : @Continuous _ _ (MvTateAlgebra.mvTateAlgebraTopology' m) _ ⇑Φ)
+    (hΦ_alg : ∀ x : A, Φ (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) x) =
+      D.canonicalMap x)
+    (gen : Fin m → A)
+    (hΦ_X : ∀ j : Fin m, Φ (⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ :
+        ↥(restrictedMvPowerSeriesSubring m A)) =
+      D.coeRingHom (divByS (gen j) D.s))
+    (aI : Ideal ↥(restrictedMvPowerSeriesSubring m A))
+    (haI_closed : @IsClosed _ (MvTateAlgebra.mvTateAlgebraTopology' m)
+      (aI : Set ↥(restrictedMvPowerSeriesSubring m A)))
+    (hUnit : IsUnit ((Ideal.Quotient.mk aI).comp
+      (algebraMap A ↥(restrictedMvPowerSeriesSubring m A)) D.s))
+    (hgen_mod : ∀ j : Fin m,
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) (gen j)) =
+        Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s) *
+          Ideal.Quotient.mk aI (⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ :
+            ↥(restrictedMvPowerSeriesSubring m A)))
+    (hT_mod : ∀ t ∈ D.T, ∃ w : ↥(restrictedMvPowerSeriesSubring m A),
+      w ∈ MvTateAlgebra.mvPairSubring m (IsTateRing.principalPair A).toPairOfDefinition ∧
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) t) =
+        Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s) *
+          Ideal.Quotient.mk aI w) :
+    RingHom.ker Φ ≤ aI := by
+  classical
+  letI τC : TopologicalSpace ↥(restrictedMvPowerSeriesSubring m A) :=
+    MvTateAlgebra.mvTateAlgebraTopology' m
+  haveI hringC : IsTopologicalRing ↥(restrictedMvPowerSeriesSubring m A) :=
+    MvTateAlgebra.mvTateAlgebraTopology'_isTopologicalRing m
+  have hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A) := ‹_›
+  letI τQ : TopologicalSpace (↥(restrictedMvPowerSeriesSubring m A) ⧸ aI) :=
+    mvQuotTopology m aI
+  letI uQ : UniformSpace (↥(restrictedMvPowerSeriesSubring m A) ⧸ aI) :=
+    mvQuotUniformSpace m aI
+  haveI hringQ : @IsTopologicalRing _ τQ _ := mvQuot_isTopologicalRing m aI
+  haveI : @IsUniformAddGroup _ uQ _ := mvQuot_isUniformAddGroup m aI
+  haveI : @CompleteSpace _ uQ := mvQuot_completeSpace m aI hA_complete
+  haveI hT2Q : @T2Space _ τQ := mvQuot_t2Space m aI haI_closed
+  haveI : @T0Space _ τQ := @T1Space.t0Space _ τQ (@T2Space.t1Space _ τQ hT2Q)
+  haveI hNAQ : @NonarchimedeanRing _ _ τQ := mvQuot_nonarchimedean m aI
+  set ψ : Localization.Away D.s →+* (↥(restrictedMvPowerSeriesSubring m A) ⧸ aI) :=
+    IsLocalization.Away.lift (x := D.s)
+      (g := (Ideal.Quotient.mk aI).comp
+        (algebraMap A ↥(restrictedMvPowerSeriesSubring m A))) hUnit with hψ
+  have hψ_alg : ∀ x : A, ψ (algebraMap A (Localization.Away D.s) x) =
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) x) := by
+    intro x
+    rw [hψ, IsLocalization.Away.lift_eq]
+    rfl
+  have hu : IsUnit (Ideal.Quotient.mk aI
+      (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s)) := hUnit
+  -- DERIVED: `ψ(c/s) = mk w` whenever `c ≡ s·w (mod aI)` (cancel the unit)
+  have hψ_div : ∀ (c : A) (w : ↥(restrictedMvPowerSeriesSubring m A) ⧸ aI),
+      (Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) c) =
+        Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s) * w) →
+      ψ (divByS c D.s) = w := by
+    intro c w hc
+    have h1 : ψ (algebraMap A (Localization.Away D.s) D.s) * ψ (divByS c D.s) =
+        Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) c) := by
+      rw [← map_mul, algebraMap_s_mul_divByS, hψ_alg]
+    rw [hψ_alg] at h1
+    exact hu.mul_left_cancel (h1.trans hc)
+  have hψ_cont : @Continuous _ _ D.topology τQ ψ := by
+    change @Continuous _ _ (locTopology D.P D.T D.s D.hopen) τQ ψ
+    refine locTopology_continuous_lift D.P D.T D.s D.hopen ψ ?_ ?_
+    · have heq : ψ.comp (algebraMap A (Localization.Away D.s)) =
+          (Ideal.Quotient.mk aI).comp
+            (algebraMap A ↥(restrictedMvPowerSeriesSubring m A)) := by
+        ext x; exact hψ_alg x
+      rw [heq]
+      exact continuous_quotient_mk'.comp
+        (MvTateAlgebra.mvTateAlgebra_algebraMap_continuous (A := A) m)
+    · intro t ht
+      obtain ⟨w, hw_mem, hw_mod⟩ := hT_mod t ht
+      rw [hψ_div t (Ideal.Quotient.mk aI w) hw_mod]
+      -- `w` is power-bounded in the source (pair subring), transported through `mk`
+      have hw_pb : @TopologicalRing.IsPowerBounded _ _ τC w := by
+        have hbd : @TopologicalRing.IsBounded _ _ τC
+            ((MvTateAlgebra.mvPairSubring m
+              (IsTateRing.principalPair A).toPairOfDefinition :
+                Subring ↥(restrictedMvPowerSeriesSubring m A)) :
+              Set ↥(restrictedMvPowerSeriesSubring m A)) :=
+          PairOfDefinition.isBounded_A₀ (MvTateAlgebra.mvTateAlgebra_pairOfDefinition m)
+        exact hbd.subset (by
+          rintro _ ⟨k, rfl⟩
+          exact (MvTateAlgebra.mvPairSubring m
+            (IsTateRing.principalPair A).toPairOfDefinition).pow_mem hw_mem k)
+      exact isPowerBounded_map_of_isOpenMap (Ideal.Quotient.mk aI)
+        continuous_quotient_mk' (@QuotientRing.isOpenMap_coe _ τC _ aI hringC) hw_pb
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  obtain ⟨β, hβ_coe, hβ_cont⟩ :
+      ∃ β : presheafValue D →+* (↥(restrictedMvPowerSeriesSubring m A) ⧸ aI),
+        (∀ y : Localization.Away D.s, β (D.coeRingHom y) = ψ y) ∧
+          @Continuous _ _ _ τQ ⇑β := by
+    refine ⟨@UniformSpace.Completion.extensionHom (Localization.Away D.s) _ D.uniformSpace _ _
+      (↥(restrictedMvPowerSeriesSubring m A) ⧸ aI) uQ _ (mvQuot_isUniformAddGroup m aI)
+      (mvQuot_isTopologicalRing m aI) ψ hψ_cont ‹_› ‹_›, fun y => ?_, ?_⟩
+    · exact @UniformSpace.Completion.extensionHom_coe (Localization.Away D.s) _ D.uniformSpace
+        _ _ (↥(restrictedMvPowerSeriesSubring m A) ⧸ aI) uQ _ (mvQuot_isUniformAddGroup m aI)
+        (mvQuot_isTopologicalRing m aI) ψ hψ_cont ‹_› ‹_› y
+    · exact @UniformSpace.Completion.continuous_extension (Localization.Away D.s)
+        D.uniformSpace _ uQ (⇑ψ) ‹_›
+  have hext : (⇑β ∘ ⇑Φ :
+      ↥(restrictedMvPowerSeriesSubring m A) → _) = ⇑(Ideal.Quotient.mk aI) := by
+    refine Continuous.ext_on
+      (MvTateAlgebra.mvPolynomialToTate_denseRange (A := A) m)
+      (hβ_cont.comp hΦ_cont) continuous_quotient_mk' ?_
+    rintro _ ⟨p, rfl⟩
+    have hcomp : ((β.comp Φ).comp
+        (MvTateAlgebra.mvPolynomialToTate (A := A) m)) =
+        (Ideal.Quotient.mk aI).comp (MvTateAlgebra.mvPolynomialToTate (A := A) m) := by
+      refine MvPolynomial.ringHom_ext (fun c => ?_) (fun j => ?_)
+      · simp only [RingHom.comp_apply, MvTateAlgebra.mvPolynomialToTate_C]
+        rw [hΦ_alg]
+        show β (D.coeRingHom (algebraMap A (Localization.Away D.s) c)) = _
+        rw [hβ_coe, hψ_alg]
+      · simp only [RingHom.comp_apply, MvTateAlgebra.mvPolynomialToTate_X]
+        rw [hΦ_X j, hβ_coe, hψ_div (gen j) _ (hgen_mod j)]
+    exact RingHom.congr_fun hcomp p
+  intro h hh
+  have hh2 : Φ h = 0 := hh
+  have hfun := congrFun hext h
+  simp only [Function.comp_apply, hh2, map_zero] at hfun
+  exact Ideal.Quotient.eq_zero_iff_mem.mp hfun.symm
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Backward-data export variant of `tate_ker_le_of_backward`** (same hypotheses and
+body): returns the backward extension `β` and the localization lift `ψ'` with the
+properties needed for the kerLift round-trip (surjectivity arguments): `β` continuous,
+`β ∘ Φ = mk aI`, `β ∘ coeRingHom = ψ'`, and `ψ' ∘ algebraMap = mk ∘ algebraMap`. -/
+private theorem tate_backward_exists
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D : RationalLocData A) {m : ℕ}
+    (Φ : ↥(restrictedMvPowerSeriesSubring m A) →+* presheafValue D)
+    (hΦ_cont : @Continuous _ _ (MvTateAlgebra.mvTateAlgebraTopology' m) _ ⇑Φ)
+    (hΦ_alg : ∀ x : A, Φ (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) x) =
+      D.canonicalMap x)
+    (gen : Fin m → A)
+    (hΦ_X : ∀ j : Fin m, Φ (⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ :
+        ↥(restrictedMvPowerSeriesSubring m A)) =
+      D.coeRingHom (divByS (gen j) D.s))
+    (aI : Ideal ↥(restrictedMvPowerSeriesSubring m A))
+    (haI_closed : @IsClosed _ (MvTateAlgebra.mvTateAlgebraTopology' m)
+      (aI : Set ↥(restrictedMvPowerSeriesSubring m A)))
+    (hUnit : IsUnit ((Ideal.Quotient.mk aI).comp
+      (algebraMap A ↥(restrictedMvPowerSeriesSubring m A)) D.s))
+    (hgen_mod : ∀ j : Fin m,
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) (gen j)) =
+        Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s) *
+          Ideal.Quotient.mk aI (⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ :
+            ↥(restrictedMvPowerSeriesSubring m A)))
+    (hT_mod : ∀ t ∈ D.T, ∃ w : ↥(restrictedMvPowerSeriesSubring m A),
+      w ∈ MvTateAlgebra.mvPairSubring m (IsTateRing.principalPair A).toPairOfDefinition ∧
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) t) =
+        Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s) *
+          Ideal.Quotient.mk aI w) :
+    ∃ (β : presheafValue D →+* (↥(restrictedMvPowerSeriesSubring m A) ⧸ aI))
+      (ψ' : Localization.Away D.s →+*
+        (↥(restrictedMvPowerSeriesSubring m A) ⧸ aI)),
+      (@Continuous _ _ _ (mvQuotTopology m aI) ⇑β) ∧
+      (⇑β ∘ ⇑Φ = ⇑(Ideal.Quotient.mk aI)) ∧
+      (∀ y : Localization.Away D.s, β (D.coeRingHom y) = ψ' y) ∧
+      (∀ x : A, ψ' (algebraMap A (Localization.Away D.s) x) =
+        Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) x)) := by
+  classical
+  letI τC : TopologicalSpace ↥(restrictedMvPowerSeriesSubring m A) :=
+    MvTateAlgebra.mvTateAlgebraTopology' m
+  haveI hringC : IsTopologicalRing ↥(restrictedMvPowerSeriesSubring m A) :=
+    MvTateAlgebra.mvTateAlgebraTopology'_isTopologicalRing m
+  have hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A) := ‹_›
+  letI τQ : TopologicalSpace (↥(restrictedMvPowerSeriesSubring m A) ⧸ aI) :=
+    mvQuotTopology m aI
+  letI uQ : UniformSpace (↥(restrictedMvPowerSeriesSubring m A) ⧸ aI) :=
+    mvQuotUniformSpace m aI
+  haveI hringQ : @IsTopologicalRing _ τQ _ := mvQuot_isTopologicalRing m aI
+  haveI : @IsUniformAddGroup _ uQ _ := mvQuot_isUniformAddGroup m aI
+  haveI : @CompleteSpace _ uQ := mvQuot_completeSpace m aI hA_complete
+  haveI hT2Q : @T2Space _ τQ := mvQuot_t2Space m aI haI_closed
+  haveI : @T0Space _ τQ := @T1Space.t0Space _ τQ (@T2Space.t1Space _ τQ hT2Q)
+  haveI hNAQ : @NonarchimedeanRing _ _ τQ := mvQuot_nonarchimedean m aI
+  set ψ : Localization.Away D.s →+* (↥(restrictedMvPowerSeriesSubring m A) ⧸ aI) :=
+    IsLocalization.Away.lift (x := D.s)
+      (g := (Ideal.Quotient.mk aI).comp
+        (algebraMap A ↥(restrictedMvPowerSeriesSubring m A))) hUnit with hψ
+  have hψ_alg : ∀ x : A, ψ (algebraMap A (Localization.Away D.s) x) =
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) x) := by
+    intro x
+    rw [hψ, IsLocalization.Away.lift_eq]
+    rfl
+  have hu : IsUnit (Ideal.Quotient.mk aI
+      (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s)) := hUnit
+  -- DERIVED: `ψ(c/s) = mk w` whenever `c ≡ s·w (mod aI)` (cancel the unit)
+  have hψ_div : ∀ (c : A) (w : ↥(restrictedMvPowerSeriesSubring m A) ⧸ aI),
+      (Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) c) =
+        Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s) * w) →
+      ψ (divByS c D.s) = w := by
+    intro c w hc
+    have h1 : ψ (algebraMap A (Localization.Away D.s) D.s) * ψ (divByS c D.s) =
+        Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) c) := by
+      rw [← map_mul, algebraMap_s_mul_divByS, hψ_alg]
+    rw [hψ_alg] at h1
+    exact hu.mul_left_cancel (h1.trans hc)
+  have hψ_cont : @Continuous _ _ D.topology τQ ψ := by
+    change @Continuous _ _ (locTopology D.P D.T D.s D.hopen) τQ ψ
+    refine locTopology_continuous_lift D.P D.T D.s D.hopen ψ ?_ ?_
+    · have heq : ψ.comp (algebraMap A (Localization.Away D.s)) =
+          (Ideal.Quotient.mk aI).comp
+            (algebraMap A ↥(restrictedMvPowerSeriesSubring m A)) := by
+        ext x; exact hψ_alg x
+      rw [heq]
+      exact continuous_quotient_mk'.comp
+        (MvTateAlgebra.mvTateAlgebra_algebraMap_continuous (A := A) m)
+    · intro t ht
+      obtain ⟨w, hw_mem, hw_mod⟩ := hT_mod t ht
+      rw [hψ_div t (Ideal.Quotient.mk aI w) hw_mod]
+      -- `w` is power-bounded in the source (pair subring), transported through `mk`
+      have hw_pb : @TopologicalRing.IsPowerBounded _ _ τC w := by
+        have hbd : @TopologicalRing.IsBounded _ _ τC
+            ((MvTateAlgebra.mvPairSubring m
+              (IsTateRing.principalPair A).toPairOfDefinition :
+                Subring ↥(restrictedMvPowerSeriesSubring m A)) :
+              Set ↥(restrictedMvPowerSeriesSubring m A)) :=
+          PairOfDefinition.isBounded_A₀ (MvTateAlgebra.mvTateAlgebra_pairOfDefinition m)
+        exact hbd.subset (by
+          rintro _ ⟨k, rfl⟩
+          exact (MvTateAlgebra.mvPairSubring m
+            (IsTateRing.principalPair A).toPairOfDefinition).pow_mem hw_mem k)
+      exact isPowerBounded_map_of_isOpenMap (Ideal.Quotient.mk aI)
+        continuous_quotient_mk' (@QuotientRing.isOpenMap_coe _ τC _ aI hringC) hw_pb
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  obtain ⟨β, hβ_coe, hβ_cont⟩ :
+      ∃ β : presheafValue D →+* (↥(restrictedMvPowerSeriesSubring m A) ⧸ aI),
+        (∀ y : Localization.Away D.s, β (D.coeRingHom y) = ψ y) ∧
+          @Continuous _ _ _ τQ ⇑β := by
+    refine ⟨@UniformSpace.Completion.extensionHom (Localization.Away D.s) _ D.uniformSpace _ _
+      (↥(restrictedMvPowerSeriesSubring m A) ⧸ aI) uQ _ (mvQuot_isUniformAddGroup m aI)
+      (mvQuot_isTopologicalRing m aI) ψ hψ_cont ‹_› ‹_›, fun y => ?_, ?_⟩
+    · exact @UniformSpace.Completion.extensionHom_coe (Localization.Away D.s) _ D.uniformSpace
+        _ _ (↥(restrictedMvPowerSeriesSubring m A) ⧸ aI) uQ _ (mvQuot_isUniformAddGroup m aI)
+        (mvQuot_isTopologicalRing m aI) ψ hψ_cont ‹_› ‹_› y
+    · exact @UniformSpace.Completion.continuous_extension (Localization.Away D.s)
+        D.uniformSpace _ uQ (⇑ψ) ‹_›
+  have hext : (⇑β ∘ ⇑Φ :
+      ↥(restrictedMvPowerSeriesSubring m A) → _) = ⇑(Ideal.Quotient.mk aI) := by
+    refine Continuous.ext_on
+      (MvTateAlgebra.mvPolynomialToTate_denseRange (A := A) m)
+      (hβ_cont.comp hΦ_cont) continuous_quotient_mk' ?_
+    rintro _ ⟨p, rfl⟩
+    have hcomp : ((β.comp Φ).comp
+        (MvTateAlgebra.mvPolynomialToTate (A := A) m)) =
+        (Ideal.Quotient.mk aI).comp (MvTateAlgebra.mvPolynomialToTate (A := A) m) := by
+      refine MvPolynomial.ringHom_ext (fun c => ?_) (fun j => ?_)
+      · simp only [RingHom.comp_apply, MvTateAlgebra.mvPolynomialToTate_C]
+        rw [hΦ_alg]
+        show β (D.coeRingHom (algebraMap A (Localization.Away D.s) c)) = _
+        rw [hβ_coe, hψ_alg]
+      · simp only [RingHom.comp_apply, MvTateAlgebra.mvPolynomialToTate_X]
+        rw [hΦ_X j, hβ_coe, hψ_div (gen j) _ (hgen_mod j)]
+    exact RingHom.congr_fun hcomp p
+  exact ⟨β, ψ, hβ_cont, hext, hβ_coe, hψ_alg⟩
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Surjectivity from the backward round-trip**: an evaluation `Φ` satisfying the
+backward-engine hypotheses *at its own kernel* is surjective. `kerLift Φ` is continuous
+and injective; the exported backward `β` satisfies `kerLift ∘ β = id` (they agree on the
+dense `coeRingHom`-range by `IsLocalization.ringHom_ext` + `kerLift ∘ mk = Φ`), so
+`kerLift` is also surjective, and `Φ = kerLift ∘ mk` is surjective. -/
+private theorem tate_surjective_of_backward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D : RationalLocData A) {m : ℕ}
+    (Φ : ↥(restrictedMvPowerSeriesSubring m A) →+* presheafValue D)
+    (hΦ_cont : @Continuous _ _ (MvTateAlgebra.mvTateAlgebraTopology' m) _ ⇑Φ)
+    (hΦ_alg : ∀ x : A, Φ (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) x) =
+      D.canonicalMap x)
+    (gen : Fin m → A)
+    (hΦ_X : ∀ j : Fin m, Φ (⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ :
+        ↥(restrictedMvPowerSeriesSubring m A)) =
+      D.coeRingHom (divByS (gen j) D.s))
+    (hUnit : IsUnit ((Ideal.Quotient.mk (RingHom.ker Φ)).comp
+      (algebraMap A ↥(restrictedMvPowerSeriesSubring m A)) D.s))
+    (hgen_mod : ∀ j : Fin m,
+      Ideal.Quotient.mk (RingHom.ker Φ)
+          (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) (gen j)) =
+        Ideal.Quotient.mk (RingHom.ker Φ)
+            (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s) *
+          Ideal.Quotient.mk (RingHom.ker Φ)
+            (⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ :
+              ↥(restrictedMvPowerSeriesSubring m A)))
+    (hT_mod : ∀ t ∈ D.T, ∃ w : ↥(restrictedMvPowerSeriesSubring m A),
+      w ∈ MvTateAlgebra.mvPairSubring m (IsTateRing.principalPair A).toPairOfDefinition ∧
+      Ideal.Quotient.mk (RingHom.ker Φ)
+          (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) t) =
+        Ideal.Quotient.mk (RingHom.ker Φ)
+            (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s) *
+          Ideal.Quotient.mk (RingHom.ker Φ) w) :
+    Function.Surjective ⇑Φ := by
+  classical
+  letI τC : TopologicalSpace ↥(restrictedMvPowerSeriesSubring m A) :=
+    MvTateAlgebra.mvTateAlgebraTopology' m
+  haveI hringC : IsTopologicalRing ↥(restrictedMvPowerSeriesSubring m A) :=
+    MvTateAlgebra.mvTateAlgebraTopology'_isTopologicalRing m
+  have hA_complete : @CompleteSpace A (IsTopologicalAddGroup.rightUniformSpace A) := ‹_›
+  have hker_closed : @IsClosed _ τC ((RingHom.ker Φ :
+      Ideal ↥(restrictedMvPowerSeriesSubring m A)) :
+      Set ↥(restrictedMvPowerSeriesSubring m A)) :=
+    MvTateAlgebra.mvTate_isClosed_ideal m hA_complete (RingHom.ker Φ)
+  obtain ⟨β, ψ', hβ_cont, hβΦ, hβ_coe, hψ'_alg⟩ :=
+    tate_backward_exists D Φ hΦ_cont hΦ_alg gen hΦ_X (RingHom.ker Φ) hker_closed
+      hUnit hgen_mod hT_mod
+  letI τQ : TopologicalSpace (↥(restrictedMvPowerSeriesSubring m A) ⧸ RingHom.ker Φ) :=
+    mvQuotTopology m (RingHom.ker Φ)
+  -- `kerLift Φ` is continuous (factors the continuous `Φ` through the quotient map).
+  have hkerLift_cont : @Continuous _ _ τQ _ ⇑(RingHom.kerLift Φ) := by
+    rw [show τQ = TopologicalSpace.coinduced (Ideal.Quotient.mk (RingHom.ker Φ)) τC from rfl,
+      continuous_coinduced_dom]
+    have hcomp : (⇑(RingHom.kerLift Φ)) ∘ (Ideal.Quotient.mk (RingHom.ker Φ)) = ⇑Φ := by
+      funext h; exact RingHom.kerLift_mk Φ h
+    rw [hcomp]
+    exact hΦ_cont
+  -- `kerLift ∘ ψ' = coeRingHom` (ring homs on the localization agreeing on `algebraMap`).
+  have hlift_ψ : (RingHom.kerLift Φ).comp ψ' = D.coeRingHom := by
+    apply IsLocalization.ringHom_ext (Submonoid.powers D.s)
+    ext x
+    simp only [RingHom.comp_apply]
+    rw [hψ'_alg, RingHom.kerLift_mk, hΦ_alg]
+    rfl
+  -- round-trip `kerLift ∘ β = id` on the dense `coeRingHom`-range.
+  letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
+  have hround : (⇑(RingHom.kerLift Φ) ∘ ⇑β : presheafValue D → presheafValue D) = id := by
+    refine Continuous.ext_on
+      (UniformSpace.Completion.denseRange_coe (α := Localization.Away D.s))
+      (hkerLift_cont.comp hβ_cont) continuous_id ?_
+    rintro _ ⟨y, rfl⟩
+    show RingHom.kerLift Φ (β (D.coeRingHom y)) = D.coeRingHom y
+    rw [hβ_coe y]
+    exact RingHom.congr_fun hlift_ψ y
+  -- conclude: `Φ = kerLift ∘ mk`, both surjective.
+  intro y
+  obtain ⟨h, hh⟩ := Ideal.Quotient.mk_surjective (β y)
+  refine ⟨h, ?_⟩
+  have h1 : RingHom.kerLift Φ (β y) = y := congrFun hround y
+  rw [← h1, ← hh, RingHom.kerLift_mk]
+
+set_option linter.unusedSectionVars false in
+/-- **One-stop quotient presentation**: an evaluation `Φ` whose backward-engine data is
+given at a sub-ideal `aI ≤ ker Φ` presents `presheafValue D` as the quotient by `aI`:
+the engine gives `ker Φ ≤ aI` (so `ker Φ = aI`), the round-trip gives surjectivity (the
+`aI`-relations transport to `ker Φ`-relations along `Ideal.Quotient.factor`), and
+`RingHom.quotientKerEquivOfSurjective` assembles the equivalence. -/
+private noncomputable def tate_quotPresentation
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D : RationalLocData A) {m : ℕ}
+    (Φ : ↥(restrictedMvPowerSeriesSubring m A) →+* presheafValue D)
+    (hΦ_cont : @Continuous _ _ (MvTateAlgebra.mvTateAlgebraTopology' m) _ ⇑Φ)
+    (hΦ_alg : ∀ x : A, Φ (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) x) =
+      D.canonicalMap x)
+    (gen : Fin m → A)
+    (hΦ_X : ∀ j : Fin m, Φ (⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ :
+        ↥(restrictedMvPowerSeriesSubring m A)) =
+      D.coeRingHom (divByS (gen j) D.s))
+    (aI : Ideal ↥(restrictedMvPowerSeriesSubring m A))
+    (haI_le : aI ≤ RingHom.ker Φ)
+    (haI_closed : @IsClosed _ (MvTateAlgebra.mvTateAlgebraTopology' m)
+      (aI : Set ↥(restrictedMvPowerSeriesSubring m A)))
+    (hUnit : IsUnit ((Ideal.Quotient.mk aI).comp
+      (algebraMap A ↥(restrictedMvPowerSeriesSubring m A)) D.s))
+    (hgen_mod : ∀ j : Fin m,
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) (gen j)) =
+        Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s) *
+          Ideal.Quotient.mk aI (⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ :
+            ↥(restrictedMvPowerSeriesSubring m A)))
+    (hT_mod : ∀ t ∈ D.T, ∃ w : ↥(restrictedMvPowerSeriesSubring m A),
+      w ∈ MvTateAlgebra.mvPairSubring m (IsTateRing.principalPair A).toPairOfDefinition ∧
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) t) =
+        Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s) *
+          Ideal.Quotient.mk aI w) :
+    presheafValue D ≃+* (↥(restrictedMvPowerSeriesSubring m A) ⧸ aI) :=
+  -- transport the `aI`-relations to `ker Φ`-relations along the factor map
+  letI factor := Ideal.Quotient.factor haI_le
+  have hfac : ∀ x : ↥(restrictedMvPowerSeriesSubring m A),
+      factor (Ideal.Quotient.mk aI x) = Ideal.Quotient.mk (RingHom.ker Φ) x := fun x =>
+    Ideal.Quotient.factor_mk haI_le x
+  have hUnit' : IsUnit ((Ideal.Quotient.mk (RingHom.ker Φ)).comp
+      (algebraMap A ↥(restrictedMvPowerSeriesSubring m A)) D.s) := by
+    have := hUnit.map factor
+    rwa [show factor ((Ideal.Quotient.mk aI).comp
+        (algebraMap A ↥(restrictedMvPowerSeriesSubring m A)) D.s) =
+      (Ideal.Quotient.mk (RingHom.ker Φ)).comp
+        (algebraMap A ↥(restrictedMvPowerSeriesSubring m A)) D.s from hfac _] at this
+  have hgen_mod' : ∀ j : Fin m,
+      Ideal.Quotient.mk (RingHom.ker Φ)
+          (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) (gen j)) =
+        Ideal.Quotient.mk (RingHom.ker Φ)
+            (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s) *
+          Ideal.Quotient.mk (RingHom.ker Φ)
+            (⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ :
+              ↥(restrictedMvPowerSeriesSubring m A)) := fun j => by
+    have := congrArg factor (hgen_mod j)
+    rwa [map_mul, hfac, hfac, hfac] at this
+  have hT_mod' : ∀ t ∈ D.T, ∃ w : ↥(restrictedMvPowerSeriesSubring m A),
+      w ∈ MvTateAlgebra.mvPairSubring m (IsTateRing.principalPair A).toPairOfDefinition ∧
+      Ideal.Quotient.mk (RingHom.ker Φ)
+          (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) t) =
+        Ideal.Quotient.mk (RingHom.ker Φ)
+            (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s) *
+          Ideal.Quotient.mk (RingHom.ker Φ) w := fun t ht => by
+    obtain ⟨w, hw_mem, hw_mod⟩ := hT_mod t ht
+    refine ⟨w, hw_mem, ?_⟩
+    have := congrArg factor hw_mod
+    rwa [map_mul, hfac, hfac, hfac] at this
+  have hker_eq : RingHom.ker Φ = aI :=
+    le_antisymm
+      (tate_ker_le_of_backward D Φ hΦ_cont hΦ_alg gen hΦ_X aI haI_closed hUnit
+        hgen_mod hT_mod)
+      haI_le
+  have hsurj : Function.Surjective ⇑Φ :=
+    tate_surjective_of_backward D Φ hΦ_cont hΦ_alg gen hΦ_X hUnit' hgen_mod' hT_mod'
+  ((RingHom.quotientKerEquivOfSurjective hsurj).symm).trans
+    (Ideal.quotEquivOfEq hker_eq)
+
+set_option linter.unusedSectionVars false in
+/-- The presentation equivalence's inverse on `mk`-classes is the evaluation `Φ`
+(generic engine-level symm-tracking). -/
+private theorem tate_quotPresentation_symm_mk
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D : RationalLocData A) {m : ℕ}
+    (Φ : ↥(restrictedMvPowerSeriesSubring m A) →+* presheafValue D)
+    (hΦ_cont : @Continuous _ _ (MvTateAlgebra.mvTateAlgebraTopology' m) _ ⇑Φ)
+    (hΦ_alg : ∀ x : A, Φ (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) x) =
+      D.canonicalMap x)
+    (gen : Fin m → A)
+    (hΦ_X : ∀ j : Fin m, Φ (⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ :
+        ↥(restrictedMvPowerSeriesSubring m A)) =
+      D.coeRingHom (divByS (gen j) D.s))
+    (aI : Ideal ↥(restrictedMvPowerSeriesSubring m A))
+    (haI_le : aI ≤ RingHom.ker Φ)
+    (haI_closed : @IsClosed _ (MvTateAlgebra.mvTateAlgebraTopology' m)
+      (aI : Set ↥(restrictedMvPowerSeriesSubring m A)))
+    (hUnit : IsUnit ((Ideal.Quotient.mk aI).comp
+      (algebraMap A ↥(restrictedMvPowerSeriesSubring m A)) D.s))
+    (hgen_mod : ∀ j : Fin m,
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) (gen j)) =
+        Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s) *
+          Ideal.Quotient.mk aI (⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ :
+            ↥(restrictedMvPowerSeriesSubring m A)))
+    (hT_mod : ∀ t ∈ D.T, ∃ w : ↥(restrictedMvPowerSeriesSubring m A),
+      w ∈ MvTateAlgebra.mvPairSubring m (IsTateRing.principalPair A).toPairOfDefinition ∧
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) t) =
+        Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s) *
+          Ideal.Quotient.mk aI w)
+    (z : ↥(restrictedMvPowerSeriesSubring m A)) :
+    (tate_quotPresentation D Φ hΦ_cont hΦ_alg gen hΦ_X aI haI_le haI_closed hUnit
+        hgen_mod hT_mod).symm (Ideal.Quotient.mk aI z) = Φ z := by
+  rw [tate_quotPresentation]
+  simp only [RingEquiv.symm_trans_apply, RingEquiv.symm_symm]
+  exact RingHom.quotientKerEquivOfSurjective_apply_mk _ z
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- The presentation equivalence sends `canonicalMap x` to the constant class
+`mk (algebraMap x)` (generic tracking; mirrors `datum_quotEquiv_taut_canonicalMap`). -/
+private theorem tate_quotPresentation_canonicalMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D : RationalLocData A) {m : ℕ}
+    (Φ : ↥(restrictedMvPowerSeriesSubring m A) →+* presheafValue D)
+    (hΦ_cont : @Continuous _ _ (MvTateAlgebra.mvTateAlgebraTopology' m) _ ⇑Φ)
+    (hΦ_alg : ∀ x : A, Φ (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) x) =
+      D.canonicalMap x)
+    (gen : Fin m → A)
+    (hΦ_X : ∀ j : Fin m, Φ (⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ :
+        ↥(restrictedMvPowerSeriesSubring m A)) =
+      D.coeRingHom (divByS (gen j) D.s))
+    (aI : Ideal ↥(restrictedMvPowerSeriesSubring m A))
+    (haI_le : aI ≤ RingHom.ker Φ)
+    (haI_closed : @IsClosed _ (MvTateAlgebra.mvTateAlgebraTopology' m)
+      (aI : Set ↥(restrictedMvPowerSeriesSubring m A)))
+    (hUnit : IsUnit ((Ideal.Quotient.mk aI).comp
+      (algebraMap A ↥(restrictedMvPowerSeriesSubring m A)) D.s))
+    (hgen_mod : ∀ j : Fin m,
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) (gen j)) =
+        Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s) *
+          Ideal.Quotient.mk aI (⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ :
+            ↥(restrictedMvPowerSeriesSubring m A)))
+    (hT_mod : ∀ t ∈ D.T, ∃ w : ↥(restrictedMvPowerSeriesSubring m A),
+      w ∈ MvTateAlgebra.mvPairSubring m (IsTateRing.principalPair A).toPairOfDefinition ∧
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) t) =
+        Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) D.s) *
+          Ideal.Quotient.mk aI w)
+    (x : A) :
+    tate_quotPresentation D Φ hΦ_cont hΦ_alg gen hΦ_X aI haI_le haI_closed hUnit
+        hgen_mod hT_mod (D.canonicalMap x) =
+      Ideal.Quotient.mk aI (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) x) := by
+  set e := tate_quotPresentation D Φ hΦ_cont hΦ_alg gen hΦ_X aI haI_le haI_closed hUnit
+    hgen_mod hT_mod with he
+  have hsymm : e.symm (Ideal.Quotient.mk aI
+      (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) x)) = D.canonicalMap x := by
+    rw [he, tate_quotPresentation]
+    rw [RingEquiv.symm_trans_apply, RingEquiv.symm_symm]
+    rw [Ideal.quotEquivOfEq_symm]
+    erw [Ideal.quotEquivOfEq_mk]
+    erw [show (RingHom.quotientKerEquivOfSurjective _)
+        (Ideal.Quotient.mk (RingHom.ker Φ)
+          (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) x)) =
+      Φ (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) x) from rfl]
+    exact hΦ_alg x
+  calc e (D.canonicalMap x)
+      = e (e.symm (Ideal.Quotient.mk aI
+          (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) x))) := by rw [hsymm]
+    _ = Ideal.Quotient.mk aI
+          (algebraMap A ↥(restrictedMvPowerSeriesSubring m A) x) :=
+        e.apply_symm_apply _
+
+set_option linter.unusedSectionVars false in
+/-- Membership facts for the `interSamePair` of the unit/coUnit halves (the annulus
+datum: `T = {p·q : p ∈ {1,b}, q ∈ {b,1}} = {1, b, b²}`, `s = b`). Every element of `T`
+is `1`, `b`, or `b*b`. -/
+private theorem unitCoUnit_inter_T_cases (P : PairOfDefinition A) (b : A) :
+    ∀ t ∈ ((unitDatum P b).interSamePair (coUnitDatum P b) rfl).T,
+      t = 1 ∨ t = b ∨ t = b * b := by
+  classical
+  intro t ht
+  have : t ∈ ((insert (1 : A) ({b} : Finset A)).product (insert b ({1} : Finset A))).image
+      (fun p : A × A => p.1 * p.2) := ht
+  rw [Finset.mem_image] at this
+  obtain ⟨⟨p, q⟩, hpq, rfl⟩ := this
+  obtain ⟨hp, hq⟩ := Finset.mem_product.mp hpq
+  rcases Finset.mem_insert.mp hp with hp1 | hp'
+  · rcases Finset.mem_insert.mp hq with hq1 | hq'
+    · exact Or.inr (Or.inl (by rw [hp1, hq1, one_mul]))
+    · exact Or.inl (by rw [hp1, Finset.mem_singleton.mp hq', one_mul])
+  · rcases Finset.mem_insert.mp hq with hq1 | hq'
+    · exact Or.inr (Or.inr (by rw [Finset.mem_singleton.mp hp', hq1]))
+    · exact Or.inr (Or.inl (by
+        rw [Finset.mem_singleton.mp hp', Finset.mem_singleton.mp hq', mul_one]))
+
+set_option linter.unusedSectionVars false in
+/-- `1 ∈ T` for the annulus datum. -/
+private theorem unitCoUnit_inter_one_mem (P : PairOfDefinition A) (b : A) :
+    (1 : A) ∈ ((unitDatum P b).interSamePair (coUnitDatum P b) rfl).T := by
+  classical
+  show (1 : A) ∈ ((insert (1 : A) ({b} : Finset A)).product (insert b ({1} : Finset A))).image
+    (fun p : A × A => p.1 * p.2)
+  rw [Finset.mem_image]
+  exact ⟨(1, 1), Finset.mem_product.mpr
+    ⟨Finset.mem_insert_self _ _,
+     Finset.mem_insert_of_mem (Finset.mem_singleton_self _)⟩, one_mul 1⟩
+
+set_option linter.unusedSectionVars false in
+/-- `b·b ∈ T` for the annulus datum. -/
+private theorem unitCoUnit_inter_bb_mem (P : PairOfDefinition A) (b : A) :
+    b * b ∈ ((unitDatum P b).interSamePair (coUnitDatum P b) rfl).T := by
+  classical
+  show b * b ∈ ((insert (1 : A) ({b} : Finset A)).product (insert b ({1} : Finset A))).image
+    (fun p : A × A => p.1 * p.2)
+  rw [Finset.mem_image]
+  exact ⟨(b, b), Finset.mem_product.mpr
+    ⟨Finset.mem_insert_of_mem (Finset.mem_singleton_self _),
+     Finset.mem_insert_self _ _⟩, rfl⟩
+
+set_option linter.unusedSectionVars false in
+/-- The B-side annulus datum: the `interSamePair` of the unit/coUnit halves over
+`B = presheafValue D₀` at `b = D₀.canonicalMap f` (`T = {1, b, b²}`, `s = 1·b`). -/
+private noncomputable def unitCover_overlapDatum_B
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) : RationalLocData (presheafValue D₀) :=
+  letI : DecidableEq (presheafValue D₀) := Classical.decEq _
+  (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).interSamePair
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)) rfl
+
+set_option linter.unusedSectionVars false in
+/-- The bivariate annulus evaluation tuple: `(b²/s_O, 1/s_O)`. -/
+private noncomputable def unitCover_overlapTuple
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) :
+    Fin 2 → presheafValue (unitCover_overlapDatum_B D₀ f) :=
+  ![(unitCover_overlapDatum_B D₀ f).coeRingHom
+      (divByS (D₀.canonicalMap f * D₀.canonicalMap f) (unitCover_overlapDatum_B D₀ f).s),
+    (unitCover_overlapDatum_B D₀ f).coeRingHom
+      (divByS (1 : presheafValue D₀) (unitCover_overlapDatum_B D₀ f).s)]
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- Both annulus tuple entries are power-bounded (their `divByS` numerators lie in
+`T = {1, b, b²}`, so the elements lie in the ring of definition `locSubring`). -/
+private theorem unitCover_overlapTuple_isBounded
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (i : Fin 2) :
+    TopologicalRing.IsBounded
+      (Set.range (unitCover_overlapTuple D₀ f i ^ · :
+        ℕ → presheafValue (unitCover_overlapDatum_B D₀ f))) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  have hmem_bb : D₀.canonicalMap f * D₀.canonicalMap f ∈
+      (unitCover_overlapDatum_B D₀ f).T :=
+    unitCoUnit_inter_bb_mem (presheafValue_concretePair D₀) (D₀.canonicalMap f)
+  have hmem_one : (1 : presheafValue D₀) ∈ (unitCover_overlapDatum_B D₀ f).T :=
+    unitCoUnit_inter_one_mem (presheafValue_concretePair D₀) (D₀.canonicalMap f)
+  have hloc_bb : divByS (D₀.canonicalMap f * D₀.canonicalMap f)
+      (unitCover_overlapDatum_B D₀ f).s ∈
+      locSubring (unitCover_overlapDatum_B D₀ f).P (unitCover_overlapDatum_B D₀ f).T
+        (unitCover_overlapDatum_B D₀ f).s :=
+    divByS_mem_locSubring _ _ _ hmem_bb
+  have hloc_one : divByS (1 : presheafValue D₀) (unitCover_overlapDatum_B D₀ f).s ∈
+      locSubring (unitCover_overlapDatum_B D₀ f).P (unitCover_overlapDatum_B D₀ f).T
+        (unitCover_overlapDatum_B D₀ f).s :=
+    divByS_mem_locSubring _ _ _ hmem_one
+  have hbdd := CompletionLocalization.coeRingHom_image_locSubring_isBounded
+    (unitCover_overlapDatum_B D₀ f)
+  refine Fin.cases ?_ (fun j => ?_) i
+  · refine hbdd.subset ?_
+    rintro _ ⟨k, rfl⟩
+    refine ⟨(divByS (D₀.canonicalMap f * D₀.canonicalMap f)
+      (unitCover_overlapDatum_B D₀ f).s) ^ k, pow_mem hloc_bb k, ?_⟩
+    rw [map_pow]
+    rfl
+  · have hj : j = 0 := Subsingleton.elim j 0
+    subst hj
+    refine hbdd.subset ?_
+    rintro _ ⟨k, rfl⟩
+    refine ⟨(divByS (1 : presheafValue D₀)
+      (unitCover_overlapDatum_B D₀ f).s) ^ k, pow_mem hloc_one k, ?_⟩
+    rw [map_pow]
+    rfl
+
+set_option linter.unusedSectionVars false in
+/-- **The bivariate annulus evaluation** `Φ₂ : B⟨X,Y⟩ →+* O_X^B(annulus)`,
+`X ↦ b²/s_O (= b)`, `Y ↦ 1/s_O (= 1/b)` (`s_O = 1·b`). Term-mode `mvEvalHomBounded`
+at the named tuple, so the `_algebraMap`/`_X` API applies by unification. -/
+private noncomputable def unitCover_overlapEval
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    ↥(TateAlgebra₂ (presheafValue D₀)) →+*
+      presheafValue (unitCover_overlapDatum_B D₀ f) :=
+  mvEvalHomBounded (unitCover_overlapDatum_B D₀ f).canonicalMap
+    (canonicalMap_continuous (unitCover_overlapDatum_B D₀ f))
+    (unitCover_overlapTuple D₀ f) (unitCover_overlapTuple_isBounded D₀ f)
+
+-- TODO (next stretch): `unitCover_overlapQuotEquiv` — the overlap quotient presentation
+-- `presheafValue (unitCover_overlapDatum_B D₀ f) ≃+* T₂ B ⧸ (b−X, 1−bY)`, by applying
+-- `tate_quotPresentation` at `Φ₂ := unitCover_overlapEval D₀ f` with `gen := ![b·b, 1]`,
+-- `aI₂ := span{algebraMap b − X, 1 − algebraMap b · Y}`. ALL inputs are landed above
+-- (membership lemmas, `unitCover_overlapTuple(_isBounded)`, `unitCover_overlapEval`,
+-- `tate_quotPresentation`); the discharge block (haI_le computational via `hdiv_bb`
+-- `b²/s_O = b` and `b·(1/s_O) = 1`; hUnit via `mk Y`-inverse; hgen_mod j-cases;
+-- hT_mod via `unitCoUnit_inter_T_cases` with witnesses Y/1/X) was drafted 2026-06-09
+-- (see conversation/memory ★★★★★★★★★★) and needs mechanical goal-repair
+-- (set-vs-raw forms at hΦ_alg/hΦ_X; the `Ideal.Quotient.eq` orientations). Then
+-- compose with `bivariateSpan_equiv_B₁₂gen` for the full Ex-6.38 overlap half.
+
+set_option linter.unusedSectionVars false in
+/-- `s_O`-collapse: the annulus denominator is `1·b = b`. -/
+private theorem unitCover_overlapDatum_s [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) :
+    (unitCover_overlapDatum_B D₀ f).s = D₀.canonicalMap f := by
+  show (1 : presheafValue D₀) * D₀.canonicalMap f = D₀.canonicalMap f
+  rw [one_mul]
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- The annulus evaluation kills `b − X` (both map to `b`: `X ↦ b²/s_O = b`). -/
+private theorem unitCover_overlapEval_gen1 [IsTateRing A] [IsNoetherianRing A]
+    [IsStronglyNoetherian A] [T2Space A] [NonarchimedeanRing A]
+    [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    unitCover_overlapEval D₀ f
+        (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+          (D₀.canonicalMap f) - TateAlgebra₂.X) = 0 := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  rw [map_sub]
+  rw [show unitCover_overlapEval D₀ f
+      (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+        (D₀.canonicalMap f)) =
+    (unitCover_overlapDatum_B D₀ f).canonicalMap (D₀.canonicalMap f) from
+    mvEvalHomBounded_algebraMap _ _ _ _ _]
+  rw [show (TateAlgebra₂.X : ↥(TateAlgebra₂ (presheafValue D₀))) =
+    (⟨MvPowerSeries.X (0 : Fin 2), MvPowerSeries.X_isRestricted 0⟩ :
+      ↥(TateAlgebra₂ (presheafValue D₀))) from rfl]
+  rw [show unitCover_overlapEval D₀ f
+      (⟨MvPowerSeries.X (0 : Fin 2), MvPowerSeries.X_isRestricted 0⟩ :
+        ↥(TateAlgebra₂ (presheafValue D₀))) =
+    unitCover_overlapTuple D₀ f 0 from mvEvalHomBounded_X _ _ _ _ 0]
+  -- `tuple 0 = b²/s_O`; show `canonicalMap b = coeRingHom (b²/s_O)` via `b²/s_O = b/1`
+  show (unitCover_overlapDatum_B D₀ f).coeRingHom
+      (algebraMap (presheafValue D₀)
+        (Localization.Away (unitCover_overlapDatum_B D₀ f).s) (D₀.canonicalMap f)) -
+    (unitCover_overlapDatum_B D₀ f).coeRingHom
+      (divByS (D₀.canonicalMap f * D₀.canonicalMap f)
+        (unitCover_overlapDatum_B D₀ f).s) = 0
+  rw [← map_sub]
+  have hdiv : divByS (D₀.canonicalMap f * D₀.canonicalMap f)
+      (unitCover_overlapDatum_B D₀ f).s =
+      algebraMap (presheafValue D₀)
+        (Localization.Away (unitCover_overlapDatum_B D₀ f).s) (D₀.canonicalMap f) := by
+    unfold divByS
+    rw [show algebraMap (presheafValue D₀)
+        (Localization.Away (unitCover_overlapDatum_B D₀ f).s) (D₀.canonicalMap f) =
+      IsLocalization.mk' (Localization.Away (unitCover_overlapDatum_B D₀ f).s)
+        (D₀.canonicalMap f)
+        (1 : Submonoid.powers (unitCover_overlapDatum_B D₀ f).s) from
+      (IsLocalization.mk'_one _ _).symm]
+    apply IsLocalization.mk'_eq_of_eq
+    simp only [Submonoid.coe_one, mul_one, unitCover_overlapDatum_s D₀ f]
+    ring
+  rw [hdiv, sub_self, map_zero]
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- The annulus evaluation kills `1 − b·Y` (`Y ↦ 1/s_O = 1/b`, and `b·(1/b) = 1`). -/
+private theorem unitCover_overlapEval_gen2 [IsTateRing A] [IsNoetherianRing A]
+    [IsStronglyNoetherian A] [T2Space A] [NonarchimedeanRing A]
+    [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    unitCover_overlapEval D₀ f
+        ((1 : ↥(TateAlgebra₂ (presheafValue D₀))) -
+          algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+            (D₀.canonicalMap f) * TateAlgebra₂.Y) = 0 := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  rw [map_sub, map_one, map_mul]
+  rw [show unitCover_overlapEval D₀ f
+      (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+        (D₀.canonicalMap f)) =
+    (unitCover_overlapDatum_B D₀ f).canonicalMap (D₀.canonicalMap f) from
+    mvEvalHomBounded_algebraMap _ _ _ _ _]
+  rw [show (TateAlgebra₂.Y : ↥(TateAlgebra₂ (presheafValue D₀))) =
+    (⟨MvPowerSeries.X (1 : Fin 2), MvPowerSeries.X_isRestricted 1⟩ :
+      ↥(TateAlgebra₂ (presheafValue D₀))) from rfl]
+  rw [show unitCover_overlapEval D₀ f
+      (⟨MvPowerSeries.X (1 : Fin 2), MvPowerSeries.X_isRestricted 1⟩ :
+        ↥(TateAlgebra₂ (presheafValue D₀))) =
+    unitCover_overlapTuple D₀ f 1 from mvEvalHomBounded_X _ _ _ _ 1]
+  show (1 : presheafValue (unitCover_overlapDatum_B D₀ f)) -
+    (unitCover_overlapDatum_B D₀ f).coeRingHom
+      (algebraMap (presheafValue D₀)
+        (Localization.Away (unitCover_overlapDatum_B D₀ f).s) (D₀.canonicalMap f)) *
+    (unitCover_overlapDatum_B D₀ f).coeRingHom
+      (divByS (1 : presheafValue D₀) (unitCover_overlapDatum_B D₀ f).s) = 0
+  rw [← map_mul]
+  have hmul : algebraMap (presheafValue D₀)
+      (Localization.Away (unitCover_overlapDatum_B D₀ f).s) (D₀.canonicalMap f) *
+      divByS (1 : presheafValue D₀) (unitCover_overlapDatum_B D₀ f).s = 1 := by
+    have h1 := algebraMap_s_mul_divByS (unitCover_overlapDatum_B D₀ f)
+      (1 : presheafValue D₀)
+    rw [show algebraMap (presheafValue D₀)
+        (Localization.Away (unitCover_overlapDatum_B D₀ f).s) (D₀.canonicalMap f) =
+      algebraMap (presheafValue D₀)
+        (Localization.Away (unitCover_overlapDatum_B D₀ f).s)
+        ((unitCover_overlapDatum_B D₀ f).s) from by
+      rw [unitCover_overlapDatum_s D₀ f]]
+    rw [h1, map_one]
+  rw [hmul, map_one, sub_self]
+
+set_option linter.unusedSectionVars false in
+/-- The annulus ideal `(b − X, 1 − bY)` over `B`, abbreviated. -/
+private noncomputable def unitCover_overlapIdeal [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) : Ideal ↥(TateAlgebra₂ (presheafValue D₀)) :=
+  Ideal.span {algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+      (D₀.canonicalMap f) - TateAlgebra₂.X,
+    1 - algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+      (D₀.canonicalMap f) * TateAlgebra₂.Y}
+
+set_option linter.unusedSectionVars false in
+/-- `mk(algebraMap t) = mk(algebraMap s_O) · mk(w)` mod the annulus ideal, for the
+three generator shapes (`t = 1` with `w = Y`; `t = b` with `w = 1`; `t = b²` with
+`w = X`). Pure ideal arithmetic with `s_O = b`. -/
+private theorem unitCover_overlapIdeal_rel [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) :
+    (Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f)
+        (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀)) 1) =
+      Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f)
+          (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+            ((unitCover_overlapDatum_B D₀ f).s)) *
+        Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f) (TateAlgebra₂.Y)) ∧
+    (Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f)
+        (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+          (D₀.canonicalMap f)) =
+      Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f)
+          (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+            ((unitCover_overlapDatum_B D₀ f).s)) *
+        Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f) 1) ∧
+    (Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f)
+        (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+          (D₀.canonicalMap f * D₀.canonicalMap f)) =
+      Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f)
+          (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+            ((unitCover_overlapDatum_B D₀ f).s)) *
+        Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f) (TateAlgebra₂.X)) := by
+  have hs := unitCover_overlapDatum_s D₀ f
+  have hgen₁ : (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+      (D₀.canonicalMap f) - TateAlgebra₂.X) ∈ unitCover_overlapIdeal D₀ f :=
+    Ideal.subset_span (Set.mem_insert _ _)
+  have hgen₂ : ((1 : ↥(TateAlgebra₂ (presheafValue D₀))) -
+      algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+        (D₀.canonicalMap f) * TateAlgebra₂.Y) ∈ unitCover_overlapIdeal D₀ f :=
+    Ideal.subset_span (Set.mem_insert_of_mem _ (Set.mem_singleton _))
+  refine ⟨?_, ?_, ?_⟩
+  · rw [map_one, ← map_mul, hs, Ideal.Quotient.eq]
+    exact hgen₂
+  · rw [show Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f)
+        (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+          ((unitCover_overlapDatum_B D₀ f).s)) *
+        Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f)
+          (1 : ↥(TateAlgebra₂ (presheafValue D₀))) =
+      Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f)
+        (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+          ((unitCover_overlapDatum_B D₀ f).s) * 1) from (map_mul _ _ _).symm,
+      mul_one, hs]
+  · rw [show Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f)
+        (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+          ((unitCover_overlapDatum_B D₀ f).s)) *
+        Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f) TateAlgebra₂.X =
+      Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f)
+        (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+          ((unitCover_overlapDatum_B D₀ f).s) * TateAlgebra₂.X) from
+      (map_mul _ _ _).symm, hs, Ideal.Quotient.eq, map_mul]
+    have hfac : algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+        (D₀.canonicalMap f) *
+        algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+          (D₀.canonicalMap f) -
+        algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+          (D₀.canonicalMap f) * TateAlgebra₂.X =
+        algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+          (D₀.canonicalMap f) *
+          (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀))
+            (D₀.canonicalMap f) - TateAlgebra₂.X) := by
+      rw [mul_sub]
+    rw [hfac]
+    exact Ideal.mul_mem_left _ _ hgen₁
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- **The Example-6.38 half of the overlap bridge**: `O_X^B(annulus) ≃+*
+B⟨X,Y⟩/(b − X, 1 − bY)`, by `tate_quotPresentation` at the bivariate annulus
+evaluation, with every engine input discharged from the landed package
+(`unitCover_overlapEval_gen1/2`, `unitCover_overlapIdeal_rel`,
+`unitCoUnit_inter_T_cases`). -/
+private noncomputable def unitCover_overlapQuotEquiv
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    presheafValue (unitCover_overlapDatum_B D₀ f) ≃+*
+      (↥(TateAlgebra₂ (presheafValue D₀)) ⧸ unitCover_overlapIdeal D₀ f) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  haveI hCompleteB :
+      (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+       CompleteSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  have hX_mem : ∀ j : Fin 2,
+      (⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ :
+        ↥(TateAlgebra₂ (presheafValue D₀))) ∈
+      MvTateAlgebra.mvPairSubring 2
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition := by
+    intro j l
+    change MvPowerSeries.coeff l (MvPowerSeries.X j) ∈ _
+    rw [MvPowerSeries.coeff_X]
+    split
+    · exact Subring.one_mem _
+    · exact Subring.zero_mem _
+  have hXzeta : (TateAlgebra₂.X : ↥(TateAlgebra₂ (presheafValue D₀))) =
+      (⟨MvPowerSeries.X (0 : Fin 2), MvPowerSeries.X_isRestricted 0⟩ :
+        ↥(TateAlgebra₂ (presheafValue D₀))) := rfl
+  have hYeta : (TateAlgebra₂.Y : ↥(TateAlgebra₂ (presheafValue D₀))) =
+      (⟨MvPowerSeries.X (1 : Fin 2), MvPowerSeries.X_isRestricted 1⟩ :
+        ↥(TateAlgebra₂ (presheafValue D₀))) := rfl
+  refine tate_quotPresentation (unitCover_overlapDatum_B D₀ f)
+    (unitCover_overlapEval D₀ f)
+    (mvEvalHomBounded_continuous _ _ _ _)
+    (fun x => mvEvalHomBounded_algebraMap _ _ _ _ x)
+    (![D₀.canonicalMap f * D₀.canonicalMap f, 1])
+    (fun j => ?_) (unitCover_overlapIdeal D₀ f) ?_ ?_ ?_ (fun j => ?_) ?_
+  · -- hΦ_X
+    refine Eq.trans (mvEvalHomBounded_X _ _ _ _ j) ?_
+    refine Fin.cases ?_ (fun j' => ?_) j
+    · rfl
+    · have hj : j' = 0 := Subsingleton.elim j' 0
+      subst hj
+      rfl
+  · -- haI_le
+    rw [unitCover_overlapIdeal, Ideal.span_le]
+    rintro x hx
+    rcases hx with rfl | hx'
+    · exact unitCover_overlapEval_gen1 D₀ f
+    · rw [Set.mem_singleton_iff] at hx'
+      subst hx'
+      exact unitCover_overlapEval_gen2 D₀ f
+  · -- haI_closed
+    exact MvTateAlgebra.mvTate_isClosed_ideal 2 hCompleteB _
+  · -- hUnit
+    rw [isUnit_iff_exists_inv]
+    refine ⟨Ideal.Quotient.mk _ TateAlgebra₂.Y, ?_⟩
+    have h1 := (unitCover_overlapIdeal_rel D₀ f).1
+    rw [map_one] at h1
+    exact h1.symm
+  · -- hgen_mod
+    refine Fin.cases ?_ (fun j' => ?_) j
+    · simpa only [Matrix.cons_val_zero, hXzeta] using (unitCover_overlapIdeal_rel D₀ f).2.2
+    · have hj : j' = 0 := Subsingleton.elim j' 0
+      subst hj
+      try simp only [Matrix.cons_val_succ, Matrix.cons_val_zero]
+      rw [map_one]
+      have h1 := (unitCover_overlapIdeal_rel D₀ f).1
+      rw [map_one] at h1
+      exact h1
+  · -- hT_mod
+    intro t ht
+    rcases unitCoUnit_inter_T_cases (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f) t ht with rfl | rfl | rfl
+    · refine ⟨⟨MvPowerSeries.X (1 : Fin 2), MvPowerSeries.X_isRestricted 1⟩,
+        hX_mem 1, ?_⟩
+      have h1 := (unitCover_overlapIdeal_rel D₀ f).1
+      rw [← hYeta]
+      exact h1
+    · exact ⟨1, Subring.one_mem _, (unitCover_overlapIdeal_rel D₀ f).2.1⟩
+    · refine ⟨⟨MvPowerSeries.X (0 : Fin 2), MvPowerSeries.X_isRestricted 0⟩,
+        hX_mem 0, ?_⟩
+      rw [← hXzeta]
+      exact (unitCover_overlapIdeal_rel D₀ f).2.2
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- The overlap presentation sends `canonicalMap x` to the constant class
+`mk (algebraMap x)` (instance of `tate_quotPresentation_canonicalMap`, by
+unification against the definition). -/
+private theorem unitCover_overlapQuotEquiv_canonicalMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
+    unitCover_overlapQuotEquiv D₀ f
+        ((unitCover_overlapDatum_B D₀ f).canonicalMap x) =
+      Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f)
+        (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀)) x) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  haveI hCompleteB :
+      (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+       CompleteSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  set e := unitCover_overlapQuotEquiv D₀ f with he
+  have hsymm : e.symm (Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f)
+      (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀)) x)) =
+      (unitCover_overlapDatum_B D₀ f).canonicalMap x := by
+    rw [he]
+    unfold unitCover_overlapQuotEquiv tate_quotPresentation
+    dsimp only
+    rw [RingEquiv.symm_trans_apply, RingEquiv.symm_symm, Ideal.quotEquivOfEq_symm]
+    erw [Ideal.quotEquivOfEq_mk]
+    erw [show (RingHom.quotientKerEquivOfSurjective _)
+        (Ideal.Quotient.mk (RingHom.ker (unitCover_overlapEval D₀ f))
+          (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀)) x)) =
+      unitCover_overlapEval D₀ f
+        (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀)) x) from rfl]
+    exact mvEvalHomBounded_algebraMap _ _ _ _ x
+  calc e ((unitCover_overlapDatum_B D₀ f).canonicalMap x)
+      = e (e.symm (Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f)
+          (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀)) x))) := by
+        rw [hsymm]
+    _ = Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f)
+          (algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀)) x) :=
+        e.apply_symm_apply _
+
+set_option linter.unusedSectionVars false in
+/-- The Laurent step sends constant classes to constant classes:
+`mk_span (algebraMap x) ↦ mk_(b−ζ) (algebraMap_Laurent x)`. -/
+private theorem bivariateSpan_equiv_B₁₂gen_algebraMap (b x : A) :
+    bivariateSpan_equiv_B₁₂gen b
+        (Ideal.Quotient.mk _ (algebraMap A ↥(TateAlgebra₂ A) x)) =
+      Ideal.Quotient.mk (LaurentCover.laurentFSubZetaIdeal b)
+        (algebraMap A (LaurentTateAlgebra A) x) := by
+  rw [bivariateSpan_equiv_B₁₂gen, RingEquiv.trans_apply, RingEquiv.trans_apply]
+  erw [Ideal.quotEquivOfEq_mk]
+
+set_option linter.unusedSectionVars false in
+/-- **Relative-plus forward base unit**: the image of the A-side plus-datum
+denominator `D₀.s · 1` under `algebraMap ∘ canonicalMap` is a unit in the B-side
+localization (since `canonicalMap D₀.s` is already a unit in `B = presheafValue D₀`,
+`isUnit_s_in_presheafValue`). First step of the Wedhorn-2.13 forward loc-hom for
+`unitCover_relativePlus`, following the `iteratedOverlap_forwardLocHom_to_B` template
+(faithful: no `LaurentNormalized`, no noeth-`A₀`). -/
+private theorem unitCover_relPlus_baseHom_isUnit
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    IsUnit ((algebraMap (presheafValue D₀)
+        (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+          (D₀.canonicalMap f)).s))).comp D₀.canonicalMap
+      ((D₀.interSamePair (unitDatum D₀.P f) rfl).s)) := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  have hs : (D₀.interSamePair (unitDatum D₀.P f) rfl).s = D₀.s * 1 := rfl
+  rw [RingHom.comp_apply, hs, mul_one]
+  exact (isUnit_s_in_presheafValue D₀).map _
+
+set_option linter.unusedSectionVars false in
+/-- **Relative-plus forward loc-hom** (Wedhorn 2.13 step 1):
+`Loc_A(U₁-datum) →+* Loc_B(R(b/1)-datum)`, by the universal property at the A-side
+denominator (whose image is a unit, `unitCover_relPlus_baseHom_isUnit`). -/
+private noncomputable def unitCover_relPlus_forwardLocHom
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    Localization.Away ((D₀.interSamePair (unitDatum D₀.P f) rfl).s) →+*
+      Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+        (D₀.canonicalMap f)).s) :=
+  IsLocalization.Away.lift (x := (D₀.interSamePair (unitDatum D₀.P f) rfl).s)
+    (g := (algebraMap (presheafValue D₀)
+      (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+        (D₀.canonicalMap f)).s))).comp D₀.canonicalMap)
+    (unitCover_relPlus_baseHom_isUnit D₀ f)
+
+set_option linter.unusedSectionVars false in
+/-- The forward loc-hom sends `algebraMap a ↦ algebraMap (canonicalMap a)`. -/
+private theorem unitCover_relPlus_forwardLocHom_algebraMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (a : A) :
+    unitCover_relPlus_forwardLocHom D₀ f
+        (algebraMap A (Localization.Away
+          ((D₀.interSamePair (unitDatum D₀.P f) rfl).s)) a) =
+      algebraMap (presheafValue D₀)
+        (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+          (D₀.canonicalMap f)).s)) (D₀.canonicalMap a) := by
+  rw [unitCover_relPlus_forwardLocHom, IsLocalization.Away.lift_eq]
+  rfl
+
+-- TODO (relativePlus pieces 4–8, fully specified; template = IteratedOverlapEquiv §2–7):
+-- (4) `unitCover_relPlus_forward_generators_powerBounded`: ∀ t ∈ T_inter
+--     (= products (insert D₀.s D₀.T) × {1, f}), the forward image of `divByS t s_inter`
+--     is power-bounded in the B-datum (`unitDatum P_B b`) topology. Cases (t = p·q):
+--     p·1 ↦ algebraMap_LocB (coeRingHom (divByS p D₀.s)) — bounded via
+--     `example638_genTuple_isBounded`-machinery (p ∈ insert D₀.s D₀.T: p = D₀.s ↦ 1 ✓
+--     `isPowerBounded_one`; p ∈ D₀.T ↦ the t/s generator ✓);
+--     p·f ↦ (p·1-image) · algebraMap_LocB b — product with b, which is bounded in the
+--     B-datum topology (b ∈ T_B = {b}; `divByS_mem_locSubring` + coeRingHom-image) —
+--     combine via `IsBounded.mul` (Bounded.lean:118).
+-- (5) continuity via `locTopology_continuous_lift` (the (a)-branch = `_algebraMap`
+--     tracking above; (b)-branch = piece 4).
+-- (6) forward extensionHom : presheafValue(inter-datum) →+* presheafValue(unitDatum P_B b)
+--     via `UniformSpace.Completion.extensionHom` (β-opaquification pattern).
+-- (7) BACKWARD: base-hom = `restrictionMap D₀ (inter-datum)` (the Wedhorn-2.13 insight:
+--     restriction IS the backward base); lift over Loc_B(1) ≅ B by `IsLocalization.Away.lift`
+--     at `1` (trivially unit), extend to the completion; mirror
+--     `iteratedOverlap_backwardToCompletion` (LaurentOverlap:1697).
+-- (8) roundtrips via `Continuous.ext_on (Completion.denseRange_coe)` +
+--     `IsLocalization.ringHom_ext` (both proven patterns in this file); package the ≃+*
+--     and discharge `unitCover_relativePlus`; `_restrictionMap`-tracking follows from
+--     (7)'s base-hom being literally the restriction.
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Relative-plus per-generator witnesses (piece 4)**: every `t ∈ T_inter` has a
+`locSubring`-witness `y` over the B-datum with `F (divByS t s_inter) = coeRingHom_B y`.
+Cases over `t = p·q`, `p ∈ insert D₀.s D₀.T`, `q ∈ {1, f}` (Wedhorn 2.13 generator
+bookkeeping). Honest isolated leaf — the case computations use `hwit_p`-style
+unit-cancellation; fill next. -/
+private theorem unitCover_relPlus_forward_witness
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (t : A) (ht : t ∈ (D₀.interSamePair (unitDatum D₀.P f) rfl).T) :
+    ∃ y : Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+        (D₀.canonicalMap f)).s),
+      y ∈ locSubring (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).P
+          (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).T
+          (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).s ∧
+      ((unitDatum (presheafValue_concretePair D₀)
+          (D₀.canonicalMap f)).coeRingHom).comp
+        (unitCover_relPlus_forwardLocHom D₀ f)
+        (divByS t (D₀.interSamePair (unitDatum D₀.P f) rfl).s) =
+      (unitDatum (presheafValue_concretePair D₀)
+        (D₀.canonicalMap f)).coeRingHom y := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  set DI := D₀.interSamePair (unitDatum D₀.P f) rfl with hDI
+  set DB := unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f) with hDB
+  set F := (DB.coeRingHom).comp (unitCover_relPlus_forwardLocHom D₀ f) with hF
+  have hF_alg : ∀ a : A, F (algebraMap A (Localization.Away DI.s) a) =
+      DB.canonicalMap (D₀.canonicalMap a) := by
+    intro a
+    rw [hF, RingHom.comp_apply, unitCover_relPlus_forwardLocHom_algebraMap]
+    rfl
+  have hu : IsUnit (F (algebraMap A (Localization.Away DI.s) DI.s)) := by
+    rw [hF_alg]
+    have hs : DI.s = D₀.s * 1 := rfl
+    rw [hs, mul_one]
+    exact ((isUnit_s_in_presheafValue D₀).map DB.canonicalMap)
+  have hF_div : ∀ (c : A) (w : presheafValue DB),
+      F (algebraMap A (Localization.Away DI.s) c) =
+        F (algebraMap A (Localization.Away DI.s) DI.s) * w →
+      F (divByS c DI.s) = w := by
+    intro c w hw
+    have h1 : F (algebraMap A (Localization.Away DI.s) DI.s) * F (divByS c DI.s) =
+        F (algebraMap A (Localization.Away DI.s) c) := by
+      rw [← map_mul, algebraMap_s_mul_divByS]
+    exact hu.mul_left_cancel (h1.trans hw)
+  -- the universal `p/s`-relation in `B`: `canMap p = canMap DI.s · coeRingHom (p/s)`
+  have hps : ∀ p : A, D₀.canonicalMap p =
+      D₀.canonicalMap DI.s * D₀.coeRingHom (divByS p D₀.s) := by
+    intro p
+    have hs : DI.s = D₀.s * 1 := rfl
+    rw [hs, mul_one]
+    rw [show D₀.canonicalMap D₀.s * D₀.coeRingHom (divByS p D₀.s) =
+      D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) D₀.s *
+        divByS p D₀.s) from by rw [map_mul]; rfl]
+    rw [algebraMap_s_mul_divByS]
+    rfl
+  -- the `p/s`-elements lie in the B-pair's `A₀`
+  have hA₀ : ∀ p ∈ insert D₀.s D₀.T,
+      D₀.coeRingHom (divByS p D₀.s) ∈ (presheafValue_concretePair D₀).A₀ := by
+    intro p hp
+    rw [presheafValue_concretePair_A₀]
+    rcases Finset.mem_insert.mp hp with rfl | hp'
+    · -- `p = D₀.s`: `divByS s s = 1`
+      have h1 : divByS D₀.s D₀.s = 1 := by
+        unfold divByS
+        exact IsLocalization.mk'_self (M := Submonoid.powers D₀.s)
+          (S := Localization.Away D₀.s) ⟨1, pow_one D₀.s⟩
+      rw [h1, map_one]
+      exact one_mem _
+    · exact subset_closure ⟨⟨divByS p D₀.s,
+        divByS_mem_locSubring D₀.P D₀.T D₀.s hp'⟩, rfl⟩
+  -- decompose `t = p · q`
+  have ht' : t ∈ ((insert D₀.s D₀.T).product
+      (insert (1 : A) ({f} : Finset A))).image (fun p : A × A => p.1 * p.2) := ht
+  rw [Finset.mem_image] at ht'
+  obtain ⟨⟨p, q⟩, hpq, rfl⟩ := ht'
+  have hp : p ∈ insert D₀.s D₀.T := (Finset.mem_product.mp hpq).1
+  have hq : q ∈ insert (1 : A) ({f} : Finset A) := (Finset.mem_product.mp hpq).2
+  rw [show (((p, q).1 : A) * (p, q).2 : A) = p * q from rfl]
+  rcases Finset.mem_insert.mp hq with hq1 | hqf
+  · -- `q = 1`: witness `algebraMap (coeRingHom (p/s))`
+    refine ⟨algebraMap (presheafValue D₀) (Localization.Away DB.s)
+      (D₀.coeRingHom (divByS p D₀.s)),
+      algebraMap_mem_locSubring DB.P DB.T DB.s (hA₀ p hp), ?_⟩
+    refine hF_div _ _ ?_
+    rw [hF_alg, hF_alg]
+    rw [show DB.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away DB.s)
+      (D₀.coeRingHom (divByS p D₀.s))) =
+      DB.canonicalMap (D₀.coeRingHom (divByS p D₀.s)) from rfl]
+    rw [← map_mul, hq1, mul_one]
+    exact congrArg _ (hps p)
+  · -- `q = f`: witness `algebraMap (coeRingHom (p/s)) · divByS b 1`
+    rw [Finset.mem_singleton.mp hqf]
+    refine ⟨algebraMap (presheafValue D₀) (Localization.Away DB.s)
+        (D₀.coeRingHom (divByS p D₀.s)) * divByS (D₀.canonicalMap f) DB.s,
+      (locSubring DB.P DB.T DB.s).mul_mem
+        (algebraMap_mem_locSubring DB.P DB.T DB.s (hA₀ p hp))
+        (divByS_mem_locSubring DB.P DB.T DB.s (Finset.mem_singleton_self _)), ?_⟩
+    refine hF_div _ _ ?_
+    rw [hF_alg, hF_alg, map_mul]
+    have hb1 : DB.coeRingHom (divByS (D₀.canonicalMap f) DB.s) =
+        DB.canonicalMap (D₀.canonicalMap f) := by
+      rw [show divByS (D₀.canonicalMap f) DB.s =
+        algebraMap (presheafValue D₀) (Localization.Away DB.s)
+          (D₀.canonicalMap f) from by
+        erw [divByS_eq_algebraMap]; rfl]
+      rfl
+    have e1 : DB.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away DB.s)
+        (D₀.coeRingHom (divByS p D₀.s)) * divByS (D₀.canonicalMap f) DB.s) =
+        DB.canonicalMap (D₀.coeRingHom (divByS p D₀.s)) *
+          DB.canonicalMap (D₀.canonicalMap f) := by
+      rw [map_mul, hb1]; rfl
+    rw [e1, hps p, map_mul, map_mul]
+    ring
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Relative-plus forward continuity (piece 5)**: the completed forward composite
+is continuous for the A-side localization topology (`locTopology_continuous_lift`,
+with the per-generator boundedness from the witnesses of piece 4 +
+`coeRingHom_image_locSubring_isBounded`). -/
+private theorem unitCover_relPlus_forwardCompletion_continuous
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    @Continuous _ _ (D₀.interSamePair (unitDatum D₀.P f) rfl).topology _
+      (((unitDatum (presheafValue_concretePair D₀)
+          (D₀.canonicalMap f)).coeRingHom).comp
+        (unitCover_relPlus_forwardLocHom D₀ f)) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  set DI := D₀.interSamePair (unitDatum D₀.P f) rfl with hDI
+  set DB := unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f) with hDB
+  set F := (DB.coeRingHom).comp (unitCover_relPlus_forwardLocHom D₀ f) with hF
+  have hF_alg : ∀ a : A, F (algebraMap A (Localization.Away DI.s) a) =
+      DB.canonicalMap (D₀.canonicalMap a) := by
+    intro a
+    rw [hF, RingHom.comp_apply, unitCover_relPlus_forwardLocHom_algebraMap]
+    rfl
+  change @Continuous _ _ (locTopology DI.P DI.T DI.s DI.hopen) _ F
+  refine locTopology_continuous_lift DI.P DI.T DI.s DI.hopen F ?_ ?_
+  · have heq : F.comp (algebraMap A (Localization.Away DI.s)) =
+        (DB.canonicalMap).comp D₀.canonicalMap := by
+      ext a; exact hF_alg a
+    rw [heq]
+    exact (canonicalMap_continuous DB).comp (canonicalMap_continuous D₀)
+  · intro t ht
+    obtain ⟨y, hy_mem, hy_eq⟩ := unitCover_relPlus_forward_witness D₀ f t ht
+    rw [show F (divByS t DI.s) = DB.coeRingHom y from hy_eq]
+    have hbddB := CompletionLocalization.coeRingHom_image_locSubring_isBounded DB
+    refine hbddB.subset ?_
+    rintro _ ⟨k, rfl⟩
+    exact ⟨y ^ k, pow_mem hy_mem k, by rw [map_pow]⟩
+
+/-- **Relative-plus forward map (piece 6)**: extend the completed forward composite to
+`O_X(U₁) →+* O_X^B(R(b/1))` via `UniformSpace.Completion.extensionHom`
+(mirrors `restrictionMapHom`). -/
+private noncomputable def unitCover_relPlus_forward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    presheafValue (D₀.interSamePair (unitDatum D₀.P f) rfl) →+*
+      presheafValue (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)) := by
+  letI : UniformSpace (Localization.Away (D₀.interSamePair (unitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (D₀.interSamePair (unitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (D₀.interSamePair (unitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom
+    (((unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).coeRingHom).comp
+      (unitCover_relPlus_forwardLocHom D₀ f))
+    (unitCover_relPlus_forwardCompletion_continuous D₀ f)
+
+/-- The forward map restricted to the dense image computes via the loc-level forward
+(mirrors `restrictionMapHom_coe`). -/
+private theorem unitCover_relPlus_forward_coe
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (y : Localization.Away (D₀.interSamePair (unitDatum D₀.P f) rfl).s) :
+    unitCover_relPlus_forward D₀ f
+        ((D₀.interSamePair (unitDatum D₀.P f) rfl).coeRingHom y) =
+      (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).coeRingHom
+        (unitCover_relPlus_forwardLocHom D₀ f y) := by
+  letI : UniformSpace (Localization.Away (D₀.interSamePair (unitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (D₀.interSamePair (unitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (D₀.interSamePair (unitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom_coe
+    (((unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).coeRingHom).comp
+      (unitCover_relPlus_forwardLocHom D₀ f))
+    (unitCover_relPlus_forwardCompletion_continuous D₀ f) y
+
+/-- **Relative-plus backward base unit (piece 7a)**: the restriction map
+`O_X(D₀) → O_X(U₁)` sends `s_B = 1` to a unit (trivially). -/
+private theorem unitCover_relPlus_backward_baseHom_isUnit
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    IsUnit ((restrictionMapHom D₀ (D₀.interSamePair (unitDatum D₀.P f) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _))
+      ((unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).s)) := by
+  rw [show ((unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).s :
+    presheafValue D₀) = 1 from rfl, map_one]
+  exact isUnit_one
+
+/-- **Relative-plus backward loc-hom (piece 7b)**: lift the restriction map
+`O_X(D₀) → O_X(U₁)` over `Loc_B = Localization.Away 1`. -/
+private noncomputable def unitCover_relPlus_backwardLocHom
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+        (D₀.canonicalMap f)).s) →+*
+      presheafValue (D₀.interSamePair (unitDatum D₀.P f) rfl) :=
+  IsLocalization.Away.lift
+    (x := (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).s)
+    (g := restrictionMapHom D₀ (D₀.interSamePair (unitDatum D₀.P f) rfl)
+      (RationalLocData.interSamePair_subset_left _ _ _))
+    (unitCover_relPlus_backward_baseHom_isUnit D₀ f)
+
+set_option linter.unusedSectionVars false in
+/-- The backward loc-hom sends `algebraMap x ↦ restriction x` (piece 7c). -/
+private theorem unitCover_relPlus_backwardLocHom_algebraMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
+    unitCover_relPlus_backwardLocHom D₀ f
+        (algebraMap (presheafValue D₀) (Localization.Away
+          ((unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).s)) x) =
+      restrictionMapHom D₀ (D₀.interSamePair (unitDatum D₀.P f) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _) x := by
+  rw [unitCover_relPlus_backwardLocHom, IsLocalization.Away.lift_eq]
+
+set_option linter.unusedSectionVars false in
+/-- **The `f`-generator identity in `O_X(U₁)` (piece 7d)**: `canMap_{U₁} f` is the image
+of the ring-of-definition element `(D₀.s·f)/s_inter` (unit-cancel against `canMap s`). -/
+private theorem unitCover_relPlus_canonicalMap_f_eq
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).canonicalMap f =
+      (D₀.interSamePair (unitDatum D₀.P f) rfl).coeRingHom
+        (divByS (D₀.s * f) (D₀.interSamePair (unitDatum D₀.P f) rfl).s) := by
+  set DI := D₀.interSamePair (unitDatum D₀.P f) rfl with hDI
+  have hu : IsUnit (DI.canonicalMap DI.s) := isUnit_s_in_presheafValue DI
+  refine hu.mul_left_cancel ?_
+  have h1 : DI.canonicalMap DI.s * DI.coeRingHom (divByS (D₀.s * f) DI.s) =
+      DI.canonicalMap (D₀.s * f) := by
+    rw [show DI.canonicalMap DI.s * DI.coeRingHom (divByS (D₀.s * f) DI.s) =
+      DI.coeRingHom (algebraMap A (Localization.Away DI.s) DI.s *
+        divByS (D₀.s * f) DI.s) from by rw [map_mul]; rfl]
+    rw [algebraMap_s_mul_divByS]
+    rfl
+  rw [h1, map_mul]
+  rw [show DI.canonicalMap DI.s = DI.canonicalMap D₀.s from by
+    rw [show (DI.s : A) = D₀.s * 1 from rfl, mul_one]]
+
+/-- `D₀.s * f` is a generator of the intersection datum (piece 7d′). -/
+private theorem unitCover_relPlus_sf_mem_T_inter
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) :
+    D₀.s * f ∈ (D₀.interSamePair (unitDatum D₀.P f) rfl).T := by
+  classical
+  refine Finset.mem_image.mpr ⟨(D₀.s, f), Finset.mem_product.mpr
+    ⟨Finset.mem_insert_self _ _, Finset.mem_insert_of_mem (Finset.mem_singleton_self _)⟩, rfl⟩
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Relative-plus backward continuity (piece 7e)**: the backward loc-hom is continuous
+for the B-side localization topology (`locTopology_continuous_lift`; the sole generator
+`b = canMap f` lands on the ring-of-definition element `(D₀.s·f)/s_inter`). -/
+private theorem unitCover_relPlus_backwardLocHom_continuous
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    @Continuous _ _
+      (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).topology _
+      (unitCover_relPlus_backwardLocHom D₀ f) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  set DI := D₀.interSamePair (unitDatum D₀.P f) rfl with hDI
+  set DB := unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f) with hDB
+  set ψ := unitCover_relPlus_backwardLocHom D₀ f with hψ
+  change @Continuous _ _ (locTopology DB.P DB.T DB.s DB.hopen) _ ψ
+  refine locTopology_continuous_lift DB.P DB.T DB.s DB.hopen ψ ?_ ?_
+  · have heq : ψ.comp (algebraMap (presheafValue D₀) (Localization.Away DB.s)) =
+        restrictionMapHom D₀ DI (RationalLocData.interSamePair_subset_left _ _ _) := by
+      ext x; exact unitCover_relPlus_backwardLocHom_algebraMap D₀ f x
+    rw [heq]
+    exact restrictionMapHom_continuous D₀ DI _
+  · intro t ht
+    have ht' : t ∈ ({D₀.canonicalMap f} : Finset (presheafValue D₀)) := ht
+    rw [Finset.mem_singleton.mp ht']
+    have hwit : ψ (divByS (D₀.canonicalMap f) DB.s) =
+        DI.coeRingHom (divByS (D₀.s * f) DI.s) := by
+      rw [show divByS (D₀.canonicalMap f) DB.s =
+        algebraMap (presheafValue D₀) (Localization.Away DB.s)
+          (D₀.canonicalMap f) from by
+        erw [divByS_eq_algebraMap]; rfl]
+      rw [hψ, unitCover_relPlus_backwardLocHom_algebraMap,
+        restrictionMapHom_canonicalMap]
+      exact unitCover_relPlus_canonicalMap_f_eq D₀ f
+    rw [hwit]
+    have hbdd := CompletionLocalization.coeRingHom_image_locSubring_isBounded DI
+    refine hbdd.subset ?_
+    rintro _ ⟨k, rfl⟩
+    exact ⟨divByS (D₀.s * f) DI.s ^ k, pow_mem (divByS_mem_locSubring DI.P DI.T DI.s
+      (unitCover_relPlus_sf_mem_T_inter D₀ f)) k, by rw [map_pow]⟩
+
+/-- **Relative-plus backward map (piece 7f)**: extend the backward loc-hom to
+`O_X^B(R(b/1)) →+* O_X(U₁)` via `UniformSpace.Completion.extensionHom`. -/
+private noncomputable def unitCover_relPlus_backward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    presheafValue (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)) →+*
+      presheafValue (D₀.interSamePair (unitDatum D₀.P f) rfl) := by
+  letI : UniformSpace (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom
+    (unitCover_relPlus_backwardLocHom D₀ f)
+    (unitCover_relPlus_backwardLocHom_continuous D₀ f)
+
+/-- The backward map restricted to the dense image computes via the backward loc-hom. -/
+private theorem unitCover_relPlus_backward_coe
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (y : Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :
+    unitCover_relPlus_backward D₀ f
+        ((unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).coeRingHom y) =
+      unitCover_relPlus_backwardLocHom D₀ f y := by
+  letI : UniformSpace (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom_coe
+    (unitCover_relPlus_backwardLocHom D₀ f)
+    (unitCover_relPlus_backwardLocHom_continuous D₀ f) y
+
+set_option linter.unusedSectionVars false in
+/-- **Loc-level restriction base unit (piece 8a)**: `D₀.s` maps to a unit of
+`Localization.Away s_inter` (since `s_inter = D₀.s·1`). -/
+private theorem unitCover_relPlus_locRestriction_baseUnit
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) :
+    IsUnit (algebraMap A (Localization.Away
+      ((D₀.interSamePair (unitDatum D₀.P f) rfl).s)) D₀.s) := by
+  rw [show (D₀.s : A) = (D₀.interSamePair (unitDatum D₀.P f) rfl).s from
+    (mul_one D₀.s).symm]
+  exact IsLocalization.Away.algebraMap_isUnit _
+
+/-- **Loc-level restriction (piece 8a′)**: `Localization.Away D₀.s →+* Localization.Away
+s_inter`, the algebraic-side restriction underlying `restrictionMapHom D₀ U₁`. -/
+private noncomputable def unitCover_relPlus_locRestriction
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) :
+    Localization.Away D₀.s →+*
+      Localization.Away ((D₀.interSamePair (unitDatum D₀.P f) rfl).s) :=
+  IsLocalization.Away.lift (x := D₀.s)
+    (g := algebraMap A (Localization.Away ((D₀.interSamePair (unitDatum D₀.P f) rfl).s)))
+    (unitCover_relPlus_locRestriction_baseUnit D₀ f)
+
+set_option linter.unusedSectionVars false in
+/-- The loc-level restriction sends `algebraMap a ↦ algebraMap a`. -/
+private theorem unitCover_relPlus_locRestriction_algebraMap
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) (a : A) :
+    unitCover_relPlus_locRestriction D₀ f (algebraMap A (Localization.Away D₀.s) a) =
+      algebraMap A (Localization.Away ((D₀.interSamePair (unitDatum D₀.P f) rfl).s)) a := by
+  rw [unitCover_relPlus_locRestriction, IsLocalization.Away.lift_eq]
+
+set_option linter.unusedSectionVars false in
+/-- **Restriction factorization (piece 8b)**: on the dense algebraic side, the completed
+restriction map factors through the loc-level restriction. -/
+private theorem unitCover_relPlus_restriction_factor
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    (restrictionMapHom D₀ (D₀.interSamePair (unitDatum D₀.P f) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _)).comp D₀.coeRingHom =
+      ((D₀.interSamePair (unitDatum D₀.P f) rfl).coeRingHom).comp
+        (unitCover_relPlus_locRestriction D₀ f) := by
+  refine IsLocalization.ringHom_ext (Submonoid.powers D₀.s) ?_
+  ext a
+  simp only [RingHom.comp_apply]
+  rw [show D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) a) =
+    D₀.canonicalMap a from rfl, restrictionMapHom_canonicalMap,
+    unitCover_relPlus_locRestriction_algebraMap]
+  rfl
+
+set_option linter.unusedSectionVars false in
+/-- **Loc-level roundtrip 1 (piece 8c)**: `backwardLocHom ∘ forwardLocHom = coeRingHom`. -/
+private theorem unitCover_relPlus_locRoundtrip1
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    (unitCover_relPlus_backwardLocHom D₀ f).comp
+        (unitCover_relPlus_forwardLocHom D₀ f) =
+      (D₀.interSamePair (unitDatum D₀.P f) rfl).coeRingHom := by
+  refine IsLocalization.ringHom_ext
+    (Submonoid.powers ((D₀.interSamePair (unitDatum D₀.P f) rfl).s)) ?_
+  ext a
+  simp only [RingHom.comp_apply]
+  rw [unitCover_relPlus_forwardLocHom_algebraMap,
+    unitCover_relPlus_backwardLocHom_algebraMap, restrictionMapHom_canonicalMap]
+  rfl
+
+set_option linter.unusedSectionVars false in
+/-- **Loc-level roundtrip 2 (piece 8d)**: `forwardLocHom ∘ locRestriction =
+algebraMap_B ∘ coeRingHom_{D₀}`. -/
+private theorem unitCover_relPlus_locRoundtrip2
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    (unitCover_relPlus_forwardLocHom D₀ f).comp
+        (unitCover_relPlus_locRestriction D₀ f) =
+      (algebraMap (presheafValue D₀) (Localization.Away
+        ((unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).s))).comp
+        D₀.coeRingHom := by
+  refine IsLocalization.ringHom_ext (Submonoid.powers D₀.s) ?_
+  ext a
+  simp only [RingHom.comp_apply]
+  rw [unitCover_relPlus_locRestriction_algebraMap,
+    unitCover_relPlus_forwardLocHom_algebraMap]
+  rfl
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Roundtrip 1 (piece 8e)**: `backward ∘ forward = id` on `O_X(U₁)`
+(continuous extensions agreeing on the dense algebraic side). -/
+private theorem unitCover_relPlus_backward_forward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (x : presheafValue (D₀.interSamePair (unitDatum D₀.P f) rfl)) :
+    unitCover_relPlus_backward D₀ f (unitCover_relPlus_forward D₀ f x) = x := by
+  letI : UniformSpace (Localization.Away (D₀.interSamePair (unitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (D₀.interSamePair (unitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (D₀.interSamePair (unitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isUniformAddGroup
+  refine @UniformSpace.Completion.ext'
+    (Localization.Away (D₀.interSamePair (unitDatum D₀.P f) rfl).s)
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).uniformSpace
+    (presheafValue (D₀.interSamePair (unitDatum D₀.P f) rfl)) _ _ _ _
+    (UniformSpace.Completion.continuous_extension.comp
+      UniformSpace.Completion.continuous_extension)
+    continuous_id ?_ x
+  intro a
+  show unitCover_relPlus_backward D₀ f (unitCover_relPlus_forward D₀ f
+    ((D₀.interSamePair (unitDatum D₀.P f) rfl).coeRingHom a)) =
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).coeRingHom a
+  rw [unitCover_relPlus_forward_coe, unitCover_relPlus_backward_coe]
+  exact RingHom.congr_fun (unitCover_relPlus_locRoundtrip1 D₀ f) a
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Forward-restriction intertwining (piece 8f)**: `forward (restriction x) =
+canMap_B x` — the relative identification sends the restriction of `x ∈ O_X(D₀)` to its
+B-side canonical image (Wedhorn Prop 8.2 naturality on the dense side + continuity). -/
+private theorem unitCover_relPlus_forward_restriction
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
+    unitCover_relPlus_forward D₀ f
+        (restrictionMapHom D₀ (D₀.interSamePair (unitDatum D₀.P f) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _) x) =
+      (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).canonicalMap x := by
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  letI : UniformSpace (Localization.Away (D₀.interSamePair (unitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (D₀.interSamePair (unitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (D₀.interSamePair (unitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isUniformAddGroup
+  refine @UniformSpace.Completion.ext' (Localization.Away D₀.s) D₀.uniformSpace
+    (presheafValue (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f))) _ _ _ _
+    (UniformSpace.Completion.continuous_extension.comp
+      UniformSpace.Completion.continuous_extension)
+    (canonicalMap_continuous (unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f))) ?_ x
+  intro z
+  show unitCover_relPlus_forward D₀ f
+      (restrictionMapHom D₀ (D₀.interSamePair (unitDatum D₀.P f) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _) (D₀.coeRingHom z)) =
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).canonicalMap
+      (D₀.coeRingHom z)
+  rw [show restrictionMapHom D₀ (D₀.interSamePair (unitDatum D₀.P f) rfl)
+      (RationalLocData.interSamePair_subset_left _ _ _) (D₀.coeRingHom z) =
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).coeRingHom
+      (unitCover_relPlus_locRestriction D₀ f z) from
+    RingHom.congr_fun (unitCover_relPlus_restriction_factor D₀ f) z]
+  rw [unitCover_relPlus_forward_coe]
+  exact congrArg _ (RingHom.congr_fun (unitCover_relPlus_locRoundtrip2 D₀ f) z)
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Roundtrip 2 (piece 8g)**: `forward ∘ backward = id` on `O_X^B(R(b/1))`. -/
+private theorem unitCover_relPlus_forward_backward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (y : presheafValue (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f))) :
+    unitCover_relPlus_forward D₀ f (unitCover_relPlus_backward D₀ f y) = y := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  have hloc : (unitCover_relPlus_forward D₀ f).comp
+      (unitCover_relPlus_backwardLocHom D₀ f) =
+      (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).coeRingHom := by
+    refine IsLocalization.ringHom_ext
+      (Submonoid.powers ((unitDatum (presheafValue_concretePair D₀)
+        (D₀.canonicalMap f)).s)) ?_
+    ext x
+    simp only [RingHom.comp_apply]
+    rw [unitCover_relPlus_backwardLocHom_algebraMap,
+      unitCover_relPlus_forward_restriction]
+    rfl
+  letI : UniformSpace (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isUniformAddGroup
+  letI : UniformSpace (Localization.Away (D₀.interSamePair (unitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (D₀.interSamePair (unitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (D₀.interSamePair (unitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (unitDatum D₀.P f) rfl).isUniformAddGroup
+  refine @UniformSpace.Completion.ext'
+    (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s))
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).uniformSpace
+    (presheafValue (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f))) _ _ _ _
+    (UniformSpace.Completion.continuous_extension.comp
+      UniformSpace.Completion.continuous_extension)
+    continuous_id ?_ y
+  intro w
+  show unitCover_relPlus_forward D₀ f (unitCover_relPlus_backward D₀ f
+    ((unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).coeRingHom w)) =
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).coeRingHom w
+  rw [unitCover_relPlus_backward_coe]
+  exact RingHom.congr_fun hloc w
+
+set_option linter.unusedSectionVars false in
+/-- **Relative-minus forward base unit (M1)**: `s_inter = D₀.s·f` maps to a unit of
+`Localization.Away b` over `B` (product of the `B`-unit `canMap D₀.s` and the
+localized-away unit `b`). -/
+private theorem unitCover_relMinus_baseHom_isUnit
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    IsUnit (((algebraMap (presheafValue D₀) (Localization.Away
+        ((coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).s))).comp
+      D₀.canonicalMap) ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).s)) := by
+  have hs : ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).s : A) = D₀.s * f := rfl
+  rw [RingHom.comp_apply, hs, map_mul, map_mul]
+  refine IsUnit.mul ?_ ?_
+  · exact ((isUnit_s_in_presheafValue D₀).map _)
+  · exact IsLocalization.Away.algebraMap_isUnit
+      (S := Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+        (D₀.canonicalMap f)).s))
+      ((coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).s)
+
+/-- **Relative-minus forward loc-hom (M2)**. -/
+private noncomputable def unitCover_relMinus_forwardLocHom
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    Localization.Away ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) →+*
+      Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+        (D₀.canonicalMap f)).s) :=
+  IsLocalization.Away.lift (x := (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s)
+    (g := (algebraMap (presheafValue D₀)
+      (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+        (D₀.canonicalMap f)).s))).comp D₀.canonicalMap)
+    (unitCover_relMinus_baseHom_isUnit D₀ f)
+
+set_option linter.unusedSectionVars false in
+/-- The minus forward loc-hom sends `algebraMap a ↦ algebraMap (canonicalMap a)` (M3). -/
+private theorem unitCover_relMinus_forwardLocHom_algebraMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (a : A) :
+    unitCover_relMinus_forwardLocHom D₀ f
+        (algebraMap A (Localization.Away
+          ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).s)) a) =
+      algebraMap (presheafValue D₀)
+        (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+          (D₀.canonicalMap f)).s)) (D₀.canonicalMap a) := by
+  rw [unitCover_relMinus_forwardLocHom, IsLocalization.Away.lift_eq]
+  rfl
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Relative-minus per-generator witnesses (M4)**: every `t ∈ T_inter` (a product `p·1`,
+`p ∈ insert D₀.s D₀.T`) has a `locSubring`-witness over the B-side minus datum:
+`y = algebraMap (coeRingHom (p/s)) · (1/b)`. -/
+private theorem unitCover_relMinus_forward_witness
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (t : A) (ht : t ∈ (D₀.interSamePair (coUnitDatum D₀.P f) rfl).T) :
+    ∃ y : Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+        (D₀.canonicalMap f)).s),
+      y ∈ locSubring (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).P
+          (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).T
+          (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).s ∧
+      ((coUnitDatum (presheafValue_concretePair D₀)
+          (D₀.canonicalMap f)).coeRingHom).comp
+        (unitCover_relMinus_forwardLocHom D₀ f)
+        (divByS t (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) =
+      (coUnitDatum (presheafValue_concretePair D₀)
+        (D₀.canonicalMap f)).coeRingHom y := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  set DI := D₀.interSamePair (coUnitDatum D₀.P f) rfl with hDI
+  set DB := coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f) with hDB
+  set F := (DB.coeRingHom).comp (unitCover_relMinus_forwardLocHom D₀ f) with hF
+  have hF_alg : ∀ a : A, F (algebraMap A (Localization.Away DI.s) a) =
+      DB.canonicalMap (D₀.canonicalMap a) := by
+    intro a
+    rw [hF, RingHom.comp_apply, unitCover_relMinus_forwardLocHom_algebraMap]
+    rfl
+  have hu : IsUnit (F (algebraMap A (Localization.Away DI.s) DI.s)) := by
+    rw [hF_alg]
+    exact (unitCover_relMinus_baseHom_isUnit D₀ f).map DB.coeRingHom
+  have hF_div : ∀ (c : A) (w : presheafValue DB),
+      F (algebraMap A (Localization.Away DI.s) c) =
+        F (algebraMap A (Localization.Away DI.s) DI.s) * w →
+      F (divByS c DI.s) = w := by
+    intro c w hw
+    have h1 : F (algebraMap A (Localization.Away DI.s) DI.s) * F (divByS c DI.s) =
+        F (algebraMap A (Localization.Away DI.s) c) := by
+      rw [← map_mul, algebraMap_s_mul_divByS]
+    exact hu.mul_left_cancel (h1.trans hw)
+  -- the universal `p/s`-relation in `B`
+  have hps : ∀ p : A, D₀.canonicalMap p =
+      D₀.canonicalMap D₀.s * D₀.coeRingHom (divByS p D₀.s) := by
+    intro p
+    rw [show D₀.canonicalMap D₀.s * D₀.coeRingHom (divByS p D₀.s) =
+      D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) D₀.s *
+        divByS p D₀.s) from by rw [map_mul]; rfl]
+    rw [algebraMap_s_mul_divByS]
+    rfl
+  -- the `1/b`-identity in `presheafValue DB`
+  have hinv : DB.canonicalMap (D₀.canonicalMap f) *
+      DB.coeRingHom (divByS (1 : presheafValue D₀) DB.s) = 1 := by
+    rw [show DB.canonicalMap (D₀.canonicalMap f) *
+        DB.coeRingHom (divByS (1 : presheafValue D₀) DB.s) =
+      DB.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away DB.s)
+        (D₀.canonicalMap f) * divByS (1 : presheafValue D₀) DB.s) from by
+      rw [map_mul]; rfl]
+    erw [algebraMap_s_mul_divByS DB (1 : presheafValue D₀)]
+    rw [map_one, map_one]
+  -- the `p/s`-elements lie in the B-pair's `A₀`
+  have hA₀ : ∀ p ∈ insert D₀.s D₀.T,
+      D₀.coeRingHom (divByS p D₀.s) ∈ (presheafValue_concretePair D₀).A₀ := by
+    intro p hp
+    rw [presheafValue_concretePair_A₀]
+    rcases Finset.mem_insert.mp hp with rfl | hp'
+    · have h1 : divByS D₀.s D₀.s = 1 := by
+        unfold divByS
+        exact IsLocalization.mk'_self (M := Submonoid.powers D₀.s)
+          (S := Localization.Away D₀.s) ⟨1, pow_one D₀.s⟩
+      rw [h1, map_one]
+      exact one_mem _
+    · exact subset_closure ⟨⟨divByS p D₀.s,
+        divByS_mem_locSubring D₀.P D₀.T D₀.s hp'⟩, rfl⟩
+  -- decompose `t = p · q`, `q ∈ insert f {1}` (`coUnitDatum` has `s = f`, `T = {1}`)
+  have ht' : t ∈ ((insert D₀.s D₀.T).product
+      (insert f ({1} : Finset A))).image (fun p : A × A => p.1 * p.2) := ht
+  rw [Finset.mem_image] at ht'
+  obtain ⟨⟨p, q⟩, hpq, rfl⟩ := ht'
+  have hp : p ∈ insert D₀.s D₀.T := (Finset.mem_product.mp hpq).1
+  have hq : q ∈ insert f ({1} : Finset A) := (Finset.mem_product.mp hpq).2
+  rw [show (((p, q).1 : A) * (p, q).2 : A) = p * q from rfl]
+  have hs_eq : ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).s : A) = D₀.s * f := rfl
+  rcases Finset.mem_insert.mp hq with hqf | hq1
+  · -- `q = f`: witness `algebraMap (coeRingHom (p/s))`
+    refine ⟨algebraMap (presheafValue D₀) (Localization.Away DB.s)
+        (D₀.coeRingHom (divByS p D₀.s)),
+      algebraMap_mem_locSubring DB.P DB.T DB.s (hA₀ p hp), ?_⟩
+    refine hF_div _ _ ?_
+    rw [hF_alg, hF_alg, hqf]
+    rw [show DB.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away DB.s)
+        (D₀.coeRingHom (divByS p D₀.s))) =
+      DB.canonicalMap (D₀.coeRingHom (divByS p D₀.s)) from rfl]
+    rw [hs_eq]
+    rw [map_mul (D₀.canonicalMap), map_mul (D₀.canonicalMap), map_mul (DB.canonicalMap),
+      map_mul (DB.canonicalMap)]
+    rw [show D₀.canonicalMap p = D₀.canonicalMap D₀.s *
+      D₀.coeRingHom (divByS p D₀.s) from hps p]
+    rw [map_mul (DB.canonicalMap)]
+    ring
+  · -- `q = 1`: witness `algebraMap (coeRingHom (p/s)) · (1/b)`
+    rw [Finset.mem_singleton.mp hq1, mul_one]
+    refine ⟨algebraMap (presheafValue D₀) (Localization.Away DB.s)
+        (D₀.coeRingHom (divByS p D₀.s)) * divByS (1 : presheafValue D₀) DB.s,
+      (locSubring DB.P DB.T DB.s).mul_mem
+        (algebraMap_mem_locSubring DB.P DB.T DB.s (hA₀ p hp))
+        (divByS_mem_locSubring DB.P DB.T DB.s (Finset.mem_singleton_self _)), ?_⟩
+    refine hF_div _ _ ?_
+    rw [hF_alg, hF_alg]
+    rw [show DB.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away DB.s)
+        (D₀.coeRingHom (divByS p D₀.s)) * divByS (1 : presheafValue D₀) DB.s) =
+      DB.canonicalMap (D₀.coeRingHom (divByS p D₀.s)) *
+        DB.coeRingHom (divByS (1 : presheafValue D₀) DB.s) from by rw [map_mul]; rfl]
+    rw [hs_eq]
+    rw [map_mul (D₀.canonicalMap), map_mul (DB.canonicalMap)]
+    rw [show D₀.canonicalMap p = D₀.canonicalMap D₀.s *
+      D₀.coeRingHom (divByS p D₀.s) from hps p]
+    rw [map_mul (DB.canonicalMap)]
+    calc DB.canonicalMap (D₀.canonicalMap D₀.s) *
+          DB.canonicalMap (D₀.coeRingHom (divByS p D₀.s)) =
+        DB.canonicalMap (D₀.canonicalMap D₀.s) *
+          DB.canonicalMap (D₀.coeRingHom (divByS p D₀.s)) *
+          (DB.canonicalMap (D₀.canonicalMap f) *
+            DB.coeRingHom (divByS (1 : presheafValue D₀) DB.s)) := by
+          rw [hinv, mul_one]
+      _ = DB.canonicalMap (D₀.canonicalMap D₀.s) * DB.canonicalMap (D₀.canonicalMap f) *
+          (DB.canonicalMap (D₀.coeRingHom (divByS p D₀.s)) *
+            DB.coeRingHom (divByS (1 : presheafValue D₀) DB.s)) := by ring
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Relative-minus forward continuity (M5)**. -/
+private theorem unitCover_relMinus_forwardCompletion_continuous
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    @Continuous _ _ (D₀.interSamePair (coUnitDatum D₀.P f) rfl).topology _
+      (((coUnitDatum (presheafValue_concretePair D₀)
+          (D₀.canonicalMap f)).coeRingHom).comp
+        (unitCover_relMinus_forwardLocHom D₀ f)) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  set DI := D₀.interSamePair (coUnitDatum D₀.P f) rfl with hDI
+  set DB := coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f) with hDB
+  set F := (DB.coeRingHom).comp (unitCover_relMinus_forwardLocHom D₀ f) with hF
+  have hF_alg : ∀ a : A, F (algebraMap A (Localization.Away DI.s) a) =
+      DB.canonicalMap (D₀.canonicalMap a) := by
+    intro a
+    rw [hF, RingHom.comp_apply, unitCover_relMinus_forwardLocHom_algebraMap]
+    rfl
+  change @Continuous _ _ (locTopology DI.P DI.T DI.s DI.hopen) _ F
+  refine locTopology_continuous_lift DI.P DI.T DI.s DI.hopen F ?_ ?_
+  · have heq : F.comp (algebraMap A (Localization.Away DI.s)) =
+        (DB.canonicalMap).comp D₀.canonicalMap := by
+      ext a; exact hF_alg a
+    rw [heq]
+    exact (canonicalMap_continuous DB).comp (canonicalMap_continuous D₀)
+  · intro t ht
+    obtain ⟨y, hy_mem, hy_eq⟩ := unitCover_relMinus_forward_witness D₀ f t ht
+    rw [show F (divByS t DI.s) = DB.coeRingHom y from hy_eq]
+    have hbddB := CompletionLocalization.coeRingHom_image_locSubring_isBounded DB
+    refine hbddB.subset ?_
+    rintro _ ⟨k, rfl⟩
+    exact ⟨y ^ k, pow_mem hy_mem k, by rw [map_pow]⟩
+
+/-- **Relative-minus forward map (M6)**. -/
+private noncomputable def unitCover_relMinus_forward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    presheafValue (D₀.interSamePair (coUnitDatum D₀.P f) rfl) →+*
+      presheafValue (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)) := by
+  letI : UniformSpace (Localization.Away (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom
+    (((coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).coeRingHom).comp
+      (unitCover_relMinus_forwardLocHom D₀ f))
+    (unitCover_relMinus_forwardCompletion_continuous D₀ f)
+
+/-- M6 coe-tracking. -/
+private theorem unitCover_relMinus_forward_coe
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (y : Localization.Away (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) :
+    unitCover_relMinus_forward D₀ f
+        ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).coeRingHom y) =
+      (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).coeRingHom
+        (unitCover_relMinus_forwardLocHom D₀ f y) := by
+  letI : UniformSpace (Localization.Away (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom_coe
+    (((coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).coeRingHom).comp
+      (unitCover_relMinus_forwardLocHom D₀ f))
+    (unitCover_relMinus_forwardCompletion_continuous D₀ f) y
+
+set_option linter.unusedSectionVars false in
+/-- **Relative-minus backward base unit (M7a)**: the restriction of `b = canMap f` to
+`O_X(U₂)` is a unit (it divides the unit `canMap (D₀.s·f)`). -/
+private theorem unitCover_relMinus_backward_baseHom_isUnit
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    IsUnit ((restrictionMapHom D₀ (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _))
+      ((coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).s)) := by
+  rw [show ((coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).s :
+      presheafValue D₀) = D₀.canonicalMap f from rfl]
+  rw [restrictionMapHom_canonicalMap]
+  have hu : IsUnit ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).canonicalMap
+      ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).s)) :=
+    isUnit_s_in_presheafValue _
+  rw [show ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).s : A) = D₀.s * f from rfl,
+    map_mul] at hu
+  exact isUnit_of_mul_isUnit_right hu
+
+/-- **Relative-minus backward loc-hom (M7b)**. -/
+private noncomputable def unitCover_relMinus_backwardLocHom
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+        (D₀.canonicalMap f)).s) →+*
+      presheafValue (D₀.interSamePair (coUnitDatum D₀.P f) rfl) :=
+  IsLocalization.Away.lift
+    (x := (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).s)
+    (g := restrictionMapHom D₀ (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+      (RationalLocData.interSamePair_subset_left _ _ _))
+    (unitCover_relMinus_backward_baseHom_isUnit D₀ f)
+
+set_option linter.unusedSectionVars false in
+/-- M7c: the backward loc-hom sends `algebraMap x ↦ restriction x`. -/
+private theorem unitCover_relMinus_backwardLocHom_algebraMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
+    unitCover_relMinus_backwardLocHom D₀ f
+        (algebraMap (presheafValue D₀) (Localization.Away
+          ((coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).s)) x) =
+      restrictionMapHom D₀ (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _) x := by
+  rw [unitCover_relMinus_backwardLocHom, IsLocalization.Away.lift_eq]
+
+set_option linter.unusedSectionVars false in
+/-- **The `1/f`-generator identity in `O_X(U₂)` (M7d)**: `canMap f · ((D₀.s·1)/s_inter) = 1`
+(cancel `canMap D₀.s`, a unit since `canMap (D₀.s·f)` is). -/
+private theorem unitCover_relMinus_inv_f_eq
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).canonicalMap f *
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl).coeRingHom
+        (divByS (D₀.s * 1) (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) = 1 := by
+  set DI := D₀.interSamePair (coUnitDatum D₀.P f) rfl with hDI
+  have hu : IsUnit (DI.canonicalMap DI.s) := isUnit_s_in_presheafValue DI
+  have hu_s : IsUnit (DI.canonicalMap D₀.s) := by
+    have h := hu
+    rw [show (DI.s : A) = D₀.s * f from rfl, map_mul] at h
+    exact isUnit_of_mul_isUnit_left h
+  refine hu_s.mul_left_cancel ?_
+  have h1 : DI.canonicalMap DI.s * DI.coeRingHom (divByS (D₀.s * 1) DI.s) =
+      DI.canonicalMap (D₀.s * 1) := by
+    rw [show DI.canonicalMap DI.s * DI.coeRingHom (divByS (D₀.s * 1) DI.s) =
+      DI.coeRingHom (algebraMap A (Localization.Away DI.s) DI.s *
+        divByS (D₀.s * 1) DI.s) from by rw [map_mul]; rfl]
+    rw [algebraMap_s_mul_divByS]
+    rfl
+  calc DI.canonicalMap D₀.s * (DI.canonicalMap f *
+        DI.coeRingHom (divByS (D₀.s * 1) DI.s)) =
+      DI.canonicalMap DI.s * DI.coeRingHom (divByS (D₀.s * 1) DI.s) := by
+        rw [show DI.canonicalMap DI.s = DI.canonicalMap D₀.s * DI.canonicalMap f from by
+          rw [show (DI.s : A) = D₀.s * f from rfl, map_mul]]
+        ring
+    _ = DI.canonicalMap (D₀.s * 1) := h1
+    _ = DI.canonicalMap D₀.s := by rw [mul_one]
+    _ = DI.canonicalMap D₀.s * 1 := (mul_one _).symm
+
+/-- `D₀.s · 1` is a generator of the minus intersection datum (M7d′). -/
+private theorem unitCover_relMinus_s1_mem_T_inter
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) :
+    D₀.s * 1 ∈ (D₀.interSamePair (coUnitDatum D₀.P f) rfl).T := by
+  classical
+  refine Finset.mem_image.mpr ⟨(D₀.s, 1), Finset.mem_product.mpr
+    ⟨Finset.mem_insert_self _ _, Finset.mem_insert_of_mem (Finset.mem_singleton_self _)⟩, rfl⟩
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Relative-minus backward continuity (M7e)**: the sole generator `1/b` lands on the
+ring-of-definition element `(D₀.s·1)/s_inter`. -/
+private theorem unitCover_relMinus_backwardLocHom_continuous
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    @Continuous _ _
+      (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).topology _
+      (unitCover_relMinus_backwardLocHom D₀ f) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  set DI := D₀.interSamePair (coUnitDatum D₀.P f) rfl with hDI
+  set DB := coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f) with hDB
+  set ψ := unitCover_relMinus_backwardLocHom D₀ f with hψ
+  change @Continuous _ _ (locTopology DB.P DB.T DB.s DB.hopen) _ ψ
+  refine locTopology_continuous_lift DB.P DB.T DB.s DB.hopen ψ ?_ ?_
+  · have heq : ψ.comp (algebraMap (presheafValue D₀) (Localization.Away DB.s)) =
+        restrictionMapHom D₀ DI (RationalLocData.interSamePair_subset_left _ _ _) := by
+      ext x; exact unitCover_relMinus_backwardLocHom_algebraMap D₀ f x
+    rw [heq]
+    exact restrictionMapHom_continuous D₀ DI _
+  · intro t ht
+    have ht' : t ∈ ({(1 : presheafValue D₀)} : Finset (presheafValue D₀)) := ht
+    rw [Finset.mem_singleton.mp ht']
+    have hres_b : ψ (algebraMap (presheafValue D₀) (Localization.Away DB.s) DB.s) =
+        DI.canonicalMap f := by
+      rw [hψ, unitCover_relMinus_backwardLocHom_algebraMap D₀ f
+        ((coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).s)]
+      exact restrictionMapHom_canonicalMap D₀ DI _ f
+    have hu_b : IsUnit (ψ (algebraMap (presheafValue D₀)
+        (Localization.Away DB.s) DB.s)) := by
+      rw [hres_b]
+      have hu : IsUnit (DI.canonicalMap DI.s) := isUnit_s_in_presheafValue DI
+      rw [show (DI.s : A) = D₀.s * f from rfl, map_mul] at hu
+      exact isUnit_of_mul_isUnit_right hu
+    have hwit : ψ (divByS (1 : presheafValue D₀) DB.s) =
+        DI.coeRingHom (divByS (D₀.s * 1) DI.s) := by
+      refine hu_b.mul_left_cancel ?_
+      have h1 : ψ (algebraMap (presheafValue D₀) (Localization.Away DB.s) DB.s) *
+          ψ (divByS (1 : presheafValue D₀) DB.s) =
+          ψ (algebraMap (presheafValue D₀) (Localization.Away DB.s)
+            (1 : presheafValue D₀)) := by
+        rw [← map_mul, algebraMap_s_mul_divByS]
+      rw [h1, map_one, map_one, hres_b]
+      exact (unitCover_relMinus_inv_f_eq D₀ f).symm
+    rw [hwit]
+    have hbdd := CompletionLocalization.coeRingHom_image_locSubring_isBounded DI
+    refine hbdd.subset ?_
+    rintro _ ⟨k, rfl⟩
+    exact ⟨divByS (D₀.s * 1) DI.s ^ k, pow_mem (divByS_mem_locSubring DI.P DI.T DI.s
+      (unitCover_relMinus_s1_mem_T_inter D₀ f)) k, by rw [map_pow]⟩
+
+/-- **Relative-minus backward map (M7f)**. -/
+private noncomputable def unitCover_relMinus_backward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    presheafValue (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)) →+*
+      presheafValue (D₀.interSamePair (coUnitDatum D₀.P f) rfl) := by
+  letI : UniformSpace (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom
+    (unitCover_relMinus_backwardLocHom D₀ f)
+    (unitCover_relMinus_backwardLocHom_continuous D₀ f)
+
+/-- M7f coe-tracking. -/
+private theorem unitCover_relMinus_backward_coe
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (y : Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :
+    unitCover_relMinus_backward D₀ f
+        ((coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).coeRingHom y) =
+      unitCover_relMinus_backwardLocHom D₀ f y := by
+  letI : UniformSpace (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom_coe
+    (unitCover_relMinus_backwardLocHom D₀ f)
+    (unitCover_relMinus_backwardLocHom_continuous D₀ f) y
+
+set_option linter.unusedSectionVars false in
+/-- **Minus loc-level restriction base unit (M8a)**: `D₀.s` maps to a unit of
+`Localization.Away (D₀.s·f)` (it divides the localized-away unit). -/
+private theorem unitCover_relMinus_locRestriction_baseUnit
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) :
+    IsUnit (algebraMap A (Localization.Away
+      ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).s)) D₀.s) := by
+  have h2 : IsUnit (algebraMap A (Localization.Away
+      ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).s)) D₀.s *
+    algebraMap A (Localization.Away
+      ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).s)) f) := by
+    rw [← map_mul]
+    rw [show (D₀.s * f : A) = (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s from rfl]
+    exact IsLocalization.Away.algebraMap_isUnit
+      (S := Localization.Away ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).s))
+      ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).s)
+  exact isUnit_of_mul_isUnit_left h2
+
+/-- **Minus loc-level restriction (M8a′)**. -/
+private noncomputable def unitCover_relMinus_locRestriction
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) :
+    Localization.Away D₀.s →+*
+      Localization.Away ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) :=
+  IsLocalization.Away.lift (x := D₀.s)
+    (g := algebraMap A (Localization.Away ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).s)))
+    (unitCover_relMinus_locRestriction_baseUnit D₀ f)
+
+set_option linter.unusedSectionVars false in
+/-- M8a″: the minus loc-level restriction sends `algebraMap a ↦ algebraMap a`. -/
+private theorem unitCover_relMinus_locRestriction_algebraMap
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) (a : A) :
+    unitCover_relMinus_locRestriction D₀ f (algebraMap A (Localization.Away D₀.s) a) =
+      algebraMap A (Localization.Away ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).s)) a := by
+  rw [unitCover_relMinus_locRestriction, IsLocalization.Away.lift_eq]
+
+set_option linter.unusedSectionVars false in
+/-- **Minus restriction factorization (M8b)**. -/
+private theorem unitCover_relMinus_restriction_factor
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    (restrictionMapHom D₀ (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _)).comp D₀.coeRingHom =
+      ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).coeRingHom).comp
+        (unitCover_relMinus_locRestriction D₀ f) := by
+  refine IsLocalization.ringHom_ext (Submonoid.powers D₀.s) ?_
+  ext a
+  simp only [RingHom.comp_apply]
+  rw [show D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) a) =
+    D₀.canonicalMap a from rfl, restrictionMapHom_canonicalMap,
+    unitCover_relMinus_locRestriction_algebraMap]
+  rfl
+
+set_option linter.unusedSectionVars false in
+/-- **Minus loc-level roundtrip 1 (M8c)**. -/
+private theorem unitCover_relMinus_locRoundtrip1
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    (unitCover_relMinus_backwardLocHom D₀ f).comp
+        (unitCover_relMinus_forwardLocHom D₀ f) =
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl).coeRingHom := by
+  refine IsLocalization.ringHom_ext
+    (Submonoid.powers ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).s)) ?_
+  ext a
+  simp only [RingHom.comp_apply]
+  rw [unitCover_relMinus_forwardLocHom_algebraMap,
+    unitCover_relMinus_backwardLocHom_algebraMap, restrictionMapHom_canonicalMap]
+  rfl
+
+set_option linter.unusedSectionVars false in
+/-- **Minus loc-level roundtrip 2 (M8d)**. -/
+private theorem unitCover_relMinus_locRoundtrip2
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    (unitCover_relMinus_forwardLocHom D₀ f).comp
+        (unitCover_relMinus_locRestriction D₀ f) =
+      (algebraMap (presheafValue D₀) (Localization.Away
+        ((coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).s))).comp
+        D₀.coeRingHom := by
+  refine IsLocalization.ringHom_ext (Submonoid.powers D₀.s) ?_
+  ext a
+  simp only [RingHom.comp_apply]
+  rw [unitCover_relMinus_locRestriction_algebraMap,
+    unitCover_relMinus_forwardLocHom_algebraMap]
+  rfl
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Minus roundtrip 1 (M8e)**: `backward ∘ forward = id` on `O_X(U₂)`. -/
+private theorem unitCover_relMinus_backward_forward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (x : presheafValue (D₀.interSamePair (coUnitDatum D₀.P f) rfl)) :
+    unitCover_relMinus_backward D₀ f (unitCover_relMinus_forward D₀ f x) = x := by
+  letI : UniformSpace (Localization.Away (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isUniformAddGroup
+  refine @UniformSpace.Completion.ext'
+    (Localization.Away (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s)
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).uniformSpace
+    (presheafValue (D₀.interSamePair (coUnitDatum D₀.P f) rfl)) _ _ _ _
+    (UniformSpace.Completion.continuous_extension.comp
+      UniformSpace.Completion.continuous_extension)
+    continuous_id ?_ x
+  intro a
+  show unitCover_relMinus_backward D₀ f (unitCover_relMinus_forward D₀ f
+    ((D₀.interSamePair (coUnitDatum D₀.P f) rfl).coeRingHom a)) =
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).coeRingHom a
+  rw [unitCover_relMinus_forward_coe, unitCover_relMinus_backward_coe]
+  exact RingHom.congr_fun (unitCover_relMinus_locRoundtrip1 D₀ f) a
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Minus forward-restriction intertwining (M8f)**. -/
+private theorem unitCover_relMinus_forward_restriction
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
+    unitCover_relMinus_forward D₀ f
+        (restrictionMapHom D₀ (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _) x) =
+      (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).canonicalMap x := by
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  letI : UniformSpace (Localization.Away (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isUniformAddGroup
+  refine @UniformSpace.Completion.ext' (Localization.Away D₀.s) D₀.uniformSpace
+    (presheafValue (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f))) _ _ _ _
+    (UniformSpace.Completion.continuous_extension.comp
+      UniformSpace.Completion.continuous_extension)
+    (canonicalMap_continuous (coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f))) ?_ x
+  intro z
+  show unitCover_relMinus_forward D₀ f
+      (restrictionMapHom D₀ (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _) (D₀.coeRingHom z)) =
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).canonicalMap
+      (D₀.coeRingHom z)
+  rw [show restrictionMapHom D₀ (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+      (RationalLocData.interSamePair_subset_left _ _ _) (D₀.coeRingHom z) =
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).coeRingHom
+      (unitCover_relMinus_locRestriction D₀ f z) from
+    RingHom.congr_fun (unitCover_relMinus_restriction_factor D₀ f) z]
+  rw [unitCover_relMinus_forward_coe]
+  exact congrArg _ (RingHom.congr_fun (unitCover_relMinus_locRoundtrip2 D₀ f) z)
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Minus roundtrip 2 (M8g)**: `forward ∘ backward = id` on `O_X^B(R(1/b))`. -/
+private theorem unitCover_relMinus_forward_backward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (y : presheafValue (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f))) :
+    unitCover_relMinus_forward D₀ f (unitCover_relMinus_backward D₀ f y) = y := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  have hloc : (unitCover_relMinus_forward D₀ f).comp
+      (unitCover_relMinus_backwardLocHom D₀ f) =
+      (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).coeRingHom := by
+    refine IsLocalization.ringHom_ext
+      (Submonoid.powers ((coUnitDatum (presheafValue_concretePair D₀)
+        (D₀.canonicalMap f)).s)) ?_
+    ext x
+    simp only [RingHom.comp_apply]
+    rw [unitCover_relMinus_backwardLocHom_algebraMap,
+      unitCover_relMinus_forward_restriction]
+    rfl
+  letI : UniformSpace (Localization.Away (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s) :=
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isUniformAddGroup
+  refine @UniformSpace.Completion.ext'
+    (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s))
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).uniformSpace
+    (presheafValue (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f))) _ _ _ _
+    (UniformSpace.Completion.continuous_extension.comp
+      UniformSpace.Completion.continuous_extension)
+    continuous_id ?_ y
+  intro w
+  show unitCover_relMinus_forward D₀ f (unitCover_relMinus_backward D₀ f
+    ((coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).coeRingHom w)) =
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).coeRingHom w
+  rw [unitCover_relMinus_backward_coe]
+  exact RingHom.congr_fun hloc w
+
+set_option linter.unusedSectionVars false in
+/-- `b` maps to a unit of the B-side annulus localization (O0): extracted from the
+localized-away unit `s_O = 1·b` via the motive-safe product-pattern rewrite. -/
+private theorem unitCover_relOverlap_aMb_isUnit
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) :
+    IsUnit (algebraMap (presheafValue D₀)
+      (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) (D₀.canonicalMap f)) := by
+  have h4 : IsUnit (algebraMap (presheafValue D₀)
+      (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) (1 : presheafValue D₀) *
+    algebraMap (presheafValue D₀)
+      (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) (D₀.canonicalMap f)) := by
+    rw [← map_mul]
+    rw [show ((1 : presheafValue D₀) * D₀.canonicalMap f) =
+      (unitCover_overlapDatum_B D₀ f).s from rfl]
+    exact IsLocalization.Away.algebraMap_isUnit
+      (S := Localization.Away ((unitCover_overlapDatum_B D₀ f).s))
+      ((unitCover_overlapDatum_B D₀ f).s)
+  exact isUnit_of_mul_isUnit_right h4
+
+set_option linter.unusedSectionVars false in
+/-- **Relative-overlap forward base unit (O1)**: `s_inter = (D₀.s·1)·(D₀.s·f)` maps to a
+unit of the B-side annulus localization. -/
+private theorem unitCover_relOverlap_baseHom_isUnit
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    IsUnit (((algebraMap (presheafValue D₀) (Localization.Away
+        ((unitCover_overlapDatum_B D₀ f).s))).comp D₀.canonicalMap)
+      (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).s)) := by
+  have hs : ((((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).s : A)) =
+      (D₀.s * 1) * (D₀.s * f) := rfl
+  rw [RingHom.comp_apply, hs, map_mul, map_mul, map_mul, map_mul, map_mul, map_mul]
+  have hu_s : IsUnit (algebraMap (presheafValue D₀) (Localization.Away
+      ((unitCover_overlapDatum_B D₀ f).s)) (D₀.canonicalMap D₀.s)) :=
+    ((isUnit_s_in_presheafValue D₀).map _)
+  refine IsUnit.mul (IsUnit.mul hu_s ?_) (IsUnit.mul hu_s ?_)
+  · rw [map_one, map_one]
+    exact isUnit_one
+  · exact unitCover_relOverlap_aMb_isUnit D₀ f
+
+/-- **Relative-overlap forward loc-hom (O2)**. -/
+private noncomputable def unitCover_relOverlap_forwardLocHom
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    Localization.Away (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).s) →+*
+      Localization.Away ((unitCover_overlapDatum_B D₀ f).s) :=
+  IsLocalization.Away.lift
+    (x := ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).s)
+    (g := (algebraMap (presheafValue D₀)
+      (Localization.Away ((unitCover_overlapDatum_B D₀ f).s))).comp D₀.canonicalMap)
+    (unitCover_relOverlap_baseHom_isUnit D₀ f)
+
+set_option linter.unusedSectionVars false in
+/-- O3: the overlap forward loc-hom sends `algebraMap a ↦ algebraMap (canonicalMap a)`. -/
+private theorem unitCover_relOverlap_forwardLocHom_algebraMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (a : A) :
+    unitCover_relOverlap_forwardLocHom D₀ f
+        (algebraMap A (Localization.Away
+          (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+            (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).s)) a) =
+      algebraMap (presheafValue D₀)
+        (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) (D₀.canonicalMap a) := by
+  rw [unitCover_relOverlap_forwardLocHom, IsLocalization.Away.lift_eq]
+  rfl
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- **Relative-overlap per-generator witnesses (O4)**: every `t ∈ T_inter` (a product
+`p·q` over the two factor-data) has a `locSubring`-witness over the B-side annulus datum.
+Each factor classifies as `coe (p/s) = c·bᵏ` (`c ∈ A₀`, `k ≤ 1`), and the assembled
+witness is `aM c_p · aM c_q · {1/b, 1, b}` according to `k_p + k_q ∈ {0,1,2}`. -/
+private theorem unitCover_relOverlap_forward_witness
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (t : A) (ht : t ∈ ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).T) :
+    ∃ y : Localization.Away ((unitCover_overlapDatum_B D₀ f).s),
+      y ∈ locSubring (unitCover_overlapDatum_B D₀ f).P
+          (unitCover_overlapDatum_B D₀ f).T (unitCover_overlapDatum_B D₀ f).s ∧
+      ((unitCover_overlapDatum_B D₀ f).coeRingHom).comp
+        (unitCover_relOverlap_forwardLocHom D₀ f)
+        (divByS t (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+          (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).s)) =
+      (unitCover_overlapDatum_B D₀ f).coeRingHom y := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  set DII := (D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl with hDII
+  set OD := unitCover_overlapDatum_B D₀ f with hOD
+  set F := (OD.coeRingHom).comp (unitCover_relOverlap_forwardLocHom D₀ f) with hF
+  have hF_alg : ∀ a : A, F (algebraMap A (Localization.Away DII.s) a) =
+      OD.canonicalMap (D₀.canonicalMap a) := by
+    intro a
+    rw [hF, RingHom.comp_apply, unitCover_relOverlap_forwardLocHom_algebraMap]
+    rfl
+  have hu : IsUnit (F (algebraMap A (Localization.Away DII.s) DII.s)) := by
+    rw [hF_alg]
+    exact (unitCover_relOverlap_baseHom_isUnit D₀ f).map OD.coeRingHom
+  have hF_div : ∀ (c : A) (w : presheafValue OD),
+      F (algebraMap A (Localization.Away DII.s) c) =
+        F (algebraMap A (Localization.Away DII.s) DII.s) * w →
+      F (divByS c DII.s) = w := by
+    intro c w hw
+    have h1 : F (algebraMap A (Localization.Away DII.s) DII.s) * F (divByS c DII.s) =
+        F (algebraMap A (Localization.Away DII.s) c) := by
+      rw [← map_mul, algebraMap_s_mul_divByS]
+    exact hu.mul_left_cancel (h1.trans hw)
+  have hps : ∀ p : A, D₀.canonicalMap p =
+      D₀.canonicalMap D₀.s * D₀.coeRingHom (divByS p D₀.s) := by
+    intro p
+    rw [show D₀.canonicalMap D₀.s * D₀.coeRingHom (divByS p D₀.s) =
+      D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) D₀.s *
+        divByS p D₀.s) from by rw [map_mul]; rfl]
+    rw [algebraMap_s_mul_divByS]
+    rfl
+  have hA₀ : ∀ p ∈ insert D₀.s D₀.T,
+      D₀.coeRingHom (divByS p D₀.s) ∈ (presheafValue_concretePair D₀).A₀ := by
+    intro p hp
+    rw [presheafValue_concretePair_A₀]
+    rcases Finset.mem_insert.mp hp with rfl | hp'
+    · have h1 : divByS D₀.s D₀.s = 1 := by
+        unfold divByS
+        exact IsLocalization.mk'_self (M := Submonoid.powers D₀.s)
+          (S := Localization.Away D₀.s) ⟨1, pow_one D₀.s⟩
+      rw [h1, map_one]
+      exact one_mem _
+    · exact subset_closure ⟨⟨divByS p D₀.s,
+        divByS_mem_locSubring D₀.P D₀.T D₀.s hp'⟩, rfl⟩
+  -- splitting of `divByS` along a product numerator
+  have hsplit : ∀ p' q' : A, divByS (p' * q') D₀.s =
+      divByS p' D₀.s * algebraMap A (Localization.Away D₀.s) q' := by
+    intro p' q'
+    refine (IsLocalization.Away.algebraMap_isUnit
+      (S := Localization.Away D₀.s) D₀.s).mul_left_cancel ?_
+    rw [algebraMap_s_mul_divByS]
+    rw [show algebraMap A (Localization.Away D₀.s) D₀.s *
+      (divByS p' D₀.s * algebraMap A (Localization.Away D₀.s) q') =
+      (algebraMap A (Localization.Away D₀.s) D₀.s * divByS p' D₀.s) *
+        algebraMap A (Localization.Away D₀.s) q' from by ring]
+    rw [algebraMap_s_mul_divByS, ← map_mul]
+  -- the B-side element identities
+  have heq_s : ((unitCover_overlapDatum_B D₀ f).s : presheafValue D₀) =
+      D₀.canonicalMap f := by
+    rw [show ((unitCover_overlapDatum_B D₀ f).s : presheafValue D₀) =
+      (1 : presheafValue D₀) * D₀.canonicalMap f from rfl, one_mul]
+  have haM_s : algebraMap (presheafValue D₀) (Localization.Away OD.s) OD.s =
+      algebraMap (presheafValue D₀) (Localization.Away OD.s) (D₀.canonicalMap f) :=
+    congrArg _ heq_s
+  have hu_b : IsUnit (OD.canonicalMap (D₀.canonicalMap f)) :=
+    (unitCover_relOverlap_aMb_isUnit D₀ f).map OD.coeRingHom
+  have hinvO : OD.canonicalMap (D₀.canonicalMap f) *
+      OD.coeRingHom (divByS (1 : presheafValue D₀) OD.s) = 1 := by
+    have h8 := algebraMap_s_mul_divByS OD (1 : presheafValue D₀)
+    rw [haM_s] at h8
+    rw [show OD.canonicalMap (D₀.canonicalMap f) *
+        OD.coeRingHom (divByS (1 : presheafValue D₀) OD.s) =
+      OD.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away OD.s)
+        (D₀.canonicalMap f) * divByS (1 : presheafValue D₀) OD.s) from by
+      rw [map_mul]; rfl]
+    rw [h8, map_one, map_one]
+  have haMbb : OD.coeRingHom (divByS (D₀.canonicalMap f * D₀.canonicalMap f) OD.s) =
+      OD.canonicalMap (D₀.canonicalMap f) := by
+    refine hu_b.mul_left_cancel ?_
+    have h9 := algebraMap_s_mul_divByS OD (D₀.canonicalMap f * D₀.canonicalMap f)
+    rw [haM_s] at h9
+    rw [show OD.canonicalMap (D₀.canonicalMap f) *
+        OD.coeRingHom (divByS (D₀.canonicalMap f * D₀.canonicalMap f) OD.s) =
+      OD.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away OD.s)
+        (D₀.canonicalMap f) * divByS (D₀.canonicalMap f * D₀.canonicalMap f) OD.s) from by
+      rw [map_mul]; rfl]
+    rw [h9, map_mul, map_mul]
+    rfl
+  -- classification of the first factor
+  have hclass₁ : ∀ p ∈ insert ((D₀.s * 1 : A))
+      (D₀.interSamePair (unitDatum D₀.P f) rfl).T,
+      ∃ c, c ∈ (presheafValue_concretePair D₀).A₀ ∧
+        (D₀.coeRingHom (divByS p D₀.s) = c ∨
+         D₀.coeRingHom (divByS p D₀.s) = c * D₀.canonicalMap f) := by
+    intro p hp
+    rcases Finset.mem_insert.mp hp with rfl | hp'
+    · refine ⟨D₀.coeRingHom (divByS (D₀.s * 1) D₀.s), ?_, Or.inl rfl⟩
+      rw [show divByS (D₀.s * 1) D₀.s = divByS D₀.s D₀.s from by rw [mul_one]]
+      exact hA₀ D₀.s (Finset.mem_insert_self _ _)
+    · have hp'' : p ∈ ((insert D₀.s D₀.T).product
+          (insert (1 : A) ({f} : Finset A))).image (fun r : A × A => r.1 * r.2) := hp'
+      rw [Finset.mem_image] at hp''
+      obtain ⟨⟨p', q'⟩, hpq', rfl⟩ := hp''
+      have hp1 : p' ∈ insert D₀.s D₀.T := (Finset.mem_product.mp hpq').1
+      have hq1 : q' ∈ insert (1 : A) ({f} : Finset A) := (Finset.mem_product.mp hpq').2
+      rw [show (((p', q').1 : A) * (p', q').2 : A) = p' * q' from rfl]
+      refine ⟨D₀.coeRingHom (divByS p' D₀.s), hA₀ p' hp1, ?_⟩
+      rcases Finset.mem_insert.mp hq1 with h1 | hf
+      · refine Or.inl ?_
+        rw [h1, hsplit p' 1, map_mul, map_one, map_one, mul_one]
+      · refine Or.inr ?_
+        rw [Finset.mem_singleton.mp hf, hsplit p' f, map_mul]
+        rfl
+  -- classification of the second factor
+  have hclass₂ : ∀ q ∈ insert ((D₀.s * f : A))
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl).T,
+      ∃ c, c ∈ (presheafValue_concretePair D₀).A₀ ∧
+        (D₀.coeRingHom (divByS q D₀.s) = c ∨
+         D₀.coeRingHom (divByS q D₀.s) = c * D₀.canonicalMap f) := by
+    intro q hq
+    rcases Finset.mem_insert.mp hq with rfl | hq'
+    · refine ⟨D₀.coeRingHom (divByS D₀.s D₀.s), hA₀ D₀.s (Finset.mem_insert_self _ _),
+        Or.inr ?_⟩
+      rw [hsplit D₀.s f, map_mul]
+      rfl
+    · have hq'' : q ∈ ((insert D₀.s D₀.T).product
+          (insert f ({1} : Finset A))).image (fun r : A × A => r.1 * r.2) := hq'
+      rw [Finset.mem_image] at hq''
+      obtain ⟨⟨p', q'⟩, hpq', rfl⟩ := hq''
+      have hp1 : p' ∈ insert D₀.s D₀.T := (Finset.mem_product.mp hpq').1
+      have hq1 : q' ∈ insert f ({1} : Finset A) := (Finset.mem_product.mp hpq').2
+      rw [show (((p', q').1 : A) * (p', q').2 : A) = p' * q' from rfl]
+      refine ⟨D₀.coeRingHom (divByS p' D₀.s), hA₀ p' hp1, ?_⟩
+      rcases Finset.mem_insert.mp hq1 with hf | h1
+      · refine Or.inr ?_
+        rw [hf, hsplit p' f, map_mul]
+        rfl
+      · refine Or.inl ?_
+        rw [Finset.mem_singleton.mp h1, hsplit p' 1, map_mul, map_one, map_one, mul_one]
+  -- decompose `t = p · q`
+  have ht' : t ∈ ((insert (D₀.s * 1) (D₀.interSamePair (unitDatum D₀.P f) rfl).T).product
+      (insert (D₀.s * f) (D₀.interSamePair (coUnitDatum D₀.P f) rfl).T)).image
+      (fun r : A × A => r.1 * r.2) := ht
+  rw [Finset.mem_image] at ht'
+  obtain ⟨⟨p, q⟩, hpq, rfl⟩ := ht'
+  have hp : p ∈ insert (D₀.s * 1) (D₀.interSamePair (unitDatum D₀.P f) rfl).T :=
+    (Finset.mem_product.mp hpq).1
+  have hq : q ∈ insert (D₀.s * f) (D₀.interSamePair (coUnitDatum D₀.P f) rfl).T :=
+    (Finset.mem_product.mp hpq).2
+  rw [show (((p, q).1 : A) * (p, q).2 : A) = p * q from rfl]
+  obtain ⟨c_p, hc_p, hcase_p⟩ := hclass₁ p hp
+  obtain ⟨c_q, hc_q, hcase_q⟩ := hclass₂ q hq
+  have hs_eq : (DII.s : A) = (D₀.s * 1) * (D₀.s * f) := rfl
+  -- common expansion of both sides of the `hF_div` equation
+  have hLHS : ∀ a : A, F (algebraMap A (Localization.Away DII.s) (p * q)) =
+      OD.canonicalMap (D₀.canonicalMap D₀.s) *
+        OD.canonicalMap (D₀.coeRingHom (divByS p D₀.s)) *
+        (OD.canonicalMap (D₀.canonicalMap D₀.s) *
+          OD.canonicalMap (D₀.coeRingHom (divByS q D₀.s))) := by
+    intro _
+    rw [hF_alg, map_mul (D₀.canonicalMap)]
+    rw [show D₀.canonicalMap p = D₀.canonicalMap D₀.s *
+      D₀.coeRingHom (divByS p D₀.s) from hps p]
+    rw [show D₀.canonicalMap q = D₀.canonicalMap D₀.s *
+      D₀.coeRingHom (divByS q D₀.s) from hps q]
+    rw [map_mul (OD.canonicalMap), map_mul (OD.canonicalMap), map_mul (OD.canonicalMap)]
+  have hRHS : F (algebraMap A (Localization.Away DII.s) DII.s) =
+      OD.canonicalMap (D₀.canonicalMap D₀.s) * OD.canonicalMap (D₀.canonicalMap D₀.s) *
+        OD.canonicalMap (D₀.canonicalMap f) := by
+    rw [hF_alg]
+    rw [show D₀.canonicalMap DII.s = D₀.canonicalMap ((D₀.s * 1) * (D₀.s * f)) from by
+      rw [hs_eq]]
+    rw [map_mul (D₀.canonicalMap), map_mul (D₀.canonicalMap), map_mul (D₀.canonicalMap),
+      map_one, mul_one]
+    rw [map_mul (OD.canonicalMap), map_mul (OD.canonicalMap)]
+    ring
+  rcases hcase_p with hk_p | hk_p <;> rcases hcase_q with hk_q | hk_q
+  · -- K = 0: witness `aM c_p · aM c_q · (1/b)`
+    refine ⟨algebraMap (presheafValue D₀) (Localization.Away OD.s) c_p *
+        algebraMap (presheafValue D₀) (Localization.Away OD.s) c_q *
+        divByS (1 : presheafValue D₀) OD.s,
+      (locSubring OD.P OD.T OD.s).mul_mem
+        ((locSubring OD.P OD.T OD.s).mul_mem
+          (algebraMap_mem_locSubring OD.P OD.T OD.s hc_p)
+          (algebraMap_mem_locSubring OD.P OD.T OD.s hc_q))
+        (divByS_mem_locSubring OD.P OD.T OD.s (unitCoUnit_inter_one_mem _ _)), ?_⟩
+    refine hF_div _ _ ?_
+    rw [hLHS 0, hRHS, hk_p, hk_q]
+    rw [show OD.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away OD.s) c_p *
+        algebraMap (presheafValue D₀) (Localization.Away OD.s) c_q *
+        divByS (1 : presheafValue D₀) OD.s) =
+      OD.canonicalMap c_p * OD.canonicalMap c_q *
+        OD.coeRingHom (divByS (1 : presheafValue D₀) OD.s) from by
+      rw [map_mul, map_mul]; rfl]
+    rw [show OD.canonicalMap (D₀.canonicalMap D₀.s) * OD.canonicalMap (D₀.canonicalMap D₀.s) *
+        OD.canonicalMap (D₀.canonicalMap f) *
+        (OD.canonicalMap c_p * OD.canonicalMap c_q *
+          OD.coeRingHom (divByS (1 : presheafValue D₀) OD.s)) =
+      OD.canonicalMap (D₀.canonicalMap D₀.s) * OD.canonicalMap c_p *
+        (OD.canonicalMap (D₀.canonicalMap D₀.s) * OD.canonicalMap c_q) *
+        (OD.canonicalMap (D₀.canonicalMap f) *
+          OD.coeRingHom (divByS (1 : presheafValue D₀) OD.s)) from by ring]
+    rw [hinvO, mul_one]
+  · -- K = 1 (q-side `b`): witness `aM c_p · aM c_q`
+    refine ⟨algebraMap (presheafValue D₀) (Localization.Away OD.s) c_p *
+        algebraMap (presheafValue D₀) (Localization.Away OD.s) c_q,
+      (locSubring OD.P OD.T OD.s).mul_mem
+        (algebraMap_mem_locSubring OD.P OD.T OD.s hc_p)
+        (algebraMap_mem_locSubring OD.P OD.T OD.s hc_q), ?_⟩
+    refine hF_div _ _ ?_
+    rw [hLHS 0, hRHS, hk_p, hk_q]
+    rw [show OD.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away OD.s) c_p *
+        algebraMap (presheafValue D₀) (Localization.Away OD.s) c_q) =
+      OD.canonicalMap c_p * OD.canonicalMap c_q from by rw [map_mul]; rfl]
+    rw [map_mul (OD.canonicalMap)]
+    ring
+  · -- K = 1 (p-side `b`): witness `aM c_p · aM c_q`
+    refine ⟨algebraMap (presheafValue D₀) (Localization.Away OD.s) c_p *
+        algebraMap (presheafValue D₀) (Localization.Away OD.s) c_q,
+      (locSubring OD.P OD.T OD.s).mul_mem
+        (algebraMap_mem_locSubring OD.P OD.T OD.s hc_p)
+        (algebraMap_mem_locSubring OD.P OD.T OD.s hc_q), ?_⟩
+    refine hF_div _ _ ?_
+    rw [hLHS 0, hRHS, hk_p, hk_q]
+    rw [show OD.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away OD.s) c_p *
+        algebraMap (presheafValue D₀) (Localization.Away OD.s) c_q) =
+      OD.canonicalMap c_p * OD.canonicalMap c_q from by rw [map_mul]; rfl]
+    rw [map_mul (OD.canonicalMap)]
+    ring
+  · -- K = 2: witness `aM c_p · aM c_q · (b²/b)`
+    refine ⟨algebraMap (presheafValue D₀) (Localization.Away OD.s) c_p *
+        algebraMap (presheafValue D₀) (Localization.Away OD.s) c_q *
+        divByS (D₀.canonicalMap f * D₀.canonicalMap f) OD.s,
+      (locSubring OD.P OD.T OD.s).mul_mem
+        ((locSubring OD.P OD.T OD.s).mul_mem
+          (algebraMap_mem_locSubring OD.P OD.T OD.s hc_p)
+          (algebraMap_mem_locSubring OD.P OD.T OD.s hc_q))
+        (divByS_mem_locSubring OD.P OD.T OD.s (unitCoUnit_inter_bb_mem _ _)), ?_⟩
+    refine hF_div _ _ ?_
+    rw [hLHS 0, hRHS, hk_p, hk_q]
+    rw [show OD.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away OD.s) c_p *
+        algebraMap (presheafValue D₀) (Localization.Away OD.s) c_q *
+        divByS (D₀.canonicalMap f * D₀.canonicalMap f) OD.s) =
+      OD.canonicalMap c_p * OD.canonicalMap c_q *
+        OD.coeRingHom (divByS (D₀.canonicalMap f * D₀.canonicalMap f) OD.s) from by
+      rw [map_mul, map_mul]; rfl]
+    rw [haMbb, map_mul (OD.canonicalMap), map_mul (OD.canonicalMap)]
+    ring
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Relative-overlap forward continuity (O5)**. -/
+private theorem unitCover_relOverlap_forwardCompletion_continuous
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    @Continuous _ _ (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).topology _
+      (((unitCover_overlapDatum_B D₀ f).coeRingHom).comp
+        (unitCover_relOverlap_forwardLocHom D₀ f)) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  set DII := (D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl with hDII
+  set OD := unitCover_overlapDatum_B D₀ f with hOD
+  set F := (OD.coeRingHom).comp (unitCover_relOverlap_forwardLocHom D₀ f) with hF
+  have hF_alg : ∀ a : A, F (algebraMap A (Localization.Away DII.s) a) =
+      OD.canonicalMap (D₀.canonicalMap a) := by
+    intro a
+    rw [hF, RingHom.comp_apply, unitCover_relOverlap_forwardLocHom_algebraMap]
+    rfl
+  change @Continuous _ _ (locTopology DII.P DII.T DII.s DII.hopen) _ F
+  refine locTopology_continuous_lift DII.P DII.T DII.s DII.hopen F ?_ ?_
+  · have heq : F.comp (algebraMap A (Localization.Away DII.s)) =
+        (OD.canonicalMap).comp D₀.canonicalMap := by
+      ext a; exact hF_alg a
+    rw [heq]
+    exact (canonicalMap_continuous OD).comp (canonicalMap_continuous D₀)
+  · intro t ht
+    obtain ⟨y, hy_mem, hy_eq⟩ := unitCover_relOverlap_forward_witness D₀ f t ht
+    rw [show F (divByS t DII.s) = OD.coeRingHom y from hy_eq]
+    have hbddB := CompletionLocalization.coeRingHom_image_locSubring_isBounded OD
+    refine hbddB.subset ?_
+    rintro _ ⟨k, rfl⟩
+    exact ⟨y ^ k, pow_mem hy_mem k, by rw [map_pow]⟩
+
+/-- **Relative-overlap forward map (O6)**. -/
+private noncomputable def unitCover_relOverlap_forward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    presheafValue ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl) →+*
+      presheafValue (unitCover_overlapDatum_B D₀ f) := by
+  letI : UniformSpace (Localization.Away (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s) :=
+    (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s) :=
+    (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s) :=
+    (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom
+    (((unitCover_overlapDatum_B D₀ f).coeRingHom).comp
+      (unitCover_relOverlap_forwardLocHom D₀ f))
+    (unitCover_relOverlap_forwardCompletion_continuous D₀ f)
+
+/-- O6 coe-tracking. -/
+private theorem unitCover_relOverlap_forward_coe
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (y : Localization.Away (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s) :
+    unitCover_relOverlap_forward D₀ f
+        ((((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+          (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).coeRingHom y) =
+      (unitCover_overlapDatum_B D₀ f).coeRingHom
+        (unitCover_relOverlap_forwardLocHom D₀ f y) := by
+  letI : UniformSpace (Localization.Away (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s) :=
+    (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s) :=
+    (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s) :=
+    (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom_coe
+    (((unitCover_overlapDatum_B D₀ f).coeRingHom).comp
+      (unitCover_relOverlap_forwardLocHom D₀ f))
+    (unitCover_relOverlap_forwardCompletion_continuous D₀ f) y
+
+set_option linter.unusedSectionVars false in
+/-- **Relative-overlap backward base unit (O7a)**: the restriction of `s_O = 1·b` is a
+unit of `O_X(U₁∩U₂)`. -/
+private theorem unitCover_relOverlap_backward_baseHom_isUnit
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    IsUnit ((restrictionMapHom D₀ (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl))
+        ((RationalLocData.interSamePair_subset_left _ _ _).trans
+          (RationalLocData.interSamePair_subset_left _ _ _)))
+      ((unitCover_overlapDatum_B D₀ f).s)) := by
+  rw [show ((unitCover_overlapDatum_B D₀ f).s : presheafValue D₀) =
+    (1 : presheafValue D₀) * D₀.canonicalMap f from rfl, one_mul]
+  rw [restrictionMapHom_canonicalMap]
+  have hu : IsUnit ((((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).canonicalMap
+      ((((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s)) :=
+    isUnit_s_in_presheafValue _
+  rw [show ((((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s : A) =
+    (D₀.s * 1) * (D₀.s * f) from rfl, map_mul, map_mul, map_mul] at hu
+  exact isUnit_of_mul_isUnit_right (isUnit_of_mul_isUnit_right hu)
+
+/-- **Relative-overlap backward loc-hom (O7b)**. -/
+private noncomputable def unitCover_relOverlap_backwardLocHom
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    Localization.Away ((unitCover_overlapDatum_B D₀ f).s) →+*
+      presheafValue (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)) :=
+  IsLocalization.Away.lift
+    (x := (unitCover_overlapDatum_B D₀ f).s)
+    (g := restrictionMapHom D₀ (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl))
+      ((RationalLocData.interSamePair_subset_left _ _ _).trans
+        (RationalLocData.interSamePair_subset_left _ _ _)))
+    (unitCover_relOverlap_backward_baseHom_isUnit D₀ f)
+
+set_option linter.unusedSectionVars false in
+/-- O7c: the overlap backward loc-hom sends `algebraMap x ↦ restriction x`. -/
+private theorem unitCover_relOverlap_backwardLocHom_algebraMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
+    unitCover_relOverlap_backwardLocHom D₀ f
+        (algebraMap (presheafValue D₀) (Localization.Away
+          ((unitCover_overlapDatum_B D₀ f).s)) x) =
+      restrictionMapHom D₀ (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl))
+        ((RationalLocData.interSamePair_subset_left _ _ _).trans
+          (RationalLocData.interSamePair_subset_left _ _ _)) x := by
+  rw [unitCover_relOverlap_backwardLocHom, IsLocalization.Away.lift_eq]
+
+set_option linter.unusedSectionVars false in
+/-- `(D₀.s·1)·(D₀.s·1)` generates the double intersection (O7d′). -/
+private theorem unitCover_relOverlap_s1s1_mem
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) :
+    (D₀.s * 1) * (D₀.s * 1) ∈ (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).T := by
+  classical
+  refine Finset.mem_image.mpr ⟨(D₀.s * 1, D₀.s * 1), Finset.mem_product.mpr
+    ⟨Finset.mem_insert_self _ _, Finset.mem_insert_of_mem ?_⟩, rfl⟩
+  exact Finset.mem_image.mpr ⟨(D₀.s, 1), Finset.mem_product.mpr
+    ⟨Finset.mem_insert_self _ _, Finset.mem_insert_of_mem (Finset.mem_singleton_self _)⟩, rfl⟩
+
+set_option linter.unusedSectionVars false in
+/-- `(D₀.s·f)·(D₀.s·f)` generates the double intersection (O7d″). -/
+private theorem unitCover_relOverlap_sfsf_mem
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) :
+    (D₀.s * f) * (D₀.s * f) ∈ (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).T := by
+  classical
+  refine Finset.mem_image.mpr ⟨(D₀.s * f, D₀.s * f), Finset.mem_product.mpr
+    ⟨Finset.mem_insert_of_mem ?_, Finset.mem_insert_self _ _⟩, rfl⟩
+  exact Finset.mem_image.mpr ⟨(D₀.s, f), Finset.mem_product.mpr
+    ⟨Finset.mem_insert_self _ _, Finset.mem_insert_of_mem (Finset.mem_singleton_self _)⟩, rfl⟩
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **The two annulus generator identities in `O_X(U₁∩U₂)` (O7d)**:
+`canMap f · ((s·1)²/s_DII) = 1` and `((s·f)²/s_DII) = canMap f`. -/
+private theorem unitCover_relOverlap_gen_identities
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    ((((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).canonicalMap f *
+      (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).coeRingHom
+        (divByS ((D₀.s * 1) * (D₀.s * 1))
+          ((((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+            (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s)) = 1) ∧
+    ((((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).coeRingHom
+        (divByS ((D₀.s * f) * (D₀.s * f))
+          ((((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+            (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s)) =
+      (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).canonicalMap f) := by
+  set DII := (D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl with hDII
+  have hu_DII : IsUnit (DII.canonicalMap DII.s) := isUnit_s_in_presheafValue DII
+  have hu_split := hu_DII
+  rw [show (DII.s : A) = (D₀.s * 1) * (D₀.s * f) from rfl, map_mul] at hu_split
+  have u1 : IsUnit (DII.canonicalMap (D₀.s * 1)) := isUnit_of_mul_isUnit_left hu_split
+  have u2 : IsUnit (DII.canonicalMap (D₀.s * f)) := isUnit_of_mul_isUnit_right hu_split
+  have u_s : IsUnit (DII.canonicalMap D₀.s) := by
+    have h := u1
+    rw [show (D₀.s * 1 : A) = D₀.s from mul_one _] at h
+    exact h
+  -- the divByS chase: `canMap DII.s · coe (t/s) = canMap t`
+  have hchase : ∀ t : A, DII.canonicalMap DII.s * DII.coeRingHom (divByS t DII.s) =
+      DII.canonicalMap t := by
+    intro t
+    rw [show DII.canonicalMap DII.s * DII.coeRingHom (divByS t DII.s) =
+      DII.coeRingHom (algebraMap A (Localization.Away DII.s) DII.s *
+        divByS t DII.s) from by rw [map_mul]; rfl]
+    rw [algebraMap_s_mul_divByS]
+    rfl
+  -- split `canMap DII.s` (closed equation; safe against the divByS type-index)
+  have hsplit_s : DII.canonicalMap DII.s =
+      DII.canonicalMap (D₀.s * 1) * DII.canonicalMap (D₀.s * f) := by
+    rw [show DII.canonicalMap DII.s =
+      DII.canonicalMap ((D₀.s * 1) * (D₀.s * f)) from by
+      rw [show (DII.s : A) = (D₀.s * 1) * (D₀.s * f) from rfl]]
+    rw [map_mul]
+  have u_f : IsUnit (DII.canonicalMap f) := by
+    have h := u2
+    rw [map_mul] at h
+    exact isUnit_of_mul_isUnit_right h
+  constructor
+  · -- `canMap f · ((s·1)²/s) = 1`
+    have h1 := hchase ((D₀.s * 1) * (D₀.s * 1))
+    rw [hsplit_s] at h1
+    simp only [map_mul, map_one] at h1
+    refine u_s.mul_left_cancel ?_
+    refine u_s.mul_left_cancel ?_
+    linear_combination h1
+  · -- `((s·f)²/s) = canMap f`
+    have h1 := hchase ((D₀.s * f) * (D₀.s * f))
+    rw [hsplit_s] at h1
+    simp only [map_mul, map_one] at h1
+    refine u_s.mul_left_cancel ?_
+    refine u_s.mul_left_cancel ?_
+    refine u_f.mul_left_cancel ?_
+    linear_combination h1
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- **Relative-overlap backward continuity (O7e)**: the three annulus generators
+`{1, b, b²}` land on `((s·1)²/s_DII)`, `1`, `((s·f)²/s_DII)` respectively. -/
+private theorem unitCover_relOverlap_backwardLocHom_continuous
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    @Continuous _ _ (unitCover_overlapDatum_B D₀ f).topology _
+      (unitCover_relOverlap_backwardLocHom D₀ f) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  set DII := (D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+    (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl with hDII
+  set OD := unitCover_overlapDatum_B D₀ f with hOD
+  change @Continuous _ _ (locTopology OD.P OD.T OD.s OD.hopen) _
+    (unitCover_relOverlap_backwardLocHom D₀ f)
+  refine locTopology_continuous_lift OD.P OD.T OD.s OD.hopen
+    (unitCover_relOverlap_backwardLocHom D₀ f) ?_ ?_
+  · have heq : (unitCover_relOverlap_backwardLocHom D₀ f).comp
+        (algebraMap (presheafValue D₀) (Localization.Away OD.s)) =
+        restrictionMapHom D₀ DII ((RationalLocData.interSamePair_subset_left _ _ _).trans
+          (RationalLocData.interSamePair_subset_left _ _ _)) := by
+      ext x; exact unitCover_relOverlap_backwardLocHom_algebraMap D₀ f x
+    rw [heq]
+    exact restrictionMapHom_continuous D₀ DII _
+  · intro t ht
+    -- `ψ (aM s_O) = canMap_DII f`, a unit
+    have hres_b : unitCover_relOverlap_backwardLocHom D₀ f
+        (algebraMap (presheafValue D₀) (Localization.Away OD.s) OD.s) =
+        DII.canonicalMap f := by
+      rw [unitCover_relOverlap_backwardLocHom_algebraMap D₀ f
+        ((unitCover_overlapDatum_B D₀ f).s)]
+      rw [show ((unitCover_overlapDatum_B D₀ f).s : presheafValue D₀) =
+        (1 : presheafValue D₀) * D₀.canonicalMap f from rfl, one_mul]
+      exact restrictionMapHom_canonicalMap D₀ DII _ f
+    have hu_f : IsUnit (DII.canonicalMap f) := by
+      have hu_DII : IsUnit (DII.canonicalMap DII.s) := isUnit_s_in_presheafValue DII
+      rw [show (DII.s : A) = (D₀.s * 1) * (D₀.s * f) from rfl, map_mul, map_mul,
+        map_mul] at hu_DII
+      exact isUnit_of_mul_isUnit_right (isUnit_of_mul_isUnit_right hu_DII)
+    have hu_b : IsUnit (unitCover_relOverlap_backwardLocHom D₀ f
+        (algebraMap (presheafValue D₀) (Localization.Away OD.s) OD.s)) := by
+      rw [hres_b]; exact hu_f
+    have hψ_div : ∀ (c : presheafValue D₀) (w : presheafValue DII),
+        unitCover_relOverlap_backwardLocHom D₀ f
+          (algebraMap (presheafValue D₀) (Localization.Away OD.s) c) =
+          unitCover_relOverlap_backwardLocHom D₀ f
+            (algebraMap (presheafValue D₀) (Localization.Away OD.s) OD.s) * w →
+        unitCover_relOverlap_backwardLocHom D₀ f (divByS c OD.s) = w := by
+      intro c w hw
+      have h1 : unitCover_relOverlap_backwardLocHom D₀ f
+          (algebraMap (presheafValue D₀) (Localization.Away OD.s) OD.s) *
+          unitCover_relOverlap_backwardLocHom D₀ f (divByS c OD.s) =
+          unitCover_relOverlap_backwardLocHom D₀ f
+            (algebraMap (presheafValue D₀) (Localization.Away OD.s) c) := by
+        rw [← map_mul, algebraMap_s_mul_divByS]
+      exact hu_b.mul_left_cancel (h1.trans hw)
+    obtain ⟨hgen1, hgen2⟩ := unitCover_relOverlap_gen_identities D₀ f
+    have hbdd := CompletionLocalization.coeRingHom_image_locSubring_isBounded DII
+    rcases unitCoUnit_inter_T_cases (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f) t ht with h1 | hb | hbb
+    · -- t = 1 : witness `(s·1)²/s_DII`
+      rw [h1]
+      have hwit : unitCover_relOverlap_backwardLocHom D₀ f
+          (divByS (1 : presheafValue D₀) OD.s) =
+          DII.coeRingHom (divByS ((D₀.s * 1) * (D₀.s * 1)) DII.s) := by
+        refine hψ_div _ _ ?_
+        rw [unitCover_relOverlap_backwardLocHom_algebraMap D₀ f (1 : presheafValue D₀),
+          map_one, hres_b]
+        exact hgen1.symm
+      rw [hwit]
+      refine hbdd.subset ?_
+      rintro _ ⟨k, rfl⟩
+      exact ⟨divByS ((D₀.s * 1) * (D₀.s * 1)) DII.s ^ k,
+        pow_mem (divByS_mem_locSubring DII.P DII.T DII.s
+          (unitCover_relOverlap_s1s1_mem D₀ f)) k, by rw [map_pow]⟩
+    · -- t = b : witness `1`
+      rw [hb]
+      have hwit : unitCover_relOverlap_backwardLocHom D₀ f
+          (divByS (D₀.canonicalMap f) OD.s) = DII.coeRingHom 1 := by
+        refine hψ_div _ _ ?_
+        rw [map_one, mul_one]
+        rw [unitCover_relOverlap_backwardLocHom_algebraMap D₀ f (D₀.canonicalMap f),
+          hres_b]
+        exact restrictionMapHom_canonicalMap D₀ DII _ f
+      rw [hwit, map_one]
+      exact TopologicalRing.isPowerBounded_one
+    · -- t = b·b : witness `(s·f)²/s_DII`
+      rw [hbb]
+      have hwit : unitCover_relOverlap_backwardLocHom D₀ f
+          (divByS (D₀.canonicalMap f * D₀.canonicalMap f) OD.s) =
+          DII.coeRingHom (divByS ((D₀.s * f) * (D₀.s * f)) DII.s) := by
+        refine hψ_div _ _ ?_
+        rw [unitCover_relOverlap_backwardLocHom_algebraMap D₀ f
+          (D₀.canonicalMap f * D₀.canonicalMap f), map_mul, hres_b,
+          restrictionMapHom_canonicalMap, hgen2]
+      rw [hwit]
+      refine hbdd.subset ?_
+      rintro _ ⟨k, rfl⟩
+      exact ⟨divByS ((D₀.s * f) * (D₀.s * f)) DII.s ^ k,
+        pow_mem (divByS_mem_locSubring DII.P DII.T DII.s
+          (unitCover_relOverlap_sfsf_mem D₀ f)) k, by rw [map_pow]⟩
+
+/-- **Relative-overlap backward map (O7f)**. -/
+private noncomputable def unitCover_relOverlap_backward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    presheafValue (unitCover_overlapDatum_B D₀ f) →+*
+      presheafValue (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)) := by
+  letI : UniformSpace (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom
+    (unitCover_relOverlap_backwardLocHom D₀ f)
+    (unitCover_relOverlap_backwardLocHom_continuous D₀ f)
+
+/-- O7f coe-tracking. -/
+private theorem unitCover_relOverlap_backward_coe
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (y : Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :
+    unitCover_relOverlap_backward D₀ f
+        ((unitCover_overlapDatum_B D₀ f).coeRingHom y) =
+      unitCover_relOverlap_backwardLocHom D₀ f y := by
+  letI : UniformSpace (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom_coe
+    (unitCover_relOverlap_backwardLocHom D₀ f)
+    (unitCover_relOverlap_backwardLocHom_continuous D₀ f) y
+
+set_option linter.unusedSectionVars false in
+/-- **Overlap loc-level restriction base unit (O8a)**. -/
+private theorem unitCover_relOverlap_locRestriction_baseUnit
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) :
+    IsUnit (algebraMap A (Localization.Away
+      (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s) D₀.s) := by
+  have h2 : IsUnit (algebraMap A (Localization.Away
+      (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s) (D₀.s * 1) *
+    algebraMap A (Localization.Away
+      (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s) (D₀.s * f)) := by
+    rw [← map_mul]
+    rw [show ((D₀.s * 1) * (D₀.s * f) : A) =
+      (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s from rfl]
+    exact IsLocalization.Away.algebraMap_isUnit
+      (S := Localization.Away (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s)
+      (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s
+  have h3 := isUnit_of_mul_isUnit_left h2
+  rwa [show (D₀.s * 1 : A) = D₀.s from mul_one _] at h3
+
+/-- **Overlap loc-level restriction (O8a′)**. -/
+private noncomputable def unitCover_relOverlap_locRestriction
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) :
+    Localization.Away D₀.s →+*
+      Localization.Away (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s :=
+  IsLocalization.Away.lift (x := D₀.s)
+    (g := algebraMap A (Localization.Away
+      (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s))
+    (unitCover_relOverlap_locRestriction_baseUnit D₀ f)
+
+set_option linter.unusedSectionVars false in
+/-- O8a″ tracking. -/
+private theorem unitCover_relOverlap_locRestriction_algebraMap
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) (a : A) :
+    unitCover_relOverlap_locRestriction D₀ f (algebraMap A (Localization.Away D₀.s) a) =
+      algebraMap A (Localization.Away
+        (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+          (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s) a := by
+  rw [unitCover_relOverlap_locRestriction, IsLocalization.Away.lift_eq]
+
+set_option linter.unusedSectionVars false in
+/-- **Overlap restriction factorization (O8b)**. -/
+private theorem unitCover_relOverlap_restriction_factor
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    (restrictionMapHom D₀ (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl))
+        ((RationalLocData.interSamePair_subset_left _ _ _).trans
+          (RationalLocData.interSamePair_subset_left _ _ _))).comp D₀.coeRingHom =
+      ((((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).coeRingHom).comp
+        (unitCover_relOverlap_locRestriction D₀ f) := by
+  refine IsLocalization.ringHom_ext (Submonoid.powers D₀.s) ?_
+  ext a
+  simp only [RingHom.comp_apply]
+  rw [show D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) a) =
+    D₀.canonicalMap a from rfl, restrictionMapHom_canonicalMap,
+    unitCover_relOverlap_locRestriction_algebraMap]
+  rfl
+
+set_option linter.unusedSectionVars false in
+/-- **Overlap loc-level roundtrip 1 (O8c)**. -/
+private theorem unitCover_relOverlap_locRoundtrip1
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    (unitCover_relOverlap_backwardLocHom D₀ f).comp
+        (unitCover_relOverlap_forwardLocHom D₀ f) =
+      (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).coeRingHom := by
+  refine IsLocalization.ringHom_ext
+    (Submonoid.powers (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s) ?_
+  ext a
+  simp only [RingHom.comp_apply]
+  rw [unitCover_relOverlap_forwardLocHom_algebraMap,
+    unitCover_relOverlap_backwardLocHom_algebraMap, restrictionMapHom_canonicalMap]
+  rfl
+
+set_option linter.unusedSectionVars false in
+/-- **Overlap loc-level roundtrip 2 (O8d)**. -/
+private theorem unitCover_relOverlap_locRoundtrip2
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    (unitCover_relOverlap_forwardLocHom D₀ f).comp
+        (unitCover_relOverlap_locRestriction D₀ f) =
+      (algebraMap (presheafValue D₀) (Localization.Away
+        ((unitCover_overlapDatum_B D₀ f).s))).comp D₀.coeRingHom := by
+  refine IsLocalization.ringHom_ext (Submonoid.powers D₀.s) ?_
+  ext a
+  simp only [RingHom.comp_apply]
+  rw [unitCover_relOverlap_locRestriction_algebraMap,
+    unitCover_relOverlap_forwardLocHom_algebraMap]
+  rfl
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Overlap roundtrip 1 (O8e)**: `backward ∘ forward = id` on `O_X(U₁∩U₂)`. -/
+private theorem unitCover_relOverlap_backward_forward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (x : presheafValue (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl))) :
+    unitCover_relOverlap_backward D₀ f (unitCover_relOverlap_forward D₀ f x) = x := by
+  letI : UniformSpace (Localization.Away ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).s) := ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).s) :=
+    ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).s) :=
+    ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).isUniformAddGroup
+  refine @UniformSpace.Completion.ext'
+    (Localization.Away ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).s)
+    ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).uniformSpace
+    (presheafValue ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)) _ _ _ _
+    (UniformSpace.Completion.continuous_extension.comp
+      UniformSpace.Completion.continuous_extension)
+    continuous_id ?_ x
+  intro a
+  show unitCover_relOverlap_backward D₀ f (unitCover_relOverlap_forward D₀ f
+    (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).coeRingHom a)) =
+    ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).coeRingHom a
+  rw [unitCover_relOverlap_forward_coe, unitCover_relOverlap_backward_coe]
+  exact RingHom.congr_fun (unitCover_relOverlap_locRoundtrip1 D₀ f) a
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Overlap forward-restriction intertwining (O8f)**. -/
+private theorem unitCover_relOverlap_forward_restriction
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
+    unitCover_relOverlap_forward D₀ f
+        (restrictionMapHom D₀ (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+          (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl))
+          ((RationalLocData.interSamePair_subset_left _ _ _).trans
+            (RationalLocData.interSamePair_subset_left _ _ _)) x) =
+      (unitCover_overlapDatum_B D₀ f).canonicalMap x := by
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  letI : UniformSpace (Localization.Away ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).s) := ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).s) :=
+    ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).s) :=
+    ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).isUniformAddGroup
+  refine @UniformSpace.Completion.ext' (Localization.Away D₀.s) D₀.uniformSpace
+    (presheafValue (unitCover_overlapDatum_B D₀ f)) _ _ _ _
+    (UniformSpace.Completion.continuous_extension.comp
+      UniformSpace.Completion.continuous_extension)
+    (canonicalMap_continuous (unitCover_overlapDatum_B D₀ f)) ?_ x
+  intro z
+  show unitCover_relOverlap_forward D₀ f
+      (restrictionMapHom D₀ ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+        ((RationalLocData.interSamePair_subset_left _ _ _).trans
+          (RationalLocData.interSamePair_subset_left _ _ _)) (D₀.coeRingHom z)) =
+    (unitCover_overlapDatum_B D₀ f).canonicalMap (D₀.coeRingHom z)
+  rw [show restrictionMapHom D₀ ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+      ((RationalLocData.interSamePair_subset_left _ _ _).trans
+        (RationalLocData.interSamePair_subset_left _ _ _)) (D₀.coeRingHom z) =
+    ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).coeRingHom
+      (unitCover_relOverlap_locRestriction D₀ f z) from
+    RingHom.congr_fun (unitCover_relOverlap_restriction_factor D₀ f) z]
+  rw [unitCover_relOverlap_forward_coe]
+  exact congrArg _ (RingHom.congr_fun (unitCover_relOverlap_locRoundtrip2 D₀ f) z)
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **Overlap roundtrip 2 (O8g)**: `forward ∘ backward = id` on `O_X^B(annulus)`. -/
+private theorem unitCover_relOverlap_forward_backward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (y : presheafValue (unitCover_overlapDatum_B D₀ f)) :
+    unitCover_relOverlap_forward D₀ f (unitCover_relOverlap_backward D₀ f y) = y := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  have hloc : (unitCover_relOverlap_forward D₀ f).comp
+      (unitCover_relOverlap_backwardLocHom D₀ f) =
+      (unitCover_overlapDatum_B D₀ f).coeRingHom := by
+    refine IsLocalization.ringHom_ext
+      (Submonoid.powers ((unitCover_overlapDatum_B D₀ f).s)) ?_
+    ext x
+    simp only [RingHom.comp_apply]
+    rw [unitCover_relOverlap_backwardLocHom_algebraMap,
+      unitCover_relOverlap_forward_restriction]
+    rfl
+  letI : UniformSpace (Localization.Away ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).s) := ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).s) :=
+    ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).s) :=
+    ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).isUniformAddGroup
+  refine @UniformSpace.Completion.ext'
+    (Localization.Away ((unitCover_overlapDatum_B D₀ f).s))
+    (unitCover_overlapDatum_B D₀ f).uniformSpace
+    (presheafValue (unitCover_overlapDatum_B D₀ f)) _ _ _ _
+    (UniformSpace.Completion.continuous_extension.comp
+      UniformSpace.Completion.continuous_extension)
+    continuous_id ?_ y
+  intro w
+  show unitCover_relOverlap_forward D₀ f (unitCover_relOverlap_backward D₀ f
+    ((unitCover_overlapDatum_B D₀ f).coeRingHom w)) =
+    (unitCover_overlapDatum_B D₀ f).coeRingHom w
+  rw [unitCover_relOverlap_backward_coe]
+  exact RingHom.congr_fun hloc w
+
+set_option linter.unusedSectionVars false in
+/-- The Example-6.38 quotient iso's inverse on `mk`-classes is the evaluation map
+(S1): `(unitDatum_quotEquiv P b).symm (mk z) = evalHom z`. -/
+private theorem unitDatum_quotEquiv_symm_mk
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (P : PairOfDefinition A) (b : A) (z : ↥(TateAlgebra A)) :
+    (unitDatum_quotEquiv P b).symm (Ideal.Quotient.mk
+        (Ideal.span {algebraMap A ↥(TateAlgebra A) b - TateAlgebra.X}) z) =
+      example638_evalHom (unitDatum P b) z := by
+  rw [unitDatum_quotEquiv]
+  simp only [RingEquiv.symm_trans_apply, RingEquiv.symm_symm]
+  exact RingHom.quotientKerEquivOfSurjective_apply_mk
+    (example638_evalHom_surjective (unitDatum P b)) z
+
+end Example638ExplicitKernel
+
+/-! ### Faithful Example 6.38/6.39 bridges for `unitCover` (Wedhorn (8.2.1))
+
+These are the three ring identifications of Wedhorn's equation (8.2.1) for the
+unit cover of `Spa(𝒪_X(D₀))` at the image `b := D₀.canonicalMap f` of `f`:
+
+    O_X(U₁) = B⟨ζ⟩/(b − ζ)            = `B₁_gen b`
+    O_X(U₂) = B⟨η⟩/(1 − bη)           = `B₂_gen b`
+    O_X(U₁∩U₂) = B⟨ζ,ζ⁻¹⟩/(b − ζ)     = `B₁₂_gen b`
+
+where `B := presheafValue D₀`, `U₁ = R(f/1) ∩ D₀`, `U₂ = R(1/f) ∩ D₀`. They are
+the FAITHFUL (case-(b), `[IsStronglyNoetherian A]`-bundle, NO noeth-`A₀`,
+NO `[IsDomain]`, NO `[LaurentNormalized]`) analogues of the relativized
+`laurentPlusBridge`/`laurentMinusBridge`/`example638Bivariate_equiv`, which all
+carry forbidden noeth-`A₀`/`pairSubring`-noetherian hypotheses.
+
+Building these faithfully is the documented repo gap "general (non-discrete)
+Example 6.38/6.39 at a Tate base, faithful". The route mirrors the faithful
+`presheafValueCanonicalQuotientEquiv_faithful` (Wedhorn828.lean) technique
+(`UniformSpace.Completion.extensionHom` + Prop 6.17 closed kernel +
+`IsLocalization.Away.lift`) applied at the base `B = presheafValue D₀`, composed
+with the relative rational-subset identification (Wedhorn Lemma 2.13)
+`presheafValue (D₀.interSamePair Q rfl) ≃+* presheafValue (Q_at_B)`.
+
+They are isolated here as named, clean-signature `sorry` leaves so the diagram
+chase / gluing (`row3_exact`) above them is fully discharged and honest. -/
+
+/-! #### Faithful two-step factorisation of the plus bridge (Wedhorn Prop 8.2 + Example 6.38)
+
+The plus bridge `O_X(R(f/1)∩D₀) ≃+* B₁_gen b` factors, exactly as in Wedhorn's proof, as
+
+    O_X(R(f/1)∩D₀)  ≃[Prop 8.2 / Lemma 2.13]  O_X^B(R(b/1))  ≃[Example 6.38]  B⟨ζ⟩/(b−ζ),
+
+where `B = presheafValue D₀`, `b = D₀.canonicalMap f`, and `R(b/1) = unitDatum P_B b`
+is the base-independent plus-half over `B` (`P_B = presheafValue_concretePair D₀`). The two
+steps are isolated as named clean sub-lemmas, each with a `canonicalMap`-characterisation that
+together discharge the intertwining leaf `unitCover_bridgePlus_restrictionMap`:
+
+* `unitCover_relativePlus` — the relative rational-subset identification (Wedhorn Prop 8.2),
+  intertwining `restrictionMap D₀ U₁` with `(unitDatum P_B b).canonicalMap`
+  (`unitCover_relativePlus_restrictionMap`).
+* `unitCover_example638Plus` — the faithful Example 6.38 over the Tate base `B`
+  (`B` is complete strongly-noetherian Tate, `presheafValue_isStronglyNoetherian_faithful`),
+  sending `(unitDatum P_B b).canonicalMap x` to `mk(algebraMap_B x)`
+  (`unitCover_example638Plus_canonicalMap`). -/
+
+/-- The base-independent plus-half `R(b/1)` over `B = presheafValue D₀` at
+`b = D₀.canonicalMap f` (`T = {b}`, `s = 1`, pair `presheafValue_concretePair D₀`). -/
+private noncomputable def unitCover_plusDatum_B
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) : RationalLocData (presheafValue D₀) :=
+  unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)
+
+/-- **Relative identification (plus, Wedhorn Prop 8.2 / Lemma 2.13)**:
+`O_X(R(f/1) ∩ D₀) ≃+* O_X^B(R(b/1))`, the A-side value of the rational subset `U₁ ⊆ D₀`
+equals the B-side value of the corresponding rational subset of `Spa B`. Honest leaf. -/
+private noncomputable def unitCover_relativePlus
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    presheafValue (D₀.interSamePair (unitDatum D₀.P f) rfl) ≃+*
+      presheafValue (unitCover_plusDatum_B D₀ f) :=
+  RingEquiv.ofRingHom (unitCover_relPlus_forward D₀ f) (unitCover_relPlus_backward D₀ f)
+    (RingHom.ext (unitCover_relPlus_forward_backward D₀ f))
+    (RingHom.ext (unitCover_relPlus_backward_forward D₀ f))
+
+/-- The relative-plus iso intertwines `restrictionMap D₀ U₁` with `canonicalMap` over `B`
+(Wedhorn Prop 8.2 base-change naturality). Honest leaf. -/
+private theorem unitCover_relativePlus_restrictionMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
+    unitCover_relativePlus D₀ f
+        (restrictionMap D₀ (D₀.interSamePair (unitDatum D₀.P f) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _) x) =
+      (unitCover_plusDatum_B D₀ f).canonicalMap x :=
+  unitCover_relPlus_forward_restriction D₀ f x
+
+/-- **Example 6.38 (plus) over the Tate base `B`**: `O_X^B(R(b/1)) ≃+* B⟨ζ⟩/(b−ζ) = B₁_gen b`.
+`B = presheafValue D₀` is complete strongly-noetherian Tate
+(`presheafValue_isStronglyNoetherian_faithful`), so Example 6.38 applies. Honest leaf. -/
+private noncomputable def unitCover_example638Plus
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    presheafValue (unitCover_plusDatum_B D₀ f) ≃+*
+      LaurentCover.B₁_gen (D₀.canonicalMap f) := by
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  haveI hCompleteB :
+      (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+       CompleteSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  exact unitDatum_quotEquiv (presheafValue_concretePair D₀) (D₀.canonicalMap f)
+
+/-- The Example-6.38-plus iso sends `(R(b/1)).canonicalMap x` to `mk(algebraMap_B x)`
+(the constant-section image), i.e. the first component of `epsilonHom_gen b x`. Honest leaf. -/
+private theorem unitCover_example638Plus_canonicalMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
+    unitCover_example638Plus D₀ f ((unitCover_plusDatum_B D₀ f).canonicalMap x) =
+      (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).1 := by
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  haveI hCompleteB :
+      (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+       CompleteSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  refine Eq.trans (unitDatum_quotEquiv_canonicalMap
+    (presheafValue_concretePair D₀) (D₀.canonicalMap f) x) ?_
+  rfl
+
+/-- **Wedhorn (8.2.1) plus bridge (faithful)**: `O_X(R(f/1) ∩ D₀) ≃+* B⟨ζ⟩/(b−ζ)`,
+where `B = presheafValue D₀` and `b = D₀.canonicalMap f`. The image generator
+`ζ ↦ b`, and the bridge intertwines the restriction `O_X(D₀) → O_X(U₁)` with the
+first component of `epsilonHom_gen b` (the diagonal `B → B₁_gen × B₂_gen`).
+
+Built as the Wedhorn-faithful composition `unitCover_relativePlus.trans
+unitCover_example638Plus` (Prop 8.2 base-change ∘ Example 6.38 over `B`). -/
+private noncomputable def unitCover_bridgePlus
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    presheafValue (D₀.interSamePair (unitDatum D₀.P f) rfl) ≃+*
+      LaurentCover.B₁_gen (D₀.canonicalMap f) :=
+  (unitCover_relativePlus D₀ f).trans (unitCover_example638Plus D₀ f)
+
+/-! #### Faithful two-step factorisation of the minus bridge (Wedhorn Prop 8.2 + Example 6.39)
+
+Mirroring the plus branch, the minus bridge factors as
+
+    O_X(R(1/f)∩D₀)  ≃[Prop 8.2 / Lemma 2.13]  O_X^B(R(1/b))  ≃[Example 6.39]  B⟨η⟩/(1−bη),
+
+where `R(1/b) = coUnitDatum P_B b` is the base-independent minus-half over `B`. The two steps
+are isolated as named clean sub-lemmas with `canonicalMap`-characterisations that discharge the
+intertwining leaf `unitCover_bridgeMinus_restrictionMap`. -/
+
+/-- The base-independent minus-half `R(1/b)` over `B = presheafValue D₀` at
+`b = D₀.canonicalMap f` (`T = {1}`, `s = b`, pair `presheafValue_concretePair D₀`). -/
+private noncomputable def unitCover_minusDatum_B
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (f : A) : RationalLocData (presheafValue D₀) :=
+  coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)
+
+/-- **Relative identification (minus, Wedhorn Prop 8.2 / Lemma 2.13)**:
+`O_X(R(1/f) ∩ D₀) ≃+* O_X^B(R(1/b))`. Honest leaf. -/
+private noncomputable def unitCover_relativeMinus
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    presheafValue (D₀.interSamePair (coUnitDatum D₀.P f) rfl) ≃+*
+      presheafValue (unitCover_minusDatum_B D₀ f) :=
+  RingEquiv.ofRingHom (unitCover_relMinus_forward D₀ f) (unitCover_relMinus_backward D₀ f)
+    (RingHom.ext (unitCover_relMinus_forward_backward D₀ f))
+    (RingHom.ext (unitCover_relMinus_backward_forward D₀ f))
+
+/-- The relative-minus iso intertwines `restrictionMap D₀ U₂` with `canonicalMap` over `B`.
+Honest leaf. -/
+private theorem unitCover_relativeMinus_restrictionMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
+    unitCover_relativeMinus D₀ f
+        (restrictionMap D₀ (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _) x) =
+      (unitCover_minusDatum_B D₀ f).canonicalMap x :=
+  unitCover_relMinus_forward_restriction D₀ f x
+
+/-- **Example 6.39 (minus) over the Tate base `B`**: `O_X^B(R(1/b)) ≃+* B⟨η⟩/(1−bη) = B₂_gen b`.
+`B = presheafValue D₀` is complete strongly-noetherian Tate, so Example 6.39 applies.
+
+**Proved** via the faithful univariate Example 6.38/6.39 iso
+`presheafValueCanonicalQuotientEquiv_faithful` at the minus datum `R(1/b) = coUnitDatum P_B b`
+(`T = {1}`, `s = b`): its target `B⟨X⟩/(1 − s·X) = B⟨X⟩/(1 − b·X)` is **definitionally**
+`B₂_gen b`. The two power-boundedness inputs hold because `1 ∈ T`: `hb` (`invS` power-bounded) via
+`invS_isPowerBounded_of_one_mem_T`, and `hT_pb` (`t = 1` power-bounded) via `isPowerBounded_one`.
+`B` is complete strongly-noetherian Tate by the faithful Example 6.38 bundle. -/
+private noncomputable def unitCover_example639Minus
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    presheafValue (unitCover_minusDatum_B D₀ f) ≃+*
+      LaurentCover.B₂_gen (D₀.canonicalMap f) :=
+  letI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_concrete D₀
+  haveI : IsNoetherianRing (presheafValue D₀) := presheafValue_isNoetherianRing_faithful D₀
+  haveI : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  -- `D := R(1/b) = coUnitDatum P_B b`, with `T = {1}`, `s = b`.
+  let D := unitCover_minusDatum_B D₀ f
+  have h1T : (1 : presheafValue D₀) ∈ D.T := Finset.mem_singleton_self 1
+  have hb : TopologicalRing.IsPowerBounded (invS D) := by
+    rw [invS_eq_coeRingHom_divByS_one]
+    exact CompletionLocalization.invS_isPowerBounded_of_one_mem_T D h1T
+  have hAc : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  have hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t := by
+    intro t ht
+    rw [Finset.mem_singleton.mp ht]; exact TopologicalRing.isPowerBounded_one
+  -- The faithful univariate iso; target `B⟨X⟩/(1 − D.s·X) = B⟨X⟩/(1 − b·X) = B₂_gen b` (defeq).
+  presheafValueCanonicalQuotientEquiv_faithful D hb hAc hT_pb
+
+/-- The Example-6.39-minus iso sends `(R(1/b)).canonicalMap x` to `mk(algebraMap_B x)`,
+i.e. the second component of `epsilonHom_gen b x`. Honest leaf. -/
+private theorem unitCover_example639Minus_canonicalMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
+    unitCover_example639Minus D₀ f ((unitCover_minusDatum_B D₀ f).canonicalMap x) =
+      (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).2 := by
+  letI : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_concrete D₀
+  haveI : IsNoetherianRing (presheafValue D₀) := presheafValue_isNoetherianRing_faithful D₀
+  haveI : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  -- `unitCover_example639Minus = presheafValueCanonicalQuotientEquiv_faithful (minusDatum_B)`,
+  -- whose `canonicalMap`-action is `presheafValueCanonicalQuotientEquiv_faithful_canonicalMap`:
+  -- `canonicalMap x ↦ mk(algebraMap_B x)`. The RHS `(epsilonHom_gen b x).2` is `mk(algebraMap_B x)`
+  -- by `epsilonHom_gen` def (defeq, ideals `oneSubfXIdeal b` and `B₂_gen`'s span coincide).
+  -- `unitCover_example639Minus = presheafValueCanonicalQuotientEquiv_faithful (minusDatum_B)`
+  -- (defeq); its `canonicalMap`-action is `..._canonicalMap`: `canonicalMap x ↦ mk(algebraMap_B x)`,
+  -- which is defeq to `(epsilonHom_gen b x).2` (ideal `oneSubfXIdeal b` = `B₂_gen`'s span).
+  set D := unitCover_minusDatum_B D₀ f with hD
+  have h1T : (1 : presheafValue D₀) ∈ D.T := Finset.mem_singleton_self 1
+  have hb : TopologicalRing.IsPowerBounded (invS D) := by
+    rw [invS_eq_coeRingHom_divByS_one]
+    exact CompletionLocalization.invS_isPowerBounded_of_one_mem_T D h1T
+  have hAc : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  have hT_pb : ∀ t ∈ D.T, TopologicalRing.IsPowerBounded t := by
+    intro t ht
+    rw [Finset.mem_singleton.mp ht]; exact TopologicalRing.isPowerBounded_one
+  simp only [unitCover_example639Minus]
+  exact presheafValueCanonicalQuotientEquiv_faithful_canonicalMap D hb hAc hT_pb x
+
+/-- **Wedhorn (8.2.1) minus bridge (faithful)**: `O_X(R(1/f) ∩ D₀) ≃+* B⟨η⟩/(1−bη)`,
+where `B = presheafValue D₀` and `b = D₀.canonicalMap f`. Intertwines the
+restriction `O_X(D₀) → O_X(U₂)` with the second component of `epsilonHom_gen b`.
+
+Built as the Wedhorn-faithful composition `unitCover_relativeMinus.trans
+unitCover_example639Minus` (Prop 8.2 base-change ∘ Example 6.39 over `B`). -/
+private noncomputable def unitCover_bridgeMinus
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    presheafValue (D₀.interSamePair (coUnitDatum D₀.P f) rfl) ≃+*
+      LaurentCover.B₂_gen (D₀.canonicalMap f) :=
+  (unitCover_relativeMinus D₀ f).trans (unitCover_example639Minus D₀ f)
+
+/-- **Plus bridge intertwining**: `unitCover_bridgePlus` carries the restriction
+`O_X(D₀) → O_X(U₁)` to the first component of the diagonal `epsilonHom_gen b`.
+
+**Proof.** `bridgePlus = relativePlus.trans example638Plus`. By
+`unitCover_relativePlus_restrictionMap` the restriction of `x` maps to
+`(R(b/1)).canonicalMap x`, and by `unitCover_example638Plus_canonicalMap` that maps to
+`(epsilonHom_gen b x).1`. -/
+private theorem unitCover_bridgePlus_restrictionMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
+    unitCover_bridgePlus D₀ f
+        (restrictionMap D₀ (D₀.interSamePair (unitDatum D₀.P f) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _) x) =
+      (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).1 := by
+  rw [unitCover_bridgePlus, RingEquiv.trans_apply,
+    unitCover_relativePlus_restrictionMap D₀ f x,
+    unitCover_example638Plus_canonicalMap D₀ f x]
+
+/-- **Minus bridge intertwining**: `unitCover_bridgeMinus` carries the restriction
+`O_X(D₀) → O_X(U₂)` to the second component of the diagonal `epsilonHom_gen b`.
+
+**Proof.** `bridgeMinus = relativeMinus.trans example639Minus`. By
+`unitCover_relativeMinus_restrictionMap` the restriction of `x` maps to
+`(R(1/b)).canonicalMap x`, and by `unitCover_example639Minus_canonicalMap` that maps to
+`(epsilonHom_gen b x).2`. -/
+private theorem unitCover_bridgeMinus_restrictionMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
+    unitCover_bridgeMinus D₀ f
+        (restrictionMap D₀ (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _) x) =
+      (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) x).2 := by
+  rw [unitCover_bridgeMinus, RingEquiv.trans_apply,
+    unitCover_relativeMinus_restrictionMap D₀ f x,
+    unitCover_example639Minus_canonicalMap D₀ f x]
+
+/-! #### Wedhorn (8.2.1) third row — the overlap identification (column exactness)
+
+The δ-vanishing leaf `unitCover_delta_eq_zero_of_compat` below is no longer a bare
+`sorry`: it is **proved** from Wedhorn's column-exactness diagram (p. 83). The
+genuinely-deep content is isolated into three named clean sub-lemmas that mirror the
+third column `O_X(U₁∩U₂) ≅ B⟨ζ,ζ⁻¹⟩/(b−ζ) = B₁₂_gen b` and the two squares relating
+it to the plus/minus columns via `posLift`/`negLift` (Wedhorn's `λ`):
+
+* `unitCover_bridgeOverlap` — the overlap ring iso `O_X(U₁∩U₂) ≃+* B₁₂_gen b`
+  (the `(8.2.1)` third row, Example 6.38/6.39 over the Tate base `B = presheafValue D₀`).
+* `unitCover_posLift_bridgePlus` / `unitCover_negLift_bridgeMinus` — the two
+  commuting squares: restricting `U₁` (resp. `U₂`) into the overlap and then bridging
+  equals bridging into `B₁_gen`/`B₂_gen` and then applying `posLift`/`negLift`.
+
+`unitCover_delta_eq_zero_of_compat` then follows purely formally: apply `hcompat` at
+`D₃ = U₁ ∩ U₂` to get `g₁|_{U₁∩U₂} = g₂|_{U₁∩U₂}`, push through the two squares, and
+conclude `posLift(bridgePlus g₁) = negLift(bridgeMinus g₂)`, i.e. `δ = 0`. -/
+
+/- **Overlap bridge (faithful, Wedhorn (8.2.1) third row)** — route notes:
+`O_X(U₁∩U₂) ≃+* B₁₂_gen b = B⟨ζ,ζ⁻¹⟩/(b−ζ)`, where `B = presheafValue D₀`,
+`b = D₀.canonicalMap f`, `U₁ = R(f/1) ∩ D₀`, `U₂ = R(1/f) ∩ D₀`.
+
+This is the relative rational-subset identification (Wedhorn Prop 8.2 / Lemma 2.13)
+composed with Example 6.38/6.39 over the complete strongly-noetherian Tate base `B`
+(`presheafValue_isStronglyNoetherian_faithful`). Honest leaf.
+
+**Established route (2026-06-09, after the plus/minus discharges).** The B-side overlap
+datum (`(unitDatum P_B b).interSamePair (coUnitDatum P_B b)`) has `T = {1, b, b²}`,
+`s = b`. Its explicit-kernel identification follows the PROVEN `unitDatum_ker_eq_span`
+pattern (`Example638ExplicitKernel` section above) at `n = 3`: `⊇` computational;
+`⊆` by the completion comparison — `mk (algebraMap b)` is a unit mod
+`span {tᵢ − b·Xᵢ}` (inverse `mk X₁`, since `1 − b·X₁` is a generator), so the
+localization lifts (`IsLocalization.Away.lift`), continuously
+(`locTopology_continuous_lift`; each `ψ(tᵢ/b) = mk Xᵢ` power-bounded via
+`mvPowerSeries_X_isBounded` + the open quotient map), extends to the completion
+(`extensionHom`, with the Φ/β opaquification to control `whnf`), and factors `mk`
+on the dense polynomials (`mvPolynomialToTate_denseRange`). Then the pure-algebra
+step `A⟨X₁,X₂,X₃⟩/(1−bX₁, b−bX₂, b²−bX₃) ≅ A⟨ζ,ζ⁻¹⟩/(b−ζ) = B₁₂_gen b`
+(`X₁ ↦ ζ⁻¹`, `X₂ ↦ 1` [forced: `b` is a unit and `b(1−X₂)` is a generator],
+`X₃ ↦ ζ`), and finally the R2-relative half (Prop 8.2, as for plus/minus). -/
+/-- **Relative identification (overlap, Wedhorn Prop 8.2 / Lemma 2.13)**:
+`O_X(U₁∩U₂) ≃+* O_X^B(annulus)` — the A-side value of the double intersection equals
+the B-side value of the annulus datum over `B = presheafValue D₀`. Honest leaf
+(the R2 transport core, same family as `unitCover_relativePlus`/`Minus`). -/
+private noncomputable def unitCover_relativeOverlap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    presheafValue ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl) ≃+*
+      presheafValue (unitCover_overlapDatum_B D₀ f) :=
+  RingEquiv.ofRingHom (unitCover_relOverlap_forward D₀ f)
+    (unitCover_relOverlap_backward D₀ f)
+    (RingHom.ext (unitCover_relOverlap_forward_backward D₀ f))
+    (RingHom.ext (unitCover_relOverlap_backward_forward D₀ f))
+
+private noncomputable def unitCover_bridgeOverlap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    presheafValue ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl) ≃+*
+      LaurentCover.B₁₂_gen (D₀.canonicalMap f) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  exact (unitCover_relativeOverlap D₀ f).trans
+    ((unitCover_overlapQuotEquiv D₀ f).trans
+      (bivariateSpan_equiv_B₁₂gen (D₀.canonicalMap f)))
+
+set_option linter.unusedSectionVars false in
+/-- S2: the plus bridge-component's inverse on `mk`-classes is the B-side evaluation. -/
+private theorem unitCover_example638Plus_symm_mk
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) (z : ↥(TateAlgebra (presheafValue D₀))) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    haveI : (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+      CompleteSpace (presheafValue D₀)) :=
+      presheafValue_completeSpace_rightUniformSpace D₀
+    (unitCover_example638Plus D₀ f).symm (Ideal.Quotient.mk
+        (Ideal.span {algebraMap (presheafValue D₀) ↥(TateAlgebra (presheafValue D₀))
+          (D₀.canonicalMap f) - TateAlgebra.X}) z) =
+      example638_evalHom (unitDatum (presheafValue_concretePair D₀)
+        (D₀.canonicalMap f)) z := by
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  haveI hCompleteB :
+      (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+       CompleteSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  exact unitDatum_quotEquiv_symm_mk (presheafValue_concretePair D₀)
+    (D₀.canonicalMap f) z
+
+set_option linter.unusedSectionVars false in
+/-- S3: the plus bridge-component's inverse is continuous (quotient universal property:
+`symm ∘ mk = evalHom` is continuous). -/
+private theorem unitCover_example638Plus_symm_continuous
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    haveI : (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+      CompleteSpace (presheafValue D₀)) :=
+      presheafValue_completeSpace_rightUniformSpace D₀
+    Continuous ⇑((unitCover_example638Plus D₀ f).symm) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  haveI hCompleteB :
+      (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+       CompleteSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  have hQM : Topology.IsQuotientMap (Ideal.Quotient.mk
+      (Ideal.span {algebraMap (presheafValue D₀) ↥(TateAlgebra (presheafValue D₀))
+        (D₀.canonicalMap f) - TateAlgebra.X})) :=
+    (QuotientRing.isOpenQuotientMap_mk _).isQuotientMap
+  rw [hQM.continuous_iff]
+  have hfun : ⇑((unitCover_example638Plus D₀ f).symm) ∘ ⇑(Ideal.Quotient.mk
+      (Ideal.span {algebraMap (presheafValue D₀) ↥(TateAlgebra (presheafValue D₀))
+        (D₀.canonicalMap f) - TateAlgebra.X})) =
+      ⇑(example638_evalHom (unitDatum (presheafValue_concretePair D₀)
+        (D₀.canonicalMap f))) :=
+    funext fun z => unitCover_example638Plus_symm_mk D₀ f z
+  rw [hfun]
+  exact example638_evalHom_continuous _
+
+set_option linter.unusedSectionVars false in
+/-- S4: the minus bridge-component's inverse on `mk`-classes is the engine's backward
+hom (definitional: the `where`-structure's `invFun`). -/
+private theorem unitCover_example639Minus_symm_mk
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (hb : TopologicalRing.IsPowerBounded (invS (unitCover_minusDatum_B D₀ f)))
+    (z : ↥(TateAlgebra (presheafValue D₀)) ⧸
+      Ideal.span {1 - algebraMap (presheafValue D₀)
+        ↥(TateAlgebra (presheafValue D₀)) (D₀.canonicalMap f) * TateAlgebra.X}) :
+    (unitCover_example639Minus D₀ f).symm z =
+      tateQuotientToPresheafHom (unitCover_minusDatum_B D₀ f) hb z :=
+  rfl
+
+set_option linter.unusedSectionVars false in
+/-- S5: the minus bridge-component's inverse is continuous. -/
+private theorem unitCover_example639Minus_symm_continuous
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    Continuous ⇑((unitCover_example639Minus D₀ f).symm) := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  have h1T : (1 : presheafValue D₀) ∈ (unitCover_minusDatum_B D₀ f).T :=
+    Finset.mem_singleton_self 1
+  have hb : TopologicalRing.IsPowerBounded (invS (unitCover_minusDatum_B D₀ f)) := by
+    rw [invS_eq_coeRingHom_divByS_one]
+    exact CompletionLocalization.invS_isPowerBounded_of_one_mem_T _ h1T
+  exact tateQuotientToPresheafHom_continuous_of_tate (unitCover_minusDatum_B D₀ f) hb
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- S6: the overlap presentation's inverse on `mk`-classes is the bivariate evaluation
+(instance of `tate_quotPresentation_symm_mk` by unification against the definition). -/
+private theorem unitCover_overlapQuotEquiv_symm_mk
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (z : ↥(TateAlgebra₂ (presheafValue D₀))) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    haveI : (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+      CompleteSpace (presheafValue D₀)) :=
+      presheafValue_completeSpace_rightUniformSpace D₀
+    (unitCover_overlapQuotEquiv D₀ f).symm
+        (Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f) z) =
+      unitCover_overlapEval D₀ f z := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  haveI hCompleteB :
+      (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+       CompleteSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  have hX_mem : ∀ j : Fin 2,
+      (⟨MvPowerSeries.X j, MvPowerSeries.X_isRestricted j⟩ :
+        ↥(TateAlgebra₂ (presheafValue D₀))) ∈
+      MvTateAlgebra.mvPairSubring 2
+        (IsTateRing.principalPair (presheafValue D₀)).toPairOfDefinition := by
+    intro j l
+    change MvPowerSeries.coeff l (MvPowerSeries.X j) ∈ _
+    rw [MvPowerSeries.coeff_X]
+    split
+    · exact Subring.one_mem _
+    · exact Subring.zero_mem _
+  have hXzeta : (TateAlgebra₂.X : ↥(TateAlgebra₂ (presheafValue D₀))) =
+      (⟨MvPowerSeries.X (0 : Fin 2), MvPowerSeries.X_isRestricted 0⟩ :
+        ↥(TateAlgebra₂ (presheafValue D₀))) := rfl
+  have hYeta : (TateAlgebra₂.Y : ↥(TateAlgebra₂ (presheafValue D₀))) =
+      (⟨MvPowerSeries.X (1 : Fin 2), MvPowerSeries.X_isRestricted 1⟩ :
+        ↥(TateAlgebra₂ (presheafValue D₀))) := rfl
+  exact tate_quotPresentation_symm_mk (unitCover_overlapDatum_B D₀ f)
+    (unitCover_overlapEval D₀ f)
+    (mvEvalHomBounded_continuous _ _ _ _)
+    (fun x => mvEvalHomBounded_algebraMap _ _ _ _ x)
+    (![D₀.canonicalMap f * D₀.canonicalMap f, 1])
+    (fun j => by
+      refine Eq.trans (mvEvalHomBounded_X _ _ _ _ j) ?_
+      refine Fin.cases ?_ (fun j' => ?_) j
+      · rfl
+      · have hj : j' = 0 := Subsingleton.elim j' 0
+        subst hj
+        rfl)
+    (unitCover_overlapIdeal D₀ f)
+    (by
+      rw [unitCover_overlapIdeal, Ideal.span_le]
+      rintro x hx
+      rcases hx with rfl | hx'
+      · exact unitCover_overlapEval_gen1 D₀ f
+      · rw [Set.mem_singleton_iff] at hx'
+        subst hx'
+        exact unitCover_overlapEval_gen2 D₀ f)
+    (MvTateAlgebra.mvTate_isClosed_ideal 2 hCompleteB _)
+    (by
+      rw [isUnit_iff_exists_inv]
+      refine ⟨Ideal.Quotient.mk _ TateAlgebra₂.Y, ?_⟩
+      have h1 := (unitCover_overlapIdeal_rel D₀ f).1
+      rw [map_one] at h1
+      exact h1.symm)
+    (fun j => by
+      refine Fin.cases ?_ (fun j' => ?_) j
+      · simpa only [Matrix.cons_val_zero, hXzeta] using
+          (unitCover_overlapIdeal_rel D₀ f).2.2
+      · have hj : j' = 0 := Subsingleton.elim j' 0
+        subst hj
+        try simp only [Matrix.cons_val_succ, Matrix.cons_val_zero]
+        rw [map_one]
+        have h1 := (unitCover_overlapIdeal_rel D₀ f).1
+        rw [map_one] at h1
+        exact h1)
+    (fun t ht => by
+      rcases unitCoUnit_inter_T_cases (presheafValue_concretePair D₀)
+        (D₀.canonicalMap f) t ht with rfl | rfl | rfl
+      · refine ⟨⟨MvPowerSeries.X (1 : Fin 2), MvPowerSeries.X_isRestricted 1⟩,
+          hX_mem 1, ?_⟩
+        have h1 := (unitCover_overlapIdeal_rel D₀ f).1
+        rw [← hYeta]
+        exact h1
+      · exact ⟨1, Subring.one_mem _, (unitCover_overlapIdeal_rel D₀ f).2.1⟩
+      · refine ⟨⟨MvPowerSeries.X (0 : Fin 2), MvPowerSeries.X_isRestricted 0⟩,
+          hX_mem 0, ?_⟩
+        rw [← hXzeta]
+        exact (unitCover_overlapIdeal_rel D₀ f).2.2)
+    z
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- S7: the overlap presentation's inverse is continuous (quotient universal property:
+`symm ∘ mk = overlapEval` is continuous). -/
+private theorem unitCover_overlapQuotEquiv_symm_continuous
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    haveI : (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+      CompleteSpace (presheafValue D₀)) :=
+      presheafValue_completeSpace_rightUniformSpace D₀
+    Continuous ⇑((unitCover_overlapQuotEquiv D₀ f).symm) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  haveI hCompleteB :
+      (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+       CompleteSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  have hQM : Topology.IsQuotientMap (Ideal.Quotient.mk
+      (unitCover_overlapIdeal D₀ f)) :=
+    (QuotientRing.isOpenQuotientMap_mk _).isQuotientMap
+  rw [hQM.continuous_iff]
+  have hfun : ⇑((unitCover_overlapQuotEquiv D₀ f).symm) ∘
+      ⇑(Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f)) =
+      ⇑(unitCover_overlapEval D₀ f) :=
+    funext fun z => unitCover_overlapQuotEquiv_symm_mk D₀ f z
+  rw [hfun]
+  exact mvEvalHomBounded_continuous _ _ _ _
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- **SQ1 (plus, dense side)**: precomposed with `mk : B⟨X⟩ → B₁_gen b`, the two
+backward-composites agree (continuous ring homs out of `B⟨X⟩` agreeing on the dense
+polynomials; `C`-case = restriction functoriality, `X`-case = the `ζ ↦ b`-chase). -/
+private theorem unitCover_sq_plus_dense
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    haveI : (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+      CompleteSpace (presheafValue D₀)) :=
+      presheafValue_completeSpace_rightUniformSpace D₀
+    ∀ z : ↥(TateAlgebra (presheafValue D₀)),
+    restrictionMapHom (D₀.interSamePair (unitDatum D₀.P f) rfl)
+        ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+          (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _)
+      (unitCover_relPlus_backward D₀ f
+        ((unitCover_example638Plus D₀ f).symm
+          (Ideal.Quotient.mk (Ideal.span {algebraMap (presheafValue D₀)
+            ↥(TateAlgebra (presheafValue D₀)) (D₀.canonicalMap f) - TateAlgebra.X}) z))) =
+    unitCover_relOverlap_backward D₀ f
+      (unitCover_overlapEval D₀ f (LaurentTateAlgebra.posIncl z)) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  haveI hCompleteB :
+      (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+       CompleteSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  letI : UniformSpace (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (unitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isUniformAddGroup
+  letI : UniformSpace (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).isUniformAddGroup
+  -- the two sides as functions of `z`, continuous
+  have hfun : (fun z : ↥(TateAlgebra (presheafValue D₀)) =>
+      restrictionMapHom (D₀.interSamePair (unitDatum D₀.P f) rfl)
+        ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+          (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _)
+      (unitCover_relPlus_backward D₀ f
+        ((unitCover_example638Plus D₀ f).symm
+          (Ideal.Quotient.mk (Ideal.span {algebraMap (presheafValue D₀)
+            ↥(TateAlgebra (presheafValue D₀)) (D₀.canonicalMap f) -
+              TateAlgebra.X}) z)))) =
+    (fun z : ↥(TateAlgebra (presheafValue D₀)) =>
+      unitCover_relOverlap_backward D₀ f
+        (unitCover_overlapEval D₀ f (LaurentTateAlgebra.posIncl z))) := by
+    refine Continuous.ext_on
+      (MvTateAlgebra.mvPolynomialToTate_denseRange (A := presheafValue D₀) 1) ?_ ?_ ?_
+    · refine (restrictionMapHom_continuous _ _ _).comp ?_
+      refine Continuous.comp ?_ ?_
+      · exact UniformSpace.Completion.continuous_extension
+      · exact (unitCover_example638Plus_symm_continuous D₀ f).comp continuous_quot_mk
+    · refine Continuous.comp ?_ ?_
+      · exact UniformSpace.Completion.continuous_extension
+      · exact (mvEvalHomBounded_continuous _ _ _ _).comp
+          (LaurentCover.posIncl_continuous (A := presheafValue D₀))
+    rintro _ ⟨q, rfl⟩
+    have hcomp : ((restrictionMapHom (D₀.interSamePair (unitDatum D₀.P f) rfl)
+        ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+          (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _)).comp
+        ((unitCover_relPlus_backward D₀ f).comp
+          ((RingEquiv.toRingHom (unitCover_example638Plus D₀ f).symm).comp
+            (Ideal.Quotient.mk (Ideal.span {algebraMap (presheafValue D₀)
+              ↥(TateAlgebra (presheafValue D₀)) (D₀.canonicalMap f) - TateAlgebra.X}))))).comp
+          (MvTateAlgebra.mvPolynomialToTate (A := presheafValue D₀) 1) =
+        ((unitCover_relOverlap_backward D₀ f).comp
+        ((unitCover_overlapEval D₀ f).comp
+          (LaurentTateAlgebra.posIncl :
+            ↥(TateAlgebra (presheafValue D₀)) →+* ↥(TateAlgebra₂ (presheafValue D₀))))).comp
+          (MvTateAlgebra.mvPolynomialToTate (A := presheafValue D₀) 1) := by
+      refine MvPolynomial.ringHom_ext (fun c => ?_) (fun i => ?_)
+      · simp only [RingHom.comp_apply, RingHom.coe_comp, Function.comp_apply,
+          RingEquiv.toRingHom_eq_coe, RingEquiv.coe_toRingHom]
+        rw [MvTateAlgebra.mvPolynomialToTate_C (A := presheafValue D₀) 1 c]
+        erw [unitCover_example638Plus_symm_mk D₀ f]
+        erw [example638_evalHom_algebraMap]
+        rw [show (unitDatum (presheafValue_concretePair D₀)
+            (D₀.canonicalMap f)).canonicalMap c =
+          (unitDatum (presheafValue_concretePair D₀)
+            (D₀.canonicalMap f)).coeRingHom (algebraMap (presheafValue D₀)
+              (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+                (D₀.canonicalMap f)).s)) c) from rfl]
+        rw [unitCover_relPlus_backward_coe, unitCover_relPlus_backwardLocHom_algebraMap]
+        rw [show LaurentTateAlgebra.posIncl (algebraMap (presheafValue D₀)
+            ↥(TateAlgebra (presheafValue D₀)) c) =
+          algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀)) c from by
+          ext1; apply MvPowerSeries.ext; intro e
+          change LaurentTateAlgebra.varInclFun 0 (algebraMap (presheafValue D₀)
+            (MvPowerSeries (Fin 1) (presheafValue D₀)) c) e =
+            (MvPowerSeries.coeff e) (algebraMap (presheafValue D₀)
+              (MvPowerSeries (Fin 2) (presheafValue D₀)) c)
+          rw [LaurentTateAlgebra.varInclFun_apply]
+          simp only [MvPowerSeries.algebraMap_apply, MvPowerSeries.coeff_C]
+          by_cases he : e = 0
+          · subst he; simp [Finsupp.single_zero (0 : Fin 2)]
+          · rw [if_neg he]
+            by_cases h1 : e = Finsupp.single (0 : Fin 2) (e 0)
+            · rw [if_pos h1]
+              exact if_neg (Finsupp.single_ne_zero.mpr
+                (fun h => he (by rw [h1, h, Finsupp.single_zero])))
+            · rw [if_neg h1]]
+        erw [mvEvalHomBounded_algebraMap]
+        rw [show (unitCover_overlapDatum_B D₀ f).canonicalMap c =
+          (unitCover_overlapDatum_B D₀ f).coeRingHom (algebraMap (presheafValue D₀)
+            (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) c) from rfl]
+        rw [unitCover_relOverlap_backward_coe,
+          unitCover_relOverlap_backwardLocHom_algebraMap]
+        exact congrFun (restrictionMap_comp D₀
+          (D₀.interSamePair (unitDatum D₀.P f) rfl)
+          ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+            (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _)
+          (RationalLocData.interSamePair_subset_left _ _ _)) c
+      · simp only [RingHom.comp_apply, RingHom.coe_comp, Function.comp_apply,
+          RingEquiv.toRingHom_eq_coe, RingEquiv.coe_toRingHom]
+        have hi : i = 0 := Subsingleton.elim i 0
+        subst hi
+        rw [MvTateAlgebra.mvPolynomialToTate_X (A := presheafValue D₀) 1 0]
+        erw [unitCover_example638Plus_symm_mk D₀ f]
+        erw [example638_evalHom_X (unitDatum (presheafValue_concretePair D₀)
+          (D₀.canonicalMap f)) ((0 : Fin 1) : Fin (unitDatum (presheafValue_concretePair D₀)
+            (D₀.canonicalMap f)).T.card), unitDatum_genTuple_eq]
+        rw [show (unitDatum (presheafValue_concretePair D₀)
+            (D₀.canonicalMap f)).canonicalMap (D₀.canonicalMap f) =
+          (unitDatum (presheafValue_concretePair D₀)
+            (D₀.canonicalMap f)).coeRingHom (algebraMap (presheafValue D₀)
+              (Localization.Away ((unitDatum (presheafValue_concretePair D₀)
+                (D₀.canonicalMap f)).s)) (D₀.canonicalMap f)) from rfl]
+        rw [unitCover_relPlus_backward_coe, unitCover_relPlus_backwardLocHom_algebraMap,
+          restrictionMapHom_canonicalMap, restrictionMapHom_canonicalMap]
+        rw [show LaurentTateAlgebra.posIncl (⟨MvPowerSeries.X (0 : Fin 1),
+            MvPowerSeries.X_isRestricted 0⟩ : ↥(TateAlgebra (presheafValue D₀))) =
+          (⟨MvPowerSeries.X (0 : Fin 2), MvPowerSeries.X_isRestricted 0⟩ :
+            ↥(TateAlgebra₂ (presheafValue D₀))) from by
+          ext1; apply MvPowerSeries.ext; intro e
+          change LaurentTateAlgebra.varInclFun (0 : Fin 2) (MvPowerSeries.X (0 : Fin 1)) e =
+            MvPowerSeries.coeff e (MvPowerSeries.X (0 : Fin 2))
+          rw [LaurentTateAlgebra.varInclFun_apply]
+          by_cases he : e = Finsupp.single (0 : Fin 2) (e 0)
+          · rw [if_pos he, MvPowerSeries.coeff_X, MvPowerSeries.coeff_X]
+            by_cases h0 : e 0 = 1
+            · rw [if_pos (by rw [h0]), if_pos (by rw [he, h0])]
+            · rw [if_neg (by intro h2; exact h0 (by simpa using Finsupp.ext_iff.mp h2 0)),
+                  if_neg (by intro h2; exact h0 (by rw [h2]; simp [Finsupp.single_eq_same]))]
+          · rw [if_neg he, MvPowerSeries.coeff_X, if_neg]
+            intro h2; exact he (by rw [h2]; simp [Finsupp.single_eq_same])]
+        rw [show (unitCover_overlapEval D₀ f)
+            (⟨MvPowerSeries.X (0 : Fin 2), MvPowerSeries.X_isRestricted 0⟩ :
+              ↥(TateAlgebra₂ (presheafValue D₀))) =
+          (unitCover_overlapDatum_B D₀ f).coeRingHom
+            (divByS (D₀.canonicalMap f * D₀.canonicalMap f)
+              ((unitCover_overlapDatum_B D₀ f).s)) from by
+          refine Eq.trans (mvEvalHomBounded_X _ _ _ _ (0 : Fin 2)) ?_
+          rfl]
+        have heq_s : ((unitCover_overlapDatum_B D₀ f).s : presheafValue D₀) =
+            D₀.canonicalMap f := by
+          rw [show ((unitCover_overlapDatum_B D₀ f).s : presheafValue D₀) =
+            (1 : presheafValue D₀) * D₀.canonicalMap f from rfl, one_mul]
+        have haM_s : algebraMap (presheafValue D₀)
+            (Localization.Away ((unitCover_overlapDatum_B D₀ f).s))
+              ((unitCover_overlapDatum_B D₀ f).s) =
+            algebraMap (presheafValue D₀)
+              (Localization.Away ((unitCover_overlapDatum_B D₀ f).s))
+              (D₀.canonicalMap f) := congrArg _ heq_s
+        have hu_b : IsUnit ((unitCover_overlapDatum_B D₀ f).canonicalMap
+            (D₀.canonicalMap f)) :=
+          (unitCover_relOverlap_aMb_isUnit D₀ f).map
+            (unitCover_overlapDatum_B D₀ f).coeRingHom
+        have haMbb : (unitCover_overlapDatum_B D₀ f).coeRingHom
+            (divByS (D₀.canonicalMap f * D₀.canonicalMap f)
+              ((unitCover_overlapDatum_B D₀ f).s)) =
+            (unitCover_overlapDatum_B D₀ f).canonicalMap (D₀.canonicalMap f) := by
+          refine hu_b.mul_left_cancel ?_
+          have h9 := algebraMap_s_mul_divByS (unitCover_overlapDatum_B D₀ f)
+            (D₀.canonicalMap f * D₀.canonicalMap f)
+          rw [haM_s] at h9
+          rw [show (unitCover_overlapDatum_B D₀ f).canonicalMap (D₀.canonicalMap f) *
+              (unitCover_overlapDatum_B D₀ f).coeRingHom
+                (divByS (D₀.canonicalMap f * D₀.canonicalMap f)
+                  ((unitCover_overlapDatum_B D₀ f).s)) =
+            (unitCover_overlapDatum_B D₀ f).coeRingHom
+              (algebraMap (presheafValue D₀)
+                (Localization.Away ((unitCover_overlapDatum_B D₀ f).s))
+                (D₀.canonicalMap f) *
+              divByS (D₀.canonicalMap f * D₀.canonicalMap f)
+                ((unitCover_overlapDatum_B D₀ f).s)) from by rw [map_mul]; rfl]
+          rw [h9, map_mul, map_mul]
+          rfl
+        rw [haMbb]
+        rw [show (unitCover_overlapDatum_B D₀ f).canonicalMap (D₀.canonicalMap f) =
+          (unitCover_overlapDatum_B D₀ f).coeRingHom (algebraMap (presheafValue D₀)
+            (Localization.Away ((unitCover_overlapDatum_B D₀ f).s))
+            (D₀.canonicalMap f)) from rfl]
+        rw [unitCover_relOverlap_backward_coe,
+          unitCover_relOverlap_backwardLocHom_algebraMap, restrictionMapHom_canonicalMap]
+    exact RingHom.congr_fun hcomp q
+  intro z
+  exact congrFun hfun z
+
+/-- **Plus column square** (Wedhorn (8.2.1), commuting square `O_X(U₁) → O_X(U₁∩U₂)`
+over `B₁_gen b → B₁₂_gen b`): restricting a section of `U₁` into the overlap and
+bridging via `unitCover_bridgeOverlap` equals bridging via `unitCover_bridgePlus` and
+applying `LaurentCover.posLift b`. Honest leaf. -/
+private theorem unitCover_posLift_bridgePlus
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (g₁ : presheafValue (D₀.interSamePair (unitDatum D₀.P f) rfl)) :
+    LaurentCover.posLift (D₀.canonicalMap f) (unitCover_bridgePlus D₀ f g₁) =
+      unitCover_bridgeOverlap D₀ f
+        (restrictionMap (D₀.interSamePair (unitDatum D₀.P f) rfl)
+          ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+            (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _) g₁) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  haveI hCompleteB :
+      (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+       CompleteSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  obtain ⟨z, hz⟩ := Ideal.Quotient.mk_surjective (unitCover_bridgePlus D₀ f g₁)
+  have hg₁ : g₁ = (unitCover_bridgePlus D₀ f).symm (Ideal.Quotient.mk
+      (Ideal.span {algebraMap (presheafValue D₀) ↥(TateAlgebra (presheafValue D₀))
+        (D₀.canonicalMap f) - TateAlgebra.X}) z) := by
+    rw [hz, RingEquiv.symm_apply_apply]
+  rw [← hz]
+  refine (unitCover_bridgeOverlap D₀ f).symm.injective ?_
+  rw [RingEquiv.symm_apply_apply]
+  show (unitCover_relativeOverlap D₀ f).symm ((unitCover_overlapQuotEquiv D₀ f).symm
+    (Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f) (LaurentTateAlgebra.posIncl z))) =
+    restrictionMap (D₀.interSamePair (unitDatum D₀.P f) rfl)
+      ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+      (RationalLocData.interSamePair_subset_left _ _ _) g₁
+  erw [unitCover_overlapQuotEquiv_symm_mk D₀ f]
+  show unitCover_relOverlap_backward D₀ f (unitCover_overlapEval D₀ f
+    (LaurentTateAlgebra.posIncl z)) =
+    restrictionMap (D₀.interSamePair (unitDatum D₀.P f) rfl)
+      ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+      (RationalLocData.interSamePair_subset_left _ _ _) g₁
+  rw [← unitCover_sq_plus_dense D₀ f z, hg₁]
+  rfl
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- **SQ1 (minus, dense side)**: precomposed with `mk : B⟨X⟩ → B₂_gen b`, the two
+backward-composites agree (`C`-case = restriction functoriality; `X`-case = both sides
+are the inverse of `canMap_{U₁∩U₂} f`, by `invS`-cancellation resp. the annulus
+`1/b`-identity). -/
+private theorem unitCover_sq_minus_dense
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    haveI : (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+      CompleteSpace (presheafValue D₀)) :=
+      presheafValue_completeSpace_rightUniformSpace D₀
+    ∀ z : ↥(TateAlgebra (presheafValue D₀)),
+    restrictionMapHom (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+        ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+          (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+        (RationalLocData.interSamePair_subset_right _ _ _)
+      (unitCover_relMinus_backward D₀ f
+        ((unitCover_example639Minus D₀ f).symm
+          (Ideal.Quotient.mk (Ideal.span {1 - algebraMap (presheafValue D₀)
+            ↥(TateAlgebra (presheafValue D₀)) (D₀.canonicalMap f) * TateAlgebra.X}) z))) =
+    unitCover_relOverlap_backward D₀ f
+      (unitCover_overlapEval D₀ f (LaurentTateAlgebra.negIncl z)) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  haveI hCompleteB :
+      (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+       CompleteSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  letI : UniformSpace (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+      (D₀.canonicalMap f)).s)) :=
+    (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)).isUniformAddGroup
+  letI : UniformSpace (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) :=
+    (unitCover_overlapDatum_B D₀ f).isUniformAddGroup
+  have hfun : (fun z : ↥(TateAlgebra (presheafValue D₀)) =>
+      restrictionMapHom (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+        ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+          (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+        (RationalLocData.interSamePair_subset_right _ _ _)
+      (unitCover_relMinus_backward D₀ f
+        ((unitCover_example639Minus D₀ f).symm
+          (Ideal.Quotient.mk (Ideal.span {1 - algebraMap (presheafValue D₀)
+            ↥(TateAlgebra (presheafValue D₀)) (D₀.canonicalMap f) * TateAlgebra.X}) z)))) =
+    (fun z : ↥(TateAlgebra (presheafValue D₀)) =>
+      unitCover_relOverlap_backward D₀ f
+        (unitCover_overlapEval D₀ f (LaurentTateAlgebra.negIncl z))) := by
+    refine Continuous.ext_on
+      (MvTateAlgebra.mvPolynomialToTate_denseRange (A := presheafValue D₀) 1) ?_ ?_ ?_
+    · refine (restrictionMapHom_continuous _ _ _).comp ?_
+      refine Continuous.comp ?_ ?_
+      · exact UniformSpace.Completion.continuous_extension
+      · exact (unitCover_example639Minus_symm_continuous D₀ f).comp continuous_quot_mk
+    · refine Continuous.comp ?_ ?_
+      · exact UniformSpace.Completion.continuous_extension
+      · exact (mvEvalHomBounded_continuous _ _ _ _).comp
+          (LaurentCover.negIncl_continuous (A := presheafValue D₀))
+    rintro _ ⟨q, rfl⟩
+    have h1T : (1 : presheafValue D₀) ∈ (unitCover_minusDatum_B D₀ f).T :=
+      Finset.mem_singleton_self 1
+    have hb : TopologicalRing.IsPowerBounded (invS (unitCover_minusDatum_B D₀ f)) := by
+      rw [invS_eq_coeRingHom_divByS_one]
+      exact CompletionLocalization.invS_isPowerBounded_of_one_mem_T _ h1T
+    have hcomp : ((restrictionMapHom (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+        ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+          (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+        (RationalLocData.interSamePair_subset_right _ _ _)).comp
+        ((unitCover_relMinus_backward D₀ f).comp
+          ((RingEquiv.toRingHom (unitCover_example639Minus D₀ f).symm).comp
+            (Ideal.Quotient.mk (Ideal.span {1 - algebraMap (presheafValue D₀)
+            ↥(TateAlgebra (presheafValue D₀)) (D₀.canonicalMap f) * TateAlgebra.X}))))).comp
+          (MvTateAlgebra.mvPolynomialToTate (A := presheafValue D₀) 1) =
+        ((unitCover_relOverlap_backward D₀ f).comp
+          ((unitCover_overlapEval D₀ f).comp
+            (LaurentTateAlgebra.negIncl :
+              ↥(TateAlgebra (presheafValue D₀)) →+*
+                ↥(TateAlgebra₂ (presheafValue D₀))))).comp
+          (MvTateAlgebra.mvPolynomialToTate (A := presheafValue D₀) 1) := by
+      refine MvPolynomial.ringHom_ext (fun c => ?_) (fun i => ?_)
+      · simp only [RingHom.comp_apply]
+        rw [MvTateAlgebra.mvPolynomialToTate_C (A := presheafValue D₀) 1 c]
+        erw [tateQuotientToPresheafHom_algebraMap (unitCover_minusDatum_B D₀ f) hb]
+        rw [show (unitCover_minusDatum_B D₀ f).canonicalMap c =
+          (coUnitDatum (presheafValue_concretePair D₀)
+            (D₀.canonicalMap f)).coeRingHom (algebraMap (presheafValue D₀)
+              (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+                (D₀.canonicalMap f)).s)) c) from rfl]
+        rw [unitCover_relMinus_backward_coe, unitCover_relMinus_backwardLocHom_algebraMap]
+        rw [show LaurentTateAlgebra.negIncl (algebraMap (presheafValue D₀)
+            ↥(TateAlgebra (presheafValue D₀)) c) =
+          algebraMap (presheafValue D₀) ↥(TateAlgebra₂ (presheafValue D₀)) c from by
+          ext1; apply MvPowerSeries.ext; intro e
+          change LaurentTateAlgebra.varInclFun 1 (algebraMap (presheafValue D₀)
+            (MvPowerSeries (Fin 1) (presheafValue D₀)) c) e =
+            (MvPowerSeries.coeff e) (algebraMap (presheafValue D₀)
+              (MvPowerSeries (Fin 2) (presheafValue D₀)) c)
+          rw [LaurentTateAlgebra.varInclFun_apply]
+          simp only [MvPowerSeries.algebraMap_apply, MvPowerSeries.coeff_C]
+          by_cases he : e = 0
+          · subst he; simp [Finsupp.single_zero (1 : Fin 2)]
+          · rw [if_neg he]
+            by_cases h1 : e = Finsupp.single (1 : Fin 2) (e 1)
+            · rw [if_pos h1]
+              exact if_neg (Finsupp.single_ne_zero.mpr
+                (fun h => he (by rw [h1, h, Finsupp.single_zero])))
+            · rw [if_neg h1]]
+        erw [mvEvalHomBounded_algebraMap]
+        rw [show (unitCover_overlapDatum_B D₀ f).canonicalMap c =
+          (unitCover_overlapDatum_B D₀ f).coeRingHom (algebraMap (presheafValue D₀)
+            (Localization.Away ((unitCover_overlapDatum_B D₀ f).s)) c) from rfl]
+        rw [unitCover_relOverlap_backward_coe,
+          unitCover_relOverlap_backwardLocHom_algebraMap]
+        exact congrFun (restrictionMap_comp D₀
+          (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+          ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+            (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _)
+          (RationalLocData.interSamePair_subset_right _ _ _)) c
+      · simp only [RingHom.comp_apply]
+        have hi : i = 0 := Subsingleton.elim i 0
+        subst hi
+        rw [MvTateAlgebra.mvPolynomialToTate_X (A := presheafValue D₀) 1 0]
+        rw [show (⟨MvPowerSeries.X (0 : Fin 1), MvPowerSeries.X_isRestricted 0⟩ :
+            ↥(TateAlgebra (presheafValue D₀))) =
+          TateAlgebra.X (A := presheafValue D₀) from rfl]
+        erw [tateQuotientToPresheafHom_X (coUnitDatum (presheafValue_concretePair D₀)
+          (D₀.canonicalMap f)) hb]
+        -- both sides are the inverse of `canMap_{U₁∩U₂} f`: cancel it
+        have hu_f : IsUnit ((((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+            (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).canonicalMap f) := by
+          have hu : IsUnit ((((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+              (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).canonicalMap
+              ((((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+                (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s)) :=
+            isUnit_s_in_presheafValue _
+          rw [show ((((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+              (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).s : A) =
+            (D₀.s * 1) * (D₀.s * f) from rfl, map_mul, map_mul, map_mul] at hu
+          exact isUnit_of_mul_isUnit_right (isUnit_of_mul_isUnit_right hu)
+        refine hu_f.mul_left_cancel ?_
+        -- LHS·: restriction(backward(invS · canMap_B b)) = restriction(backward 1) = 1
+        have hL : (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+            (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).canonicalMap f *
+            restrictionMapHom (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+              ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+                (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+              (RationalLocData.interSamePair_subset_right _ _ _)
+            (unitCover_relMinus_backward D₀ f
+              (invS (coUnitDatum (presheafValue_concretePair D₀)
+                (D₀.canonicalMap f)))) = 1 := by
+          have hf_res : (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+              (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).canonicalMap f =
+            restrictionMapHom (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+              ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+                (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+              (RationalLocData.interSamePair_subset_right _ _ _)
+            (unitCover_relMinus_backward D₀ f
+              ((coUnitDatum (presheafValue_concretePair D₀)
+                (D₀.canonicalMap f)).canonicalMap (D₀.canonicalMap f))) := by
+            rw [show (coUnitDatum (presheafValue_concretePair D₀)
+                (D₀.canonicalMap f)).canonicalMap (D₀.canonicalMap f) =
+              (coUnitDatum (presheafValue_concretePair D₀)
+                (D₀.canonicalMap f)).coeRingHom (algebraMap (presheafValue D₀)
+                  (Localization.Away ((coUnitDatum (presheafValue_concretePair D₀)
+                    (D₀.canonicalMap f)).s)) (D₀.canonicalMap f)) from rfl]
+            rw [unitCover_relMinus_backward_coe,
+              unitCover_relMinus_backwardLocHom_algebraMap,
+              restrictionMapHom_canonicalMap, restrictionMapHom_canonicalMap]
+          rw [hf_res, ← map_mul, ← map_mul]
+          rw [show (coUnitDatum (presheafValue_concretePair D₀)
+              (D₀.canonicalMap f)).canonicalMap (D₀.canonicalMap f) *
+            invS (coUnitDatum (presheafValue_concretePair D₀) (D₀.canonicalMap f)) =
+            1 from by
+            rw [show (D₀.canonicalMap f) = ((coUnitDatum (presheafValue_concretePair D₀)
+              (D₀.canonicalMap f)).s : presheafValue D₀) from rfl]
+            exact canonicalMap_s_mul_invS _]
+          rw [map_one, map_one]
+        rw [hL]
+        -- RHS·: backward(canMap_O b · overlapEval(negIncl X)) = backward(canMap_O b · coe(1/s_O)) = 1
+        rw [show LaurentTateAlgebra.negIncl (TateAlgebra.X (A := presheafValue D₀)) =
+          (⟨MvPowerSeries.X (1 : Fin 2), MvPowerSeries.X_isRestricted 1⟩ :
+            ↥(TateAlgebra₂ (presheafValue D₀))) from by
+          ext1; apply MvPowerSeries.ext; intro e
+          change LaurentTateAlgebra.varInclFun (1 : Fin 2) (MvPowerSeries.X (0 : Fin 1)) e =
+            MvPowerSeries.coeff e (MvPowerSeries.X (1 : Fin 2))
+          rw [LaurentTateAlgebra.varInclFun_apply]
+          by_cases he : e = Finsupp.single (1 : Fin 2) (e 1)
+          · rw [if_pos he, MvPowerSeries.coeff_X, MvPowerSeries.coeff_X]
+            by_cases h0 : e 1 = 1
+            · rw [if_pos (by rw [h0]), if_pos (by rw [he, h0])]
+            · rw [if_neg (by intro h2; exact h0 (by simpa using Finsupp.ext_iff.mp h2 0)),
+                  if_neg (by intro h2; exact h0 (by rw [h2]; simp [Finsupp.single_eq_same]))]
+          · rw [if_neg he, MvPowerSeries.coeff_X, if_neg]
+            intro h2; exact he (by rw [h2]; simp [Finsupp.single_eq_same])]
+        rw [show (unitCover_overlapEval D₀ f)
+            (⟨MvPowerSeries.X (1 : Fin 2), MvPowerSeries.X_isRestricted 1⟩ :
+              ↥(TateAlgebra₂ (presheafValue D₀))) =
+          (unitCover_overlapDatum_B D₀ f).coeRingHom
+            (divByS (1 : presheafValue D₀) ((unitCover_overlapDatum_B D₀ f).s)) from by
+          refine Eq.trans (mvEvalHomBounded_X _ _ _ _ (1 : Fin 2)) ?_
+          rfl]
+        have hf_resO : (((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+            (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)).canonicalMap f =
+          unitCover_relOverlap_backward D₀ f
+            ((unitCover_overlapDatum_B D₀ f).canonicalMap (D₀.canonicalMap f)) := by
+          rw [show (unitCover_overlapDatum_B D₀ f).canonicalMap (D₀.canonicalMap f) =
+            (unitCover_overlapDatum_B D₀ f).coeRingHom (algebraMap (presheafValue D₀)
+              (Localization.Away ((unitCover_overlapDatum_B D₀ f).s))
+              (D₀.canonicalMap f)) from rfl]
+          rw [unitCover_relOverlap_backward_coe,
+            unitCover_relOverlap_backwardLocHom_algebraMap, restrictionMapHom_canonicalMap]
+        rw [hf_resO, ← map_mul]
+        have heq_s : ((unitCover_overlapDatum_B D₀ f).s : presheafValue D₀) =
+            D₀.canonicalMap f := by
+          rw [show ((unitCover_overlapDatum_B D₀ f).s : presheafValue D₀) =
+            (1 : presheafValue D₀) * D₀.canonicalMap f from rfl, one_mul]
+        have haM_s : algebraMap (presheafValue D₀)
+            (Localization.Away ((unitCover_overlapDatum_B D₀ f).s))
+              ((unitCover_overlapDatum_B D₀ f).s) =
+            algebraMap (presheafValue D₀)
+              (Localization.Away ((unitCover_overlapDatum_B D₀ f).s))
+              (D₀.canonicalMap f) := congrArg _ heq_s
+        rw [show (unitCover_overlapDatum_B D₀ f).canonicalMap (D₀.canonicalMap f) *
+            (unitCover_overlapDatum_B D₀ f).coeRingHom
+              (divByS (1 : presheafValue D₀) ((unitCover_overlapDatum_B D₀ f).s)) =
+          (1 : presheafValue (unitCover_overlapDatum_B D₀ f)) from by
+          have h8 := algebraMap_s_mul_divByS (unitCover_overlapDatum_B D₀ f)
+            (1 : presheafValue D₀)
+          rw [haM_s] at h8
+          rw [show (unitCover_overlapDatum_B D₀ f).canonicalMap (D₀.canonicalMap f) *
+              (unitCover_overlapDatum_B D₀ f).coeRingHom
+                (divByS (1 : presheafValue D₀) ((unitCover_overlapDatum_B D₀ f).s)) =
+            (unitCover_overlapDatum_B D₀ f).coeRingHom
+              (algebraMap (presheafValue D₀)
+                (Localization.Away ((unitCover_overlapDatum_B D₀ f).s))
+                (D₀.canonicalMap f) *
+              divByS (1 : presheafValue D₀)
+                ((unitCover_overlapDatum_B D₀ f).s)) from by rw [map_mul]; rfl]
+          rw [h8, map_one, map_one]]
+        rw [map_one]
+    exact RingHom.congr_fun hcomp q
+  intro z
+  exact congrFun hfun z
+
+/-- **Minus column square** (Wedhorn (8.2.1), commuting square `O_X(U₂) → O_X(U₁∩U₂)`
+over `B₂_gen b → B₁₂_gen b`): restricting a section of `U₂` into the overlap and
+bridging via `unitCover_bridgeOverlap` equals bridging via `unitCover_bridgeMinus` and
+applying `LaurentCover.negLift b`. Honest leaf. -/
+private theorem unitCover_negLift_bridgeMinus
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (g₂ : presheafValue (D₀.interSamePair (coUnitDatum D₀.P f) rfl)) :
+    LaurentCover.negLift (D₀.canonicalMap f) (unitCover_bridgeMinus D₀ f g₂) =
+      unitCover_bridgeOverlap D₀ f
+        (restrictionMap (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+          ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+            (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+          (RationalLocData.interSamePair_subset_right _ _ _) g₂) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  haveI hCompleteB :
+      (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+       CompleteSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  obtain ⟨z, hz⟩ := Ideal.Quotient.mk_surjective (unitCover_bridgeMinus D₀ f g₂)
+  have hg₂ : g₂ = (unitCover_bridgeMinus D₀ f).symm (Ideal.Quotient.mk
+      (Ideal.span {1 - algebraMap (presheafValue D₀) ↥(TateAlgebra (presheafValue D₀))
+        (D₀.canonicalMap f) * TateAlgebra.X}) z) := by
+    rw [hz, RingEquiv.symm_apply_apply]
+  rw [← hz]
+  refine (unitCover_bridgeOverlap D₀ f).symm.injective ?_
+  rw [RingEquiv.symm_apply_apply]
+  show (unitCover_relativeOverlap D₀ f).symm ((unitCover_overlapQuotEquiv D₀ f).symm
+    (Ideal.Quotient.mk (unitCover_overlapIdeal D₀ f) (LaurentTateAlgebra.negIncl z))) =
+    restrictionMap (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+      ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+      (RationalLocData.interSamePair_subset_right _ _ _) g₂
+  erw [unitCover_overlapQuotEquiv_symm_mk D₀ f]
+  show unitCover_relOverlap_backward D₀ f (unitCover_overlapEval D₀ f
+    (LaurentTateAlgebra.negIncl z)) =
+    restrictionMap (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+      ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+        (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+      (RationalLocData.interSamePair_subset_right _ _ _) g₂
+  rw [← unitCover_sq_minus_dense D₀ f z, hg₂]
+  rfl
+
+/-- **Overlap compatibility ⟹ `δ`-vanishing (faithful)**: if two sections `g₁` on
+`U₁ = R(f/1) ∩ D₀` and `g₂` on `U₂ = R(1/f) ∩ D₀` agree after restriction to every
+common refinement (the `IsOXAcyclic.gluing` compatibility), then their images
+under the plus/minus bridges land in `ker(deltaMap_gen b)`. This is the
+`B₁₂_gen b = B⟨ζ,ζ⁻¹⟩/(b−ζ)` overlap identification (Wedhorn (8.2.1), third row)
+packaged as the kernel condition `row3_exact` consumes.
+
+**Proof (Wedhorn p. 83 column exactness).** `deltaMap_gen b (p₁, p₂) = posLift b p₁ −
+negLift b p₂`. By the two commuting squares `unitCover_posLift_bridgePlus` /
+`unitCover_negLift_bridgeMinus`, both `posLift b (bridgePlus g₁)` and
+`negLift b (bridgeMinus g₂)` equal `bridgeOverlap` applied to the restriction of `g₁`
+(resp. `g₂`) into the overlap `U₁∩U₂`. Compatibility (`hcompat` at `D₃ = U₁∩U₂`) makes
+those two restrictions equal, so the difference vanishes. -/
+private theorem unitCover_delta_eq_zero_of_compat
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A)
+    (g₁ : presheafValue (D₀.interSamePair (unitDatum D₀.P f) rfl))
+    (g₂ : presheafValue (D₀.interSamePair (coUnitDatum D₀.P f) rfl))
+    (hcompat : ∀ (D₃ : RationalLocData A)
+      (h₃₁ : rationalOpen D₃.T D₃.s ⊆
+        rationalOpen (D₀.interSamePair (unitDatum D₀.P f) rfl).T
+          (D₀.interSamePair (unitDatum D₀.P f) rfl).s)
+      (h₃₂ : rationalOpen D₃.T D₃.s ⊆
+        rationalOpen (D₀.interSamePair (coUnitDatum D₀.P f) rfl).T
+          (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s),
+      restrictionMap (D₀.interSamePair (unitDatum D₀.P f) rfl) D₃ h₃₁ g₁ =
+        restrictionMap (D₀.interSamePair (coUnitDatum D₀.P f) rfl) D₃ h₃₂ g₂) :
+    LaurentCover.deltaMap_gen (D₀.canonicalMap f)
+      (unitCover_bridgePlus D₀ f g₁, unitCover_bridgeMinus D₀ f g₂) = 0 := by
+  -- `δ(p₁, p₂) = posLift p₁ − negLift p₂`; reduce to `posLift(bridgePlus g₁) =
+  -- negLift(bridgeMinus g₂)` via the two column squares + overlap compatibility.
+  change LaurentCover.posLift (D₀.canonicalMap f) (unitCover_bridgePlus D₀ f g₁) -
+    LaurentCover.negLift (D₀.canonicalMap f) (unitCover_bridgeMinus D₀ f g₂) = 0
+  rw [unitCover_posLift_bridgePlus D₀ f g₁,
+    unitCover_negLift_bridgeMinus D₀ f g₂]
+  -- Both sides are `bridgeOverlap` of a restriction of `g₁`/`g₂` into `U₁∩U₂`.
+  -- Compatibility (`hcompat` at `D₃ = U₁∩U₂`) equates those restrictions.
+  refine sub_eq_zero_of_eq ?_
+  congr 1
+  exact hcompat
+    ((D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair
+      (D₀.interSamePair (coUnitDatum D₀.P f) rfl) rfl)
+    (RationalLocData.interSamePair_subset_left _ _ _)
+    (RationalLocData.interSamePair_subset_right _ _ _)
+
+/-- **Wedhorn Lemma 8.33 (base-independent / faithful form)**: the s=1 2-cover
+`unitCover D₀ f = {R(f/1) ∩ D₀, R(1/f) ∩ D₀}` is `O_X`-acyclic. This is Lemma 8.33
+applied to the affinoid `𝒪_X(D₀)` and the image of `f` — the cover condition
+`v(f) ≤ 1` is **base-independent** (the FAITHFUL form, vs the relativized
+`wedhorn_lemma_833` for `laurentRationalCover` whose `v(f) ≤ v(D₀.s)` diverges from
+Wedhorn's whole-space `𝒰_f`).
+
+**Separation** is Wedhorn Cor 8.32 (faithful-flatness injectivity,
+`cor_8_32_productRestrictionSub_injective`). **Gluing** is the diagram chase of
+Wedhorn p. 83: it transports the middle-exactness `ker δ ⊆ im ε` of the algebraic
+row `0 → B → B₁_gen × B₂_gen → B₁₂_gen → 0` (`LaurentCover.row3_exact` at the base
+`B = presheafValue D₀`, element `b = D₀.canonicalMap f`, axiom-clean) across the
+three Example 6.38/6.39 bridges (`unitCover_bridgePlus`/`_bridgeMinus` + the
+δ-vanishing translation), which are isolated as faithful honest leaves above. -/
+theorem unitCover_isOXAcyclic
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (f : A) :
+    (unitCover D₀ f).IsOXAcyclic := by
+  refine ⟨?_, ?_⟩
+  · -- Separation = injectivity of the product restriction (Wedhorn Cor 8.32,
+    -- faithful flatness route, `cor_8_32_productRestrictionSub_injective`).
     intro x hx
-    -- x ∈ V.covers; by surjectivity of φ, x = (φ t).1 for some t ∈ {1}.
-    -- The only t is t₀, so x = D₀_sub.1.
-    obtain ⟨t, ht⟩ := hφ_bij.2 ⟨x, hx⟩
-    have ht_eq : t = t₀ := by
-      apply Subtype.ext
-      exact Finset.mem_singleton.mp t.2
-    rw [ht_eq] at ht
-    -- ht : φ t₀ = ⟨x, hx⟩, so D₀_sub.1 = (φ t₀).1 = x.
-    have : D₀_sub.1 = x := congrArg Subtype.val ht
-    exact this.symm
-  · -- D₀_sub.1.T = {1}
-    exact (hφ_eq t₀).1
-  · -- D₀_sub.1.s = 1
-    exact (hφ_eq t₀).2
+    apply cor_8_32_productRestrictionSub_injective (unitCover D₀ f)
+    funext D
+    change restrictionMap (unitCover D₀ f).base D.1 ((unitCover D₀ f).hsubset D.1 D.2) x =
+      restrictionMap (unitCover D₀ f).base D.1 ((unitCover D₀ f).hsubset D.1 D.2) 0
+    rw [hx D.1 D.2]
+    exact (map_zero (restrictionMapHom (unitCover D₀ f).base D.1
+      ((unitCover D₀ f).hsubset D.1 D.2))).symm
+  · -- Gluing = the diagram chase (Wedhorn p. 83): transport the middle exactness
+    -- `ker δ ⊆ im ε` of `row3_exact` at the base `B = presheafValue D₀`,
+    -- `b = D₀.canonicalMap f`, across the Example 6.38/6.39 bridges.
+    intro g hcompat
+    -- The two cover pieces and their sections.
+    set U₁ := D₀.interSamePair (unitDatum D₀.P f) rfl with hU₁
+    set U₂ := D₀.interSamePair (coUnitDatum D₀.P f) rfl with hU₂
+    set g₁ : presheafValue U₁ := g ⟨U₁, unit_mem_unitCover D₀ f⟩ with hg₁
+    set g₂ : presheafValue U₂ := g ⟨U₂, counit_mem_unitCover D₀ f⟩ with hg₂
+    -- Compatibility on overlaps ⟹ the bridged pair lies in `ker (deltaMap_gen b)`.
+    have hdelta : LaurentCover.deltaMap_gen (D₀.canonicalMap f)
+        (unitCover_bridgePlus D₀ f g₁, unitCover_bridgeMinus D₀ f g₂) = 0 :=
+      unitCover_delta_eq_zero_of_compat D₀ f g₁ g₂
+        (fun D₃ h₃₁ h₃₂ => hcompat ⟨U₁, unit_mem_unitCover D₀ f⟩
+          ⟨U₂, counit_mem_unitCover D₀ f⟩ D₃ h₃₁ h₃₂)
+    -- `row3_exact` at `B = presheafValue D₀`, `b = D₀.canonicalMap f` (axiom-clean).
+    have key := LaurentCover.row3_exact (A := presheafValue D₀) (D₀.canonicalMap f)
+      (rfl : (inferInstance : TopologicalSpace (presheafValue D₀)) =
+        UniformSpace.toTopologicalSpace)
+    -- Pull the gluing witness `a : B` out of `ker δ ⊆ im ε`.
+    obtain ⟨a, ha⟩ := key.2.1
+      (unitCover_bridgePlus D₀ f g₁, unitCover_bridgeMinus D₀ f g₂) hdelta
+    have ha₁ : (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) a).1 =
+        unitCover_bridgePlus D₀ f g₁ := congrArg Prod.fst ha
+    have ha₂ : (LaurentCover.epsilonHom_gen (D₀.canonicalMap f) a).2 =
+        unitCover_bridgeMinus D₀ f g₂ := congrArg Prod.snd ha
+    refine ⟨a, ?_⟩
+    -- For each cover piece, recover `restrictionMap D₀ Dᵢ _ a = gᵢ` via bridge
+    -- injectivity + intertwining + `haᵢ`.
+    rintro ⟨D, hD⟩
+    rw [mem_unitCover_iff] at hD
+    rcases hD with rfl | rfl
+    · -- Piece `U₁`: `restrictionMap D₀ U₁ _ a = g₁`.
+      apply (unitCover_bridgePlus D₀ f).injective
+      exact (unitCover_bridgePlus_restrictionMap D₀ f a).trans ha₁
+    · -- Piece `U₂`: `restrictionMap D₀ U₂ _ a = g₂`.
+      apply (unitCover_bridgeMinus D₀ f).injective
+      exact (unitCover_bridgeMinus_restrictionMap D₀ f a).trans ha₂
 
-theorem wedhorn_lemma_834_part_i_base [DecidableEq A]
+/-- **Lemma 8.34(i) — the base-independent Laurent cover is `O_X`-acyclic** (the
+faithful Wedhorn A.3(3) induction). By induction on `fs`: the empty cover is the
+trivial cover `{D₀}`; the cons cover `R`-equals the product
+`(unitCover D₀ f) × (laurentProdCoverOf D₀ gs)` (`laurentProdLeaves_restrict`), which
+is acyclic by the explicit A.3(3) `isOXAcyclic_interProd` — `hU` = Lemma 8.33
+(`unitCover_isOXAcyclic`), and `hV0`/`hV1` come from the IH (`laurentProdCoverOf P gs`
+acyclic) via the Prop-A.4 bridge `isOXAcyclic_congr` + restriction-commutation. -/
+theorem laurentProdCoverOf_isOXAcyclic [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (V : RationalCovering A) (hV_laurent : V.IsLaurentCover ([] : List A)) :
-    V.IsOXAcyclic := by
-  -- Compose: empty Laurent ⇒ single-unit piece ⇒ acyclic.
-  apply isOXAcyclic_of_single_unit_piece V
-  exact single_unit_piece_of_empty_laurent V hV_laurent
-
-/-- **Step sub-lemma (a)**: the Laurent cover by `f :: gs` decomposes as
-the product of the 2-cover `𝒰_f = laurentRationalCover V.base f` and the
-Laurent cover by `gs` (restricted appropriately). -/
-theorem laurent_cons_decomp_as_product [DecidableEq A]
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (V : RationalCovering A) (f : A) (gs : List A)
-    (_hV_laurent : V.IsLaurentCover (f :: gs)) :
-    -- V refines a "product" cover: 𝒰_f × 𝒱_gs.
-    -- Statement: there exists a 2-cover 𝒰_f and a Laurent cover 𝒱_gs of
-    -- each 2-piece, such that V is the union of restrictions of 𝒱_gs to
-    -- the 2-pieces.
-    ∃ (Uf : RationalCovering A) (_hUf_eq : Uf = laurentRationalCover V.base f)
-      (Vgs_at : ∀ (Uf_piece : ↥Uf.covers), RationalCovering A),
-      (∀ Uf_piece, (Vgs_at Uf_piece).base = Uf_piece.1) ∧
-      (∀ Uf_piece, (Vgs_at Uf_piece).IsLaurentCover gs) := by
-  -- Build Uf = laurentRationalCover V.base f and Vgs_at = the restriction
-  -- of V's Laurent generators gs to each 2-piece of Uf.
-  sorry
-
-/-- **Step sub-lemma (b)**: the Prop A.3(3) bridge for `V` decomposed
-as a product. Given a 2-cover `Uf` and a specific Laurent cover `Vgs_at`
-of each Uf-piece, both acyclic, the assembled product `V` is acyclic. -/
-theorem propA3_part3_bridge_for_laurent_product
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (V Uf : RationalCovering A)
-    (Vgs_at : ↥Uf.covers → RationalCovering A)
-    (_hVgs_base : ∀ Uf_piece, (Vgs_at Uf_piece).base = Uf_piece.1)
-    (_hUf_acyclic : Uf.IsOXAcyclic)
-    (_h_each_Vgs_acyclic : ∀ (Uf_piece : ↥Uf.covers),
-      (Vgs_at Uf_piece).IsOXAcyclic) :
-    V.IsOXAcyclic := by
-  -- This is the project-side instance of Prop A.3(3) for Laurent
-  -- products. The abstract version is `propA3_part3` in CechCohomology.
-  --
-  -- NOTE 2026-05-28: the lemma as stated is missing structural hypotheses
-  -- binding V to the product Uf × ⊔ Vgs_at (V refines product, Vgs covers V).
-  -- Without these, V is generic and the conclusion isn't deducible.
-  -- Sub-ticket T-WC-PROPA3-PART3-LAURENT-PRODUCT-RESTATED to add the
-  -- structural hypotheses.
-  sorry
-
-/-- **Lemma 8.34 part (i) inductive step**: when `fs = f :: gs`, the
-Laurent cover by `fs` is the product of the 2-cover `𝒰_f` and the
-Laurent cover by `gs`. By Prop A.3(3), it's acyclic iff `𝒰_f` is acyclic
-(which is Lemma 8.33).
-
-Composed from product decomposition + Prop A.3(3) bridge. -/
-theorem wedhorn_lemma_834_part_i_step [DecidableEq A]
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (V : RationalCovering A) (f : A) (gs : List A)
-    (hV_laurent : V.IsLaurentCover (f :: gs))
-    (ih : ∀ (W : RationalCovering A), W.IsLaurentCover gs → W.IsOXAcyclic) :
-    V.IsOXAcyclic := by
-  -- Step a: decompose V as a product 𝒰_f × 𝒱_gs.
-  obtain ⟨Uf, _hUf_eq, Vgs_at, hVgs_base, hVgs_laurent⟩ :=
-    laurent_cons_decomp_as_product V f gs hV_laurent
-  -- Step b: 𝒰_f is acyclic by wedhorn_lemma_833.
-  have hUf_acyclic : Uf.IsOXAcyclic := by
-    rw [_hUf_eq]; exact wedhorn_lemma_833 V.base f
-  -- Step c: each 𝒱_gs_at(Uf_piece) is acyclic by IH applied to the
-  -- specific Laurent-cover-by-gs witness.
-  have h_each_Vgs_acyclic : ∀ (Uf_piece : ↥Uf.covers),
-      (Vgs_at Uf_piece).IsOXAcyclic := fun Uf_piece =>
-    ih (Vgs_at Uf_piece) (hVgs_laurent Uf_piece)
-  -- Step d: assemble via the Prop A.3(3) bridge.
-  exact propA3_part3_bridge_for_laurent_product V Uf Vgs_at hVgs_base
-    hUf_acyclic h_each_Vgs_acyclic
+    (D₀ : RationalLocData A) (fs : List A) :
+    (laurentProdCoverOf D₀ fs).IsOXAcyclic := by
+  induction fs generalizing D₀ with
+  | nil =>
+    refine isOXAcyclic_of_trivial_cover _ ?_
+    rw [laurentProdCoverOf_covers, laurentProdLeaves_nil, laurentProdCoverOf_base]
+  | cons f gs ih =>
+    have hbase : (laurentProdCoverOf D₀ gs).base = (unitCover D₀ f).base := rfl
+    have hUfP : ∀ P ∈ (unitCover D₀ f).covers, P.P = (unitCover D₀ f).base.P := by
+      intro P hP
+      rw [mem_unitCover_iff] at hP
+      rcases hP with rfl | rfl <;> rfl
+    have hVP : ∀ Q ∈ (laurentProdCoverOf D₀ gs).covers, Q.P = (unitCover D₀ f).base.P :=
+      fun Q hQ => laurentProdLeaves_pair gs D₀ hQ
+    have hinner : ((unitCover D₀ f).interProd (laurentProdCoverOf D₀ gs)
+        hbase hUfP hVP).IsOXAcyclic := by
+      refine isOXAcyclic_interProd (unitCover D₀ f) (laurentProdCoverOf D₀ gs)
+        hbase hUfP hVP (unitCover_isOXAcyclic D₀ f) (fun P hP => ?_) (fun P P' hP hP' => ?_)
+      · -- hV0: V|_P acyclic, via congr from the IH at base P
+        have hPsub : rationalOpen P.T P.s ⊆ rationalOpen D₀.T D₀.s :=
+          (unitCover D₀ f).hsubset P hP
+        refine isOXAcyclic_congr _ (laurentProdCoverOf P gs) rfl (fun D hD => ?_)
+          (fun D' hD' => ?_) (ih P)
+        · rw [RationalCovering.restrictTo_covers, Finset.mem_image] at hD
+          obtain ⟨⟨Q, hQ⟩, -, rfl⟩ := hD
+          obtain ⟨Q', hQ', hQeq⟩ := (laurentProdLeaves_restrict gs D₀ P hPsub).1 Q hQ
+          exact ⟨Q', hQ', by rw [RationalLocData.interSamePair_rationalOpen]; exact hQeq⟩
+        · obtain ⟨Q, hQ, hQeq⟩ := (laurentProdLeaves_restrict gs D₀ P hPsub).2 D' hD'
+          refine ⟨P.interSamePair Q ((laurentProdLeaves_pair gs D₀ hQ).trans
+            (hUfP P hP).symm), ?_, ?_⟩
+          · rw [RationalCovering.restrictTo_covers, Finset.mem_image]
+            exact ⟨⟨Q, hQ⟩, Finset.mem_attach _ _, rfl⟩
+          · rw [RationalLocData.interSamePair_rationalOpen]; exact hQeq
+      · -- hV1: V|_{P∩P'} acyclic, via congr from the IH at base P∩P'
+        set Pm := P.interSamePair P' (by rw [hUfP P' hP', hUfP P hP]) with hPm
+        have hPsub : rationalOpen Pm.T Pm.s ⊆ rationalOpen D₀.T D₀.s :=
+          (RationalLocData.interSamePair_subset_left P P' _).trans
+            ((unitCover D₀ f).hsubset P hP)
+        refine isOXAcyclic_congr _ (laurentProdCoverOf Pm gs) rfl (fun D hD => ?_)
+          (fun D' hD' => ?_) (ih Pm)
+        · rw [RationalCovering.restrictTo_covers, Finset.mem_image] at hD
+          obtain ⟨⟨Q, hQ⟩, -, rfl⟩ := hD
+          obtain ⟨Q', hQ', hQeq⟩ := (laurentProdLeaves_restrict gs D₀ Pm hPsub).1 Q hQ
+          exact ⟨Q', hQ', by rw [RationalLocData.interSamePair_rationalOpen]; exact hQeq⟩
+        · obtain ⟨Q, hQ, hQeq⟩ := (laurentProdLeaves_restrict gs D₀ Pm hPsub).2 D' hD'
+          refine ⟨Pm.interSamePair Q ((laurentProdLeaves_pair gs D₀ hQ).trans
+            (hUfP P hP).symm), ?_, ?_⟩
+          · rw [RationalCovering.restrictTo_covers, Finset.mem_image]
+            exact ⟨⟨Q, hQ⟩, Finset.mem_attach _ _, rfl⟩
+          · rw [RationalLocData.interSamePair_rationalOpen]; exact hQeq
+    -- outer: the cons cover R-equals the product (the `unitCover` pieces ARE the
+    -- `laurentProdLeaves_cons` recursion bases, so this is `laurentProdLeaves_restrict`).
+    refine isOXAcyclic_congr (laurentProdCoverOf D₀ (f :: gs))
+      ((unitCover D₀ f).interProd (laurentProdCoverOf D₀ gs) hbase hUfP hVP)
+      rfl (fun D hD => ?_) (fun D' hD' => ?_) hinner
+    · rw [laurentProdCoverOf_covers, laurentProdLeaves_cons, Finset.mem_union] at hD
+      rcases hD with hD | hD
+      · obtain ⟨Q, hQ, hQeq⟩ := (laurentProdLeaves_restrict gs D₀
+          (D₀.interSamePair (unitDatum D₀.P f) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _)).2 D hD
+        refine ⟨(D₀.interSamePair (unitDatum D₀.P f) rfl).interSamePair Q
+          (laurentProdLeaves_pair gs D₀ hQ), ?_, ?_⟩
+        · rw [RationalCovering.interProd_covers, Finset.mem_image]
+          exact ⟨⟨(D₀.interSamePair (unitDatum D₀.P f) rfl, Q),
+            Finset.mem_product.mpr ⟨unit_mem_unitCover D₀ f, hQ⟩⟩,
+            Finset.mem_attach _ _, rfl⟩
+        · rw [RationalLocData.interSamePair_rationalOpen]; exact hQeq.symm
+      · obtain ⟨Q, hQ, hQeq⟩ := (laurentProdLeaves_restrict gs D₀
+          (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _)).2 D hD
+        refine ⟨(D₀.interSamePair (coUnitDatum D₀.P f) rfl).interSamePair Q
+          (laurentProdLeaves_pair gs D₀ hQ), ?_, ?_⟩
+        · rw [RationalCovering.interProd_covers, Finset.mem_image]
+          exact ⟨⟨(D₀.interSamePair (coUnitDatum D₀.P f) rfl, Q),
+            Finset.mem_product.mpr ⟨counit_mem_unitCover D₀ f, hQ⟩⟩,
+            Finset.mem_attach _ _, rfl⟩
+        · rw [RationalLocData.interSamePair_rationalOpen]; exact hQeq.symm
+    · rw [RationalCovering.interProd_covers, Finset.mem_image] at hD'
+      obtain ⟨⟨⟨P, Q⟩, hPQ⟩, -, rfl⟩ := hD'
+      obtain ⟨hPmem, hQmem⟩ := Finset.mem_product.mp hPQ
+      rw [mem_unitCover_iff] at hPmem
+      rcases hPmem with rfl | rfl
+      · obtain ⟨D, hD, hDeq⟩ := (laurentProdLeaves_restrict gs D₀
+          (D₀.interSamePair (unitDatum D₀.P f) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _)).1 Q hQmem
+        refine ⟨D, ?_, ?_⟩
+        · rw [laurentProdCoverOf_covers, laurentProdLeaves_cons]
+          exact Finset.mem_union_left _ hD
+        · rw [RationalLocData.interSamePair_rationalOpen]; exact hDeq.symm
+      · obtain ⟨D, hD, hDeq⟩ := (laurentProdLeaves_restrict gs D₀
+          (D₀.interSamePair (coUnitDatum D₀.P f) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _)).1 Q hQmem
+        refine ⟨D, ?_, ?_⟩
+        · rw [laurentProdCoverOf_covers, laurentProdLeaves_cons]
+          exact Finset.mem_union_right _ hD
+        · rw [RationalLocData.interSamePair_rationalOpen]; exact hDeq.symm
 
 theorem wedhorn_lemma_834_part_i_laurent_acyclic [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (V : RationalCovering A) (fs : List A) (hV_laurent : V.IsLaurentCover fs) :
+    (V : RationalCovering A) (fs : List A) (hV_laurent : V.IsLaurentProdCover fs) :
     V.IsOXAcyclic := by
-  -- Induction on `fs.length`, composing base + step.
-  induction fs generalizing V with
-  | nil =>
-    exact wedhorn_lemma_834_part_i_base V hV_laurent
-  | cons f gs ih =>
-    exact wedhorn_lemma_834_part_i_step V f gs hV_laurent
-      (fun W hW => ih W hW)
+  -- The base-independent Laurent cover `V` IS (R-equal to) `laurentProdCoverOf V.base fs`
+  -- (same base + same covers), which is acyclic by the faithful A.3(3) induction.
+  rw [RationalCovering.IsLaurentProdCover] at hV_laurent
+  refine isOXAcyclic_congr V (laurentProdCoverOf V.base fs) rfl (fun D hD => ?_)
+    (fun D' hD' => ?_) (laurentProdCoverOf_isOXAcyclic V.base fs)
+  · exact ⟨D, by rw [laurentProdCoverOf_covers, ← hV_laurent]; exact hD, rfl⟩
+  · refine ⟨D', ?_, rfl⟩
+    rw [laurentProdCoverOf_covers] at hD'; rw [hV_laurent]; exact hD'
 
 /-- **Restriction sub-lemma**: `V_restrict` is itself a Laurent cover of
 `U` with generators being the images of `fs` (modulo the localization
 A → 𝒪_X(U)). This is the structural Wedhorn 8.2.1 + part (i)
-preservation of the Laurent property under restriction. -/
+preservation of the Laurent property under restriction. (Honest leaf:
+`V_restrict` is supplied abstractly, so its Laurent structure is asserted, not
+derived — a pre-existing part-iv gap, orthogonal to the acyclicity engine.) -/
 theorem laurent_restriction_isLaurent [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (V : RationalCovering A) (fs : List A) (_hV_laurent : V.IsLaurentCover fs)
+    (V : RationalCovering A) (fs : List A) (_hV_laurent : V.IsLaurentProdCover fs)
     (U : RationalLocData A)
     (V_restrict : RationalCovering A) (_h_V_restrict_base : V_restrict.base = U)
     (_h_V_restrict_pieces : ∀ V' ∈ V_restrict.covers, ∃ V'' ∈ V.covers,
       rationalOpen V'.T V'.s ⊆ rationalOpen V''.T V''.s) :
-    -- V_restrict is a Laurent cover with restricted generators.
-    -- (Wedhorn 8.2.1: image of generators under A → 𝒪_X(U).)
-    V_restrict.IsLaurentCover fs := by
-  -- The Laurent structure is inherited via the restriction; each piece
-  -- corresponds to one of V's pieces (selected by the sign vector).
+    V_restrict.IsLaurentProdCover fs := by
   sorry
 
 theorem wedhorn_lemma_834_part_i_laurent_restriction_acyclic [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (V : RationalCovering A) (fs : List A) (hV_laurent : V.IsLaurentCover fs)
+    (V : RationalCovering A) (fs : List A) (hV_laurent : V.IsLaurentProdCover fs)
     (U : RationalLocData A) (_hU_subset : rationalOpen U.T U.s ⊆
       rationalOpen V.base.T V.base.s)
     (V_restrict : RationalCovering A) (h_V_restrict_base : V_restrict.base = U)
@@ -1178,7 +7230,7 @@ theorem wedhorn_lemma_834_part_i_laurent_restriction_acyclic [DecidableEq A]
   -- Wedhorn p. 84: "If U is any rational subset of X, then 𝒱|U is the
   -- Laurent cover generated by f_{1|U},...,f_{r|U}."
   -- Apply restriction lemma + part_i_laurent_acyclic.
-  have hV_restrict_laurent : V_restrict.IsLaurentCover fs :=
+  have hV_restrict_laurent : V_restrict.IsLaurentProdCover fs :=
     laurent_restriction_isLaurent V fs hV_laurent U V_restrict
       h_V_restrict_base h_V_restrict_pieces
   exact wedhorn_lemma_834_part_i_laurent_acyclic V_restrict fs hV_restrict_laurent
@@ -1244,64 +7296,19 @@ theorem noCommonZero_of_idealGen
   -- v.supp is a prime ideal, hence ≠ ⊤.
   exact (instIsPrimeSupp v).ne_top h_le
 
-/-- **Cor 7.32 hypothesis-supply lemma (fused)**: every strongly noetherian
-Tate ring with [CompatiblePlusSubring] admits a principal pair `(P, π)` with
-`P.A₀ ⊆ A⁺` and `π` a topologically nilpotent unit generating `P.I`.
+-- DELETED (2026-06-04, reviewer round-2): the two "Cor 7.32 hypothesis-supply" lemmas
+-- `exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer` (claimed `A₀ ⊆ A⁺`,
+-- the WRONG direction — Wedhorn Rmk 7.17 gives `A⁺ ⊆ A₀`; not a general theorem) and
+-- `mulArchimedean_valueGroup_of_stronglyNoetherianTate` (FALSE — Rmk 7.40(6) is
+-- "height = 1 IFF maximal point", not universal height-≤1; non-maximal analytic points
+-- have height > 1). Both were UNNECESSARY: the no-height Cor 7.32 (`exists_dominating_unit_noHArch_finset`,
+-- Cor732) needs neither. See b2_log #61 + T-CECH-740-6 / T-CECH-PAIR.
 
-This fuses the older `exists_pair_with_A₀_subset_Aplus` (P.A₀ ⊆ A⁺) and
-`exists_pseudouniformizer_of_tate` (∀ P, ∃ π ...) into one — the latter's
-universal claim is too strong; restricting to the principal pair makes it
-true. T-WC-EXISTS-PRINCIPAL-PAIR-IN-APLUS (2026-05-28 batch). -/
-theorem exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [CompatiblePlusSubring A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A] :
-    ∃ (P : PairOfDefinition A) (π : P.A₀),
-      P.A₀ ≤ A⁺ ∧
-      P.I = Ideal.span {π} ∧
-      IsTopologicallyNilpotent (P.A₀.subtype π) ∧
-      IsUnit (P.A₀.subtype π) := by
-  -- Wedhorn 6.14 + Remark 7.17: principal pair exists; the small A₀
-  -- generated by topnilp unit's powers sits inside A⁺ (which contains
-  -- all topologically nilpotent elements by definition).
-  sorry
-
--- Note: the older `exists_pair_with_A₀_subset_Aplus` (∃ P, P.A₀ ≤ A⁺) is
--- superseded by `exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer`
--- which returns the (P, π) pair together. The deprecated wrapper has been removed.
-
--- Note: the older `exists_pseudouniformizer_of_tate` had a too-strong universal-P
--- claim and is replaced by `exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer`
--- which returns the (P, π) pair together. The deprecated wrapper had a `True := trivial`
--- placeholder body and has been removed.
-
-/-- **Cor 7.32 hypothesis-supply lemma 3**: every continuous valuation on
-a strongly noetherian Tate ring has multiplicatively-archimedean value
-group.
-
-This is Wedhorn 7.40(6) "every analytic continuous valuation has height
-≤ 1" specialised to strongly noetherian Tate. -/
-theorem mulArchimedean_valueGroup_of_stronglyNoetherianTate
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (v : Spv A) :
-    letI : ValuativeRel A := v.toValuativeRel
-    MulArchimedean (ValuativeRel.ValueGroupWithZero A) := by
-  -- Wedhorn 7.40(6). In strongly noetherian Tate, every continuous
-  -- valuation is height ≤ 1 (= rank-1, archimedean).
-  sorry
-
-/-- **Part (ii) sub-lemma 2**: Cor 7.32 application — given the
-"no common zero" property, exists a dominating unit `s ∈ A^×` such that
-every `v ∈ Spa A A⁺` has `v(s) < v(t)` for some `t ∈ T`.
-
-Composed from `principalPair_A₀_contains_Aplus`,
-`principalPair_pseudouniformizer`,
-`mulArchimedean_valueGroup_of_stronglyNoetherianTate`, and the project's
-`exists_dominating_unit` (`Cor732.lean:207`). -/
+/-- **Cor 7.32 (Wedhorn) — dominating unit, NO height.** Given a finite `T` with no common
+zero on `Spa A A⁺`, there is a unit `s ∈ A^×` with `v(s) < v(t)` for some `t ∈ T`, for every
+`v ∈ Spa A A⁺`. Re-routed (2026-06-04, reviewer round-2 Q4) through the no-height
+`exists_dominating_unit_noHArch_finset` (Cor732, IsLinearTopology-free since T-732-NOHEIGHT):
+NO height-1/mul-archimedean hypothesis, NO `A₀ ⊆ A⁺` alignment. -/
 theorem cor_7_32_dominating_unit
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [CompatiblePlusSubring A]
@@ -1309,16 +7316,18 @@ theorem cor_7_32_dominating_unit
       CompleteSpace A]
     (T : Finset A) (hT_noCommonZero : ∀ v ∈ Spa A A⁺, ∃ t ∈ T, ¬ v.vle t 0) :
     ∃ s : Aˣ, ∀ v ∈ Spa A A⁺, ∃ t ∈ T,
-      v.vle (s : A) t ∧ ¬ v.vle t (s : A) := by
-  -- Use the fused lemma (T-WC-EXISTS-PRINCIPAL-PAIR-IN-APLUS, 2026-05-28).
-  obtain ⟨P, π, hP, hI, hπ_tn, hπ_unit⟩ :=
-    exists_principal_pair_with_A₀_subset_Aplus_and_pseudouniformizer (A := A)
-  exact ValuationSpectrum.exists_dominating_unit P hP π hI hπ_tn hπ_unit
-    (mulArchimedean_valueGroup_of_stronglyNoetherianTate (A := A))
-    T hT_noCommonZero
+      v.vle (s : A) t ∧ ¬ v.vle t (s : A) :=
+  exists_dominating_unit_noHArch_finset T hT_noCommonZero
 
-/-- **Part (ii) sub-lemma 3**: from a dominating unit `s`, construct
-the Laurent cover by `s⁻¹·T = {s⁻¹·t : t ∈ T}`. -/
+/-- **Part (ii) sub-lemma 3** (Wedhorn 8.34(ii), wedhorn.txt:4241): from a
+dominating unit `s`, the Laurent cover of `D₀` generated by `s⁻¹·T = {s⁻¹·t : t ∈ T}`.
+For Wedhorn's (ii) the base `D₀` is the whole space `X` (the caller passes `C.base`,
+the base of the `T`-generated cover); the relative `IsLaurentCover` (T-CECH-LAURENT-REL)
+makes `V.base = D₀ ∧ V.IsLaurentProdCover (s⁻¹·T)` SATISFIABLE for any `D₀` via
+`laurentCoverOf` (this is exactly what relativizing the definition unblocked —
+the absolute def made the same conjunction unsatisfiable, b2_log #44). The
+dominating-unit property of `s` is not needed for *existence* (it is consumed
+downstream by `unit_gen_restriction_of_dominating_laurent`). -/
 theorem laurent_cover_from_dominating_unit [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
@@ -1326,52 +7335,172 @@ theorem laurent_cover_from_dominating_unit [DecidableEq A]
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (s : Aˣ) :
     ∃ (V : RationalCovering A) (fs : List A),
-      V.IsLaurentCover fs ∧
+      V.IsLaurentProdCover fs ∧
       V.base = D₀ ∧
       -- The Laurent generators are `s⁻¹·T`:
-      fs = (T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t) := by
-  -- Construction: build the RationalCovering by iterating
-  -- `laurentRationalCover` over the list `s⁻¹·T`.
-  sorry
+      fs = (T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t) :=
+  ⟨laurentProdCoverOf D₀ ((T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t)),
+    (T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t),
+    laurentProdCoverOf_isLaurentProd _ _, rfl, rfl⟩
 
 /-! ##### Sub-lemmas for `unit_gen_restriction_of_dominating_laurent` -/
+
+/-- **Sign dichotomy**: every leaf of the base-independent Laurent-product cover
+decides each generator's sign — on the leaf, either `v(f) ≤ 1` throughout or
+`v(f) ≥ 1` throughout (the leaf accumulated the `R(f/1)`- resp. `R(1/f)`-condition
+at the `f`-branch of the construction). -/
+theorem laurentProdLeaves_sign_dichotomy [DecidableEq A] (fs : List A) :
+    ∀ (D₀ : RationalLocData A) {Vj : RationalLocData A},
+      Vj ∈ laurentProdLeaves D₀ fs → ∀ f ∈ fs,
+      (∀ v ∈ rationalOpen Vj.T Vj.s, v.vle f 1) ∨
+      (∀ v ∈ rationalOpen Vj.T Vj.s, v.vle 1 f) := by
+  induction fs with
+  | nil =>
+    intro D₀ Vj _ f hf
+    exact absurd hf (List.not_mem_nil)
+  | cons g gs ih =>
+    intro D₀ Vj hVj f hf
+    rw [laurentProdLeaves_cons, Finset.mem_union] at hVj
+    rcases List.mem_cons.mp hf with rfl | hf'
+    · rcases hVj with hVj | hVj
+      · left
+        intro v hv
+        have hsub := laurentProdLeaves_subset gs _ hVj hv
+        rw [RationalLocData.interSamePair_rationalOpen] at hsub
+        exact hsub.2.2.1 f (Finset.mem_singleton_self f)
+      · right
+        intro v hv
+        have hsub := laurentProdLeaves_subset gs _ hVj hv
+        rw [RationalLocData.interSamePair_rationalOpen] at hsub
+        exact hsub.2.2.1 1 (Finset.mem_singleton_self 1)
+    · rcases hVj with hVj | hVj
+      · exact ih _ hVj f hf'
+      · exact ih _ hVj f hf'
 
 /-- **Step (a)**: on each Laurent piece `V_j` of the dominating cover,
 there exists an index `i` such that `v(t_i) ≥ v(s)` for every
 `v ∈ V_j`. (This is the "selection" step: the Laurent piece picks out a
-distinguished generator from `T`.) -/
+distinguished generator from `T`.) The dominance hypothesis `_h_dom` (threaded from
+the consumer; the all-minus leaf is empty exactly because of it) and `hT`
+(nonemptiness, for the vacuous case) were missing from the 2026-05-28 restate —
+without them the statement is false (B2-logged). -/
 theorem index_selection_on_laurent_piece [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (T : Finset A) (s : Aˣ) (V : RationalCovering A)
-    -- Construction hypotheses (2026-05-28 top-down restate): V is the s⁻¹·T
-    -- Laurent cover, so Vj is a sign-vector piece — the σ-walk needs this.
-    (_fs : List A) (_hV_laurent : V.IsLaurentCover _fs)
+    (T : Finset A) (hT : T.Nonempty) (s : Aˣ) (V : RationalCovering A)
+    (h_dom : ∀ v ∈ Spa A A⁺, ∃ t ∈ T, v.vle (s : A) t ∧ ¬ v.vle t (s : A))
+    (_fs : List A) (_hV_laurent : V.IsLaurentProdCover _fs)
     (_hfs_eq : _fs = (T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t))
     (Vj : RationalLocData A) (_hVj : Vj ∈ V.covers) :
     ∃ t ∈ T, ∀ v ∈ rationalOpen Vj.T Vj.s,
       v.vle (s : A) t := by
-  -- The Laurent piece V_j is characterised by sign conditions on
-  -- {s⁻¹·t_i : t_i ∈ T}. Specifically, V_j corresponds to choosing
-  -- one t_i (or its negation) as the "dominant" generator on V_j.
-  -- Now provable: `_hfs_eq` pins V to the s⁻¹·T cover.
-  sorry
+  classical
+  -- the leaf-membership in the `s⁻¹·T` Laurent-product cover
+  have hVj' : Vj ∈ laurentProdLeaves V.base _fs := by
+    rw [RationalCovering.IsLaurentProdCover] at _hV_laurent
+    rw [← _hV_laurent]; exact _hVj
+  -- arithmetic transport: `v(s⁻¹t) ≥ 1 ⟹ v(s) ≤ v(t)` and `v(s⁻¹t) ≤ 1 ⟹ v(t) ≤ v(s)`
+  have harith₁ : ∀ (t : A) (v : Spv A), v.vle 1 (((s⁻¹ : Aˣ) : A) * t) →
+      v.vle (s : A) t := by
+    intro t v h
+    letI : ValuativeRel A := v.toValuativeRel
+    have h2 := ValuativeRel.mul_vle_mul_left h (s : A)
+    rwa [one_mul, mul_comm (((s⁻¹ : Aˣ) : A) * t) (s : A), ← mul_assoc,
+      Units.mul_inv, one_mul] at h2
+  have harith₂ : ∀ (t : A) (v : Spv A), v.vle (((s⁻¹ : Aˣ) : A) * t) 1 →
+      v.vle t (s : A) := by
+    intro t v h
+    letI : ValuativeRel A := v.toValuativeRel
+    have h2 := ValuativeRel.mul_vle_mul_left h (s : A)
+    rwa [one_mul, mul_comm (((s⁻¹ : Aˣ) : A) * t) (s : A), ← mul_assoc,
+      Units.mul_inv, one_mul] at h2
+  -- does some `t ∈ T` carry the `≥`-branch on the leaf?
+  by_cases hplus : ∃ t ∈ T, ∀ v ∈ rationalOpen Vj.T Vj.s,
+      v.vle 1 (((s⁻¹ : Aˣ) : A) * t)
+  · obtain ⟨t, ht, hbranch⟩ := hplus
+    exact ⟨t, ht, fun v hv => harith₁ t v (hbranch v hv)⟩
+  · -- all generators carry the `≤`-branch ⟹ the leaf is empty (dominance), vacuous
+    push_neg at hplus
+    obtain ⟨t₀, ht₀⟩ := hT
+    refine ⟨t₀, ht₀, fun v hv => ?_⟩
+    exfalso
+    -- every `t ∈ T` has the `≤`-branch at `v` (dichotomy + ¬∃-plus)
+    have hall : ∀ t ∈ T, v.vle t (s : A) := by
+      intro t ht
+      have hdich := laurentProdLeaves_sign_dichotomy _fs V.base hVj'
+        (((s⁻¹ : Aˣ) : A) * t)
+        (by rw [_hfs_eq]; exact List.mem_map.mpr ⟨t, Finset.mem_toList.mpr ht, rfl⟩)
+      rcases hdich with h | h
+      · exact harith₂ t v (h v hv)
+      · -- this generator has the `≥`-branch throughout — contradicts `hplus`
+        exact absurd h (by simpa using hplus t ht)
+    obtain ⟨t, ht, _, hstrict⟩ := h_dom v hv.1
+    exact hstrict (hall t ht)
+
+set_option linter.unusedSectionVars false in
+/-- `D.completedLocSubring` and `presheafValue_ringOfDef D` coincide as sets (both are
+closures of the same `locSubring`-image; local copy of the Cor832 private lemma). -/
+private theorem wca_completedLocSubring_eq_presheafValue_ringOfDef
+    [IsTateRing A] [IsNoetherianRing A]
+    (D : RationalLocData A) :
+    (D.completedLocSubring : Set (presheafValue D)) =
+    (presheafValue_ringOfDef D : Set (presheafValue D)) := by
+  unfold RationalLocData.completedLocSubring presheafValue_ringOfDef
+  have h_sub_eq : (Subring.map D.coeRingHom (locSubring D.P D.T D.s) :
+      Set (presheafValue D)) =
+    ((D.coeRingHom.comp (locSubring D.P D.T D.s).subtype).range :
+      Set (presheafValue D)) := by
+    ext y
+    simp only [Subring.coe_map, RingHom.coe_range, Set.mem_image,
+      RingHom.comp_apply, Set.mem_range]
+    refine ⟨?_, ?_⟩
+    · rintro ⟨x, hx, rfl⟩; exact ⟨⟨x, hx⟩, rfl⟩
+    · rintro ⟨⟨x, hx⟩, rfl⟩; exact ⟨x, hx, rfl⟩
+  apply Set.eq_of_subset_of_subset
+  · exact closure_mono h_sub_eq.le
+  · exact closure_mono h_sub_eq.ge
 
 /-- **Step (b)**: the canonical image of `t` in `𝒪_X(V_j)` is a unit when
 `v(t) ≥ v(s)` holds on all of `V_j` (which is a rational subset). -/
 theorem canonical_unit_of_pointwise_lower_bound
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (Vj : RationalLocData A) (t : A) (s : Aˣ)
     (_h_lower : ∀ v ∈ rationalOpen Vj.T Vj.s, v.vle (s : A) t) :
     IsUnit (Vj.canonicalMap t) := by
-  -- The canonical map A → 𝒪_X(V_j) sends t to a unit because t is
-  -- bounded below by the unit s on V_j (no vanishing point on V_j).
-  sorry
+  -- the intrinsic complete pair on `𝒪_X(V_j)` (noeth-A₀-free) + the landed
+  -- complete-affinoid Nullstellensatz criterion (Wedhorn 7.52(2), `Lemma745`)
+  let PB : PairOfDefinition (presheafValue Vj) :=
+    { A₀ := presheafValue_ringOfDef Vj
+      I := presheafValue_idealOfDef Vj
+      isOpen := presheafValue_ringOfDef_isOpen Vj
+      fg := presheafValue_idealOfDef_fg Vj
+      isAdic := presheafValue_isAdic Vj }
+  haveI : IsAdicComplete PB.I PB.A₀ := presheafValue_isAdicComplete Vj
+  have hBplus : (((presheafValue Vj)⁺ : Subring (presheafValue Vj)) :
+      Set (presheafValue Vj)) ⊆ (PB.A₀ : Set (presheafValue Vj)) := by
+    intro x hx
+    have hx' : x ∈ (Vj.completedLocSubring : Set (presheafValue Vj)) :=
+      Vj.completedPlusSubring_le_completedLocSubring
+        (CompatiblePlusSubring.aplus_le_A₀ Vj) hx
+    rwa [wca_completedLocSubring_eq_presheafValue_ringOfDef] at hx'
+  rw [PairOfDefinition.isUnit_iff_forall_not_vle_zero_of_complete PB hBplus
+    (Vj.canonicalMap t)]
+  intro w hw hvle
+  -- the `A`-shadow of `w` lies in the rational open, so the lower bound applies
+  have hv_ro : comap Vj.canonicalMap w ∈ rationalOpen Vj.T Vj.s :=
+    comap_canonicalMap_mem_rationalOpen Vj (canonicalMap_continuous Vj) hw
+  have h1 := _h_lower _ hv_ro
+  have h2 : (comap Vj.canonicalMap w).vle t 0 := by
+    rw [comap_vle, map_zero]
+    exact hvle
+  refine not_vle_zero_of_isUnit s.isUnit (comap Vj.canonicalMap w) ?_
+  letI : ValuativeRel A := (comap Vj.canonicalMap w).toValuativeRel
+  exact ValuativeRel.vle_trans h1 h2
 
 /-- **Step (c)**: construct the restricted cover of `V_j` by the rational
 subsets `R(T|V_j / t_i|V_j)`. -/
@@ -1409,7 +7538,7 @@ theorem unit_gen_restriction_of_dominating_laurent [DecidableEq A]
     -- Construction hypotheses (2026-05-28 top-down restate): V is the s⁻¹·T
     -- Laurent cover, so Vj is a sign-vector piece — required by the
     -- index-selection σ-walk (step a). Threaded from `part_ii`.
-    (_fs : List A) (_hV_laurent : V.IsLaurentCover _fs)
+    (_fs : List A) (_hV_laurent : V.IsLaurentProdCover _fs)
     (_hfs_eq : _fs = (T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t))
     (Vj : RationalLocData A) (_hVj : Vj ∈ V.covers) :
     ∃ (C_restr : RationalCovering A),
@@ -1432,11 +7561,11 @@ theorem wedhorn_lemma_834_part_ii_unit_gen_via_dominating [DecidableEq A]
       CompleteSpace A]
     (C : RationalCovering A) (T : Finset A) (hC_gen : C.IsGeneratedBy T) :
     ∃ (V : RationalCovering A) (fs : List A) (s : Aˣ),
-      V.IsLaurentCover fs ∧
+      V.IsLaurentProdCover fs ∧
       V.base = C.base ∧
       -- Construction data exposed (2026-05-28 top-down restate): the dominating
-      -- unit `s` and the `fs = s⁻¹·T` equation, needed by the σ-walk lemmas
-      -- `laurent_cover_refines_idealgen_cover` / `_covers_each_idealgen_piece`.
+      -- unit `s` and the `fs = s⁻¹·T` equation, needed by the σ-walk lemma
+      -- `laurent_cover_covers_each_idealgen_piece`.
       (∀ v ∈ Spa A A⁺, ∃ t ∈ T, v.vle (s : A) t ∧ ¬ v.vle t (s : A)) ∧
       fs = (T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t) ∧
       ∀ Vj ∈ V.covers,
@@ -1485,6 +7614,88 @@ theorem unitGenerators_of_unitGenCover [DecidableEq A]
   · intro D hD t ht
     exact Finset.mem_biUnion.mpr ⟨D, hD, ht⟩
 
+/-- **Wedhorn 8.34(iii) (faithful; wedhorn.txt:4246-4249)**: *"Every rational cover `U`
+of `X` which is generated by units `f₀,…,fₙ` of `A` has a refinement by a Laurent
+cover. Indeed, the Laurent cover generated by `{fᵢfⱼ⁻¹}` is a refinement of `U`."*
+The σ-walk: each Laurent piece fixes the sign of every ratio `fᵢfⱼ⁻¹`, totally
+preordering the units piece-wide; the piece-wide `vle`-maximal unit `f*` gives
+`piece ⊆ R(units/f*)`, a `U`-piece. Stated with RING units (the 2026-05-28
+`canonicalMap`-unit trio is B2-logged: the ratio list needs ring inverses). -/
+theorem ratio_laurent_refines_unitGen_cover [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C : RationalCovering A) (units : Finset A) (hne : units.Nonempty)
+    (hC_gen : C.IsGeneratedBy units) (h_units : ∀ f ∈ units, IsUnit f) :
+    ∃ (fs : List A) (V : RationalCovering A),
+      V.IsLaurentProdCover fs ∧ V.base = C.base ∧
+      ∀ V' ∈ V.covers, ∃ D ∈ C.covers,
+        rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s := by
+  classical
+  set ratios : List A := (units.attach.toList.product units.attach.toList).map
+    (fun p => (p.1 : A) * ↑((h_units p.2 p.2.2).unit⁻¹)) with hratios
+  refine ⟨ratios, laurentProdCoverOf C.base ratios,
+    laurentProdCoverOf_isLaurentProd _ _, rfl, ?_⟩
+  intro V' hV'
+  have hV'' : V' ∈ laurentProdLeaves C.base ratios := hV'
+  -- the piece-wide comparison from the ratio-sign dichotomy
+  have hcmp : ∀ f ∈ units, ∀ g ∈ units,
+      (∀ v ∈ rationalOpen V'.T V'.s, v.vle f g) ∨
+      (∀ v ∈ rationalOpen V'.T V'.s, v.vle g f) := by
+    intro f hf g hg
+    have hmem : (f * ↑((h_units g hg).unit⁻¹) : A) ∈ ratios := by
+      rw [hratios]
+      exact List.mem_map.mpr ⟨(⟨f, hf⟩, ⟨g, hg⟩),
+        List.mem_product.mpr ⟨Finset.mem_toList.mpr (Finset.mem_attach _ _),
+          Finset.mem_toList.mpr (Finset.mem_attach _ _)⟩, rfl⟩
+    have hspec : (↑(h_units g hg).unit : A) = g := (h_units g hg).unit_spec
+    have hinv : ((↑(h_units g hg).unit⁻¹ : A) * g) = 1 := by
+      rw [show ((↑(h_units g hg).unit⁻¹ : A) * g) =
+        ((↑(h_units g hg).unit⁻¹ : A) * ↑(h_units g hg).unit) from by rw [hspec]]
+      exact (h_units g hg).unit.inv_mul
+    rcases laurentProdLeaves_sign_dichotomy ratios C.base hV''
+      (f * ↑((h_units g hg).unit⁻¹)) hmem with h | h
+    · left
+      intro v hv
+      have h2 := v.mul_vle_mul_left (h v hv) g
+      rwa [one_mul, mul_assoc, hinv, mul_one] at h2
+    · right
+      intro v hv
+      have h2 := v.mul_vle_mul_left (h v hv) g
+      rwa [one_mul, mul_assoc, hinv, mul_one] at h2
+  -- the piece-wide maximal unit (induction over subsets of `units`)
+  have hmax : ∀ (S : Finset A), S.Nonempty → S ⊆ units →
+      ∃ m ∈ S, ∀ g ∈ S, ∀ v ∈ rationalOpen V'.T V'.s, v.vle g m := by
+    intro S hS
+    induction hS using Finset.Nonempty.cons_induction with
+    | singleton x =>
+      intro _
+      exact ⟨x, Finset.mem_singleton_self x, fun g hg v hv => by
+        rw [Finset.mem_singleton] at hg; subst hg
+        exact (v.vle_total g g).elim id id⟩
+    | cons a s ha hsne ih =>
+      intro hsub
+      obtain ⟨m, hm, hmmax⟩ := ih (fun x hx => hsub (Finset.mem_cons_of_mem hx))
+      rcases hcmp m (hsub (Finset.mem_cons_of_mem hm)) a
+          (hsub (Finset.mem_cons_self a s)) with h | h
+      · exact ⟨a, Finset.mem_cons_self a s, fun g hg v hv =>
+          (Finset.mem_cons.mp hg).elim
+            (fun e => e ▸ (v.vle_total g g).elim id id)
+            (fun hg' => v.vle_trans (hmmax g hg' v hv) (h v hv))⟩
+      · exact ⟨m, Finset.mem_cons.mpr (Or.inr hm), fun g hg v hv =>
+          (Finset.mem_cons.mp hg).elim
+            (fun e => e ▸ h v hv)
+            (fun hg' => hmmax g hg' v hv)⟩
+  obtain ⟨m, hm, hmmax⟩ := hmax units hne (Finset.Subset.refl units)
+  -- the `m`-piece of `C`
+  obtain ⟨-, φ, hφ_bij, hφ_eq⟩ := hC_gen
+  refine ⟨(φ ⟨m, hm⟩).1, (φ ⟨m, hm⟩).2, ?_⟩
+  intro v hv
+  rw [(hφ_eq ⟨m, hm⟩).1, (hφ_eq ⟨m, hm⟩).2]
+  exact ⟨hv.1, fun g hg => hmmax g hg v hv,
+    not_vle_zero_of_isUnit (h_units m hm) v⟩
+
 /-- **Part (iii) sub-lemma 2**: construct the ratio Laurent cover from a finite
 list of unit generators. The Laurent generators are `{f_i · f_j⁻¹ : i, j}`. -/
 theorem ratio_laurent_cover_of_units [DecidableEq A]
@@ -1495,7 +7706,7 @@ theorem ratio_laurent_cover_of_units [DecidableEq A]
     (D₀ : RationalLocData A) (units : Finset A)
     (_h_units_unit : ∀ f ∈ units, IsUnit (D₀.canonicalMap f)) :
     ∃ (V : RationalCovering A) (fs : List A),
-      V.IsLaurentCover fs ∧
+      V.IsLaurentProdCover fs ∧
       V.base = D₀ := by
   -- Construction: iterate `laurentRationalCover` over the ratio list
   -- {f_i · f_j⁻¹ : i, j ∈ units} (interpreted in 𝒪_X(D₀)).
@@ -1514,7 +7725,7 @@ theorem ratio_laurent_covers_each_unit_gen_piece [DecidableEq A]
       CompleteSpace A]
     (C : RationalCovering A) (_hC_unit : C.IsGeneratedByUnits)
     (V : RationalCovering A) (_hV_base : V.base = C.base)
-    (_fs : List A) (_hV_laurent : V.IsLaurentCover _fs) :
+    (_fs : List A) (_hV_laurent : V.IsLaurentProdCover _fs) :
     ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
       ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
         rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s := by
@@ -1538,7 +7749,7 @@ theorem ratio_laurent_refines_unit_gen [DecidableEq A]
     (C : RationalCovering A) (_hC_unit : C.IsGeneratedByUnits)
     (V : RationalCovering A) (_hV_base : V.base = C.base)
     -- V is a Laurent cover by the ratios extracted from C's unit generators.
-    (_fs : List A) (_hV_laurent : V.IsLaurentCover _fs)
+    (_fs : List A) (_hV_laurent : V.IsLaurentProdCover _fs)
     (V' : RationalLocData A) (_hV' : V' ∈ V.covers) :
     ∃ D ∈ C.covers, rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s := by
   -- σ-walk argument: V' corresponds to a sign vector σ on the ratios;
@@ -1559,7 +7770,7 @@ theorem wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent [DecidableEq A]
       CompleteSpace A]
     (C : RationalCovering A) (hC_unit : C.IsGeneratedByUnits) :
     ∃ (V : RationalCovering A) (fs : List A),
-      V.IsLaurentCover fs ∧
+      V.IsLaurentProdCover fs ∧
       V.base = C.base ∧
       (∀ V' ∈ V.covers, ∃ D ∈ C.covers,
         rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s) := by
@@ -1602,7 +7813,7 @@ theorem wedhorn_lemma_834_part_iii_unit_gen_refines_to_laurent_covers_each_D
       CompleteSpace A]
     (C : RationalCovering A) (hC_unit : C.IsGeneratedByUnits) :
     ∃ (V : RationalCovering A) (fs : List A),
-      V.IsLaurentCover fs ∧
+      V.IsLaurentProdCover fs ∧
       V.base = C.base ∧
       (∀ V' ∈ V.covers, ∃ D ∈ C.covers,
         rationalOpen V'.T V'.s ⊆ rationalOpen D.T D.s) ∧
@@ -1624,7 +7835,6 @@ parts (iii) (refines by a Laurent cover) and (i) (Laurent acyclic). -/
 theorem wedhorn_lemma_834_C_restr_acyclic [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (C_restr : RationalCovering A) (_h_C_restr_unit : C_restr.IsGeneratedByUnits) :
@@ -1658,10 +7868,9 @@ applied to the Laurent cover restricted to U. -/
 theorem wedhorn_lemma_834_V_restr_acyclic [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (V : RationalCovering A) (fs : List A) (hV_laurent : V.IsLaurentCover fs)
+    (V : RationalCovering A) (fs : List A) (hV_laurent : V.IsLaurentProdCover fs)
     (U : RationalLocData A)
     (_hU_subset : rationalOpen U.T U.s ⊆ rationalOpen V.base.T V.base.s)
     (V_restr : RationalCovering A) (h_V_restr_base : V_restr.base = U)
@@ -1671,13 +7880,19 @@ theorem wedhorn_lemma_834_V_restr_acyclic [DecidableEq A]
   wedhorn_lemma_834_part_i_laurent_restriction_acyclic V fs hV_laurent U
     _hU_subset V_restr h_V_restr_base h_V_restr_pieces
 
-/-- **Part (iv) sub-lemma (c) sub-(sep)**: under the bilateral
-refinement-acyclicity hypotheses (plus `V` refines `C`: every V-piece
-sits in some C-piece), separation transfers from `V` to `C`.
+/-- **Part (iv) sub-lemma (c) sub-(sep)** — Wedhorn Prop A.3(1) separation
+transfer, p. 105 (wedhorn.txt:5315-5325), refinement-free form.
 
-The additional `h_V_refines_C` hypothesis is the standard "V is a
-refinement of C" assumption that Prop A.3(1) actually requires (the
-existing decomposition omitted it). -/
+A.3(1) verbatim adds ONLY "`U | V_{j₀…j_q}` is `F`-acyclic" to the
+standing "`V | U_{i₀…i_q}` acyclic" hypothesis — there is NO "V refines
+U" hypothesis in the source. (The prior form's `h_V_refines_C` was an
+artifact, unsatisfiable for the `s⁻¹T`-Laurent cover of part (iv).)
+
+Route: given `x|_D = 0` for all `D ∈ C`, fix `V_j ∈ V`. The restriction
+`C|V_j` (the `C_restr_at` package) is an acyclic covering of `V_j` whose
+pieces `D'` each sit inside some `D ∈ C.covers`, so
+`(x|V_j)|D' = x|D' = (x|D)|D' = 0`; hence `x|V_j = 0` by
+`C|V_j`-separation, and `x = 0` by `V`-separation. -/
 theorem wedhorn_lemma_834_propA3_part1_separation
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
@@ -1685,14 +7900,11 @@ theorem wedhorn_lemma_834_propA3_part1_separation
       CompleteSpace A]
     (C V : RationalCovering A) (h_V_base : V.base = C.base)
     (h_V_acyclic : V.IsOXAcyclic)
-    (h_V_refines_C : ∀ V_j ∈ V.covers, ∃ U ∈ C.covers,
-      rationalOpen V_j.T V_j.s ⊆ rationalOpen U.T U.s)
-    (_V_restr_at : ↥C.covers → RationalCovering A)
-    (_hV_restr_base : ∀ U : ↥C.covers, (_V_restr_at U).base = U.1)
-    (_hV_restr_pieces : ∀ U : ↥C.covers, ∀ V' ∈ (_V_restr_at U).covers,
-      ∃ V'' ∈ V.covers,
-        rationalOpen V'.T V'.s ⊆ rationalOpen V''.T V''.s)
-    (_hV_restr_acyclic : ∀ U : ↥C.covers, (_V_restr_at U).IsOXAcyclic) :
+    (C_restr_at : ↥V.covers → RationalCovering A)
+    (hC_restr_base : ∀ Vj : ↥V.covers, (C_restr_at Vj).base = Vj.1)
+    (hC_restr_pieces : ∀ Vj : ↥V.covers, ∀ D' ∈ (C_restr_at Vj).covers,
+      ∃ D ∈ C.covers, rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (hC_restr_acyclic : ∀ Vj : ↥V.covers, (C_restr_at Vj).IsOXAcyclic) :
     ∀ (x : presheafValue C.base),
       (∀ (D : RationalLocData A) (hD : D ∈ C.covers),
         restrictionMap C.base D (C.hsubset D hD) x = 0) → x = 0 := by
@@ -1707,8 +7919,6 @@ theorem wedhorn_lemma_834_propA3_part1_separation
   -- Apply V.IsOXAcyclic.separation to g x.
   apply h_V_acyclic.separation
   intro V_j hV_j
-  -- Pick U ∈ C.covers with V_j ⊆ U.
-  obtain ⟨U, hU_in_C, hV_j_sub_U⟩ := h_V_refines_C V_j hV_j
   -- restrictionMap V.base V_j (g x) = restrictionMap C.base V_j x (via cast).
   have hsub_C : rationalOpen V_j.T V_j.s ⊆ rationalOpen C.base.T C.base.s := by
     rw [← h_V_base]; exact V.hsubset V_j hV_j
@@ -1718,17 +7928,37 @@ theorem wedhorn_lemma_834_propA3_part1_separation
     RationalCovering.presheafValueCast_restrictionMap C.base V.base
       h_V_base V_j hsub_C (V.hsubset V_j hV_j) x
   rw [h_cast]
-  -- restrictionMap C.base V_j x = restrictionMap U V_j (restrictionMap C.base U x)
-  -- by composition.
-  have hcomp := restrictionMap_comp (A := A) C.base U V_j
-    (C.hsubset U hU_in_C) hV_j_sub_U
+  -- Transport x|V_j through the (C_restr_at Vj).base = V_j cast and apply
+  -- the SEPARATION of the acyclic covering C|V_j.
+  have h_base : (C_restr_at ⟨V_j, hV_j⟩).base = V_j := hC_restr_base ⟨V_j, hV_j⟩
+  rw [← RationalCovering.presheafValue_eqRec_eq_zero_iff V_j
+    (C_restr_at ⟨V_j, hV_j⟩).base h_base.symm
+    (restrictionMap C.base V_j hsub_C x)]
+  apply (hC_restr_acyclic ⟨V_j, hV_j⟩).separation
+  intro D' hD'
+  -- The D'-restriction of the transported element equals x|D' (cast-compat
+  -- + restriction composition).
+  have hsub_Vj : rationalOpen D'.T D'.s ⊆ rationalOpen V_j.T V_j.s := by
+    rw [← h_base]; exact (C_restr_at ⟨V_j, hV_j⟩).hsubset D' hD'
+  rw [RationalCovering.eqRec_restrictionMap_direct V_j
+    (C_restr_at ⟨V_j, hV_j⟩).base h_base.symm D' hsub_Vj
+    ((C_restr_at ⟨V_j, hV_j⟩).hsubset D' hD')
+    (restrictionMap C.base V_j hsub_C x)]
   have h_factored :
-      restrictionMap C.base V_j hsub_C x =
-      restrictionMap U V_j hV_j_sub_U
-        (restrictionMap C.base U (C.hsubset U hU_in_C) x) :=
-    (congr_fun hcomp x).symm
-  rw [h_factored, hx U hU_in_C]
-  exact (restrictionMapHom U V_j hV_j_sub_U).map_zero
+      restrictionMap V_j D' hsub_Vj (restrictionMap C.base V_j hsub_C x) =
+      restrictionMap C.base D' (hsub_Vj.trans hsub_C) x :=
+    congr_fun (restrictionMap_comp (A := A) C.base V_j D' hsub_C hsub_Vj) x
+  rw [h_factored]
+  -- Pick D ∈ C.covers with D' ⊆ D, factor through D, and kill via hx.
+  obtain ⟨D, hD_in_C, hD'_sub_D⟩ := hC_restr_pieces ⟨V_j, hV_j⟩ D' hD'
+  have h_factored₂ :
+      restrictionMap C.base D' (hsub_Vj.trans hsub_C) x =
+      restrictionMap D D' hD'_sub_D
+        (restrictionMap C.base D (C.hsubset D hD_in_C) x) :=
+    (congr_fun (restrictionMap_comp (A := A) C.base D D'
+      (C.hsubset D hD_in_C) hD'_sub_D) x).symm
+  rw [h_factored₂, hx D hD_in_C]
+  exact (restrictionMapHom D D' hD'_sub_D).map_zero
 
 /-- **Part (iv) sub-lemma (c) sub-(glu)**: under the bilateral
 refinement-acyclicity hypotheses, gluing transfers from `V` (with
@@ -1740,9 +7970,6 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
       CompleteSpace A]
     (C V : RationalCovering A) (_hV_base : V.base = C.base)
     (_hV_acyclic : V.IsOXAcyclic)
-    -- V refines C: every V-piece sits in some C-piece (matches propA3_part1_separation).
-    (_h_V_refines_C : ∀ V_j ∈ V.covers, ∃ U ∈ C.covers,
-      rationalOpen V_j.T V_j.s ⊆ rationalOpen U.T U.s)
     (V_restr_at : ↥C.covers → RationalCovering A)
     (_hV_restr_base : ∀ U : ↥C.covers, (V_restr_at U).base = U.1)
     (_hV_restr_pieces : ∀ U : ↥C.covers, ∀ V' ∈ (V_restr_at U).covers,
@@ -1765,7 +7992,26 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
     (_hC_restr_acyclic : ∀ Vj : ↥V.covers, (C_restr_at Vj).IsOXAcyclic)
     (_hC_restr_covers : ∀ Vj : ↥V.covers, ∀ v ∈ rationalOpen Vj.1.T Vj.1.s,
       ∃ D' ∈ (C_restr_at Vj).covers, v ∈ rationalOpen D'.T D'.s ∧
-        rationalOpen D'.T D'.s ⊆ rationalOpen Vj.1.T Vj.1.s) :
+        rationalOpen D'.T D'.s ⊆ rationalOpen Vj.1.T Vj.1.s)
+    -- q=1 instance of A.3(1)'s standing hypothesis (wedhorn.txt:5316-5318:
+    -- "U | V_{j₀…j_q} is F-acyclic for all (j₀,…,j_q) ∈ J^{q+1}"): per pair
+    -- (Vj₁, Vj₂), an acyclic covering W of the intersection I = Vj₁ ∩ Vj₂
+    -- whose pieces lie inside single pieces of the two single-index
+    -- restrictions C|Vj₁, C|Vj₂. Wedhorn p. 84 discharges these instances by
+    -- the same part-(ii) construction ("which exists by (ii)").
+    (I_at : ↥V.covers → ↥V.covers → RationalLocData A)
+    (hI_open : ∀ Vj₁ Vj₂ : ↥V.covers,
+      rationalOpen (I_at Vj₁ Vj₂).T (I_at Vj₁ Vj₂).s =
+        rationalOpen Vj₁.1.T Vj₁.1.s ∩ rationalOpen Vj₂.1.T Vj₂.1.s)
+    (W_at : ↥V.covers → ↥V.covers → RationalCovering A)
+    (hW_base : ∀ Vj₁ Vj₂ : ↥V.covers, (W_at Vj₁ Vj₂).base = I_at Vj₁ Vj₂)
+    (hW_pieces₁ : ∀ Vj₁ Vj₂ : ↥V.covers, ∀ W' ∈ (W_at Vj₁ Vj₂).covers,
+      ∃ D'₁ ∈ (C_restr_at Vj₁).covers,
+        rationalOpen W'.T W'.s ⊆ rationalOpen D'₁.T D'₁.s)
+    (hW_pieces₂ : ∀ Vj₁ Vj₂ : ↥V.covers, ∀ W' ∈ (W_at Vj₁ Vj₂).covers,
+      ∃ D'₂ ∈ (C_restr_at Vj₂).covers,
+        rationalOpen W'.T W'.s ⊆ rationalOpen D'₂.T D'₂.s)
+    (hW_acyclic : ∀ Vj₁ Vj₂ : ↥V.covers, (W_at Vj₁ Vj₂).IsOXAcyclic) :
     ∀ (f : ∀ (D : ↥C.covers), presheafValue D.1),
       (∀ (D₁ D₂ : ↥C.covers)
          (D₃ : RationalLocData A)
@@ -1900,7 +8146,14 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
     exact RationalCovering.presheafValue_eqRec_double_cancel_forward
       (C_restr_at Vj).base Vj.1 (_hC_restr_base Vj)
       (restrictionMap D.1 Vj.1 h_sub (f D))
-  -- Now use inner_identity_generic for h_yV_compat.
+  -- Step 5 (refinement-free, 2026-06-10): yV is compatible on V via the
+  -- q=1 pair-package — reduce an arbitrary common rational subset Vj₃ to
+  -- the canonical intersection I = I_at Vj₁ Vj₂, then SEPARATE over the
+  -- acyclic covering W_at Vj₁ Vj₂ of I: on each W-piece both sides become
+  -- restrictions of f-values (through single C_restr-pieces), and h_compat
+  -- closes. This mirrors the abstract A.3(1) degree-0 chase, where the
+  -- multi-index standing hypothesis (q=1) is exactly what makes the glued
+  -- local sections agree on overlaps.
   have h_yV_compat : ∀ (Vj₁ Vj₂ : ↥V.covers)
       (Vj₃ : RationalLocData A)
       (h₃₁ : rationalOpen Vj₃.T Vj₃.s ⊆ rationalOpen Vj₁.1.T Vj₁.1.s)
@@ -1908,25 +8161,138 @@ theorem wedhorn_lemma_834_propA3_part1_gluing
       restrictionMap Vj₁.1 Vj₃ h₃₁ (yV Vj₁) =
         restrictionMap Vj₂.1 Vj₃ h₃₂ (yV Vj₂) := by
     intro Vj₁ Vj₂ Vj₃ h₃₁ h₃₂
-    obtain ⟨D_1, hD_1_in_C, hVj_1_sub_D_1⟩ := _h_V_refines_C Vj₁.1 Vj₁.2
-    obtain ⟨D_2, hD_2_in_C, hVj_2_sub_D_2⟩ := _h_V_refines_C Vj₂.1 Vj₂.2
-    rw [inner_identity_generic Vj₁ ⟨D_1, hD_1_in_C⟩ hVj_1_sub_D_1]
-    rw [inner_identity_generic Vj₂ ⟨D_2, hD_2_in_C⟩ hVj_2_sub_D_2]
-    -- LHS = restrictionMap Vj₁ Vj₃ (restrictionMap D_1 Vj₁ ... (f D_1))
-    --     = restrictionMap D_1 Vj₃ (chained) (f D_1) [restrictionMap_comp]
-    have h_LHS_comp := restrictionMap_comp D_1 Vj₁.1 Vj₃ hVj_1_sub_D_1 h₃₁
-    have h_RHS_comp := restrictionMap_comp D_2 Vj₂.1 Vj₃ hVj_2_sub_D_2 h₃₂
-    rw [show restrictionMap Vj₁.1 Vj₃ h₃₁
-          (restrictionMap D_1 Vj₁.1 hVj_1_sub_D_1 (f ⟨D_1, hD_1_in_C⟩)) =
-        restrictionMap D_1 Vj₃ (h₃₁.trans hVj_1_sub_D_1) (f ⟨D_1, hD_1_in_C⟩)
-      from congrFun h_LHS_comp _]
-    rw [show restrictionMap Vj₂.1 Vj₃ h₃₂
-          (restrictionMap D_2 Vj₂.1 hVj_2_sub_D_2 (f ⟨D_2, hD_2_in_C⟩)) =
-        restrictionMap D_2 Vj₃ (h₃₂.trans hVj_2_sub_D_2) (f ⟨D_2, hD_2_in_C⟩)
-      from congrFun h_RHS_comp _]
-    -- By h_compat applied to ⟨D_1, hD_1_in_C⟩, ⟨D_2, hD_2_in_C⟩, Vj₃.
-    exact h_compat ⟨D_1, hD_1_in_C⟩ ⟨D_2, hD_2_in_C⟩ Vj₃
-      (h₃₁.trans hVj_1_sub_D_1) (h₃₂.trans hVj_2_sub_D_2)
+    have hyVj_spec₁ : ∀ (D'' : ↥(C_restr_at Vj₁).covers),
+        restrictionMap (C_restr_at Vj₁).base D''.1
+          ((C_restr_at Vj₁).hsubset D''.1 D''.2) (yVj Vj₁) = gVj Vj₁ D'' :=
+      ((_hC_restr_acyclic Vj₁).gluing (gVj Vj₁) (h_gVj_compat Vj₁)).choose_spec
+    have hyVj_spec₂ : ∀ (D'' : ↥(C_restr_at Vj₂).covers),
+        restrictionMap (C_restr_at Vj₂).base D''.1
+          ((C_restr_at Vj₂).hsubset D''.1 D''.2) (yVj Vj₂) = gVj Vj₂ D'' :=
+      ((_hC_restr_acyclic Vj₂).gluing (gVj Vj₂) (h_gVj_compat Vj₂)).choose_spec
+    have hI_sub₁ : rationalOpen (I_at Vj₁ Vj₂).T (I_at Vj₁ Vj₂).s ⊆
+        rationalOpen Vj₁.1.T Vj₁.1.s := by
+      rw [hI_open Vj₁ Vj₂]; exact Set.inter_subset_left
+    have hI_sub₂ : rationalOpen (I_at Vj₁ Vj₂).T (I_at Vj₁ Vj₂).s ⊆
+        rationalOpen Vj₂.1.T Vj₂.1.s := by
+      rw [hI_open Vj₁ Vj₂]; exact Set.inter_subset_right
+    have h₃I : rationalOpen Vj₃.T Vj₃.s ⊆
+        rationalOpen (I_at Vj₁ Vj₂).T (I_at Vj₁ Vj₂).s := by
+      rw [hI_open Vj₁ Vj₂]; exact Set.subset_inter h₃₁ h₃₂
+    -- Reduce to agreement on the canonical intersection I.
+    suffices h_on_I : restrictionMap Vj₁.1 (I_at Vj₁ Vj₂) hI_sub₁ (yV Vj₁) =
+        restrictionMap Vj₂.1 (I_at Vj₁ Vj₂) hI_sub₂ (yV Vj₂) by
+      have hL : restrictionMap Vj₁.1 Vj₃ h₃₁ (yV Vj₁) =
+          restrictionMap (I_at Vj₁ Vj₂) Vj₃ h₃I
+            (restrictionMap Vj₁.1 (I_at Vj₁ Vj₂) hI_sub₁ (yV Vj₁)) :=
+        (congrFun (restrictionMap_comp Vj₁.1 (I_at Vj₁ Vj₂) Vj₃ hI_sub₁ h₃I)
+          (yV Vj₁)).symm
+      have hR : restrictionMap Vj₂.1 Vj₃ h₃₂ (yV Vj₂) =
+          restrictionMap (I_at Vj₁ Vj₂) Vj₃ h₃I
+            (restrictionMap Vj₂.1 (I_at Vj₁ Vj₂) hI_sub₂ (yV Vj₂)) :=
+        (congrFun (restrictionMap_comp Vj₂.1 (I_at Vj₁ Vj₂) Vj₃ hI_sub₂ h₃I)
+          (yV Vj₂)).symm
+      rw [hL, hR, h_on_I]
+    -- Agreement on I via SEPARATION over the acyclic W_at Vj₁ Vj₂.
+    rw [← sub_eq_zero]
+    rw [← RationalCovering.presheafValue_eqRec_eq_zero_iff (I_at Vj₁ Vj₂)
+      (W_at Vj₁ Vj₂).base (hW_base Vj₁ Vj₂).symm
+      (restrictionMap Vj₁.1 (I_at Vj₁ Vj₂) hI_sub₁ (yV Vj₁) -
+        restrictionMap Vj₂.1 (I_at Vj₁ Vj₂) hI_sub₂ (yV Vj₂))]
+    apply (hW_acyclic Vj₁ Vj₂).separation
+    intro W' hW'
+    have hsub_I : rationalOpen W'.T W'.s ⊆
+        rationalOpen (I_at Vj₁ Vj₂).T (I_at Vj₁ Vj₂).s := by
+      rw [← hW_base Vj₁ Vj₂]; exact (W_at Vj₁ Vj₂).hsubset W' hW'
+    rw [RationalCovering.eqRec_restrictionMap_direct (I_at Vj₁ Vj₂)
+      (W_at Vj₁ Vj₂).base (hW_base Vj₁ Vj₂).symm W' hsub_I
+      ((W_at Vj₁ Vj₂).hsubset W' hW')
+      (restrictionMap Vj₁.1 (I_at Vj₁ Vj₂) hI_sub₁ (yV Vj₁) -
+        restrictionMap Vj₂.1 (I_at Vj₁ Vj₂) hI_sub₂ (yV Vj₂))]
+    show (restrictionMapHom (I_at Vj₁ Vj₂) W' hsub_I) _ = 0
+    rw [map_sub, sub_eq_zero]
+    change restrictionMap (I_at Vj₁ Vj₂) W' hsub_I
+        (restrictionMap Vj₁.1 (I_at Vj₁ Vj₂) hI_sub₁ (yV Vj₁)) =
+      restrictionMap (I_at Vj₁ Vj₂) W' hsub_I
+        (restrictionMap Vj₂.1 (I_at Vj₁ Vj₂) hI_sub₂ (yV Vj₂))
+    obtain ⟨D'₁, hD'₁_in, hW'_sub_D'₁⟩ := hW_pieces₁ Vj₁ Vj₂ W' hW'
+    obtain ⟨D'₂, hD'₂_in, hW'_sub_D'₂⟩ := hW_pieces₂ Vj₁ Vj₂ W' hW'
+    have hD'₁_sub : rationalOpen D'₁.T D'₁.s ⊆ rationalOpen Vj₁.1.T Vj₁.1.s := by
+      have := (C_restr_at Vj₁).hsubset D'₁ hD'₁_in
+      rw [_hC_restr_base Vj₁] at this
+      exact this
+    have hD'₂_sub : rationalOpen D'₂.T D'₂.s ⊆ rationalOpen Vj₂.1.T Vj₂.1.s := by
+      have := (C_restr_at Vj₂).hsubset D'₂ hD'₂_in
+      rw [_hC_restr_base Vj₂] at this
+      exact this
+    -- Collapse the I-leg, then factor each side through its C_restr-piece.
+    rw [show restrictionMap (I_at Vj₁ Vj₂) W' hsub_I
+          (restrictionMap Vj₁.1 (I_at Vj₁ Vj₂) hI_sub₁ (yV Vj₁)) =
+        restrictionMap Vj₁.1 W' (hsub_I.trans hI_sub₁) (yV Vj₁)
+      from congrFun (restrictionMap_comp Vj₁.1 (I_at Vj₁ Vj₂) W' hI_sub₁ hsub_I)
+        (yV Vj₁),
+      show restrictionMap (I_at Vj₁ Vj₂) W' hsub_I
+          (restrictionMap Vj₂.1 (I_at Vj₁ Vj₂) hI_sub₂ (yV Vj₂)) =
+        restrictionMap Vj₂.1 W' (hsub_I.trans hI_sub₂) (yV Vj₂)
+      from congrFun (restrictionMap_comp Vj₂.1 (I_at Vj₁ Vj₂) W' hI_sub₂ hsub_I)
+        (yV Vj₂),
+      show restrictionMap Vj₁.1 W' (hsub_I.trans hI_sub₁) (yV Vj₁) =
+        restrictionMap D'₁ W' hW'_sub_D'₁
+          (restrictionMap Vj₁.1 D'₁ hD'₁_sub (yV Vj₁))
+      from (congrFun (restrictionMap_comp Vj₁.1 D'₁ W' hD'₁_sub hW'_sub_D'₁)
+        (yV Vj₁)).symm,
+      show restrictionMap Vj₂.1 W' (hsub_I.trans hI_sub₂) (yV Vj₂) =
+        restrictionMap D'₂ W' hW'_sub_D'₂
+          (restrictionMap Vj₂.1 D'₂ hD'₂_sub (yV Vj₂))
+      from (congrFun (restrictionMap_comp Vj₂.1 D'₂ W' hD'₂_sub hW'_sub_D'₂)
+        (yV Vj₂)).symm]
+    -- Evaluate (yV Vjᵢ)|D'ᵢ via the glued specs (cast-compat).
+    have h_inner₁ : restrictionMap Vj₁.1 D'₁ hD'₁_sub (yV Vj₁) =
+        gVj Vj₁ ⟨D'₁, hD'₁_in⟩ := by
+      show restrictionMap Vj₁.1 D'₁ hD'₁_sub
+          (@Eq.rec (RationalLocData A) (C_restr_at Vj₁).base
+            (fun b _ => presheafValue b) (yVj Vj₁) Vj₁.1 (_hC_restr_base Vj₁)) =
+        gVj Vj₁ ⟨D'₁, hD'₁_in⟩
+      rw [RationalCovering.eqRec_restrictionMap_direct (C_restr_at Vj₁).base
+        Vj₁.1 (_hC_restr_base Vj₁) D'₁ ((C_restr_at Vj₁).hsubset D'₁ hD'₁_in)
+        hD'₁_sub (yVj Vj₁)]
+      exact hyVj_spec₁ ⟨D'₁, hD'₁_in⟩
+    have h_inner₂ : restrictionMap Vj₂.1 D'₂ hD'₂_sub (yV Vj₂) =
+        gVj Vj₂ ⟨D'₂, hD'₂_in⟩ := by
+      show restrictionMap Vj₂.1 D'₂ hD'₂_sub
+          (@Eq.rec (RationalLocData A) (C_restr_at Vj₂).base
+            (fun b _ => presheafValue b) (yVj Vj₂) Vj₂.1 (_hC_restr_base Vj₂)) =
+        gVj Vj₂ ⟨D'₂, hD'₂_in⟩
+      rw [RationalCovering.eqRec_restrictionMap_direct (C_restr_at Vj₂).base
+        Vj₂.1 (_hC_restr_base Vj₂) D'₂ ((C_restr_at Vj₂).hsubset D'₂ hD'₂_in)
+        hD'₂_sub (yVj Vj₂)]
+      exact hyVj_spec₂ ⟨D'₂, hD'₂_in⟩
+    rw [h_inner₁, h_inner₂]
+    -- Unfold gVj to the f-restrictions and collapse the final comps.
+    show restrictionMap D'₁ W' hW'_sub_D'₁
+        (restrictionMap (chooseC Vj₁ ⟨D'₁, hD'₁_in⟩).1.1 D'₁
+          (chooseC Vj₁ ⟨D'₁, hD'₁_in⟩).2 (f (chooseC Vj₁ ⟨D'₁, hD'₁_in⟩).1)) =
+      restrictionMap D'₂ W' hW'_sub_D'₂
+        (restrictionMap (chooseC Vj₂ ⟨D'₂, hD'₂_in⟩).1.1 D'₂
+          (chooseC Vj₂ ⟨D'₂, hD'₂_in⟩).2 (f (chooseC Vj₂ ⟨D'₂, hD'₂_in⟩).1))
+    rw [show restrictionMap D'₁ W' hW'_sub_D'₁
+          (restrictionMap (chooseC Vj₁ ⟨D'₁, hD'₁_in⟩).1.1 D'₁
+            (chooseC Vj₁ ⟨D'₁, hD'₁_in⟩).2 (f (chooseC Vj₁ ⟨D'₁, hD'₁_in⟩).1)) =
+        restrictionMap (chooseC Vj₁ ⟨D'₁, hD'₁_in⟩).1.1 W'
+          (hW'_sub_D'₁.trans (chooseC Vj₁ ⟨D'₁, hD'₁_in⟩).2)
+          (f (chooseC Vj₁ ⟨D'₁, hD'₁_in⟩).1)
+      from congrFun (restrictionMap_comp (chooseC Vj₁ ⟨D'₁, hD'₁_in⟩).1.1 D'₁ W'
+        (chooseC Vj₁ ⟨D'₁, hD'₁_in⟩).2 hW'_sub_D'₁) _,
+      show restrictionMap D'₂ W' hW'_sub_D'₂
+          (restrictionMap (chooseC Vj₂ ⟨D'₂, hD'₂_in⟩).1.1 D'₂
+            (chooseC Vj₂ ⟨D'₂, hD'₂_in⟩).2 (f (chooseC Vj₂ ⟨D'₂, hD'₂_in⟩).1)) =
+        restrictionMap (chooseC Vj₂ ⟨D'₂, hD'₂_in⟩).1.1 W'
+          (hW'_sub_D'₂.trans (chooseC Vj₂ ⟨D'₂, hD'₂_in⟩).2)
+          (f (chooseC Vj₂ ⟨D'₂, hD'₂_in⟩).1)
+      from congrFun (restrictionMap_comp (chooseC Vj₂ ⟨D'₂, hD'₂_in⟩).1.1 D'₂ W'
+        (chooseC Vj₂ ⟨D'₂, hD'₂_in⟩).2 hW'_sub_D'₂) _]
+    exact h_compat (chooseC Vj₁ ⟨D'₁, hD'₁_in⟩).1 (chooseC Vj₂ ⟨D'₂, hD'₂_in⟩).1
+      W' (hW'_sub_D'₁.trans (chooseC Vj₁ ⟨D'₁, hD'₁_in⟩).2)
+      (hW'_sub_D'₂.trans (chooseC Vj₂ ⟨D'₂, hD'₂_in⟩).2)
   -- Step 6: apply V.IsOXAcyclic.gluing to (yV, h_yV_compat) to get x' on V.base.
   obtain ⟨x', hx'⟩ := _hV_acyclic.gluing yV h_yV_compat
   -- Step 7: cast x' to x : presheafValue C.base via presheafValueCast on _hV_base.
@@ -2041,7 +8407,9 @@ acyclic restriction `V|U` for each `U ∈ C.covers`, and a specific
 acyclic restriction `C|Vj` for each `Vj ∈ V.covers`, conclude `C` is
 acyclic.
 
-This is the project-form of Wedhorn Prop A.3(1) (mutual refinement).
+This is the project-form of Wedhorn Prop A.3(1), p. 105
+(wedhorn.txt:5315-5325): bilateral restriction-acyclicity, with NO
+refinement hypothesis (faithful to the source as of 2026-06-10).
 Composed from separation transfer + gluing transfer. -/
 theorem wedhorn_lemma_834_propA3_part1_bridge
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
@@ -2050,9 +8418,6 @@ theorem wedhorn_lemma_834_propA3_part1_bridge
       CompleteSpace A]
     (C V : RationalCovering A) (hV_base : V.base = C.base)
     (hV_acyclic : V.IsOXAcyclic)
-    -- V refines C: every V-piece sits in some C-piece (Prop A.3(1) requirement).
-    (h_V_refines_C : ∀ V_j ∈ V.covers, ∃ U ∈ C.covers,
-      rationalOpen V_j.T V_j.s ⊆ rationalOpen U.T U.s)
     (V_restr_at : ↥C.covers → RationalCovering A)
     (hV_restr_base : ∀ U : ↥C.covers, (V_restr_at U).base = U.1)
     (hV_restr_pieces : ∀ U : ↥C.covers, ∀ V' ∈ (V_restr_at U).covers,
@@ -2072,42 +8437,39 @@ theorem wedhorn_lemma_834_propA3_part1_bridge
         rationalOpen V'.T V'.s ⊆ rationalOpen U.1.T U.1.s)
     (hC_restr_covers : ∀ Vj : ↥V.covers, ∀ v ∈ rationalOpen Vj.1.T Vj.1.s,
       ∃ D' ∈ (C_restr_at Vj).covers, v ∈ rationalOpen D'.T D'.s ∧
-        rationalOpen D'.T D'.s ⊆ rationalOpen Vj.1.T Vj.1.s) :
+        rationalOpen D'.T D'.s ⊆ rationalOpen Vj.1.T Vj.1.s)
+    -- q=1 instance of A.3(1)'s standing hypothesis (wedhorn.txt:5316-5318):
+    -- acyclic C-refining coverings of the pairwise intersections Vj₁ ∩ Vj₂.
+    (I_at : ↥V.covers → ↥V.covers → RationalLocData A)
+    (hI_open : ∀ Vj₁ Vj₂ : ↥V.covers,
+      rationalOpen (I_at Vj₁ Vj₂).T (I_at Vj₁ Vj₂).s =
+        rationalOpen Vj₁.1.T Vj₁.1.s ∩ rationalOpen Vj₂.1.T Vj₂.1.s)
+    (W_at : ↥V.covers → ↥V.covers → RationalCovering A)
+    (hW_base : ∀ Vj₁ Vj₂ : ↥V.covers, (W_at Vj₁ Vj₂).base = I_at Vj₁ Vj₂)
+    (hW_pieces₁ : ∀ Vj₁ Vj₂ : ↥V.covers, ∀ W' ∈ (W_at Vj₁ Vj₂).covers,
+      ∃ D'₁ ∈ (C_restr_at Vj₁).covers,
+        rationalOpen W'.T W'.s ⊆ rationalOpen D'₁.T D'₁.s)
+    (hW_pieces₂ : ∀ Vj₁ Vj₂ : ↥V.covers, ∀ W' ∈ (W_at Vj₁ Vj₂).covers,
+      ∃ D'₂ ∈ (C_restr_at Vj₂).covers,
+        rationalOpen W'.T W'.s ⊆ rationalOpen D'₂.T D'₂.s)
+    (hW_acyclic : ∀ Vj₁ Vj₂ : ↥V.covers, (W_at Vj₁ Vj₂).IsOXAcyclic) :
     C.IsOXAcyclic :=
   { separation := wedhorn_lemma_834_propA3_part1_separation C V hV_base
-      hV_acyclic h_V_refines_C V_restr_at hV_restr_base hV_restr_pieces
-      hV_restr_acyclic
+      hV_acyclic C_restr_at hC_restr_base hC_restr_pieces hC_restr_acyclic
     gluing := wedhorn_lemma_834_propA3_part1_gluing C V hV_base
-      hV_acyclic h_V_refines_C V_restr_at hV_restr_base hV_restr_pieces
+      hV_acyclic V_restr_at hV_restr_base hV_restr_pieces
       hV_restr_pieces_in_V hV_restr_acyclic hV_restr_covers C_restr_at hC_restr_base
-      hC_restr_pieces hC_restr_acyclic hC_restr_covers }
+      hC_restr_pieces hC_restr_acyclic hC_restr_covers I_at hI_open W_at hW_base
+      hW_pieces₁ hW_pieces₂ hW_acyclic }
 
-/-- **NEW (T-WC-V-REFINES-C-FROM-DOM-UNIT, 2026-05-28)**: For the Laurent
-cover V from part (ii) of Lemma 8.34, V refines C — each V-piece sits in
-some C-piece, extracted via the σ-walk on the dominating-unit construction. -/
-theorem laurent_cover_refines_idealgen_cover [DecidableEq A]
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (C : RationalCovering A) (_T : Finset A) (_hC_gen : C.IsGeneratedBy _T)
-    (V : RationalCovering A) (_fs : List A) (_hV_laurent : V.IsLaurentCover _fs)
-    (_hV_base : V.base = C.base)
-    -- Construction hypotheses (2026-05-28 top-down restate): V is the SPECIFIC
-    -- Laurent cover by `s⁻¹·T` from `laurent_cover_from_dominating_unit`, with `s`
-    -- the dominating unit from Cor 7.32. The σ-walk needs the construction, not just
-    -- an opaque Laurent cover. Threaded from `part_ii` where these are in scope.
-    (s : Aˣ)
-    (_hs : ∀ v ∈ Spa A A⁺, ∃ t ∈ _T, v.vle (s : A) t ∧ ¬ v.vle t (s : A))
-    (_hfs_eq : _fs = (_T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t)) :
-    ∀ V_j ∈ V.covers, ∃ U ∈ C.covers,
-      rationalOpen V_j.T V_j.s ⊆ rationalOpen U.T U.s := by
-  -- σ-walk on dominating-unit construction: V_j corresponds to choosing
-  -- t_{i_max} ∈ T as the dominant generator. Then V_j ⊆ R(T/t_{i_max}) ∈ C.
-  -- Now provable: `_hfs_eq` pins fs = s⁻¹·T and `_hs` gives the dominating
-  -- property, so the σ-walk has the data it needs.
-  sorry
+-- DELETED (2026-06-10): `laurent_cover_refines_idealgen_cover`
+-- (T-WC-V-REFINES-C-FROM-DOM-UNIT) — a `sorry` leaf with NO Wedhorn
+-- counterpart. Prop A.3(1) (wedhorn.txt:5318-5320) has no refinement
+-- hypothesis, so its sole consumer (the `h_V_refines_C` slot of the
+-- part-1 bridge) was an artifact; the slot was removed and the leaf is
+-- consumer-free. It was also FALSE-suspect: a Laurent piece imposes
+-- conditions only on sign-patterns of `s⁻¹T`, which need not localise
+-- inside any single `R(T/t)`.
 
 /-- **NEW companion (T-WC-LAURENT-COVERS-EACH-IDEALGEN, 2026-05-28)**: the
 covering-each direction. For the dominating-unit Laurent cover V, every
@@ -2117,34 +8479,79 @@ v ∈ R(T/t_α), v(t_α) is already maximal so i_max = α — giving V_σ ⊆ R(
 theorem laurent_cover_covers_each_idealgen_piece [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (C : RationalCovering A) (_T : Finset A) (_hC_gen : C.IsGeneratedBy _T)
-    (V : RationalCovering A) (_fs : List A) (_hV_laurent : V.IsLaurentCover _fs)
+    (V : RationalCovering A) (_fs : List A) (_hV_laurent : V.IsLaurentProdCover _fs)
     (_hV_base : V.base = C.base)
-    -- Construction hypotheses (2026-05-28 top-down restate): same as
-    -- `laurent_cover_refines_idealgen_cover` — V is the s⁻¹·T Laurent cover.
+    -- Construction hypotheses (2026-05-28 top-down restate): V is the
+    -- s⁻¹·T Laurent cover from the dominating-unit construction.
     (s : Aˣ)
     (_hs : ∀ v ∈ Spa A A⁺, ∃ t ∈ _T, v.vle (s : A) t ∧ ¬ v.vle t (s : A))
     (_hfs_eq : _fs = (_T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t)) :
     ∀ U ∈ C.covers, ∀ v ∈ rationalOpen U.T U.s,
       ∃ V' ∈ V.covers, v ∈ rationalOpen V'.T V'.s ∧
         rationalOpen V'.T V'.s ⊆ rationalOpen U.T U.s := by
-  -- σ-walk on dominating-unit construction (companion to
-  -- laurent_cover_refines_idealgen_cover) gives the cover-each direction.
+  -- σ-walk on dominating-unit construction gives the cover-each direction:
+  -- for v ∈ R(T/t_α), the dominant index of v's σ-walk is α itself, so the
+  -- Laurent piece containing v sits inside R(T/t_α).
+  sorry
+
+/-- **Part (iv) pair-instances of the Prop A.3(1) standing hypothesis**
+(Wedhorn Prop A.3, p. 105, wedhorn.txt:5316-5318: "`U | V_{j₀…j_q}` is
+`F`-acyclic for all `(j₀,…,j_q) ∈ J^{q+1}`" — the `q = 1` instances; Wedhorn
+p. 84 (wedhorn.txt:4244-4247) discharges them by the same part-(ii)
+construction: "let 𝒱 be a Laurent cover such that 𝒰|V is a rational cover
+generated by a finite set of units for all V in 𝒱 (which exists by (ii))" —
+on the intersection `Vj₁ ∩ Vj₂` the part-(ii) units of `𝒪_X(Vjᵢ)` restrict to
+units, so `𝒰|Vj₁∩Vj₂` is again generated by units, hence acyclic).
+
+For each pair of `V`-pieces: a rational datum `I` realising the intersection
+and an acyclic covering `W` of `I` whose pieces lie inside single pieces of
+the two single-index restrictions `C|Vj₁`, `C|Vj₂`.
+
+Implementation route: `I := Vj₁.interSamePair Vj₂` (Laurent leaves share the
+base pair: `laurentPlusDatum`/`laurentMinusDatum` both set `P := D₀.P`);
+`W := pairwise interSamePair product of (C_restr_at Vj₁) and (C_restr_at Vj₂)`
+(pieces `D'₁ ∩ D'₂` tautologically inside both factors, covering by the two
+covers-properties); `W.IsGeneratedByUnits` via the product unit set
+`units₁ * units₂` (`Ideal.span_mul_span`, units restrict to units along
+`restrictionMapHom_canonicalMap`); acyclicity via
+`wedhorn_lemma_834_C_restr_acyclic`. -/
+theorem wedhorn_lemma_834_pair_package_exists [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (V : RationalCovering A) (_fs : List A)
+    (_hV_laurent : V.IsLaurentProdCover _fs)
+    (C_restr_at : ↥V.covers → RationalCovering A)
+    (_hC_restr_base : ∀ Vj : ↥V.covers, (C_restr_at Vj).base = Vj.1)
+    (_hC_restr_unit : ∀ Vj : ↥V.covers, (C_restr_at Vj).IsGeneratedByUnits)
+    (_hC_restr_covers : ∀ Vj : ↥V.covers, ∀ v ∈ rationalOpen Vj.1.T Vj.1.s,
+      ∃ D' ∈ (C_restr_at Vj).covers, v ∈ rationalOpen D'.T D'.s)
+    (Vj₁ Vj₂ : ↥V.covers) :
+    ∃ (I : RationalLocData A) (W : RationalCovering A),
+      rationalOpen I.T I.s =
+        rationalOpen Vj₁.1.T Vj₁.1.s ∩ rationalOpen Vj₂.1.T Vj₂.1.s ∧
+      W.base = I ∧
+      W.IsOXAcyclic ∧
+      (∀ W' ∈ W.covers, ∃ D'₁ ∈ (C_restr_at Vj₁).covers,
+        rationalOpen W'.T W'.s ⊆ rationalOpen D'₁.T D'₁.s) ∧
+      (∀ W' ∈ W.covers, ∃ D'₂ ∈ (C_restr_at Vj₂).covers,
+        rationalOpen W'.T W'.s ⊆ rationalOpen D'₂.T D'₂.s) := by
   sorry
 
 /-- **Wedhorn Lemma 8.34** (p. 84). *Let `A` be a complete strongly
 noetherian Tate ring and `𝒰` be a rational cover generated by some
 finite subset `T ⊆ A` with `T · A = A`. Then `𝒰` is `𝒪_X`-acyclic.*
 
-Composed from sub-lemmas (a) + (b) + (c) above + the new V-refines-C
-extraction (T-WC-V-REFINES-C-FROM-DOM-UNIT). -/
+Composed from sub-lemmas (a) + (b) + (c) above; the Prop A.3(1) bridge
+takes only the bilateral restriction-acyclicity packages (no refinement
+hypothesis — faithful to wedhorn.txt:5315-5325). -/
 theorem wedhorn_lemma_834 [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (C : RationalCovering A) (T : Finset A)
@@ -2163,13 +8570,9 @@ theorem wedhorn_lemma_834 [DecidableEq A]
   -- 𝒱 is itself acyclic (Laurent cover) — part (i):
   have _hV_acyclic : V.IsOXAcyclic :=
     wedhorn_lemma_834_part_i_laurent_acyclic V fs hV_laurent
-  -- V refines C (T-WC-V-REFINES-C-FROM-DOM-UNIT, 2026-05-28). Now threaded with
-  -- the construction data `s`, `hs`, `hfs_eq` exposed by `part_ii` — the σ-walk
-  -- lemma is provable from these (it was unprovable when V was opaque).
-  have _h_V_refines_C : ∀ V_j ∈ V.covers, ∃ U ∈ C.covers,
-      rationalOpen V_j.T V_j.s ⊆ rationalOpen U.T U.s :=
-    laurent_cover_refines_idealgen_cover C T _hC_gen V fs hV_laurent hV_base
-      s hs hfs_eq
+  -- NOTE (2026-06-10): no "V refines C" fact is needed — Prop A.3(1)
+  -- (wedhorn.txt:5318-5320) has no refinement hypothesis; the bilateral
+  -- restriction-acyclicity packages below are its exact data.
   -- C_restr_at family: comes from `hV_unit_restrictions`.
   choose C_at_Vj hC_at_base hC_at_unit hC_at_pieces hC_at_cover using
     fun Vj (hVj : Vj ∈ V.covers) => hV_unit_restrictions Vj hVj
@@ -2220,10 +8623,17 @@ theorem wedhorn_lemma_834 [DecidableEq A]
     intro U V' hV'_in
     simp only [V_restr_at, RationalCovering.restrictToPiece, Finset.mem_filter] at hV'_in
     exact hV'_in.1
+  -- Pair-level package: q=1 instances of the A.3(1) standing hypothesis,
+  -- discharged by the part-(ii) construction on intersections.
+  have h_pair := wedhorn_lemma_834_pair_package_exists V fs hV_laurent
+    C_restr_at hC_restr_base' (fun Vj => hC_at_unit Vj.1 Vj.2)
+    (fun Vj => hC_at_cover Vj.1 Vj.2)
+  choose I_at W_at hI_open hW_base hW_acyclic hW_pieces₁ hW_pieces₂ using h_pair
   -- Now apply propA3_part1_bridge.
-  refine wedhorn_lemma_834_propA3_part1_bridge C V hV_base _hV_acyclic _h_V_refines_C
+  refine wedhorn_lemma_834_propA3_part1_bridge C V hV_base _hV_acyclic
     V_restr_at hV_restr_base hV_restr_pieces hV_restr_pieces_in_V hV_restr_acyclic
     C_restr_at hC_restr_base' hC_restr_pieces' ?_ hV_restr_covers ?_
+    I_at hI_open W_at hW_base hW_pieces₁ hW_pieces₂ hW_acyclic
   · -- C_restr_at acyclic — use wedhorn_lemma_834_C_restr_acyclic on each.
     intro Vj
     exact wedhorn_lemma_834_C_restr_acyclic (C_restr_at Vj) (hC_at_unit Vj.1 Vj.2)
@@ -2250,6 +8660,3255 @@ three sub-lemmas (in this file's order):
 3. `IsOXAcyclic_of_refining_acyclic_cover` (Wedhorn Prop A.3(2) bridge):
    acyclicity transfers from a refinement to the original cover.
 -/
+
+/-! ### Lemma 7.54 — Huber [Hu3] 2.6 product trick (expert-review 2026-06-04)
+
+Huber's product set `P = {t₁⋯tₙ : tᵢ ∈ Tᵢ}` over a finite family of normalised
+rational covers `R(Tᵢ/sᵢ)`. We model it as the `Finset`-multiplication fold over a
+`List (Finset A)`, so the product identity `R(P/∏tᵢ) = ⋂ᵢ R(Tᵢ/tᵢ)` is a clean
+induction via `rationalOpen_inter`. -/
+
+/-- Huber's transversal-product set `P = {∏ tᵢ : tᵢ ∈ Tᵢ}` for a finite family
+`L = [T₁,…,Tₙ]` of `Finset`s — the `Finset`-multiplication fold. -/
+noncomputable def transversalProducts [DecidableEq A] (L : List (Finset A)) :
+    Finset A :=
+  L.foldr (· * ·) {1}
+
+@[simp] theorem transversalProducts_nil [DecidableEq A] :
+    transversalProducts ([] : List (Finset A)) = {1} := rfl
+
+theorem transversalProducts_cons [DecidableEq A] (Tk : Finset A)
+    (rest : List (Finset A)) :
+    transversalProducts (Tk :: rest) = Tk * transversalProducts rest := rfl
+
+/-- The product of a transversal `(tᵢ)` (with `tᵢ ∈ Tᵢ`) lies in `transversalProducts`. -/
+theorem prod_mem_transversalProducts [DecidableEq A] (LP : List (Finset A × A))
+    (hts : ∀ p ∈ LP, p.2 ∈ p.1) :
+    (LP.map Prod.snd).prod ∈ transversalProducts (LP.map Prod.fst) := by
+  induction LP with
+  | nil => simp [transversalProducts]
+  | cons hd tl ih =>
+    rw [List.map_cons, List.map_cons, transversalProducts_cons, List.prod_cons]
+    exact Finset.mul_mem_mul (hts hd (List.mem_cons_self ..))
+      (ih (fun p hp => hts p (List.mem_cons_of_mem _ hp)))
+
+/-- **Product identity (Wedhorn 7.54 / Huber [Hu3] 2.6, Step 3):**
+`R(P / ∏ tᵢ) = Spa ∩ ⋂ᵢ R(Tᵢ / tᵢ)` for a transversal `(Tᵢ, tᵢ)` with `tᵢ ∈ Tᵢ`,
+where `P = transversalProducts [T₁,…,Tₙ]`. Induction on the family via
+`rationalOpen_inter`. (`R({1}/1)=Spa` base case is `rationalOpen_singleton_one`.) -/
+theorem rationalOpen_transversalProducts [DecidableEq A] (LP : List (Finset A × A))
+    (hts : ∀ p ∈ LP, p.2 ∈ p.1) :
+    rationalOpen (transversalProducts (LP.map Prod.fst)) ((LP.map Prod.snd).prod)
+      = Spa A A⁺ ∩ ⋂ p ∈ LP, rationalOpen p.1 p.2 := by
+  induction LP with
+  | nil =>
+    simp only [List.map_nil, transversalProducts_nil, List.prod_nil,
+      List.not_mem_nil, Set.iInter_of_empty, Set.iInter_univ, Set.inter_univ]
+    exact rationalOpen_singleton_one
+  | cons hd tl ih =>
+    have hhd : hd.2 ∈ hd.1 := hts hd List.mem_cons_self
+    have htl : ∀ p ∈ tl, p.2 ∈ p.1 := fun p hp => hts p (List.mem_cons_of_mem _ hp)
+    rw [List.map_cons, List.map_cons, transversalProducts_cons, List.prod_cons,
+      ← rationalOpen_inter hd.1 (transversalProducts (tl.map Prod.fst)) hd.2
+        ((tl.map Prod.snd).prod) hhd (prod_mem_transversalProducts tl htl),
+      ih htl]
+    ext v
+    simp only [Set.mem_inter_iff, Set.mem_iInter, List.mem_cons, forall_eq_or_imp]
+    tauto
+
+/-- Huber's distinguished subset `S = {∏ tᵢ : tᵢ ∈ Tᵢ, tᵢ = sᵢ for ≥1 i}` for a
+family `LP = [(T₁,s₁),…,(Tₙ,sₙ)]`. Recursive: first factor fixed to `s₁` (rest a free
+transversal), or first factor free in `T₁` (rest distinguished). -/
+noncomputable def distinguishedProducts [DecidableEq A] :
+    List (Finset A × A) → Finset A
+  | [] => ∅
+  | (Ts :: rest) =>
+      {Ts.2} * transversalProducts (rest.map Prod.fst) ∪
+        Ts.1 * distinguishedProducts rest
+
+/-- `S ⊆ P`: every distinguished product is a transversal product. -/
+theorem distinguishedProducts_subset [DecidableEq A] (LP : List (Finset A × A))
+    (hts : ∀ p ∈ LP, p.2 ∈ p.1) :
+    distinguishedProducts LP ⊆ transversalProducts (LP.map Prod.fst) := by
+  induction LP with
+  | nil => simp [distinguishedProducts]
+  | cons hd tl ih =>
+    have htl : ∀ p ∈ tl, p.2 ∈ p.1 := fun p hp => hts p (List.mem_cons_of_mem _ hp)
+    rw [distinguishedProducts, List.map_cons, transversalProducts_cons]
+    refine Finset.union_subset ?_ ?_
+    · exact Finset.mul_subset_mul
+        (Finset.singleton_subset_iff.mpr (hts hd List.mem_cons_self)) (subset_refl _)
+    · exact Finset.mul_subset_mul (subset_refl _) (ih htl)
+
+@[simp] theorem distinguishedProducts_cons [DecidableEq A] (Ts : Finset A × A)
+    (rest : List (Finset A × A)) :
+    distinguishedProducts (Ts :: rest) =
+      {Ts.2} * transversalProducts (rest.map Prod.fst) ∪
+        Ts.1 * distinguishedProducts rest := rfl
+
+/-- A transversal `(tᵢ)` with at least one `tᵢ = sᵢ` has product in
+`S = distinguishedProducts`. Modelled as a single list `LPt` of `((Tᵢ,sᵢ), tᵢ)` to keep
+the induction positional-pairing-free (`e.1.1 = Tᵢ`, `e.1.2 = sᵢ`, `e.2 = tᵢ`). -/
+theorem prod_mem_distinguishedProducts [DecidableEq A]
+    (LPt : List ((Finset A × A) × A))
+    (hmem : ∀ e ∈ LPt, e.2 ∈ e.1.1)
+    (hdist : ∃ e ∈ LPt, e.2 = e.1.2) :
+    (LPt.map Prod.snd).prod ∈ distinguishedProducts (LPt.map Prod.fst) := by
+  induction LPt with
+  | nil => obtain ⟨e, he, _⟩ := hdist; simp at he
+  | cons hd tl ih =>
+    rw [List.map_cons, List.map_cons, List.prod_cons, distinguishedProducts_cons]
+    obtain ⟨e, he, hee⟩ := hdist
+    rcases List.mem_cons.mp he with rfl | he'
+    · refine Finset.mem_union_left _ ?_
+      rw [hee]
+      refine Finset.mul_mem_mul (Finset.mem_singleton_self _) ?_
+      have hP := prod_mem_transversalProducts (tl.map (fun e => (e.1.1, e.2)))
+        (fun p hp => by
+          obtain ⟨a, ha, rfl⟩ := List.mem_map.mp hp
+          exact hmem a (List.mem_cons_of_mem _ ha))
+      simpa [List.map_map, Function.comp] using hP
+    · refine Finset.mem_union_right _ ?_
+      exact Finset.mul_mem_mul (hmem hd List.mem_cons_self)
+        (ih (fun p hp => hmem p (List.mem_cons_of_mem _ hp)) ⟨e, he', hee⟩)
+
+/-- A `vle`-maximal element of a nonempty `Finset` (the value group is totally
+preordered via `vle_total`). -/
+theorem exists_vle_max_mem (v : Spv A) {S : Finset A} (hS : S.Nonempty) :
+    ∃ m ∈ S, ∀ y ∈ S, v.vle y m := by
+  induction hS using Finset.Nonempty.cons_induction with
+  | singleton x =>
+    exact ⟨x, Finset.mem_singleton_self x, fun y hy => by
+      rw [Finset.mem_singleton] at hy; subst hy; exact (v.vle_total y y).elim id id⟩
+  | cons a s _ha _hsne ih =>
+    obtain ⟨m, hm, hmax⟩ := ih
+    rcases v.vle_total m a with h | h
+    · exact ⟨a, Finset.mem_cons_self a s, fun y hy => (Finset.mem_cons.mp hy).elim
+        (fun e => e ▸ (v.vle_total y y).elim id id) (fun hy' => v.vle_trans (hmax y hy') h)⟩
+    · exact ⟨m, Finset.mem_cons.mpr (Or.inr hm), fun y hy => (Finset.mem_cons.mp hy).elim
+        (fun e => e ▸ h) (fun hy' => hmax y hy')⟩
+
+/-- **Per-component cover (the covering half of Cor 7.53):** if `T` spans the unit
+ideal then for every `v ∈ Spa A A⁺` there is `t ∈ T` with `v ∈ R(T/t)` — take the
+`vle`-maximal `t`. (Forward direction only — elementary, no pair/Nullstellensatz
+needed: `span T = ⊤` and the support being proper give a non-vanishing generator.) -/
+theorem exists_mem_rationalOpen_of_spanTop [DecidableEq A] (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) {v : Spv A} (hv : v ∈ Spa A A⁺) :
+    ∃ t ∈ T, v ∈ rationalOpen T t := by
+  have hnz : ∃ t ∈ T, ¬ v.vle t 0 := by
+    by_contra h
+    push_neg at h
+    have hle : Ideal.span (T : Set A) ≤ v.supp :=
+      Ideal.span_le.mpr fun t ht => (v.mem_supp_iff t).mpr (h t ht)
+    rw [hspan] at hle
+    exact (instIsPrimeSupp v).ne_top (top_le_iff.mp hle)
+  obtain ⟨t₀, ht₀, ht₀0⟩ := hnz
+  obtain ⟨tm, htm, hmax⟩ := exists_vle_max_mem v ⟨t₀, ht₀⟩
+  exact ⟨tm, htm, hv, fun t ht => hmax t ht,
+    fun h0 => ht₀0 (v.vle_trans (hmax t₀ ht₀) h0)⟩
+
+/-- **The transversal-product cover covers `Spa`** (every normalised family covers):
+for `v ∈ Spa A A⁺`, if every `Tᵢ` contains `1` (so spans `⊤`), there is a transversal
+product `s ∈ P` with `v ∈ R(P/s)`. Induction via the per-component cover + `rationalOpen_inter`. -/
+theorem exists_mem_transversalProducts_cover [DecidableEq A]
+    (LP : List (Finset A × A)) (h1 : ∀ p ∈ LP, (1 : A) ∈ p.1)
+    {v : Spv A} (hv : v ∈ Spa A A⁺) :
+    ∃ s ∈ transversalProducts (LP.map Prod.fst),
+      v ∈ rationalOpen (transversalProducts (LP.map Prod.fst)) s := by
+  induction LP with
+  | nil =>
+    refine ⟨1, by rw [List.map_nil, transversalProducts_nil]; exact Finset.mem_singleton_self 1, ?_⟩
+    rw [List.map_nil, transversalProducts_nil, rationalOpen_singleton_one]
+    exact hv
+  | cons hd tl ih =>
+    have h1tl : ∀ p ∈ tl, (1 : A) ∈ p.1 := fun p hp => h1 p (List.mem_cons_of_mem _ hp)
+    have hspanH : Ideal.span (hd.1 : Set A) = ⊤ :=
+      (Ideal.eq_top_iff_one _).mpr (Ideal.subset_span (h1 hd List.mem_cons_self))
+    obtain ⟨tH, htH, hxH⟩ := exists_mem_rationalOpen_of_spanTop hd.1 hspanH hv
+    obtain ⟨sR, hsR, hxR⟩ := ih h1tl
+    refine ⟨tH * sR, ?_, ?_⟩
+    · rw [List.map_cons, transversalProducts_cons]; exact Finset.mul_mem_mul htH hsR
+    · rw [List.map_cons, transversalProducts_cons,
+        ← rationalOpen_inter hd.1 (transversalProducts (tl.map Prod.fst)) tH sR htH hsR]
+      exact ⟨hxH, hxR⟩
+
+/-- **Step 4 (Wedhorn 7.54 / Huber product trick):** the distinguished cover
+`(R(P/s))_{s∈S}` covers `Spa A`. For `v ∈ Spa`, the `Wᵢ`-cover gives `i₀` with
+`v ∈ R(T_{i₀}/s_{i₀})`; pick the dominant `tᵢ` on the other factors; the product
+(with `t_{i₀}=s_{i₀}`) lies in `S` and `v ∈ R(P/∏tᵢ)` by `rationalOpen_inter`. -/
+theorem distinguishedProducts_cover [DecidableEq A] (LP : List (Finset A × A))
+    (hts : ∀ p ∈ LP, p.2 ∈ p.1) (h1 : ∀ p ∈ LP, (1 : A) ∈ p.1)
+    {v : Spv A} (hv : v ∈ Spa A A⁺) (hcov : ∃ p ∈ LP, v ∈ rationalOpen p.1 p.2) :
+    ∃ s ∈ distinguishedProducts LP,
+      v ∈ rationalOpen (transversalProducts (LP.map Prod.fst)) s := by
+  induction LP with
+  | nil => obtain ⟨p, hp, _⟩ := hcov; simp at hp
+  | cons hd tl ih =>
+    have htstl : ∀ p ∈ tl, p.2 ∈ p.1 := fun p hp => hts p (List.mem_cons_of_mem _ hp)
+    have h1tl : ∀ p ∈ tl, (1 : A) ∈ p.1 := fun p hp => h1 p (List.mem_cons_of_mem _ hp)
+    rw [distinguishedProducts_cons, List.map_cons, transversalProducts_cons]
+    obtain ⟨p, hp, hxp⟩ := hcov
+    rcases List.mem_cons.mp hp with rfl | hp'
+    · obtain ⟨sR, hsR, hxR⟩ := exists_mem_transversalProducts_cover tl h1tl hv
+      refine ⟨p.2 * sR,
+        Finset.mem_union_left _ (Finset.mul_mem_mul (Finset.mem_singleton_self _) hsR), ?_⟩
+      rw [← rationalOpen_inter p.1 (transversalProducts (tl.map Prod.fst)) p.2 sR
+        (hts p List.mem_cons_self) hsR]
+      exact ⟨hxp, hxR⟩
+    · obtain ⟨sR, hsR, hxR⟩ := ih htstl h1tl ⟨p, hp', hxp⟩
+      have hspanH : Ideal.span (hd.1 : Set A) = ⊤ :=
+        (Ideal.eq_top_iff_one _).mpr (Ideal.subset_span (h1 hd List.mem_cons_self))
+      obtain ⟨tH, htH, hxH⟩ := exists_mem_rationalOpen_of_spanTop hd.1 hspanH hv
+      refine ⟨tH * sR, Finset.mem_union_right _ (Finset.mul_mem_mul htH hsR), ?_⟩
+      rw [← rationalOpen_inter hd.1 (transversalProducts (tl.map Prod.fst)) tH sR htH
+        (distinguishedProducts_subset tl htstl hsR)]
+      exact ⟨hxH, hxR⟩
+
+/-- **Step 6 (Wedhorn 7.54 / Huber product trick):** `R(P/s) = R(S/s)` for `s ∈ S`.
+`⊆` is antitone-in-numerator (`S ⊆ P`); `⊇` uses the `S`-cover (Step 4): for `v ∈ R(S/s)`,
+some `s' ∈ S` has `v ∈ R(P/s')`, and `v(s') ≤ v(s)` (as `s' ∈ S`), so `v(p) ≤ v(s')≤ v(s)`. -/
+theorem rationalOpen_distinguished_eq [DecidableEq A] (LP : List (Finset A × A))
+    (hts : ∀ p ∈ LP, p.2 ∈ p.1) (h1 : ∀ p ∈ LP, (1 : A) ∈ p.1)
+    (hcovSpa : ∀ v ∈ Spa A A⁺, ∃ p ∈ LP, v ∈ rationalOpen p.1 p.2)
+    {s : A} :
+    rationalOpen (transversalProducts (LP.map Prod.fst)) s
+      = rationalOpen (distinguishedProducts LP) s := by
+  apply Set.Subset.antisymm
+  · intro v hv
+    obtain ⟨hvspa, hvP, hvs0⟩ := hv
+    exact ⟨hvspa, fun t ht => hvP t (distinguishedProducts_subset LP hts ht), hvs0⟩
+  · intro v hv
+    obtain ⟨hvspa, hvS, hvs0⟩ := hv
+    obtain ⟨s', hs', _, hvP', _⟩ := distinguishedProducts_cover LP hts h1 hvspa (hcovSpa v hvspa)
+    exact ⟨hvspa, fun p hp => v.vle_trans (hvP' p hp) (hvS s' hs'), hvs0⟩
+
+/-- **Step 5 (Wedhorn 7.54 / Huber product trick):** the distinguished set `S` spans
+the unit ideal, `Ideal.span S = ⊤`. From Step 4 (`distinguishedProducts_cover`) the
+`(R(P/s))_{s∈S}` cover `Spa A`, so for every `v` some `s ∈ S` has `v(s) ≠ 0`
+(no common zero on `S`); Cor 7.53 backward (`spanTop_iff_noCommonZero_spa`, the
+Nullstellensatz) then gives span-top. The complete pair `P`, `[IsAdicComplete P.I P.A₀]`
+and `A⁺ ⊆ P.A₀` are threaded explicitly (matching `spanTop_iff_noCommonZero_spa`'s
+interface); the whole-space assembly supplies them from `globalLocData.P` +
+`[CompatiblePlusSubring A]` + the bundle's completeness. -/
+theorem span_top_of_distinguished_products [DecidableEq A] (LP : List (Finset A × A))
+    (hts : ∀ p ∈ LP, p.2 ∈ p.1) (h1 : ∀ p ∈ LP, (1 : A) ∈ p.1)
+    (hcovSpa : ∀ v ∈ Spa A A⁺, ∃ p ∈ LP, v ∈ rationalOpen p.1 p.2)
+    (P : PairOfDefinition A) [IsAdicComplete P.I P.A₀]
+    (hAplus_le_A₀ : (A⁺ : Set A) ⊆ P.A₀) :
+    Ideal.span (distinguishedProducts LP : Set A) = ⊤ := by
+  refine (spanTop_iff_noCommonZero_spa P hAplus_le_A₀ (distinguishedProducts LP)).mpr ?_
+  intro v hv
+  obtain ⟨s, hsS, _, _, hvs0⟩ := distinguishedProducts_cover LP hts h1 hv (hcovSpa v hv)
+  exact ⟨s, hsS, hvs0⟩
+
+/-- Cancellation of a common numerator factor `e ∈ Q`: `R(X·Q / c·e) ⊆ R(X / c)`.
+For `t ∈ X`, `t·e ∈ X·Q` so `v(t·e) ≤ v(c·e)`; cancel `e` (which is nonzero since
+`v(c·e) ≠ 0`) via `basicOpen_mul_subset`. -/
+private theorem rationalOpen_mul_subset_numerFactor [DecidableEq A]
+    (X Q : Finset A) (c e : A) (he : e ∈ Q) :
+    rationalOpen (X * Q) (c * e) ⊆ rationalOpen X c := by
+  intro v hv
+  obtain ⟨hvspa, hvP, hv0⟩ := hv
+  have hc0 : ¬ v.vle c 0 := fun hc => hv0 (by
+    have := v.mul_vle_mul_left hc e; rwa [zero_mul] at this)
+  refine ⟨hvspa, fun t ht => ?_, hc0⟩
+  have h1 : v.vle (t * e) (c * e) := hvP _ (Finset.mul_mem_mul ht he)
+  exact (basicOpen_mul_subset e t c ⟨by rw [mul_comm e t, mul_comm e c]; exact h1,
+    by rw [mul_comm e c]; exact hv0⟩).1
+
+/-- Cancellation of a common denominator factor `t ∈ X`: `R(X·Q / t·s) ⊆ R(Q / s)`.
+For `q ∈ Q`, `t·q ∈ X·Q` so `v(t·q) ≤ v(t·s)`; cancel `t` via `basicOpen_mul_subset`. -/
+private theorem rationalOpen_mul_subset_denomFactor [DecidableEq A]
+    (X Q : Finset A) (t s : A) (ht : t ∈ X) :
+    rationalOpen (X * Q) (t * s) ⊆ rationalOpen Q s := by
+  intro v hv
+  obtain ⟨hvspa, hvP, hv0⟩ := hv
+  have hs0 : ¬ v.vle s 0 := fun hs => hv0 (by
+    have := v.mul_vle_mul_left hs t; rwa [zero_mul, mul_comm s t] at this)
+  refine ⟨hvspa, fun q hq => ?_, hs0⟩
+  have h1 : v.vle (t * q) (t * s) := hvP _ (Finset.mul_mem_mul ht hq)
+  exact (basicOpen_mul_subset t q s ⟨h1, hv0⟩).1
+
+/-- **Refinement direction (Wedhorn 7.54 / Huber product trick):** every
+distinguished product `f ∈ S` refines into some component `Wᵢ = R(Tᵢ/sᵢ)`:
+`R(P/f) ⊆ R(Tᵢ/sᵢ)` for some `(Tᵢ,sᵢ) ∈ LP`. Induction on `LP` mirroring
+`distinguishedProducts`' recursion: the `{s₁}·Q` branch refines into `(T₁,s₁)`
+(numerator-factor cancellation); the `T₁·S'` branch refines via the IH after
+denominator-factor cancellation. -/
+theorem distinguishedProducts_refines [DecidableEq A] (LP : List (Finset A × A)) :
+    ∀ f ∈ distinguishedProducts LP, ∃ p ∈ LP,
+      rationalOpen (transversalProducts (LP.map Prod.fst)) f
+        ⊆ rationalOpen p.1 p.2 := by
+  induction LP with
+  | nil => intro f hf; simp [distinguishedProducts] at hf
+  | cons hd tl ih =>
+    intro f hf
+    rw [distinguishedProducts_cons] at hf
+    rw [List.map_cons, transversalProducts_cons]
+    rcases Finset.mem_union.mp hf with hL | hR
+    · obtain ⟨a, ha, g, hg, rfl⟩ := Finset.mem_mul.mp hL
+      rw [Finset.mem_singleton] at ha; subst ha
+      exact ⟨hd, List.mem_cons_self, rationalOpen_mul_subset_numerFactor hd.1
+        (transversalProducts (tl.map Prod.fst)) hd.2 g hg⟩
+    · obtain ⟨t, ht, g, hg, rfl⟩ := Finset.mem_mul.mp hR
+      obtain ⟨p, hp, hsub⟩ := ih g hg
+      exact ⟨p, List.mem_cons_of_mem _ hp,
+        (rationalOpen_mul_subset_denomFactor hd.1
+          (transversalProducts (tl.map Prod.fst)) t g ht).trans hsub⟩
+
+/-- **Absorption (Wedhorn §8.1-style)**: a high power of the ideal of definition
+multiplies any finitely many fixed ring elements into `A₀` (continuity of
+multiplication + openness of `A₀` + the `I`-adic neighborhood basis). -/
+theorem pod_absorb_finset_mul_pow (P : PairOfDefinition A) (S : Finset A) :
+    ∃ N : ℕ, ∀ a ∈ S, ∀ b : P.A₀, b ∈ P.I ^ N → (↑b : A) * a ∈ P.A₀ := by
+  classical
+  have hone : ∀ a : A, ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N → (↑b : A) * a ∈ P.A₀ := by
+    intro a
+    have hcont : Continuous (fun x : P.A₀ => (↑x : A) * a) :=
+      continuous_subtype_val.mul continuous_const
+    have h0 : (fun x : P.A₀ => (↑x : A) * a) 0 ∈ (P.A₀ : Set A) := by
+      simp only [ZeroMemClass.coe_zero, zero_mul]
+      exact P.A₀.zero_mem
+    have hpre : (fun x : P.A₀ => (↑x : A) * a) ⁻¹' (P.A₀ : Set A) ∈
+        nhds (0 : P.A₀) :=
+      hcont.continuousAt.preimage_mem_nhds (P.isOpen.mem_nhds h0)
+    obtain ⟨n, -, hn⟩ := P.isAdic.hasBasis_nhds_zero.mem_iff.mp hpre
+    exact ⟨n, fun b hb => hn hb⟩
+  choose Nf hNf using hone
+  refine ⟨S.sup Nf, fun a ha b hb => hNf a b ?_⟩
+  exact Ideal.pow_le_pow_right (Finset.le_sup ha) hb
+
+/-- **General gen-set piece openness**: for `T` spanning the unit ideal and `t ∈ T`,
+the piece `R(T/t)` satisfies the `hopen`-condition — high `I`-powers divide by `t`
+into the ring of definition, via the span-combination `1 = Σ c_{t'}·t'` and
+absorption of the coefficients (Wedhorn p. 83, the `U_t := R(T/t)` cover form). -/
+theorem genPiece_hopen (P : PairOfDefinition A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    ∃ N : ℕ, ∀ b : P.A₀, b ∈ P.I ^ N →
+      divByS (↑b : A) t ∈ locSubring P T t := by
+  classical
+  have h1 : (1 : A) ∈ Ideal.span (T : Set A) := hspan ▸ Submodule.mem_top
+  obtain ⟨c, _hc_supp, hc⟩ := Submodule.mem_span_finset.mp h1
+  obtain ⟨N, hN⟩ := pod_absorb_finset_mul_pow P (T.image c)
+  refine ⟨N, fun b hb => ?_⟩
+  -- `divByS b t = Σ_{t' ∈ T} aM (b·c t') · divByS t' t` (cancel the away-unit `aM t`)
+  have hkey : divByS (↑b : A) t = ∑ t' ∈ T,
+      algebraMap A (Localization.Away t) ((↑b : A) * c t') * divByS t' t := by
+    refine (IsLocalization.Away.algebraMap_isUnit
+      (S := Localization.Away t) t).mul_left_cancel ?_
+    have hL : algebraMap A (Localization.Away t) t * divByS (↑b : A) t =
+        algebraMap A (Localization.Away t) (↑b : A) := by
+      unfold divByS
+      exact IsLocalization.mk'_spec' (M := Submonoid.powers t)
+        (Localization.Away t) (↑b : A) ⟨t, 1, pow_one t⟩
+    rw [hL, Finset.mul_sum]
+    have hterm : ∀ t' ∈ T, algebraMap A (Localization.Away t) t *
+        (algebraMap A (Localization.Away t) ((↑b : A) * c t') * divByS t' t) =
+        algebraMap A (Localization.Away t) ((↑b : A) * c t' * t') := by
+      intro t' _
+      have h2 : algebraMap A (Localization.Away t) t * divByS t' t =
+          algebraMap A (Localization.Away t) t' := by
+        unfold divByS
+        exact IsLocalization.mk'_spec' (M := Submonoid.powers t)
+          (Localization.Away t) t' ⟨t, 1, pow_one t⟩
+      rw [show algebraMap A (Localization.Away t) t *
+          (algebraMap A (Localization.Away t) ((↑b : A) * c t') * divByS t' t) =
+        algebraMap A (Localization.Away t) ((↑b : A) * c t') *
+          (algebraMap A (Localization.Away t) t * divByS t' t) from by ring]
+      rw [h2, ← map_mul]
+    rw [Finset.sum_congr rfl hterm, ← map_sum]
+    congr 1
+    calc (↑b : A) = (↑b : A) * 1 := (mul_one _).symm
+      _ = (↑b : A) * ∑ t' ∈ T, c t' * t' := by
+          rw [show ∑ t' ∈ T, c t' * t' = (1 : A) from by
+            simpa only [smul_eq_mul] using hc]
+      _ = ∑ t' ∈ T, (↑b : A) * c t' * t' := by rw [Finset.mul_sum]; ring_nf
+  rw [hkey]
+  refine Subring.sum_mem _ (fun t' ht' => Subring.mul_mem _ ?_ ?_)
+  · exact algebraMap_mem_locSubring P T t
+      (hN (c t') (Finset.mem_image_of_mem c ht') b hb)
+  · exact divByS_mem_locSubring P T t ht'
+
+set_option linter.unusedSectionVars false in
+/-- The span of the image of an ideal-generating set is the unit ideal. -/
+theorem span_image_canonicalMap_eq_top
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    Ideal.span (D₀.canonicalMap '' (T : Set A)) = ⊤ := by
+  rw [← Ideal.map_span D₀.canonicalMap, hspan]
+  exact Ideal.map_top _
+
+/-- **The A-side gen-set piece** `R(T/t)` (Wedhorn p. 83's `U_t := R(T/t)` cover form),
+with the `hopen`-condition supplied by `genPiece_hopen` (span + absorption). -/
+noncomputable def genPieceDatum (P : PairOfDefinition A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) : RationalLocData A :=
+  { P := P
+    T := T
+    s := t
+    hopen := genPiece_hopen P T t hspan }
+
+@[simp] theorem genPieceDatum_P (P : PairOfDefinition A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) : (genPieceDatum P T t hspan).P = P := rfl
+
+@[simp] theorem genPieceDatum_T (P : PairOfDefinition A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) : (genPieceDatum P T t hspan).T = T := rfl
+
+@[simp] theorem genPieceDatum_s (P : PairOfDefinition A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) : (genPieceDatum P T t hspan).s = t := rfl
+
+/-- **The B-side image piece** `R(canMap T / canMap t)` over `B = presheafValue D₀`
+(Wedhorn Remark 8.4 / Prop 8.2(1) vocabulary: the rational subset of `Spa 𝒪_X(D₀)`
+corresponding to `D₀ ∩ R(T/t)`). The `hopen`-condition is `genPiece_hopen` at `B`
+(span-combination + absorption). -/
+noncomputable def imagePieceDatum
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    RationalLocData (presheafValue D₀) :=
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  letI : DecidableEq (presheafValue D₀) := Classical.decEq _
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  { P := presheafValue_concretePair D₀
+    T := T.image D₀.canonicalMap
+    s := D₀.canonicalMap t
+    hopen := genPiece_hopen (presheafValue_concretePair D₀)
+      (T.image D₀.canonicalMap) (D₀.canonicalMap t)
+      (by rw [Finset.coe_image]; exact span_image_canonicalMap_eq_top D₀ T hspan) }
+
+set_option linter.unusedSectionVars false in
+/-- **General relative piece, forward base unit (G1-1)**: `s_inter = D₀.s·t` maps to a
+unit of `Localization.Away (canMap t)` over `B`. -/
+private theorem genPiece_rel_baseHom_isUnit
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    IsUnit (((algebraMap (presheafValue D₀) (Localization.Away
+        ((imagePieceDatum D₀ T t hspan).s))).comp D₀.canonicalMap)
+      ((D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s)) := by
+  have hs : ((D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s : A) =
+      D₀.s * t := rfl
+  rw [RingHom.comp_apply, hs, map_mul, map_mul]
+  refine IsUnit.mul ?_ ?_
+  · exact ((isUnit_s_in_presheafValue D₀).map _)
+  · exact IsLocalization.Away.algebraMap_isUnit
+      (S := Localization.Away ((imagePieceDatum D₀ T t hspan).s))
+      ((imagePieceDatum D₀ T t hspan).s)
+
+/-- **General relative piece, forward loc-hom (G1-2)**. -/
+private noncomputable def genPiece_rel_forwardLocHom
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) →+*
+      Localization.Away ((imagePieceDatum D₀ T t hspan).s) :=
+  IsLocalization.Away.lift
+    (x := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s)
+    (g := (algebraMap (presheafValue D₀) (Localization.Away
+      ((imagePieceDatum D₀ T t hspan).s))).comp D₀.canonicalMap)
+    (genPiece_rel_baseHom_isUnit D₀ T t hspan)
+
+set_option linter.unusedSectionVars false in
+/-- G1-3: the forward loc-hom sends `algebraMap a ↦ algebraMap (canonicalMap a)`. -/
+private theorem genPiece_rel_forwardLocHom_algebraMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (a : A) :
+    genPiece_rel_forwardLocHom D₀ T t hspan
+        (algebraMap A (Localization.Away
+          ((D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s)) a) =
+      algebraMap (presheafValue D₀)
+        (Localization.Away ((imagePieceDatum D₀ T t hspan).s))
+        (D₀.canonicalMap a) := by
+  rw [genPiece_rel_forwardLocHom, IsLocalization.Away.lift_eq]
+  rfl
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- **General relative piece, per-generator witnesses (G1-4)**: every
+`t' ∈ T_inter` (a product `p·q`, `p ∈ insert D₀.s D₀.T`, `q ∈ insert t T`) has a
+`locSubring`-witness over the B-side image datum: `y = aM(coe(p/s))·((im q)/(im t))`.
+Uniform equation (no unit-juggling); only the membership splits on `q = t` vs `q ∈ T`. -/
+private theorem genPiece_rel_forward_witness
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤)
+    (w : A) (hw : w ∈ (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).T) :
+    ∃ y : Localization.Away ((imagePieceDatum D₀ T t hspan).s),
+      y ∈ locSubring (imagePieceDatum D₀ T t hspan).P
+          (imagePieceDatum D₀ T t hspan).T (imagePieceDatum D₀ T t hspan).s ∧
+      ((imagePieceDatum D₀ T t hspan).coeRingHom).comp
+        (genPiece_rel_forwardLocHom D₀ T t hspan)
+        (divByS w ((D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s)) =
+      (imagePieceDatum D₀ T t hspan).coeRingHom y := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  set DI := D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl with hDI
+  set DB := imagePieceDatum D₀ T t hspan with hDB
+  set F := (DB.coeRingHom).comp (genPiece_rel_forwardLocHom D₀ T t hspan) with hF
+  have hF_alg : ∀ a : A, F (algebraMap A (Localization.Away DI.s) a) =
+      DB.canonicalMap (D₀.canonicalMap a) := by
+    intro a
+    rw [hF, RingHom.comp_apply, genPiece_rel_forwardLocHom_algebraMap]
+    rfl
+  have hu : IsUnit (F (algebraMap A (Localization.Away DI.s) DI.s)) := by
+    rw [hF_alg]
+    exact (genPiece_rel_baseHom_isUnit D₀ T t hspan).map DB.coeRingHom
+  have hF_div : ∀ (c : A) (z : presheafValue DB),
+      F (algebraMap A (Localization.Away DI.s) c) =
+        F (algebraMap A (Localization.Away DI.s) DI.s) * z →
+      F (divByS c DI.s) = z := by
+    intro c z hz
+    have h1 : F (algebraMap A (Localization.Away DI.s) DI.s) * F (divByS c DI.s) =
+        F (algebraMap A (Localization.Away DI.s) c) := by
+      rw [← map_mul, algebraMap_s_mul_divByS]
+    exact hu.mul_left_cancel (h1.trans hz)
+  have hps : ∀ p : A, D₀.canonicalMap p =
+      D₀.canonicalMap D₀.s * D₀.coeRingHom (divByS p D₀.s) := by
+    intro p
+    rw [show D₀.canonicalMap D₀.s * D₀.coeRingHom (divByS p D₀.s) =
+      D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) D₀.s *
+        divByS p D₀.s) from by rw [map_mul]; rfl]
+    rw [algebraMap_s_mul_divByS]
+    rfl
+  have hA₀ : ∀ p ∈ insert D₀.s D₀.T,
+      D₀.coeRingHom (divByS p D₀.s) ∈ (presheafValue_concretePair D₀).A₀ := by
+    intro p hp
+    rw [presheafValue_concretePair_A₀]
+    rcases Finset.mem_insert.mp hp with rfl | hp'
+    · have h1 : divByS D₀.s D₀.s = 1 := by
+        unfold divByS
+        exact IsLocalization.mk'_self (M := Submonoid.powers D₀.s)
+          (S := Localization.Away D₀.s) ⟨1, pow_one D₀.s⟩
+      rw [h1, map_one]
+      exact one_mem _
+    · exact subset_closure ⟨⟨divByS p D₀.s,
+        divByS_mem_locSubring D₀.P D₀.T D₀.s hp'⟩, rfl⟩
+  -- the B-side `q/t`-identity: `canMap_B (canMap q) = canMap_B (canMap t) · coe ((im q)/(im t))`
+  have hqt : ∀ q : A, DB.canonicalMap (D₀.canonicalMap q) =
+      DB.canonicalMap (D₀.canonicalMap t) *
+        DB.coeRingHom (divByS (D₀.canonicalMap q) DB.s) := by
+    intro q
+    rw [show DB.canonicalMap (D₀.canonicalMap t) *
+        DB.coeRingHom (divByS (D₀.canonicalMap q) DB.s) =
+      DB.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away DB.s)
+        (D₀.canonicalMap t) * divByS (D₀.canonicalMap q) DB.s) from by
+      rw [map_mul]; rfl]
+    rw [show algebraMap (presheafValue D₀) (Localization.Away DB.s)
+        (D₀.canonicalMap t) = algebraMap (presheafValue D₀) (Localization.Away DB.s)
+        DB.s from rfl]
+    rw [algebraMap_s_mul_divByS]
+    rfl
+  -- the witness membership for the `q`-factor
+  have hq_mem : ∀ q ∈ insert t T,
+      divByS (D₀.canonicalMap q) DB.s ∈ locSubring DB.P DB.T DB.s := by
+    intro q hq
+    rcases Finset.mem_insert.mp hq with rfl | hq'
+    · have h1 : divByS (D₀.canonicalMap q) DB.s = 1 := by
+        rw [show (DB.s : presheafValue D₀) = D₀.canonicalMap q from rfl]
+        unfold divByS
+        exact IsLocalization.mk'_self (M := Submonoid.powers (D₀.canonicalMap q))
+          (S := Localization.Away (D₀.canonicalMap q)) ⟨1, pow_one _⟩
+      rw [h1]
+      exact one_mem _
+    · refine divByS_mem_locSubring DB.P DB.T DB.s ?_
+      show D₀.canonicalMap q ∈ T.image D₀.canonicalMap
+      exact Finset.mem_image_of_mem _ hq'
+  -- decompose `w = p · q`
+  have hw' : w ∈ ((insert D₀.s D₀.T).product
+      (insert t T)).image (fun r : A × A => r.1 * r.2) := hw
+  rw [Finset.mem_image] at hw'
+  obtain ⟨⟨p, q⟩, hpq, rfl⟩ := hw'
+  have hp : p ∈ insert D₀.s D₀.T := (Finset.mem_product.mp hpq).1
+  have hq : q ∈ insert t T := (Finset.mem_product.mp hpq).2
+  rw [show (((p, q).1 : A) * (p, q).2 : A) = p * q from rfl]
+  refine ⟨algebraMap (presheafValue D₀) (Localization.Away DB.s)
+      (D₀.coeRingHom (divByS p D₀.s)) * divByS (D₀.canonicalMap q) DB.s,
+    (locSubring DB.P DB.T DB.s).mul_mem
+      (algebraMap_mem_locSubring DB.P DB.T DB.s (hA₀ p hp))
+      (hq_mem q hq), ?_⟩
+  refine hF_div _ _ ?_
+  rw [hF_alg, hF_alg]
+  rw [show DB.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away DB.s)
+      (D₀.coeRingHom (divByS p D₀.s)) * divByS (D₀.canonicalMap q) DB.s) =
+    DB.canonicalMap (D₀.coeRingHom (divByS p D₀.s)) *
+      DB.coeRingHom (divByS (D₀.canonicalMap q) DB.s) from by rw [map_mul]; rfl]
+  rw [show ((D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s : A) =
+    D₀.s * t from rfl]
+  rw [map_mul (D₀.canonicalMap), map_mul (D₀.canonicalMap), map_mul (DB.canonicalMap),
+    map_mul (DB.canonicalMap)]
+  rw [show D₀.canonicalMap p = D₀.canonicalMap D₀.s *
+    D₀.coeRingHom (divByS p D₀.s) from hps p]
+  rw [map_mul (DB.canonicalMap), hqt q]
+  ring
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- G1-5: forward continuity. -/
+private theorem genPiece_rel_forwardCompletion_continuous
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    @Continuous _ _ (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).topology _
+      (((imagePieceDatum D₀ T t hspan).coeRingHom).comp (genPiece_rel_forwardLocHom D₀ T t hspan)) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  set DI := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl) with hDI
+  set DB := (imagePieceDatum D₀ T t hspan) with hDB
+  set F := (DB.coeRingHom).comp (genPiece_rel_forwardLocHom D₀ T t hspan) with hF
+  have hF_alg : ∀ a : A, F (algebraMap A (Localization.Away DI.s) a) =
+      DB.canonicalMap (D₀.canonicalMap a) := by
+    intro a
+    rw [hF, RingHom.comp_apply, genPiece_rel_forwardLocHom_algebraMap]
+    rfl
+  change @Continuous _ _ (locTopology DI.P DI.T DI.s DI.hopen) _ F
+  refine locTopology_continuous_lift DI.P DI.T DI.s DI.hopen F ?_ ?_
+  · have heq : F.comp (algebraMap A (Localization.Away DI.s)) =
+        (DB.canonicalMap).comp D₀.canonicalMap := by
+      ext a; exact hF_alg a
+    rw [heq]
+    exact (canonicalMap_continuous DB).comp (canonicalMap_continuous D₀)
+  · intro w hw
+    obtain ⟨y, hy_mem, hy_eq⟩ := genPiece_rel_forward_witness D₀ T t hspan w hw
+    rw [show F (divByS w DI.s) = DB.coeRingHom y from hy_eq]
+    have hbddB := CompletionLocalization.coeRingHom_image_locSubring_isBounded DB
+    refine hbddB.subset ?_
+    rintro _ ⟨k, rfl⟩
+    exact ⟨y ^ k, pow_mem hy_mem k, by rw [map_pow]⟩
+
+/-- G1-6: forward map. -/
+private noncomputable def genPiece_rel_forward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    presheafValue (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl) →+* presheafValue (imagePieceDatum D₀ T t hspan) := by
+  letI : UniformSpace (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom
+    (((imagePieceDatum D₀ T t hspan).coeRingHom).comp (genPiece_rel_forwardLocHom D₀ T t hspan))
+    (genPiece_rel_forwardCompletion_continuous D₀ T t hspan)
+
+/-- G1-6′ coe-tracking. -/
+private theorem genPiece_rel_forward_coe
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤)
+    (y : Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) :
+    genPiece_rel_forward D₀ T t hspan ((D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).coeRingHom y) =
+      (imagePieceDatum D₀ T t hspan).coeRingHom (genPiece_rel_forwardLocHom D₀ T t hspan y) := by
+  letI : UniformSpace (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom_coe
+    (((imagePieceDatum D₀ T t hspan).coeRingHom).comp (genPiece_rel_forwardLocHom D₀ T t hspan))
+    (genPiece_rel_forwardCompletion_continuous D₀ T t hspan) y
+
+set_option linter.unusedSectionVars false in
+/-- G1-7a: backward base unit (the restriction of `canMap t` is a unit, dividing the
+unit `canMap (D₀.s·t)`). -/
+private theorem genPiece_rel_backward_baseHom_isUnit
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    IsUnit ((restrictionMapHom D₀ (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _))
+      ((imagePieceDatum D₀ T t hspan).s)) := by
+  rw [show ((imagePieceDatum D₀ T t hspan).s : presheafValue D₀) = D₀.canonicalMap t from rfl]
+  rw [restrictionMapHom_canonicalMap]
+  have hu : IsUnit ((D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).canonicalMap ((D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s)) := isUnit_s_in_presheafValue _
+  rw [show ((D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s : A) = D₀.s * t from rfl, map_mul] at hu
+  exact isUnit_of_mul_isUnit_right hu
+
+/-- G1-7b: backward loc-hom. -/
+private noncomputable def genPiece_rel_backwardLocHom
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    Localization.Away ((imagePieceDatum D₀ T t hspan).s) →+* presheafValue (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl) :=
+  IsLocalization.Away.lift
+    (x := (imagePieceDatum D₀ T t hspan).s)
+    (g := restrictionMapHom D₀ (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl)
+      (RationalLocData.interSamePair_subset_left _ _ _))
+    (genPiece_rel_backward_baseHom_isUnit D₀ T t hspan)
+
+set_option linter.unusedSectionVars false in
+/-- G1-7c: backward loc-hom tracking. -/
+private theorem genPiece_rel_backwardLocHom_algebraMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (x : presheafValue D₀) :
+    genPiece_rel_backwardLocHom D₀ T t hspan
+        (algebraMap (presheafValue D₀) (Localization.Away ((imagePieceDatum D₀ T t hspan).s)) x) =
+      restrictionMapHom D₀ (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _) x := by
+  rw [genPiece_rel_backwardLocHom, IsLocalization.Away.lift_eq]
+
+set_option linter.unusedSectionVars false in
+/-- G1-7d: the `q/t`-generator identity in `O_X(D₀ ∩ R(T/t))`: `canMap_DI q` is
+`canMap_DI t` times the image of `(D₀.s·q)/s_inter` (cancel the unit `canMap D₀.s`). -/
+private theorem genPiece_rel_canonicalMap_q_eq
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (q : A) :
+    (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).canonicalMap q =
+      (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).canonicalMap t * (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).coeRingHom (divByS (D₀.s * q) (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) := by
+  set DI := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl) with hDI
+  have hchase : ∀ c : A, DI.canonicalMap DI.s * DI.coeRingHom (divByS c DI.s) =
+      DI.canonicalMap c := by
+    intro c
+    rw [show DI.canonicalMap DI.s * DI.coeRingHom (divByS c DI.s) =
+      DI.coeRingHom (algebraMap A (Localization.Away DI.s) DI.s *
+        divByS c DI.s) from by rw [map_mul]; rfl]
+    rw [algebraMap_s_mul_divByS]
+    rfl
+  have hsplit : DI.canonicalMap DI.s = DI.canonicalMap D₀.s * DI.canonicalMap t := by
+    rw [show DI.canonicalMap DI.s = DI.canonicalMap (D₀.s * t) from by
+      rw [show (DI.s : A) = D₀.s * t from rfl]]
+    rw [map_mul]
+  have hu_s : IsUnit (DI.canonicalMap D₀.s) := by
+    have hu : IsUnit (DI.canonicalMap DI.s) := isUnit_s_in_presheafValue DI
+    rw [hsplit] at hu
+    exact isUnit_of_mul_isUnit_left hu
+  refine hu_s.mul_left_cancel ?_
+  have h2 := hchase (D₀.s * q)
+  rw [hsplit] at h2
+  calc DI.canonicalMap D₀.s * DI.canonicalMap q = DI.canonicalMap (D₀.s * q) := by
+        rw [map_mul]
+    _ = DI.canonicalMap D₀.s * DI.canonicalMap t *
+        DI.coeRingHom (divByS (D₀.s * q) DI.s) := h2.symm
+    _ = DI.canonicalMap D₀.s * (DI.canonicalMap t *
+        DI.coeRingHom (divByS (D₀.s * q) DI.s)) := by ring
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- G1-7e: backward continuity (each image-generator `(im q)/(im t)` lands on the
+ring-of-definition element `(D₀.s·q)/s_inter`). -/
+private theorem genPiece_rel_backwardLocHom_continuous
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    @Continuous _ _ (imagePieceDatum D₀ T t hspan).topology _
+      (genPiece_rel_backwardLocHom D₀ T t hspan) := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  set DI := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl) with hDI
+  set DB := (imagePieceDatum D₀ T t hspan) with hDB
+  change @Continuous _ _ (locTopology DB.P DB.T DB.s DB.hopen) _
+    (genPiece_rel_backwardLocHom D₀ T t hspan)
+  refine locTopology_continuous_lift DB.P DB.T DB.s DB.hopen
+    (genPiece_rel_backwardLocHom D₀ T t hspan) ?_ ?_
+  · have heq : (genPiece_rel_backwardLocHom D₀ T t hspan).comp
+        (algebraMap (presheafValue D₀) (Localization.Away DB.s)) =
+        restrictionMapHom D₀ DI (RationalLocData.interSamePair_subset_left _ _ _) := by
+      ext x; exact genPiece_rel_backwardLocHom_algebraMap D₀ T t hspan x
+    rw [heq]
+    exact restrictionMapHom_continuous D₀ DI _
+  · intro w hw
+    have hw' : w ∈ T.image D₀.canonicalMap := hw
+    rw [Finset.mem_image] at hw'
+    obtain ⟨q, hq, rfl⟩ := hw'
+    have hu_b : IsUnit (genPiece_rel_backwardLocHom D₀ T t hspan
+        (algebraMap (presheafValue D₀) (Localization.Away DB.s) DB.s)) := by
+      rw [genPiece_rel_backwardLocHom_algebraMap]
+      exact genPiece_rel_backward_baseHom_isUnit D₀ T t hspan
+    have hwit : genPiece_rel_backwardLocHom D₀ T t hspan
+        (divByS (D₀.canonicalMap q) DB.s) =
+        DI.coeRingHom (divByS (D₀.s * q) DI.s) := by
+      refine hu_b.mul_left_cancel ?_
+      have h1 : genPiece_rel_backwardLocHom D₀ T t hspan
+          (algebraMap (presheafValue D₀) (Localization.Away DB.s) DB.s) *
+          genPiece_rel_backwardLocHom D₀ T t hspan
+            (divByS (D₀.canonicalMap q) DB.s) =
+          genPiece_rel_backwardLocHom D₀ T t hspan
+            (algebraMap (presheafValue D₀) (Localization.Away DB.s)
+              (D₀.canonicalMap q)) := by
+        rw [← map_mul]
+        congr 1
+        exact algebraMap_s_mul_divByS DB (D₀.canonicalMap q)
+      rw [h1, genPiece_rel_backwardLocHom_algebraMap,
+        genPiece_rel_backwardLocHom_algebraMap]
+      rw [show (DB.s : presheafValue D₀) = D₀.canonicalMap t from rfl]
+      rw [restrictionMapHom_canonicalMap, restrictionMapHom_canonicalMap]
+      exact genPiece_rel_canonicalMap_q_eq D₀ T t hspan q
+    rw [hwit]
+    have hbdd := CompletionLocalization.coeRingHom_image_locSubring_isBounded DI
+    refine hbdd.subset ?_
+    rintro _ ⟨k, rfl⟩
+    refine ⟨divByS (D₀.s * q) DI.s ^ k, pow_mem (divByS_mem_locSubring DI.P DI.T DI.s
+      ?_) k, by rw [map_pow]⟩
+    show D₀.s * q ∈ ((insert D₀.s D₀.T).product
+      (insert t T)).image (fun r : A × A => r.1 * r.2)
+    exact Finset.mem_image.mpr ⟨(D₀.s, q), Finset.mem_product.mpr
+      ⟨Finset.mem_insert_self _ _, Finset.mem_insert_of_mem hq⟩, rfl⟩
+
+/-- G1-7f: backward map. -/
+private noncomputable def genPiece_rel_backward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    presheafValue (imagePieceDatum D₀ T t hspan) →+* presheafValue (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl) := by
+  letI : UniformSpace (Localization.Away (imagePieceDatum D₀ T t hspan).s) := (imagePieceDatum D₀ T t hspan).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (imagePieceDatum D₀ T t hspan).s) := (imagePieceDatum D₀ T t hspan).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (imagePieceDatum D₀ T t hspan).s) := (imagePieceDatum D₀ T t hspan).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom
+    (genPiece_rel_backwardLocHom D₀ T t hspan)
+    (genPiece_rel_backwardLocHom_continuous D₀ T t hspan)
+
+/-- G1-7f′ coe-tracking. -/
+private theorem genPiece_rel_backward_coe
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤)
+    (y : Localization.Away (imagePieceDatum D₀ T t hspan).s) :
+    genPiece_rel_backward D₀ T t hspan ((imagePieceDatum D₀ T t hspan).coeRingHom y) =
+      genPiece_rel_backwardLocHom D₀ T t hspan y := by
+  letI : UniformSpace (Localization.Away (imagePieceDatum D₀ T t hspan).s) := (imagePieceDatum D₀ T t hspan).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (imagePieceDatum D₀ T t hspan).s) := (imagePieceDatum D₀ T t hspan).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (imagePieceDatum D₀ T t hspan).s) := (imagePieceDatum D₀ T t hspan).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom_coe
+    (genPiece_rel_backwardLocHom D₀ T t hspan)
+    (genPiece_rel_backwardLocHom_continuous D₀ T t hspan) y
+
+set_option linter.unusedSectionVars false in
+/-- G1-8a: loc-level restriction base unit (`D₀.s` divides the localized-away unit
+`s_inter = D₀.s·t`). -/
+private theorem genPiece_rel_locRestriction_baseUnit
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    IsUnit (algebraMap A (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) D₀.s) := by
+  have h2 : IsUnit (algebraMap A (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) D₀.s *
+      algebraMap A (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) t) := by
+    rw [← map_mul]
+    rw [show ((D₀.s * t : A)) = (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s from rfl]
+    exact IsLocalization.Away.algebraMap_isUnit
+      (S := Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s
+  exact isUnit_of_mul_isUnit_left h2
+
+/-- G1-8a′: loc-level restriction. -/
+private noncomputable def genPiece_rel_locRestriction
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    Localization.Away D₀.s →+* Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s :=
+  IsLocalization.Away.lift (x := D₀.s)
+    (g := algebraMap A (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s))
+    (genPiece_rel_locRestriction_baseUnit D₀ T t hspan)
+
+set_option linter.unusedSectionVars false in
+/-- G1-8a″ tracking. -/
+private theorem genPiece_rel_locRestriction_algebraMap
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (a : A) :
+    genPiece_rel_locRestriction D₀ T t hspan
+        (algebraMap A (Localization.Away D₀.s) a) =
+      algebraMap A (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) a := by
+  rw [genPiece_rel_locRestriction, IsLocalization.Away.lift_eq]
+
+set_option linter.unusedSectionVars false in
+/-- G1-8b: restriction factorization. -/
+private theorem genPiece_rel_restriction_factor
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    (restrictionMapHom D₀ (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _)).comp D₀.coeRingHom =
+      ((D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).coeRingHom).comp (genPiece_rel_locRestriction D₀ T t hspan) := by
+  refine IsLocalization.ringHom_ext (Submonoid.powers D₀.s) ?_
+  ext a
+  simp only [RingHom.comp_apply]
+  rw [show D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) a) =
+    D₀.canonicalMap a from rfl, restrictionMapHom_canonicalMap,
+    genPiece_rel_locRestriction_algebraMap]
+  rfl
+
+set_option linter.unusedSectionVars false in
+/-- G1-8c: loc-level roundtrip 1. -/
+private theorem genPiece_rel_locRoundtrip1
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    (genPiece_rel_backwardLocHom D₀ T t hspan).comp
+        (genPiece_rel_forwardLocHom D₀ T t hspan) =
+      (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).coeRingHom := by
+  refine IsLocalization.ringHom_ext (Submonoid.powers (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) ?_
+  ext a
+  simp only [RingHom.comp_apply]
+  rw [genPiece_rel_forwardLocHom_algebraMap,
+    genPiece_rel_backwardLocHom_algebraMap, restrictionMapHom_canonicalMap]
+  rfl
+
+set_option linter.unusedSectionVars false in
+/-- G1-8d: loc-level roundtrip 2. -/
+private theorem genPiece_rel_locRoundtrip2
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    (genPiece_rel_forwardLocHom D₀ T t hspan).comp
+        (genPiece_rel_locRestriction D₀ T t hspan) =
+      (algebraMap (presheafValue D₀) (Localization.Away (imagePieceDatum D₀ T t hspan).s)).comp
+        D₀.coeRingHom := by
+  refine IsLocalization.ringHom_ext (Submonoid.powers D₀.s) ?_
+  ext a
+  simp only [RingHom.comp_apply]
+  rw [genPiece_rel_locRestriction_algebraMap, genPiece_rel_forwardLocHom_algebraMap]
+  rfl
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- G1-8e: `backward ∘ forward = id`. -/
+private theorem genPiece_rel_backward_forward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤)
+    (x : presheafValue (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl)) :
+    genPiece_rel_backward D₀ T t hspan (genPiece_rel_forward D₀ T t hspan x) = x := by
+  letI : UniformSpace (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away (imagePieceDatum D₀ T t hspan).s) := (imagePieceDatum D₀ T t hspan).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (imagePieceDatum D₀ T t hspan).s) := (imagePieceDatum D₀ T t hspan).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (imagePieceDatum D₀ T t hspan).s) := (imagePieceDatum D₀ T t hspan).isUniformAddGroup
+  refine @UniformSpace.Completion.ext'
+    (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).uniformSpace
+    (presheafValue (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl)) _ _ _ _
+    (UniformSpace.Completion.continuous_extension.comp
+      UniformSpace.Completion.continuous_extension)
+    continuous_id ?_ x
+  intro a
+  show genPiece_rel_backward D₀ T t hspan (genPiece_rel_forward D₀ T t hspan
+    ((D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).coeRingHom a)) = (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).coeRingHom a
+  rw [genPiece_rel_forward_coe, genPiece_rel_backward_coe]
+  exact RingHom.congr_fun (genPiece_rel_locRoundtrip1 D₀ T t hspan) a
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- G1-8f: forward-restriction intertwining (the Prop 8.2 naturality). -/
+private theorem genPiece_rel_forward_restriction
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤)
+    (x : presheafValue D₀) :
+    genPiece_rel_forward D₀ T t hspan
+        (restrictionMapHom D₀ (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _) x) =
+      (imagePieceDatum D₀ T t hspan).canonicalMap x := by
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  letI : UniformSpace (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away (imagePieceDatum D₀ T t hspan).s) := (imagePieceDatum D₀ T t hspan).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (imagePieceDatum D₀ T t hspan).s) := (imagePieceDatum D₀ T t hspan).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (imagePieceDatum D₀ T t hspan).s) := (imagePieceDatum D₀ T t hspan).isUniformAddGroup
+  refine @UniformSpace.Completion.ext' (Localization.Away D₀.s) D₀.uniformSpace
+    (presheafValue (imagePieceDatum D₀ T t hspan)) _ _ _ _
+    (UniformSpace.Completion.continuous_extension.comp
+      UniformSpace.Completion.continuous_extension)
+    (canonicalMap_continuous (imagePieceDatum D₀ T t hspan)) ?_ x
+  intro z
+  show genPiece_rel_forward D₀ T t hspan
+      (restrictionMapHom D₀ (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _) (D₀.coeRingHom z)) =
+    (imagePieceDatum D₀ T t hspan).canonicalMap (D₀.coeRingHom z)
+  rw [show restrictionMapHom D₀ (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl)
+      (RationalLocData.interSamePair_subset_left _ _ _) (D₀.coeRingHom z) =
+    (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).coeRingHom (genPiece_rel_locRestriction D₀ T t hspan z) from
+    RingHom.congr_fun (genPiece_rel_restriction_factor D₀ T t hspan) z]
+  rw [genPiece_rel_forward_coe]
+  exact congrArg _ (RingHom.congr_fun (genPiece_rel_locRoundtrip2 D₀ T t hspan) z)
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- G1-8g: `forward ∘ backward = id`. -/
+private theorem genPiece_rel_forward_backward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤)
+    (y : presheafValue (imagePieceDatum D₀ T t hspan)) :
+    genPiece_rel_forward D₀ T t hspan (genPiece_rel_backward D₀ T t hspan y) = y := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  have hloc : (genPiece_rel_forward D₀ T t hspan).comp
+      (genPiece_rel_backwardLocHom D₀ T t hspan) =
+      (imagePieceDatum D₀ T t hspan).coeRingHom := by
+    refine IsLocalization.ringHom_ext (Submonoid.powers (imagePieceDatum D₀ T t hspan).s) ?_
+    ext x
+    simp only [RingHom.comp_apply]
+    rw [genPiece_rel_backwardLocHom_algebraMap, genPiece_rel_forward_restriction]
+    rfl
+  letI : UniformSpace (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s) := (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away (imagePieceDatum D₀ T t hspan).s) := (imagePieceDatum D₀ T t hspan).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (imagePieceDatum D₀ T t hspan).s) := (imagePieceDatum D₀ T t hspan).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (imagePieceDatum D₀ T t hspan).s) := (imagePieceDatum D₀ T t hspan).isUniformAddGroup
+  refine @UniformSpace.Completion.ext'
+    (Localization.Away (imagePieceDatum D₀ T t hspan).s) (imagePieceDatum D₀ T t hspan).uniformSpace
+    (presheafValue (imagePieceDatum D₀ T t hspan)) _ _ _ _
+    (UniformSpace.Completion.continuous_extension.comp
+      UniformSpace.Completion.continuous_extension)
+    continuous_id ?_ y
+  intro w
+  show genPiece_rel_forward D₀ T t hspan (genPiece_rel_backward D₀ T t hspan
+    ((imagePieceDatum D₀ T t hspan).coeRingHom w)) = (imagePieceDatum D₀ T t hspan).coeRingHom w
+  rw [genPiece_rel_backward_coe]
+  exact RingHom.congr_fun hloc w
+
+/-- **The general relative-piece identification (Wedhorn Prop 8.2 / Remark 8.4)**:
+the structure ring of `D₀ ∩ R(T/t)` is the structure ring of the image piece
+`R(canMap T / canMap t)` over `B = 𝒪_X(D₀)`, for any ideal-generating `T`.
+The R2-transport workhorse (T-R2-SECTION-COMPAT). -/
+noncomputable def genPiece_relative_equiv
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    presheafValue (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl) ≃+* presheafValue (imagePieceDatum D₀ T t hspan) :=
+  RingEquiv.ofRingHom (genPiece_rel_forward D₀ T t hspan)
+    (genPiece_rel_backward D₀ T t hspan)
+    (RingHom.ext (genPiece_rel_forward_backward D₀ T t hspan))
+    (RingHom.ext (genPiece_rel_backward_forward D₀ T t hspan))
+
+set_option linter.unusedSectionVars false in
+/-- The general relative-piece iso intertwines restriction with `canonicalMap` over `B`
+(Wedhorn Prop 8.2 base-change naturality; the transport-compatibility). -/
+theorem genPiece_relative_equiv_restrictionMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A) (t : A)
+    (hspan : Ideal.span (T : Set A) = ⊤)
+    (x : presheafValue D₀) :
+    genPiece_relative_equiv D₀ T t hspan
+        (restrictionMap D₀ (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _) x) =
+      (imagePieceDatum D₀ T t hspan).canonicalMap x :=
+  genPiece_rel_forward_restriction D₀ T t hspan x
+
+/-- The image-span proof at the `Finset`-coe form (helper for the B-cover). -/
+private theorem imageGenCover_span
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) [DecidableEq (presheafValue D₀)] (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    Ideal.span ((T.image D₀.canonicalMap : Finset (presheafValue D₀)) :
+      Set (presheafValue D₀)) = ⊤ := by
+  rw [Finset.coe_image]
+  exact span_image_canonicalMap_eq_top D₀ T hspan
+
+/-- **The B-level image cover (G2, Wedhorn 8.34(ii) vocabulary)**: the rational cover of
+`Spa 𝒪_X(D₀)` (whole space) generated by the canonical image of `T` — the
+base-changed `U`-side of the restriction `U|Vⱼ`. -/
+noncomputable def imageGenCover
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    RationalCovering (presheafValue D₀) :=
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  letI : DecidableEq (presheafValue D₀) := Classical.decEq _
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  { base := globalLocData (presheafValue_concretePair D₀)
+    covers := (T.image D₀.canonicalMap).image (fun u =>
+      genPieceDatum (presheafValue_concretePair D₀) (T.image D₀.canonicalMap) u
+        (imageGenCover_span D₀ T hspan))
+    hsubset := by
+      intro D hD v hv
+      exact ⟨hv.1, fun x hx => by
+        rw [Finset.mem_singleton.mp hx]
+        exact (v.vle_total 1 1).elim id id, v.not_vle_one_zero⟩
+    hcover := by
+      intro v hv
+      obtain ⟨u, hu, hv'⟩ := exists_mem_rationalOpen_of_spanTop
+        (T.image D₀.canonicalMap) (imageGenCover_span D₀ T hspan) hv.1
+      exact ⟨genPieceDatum (presheafValue_concretePair D₀) (T.image D₀.canonicalMap) u
+        (imageGenCover_span D₀ T hspan),
+        Finset.mem_image_of_mem (fun u => genPieceDatum (presheafValue_concretePair D₀)
+          (T.image D₀.canonicalMap) u (imageGenCover_span D₀ T hspan)) hu, hv'⟩ }
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- G2′: the B-level image cover is generated by the image of `T`. -/
+theorem imageGenCover_isGeneratedBy
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    haveI : DecidableEq (presheafValue D₀) := Classical.decEq _
+    (imageGenCover D₀ T hspan).IsGeneratedBy (T.image D₀.canonicalMap) := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  letI : DecidableEq (presheafValue D₀) := Classical.decEq _
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  constructor
+  · exact imageGenCover_span D₀ T hspan
+  · refine ⟨fun u => ⟨genPieceDatum (presheafValue_concretePair D₀)
+      (T.image D₀.canonicalMap) u.1 (imageGenCover_span D₀ T hspan),
+      Finset.mem_image_of_mem (fun u => genPieceDatum (presheafValue_concretePair D₀)
+        (T.image D₀.canonicalMap) u (imageGenCover_span D₀ T hspan)) u.2⟩,
+      ⟨?_, ?_⟩, fun u => ⟨rfl, rfl⟩⟩
+    · intro u₁ u₂ h
+      have hs := congrArg (fun D => (D.1).s) h
+      exact Subtype.ext hs
+    · rintro ⟨D, hD⟩
+      rw [show (imageGenCover D₀ T hspan).covers =
+        (T.image D₀.canonicalMap).image (fun u =>
+          genPieceDatum (presheafValue_concretePair D₀) (T.image D₀.canonicalMap) u
+            (imageGenCover_span D₀ T hspan)) from rfl, Finset.mem_image] at hD
+      obtain ⟨u, hu, rfl⟩ := hD
+      exact ⟨⟨u, hu⟩, rfl⟩
+
+set_option linter.unusedSectionVars false in
+/-- G3a-1: the away-one collapse `Localization.Away 1 →+* A` (inverse of `algebraMap`). -/
+private noncomputable def globalCollapseLocHom (P : PairOfDefinition A) :
+    Localization.Away ((globalLocData P).s) →+* A :=
+  IsLocalization.Away.lift (x := (globalLocData P).s)
+    (g := RingHom.id A)
+    (by rw [show ((globalLocData P).s : A) = 1 from rfl, RingHom.id_apply]
+        exact isUnit_one)
+
+set_option linter.unusedSectionVars false in
+/-- G3a-1′ tracking. -/
+private theorem globalCollapseLocHom_algebraMap (P : PairOfDefinition A) (a : A) :
+    globalCollapseLocHom P (algebraMap A (Localization.Away ((globalLocData P).s)) a) =
+      a := by
+  rw [globalCollapseLocHom, IsLocalization.Away.lift_eq]
+  rfl
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- G3a-2: the collapse is continuous for the global localization topology. -/
+private theorem globalCollapseLocHom_continuous
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (P : PairOfDefinition A) :
+    @Continuous _ _ (globalLocData P).topology _ (globalCollapseLocHom P) := by
+  classical
+  change @Continuous _ _ (locTopology (globalLocData P).P (globalLocData P).T
+    (globalLocData P).s (globalLocData P).hopen) _ (globalCollapseLocHom P)
+  refine locTopology_continuous_lift (globalLocData P).P (globalLocData P).T
+    (globalLocData P).s (globalLocData P).hopen (globalCollapseLocHom P) ?_ ?_
+  · have heq : (globalCollapseLocHom P).comp
+        (algebraMap A (Localization.Away ((globalLocData P).s))) = RingHom.id A := by
+      ext a; exact globalCollapseLocHom_algebraMap P a
+    rw [heq]
+    exact continuous_id
+  · intro w hw
+    have hw' : w ∈ ({(1 : A)} : Finset A) := hw
+    rw [Finset.mem_singleton.mp hw']
+    have h1 : globalCollapseLocHom P (divByS (1 : A) ((globalLocData P).s)) = 1 := by
+      have hu : IsUnit (globalCollapseLocHom P (algebraMap A
+          (Localization.Away ((globalLocData P).s)) ((globalLocData P).s))) := by
+        rw [globalCollapseLocHom_algebraMap]
+        rw [show ((globalLocData P).s : A) = 1 from rfl]
+        exact isUnit_one
+      refine hu.mul_left_cancel ?_
+      rw [← map_mul, algebraMap_s_mul_divByS, globalCollapseLocHom_algebraMap,
+        globalCollapseLocHom_algebraMap, mul_one]
+      rfl
+    rw [h1]
+    exact TopologicalRing.isPowerBounded_one
+
+/-- G3a-3: the backward map `𝒪_X(X) →+* A` (extension of the collapse). -/
+private noncomputable def globalSections_backward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (P : PairOfDefinition A) :
+    presheafValue (globalLocData P) →+* A := by
+  letI : UniformSpace (Localization.Away ((globalLocData P).s)) :=
+    (globalLocData P).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((globalLocData P).s)) :=
+    (globalLocData P).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((globalLocData P).s)) :=
+    (globalLocData P).isUniformAddGroup
+  letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A
+  haveI : IsUniformAddGroup A := isUniformAddGroup_of_addCommGroup
+  exact UniformSpace.Completion.extensionHom (globalCollapseLocHom P)
+    (globalCollapseLocHom_continuous P)
+
+set_option linter.unusedSectionVars false in
+/-- G3a-3′ coe-tracking. -/
+private theorem globalSections_backward_coe
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (P : PairOfDefinition A)
+    (y : Localization.Away ((globalLocData P).s)) :
+    globalSections_backward P ((globalLocData P).coeRingHom y) =
+      globalCollapseLocHom P y := by
+  letI : UniformSpace (Localization.Away ((globalLocData P).s)) :=
+    (globalLocData P).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((globalLocData P).s)) :=
+    (globalLocData P).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((globalLocData P).s)) :=
+    (globalLocData P).isUniformAddGroup
+  letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A
+  haveI : IsUniformAddGroup A := isUniformAddGroup_of_addCommGroup
+  exact UniformSpace.Completion.extensionHom_coe (globalCollapseLocHom P)
+    (globalCollapseLocHom_continuous P) y
+
+set_option linter.unusedSectionVars false in
+/-- G3a-4: `backward ∘ canonicalMap = id` (pointwise). -/
+private theorem globalSections_backward_canonicalMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (P : PairOfDefinition A) (a : A) :
+    globalSections_backward P ((globalLocData P).canonicalMap a) = a := by
+  rw [show (globalLocData P).canonicalMap a = (globalLocData P).coeRingHom
+    (algebraMap A (Localization.Away ((globalLocData P).s)) a) from rfl]
+  rw [globalSections_backward_coe, globalCollapseLocHom_algebraMap]
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- G3a-5: `canonicalMap ∘ backward = id` (the completion roundtrip). -/
+private theorem globalSections_canonicalMap_backward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (P : PairOfDefinition A) (y : presheafValue (globalLocData P)) :
+    (globalLocData P).canonicalMap (globalSections_backward P y) = y := by
+  have hloc : ((globalLocData P).canonicalMap).comp (globalCollapseLocHom P) =
+      (globalLocData P).coeRingHom := by
+    refine IsLocalization.ringHom_ext (Submonoid.powers ((globalLocData P).s)) ?_
+    ext a
+    simp only [RingHom.comp_apply]
+    rw [globalCollapseLocHom_algebraMap]
+    rfl
+  letI : UniformSpace (Localization.Away ((globalLocData P).s)) :=
+    (globalLocData P).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((globalLocData P).s)) :=
+    (globalLocData P).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((globalLocData P).s)) :=
+    (globalLocData P).isUniformAddGroup
+  letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A
+  haveI : IsUniformAddGroup A := isUniformAddGroup_of_addCommGroup
+  refine @UniformSpace.Completion.ext'
+    (Localization.Away ((globalLocData P).s)) ((globalLocData P)).uniformSpace
+    (presheafValue (globalLocData P)) _ _ _ _
+    ((canonicalMap_continuous (globalLocData P)).comp
+      UniformSpace.Completion.continuous_extension)
+    continuous_id ?_ y
+  intro a
+  show (globalLocData P).canonicalMap (globalSections_backward P
+    ((globalLocData P).coeRingHom a)) = (globalLocData P).coeRingHom a
+  rw [globalSections_backward_coe]
+  exact RingHom.congr_fun hloc a
+
+/-- **Global sections (Wedhorn Remark 8.3)**: for complete `A`, the canonical map
+`A →+* 𝒪_X(X)` is an isomorphism — `𝒪_X(X) = Â = A`. -/
+noncomputable def globalSections_equiv
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (P : PairOfDefinition A) :
+    A ≃+* presheafValue (globalLocData P) :=
+  RingEquiv.ofRingHom ((globalLocData P).canonicalMap) (globalSections_backward P)
+    (RingHom.ext (globalSections_canonicalMap_backward P))
+    (RingHom.ext (globalSections_backward_canonicalMap P))
+
+set_option linter.unusedSectionVars false in
+/-- The global-sections iso is the canonical map (tracking). -/
+theorem globalSections_equiv_apply
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (P : PairOfDefinition A) (a : A) :
+    globalSections_equiv P a = (globalLocData P).canonicalMap a := rfl
+
+/-- **The A-level restricted gen-cover (G3c-0)**: base `D₀`, pieces `D₀ ∩ R(T/t)`
+(the A-side of Wedhorn 8.34's `U|D₀`). -/
+noncomputable def genRestrictedCover
+    [IsTateRing A] [IsNoetherianRing A] [DecidableEq A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    RationalCovering A :=
+  { base := D₀
+    covers := T.image (fun t => D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl)
+    hsubset := by
+      intro D hD
+      rw [Finset.mem_image] at hD
+      obtain ⟨t, ht, rfl⟩ := hD
+      exact RationalLocData.interSamePair_subset_left _ _ _
+    hcover := by
+      intro v hv
+      obtain ⟨t, ht, hv'⟩ := exists_mem_rationalOpen_of_spanTop T hspan hv.1
+      refine ⟨D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl,
+        Finset.mem_image_of_mem _ ht, ?_⟩
+      rw [RationalLocData.interSamePair_rationalOpen]
+      exact ⟨hv, hv'⟩ }
+
+set_option linter.unusedSectionVars false in
+/-- The B-side image piece equals the `genPieceDatum`-at-`B` piece (the `hopen`-proofs
+differ but proofs are irrelevant). -/
+private theorem imagePieceDatum_eq_genPieceDatum
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t : A) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    haveI : DecidableEq (presheafValue D₀) := Classical.decEq _
+    haveI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+    imagePieceDatum D₀ T t hspan =
+      genPieceDatum (presheafValue_concretePair D₀) (T.image D₀.canonicalMap)
+        (D₀.canonicalMap t) (imageGenCover_span D₀ T hspan) :=
+  rfl
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- **G3c-separation**: the separation half of the A-level restricted cover transports
+from the B-level image cover (via `globalSections_equiv` + the G1-trackings +
+`restrictionMapHom_canonicalMap`). -/
+theorem genRestrictedCover_separation
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A] [DecidableEq A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    ∀ (_hBsep : ∀ (y : presheafValue (imageGenCover D₀ T hspan).base),
+      (∀ (E : RationalLocData (presheafValue D₀))
+        (hE : E ∈ (imageGenCover D₀ T hspan).covers),
+        restrictionMap (imageGenCover D₀ T hspan).base E
+          ((imageGenCover D₀ T hspan).hsubset E hE) y = 0) → y = 0)
+    (x : presheafValue D₀)
+    (_hx : ∀ t ∈ T,
+      restrictionMap D₀ (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _) x = 0),
+    x = 0 := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  haveI hCompleteB :
+      (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+       CompleteSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  intro hBsep x hx
+  set y := (globalLocData (presheafValue_concretePair D₀)).canonicalMap x with hy
+  have hy0 : y = 0 := by
+    refine hBsep y ?_
+    intro E hE
+    have hE' : E ∈ (T.image D₀.canonicalMap).image (fun u =>
+        genPieceDatum (presheafValue_concretePair D₀) (T.image D₀.canonicalMap) u
+          (imageGenCover_span D₀ T hspan)) := hE
+    rw [Finset.mem_image] at hE'
+    obtain ⟨u, hu, rfl⟩ := hE'
+    rw [Finset.mem_image] at hu
+    obtain ⟨t, ht, rfl⟩ := hu
+    rw [show restrictionMap (imageGenCover D₀ T hspan).base
+        (genPieceDatum (presheafValue_concretePair D₀) (T.image D₀.canonicalMap)
+          (D₀.canonicalMap t) (imageGenCover_span D₀ T hspan))
+        ((imageGenCover D₀ T hspan).hsubset _ hE) y =
+      (genPieceDatum (presheafValue_concretePair D₀) (T.image D₀.canonicalMap)
+        (D₀.canonicalMap t) (imageGenCover_span D₀ T hspan)).canonicalMap x from
+      restrictionMapHom_canonicalMap _ _ _ x]
+    rw [show (genPieceDatum (presheafValue_concretePair D₀) (T.image D₀.canonicalMap)
+        (D₀.canonicalMap t) (imageGenCover_span D₀ T hspan)).canonicalMap x =
+      genPiece_relative_equiv D₀ T t hspan
+        (restrictionMap D₀ (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _) x) from
+      (genPiece_relative_equiv_restrictionMap D₀ T t hspan x).symm]
+    rw [hx t ht]
+    exact map_zero _
+  have hback := globalSections_backward_canonicalMap (presheafValue_concretePair D₀) x
+  rw [← hy, hy0, map_zero] at hback
+  exact hback.symm
+
+/-! #### G3b — the double-intersection identification (skeleton, Wedhorn Prop 8.2 iterated)
+
+The gluing-transport needs the overlap-level analogue of `genPiece_relative_equiv`:
+`𝒪_X(D₀ ∩ R(T/t₁) ∩ R(T/t₂))` is the structure ring of the B-side double piece, with the
+two restriction-squares intertwining. Same 8-step stack as G1 at the iterated datum
+(3-layer product witnesses); stated here as honest leaves, filled by the same recipe. -/
+
+set_option linter.unusedSectionVars false in
+/-- G3b-1: the double-intersection forward base unit. -/
+private theorem genPiece_relOverlap_baseHom_isUnit
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    IsUnit (((algebraMap (presheafValue D₀) (Localization.Away
+        ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s)).comp D₀.canonicalMap)
+      (((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s)) := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  have hs : ((((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s : A)) = (D₀.s * t₁) * t₂ := rfl
+  rw [RingHom.comp_apply, hs, map_mul, map_mul, map_mul, map_mul]
+  refine IsUnit.mul (IsUnit.mul ((isUnit_s_in_presheafValue D₀).map _) ?_) ?_
+  · -- `aM (canMap t₁)` divides the localized-away unit `EII.s = canMap t₁ · canMap t₂`
+    have h2 : IsUnit (algebraMap (presheafValue D₀) (Localization.Away
+        ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) (D₀.canonicalMap t₁) *
+      algebraMap (presheafValue D₀) (Localization.Away
+        ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) (D₀.canonicalMap t₂)) := by
+      rw [← map_mul]
+      rw [show (D₀.canonicalMap t₁ * D₀.canonicalMap t₂ : presheafValue D₀) =
+        ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s from rfl]
+      exact IsLocalization.Away.algebraMap_isUnit
+        (S := Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s
+    exact isUnit_of_mul_isUnit_left h2
+  · have h2 : IsUnit (algebraMap (presheafValue D₀) (Localization.Away
+        ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) (D₀.canonicalMap t₁) *
+      algebraMap (presheafValue D₀) (Localization.Away
+        ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) (D₀.canonicalMap t₂)) := by
+      rw [← map_mul]
+      rw [show (D₀.canonicalMap t₁ * D₀.canonicalMap t₂ : presheafValue D₀) =
+        ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s from rfl]
+      exact IsLocalization.Away.algebraMap_isUnit
+        (S := Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s
+    exact isUnit_of_mul_isUnit_right h2
+
+/-- G3b-2: the double-intersection forward loc-hom. -/
+private noncomputable def genPiece_relOverlap_forwardLocHom
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A) :
+    Localization.Away (((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) →+*
+      Localization.Away (((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) :=
+  IsLocalization.Away.lift
+    (x := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s)
+    (g := (algebraMap (presheafValue D₀) (Localization.Away
+      ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s)).comp D₀.canonicalMap)
+    (genPiece_relOverlap_baseHom_isUnit D₀ T hspan t₁ t₂)
+
+set_option linter.unusedSectionVars false in
+/-- G3b-3 tracking. -/
+private theorem genPiece_relOverlap_forwardLocHom_algebraMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A) (a : A) :
+    genPiece_relOverlap_forwardLocHom D₀ T hspan t₁ t₂
+        (algebraMap A (Localization.Away (((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s)) a) =
+      algebraMap (presheafValue D₀)
+        (Localization.Away (((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s)) (D₀.canonicalMap a) := by
+  rw [genPiece_relOverlap_forwardLocHom, IsLocalization.Away.lift_eq]
+  rfl
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- G3b-4: the 3-layer per-generator witnesses for the double-intersection. -/
+private theorem genPiece_relOverlap_forward_witness
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A)
+    (w : A) (hw : w ∈ ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).T) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    ∃ y : Localization.Away (((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s),
+      y ∈ locSubring ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).P ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).T ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s ∧
+      (((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).coeRingHom).comp
+        (genPiece_relOverlap_forwardLocHom D₀ T hspan t₁ t₂)
+        (divByS w (((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s)) =
+      ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).coeRingHom y := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  classical
+  set DII := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl) with hDII
+  set EII := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl) with hEII
+  set F := (EII.coeRingHom).comp (genPiece_relOverlap_forwardLocHom D₀ T hspan t₁ t₂)
+    with hF
+  have hF_alg : ∀ a : A, F (algebraMap A (Localization.Away DII.s) a) =
+      EII.canonicalMap (D₀.canonicalMap a) := by
+    intro a
+    rw [hF, RingHom.comp_apply, genPiece_relOverlap_forwardLocHom_algebraMap]
+    rfl
+  have hu : IsUnit (F (algebraMap A (Localization.Away DII.s) DII.s)) := by
+    rw [hF_alg]
+    exact (genPiece_relOverlap_baseHom_isUnit D₀ T hspan t₁ t₂).map EII.coeRingHom
+  have hF_div : ∀ (c : A) (z : presheafValue EII),
+      F (algebraMap A (Localization.Away DII.s) c) =
+        F (algebraMap A (Localization.Away DII.s) DII.s) * z →
+      F (divByS c DII.s) = z := by
+    intro c z hz
+    have h1 : F (algebraMap A (Localization.Away DII.s) DII.s) * F (divByS c DII.s) =
+        F (algebraMap A (Localization.Away DII.s) c) := by
+      rw [← map_mul, algebraMap_s_mul_divByS]
+    exact hu.mul_left_cancel (h1.trans hz)
+  have hps : ∀ p : A, D₀.canonicalMap p =
+      D₀.canonicalMap D₀.s * D₀.coeRingHom (divByS p D₀.s) := by
+    intro p
+    rw [show D₀.canonicalMap D₀.s * D₀.coeRingHom (divByS p D₀.s) =
+      D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) D₀.s *
+        divByS p D₀.s) from by rw [map_mul]; rfl]
+    rw [algebraMap_s_mul_divByS]
+    rfl
+  have hA₀ : ∀ p ∈ insert D₀.s D₀.T,
+      D₀.coeRingHom (divByS p D₀.s) ∈ (presheafValue_concretePair D₀).A₀ := by
+    intro p hp
+    rw [presheafValue_concretePair_A₀]
+    rcases Finset.mem_insert.mp hp with rfl | hp'
+    · have h1 : divByS D₀.s D₀.s = 1 := by
+        unfold divByS
+        exact IsLocalization.mk'_self (M := Submonoid.powers D₀.s)
+          (S := Localization.Away D₀.s) ⟨1, pow_one D₀.s⟩
+      rw [h1, map_one]
+      exact one_mem _
+    · exact subset_closure ⟨⟨divByS p D₀.s,
+        divByS_mem_locSubring D₀.P D₀.T D₀.s hp'⟩, rfl⟩
+  -- the EII-merge identity
+  have hmerge : ∀ u : presheafValue D₀,
+      EII.canonicalMap (D₀.canonicalMap t₁ * D₀.canonicalMap t₂) *
+        EII.coeRingHom (divByS u EII.s) = EII.canonicalMap u := by
+    intro u
+    rw [show EII.canonicalMap (D₀.canonicalMap t₁ * D₀.canonicalMap t₂) *
+        EII.coeRingHom (divByS u EII.s) =
+      EII.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away EII.s)
+        (D₀.canonicalMap t₁ * D₀.canonicalMap t₂) * divByS u EII.s) from by
+      rw [map_mul EII.coeRingHom]; rfl]
+    rw [show algebraMap (presheafValue D₀) (Localization.Away EII.s)
+        (D₀.canonicalMap t₁ * D₀.canonicalMap t₂) =
+      algebraMap (presheafValue D₀) (Localization.Away EII.s) EII.s from rfl]
+    rw [algebraMap_s_mul_divByS]
+    rfl
+  -- destructure `w = p·q`, then `p = p′·q′`
+  have hw' : w ∈ ((insert (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).s
+      (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).T).product
+      (insert t₂ T)).image (fun r : A × A => r.1 * r.2) := hw
+  rw [Finset.mem_image] at hw'
+  obtain ⟨⟨p, q⟩, hpq, rfl⟩ := hw'
+  have hp : p ∈ insert (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).s
+      (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).T :=
+    (Finset.mem_product.mp hpq).1
+  have hq : q ∈ insert t₂ T := (Finset.mem_product.mp hpq).2
+  rw [show (((p, q).1 : A) * (p, q).2 : A) = p * q from rfl]
+  -- inline decomposition of `p`
+  have hp_decomp : ∃ p' ∈ insert D₀.s D₀.T, ∃ q' ∈ insert t₁ T, p = p' * q' := by
+    rcases Finset.mem_insert.mp hp with rfl | hp'
+    · exact ⟨D₀.s, Finset.mem_insert_self _ _, t₁, Finset.mem_insert_self _ _, rfl⟩
+    · have hp'' : p ∈ ((insert D₀.s D₀.T).product
+          (insert t₁ T)).image (fun r : A × A => r.1 * r.2) := hp'
+      rw [Finset.mem_image] at hp''
+      obtain ⟨⟨p', q'⟩, hpq', rfl⟩ := hp''
+      exact ⟨p', (Finset.mem_product.mp hpq').1, q', (Finset.mem_product.mp hpq').2, rfl⟩
+  obtain ⟨p', hp', q', hq', rfl⟩ := hp_decomp
+  -- the generator-pair membership in `T_EII`
+  have hgen_mem : D₀.canonicalMap q' * D₀.canonicalMap q ∈ EII.T := by
+    refine Finset.mem_image.mpr ⟨(D₀.canonicalMap q', D₀.canonicalMap q),
+      Finset.mem_product.mpr ⟨?_, ?_⟩, rfl⟩
+    · rcases Finset.mem_insert.mp hq' with rfl | hq''
+      · exact Finset.mem_insert_self _ _
+      · exact Finset.mem_insert_of_mem (Finset.mem_image_of_mem _ hq'')
+    · rcases Finset.mem_insert.mp hq with rfl | hq''
+      · exact Finset.mem_insert_self _ _
+      · exact Finset.mem_insert_of_mem (Finset.mem_image_of_mem _ hq'')
+  -- witness and equation
+  refine ⟨algebraMap (presheafValue D₀) (Localization.Away EII.s)
+      (D₀.coeRingHom (divByS p' D₀.s)) *
+      divByS (D₀.canonicalMap q' * D₀.canonicalMap q) EII.s,
+    (locSubring EII.P EII.T EII.s).mul_mem
+      (algebraMap_mem_locSubring EII.P EII.T EII.s (hA₀ p' hp'))
+      (divByS_mem_locSubring EII.P EII.T EII.s hgen_mem), ?_⟩
+  refine hF_div _ _ ?_
+  rw [hF_alg, hF_alg]
+  rw [show EII.coeRingHom (algebraMap (presheafValue D₀) (Localization.Away EII.s)
+      (D₀.coeRingHom (divByS p' D₀.s)) *
+      divByS (D₀.canonicalMap q' * D₀.canonicalMap q) EII.s) =
+    EII.canonicalMap (D₀.coeRingHom (divByS p' D₀.s)) *
+      EII.coeRingHom (divByS (D₀.canonicalMap q' * D₀.canonicalMap q) EII.s) from by
+    rw [map_mul]; rfl]
+  rw [show ((DII.s : A)) = (D₀.s * t₁) * t₂ from rfl]
+  rw [map_mul (D₀.canonicalMap), map_mul (D₀.canonicalMap), map_mul (D₀.canonicalMap),
+    map_mul (D₀.canonicalMap)]
+  rw [show D₀.canonicalMap p' = D₀.canonicalMap D₀.s *
+    D₀.coeRingHom (divByS p' D₀.s) from hps p']
+  simp only [map_mul]
+  -- assemble: replace the merge-factor and close by `ring`
+  have hm := hmerge (D₀.canonicalMap q' * D₀.canonicalMap q)
+  rw [map_mul (EII.canonicalMap)] at hm
+  calc EII.canonicalMap (D₀.canonicalMap D₀.s) *
+        EII.canonicalMap (D₀.coeRingHom (divByS p' D₀.s)) *
+        EII.canonicalMap (D₀.canonicalMap q') *
+        EII.canonicalMap (D₀.canonicalMap q) =
+      EII.canonicalMap (D₀.canonicalMap D₀.s) *
+        EII.canonicalMap (D₀.coeRingHom (divByS p' D₀.s)) *
+        (EII.canonicalMap (D₀.canonicalMap q') *
+          EII.canonicalMap (D₀.canonicalMap q)) := by ring
+    _ = EII.canonicalMap (D₀.canonicalMap D₀.s) *
+        EII.canonicalMap (D₀.coeRingHom (divByS p' D₀.s)) *
+        (EII.canonicalMap (D₀.canonicalMap t₁) * EII.canonicalMap (D₀.canonicalMap t₂) *
+          EII.coeRingHom (divByS (D₀.canonicalMap q' * D₀.canonicalMap q) EII.s)) := by
+        rw [hm, map_mul (EII.canonicalMap)]
+    _ = EII.canonicalMap (D₀.canonicalMap D₀.s) * EII.canonicalMap (D₀.canonicalMap t₁) *
+        EII.canonicalMap (D₀.canonicalMap t₂) *
+        (EII.canonicalMap (D₀.coeRingHom (divByS p' D₀.s)) *
+          EII.coeRingHom (divByS (D₀.canonicalMap q' * D₀.canonicalMap q) EII.s)) := by
+        ring
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- G3b-5: forward continuity. -/
+private theorem genPiece_relOverlap_forwardCompletion_continuous
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    @Continuous _ _ ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).topology _
+      ((((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).coeRingHom).comp
+        (genPiece_relOverlap_forwardLocHom D₀ T hspan t₁ t₂)) := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  classical
+  set DII := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl) with hDII
+  set EII := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl) with hEII
+  set F := (EII.coeRingHom).comp (genPiece_relOverlap_forwardLocHom D₀ T hspan t₁ t₂)
+    with hF
+  have hF_alg : ∀ a : A, F (algebraMap A (Localization.Away DII.s) a) =
+      EII.canonicalMap (D₀.canonicalMap a) := by
+    intro a
+    rw [hF, RingHom.comp_apply, genPiece_relOverlap_forwardLocHom_algebraMap]
+    rfl
+  change @Continuous _ _ (locTopology DII.P DII.T DII.s DII.hopen) _ F
+  refine locTopology_continuous_lift DII.P DII.T DII.s DII.hopen F ?_ ?_
+  · have heq : F.comp (algebraMap A (Localization.Away DII.s)) =
+        (EII.canonicalMap).comp D₀.canonicalMap := by
+      ext a; exact hF_alg a
+    rw [heq]
+    exact (canonicalMap_continuous EII).comp (canonicalMap_continuous D₀)
+  · intro w hw
+    obtain ⟨y, hy_mem, hy_eq⟩ := genPiece_relOverlap_forward_witness D₀ T hspan t₁ t₂ w hw
+    rw [show F (divByS w DII.s) = EII.coeRingHom y from hy_eq]
+    have hbddB := CompletionLocalization.coeRingHom_image_locSubring_isBounded EII
+    refine hbddB.subset ?_
+    rintro _ ⟨k, rfl⟩
+    exact ⟨y ^ k, pow_mem hy_mem k, by rw [map_pow]⟩
+
+/-- G3b-6: forward map. -/
+private noncomputable def genPiece_relOverlap_forward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A) :
+    presheafValue ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl) →+* presheafValue ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl) := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  letI : UniformSpace (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom
+    ((((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).coeRingHom).comp (genPiece_relOverlap_forwardLocHom D₀ T hspan t₁ t₂))
+    (genPiece_relOverlap_forwardCompletion_continuous D₀ T hspan t₁ t₂)
+
+/-- G3b-6′ coe-tracking. -/
+private theorem genPiece_relOverlap_forward_coe
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A)
+    (y : Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    genPiece_relOverlap_forward D₀ T hspan t₁ t₂ (((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom y) =
+      ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).coeRingHom (genPiece_relOverlap_forwardLocHom D₀ T hspan t₁ t₂ y) := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  letI : UniformSpace (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom_coe
+    ((((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).coeRingHom).comp (genPiece_relOverlap_forwardLocHom D₀ T hspan t₁ t₂))
+    (genPiece_relOverlap_forwardCompletion_continuous D₀ T hspan t₁ t₂) y
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- G3b-7a: backward base unit. -/
+private theorem genPiece_relOverlap_backward_baseHom_isUnit
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    IsUnit ((restrictionMapHom D₀ ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl)
+        ((RationalLocData.interSamePair_subset_left _ _ _).trans
+          (RationalLocData.interSamePair_subset_left _ _ _)))
+      (((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s)) := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  have hu : IsUnit (((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).canonicalMap (((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s)) := isUnit_s_in_presheafValue _
+  rw [show ((((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s : A)) = (D₀.s * t₁) * t₂ from rfl, map_mul, map_mul] at hu
+  have hu₁ : IsUnit (((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).canonicalMap t₁) :=
+    isUnit_of_mul_isUnit_right (isUnit_of_mul_isUnit_left hu)
+  have hu₂ : IsUnit (((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).canonicalMap t₂) := isUnit_of_mul_isUnit_right hu
+  rw [show (((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s : presheafValue D₀) =
+    D₀.canonicalMap t₁ * D₀.canonicalMap t₂ from rfl, map_mul,
+    restrictionMapHom_canonicalMap, restrictionMapHom_canonicalMap]
+  exact hu₁.mul hu₂
+
+/-- G3b-7b: backward loc-hom. -/
+private noncomputable def genPiece_relOverlap_backwardLocHom
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A) :
+    Localization.Away (((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) →+* presheafValue ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl) :=
+  IsLocalization.Away.lift
+    (x := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s)
+    (g := restrictionMapHom D₀ ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl)
+      ((RationalLocData.interSamePair_subset_left _ _ _).trans
+        (RationalLocData.interSamePair_subset_left _ _ _)))
+    (genPiece_relOverlap_backward_baseHom_isUnit D₀ T hspan t₁ t₂)
+
+set_option linter.unusedSectionVars false in
+/-- G3b-7c tracking. -/
+private theorem genPiece_relOverlap_backwardLocHom_algebraMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A) (x : presheafValue D₀) :
+    genPiece_relOverlap_backwardLocHom D₀ T hspan t₁ t₂
+        (algebraMap (presheafValue D₀) (Localization.Away (((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s)) x) =
+      restrictionMapHom D₀ ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl)
+        ((RationalLocData.interSamePair_subset_left _ _ _).trans
+          (RationalLocData.interSamePair_subset_left _ _ _)) x := by
+  rw [genPiece_relOverlap_backwardLocHom, IsLocalization.Away.lift_eq]
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- G3b-7e: backward continuity (each `T_EII`-generator lands on the A-side
+ring-of-definition element `((D₀.s·q′)·q)/s_DII`). -/
+private theorem genPiece_relOverlap_backwardLocHom_continuous
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    @Continuous _ _ ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).topology _
+      (genPiece_relOverlap_backwardLocHom D₀ T hspan t₁ t₂) := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  classical
+  set DII := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl) with hDII
+  set EII := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl) with hEII
+  change @Continuous _ _ (locTopology EII.P EII.T EII.s EII.hopen) _
+    (genPiece_relOverlap_backwardLocHom D₀ T hspan t₁ t₂)
+  refine locTopology_continuous_lift EII.P EII.T EII.s EII.hopen
+    (genPiece_relOverlap_backwardLocHom D₀ T hspan t₁ t₂) ?_ ?_
+  · have heq : (genPiece_relOverlap_backwardLocHom D₀ T hspan t₁ t₂).comp
+        (algebraMap (presheafValue D₀) (Localization.Away EII.s)) =
+        restrictionMapHom D₀ DII
+          ((RationalLocData.interSamePair_subset_left _ _ _).trans
+            (RationalLocData.interSamePair_subset_left _ _ _)) := by
+      ext x; exact genPiece_relOverlap_backwardLocHom_algebraMap D₀ T hspan t₁ t₂ x
+    rw [heq]
+    exact restrictionMapHom_continuous D₀ DII _
+  · intro u hu_mem
+    -- destructure the `T_EII`-generator to `(canMap q′)·(canMap q)`
+    have hu' : u ∈ ((insert (imagePieceDatum D₀ T t₁ hspan).s
+        (imagePieceDatum D₀ T t₁ hspan).T).product
+        (insert (imagePieceDatum D₀ T t₂ hspan).s
+          (imagePieceDatum D₀ T t₂ hspan).T)).image
+        (fun r : presheafValue D₀ × presheafValue D₀ => r.1 * r.2) := hu_mem
+    rw [Finset.mem_image] at hu'
+    obtain ⟨⟨u₁, u₂⟩, hu₁₂, rfl⟩ := hu'
+    have hu₁ : u₁ ∈ insert (imagePieceDatum D₀ T t₁ hspan).s
+        (imagePieceDatum D₀ T t₁ hspan).T := (Finset.mem_product.mp hu₁₂).1
+    have hu₂ : u₂ ∈ insert (imagePieceDatum D₀ T t₂ hspan).s
+        (imagePieceDatum D₀ T t₂ hspan).T := (Finset.mem_product.mp hu₁₂).2
+    rw [show (((u₁, u₂).1 : presheafValue D₀) * (u₁, u₂).2 :
+      presheafValue D₀) = u₁ * u₂ from rfl]
+    -- the layers are canonical images
+    have hq₁ : ∃ q' ∈ insert t₁ T, u₁ = D₀.canonicalMap q' := by
+      rcases Finset.mem_insert.mp hu₁ with rfl | h
+      · exact ⟨t₁, Finset.mem_insert_self _ _, rfl⟩
+      · have h' : u₁ ∈ T.image D₀.canonicalMap := h
+        rw [Finset.mem_image] at h'
+        obtain ⟨q', hq', rfl⟩ := h'
+        exact ⟨q', Finset.mem_insert_of_mem hq', rfl⟩
+    have hq₂ : ∃ q ∈ insert t₂ T, u₂ = D₀.canonicalMap q := by
+      rcases Finset.mem_insert.mp hu₂ with rfl | h
+      · exact ⟨t₂, Finset.mem_insert_self _ _, rfl⟩
+      · have h' : u₂ ∈ T.image D₀.canonicalMap := h
+        rw [Finset.mem_image] at h'
+        obtain ⟨q, hq, rfl⟩ := h'
+        exact ⟨q, Finset.mem_insert_of_mem hq, rfl⟩
+    obtain ⟨q', hq', rfl⟩ := hq₁
+    obtain ⟨q, hq, rfl⟩ := hq₂
+    -- the A-side witness `W := (D₀.s·q′)·q`
+    have hW_mem : (D₀.s * q') * q ∈ DII.T := by
+      refine Finset.mem_image.mpr ⟨(D₀.s * q', q), Finset.mem_product.mpr ⟨?_, ?_⟩, rfl⟩
+      · rcases Finset.mem_insert.mp hq' with rfl | h
+        · exact Finset.mem_insert_self _ _
+        · exact Finset.mem_insert_of_mem (Finset.mem_image.mpr
+            ⟨(D₀.s, q'), Finset.mem_product.mpr
+              ⟨Finset.mem_insert_self _ _, Finset.mem_insert_of_mem h⟩, rfl⟩)
+      · exact hq
+    -- the unit and the cancel-engine
+    have hu_s : IsUnit (genPiece_relOverlap_backwardLocHom D₀ T hspan t₁ t₂
+        (algebraMap (presheafValue D₀) (Localization.Away EII.s) EII.s)) := by
+      rw [genPiece_relOverlap_backwardLocHom_algebraMap]
+      exact genPiece_relOverlap_backward_baseHom_isUnit D₀ T hspan t₁ t₂
+    have hwit : genPiece_relOverlap_backwardLocHom D₀ T hspan t₁ t₂
+        (divByS (D₀.canonicalMap q' * D₀.canonicalMap q) EII.s) =
+        DII.coeRingHom (divByS ((D₀.s * q') * q) DII.s) := by
+      refine hu_s.mul_left_cancel ?_
+      have h1 : genPiece_relOverlap_backwardLocHom D₀ T hspan t₁ t₂
+          (algebraMap (presheafValue D₀) (Localization.Away EII.s) EII.s) *
+          genPiece_relOverlap_backwardLocHom D₀ T hspan t₁ t₂
+            (divByS (D₀.canonicalMap q' * D₀.canonicalMap q) EII.s) =
+          genPiece_relOverlap_backwardLocHom D₀ T hspan t₁ t₂
+            (algebraMap (presheafValue D₀) (Localization.Away EII.s)
+              (D₀.canonicalMap q' * D₀.canonicalMap q)) := by
+        rw [← map_mul, algebraMap_s_mul_divByS]
+      rw [h1, genPiece_relOverlap_backwardLocHom_algebraMap,
+        genPiece_relOverlap_backwardLocHom_algebraMap]
+      -- both sides through the `DII`-chase
+      have hchase : DII.canonicalMap DII.s *
+          DII.coeRingHom (divByS ((D₀.s * q') * q) DII.s) =
+          DII.canonicalMap ((D₀.s * q') * q) := by
+        rw [show DII.canonicalMap DII.s *
+          DII.coeRingHom (divByS ((D₀.s * q') * q) DII.s) =
+          DII.coeRingHom (algebraMap A (Localization.Away DII.s) DII.s *
+            divByS ((D₀.s * q') * q) DII.s) from by rw [map_mul]; rfl]
+        rw [algebraMap_s_mul_divByS]
+        rfl
+      have hsplit_s : DII.canonicalMap DII.s = DII.canonicalMap D₀.s *
+          DII.canonicalMap t₁ * DII.canonicalMap t₂ := by
+        rw [show DII.canonicalMap DII.s =
+          DII.canonicalMap ((D₀.s * t₁) * t₂) from by
+          rw [show ((DII.s : A)) = (D₀.s * t₁) * t₂ from rfl]]
+        rw [map_mul, map_mul]
+      have hu_s' : IsUnit (DII.canonicalMap D₀.s) := by
+        have h := isUnit_s_in_presheafValue DII
+        rw [hsplit_s] at h
+        exact isUnit_of_mul_isUnit_left (isUnit_of_mul_isUnit_left h)
+      rw [map_mul (restrictionMapHom D₀ DII
+        ((RationalLocData.interSamePair_subset_left _ _ _).trans
+          (RationalLocData.interSamePair_subset_left _ _ _)))]
+      rw [show ((EII.s : presheafValue D₀)) =
+        D₀.canonicalMap t₁ * D₀.canonicalMap t₂ from rfl]
+      rw [map_mul (restrictionMapHom D₀ DII
+        ((RationalLocData.interSamePair_subset_left _ _ _).trans
+          (RationalLocData.interSamePair_subset_left _ _ _)))]
+      rw [restrictionMapHom_canonicalMap, restrictionMapHom_canonicalMap,
+        restrictionMapHom_canonicalMap, restrictionMapHom_canonicalMap]
+      refine hu_s'.mul_left_cancel ?_
+      rw [hsplit_s] at hchase
+      rw [map_mul (DII.canonicalMap), map_mul (DII.canonicalMap)] at hchase
+      linear_combination -hchase
+    rw [hwit]
+    have hbdd := CompletionLocalization.coeRingHom_image_locSubring_isBounded DII
+    refine hbdd.subset ?_
+    rintro _ ⟨k, rfl⟩
+    exact ⟨divByS ((D₀.s * q') * q) DII.s ^ k,
+      pow_mem (divByS_mem_locSubring DII.P DII.T DII.s hW_mem) k, by rw [map_pow]⟩
+
+/-- G3b-7f: backward map. -/
+private noncomputable def genPiece_relOverlap_backward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A) :
+    presheafValue ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl) →+* presheafValue ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl) := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  letI : UniformSpace (Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom
+    (genPiece_relOverlap_backwardLocHom D₀ T hspan t₁ t₂)
+    (genPiece_relOverlap_backwardLocHom_continuous D₀ T hspan t₁ t₂)
+
+/-- G3b-7f′ coe-tracking. -/
+private theorem genPiece_relOverlap_backward_coe
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A)
+    (y : Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    genPiece_relOverlap_backward D₀ T hspan t₁ t₂ (((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).coeRingHom y) =
+      genPiece_relOverlap_backwardLocHom D₀ T hspan t₁ t₂ y := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  letI : UniformSpace (Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).isUniformAddGroup
+  exact UniformSpace.Completion.extensionHom_coe
+    (genPiece_relOverlap_backwardLocHom D₀ T hspan t₁ t₂)
+    (genPiece_relOverlap_backwardLocHom_continuous D₀ T hspan t₁ t₂) y
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- G3b-8c: loc-level roundtrip 1. -/
+private theorem genPiece_relOverlap_locRoundtrip1
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    (genPiece_relOverlap_backwardLocHom D₀ T hspan t₁ t₂).comp
+        (genPiece_relOverlap_forwardLocHom D₀ T hspan t₁ t₂) =
+      ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  refine IsLocalization.ringHom_ext (Submonoid.powers (((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s)) ?_
+  ext a
+  simp only [RingHom.comp_apply]
+  rw [genPiece_relOverlap_forwardLocHom_algebraMap,
+    genPiece_relOverlap_backwardLocHom_algebraMap, restrictionMapHom_canonicalMap]
+  rfl
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- G3b-8e: `backward ∘ forward = id`. -/
+private theorem genPiece_relOverlap_backward_forward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A)
+    (x : presheafValue ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl)) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    genPiece_relOverlap_backward D₀ T hspan t₁ t₂
+      (genPiece_relOverlap_forward D₀ T hspan t₁ t₂ x) = x := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  letI : UniformSpace (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).isUniformAddGroup
+  refine @UniformSpace.Completion.ext'
+    (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).uniformSpace
+    (presheafValue ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl)) _ _ _ _
+    (UniformSpace.Completion.continuous_extension.comp
+      UniformSpace.Completion.continuous_extension)
+    continuous_id ?_ x
+  intro a
+  show genPiece_relOverlap_backward D₀ T hspan t₁ t₂
+    (genPiece_relOverlap_forward D₀ T hspan t₁ t₂
+      (((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom a)) = ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom a
+  rw [genPiece_relOverlap_forward_coe, genPiece_relOverlap_backward_coe]
+  exact RingHom.congr_fun (genPiece_relOverlap_locRoundtrip1 D₀ T hspan t₁ t₂) a
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- G3b-8f: forward-restriction intertwining. -/
+private theorem genPiece_relOverlap_forward_restriction
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A)
+    (x : presheafValue D₀) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    genPiece_relOverlap_forward D₀ T hspan t₁ t₂
+        (restrictionMapHom D₀ ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl)
+          ((RationalLocData.interSamePair_subset_left _ _ _).trans
+            (RationalLocData.interSamePair_subset_left _ _ _)) x) =
+      ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).canonicalMap x := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  letI : UniformSpace (Localization.Away D₀.s) := D₀.uniformSpace
+  letI : IsTopologicalRing (Localization.Away D₀.s) := D₀.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away D₀.s) := D₀.isUniformAddGroup
+  letI : UniformSpace (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).isUniformAddGroup
+  -- the loc-level restriction `Loc D₀.s → Loc DII.s`
+  have hbase : IsUnit (algebraMap A (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) D₀.s) := by
+    have h2 : IsUnit (algebraMap A (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) (D₀.s * t₁) *
+        algebraMap A (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) t₂) := by
+      rw [← map_mul]
+      rw [show ((D₀.s * t₁) * t₂ : A) = ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s from rfl]
+      exact IsLocalization.Away.algebraMap_isUnit
+        (S := Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s
+    have h3 := isUnit_of_mul_isUnit_left h2
+    rw [map_mul] at h3
+    exact isUnit_of_mul_isUnit_left h3
+  set ρ : Localization.Away D₀.s →+* Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s :=
+    IsLocalization.Away.lift (x := D₀.s)
+      (g := algebraMap A (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s)) hbase with hρ
+  have hρ_alg : ∀ a : A, ρ (algebraMap A (Localization.Away D₀.s) a) =
+      algebraMap A (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) a := by
+    intro a
+    rw [hρ, IsLocalization.Away.lift_eq]
+  have hfactor : (restrictionMapHom D₀ ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl)
+      ((RationalLocData.interSamePair_subset_left _ _ _).trans
+        (RationalLocData.interSamePair_subset_left _ _ _))).comp D₀.coeRingHom =
+      (((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom).comp ρ := by
+    refine IsLocalization.ringHom_ext (Submonoid.powers D₀.s) ?_
+    ext a
+    simp only [RingHom.comp_apply]
+    rw [show D₀.coeRingHom (algebraMap A (Localization.Away D₀.s) a) =
+      D₀.canonicalMap a from rfl, restrictionMapHom_canonicalMap, hρ_alg a]
+    rfl
+  have hRT2 : (genPiece_relOverlap_forwardLocHom D₀ T hspan t₁ t₂).comp ρ =
+      (algebraMap (presheafValue D₀) (Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s)).comp
+        D₀.coeRingHom := by
+    refine IsLocalization.ringHom_ext (Submonoid.powers D₀.s) ?_
+    ext a
+    simp only [RingHom.comp_apply]
+    rw [hρ_alg a, genPiece_relOverlap_forwardLocHom_algebraMap]
+    rfl
+  refine @UniformSpace.Completion.ext' (Localization.Away D₀.s) D₀.uniformSpace
+    (presheafValue ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl)) _ _ _ _
+    (UniformSpace.Completion.continuous_extension.comp
+      UniformSpace.Completion.continuous_extension)
+    (canonicalMap_continuous ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl)) ?_ x
+  intro z
+  show genPiece_relOverlap_forward D₀ T hspan t₁ t₂
+      (restrictionMapHom D₀ ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl)
+        ((RationalLocData.interSamePair_subset_left _ _ _).trans
+          (RationalLocData.interSamePair_subset_left _ _ _)) (D₀.coeRingHom z)) =
+    ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).canonicalMap (D₀.coeRingHom z)
+  rw [show restrictionMapHom D₀ ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl)
+      ((RationalLocData.interSamePair_subset_left _ _ _).trans
+        (RationalLocData.interSamePair_subset_left _ _ _)) (D₀.coeRingHom z) =
+    ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom (ρ z) from RingHom.congr_fun hfactor z]
+  rw [genPiece_relOverlap_forward_coe]
+  exact congrArg _ (RingHom.congr_fun hRT2 z)
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- G3b-8g: `forward ∘ backward = id`. -/
+private theorem genPiece_relOverlap_forward_backward
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A)
+    (y : presheafValue ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl)) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    genPiece_relOverlap_forward D₀ T hspan t₁ t₂
+      (genPiece_relOverlap_backward D₀ T hspan t₁ t₂ y) = y := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  have hloc : (genPiece_relOverlap_forward D₀ T hspan t₁ t₂).comp
+      (genPiece_relOverlap_backwardLocHom D₀ T hspan t₁ t₂) =
+      ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).coeRingHom := by
+    refine IsLocalization.ringHom_ext (Submonoid.powers (((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s)) ?_
+    ext x
+    simp only [RingHom.comp_apply]
+    rw [genPiece_relOverlap_backwardLocHom_algebraMap,
+      genPiece_relOverlap_forward_restriction]
+    rfl
+  letI : UniformSpace (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).s) := ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) := ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).isUniformAddGroup
+  refine @UniformSpace.Completion.ext'
+    (Localization.Away ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).s) ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).uniformSpace
+    (presheafValue ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl)) _ _ _ _
+    (UniformSpace.Completion.continuous_extension.comp
+      UniformSpace.Completion.continuous_extension)
+    continuous_id ?_ y
+  intro w
+  show genPiece_relOverlap_forward D₀ T hspan t₁ t₂
+    (genPiece_relOverlap_backward D₀ T hspan t₁ t₂
+      (((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).coeRingHom w)) = ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).coeRingHom w
+  rw [genPiece_relOverlap_backward_coe]
+  exact RingHom.congr_fun hloc w
+
+set_option linter.unusedSectionVars false in
+/-- **G3b-equiv (Wedhorn Prop 8.2, iterated)**: the double-intersection identification. -/
+private noncomputable def genPiece_relative_overlap_equiv
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    presheafValue ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+        (genPieceDatum D₀.P T t₂ hspan) rfl) ≃+*
+      presheafValue ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+        (imagePieceDatum D₀ T t₂ hspan) rfl) :=
+  RingEquiv.ofRingHom (genPiece_relOverlap_forward D₀ T hspan t₁ t₂)
+    (genPiece_relOverlap_backward D₀ T hspan t₁ t₂)
+    (RingHom.ext (genPiece_relOverlap_forward_backward D₀ T hspan t₁ t₂))
+    (RingHom.ext (genPiece_relOverlap_backward_forward D₀ T hspan t₁ t₂))
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- **G3b square (left)**: restricting `O_X(D₀∩R(T/t₁))` into the double intersection
+commutes with the relative identifications. -/
+private theorem genPiece_relative_overlap_square₁
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A)
+    (g : presheafValue (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl)) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    genPiece_relative_overlap_equiv D₀ T hspan t₁ t₂
+        (restrictionMap (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl)
+          ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+            (genPieceDatum D₀.P T t₂ hspan) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _) g) =
+      restrictionMap (imagePieceDatum D₀ T t₁ hspan)
+        ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+          (imagePieceDatum D₀ T t₂ hspan) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _)
+        (genPiece_relative_equiv D₀ T t₁ hspan g) := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  letI : UniformSpace (Localization.Away
+      (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).s) :=
+    (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away
+      (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).s) :=
+    (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away
+      (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).s) :=
+    (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away
+      ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+        (genPieceDatum D₀.P T t₂ hspan) rfl).s) :=
+    ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away
+      ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+        (genPieceDatum D₀.P T t₂ hspan) rfl).s) :=
+    ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away
+      ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+        (genPieceDatum D₀.P T t₂ hspan) rfl).s) :=
+    ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away (imagePieceDatum D₀ T t₁ hspan).s) :=
+    (imagePieceDatum D₀ T t₁ hspan).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (imagePieceDatum D₀ T t₁ hspan).s) :=
+    (imagePieceDatum D₀ T t₁ hspan).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (imagePieceDatum D₀ T t₁ hspan).s) :=
+    (imagePieceDatum D₀ T t₁ hspan).isUniformAddGroup
+  letI : UniformSpace (Localization.Away
+      ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+        (imagePieceDatum D₀ T t₂ hspan) rfl).s) :=
+    ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away
+      ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+        (imagePieceDatum D₀ T t₂ hspan) rfl).s) :=
+    ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away
+      ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+        (imagePieceDatum D₀ T t₂ hspan) rfl).s) :=
+    ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).isUniformAddGroup
+  revert g
+  suffices h : ∀ g, (genPiece_relative_overlap_equiv D₀ T hspan t₁ t₂).toRingHom.comp
+      (restrictionMapHom (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl)
+        ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+          (genPieceDatum D₀.P T t₂ hspan) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _)) g =
+      (restrictionMapHom (imagePieceDatum D₀ T t₁ hspan)
+        ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+          (imagePieceDatum D₀ T t₂ hspan) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _)).comp
+        (genPiece_relative_equiv D₀ T t₁ hspan).toRingHom g by
+    intro g; exact h g
+  intro g
+  revert g
+  refine fun g => ?_
+  refine congrFun (Continuous.ext_on
+    (UniformSpace.Completion.denseRange_coe
+      (α := Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).s))
+    ?_ ?_ ?_) g
+  · exact UniformSpace.Completion.continuous_extension.comp
+      UniformSpace.Completion.continuous_extension
+  · exact (restrictionMapHom_continuous _ _ _).comp
+      UniformSpace.Completion.continuous_extension
+  · rintro _ ⟨y, rfl⟩
+    show (genPiece_relative_overlap_equiv D₀ T hspan t₁ t₂)
+        (restrictionMapHom (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl)
+          ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+            (genPieceDatum D₀.P T t₂ hspan) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _)
+          ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).coeRingHom y)) =
+      restrictionMapHom (imagePieceDatum D₀ T t₁ hspan)
+        ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+          (imagePieceDatum D₀ T t₂ hspan) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _)
+        ((genPiece_relative_equiv D₀ T t₁ hspan)
+          ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).coeRingHom y))
+    -- both sides as Loc-level ring homs; ringHom_ext at the A-generators
+    have hcomp : ∀ a : A,
+        (genPiece_relative_overlap_equiv D₀ T hspan t₁ t₂)
+          (restrictionMapHom (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl)
+            ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+              (genPieceDatum D₀.P T t₂ hspan) rfl)
+            (RationalLocData.interSamePair_subset_left _ _ _)
+            ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).canonicalMap a)) =
+        restrictionMapHom (imagePieceDatum D₀ T t₁ hspan)
+          ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+            (imagePieceDatum D₀ T t₂ hspan) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _)
+          ((genPiece_relative_equiv D₀ T t₁ hspan)
+            ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).canonicalMap a)) := by
+      intro a
+      rw [restrictionMapHom_canonicalMap]
+      rw [show ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+          (genPieceDatum D₀.P T t₂ hspan) rfl).canonicalMap a =
+        ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+          (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom
+          (algebraMap A _ a) from rfl]
+      rw [show (genPiece_relative_overlap_equiv D₀ T hspan t₁ t₂)
+          (((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+            (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom
+            (algebraMap A _ a)) =
+        genPiece_relOverlap_forward D₀ T hspan t₁ t₂
+          (((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+            (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom
+            (algebraMap A _ a)) from rfl]
+      rw [genPiece_relOverlap_forward_coe, genPiece_relOverlap_forwardLocHom_algebraMap]
+      rw [show ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).canonicalMap a) =
+        ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).coeRingHom
+          (algebraMap A _ a)) from rfl]
+      rw [show (genPiece_relative_equiv D₀ T t₁ hspan)
+          ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).coeRingHom
+            (algebraMap A _ a)) =
+        genPiece_rel_forward D₀ T t₁ hspan
+          ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).coeRingHom
+            (algebraMap A _ a)) from rfl]
+      rw [genPiece_rel_forward_coe, genPiece_rel_forwardLocHom_algebraMap]
+      rw [show (algebraMap (presheafValue D₀)
+          (Localization.Away (imagePieceDatum D₀ T t₁ hspan).s))
+          (D₀.canonicalMap a) =
+        algebraMap (presheafValue D₀) _ (D₀.canonicalMap a) from rfl]
+      rw [show (imagePieceDatum D₀ T t₁ hspan).coeRingHom
+          (algebraMap (presheafValue D₀) _ (D₀.canonicalMap a)) =
+        (imagePieceDatum D₀ T t₁ hspan).canonicalMap (D₀.canonicalMap a) from rfl]
+      rw [restrictionMapHom_canonicalMap]
+      rfl
+    -- extend from the canonical image to the full localization
+    have hhom : ((genPiece_relative_overlap_equiv D₀ T hspan t₁ t₂).toRingHom.comp
+        (restrictionMapHom (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl)
+          ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+            (genPieceDatum D₀.P T t₂ hspan) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _))).comp
+        ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).coeRingHom) =
+        ((restrictionMapHom (imagePieceDatum D₀ T t₁ hspan)
+          ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+            (imagePieceDatum D₀ T t₂ hspan) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _)).comp
+          (genPiece_relative_equiv D₀ T t₁ hspan).toRingHom).comp
+        ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).coeRingHom) := by
+      refine IsLocalization.ringHom_ext
+        (Submonoid.powers (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).s) ?_
+      ext a
+      simp only [RingHom.comp_apply, RingEquiv.toRingHom_eq_coe,
+        RingEquiv.coe_toRingHom]
+      exact hcomp a
+    exact RingHom.congr_fun hhom y
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- **G3b square (right)**: the `t₂`-side square. The B-side restriction is from the
+`t₂`-piece into the SAME double piece (`interSamePair` of the pair in the `t₁,t₂`-order,
+via the right-inclusion). -/
+private theorem genPiece_relative_overlap_square₂
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A)
+    (g : presheafValue (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl)) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    genPiece_relative_overlap_equiv D₀ T hspan t₁ t₂
+        (restrictionMap (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl)
+          ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+            (genPieceDatum D₀.P T t₂ hspan) rfl)
+          (by
+            rw [RationalLocData.interSamePair_rationalOpen,
+              RationalLocData.interSamePair_rationalOpen,
+              RationalLocData.interSamePair_rationalOpen]
+            intro v hv
+            exact ⟨hv.1.1, hv.2⟩) g) =
+      restrictionMap (imagePieceDatum D₀ T t₂ hspan)
+        ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+          (imagePieceDatum D₀ T t₂ hspan) rfl)
+        (RationalLocData.interSamePair_subset_right _ _ _)
+        (genPiece_relative_equiv D₀ T t₂ hspan g) := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  letI : UniformSpace (Localization.Away
+      (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).s) :=
+    (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away
+      (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).s) :=
+    (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away
+      (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).s) :=
+    (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away
+      ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+        (genPieceDatum D₀.P T t₂ hspan) rfl).s) :=
+    ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away
+      ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+        (genPieceDatum D₀.P T t₂ hspan) rfl).s) :=
+    ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away
+      ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+        (genPieceDatum D₀.P T t₂ hspan) rfl).s) :=
+    ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+      (genPieceDatum D₀.P T t₂ hspan) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away (imagePieceDatum D₀ T t₂ hspan).s) :=
+    (imagePieceDatum D₀ T t₂ hspan).uniformSpace
+  letI : IsTopologicalRing (Localization.Away (imagePieceDatum D₀ T t₂ hspan).s) :=
+    (imagePieceDatum D₀ T t₂ hspan).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away (imagePieceDatum D₀ T t₂ hspan).s) :=
+    (imagePieceDatum D₀ T t₂ hspan).isUniformAddGroup
+  letI : UniformSpace (Localization.Away
+      ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+        (imagePieceDatum D₀ T t₂ hspan) rfl).s) :=
+    ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away
+      ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+        (imagePieceDatum D₀ T t₂ hspan) rfl).s) :=
+    ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away
+      ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+        (imagePieceDatum D₀ T t₂ hspan) rfl).s) :=
+    ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+      (imagePieceDatum D₀ T t₂ hspan) rfl).isUniformAddGroup
+  revert g
+  suffices h : ∀ g, (genPiece_relative_overlap_equiv D₀ T hspan t₁ t₂).toRingHom.comp
+      (restrictionMapHom (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl)
+        ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+          (genPieceDatum D₀.P T t₂ hspan) rfl)
+        (by
+            rw [RationalLocData.interSamePair_rationalOpen,
+              RationalLocData.interSamePair_rationalOpen,
+              RationalLocData.interSamePair_rationalOpen]
+            intro v hv
+            exact ⟨hv.1.1, hv.2⟩)) g =
+      (restrictionMapHom (imagePieceDatum D₀ T t₂ hspan)
+        ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+          (imagePieceDatum D₀ T t₂ hspan) rfl)
+        (RationalLocData.interSamePair_subset_right _ _ _)).comp
+        (genPiece_relative_equiv D₀ T t₂ hspan).toRingHom g by
+    intro g; exact h g
+  intro g
+  revert g
+  refine fun g => congrFun (Continuous.ext_on
+    (UniformSpace.Completion.denseRange_coe
+      (α := Localization.Away (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).s))
+    ?_ ?_ ?_) g
+  · exact UniformSpace.Completion.continuous_extension.comp
+      UniformSpace.Completion.continuous_extension
+  · exact (restrictionMapHom_continuous _ _ _).comp
+      UniformSpace.Completion.continuous_extension
+  · rintro _ ⟨y, rfl⟩
+    show (genPiece_relative_overlap_equiv D₀ T hspan t₁ t₂)
+        (restrictionMapHom (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl)
+          ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+            (genPieceDatum D₀.P T t₂ hspan) rfl)
+          (by
+            rw [RationalLocData.interSamePair_rationalOpen,
+              RationalLocData.interSamePair_rationalOpen,
+              RationalLocData.interSamePair_rationalOpen]
+            intro v hv
+            exact ⟨hv.1.1, hv.2⟩)
+          ((D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom y)) =
+      restrictionMapHom (imagePieceDatum D₀ T t₂ hspan)
+        ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+          (imagePieceDatum D₀ T t₂ hspan) rfl)
+        (RationalLocData.interSamePair_subset_right _ _ _)
+        ((genPiece_relative_equiv D₀ T t₂ hspan)
+          ((D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom y))
+    have hcomp : ∀ a : A,
+        (genPiece_relative_overlap_equiv D₀ T hspan t₁ t₂)
+          (restrictionMapHom (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl)
+            ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+              (genPieceDatum D₀.P T t₂ hspan) rfl)
+            (by
+            rw [RationalLocData.interSamePair_rationalOpen,
+              RationalLocData.interSamePair_rationalOpen,
+              RationalLocData.interSamePair_rationalOpen]
+            intro v hv
+            exact ⟨hv.1.1, hv.2⟩)
+            ((D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).canonicalMap a)) =
+        restrictionMapHom (imagePieceDatum D₀ T t₂ hspan)
+          ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+            (imagePieceDatum D₀ T t₂ hspan) rfl)
+          (RationalLocData.interSamePair_subset_right _ _ _)
+          ((genPiece_relative_equiv D₀ T t₂ hspan)
+            ((D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).canonicalMap a)) := by
+      intro a
+      rw [restrictionMapHom_canonicalMap]
+      rw [show ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+          (genPieceDatum D₀.P T t₂ hspan) rfl).canonicalMap a =
+        ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+          (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom
+          (algebraMap A _ a) from rfl]
+      rw [show (genPiece_relative_overlap_equiv D₀ T hspan t₁ t₂)
+          (((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+            (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom
+            (algebraMap A _ a)) =
+        genPiece_relOverlap_forward D₀ T hspan t₁ t₂
+          (((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+            (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom
+            (algebraMap A _ a)) from rfl]
+      rw [genPiece_relOverlap_forward_coe, genPiece_relOverlap_forwardLocHom_algebraMap]
+      rw [show ((D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).canonicalMap a) =
+        ((D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom
+          (algebraMap A _ a)) from rfl]
+      rw [show (genPiece_relative_equiv D₀ T t₂ hspan)
+          ((D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom
+            (algebraMap A _ a)) =
+        genPiece_rel_forward D₀ T t₂ hspan
+          ((D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom
+            (algebraMap A _ a)) from rfl]
+      rw [genPiece_rel_forward_coe, genPiece_rel_forwardLocHom_algebraMap]
+      rw [show (imagePieceDatum D₀ T t₂ hspan).coeRingHom
+          (algebraMap (presheafValue D₀) _ (D₀.canonicalMap a)) =
+        (imagePieceDatum D₀ T t₂ hspan).canonicalMap (D₀.canonicalMap a) from rfl]
+      rw [restrictionMapHom_canonicalMap]
+      rfl
+    have hhom : ((genPiece_relative_overlap_equiv D₀ T hspan t₁ t₂).toRingHom.comp
+        (restrictionMapHom (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl)
+          ((D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).interSamePair
+            (genPieceDatum D₀.P T t₂ hspan) rfl)
+          (by
+            rw [RationalLocData.interSamePair_rationalOpen,
+              RationalLocData.interSamePair_rationalOpen,
+              RationalLocData.interSamePair_rationalOpen]
+            intro v hv
+            exact ⟨hv.1.1, hv.2⟩))).comp
+        ((D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom) =
+        ((restrictionMapHom (imagePieceDatum D₀ T t₂ hspan)
+          ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+            (imagePieceDatum D₀ T t₂ hspan) rfl)
+          (RationalLocData.interSamePair_subset_right _ _ _)).comp
+          (genPiece_relative_equiv D₀ T t₂ hspan).toRingHom).comp
+        ((D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).coeRingHom) := by
+      refine IsLocalization.ringHom_ext
+        (Submonoid.powers (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).s) ?_
+      ext a
+      simp only [RingHom.comp_apply, RingEquiv.toRingHom_eq_coe,
+        RingEquiv.coe_toRingHom]
+      exact hcomp a
+    exact RingHom.congr_fun hhom y
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- **G3c-W′ (pairwise transport, restriction form)**: for any two generators, the
+transported piece-sections agree after restriction into the B-side double piece,
+given A-side compatibility. Pure square-chase (`square₁` + A-compat + `square₂`);
+cast-free (both sides land in the common double piece). -/
+private theorem genPiece_family_pair_compat
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A] [DecidableEq A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (t₁ t₂ : A)
+    (g₁ : presheafValue (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl))
+    (g₂ : presheafValue (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl))
+    (hcompat : ∀ (D₃ : RationalLocData A)
+      (h₃₁ : rationalOpen D₃.T D₃.s ⊆
+        rationalOpen (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).T
+          (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).s)
+      (h₃₂ : rationalOpen D₃.T D₃.s ⊆
+        rationalOpen (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).T
+          (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).s),
+      restrictionMap _ D₃ h₃₁ g₁ = restrictionMap _ D₃ h₃₂ g₂) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    restrictionMap (imagePieceDatum D₀ T t₁ hspan)
+        ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+          (imagePieceDatum D₀ T t₂ hspan) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _)
+        (genPiece_relative_equiv D₀ T t₁ hspan g₁) =
+      restrictionMap (imagePieceDatum D₀ T t₂ hspan)
+        ((imagePieceDatum D₀ T t₁ hspan).interSamePair
+          (imagePieceDatum D₀ T t₂ hspan) rfl)
+        (RationalLocData.interSamePair_subset_right _ _ _)
+        (genPiece_relative_equiv D₀ T t₂ hspan g₂) := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  rw [← genPiece_relative_overlap_square₁ D₀ T hspan t₁ t₂ g₁,
+    ← genPiece_relative_overlap_square₂ D₀ T hspan t₁ t₂ g₂]
+  congr 1
+  exact hcompat _ _ _
+
+set_option linter.unusedSectionVars false in
+/-- Local copy of `restrictionMap_bijective_of_rationalOpen_eq` (GeometricReduction is
+not imported here): equal rational opens give a bijective restriction. -/
+private theorem wca_restrictionMap_bijective_of_rationalOpen_eq
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D D' : RationalLocData A)
+    (h_eq : rationalOpen D.T D.s = rationalOpen D'.T D'.s) :
+    Function.Bijective (restrictionMap D D' h_eq.symm.le) := by
+  have hcomp1 :
+      (restrictionMap D' D h_eq.le) ∘ (restrictionMap D D' h_eq.symm.le) = id := by
+    rw [restrictionMap_comp D D' D h_eq.symm.le h_eq.le]
+    exact restrictionMap_id D
+  have hcomp2 :
+      (restrictionMap D D' h_eq.symm.le) ∘ (restrictionMap D' D h_eq.le) = id := by
+    rw [restrictionMap_comp D' D D' h_eq.le h_eq.symm.le]
+    exact restrictionMap_id D'
+  exact Function.bijective_iff_has_inverse.mpr
+    ⟨restrictionMap D' D h_eq.le, congrFun hcomp1, congrFun hcomp2⟩
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- **G3c-gluing (assembly)**: given the B-side gluing of the image cover, every
+A-compatible family on the restricted gen-cover glues — per the cast-free chase:
+transport the family through the G1-equivs (B-compat via W′ + `E₁₂`-factoring),
+glue at `B`, pull back through `globalSections_backward`, and verify per piece by
+`equiv`-injectivity + the bijective self-intersection restriction. -/
+theorem genRestrictedCover_gluing
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A] [DecidableEq A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    ∀ (_hBglue : ∀ (g : ∀ (E : ↥(imageGenCover D₀ T hspan).covers),
+        presheafValue E.1),
+      (∀ (E₁ E₂ : ↥(imageGenCover D₀ T hspan).covers)
+        (E₃ : RationalLocData (presheafValue D₀))
+        (h₃₁ : rationalOpen E₃.T E₃.s ⊆ rationalOpen E₁.1.T E₁.1.s)
+        (h₃₂ : rationalOpen E₃.T E₃.s ⊆ rationalOpen E₂.1.T E₂.1.s),
+        restrictionMap E₁.1 E₃ h₃₁ (g E₁) = restrictionMap E₂.1 E₃ h₃₂ (g E₂)) →
+      ∃ y : presheafValue (imageGenCover D₀ T hspan).base,
+        ∀ (E : ↥(imageGenCover D₀ T hspan).covers),
+          restrictionMap (imageGenCover D₀ T hspan).base E.1
+            ((imageGenCover D₀ T hspan).hsubset E.1 E.2) y = g E)
+    (f : ∀ t ∈ T, presheafValue (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl))
+    (_hcompat : ∀ (t₁ : A) (ht₁ : t₁ ∈ T) (t₂ : A) (ht₂ : t₂ ∈ T)
+      (D₃ : RationalLocData A)
+      (h₃₁ : rationalOpen D₃.T D₃.s ⊆
+        rationalOpen (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).T
+          (D₀.interSamePair (genPieceDatum D₀.P T t₁ hspan) rfl).s)
+      (h₃₂ : rationalOpen D₃.T D₃.s ⊆
+        rationalOpen (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).T
+          (D₀.interSamePair (genPieceDatum D₀.P T t₂ hspan) rfl).s),
+      restrictionMap _ D₃ h₃₁ (f t₁ ht₁) = restrictionMap _ D₃ h₃₂ (f t₂ ht₂)),
+    ∃ x : presheafValue D₀, ∀ t (ht : t ∈ T),
+      restrictionMap D₀ (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _) x = f t ht := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  haveI hCompleteB :
+      (letI : UniformSpace (presheafValue D₀) :=
+        IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀);
+       CompleteSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  intro hBglue f hcompat
+  classical
+  -- choose a generator for each B-cover piece
+  have hchoose : ∀ E : ↥(imageGenCover D₀ T hspan).covers,
+      ∃ t, t ∈ T ∧ E.1 = genPieceDatum (presheafValue_concretePair D₀)
+        (T.image D₀.canonicalMap) (D₀.canonicalMap t)
+        (imageGenCover_span D₀ T hspan) := by
+    rintro ⟨E, hE⟩
+    have hE' : E ∈ (T.image D₀.canonicalMap).image (fun u =>
+        genPieceDatum (presheafValue_concretePair D₀) (T.image D₀.canonicalMap) u
+          (imageGenCover_span D₀ T hspan)) := hE
+    rw [Finset.mem_image] at hE'
+    obtain ⟨u, hu, rfl⟩ := hE'
+    rw [Finset.mem_image] at hu
+    obtain ⟨t, ht, rfl⟩ := hu
+    exact ⟨t, ht, rfl⟩
+  set tof : ↥(imageGenCover D₀ T hspan).covers → A := fun E => (hchoose E).choose
+    with htof
+  have htof_mem : ∀ E, tof E ∈ T := fun E => (hchoose E).choose_spec.1
+  have htof_eq : ∀ E : ↥(imageGenCover D₀ T hspan).covers,
+      E.1 = genPieceDatum (presheafValue_concretePair D₀)
+        (T.image D₀.canonicalMap) (D₀.canonicalMap (tof E))
+        (imageGenCover_span D₀ T hspan) := fun E => (hchoose E).choose_spec.2
+  -- the transported B-family (explicit `Eq.rec` form for `eqRec_restrictionMap_direct`)
+  set g : ∀ (E : ↥(imageGenCover D₀ T hspan).covers), presheafValue E.1 :=
+    fun E => @Eq.rec (RationalLocData (presheafValue D₀))
+      (genPieceDatum (presheafValue_concretePair D₀) (T.image D₀.canonicalMap)
+        (D₀.canonicalMap (tof E)) (imageGenCover_span D₀ T hspan))
+      (fun b _ => presheafValue b)
+      (genPiece_relative_equiv D₀ T (tof E) hspan (f (tof E) (htof_mem E)))
+      E.1 (htof_eq E).symm with hg
+  -- the cast vanishes under restriction
+  have hg_restr : ∀ (E : ↥(imageGenCover D₀ T hspan).covers)
+      (E₃ : RationalLocData (presheafValue D₀))
+      (h₃ : rationalOpen E₃.T E₃.s ⊆ rationalOpen E.1.T E.1.s),
+      restrictionMap E.1 E₃ h₃ (g E) =
+      restrictionMap (genPieceDatum (presheafValue_concretePair D₀)
+          (T.image D₀.canonicalMap) (D₀.canonicalMap (tof E))
+          (imageGenCover_span D₀ T hspan)) E₃
+        (by rw [← htof_eq E]; exact h₃)
+        (genPiece_relative_equiv D₀ T (tof E) hspan (f (tof E) (htof_mem E))) := by
+    intro E E₃ h₃
+    rw [hg]
+    exact RationalCovering.eqRec_restrictionMap_direct _ _ (htof_eq E).symm E₃ _ h₃ _
+  -- B-side compatibility for `g` (factor through the pairwise intersection + W′)
+  have hgcompat : ∀ (E₁ E₂ : ↥(imageGenCover D₀ T hspan).covers)
+      (E₃ : RationalLocData (presheafValue D₀))
+      (h₃₁ : rationalOpen E₃.T E₃.s ⊆ rationalOpen E₁.1.T E₁.1.s)
+      (h₃₂ : rationalOpen E₃.T E₃.s ⊆ rationalOpen E₂.1.T E₂.1.s),
+      restrictionMap E₁.1 E₃ h₃₁ (g E₁) = restrictionMap E₂.1 E₃ h₃₂ (g E₂) := by
+    intro E₁ E₂ E₃ h₃₁ h₃₂
+    rw [hg_restr E₁ E₃ h₃₁, hg_restr E₂ E₃ h₃₂]
+    -- factor through `E₁₂ := imagePiece-(tof E₁) ∩ imagePiece-(tof E₂)`
+    have h₃₁' : rationalOpen E₃.T E₃.s ⊆
+        rationalOpen (imagePieceDatum D₀ T (tof E₁) hspan).T
+          (imagePieceDatum D₀ T (tof E₁) hspan).s := by
+      rw [show imagePieceDatum D₀ T (tof E₁) hspan = genPieceDatum
+        (presheafValue_concretePair D₀) (T.image D₀.canonicalMap)
+        (D₀.canonicalMap (tof E₁)) (imageGenCover_span D₀ T hspan) from rfl,
+        ← htof_eq E₁]
+      exact h₃₁
+    have h₃₂' : rationalOpen E₃.T E₃.s ⊆
+        rationalOpen (imagePieceDatum D₀ T (tof E₂) hspan).T
+          (imagePieceDatum D₀ T (tof E₂) hspan).s := by
+      rw [show imagePieceDatum D₀ T (tof E₂) hspan = genPieceDatum
+        (presheafValue_concretePair D₀) (T.image D₀.canonicalMap)
+        (D₀.canonicalMap (tof E₂)) (imageGenCover_span D₀ T hspan) from rfl,
+        ← htof_eq E₂]
+      exact h₃₂
+    have hE₁₂ : rationalOpen E₃.T E₃.s ⊆
+        rationalOpen ((imagePieceDatum D₀ T (tof E₁) hspan).interSamePair
+          (imagePieceDatum D₀ T (tof E₂) hspan) rfl).T
+          ((imagePieceDatum D₀ T (tof E₁) hspan).interSamePair
+            (imagePieceDatum D₀ T (tof E₂) hspan) rfl).s := by
+      rw [RationalLocData.interSamePair_rationalOpen]
+      exact fun v hv => ⟨h₃₁' hv, h₃₂' hv⟩
+    -- rewrite both sides through the E₁₂-factoring
+    rw [show restrictionMap (genPieceDatum (presheafValue_concretePair D₀)
+        (T.image D₀.canonicalMap) (D₀.canonicalMap (tof E₁))
+        (imageGenCover_span D₀ T hspan)) E₃ (by rw [← htof_eq E₁]; exact h₃₁)
+        (genPiece_relative_equiv D₀ T (tof E₁) hspan (f (tof E₁) (htof_mem E₁))) =
+      restrictionMap _ E₃ hE₁₂
+        (restrictionMap (imagePieceDatum D₀ T (tof E₁) hspan)
+          ((imagePieceDatum D₀ T (tof E₁) hspan).interSamePair
+            (imagePieceDatum D₀ T (tof E₂) hspan) rfl)
+          (RationalLocData.interSamePair_subset_left _ _ _)
+          (genPiece_relative_equiv D₀ T (tof E₁) hspan (f (tof E₁) (htof_mem E₁)))) from
+      (congrFun (restrictionMap_comp (imagePieceDatum D₀ T (tof E₁) hspan) _ E₃
+        (RationalLocData.interSamePair_subset_left _ _ _) hE₁₂) _).symm]
+    rw [show restrictionMap (genPieceDatum (presheafValue_concretePair D₀)
+        (T.image D₀.canonicalMap) (D₀.canonicalMap (tof E₂))
+        (imageGenCover_span D₀ T hspan)) E₃ (by rw [← htof_eq E₂]; exact h₃₂)
+        (genPiece_relative_equiv D₀ T (tof E₂) hspan (f (tof E₂) (htof_mem E₂))) =
+      restrictionMap _ E₃ hE₁₂
+        (restrictionMap (imagePieceDatum D₀ T (tof E₂) hspan)
+          ((imagePieceDatum D₀ T (tof E₁) hspan).interSamePair
+            (imagePieceDatum D₀ T (tof E₂) hspan) rfl)
+          (RationalLocData.interSamePair_subset_right _ _ _)
+          (genPiece_relative_equiv D₀ T (tof E₂) hspan (f (tof E₂) (htof_mem E₂)))) from
+      (congrFun (restrictionMap_comp (imagePieceDatum D₀ T (tof E₂) hspan) _ E₃
+        (RationalLocData.interSamePair_subset_right _ _ _) hE₁₂) _).symm]
+    congr 1
+    exact genPiece_family_pair_compat D₀ T hspan (tof E₁) (tof E₂)
+      (f (tof E₁) (htof_mem E₁)) (f (tof E₂) (htof_mem E₂))
+      (fun D₃ h₃₁ h₃₂ => hcompat (tof E₁) (htof_mem E₁) (tof E₂) (htof_mem E₂)
+        D₃ h₃₁ h₃₂)
+  -- glue at B
+  obtain ⟨y, hy⟩ := hBglue g hgcompat
+  -- pull back through the global-sections identification and verify per piece
+  refine ⟨globalSections_backward (presheafValue_concretePair D₀) y, ?_⟩
+  intro t ht
+  refine (genPiece_relative_equiv D₀ T t hspan).injective ?_
+  rw [genPiece_relative_equiv_restrictionMap]
+  -- the canonical chain: `canMap_Bt (backward y) = restriction_{global→Bt} y`
+  have hglobal_sub : rationalOpen (imagePieceDatum D₀ T t hspan).T
+      (imagePieceDatum D₀ T t hspan).s ⊆
+      rationalOpen (globalLocData (presheafValue_concretePair D₀)).T
+        (globalLocData (presheafValue_concretePair D₀)).s := by
+    intro v hv
+    exact ⟨hv.1, fun w hw => by
+      rw [Finset.mem_singleton.mp hw]
+      exact (v.vle_total 1 1).elim id id, v.not_vle_one_zero⟩
+  have hchain : (imagePieceDatum D₀ T t hspan).canonicalMap
+      (globalSections_backward (presheafValue_concretePair D₀) y) =
+      restrictionMap (globalLocData (presheafValue_concretePair D₀))
+        (imagePieceDatum D₀ T t hspan) hglobal_sub y := by
+    rw [show restrictionMap (globalLocData (presheafValue_concretePair D₀))
+        (imagePieceDatum D₀ T t hspan) hglobal_sub y =
+      restrictionMap (globalLocData (presheafValue_concretePair D₀))
+        (imagePieceDatum D₀ T t hspan) hglobal_sub
+        ((globalLocData (presheafValue_concretePair D₀)).canonicalMap
+          (globalSections_backward (presheafValue_concretePair D₀) y)) from by
+      rw [globalSections_canonicalMap_backward]]
+    exact (restrictionMapHom_canonicalMap _ _ _ _).symm
+  rw [hchain]
+  -- identify with the glued value at the `t`-piece of the B-cover
+  have hEt_mem : genPieceDatum (presheafValue_concretePair D₀)
+      (T.image D₀.canonicalMap) (D₀.canonicalMap t)
+      (imageGenCover_span D₀ T hspan) ∈ (imageGenCover D₀ T hspan).covers :=
+    Finset.mem_image_of_mem _ (Finset.mem_image_of_mem _ ht)
+  set Et : ↥(imageGenCover D₀ T hspan).covers := ⟨_, hEt_mem⟩ with hEt
+  have hy_t := hy Et
+  rw [show restrictionMap (globalLocData (presheafValue_concretePair D₀))
+      (imagePieceDatum D₀ T t hspan) hglobal_sub y =
+    restrictionMap (imageGenCover D₀ T hspan).base Et.1
+      ((imageGenCover D₀ T hspan).hsubset Et.1 Et.2) y from rfl]
+  rw [hy_t]
+  -- compare the glued value with the target via the bijective self-intersection
+  have hTT : D₀.canonicalMap (tof Et) = D₀.canonicalMap t := by
+    have h1 := htof_eq Et
+    have h2 : Et.1 = genPieceDatum (presheafValue_concretePair D₀)
+        (T.image D₀.canonicalMap) (D₀.canonicalMap t)
+        (imageGenCover_span D₀ T hspan) := rfl
+    have := h1.symm.trans h2
+    exact congrArg RationalLocData.s this
+  have hro_eq : rationalOpen (imagePieceDatum D₀ T t hspan).T
+      (imagePieceDatum D₀ T t hspan).s =
+      rationalOpen ((imagePieceDatum D₀ T t hspan).interSamePair
+        (imagePieceDatum D₀ T (tof Et) hspan) rfl).T
+        ((imagePieceDatum D₀ T t hspan).interSamePair
+          (imagePieceDatum D₀ T (tof Et) hspan) rfl).s := by
+    rw [RationalLocData.interSamePair_rationalOpen]
+    rw [show rationalOpen (imagePieceDatum D₀ T (tof Et) hspan).T
+        (imagePieceDatum D₀ T (tof Et) hspan).s =
+      rationalOpen (imagePieceDatum D₀ T t hspan).T
+        (imagePieceDatum D₀ T t hspan).s from by
+      show rationalOpen (T.image D₀.canonicalMap) (D₀.canonicalMap (tof Et)) =
+        rationalOpen (T.image D₀.canonicalMap) (D₀.canonicalMap t)
+      rw [hTT]]
+    exact (Set.inter_self _).symm
+  refine (wca_restrictionMap_bijective_of_rationalOpen_eq
+    (imagePieceDatum D₀ T t hspan)
+    ((imagePieceDatum D₀ T t hspan).interSamePair
+      (imagePieceDatum D₀ T (tof Et) hspan) rfl) hro_eq).injective ?_
+  -- LHS: the W′-square at `(t, tof Et)`
+  rw [show restrictionMap (imagePieceDatum D₀ T t hspan)
+      ((imagePieceDatum D₀ T t hspan).interSamePair
+        (imagePieceDatum D₀ T (tof Et) hspan) rfl) hro_eq.symm.le
+      (genPiece_relative_equiv D₀ T t hspan (f t ht)) =
+    restrictionMap (imagePieceDatum D₀ T (tof Et) hspan)
+      ((imagePieceDatum D₀ T t hspan).interSamePair
+        (imagePieceDatum D₀ T (tof Et) hspan) rfl)
+      (RationalLocData.interSamePair_subset_right _ _ _)
+      (genPiece_relative_equiv D₀ T (tof Et) hspan (f (tof Et) (htof_mem Et))) from
+    genPiece_family_pair_compat D₀ T hspan t (tof Et)
+      (f t ht) (f (tof Et) (htof_mem Et))
+      (fun D₃ h₃₁ h₃₂ => hcompat t ht (tof Et) (htof_mem Et) D₃ h₃₁ h₃₂)]
+  -- RHS: the cast vanishes (`hg_restr` at the same target; recast the source-spelling)
+  exact (show restrictionMap (imagePieceDatum D₀ T t hspan)
+      ((imagePieceDatum D₀ T t hspan).interSamePair
+        (imagePieceDatum D₀ T (tof Et) hspan) rfl) hro_eq.symm.le (g Et) =
+    restrictionMap (imagePieceDatum D₀ T (tof Et) hspan)
+      ((imagePieceDatum D₀ T t hspan).interSamePair
+        (imagePieceDatum D₀ T (tof Et) hspan) rfl)
+      (RationalLocData.interSamePair_subset_right _ _ _)
+      (genPiece_relative_equiv D₀ T (tof Et) hspan
+        (f (tof Et) (htof_mem Et))) from
+    hg_restr Et _ hro_eq.symm.le)
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **G4: the bundled acyclicity transport (T-R2-ACYCLIC-TRANSPORT)**: if the B-level
+image cover of `Spa 𝒪_X(D₀)` is `O_X`-acyclic, so is the A-level restricted cover
+`{D₀ ∩ R(T/t)}` — Wedhorn Prop 8.2/Remark 8.4 base change for the sheaf condition. -/
+theorem genRestrictedCover_isOXAcyclic_of_B
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A] [DecidableEq A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤)
+    (hB : haveI hTateB : IsTateRing (presheafValue D₀) :=
+        presheafValue_isTateRing_faithful D₀
+      haveI : IsNoetherianRing (presheafValue D₀) :=
+        presheafValue_isNoetherianRing_faithful D₀
+      haveI : IsStronglyNoetherian (presheafValue D₀) :=
+        presheafValue_isStronglyNoetherian_faithful D₀
+      haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+      (imageGenCover D₀ T hspan).IsOXAcyclic) :
+    (genRestrictedCover D₀ T hspan).IsOXAcyclic := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI hNoethB : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI hSNB : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI hHuberB : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  constructor
+  · intro x hx
+    refine genRestrictedCover_separation D₀ T hspan hB.separation x ?_
+    intro t ht
+    exact hx _ (Finset.mem_image_of_mem _ ht)
+  · intro f hcompat
+    obtain ⟨x, hx⟩ := genRestrictedCover_gluing D₀ T hspan hB.gluing
+      (fun t ht => f ⟨_, Finset.mem_image_of_mem
+        (fun t => D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl) ht⟩)
+      (fun t₁ ht₁ t₂ ht₂ D₃ h₃₁ h₃₂ => hcompat
+        ⟨_, Finset.mem_image_of_mem _ ht₁⟩ ⟨_, Finset.mem_image_of_mem _ ht₂⟩
+        D₃ h₃₁ h₃₂)
+    refine ⟨x, ?_⟩
+    rintro ⟨D, hD⟩
+    have hD' : D ∈ T.image (fun t =>
+        D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl) := hD
+    rw [Finset.mem_image] at hD'
+    obtain ⟨t, ht, rfl⟩ := hD'
+    exact hx t ht
 
 /-- **Sub-lemma for `exists_ideal_gen_refinement`** — converting a
 standard cover (Finset S spanning top + refinement data) into a concrete
@@ -2329,6 +11988,193 @@ theorem rationalCovering_from_idealGenSet [DecidableEq A]
     obtain ⟨f, hf, rfl⟩ := Finset.mem_image.mp hD'
     exact h_contain f hf
 
+/-- **Step 1a — per-point normalisation (Huber [Hu3] 2.6).** For `v ∈ R(D.T/D.s)`
+there is a normalised rational datum `R(T'/s') ∋ v` with `R(T'/s') ⊆ R(D.T/D.s)`,
+`1 ∈ T'` and `s' ∈ T'`. Construction: the dominating unit `π`
+(`exists_dominating_unit_noHArch` on the compact singleton `{v}`) satisfies
+`v(π) ≤ v(D.s)`; set `s' = D.s·π⁻¹`, `T' = {1, s'} ∪ π⁻¹·D.T`. The `1 ∈ T'`
+condition (`v(1) ≤ v(s')`) holds because `v(π) ≤ v(D.s)`; the inclusion and the
+other memberships are unit-cancellations (`mul_vle_mul_left` / `vle_mul_cancel`).
+LANDED 2026-06-04: `exists_dominating_unit_noHArch` is now IsLinearTopology-free
+(via `isOpen_topologicallyNilpotentElements_nonarch`, the T-AOO-NONARCH / T-732
+migration), so this compiles directly. -/
+private theorem exists_normalized_datum_of_mem [DecidableEq A] [IsTateRing A]
+    (D : RationalLocData A) {v : Spv A} (hvspa : v ∈ Spa A A⁺)
+    (hvD : v ∈ rationalOpen D.T D.s) :
+    ∃ (T' : Finset A) (s' : A), (1 : A) ∈ T' ∧ s' ∈ T' ∧
+      v ∈ rationalOpen T' s' ∧ rationalOpen T' s' ⊆ rationalOpen D.T D.s := by
+  obtain ⟨-, hvDT, hvDs0⟩ := hvD
+  obtain ⟨π, hπ⟩ := exists_dominating_unit_noHArch
+    (Y := {(⟨v, hvspa⟩ : ↥(Spa A A⁺))}) isCompact_singleton D.s
+    (by intro y hy; rw [Set.mem_singleton_iff] at hy; subst hy; exact hvDs0)
+  obtain ⟨hπ_le, -⟩ := hπ ⟨v, hvspa⟩ rfl
+  have hu : (↑π : A) * ↑π⁻¹ = 1 := π.mul_inv
+  have hui : (↑π⁻¹ : A) * ↑π = 1 := π.inv_mul
+  have hui_unit : IsUnit (↑π⁻¹ : A) := (π⁻¹).isUnit
+  refine ⟨insert 1 (insert (D.s * ↑π⁻¹) (D.T.image (fun t => (↑π⁻¹ : A) * t))),
+    D.s * ↑π⁻¹, Finset.mem_insert_self _ _,
+    Finset.mem_insert_of_mem (Finset.mem_insert_self _ _), ⟨hvspa, ?_, ?_⟩, ?_⟩
+  · intro t' ht'
+    rcases Finset.mem_insert.mp ht' with rfl | ht'
+    · have h := v.mul_vle_mul_left hπ_le (↑π⁻¹ : A)
+      rwa [hu] at h
+    · rcases Finset.mem_insert.mp ht' with rfl | ht'
+      · exact (v.vle_total (D.s * ↑π⁻¹) (D.s * ↑π⁻¹)).elim id id
+      · obtain ⟨t, htT, rfl⟩ := Finset.mem_image.mp ht'
+        have h := v.mul_vle_mul_left (hvDT t htT) (↑π⁻¹ : A)
+        rwa [mul_comm t (↑π⁻¹ : A)] at h
+  · intro h
+    apply hvDs0
+    have h2 := v.mul_vle_mul_left h (↑π : A)
+    rwa [zero_mul, mul_assoc, hui, mul_one] at h2
+  · intro w hw
+    obtain ⟨hwspa, hwT', hws'0⟩ := hw
+    refine ⟨hwspa, ?_, ?_⟩
+    · intro t htT
+      have hwle : w.vle ((↑π⁻¹ : A) * t) (D.s * ↑π⁻¹) :=
+        hwT' _ (Finset.mem_insert_of_mem (Finset.mem_insert_of_mem
+          (Finset.mem_image.mpr ⟨t, htT, rfl⟩)))
+      rw [mul_comm (↑π⁻¹ : A) t] at hwle
+      exact w.vle_mul_cancel (not_vle_zero_of_isUnit hui_unit w) hwle
+    · intro h
+      apply hws'0
+      have h2 := w.mul_vle_mul_left h (↑π⁻¹ : A)
+      rwa [zero_mul] at h2
+
+/-- **The hArch-free Spa quasi-compactness keystone (Wedhorn Thm 7.30, Tate case)**:
+`Spa(A, A⁺)` is quasi-compact for a complete strongly noetherian Tate ring. The
+in-repo `isCompact_spa_of_tate_pseudouniformizer` proves this WITH the per-point
+`MulArchimedean` hypothesis (forbidden on the case-(b) path); removing it is the
+isolated analytic keystone (expert-review de-risked; the Bool-cylinder image
+characterization must be reworked without value-group Archimedeanity). -/
+theorem spa_compactSpace_tate_noHArch
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A] :
+    CompactSpace ↥(Spa A A⁺) := by
+  sorry
+
+/-- **Step 1 (Wedhorn 7.54 / Huber [Hu3] 2.6 — analytic normalisation):** any
+rational cover `𝒱` of the whole space `Spa A` refines to a finite *normalised*
+family `LP = [(T₁,s₁),…,(Tₙ,sₙ)]` with `1 ∈ Tᵢ` and `sᵢ ∈ Tᵢ`, whose pieces
+`Wᵢ = R(Tᵢ/sᵢ)` still cover `Spa A` and each refine into some `D ∈ 𝒱`.
+
+**Proof (reviewer 2026-06-04, Huber-faithful).** For `x ∈ R(D.T/D.s) ⊆ Vⱼ` (so
+`x(D.s) ≠ 0`), the light QC-unit `exists_dominating_unit_noHArch` (Cor 7.32 no-hArch,
+Cor732:518 — itself Wedhorn 7.31 `exists_zero_nbhd_lt_on_qc` + a unit in a 0-nbhd)
+gives a unit `π` with `|π| < |D.s|` near `x`; set `s' := D.s·π⁻¹`, `T' := {1, s'} ∪ π⁻¹·D.T`,
+so `x ∈ R(T'/s') ⊆ R(D.T/D.s)` with `1, s' ∈ T'`. A finite subcover of the open
+cover `{R(T'/s')}` by the **hArch-free** quasi-compactness of `Spa A`
+(`isCompact_preimage_rationalOpen_noHArch`, SpaCompactNoHArch.lean) yields `LP`.
+
+**Status: `sorry`.** This is the genuinely-remaining analytic content of 7.54; it
+bottoms at the in-repo no-hArch Spa quasi-compactness
+`isCompact_preimage_rationalOpen_noHArch` (parked at
+`isClosed_image_spa_ιSpv_bool_noHArch_aux` = Wedhorn 7.35(2)). The combinatorial /
+algebraic heart (Steps 3–6 + refine) is complete and sorry-free. -/
+theorem exists_finite_normalized_rational_refinement [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (𝒱 : Finset (RationalLocData A))
+    (hcov : ∀ v ∈ Spa A A⁺, ∃ D ∈ 𝒱, v ∈ rationalOpen D.T D.s) :
+    ∃ LP : List (Finset A × A),
+      (∀ p ∈ LP, p.2 ∈ p.1) ∧
+      (∀ p ∈ LP, (1 : A) ∈ p.1) ∧
+      (∀ v ∈ Spa A A⁺, ∃ p ∈ LP, v ∈ rationalOpen p.1 p.2) ∧
+      (∀ p ∈ LP, ∃ D ∈ 𝒱, rationalOpen p.1 p.2 ⊆ rationalOpen D.T D.s) := by
+  classical
+  -- per-point normalized data (the landed `exists_normalized_datum_of_mem`)
+  have hpt : ∀ v : ↥(Spa A A⁺), ∃ q : Finset A × A,
+      q.2 ∈ q.1 ∧ (1 : A) ∈ q.1 ∧ (v : Spv A) ∈ rationalOpen q.1 q.2 ∧
+      ∃ D ∈ 𝒱, rationalOpen q.1 q.2 ⊆ rationalOpen D.T D.s := by
+    rintro ⟨v, hv⟩
+    obtain ⟨D, hD, hvD⟩ := hcov v hv
+    obtain ⟨T', s', h1, hs', hvm, hsub⟩ := exists_normalized_datum_of_mem D hv hvD
+    exact ⟨(T', s'), hs', h1, hvm, D, hD, hsub⟩
+  choose q hq₂ hq₁ hqv hqref using hpt
+  -- finite subcover inside the (hArch-free) compact subtype
+  haveI hQC : CompactSpace ↥(Spa A A⁺) := spa_compactSpace_tate_noHArch
+  obtain ⟨ι, hι⟩ := IsCompact.elim_finite_subcover isCompact_univ
+    (fun v : ↥(Spa A A⁺) => Subtype.val ⁻¹' rationalOpen (q v).1 (q v).2)
+    (fun v => rationalOpen_isOpen _ _)
+    (by
+      intro w _hw
+      simp only [Set.mem_iUnion, Set.mem_preimage]
+      exact ⟨w, hqv w⟩)
+  refine ⟨ι.toList.map q, ?_, ?_, ?_, ?_⟩
+  · intro p hp
+    rw [List.mem_map] at hp
+    obtain ⟨v, -, rfl⟩ := hp
+    exact hq₂ v
+  · intro p hp
+    rw [List.mem_map] at hp
+    obtain ⟨v, -, rfl⟩ := hp
+    exact hq₁ v
+  · intro w hw
+    have hmem := hι (Set.mem_univ (⟨w, hw⟩ : ↥(Spa A A⁺)))
+    simp only [Set.mem_iUnion, Set.mem_preimage] at hmem
+    obtain ⟨v, hvι, hmem⟩ := hmem
+    exact ⟨q v, List.mem_map.mpr ⟨v, Finset.mem_toList.mpr hvι, rfl⟩, hmem⟩
+  · intro p hp
+    rw [List.mem_map] at hp
+    obtain ⟨v, -, rfl⟩ := hp
+    exact hqref v
+
+/-- **Wedhorn Lemma 7.54 (whole space, FAITHFUL — Huber [Hu3] 2.6 product trick).**
+*"Every open covering of `X = Spa A` has a refinement `𝒰 = (U_t)_{t∈T}` of the form
+`U_t := R(T/t)` with `T ⊆ A` generating `A` as an ideal."* (Wedhorn p. 84.)
+
+Set-level form: from any rational cover `𝒱` of `Spa A`, produce a finite `S ⊆ A`
+spanning the unit ideal whose form-(a) pieces `R(S/f)` (`f ∈ S`) cover `Spa A` and
+each refine into some `D ∈ 𝒱`. **No `[IsDomain A]`, no height-1/`hArch`.**
+
+Assembly of the product trick: Step 1 (`exists_finite_normalized_rational_refinement`)
+normalises `𝒱` to `LP`; `S := distinguishedProducts LP`; span by Step 5
+(`span_top_of_distinguished_products`); cover by Step 4 (`distinguishedProducts_cover`)
++ Step 6 (`rationalOpen_distinguished_eq`, `R(P/f)=R(S/f)`); refine by
+`distinguishedProducts_refines` + Step 6 + Step 1's refinement data. The complete
+pair for Step 5 is supplied from the bundle: `IsAdicComplete` via
+`principalPair_isAdicComplete_of_stronglyNoetherianTate`, `A⁺ ⊆ A₀` via
+`[CompatiblePlusSubring A]`.
+
+This is the whole-space 7.54 the reviewer (Q4) confirmed suffices at the top of
+8.28(b); covers of proper rational subsets go through the relative wrapper
+(`presheafValue D`, T-CECH-754-REL). -/
+theorem exists_form_a_refinement_coversSpa [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (𝒱 : Finset (RationalLocData A))
+    (hcov : ∀ v ∈ Spa A A⁺, ∃ D ∈ 𝒱, v ∈ rationalOpen D.T D.s) :
+    ∃ S : Finset A, Ideal.span (S : Set A) = ⊤ ∧
+      (∀ v ∈ Spa A A⁺, ∃ f ∈ S, v ∈ rationalOpen S f) ∧
+      (∀ f ∈ S, ∃ D ∈ 𝒱, rationalOpen S f ⊆ rationalOpen D.T D.s) := by
+  obtain ⟨LP, hts, h1, hcovLP, hrefLP⟩ :=
+    exists_finite_normalized_rational_refinement 𝒱 hcov
+  haveI : IsAdicComplete (IsTateRing.principalPair A).toPairOfDefinition.I
+      (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
+    principalPair_isAdicComplete_of_stronglyNoetherianTate
+  have hAplus : (A⁺ : Set A) ⊆
+      (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
+    CompatiblePlusSubring.aplus_le_A₀
+      (globalLocData (IsTateRing.principalPair A).toPairOfDefinition)
+  refine ⟨distinguishedProducts LP, ?_, ?_, ?_⟩
+  · exact span_top_of_distinguished_products LP hts h1 hcovLP
+      (IsTateRing.principalPair A).toPairOfDefinition hAplus
+  · intro v hv
+    obtain ⟨s, hsS, hmem⟩ := distinguishedProducts_cover LP hts h1 hv (hcovLP v hv)
+    exact ⟨s, hsS, by rw [← rationalOpen_distinguished_eq LP hts h1 hcovLP]; exact hmem⟩
+  · intro f hf
+    obtain ⟨p, hp, hsub⟩ := distinguishedProducts_refines LP f hf
+    obtain ⟨D, hD, hDsub⟩ := hrefLP p hp
+    refine ⟨D, hD, ?_⟩
+    rw [← rationalOpen_distinguished_eq LP hts h1 hcovLP]
+    exact hsub.trans hDsub
+
 /-! **Sub-lemma 1 of `every_rational_cover_is_OXAcyclic`** (Wedhorn Lemma 7.54
 + Wedhorn p. 83 "rational cover generated by T"): every rational covering
 admits a refinement of the form `R(T/t)` for `t ∈ T`, with `T ⊆ A`
@@ -2341,7 +12187,19 @@ Nullstellensatz content) supplies `S` + the form-(a) pieces `R(S/f)`; then
 — it produces the Zavyalov "f small" pieces, a different cover than Wedhorn's
 8.34 "f dominates" `R(T/t)`.) -/
 
-/-- **Form-(a) Nullstellensatz refinement** (Wedhorn 7.54, p. 84 verbatim:
+/-- **⚠️ FALSE FOR PROPER BASE (B2 logged 2026-06-04).** This general-`C` form is
+mathematically false whenever `R(C.base.T/C.base.s) ⊊ Spa A`: the conclusion forces
+`Ideal.span (S:Set A) = ⊤` together with every `R(S/f) ⊆ R(C.base.T/C.base.s)`, but
+`span S = ⊤` implies (by `exists_mem_rationalOpen_of_spanTop`) `⋃_{f∈S} R(S/f) = Spa A`,
+contradicting `Spa A ⊆ R(C.base.T/C.base.s) ⊊ Spa A`. The faithful Wedhorn 7.54 is the
+**whole-space** `exists_form_a_refinement_coversSpa` above (proven modulo the analytic
+Step 1); covers of proper rational subsets go through the relative wrapper over
+`presheafValue D` (T-CECH-754-REL). The consumer `every_rational_cover_is_OXAcyclic`
+(general base) must be re-routed through the relative 7.54, not this. Kept as a `sorry`
+pending that consumer re-architecture (SEVER-D / 834 tickets) — do NOT attempt to prove
+it as stated.
+
+**Form-(a) Nullstellensatz refinement** (Wedhorn 7.54, p. 84 verbatim:
 *"every open covering of X has a refinement 𝒰 = (U_t)_{t∈T} of the form
 U_t := R(T/t) with T ⊆ A generating A as an ideal"*).
 
@@ -2355,7 +12213,7 @@ cover suited to the Zavyalov separation route — this lemma produces the
 Wedhorn-8.34 form-(a) "f dominates" pieces. The cover direction (ii) is the
 "max-dominates" argument (`S` spans ⇒ every `v` has a dominant `f ∈ S`); the
 containment (iii) is the Nullstellensatz refinement. -/
-theorem exists_form_a_refinement [DecidableEq A] [IsDomain A]
+theorem exists_form_a_refinement [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
@@ -2373,7 +12231,7 @@ theorem exists_form_a_refinement [DecidableEq A] [IsDomain A]
         rationalOpen (piece f).T (piece f).s ⊆ rationalOpen D.T D.s) := by
   sorry
 
-theorem exists_ideal_gen_refinement [DecidableEq A] [IsDomain A]
+theorem exists_ideal_gen_refinement [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
@@ -2400,7 +12258,7 @@ every C-piece D is covered point-wise by C'-pieces inside D. This is the
 per-E refinement structure from Wedhorn 7.54.
 
 Sub-ticket T-WC-IDEAL-GEN-COVERS-EACH-COMPANION. -/
-theorem ideal_gen_refinement_covers_each_piece [DecidableEq A] [IsDomain A]
+theorem ideal_gen_refinement_covers_each_piece [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
@@ -2435,7 +12293,7 @@ The proof requires either:
      containment for v-fitting.
 
 Sub-ticket T-WC-EXISTS-IDEAL-GEN-COVERS-EACH-BODY: substantive sub-lemma. -/
-theorem exists_ideal_gen_refinement_covers_each_D [DecidableEq A] [IsDomain A]
+theorem exists_ideal_gen_refinement_covers_each_D [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
@@ -2571,7 +12429,6 @@ ideal-generating set — currently a substantive sub-lemma. -/
 theorem restrictToPiece_acyclic_at_D [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (C C' : RationalCovering A) (T : Finset A)
@@ -2608,10 +12465,9 @@ rational covering of every rational subset is `O_X`-acyclic.
 
 This is the algebraic-side content of Wedhorn 8.28(b)'s proof, i.e.
 everything except the topological-inducing (Banach OMT) piece. -/
-theorem every_rational_cover_is_OXAcyclic [DecidableEq A] [IsDomain A]
+theorem every_rational_cover_is_OXAcyclic [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (C : RationalCovering A) :
@@ -2651,10 +12507,9 @@ ring. Then `𝒪_X` is a sheaf of complete topological rings on
 The conclusion `IsSheafy A` is the project's class encoding "sheaf of
 complete topological rings" (embedding + gluing fields, see
 `StructureSheaf.lean:332`). -/
-theorem isSheafy_ofStronglyNoetherianTate_clean [IsDomain A]
+theorem isSheafy_ofStronglyNoetherianTate_clean
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
-    [IsNoetherianRing (IsTateRing.principalPair A).toPairOfDefinition.A₀]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A] :
     IsSheafy A := by
