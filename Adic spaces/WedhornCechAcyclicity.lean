@@ -12124,6 +12124,101 @@ theorem completedPlusSubring_le_ringOfDef
     (hmap.trans (Subring.le_topologicalClosure _))
     (Subring.isClosed_topologicalClosure _)
 
+set_option linter.unusedSectionVars false in
+/-- **The empty-trace rational locale is the zero ring** (complete-affinoid
+Nullstellensatz, Wedhorn 7.52(2)-flavour): if `R(E.T/E.s) = ∅` then
+`𝒪_X(E) = 0`. A Spa-point of `B := 𝒪_X(E)` would comap into the empty trace
+(`comap_canonicalMap_mem_rationalOpen`); with no Spa-points, `0` is a unit by
+the complete-pair criterion (`isUnit_iff_forall_not_vle_zero_of_complete` at
+the concrete pair), so `1 = 0`. Used for the empty-σ₋-piece padding in the
+dichotomy engine. -/
+theorem presheafValue_subsingleton_of_rationalOpen_empty
+    [IsTateRing A] [IsNoetherianRing A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (E : RationalLocData A) (hplus : (A⁺ : Set A) ⊆ E.P.A₀)
+    (hempty : rationalOpen E.T E.s = ∅) :
+    Subsingleton (presheafValue E) := by
+  haveI : IsAdicComplete (presheafValue_concretePair E).I
+      (presheafValue_concretePair E).A₀ := presheafValue_isAdicComplete E
+  have hspa : ∀ w ∈ Spa (presheafValue E) (presheafValue E)⁺, False := by
+    intro w hw
+    have h := comap_canonicalMap_mem_rationalOpen E (canonicalMap_continuous E) hw
+    rw [hempty] at h
+    exact h
+  have h0 : IsUnit (0 : presheafValue E) := by
+    rw [PairOfDefinition.isUnit_iff_forall_not_vle_zero_of_complete
+      (presheafValue_concretePair E)
+      (completedPlusSubring_le_ringOfDef E hplus) 0]
+    exact fun w hw _ => hspa w hw
+  exact subsingleton_of_zero_eq_one (isUnit_zero_iff.mp h0)
+
+set_option linter.unusedSectionVars false in
+/-- **Empty-piece padding**: `O_X`-acyclicity is insensitive to pieces with
+empty rational open. If a subfamily `C'` of `C`'s pieces (same base) is
+acyclic and every remaining piece has empty trace — hence zero section ring,
+by `presheafValue_subsingleton_of_rationalOpen_empty` — then `C` is acyclic.
+Wedhorn A.2-flavour bookkeeping for the σ₋-pieces of the dichotomy engine. -/
+theorem isOXAcyclic_of_empty_complement
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C C' : RationalCovering A) (hbase : C'.base = C.base)
+    (hsub : C'.covers ⊆ C.covers)
+    (hplus_empty : ∀ D ∈ C.covers, D ∉ C'.covers → (A⁺ : Set A) ⊆ D.P.A₀)
+    (hempty : ∀ D ∈ C.covers, D ∉ C'.covers → rationalOpen D.T D.s = ∅)
+    (hC' : C'.IsOXAcyclic) : C.IsOXAcyclic := by
+  classical
+  constructor
+  · -- separation through the C'-subfamily (cast across the base equality).
+    intro x hx
+    let g : presheafValue C.base ≃+* presheafValue C'.base :=
+      RationalCovering.presheafValueCast hbase
+    suffices h_gx : g x = 0 by
+      have : g x = g 0 := h_gx.trans g.map_zero.symm
+      exact g.injective this
+    apply hC'.separation
+    intro D' hD'
+    have hsub_C : rationalOpen D'.T D'.s ⊆ rationalOpen C.base.T C.base.s := by
+      rw [← hbase]; exact C'.hsubset D' hD'
+    have h_cast :
+        restrictionMap C'.base D' (C'.hsubset D' hD') (g x) =
+        restrictionMap C.base D' hsub_C x :=
+      RationalCovering.presheafValueCast_restrictionMap C.base C'.base
+        hbase D' hsub_C (C'.hsubset D' hD') x
+    rw [h_cast]
+    exact hx D' (hsub hD')
+  · -- gluing: glue on the C'-subfamily; empty pieces verify by subsingleton.
+    intro f hcompat
+    obtain ⟨x', hx'⟩ := hC'.gluing (fun D' => f ⟨D'.1, hsub D'.2⟩)
+      (fun D'₁ D'₂ D₃ h₃₁ h₃₂ => hcompat ⟨D'₁.1, hsub D'₁.2⟩
+        ⟨D'₂.1, hsub D'₂.2⟩ D₃ h₃₁ h₃₂)
+    refine ⟨(RationalCovering.presheafValueCast hbase).symm x', ?_⟩
+    intro D
+    by_cases hD' : D.1 ∈ C'.covers
+    · -- a C'-piece: the glue-spec, transported across the base cast.
+      have hsub_C' : rationalOpen D.1.T D.1.s ⊆
+          rationalOpen C'.base.T C'.base.s := by
+        rw [hbase]; exact C.hsubset D.1 D.2
+      have h_cast :
+          restrictionMap C'.base D.1 hsub_C'
+            ((RationalCovering.presheafValueCast hbase)
+              ((RationalCovering.presheafValueCast hbase).symm x')) =
+          restrictionMap C.base D.1 (C.hsubset D.1 D.2)
+            ((RationalCovering.presheafValueCast hbase).symm x') :=
+        RationalCovering.presheafValueCast_restrictionMap C.base C'.base
+          hbase D.1 (C.hsubset D.1 D.2) hsub_C'
+          ((RationalCovering.presheafValueCast hbase).symm x')
+      rw [RingEquiv.apply_symm_apply] at h_cast
+      rw [← h_cast]
+      exact hx' ⟨D.1, hD'⟩
+    · -- an empty piece: the section ring is a subsingleton.
+      haveI := presheafValue_subsingleton_of_rationalOpen_empty D.1
+        (hplus_empty D.1 D.2 hD') (hempty D.1 D.2 hD')
+      exact Subsingleton.elim _ _
+
 set_option maxHeartbeats 1000000 in
 set_option linter.unusedSectionVars false in
 /-- **The B-level image cover of a unit-image generating set is `O_X`-acyclic**
