@@ -7847,10 +7847,11 @@ private theorem wca_completedLocSubring_eq_presheafValue_ringOfDef
 `v(t) ≥ v(s)` holds on all of `V_j` (which is a rational subset). -/
 theorem canonical_unit_of_pointwise_lower_bound
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (Vj : RationalLocData A) (t : A) (s : Aˣ)
+    (Vj : RationalLocData A) (hplus : (A⁺ : Set A) ⊆ Vj.P.A₀)
+    (t : A) (s : Aˣ)
     (_h_lower : ∀ v ∈ rationalOpen Vj.T Vj.s, v.vle (s : A) t) :
     IsUnit (Vj.canonicalMap t) := by
   -- the intrinsic complete pair on `𝒪_X(V_j)` (noeth-A₀-free) + the landed
@@ -7866,8 +7867,7 @@ theorem canonical_unit_of_pointwise_lower_bound
       Set (presheafValue Vj)) ⊆ (PB.A₀ : Set (presheafValue Vj)) := by
     intro x hx
     have hx' : x ∈ (Vj.completedLocSubring : Set (presheafValue Vj)) :=
-      Vj.completedPlusSubring_le_completedLocSubring
-        (CompatiblePlusSubring.aplus_le_A₀ Vj) hx
+      Vj.completedPlusSubring_le_completedLocSubring hplus hx
     rwa [wca_completedLocSubring_eq_presheafValue_ringOfDef] at hx'
   rw [PairOfDefinition.isUnit_iff_forall_not_vle_zero_of_complete PB hBplus
     (Vj.canonicalMap t)]
@@ -7908,7 +7908,7 @@ the restriction of an ideal-generating cover `C` to each Laurent piece
 in `𝒪_X(V_j)` are units). -/
 theorem unit_gen_restriction_of_dominating_laurent [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (C : RationalCovering A) (T : Finset A) (_hC_gen : C.IsGeneratedBy T)
@@ -7921,6 +7921,7 @@ theorem unit_gen_restriction_of_dominating_laurent [DecidableEq A]
     -- index-selection σ-walk (step a). Threaded from `part_ii`.
     (_fs : List A) (_hV_laurent : V.IsLaurentProdCover _fs)
     (_hfs_eq : _fs = (T.toList).map (fun t => ((s⁻¹ : Aˣ) : A) * t))
+    (hplus : (A⁺ : Set A) ⊆ V.base.P.A₀)
     (Vj : RationalLocData A) (_hVj : Vj ∈ V.covers) :
     -- σ₊-dichotomy package (2026-06-10, faithful to wedhorn.txt:4236-4242):
     -- the restricted cover is `genRestrictedCover Vj T` over the FULL
@@ -7960,7 +7961,11 @@ theorem unit_gen_restriction_of_dominating_laurent [DecidableEq A]
     -- (the landed Nullstellensatz keystone).
     intro t ht
     rw [Finset.mem_filter] at ht
-    exact canonical_unit_of_pointwise_lower_bound Vj t s ht.2
+    have hplusVj : (A⁺ : Set A) ⊆ ↑Vj.P.A₀ := by
+      rw [laurentProdLeaves_pair _fs V.base
+        ((Finset.ext_iff.mp _hV_laurent Vj).mp _hVj)]
+      exact hplus
+    exact canonical_unit_of_pointwise_lower_bound Vj hplusVj t s ht.2
   · -- σ₋: the piece-trace is empty (dominance beats `v(t) ≤ v(s)`).
     intro t ht htn
     rw [Finset.mem_filter, not_and] at htn
@@ -7985,10 +7990,11 @@ theorem unit_gen_restriction_of_dominating_laurent [DecidableEq A]
 
 theorem wedhorn_lemma_834_part_ii_unit_gen_via_dominating [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (C : RationalCovering A) (T : Finset A) (hC_gen : C.IsGeneratedBy T) :
+    (C : RationalCovering A) (T : Finset A) (hC_gen : C.IsGeneratedBy T)
+    (hplus : (A⁺ : Set A) ⊆ C.base.P.A₀) :
     ∃ (V : RationalCovering A) (fs : List A) (s : Aˣ),
       V.IsLaurentProdCover fs ∧
       V.base = C.base ∧
@@ -8019,7 +8025,7 @@ theorem wedhorn_lemma_834_part_ii_unit_gen_via_dominating [DecidableEq A]
   -- Step d: For each V_j, restriction of C to V_j is unit-gen.
   intro Vj hVj
   exact unit_gen_restriction_of_dominating_laurent C T hC_gen s hs V fs hV_laurent
-    hV_eq Vj hVj
+    hV_eq (by rw [congrArg RationalLocData.P hV_base]; exact hplus) Vj hVj
 
 /-- **Part (iv) sub-lemma (c) sub-(sep)** — Wedhorn Prop A.3(1) separation
 transfer, p. 105 (wedhorn.txt:5315-5325), refinement-free form.
@@ -12356,11 +12362,12 @@ acyclicity, and the G4 transport descends exactly as in
 `genRestrictedCover_isOXAcyclic_of_units`. -/
 theorem genRestrictedCover_isOXAcyclic_of_units_or_empty
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A] [DecidableEq A]
     (D₀ : RationalLocData A) (T : Finset A)
     (hspan : Ideal.span (T : Set A) = ⊤)
+    (hplus : (A⁺ : Set A) ⊆ D₀.P.A₀)
     (Tpos : Finset A) (_hsub : Tpos ⊆ T)
     (_h_units : ∀ t ∈ Tpos, IsUnit (D₀.canonicalMap t))
     (_h_empty : ∀ t ∈ T, t ∉ Tpos →
@@ -12386,8 +12393,7 @@ theorem genRestrictedCover_isOXAcyclic_of_units_or_empty
       exact hv_in
     haveI hsub_base :
         Subsingleton (presheafValue (genRestrictedCover D₀ T hspan).base) :=
-      presheafValue_subsingleton_of_rationalOpen_empty D₀
-        (CompatiblePlusSubring.aplus_le_A₀ D₀) h_base_empty
+      presheafValue_subsingleton_of_rationalOpen_empty D₀ hplus h_base_empty
     constructor
     · intro x _
       exact Subsingleton.elim x 0
@@ -12396,8 +12402,8 @@ theorem genRestrictedCover_isOXAcyclic_of_units_or_empty
       obtain ⟨t, ht, hDeq⟩ := Finset.mem_image.mp D.2
       haveI : Subsingleton (presheafValue D.1) := by
         rw [← hDeq]
-        exact presheafValue_subsingleton_of_rationalOpen_empty _
-          (CompatiblePlusSubring.aplus_le_A₀ _) (h_all_empty t ht)
+        exact presheafValue_subsingleton_of_rationalOpen_empty _ hplus
+          (h_all_empty t ht)
       exact Subsingleton.elim _ _
   case pos =>
     -- the B-instance suite (as in `imageGenCover_isOXAcyclic_of_units`)
@@ -12417,8 +12423,7 @@ theorem genRestrictedCover_isOXAcyclic_of_units_or_empty
       presheafValue_completeSpace_rightUniformSpace D₀
     have hplusB : ((presheafValue D₀)⁺ : Set (presheafValue D₀)) ⊆
         ↑(presheafValue_concretePair D₀).A₀ :=
-      completedPlusSubring_le_ringOfDef D₀
-        (CompatiblePlusSubring.aplus_le_A₀ D₀)
+      completedPlusSubring_le_ringOfDef D₀ hplus
     have hTn : T.Nonempty := ⟨hTne.choose, _hsub hTne.choose_spec⟩
     -- σ₋-emptiness transported to B: a Spa-B-point dominated by a σ₋-index
     -- would comap into the empty A-trace.
@@ -12633,12 +12638,13 @@ covers-properties); `W.IsGeneratedByUnits` via the product unit set
 `wedhorn_lemma_834_C_restr_acyclic`. -/
 theorem wedhorn_lemma_834_pair_package_exists [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (C : RationalCovering A) (T : Finset A) (hC_gen : C.IsGeneratedBy T)
     (V : RationalCovering A) (_fs : List A)
     (_hV_laurent : V.IsLaurentProdCover _fs)
+    (hplus : (A⁺ : Set A) ⊆ V.base.P.A₀)
     (Tpos_at : ↥V.covers → Finset A)
     (hTpos_sub : ∀ Vj : ↥V.covers, Tpos_at Vj ⊆ T)
     (hTpos_units : ∀ Vj : ↥V.covers, ∀ t ∈ Tpos_at Vj,
@@ -12721,6 +12727,8 @@ theorem wedhorn_lemma_834_pair_package_exists [DecidableEq A]
     -- of σ₊-units are units (restricted); otherwise some factor has empty
     -- trace and the product-trace is contained in it.
     refine genRestrictedCover_isOXAcyclic_of_units_or_empty _ _ hspanW
+      (by show (A⁺ : Set A) ⊆ ↑Vj₁.1.P.A₀
+          rw [hVP₁]; exact hplus)
       (Tpos_at Vj₁ * Tpos_at Vj₂)
       (Finset.mul_subset_mul (hTpos_sub Vj₁) (hTpos_sub Vj₂)) ?_ ?_
     · intro t ht
@@ -12769,12 +12777,13 @@ takes only the bilateral restriction-acyclicity packages (no refinement
 hypothesis — faithful to wedhorn.txt:5315-5325). -/
 theorem wedhorn_lemma_834 [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (C : RationalCovering A) (T : Finset A)
     (_hC_gen : C.IsGeneratedBy T)
-    (hCP : ∀ U ∈ C.covers, U.P = C.base.P) :
+    (hCP : ∀ U ∈ C.covers, U.P = C.base.P)
+    (hplus : (A⁺ : Set A) ⊆ C.base.P.A₀) :
     C.IsOXAcyclic := by
   -- Wedhorn p. 84 four-part composition (verbatim, part (iv)):
   -- > "Now let 𝒰 be a rational cover generated by some finite subset T ⊆ A
@@ -12785,11 +12794,12 @@ theorem wedhorn_lemma_834 [DecidableEq A]
   -- > Thus the 𝒪_X-acyclicity of 𝒱 implies the 𝒪_X-acyclicity of 𝒰 by
   -- > Proposition A.3 (1)."
   obtain ⟨V, fs, s, hV_laurent, hV_base, hs, hfs_eq, hV_unit_restrictions⟩ :=
-    wedhorn_lemma_834_part_ii_unit_gen_via_dominating C T _hC_gen
+    wedhorn_lemma_834_part_ii_unit_gen_via_dominating C T _hC_gen hplus
+  have hplusV : (A⁺ : Set A) ⊆ ↑V.base.P.A₀ := by
+    rw [congrArg RationalLocData.P hV_base]; exact hplus
   -- 𝒱 is itself acyclic (Laurent cover) — part (i):
   have _hV_acyclic : V.IsOXAcyclic :=
-    wedhorn_lemma_834_part_i_laurent_acyclic V fs hV_laurent
-      (CompatiblePlusSubring.aplus_le_A₀ V.base)
+    wedhorn_lemma_834_part_i_laurent_acyclic V fs hV_laurent hplusV
   -- NOTE (2026-06-10): no "V refines C" fact is needed — Prop A.3(1)
   -- (wedhorn.txt:5318-5320) has no refinement hypothesis; the bilateral
   -- restriction-acyclicity packages below are its exact data.
@@ -12817,7 +12827,7 @@ theorem wedhorn_lemma_834 [DecidableEq A]
     fun U => laurentTrace_isOXAcyclic V fs hV_laurent U.1
       (by rw [hV_base]; exact C.hsubset U.1 U.2)
       ((hCP U.1 U.2).trans (congrArg RationalLocData.P hV_base).symm)
-      hVP_leaves (CompatiblePlusSubring.aplus_le_A₀ U.1)
+      hVP_leaves (by rw [hCP U.1 U.2]; exact hplus)
   have hV_restr_covers : ∀ U : ↥C.covers, ∀ v ∈ rationalOpen U.1.T U.1.s,
       ∃ V' ∈ (V_restr_at U).covers, v ∈ rationalOpen V'.T V'.s ∧
         rationalOpen V'.T V'.s ⊆ rationalOpen U.1.T U.1.s := by
@@ -12852,7 +12862,7 @@ theorem wedhorn_lemma_834 [DecidableEq A]
   -- Pair-level package: q=1 instances of the A.3(1) standing hypothesis,
   -- discharged by the part-(ii) construction on intersections.
   have h_pair := fun (Vj₁ Vj₂ : ↥V.covers) =>
-    wedhorn_lemma_834_pair_package_exists C T _hC_gen V fs hV_laurent
+    wedhorn_lemma_834_pair_package_exists C T _hC_gen V fs hV_laurent hplusV
       (fun Vj => Tpos_at Vj.1 Vj.2) (fun Vj => hTpos_sub Vj.1 Vj.2)
       (fun Vj => hTpos_units Vj.1 Vj.2) (fun Vj => hTpos_empty Vj.1 Vj.2)
       Vj₁ Vj₂
@@ -12900,6 +12910,8 @@ theorem wedhorn_lemma_834 [DecidableEq A]
       (M_at U Vj).IsOXAcyclic := by
     intro U Vj
     refine genRestrictedCover_isOXAcyclic_of_units_or_empty _ T _hC_gen.1
+      (by show (A⁺ : Set A) ⊆ ↑U.1.P.A₀
+          rw [hCP U.1 U.2]; exact hplus)
       (Tpos_at Vj.1 Vj.2) (hTpos_sub Vj.1 Vj.2) ?_ ?_
     · intro t ht
       exact isUnit_canonicalMap_of_subset Vj.1 _
@@ -12918,6 +12930,7 @@ theorem wedhorn_lemma_834 [DecidableEq A]
   · -- C_restr_at acyclic — the faithful B-engine (σ₊-dichotomy variant).
     intro Vj
     exact genRestrictedCover_isOXAcyclic_of_units_or_empty Vj.1 T _hC_gen.1
+      (by rw [hVP_leaves Vj.1 Vj.2]; exact hplusV)
       (Tpos_at Vj.1 Vj.2) (hTpos_sub Vj.1 Vj.2) (hTpos_units Vj.1 Vj.2)
       (hTpos_empty Vj.1 Vj.2)
   · -- C_restr_at covers each Vj (genRestrictedCover's own hcover + hsubset).
@@ -13450,11 +13463,12 @@ part-(ii) keystone chain) — the class is unbuildable at `B`.
 Tracked as T-WC-RESTRICT-TO-PIECE-RECURSIVE-834. -/
 theorem genRestrictedCover_isOXAcyclic_of_spanTop [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
-    (hspan : Ideal.span (T : Set A) = ⊤) :
+    (hspan : Ideal.span (T : Set A) = ⊤)
+    (_hplus : (A⁺ : Set A) ⊆ D₀.P.A₀) :
     (genRestrictedCover D₀ T hspan).IsOXAcyclic := by
   sorry
 
@@ -13488,6 +13502,8 @@ theorem every_rational_cover_is_OXAcyclic [DecidableEq A]
     exists_ideal_gen_refinement_covers_each_D C
   -- Step 2: Lemma 8.34 — C' is O_X-acyclic.
   have h_C'_acyclic : C'.IsOXAcyclic := wedhorn_lemma_834 C' T h_C'_gen h_C'_P
+    (by rw [congrArg RationalLocData.P h_C'_base]
+        exact CompatiblePlusSubring.aplus_le_A₀ C.base)
   -- Step 3: Prop A.3(2) — acyclicity transfers from C' to C.
   -- For each D ∈ C.covers, supply (C'.restrictToPiece D).IsOXAcyclic via
   -- `restrictToPiece_acyclic_at_D` (substantive sub-lemma; sorry-bodied at present).
@@ -13499,7 +13515,8 @@ theorem every_rational_cover_is_OXAcyclic [DecidableEq A]
     (fun D => genRestrictedCover D.1 T h_C'_gen.1)
     (fun D => rfl)
     (fun D E' hE' => ?_)
-    (fun D => genRestrictedCover_isOXAcyclic_of_spanTop D.1 T h_C'_gen.1)
+    (fun D => genRestrictedCover_isOXAcyclic_of_spanTop D.1 T h_C'_gen.1
+      (CompatiblePlusSubring.aplus_le_A₀ D.1))
   obtain ⟨t, ht, rfl⟩ := Finset.mem_image.mp hE'
   refine ⟨(φC' ⟨t, ht⟩).1, (φC' ⟨t, ht⟩).2, ?_⟩
   rw [(hφC'_eq ⟨t, ht⟩).1, (hφC'_eq ⟨t, ht⟩).2]
