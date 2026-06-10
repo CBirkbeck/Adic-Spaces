@@ -12381,7 +12381,40 @@ theorem genRestrictedCover_isOXAcyclic_of_units_or_empty
       rationalOpen (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).T
         (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s = ∅) :
     (genRestrictedCover D₀ T hspan).IsOXAcyclic := by
-  sorry
+  classical
+  by_cases hTne : Tpos.Nonempty
+  case neg =>
+    -- ALL piece-traces are empty, so the base trace is empty and every
+    -- section ring in sight is the zero ring.
+    rw [Finset.not_nonempty_iff_eq_empty] at hTne
+    have h_all_empty : ∀ t ∈ T,
+        rationalOpen (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).T
+          (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s = ∅ :=
+      fun t ht => _h_empty t ht (by rw [hTne]; exact Finset.notMem_empty t)
+    have h_base_empty : rationalOpen D₀.T D₀.s = ∅ := by
+      rw [Set.eq_empty_iff_forall_notMem]
+      intro v hv
+      obtain ⟨D', hD'_in, hv_in⟩ := (genRestrictedCover D₀ T hspan).hcover v hv
+      obtain ⟨t, ht, rfl⟩ := Finset.mem_image.mp hD'_in
+      rw [h_all_empty t ht] at hv_in
+      exact hv_in
+    haveI hsub_base :
+        Subsingleton (presheafValue (genRestrictedCover D₀ T hspan).base) :=
+      presheafValue_subsingleton_of_rationalOpen_empty D₀
+        (CompatiblePlusSubring.aplus_le_A₀ D₀) h_base_empty
+    constructor
+    · intro x _
+      exact Subsingleton.elim x 0
+    · intro f _
+      refine ⟨0, fun D => ?_⟩
+      obtain ⟨t, ht, hDeq⟩ := Finset.mem_image.mp D.2
+      haveI : Subsingleton (presheafValue D.1) := by
+        rw [← hDeq]
+        exact presheafValue_subsingleton_of_rationalOpen_empty _
+          (CompatiblePlusSubring.aplus_le_A₀ _) (h_all_empty t ht)
+      exact Subsingleton.elim _ _
+  case pos =>
+    sorry
 
 /-- **Part (iv) pair-instances of the Prop A.3(1) standing hypothesis**
 (Wedhorn Prop A.3, p. 105, wedhorn.txt:5316-5318: "`U | V_{j₀…j_q}` is
