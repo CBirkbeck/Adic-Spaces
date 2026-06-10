@@ -13278,7 +13278,8 @@ theorem exists_form_a_refinement [DecidableEq A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (C : RationalCovering A) :
+    (C : RationalCovering A)
+    (hbase : ∀ v ∈ Spa A A⁺, v ∈ rationalOpen C.base.T C.base.s) :
     ∃ (S : Finset A) (piece : A → RationalLocData A),
       Ideal.span (S : Set A) = ⊤ ∧
       (∀ f ∈ S, (piece f).T = S) ∧
@@ -13301,7 +13302,8 @@ theorem exists_ideal_gen_refinement [DecidableEq A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (C : RationalCovering A) :
+    (C : RationalCovering A)
+    (hbase : ∀ v ∈ Spa A A⁺, v ∈ rationalOpen C.base.T C.base.s) :
     ∃ (T : Finset A) (C' : RationalCovering A),
       C'.IsGeneratedBy T ∧
       C'.base = C.base ∧
@@ -13313,7 +13315,7 @@ theorem exists_ideal_gen_refinement [DecidableEq A]
           rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) := by
   -- Step 1: form-(a) Nullstellensatz refinement (Wedhorn 7.54).
   obtain ⟨S, piece, hS_span, h_piece_T, h_piece_s, h_piece_P, h_piece_sub,
-    h_cover_rel, h_contain⟩ := exists_form_a_refinement C
+    h_cover_rel, h_contain⟩ := exists_form_a_refinement C hbase
   -- Step 2: package the form-(a) pieces into a generated `RationalCovering`.
   obtain ⟨C', h_C'_gen, h_C'_base, h_C'_P, h_C'_refines, h_C'_covers_each⟩ :=
     rationalCovering_from_idealGenSet C S hS_span piece h_piece_T h_piece_s
@@ -13346,7 +13348,8 @@ theorem exists_ideal_gen_refinement_covers_each_D [DecidableEq A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (C : RationalCovering A) :
+    (C : RationalCovering A)
+    (hbase : ∀ v ∈ Spa A A⁺, v ∈ rationalOpen C.base.T C.base.s) :
     ∃ (T : Finset A) (C' : RationalCovering A),
       C'.IsGeneratedBy T ∧
       C'.base = C.base ∧
@@ -13359,7 +13362,7 @@ theorem exists_ideal_gen_refinement_covers_each_D [DecidableEq A]
   -- Pass-through: the D-relative covers-each is part of the 7.54-package
   -- (Huber's per-point normalisation lives inside the containing piece).
   obtain ⟨T, C', h_C'_gen, h_C'_base, h_C'_P, h_C'_refines, h_C'_each⟩ :=
-    exists_ideal_gen_refinement C
+    exists_ideal_gen_refinement C hbase
   exact ⟨T, C', h_C'_gen, h_C'_base, h_C'_P, h_C'_refines, h_C'_each⟩
 
 /-! ##### Sub-lemmas for `IsOXAcyclic_of_refining_acyclic_cover` (Prop A.3(2) project bridge) -/
@@ -13525,12 +13528,13 @@ rational covering of every rational subset is `O_X`-acyclic.
 
 This is the algebraic-side content of Wedhorn 8.28(b)'s proof, i.e.
 everything except the topological-inducing (Banach OMT) piece. -/
-theorem every_rational_cover_is_OXAcyclic [DecidableEq A]
+theorem every_rational_cover_is_OXAcyclic_whole_space [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (C : RationalCovering A) :
+    (C : RationalCovering A)
+    (hbase : ∀ v ∈ Spa A A⁺, v ∈ rationalOpen C.base.T C.base.s) :
     C.IsOXAcyclic := by
   -- Wedhorn p. 83 proof composition (verbatim):
   -- > "Every open covering of X has a refinement 𝒰 = (U_t)_{t∈T} of the
@@ -13541,7 +13545,7 @@ theorem every_rational_cover_is_OXAcyclic [DecidableEq A]
   -- the covering-each-D direction (strengthened in
   -- `exists_ideal_gen_refinement_covers_each_D`).
   obtain ⟨T, C', h_C'_gen, h_C'_base, h_C'_P, h_refines, h_C'_covers_each_D⟩ :=
-    exists_ideal_gen_refinement_covers_each_D C
+    exists_ideal_gen_refinement_covers_each_D C hbase
   -- Step 2: Lemma 8.34 — C' is O_X-acyclic.
   have h_C'_acyclic : C'.IsOXAcyclic := wedhorn_lemma_834 C' T h_C'_gen h_C'_P
     (by rw [congrArg RationalLocData.P h_C'_base]
@@ -13572,6 +13576,26 @@ The top-level theorem: a strongly noetherian Tate affinoid ring is
 sheafy. **No per-cover hypothesis leak** — the hypothesis bundle is
 exactly what Wedhorn states.
 -/
+
+set_option linter.unusedSectionVars false in
+/-- **Wedhorn's main intermediate, general base** (Wedhorn p. 83): every
+rational covering of every rational subset is `O_X`-acyclic. The whole-space
+case is `every_rational_cover_is_OXAcyclic_whole_space` (7.54 + 8.34 +
+A.3(2), all sorry-free above modulo the 7.54-assembly); the general base
+reduces to it by the **R2-transport** (Wedhorn Prop 8.2 + Remark 8.4 +
+Prop 8.16): `Spa 𝒪_X(U) ≅ U` identifies covers of `U` with whole-space
+covers of `Spa B`, `B := 𝒪_X(U)` — a complete strongly noetherian Tate ring
+by the faithful instances. The transport wiring (the
+`SpaPresheafValueEquivalence` foundation) is the residual; tracked as the
+T-R2-* board items (see `project_gluing_relativization_blocker`). -/
+theorem every_rational_cover_is_OXAcyclic [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C : RationalCovering A) :
+    C.IsOXAcyclic := by
+  sorry
 
 /-- **Wedhorn Theorem 8.28(b)** (p. 81, Wedhorn-clean form). *Let
 `A = (A, A⁺)` be an affinoid ring with `A` a strongly noetherian Tate
