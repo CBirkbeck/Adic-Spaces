@@ -8,6 +8,7 @@ import «Adic spaces».Presheaf
 import «Adic spaces».StructureSheaf
 import «Adic spaces».TateAcyclicityResiduals
 import «Adic spaces».AuditCleanWrappers
+import «Adic spaces».SpaCompactNoHArch
 import «Adic spaces».Wedhorn828
 
 /-!
@@ -13096,7 +13097,23 @@ theorem spa_compactSpace_tate_noHArch
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A] :
     CompactSpace ↥(Spa A A⁺) := by
-  sorry
+  classical
+  constructor
+  -- the whole space is the preimage of the trivial rational open R({1}/1),
+  -- which is compact by the no-hArch Wedhorn 7.35(2)
+  -- (`isCompact_preimage_rationalOpen_noHArch`, SpaCompactNoHArch.lean; its
+  -- residual analytic content is parked there as L1.3.a).
+  obtain ⟨P⟩ := ‹IsHuberRing A›.exists_pairOfDefinition
+  have h := isCompact_preimage_rationalOpen_noHArch (A := A) (globalLocData P)
+  have huniv : (Subtype.val ⁻¹' rationalOpen (globalLocData P).T
+      (globalLocData P).s : Set ↥(Spa A A⁺)) = Set.univ := by
+    rw [Set.eq_univ_iff_forall]
+    intro v
+    show v.1 ∈ rationalOpen (globalLocData P).T (globalLocData P).s
+    exact ⟨v.2, fun x hx => by
+      rw [Finset.mem_singleton.mp hx]
+      exact (v.1.vle_total 1 1).elim id id, v.1.not_vle_one_zero⟩
+  rwa [huniv] at h
 
 /-- **Step 1 (Wedhorn 7.54 / Huber [Hu3] 2.6 — analytic normalisation):** any
 rational cover `𝒱` of the whole space `Spa A` refines to a finite *normalised*
