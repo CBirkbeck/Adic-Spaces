@@ -745,7 +745,11 @@ theorem comap_coeRingHom_injOn_spa (D : RationalLocData A) [PlusSubring A]
     (hw₂ : w₂ ∈ Spa (presheafValue D) (presheafValue D)⁺)
     (h : comap D.coeRingHom w₁ = comap D.coeRingHom w₂) :
     w₁ = w₂ := by
-  sorry
+  have hdense : DenseRange (D.coeRingHom : Localization.Away D.s → presheafValue D) := by
+    intro y
+    exact @UniformSpace.Completion.denseRange_coe (Localization.Away D.s) D.uniformSpace y
+  exact ValuationSpectrum.eq_of_isContinuous_of_comap_eq_of_denseRange hdense
+    ((mem_spa_iff w₁).mp hw₁).1 ((mem_spa_iff w₂).mp hw₂).1 h
 
 /-- **(Wedhorn 8.2:3740 — `j = Spa(ρ)` is injective)** The Spa-pullback along the canonical
 map `A → presheafValue D` is injective on Spa-points of the completion. Composes the
@@ -762,6 +766,29 @@ theorem comap_canonicalMap_injOn_spa (D : RationalLocData A) [PlusSubring A]
   rw [hcomp, comap_comp] at h
   simp only [Function.comp_apply] at h
   exact comap_coeRingHom_injOn_spa D hw₁ hw₂ (comap_algebraMap_injective D h)
+
+/-- **Continuity-only form of `comap_coeRingHom_injOn_spa`.** The completion Spa-injectivity
+needs only *continuity* of the two valuations (not the full plus-bounded Spa-membership): this
+is exactly the hypothesis of the T-SUM-7 keystone. Useful for lifting points along restrictions
+where the restricted point is not (yet) known to be plus-bounded. -/
+theorem comap_coeRingHom_inj_of_isContinuous (D : RationalLocData A)
+    {w₁ w₂ : Spv (presheafValue D)} (h₁ : w₁.IsContinuous) (h₂ : w₂.IsContinuous)
+    (h : comap D.coeRingHom w₁ = comap D.coeRingHom w₂) : w₁ = w₂ := by
+  have hdense : DenseRange (D.coeRingHom : Localization.Away D.s → presheafValue D) := by
+    intro y
+    exact @UniformSpace.Completion.denseRange_coe (Localization.Away D.s) D.uniformSpace y
+  exact ValuationSpectrum.eq_of_isContinuous_of_comap_eq_of_denseRange hdense h₁ h₂ h
+
+/-- **Continuity-only form of `comap_canonicalMap_injOn_spa`** (`comap D.canonicalMap` is
+injective on *continuous* points of `Spv (presheafValue D)`). -/
+theorem comap_canonicalMap_inj_of_isContinuous (D : RationalLocData A)
+    {w₁ w₂ : Spv (presheafValue D)} (h₁ : w₁.IsContinuous) (h₂ : w₂.IsContinuous)
+    (h : comap D.canonicalMap w₁ = comap D.canonicalMap w₂) : w₁ = w₂ := by
+  have hcomp : D.canonicalMap
+      = D.coeRingHom.comp (algebraMap A (Localization.Away D.s)) := rfl
+  rw [hcomp, comap_comp] at h
+  simp only [Function.comp_apply] at h
+  exact comap_coeRingHom_inj_of_isContinuous D h₁ h₂ (comap_algebraMap_injective D h)
 
 /-- **(C3 main, reviewer Q3)**: assembly to discharge the headline
 `Spa_presheafValue_eq_rationalOpen` in `StructureSheaf.lean`.

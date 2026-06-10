@@ -1078,10 +1078,10 @@ theorem restrictionMap_flat_of_rational_subset_laurentNormalized
     (hb : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
       letI : DecidableEq (presheafValue E) := Classical.decEq _
       TopologicalRing.IsPowerBounded
-        (invS (relativeRationalLocData_laurentNormalized P E D hsub)))
+        (invS (relativeRationalLocData_laurentNormalized E D hsub)))
     (hT_pb : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
       letI : DecidableEq (presheafValue E) := Classical.decEq _
-      ∀ t ∈ (relativeRationalLocData_laurentNormalized P E D hsub).T,
+      ∀ t ∈ (relativeRationalLocData_laurentNormalized E D hsub).T,
         TopologicalRing.IsPowerBounded t)
     (hcont_eval : letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
       letI : DecidableEq (presheafValue E) := Classical.decEq _
@@ -1090,20 +1090,20 @@ theorem restrictionMap_flat_of_rational_subset_laurentNormalized
         presheafValue_pairOfDefinition_concrete P E
       @Continuous _ _
         (TateAlgebra.quotientOneSubfXIdealTopology
-          (relativeRationalLocData_laurentNormalized P E D hsub).s)
+          (relativeRationalLocData_laurentNormalized E D hsub).s)
         (inferInstance : TopologicalSpace
-          (presheafValue (relativeRationalLocData_laurentNormalized P E D hsub)))
+          (presheafValue (relativeRationalLocData_laurentNormalized E D hsub)))
         (tateQuotientToPresheafHom
-          (relativeRationalLocData_laurentNormalized P E D hsub) hb)) :
+          (relativeRationalLocData_laurentNormalized E D hsub) hb)) :
     @Module.Flat (presheafValue E) (presheafValue D) _ _
       ((restrictionMapHom E D hsub).toModule) := by
   letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
   letI : DecidableEq (presheafValue E) := Classical.decEq _
   -- Apply via_relative with D_at_E = relativeRationalLocData_laurentNormalized.
   exact restrictionMap_flat_of_rational_subset_via_relative P E D hsub
-    (relativeRationalLocData_laurentNormalized P E D hsub)
-    (relativeLaurentNormalized_equiv P E D hsub)
-    (relativeLaurentNormalized_equiv_intertwine P E D hsub)
+    (relativeRationalLocData_laurentNormalized E D hsub)
+    (relativeLaurentNormalized_equiv E D hsub)
+    (relativeLaurentNormalized_equiv_intertwine E D hsub)
     hNoeth_B hA_complete_B hnoeth_B hP_A₀Noeth_B
     hb hT_pb hcont_eval
 
@@ -1141,13 +1141,13 @@ theorem restrictionMap_flat_via_normalizedMinus
       letI : LaurentNormalized (laurentMinusNormalizedDatum E₀ f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized E₀ f hf
       TopologicalRing.IsPowerBounded
-        (invS (relativeRationalLocData_laurentNormalized P E₀
+        (invS (relativeRationalLocData_laurentNormalized E₀
           (laurentMinusNormalizedDatum E₀ f) (laurentMinusNormalized_subset E₀ f))))
     (hT_pb : letI : IsTateRing (presheafValue E₀) := presheafValue_isTateRing P E₀
       letI : DecidableEq (presheafValue E₀) := Classical.decEq _
       letI : LaurentNormalized (laurentMinusNormalizedDatum E₀ f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized E₀ f hf
-      ∀ t ∈ (relativeRationalLocData_laurentNormalized P E₀
+      ∀ t ∈ (relativeRationalLocData_laurentNormalized E₀
         (laurentMinusNormalizedDatum E₀ f) (laurentMinusNormalized_subset E₀ f)).T,
         TopologicalRing.IsPowerBounded t)
     (hcont_eval : letI : IsTateRing (presheafValue E₀) := presheafValue_isTateRing P E₀
@@ -1159,15 +1159,15 @@ theorem restrictionMap_flat_via_normalizedMinus
         presheafValue_pairOfDefinition_concrete P E₀
       @Continuous _ _
         (TateAlgebra.quotientOneSubfXIdealTopology
-          (relativeRationalLocData_laurentNormalized P E₀
+          (relativeRationalLocData_laurentNormalized E₀
             (laurentMinusNormalizedDatum E₀ f)
             (laurentMinusNormalized_subset E₀ f)).s)
         (inferInstance : TopologicalSpace
-          (presheafValue (relativeRationalLocData_laurentNormalized P E₀
+          (presheafValue (relativeRationalLocData_laurentNormalized E₀
             (laurentMinusNormalizedDatum E₀ f)
             (laurentMinusNormalized_subset E₀ f))))
         (tateQuotientToPresheafHom
-          (relativeRationalLocData_laurentNormalized P E₀
+          (relativeRationalLocData_laurentNormalized E₀
             (laurentMinusNormalizedDatum E₀ f)
             (laurentMinusNormalized_subset E₀ f)) hb)) :
     letI : LaurentNormalized (laurentMinusNormalizedDatum E₀ f) :=

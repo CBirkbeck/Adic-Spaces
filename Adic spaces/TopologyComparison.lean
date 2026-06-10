@@ -212,7 +212,7 @@ private theorem divByS_eq_algebraMap_mul_invSelf (t s : A) :
   unfold divByS IsLocalization.Away.invSelf
   rw [IsLocalization.mk'_eq_mul_mk'_one]
 
-set_option linter.unusedSectionVars false in
+omit [PlusSubring A] [IsHuberRing A] in
 -- Helper: `φ(divByS t s) = mk(algebraMap t * X)`.
 private theorem locToQuotientOneSubfX_gen_divByS (s t : A) :
     locToQuotientOneSubfX_gen s (divByS t s) =
@@ -1610,6 +1610,7 @@ theorem locToQuotientOneSubfX_gen_denseRange_canonical [IsTateRing A] [T2Space A
 -- quotient Hausdorff, so the ordering ≤ fails). It had no external callers.
 -- The acyclicity theorem uses `presheafValueTateQuotientEquiv` directly.
 
+omit [PlusSubring A] [IsHuberRing A] in
 /-- The map `locToQuotientOneSubfX_gen D.s` is continuous from the localization
 topology on `Localization.Away D.s` to the canonical quotient topology on
 `A⟨X⟩/(1-sX)`.

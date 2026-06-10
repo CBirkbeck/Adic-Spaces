@@ -325,6 +325,29 @@ theorem IsTateRing.isOpen_topologicallyNilpotentElements :
   convert IsTateRing.isOpen_topologicalNilradical (A := A)
 
 omit [IsLinearTopology A A] in
+/-- **`A°°` is open (Wedhorn Prop 6.13(1)) — no `[IsLinearTopology]`.** Faithful version: `A°°`
+is the open additive subgroup `topNilpAddSubgroup`, open because `u·A₀ ⊆ A°°` is an open
+neighbourhood of `0` (`u` a topologically nilpotent *unit*, `A₀` an open ring of definition,
+`u·a` topologically nilpotent for `a ∈ A₀` power-bounded). Uses only `[IsTateRing A]` (which
+supplies `NonarchimedeanAddGroup A` as an instance), NOT the Tate-unsatisfiable
+`[IsLinearTopology A A]`. This is the input Lemma 7.31 / Cor 7.32 actually need. -/
+theorem IsTateRing.isOpen_topologicallyNilpotentElements_nonarch :
+    IsOpen (TopologicalRing.topologicallyNilpotentElements A) := by
+  obtain ⟨P⟩ := (‹IsTateRing A›.toIsHuberRing).exists_pairOfDefinition
+  obtain ⟨u, hu⟩ := ‹IsTateRing A›.exists_topologicallyNilpotent_unit
+  have hsub : (u : A) • (P.A₀ : Set A) ⊆
+      (TopologicalRing.topNilpAddSubgroup A : Set A) := by
+    rintro _ ⟨a, ha, rfl⟩
+    show IsTopologicallyNilpotent ((u : A) • a)
+    rw [smul_eq_mul, mul_comm]
+    exact (P.mem_powerBoundedSubring ha).isTopologicallyNilpotent_mul hu
+  have hopen : IsOpen ((TopologicalRing.topNilpAddSubgroup A : AddSubgroup A) : Set A) :=
+    AddSubgroup.isOpen_of_mem_nhds _ (Filter.mem_of_superset
+      ((u.isUnit.isOpenMap_smul _ P.isOpen).mem_nhds
+        ⟨0, P.A₀.zero_mem, smul_zero _⟩) hsub)
+  exact hopen
+
+omit [IsLinearTopology A A] in
 /-- A continuous ring homomorphism from a Tate ring preserves topologically nilpotent units. -/
 theorem IsTateRing.map_topologicallyNilpotent_unit {B : Type*} [CommRing B] [TopologicalSpace B]
     {φ : A →+* B} (hφ : Continuous φ) : ∃ v : Bˣ, IsTopologicallyNilpotent (v : B) := by

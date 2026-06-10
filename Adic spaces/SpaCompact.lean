@@ -65,7 +65,7 @@ coarsening to archimedean quotients (Wedhorn §7.1), which is future work.
 ## References
 
 * [T. Wedhorn, *Adic Spaces*][wedhorn2019adic], Theorem 7.30, Corollary 7.32.
-* R. Huber, *Continuous valuations*, Math. Z. 212 (1993), 455–477.
+* R. Huber, *Continuous valuations*, Math. Z. 212 (1993), 445–477.
 -/
 
 open Topology

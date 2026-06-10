@@ -2956,7 +2956,7 @@ set_option linter.unusedSectionVars false in
 `T = {1, b, b²}`, so the elements lie in the ring of definition `locSubring`). -/
 private theorem unitCover_overlapTuple_isBounded
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (i : Fin 2) :
@@ -3005,7 +3005,7 @@ set_option linter.unusedSectionVars false in
 at the named tuple, so the `_algebraMap`/`_X` API applies by unification. -/
 private noncomputable def unitCover_overlapEval
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -3040,7 +3040,7 @@ set_option linter.unusedSectionVars false in
 /-- The annulus evaluation kills `b − X` (both map to `b`: `X ↦ b²/s_O = b`). -/
 private theorem unitCover_overlapEval_gen1 [IsTateRing A] [IsNoetherianRing A]
     [IsStronglyNoetherian A] [T2Space A] [NonarchimedeanRing A]
-    [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -3093,7 +3093,7 @@ set_option linter.unusedSectionVars false in
 /-- The annulus evaluation kills `1 − b·Y` (`Y ↦ 1/s_O = 1/b`, and `b·(1/b) = 1`). -/
 private theorem unitCover_overlapEval_gen2 [IsTateRing A] [IsNoetherianRing A]
     [IsStronglyNoetherian A] [T2Space A] [NonarchimedeanRing A]
-    [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -3225,7 +3225,7 @@ evaluation, with every engine input discharged from the landed package
 `unitCoUnit_inter_T_cases`). -/
 private noncomputable def unitCover_overlapQuotEquiv
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -3322,7 +3322,7 @@ set_option linter.unusedSectionVars false in
 unification against the definition). -/
 private theorem unitCover_overlapQuotEquiv_canonicalMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
@@ -3386,7 +3386,7 @@ localization (since `canonicalMap D₀.s` is already a unit in `B = presheafValu
 (faithful: no `LaurentNormalized`, no noeth-`A₀`). -/
 private theorem unitCover_relPlus_baseHom_isUnit
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -3407,7 +3407,7 @@ set_option linter.unusedSectionVars false in
 denominator (whose image is a unit, `unitCover_relPlus_baseHom_isUnit`). -/
 private noncomputable def unitCover_relPlus_forwardLocHom
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -3424,7 +3424,7 @@ set_option linter.unusedSectionVars false in
 /-- The forward loc-hom sends `algebraMap a ↦ algebraMap (canonicalMap a)`. -/
 private theorem unitCover_relPlus_forwardLocHom_algebraMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (a : A) :
@@ -3469,7 +3469,7 @@ bookkeeping). Honest isolated leaf — the case computations use `hwit_p`-style
 unit-cancellation; fill next. -/
 private theorem unitCover_relPlus_forward_witness
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -3589,7 +3589,7 @@ with the per-generator boundedness from the witnesses of piece 4 +
 `coeRingHom_image_locSubring_isBounded`). -/
 private theorem unitCover_relPlus_forwardCompletion_continuous
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -3629,7 +3629,7 @@ private theorem unitCover_relPlus_forwardCompletion_continuous
 (mirrors `restrictionMapHom`). -/
 private noncomputable def unitCover_relPlus_forward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -3650,7 +3650,7 @@ private noncomputable def unitCover_relPlus_forward
 (mirrors `restrictionMapHom_coe`). -/
 private theorem unitCover_relPlus_forward_coe
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -3674,7 +3674,7 @@ private theorem unitCover_relPlus_forward_coe
 `O_X(D₀) → O_X(U₁)` sends `s_B = 1` to a unit (trivially). -/
 private theorem unitCover_relPlus_backward_baseHom_isUnit
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -3689,7 +3689,7 @@ private theorem unitCover_relPlus_backward_baseHom_isUnit
 `O_X(D₀) → O_X(U₁)` over `Loc_B = Localization.Away 1`. -/
 private noncomputable def unitCover_relPlus_backwardLocHom
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -3706,7 +3706,7 @@ set_option linter.unusedSectionVars false in
 /-- The backward loc-hom sends `algebraMap x ↦ restriction x` (piece 7c). -/
 private theorem unitCover_relPlus_backwardLocHom_algebraMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
@@ -3722,7 +3722,7 @@ set_option linter.unusedSectionVars false in
 of the ring-of-definition element `(D₀.s·f)/s_inter` (unit-cancel against `canMap s`). -/
 private theorem unitCover_relPlus_canonicalMap_f_eq
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -3759,7 +3759,7 @@ for the B-side localization topology (`locTopology_continuous_lift`; the sole ge
 `b = canMap f` lands on the ring-of-definition element `(D₀.s·f)/s_inter`). -/
 private theorem unitCover_relPlus_backwardLocHom_continuous
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -3803,7 +3803,7 @@ private theorem unitCover_relPlus_backwardLocHom_continuous
 `O_X^B(R(b/1)) →+* O_X(U₁)` via `UniformSpace.Completion.extensionHom`. -/
 private noncomputable def unitCover_relPlus_backward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -3825,7 +3825,7 @@ private noncomputable def unitCover_relPlus_backward
 /-- The backward map restricted to the dense image computes via the backward loc-hom. -/
 private theorem unitCover_relPlus_backward_coe
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -3884,7 +3884,7 @@ set_option linter.unusedSectionVars false in
 restriction map factors through the loc-level restriction. -/
 private theorem unitCover_relPlus_restriction_factor
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -3904,7 +3904,7 @@ set_option linter.unusedSectionVars false in
 /-- **Loc-level roundtrip 1 (piece 8c)**: `backwardLocHom ∘ forwardLocHom = coeRingHom`. -/
 private theorem unitCover_relPlus_locRoundtrip1
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -3924,7 +3924,7 @@ set_option linter.unusedSectionVars false in
 algebraMap_B ∘ coeRingHom_{D₀}`. -/
 private theorem unitCover_relPlus_locRoundtrip2
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -3946,7 +3946,7 @@ set_option linter.unusedSectionVars false in
 (continuous extensions agreeing on the dense algebraic side). -/
 private theorem unitCover_relPlus_backward_forward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -3988,7 +3988,7 @@ canMap_B x` — the relative identification sends the restriction of `x ∈ O_X(
 B-side canonical image (Wedhorn Prop 8.2 naturality on the dense side + continuity). -/
 private theorem unitCover_relPlus_forward_restriction
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
@@ -4039,7 +4039,7 @@ set_option linter.unusedSectionVars false in
 /-- **Roundtrip 2 (piece 8g)**: `forward ∘ backward = id` on `O_X^B(R(b/1))`. -/
 private theorem unitCover_relPlus_forward_backward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -4095,7 +4095,7 @@ set_option linter.unusedSectionVars false in
 localized-away unit `b`). -/
 private theorem unitCover_relMinus_baseHom_isUnit
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -4114,7 +4114,7 @@ private theorem unitCover_relMinus_baseHom_isUnit
 /-- **Relative-minus forward loc-hom (M2)**. -/
 private noncomputable def unitCover_relMinus_forwardLocHom
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -4131,7 +4131,7 @@ set_option linter.unusedSectionVars false in
 /-- The minus forward loc-hom sends `algebraMap a ↦ algebraMap (canonicalMap a)` (M3). -/
 private theorem unitCover_relMinus_forwardLocHom_algebraMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (a : A) :
@@ -4151,7 +4151,7 @@ set_option linter.unusedSectionVars false in
 `y = algebraMap (coeRingHom (p/s)) · (1/b)`. -/
 private theorem unitCover_relMinus_forward_witness
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -4284,7 +4284,7 @@ set_option linter.unusedSectionVars false in
 /-- **Relative-minus forward continuity (M5)**. -/
 private theorem unitCover_relMinus_forwardCompletion_continuous
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -4322,7 +4322,7 @@ private theorem unitCover_relMinus_forwardCompletion_continuous
 /-- **Relative-minus forward map (M6)**. -/
 private noncomputable def unitCover_relMinus_forward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -4342,7 +4342,7 @@ private noncomputable def unitCover_relMinus_forward
 /-- M6 coe-tracking. -/
 private theorem unitCover_relMinus_forward_coe
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -4367,7 +4367,7 @@ set_option linter.unusedSectionVars false in
 `O_X(U₂)` is a unit (it divides the unit `canMap (D₀.s·f)`). -/
 private theorem unitCover_relMinus_backward_baseHom_isUnit
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -4387,7 +4387,7 @@ private theorem unitCover_relMinus_backward_baseHom_isUnit
 /-- **Relative-minus backward loc-hom (M7b)**. -/
 private noncomputable def unitCover_relMinus_backwardLocHom
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -4404,7 +4404,7 @@ set_option linter.unusedSectionVars false in
 /-- M7c: the backward loc-hom sends `algebraMap x ↦ restriction x`. -/
 private theorem unitCover_relMinus_backwardLocHom_algebraMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
@@ -4420,7 +4420,7 @@ set_option linter.unusedSectionVars false in
 (cancel `canMap D₀.s`, a unit since `canMap (D₀.s·f)` is). -/
 private theorem unitCover_relMinus_inv_f_eq
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -4466,7 +4466,7 @@ set_option linter.unusedSectionVars false in
 ring-of-definition element `(D₀.s·1)/s_inter`. -/
 private theorem unitCover_relMinus_backwardLocHom_continuous
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -4521,7 +4521,7 @@ private theorem unitCover_relMinus_backwardLocHom_continuous
 /-- **Relative-minus backward map (M7f)**. -/
 private noncomputable def unitCover_relMinus_backward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -4543,7 +4543,7 @@ private noncomputable def unitCover_relMinus_backward
 /-- M7f coe-tracking. -/
 private theorem unitCover_relMinus_backward_coe
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -4607,7 +4607,7 @@ set_option linter.unusedSectionVars false in
 /-- **Minus restriction factorization (M8b)**. -/
 private theorem unitCover_relMinus_restriction_factor
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -4627,7 +4627,7 @@ set_option linter.unusedSectionVars false in
 /-- **Minus loc-level roundtrip 1 (M8c)**. -/
 private theorem unitCover_relMinus_locRoundtrip1
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -4646,7 +4646,7 @@ set_option linter.unusedSectionVars false in
 /-- **Minus loc-level roundtrip 2 (M8d)**. -/
 private theorem unitCover_relMinus_locRoundtrip2
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -4667,7 +4667,7 @@ set_option linter.unusedSectionVars false in
 /-- **Minus roundtrip 1 (M8e)**: `backward ∘ forward = id` on `O_X(U₂)`. -/
 private theorem unitCover_relMinus_backward_forward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -4707,7 +4707,7 @@ set_option linter.unusedSectionVars false in
 /-- **Minus forward-restriction intertwining (M8f)**. -/
 private theorem unitCover_relMinus_forward_restriction
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
@@ -4758,7 +4758,7 @@ set_option linter.unusedSectionVars false in
 /-- **Minus roundtrip 2 (M8g)**: `forward ∘ backward = id` on `O_X^B(R(1/b))`. -/
 private theorem unitCover_relMinus_forward_backward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -4833,7 +4833,7 @@ set_option linter.unusedSectionVars false in
 unit of the B-side annulus localization. -/
 private theorem unitCover_relOverlap_baseHom_isUnit
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -4856,7 +4856,7 @@ private theorem unitCover_relOverlap_baseHom_isUnit
 /-- **Relative-overlap forward loc-hom (O2)**. -/
 private noncomputable def unitCover_relOverlap_forwardLocHom
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -4874,7 +4874,7 @@ set_option linter.unusedSectionVars false in
 /-- O3: the overlap forward loc-hom sends `algebraMap a ↦ algebraMap (canonicalMap a)`. -/
 private theorem unitCover_relOverlap_forwardLocHom_algebraMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (a : A) :
@@ -4895,7 +4895,7 @@ Each factor classifies as `coe (p/s) = c·bᵏ` (`c ∈ A₀`, `k ≤ 1`), and t
 witness is `aM c_p · aM c_q · {1/b, 1, b}` according to `k_p + k_q ∈ {0,1,2}`. -/
 private theorem unitCover_relOverlap_forward_witness
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -5165,7 +5165,7 @@ set_option linter.unusedSectionVars false in
 /-- **Relative-overlap forward continuity (O5)**. -/
 private theorem unitCover_relOverlap_forwardCompletion_continuous
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -5204,7 +5204,7 @@ private theorem unitCover_relOverlap_forwardCompletion_continuous
 /-- **Relative-overlap forward map (O6)**. -/
 private noncomputable def unitCover_relOverlap_forward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -5231,7 +5231,7 @@ private noncomputable def unitCover_relOverlap_forward
 /-- O6 coe-tracking. -/
 private theorem unitCover_relOverlap_forward_coe
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -5264,7 +5264,7 @@ set_option linter.unusedSectionVars false in
 unit of `O_X(U₁∩U₂)`. -/
 private theorem unitCover_relOverlap_backward_baseHom_isUnit
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -5289,7 +5289,7 @@ private theorem unitCover_relOverlap_backward_baseHom_isUnit
 /-- **Relative-overlap backward loc-hom (O7b)**. -/
 private noncomputable def unitCover_relOverlap_backwardLocHom
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -5308,7 +5308,7 @@ set_option linter.unusedSectionVars false in
 /-- O7c: the overlap backward loc-hom sends `algebraMap x ↦ restriction x`. -/
 private theorem unitCover_relOverlap_backwardLocHom_algebraMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
@@ -5353,7 +5353,7 @@ set_option linter.unusedSectionVars false in
 `canMap f · ((s·1)²/s_DII) = 1` and `((s·f)²/s_DII) = canMap f`. -/
 private theorem unitCover_relOverlap_gen_identities
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -5425,7 +5425,7 @@ set_option linter.unusedSectionVars false in
 `{1, b, b²}` land on `((s·1)²/s_DII)`, `1`, `((s·f)²/s_DII)` respectively. -/
 private theorem unitCover_relOverlap_backwardLocHom_continuous
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -5530,7 +5530,7 @@ private theorem unitCover_relOverlap_backwardLocHom_continuous
 /-- **Relative-overlap backward map (O7f)**. -/
 private noncomputable def unitCover_relOverlap_backward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -5550,7 +5550,7 @@ private noncomputable def unitCover_relOverlap_backward
 /-- O7f coe-tracking. -/
 private theorem unitCover_relOverlap_backward_coe
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -5622,7 +5622,7 @@ set_option linter.unusedSectionVars false in
 /-- **Overlap restriction factorization (O8b)**. -/
 private theorem unitCover_relOverlap_restriction_factor
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -5645,7 +5645,7 @@ set_option linter.unusedSectionVars false in
 /-- **Overlap loc-level roundtrip 1 (O8c)**. -/
 private theorem unitCover_relOverlap_locRoundtrip1
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -5666,7 +5666,7 @@ set_option linter.unusedSectionVars false in
 /-- **Overlap loc-level roundtrip 2 (O8d)**. -/
 private theorem unitCover_relOverlap_locRoundtrip2
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -5686,7 +5686,7 @@ set_option linter.unusedSectionVars false in
 /-- **Overlap roundtrip 1 (O8e)**: `backward ∘ forward = id` on `O_X(U₁∩U₂)`. -/
 private theorem unitCover_relOverlap_backward_forward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -5734,7 +5734,7 @@ set_option linter.unusedSectionVars false in
 /-- **Overlap forward-restriction intertwining (O8f)**. -/
 private theorem unitCover_relOverlap_forward_restriction
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
@@ -5792,7 +5792,7 @@ set_option linter.unusedSectionVars false in
 /-- **Overlap roundtrip 2 (O8g)**: `forward ∘ backward = id` on `O_X^B(annulus)`. -/
 private theorem unitCover_relOverlap_forward_backward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -5918,7 +5918,7 @@ private noncomputable def unitCover_plusDatum_B
 equals the B-side value of the corresponding rational subset of `Spa B`. Honest leaf. -/
 private noncomputable def unitCover_relativePlus
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -5932,7 +5932,7 @@ private noncomputable def unitCover_relativePlus
 (Wedhorn Prop 8.2 base-change naturality). Honest leaf. -/
 private theorem unitCover_relativePlus_restrictionMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
@@ -5947,7 +5947,7 @@ private theorem unitCover_relativePlus_restrictionMap
 (`presheafValue_isStronglyNoetherian_faithful`), so Example 6.38 applies. Honest leaf. -/
 private noncomputable def unitCover_example638Plus
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -5971,7 +5971,7 @@ private noncomputable def unitCover_example638Plus
 (the constant-section image), i.e. the first component of `epsilonHom_gen b x`. Honest leaf. -/
 private theorem unitCover_example638Plus_canonicalMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
@@ -6002,7 +6002,7 @@ Built as the Wedhorn-faithful composition `unitCover_relativePlus.trans
 unitCover_example638Plus` (Prop 8.2 base-change ∘ Example 6.38 over `B`). -/
 private noncomputable def unitCover_bridgePlus
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -6031,7 +6031,7 @@ private noncomputable def unitCover_minusDatum_B
 `O_X(R(1/f) ∩ D₀) ≃+* O_X^B(R(1/b))`. Honest leaf. -/
 private noncomputable def unitCover_relativeMinus
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -6045,7 +6045,7 @@ private noncomputable def unitCover_relativeMinus
 Honest leaf. -/
 private theorem unitCover_relativeMinus_restrictionMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
@@ -6066,7 +6066,7 @@ private theorem unitCover_relativeMinus_restrictionMap
 `B` is complete strongly-noetherian Tate by the faithful Example 6.38 bundle. -/
 private noncomputable def unitCover_example639Minus
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -6095,7 +6095,7 @@ private noncomputable def unitCover_example639Minus
 i.e. the second component of `epsilonHom_gen b x`. Honest leaf. -/
 private theorem unitCover_example639Minus_canonicalMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
@@ -6134,7 +6134,7 @@ Built as the Wedhorn-faithful composition `unitCover_relativeMinus.trans
 unitCover_example639Minus` (Prop 8.2 base-change ∘ Example 6.39 over `B`). -/
 private noncomputable def unitCover_bridgeMinus
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -6151,7 +6151,7 @@ private noncomputable def unitCover_bridgeMinus
 `(epsilonHom_gen b x).1`. -/
 private theorem unitCover_bridgePlus_restrictionMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
@@ -6172,7 +6172,7 @@ private theorem unitCover_bridgePlus_restrictionMap
 `(epsilonHom_gen b x).2`. -/
 private theorem unitCover_bridgeMinus_restrictionMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (x : presheafValue D₀) :
@@ -6230,7 +6230,7 @@ the B-side value of the annulus datum over `B = presheafValue D₀`. Honest leaf
 (the R2 transport core, same family as `unitCover_relativePlus`/`Minus`). -/
 private noncomputable def unitCover_relativeOverlap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -6244,7 +6244,7 @@ private noncomputable def unitCover_relativeOverlap
 
 private noncomputable def unitCover_bridgeOverlap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -6264,7 +6264,7 @@ set_option linter.unusedSectionVars false in
 /-- S2: the plus bridge-component's inverse on `mk`-classes is the B-side evaluation. -/
 private theorem unitCover_example638Plus_symm_mk
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) (z : ↥(TateAlgebra (presheafValue D₀))) :
@@ -6303,7 +6303,7 @@ set_option linter.unusedSectionVars false in
 `symm ∘ mk = evalHom` is continuous). -/
 private theorem unitCover_example638Plus_symm_continuous
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -6349,7 +6349,7 @@ set_option linter.unusedSectionVars false in
 hom (definitional: the `where`-structure's `invFun`). -/
 private theorem unitCover_example639Minus_symm_mk
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -6365,7 +6365,7 @@ set_option linter.unusedSectionVars false in
 /-- S5: the minus bridge-component's inverse is continuous. -/
 private theorem unitCover_example639Minus_symm_continuous
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -6393,7 +6393,7 @@ set_option linter.unusedSectionVars false in
 (instance of `tate_quotPresentation_symm_mk` by unification against the definition). -/
 private theorem unitCover_overlapQuotEquiv_symm_mk
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -6501,7 +6501,7 @@ set_option linter.unusedSectionVars false in
 `symm ∘ mk = overlapEval` is continuous). -/
 private theorem unitCover_overlapQuotEquiv_symm_continuous
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -6547,7 +6547,7 @@ backward-composites agree (continuous ring homs out of `B⟨X⟩` agreeing on th
 polynomials; `C`-case = restriction functoriality, `X`-case = the `ζ ↦ b`-chase). -/
 private theorem unitCover_sq_plus_dense
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -6774,7 +6774,7 @@ bridging via `unitCover_bridgeOverlap` equals bridging via `unitCover_bridgePlus
 applying `LaurentCover.posLift b`. Honest leaf. -/
 private theorem unitCover_posLift_bridgePlus
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -6830,7 +6830,7 @@ are the inverse of `canMap_{U₁∩U₂} f`, by `invS`-cancellation resp. the an
 `1/b`-identity). -/
 private theorem unitCover_sq_minus_dense
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A) :
@@ -7098,7 +7098,7 @@ bridging via `unitCover_bridgeOverlap` equals bridging via `unitCover_bridgeMinu
 applying `LaurentCover.negLift b`. Honest leaf. -/
 private theorem unitCover_negLift_bridgeMinus
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -7161,7 +7161,7 @@ negLift b p₂`. By the two commuting squares `unitCover_posLift_bridgePlus` /
 those two restrictions equal, so the difference vanishes. -/
 private theorem unitCover_delta_eq_zero_of_compat
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (f : A)
@@ -7505,7 +7505,7 @@ zero on `Spa A A⁺`, there is a unit `s ∈ A^×` with `v(s) < v(t)` for some `
 NO height-1/mul-archimedean hypothesis, NO `A₀ ⊆ A⁺` alignment. -/
 theorem cor_7_32_dominating_unit
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (T : Finset A) (hT_noCommonZero : ∀ v ∈ Spa A A⁺, ∃ t ∈ T, ¬ v.vle t 0) :
@@ -7812,7 +7812,7 @@ theorem unit_gen_restriction_of_dominating_laurent [DecidableEq A]
 
 theorem wedhorn_lemma_834_part_ii_unit_gen_via_dominating [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (C : RationalCovering A) (T : Finset A) (hC_gen : C.IsGeneratedBy T) :
@@ -8878,7 +8878,7 @@ C-piece. The σ-walk for v picks t_{i_max} with v(t_{i_max}) maximal; since
 v ∈ R(T/t_α), v(t_α) is already maximal so i_max = α — giving V_σ ⊆ R(T/t_α). -/
 theorem laurent_cover_covers_each_idealgen_piece [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (C : RationalCovering A) (_T : Finset A) (_hC_gen : C.IsGeneratedBy _T)
@@ -9565,7 +9565,7 @@ corresponding to `D₀ ∩ R(T/t)`). The `hopen`-condition is `genPiece_hopen` a
 (span-combination + absorption). -/
 noncomputable def imagePieceDatum
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -9591,7 +9591,7 @@ set_option linter.unusedSectionVars false in
 unit of `Localization.Away (canMap t)` over `B`. -/
 private theorem genPiece_rel_baseHom_isUnit
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -9611,7 +9611,7 @@ private theorem genPiece_rel_baseHom_isUnit
 /-- **General relative piece, forward loc-hom (G1-2)**. -/
 private noncomputable def genPiece_rel_forwardLocHom
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -9628,7 +9628,7 @@ set_option linter.unusedSectionVars false in
 /-- G1-3: the forward loc-hom sends `algebraMap a ↦ algebraMap (canonicalMap a)`. -/
 private theorem genPiece_rel_forwardLocHom_algebraMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -9650,7 +9650,7 @@ set_option linter.unusedSectionVars false in
 Uniform equation (no unit-juggling); only the membership splits on `q = t` vs `q ∈ T`. -/
 private theorem genPiece_rel_forward_witness
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -9771,7 +9771,7 @@ set_option linter.unusedSectionVars false in
 /-- G1-5: forward continuity. -/
 private theorem genPiece_rel_forwardCompletion_continuous
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -9808,7 +9808,7 @@ private theorem genPiece_rel_forwardCompletion_continuous
 /-- G1-6: forward map. -/
 private noncomputable def genPiece_rel_forward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -9824,7 +9824,7 @@ private noncomputable def genPiece_rel_forward
 /-- G1-6′ coe-tracking. -/
 private theorem genPiece_rel_forward_coe
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -9844,7 +9844,7 @@ set_option linter.unusedSectionVars false in
 unit `canMap (D₀.s·t)`). -/
 private theorem genPiece_rel_backward_baseHom_isUnit
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -9861,7 +9861,7 @@ private theorem genPiece_rel_backward_baseHom_isUnit
 /-- G1-7b: backward loc-hom. -/
 private noncomputable def genPiece_rel_backwardLocHom
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -9877,7 +9877,7 @@ set_option linter.unusedSectionVars false in
 /-- G1-7c: backward loc-hom tracking. -/
 private theorem genPiece_rel_backwardLocHom_algebraMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -9893,7 +9893,7 @@ set_option linter.unusedSectionVars false in
 `canMap_DI t` times the image of `(D₀.s·q)/s_inter` (cancel the unit `canMap D₀.s`). -/
 private theorem genPiece_rel_canonicalMap_q_eq
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -9933,7 +9933,7 @@ set_option linter.unusedSectionVars false in
 ring-of-definition element `(D₀.s·q)/s_inter`). -/
 private theorem genPiece_rel_backwardLocHom_continuous
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -9997,7 +9997,7 @@ private theorem genPiece_rel_backwardLocHom_continuous
 /-- G1-7f: backward map. -/
 private noncomputable def genPiece_rel_backward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -10013,7 +10013,7 @@ private noncomputable def genPiece_rel_backward
 /-- G1-7f′ coe-tracking. -/
 private theorem genPiece_rel_backward_coe
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -10069,7 +10069,7 @@ set_option linter.unusedSectionVars false in
 /-- G1-8b: restriction factorization. -/
 private theorem genPiece_rel_restriction_factor
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -10089,7 +10089,7 @@ set_option linter.unusedSectionVars false in
 /-- G1-8c: loc-level roundtrip 1. -/
 private theorem genPiece_rel_locRoundtrip1
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -10108,7 +10108,7 @@ set_option linter.unusedSectionVars false in
 /-- G1-8d: loc-level roundtrip 2. -/
 private theorem genPiece_rel_locRoundtrip2
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -10128,7 +10128,7 @@ set_option linter.unusedSectionVars false in
 /-- G1-8e: `backward ∘ forward = id`. -/
 private theorem genPiece_rel_backward_forward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -10158,7 +10158,7 @@ set_option linter.unusedSectionVars false in
 /-- G1-8f: forward-restriction intertwining (the Prop 8.2 naturality). -/
 private theorem genPiece_rel_forward_restriction
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -10199,7 +10199,7 @@ set_option linter.unusedSectionVars false in
 /-- G1-8g: `forward ∘ backward = id`. -/
 private theorem genPiece_rel_forward_backward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -10241,7 +10241,7 @@ the structure ring of `D₀ ∩ R(T/t)` is the structure ring of the image piece
 The R2-transport workhorse (T-R2-SECTION-COMPAT). -/
 noncomputable def genPiece_relative_equiv
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -10257,7 +10257,7 @@ set_option linter.unusedSectionVars false in
 (Wedhorn Prop 8.2 base-change naturality; the transport-compatibility). -/
 theorem genPiece_relative_equiv_restrictionMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A) (t : A)
@@ -10284,7 +10284,7 @@ private theorem imageGenCover_span
 base-changed `U`-side of the restriction `U|Vⱼ`. -/
 noncomputable def imageGenCover
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -10321,7 +10321,7 @@ set_option linter.unusedSectionVars false in
 /-- G2′: the B-level image cover is generated by the image of `T`. -/
 theorem imageGenCover_isGeneratedBy
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -10548,7 +10548,7 @@ set_option linter.unusedSectionVars false in
 differ but proofs are irrelevant). -/
 private theorem imagePieceDatum_eq_genPieceDatum
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -10573,7 +10573,7 @@ from the B-level image cover (via `globalSections_equiv` + the G1-trackings +
 `restrictionMapHom_canonicalMap`). -/
 theorem genRestrictedCover_separation
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A] [DecidableEq A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -10648,7 +10648,7 @@ set_option linter.unusedSectionVars false in
 /-- G3b-1: the double-intersection forward base unit. -/
 private theorem genPiece_relOverlap_baseHom_isUnit
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -10709,7 +10709,7 @@ private theorem genPiece_relOverlap_baseHom_isUnit
 /-- G3b-2: the double-intersection forward loc-hom. -/
 private noncomputable def genPiece_relOverlap_forwardLocHom
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -10730,7 +10730,7 @@ set_option linter.unusedSectionVars false in
 /-- G3b-3 tracking. -/
 private theorem genPiece_relOverlap_forwardLocHom_algebraMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -10749,7 +10749,7 @@ set_option linter.unusedSectionVars false in
 /-- G3b-4: the 3-layer per-generator witnesses for the double-intersection. -/
 private theorem genPiece_relOverlap_forward_witness
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -10920,7 +10920,7 @@ set_option linter.unusedSectionVars false in
 /-- G3b-5: forward continuity. -/
 private theorem genPiece_relOverlap_forwardCompletion_continuous
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -10972,7 +10972,7 @@ private theorem genPiece_relOverlap_forwardCompletion_continuous
 /-- G3b-6: forward map. -/
 private noncomputable def genPiece_relOverlap_forward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -11003,7 +11003,7 @@ private noncomputable def genPiece_relOverlap_forward
 /-- G3b-6′ coe-tracking. -/
 private theorem genPiece_relOverlap_forward_coe
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -11045,7 +11045,7 @@ set_option linter.unusedSectionVars false in
 /-- G3b-7a: backward base unit. -/
 private theorem genPiece_relOverlap_backward_baseHom_isUnit
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -11087,7 +11087,7 @@ private theorem genPiece_relOverlap_backward_baseHom_isUnit
 /-- G3b-7b: backward loc-hom. -/
 private noncomputable def genPiece_relOverlap_backwardLocHom
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -11108,7 +11108,7 @@ set_option linter.unusedSectionVars false in
 /-- G3b-7c tracking. -/
 private theorem genPiece_relOverlap_backwardLocHom_algebraMap
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -11128,7 +11128,7 @@ set_option linter.unusedSectionVars false in
 ring-of-definition element `((D₀.s·q′)·q)/s_DII`). -/
 private theorem genPiece_relOverlap_backwardLocHom_continuous
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -11269,7 +11269,7 @@ private theorem genPiece_relOverlap_backwardLocHom_continuous
 /-- G3b-7f: backward map. -/
 private noncomputable def genPiece_relOverlap_backward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -11299,7 +11299,7 @@ private noncomputable def genPiece_relOverlap_backward
 /-- G3b-7f′ coe-tracking. -/
 private theorem genPiece_relOverlap_backward_coe
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -11339,7 +11339,7 @@ set_option linter.unusedSectionVars false in
 /-- G3b-8c: loc-level roundtrip 1. -/
 private theorem genPiece_relOverlap_locRoundtrip1
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -11373,7 +11373,7 @@ set_option linter.unusedSectionVars false in
 /-- G3b-8e: `backward ∘ forward = id`. -/
 private theorem genPiece_relOverlap_backward_forward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -11435,7 +11435,7 @@ set_option linter.unusedSectionVars false in
 /-- G3b-8f: forward-restriction intertwining. -/
 private theorem genPiece_relOverlap_forward_restriction
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -11558,7 +11558,7 @@ set_option linter.unusedSectionVars false in
 /-- G3b-8g: `forward ∘ backward = id`. -/
 private theorem genPiece_relOverlap_forward_backward
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -11630,7 +11630,7 @@ set_option linter.unusedSectionVars false in
 /-- **G3b-equiv (Wedhorn Prop 8.2, iterated)**: the double-intersection identification. -/
 private noncomputable def genPiece_relative_overlap_equiv
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -11656,7 +11656,7 @@ set_option linter.unusedSectionVars false in
 commutes with the relative identifications. -/
 private theorem genPiece_relative_overlap_square₁
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -11842,7 +11842,7 @@ set_option linter.unusedSectionVars false in
 via the right-inclusion). -/
 private theorem genPiece_relative_overlap_square₂
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -12047,7 +12047,7 @@ given A-side compatibility. Pure square-chase (`square₁` + A-compat + `square�
 cast-free (both sides land in the common double piece). -/
 private theorem genPiece_family_pair_compat
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A] [DecidableEq A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -12120,7 +12120,7 @@ glue at `B`, pull back through `globalSections_backward`, and verify per piece b
 `equiv`-injectivity + the bijective self-intersection restriction. -/
 theorem genRestrictedCover_gluing
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A] [DecidableEq A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -12372,7 +12372,7 @@ image cover of `Spa 𝒪_X(D₀)` is `O_X`-acyclic, so is the A-level restricted
 `{D₀ ∩ R(T/t)}` — Wedhorn Prop 8.2/Remark 8.4 base change for the sheaf condition. -/
 theorem genRestrictedCover_isOXAcyclic_of_B
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A] [DecidableEq A]
     (D₀ : RationalLocData A) (T : Finset A)
@@ -12577,7 +12577,7 @@ bottoms at the in-repo no-hArch Spa quasi-compactness
 algebraic heart (Steps 3–6 + refine) is complete and sorry-free. -/
 theorem exists_finite_normalized_rational_refinement [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (𝒱 : Finset (RationalLocData A))
@@ -12762,7 +12762,7 @@ per-E refinement structure from Wedhorn 7.54.
 Sub-ticket T-WC-IDEAL-GEN-COVERS-EACH-COMPANION. -/
 theorem ideal_gen_refinement_covers_each_piece [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (C : RationalCovering A) (T : Finset A) (C' : RationalCovering A)
@@ -12930,7 +12930,7 @@ the level of `𝒪_X(D)` with the canonical-images of T as the
 ideal-generating set — currently a substantive sub-lemma. -/
 theorem restrictToPiece_acyclic_at_D [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (C C' : RationalCovering A) (T : Finset A)

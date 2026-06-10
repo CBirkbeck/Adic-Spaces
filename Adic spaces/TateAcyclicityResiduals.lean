@@ -2640,7 +2640,7 @@ theorem tateAcyclicity_part2_gluing_via_flat_descent
 2.13 at the topological level.** For nested rational locality data
 `E ⊆ D` (= `rationalOpen D ⊆ rationalOpen E`) with `D` Laurent-
 normalised, the relative datum
-`relativeRationalLocData_laurentNormalized P E D` (already constructed
+`relativeRationalLocData_laurentNormalized E D` (already constructed
 in the project) has its presheaf value canonically isomorphic — as a
 **topological ring** — to the absolute `presheafValue D`. The
 isomorphism intertwines the restriction map with the canonical map
@@ -2656,8 +2656,8 @@ noncomputable def presheafValue_relative_equiv
     presheafValue D ≃+*
       letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
       letI : DecidableEq (presheafValue E) := Classical.decEq _
-      presheafValue (relativeRationalLocData_laurentNormalized P E D hsub) :=
-  relativeLaurentNormalized_equiv P E D hsub
+      presheafValue (relativeRationalLocData_laurentNormalized E D hsub) :=
+  relativeLaurentNormalized_equiv E D hsub
 
 /-- **(III.2) Topological-isomorphism upgrade.** The ring-level
 equivalence of III.1 is in fact a **homeomorphism** with respect to
@@ -2675,7 +2675,7 @@ theorem presheafValue_relative_equiv_isHomeomorph
   letI : IsTateRing (presheafValue E) := presheafValue_isTateRing P E
   letI : DecidableEq (presheafValue E) := Classical.decEq _
   letI D_at_E_data : RationalLocData (presheafValue E) :=
-    relativeRationalLocData_laurentNormalized P E D hsub
+    relativeRationalLocData_laurentNormalized E D hsub
   letI : UniformSpace (Localization.Away D.s) := D.uniformSpace
   letI : IsUniformAddGroup (Localization.Away D.s) := D.isUniformAddGroup
   letI : IsTopologicalRing (Localization.Away D.s) := D.isTopologicalRing
@@ -2689,10 +2689,10 @@ theorem presheafValue_relative_equiv_isHomeomorph
     -- relativeLaurentNormalized_forwardHom, which is
     -- UniformSpace.Completion.extensionHom forwardToCompletion (continuity proof).
     -- Continuity follows from Completion.continuous_extension.
-    change Continuous (relativeLaurentNormalized_forwardHom P E D hsub)
+    change Continuous (relativeLaurentNormalized_forwardHom E D hsub)
     exact UniformSpace.Completion.continuous_extension
   · -- backward direction: similarly via backwardHom.
-    change Continuous (relativeLaurentNormalized_backwardHom P E D hsub)
+    change Continuous (relativeLaurentNormalized_backwardHom E D hsub)
     exact UniformSpace.Completion.continuous_extension
 
 /-- **(III.3) Power-bounded canonical generators in the relative datum.**

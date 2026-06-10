@@ -1494,6 +1494,38 @@ theorem cont_to_ideal_le_supp_microbial
     ∀ a ∈ I, (ValuativeRel.valuation A) a < 1 := by
   sorry
 
+/-- **CORRECTED forward direction (Wedhorn 7.10, faithful ideal).** For a
+continuous valuation, `v(a) < 1` for every `a` in the **A₀-ideal of definition**
+`P.I` (Wedhorn's `I`, not the A-extension `I·A`). This is the genuinely-true
+statement: `a ∈ P.I ⟹ P.A₀.subtype a` is topologically nilpotent (`a^n → 0`),
+so continuity (`{x | v x < 1}` open ∋ 0) forces `v(a)^n < 1` for some `n`, hence
+`v(a) < 1`. No microbial/cofinal split is needed — the elementary argument works
+for any continuous valuation. (The original `…_microbial` ranges `a` over the
+A-extension `Ideal.span (P.A₀ ʹʹ P.I)`, which is FALSE: `IsMicrobial.exists_inv_le`
+yields `t` with `v(t) ≥ 2/v(g)`, so `t·g ∈ I·A` has `v(t·g) > 1`.) -/
+theorem cont_to_ideal_le_supp_of_mem_defIdeal
+    (P : PairOfDefinition A) (v : Spv A)
+    (_h_cont :
+      letI : ValuativeRel A := v.toValuativeRel
+      (ValuativeRel.valuation A).IsContinuous) :
+    letI : ValuativeRel A := v.toValuativeRel
+    ∀ a ∈ P.I, (ValuativeRel.valuation A) (P.A₀.subtype a) < 1 := by
+  letI : ValuativeRel A := v.toValuativeRel
+  intro a ha
+  have h_tn : IsTopologicallyNilpotent (P.A₀.subtype a) :=
+    P.isTopologicallyNilpotent_of_mem ha
+  have h_open : IsOpen {x : A | (ValuativeRel.valuation A) x < 1} := _h_cont 1
+  have h_zero_mem : (0 : A) ∈ {x : A | (ValuativeRel.valuation A) x < 1} := by
+    simp only [Set.mem_setOf_eq, map_zero]; exact zero_lt_one
+  have h_ev : ∀ᶠ n in Filter.atTop,
+      (P.A₀.subtype a) ^ n ∈ {x : A | (ValuativeRel.valuation A) x < 1} :=
+    h_tn.eventually_mem (h_open.mem_nhds h_zero_mem)
+  obtain ⟨n, hn⟩ := h_ev.exists
+  rw [Set.mem_setOf_eq, map_pow] at hn
+  by_contra h_not_lt
+  push_neg at h_not_lt
+  exact absurd hn (not_lt.mpr (one_le_pow₀ h_not_lt))
+
 /-- **Sub-lemma (Wedhorn 7.10 substance, forward direction).** For
 `v : SpvAI A I`, if the induced valuation `(ValuativeRel.valuation A)` (on the
 valuative relation `v.1.toValuativeRel`) is continuous, then `v(a) < 1` for

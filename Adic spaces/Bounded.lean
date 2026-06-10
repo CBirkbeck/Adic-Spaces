@@ -284,6 +284,26 @@ theorem IsPowerBounded.isTopologicallyNilpotent_mul [IsTopologicalRing A] {a b :
     show (a * b) ^ n ∈ U from
       mul_pow a b n ▸ hSV (Set.mul_mem_mul ⟨n, rfl⟩ hn)
 
+/-- `-a` is topologically nilpotent if `a` is (Prop 5.30, non-archimedean: `-a = (-1)·a`
+with `-1` power-bounded). -/
+theorem IsTopologicallyNilpotent.neg [IsTopologicalRing A] {a : A}
+    (ha : IsTopologicallyNilpotent a) : IsTopologicallyNilpotent (-a) := by
+  rw [← neg_one_mul]
+  exact (isPowerBounded_neg isPowerBounded_one).isTopologicallyNilpotent_mul ha
+
+/-- The topologically nilpotent elements `A°°` form an **additive subgroup of `A`**
+(non-archimedean: open additive subgroups absorb sums — Wedhorn Def 5.23 / Prop 5.30).
+Note `A°°` is NOT an ideal of `A` for a Tate ring (it contains a topologically nilpotent
+*unit*, so it would contain `1`); it is an ideal of `A°` (`topNilpIdeal`) and this additive
+subgroup of `A`. This is the faithful object for "`A°°` is open" (`NonarchimedeanAddGroup`,
+no `IsLinearTopology`). -/
+def topNilpAddSubgroup (A : Type*) [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
+    [NonarchimedeanAddGroup A] : AddSubgroup A where
+  carrier := topologicallyNilpotentElements A
+  zero_mem' := IsTopologicallyNilpotent.zero
+  add_mem' := fun ha hb => IsTopologicallyNilpotent.add_of_nonarch ha hb
+  neg_mem' := fun ha => IsTopologicallyNilpotent.neg ha
+
 /-- `A°°` is radical: `a ^ m ∈ A°°` implies `a ∈ A°°` (Prop 5.30(4)). -/
 theorem IsTopologicallyNilpotent.of_pow [IsTopologicalRing A] {a : A} {m : ℕ} (hm : 0 < m)
     (ha : IsTopologicallyNilpotent (a ^ m)) : IsTopologicallyNilpotent a := by

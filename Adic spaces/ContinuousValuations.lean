@@ -273,3 +273,167 @@ theorem isContinuous_iff_setOf_ge_isOpen (v : Valuation A Γ₀) :
   sorry
 
 end Valuation
+
+/-! ## Determination of a continuous valuation by a dense subring
+
+The injectivity content of Wedhorn Proposition 7.48 (= Huber [Hu2] Prop. 3.9): a continuous
+valuation on a topological ring is determined by its restriction to a dense subring. This is
+the elementary "uniqueness" half of the Spa–completion comparison, provable directly from
+density, valuation continuity (Wedhorn 7.7), and the nonarchimedean strict-triangle rule —
+without the full Huber §3 apparatus.
+-/
+
+namespace Valuation
+
+variable {S : Type*} [CommRing S] [TopologicalSpace S] [IsTopologicalRing S]
+
+/-- A continuous valuation is locally constant at a point of nonzero value: the strict
+triangle inequality makes `{z | v z = v x}` a neighbourhood of `x` when `v x ≠ 0`. -/
+lemma IsContinuous.setOf_value_eq_mem_nhds {Γ₀ : Type*} [LinearOrderedCommGroupWithZero Γ₀]
+    {v : Valuation S Γ₀} (hv : v.IsContinuous) {x : S} (hx : v x ≠ 0) :
+    {z | v z = v x} ∈ nhds x := by
+  have hB_open : IsOpen {b : S | v b < v x} := hv (v x)
+  have hB_zero : (0 : S) ∈ {b : S | v b < v x} := by
+    change v 0 < v x
+    rw [v.map_zero]; exact zero_lt_iff.mpr hx
+  have hT_open : IsOpen ((· + x) '' {b | v b < v x}) :=
+    (Homeomorph.addRight x).isOpenMap _ hB_open
+  have hT_x : x ∈ (· + x) '' {b | v b < v x} := ⟨0, hB_zero, zero_add x⟩
+  refine Filter.mem_of_superset (hT_open.mem_nhds hT_x) ?_
+  rintro _ ⟨b, hb, rfl⟩
+  change v (b + x) = v x
+  have hne : v x ≠ v b := ne_of_gt hb
+  rw [add_comm b x, v.map_add_of_distinct_val hne]
+  exact max_eq_left (le_of_lt hb)
+
+variable {R : Type*} [CommRing R]
+
+/-- Directed core of `isEquiv_of_isContinuous_of_denseRange`: under a dense ring map and
+agreement of the induced preorders on the dense image, the `v`-order refines the `w`-order.
+A top-level (universe-polymorphic) lemma so it can be applied with the value groups in
+either order. -/
+private lemma le_of_isContinuous_of_denseRange_of_le {Γv Γw : Type*}
+    [LinearOrderedCommGroupWithZero Γv] [LinearOrderedCommGroupWithZero Γw]
+    {φ : R →+* S} (hdense : DenseRange φ)
+    {v : Valuation S Γv} {w : Valuation S Γw}
+    (hv : v.IsContinuous) (hw : w.IsContinuous)
+    (h : ∀ a b : R, v (φ a) ≤ v (φ b) ↔ w (φ a) ≤ w (φ b))
+    {x y : S} (hxy : v x ≤ v y) : w x ≤ w y := by
+  have hex : ∀ (p : S) (N : Set S), N ∈ nhds p → ∃ a : R, φ a ∈ N := by
+    intro p N hN
+    obtain ⟨z, hzN, a, rfl⟩ := mem_closure_iff_nhds.mp (hdense p) N hN
+    exact ⟨a, hzN⟩
+  by_contra hwxy
+  rw [not_le] at hwxy
+  have hwx : w x ≠ 0 := by
+    intro h0; rw [h0] at hwxy; exact absurd hwxy (not_lt.mpr zero_le')
+  by_cases hvx : v x = 0
+  · -- support trick at `x`: two approximants with equal `w`-value but different `v`-value
+    have hmem1 : x ∈ {z : S | v z < 1} := by change v x < 1; rw [hvx]; exact zero_lt_one
+    have hN1 : {z | w z = w x} ∩ {z : S | v z < 1} ∈ nhds x :=
+      Filter.inter_mem (hw.setOf_value_eq_mem_nhds hwx) ((hv 1).mem_nhds hmem1)
+    obtain ⟨a₁, ha₁⟩ := hex x _ hN1
+    simp only [Set.mem_inter_iff, Set.mem_setOf_eq] at ha₁
+    obtain ⟨ha₁w, ha₁v⟩ := ha₁
+    have hδ : v (φ a₁) ≠ 0 := by
+      intro h0
+      apply hwx
+      have hiff := h a₁ 0
+      simp only [map_zero, le_zero_iff] at hiff
+      rw [← ha₁w]; exact hiff.mp h0
+    have hmem2 : x ∈ {z : S | v z < v (φ a₁)} := by
+      change v x < v (φ a₁); rw [hvx]; exact zero_lt_iff.mpr hδ
+    have hN2 : {z | w z = w x} ∩ {z : S | v z < v (φ a₁)} ∈ nhds x :=
+      Filter.inter_mem (hw.setOf_value_eq_mem_nhds hwx) ((hv (v (φ a₁))).mem_nhds hmem2)
+    obtain ⟨a₂, ha₂⟩ := hex x _ hN2
+    simp only [Set.mem_inter_iff, Set.mem_setOf_eq] at ha₂
+    obtain ⟨ha₂w, ha₂v⟩ := ha₂
+    have hww : w (φ a₁) ≤ w (φ a₂) := by rw [ha₁w, ha₂w]
+    have hvv : v (φ a₁) ≤ v (φ a₂) := (h a₁ a₂).mpr hww
+    exact absurd ha₂v (not_lt.mpr hvv)
+  · -- `v x ≠ 0`: pick `a ≈ x` with both values exact, then compare with `b ≈ y`
+    have hN_a : {z | v z = v x} ∩ {z | w z = w x} ∈ nhds x :=
+      Filter.inter_mem (hv.setOf_value_eq_mem_nhds hvx) (hw.setOf_value_eq_mem_nhds hwx)
+    obtain ⟨a, ha⟩ := hex x _ hN_a
+    simp only [Set.mem_inter_iff, Set.mem_setOf_eq] at ha
+    obtain ⟨ha_v, ha_w⟩ := ha
+    have hvy : v y ≠ 0 := fun h0 => hvx (le_antisymm (h0 ▸ hxy) zero_le')
+    by_cases hwy : w y = 0
+    · have hmemb : y ∈ {z : S | w z < w x} := hwxy
+      have hN_b : {z | v z = v y} ∩ {z : S | w z < w x} ∈ nhds y :=
+        Filter.inter_mem (hv.setOf_value_eq_mem_nhds hvy) ((hw (w x)).mem_nhds hmemb)
+      obtain ⟨b, hb⟩ := hex y _ hN_b
+      simp only [Set.mem_inter_iff, Set.mem_setOf_eq] at hb
+      obtain ⟨hb_v, hb_w⟩ := hb
+      have hvab : v (φ a) ≤ v (φ b) := by rw [ha_v, hb_v]; exact hxy
+      have hwab : w (φ a) ≤ w (φ b) := (h a b).mp hvab
+      rw [ha_w] at hwab
+      exact absurd hwab (not_le.mpr hb_w)
+    · have hN_b : {z | v z = v y} ∩ {z | w z = w y} ∈ nhds y :=
+        Filter.inter_mem (hv.setOf_value_eq_mem_nhds hvy) (hw.setOf_value_eq_mem_nhds hwy)
+      obtain ⟨b, hb⟩ := hex y _ hN_b
+      simp only [Set.mem_inter_iff, Set.mem_setOf_eq] at hb
+      obtain ⟨hb_v, hb_w⟩ := hb
+      have hvab : v (φ a) ≤ v (φ b) := by rw [ha_v, hb_v]; exact hxy
+      have hwab : w (φ a) ≤ w (φ b) := (h a b).mp hvab
+      rw [ha_w, hb_w] at hwab
+      exact absurd hwab (not_le.mpr hwxy)
+
+/-- **Continuous valuations are determined by a dense subring** (the injectivity content of
+Wedhorn Proposition 7.48 = Huber [Hu2] Prop. 3.9). If `φ : R →+* S` has dense image and two
+continuous valuations `v`, `w` on `S` induce the same preorder on `φ(R)`, then `v` and `w`
+are equivalent. -/
+theorem isEquiv_of_isContinuous_of_denseRange {Γv Γw : Type*}
+    [LinearOrderedCommGroupWithZero Γv] [LinearOrderedCommGroupWithZero Γw]
+    {φ : R →+* S} (hdense : DenseRange φ)
+    {v : Valuation S Γv} {w : Valuation S Γw}
+    (hv : v.IsContinuous) (hw : w.IsContinuous)
+    (h : ∀ a b : R, v (φ a) ≤ v (φ b) ↔ w (φ a) ≤ w (φ b)) :
+    v.IsEquiv w := by
+  intro x y
+  exact ⟨fun hxy => le_of_isContinuous_of_denseRange_of_le hdense hv hw h hxy,
+         fun hxy => le_of_isContinuous_of_denseRange_of_le hdense hw hv
+           (fun a b => (h a b).symm) hxy⟩
+
+end Valuation
+
+namespace ValuationSpectrum
+
+variable {R S : Type*} [CommRing R] [CommRing S] [TopologicalSpace S] [IsTopologicalRing S]
+
+/-- **The point of `Spv S` is determined by a dense subring** (the injectivity content of
+Wedhorn Proposition 7.48 = Huber [Hu2] Prop. 3.9). If `φ : R →+* S` has dense image and two
+continuous points `v, w ∈ Spv S` have the same pullback `comap φ v = comap φ w`, then `v = w`.
+This is the elementary uniqueness half of the Spa–completion comparison; it is the keystone
+the completion Spa-injectivity (`comap_coeRingHom_injOn_spa`) reduces to. -/
+theorem eq_of_isContinuous_of_comap_eq_of_denseRange {φ : R →+* S} (hdense : DenseRange φ)
+    {v w : Spv S} (hv : v.IsContinuous) (hw : w.IsContinuous)
+    (h : comap φ v = comap φ w) : v = w := by
+  have bridgeV : ∀ s t : S, v.vle s t ↔
+      (@ValuativeRel.valuation S _ v.toValuativeRel) s ≤
+        (@ValuativeRel.valuation S _ v.toValuativeRel) t := by
+    intro s t
+    letI : ValuativeRel S := v.toValuativeRel
+    exact (ValuativeRel.valuation S).vle_iff_le
+  have bridgeW : ∀ s t : S, w.vle s t ↔
+      (@ValuativeRel.valuation S _ w.toValuativeRel) s ≤
+        (@ValuativeRel.valuation S _ w.toValuativeRel) t := by
+    intro s t
+    letI : ValuativeRel S := w.toValuativeRel
+    exact (ValuativeRel.valuation S).vle_iff_le
+  have hrel : ∀ a b : R, v.vle (φ a) (φ b) ↔ w.vle (φ a) (φ b) := by
+    intro a b
+    have he : v.vle (φ a) (φ b) = w.vle (φ a) (φ b) := by
+      rw [← comap_vle, ← comap_vle]; exact congrArg (fun u : Spv R => u.vle a b) h
+    exact Iff.of_eq he
+  have key : (@ValuativeRel.valuation S _ v.toValuativeRel).IsEquiv
+      (@ValuativeRel.valuation S _ w.toValuativeRel) :=
+    Valuation.isEquiv_of_isContinuous_of_denseRange hdense hv hw
+      (fun a b => by rw [← bridgeV, ← bridgeW]; exact hrel a b)
+  calc v = ofValuation (@ValuativeRel.valuation S _ v.toValuativeRel) :=
+            (ofValuation_valuation v).symm
+    _ = ofValuation (@ValuativeRel.valuation S _ w.toValuativeRel) :=
+            ofValuation_eq_of_isEquiv key
+    _ = w := ofValuation_valuation w
+
+end ValuationSpectrum

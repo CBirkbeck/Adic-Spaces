@@ -70,7 +70,7 @@ the raw valuative preorder `v.vle f s`.
 ## References
 
 * T. Wedhorn, *Adic Spaces*, Theorem 4.9.
-* R. Huber, *Continuous valuations*, Math. Z. 212 (1993), 455–477.
+* R. Huber, *Continuous valuations*, Math. Z. 212 (1993), 445–477.
 -/
 
 namespace ValuationSpectrum

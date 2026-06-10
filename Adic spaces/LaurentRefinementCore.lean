@@ -289,6 +289,232 @@ theorem divByS_mul_g_mem_T_ratio {P : PairOfDefinition A} {T₀ : Finset A}
   · intro x y _ _ hx hy
     rw [map_mul]; exact (locSubring P T_ratio (s₀ * g)).mul_mem hx hy
 
+omit [TopologicalSpace A] [PlusSubring A] [IsTopologicalRing A] in
+/-- The numerator-product `Finset` is symmetric (multiplication is commutative). -/
+theorem prodImage_mul_comm (T₁ T₂ : Finset A) :
+    (T₁.product T₂).image (fun p => p.1 * p.2) =
+    (T₂.product T₁).image (fun p => p.1 * p.2) := by
+  ext x
+  simp only [Finset.mem_image, Prod.exists]
+  constructor
+  · rintro ⟨a, b, hp, rfl⟩
+    obtain ⟨ha, hb⟩ := Finset.mem_product.mp hp
+    exact ⟨b, a, Finset.mem_product.mpr ⟨hb, ha⟩, mul_comm b a⟩
+  · rintro ⟨a, b, hp, rfl⟩
+    obtain ⟨ha, hb⟩ := Finset.mem_product.mp hp
+    exact ⟨b, a, Finset.mem_product.mpr ⟨hb, ha⟩, mul_comm b a⟩
+
+set_option maxHeartbeats 400000 in
+-- heavy `Subring.closure_induction` over `locSubring` (6 cases × ring ops)
+/-- For `b ∈ I^N₁` (first datum), `divByS (b·s₂) (s₁·s₂)` lands in the product
+`locSubring` (lift of `D₁`'s `locSubring` along `Away s₁ → Away (s₁·s₂)`). -/
+theorem divByS_mul_secondS_mem {P : PairOfDefinition A} {T₁ T₂ : Finset A}
+    {s₁ s₂ : A} {N₁ : ℕ}
+    (hN₁ : ∀ b : P.A₀, b ∈ P.I ^ N₁ → divByS (↑b : A) s₁ ∈ locSubring P T₁ s₁)
+    {b : P.A₀} (hb : b ∈ P.I ^ N₁) :
+    let T := ((insert s₁ T₁).product (insert s₂ T₂)).image (fun p => p.1 * p.2)
+    divByS ((↑b : A) * s₂) (s₁ * s₂) ∈ locSubring P T (s₁ * s₂) := by
+  intro T
+  have hs₁ : IsUnit (algebraMap A (Localization.Away (s₁ * s₂)) s₁) := by
+    have := IsLocalization.Away.algebraMap_isUnit (R := A) (s₁ * s₂)
+      (S := Localization.Away (s₁ * s₂))
+    rw [map_mul] at this; exact isUnit_of_mul_isUnit_left this
+  let φ : Localization.Away s₁ →+* Localization.Away (s₁ * s₂) :=
+    IsLocalization.Away.lift (S := Localization.Away s₁) (R := A) s₁ hs₁
+  rw [← lift_divByS_eq' s₁ s₂ hs₁]
+  refine Subring.closure_induction
+    (p := fun x _ => φ x ∈ locSubring P T (s₁ * s₂)) ?_ ?_ ?_ ?_ ?_ ?_ (hN₁ b hb)
+  · intro x hx
+    rcases hx with ⟨a, ha, rfl⟩ | ⟨⟨t, ht⟩, rfl⟩
+    · rw [show φ (algebraMap A _ a) = algebraMap A _ a from
+        IsLocalization.Away.lift_eq (S := Localization.Away s₁) (x := s₁) _ _]
+      exact algebraMap_mem_locSubring P T (s₁ * s₂) ha
+    · rw [lift_divByS_eq' s₁ s₂ hs₁]
+      exact divByS_mem_locSubring P T (s₁ * s₂) (Finset.mem_image.mpr
+        ⟨(t, s₂), Finset.mem_product.mpr ⟨Finset.mem_insert_of_mem ht,
+          Finset.mem_insert_self _ _⟩, rfl⟩)
+  · simp [map_zero, (locSubring P T (s₁ * s₂)).zero_mem]
+  · simp [map_one, (locSubring P T (s₁ * s₂)).one_mem]
+  · intro x y _ _ hx hy; rw [map_add]; exact (locSubring P T (s₁ * s₂)).add_mem hx hy
+  · intro x _ hx; rw [map_neg]; exact (locSubring P T (s₁ * s₂)).neg_mem hx
+  · intro x y _ _ hx hy; rw [map_mul]; exact (locSubring P T (s₁ * s₂)).mul_mem hx hy
+
+/-- For `b ∈ I^N₂` (second datum), `divByS (b·s₁) (s₁·s₂)` lands in the product
+`locSubring`. Derived from `divByS_mul_secondS_mem` by commuting the factors
+(`prodImage_mul_comm` + `mul_comm` on the denominator). -/
+theorem divByS_mul_firstS_mem {P : PairOfDefinition A} {T₁ T₂ : Finset A}
+    {s₁ s₂ : A} {N₂ : ℕ}
+    (hN₂ : ∀ b : P.A₀, b ∈ P.I ^ N₂ → divByS (↑b : A) s₂ ∈ locSubring P T₂ s₂)
+    {b : P.A₀} (hb : b ∈ P.I ^ N₂) :
+    divByS ((↑b : A) * s₁) (s₁ * s₂) ∈ locSubring P
+      (((insert s₁ T₁).product (insert s₂ T₂)).image (fun p => p.1 * p.2)) (s₁ * s₂) := by
+  rw [mul_comm s₁ s₂, prodImage_mul_comm (insert s₁ T₁) (insert s₂ T₂)]
+  exact divByS_mul_secondS_mem (T₁ := T₂) (T₂ := T₁) (s₁ := s₂) (s₂ := s₁) hN₂ hb
+
+/-- **Intersection of two rational data sharing a pair of definition.**
+`R(interSamePair D₁ D₂) = R(D₁) ∩ R(D₂)` (via `rationalOpen_inter`, after
+inserting each `sᵢ` into `Tᵢ` so `rationalOpen_inter` applies). This is the
+rational-basis intersection-stability prerequisite for Wedhorn Prop A.4
+(needed to wire the abstract Čech A.3(3) `isDegreeZeroAcyclic_prod` into the
+structure-sheaf acyclicity). The pair is shared (holds for all leaves of a
+fixed Laurent tree, which keep `D₀.P`). -/
+noncomputable def RationalLocData.interSamePair (D₁ D₂ : RationalLocData A)
+    (_hP : D₂.P = D₁.P) : RationalLocData A where
+  P := D₁.P
+  T := ((insert D₁.s D₁.T).product (insert D₂.s D₂.T)).image (fun p => p.1 * p.2)
+  s := D₁.s * D₂.s
+  hopen := by
+    -- INFRASTRUCTURE (not in Wedhorn): the rational-basis intersection-stability
+    -- `hopen`, generalising `laurentMinusDatum`'s `divByS_factor'` argument to a
+    -- general second datum. `N = N₁ + N₂`; split `b = c·d`; `divByS_factor'`;
+    -- each factor lands via the `divByS`-lift into the product `locSubring`.
+    obtain ⟨N₁, hN₁⟩ := D₁.hopen
+    obtain ⟨N₂, hN₂⟩ := _hP ▸ D₂.hopen
+    refine ⟨N₁ + N₂, fun b hb => ?_⟩
+    rw [pow_add] at hb
+    refine Submodule.mul_induction_on hb ?_ ?_
+    · intro c hc d hd
+      change divByS (↑(c * d) : A) (D₁.s * D₂.s) ∈ _
+      rw [show ((c * d : D₁.P.A₀) : A) = (c : A) * (d : A) from rfl,
+        divByS_factor' (c : A) (d : A) D₁.s D₂.s]
+      exact (locSubring _ _ _).mul_mem
+        (divByS_mul_secondS_mem hN₁ hc) (divByS_mul_firstS_mem hN₂ hd)
+    · intro y₁ y₂ hy₁ hy₂
+      rw [show ((y₁ + y₂ : D₁.P.A₀) : A) = (y₁ : A) + (y₂ : A) from rfl, divByS_add']
+      exact (locSubring _ _ _).add_mem hy₁ hy₂
+
+/-- The denominator of `interSamePair` is the product `D₁.s · D₂.s`. -/
+@[simp] theorem RationalLocData.interSamePair_s (D₁ D₂ : RationalLocData A)
+    (hP : D₂.P = D₁.P) : (D₁.interSamePair D₂ hP).s = D₁.s * D₂.s := rfl
+
+open scoped Pointwise in
+/-- **`interSamePair` realises the intersection**: `R(interSamePair D₁ D₂) =
+R(D₁) ∩ R(D₂)`. This is the rational-basis intersection-stability used by
+Wedhorn Prop A.4. -/
+theorem RationalLocData.interSamePair_rationalOpen (D₁ D₂ : RationalLocData A)
+    (hP : D₂.P = D₁.P) :
+    rationalOpen (D₁.interSamePair D₂ hP).T (D₁.interSamePair D₂ hP).s =
+      rationalOpen D₁.T D₁.s ∩ rationalOpen D₂.T D₂.s := by
+  have hT : (D₁.interSamePair D₂ hP).T =
+      (insert D₁.s D₁.T) * (insert D₂.s D₂.T) := by
+    rw [Finset.mul_def]; rfl
+  rw [hT, RationalLocData.interSamePair_s,
+    ← rationalOpen_inter (insert D₁.s D₁.T) (insert D₂.s D₂.T) D₁.s D₂.s
+      (Finset.mem_insert_self _ _) (Finset.mem_insert_self _ _),
+    rationalOpen_insert_s, rationalOpen_insert_s]
+
+/-- `interSamePair` refines its first factor. -/
+theorem RationalLocData.interSamePair_subset_left (D₁ D₂ : RationalLocData A)
+    (hP : D₂.P = D₁.P) :
+    rationalOpen (D₁.interSamePair D₂ hP).T (D₁.interSamePair D₂ hP).s ⊆
+      rationalOpen D₁.T D₁.s := by
+  rw [RationalLocData.interSamePair_rationalOpen]; exact Set.inter_subset_left
+
+/-- `interSamePair` refines its second factor. -/
+theorem RationalLocData.interSamePair_subset_right (D₁ D₂ : RationalLocData A)
+    (hP : D₂.P = D₁.P) :
+    rationalOpen (D₁.interSamePair D₂ hP).T (D₁.interSamePair D₂ hP).s ⊆
+      rationalOpen D₂.T D₂.s := by
+  rw [RationalLocData.interSamePair_rationalOpen]; exact Set.inter_subset_right
+
+/-- The base-independent **`f`-half** `R(f/1) = {v(f) ≤ 1}` as a rational datum
+with pair `P` (Wedhorn's `𝒰_f` numerator piece, `s = 1`). Base-INDEPENDENT
+(condition is `v(f) ≤ v(1)`), unlike `laurentPlusDatum` (whose `s = D₀.s`). -/
+noncomputable def unitDatum (P : PairOfDefinition A) (f : A) : RationalLocData A where
+  P := P
+  T := {f}
+  s := 1
+  hopen := ⟨1, fun b _ => by
+    rw [divByS_eq_algebraMap]
+    exact algebraMap_mem_locSubring P {f} 1 b.2⟩
+
+/-- The base-independent **`1/f`-half** `R(1/f) = {v(f) ≥ 1}` as a rational datum
+with pair `P` (Wedhorn's `𝒰_f` denominator piece, `T = {1}`, `s = f`).
+Base-INDEPENDENT (condition is `v(1) ≤ v(f)`). -/
+noncomputable def coUnitDatum (P : PairOfDefinition A) (f : A) : RationalLocData A where
+  P := P
+  T := {1}
+  s := f
+  hopen := ⟨1, fun b _ => by
+    have hid : divByS (↑b : A) f =
+        algebraMap A (Localization.Away f) (↑b) * divByS (1 : A) f := by
+      unfold divByS
+      rw [← IsLocalization.mk'_one (M := Submonoid.powers f)
+            (S := Localization.Away f) (↑b : A), ← IsLocalization.mk'_mul]
+      exact IsLocalization.mk'_eq_of_eq (by simp)
+    rw [hid]
+    exact (locSubring P {1} f).mul_mem
+      (algebraMap_mem_locSubring P {1} f b.2)
+      (divByS_mem_locSubring P {1} f (Finset.mem_singleton_self 1))⟩
+
+/-- The base-independent **2-cover `𝒰_f`** of `D₀` (Wedhorn 4230): the two
+halves `R(f/1) ∩ D₀` and `R(1/f) ∩ D₀` (via `interSamePair`, base-independent
+conditions `v(f) ≤ 1` / `v(f) ≥ 1`). Covers by the valuation trichotomy. -/
+noncomputable def unitCover (D₀ : RationalLocData A) (f : A) : RationalCovering A where
+  base := D₀
+  covers := {D₀.interSamePair (unitDatum D₀.P f) rfl,
+             D₀.interSamePair (coUnitDatum D₀.P f) rfl}
+  hsubset := by
+    intro D hD
+    simp only [Finset.mem_insert, Finset.mem_singleton] at hD
+    rcases hD with rfl | rfl
+    · exact RationalLocData.interSamePair_subset_left _ _ _
+    · exact RationalLocData.interSamePair_subset_left _ _ _
+  hcover := by
+    intro v hv
+    rcases v.vle_total f 1 with h | h
+    · refine ⟨D₀.interSamePair (unitDatum D₀.P f) rfl,
+        Finset.mem_insert_self _ _, ?_⟩
+      rw [RationalLocData.interSamePair_rationalOpen]
+      exact ⟨hv, hv.1, fun t ht => by
+        rw [Finset.mem_singleton.mp ht]; exact h, v.not_vle_one_zero⟩
+    · refine ⟨D₀.interSamePair (coUnitDatum D₀.P f) rfl,
+        Finset.mem_insert_of_mem (Finset.mem_singleton_self _), ?_⟩
+      rw [RationalLocData.interSamePair_rationalOpen]
+      refine ⟨hv, hv.1, fun t ht => by
+        rw [Finset.mem_singleton.mp ht]; exact h, fun hf0 => ?_⟩
+      exact v.not_vle_one_zero (v.vle_trans h hf0)
+
+/-- The two base-independent halves `R(f/1) ∩ D₀` and `R(1/f) ∩ D₀` cover `D₀`
+(valuation trichotomy `v(f) ≤ 1 ∨ v(f) ≥ 1`). Base-INDEPENDENT analogue of
+`laurentCover_covers` (whose split references `D₀.s`). -/
+theorem unitCover_covers (D₀ : RationalLocData A) (f : A) {v : Spv A}
+    (hv : v ∈ rationalOpen D₀.T D₀.s) :
+    v ∈ rationalOpen (D₀.interSamePair (unitDatum D₀.P f) rfl).T
+          (D₀.interSamePair (unitDatum D₀.P f) rfl).s ∨
+    v ∈ rationalOpen (D₀.interSamePair (coUnitDatum D₀.P f) rfl).T
+          (D₀.interSamePair (coUnitDatum D₀.P f) rfl).s := by
+  rcases v.vle_total f 1 with h | h
+  · left
+    rw [RationalLocData.interSamePair_rationalOpen]
+    exact ⟨hv, hv.1, fun t ht => by rw [Finset.mem_singleton.mp ht]; exact h,
+      v.not_vle_one_zero⟩
+  · right
+    rw [RationalLocData.interSamePair_rationalOpen]
+    refine ⟨hv, hv.1, fun t ht => by rw [Finset.mem_singleton.mp ht]; exact h,
+      fun hf0 => ?_⟩
+    exact v.not_vle_one_zero (v.vle_trans h hf0)
+
+/-- Membership in the 2-cover `unitCover` (proven in this file so the `Finset`
+`DecidableEq` instance matches `unitCover`'s, avoiding clashes at use sites that
+carry an explicit `[DecidableEq (RationalLocData A)]`). -/
+theorem mem_unitCover_iff (D₀ : RationalLocData A) (f : A) {P : RationalLocData A} :
+    P ∈ (unitCover D₀ f).covers ↔
+      P = D₀.interSamePair (unitDatum D₀.P f) rfl ∨
+      P = D₀.interSamePair (coUnitDatum D₀.P f) rfl := by
+  show P ∈ ({_, _} : Finset (RationalLocData A)) ↔ _
+  rw [Finset.mem_insert, Finset.mem_singleton]
+
+/-- The `f/1`-half is a piece of `unitCover` (instance-correct, see `mem_unitCover_iff`). -/
+theorem unit_mem_unitCover (D₀ : RationalLocData A) (f : A) :
+    D₀.interSamePair (unitDatum D₀.P f) rfl ∈ (unitCover D₀ f).covers :=
+  (mem_unitCover_iff D₀ f).mpr (Or.inl rfl)
+
+/-- The `1/f`-half is a piece of `unitCover` (instance-correct, see `mem_unitCover_iff`). -/
+theorem counit_mem_unitCover (D₀ : RationalLocData A) (f : A) :
+    D₀.interSamePair (coUnitDatum D₀.P f) rfl ∈ (unitCover D₀ f).covers :=
+  (mem_unitCover_iff D₀ f).mpr (Or.inr rfl)
+
 /-- **Ratio plus piece**: rational datum for `rationalOpen D₀ ∩ {v(f) ≤ v(g)}`. -/
 noncomputable def ratioPlusDatum (D₀ : RationalLocData A) (f g g_inv : A)
     (hg : g * g_inv = 1) (hg_inv : g_inv ∈ D₀.P.A₀) :

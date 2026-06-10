@@ -54,7 +54,7 @@ open Topology
 namespace ValuationSpectrum
 
 variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-  [IsLinearTopology A A] [PlusSubring A]
+  [PlusSubring A]
 
 /-! ### The finite union of basic opens "dominated by `π^n`" -/
 
@@ -63,12 +63,12 @@ variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
 def dominatedBy (T : Finset A) (π : A) (n : ℕ) : Set (Spv A) :=
   ⋃ t ∈ T, basicOpen (π ^ n) t
 
-omit [TopologicalSpace A] [IsTopologicalRing A] [IsLinearTopology A A] [PlusSubring A] in
+omit [TopologicalSpace A] [IsTopologicalRing A] [PlusSubring A] in
 lemma isOpen_dominatedBy (T : Finset A) (π : A) (n : ℕ) :
     IsOpen (dominatedBy T π n) :=
   isOpen_biUnion fun t _ ↦ isOpen_basicOpen _ t
 
-omit [IsTopologicalRing A] [IsLinearTopology A A] in
+omit [IsTopologicalRing A] in
 /-- On `Spa A A⁺` with topologically nilpotent `π`, `w π ≤ 1`. -/
 private lemma valuation_pi_le_one_on_spa
     {v : Spv A} (hv : v ∈ Spa A A⁺)
@@ -85,7 +85,7 @@ private lemma valuation_pi_le_one_on_spa
   rw [map_one] at h_not
   exact le_of_not_ge h_not
 
-omit [IsTopologicalRing A] [IsLinearTopology A A] in
+omit [IsTopologicalRing A] in
 /-- Monotonicity in `n`: on `Spa A A⁺`, `dominatedBy T π n ⊆ dominatedBy T π m`
 whenever `n ≤ m`, because `v(π) ≤ 1` forces `v(π^m) ≤ v(π^n)`. -/
 lemma dominatedBy_mono_on_spa
@@ -112,7 +112,7 @@ lemma dominatedBy_mono_on_spa
 
 /-! ### Coverage: every Spa-point lies in some `dominatedBy` -/
 
-omit [IsTopologicalRing A] [IsLinearTopology A A] in
+omit [IsTopologicalRing A] in
 /-- **Coverage at a single point.** Given `v ∈ Spa A A⁺` and `t ∈ A` with
 `v(t) ≠ 0`, under MulArchimedean of the value group some power `π^n` of a
 topologically nilpotent element `π` satisfies `v(π^n) ≤ v(t)`, so `v` lies
@@ -148,7 +148,7 @@ lemma exists_mem_basicOpen_pow_of_tn
 
 /-! ### Compactness-based stabilisation -/
 
-omit [IsTopologicalRing A] [IsLinearTopology A A] in
+omit [IsTopologicalRing A] in
 /-- Given compactness of `Spa A A⁺` and a topologically nilpotent element
 `π`, the cover `{dominatedBy T π n}_{n ∈ ℕ}` admits a single-index dominator:
 `Spa A A⁺ ⊆ dominatedBy T π N` for some `N`. -/
@@ -192,7 +192,6 @@ lemma exists_dominatedBy_cover
 
 /-! ### Assembly: strict-domination unit -/
 
-omit [IsLinearTopology A A] in
 /-- **Wedhorn Corollary 7.32 (Tate version).**
 
 For a Tate ring `A` with the hypotheses ensuring quasi-compactness of
@@ -444,7 +443,7 @@ theorem exists_zero_nbhd_lt_on_qc [IsTateRing A]
   · -- I is open: π^(m+1) is a unit, so multiplication is a homeomorphism.
     have hπ_unit : IsUnit ((π : A) ^ (m + 1)) := π.isUnit.pow (m + 1)
     have h_op : IsOpen (TopologicalRing.topologicallyNilpotentElements A) :=
-      IsTateRing.isOpen_topologicallyNilpotentElements
+      IsTateRing.isOpen_topologicallyNilpotentElements_nonarch
     have h_smul : IsOpenMap (fun y : A => (π : A) ^ (m + 1) • y) :=
       hπ_unit.isOpenMap_smul
     exact h_smul _ h_op

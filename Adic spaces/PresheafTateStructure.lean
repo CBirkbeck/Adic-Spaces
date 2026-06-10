@@ -886,6 +886,68 @@ theorem presheafValue_pairOfDefinition_concrete_A₀
   rfl
 
 omit [PlusSubring A] in
+/-- **Faithful (noeth-`A₀`-free) concrete pair of definition for `presheafValue D₀`.**
+
+Identical *data* to `presheafValue_pairOfDefinition_concrete` (same `A₀`, `I`, and
+Prop-valued fields), but **without** the dead `(P : PairOfDefinition A)
+[IsNoetherianRing P.A₀]` plumbing. The constituent sub-lemmas
+(`presheafValue_ringOfDef D₀`, `presheafValue_ringOfDef_isOpen D₀`,
+`presheafValue_idealOfDef_fg D₀`, `presheafValue_isAdic D₀`) are each parameterised
+by `D₀` ALONE — none consumes `[IsNoetherianRing P.A₀]` — so the noeth-`A₀`
+hypothesis was a pure threading artifact (exactly as observed for
+`presheafValue_isTateRing_faithful`).
+
+By proof irrelevance on the Prop fields and definitional equality on the data fields,
+`presheafValue_concretePair D₀` is **definitionally equal** to
+`presheafValue_pairOfDefinition_concrete P D₀` for any `P`; the two are
+interchangeable wherever a `PairOfDefinition (presheafValue D₀)` of this concrete
+shape is required, but only this version is faithful (works for `ℂ_p`, which has no
+noetherian ring of definition `P.A₀`). -/
+noncomputable def presheafValue_concretePair
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) :
+    PairOfDefinition (presheafValue D₀) :=
+  { A₀ := presheafValue_ringOfDef D₀
+    I := presheafValue_idealOfDef D₀
+    isOpen := presheafValue_ringOfDef_isOpen D₀
+    fg := presheafValue_idealOfDef_fg D₀
+    isAdic := presheafValue_isAdic D₀ }
+
+omit [PlusSubring A] in
+/-- `presheafValue_concretePair` is definitionally equal to
+`presheafValue_pairOfDefinition_concrete P D₀` (same data, Prop fields by proof
+irrelevance). This `rfl` certifies the two are interchangeable. -/
+theorem presheafValue_concretePair_eq
+    [IsTateRing A] [IsNoetherianRing A]
+    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
+    (D₀ : RationalLocData A) :
+    presheafValue_concretePair D₀ = presheafValue_pairOfDefinition_concrete P D₀ :=
+  rfl
+
+omit [PlusSubring A] in
+/-- `A₀` of the faithful concrete pair equals `presheafValue_ringOfDef D₀`
+(definitionally). -/
+theorem presheafValue_concretePair_A₀
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) :
+    (presheafValue_concretePair D₀).A₀ = presheafValue_ringOfDef D₀ :=
+  rfl
+
+omit [PlusSubring A] in
+/-- **Faithful (noeth-`A₀`-free) Tate-ring instance for `presheafValue D₀`**
+(Wedhorn Prop 8.15, Example 6.38). Identical to `presheafValue_isTateRing` but
+**without** the dead `(P : PairOfDefinition A) [IsNoetherianRing P.A₀]` plumbing:
+the pair of definition is supplied by `presheafValue_concretePair D₀` (built from
+`D₀`-only sub-lemmas) and the topologically nilpotent unit by `presheafValue_topNilUnit`
+(`[IsTateRing A]`-only). Faithful — works for `ℂ_p`, which has no noetherian ring of
+definition. By proof irrelevance, defeq to `presheafValue_isTateRing P D₀` for any `P`. -/
+theorem presheafValue_isTateRing_concrete [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) :
+    IsTateRing (presheafValue D₀) :=
+  { exists_pairOfDefinition := ⟨presheafValue_concretePair D₀⟩
+    exists_topologicallyNilpotent_unit := presheafValue_topNilUnit D₀ }
+
+omit [PlusSubring A] in
 /-- **Proposition 8.15 (partial)**: `presheafValue D₀` has a natural
 pair of definition, making it a Huber ring. Combined with
 `presheafValue_topNilUnit`, this gives `IsTateRing`. -/

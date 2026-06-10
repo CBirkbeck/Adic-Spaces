@@ -9,6 +9,7 @@ import Mathlib.RingTheory.RingHom.FaithfullyFlat
 import Mathlib.RingTheory.Spectrum.Prime.RingHom
 import Mathlib.Algebra.Module.Pi
 import «Adic spaces».StructureSheaf
+import «Adic spaces».SpaPresheafValueEquivalence
 import «Adic spaces».FlatnessResults
 import «Adic spaces».IdealClosedness
 import «Adic spaces».IdealLocalization
@@ -138,6 +139,42 @@ theorem faithfullyFlat_pi_of_prime_surjection
     change π (algebraMap R (∀ j, B j) r) = algebraMap R (B i) r
     simp [π, Pi.evalRingHom, Pi.algebraMap_apply]
   rw [hcomp]; exact hq_comap
+
+/-- **Abstract Corollary 8.32 (faithful flatness), maximals criterion**: given a finite family
+of flat `R`-algebras `B i` such that for every **maximal** ideal `m` of `R` some factor `B i`
+has `m · B i ≠ ⊤` (i.e. `Ideal.map (algebraMap R (B i)) m ≠ ⊤`), the product algebra `∏ B i` is
+faithfully flat over `R`.
+
+This is the **Wedhorn-faithful** variant of `faithfullyFlat_pi_of_prime_surjection`. Mathlib
+*defines* `Module.FaithfullyFlat` via the maximals field (`Module.faithfullyFlat_iff`:
+flat + `∀ maximal m, m • ⊤ ≠ ⊤`), so the maximals criterion is the natural hypothesis. It avoids
+the exact prime-surjection `q.comap = p` (which would need `supp = p`, Bourbaki rank-1 domination,
+absent from the repo). The reduction: project `m • (⊤ : ∏ B j)` to a factor `B i` via the
+surjective `LinearMap.proj i`; if it were `⊤` then `m • ⊤_{B i} = ⊤`, i.e.
+`Ideal.map (algebraMap R (B i)) m = ⊤` (`Ideal.smul_top_eq_map`), contradicting `hmax`. -/
+theorem faithfullyFlat_pi_of_maximal_ne_top
+    {R : Type*} [CommRing R]
+    {ι : Type*} [Finite ι] (B : ι → Type*)
+    [∀ i, CommRing (B i)] [∀ i, Algebra R (B i)]
+    [∀ i, Module.Flat R (B i)]
+    (hmax : ∀ (m : Ideal R), m.IsMaximal →
+      ∃ (i : ι), Ideal.map (algebraMap R (B i)) m ≠ ⊤) :
+    Module.FaithfullyFlat R (∀ i, B i) := by
+  haveI : Module.Flat R (∀ i, B i) := Module.Flat.pi_of_algebra B
+  refine Module.FaithfullyFlat.mk (fun {m} hm => ?_)
+  obtain ⟨i, hi⟩ := hmax m hm
+  -- Suppose `m • ⊤ = ⊤` in `∏ B j`; project to `B i`.
+  intro hsmul
+  apply hi
+  -- Push `m • ⊤ = ⊤` through the surjective projection `LinearMap.proj i`.
+  have hmap := Submodule.map_smul'' m (⊤ : Submodule R (∀ j, B j))
+    (LinearMap.proj i : (∀ j, B j) →ₗ[R] B i)
+  rw [hsmul, Submodule.map_top,
+    LinearMap.range_eq_top.mpr (LinearMap.proj_surjective i)] at hmap
+  -- `hmap : ⊤ = m • ⊤` in `B i`; convert to `Ideal.map (algebraMap) m = ⊤`.
+  rw [Ideal.smul_top_eq_map] at hmap
+  have : Submodule.restrictScalars R (Ideal.map (algebraMap R (B i)) m) = ⊤ := hmap.symm
+  rwa [Submodule.restrictScalars_eq_top_iff] at this
 
 /-- **Corollary 8.32 in injective form**: the product restriction is injective
 given flatness + prime surjectivity.
@@ -700,7 +737,7 @@ theorem flat_over_base_tate_normalizedLaurent
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       TopologicalRing.IsPowerBounded
-        (invS (relativeRationalLocData_laurentNormalized P C.base
+        (invS (relativeRationalLocData_laurentNormalized C.base
           (laurentMinusNormalizedDatum C.base f)
           (laurentMinusNormalized_subset C.base f))))
     (hT_pb_per_f : letI : IsTateRing (presheafValue C.base) :=
@@ -709,7 +746,7 @@ theorem flat_over_base_tate_normalizedLaurent
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
-      ∀ t ∈ (relativeRationalLocData_laurentNormalized P C.base
+      ∀ t ∈ (relativeRationalLocData_laurentNormalized C.base
         (laurentMinusNormalizedDatum C.base f)
         (laurentMinusNormalized_subset C.base f)).T,
         TopologicalRing.IsPowerBounded t)
@@ -724,15 +761,15 @@ theorem flat_over_base_tate_normalizedLaurent
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       @Continuous _ _
         (TateAlgebra.quotientOneSubfXIdealTopology
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)).s)
         (inferInstance : TopologicalSpace
-          (presheafValue (relativeRationalLocData_laurentNormalized P C.base
+          (presheafValue (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f))))
         (tateQuotientToPresheafHom
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)) (hb_per_f f hf))) :
     ∀ D : { D // D ∈ C.covers },
@@ -1147,7 +1184,7 @@ theorem productRestriction_faithfullyFlat_tate_normalizedLaurent_of_hSpa_points
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       TopologicalRing.IsPowerBounded
-        (invS (relativeRationalLocData_laurentNormalized P C.base
+        (invS (relativeRationalLocData_laurentNormalized C.base
           (laurentMinusNormalizedDatum C.base f)
           (laurentMinusNormalized_subset C.base f))))
     (hT_pb_per_f : letI : IsTateRing (presheafValue C.base) :=
@@ -1156,7 +1193,7 @@ theorem productRestriction_faithfullyFlat_tate_normalizedLaurent_of_hSpa_points
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
-      ∀ t ∈ (relativeRationalLocData_laurentNormalized P C.base
+      ∀ t ∈ (relativeRationalLocData_laurentNormalized C.base
         (laurentMinusNormalizedDatum C.base f)
         (laurentMinusNormalized_subset C.base f)).T,
         TopologicalRing.IsPowerBounded t)
@@ -1171,15 +1208,15 @@ theorem productRestriction_faithfullyFlat_tate_normalizedLaurent_of_hSpa_points
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       @Continuous _ _
         (TateAlgebra.quotientOneSubfXIdealTopology
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)).s)
         (inferInstance : TopologicalSpace
-          (presheafValue (relativeRationalLocData_laurentNormalized P C.base
+          (presheafValue (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f))))
         (tateQuotientToPresheafHom
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)) (hb_per_f f hf))) :
     letI : ∀ D : { D // D ∈ C.covers }, Algebra (presheafValue C.base)
@@ -1224,7 +1261,7 @@ theorem productRestriction_injective_tate_normalizedLaurent_of_hSpa_points
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       TopologicalRing.IsPowerBounded
-        (invS (relativeRationalLocData_laurentNormalized P C.base
+        (invS (relativeRationalLocData_laurentNormalized C.base
           (laurentMinusNormalizedDatum C.base f)
           (laurentMinusNormalized_subset C.base f))))
     (hT_pb_per_f : letI : IsTateRing (presheafValue C.base) :=
@@ -1233,7 +1270,7 @@ theorem productRestriction_injective_tate_normalizedLaurent_of_hSpa_points
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
-      ∀ t ∈ (relativeRationalLocData_laurentNormalized P C.base
+      ∀ t ∈ (relativeRationalLocData_laurentNormalized C.base
         (laurentMinusNormalizedDatum C.base f)
         (laurentMinusNormalized_subset C.base f)).T,
         TopologicalRing.IsPowerBounded t)
@@ -1248,15 +1285,15 @@ theorem productRestriction_injective_tate_normalizedLaurent_of_hSpa_points
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       @Continuous _ _
         (TateAlgebra.quotientOneSubfXIdealTopology
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)).s)
         (inferInstance : TopologicalSpace
-          (presheafValue (relativeRationalLocData_laurentNormalized P C.base
+          (presheafValue (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f))))
         (tateQuotientToPresheafHom
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)) (hb_per_f f hf)))
     (x : presheafValue C.base)
@@ -1503,7 +1540,6 @@ to the pair `presheafValue_pairOfDefinition_concrete P C.base`, which is the
 foundation of the non-open prime case in `hSpa_points`. -/
 theorem presheafValue_isAdicComplete
     [IsTateRing A] [IsNoetherianRing A] [T2Space A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (D₀ : RationalLocData A) :
     IsAdicComplete (presheafValue_idealOfDef D₀) (presheafValue_ringOfDef D₀) := by
   have hadic : IsAdic (presheafValue_idealOfDef D₀) := presheafValue_isAdic D₀
@@ -1568,7 +1604,7 @@ theorem isUnit_canonicalMap_s_via_nullstellensatz
     (hcont : Continuous D'.canonicalMap) :
     IsUnit (D'.canonicalMap D.s) := by
   haveI hcomplete : IsAdicComplete (presheafValue_pairOfDefinition_concrete P D').I
-      (presheafValue_pairOfDefinition_concrete P D').A₀ := presheafValue_isAdicComplete P D'
+      (presheafValue_pairOfDefinition_concrete P D').A₀ := presheafValue_isAdicComplete D'
   have hAplus_B : ((presheafValue D')⁺ : Set (presheafValue D')) ⊆
       ((presheafValue_pairOfDefinition_concrete P D').A₀ : Set (presheafValue D')) := by
     intro y hy
@@ -1597,17 +1633,22 @@ specific completion setting. The `IsAdicComplete` instance is supplied via
 `presheafValue_isAdicComplete`. -/
 theorem exists_spa_point_supp_ge_in_presheafValue
     [IsTateRing A] [IsNoetherianRing A] [T2Space A] [PlusSubring A]
-    (P : PairOfDefinition A) [IsNoetherianRing P.A₀]
     (C : RationalCovering A)
-    [IsNoetherianRing (locSubring C.base.P C.base.T C.base.s)]
     (hAplus_le_A₀ : (A⁺ : Set A) ⊆ C.base.P.A₀)
     {𝔭 : Ideal (presheafValue C.base)} [𝔭.IsPrime]
     (h𝔭_notOpen : ¬IsOpen (𝔭 : Set (presheafValue C.base))) :
     ∃ w ∈ Spa (presheafValue C.base) (presheafValue C.base)⁺,
       𝔭 ≤ w.supp := by
-  -- Set up: get the concrete pair of definition + IsAdicComplete instance.
-  let PB := presheafValue_pairOfDefinition_concrete P C.base
-  haveI : IsAdicComplete PB.I PB.A₀ := presheafValue_isAdicComplete P C.base
+  -- Set up: the INTRINSIC pair of definition of `presheafValue C.base` (ring of def =
+  -- `presheafValue_ringOfDef`, ideal of def = `presheafValue_idealOfDef`), the same faithful pair
+  -- `presheafValue_isTateRing_faithful` uses. NO `(P : PairOfDefinition A)`, NO noeth-A₀.
+  let PB : PairOfDefinition (presheafValue C.base) :=
+    { A₀ := presheafValue_ringOfDef C.base
+      I := presheafValue_idealOfDef C.base
+      isOpen := presheafValue_ringOfDef_isOpen C.base
+      fg := presheafValue_idealOfDef_fg C.base
+      isAdic := presheafValue_isAdic C.base }
+  haveI : IsAdicComplete PB.I PB.A₀ := presheafValue_isAdicComplete C.base
   -- The PlusSubring is `presheafValuePlusSubring`, now `B⁺ = completedPlusSubring`
   -- (A⁺-based, Wedhorn 8.2). The hypothesis `(B⁺ : Set _) ⊆ PB.A₀` follows from
   -- `completedPlusSubring ⊆ completedLocSubring = ringOfDef` (since `A⁺ ⊆ A₀`).
@@ -1622,6 +1663,93 @@ theorem exists_spa_point_supp_ge_in_presheafValue
     PB.exists_mem_spa_supp_ge_of_nonOpen_prime (𝔭 := 𝔭) h𝔭_notOpen hBplus_le_B₀
   -- The output Spa is w.r.t. `(presheafValue C.base)⁺ = completedPlusSubring`.
   exact ⟨w, hw_spa, hw_supp⟩
+
+/-! ### Spa-point extension along a rational-subset restriction (Wedhorn Prop 8.2)
+
+A Spa point `w` of `O_X(C.base)` whose `A`-shadow `v = comap C.base.canonicalMap w` lies in a
+cover piece `rationalOpen D.T D.s` extends to a Spa point `w'` of `O_X(D)` that *restricts back
+to `w`* along `restrictionMapHom C.base D`. This is the geometric content behind Cor 8.32's
+maximals route: the cover places every point of `X` inside some piece, and the rational-subset ↔
+Spa correspondence (Wedhorn 7.46) lifts the point to the piece's structure ring.
+
+The two ingredients:
+* `exists_spa_presheafValue_of_rationalOpen` — the *genuine ⊇* extension to `O_X(D)` (axiom-clean,
+  Wedhorn 7.46), giving `w'` with `comap D.canonicalMap w' = v`.
+* `comap_canonicalMap_injOn_spa` — `comap C.base.canonicalMap` is injective on `Spa(O_X(C.base))`
+  (Wedhorn 8.2:3740, density + continuity), pinning `comap (restrictionMapHom) w' = w` from their
+  agreement on the dense `A`-image. This bottoms at Prop 7.48 = [Hu2] 3.9 (deferred-to-Huber, the
+  one isolated honest `sorry` in `comap_coeRingHom_injOn_spa`).
+The integrality of `restrictionMapHom` on the `A⁺`-based plus subrings is proved here directly from
+`v ∈ rationalOpen C.base` (no Nullstellensatz): both generator families (`A⁺` and the `t/s`
+fractions) are bounded by 1 at `w'`. -/
+
+omit [IsHuberRing A] [HasLocLiftPowerBounded A] in
+/-- The `A`-shadow `comap D.canonicalMap w` of a Spa point `w` of `O_X(D)` lies in
+`rationalOpen D.T D.s`. (The `supp`-free part of `exists_rationalOpen_of_completion_spa`.)
+Uses `comap_mem_spa` + `D.comap_canonicalMap_vle` (the `t/s` bounds) + `D.s` unit-ness. -/
+theorem comap_canonicalMap_mem_rationalOpen (D : RationalLocData A) [PlusSubring A]
+    (hcont : Continuous D.canonicalMap)
+    {w : Spv (presheafValue D)} (hw : w ∈ Spa (presheafValue D) (presheafValue D)⁺) :
+    comap D.canonicalMap w ∈ rationalOpen D.T D.s := by
+  refine ⟨comap_mem_spa hcont D.canonicalMap_integral hw, ?_, ?_⟩
+  · intro t ht
+    rw [comap_vle]
+    exact D.comap_canonicalMap_vle hw.2 ht
+  · exact @RationalLocData.comap_canonicalMap_not_vle_s_zero A _ _ _ D w.toValuativeRel
+
+/-- **Spa-point extension along a rational-subset restriction** (Wedhorn Prop 7.46 + Prop 7.48 +
+Prop 8.2). A Spa point `w` of `O_X(C.base)` whose `A`-shadow `v = comap C.base.canonicalMap w`
+lies in a cover piece `rationalOpen D.T D.s` extends to a Spa point `w'` of `O_X(D)` that
+*restricts back to `w`*: `comap (restrictionMapHom C.base D) w' = w`.
+
+This is the SINGLE isolated deep geometric residual of Cor 8.32's maximals route. It combines
+three genuine Wedhorn facts that are not (yet) available sorry-free in the repo:
+* **Prop 7.46** (`exists_spa_presheafValue_of_rationalOpen`, axiom-clean): `v ∈ rationalOpen D`
+  lifts to `w'' : Spv (O_X(D))` with `comap D.canonicalMap w'' = v`. (This part IS sorry-free.)
+* **Prop 8.2 integrality**: `comap (restrictionMapHom C.base D) w''` is *bounded by 1* on the
+  plus subring `(O_X(C.base))⁺` — i.e. it is a Spa point of `O_X(C.base)`. The `A⁺` generators
+  are immediate; the `t/s₀` fractions are bounded at `w''` because `v ∈ rationalOpen C.base ⊇
+  rationalOpen D` (no Nullstellensatz on the *bound*), but lifting that pointwise bound to all of
+  the topological-closure plus subring needs the closedness of the `w''`-integer subring (the
+  continuous-valuation integer-is-closed fact, whose project lemma
+  `isContinuous_iff_setOf_ge_isOpen` is itself a (false-reverse-direction) `sorry`).
+* **Prop 7.48 = [Hu2] Prop 3.9** (`comap_canonicalMap_injOn_spa`, sorry-backed on the deferred
+  `comap_coeRingHom_injOn_spa`): `comap C.base.canonicalMap` is injective on `Spa(O_X(C.base))`,
+  pinning `comap (restrictionMapHom C.base D) w'' = w` from their agreement on the dense `A`-image
+  (`restrictionMapHom C.base D ∘ C.base.canonicalMap = D.canonicalMap`).
+
+Per CLAUDE.md, this is isolated as ONE named `sorry` rather than routed through the
+mathematically-false `restrictionMap_isLocalization`/`restrictionMapHom_surj` (the algebraic-
+localization predicate, refuted by convergent infinite negative-power series) or any noeth-`A₀`
+lemma. Everything downstream (`cor_8_32_maximal_liftedIdeal_ne_top`) is sorry-free *given* this. -/
+theorem cor_8_32_spaExtendsAlongRestriction
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [CompatiblePlusSubring A]
+    (C : RationalCovering A) (D : RationalLocData A) (hD : D ∈ C.covers)
+    {w : Spv (presheafValue C.base)}
+    (_hw : w ∈ Spa (presheafValue C.base) (presheafValue C.base)⁺)
+    (_hv_rat : comap C.base.canonicalMap w ∈ rationalOpen D.T D.s) :
+    ∃ w' : Spv (presheafValue D),
+      comap (restrictionMapHom C.base D (C.hsubset D hD)) w' = w := by
+  -- Lift the `A`-shadow `v = comap C.base.canonicalMap w` to a Spa point `w''` of `O_X(D)`
+  -- (the genuine ⊇ extension, axiom-clean).
+  obtain ⟨w'', hw''_spa, hw''_v⟩ := exists_spa_presheafValue_of_rationalOpen D _hv_rat
+  refine ⟨w'', ?_⟩
+  -- `restrictionMapHom ∘ C.base.canonicalMap = D.canonicalMap` (restriction commutes with ρ).
+  have hcomp : (restrictionMapHom C.base D (C.hsubset D hD)).comp C.base.canonicalMap
+      = D.canonicalMap := by
+    ext a; exact restrictionMapHom_canonicalMap C.base D (C.hsubset D hD) a
+  -- The restricted point `comap (restrictionMapHom) w''` and `w` both pull back along
+  -- `C.base.canonicalMap` to `v`; injectivity on continuous points (Prop 7.48, now proven)
+  -- pins them equal. Only continuity is needed, so no plus-preservation of `restrictionMapHom`.
+  refine comap_canonicalMap_inj_of_isContinuous C.base
+    (comap_isContinuous (restrictionMapHom_continuous C.base D (C.hsubset D hD)) hw''_spa.1)
+    _hw.1 ?_
+  calc comap C.base.canonicalMap
+          (comap (restrictionMapHom C.base D (C.hsubset D hD)) w'')
+      = comap ((restrictionMapHom C.base D (C.hsubset D hD)).comp C.base.canonicalMap) w'' := rfl
+    _ = comap D.canonicalMap w'' := by rw [hcomp]
+    _ = comap C.base.canonicalMap w := hw''_v
 
 omit [IsHuberRing A] [HasLocLiftPowerBounded A] in
 /-- **Discharge of `hSpa_points` for non-open primes, conditional on
@@ -1671,7 +1799,7 @@ theorem hSpa_points_nonOpen_via_lifted_ideal_proper
   -- Step 3: Apply Lemma 7.45 (via the completion route) to get a Spa point of
   -- presheafValue C.base with 𝔭 in its support.
   obtain ⟨w, hw_spa, hw_supp⟩ :=
-    exists_spa_point_supp_ge_in_presheafValue P C hAplus_le_A₀ h𝔭_notOpen
+    exists_spa_point_supp_ge_in_presheafValue C hAplus_le_A₀ h𝔭_notOpen
   -- Step 4: liftedIdeal p ≤ 𝔭 ≤ w.supp.
   have hw_supp_lifted :
       (Ideal.map C.base.canonicalMap p : Ideal (presheafValue C.base)) ≤ w.supp :=
@@ -2416,7 +2544,7 @@ theorem locIdeal_le_jacobson_bot_of_ringOfDef_faithfullyFlat
   haveI : Module.FaithfullyFlat (locSubring D.P D.T D.s)
       (presheafValue_ringOfDef D) := hff
   haveI : IsAdicComplete (presheafValue_idealOfDef D)
-      (presheafValue_ringOfDef D) := presheafValue_isAdicComplete P D
+      (presheafValue_ringOfDef D) := presheafValue_isAdicComplete D
   have h_jac : presheafValue_idealOfDef D ≤
       Ideal.jacobson (⊥ : Ideal (presheafValue_ringOfDef D)) :=
     IsAdicComplete.le_jacobson_bot _

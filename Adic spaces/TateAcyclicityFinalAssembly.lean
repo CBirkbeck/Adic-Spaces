@@ -2410,7 +2410,7 @@ theorem RationalCovering.separation_via_normalizedLaurent
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       TopologicalRing.IsPowerBounded
-        (invS (relativeRationalLocData_laurentNormalized P C.base
+        (invS (relativeRationalLocData_laurentNormalized C.base
           (laurentMinusNormalizedDatum C.base f)
           (laurentMinusNormalized_subset C.base f))))
     (hT_pb_per_f : letI : IsTateRing (presheafValue C.base) :=
@@ -2419,7 +2419,7 @@ theorem RationalCovering.separation_via_normalizedLaurent
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
-      ∀ t ∈ (relativeRationalLocData_laurentNormalized P C.base
+      ∀ t ∈ (relativeRationalLocData_laurentNormalized C.base
         (laurentMinusNormalizedDatum C.base f)
         (laurentMinusNormalized_subset C.base f)).T,
         TopologicalRing.IsPowerBounded t)
@@ -2434,15 +2434,15 @@ theorem RationalCovering.separation_via_normalizedLaurent
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       @Continuous _ _
         (TateAlgebra.quotientOneSubfXIdealTopology
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)).s)
         (inferInstance : TopologicalSpace
-          (presheafValue (relativeRationalLocData_laurentNormalized P C.base
+          (presheafValue (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f))))
         (tateQuotientToPresheafHom
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)) (hb_per_f f hf))) :
     ∀ a b : presheafValue C.base,
@@ -2584,7 +2584,7 @@ theorem RationalCovering.tateAcyclicityComplete_via_normalizedLaurent
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       TopologicalRing.IsPowerBounded
-        (invS (relativeRationalLocData_laurentNormalized P C.base
+        (invS (relativeRationalLocData_laurentNormalized C.base
           (laurentMinusNormalizedDatum C.base f)
           (laurentMinusNormalized_subset C.base f))))
     (hT_pb_per_f : letI : IsTateRing (presheafValue C.base) :=
@@ -2593,7 +2593,7 @@ theorem RationalCovering.tateAcyclicityComplete_via_normalizedLaurent
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
-      ∀ t ∈ (relativeRationalLocData_laurentNormalized P C.base
+      ∀ t ∈ (relativeRationalLocData_laurentNormalized C.base
         (laurentMinusNormalizedDatum C.base f)
         (laurentMinusNormalized_subset C.base f)).T,
         TopologicalRing.IsPowerBounded t)
@@ -2608,15 +2608,15 @@ theorem RationalCovering.tateAcyclicityComplete_via_normalizedLaurent
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       @Continuous _ _
         (TateAlgebra.quotientOneSubfXIdealTopology
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)).s)
         (inferInstance : TopologicalSpace
-          (presheafValue (relativeRationalLocData_laurentNormalized P C.base
+          (presheafValue (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f))))
         (tateQuotientToPresheafHom
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)) (hb_per_f f hf)))
     (hZavyalov_per_E : rationalOpen C.base.T C.base.s ≠ ∅ →
@@ -2726,7 +2726,7 @@ theorem rationalCovering_hasSeparation_via_normalizedLaurent
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       TopologicalRing.IsPowerBounded
-        (invS (relativeRationalLocData_laurentNormalized P C.base
+        (invS (relativeRationalLocData_laurentNormalized C.base
           (laurentMinusNormalizedDatum C.base f)
           (laurentMinusNormalized_subset C.base f))))
     (hT_pb_per_f : letI : IsTateRing (presheafValue C.base) :=
@@ -2734,7 +2734,7 @@ theorem rationalCovering_hasSeparation_via_normalizedLaurent
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
-      ∀ t ∈ (relativeRationalLocData_laurentNormalized P C.base
+      ∀ t ∈ (relativeRationalLocData_laurentNormalized C.base
         (laurentMinusNormalizedDatum C.base f)
         (laurentMinusNormalized_subset C.base f)).T,
         TopologicalRing.IsPowerBounded t)
@@ -2748,15 +2748,15 @@ theorem rationalCovering_hasSeparation_via_normalizedLaurent
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       @Continuous _ _
         (TateAlgebra.quotientOneSubfXIdealTopology
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)).s)
         (inferInstance : TopologicalSpace
-          (presheafValue (relativeRationalLocData_laurentNormalized P C.base
+          (presheafValue (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f))))
         (tateQuotientToPresheafHom
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)) (hb_per_f f hf))) :
     ∀ x y : presheafValue C.base,
@@ -2808,7 +2808,7 @@ theorem rationalCovering_hasGluing_via_normalizedLaurent
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       TopologicalRing.IsPowerBounded
-        (invS (relativeRationalLocData_laurentNormalized P C.base
+        (invS (relativeRationalLocData_laurentNormalized C.base
           (laurentMinusNormalizedDatum C.base f)
           (laurentMinusNormalized_subset C.base f))))
     (hT_pb_per_f : letI : IsTateRing (presheafValue C.base) :=
@@ -2816,7 +2816,7 @@ theorem rationalCovering_hasGluing_via_normalizedLaurent
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
-      ∀ t ∈ (relativeRationalLocData_laurentNormalized P C.base
+      ∀ t ∈ (relativeRationalLocData_laurentNormalized C.base
         (laurentMinusNormalizedDatum C.base f)
         (laurentMinusNormalized_subset C.base f)).T,
         TopologicalRing.IsPowerBounded t)
@@ -2830,15 +2830,15 @@ theorem rationalCovering_hasGluing_via_normalizedLaurent
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       @Continuous _ _
         (TateAlgebra.quotientOneSubfXIdealTopology
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)).s)
         (inferInstance : TopologicalSpace
-          (presheafValue (relativeRationalLocData_laurentNormalized P C.base
+          (presheafValue (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f))))
         (tateQuotientToPresheafHom
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)) (hb_per_f f hf)))
     (hZavyalov_per_E : rationalOpen C.base.T C.base.s ≠ ∅ →
@@ -2924,7 +2924,7 @@ theorem tateAcyclicity_via_normalizedLaurent
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       TopologicalRing.IsPowerBounded
-        (invS (relativeRationalLocData_laurentNormalized P C.base
+        (invS (relativeRationalLocData_laurentNormalized C.base
           (laurentMinusNormalizedDatum C.base f)
           (laurentMinusNormalized_subset C.base f))))
     (hT_pb_per_f : letI : IsTateRing (presheafValue C.base) :=
@@ -2932,7 +2932,7 @@ theorem tateAcyclicity_via_normalizedLaurent
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
-      ∀ t ∈ (relativeRationalLocData_laurentNormalized P C.base
+      ∀ t ∈ (relativeRationalLocData_laurentNormalized C.base
         (laurentMinusNormalizedDatum C.base f)
         (laurentMinusNormalized_subset C.base f)).T,
         TopologicalRing.IsPowerBounded t)
@@ -2946,15 +2946,15 @@ theorem tateAcyclicity_via_normalizedLaurent
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       @Continuous _ _
         (TateAlgebra.quotientOneSubfXIdealTopology
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)).s)
         (inferInstance : TopologicalSpace
-          (presheafValue (relativeRationalLocData_laurentNormalized P C.base
+          (presheafValue (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f))))
         (tateQuotientToPresheafHom
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)) (hb_per_f f hf)))
     (hZavyalov_per_E : rationalOpen C.base.T C.base.s ≠ ∅ →
@@ -3056,7 +3056,7 @@ theorem tateAcyclicity_via_normalizedLaurent_autoComplete
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       TopologicalRing.IsPowerBounded
-        (invS (relativeRationalLocData_laurentNormalized P C.base
+        (invS (relativeRationalLocData_laurentNormalized C.base
           (laurentMinusNormalizedDatum C.base f)
           (laurentMinusNormalized_subset C.base f))))
     (hT_pb_per_f : letI : IsTateRing (presheafValue C.base) :=
@@ -3064,7 +3064,7 @@ theorem tateAcyclicity_via_normalizedLaurent_autoComplete
       ∀ (f : A) (hf : f ∈ C.base.P.A₀),
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
-      ∀ t ∈ (relativeRationalLocData_laurentNormalized P C.base
+      ∀ t ∈ (relativeRationalLocData_laurentNormalized C.base
         (laurentMinusNormalizedDatum C.base f)
         (laurentMinusNormalized_subset C.base f)).T,
         TopologicalRing.IsPowerBounded t)
@@ -3078,15 +3078,15 @@ theorem tateAcyclicity_via_normalizedLaurent_autoComplete
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       @Continuous _ _
         (TateAlgebra.quotientOneSubfXIdealTopology
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)).s)
         (inferInstance : TopologicalSpace
-          (presheafValue (relativeRationalLocData_laurentNormalized P C.base
+          (presheafValue (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f))))
         (tateQuotientToPresheafHom
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)) (hb_per_f f hf)))
     (hZavyalov_per_E : rationalOpen C.base.T C.base.s ≠ ∅ →
@@ -3171,7 +3171,7 @@ theorem tateAcyclicity_via_normalizedLaurent_autoTPB
       letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       TopologicalRing.IsPowerBounded
-        (invS (relativeRationalLocData_laurentNormalized P C.base
+        (invS (relativeRationalLocData_laurentNormalized C.base
           (laurentMinusNormalizedDatum C.base f)
           (laurentMinusNormalized_subset C.base f))))
     (hcont_eval_per_f : letI : IsTateRing (presheafValue C.base) :=
@@ -3184,15 +3184,15 @@ theorem tateAcyclicity_via_normalizedLaurent_autoTPB
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       @Continuous _ _
         (TateAlgebra.quotientOneSubfXIdealTopology
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)).s)
         (inferInstance : TopologicalSpace
-          (presheafValue (relativeRationalLocData_laurentNormalized P C.base
+          (presheafValue (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f))))
         (tateQuotientToPresheafHom
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)) (hb_per_f f hf)))
     (hZavyalov_per_E : rationalOpen C.base.T C.base.s ≠ ∅ →
@@ -3280,7 +3280,7 @@ theorem hb_per_f_auto_normalizedLaurent
     letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
       laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
     TopologicalRing.IsPowerBounded
-      (invS (relativeRationalLocData_laurentNormalized P C.base
+      (invS (relativeRationalLocData_laurentNormalized C.base
         (laurentMinusNormalizedDatum C.base f)
         (laurentMinusNormalized_subset C.base f))) := by
   letI : IsTateRing (presheafValue C.base) := presheafValue_isTateRing P C.base
@@ -3290,7 +3290,7 @@ theorem hb_per_f_auto_normalizedLaurent
   letI : LaurentNormalized (laurentMinusNormalizedDatum C.base f) :=
     laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
   apply invS_isPowerBounded_of_one_mem_T_minimal
-  change 1 ∈ (relativeRationalLocData_laurentNormalized P C.base
+  change 1 ∈ (relativeRationalLocData_laurentNormalized C.base
     (laurentMinusNormalizedDatum C.base f)
     (laurentMinusNormalized_subset C.base f)).T
   rw [relativeRationalLocData_laurentNormalized_T]
@@ -3335,15 +3335,15 @@ theorem tateAcyclicity_via_normalizedLaurent_autoB
         laurentMinusNormalizedDatum_isLaurentNormalized C.base f hf
       @Continuous _ _
         (TateAlgebra.quotientOneSubfXIdealTopology
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f)).s)
         (inferInstance : TopologicalSpace
-          (presheafValue (relativeRationalLocData_laurentNormalized P C.base
+          (presheafValue (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f))))
         (tateQuotientToPresheafHom
-          (relativeRationalLocData_laurentNormalized P C.base
+          (relativeRationalLocData_laurentNormalized C.base
             (laurentMinusNormalizedDatum C.base f)
             (laurentMinusNormalized_subset C.base f))
           (hb_per_f_auto_normalizedLaurent P C f hf)))
