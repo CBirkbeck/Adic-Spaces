@@ -12414,6 +12414,60 @@ theorem genRestrictedCover_isOXAcyclic_of_units_or_empty
           (CompatiblePlusSubring.aplus_le_A₀ _) (h_all_empty t ht)
       exact Subsingleton.elim _ _
   case pos =>
+    -- the B-instance suite (as in `imageGenCover_isOXAcyclic_of_units`)
+    haveI hTateB : IsTateRing (presheafValue D₀) :=
+      presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    haveI : NonarchimedeanRing (presheafValue D₀) := inferInstance
+    haveI : T2Space (presheafValue D₀) := inferInstance
+    letI : DecidableEq (presheafValue D₀) := Classical.decEq _
+    letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+    haveI : @CompleteSpace (presheafValue D₀)
+        (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)) :=
+      presheafValue_completeSpace_rightUniformSpace D₀
+    have hplusB : ((presheafValue D₀)⁺ : Set (presheafValue D₀)) ⊆
+        ↑(presheafValue_concretePair D₀).A₀ :=
+      completedPlusSubring_le_ringOfDef D₀
+        (CompatiblePlusSubring.aplus_le_A₀ D₀)
+    have hTn : T.Nonempty := ⟨hTne.choose, _hsub hTne.choose_spec⟩
+    -- σ₋-emptiness transported to B: a Spa-B-point dominated by a σ₋-index
+    -- would comap into the empty A-trace.
+    have hB_empty : ∀ t ∈ T, t ∉ Tpos →
+        ∀ w ∈ Spa (presheafValue D₀) (presheafValue D₀)⁺,
+        (∀ i ∈ T, w.vle (D₀.canonicalMap i) (D₀.canonicalMap t)) → False := by
+      intro t ht htn w hw hcond
+      have hv := comap_canonicalMap_mem_rationalOpen D₀
+        (canonicalMap_continuous D₀) hw
+      have hnz : ¬ (comap D₀.canonicalMap w).vle t 0 := by
+        intro h0
+        have hsupp : ∀ i ∈ T, i ∈ (comap D₀.canonicalMap w).supp := by
+          intro i hi
+          rw [ValuationSpectrum.mem_supp_iff]
+          refine (comap D₀.canonicalMap w).vle_trans ?_ h0
+          rw [ValuationSpectrum.comap_vle]
+          exact hcond i hi
+        have hle : Ideal.span (T : Set A) ≤ (comap D₀.canonicalMap w).supp :=
+          Ideal.span_le.mpr (fun i hi => hsupp i hi)
+        rw [hspan] at hle
+        exact (comap D₀.canonicalMap w).not_vle_one_zero
+          (((comap D₀.canonicalMap w).mem_supp_iff 1).mp (hle Submodule.mem_top))
+      have htrace : comap D₀.canonicalMap w ∈
+          rationalOpen (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).T
+            (D₀.interSamePair (genPieceDatum D₀.P T t hspan) rfl).s := by
+        rw [RationalLocData.interSamePair_rationalOpen]
+        refine ⟨hv, hv.1, ?_, ?_⟩
+        · intro i hi
+          rw [genPieceDatum_T] at hi
+          rw [genPieceDatum_s, ValuationSpectrum.comap_vle]
+          exact hcond i hi
+        · rw [genPieceDatum_s]
+          exact hnz
+      rw [_h_empty t ht htn] at htrace
+      exact htrace
     sorry
 
 /-- **Part (iv) pair-instances of the Prop A.3(1) standing hypothesis**
