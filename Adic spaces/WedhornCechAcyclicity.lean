@@ -12956,8 +12956,9 @@ theorem rationalCovering_from_idealGenSet [DecidableEq A]
     (h_piece_sub : ∀ f ∈ S,
       rationalOpen (piece f).T (piece f).s ⊆
         rationalOpen C.base.T C.base.s)
-    (h_cover : ∀ v ∈ rationalOpen C.base.T C.base.s,
-      ∃ f ∈ S, v ∈ rationalOpen (piece f).T (piece f).s)
+    (h_cover_rel : ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+      ∃ f ∈ S, v ∈ rationalOpen (piece f).T (piece f).s ∧
+        rationalOpen (piece f).T (piece f).s ⊆ rationalOpen D.T D.s)
     (h_contain : ∀ f ∈ S, ∃ D ∈ C.covers,
       rationalOpen (piece f).T (piece f).s ⊆ rationalOpen D.T D.s) :
     ∃ C' : RationalCovering A,
@@ -12965,7 +12966,10 @@ theorem rationalCovering_from_idealGenSet [DecidableEq A]
       C'.base = C.base ∧
       (∀ U ∈ C'.covers, U.P = C'.base.P) ∧
       (∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
-        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) := by
+        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) ∧
+      (∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+        ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
+          rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) := by
   -- Pure packaging: build C'.covers = { piece f : f ∈ S }, base = C.base.
   -- IsGeneratedBy S via the bijection f ↦ piece f (each piece has T = S,
   -- s = f). hsubset from h_piece_sub, hcover from h_cover, refines from
@@ -12976,14 +12980,15 @@ theorem rationalCovering_from_idealGenSet [DecidableEq A]
   refine ⟨{ base := C.base
             covers := S.image piece
             hsubset := ?_
-            hcover := ?_ }, ⟨_hS_span, ?_⟩, rfl, ?_, ?_⟩
+            hcover := ?_ }, ⟨_hS_span, ?_⟩, rfl, ?_, ?_, ?_⟩
   · -- hsubset: each piece ⊆ base
     intro D hD
     obtain ⟨f, hf, rfl⟩ := Finset.mem_image.mp hD
     exact h_piece_sub f hf
-  · -- hcover: the pieces cover the base
+  · -- hcover: the pieces cover the base (route through the containing C-piece)
     intro v hv
-    obtain ⟨f, hf, hv_mem⟩ := h_cover v hv
+    obtain ⟨D, hD, hvD⟩ := C.hcover v hv
+    obtain ⟨f, hf, hv_mem, -⟩ := h_cover_rel D hD v hvD
     exact ⟨piece f, Finset.mem_image_of_mem piece hf, hv_mem⟩
   · -- IsGeneratedBy bijection φ : ↥S → ↥(S.image piece)
     refine ⟨fun t => ⟨piece t.1, Finset.mem_image_of_mem piece t.2⟩, ⟨?_, ?_⟩, ?_⟩
@@ -13008,6 +13013,10 @@ theorem rationalCovering_from_idealGenSet [DecidableEq A]
     intro D' hD'
     obtain ⟨f, hf, rfl⟩ := Finset.mem_image.mp hD'
     exact h_contain f hf
+  · -- covers-each: the D-relative clause verbatim
+    intro D hD v hv
+    obtain ⟨f, hf, hv_mem, hsub⟩ := h_cover_rel D hD v hv
+    exact ⟨piece f, Finset.mem_image_of_mem piece hf, hv_mem, hsub⟩
 
 /-- **Step 1a — per-point normalisation (Huber [Hu3] 2.6).** For `v ∈ R(D.T/D.s)`
 there is a normalised rational datum `R(T'/s') ∋ v` with `R(T'/s') ⊆ R(D.T/D.s)`,
@@ -13248,8 +13257,11 @@ theorem exists_form_a_refinement [DecidableEq A]
       (∀ f ∈ S, (piece f).P = C.base.P) ∧
       (∀ f ∈ S, rationalOpen (piece f).T (piece f).s ⊆
         rationalOpen C.base.T C.base.s) ∧
-      (∀ v ∈ rationalOpen C.base.T C.base.s,
-        ∃ f ∈ S, v ∈ rationalOpen (piece f).T (piece f).s) ∧
+      -- D-RELATIVE cover (faithful to Huber's per-point normalisation: the
+      -- normalised datum at v is constructed INSIDE the piece containing v):
+      (∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+        ∃ f ∈ S, v ∈ rationalOpen (piece f).T (piece f).s ∧
+          rationalOpen (piece f).T (piece f).s ⊆ rationalOpen D.T D.s) ∧
       (∀ f ∈ S, ∃ D ∈ C.covers,
         rationalOpen (piece f).T (piece f).s ⊆ rationalOpen D.T D.s) := by
   sorry
@@ -13265,42 +13277,24 @@ theorem exists_ideal_gen_refinement [DecidableEq A]
       C'.base = C.base ∧
       (∀ U ∈ C'.covers, U.P = C'.base.P) ∧
       (∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
-        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) := by
+        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) ∧
+      (∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
+        ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
+          rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) := by
   -- Step 1: form-(a) Nullstellensatz refinement (Wedhorn 7.54).
   obtain ⟨S, piece, hS_span, h_piece_T, h_piece_s, h_piece_P, h_piece_sub,
-    h_cover, h_contain⟩ := exists_form_a_refinement C
+    h_cover_rel, h_contain⟩ := exists_form_a_refinement C
   -- Step 2: package the form-(a) pieces into a generated `RationalCovering`.
-  obtain ⟨C', h_C'_gen, h_C'_base, h_C'_P, h_C'_refines⟩ :=
+  obtain ⟨C', h_C'_gen, h_C'_base, h_C'_P, h_C'_refines, h_C'_covers_each⟩ :=
     rationalCovering_from_idealGenSet C S hS_span piece h_piece_T h_piece_s
-      h_piece_P h_piece_sub h_cover h_contain
-  exact ⟨S, C', h_C'_gen, h_C'_base, h_C'_P, h_C'_refines⟩
+      h_piece_P h_piece_sub h_cover_rel h_contain
+  exact ⟨S, C', h_C'_gen, h_C'_base, h_C'_P, h_C'_refines, h_C'_covers_each⟩
 
-/-- **Companion lemma**: cover-each direction for an ideal-generating refinement.
+-- DELETED (2026-06-11): `ideal_gen_refinement_covers_each_piece` — its
+-- claimed route was unsound (the refines-direction gives SOME containing
+-- C-piece, not the given D). The D-relative covers-each is now part of the
+-- faithful 7.54-package (Huber's normalisation is per-point-in-piece).
 
-Given C and an ideal-generating refinement C' (via exists_ideal_gen_refinement),
-every C-piece D is covered point-wise by C'-pieces inside D. This is the
-per-E refinement structure from Wedhorn 7.54.
-
-Sub-ticket T-WC-IDEAL-GEN-COVERS-EACH-COMPANION. -/
-theorem ideal_gen_refinement_covers_each_piece [DecidableEq A]
-    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
-    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
-      CompleteSpace A]
-    (C : RationalCovering A) (T : Finset A) (C' : RationalCovering A)
-    (_h_C'_gen : C'.IsGeneratedBy T)
-    (_h_C'_base : C'.base = C.base)
-    (_h_C'_refines : ∀ D' ∈ C'.covers, ∃ D ∈ C.covers,
-      rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
-    ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
-      ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
-        rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s := by
-  -- Per-D refinement (form-(a), 2026-05-28): C' is IsGeneratedBy T, so its
-  -- pieces are R(T/t) for t ∈ T. For D ∈ C.covers and v ∈ R(D.T/D.s), the
-  -- dominant generator t_max (maximizing v on T) gives v ∈ R(T/t_max) = the
-  -- C'-piece φ(t_max), and R(T/t_max) ⊆ D by the refinement `_h_C'_refines`
-  -- applied to that piece. Provable from the IsGeneratedBy structure.
-  sorry
 
 /-- **Strengthened version** (T-WC-EXISTS-IDEAL-GEN-COVERS-EACH, 2026-05-28):
 `exists_ideal_gen_refinement` augmented with the covering-each-D direction.
@@ -13332,12 +13326,11 @@ theorem exists_ideal_gen_refinement_covers_each_D [DecidableEq A]
       (∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
         ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
           rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) := by
-  -- Compose: use the original exists_ideal_gen_refinement + cover-each companion.
-  obtain ⟨T, C', h_C'_gen, h_C'_base, h_C'_P, h_C'_refines⟩ :=
+  -- Pass-through: the D-relative covers-each is part of the 7.54-package
+  -- (Huber's per-point normalisation lives inside the containing piece).
+  obtain ⟨T, C', h_C'_gen, h_C'_base, h_C'_P, h_C'_refines, h_C'_each⟩ :=
     exists_ideal_gen_refinement C
-  refine ⟨T, C', h_C'_gen, h_C'_base, h_C'_P, h_C'_refines, ?_⟩
-  exact ideal_gen_refinement_covers_each_piece C T C'
-    h_C'_gen h_C'_base h_C'_refines
+  exact ⟨T, C', h_C'_gen, h_C'_base, h_C'_P, h_C'_refines, h_C'_each⟩
 
 /-! ##### Sub-lemmas for `IsOXAcyclic_of_refining_acyclic_cover` (Prop A.3(2) project bridge) -/
 
