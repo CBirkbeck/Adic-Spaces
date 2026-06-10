@@ -324,8 +324,15 @@ theorem propA3_part2_project_gluing
     (_h_C'_covers_each_D : ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
       ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
         rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
-    (_h_E_at_acyclic : ∀ (D : ↥C.covers),
-        (C'.restrictToPiece D.1 (_h_C'_covers_each_D D.1 D.2)).IsOXAcyclic) :
+    -- ABSTRACT per-piece refinement covers (trace-surgery 2026-06-10): any
+    -- acyclic covering of each `D ∈ C.covers` whose pieces sit inside single
+    -- `C'`-pieces. Instantiable by the filter-form `restrictToPiece` OR the
+    -- faithful trace-form `restrictTo` (Wedhorn 4233-4235).
+    (E_at : ↥C.covers → RationalCovering A)
+    (hE_base : ∀ D : ↥C.covers, (E_at D).base = D.1)
+    (hE_pieces : ∀ D : ↥C.covers, ∀ E' ∈ (E_at D).covers,
+      ∃ Q ∈ C'.covers, rationalOpen E'.T E'.s ⊆ rationalOpen Q.T Q.s)
+    (hE_acyclic : ∀ (D : ↥C.covers), (E_at D).IsOXAcyclic) :
     ∀ (f : ∀ (D : ↥C.covers), presheafValue D.1),
       (∀ (D₁ D₂ : ↥C.covers)
          (D₃ : RationalLocData A)
@@ -340,15 +347,6 @@ theorem propA3_part2_project_gluing
   -- `restrictToPiece` form, not arbitrary E. This is mathematically sound
   -- (the arbitrary-E version is unprovable; see reviewer guidance §Q1).
   intro f h_compat
-  -- Step 1: For each D ∈ C.covers, the E_D := C'|_D acyclicity is the hypothesis.
-  let E_at : ∀ (D : ↥C.covers), RationalCovering A := fun D =>
-    C'.restrictToPiece D.1 (_h_C'_covers_each_D D.1 D.2)
-  have h_E_at_base : ∀ (D : ↥C.covers), (E_at D).base = D.1 := fun D => rfl
-  have h_E_at_pieces : ∀ (D : ↥C.covers), ∀ E' ∈ (E_at D).covers,
-      ∃ D' ∈ C'.covers, rationalOpen E'.T E'.s ⊆ rationalOpen D'.T D'.s := by
-    intro D E' hE'
-    simp only [E_at, RationalCovering.restrictToPiece, Finset.mem_filter] at hE'
-    exact ⟨E', hE'.1, subset_rfl⟩
   -- Step 3: For each D' ∈ C'.covers, choose D ∈ C.covers refining D'
   -- (via _h_refines) and define g D' := f D restricted to D'.
   let chooseC : ∀ (D' : ↥C'.covers), { D : ↥C.covers //
@@ -398,58 +396,44 @@ theorem propA3_part2_project_gluing
   let x : presheafValue C.base :=
     (RationalCovering.presheafValueCast (C := C) (C' := C') _h_same_base).symm x'
   refine ⟨x, ?_⟩
-  -- Step 7: verify x|D = f D for each D ∈ C.covers, using (E_at D).separation.
+  -- Step 7: verify x|D = f D for each D ∈ C.covers via (E_at D).separation
+  -- (abstract base: transport through the (E_at D).base = D.1 cast).
   intro D
-  -- (a) Reduce to ((restrictionMap C.base D.1 _ x) - f D) = 0.
   rw [← sub_eq_zero]
-  -- (b) Apply (E_at D).separation to (x|D - f D) ∈ presheafValue D.1.
-  apply (_h_E_at_acyclic D).separation
-  -- (c) Show: for each E' ∈ (E_at D).covers, restriction of (x|D - f D) to E' is 0.
+  rw [← RationalCovering.presheafValue_eqRec_eq_zero_iff D.1 (E_at D).base
+    (hE_base D).symm (restrictionMap C.base D.1 (C.hsubset D.1 D.2) x - f D)]
+  apply (hE_acyclic D).separation
   intro E' hE'_in
-  -- Restriction is a ring hom, so it preserves subtraction.
-  show (restrictionMapHom D.1 E' ((E_at D).hsubset E' hE'_in)) _ = 0
+  have hsub_D : rationalOpen E'.T E'.s ⊆ rationalOpen D.1.T D.1.s := by
+    rw [← hE_base D]; exact (E_at D).hsubset E' hE'_in
+  rw [RationalCovering.eqRec_restrictionMap_direct D.1 (E_at D).base
+    (hE_base D).symm E' hsub_D ((E_at D).hsubset E' hE'_in)
+    (restrictionMap C.base D.1 (C.hsubset D.1 D.2) x - f D)]
+  show (restrictionMapHom D.1 E' hsub_D) _ = 0
   rw [map_sub, sub_eq_zero]
-  -- E' is a C'-piece (by filter).
-  have hE'_in_C' : E' ∈ C'.covers := by
-    simp only [E_at, RationalCovering.restrictToPiece, Finset.mem_filter] at hE'_in
-    exact hE'_in.1
-  -- The chain LHS = RHS:
-  --   restrictionMapHom D.1 E' (E_at_hsub) (restrictionMap C.base D.1 (C.hsubset _ _) x)
-  --     = restrictionMap C.base E' (chained inclusion) x        [restrictionMap_comp]
-  -- Apply restrictionMap_comp to collapse the LHS double-restriction.
-  set E_at_hsub : rationalOpen E'.T E'.s ⊆ rationalOpen D.1.T D.1.s :=
-    (E_at D).hsubset E' hE'_in with hE_at_hsub_def
-  set chained : rationalOpen E'.T E'.s ⊆ rationalOpen C.base.T C.base.s :=
-    E_at_hsub.trans (C.hsubset D.1 D.2) with h_chained_def
+  obtain ⟨Q, hQ, h_EQ⟩ := hE_pieces D E' hE'_in
+  have chained : rationalOpen E'.T E'.s ⊆ rationalOpen C.base.T C.base.s :=
+    hsub_D.trans (C.hsubset D.1 D.2)
   have h_LHS_comp :
-      restrictionMap D.1 E' E_at_hsub
+      restrictionMap D.1 E' hsub_D
         (restrictionMap C.base D.1 (C.hsubset D.1 D.2) x)
         = restrictionMap C.base E' chained x := by
-    have := restrictionMap_comp C.base D.1 E' (C.hsubset D.1 D.2) E_at_hsub
+    have := restrictionMap_comp C.base D.1 E' (C.hsubset D.1 D.2) hsub_D
     exact congrFun this _
-  -- LHS as `restrictionMapHom` vs `restrictionMap` — definitionally equal.
-  show restrictionMap D.1 E' E_at_hsub
+  show restrictionMap D.1 E' hsub_D
       (restrictionMap C.base D.1 (C.hsubset D.1 D.2) x)
-      = restrictionMap D.1 E' E_at_hsub (f D)
+      = restrictionMap D.1 E' hsub_D (f D)
   rw [h_LHS_comp]
-  -- Now goal: restrictionMap C.base E' chained x = restrictionMap D.1 E' E_at_hsub (f D).
-  -- Apply presheafValueCast_restrictionMap to transport LHS through the cast.
-  -- x = (presheafValueCast _h_same_base).symm x', so the forward cast is x'.
-  -- presheafValueCast_restrictionMap with baseC=C.base, baseC'=C'.base, h=_h_same_base
-  -- gives: restrictionMap C'.base E' hsubC' (cast_forward x) = restrictionMap C.base E' chained x
   have hsubC' : rationalOpen E'.T E'.s ⊆ rationalOpen C'.base.T C'.base.s := by
     rw [_h_same_base]; exact chained
-  have h_cast : restrictionMap C'.base E' hsubC' x' = restrictionMap C.base E' chained x := by
+  have h_cast : restrictionMap C'.base E' hsubC' x' =
+      restrictionMap C.base E' chained x := by
     have key := RationalCovering.presheafValueCast_restrictionMap
       C.base C'.base _h_same_base E' chained hsubC' x
-    -- key: restrictionMap C'.base E' hsubC' (Eq.rec ... x) = restrictionMap C.base E' chained x
-    -- The Eq.rec applied to x is `presheafValueCast _h_same_base x`. Since
-    -- x := (presheafValueCast _h_same_base).symm x', the forward cast yields x'.
-    -- We use that `(presheafValueCast _h_same_base) ∘ (presheafValueCast _h_same_base).symm = id`.
     have h_cast_cancel :
-        (RationalCovering.presheafValueCast (C := C) (C' := C') _h_same_base) x = x' := by
+        (RationalCovering.presheafValueCast (C := C) (C' := C') _h_same_base) x
+          = x' := by
       simp only [x, RingEquiv.apply_symm_apply]
-    -- Rewrite LHS of key via the cancel.
     rw [show
       (@Eq.rec (RationalLocData A) C.base
         (fun b _ => presheafValue C.base ≃+* presheafValue b)
@@ -457,20 +441,25 @@ theorem propA3_part2_project_gluing
         ((RationalCovering.presheafValueCast (C := C) (C' := C') _h_same_base) x)
       from rfl, h_cast_cancel] at key
     exact key
-  -- After this, restrictionMap C.base E' chained x = restrictionMap C'.base E' hsubC' x'.
   rw [← h_cast]
-  -- Apply hx' at ⟨E', hE'_in_C'⟩.
-  have h_hx' := hx' ⟨E', hE'_in_C'⟩
-  -- h_hx' : restrictionMap C'.base E' (C'.hsubset E' hE'_in_C') x' = _g ⟨E', hE'_in_C'⟩
-  -- By proof irrelevance, hsubC' = C'.hsubset E' hE'_in_C'.
-  have h_hsub_eq : hsubC' = C'.hsubset E' hE'_in_C' := rfl
-  rw [h_hsub_eq, h_hx']
-  -- _g ⟨E', hE'_in_C'⟩ unfolds to restrictionMap (chooseC _).1.1 E' (chooseC _).2 (f (chooseC _).1).
-  show restrictionMap (chooseC ⟨E', hE'_in_C'⟩).1.1 E' (chooseC ⟨E', hE'_in_C'⟩).2
-        (f (chooseC ⟨E', hE'_in_C'⟩).1)
-      = restrictionMap D.1 E' E_at_hsub (f D)
-  -- By h_compat (compatibility of f on C-covers).
-  exact h_compat (chooseC ⟨E', hE'_in_C'⟩).1 D E' (chooseC ⟨E', hE'_in_C'⟩).2 E_at_hsub
+  -- factor through the containing C'-piece Q and use the glued spec there.
+  have h_through_Q : restrictionMap C'.base E' hsubC' x' =
+      restrictionMap Q E' h_EQ
+        (restrictionMap C'.base Q (C'.hsubset Q hQ) x') :=
+    (congrFun (restrictionMap_comp C'.base Q E' (C'.hsubset Q hQ) h_EQ) x').symm
+  rw [h_through_Q, hx' ⟨Q, hQ⟩]
+  show restrictionMap Q E' h_EQ
+      (restrictionMap (chooseC ⟨Q, hQ⟩).1.1 Q (chooseC ⟨Q, hQ⟩).2
+        (f (chooseC ⟨Q, hQ⟩).1)) = restrictionMap D.1 E' hsub_D (f D)
+  rw [show restrictionMap Q E' h_EQ
+      (restrictionMap (chooseC ⟨Q, hQ⟩).1.1 Q (chooseC ⟨Q, hQ⟩).2
+        (f (chooseC ⟨Q, hQ⟩).1)) =
+      restrictionMap (chooseC ⟨Q, hQ⟩).1.1 E'
+        (h_EQ.trans (chooseC ⟨Q, hQ⟩).2) (f (chooseC ⟨Q, hQ⟩).1)
+    from congrFun (restrictionMap_comp (chooseC ⟨Q, hQ⟩).1.1 Q E'
+      (chooseC ⟨Q, hQ⟩).2 h_EQ) _]
+  exact h_compat (chooseC ⟨Q, hQ⟩).1 D E'
+    (h_EQ.trans (chooseC ⟨Q, hQ⟩).2) hsub_D
 
 /-- **Sub-lemma 2 of `every_rational_cover_is_OXAcyclic`** (Wedhorn Prop A.3(2)
 applied to project types): if `C'` refines `C` and `C'` is O_X-acyclic, and
@@ -491,15 +480,18 @@ theorem IsOXAcyclic_of_refining_acyclic_cover
     (h_C'_covers_each_D : ∀ D ∈ C.covers, ∀ v ∈ rationalOpen D.T D.s,
       ∃ D' ∈ C'.covers, v ∈ rationalOpen D'.T D'.s ∧
         rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
-    (h_E_at_acyclic : ∀ (D : ↥C.covers),
-        (C'.restrictToPiece D.1 (h_C'_covers_each_D D.1 D.2)).IsOXAcyclic) :
+    (E_at : ↥C.covers → RationalCovering A)
+    (hE_base : ∀ D : ↥C.covers, (E_at D).base = D.1)
+    (hE_pieces : ∀ D : ↥C.covers, ∀ E' ∈ (E_at D).covers,
+      ∃ Q ∈ C'.covers, rationalOpen E'.T E'.s ⊆ rationalOpen Q.T Q.s)
+    (hE_acyclic : ∀ (D : ↥C.covers), (E_at D).IsOXAcyclic) :
     C.IsOXAcyclic :=
   { separation :=
       propA3_part2_project_separation C C' h_same_base h_refines
         h_C'_acyclic.separation
     gluing :=
       propA3_part2_project_gluing C C' h_same_base h_refines
-        h_C'_acyclic h_C'_covers_each_D h_E_at_acyclic }
+        h_C'_acyclic h_C'_covers_each_D E_at hE_base hE_pieces hE_acyclic }
 
 
 /-! ### Wedhorn Lemma 8.34 — the ideal-generating rational cover
@@ -12114,7 +12106,8 @@ theorem isOXAcyclic_of_isGeneratedBy_ring_units [DecidableEq A]
     (C : RationalCovering A) (units : Finset A) (hne : units.Nonempty)
     (hgen : C.IsGeneratedBy units) (h_units : ∀ f ∈ units, IsUnit f)
     (hplus : (A⁺ : Set A) ⊆ C.base.P.A₀)
-    (hplus_pieces : ∀ D ∈ C.covers, (A⁺ : Set A) ⊆ ↑D.P.A₀) :
+    (hplus_pieces : ∀ D ∈ C.covers, (A⁺ : Set A) ⊆ ↑D.P.A₀)
+    (hP_pieces : ∀ D ∈ C.covers, D.P = C.base.P) :
     C.IsOXAcyclic := by
   classical
   obtain ⟨fs, V, hV_laurent, hV_base, h_refines, h_covers_each⟩ :=
@@ -12122,15 +12115,27 @@ theorem isOXAcyclic_of_isGeneratedBy_ring_units [DecidableEq A]
   have hV_acyclic : V.IsOXAcyclic :=
     wedhorn_lemma_834_part_i_laurent_acyclic V fs hV_laurent
       (by rw [hV_base]; exact hplus)
+  have hVP : ∀ Q ∈ V.covers, Q.P = V.base.P := fun Q hQ =>
+    laurentProdLeaves_pair fs V.base
+      ((Finset.ext_iff.mp hV_laurent Q).mp hQ)
+  -- the TRACE-form per-piece refinement covers (Wedhorn 4233-4235; faithful,
+  -- replacing the filter-form part_i_laurent_restriction route).
   refine IsOXAcyclic_of_refining_acyclic_cover C V hV_base h_refines
-    hV_acyclic h_covers_each ?_
-  intro D
-  apply wedhorn_lemma_834_part_i_laurent_restriction_acyclic V fs hV_laurent D.1
-    (by rw [hV_base]; exact C.hsubset D.1 D.2) (hplus_pieces D.1 D.2)
-  · rfl
-  · intro E' hE'
-    simp only [RationalCovering.restrictToPiece, Finset.mem_filter] at hE'
-    exact ⟨E', hE'.1, subset_rfl⟩
+    hV_acyclic h_covers_each
+    (fun D => V.restrictTo D.1
+      (by rw [hV_base]; exact C.hsubset D.1 D.2)
+      ((hP_pieces D.1 D.2).trans (congrArg RationalLocData.P hV_base).symm)
+      hVP)
+    (fun D => rfl) ?_ ?_
+  · intro D E' hE'
+    rw [RationalCovering.restrictTo_covers, Finset.mem_image] at hE'
+    obtain ⟨⟨Q, hQ⟩, -, rfl⟩ := hE'
+    exact ⟨Q, hQ, RationalLocData.interSamePair_subset_right _ _ _⟩
+  · intro D
+    exact laurentTrace_isOXAcyclic V fs hV_laurent D.1
+      (by rw [hV_base]; exact C.hsubset D.1 D.2)
+      ((hP_pieces D.1 D.2).trans (congrArg RationalLocData.P hV_base).symm)
+      hVP (hplus_pieces D.1 D.2)
 
 set_option linter.unusedSectionVars false in
 /-- **B-side per-pair plus-containment** (Wedhorn Prop 8.2 base change of
@@ -12315,20 +12320,34 @@ theorem imageGenCover_isOXAcyclic_of_units
   have hV_acyclic : V.IsOXAcyclic :=
     wedhorn_lemma_834_part_i_laurent_acyclic V fs hV_laurent
       (by rw [hV_base]; exact hplusB)
-  -- A.3(2) at B transports acyclicity back to the image cover.
+  have hVP : ∀ Q ∈ V.covers, Q.P = V.base.P := fun Q hQ =>
+    laurentProdLeaves_pair fs V.base
+      ((Finset.ext_iff.mp hV_laurent Q).mp hQ)
+  -- A.3(2) at B transports acyclicity back via the TRACE-form per-piece
+  -- covers (Wedhorn 4233-4235, `laurentTrace_isOXAcyclic`).
   refine IsOXAcyclic_of_refining_acyclic_cover (imageGenCover D₀ T hspan) V
-    hV_base h_refines hV_acyclic h_covers_each ?_
-  intro D
-  apply wedhorn_lemma_834_part_i_laurent_restriction_acyclic V fs hV_laurent D.1
-    (by rw [hV_base]; exact (imageGenCover D₀ T hspan).hsubset D.1 D.2)
-    (by -- the piece's pair is the concrete pair (genPieceDatum-built)
-      obtain ⟨u, hu, heq⟩ := Finset.mem_image.mp D.2
-      rw [← heq]
-      exact hplusB)
-  · rfl
-  · intro E' hE'
-    simp only [RationalCovering.restrictToPiece, Finset.mem_filter] at hE'
-    exact ⟨E', hE'.1, subset_rfl⟩
+    hV_base h_refines hV_acyclic h_covers_each
+    (fun D => V.restrictTo D.1
+      (by rw [hV_base]; exact (imageGenCover D₀ T hspan).hsubset D.1 D.2)
+      (by obtain ⟨u, hu, heq⟩ := Finset.mem_image.mp D.2
+          rw [← heq]
+          exact (congrArg RationalLocData.P hV_base).symm)
+      hVP)
+    (fun D => rfl) ?_ ?_
+  · intro D E' hE'
+    rw [RationalCovering.restrictTo_covers, Finset.mem_image] at hE'
+    obtain ⟨⟨Q, hQ⟩, -, rfl⟩ := hE'
+    exact ⟨Q, hQ, RationalLocData.interSamePair_subset_right _ _ _⟩
+  · intro D
+    refine laurentTrace_isOXAcyclic V fs hV_laurent D.1
+      (by rw [hV_base]; exact (imageGenCover D₀ T hspan).hsubset D.1 D.2)
+      (by obtain ⟨u, hu, heq⟩ := Finset.mem_image.mp D.2
+          rw [← heq]
+          exact (congrArg RationalLocData.P hV_base).symm)
+      hVP ?_
+    obtain ⟨u, hu, heq⟩ := Finset.mem_image.mp D.2
+    rw [← heq]
+    exact hplusB
 
 set_option linter.unusedSectionVars false in
 /-- **The faithful per-piece restricted-cover acyclicity** (Wedhorn p. 84,
@@ -12538,6 +12557,9 @@ theorem genRestrictedCover_isOXAcyclic_of_units_or_empty
         (fun D hD => by
           obtain ⟨u, hu, rfl⟩ := Finset.mem_image.mp hD
           exact hplusB)
+        (fun D hD => by
+          obtain ⟨u, hu, rfl⟩ := Finset.mem_image.mp hD
+          rfl)
     -- the full-T image span (public form of the private imageGenCover_span)
     have hspanBT : Ideal.span ((T.image D₀.canonicalMap :
         Finset (presheafValue D₀)) : Set (presheafValue D₀)) = ⊤ := by
@@ -13467,6 +13489,11 @@ theorem every_rational_cover_is_OXAcyclic [DecidableEq A]
   -- `restrictToPiece_acyclic_at_D` (substantive sub-lemma; sorry-bodied at present).
   exact IsOXAcyclic_of_refining_acyclic_cover C C' h_C'_base h_refines
     h_C'_acyclic h_C'_covers_each_D
+    (fun D => C'.restrictToPiece D.1 (h_C'_covers_each_D D.1 D.2))
+    (fun D => rfl)
+    (fun D E' hE' => by
+      simp only [RationalCovering.restrictToPiece, Finset.mem_filter] at hE'
+      exact ⟨E', hE'.1, subset_rfl⟩)
     (fun D => restrictToPiece_acyclic_at_D C C' T h_C'_gen h_C'_base h_refines
       h_C'_covers_each_D D)
 
