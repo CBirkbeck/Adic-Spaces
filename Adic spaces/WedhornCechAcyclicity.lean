@@ -12055,6 +12055,49 @@ theorem ratio_laurent_unitGen_bundle [DecidableEq A]
     rwa [one_mul, mul_assoc, hinv_l, mul_one] at h2
 
 set_option linter.unusedSectionVars false in
+/-- **Wedhorn 8.34(i)-restriction, TRACE form (wedhorn.txt:4233-4235)**: *"If
+`U` is any rational subset of `X`, then `V|U` is the Laurent cover generated
+by `f₁|U, …, f_r|U`."* The trace cover `{U ∩ V_j}` (`restrictTo`) of a
+Laurent-product cover is `O_X`-acyclic: by the restriction-commutation
+(`laurentProdLeaves_restrict`) its piece-opens realise exactly the leaf-opens
+of the Laurent cover OF `U`, which is acyclic by the product engine at `U`.
+Faithful replacement for the FALSE-suspect filter-form chain
+(`laurent_restriction_isLaurent` / `laurent_cover_covers_each_idealgen_piece`,
+both b2-logged). -/
+theorem laurentTrace_isOXAcyclic [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (V : RationalCovering A) (fs : List A) (hV_laurent : V.IsLaurentProdCover fs)
+    (U : RationalLocData A)
+    (hU_subset : rationalOpen U.T U.s ⊆ rationalOpen V.base.T V.base.s)
+    (hUP : U.P = V.base.P)
+    (hVP : ∀ Q ∈ V.covers, Q.P = V.base.P)
+    (hplus : (A⁺ : Set A) ⊆ U.P.A₀) :
+    (V.restrictTo U hU_subset hUP hVP).IsOXAcyclic := by
+  classical
+  refine isOXAcyclic_congr _ (laurentProdCoverOf U fs) rfl (fun D hD => ?_)
+    (fun D' hD' => ?_) (laurentProdCoverOf_isOXAcyclic U fs hplus)
+  · -- each trace piece's open IS a `U`-leaf open
+    rw [RationalCovering.restrictTo_covers, Finset.mem_image] at hD
+    obtain ⟨⟨Q, hQ⟩, -, rfl⟩ := hD
+    obtain ⟨Q', hQ', hQeq⟩ := (laurentProdLeaves_restrict fs V.base U hU_subset).1
+      Q ((Finset.ext_iff.mp hV_laurent Q).mp hQ)
+    refine ⟨Q', by rw [laurentProdCoverOf_covers]; exact hQ', ?_⟩
+    rw [RationalLocData.interSamePair_rationalOpen]
+    exact hQeq
+  · -- each `U`-leaf open IS a trace piece's open
+    obtain ⟨Q, hQ, hQeq⟩ := (laurentProdLeaves_restrict fs V.base U hU_subset).2
+      D' (by rwa [laurentProdCoverOf_covers] at hD')
+    have hQV : Q ∈ V.covers := (Finset.ext_iff.mp hV_laurent Q).mpr hQ
+    refine ⟨U.interSamePair Q ((hVP Q hQV).trans hUP.symm), ?_, ?_⟩
+    · rw [RationalCovering.restrictTo_covers, Finset.mem_image]
+      exact ⟨⟨Q, hQV⟩, Finset.mem_attach _ _, rfl⟩
+    · rw [RationalLocData.interSamePair_rationalOpen]
+      exact hQeq
+
+set_option linter.unusedSectionVars false in
 /-- **B-side per-pair plus-containment** (Wedhorn Prop 8.2 base change of
 Remark 7.17): if `A⁺ ⊆ D₀.P.A₀`, then `B⁺ = completedPlusSubring D₀` lies in
 the ring of definition `presheafValue_ringOfDef D₀` of `B = 𝒪_X(D₀)`. Both
