@@ -12098,6 +12098,41 @@ theorem laurentTrace_isOXAcyclic [DecidableEq A]
       exact hQeq
 
 set_option linter.unusedSectionVars false in
+/-- **Ring-generic unit-generated acyclicity** (Wedhorn p. 84 (iii)+(iv) for
+unit-generated covers, over ANY complete strongly noetherian Tate ring): a
+rational cover `IsGeneratedBy` a finite set of RING units is `O_X`-acyclic —
+the `{fᵢfⱼ⁻¹}`-ratio Laurent cover bilaterally refines it (8.34(iii),
+`ratio_laurent_unitGen_bundle`), is acyclic by 8.34(i), and Prop A.3(2)
+transports acyclicity back. Instantiated at `B := 𝒪_X(D₀)` this is the
+engine behind `imageGenCover_isOXAcyclic_of_units` and the σ₊-dichotomy
+variant. -/
+theorem isOXAcyclic_of_isGeneratedBy_ring_units [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C : RationalCovering A) (units : Finset A) (hne : units.Nonempty)
+    (hgen : C.IsGeneratedBy units) (h_units : ∀ f ∈ units, IsUnit f)
+    (hplus : (A⁺ : Set A) ⊆ C.base.P.A₀)
+    (hplus_pieces : ∀ D ∈ C.covers, (A⁺ : Set A) ⊆ ↑D.P.A₀) :
+    C.IsOXAcyclic := by
+  classical
+  obtain ⟨fs, V, hV_laurent, hV_base, h_refines, h_covers_each⟩ :=
+    ratio_laurent_unitGen_bundle C units hne hgen h_units
+  have hV_acyclic : V.IsOXAcyclic :=
+    wedhorn_lemma_834_part_i_laurent_acyclic V fs hV_laurent
+      (by rw [hV_base]; exact hplus)
+  refine IsOXAcyclic_of_refining_acyclic_cover C V hV_base h_refines
+    hV_acyclic h_covers_each ?_
+  intro D
+  apply wedhorn_lemma_834_part_i_laurent_restriction_acyclic V fs hV_laurent D.1
+    (by rw [hV_base]; exact C.hsubset D.1 D.2) (hplus_pieces D.1 D.2)
+  · rfl
+  · intro E' hE'
+    simp only [RationalCovering.restrictToPiece, Finset.mem_filter] at hE'
+    exact ⟨E', hE'.1, subset_rfl⟩
+
+set_option linter.unusedSectionVars false in
 /-- **B-side per-pair plus-containment** (Wedhorn Prop 8.2 base change of
 Remark 7.17): if `A⁺ ⊆ D₀.P.A₀`, then `B⁺ = completedPlusSubring D₀` lies in
 the ring of definition `presheafValue_ringOfDef D₀` of `B = 𝒪_X(D₀)`. Both
