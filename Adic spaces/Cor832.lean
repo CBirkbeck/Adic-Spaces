@@ -1724,7 +1724,7 @@ localization predicate, refuted by convergent infinite negative-power series) or
 lemma. Everything downstream (`cor_8_32_maximal_liftedIdeal_ne_top`) is sorry-free *given* this. -/
 theorem cor_8_32_spaExtendsAlongRestriction
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A]
     (C : RationalCovering A) (D : RationalLocData A) (hD : D ∈ C.covers)
     {w : Spv (presheafValue C.base)}
     (_hw : w ∈ Spa (presheafValue C.base) (presheafValue C.base)⁺)

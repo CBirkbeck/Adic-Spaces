@@ -7210,16 +7210,17 @@ three Example 6.38/6.39 bridges (`unitCover_bridgePlus`/`_bridgeMinus` + the
 δ-vanishing translation), which are isolated as faithful honest leaves above. -/
 theorem unitCover_isOXAcyclic
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (D₀ : RationalLocData A) (f : A) :
+    (D₀ : RationalLocData A) (f : A)
+    (hplus : (A⁺ : Set A) ⊆ D₀.P.A₀) :
     (unitCover D₀ f).IsOXAcyclic := by
   refine ⟨?_, ?_⟩
   · -- Separation = injectivity of the product restriction (Wedhorn Cor 8.32,
     -- faithful flatness route, `cor_8_32_productRestrictionSub_injective`).
     intro x hx
-    apply cor_8_32_productRestrictionSub_injective (unitCover D₀ f)
+    apply cor_8_32_productRestrictionSub_injective (unitCover D₀ f) hplus
     funext D
     change restrictionMap (unitCover D₀ f).base D.1 ((unitCover D₀ f).hsubset D.1 D.2) x =
       restrictionMap (unitCover D₀ f).base D.1 ((unitCover D₀ f).hsubset D.1 D.2) 0
@@ -7274,12 +7275,13 @@ is acyclic by the explicit A.3(3) `isOXAcyclic_interProd` — `hU` = Lemma 8.33
 acyclic) via the Prop-A.4 bridge `isOXAcyclic_congr` + restriction-commutation. -/
 theorem laurentProdCoverOf_isOXAcyclic [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (D₀ : RationalLocData A) (fs : List A) :
+    (D₀ : RationalLocData A) (fs : List A)
+    (hplus : (A⁺ : Set A) ⊆ D₀.P.A₀) :
     (laurentProdCoverOf D₀ fs).IsOXAcyclic := by
-  induction fs generalizing D₀ with
+  induction fs generalizing D₀ hplus with
   | nil =>
     refine isOXAcyclic_of_trivial_cover _ ?_
     rw [laurentProdCoverOf_covers, laurentProdLeaves_nil, laurentProdCoverOf_base]
@@ -7294,12 +7296,15 @@ theorem laurentProdCoverOf_isOXAcyclic [DecidableEq A]
     have hinner : ((unitCover D₀ f).interProd (laurentProdCoverOf D₀ gs)
         hbase hUfP hVP).IsOXAcyclic := by
       refine isOXAcyclic_interProd (unitCover D₀ f) (laurentProdCoverOf D₀ gs)
-        hbase hUfP hVP (unitCover_isOXAcyclic D₀ f) (fun P hP => ?_) (fun P P' hP hP' => ?_)
+        hbase hUfP hVP (unitCover_isOXAcyclic D₀ f hplus) (fun P hP => ?_)
+        (fun P P' hP hP' => ?_)
       · -- hV0: V|_P acyclic, via congr from the IH at base P
         have hPsub : rationalOpen P.T P.s ⊆ rationalOpen D₀.T D₀.s :=
           (unitCover D₀ f).hsubset P hP
+        have hplusP : (A⁺ : Set A) ⊆ ↑P.P.A₀ := by
+          rw [hUfP P hP]; exact hplus
         refine isOXAcyclic_congr _ (laurentProdCoverOf P gs) rfl (fun D hD => ?_)
-          (fun D' hD' => ?_) (ih P)
+          (fun D' hD' => ?_) (ih P hplusP)
         · rw [RationalCovering.restrictTo_covers, Finset.mem_image] at hD
           obtain ⟨⟨Q, hQ⟩, -, rfl⟩ := hD
           obtain ⟨Q', hQ', hQeq⟩ := (laurentProdLeaves_restrict gs D₀ P hPsub).1 Q hQ
@@ -7315,8 +7320,10 @@ theorem laurentProdCoverOf_isOXAcyclic [DecidableEq A]
         have hPsub : rationalOpen Pm.T Pm.s ⊆ rationalOpen D₀.T D₀.s :=
           (RationalLocData.interSamePair_subset_left P P' _).trans
             ((unitCover D₀ f).hsubset P hP)
+        have hplusP : (A⁺ : Set A) ⊆ ↑P.P.A₀ := by
+          rw [hUfP P hP]; exact hplus
         refine isOXAcyclic_congr _ (laurentProdCoverOf Pm gs) rfl (fun D hD => ?_)
-          (fun D' hD' => ?_) (ih Pm)
+          (fun D' hD' => ?_) (ih Pm hplusP)
         · rw [RationalCovering.restrictTo_covers, Finset.mem_image] at hD
           obtain ⟨⟨Q, hQ⟩, -, rfl⟩ := hD
           obtain ⟨Q', hQ', hQeq⟩ := (laurentProdLeaves_restrict gs D₀ Pm hPsub).1 Q hQ
@@ -7376,16 +7383,17 @@ theorem laurentProdCoverOf_isOXAcyclic [DecidableEq A]
 
 theorem wedhorn_lemma_834_part_i_laurent_acyclic [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (V : RationalCovering A) (fs : List A) (hV_laurent : V.IsLaurentProdCover fs) :
+    (V : RationalCovering A) (fs : List A) (hV_laurent : V.IsLaurentProdCover fs)
+    (hplus : (A⁺ : Set A) ⊆ V.base.P.A₀) :
     V.IsOXAcyclic := by
   -- The base-independent Laurent cover `V` IS (R-equal to) `laurentProdCoverOf V.base fs`
   -- (same base + same covers), which is acyclic by the faithful A.3(3) induction.
   rw [RationalCovering.IsLaurentProdCover] at hV_laurent
   refine isOXAcyclic_congr V (laurentProdCoverOf V.base fs) rfl (fun D hD => ?_)
-    (fun D' hD' => ?_) (laurentProdCoverOf_isOXAcyclic V.base fs)
+    (fun D' hD' => ?_) (laurentProdCoverOf_isOXAcyclic V.base fs hplus)
   · exact ⟨D, by rw [laurentProdCoverOf_covers, ← hV_laurent]; exact hD, rfl⟩
   · refine ⟨D', ?_, rfl⟩
     rw [laurentProdCoverOf_covers] at hD'; rw [hV_laurent]; exact hD'
@@ -7411,12 +7419,13 @@ theorem laurent_restriction_isLaurent [DecidableEq A]
 
 theorem wedhorn_lemma_834_part_i_laurent_restriction_acyclic [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (V : RationalCovering A) (fs : List A) (hV_laurent : V.IsLaurentProdCover fs)
     (U : RationalLocData A) (_hU_subset : rationalOpen U.T U.s ⊆
       rationalOpen V.base.T V.base.s)
+    (hplus : (A⁺ : Set A) ⊆ U.P.A₀)
     (V_restrict : RationalCovering A) (h_V_restrict_base : V_restrict.base = U)
     (h_V_restrict_pieces : ∀ V' ∈ V_restrict.covers, ∃ V'' ∈ V.covers,
       rationalOpen V'.T V'.s ⊆ rationalOpen V''.T V''.s) :
@@ -7428,6 +7437,7 @@ theorem wedhorn_lemma_834_part_i_laurent_restriction_acyclic [DecidableEq A]
     laurent_restriction_isLaurent V fs hV_laurent U V_restrict
       h_V_restrict_base h_V_restrict_pieces
   exact wedhorn_lemma_834_part_i_laurent_acyclic V_restrict fs hV_restrict_laurent
+    (by rw [h_V_restrict_base]; exact hplus)
 
 /-- The predicate "C is a rational cover generated by units of `𝒪_X(C.base)`".
 A unit-generated rational cover is one whose generators have non-zero
@@ -8234,10 +8244,12 @@ the restricted cover `C|Vj` (= `C_restr`) is `O_X`-acyclic. Composes
 parts (iii) (refines by a Laurent cover) and (i) (Laurent acyclic). -/
 theorem wedhorn_lemma_834_C_restr_acyclic [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (C_restr : RationalCovering A) (_h_C_restr_unit : C_restr.IsGeneratedByUnits) :
+    (C_restr : RationalCovering A) (_h_C_restr_unit : C_restr.IsGeneratedByUnits)
+    (hplus_base : (A⁺ : Set A) ⊆ C_restr.base.P.A₀)
+    (hplus_pieces : ∀ D ∈ C_restr.covers, (A⁺ : Set A) ⊆ ↑D.P.A₀) :
     C_restr.IsOXAcyclic := by
   -- Part (iii) strengthened: C_restr refines to a Laurent cover with
   -- covering-each-D direction (T-WC-834-PART-III-COVERS-EACH).
@@ -8247,6 +8259,7 @@ theorem wedhorn_lemma_834_C_restr_acyclic [DecidableEq A]
   -- Part (i): W (Laurent) is acyclic.
   have hW_acyclic : W.IsOXAcyclic :=
     wedhorn_lemma_834_part_i_laurent_acyclic W gs hW_laurent
+      (by rw [hW_base]; exact hplus_base)
   -- Apply the Prop A.3(2) bridge with the specialized E_at = W.restrictToPiece D form.
   apply IsOXAcyclic_of_refining_acyclic_cover C_restr W hW_base hW_refines
     hW_acyclic hW_covers_each_D
@@ -8255,7 +8268,7 @@ theorem wedhorn_lemma_834_C_restr_acyclic [DecidableEq A]
   -- The restricted cover keeps W-pieces unchanged (filter), so it satisfies
   -- the laurent_restriction_acyclic hypothesis with E = W.restrictToPiece D.
   apply wedhorn_lemma_834_part_i_laurent_restriction_acyclic W gs hW_laurent D.1
-    (by rw [hW_base]; exact C_restr.hsubset D.1 D.2)
+    (by rw [hW_base]; exact C_restr.hsubset D.1 D.2) (hplus_pieces D.1 D.2)
   · rfl
   · intro E' hE'
     -- E' ∈ (W.restrictToPiece D.1 _).covers means E' ∈ W.covers (unchanged) refining D.1.
@@ -8267,18 +8280,19 @@ the restriction `V|U` is `O_X`-acyclic. This is part (i) corollary
 applied to the Laurent cover restricted to U. -/
 theorem wedhorn_lemma_834_V_restr_acyclic [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (V : RationalCovering A) (fs : List A) (hV_laurent : V.IsLaurentProdCover fs)
     (U : RationalLocData A)
     (_hU_subset : rationalOpen U.T U.s ⊆ rationalOpen V.base.T V.base.s)
+    (hplus : (A⁺ : Set A) ⊆ U.P.A₀)
     (V_restr : RationalCovering A) (h_V_restr_base : V_restr.base = U)
     (h_V_restr_pieces : ∀ V' ∈ V_restr.covers, ∃ V'' ∈ V.covers,
       rationalOpen V'.T V'.s ⊆ rationalOpen V''.T V''.s) :
     V_restr.IsOXAcyclic :=
   wedhorn_lemma_834_part_i_laurent_restriction_acyclic V fs hV_laurent U
-    _hU_subset V_restr h_V_restr_base h_V_restr_pieces
+    _hU_subset hplus V_restr h_V_restr_base h_V_restr_pieces
 
 /-- **Part (iv) sub-lemma (c) sub-(sep)** — Wedhorn Prop A.3(1) separation
 transfer, p. 105 (wedhorn.txt:5315-5325), refinement-free form.
@@ -8970,7 +8984,8 @@ theorem wedhorn_lemma_834_pair_package_exists [DecidableEq A]
     (hC_restr_unit : ∀ Vj : ↥V.covers, (C_restr_at Vj).IsGeneratedByUnits)
     (hC_restr_P : ∀ Vj : ↥V.covers, ∀ D' ∈ (C_restr_at Vj).covers,
       D'.P = Vj.1.P)
-    (Vj₁ Vj₂ : ↥V.covers) :
+    (Vj₁ Vj₂ : ↥V.covers)
+    (hplus₁ : (A⁺ : Set A) ⊆ ↑Vj₁.1.P.A₀) :
     ∃ (I : RationalLocData A) (W : RationalCovering A),
       rationalOpen I.T I.s =
         rationalOpen Vj₁.1.T Vj₁.1.s ∩ rationalOpen Vj₂.1.T Vj₂.1.s ∧
@@ -9015,20 +9030,27 @@ theorem wedhorn_lemma_834_pair_package_exists [DecidableEq A]
           ((hC_restr_P Vj₁) D₁ hD₁).symm),
     RationalLocData.interSamePair_rationalOpen Vj₁.1 Vj₂.1 hP, rfl, ?_, ?_, ?_⟩
   · -- IsOXAcyclic via the unit-generated product cover.
-    apply wedhorn_lemma_834_C_restr_acyclic
-    refine RationalCovering.interProdOn_isGeneratedByUnits
-      (C_restr_at Vj₁) (C_restr_at Vj₂) (Vj₁.1.interSamePair Vj₂.1 hP) hI
-      Vj₁.1.P (hC_restr_P Vj₁)
-      (fun D₂' hD₂' => (hC_restr_P Vj₂ D₂' hD₂').trans hP)
-      units₁ units₂ hgen₁ hgen₂ ?_ ?_
-    · intro u hu
-      have h0 := hunits₁ u hu
-      rw [hbase₁] at h0
-      exact isUnit_canonicalMap_of_subset Vj₁.1 _ hI_sub₁ u h0
-    · intro u hu
-      have h0 := hunits₂ u hu
-      rw [hbase₂] at h0
-      exact isUnit_canonicalMap_of_subset Vj₂.1 _ hI_sub₂ u h0
+    refine wedhorn_lemma_834_C_restr_acyclic _ ?_ hplus₁ ?_
+    · refine RationalCovering.interProdOn_isGeneratedByUnits
+        (C_restr_at Vj₁) (C_restr_at Vj₂) (Vj₁.1.interSamePair Vj₂.1 hP) hI
+        Vj₁.1.P (hC_restr_P Vj₁)
+        (fun D₂' hD₂' => (hC_restr_P Vj₂ D₂' hD₂').trans hP)
+        units₁ units₂ hgen₁ hgen₂ ?_ ?_
+      · intro u hu
+        have h0 := hunits₁ u hu
+        rw [hbase₁] at h0
+        exact isUnit_canonicalMap_of_subset Vj₁.1 _ hI_sub₁ u h0
+      · intro u hu
+        have h0 := hunits₂ u hu
+        rw [hbase₂] at h0
+        exact isUnit_canonicalMap_of_subset Vj₂.1 _ hI_sub₂ u h0
+    · intro D' hD'
+      obtain ⟨D₁, hD₁, D₂, hD₂, hEeq⟩ :=
+        RationalCovering.exists_of_mem_interProdOn _ _ _ hI _ D' hD'
+      rw [hEeq]
+      show (A⁺ : Set A) ⊆ ↑D₁.P.A₀
+      rw [hC_restr_P Vj₁ D₁ hD₁]
+      exact hplus₁
   · -- pieces lie inside single pieces of C|Vj₁.
     intro W' hW'
     obtain ⟨D₁, hD₁, D₂, hD₂, hEeq⟩ :=
@@ -9072,6 +9094,7 @@ theorem wedhorn_lemma_834 [DecidableEq A]
   -- 𝒱 is itself acyclic (Laurent cover) — part (i):
   have _hV_acyclic : V.IsOXAcyclic :=
     wedhorn_lemma_834_part_i_laurent_acyclic V fs hV_laurent
+      (CompatiblePlusSubring.aplus_le_A₀ V.base)
   -- NOTE (2026-06-10): no "V refines C" fact is needed — Prop A.3(1)
   -- (wedhorn.txt:5318-5320) has no refinement hypothesis; the bilateral
   -- restriction-acyclicity packages below are its exact data.
@@ -9099,6 +9122,7 @@ theorem wedhorn_lemma_834 [DecidableEq A]
     intro U
     apply wedhorn_lemma_834_part_i_laurent_restriction_acyclic V fs hV_laurent U.1
     · rw [hV_base]; exact C.hsubset U.1 U.2
+    · exact CompatiblePlusSubring.aplus_le_A₀ U.1
     · exact hV_restr_base U
     · exact hV_restr_pieces U
   have hV_restr_covers : ∀ U : ↥C.covers, ∀ v ∈ rationalOpen U.1.T U.1.s,
@@ -9127,9 +9151,11 @@ theorem wedhorn_lemma_834 [DecidableEq A]
     exact hV'_in.1
   -- Pair-level package: q=1 instances of the A.3(1) standing hypothesis,
   -- discharged by the part-(ii) construction on intersections.
-  have h_pair := wedhorn_lemma_834_pair_package_exists V fs hV_laurent
-    C_restr_at hC_restr_base' (fun Vj => hC_at_unit Vj.1 Vj.2)
-    (fun Vj => hC_at_P Vj.1 Vj.2)
+  have h_pair := fun (Vj₁ Vj₂ : ↥V.covers) =>
+    wedhorn_lemma_834_pair_package_exists V fs hV_laurent
+      C_restr_at hC_restr_base' (fun Vj => hC_at_unit Vj.1 Vj.2)
+      (fun Vj => hC_at_P Vj.1 Vj.2) Vj₁ Vj₂
+      (CompatiblePlusSubring.aplus_le_A₀ Vj₁.1)
   choose I_at W_at hI_open hW_base hW_acyclic hW_pieces₁ hW_pieces₂ using h_pair
   -- Now apply propA3_part1_bridge.
   refine wedhorn_lemma_834_propA3_part1_bridge C V hV_base _hV_acyclic
@@ -9138,7 +9164,13 @@ theorem wedhorn_lemma_834 [DecidableEq A]
     I_at hI_open W_at hW_base hW_pieces₁ hW_pieces₂ hW_acyclic
   · -- C_restr_at acyclic — use wedhorn_lemma_834_C_restr_acyclic on each.
     intro Vj
-    exact wedhorn_lemma_834_C_restr_acyclic (C_restr_at Vj) (hC_at_unit Vj.1 Vj.2)
+    refine wedhorn_lemma_834_C_restr_acyclic (C_restr_at Vj) (hC_at_unit Vj.1 Vj.2)
+      ?_ ?_
+    · rw [hC_restr_base' Vj]
+      exact CompatiblePlusSubring.aplus_le_A₀ Vj.1
+    · intro D hD
+      rw [hC_at_P Vj.1 Vj.2 D hD]
+      exact CompatiblePlusSubring.aplus_le_A₀ Vj.1
   · -- C_restr_at covers each Vj.
     intro Vj v hv
     obtain ⟨D', hD'_in, hv_in⟩ := hC_at_cover Vj.1 Vj.2 v hv
