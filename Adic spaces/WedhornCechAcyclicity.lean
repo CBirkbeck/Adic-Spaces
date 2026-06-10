@@ -12444,6 +12444,132 @@ theorem genRestrictedCover_isOXAcyclic_of_B
     obtain ⟨t, ht, rfl⟩ := hD'
     exact hx t ht
 
+set_option linter.unusedSectionVars false in
+/-- **B-side per-pair plus-containment** (Wedhorn Prop 8.2 base change of
+Remark 7.17): if `A⁺ ⊆ D₀.P.A₀`, then `B⁺ = completedPlusSubring D₀` lies in
+the ring of definition `presheafValue_ringOfDef D₀` of `B = 𝒪_X(D₀)`. Both
+are topological closures of `coeRingHom`-images; the generators of
+`locPlusSubring` (the `A⁺`-image and the `t/s`) land in `locSubring` by the
+hypothesis. Discharges the `hplus`-arguments of the Laurent-acyclicity
+engine instantiated at `B`. -/
+theorem completedPlusSubring_le_ringOfDef
+    [IsTateRing A] [IsNoetherianRing A]
+    (D₀ : RationalLocData A) (hplusA : (A⁺ : Set A) ⊆ D₀.P.A₀) :
+    (D₀.completedPlusSubring : Set (presheafValue D₀)) ⊆
+      ↑(presheafValue_ringOfDef D₀) := by
+  have hgen : D₀.locPlusSubring ≤ locSubring D₀.P D₀.T D₀.s := by
+    rw [RationalLocData.locPlusSubring]
+    apply Subring.closure_le.mpr
+    rintro x (⟨a, ha, rfl⟩ | ⟨t, rfl⟩)
+    · exact algebraMap_mem_locSubring D₀.P D₀.T D₀.s (hplusA ha)
+    · exact divByS_mem_locSubring D₀.P D₀.T D₀.s t.2
+  have hmap : (D₀.locPlusSubring).map D₀.coeRingHom ≤
+      (D₀.coeRingHom.comp (locSubring D₀.P D₀.T D₀.s).subtype).range := by
+    rintro x ⟨y, hy, rfl⟩
+    exact ⟨⟨y, hgen hy⟩, rfl⟩
+  exact Subring.topologicalClosure_minimal _
+    (hmap.trans (Subring.le_topologicalClosure _))
+    (Subring.isClosed_topologicalClosure _)
+
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- **The B-level image cover of a unit-image generating set is `O_X`-acyclic**
+(Wedhorn p. 84, parts (ii)→(iii) composed AT `B := 𝒪_X(D₀)`): when every
+generator's canonical image is a unit of `B`, the image cover — which is
+`IsGeneratedBy` the RING-unit set `T.image canonicalMap` of `B`
+(`imageGenCover_isGeneratedBy`) — refines bilaterally to a ratio-Laurent
+cover of `Spa B` (8.34(iii) at `B`, `ratio_laurent_unitGen_bundle`), which is
+acyclic by 8.34(i) at `B`; Prop A.3(2) transports acyclicity back. This is
+exactly the `hB`-input of the G4 transport `genRestrictedCover_isOXAcyclic_of_B`.
+NO recursion: only parts (i) and (iii) run at `B`, never part (iv). -/
+theorem imageGenCover_isOXAcyclic_of_units
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A] [DecidableEq A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (hne : T.Nonempty)
+    (h_units : ∀ t ∈ T, IsUnit (D₀.canonicalMap t))
+    (hplusA : (A⁺ : Set A) ⊆ D₀.P.A₀) :
+    haveI hTateB : IsTateRing (presheafValue D₀) :=
+      presheafValue_isTateRing_faithful D₀
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    haveI : IsStronglyNoetherian (presheafValue D₀) :=
+      presheafValue_isStronglyNoetherian_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    (imageGenCover D₀ T hspan).IsOXAcyclic := by
+  haveI hTateB : IsTateRing (presheafValue D₀) :=
+    presheafValue_isTateRing_faithful D₀
+  haveI : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  haveI : NonarchimedeanRing (presheafValue D₀) := inferInstance
+  haveI : T2Space (presheafValue D₀) := inferInstance
+  letI : DecidableEq (presheafValue D₀) := Classical.decEq _
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  haveI : @CompleteSpace (presheafValue D₀)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue D₀)) :=
+    presheafValue_completeSpace_rightUniformSpace D₀
+  -- the image set consists of RING units of B
+  have h_units_B : ∀ u ∈ T.image D₀.canonicalMap, IsUnit u := by
+    intro u hu
+    obtain ⟨t, ht, rfl⟩ := Finset.mem_image.mp hu
+    exact h_units t ht
+  have hne_B : (T.image D₀.canonicalMap).Nonempty := hne.image _
+  -- the per-pair plus-containment at B (all pieces carry the concrete pair)
+  have hplusB : ((presheafValue D₀)⁺ : Set (presheafValue D₀)) ⊆
+      ↑(presheafValue_concretePair D₀).A₀ :=
+    completedPlusSubring_le_ringOfDef D₀ hplusA
+  -- 8.34(iii) at B: the bilateral ratio-Laurent refinement.
+  obtain ⟨fs, V, hV_laurent, hV_base, h_refines, h_covers_each⟩ :=
+    ratio_laurent_unitGen_bundle (imageGenCover D₀ T hspan)
+      (T.image D₀.canonicalMap) hne_B (imageGenCover_isGeneratedBy D₀ T hspan)
+      h_units_B
+  -- 8.34(i) at B: the ratio-Laurent cover is acyclic.
+  have hV_acyclic : V.IsOXAcyclic :=
+    wedhorn_lemma_834_part_i_laurent_acyclic V fs hV_laurent
+      (by rw [hV_base]; exact hplusB)
+  -- A.3(2) at B transports acyclicity back to the image cover.
+  refine IsOXAcyclic_of_refining_acyclic_cover (imageGenCover D₀ T hspan) V
+    hV_base h_refines hV_acyclic h_covers_each ?_
+  intro D
+  apply wedhorn_lemma_834_part_i_laurent_restriction_acyclic V fs hV_laurent D.1
+    (by rw [hV_base]; exact (imageGenCover D₀ T hspan).hsubset D.1 D.2)
+    (by -- the piece's pair is the concrete pair (genPieceDatum-built)
+      obtain ⟨u, hu, heq⟩ := Finset.mem_image.mp D.2
+      rw [← heq]
+      exact hplusB)
+  · rfl
+  · intro E' hE'
+    simp only [RationalCovering.restrictToPiece, Finset.mem_filter] at hE'
+    exact ⟨E', hE'.1, subset_rfl⟩
+
+set_option linter.unusedSectionVars false in
+/-- **The faithful per-piece restricted-cover acyclicity** (Wedhorn p. 84,
+parts (ii)+(iii) composed through the Prop 8.2 base change): the A-level
+restricted cover `{D₀ ∩ R(T/t) : t ∈ T}` of a rational subset `D₀` is
+`O_X`-acyclic whenever `T` spans the unit ideal and the canonical images of
+its elements are units of `𝒪_X(D₀)`. Composes the B-level acyclicity
+`imageGenCover_isOXAcyclic_of_units` with the G4 transport
+`genRestrictedCover_isOXAcyclic_of_B`. This is the faithful replacement for
+the dead A-level part-(iii) route (the `ratio_laurent_cover_of_units` trio,
+B2-logged: canonical-image units have no ring inverses in `A`). -/
+theorem genRestrictedCover_isOXAcyclic_of_units
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A] [DecidableEq A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) (hne : T.Nonempty)
+    (h_units : ∀ t ∈ T, IsUnit (D₀.canonicalMap t)) :
+    (genRestrictedCover D₀ T hspan).IsOXAcyclic :=
+  genRestrictedCover_isOXAcyclic_of_B D₀ T hspan
+    (imageGenCover_isOXAcyclic_of_units D₀ T hspan hne h_units
+      (CompatiblePlusSubring.aplus_le_A₀ D₀))
+
 /-- **Sub-lemma for `exists_ideal_gen_refinement`** — converting a
 standard cover (Finset S spanning top + refinement data) into a concrete
 `RationalCovering A` whose pieces are `{R(S/t) | t ∈ S}`.
