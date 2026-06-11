@@ -403,6 +403,57 @@ theorem RationalLocData.interSamePair_rationalOpen (D₁ D₂ : RationalLocData 
       (Finset.mem_insert_self _ _) (Finset.mem_insert_self _ _),
     rationalOpen_insert_s, rationalOpen_insert_s]
 
+/-- A finite set whose coercion contains `1` spans the unit ideal. Discharges
+Wedhorn Definition 7.29's openness (`RationalLocData.isRational_of_span_eq_top`)
+for cover constructors whose `T` picks up a `1` (e.g. `unitDatum`/`coUnitDatum`
+inside `interSamePair`). -/
+theorem span_eq_top_of_one_mem {S : Finset A} (h : (1 : A) ∈ S) :
+    Ideal.span (S : Set A) = ⊤ :=
+  Ideal.eq_top_of_isUnit_mem _ (Ideal.subset_span (by exact_mod_cast h)) isUnit_one
+
+/-- Inserting an element preserves spanning. -/
+theorem span_insert_eq_top_of_span_eq_top {S : Finset A} (s : A)
+    (h : Ideal.span (S : Set A) = ⊤) :
+    Ideal.span ((insert s S : Finset A) : Set A) = ⊤ :=
+  top_unique (h ▸ Ideal.span_mono (by rw [Finset.coe_insert]; exact Set.subset_insert s _))
+
+open scoped Pointwise in
+/-- **Spanning is stable under `interSamePair` (primitive form)**: if both inserted
+generator sets `insert sᵢ Tᵢ` span the unit ideal, so does the intersection datum's
+`T = (insert s₁ T₁) · (insert s₂ T₂)` (pure algebra: `span (S·T) = span S · span T`).
+This is the Wedhorn Definition 7.29 stability behind "the intersection of rational
+subsets is rational" (Proposition 7.31(2), wedhorn.txt:3115). -/
+theorem RationalLocData.interSamePair_span_eq_top' (D₁ D₂ : RationalLocData A)
+    (hP : D₂.P = D₁.P)
+    (h₁ : Ideal.span ((insert D₁.s D₁.T : Finset A) : Set A) = ⊤)
+    (h₂ : Ideal.span ((insert D₂.s D₂.T : Finset A) : Set A) = ⊤) :
+    Ideal.span (((D₁.interSamePair D₂ hP).T : Finset A) : Set A) = ⊤ := by
+  have hT : (D₁.interSamePair D₂ hP).T =
+      (insert D₁.s D₁.T) * (insert D₂.s D₂.T) := by
+    rw [Finset.mul_def]; rfl
+  rw [hT, Finset.coe_mul, ← Ideal.span_mul_span, h₁, h₂, Ideal.top_mul]
+
+open scoped Pointwise in
+/-- **Spanning is stable under `interSamePair`**: if both factors satisfy Wedhorn
+Definition 7.29's spanning condition `span Tᵢ = ⊤`, so does the intersection datum. -/
+theorem RationalLocData.interSamePair_span_eq_top (D₁ D₂ : RationalLocData A)
+    (hP : D₂.P = D₁.P)
+    (h₁ : Ideal.span ((D₁.T : Finset A) : Set A) = ⊤)
+    (h₂ : Ideal.span ((D₂.T : Finset A) : Set A) = ⊤) :
+    Ideal.span (((D₁.interSamePair D₂ hP).T : Finset A) : Set A) = ⊤ :=
+  D₁.interSamePair_span_eq_top' D₂ hP
+    (span_insert_eq_top_of_span_eq_top D₁.s h₁)
+    (span_insert_eq_top_of_span_eq_top D₂.s h₂)
+
+/-- `interSamePair` of rational data over a Tate ring is rational (Wedhorn
+Proposition 7.31(2): the intersection of rational subsets is rational). -/
+theorem RationalLocData.interSamePair_isRational [IsTateRing A]
+    (D₁ D₂ : RationalLocData A) (hP : D₂.P = D₁.P)
+    (h₁ : D₁.IsRational) (h₂ : D₂.IsRational) :
+    (D₁.interSamePair D₂ hP).IsRational :=
+  RationalLocData.isRational_of_span_eq_top
+    (D₁.interSamePair_span_eq_top D₂ hP h₁.span_eq_top h₂.span_eq_top)
+
 /-- `interSamePair` refines its first factor. -/
 theorem RationalLocData.interSamePair_subset_left (D₁ D₂ : RationalLocData A)
     (hP : D₂.P = D₁.P) :
@@ -446,6 +497,29 @@ noncomputable def coUnitDatum (P : PairOfDefinition A) (f : A) : RationalLocData
     exact (locSubring P {1} f).mul_mem
       (algebraMap_mem_locSubring P {1} f b.2)
       (divByS_mem_locSubring P {1} f (Finset.mem_singleton_self 1))⟩
+
+/-- `interSamePair` with a `unitDatum` second factor spans as soon as the first
+factor is rational: the inserted denominator `s = 1` of `unitDatum` makes the second
+inserted set span outright (Wedhorn's Laurent piece `U₀ ∩ {v(f) ≤ 1}` is rational,
+Lemma 8.34(i) / wedhorn.txt:4230 — no condition on `f`). -/
+theorem RationalLocData.interSamePair_unitDatum_span_eq_top [IsTateRing A]
+    (D₁ : RationalLocData A) (f : A) (hP : (unitDatum D₁.P f).P = D₁.P)
+    (h₁ : D₁.IsRational) :
+    Ideal.span (((D₁.interSamePair (unitDatum D₁.P f) hP).T : Finset A) : Set A) = ⊤ :=
+  D₁.interSamePair_span_eq_top' _ hP
+    (span_insert_eq_top_of_span_eq_top D₁.s h₁.span_eq_top)
+    (span_eq_top_of_one_mem (Finset.mem_insert_self 1 {f}))
+
+/-- `interSamePair` with a `coUnitDatum` second factor spans as soon as the first
+factor is rational: `coUnitDatum`'s `T = {1}` spans outright (Wedhorn's Laurent piece
+`U₀ ∩ {v(f) ≥ 1}` is rational, Lemma 8.34(i) / wedhorn.txt:4230). -/
+theorem RationalLocData.interSamePair_coUnitDatum_span_eq_top [IsTateRing A]
+    (D₁ : RationalLocData A) (f : A) (hP : (coUnitDatum D₁.P f).P = D₁.P)
+    (h₁ : D₁.IsRational) :
+    Ideal.span (((D₁.interSamePair (coUnitDatum D₁.P f) hP).T : Finset A) : Set A) = ⊤ :=
+  D₁.interSamePair_span_eq_top' _ hP
+    (span_insert_eq_top_of_span_eq_top D₁.s h₁.span_eq_top)
+    (span_insert_eq_top_of_span_eq_top f (span_eq_top_of_one_mem (Finset.mem_singleton_self 1)))
 
 /-- The base-independent **2-cover `𝒰_f`** of `D₀` (Wedhorn 4230): the two
 halves `R(f/1) ∩ D₀` and `R(1/f) ∩ D₀` (via `interSamePair`, base-independent
@@ -514,6 +588,19 @@ theorem unit_mem_unitCover (D₀ : RationalLocData A) (f : A) :
 theorem counit_mem_unitCover (D₀ : RationalLocData A) (f : A) :
     D₀.interSamePair (coUnitDatum D₀.P f) rfl ∈ (unitCover D₀ f).covers :=
   (mem_unitCover_iff D₀ f).mpr (Or.inr rfl)
+
+/-- The 2-cover `𝒰_f` of a rational base is a covering by rational subsets in
+Wedhorn Definition 7.29's sense: the two Laurent pieces `D₀ ∩ {v(f) ≤ 1}` and
+`D₀ ∩ {v(f) ≥ 1}` are rational with **no condition on `f`** (Lemma 8.34(i),
+wedhorn.txt:4225-4230 — their inserted generator sets pick up a unit). -/
+theorem unitCover_isRational [IsTateRing A] (D₀ : RationalLocData A) (f : A)
+    (hD₀ : D₀.IsRational) : (unitCover D₀ f).IsRational := by
+  refine ⟨hD₀, fun D hD => ?_⟩
+  rcases (mem_unitCover_iff D₀ f).mp hD with rfl | rfl
+  · exact RationalLocData.isRational_of_span_eq_top
+      (D₀.interSamePair_unitDatum_span_eq_top f rfl hD₀)
+  · exact RationalLocData.isRational_of_span_eq_top
+      (D₀.interSamePair_coUnitDatum_span_eq_top f rfl hD₀)
 
 /-- **Ratio plus piece**: rational datum for `rationalOpen D₀ ∩ {v(f) ≤ v(g)}`. -/
 noncomputable def ratioPlusDatum (D₀ : RationalLocData A) (f g g_inv : A)

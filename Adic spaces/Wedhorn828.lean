@@ -2914,6 +2914,7 @@ CLAUDE.md sub-lemma-with-`sorry` rule. -/
 private theorem prop_8_30_remark755_chain
     (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (hD : D.IsRational) (hD' : D'.IsRational)
     [IsTateRing (presheafValue D)]
     [IsNoetherianRing (presheafValue D)]
     [IsHuberRing (presheafValue D)]
@@ -2928,6 +2929,7 @@ omit [CompatiblePlusSubring A] in
 private theorem prop_8_30_relative_laurent_flat
     (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (hD : D.IsRational) (hD' : D'.IsRational)
     [hTate : IsTateRing (presheafValue D)]
     [hNoeth : IsNoetherianRing (presheafValue D)]
     [IsHuberRing (presheafValue D)]
@@ -2939,12 +2941,13 @@ private theorem prop_8_30_relative_laurent_flat
   -- The Remark-7.55 chain folds the per-step faithful flatness
   -- (`prop_8_30_basic_laurent_step_flat`) by `Module.Flat.trans`; the chain-decomposition object
   -- is the isolated residual `prop_8_30_remark755_chain` (geometric content of Remark 7.55).
-  prop_8_30_remark755_chain D D' h
+  prop_8_30_remark755_chain D D' h hD hD'
 
 omit [CompatiblePlusSubring A] in
 private theorem prop_8_30_flat_of_faithful_base
     (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (hD : D.IsRational) (hD' : D'.IsRational)
     (hTate : IsTateRing (presheafValue D))
     (hNoeth : IsNoetherianRing (presheafValue D)) :
     @Module.Flat (presheafValue D) (presheafValue D') _ _
@@ -2963,7 +2966,7 @@ private theorem prop_8_30_flat_of_faithful_base
     presheafValue_isStronglyNoetherian_faithful D
   -- Steps 2–4 (Remark 7.55 + relative Example 6.38 over `B` + Lemma 8.31): the single genuine
   -- residual, isolated faithfully (NO noeth-`A₀`). See `prop_8_30_relative_laurent_flat`.
-  exact prop_8_30_relative_laurent_flat D D' h
+  exact prop_8_30_relative_laurent_flat D D' h hD hD'
 
 omit [CompatiblePlusSubring A] in
 /-- **Proposition 8.30** (Wedhorn p.81, `wedhorn.txt:4095`): for rational subsets `U ⊆ V`
@@ -2984,7 +2987,11 @@ Faithful assembly of Wedhorn's four steps (see the section docstring above):
   `presheafValue_flat_of_canonical_faithful` over `B`, NO `[CompatiblePlusSubring B]`/noeth-`A₀`).
 
 FAITHFUL: the `section Wedhorn828` `A`-bundle only — no `PairOfDefinition`, no noeth-`A₀`, no
-data/witness parameters on this signature. The faithful per-step flat engine is now written with
+data/witness parameters on this signature. The `IsRational` hypotheses are NOT additions:
+they are Wedhorn's own Definition 7.29 ("rational subsets" requires `T·A` open,
+wedhorn.txt:3100) — the statement "U ⊆ V ⊆ X **two rational subsets**" (wedhorn.txt:4096)
+quantifies over exactly these (Def-7.29 restoration, user-approved 2026-06-11).
+The faithful per-step flat engine is now written with
 sorry-free transport logic; the remaining `sorry`s are precise faithful-route residuals (NOT
 noeth-`A₀` smuggling), none adding a hypothesis to this signature:
 * `prop_8_30_remark755_chain` — the **geometric** Remark-7.55 chain-decomposition of an arbitrary
@@ -2996,12 +3003,13 @@ noeth-`A₀` smuggling), none adding a hypothesis to this signature:
   *noetherian* half `presheafValue_isNoetherianRing_faithful` is sorry-free (the multivariate
   Example 6.38 surjection `example638_evalHom_surjective` is proven, `#print axioms`-clean). -/
 theorem prop_8_30_restriction_flat (D D' : RationalLocData A)
-    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) :
+    (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
+    (hD : D.IsRational) (hD' : D'.IsRational) :
     @Module.Flat (presheafValue D) (presheafValue D') _ _
       (restrictionMapHom D D' h).toModule :=
   -- Step 1 (Example 6.38): `B := presheafValue D` is again complete strongly noetherian Tate.
   -- Steps 2–4 (Remark 7.55 + Example 6.38 over `B` + Lemma 8.31): the relative reduction.
-  prop_8_30_flat_of_faithful_base D D' h
+  prop_8_30_flat_of_faithful_base D D' h hD hD'
     (presheafValue_isTateRing_faithful D)
     (presheafValue_isNoetherianRing_faithful D)
 
@@ -3075,7 +3083,7 @@ theorem cor_8_32_maximal_liftedIdeal_ne_top (C : RationalCovering A)
 
 omit [CompatiblePlusSubring A] in
 theorem cor_8_32_productRestriction_faithfullyFlat (C : RationalCovering A)
-    (hplus : (A⁺ : Set A) ⊆ C.base.P.A₀) :
+    (hC : C.IsRational) (hplus : (A⁺ : Set A) ⊆ C.base.P.A₀) :
     letI : ∀ D : { D // D ∈ C.covers }, Algebra (presheafValue C.base) (presheafValue D.1) :=
       fun D => (restrictionMapHom C.base D.1 (C.hsubset D.1 D.2)).toAlgebra
     Module.FaithfullyFlat (presheafValue C.base)
@@ -3092,7 +3100,8 @@ theorem cor_8_32_productRestriction_faithfullyFlat (C : RationalCovering A)
     (fun D => presheafValue D.1)
     (fun _ => inferInstance)
     (fun D => (restrictionMapHom C.base D.1 (C.hsubset D.1 D.2)).toAlgebra)
-    (fun D => prop_8_30_restriction_flat C.base D.1 (C.hsubset D.1 D.2))
+    (fun D => prop_8_30_restriction_flat C.base D.1 (C.hsubset D.1 D.2)
+      hC.base (hC.piece D.2))
     (cor_8_32_maximal_liftedIdeal_ne_top C hplus)
 
 omit [CompatiblePlusSubring A] in
@@ -3104,11 +3113,11 @@ product restriction `O_X(X) → ∏ O_X(Uᵢ)` is injective. Faithfully flat ⇒
 criterion) gives `FaithfulSMul`, hence `algebraMap` injectivity, hence injectivity of the
 subtype-indexed product restriction. No noeth-`A₀`, no prime-surjection. -/
 theorem cor_8_32_productRestrictionSub_injective (C : RationalCovering A)
-    (hplus : (A⁺ : Set A) ⊆ C.base.P.A₀) :
+    (hC : C.IsRational) (hplus : (A⁺ : Set A) ⊆ C.base.P.A₀) :
     Function.Injective (productRestrictionSub A C) := by
   letI : ∀ D : { D // D ∈ C.covers }, Algebra (presheafValue C.base) (presheafValue D.1) :=
     fun D => (restrictionMapHom C.base D.1 (C.hsubset D.1 D.2)).toAlgebra
-  haveI := cor_8_32_productRestriction_faithfullyFlat C hplus
+  haveI := cor_8_32_productRestriction_faithfullyFlat C hC hplus
   -- The product's `algebraMap` is injective (faithfully flat ⇒ `FaithfulSMul`), and it
   -- agrees componentwise with `productRestrictionSub` (each factor's algebraMap is the
   -- restriction ring hom).
@@ -3129,16 +3138,18 @@ Tate-absorbing Banach OMT (`productRestrictionSubToEqualizer_isOpenMap`, `Banach
 Wedhorn Prop 6.18). The repo proof (`productRestrictionSub_isInducing_tate`) is currently
 stated against `[IsNoetherianRing (…principalPair…A₀)]`; the Wedhorn case-(b) hypothesis is
 ring-noetherian, so wiring it here awaits the noeth-A₀ → ring-noetherian retyping. -/
-theorem cor_8_32_productRestrictionSub_isInducing (C : RationalCovering A) :
+theorem cor_8_32_productRestrictionSub_isInducing (C : RationalCovering A)
+    (hC : C.IsRational) :
     Topology.IsInducing (productRestrictionSub A C) := by
   sorry
 
 /-- **Corollary 8.32, topological strengthening** (the full `embedding` field of `IsSheafy`):
 the product restriction is a topological embedding = topological inducing + injectivity. -/
-theorem cor_8_32_productRestrictionSub_isEmbedding (C : RationalCovering A) :
+theorem cor_8_32_productRestrictionSub_isEmbedding (C : RationalCovering A)
+    (hC : C.IsRational) :
     Topology.IsEmbedding (productRestrictionSub A C) :=
-  ⟨cor_8_32_productRestrictionSub_isInducing C,
-    cor_8_32_productRestrictionSub_injective C
+  ⟨cor_8_32_productRestrictionSub_isInducing C hC,
+    cor_8_32_productRestrictionSub_injective C hC
       (CompatiblePlusSubring.aplus_le_A₀ C.base)⟩
 
 /-! ## Lemma 8.33 — the 2-element Laurent cover is `O_X`-acyclic
@@ -3170,7 +3181,7 @@ Wedhorn's proof: (i) Laurent covers `U_{f₁} × ⋯ × U_{fᵣ}` are acyclic by
 **Prop A.3(3)** induction; (ii) any `T`-generated cover admits a Laurent cover `V` with each
 `U|V` generated by units (via Cor 7.32); (iii) unit-generated covers refine to Laurent
 covers; (iv) combine by **Prop A.3(1)(2)**. Stated here as the `gluing` content. -/
-theorem lemma_8_34_gluing (C : RationalCovering A)
+theorem lemma_8_34_gluing (C : RationalCovering A) (hC : C.IsRational)
     (g : ∀ (D : ↥C.covers), presheafValue D.1)
     (hcompat : ∀ (D₁ D₂ : ↥C.covers) (D₃ : RationalLocData A)
       (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
@@ -3189,8 +3200,8 @@ By **Prop A.4** the sheaf property is equivalent to acyclicity of all rational c
 Lean formulation `IsSheafy A` is the pair `(embedding, gluing)` per cover, supplied by
 Cor 8.32 and Lemma 8.34 respectively. -/
 theorem isSheafy_of_stronglyNoetherian_828b : IsSheafy A where
-  embedding C := cor_8_32_productRestrictionSub_isEmbedding C
-  gluing C f hcompat := lemma_8_34_gluing C f hcompat
+  embedding C hC := cor_8_32_productRestrictionSub_isEmbedding C hC
+  gluing C hC f hcompat := lemma_8_34_gluing C hC f hcompat
 
 end Wedhorn828
 

@@ -967,7 +967,7 @@ instance IsSheafy.ofStronglyNoetherianTate_discrete
     (A : Type*) [CommRing A] [TopologicalSpace A] [DiscreteTopology A]
     [PlusSubring A] [IsHuberRing A] :
     IsSheafy A where
-  embedding C := by
+  embedding C _hC := by
     -- For the discrete case both source and target are discrete: `presheafValue`
     -- of a discrete ring is discrete (`discreteTopology_presheafValue`), and a
     -- finite Pi of discretes is discrete (`Pi.discreteTopology`). With both
@@ -991,7 +991,7 @@ instance IsSheafy.ofStronglyNoetherianTate_discrete
     refine ⟨fun _ => ⟨productRestrictionSub A C '' s, isOpen_discrete _, ?_⟩, fun _ => trivial⟩
     ext x
     exact ⟨fun ⟨y, hy, hyx⟩ => hinj hyx ▸ hy, fun hx => ⟨x, hx, rfl⟩⟩
-  gluing C f hcompat := discrete_gluing C f hcompat
+  gluing C _hC f hcompat := discrete_gluing C f hcompat
 
 /-! ### General case: specification of remaining work
 

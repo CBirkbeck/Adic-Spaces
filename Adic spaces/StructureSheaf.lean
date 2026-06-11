@@ -278,7 +278,10 @@ noncomputable def productRestrictionSub (C : RationalCovering A) :
 
 /-- An affinoid ring `(A, A⁺)` is **sheafy** if the structure presheaf `𝒪_X` on
 `Spa(A, A⁺)` is a sheaf of **topological** rings (Definition 8.26 of Wedhorn).
-By Remark 8.20, this is equivalent to two conditions on every rational cover `C`:
+By Remark 8.20, this is equivalent to two conditions on every rational cover `C` —
+quantified over coverings of rational subsets by rational subsets in Wedhorn
+Definition 7.29's sense (`RationalCovering.IsRational`: base and pieces have `T·A`
+open in `A`, wedhorn.txt:3100, 4143):
 1. **`embedding`**: the product restriction `O_X(base) → ∏ O_X(cover_i)` is a
    **topological embedding** (injective + the source topology equals the
    subspace topology induced from the product topology on the target).
@@ -303,10 +306,10 @@ See `docs/plans/2026-04-08-wedhorn-vs-zavyalov.md`. -/
 class IsSheafy (A : Type u) [CommRing A] [TopologicalSpace A]
     [IsTopologicalRing A] [inst₁ : PlusSubring A] [inst₂ : IsHuberRing A]
     [HasLocLiftPowerBounded A] : Prop where
-  embedding : ∀ (C : RationalCovering A),
+  embedding : ∀ (C : RationalCovering A), C.IsRational →
     Topology.IsEmbedding (productRestrictionSub A C)
-  gluing : ∀ (C : RationalCovering A)
-    (f : ∀ (D : ↥C.covers), presheafValue D.1),
+  gluing : ∀ (C : RationalCovering A), C.IsRational →
+    ∀ (f : ∀ (D : ↥C.covers), presheafValue D.1),
     (∀ (D₁ D₂ : ↥C.covers)
        (D₃ : RationalLocData A)
        (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
@@ -319,16 +322,18 @@ class IsSheafy (A : Type u) [CommRing A] [TopologicalSpace A]
 /-- Sheafy implies separation (injectivity of `productRestrictionSub`),
 extracted from the embedding field. -/
 theorem IsSheafy.separationSub [IsTopologicalRing A] [PlusSubring A]
-    [IsHuberRing A] [HasLocLiftPowerBounded A] [IsSheafy A] (C : RationalCovering A) :
+    [IsHuberRing A] [HasLocLiftPowerBounded A] [IsSheafy A] (C : RationalCovering A)
+    (hC : C.IsRational) :
     Function.Injective (productRestrictionSub A C) :=
-  (IsSheafy.embedding (A := A) C).injective
+  (IsSheafy.embedding (A := A) C hC).injective
 
 /-- Sheafy implies separation (injectivity of `productRestriction`). -/
 theorem IsSheafy.separation_injective [IsTopologicalRing A] [PlusSubring A]
-    [IsHuberRing A] [HasLocLiftPowerBounded A] [IsSheafy A] (C : RationalCovering A) :
+    [IsHuberRing A] [HasLocLiftPowerBounded A] [IsSheafy A] (C : RationalCovering A)
+    (hC : C.IsRational) :
     Function.Injective (productRestriction A C) := by
   intro x y hxy
-  apply IsSheafy.separationSub (A := A) C
+  apply IsSheafy.separationSub (A := A) C hC
   funext ⟨D, hD⟩
   exact congr_fun (congr_fun hxy D) hD
 
@@ -1432,7 +1437,7 @@ theorem isSheafy_ofStronglyNoetherianTate_flat
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A]
     (P : PairOfDefinition A) [IsNoetherianRing P.A₀] :
     IsSheafy A where
-  embedding C := by
+  embedding C _hC := by
     -- Per T-EMBED-TOPO boundary (reviewer-confirmed, ChatGPT Pro, 2026-05-11):
     -- factor into algebraic injectivity + topological inducing via
     -- `productRestrictionSub_isEmbedding_of_lane_inputs` (EmbeddingTopo.lean).
@@ -1537,7 +1542,7 @@ theorem isSheafy_ofStronglyNoetherianTate_flat
       -- an anonymous `sorry`.
       exact ⟨productRestrictionSub_isInducing_flat (A := A) P C,
         productRestrictionSub_injective_flat (A := A) P C⟩
-  gluing C f hcompat :=
+  gluing C _hC f hcompat :=
     rationalCovering_hasGluing P C f hcompat
 
 -- REMOVED (T6): isSheafy_ofStronglyNoetherianTate (TopologyComparison route)
@@ -1570,7 +1575,7 @@ theorem isSheafy_ofStronglyNoetherianTate_flat_of_topo_inducing
     (topo_inducing : ∀ (C : RationalCovering A),
       Topology.IsInducing (productRestrictionSub A C)) :
     IsSheafy A where
-  embedding C := by
+  embedding C _hC := by
     by_cases hs : C.base.s = 0
     · haveI := presheafValue_subsingleton_of_s_eq_zero C.base hs
       exact Topology.IsEmbedding.of_subsingleton _
@@ -1580,7 +1585,7 @@ theorem isSheafy_ofStronglyNoetherianTate_flat_of_topo_inducing
       apply rationalCovering_hasSeparation P C (hSpa C)
       intro D hD
       exact congr_fun hxy ⟨D, hD⟩
-  gluing C f hcompat :=
+  gluing C _hC f hcompat :=
     rationalCovering_hasGluing P C f hcompat
 
 /-! ### Factoring the product restriction through the canonical map -/
@@ -2066,7 +2071,7 @@ theorem isSheafy_ofStronglyNoetherianTate
     [NonarchimedeanRing A] [CompatiblePlusSubring A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A; CompleteSpace A] :
     IsSheafy A :=
-  { embedding := fun C => by
+  { embedding := fun C _hC => by
       by_cases hs : C.base.s = 0
       · haveI := presheafValue_subsingleton_of_s_eq_zero C.base hs
         exact Topology.IsEmbedding.of_subsingleton _
@@ -2084,7 +2089,7 @@ theorem isSheafy_ofStronglyNoetherianTate
             tateAcyclicity_separation_via_cor832 (A := A) C hne (x - y) hxy'
           exact sub_eq_zero.mp h_diff
         · exact isSheafy_separation_empty_cover_of_stronglyNoetherianTate C hs hne x y,
-    gluing := fun C f hcompat => by
+    gluing := fun C _hC f hcompat => by
       by_cases hne : C.covers.Nonempty
       · exact tateAcyclicity_gluing_via_descent (A := A) C hne f hcompat
       · refine ⟨0, ?_⟩
