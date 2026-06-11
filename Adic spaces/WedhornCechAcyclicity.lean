@@ -12405,7 +12405,94 @@ theorem relativePiece_equiv_restrict_square
         (imagePieceDatum D₀ E'.T E'.s hspanE')
         (imagePieceDatum_rationalOpen_mono D₀ E E' hspanE hspanE' hE'_sub)
         (relativePiece_equiv D₀ E hE_sub hspanE y) := by
-  sorry
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  -- both composites, postcomposed with `E.coeRingHom`, agree as ring homs out of
+  -- the localization (determined on the `algebraMap`-range by the trackings)
+  have hloc :
+      ((relativePiece_equiv D₀ E' (hE'_sub.trans hE_sub) hspanE') :
+          presheafValue E' →+* presheafValue (imagePieceDatum D₀ E'.T E'.s hspanE')).comp
+        ((restrictionMapHom E E' hE'_sub).comp E.coeRingHom) =
+      ((restrictionMapHom (imagePieceDatum D₀ E.T E.s hspanE)
+          (imagePieceDatum D₀ E'.T E'.s hspanE')
+          (imagePieceDatum_rationalOpen_mono D₀ E E' hspanE hspanE' hE'_sub)).comp
+        (((relativePiece_equiv D₀ E hE_sub hspanE) :
+          presheafValue E →+* presheafValue (imagePieceDatum D₀ E.T E.s hspanE)).comp
+          E.coeRingHom)) := by
+    refine IsLocalization.ringHom_ext (Submonoid.powers E.s) ?_
+    ext a
+    simp only [RingHom.comp_apply, RingEquiv.coe_toRingHom]
+    rw [show E.coeRingHom (algebraMap A (Localization.Away E.s) a) =
+      E.canonicalMap a from rfl]
+    rw [restrictionMapHom_canonicalMap E E' hE'_sub a]
+    rw [show (E'.canonicalMap a : presheafValue E') =
+        restrictionMapHom D₀ E' (hE'_sub.trans hE_sub) (D₀.canonicalMap a) from
+      (restrictionMapHom_canonicalMap D₀ E' (hE'_sub.trans hE_sub) a).symm]
+    rw [show (E.canonicalMap a : presheafValue E) =
+        restrictionMapHom D₀ E hE_sub (D₀.canonicalMap a) from
+      (restrictionMapHom_canonicalMap D₀ E hE_sub a).symm]
+    rw [show (relativePiece_equiv D₀ E' (hE'_sub.trans hE_sub) hspanE')
+          (restrictionMapHom D₀ E' (hE'_sub.trans hE_sub) (D₀.canonicalMap a)) =
+        (imagePieceDatum D₀ E'.T E'.s hspanE').canonicalMap (D₀.canonicalMap a) from
+      relativePiece_equiv_restrictionMap D₀ E' (hE'_sub.trans hE_sub) hspanE'
+        (D₀.canonicalMap a)]
+    rw [show (relativePiece_equiv D₀ E hE_sub hspanE)
+          (restrictionMapHom D₀ E hE_sub (D₀.canonicalMap a)) =
+        (imagePieceDatum D₀ E.T E.s hspanE).canonicalMap (D₀.canonicalMap a) from
+      relativePiece_equiv_restrictionMap D₀ E hE_sub hspanE (D₀.canonicalMap a)]
+    exact (restrictionMapHom_canonicalMap (imagePieceDatum D₀ E.T E.s hspanE)
+      (imagePieceDatum D₀ E'.T E'.s hspanE')
+      (imagePieceDatum_rationalOpen_mono D₀ E E' hspanE hspanE' hE'_sub)
+      (D₀.canonicalMap a)).symm
+  -- extend along the dense localization image by continuity (both composites are
+  -- compositions of completion extensions) + T2
+  letI : UniformSpace (Localization.Away E.s) := E.uniformSpace
+  letI : IsTopologicalRing (Localization.Away E.s) := E.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away E.s) := E.isUniformAddGroup
+  letI : UniformSpace (Localization.Away E'.s) := E'.uniformSpace
+  letI : IsTopologicalRing (Localization.Away E'.s) := E'.isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away E'.s) := E'.isUniformAddGroup
+  letI : UniformSpace (Localization.Away
+      (D₀.interSamePair (genPieceDatum D₀.P E'.T E'.s hspanE') rfl).s) :=
+    (D₀.interSamePair (genPieceDatum D₀.P E'.T E'.s hspanE') rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away
+      (D₀.interSamePair (genPieceDatum D₀.P E'.T E'.s hspanE') rfl).s) :=
+    (D₀.interSamePair (genPieceDatum D₀.P E'.T E'.s hspanE') rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away
+      (D₀.interSamePair (genPieceDatum D₀.P E'.T E'.s hspanE') rfl).s) :=
+    (D₀.interSamePair (genPieceDatum D₀.P E'.T E'.s hspanE') rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away
+      (D₀.interSamePair (genPieceDatum D₀.P E.T E.s hspanE) rfl).s) :=
+    (D₀.interSamePair (genPieceDatum D₀.P E.T E.s hspanE) rfl).uniformSpace
+  letI : IsTopologicalRing (Localization.Away
+      (D₀.interSamePair (genPieceDatum D₀.P E.T E.s hspanE) rfl).s) :=
+    (D₀.interSamePair (genPieceDatum D₀.P E.T E.s hspanE) rfl).isTopologicalRing
+  letI : IsUniformAddGroup (Localization.Away
+      (D₀.interSamePair (genPieceDatum D₀.P E.T E.s hspanE) rfl).s) :=
+    (D₀.interSamePair (genPieceDatum D₀.P E.T E.s hspanE) rfl).isUniformAddGroup
+  letI : UniformSpace (Localization.Away (imagePieceDatum D₀ E.T E.s hspanE).s) :=
+    (imagePieceDatum D₀ E.T E.s hspanE).uniformSpace
+  letI : IsTopologicalRing
+      (Localization.Away (imagePieceDatum D₀ E.T E.s hspanE).s) :=
+    (imagePieceDatum D₀ E.T E.s hspanE).isTopologicalRing
+  letI : IsUniformAddGroup
+      (Localization.Away (imagePieceDatum D₀ E.T E.s hspanE).s) :=
+    (imagePieceDatum D₀ E.T E.s hspanE).isUniformAddGroup
+  refine @UniformSpace.Completion.ext' (Localization.Away E.s) E.uniformSpace
+    (presheafValue (imagePieceDatum D₀ E'.T E'.s hspanE')) _ _ _ _
+    (UniformSpace.Completion.continuous_extension.comp
+      (UniformSpace.Completion.continuous_extension.comp
+        UniformSpace.Completion.continuous_extension))
+    (UniformSpace.Completion.continuous_extension.comp
+      (UniformSpace.Completion.continuous_extension.comp
+        UniformSpace.Completion.continuous_extension))
+    ?_ y
+  intro z
+  exact RingHom.congr_fun hloc z
 
 set_option maxHeartbeats 4000000 in
 set_option linter.unusedSectionVars false in
