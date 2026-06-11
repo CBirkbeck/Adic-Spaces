@@ -14528,4 +14528,45 @@ theorem isSheafy_ofStronglyNoetherianTate_clean
     intro C hC f hcompat
     exact (every_rational_cover_is_OXAcyclic C hC).gluing f hcompat
 
+/-! ### Lemma 8.34 (gluing form) + Theorem 8.28(b), Cor-8.32-assembled
+
+Relocated from `Wedhorn828.lean` (2026-06-11): the gluing leaf is discharged here
+from the proven general-base acyclicity; the import direction (this file imports
+`Wedhorn828` for the Cor-8.32 embedding half) forces the assembly to live here. -/
+
+set_option linter.unusedSectionVars false in
+/-- **Lemma 8.34, gluing form** (Wedhorn p. 84, wedhorn.txt:4231): compatible
+families on a Def-7.29 rational covering glue. DISCHARGED from the general-base
+acyclicity `every_rational_cover_is_OXAcyclic` (Wedhorn 7.54 + 8.34(i)–(iv) +
+Prop A.3 + the R2-transport via Prop 8.16). -/
+theorem lemma_8_34_gluing
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C : RationalCovering A) (hC : C.IsRational)
+    (g : ∀ (D : ↥C.covers), presheafValue D.1)
+    (hcompat : ∀ (D₁ D₂ : ↥C.covers) (D₃ : RationalLocData A)
+      (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+      (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+      restrictionMap D₁.1 D₃ h₃₁ (g D₁) = restrictionMap D₂.1 D₃ h₃₂ (g D₂)) :
+    ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
+      restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = g D := by
+  classical
+  exact (every_rational_cover_is_OXAcyclic C hC).gluing g hcompat
+
+set_option linter.unusedSectionVars false in
+/-- **Theorem 8.28(b)** (Wedhorn p. 81, wedhorn.txt:4143; assembled from Cor 8.32
+(separation/embedding) and Lemma 8.34 (gluing)): *if `A` is a complete strongly
+noetherian Tate ring then `𝒪_X` is a sheaf of complete topological rings on
+`X = Spa A`.* By Prop A.4 the sheaf property is the pair `(embedding, gluing)`
+per Def-7.29 rational cover. -/
+theorem isSheafy_of_stronglyNoetherian_828b
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A] : IsSheafy A where
+  embedding C hC := cor_8_32_productRestrictionSub_isEmbedding C hC
+  gluing C hC f hcompat := lemma_8_34_gluing C hC f hcompat
+
 end ValuationSpectrum
