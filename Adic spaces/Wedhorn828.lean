@@ -2905,8 +2905,8 @@ Wedhorn-6.18 `isStronglyNoetherian` residual, not the `CompatiblePlusSubring`-cl
 prior pass feared — that class is false-in-general for a completion and is no longer needed). What
 remains is the *geometric* chain-decomposition object: the inductive sequence `Xᵢ` of intermediate
 rational locales for an arbitrary `D'` (the repo has the dominating unit `X₀` via
-`cor_7_32_dominating_unit` but `laurent_cover_from_dominating_unit`, `WedhornCechAcyclicity.lean:1322`,
-is itself `sorry`, and the inductive `Xᵢ`-chain + the per-step ambient-↔-relative intertwining
+`cor_7_32_dominating_unit` and `laurent_cover_from_dominating_unit` — both sorry-free
+as of 2026-06-11 — but the inductive `Xᵢ`-chain + the per-step ambient-↔-relative intertwining
 bookkeeping for an arbitrary `D'`, plus the `LaurentNormalized` + generators-in-`A₀` discharge that
 feeds each `prop_8_30_basic_laurent_step_flat` step, are not yet built). This is the missing geometric
 content of Remark 7.55; it adds NO hypothesis to `prop_8_30_relative_laurent_flat`. Isolated per the
