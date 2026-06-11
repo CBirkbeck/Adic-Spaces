@@ -12154,6 +12154,80 @@ theorem isOXAcyclic_of_isGeneratedBy_ring_units [DecidableEq A]
       hVP (hplus_pieces D.1 D.2)
 
 set_option linter.unusedSectionVars false in
+/-- **THE 8.16-KEYSTONE (Wedhorn Prop 8.16 / Prop 8.2, [Hu2] 1.4.4)**: for a
+rational piece `E` inside `D₀` (with the rational-subset span condition of
+Wedhorn Def 7.29), the section ring `𝒪_X(E)` is canonically isomorphic to the
+`B`-side section ring of the image datum `R_B(im E.T / im E.s)`,
+`B := 𝒪_X(D₀)`. This is the general-piece base change behind BOTH "we may
+assume X = V" (Prop 8.30's opening, wedhorn.txt:4099) and the R2-transport
+of acyclicity to general bases.
+
+Factors through two PROVEN pieces: the open-equality
+`E ≈ D₀ ∩ R(E.T/E.s)` (restriction-bijectivity between open-equal data) and
+the relative-piece equivalence `genPiece_relative_equiv` (the
+Example-6.38-template machinery, G1). -/
+noncomputable def relativePiece_equiv
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ E : RationalLocData A)
+    (hE_sub : rationalOpen E.T E.s ⊆ rationalOpen D₀.T D₀.s)
+    (hspanE : Ideal.span (E.T : Set A) = ⊤) :
+    presheafValue E ≃+* presheafValue (imagePieceDatum D₀ E.T E.s hspanE) :=
+  have h_eq : rationalOpen E.T E.s =
+      rationalOpen (D₀.interSamePair (genPieceDatum D₀.P E.T E.s hspanE) rfl).T
+        (D₀.interSamePair (genPieceDatum D₀.P E.T E.s hspanE) rfl).s := by
+    rw [RationalLocData.interSamePair_rationalOpen, genPieceDatum_T,
+      genPieceDatum_s]
+    exact (Set.inter_eq_right.mpr hE_sub).symm
+  (RingEquiv.ofBijective
+    (restrictionMapHom E
+      (D₀.interSamePair (genPieceDatum D₀.P E.T E.s hspanE) rfl) h_eq.symm.le)
+    (wca_restrictionMap_bijective_of_rationalOpen_eq E
+      (D₀.interSamePair (genPieceDatum D₀.P E.T E.s hspanE) rfl) h_eq)).trans
+    (genPiece_relative_equiv D₀ E.T E.s hspanE)
+
+set_option linter.unusedSectionVars false in
+/-- The 8.16-keystone intertwines the canonical maps: restricting `x : 𝒪_X(D₀)`
+to `E` and passing to the `B`-side equals the `B`-side canonical map of `x`
+(Wedhorn Prop 8.2 base-change naturality, general-piece form). -/
+theorem relativePiece_equiv_restrictionMap
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ E : RationalLocData A)
+    (hE_sub : rationalOpen E.T E.s ⊆ rationalOpen D₀.T D₀.s)
+    (hspanE : Ideal.span (E.T : Set A) = ⊤)
+    (x : presheafValue D₀) :
+    relativePiece_equiv D₀ E hE_sub hspanE
+        (restrictionMap D₀ E hE_sub x) =
+      (imagePieceDatum D₀ E.T E.s hspanE).canonicalMap x := by
+  have h_eq : rationalOpen E.T E.s =
+      rationalOpen (D₀.interSamePair (genPieceDatum D₀.P E.T E.s hspanE) rfl).T
+        (D₀.interSamePair (genPieceDatum D₀.P E.T E.s hspanE) rfl).s := by
+    rw [RationalLocData.interSamePair_rationalOpen, genPieceDatum_T,
+      genPieceDatum_s]
+    exact (Set.inter_eq_right.mpr hE_sub).symm
+  show genPiece_relative_equiv D₀ E.T E.s hspanE
+      (restrictionMapHom E
+        (D₀.interSamePair (genPieceDatum D₀.P E.T E.s hspanE) rfl) h_eq.symm.le
+        (restrictionMap D₀ E hE_sub x)) =
+    (imagePieceDatum D₀ E.T E.s hspanE).canonicalMap x
+  have hcomp : restrictionMapHom E
+      (D₀.interSamePair (genPieceDatum D₀.P E.T E.s hspanE) rfl) h_eq.symm.le
+      (restrictionMap D₀ E hE_sub x) =
+      restrictionMap D₀
+        (D₀.interSamePair (genPieceDatum D₀.P E.T E.s hspanE) rfl)
+        (RationalLocData.interSamePair_subset_left _ _ _) x :=
+    congrFun (restrictionMap_comp D₀ E
+      (D₀.interSamePair (genPieceDatum D₀.P E.T E.s hspanE) rfl)
+      hE_sub h_eq.symm.le) x
+  rw [hcomp]
+  exact genPiece_relative_equiv_restrictionMap D₀ E.T E.s hspanE x
+
+set_option linter.unusedSectionVars false in
 /-- **B-side per-pair plus-containment** (Wedhorn Prop 8.2 base change of
 Remark 7.17): if `A⁺ ⊆ D₀.P.A₀`, then `B⁺ = completedPlusSubring D₀` lies in
 the ring of definition `presheafValue_ringOfDef D₀` of `B = 𝒪_X(D₀)`. Both
