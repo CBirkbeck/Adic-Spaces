@@ -7206,14 +7206,15 @@ theorem unitCover_isOXAcyclic
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (D₀ : RationalLocData A) (f : A)
+    (D₀ : RationalLocData A) (f : A) (hD₀ : D₀.IsRational)
     (hplus : (A⁺ : Set A) ⊆ D₀.P.A₀) :
     (unitCover D₀ f).IsOXAcyclic := by
   refine ⟨?_, ?_⟩
   · -- Separation = injectivity of the product restriction (Wedhorn Cor 8.32,
     -- faithful flatness route, `cor_8_32_productRestrictionSub_injective`).
     intro x hx
-    apply cor_8_32_productRestrictionSub_injective (unitCover D₀ f) hplus
+    apply cor_8_32_productRestrictionSub_injective (unitCover D₀ f)
+      (unitCover_isRational D₀ f hD₀) hplus
     funext D
     change restrictionMap (unitCover D₀ f).base D.1 ((unitCover D₀ f).hsubset D.1 D.2) x =
       restrictionMap (unitCover D₀ f).base D.1 ((unitCover D₀ f).hsubset D.1 D.2) 0
@@ -7271,10 +7272,10 @@ theorem laurentProdCoverOf_isOXAcyclic [DecidableEq A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (D₀ : RationalLocData A) (fs : List A)
+    (D₀ : RationalLocData A) (fs : List A) (hD₀ : D₀.IsRational)
     (hplus : (A⁺ : Set A) ⊆ D₀.P.A₀) :
     (laurentProdCoverOf D₀ fs).IsOXAcyclic := by
-  induction fs generalizing D₀ hplus with
+  induction fs generalizing D₀ hD₀ hplus with
   | nil =>
     refine isOXAcyclic_of_trivial_cover _ ?_
     rw [laurentProdCoverOf_covers, laurentProdLeaves_nil, laurentProdCoverOf_base]
@@ -7289,7 +7290,7 @@ theorem laurentProdCoverOf_isOXAcyclic [DecidableEq A]
     have hinner : ((unitCover D₀ f).interProd (laurentProdCoverOf D₀ gs)
         hbase hUfP hVP).IsOXAcyclic := by
       refine isOXAcyclic_interProd (unitCover D₀ f) (laurentProdCoverOf D₀ gs)
-        hbase hUfP hVP (unitCover_isOXAcyclic D₀ f hplus) (fun P hP => ?_)
+        hbase hUfP hVP (unitCover_isOXAcyclic D₀ f hD₀ hplus) (fun P hP => ?_)
         (fun P P' hP hP' => ?_)
       · -- hV0: V|_P acyclic, via congr from the IH at base P
         have hPsub : rationalOpen P.T P.s ⊆ rationalOpen D₀.T D₀.s :=
@@ -7297,7 +7298,7 @@ theorem laurentProdCoverOf_isOXAcyclic [DecidableEq A]
         have hplusP : (A⁺ : Set A) ⊆ ↑P.P.A₀ := by
           rw [hUfP P hP]; exact hplus
         refine isOXAcyclic_congr _ (laurentProdCoverOf P gs) rfl (fun D hD => ?_)
-          (fun D' hD' => ?_) (ih P hplusP)
+          (fun D' hD' => ?_) (ih P ((unitCover_isRational D₀ f hD₀).piece hP) hplusP)
         · rw [RationalCovering.restrictTo_covers, Finset.mem_image] at hD
           obtain ⟨⟨Q, hQ⟩, -, rfl⟩ := hD
           obtain ⟨Q', hQ', hQeq⟩ := (laurentProdLeaves_restrict gs D₀ P hPsub).1 Q hQ
@@ -7315,8 +7316,12 @@ theorem laurentProdCoverOf_isOXAcyclic [DecidableEq A]
             ((unitCover D₀ f).hsubset P hP)
         have hplusP : (A⁺ : Set A) ⊆ ↑P.P.A₀ := by
           rw [hUfP P hP]; exact hplus
+        have hPm_rat : Pm.IsRational :=
+          RationalLocData.interSamePair_isRational P P' _
+            ((unitCover_isRational D₀ f hD₀).piece hP)
+            ((unitCover_isRational D₀ f hD₀).piece hP')
         refine isOXAcyclic_congr _ (laurentProdCoverOf Pm gs) rfl (fun D hD => ?_)
-          (fun D' hD' => ?_) (ih Pm hplusP)
+          (fun D' hD' => ?_) (ih Pm hPm_rat hplusP)
         · rw [RationalCovering.restrictTo_covers, Finset.mem_image] at hD
           obtain ⟨⟨Q, hQ⟩, -, rfl⟩ := hD
           obtain ⟨Q', hQ', hQeq⟩ := (laurentProdLeaves_restrict gs D₀ Pm hPsub).1 Q hQ
@@ -7380,13 +7385,14 @@ theorem wedhorn_lemma_834_part_i_laurent_acyclic [DecidableEq A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (V : RationalCovering A) (fs : List A) (hV_laurent : V.IsLaurentProdCover fs)
+    (hV_base : V.base.IsRational)
     (hplus : (A⁺ : Set A) ⊆ V.base.P.A₀) :
     V.IsOXAcyclic := by
   -- The base-independent Laurent cover `V` IS (R-equal to) `laurentProdCoverOf V.base fs`
   -- (same base + same covers), which is acyclic by the faithful A.3(3) induction.
   rw [RationalCovering.IsLaurentProdCover] at hV_laurent
   refine isOXAcyclic_congr V (laurentProdCoverOf V.base fs) rfl (fun D hD => ?_)
-    (fun D' hD' => ?_) (laurentProdCoverOf_isOXAcyclic V.base fs hplus)
+    (fun D' hD' => ?_) (laurentProdCoverOf_isOXAcyclic V.base fs hV_base hplus)
   · exact ⟨D, by rw [laurentProdCoverOf_covers, ← hV_laurent]; exact hD, rfl⟩
   · refine ⟨D', ?_, rfl⟩
     rw [laurentProdCoverOf_covers] at hD'; rw [hV_laurent]; exact hD'
@@ -9762,6 +9768,37 @@ noncomputable def imageGenCover
         Finset.mem_image_of_mem (fun u => genPieceDatum (presheafValue_concretePair D₀)
           (T.image D₀.canonicalMap) u (imageGenCover_span D₀ T hspan)) hu, hv'⟩ }
 
+set_option linter.unusedSectionVars false in
+/-- The B-level image cover is a covering by rational subsets (Wedhorn Definition
+7.29): the base is the whole space `R({1}/1)` and each piece's generator set is the
+spanning image `im T` (so `im T · B = B` is open). -/
+theorem imageGenCover_isRational
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ : RationalLocData A) (T : Finset A)
+    (hspan : Ideal.span (T : Set A) = ⊤) :
+    (imageGenCover D₀ T hspan).IsRational := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI : IsNoetherianRing (presheafValue D₀) :=
+    presheafValue_isNoetherianRing_faithful D₀
+  haveI : IsStronglyNoetherian (presheafValue D₀) :=
+    presheafValue_isStronglyNoetherian_faithful D₀
+  haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  letI : DecidableEq (presheafValue D₀) := Classical.decEq _
+  letI : DecidableEq (RationalLocData (presheafValue D₀)) := Classical.decEq _
+  constructor
+  · exact globalLocData_isRational _
+  · intro D hD
+    rw [show (imageGenCover D₀ T hspan).covers =
+      (T.image D₀.canonicalMap).image (fun u =>
+        genPieceDatum (presheafValue_concretePair D₀) (T.image D₀.canonicalMap) u
+          (imageGenCover_span D₀ T hspan)) from rfl, Finset.mem_image] at hD
+    obtain ⟨u, hu, rfl⟩ := hD
+    exact RationalLocData.isRational_of_span_eq_top
+      (by rw [genPieceDatum_T]; exact imageGenCover_span D₀ T hspan)
+
 set_option maxHeartbeats 1000000 in
 set_option linter.unusedSectionVars false in
 /-- G2′: the B-level image cover is generated by the image of `T`. -/
@@ -12078,7 +12115,7 @@ theorem laurentTrace_isOXAcyclic [DecidableEq A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
     (V : RationalCovering A) (fs : List A) (hV_laurent : V.IsLaurentProdCover fs)
-    (U : RationalLocData A)
+    (U : RationalLocData A) (hU_rat : U.IsRational)
     (hU_subset : rationalOpen U.T U.s ⊆ rationalOpen V.base.T V.base.s)
     (hUP : U.P = V.base.P)
     (hVP : ∀ Q ∈ V.covers, Q.P = V.base.P)
@@ -12086,7 +12123,7 @@ theorem laurentTrace_isOXAcyclic [DecidableEq A]
     (V.restrictTo U hU_subset hUP hVP).IsOXAcyclic := by
   classical
   refine isOXAcyclic_congr _ (laurentProdCoverOf U fs) rfl (fun D hD => ?_)
-    (fun D' hD' => ?_) (laurentProdCoverOf_isOXAcyclic U fs hplus)
+    (fun D' hD' => ?_) (laurentProdCoverOf_isOXAcyclic U fs hU_rat hplus)
   · -- each trace piece's open IS a `U`-leaf open
     rw [RationalCovering.restrictTo_covers, Finset.mem_image] at hD
     obtain ⟨⟨Q, hQ⟩, -, rfl⟩ := hD
@@ -12121,6 +12158,7 @@ theorem isOXAcyclic_of_isGeneratedBy_ring_units [DecidableEq A]
       CompleteSpace A]
     (C : RationalCovering A) (units : Finset A) (hne : units.Nonempty)
     (hgen : C.IsGeneratedBy units) (h_units : ∀ f ∈ units, IsUnit f)
+    (hC_rat : C.IsRational)
     (hplus : (A⁺ : Set A) ⊆ C.base.P.A₀)
     (hplus_pieces : ∀ D ∈ C.covers, (A⁺ : Set A) ⊆ ↑D.P.A₀)
     (hP_pieces : ∀ D ∈ C.covers, D.P = C.base.P) :
@@ -12130,6 +12168,7 @@ theorem isOXAcyclic_of_isGeneratedBy_ring_units [DecidableEq A]
     ratio_laurent_unitGen_bundle C units hne hgen h_units
   have hV_acyclic : V.IsOXAcyclic :=
     wedhorn_lemma_834_part_i_laurent_acyclic V fs hV_laurent
+      (by rw [hV_base]; exact hC_rat.base)
       (by rw [hV_base]; exact hplus)
   have hVP : ∀ Q ∈ V.covers, Q.P = V.base.P := fun Q hQ =>
     laurentProdLeaves_pair fs V.base
@@ -12148,7 +12187,7 @@ theorem isOXAcyclic_of_isGeneratedBy_ring_units [DecidableEq A]
     obtain ⟨⟨Q, hQ⟩, -, rfl⟩ := hE'
     exact ⟨Q, hQ, RationalLocData.interSamePair_subset_right _ _ _⟩
   · intro D
-    exact laurentTrace_isOXAcyclic V fs hV_laurent D.1
+    exact laurentTrace_isOXAcyclic V fs hV_laurent D.1 (hC_rat.piece D.2)
       (by rw [hV_base]; exact C.hsubset D.1 D.2)
       ((hP_pieces D.1 D.2).trans (congrArg RationalLocData.P hV_base).symm)
       hVP (hplus_pieces D.1 D.2)
@@ -12226,6 +12265,188 @@ theorem relativePiece_equiv_restrictionMap
       hE_sub h_eq.symm.le) x
   rw [hcomp]
   exact genPiece_relative_equiv_restrictionMap D₀ E.T E.s hspanE x
+
+set_option linter.unusedSectionVars false in
+/-- **The comap characterisation of image-piece opens** (Wedhorn Prop 8.2 +
+Remark 8.4: the homeomorphism `Spa B ≅ U` matches rational subsets, [Hu2] 1.4.4):
+a point of `Spv B` lies in the image piece's rational open iff it is a Spa-`B`
+point whose `A`-shadow lies in the original piece's rational open. The conditions
+transport verbatim through `comap_vle` (an equality of propositions). -/
+theorem imagePieceDatum_mem_rationalOpen_iff
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ E : RationalLocData A) (hspanE : Ideal.span (E.T : Set A) = ⊤)
+    (w : Spv (presheafValue D₀)) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    haveI : DecidableEq (presheafValue D₀) := Classical.decEq _
+    (w ∈ rationalOpen (imagePieceDatum D₀ E.T E.s hspanE).T
+        (imagePieceDatum D₀ E.T E.s hspanE).s ↔
+      w ∈ Spa (presheafValue D₀) (presheafValue D₀)⁺ ∧
+        comap D₀.canonicalMap w ∈ rationalOpen E.T E.s) := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  letI : DecidableEq (presheafValue D₀) := Classical.decEq _
+  have hT : (imagePieceDatum D₀ E.T E.s hspanE).T = E.T.image D₀.canonicalMap := rfl
+  have hs : (imagePieceDatum D₀ E.T E.s hspanE).s = D₀.canonicalMap E.s := rfl
+  constructor
+  · rintro ⟨hspa, hcond, hnz⟩
+    refine ⟨hspa, comap_mem_spa (canonicalMap_continuous D₀)
+      D₀.canonicalMap_integral hspa, fun t ht => ?_, fun h0 => ?_⟩
+    · rw [comap_vle]
+      have := hcond (D₀.canonicalMap t) (by rw [hT]; exact Finset.mem_image_of_mem _ ht)
+      rwa [hs] at this
+    · rw [comap_vle, map_zero] at h0
+      rw [hs] at hnz
+      exact hnz h0
+  · rintro ⟨hspa, -, hcond, hnz⟩
+    refine ⟨hspa, fun x hx => ?_, fun h0 => ?_⟩
+    · rw [hT, Finset.mem_image] at hx
+      obtain ⟨t, ht, rfl⟩ := hx
+      rw [hs]
+      have := hcond t ht
+      rwa [comap_vle] at this
+    · rw [hs] at h0
+      exact hnz (by rw [comap_vle, map_zero]; exact h0)
+
+set_option linter.unusedSectionVars false in
+/-- Image pieces preserve containment of rational opens (Wedhorn Remark 8.4). -/
+theorem imagePieceDatum_rationalOpen_mono
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ E E' : RationalLocData A)
+    (hspanE : Ideal.span (E.T : Set A) = ⊤)
+    (hspanE' : Ideal.span (E'.T : Set A) = ⊤)
+    (h : rationalOpen E'.T E'.s ⊆ rationalOpen E.T E.s) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    rationalOpen (imagePieceDatum D₀ E'.T E'.s hspanE').T
+        (imagePieceDatum D₀ E'.T E'.s hspanE').s ⊆
+      rationalOpen (imagePieceDatum D₀ E.T E.s hspanE).T
+        (imagePieceDatum D₀ E.T E.s hspanE).s := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  intro w hw
+  rw [imagePieceDatum_mem_rationalOpen_iff] at hw ⊢
+  exact ⟨hw.1, h hw.2⟩
+
+set_option linter.unusedSectionVars false in
+/-- Image pieces match intersections of rational opens (Wedhorn Remark 8.4). -/
+theorem imagePieceDatum_rationalOpen_inter
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ E₁ E₂ E₃ : RationalLocData A)
+    (hspanE₁ : Ideal.span (E₁.T : Set A) = ⊤)
+    (hspanE₂ : Ideal.span (E₂.T : Set A) = ⊤)
+    (hspanE₃ : Ideal.span (E₃.T : Set A) = ⊤)
+    (h₃ : rationalOpen E₃.T E₃.s =
+      rationalOpen E₁.T E₁.s ∩ rationalOpen E₂.T E₂.s) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    rationalOpen (imagePieceDatum D₀ E₃.T E₃.s hspanE₃).T
+        (imagePieceDatum D₀ E₃.T E₃.s hspanE₃).s =
+      rationalOpen (imagePieceDatum D₀ E₁.T E₁.s hspanE₁).T
+          (imagePieceDatum D₀ E₁.T E₁.s hspanE₁).s ∩
+        rationalOpen (imagePieceDatum D₀ E₂.T E₂.s hspanE₂).T
+          (imagePieceDatum D₀ E₂.T E₂.s hspanE₂).s := by
+  haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+  haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+  ext w
+  rw [Set.mem_inter_iff, imagePieceDatum_mem_rationalOpen_iff,
+    imagePieceDatum_mem_rationalOpen_iff, imagePieceDatum_mem_rationalOpen_iff, h₃]
+  constructor
+  · rintro ⟨hspa, h₁, h₂⟩
+    exact ⟨⟨hspa, h₁⟩, hspa, h₂⟩
+  · rintro ⟨⟨hspa, h₁⟩, -, h₂⟩
+    exact ⟨hspa, h₁, h₂⟩
+
+set_option linter.unusedSectionVars false in
+/-- **The keystone restriction square** (Wedhorn Prop 8.16 naturality for nested
+pieces, [Hu2] 1.4.4): for rational pieces `E' ⊆ E ⊆ D₀` the base-change
+isomorphisms intertwine the `A`-side and `B`-side restriction maps:
+
+```
+        𝒪_X(E)  ──restrict──→  𝒪_X(E')
+          ≃ keystone_E            ≃ keystone_E'
+        𝒪_B(im E) ─restrict─→  𝒪_B(im E')
+```
+
+**Proof recipe (G1/G3b)**: both composites are continuous ring homomorphisms
+`𝒪_X(E) → 𝒪_B(im E')`; they agree on the canonical `A`-image by
+`relativePiece_equiv_restrictionMap` + `restrictionMapHom_canonicalMap` (both
+sides send `(canonicalMap E a)` to `(im E').canonicalMap (D₀.canonicalMap a)`-
+style values), hence on the dense localization image (ring homs preserve the
+inverted `E.s`), hence everywhere by continuity + `T2`. Same 8-step stack as
+`genPiece_relative_equiv`'s G3b overlap squares. -/
+theorem relativePiece_equiv_restrict_square
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (D₀ E E' : RationalLocData A)
+    (hE_sub : rationalOpen E.T E.s ⊆ rationalOpen D₀.T D₀.s)
+    (hE'_sub : rationalOpen E'.T E'.s ⊆ rationalOpen E.T E.s)
+    (hspanE : Ideal.span (E.T : Set A) = ⊤)
+    (hspanE' : Ideal.span (E'.T : Set A) = ⊤)
+    (y : presheafValue E) :
+    haveI hTateB : IsTateRing (presheafValue D₀) := presheafValue_isTateRing_faithful D₀
+    haveI : IsHuberRing (presheafValue D₀) := hTateB.toIsHuberRing
+    haveI : IsNoetherianRing (presheafValue D₀) :=
+      presheafValue_isNoetherianRing_faithful D₀
+    relativePiece_equiv D₀ E' (hE'_sub.trans hE_sub) hspanE'
+        (restrictionMap E E' hE'_sub y) =
+      restrictionMap (imagePieceDatum D₀ E.T E.s hspanE)
+        (imagePieceDatum D₀ E'.T E'.s hspanE')
+        (imagePieceDatum_rationalOpen_mono D₀ E E' hspanE hspanE' hE'_sub)
+        (relativePiece_equiv D₀ E hE_sub hspanE y) := by
+  sorry
+
+set_option maxHeartbeats 4000000 in
+set_option linter.unusedSectionVars false in
+/-- **The R2 image cover** (Wedhorn Prop 8.2 + Remark 8.4 + Prop 8.16, the
+"we may assume X = V" reduction): a Def-7.29 rational covering `C` of
+`U = R(C.base)` transports to a whole-space covering of `Spa B`,
+`B := 𝒪_X(C.base)`, whose pieces are the image data `R_B(im D.T / im D.s)`.
+The covering property transports through the point correspondence
+`w ↦ comap (canonicalMap) w` (conditions verbatim by `comap_vle`). -/
+noncomputable def imageCover [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C : RationalCovering A) (hC : C.IsRational) :
+    RationalCovering (presheafValue C.base) :=
+  haveI hTateB : IsTateRing (presheafValue C.base) :=
+    presheafValue_isTateRing_faithful C.base
+  haveI : IsNoetherianRing (presheafValue C.base) :=
+    presheafValue_isNoetherianRing_faithful C.base
+  haveI : IsHuberRing (presheafValue C.base) := hTateB.toIsHuberRing
+  letI : DecidableEq (presheafValue C.base) := Classical.decEq _
+  letI : DecidableEq (RationalLocData (presheafValue C.base)) := Classical.decEq _
+  { base := globalLocData (presheafValue_concretePair C.base)
+    covers := C.covers.attach.image (fun D =>
+      imagePieceDatum C.base D.1.T D.1.s ((hC.piece D.2).span_eq_top))
+    hsubset := by
+      intro E hE v hv
+      exact ⟨hv.1, fun x hx => by
+        rw [Finset.mem_singleton.mp hx]
+        exact (v.vle_total 1 1).elim id id, v.not_vle_one_zero⟩
+    hcover := by
+      intro w hw
+      have hw_spa : w ∈ Spa (presheafValue C.base) (presheafValue C.base)⁺ := hw.1
+      have hv := comap_canonicalMap_mem_rationalOpen C.base
+        (canonicalMap_continuous C.base) hw_spa
+      obtain ⟨D, hD, hvD⟩ := C.hcover _ hv
+      refine ⟨imagePieceDatum C.base D.T D.s ((hC.piece hD).span_eq_top),
+        Finset.mem_image.mpr ⟨⟨D, hD⟩, Finset.mem_attach _ _, rfl⟩, ?_⟩
+      rw [imagePieceDatum_mem_rationalOpen_iff]
+      exact ⟨hw_spa, hvD⟩ }
 
 set_option linter.unusedSectionVars false in
 /-- **B-side per-pair plus-containment** (Wedhorn Prop 8.2 base change of
@@ -12409,6 +12630,7 @@ theorem imageGenCover_isOXAcyclic_of_units
   -- 8.34(i) at B: the ratio-Laurent cover is acyclic.
   have hV_acyclic : V.IsOXAcyclic :=
     wedhorn_lemma_834_part_i_laurent_acyclic V fs hV_laurent
+      (by rw [hV_base]; exact (imageGenCover_isRational D₀ T hspan).base)
       (by rw [hV_base]; exact hplusB)
   have hVP : ∀ Q ∈ V.covers, Q.P = V.base.P := fun Q hQ =>
     laurentProdLeaves_pair fs V.base
@@ -12430,6 +12652,7 @@ theorem imageGenCover_isOXAcyclic_of_units
     exact ⟨Q, hQ, RationalLocData.interSamePair_subset_right _ _ _⟩
   · intro D
     refine laurentTrace_isOXAcyclic V fs hV_laurent D.1
+      ((imageGenCover_isRational D₀ T hspan).piece D.2)
       (by rw [hV_base]; exact (imageGenCover D₀ T hspan).hsubset D.1 D.2)
       (by obtain ⟨u, hu, heq⟩ := Finset.mem_image.mp D.2
           rw [← heq]
@@ -12642,7 +12865,12 @@ theorem genRestrictedCover_isOXAcyclic_of_units_or_empty
       exact _h_units t ht
     have hC_gen_acyclic : C_gen.IsOXAcyclic :=
       isOXAcyclic_of_isGeneratedBy_ring_units C_gen
-        (Tpos.image D₀.canonicalMap) (hTne.image _) hgenB hunitsB hplusB
+        (Tpos.image D₀.canonicalMap) (hTne.image _) hgenB hunitsB
+        ⟨globalLocData_isRational _, fun D hD => by
+          obtain ⟨u, hu, rfl⟩ := Finset.mem_image.mp hD
+          exact RationalLocData.isRational_of_span_eq_top
+            (by rw [genPieceDatum_T]; exact hspanB)⟩
+        hplusB
         (fun D hD => by
           obtain ⟨u, hu, rfl⟩ := Finset.mem_image.mp hD
           exact hplusB)
@@ -12899,9 +13127,19 @@ theorem wedhorn_lemma_834 [DecidableEq A]
       CompleteSpace A]
     (C : RationalCovering A) (T : Finset A)
     (_hC_gen : C.IsGeneratedBy T)
+    (hbase_rat : C.base.IsRational)
     (hCP : ∀ U ∈ C.covers, U.P = C.base.P)
     (hplus : (A⁺ : Set A) ⊆ C.base.P.A₀) :
     C.IsOXAcyclic := by
+  -- Wedhorn Def 7.29 for the pieces is DERIVED (not assumed): each piece of a
+  -- `T`-generated cover has generator set `T` with `span T = ⊤` (`_hC_gen.1`).
+  have hpiece_rat : ∀ U ∈ C.covers, U.IsRational := by
+    obtain ⟨hspanT, φ, hφ_bij, hφ_eq⟩ := id _hC_gen
+    intro U hU
+    obtain ⟨t, ht⟩ := hφ_bij.2 ⟨U, hU⟩
+    have hT : U.T = T := by
+      have := (hφ_eq t).1; rw [ht] at this; exact this
+    exact RationalLocData.isRational_of_span_eq_top (by rw [hT]; exact hspanT)
   -- Wedhorn p. 84 four-part composition (verbatim, part (iv)):
   -- > "Now let 𝒰 be a rational cover generated by some finite subset T ⊆ A
   -- > with T · A = A and let 𝒱 be a Laurent cover such that 𝒰|V is a
@@ -12916,7 +13154,8 @@ theorem wedhorn_lemma_834 [DecidableEq A]
     rw [congrArg RationalLocData.P hV_base]; exact hplus
   -- 𝒱 is itself acyclic (Laurent cover) — part (i):
   have _hV_acyclic : V.IsOXAcyclic :=
-    wedhorn_lemma_834_part_i_laurent_acyclic V fs hV_laurent hplusV
+    wedhorn_lemma_834_part_i_laurent_acyclic V fs hV_laurent
+      (by rw [hV_base]; exact hbase_rat) hplusV
   -- NOTE (2026-06-10): no "V refines C" fact is needed — Prop A.3(1)
   -- (wedhorn.txt:5318-5320) has no refinement hypothesis; the bilateral
   -- restriction-acyclicity packages below are its exact data.
@@ -12941,7 +13180,7 @@ theorem wedhorn_lemma_834 [DecidableEq A]
     obtain ⟨⟨Q, hQ⟩, -, rfl⟩ := hV'
     exact ⟨Q, hQ, RationalLocData.interSamePair_subset_right _ _ _⟩
   have hV_restr_acyclic : ∀ U : ↥C.covers, (V_restr_at U).IsOXAcyclic :=
-    fun U => laurentTrace_isOXAcyclic V fs hV_laurent U.1
+    fun U => laurentTrace_isOXAcyclic V fs hV_laurent U.1 (hpiece_rat U.1 U.2)
       (by rw [hV_base]; exact C.hsubset U.1 U.2)
       ((hCP U.1 U.2).trans (congrArg RationalLocData.P hV_base).symm)
       hVP_leaves (by rw [hCP U.1 U.2]; exact hplus)
@@ -13371,9 +13610,11 @@ This is the whole-space 7.54 the reviewer (Q4) confirmed suffices at the top of
 (`presheafValue D`, T-CECH-754-REL). -/
 theorem exists_form_a_refinement_coversSpa [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
+    (P₀ : PairOfDefinition A) [IsAdicComplete P₀.I P₀.A₀]
+    (hAplus : (A⁺ : Set A) ⊆ (P₀.A₀ : Set A))
     (𝒱 : Finset (RationalLocData A))
     (hcov : ∀ v ∈ Spa A A⁺, ∃ D ∈ 𝒱, v ∈ rationalOpen D.T D.s) :
     ∃ S : Finset A, Ideal.span (S : Set A) = ⊤ ∧
@@ -13381,16 +13622,8 @@ theorem exists_form_a_refinement_coversSpa [DecidableEq A]
       (∀ f ∈ S, ∃ D ∈ 𝒱, rationalOpen S f ⊆ rationalOpen D.T D.s) := by
   obtain ⟨LP, hts, h1, hcovLP, hrelLP, hrefLP⟩ :=
     exists_finite_normalized_rational_refinement 𝒱 hcov
-  haveI : IsAdicComplete (IsTateRing.principalPair A).toPairOfDefinition.I
-      (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
-    principalPair_isAdicComplete_of_stronglyNoetherianTate
-  have hAplus : (A⁺ : Set A) ⊆
-      (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
-    CompatiblePlusSubring.aplus_le_A₀
-      (globalLocData (IsTateRing.principalPair A).toPairOfDefinition)
   refine ⟨distinguishedProducts LP, ?_, ?_, ?_⟩
-  · exact span_top_of_distinguished_products LP hts h1 hcovLP
-      (IsTateRing.principalPair A).toPairOfDefinition hAplus
+  · exact span_top_of_distinguished_products LP hts h1 hcovLP P₀ hAplus
   · intro v hv
     obtain ⟨s, hsS, hmem⟩ := distinguishedProducts_cover LP hts h1 hv (hcovLP v hv)
     exact ⟨s, hsS, by rw [← rationalOpen_distinguished_eq LP hts h1 hcovLP]; exact hmem⟩
@@ -13441,9 +13674,11 @@ Wedhorn-8.34 form-(a) "f dominates" pieces. The cover direction (ii) is the
 containment (iii) is the Nullstellensatz refinement. -/
 theorem exists_form_a_refinement [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
+    (P₀ : PairOfDefinition A) [IsAdicComplete P₀.I P₀.A₀]
+    (hAplus : (A⁺ : Set A) ⊆ (P₀.A₀ : Set A))
     (C : RationalCovering A)
     (hbase : ∀ v ∈ Spa A A⁺, v ∈ rationalOpen C.base.T C.base.s) :
     ∃ (S : Finset A) (piece : A → RationalLocData A),
@@ -13467,16 +13702,8 @@ theorem exists_form_a_refinement [DecidableEq A]
     fun v hv => C.hcover v (hbase v hv)
   obtain ⟨LP, hts, h1, hcovLP, hrelLP, hrefLP⟩ :=
     exists_finite_normalized_rational_refinement C.covers hcov𝒱
-  haveI : IsAdicComplete (IsTateRing.principalPair A).toPairOfDefinition.I
-      (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
-    principalPair_isAdicComplete_of_stronglyNoetherianTate
-  have hAplus : (A⁺ : Set A) ⊆
-      (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
-    CompatiblePlusSubring.aplus_le_A₀
-      (globalLocData (IsTateRing.principalPair A).toPairOfDefinition)
   have hspanS : Ideal.span ((distinguishedProducts LP : Finset A) : Set A) = ⊤ :=
-    span_top_of_distinguished_products LP hts h1 hcovLP
-      (IsTateRing.principalPair A).toPairOfDefinition hAplus
+    span_top_of_distinguished_products LP hts h1 hcovLP P₀ hAplus
   -- the form-(a) pieces: R(S/f) at the base pair (genPieceDatum)
   refine ⟨distinguishedProducts LP,
     fun f => genPieceDatum C.base.P (distinguishedProducts LP) f hspanS,
@@ -13513,9 +13740,11 @@ theorem exists_form_a_refinement [DecidableEq A]
 
 theorem exists_ideal_gen_refinement [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
+    (P₀ : PairOfDefinition A) [IsAdicComplete P₀.I P₀.A₀]
+    (hAplus : (A⁺ : Set A) ⊆ (P₀.A₀ : Set A))
     (C : RationalCovering A)
     (hbase : ∀ v ∈ Spa A A⁺, v ∈ rationalOpen C.base.T C.base.s) :
     ∃ (T : Finset A) (C' : RationalCovering A),
@@ -13529,7 +13758,7 @@ theorem exists_ideal_gen_refinement [DecidableEq A]
           rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s) := by
   -- Step 1: form-(a) Nullstellensatz refinement (Wedhorn 7.54).
   obtain ⟨S, piece, hS_span, h_piece_T, h_piece_s, h_piece_P, h_piece_sub,
-    h_cover_rel, h_contain⟩ := exists_form_a_refinement C hbase
+    h_cover_rel, h_contain⟩ := exists_form_a_refinement P₀ hAplus C hbase
   -- Step 2: package the form-(a) pieces into a generated `RationalCovering`.
   obtain ⟨C', h_C'_gen, h_C'_base, h_C'_P, h_C'_refines, h_C'_covers_each⟩ :=
     rationalCovering_from_idealGenSet C S hS_span piece h_piece_T h_piece_s
@@ -13559,9 +13788,11 @@ The proof requires either:
 Sub-ticket T-WC-EXISTS-IDEAL-GEN-COVERS-EACH-BODY: substantive sub-lemma. -/
 theorem exists_ideal_gen_refinement_covers_each_D [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
+    (P₀ : PairOfDefinition A) [IsAdicComplete P₀.I P₀.A₀]
+    (hAplus : (A⁺ : Set A) ⊆ (P₀.A₀ : Set A))
     (C : RationalCovering A)
     (hbase : ∀ v ∈ Spa A A⁺, v ∈ rationalOpen C.base.T C.base.s) :
     ∃ (T : Finset A) (C' : RationalCovering A),
@@ -13576,7 +13807,7 @@ theorem exists_ideal_gen_refinement_covers_each_D [DecidableEq A]
   -- Pass-through: the D-relative covers-each is part of the 7.54-package
   -- (Huber's per-point normalisation lives inside the containing piece).
   obtain ⟨T, C', h_C'_gen, h_C'_base, h_C'_P, h_C'_refines, h_C'_each⟩ :=
-    exists_ideal_gen_refinement C hbase
+    exists_ideal_gen_refinement P₀ hAplus C hbase
   exact ⟨T, C', h_C'_gen, h_C'_base, h_C'_P, h_C'_refines, h_C'_each⟩
 
 /-! ##### Sub-lemmas for `IsOXAcyclic_of_refining_acyclic_cover` (Prop A.3(2) project bridge) -/
@@ -13725,6 +13956,7 @@ theorem genRestrictedCover_isOXAcyclic_of_spanTop [DecidableEq A]
   have h834B : (imageGenCover D₀ T hspan).IsOXAcyclic :=
     wedhorn_lemma_834 (imageGenCover D₀ T hspan)
       (T.image D₀.canonicalMap) (imageGenCover_isGeneratedBy D₀ T hspan)
+      (globalLocData_isRational _)
       (fun U hU => by
         obtain ⟨u, hu, rfl⟩ := Finset.mem_image.mp hU
         rfl)
@@ -13744,11 +13976,15 @@ This is the algebraic-side content of Wedhorn 8.28(b)'s proof, i.e.
 everything except the topological-inducing (Banach OMT) piece. -/
 theorem every_rational_cover_is_OXAcyclic_whole_space [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
-    [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (C : RationalCovering A)
-    (hbase : ∀ v ∈ Spa A A⁺, v ∈ rationalOpen C.base.T C.base.s) :
+    (P₀ : PairOfDefinition A) [IsAdicComplete P₀.I P₀.A₀]
+    (hAplusP : (A⁺ : Set A) ⊆ (P₀.A₀ : Set A))
+    (C : RationalCovering A) (hbase_rat : C.base.IsRational)
+    (hbase : ∀ v ∈ Spa A A⁺, v ∈ rationalOpen C.base.T C.base.s)
+    (hplus_base : (A⁺ : Set A) ⊆ C.base.P.A₀)
+    (hplus_pieces : ∀ D ∈ C.covers, (A⁺ : Set A) ⊆ ↑D.P.A₀) :
     C.IsOXAcyclic := by
   -- Wedhorn p. 83 proof composition (verbatim):
   -- > "Every open covering of X has a refinement 𝒰 = (U_t)_{t∈T} of the
@@ -13759,11 +13995,11 @@ theorem every_rational_cover_is_OXAcyclic_whole_space [DecidableEq A]
   -- the covering-each-D direction (strengthened in
   -- `exists_ideal_gen_refinement_covers_each_D`).
   obtain ⟨T, C', h_C'_gen, h_C'_base, h_C'_P, h_refines, h_C'_covers_each_D⟩ :=
-    exists_ideal_gen_refinement_covers_each_D C hbase
+    exists_ideal_gen_refinement_covers_each_D P₀ hAplusP C hbase
   -- Step 2: Lemma 8.34 — C' is O_X-acyclic.
-  have h_C'_acyclic : C'.IsOXAcyclic := wedhorn_lemma_834 C' T h_C'_gen h_C'_P
-    (by rw [congrArg RationalLocData.P h_C'_base]
-        exact CompatiblePlusSubring.aplus_le_A₀ C.base)
+  have h_C'_acyclic : C'.IsOXAcyclic := wedhorn_lemma_834 C' T h_C'_gen
+    (by rw [h_C'_base]; exact hbase_rat) h_C'_P
+    (by rw [congrArg RationalLocData.P h_C'_base]; exact hplus_base)
   -- Step 3: Prop A.3(2) — acyclicity transfers from C' to C.
   -- For each D ∈ C.covers, supply (C'.restrictToPiece D).IsOXAcyclic via
   -- `restrictToPiece_acyclic_at_D` (substantive sub-lemma; sorry-bodied at present).
@@ -13776,7 +14012,7 @@ theorem every_rational_cover_is_OXAcyclic_whole_space [DecidableEq A]
     (fun D => rfl)
     (fun D E' hE' => ?_)
     (fun D => genRestrictedCover_isOXAcyclic_of_spanTop D.1 T h_C'_gen.1
-      (CompatiblePlusSubring.aplus_le_A₀ D.1))
+      (hplus_pieces D.1 D.2))
   obtain ⟨t, ht, rfl⟩ := Finset.mem_image.mp hE'
   refine ⟨(φC' ⟨t, ht⟩).1, (φC' ⟨t, ht⟩).2, ?_⟩
   rw [(hφC'_eq ⟨t, ht⟩).1, (hφC'_eq ⟨t, ht⟩).2]
@@ -13791,25 +14027,371 @@ sheafy. **No per-cover hypothesis leak** — the hypothesis bundle is
 exactly what Wedhorn states.
 -/
 
+set_option maxHeartbeats 1000000 in
+set_option linter.unusedSectionVars false in
+/-- The R2 image cover is `O_X`-acyclic: it is a whole-space rational covering of
+`Spa B` for the complete strongly noetherian Tate ring `B := 𝒪_X(C.base)`, so the
+whole-space case (7.54 + 8.34 + A.3(2)) applies at `B` — with the `P₀`-inputs
+instantiated at the concrete completed pair (`presheafValue_isAdicComplete` +
+`completedPlusSubring_le_ringOfDef`). -/
+theorem imageCover_isOXAcyclic [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C : RationalCovering A) (hC : C.IsRational)
+    (hplusA : (A⁺ : Set A) ⊆ C.base.P.A₀) :
+    haveI hTateB : IsTateRing (presheafValue C.base) :=
+      presheafValue_isTateRing_faithful C.base
+    haveI : IsNoetherianRing (presheafValue C.base) :=
+      presheafValue_isNoetherianRing_faithful C.base
+    haveI : IsStronglyNoetherian (presheafValue C.base) :=
+      presheafValue_isStronglyNoetherian_faithful C.base
+    haveI : IsHuberRing (presheafValue C.base) := hTateB.toIsHuberRing
+    (imageCover C hC).IsOXAcyclic := by
+  haveI hTateB : IsTateRing (presheafValue C.base) :=
+    presheafValue_isTateRing_faithful C.base
+  haveI : IsNoetherianRing (presheafValue C.base) :=
+    presheafValue_isNoetherianRing_faithful C.base
+  haveI : IsStronglyNoetherian (presheafValue C.base) :=
+    presheafValue_isStronglyNoetherian_faithful C.base
+  haveI : IsHuberRing (presheafValue C.base) := hTateB.toIsHuberRing
+  haveI : NonarchimedeanRing (presheafValue C.base) := inferInstance
+  haveI : T2Space (presheafValue C.base) := inferInstance
+  letI : DecidableEq (presheafValue C.base) := Classical.decEq _
+  letI : DecidableEq (RationalLocData (presheafValue C.base)) := Classical.decEq _
+  haveI : @CompleteSpace (presheafValue C.base)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue C.base)) :=
+    presheafValue_completeSpace_rightUniformSpace C.base
+  haveI : IsAdicComplete (presheafValue_concretePair C.base).I
+      (presheafValue_concretePair C.base).A₀ := presheafValue_isAdicComplete C.base
+  have hplusB : ((presheafValue C.base)⁺ : Set (presheafValue C.base)) ⊆
+      ↑(presheafValue_concretePair C.base).A₀ :=
+    completedPlusSubring_le_ringOfDef C.base hplusA
+  refine every_rational_cover_is_OXAcyclic_whole_space
+    (presheafValue_concretePair C.base) hplusB (imageCover C hC)
+    (globalLocData_isRational _) ?_ hplusB ?_
+  · intro w hw
+    exact ⟨hw, fun x hx => by
+      rw [Finset.mem_singleton.mp hx]
+      exact (w.vle_total 1 1).elim id id, w.not_vle_one_zero⟩
+  · intro E hE
+    obtain ⟨D, -, rfl⟩ := Finset.mem_image.mp hE
+    exact hplusB
+
+/-- Restriction commutes with transport along an equality of data (`Eq.rec`
+commutation helper, the reusable A.3-infra pattern). -/
+private theorem restrictionMap_eqRec {B : Type*} [CommRing B] [TopologicalSpace B]
+    [IsTopologicalRing B] [PlusSubring B] [IsHuberRing B] [HasLocLiftPowerBounded B]
+    (X Y : RationalLocData B) (h : X = Y) (v : presheafValue X)
+    (G : RationalLocData B)
+    (hG : rationalOpen G.T G.s ⊆ rationalOpen Y.T Y.s) :
+    restrictionMap Y G hG (h ▸ v) =
+      restrictionMap X G (by rw [h]; exact hG) v := by
+  cases h; rfl
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- **Keystone compatibility on overlaps** (Wedhorn Prop 8.16 + Prop 7.31(2)):
+for two pieces of a Def-7.29 rational covering and ANY `B`-side rational datum
+`G` inside both image pieces, the keystone images of a compatible family agree
+after restriction to `G`. Factors through the normalised `A`-side intersection
+`D₁₂` (built at the base pair via `interSamePair`/`genPieceDatum`, presenting
+`D₁ ∩ D₂` — Wedhorn 7.31(2)), the keystone restriction squares at `D₁₂ ⊆ Dᵢ`,
+and the `A`-side compatibility instantiated at `D₁₂`. -/
+private theorem imageCover_keystone_compat [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C : RationalCovering A) (hC : C.IsRational)
+    (f : ∀ (D : ↥C.covers), presheafValue D.1)
+    (hcompat : ∀ (D₁ D₂ : ↥C.covers)
+      (D₃ : RationalLocData A)
+      (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+      (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+      restrictionMap D₁.1 D₃ h₃₁ (f D₁) =
+        restrictionMap D₂.1 D₃ h₃₂ (f D₂)) :
+    haveI hTateB : IsTateRing (presheafValue C.base) :=
+      presheafValue_isTateRing_faithful C.base
+    haveI : IsNoetherianRing (presheafValue C.base) :=
+      presheafValue_isNoetherianRing_faithful C.base
+    haveI : IsHuberRing (presheafValue C.base) := hTateB.toIsHuberRing
+    ∀ (D₁ D₂ : ↥C.covers) (G : RationalLocData (presheafValue C.base))
+      (h₁ : rationalOpen G.T G.s ⊆
+        rationalOpen (imagePieceDatum C.base D₁.1.T D₁.1.s
+          ((hC.piece D₁.2).span_eq_top)).T
+          (imagePieceDatum C.base D₁.1.T D₁.1.s ((hC.piece D₁.2).span_eq_top)).s)
+      (h₂ : rationalOpen G.T G.s ⊆
+        rationalOpen (imagePieceDatum C.base D₂.1.T D₂.1.s
+          ((hC.piece D₂.2).span_eq_top)).T
+          (imagePieceDatum C.base D₂.1.T D₂.1.s ((hC.piece D₂.2).span_eq_top)).s),
+      restrictionMap (imagePieceDatum C.base D₁.1.T D₁.1.s
+          ((hC.piece D₁.2).span_eq_top)) G h₁
+        (relativePiece_equiv C.base D₁.1 (C.hsubset D₁.1 D₁.2)
+          ((hC.piece D₁.2).span_eq_top) (f D₁)) =
+      restrictionMap (imagePieceDatum C.base D₂.1.T D₂.1.s
+          ((hC.piece D₂.2).span_eq_top)) G h₂
+        (relativePiece_equiv C.base D₂.1 (C.hsubset D₂.1 D₂.2)
+          ((hC.piece D₂.2).span_eq_top) (f D₂)) := by
+  haveI hTateB : IsTateRing (presheafValue C.base) :=
+    presheafValue_isTateRing_faithful C.base
+  haveI : IsNoetherianRing (presheafValue C.base) :=
+    presheafValue_isNoetherianRing_faithful C.base
+  haveI : IsHuberRing (presheafValue C.base) := hTateB.toIsHuberRing
+  letI : DecidableEq (presheafValue C.base) := Classical.decEq _
+  intro D₁ D₂ G h₁ h₂
+  -- the normalised A-side intersection D₁₂ at the base pair (Wedhorn 7.31(2)):
+  -- open(N₁) = U ∩ open(D₁) = open(D₁); open(D₁₂) = open(D₁) ∩ open(D₂).
+  set gp₁ := genPieceDatum C.base.P D₁.1.T D₁.1.s ((hC.piece D₁.2).span_eq_top)
+    with hgp₁
+  set gp₂ := genPieceDatum C.base.P D₂.1.T D₂.1.s ((hC.piece D₂.2).span_eq_top)
+    with hgp₂
+  set N₁ := C.base.interSamePair gp₁ rfl with hN₁
+  set D₁₂ := N₁.interSamePair gp₂ rfl with hD₁₂
+  have hN₁_open : rationalOpen N₁.T N₁.s = rationalOpen D₁.1.T D₁.1.s := by
+    rw [hN₁, RationalLocData.interSamePair_rationalOpen, hgp₁, genPieceDatum_T,
+      genPieceDatum_s]
+    exact Set.inter_eq_right.mpr (C.hsubset D₁.1 D₁.2)
+  have hD₁₂_open : rationalOpen D₁₂.T D₁₂.s =
+      rationalOpen D₁.1.T D₁.1.s ∩ rationalOpen D₂.1.T D₂.1.s := by
+    rw [hD₁₂, RationalLocData.interSamePair_rationalOpen, hgp₂, genPieceDatum_T,
+      genPieceDatum_s, hN₁_open]
+  have hD₁₂_sub₁ : rationalOpen D₁₂.T D₁₂.s ⊆ rationalOpen D₁.1.T D₁.1.s := by
+    rw [hD₁₂_open]; exact Set.inter_subset_left
+  have hD₁₂_sub₂ : rationalOpen D₁₂.T D₁₂.s ⊆ rationalOpen D₂.1.T D₂.1.s := by
+    rw [hD₁₂_open]; exact Set.inter_subset_right
+  -- D₁₂ spans (the kit: products of inserted spanning sets span).
+  have hspanN₁ : Ideal.span ((N₁.T : Finset A) : Set A) = ⊤ := by
+    rw [hN₁]
+    refine C.base.interSamePair_span_eq_top' gp₁ rfl
+      (span_insert_eq_top_of_span_eq_top _ hC.base.span_eq_top) ?_
+    rw [hgp₁, genPieceDatum_T, genPieceDatum_s]
+    exact span_insert_eq_top_of_span_eq_top _ (hC.piece D₁.2).span_eq_top
+  have hspanD₁₂ : Ideal.span ((D₁₂.T : Finset A) : Set A) = ⊤ := by
+    rw [hD₁₂]
+    refine N₁.interSamePair_span_eq_top' gp₂ rfl
+      (span_insert_eq_top_of_span_eq_top _ hspanN₁) ?_
+    rw [hgp₂, genPieceDatum_T, genPieceDatum_s]
+    exact span_insert_eq_top_of_span_eq_top _ (hC.piece D₂.2).span_eq_top
+  -- the B-side: open(im D₁₂) = open(im D₁) ∩ open(im D₂) ⊇ open(G).
+  have him_inter := imagePieceDatum_rationalOpen_inter C.base D₁.1 D₂.1 D₁₂
+    ((hC.piece D₁.2).span_eq_top) ((hC.piece D₂.2).span_eq_top) hspanD₁₂ hD₁₂_open
+  have hG_sub : rationalOpen G.T G.s ⊆
+      rationalOpen (imagePieceDatum C.base D₁₂.T D₁₂.s hspanD₁₂).T
+        (imagePieceDatum C.base D₁₂.T D₁₂.s hspanD₁₂).s := by
+    rw [him_inter]; exact Set.subset_inter h₁ h₂
+  -- factor both sides through im D₁₂, apply the keystone squares + A-compat.
+  have hmono₁ := imagePieceDatum_rationalOpen_mono C.base D₁.1 D₁₂
+    ((hC.piece D₁.2).span_eq_top) hspanD₁₂ hD₁₂_sub₁
+  have hmono₂ := imagePieceDatum_rationalOpen_mono C.base D₂.1 D₁₂
+    ((hC.piece D₂.2).span_eq_top) hspanD₁₂ hD₁₂_sub₂
+  rw [← congrFun (restrictionMap_comp (imagePieceDatum C.base D₁.1.T D₁.1.s
+      ((hC.piece D₁.2).span_eq_top)) (imagePieceDatum C.base D₁₂.T D₁₂.s hspanD₁₂)
+      G hmono₁ hG_sub) _,
+    ← congrFun (restrictionMap_comp (imagePieceDatum C.base D₂.1.T D₂.1.s
+      ((hC.piece D₂.2).span_eq_top)) (imagePieceDatum C.base D₁₂.T D₁₂.s hspanD₁₂)
+      G hmono₂ hG_sub) _]
+  show restrictionMap _ G hG_sub
+      (restrictionMap _ (imagePieceDatum C.base D₁₂.T D₁₂.s hspanD₁₂) hmono₁
+        (relativePiece_equiv C.base D₁.1 (C.hsubset D₁.1 D₁.2)
+          ((hC.piece D₁.2).span_eq_top) (f D₁))) =
+    restrictionMap _ G hG_sub
+      (restrictionMap _ (imagePieceDatum C.base D₁₂.T D₁₂.s hspanD₁₂) hmono₂
+        (relativePiece_equiv C.base D₂.1 (C.hsubset D₂.1 D₂.2)
+          ((hC.piece D₂.2).span_eq_top) (f D₂)))
+  rw [← relativePiece_equiv_restrict_square C.base D₁.1 D₁₂ (C.hsubset D₁.1 D₁.2)
+      hD₁₂_sub₁ ((hC.piece D₁.2).span_eq_top) hspanD₁₂ (f D₁),
+    ← relativePiece_equiv_restrict_square C.base D₂.1 D₁₂ (C.hsubset D₂.1 D₂.2)
+      hD₁₂_sub₂ ((hC.piece D₂.2).span_eq_top) hspanD₁₂ (f D₂),
+    hcompat D₁ D₂ D₁₂ hD₁₂_sub₁ hD₁₂_sub₂]
+
+set_option maxHeartbeats 1600000 in
+set_option linter.unusedSectionVars false in
+/-- **The R2 gluing transport** (Wedhorn Prop 8.2 + 8.16): a compatible family on
+a Def-7.29 rational covering `C` glues, given gluing for the `B`-side image cover.
+The `B`-side family is the keystone image of `f` (choices of presenting pieces for
+each image datum; coherence across choices is `imageCover_keystone_compat` at the
+common image open + open-equality injectivity). The glued `B`-section pulls back
+through `globalSections_equiv`, and the per-piece recovery is keystone-injectivity
++ the canonical-map trackings. -/
+theorem imageCover_gluing_transport [DecidableEq A]
+    [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
+    [NonarchimedeanRing A] [HasLocLiftPowerBounded A]
+    [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
+      CompleteSpace A]
+    (C : RationalCovering A) (hC : C.IsRational)
+    (hplusA : (A⁺ : Set A) ⊆ C.base.P.A₀)
+    (f : ∀ (D : ↥C.covers), presheafValue D.1)
+    (hcompat : ∀ (D₁ D₂ : ↥C.covers)
+      (D₃ : RationalLocData A)
+      (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₁.1.T D₁.1.s)
+      (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen D₂.1.T D₂.1.s),
+      restrictionMap D₁.1 D₃ h₃₁ (f D₁) =
+        restrictionMap D₂.1 D₃ h₃₂ (f D₂))
+    (hCB : haveI hTateB : IsTateRing (presheafValue C.base) :=
+        presheafValue_isTateRing_faithful C.base
+      haveI : IsNoetherianRing (presheafValue C.base) :=
+        presheafValue_isNoetherianRing_faithful C.base
+      haveI : IsStronglyNoetherian (presheafValue C.base) :=
+        presheafValue_isStronglyNoetherian_faithful C.base
+      haveI : IsHuberRing (presheafValue C.base) := hTateB.toIsHuberRing
+      (imageCover C hC).IsOXAcyclic) :
+    ∃ x : presheafValue C.base, ∀ (D : ↥C.covers),
+      restrictionMap C.base D.1 (C.hsubset D.1 D.2) x = f D := by
+  classical
+  haveI hTateB : IsTateRing (presheafValue C.base) :=
+    presheafValue_isTateRing_faithful C.base
+  haveI : IsNoetherianRing (presheafValue C.base) :=
+    presheafValue_isNoetherianRing_faithful C.base
+  haveI : IsStronglyNoetherian (presheafValue C.base) :=
+    presheafValue_isStronglyNoetherian_faithful C.base
+  haveI : IsHuberRing (presheafValue C.base) := hTateB.toIsHuberRing
+  letI : DecidableEq (presheafValue C.base) := Classical.decEq _
+  letI : DecidableEq (RationalLocData (presheafValue C.base)) := Classical.decEq _
+  haveI : @CompleteSpace (presheafValue C.base)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue C.base)) :=
+    presheafValue_completeSpace_rightUniformSpace C.base
+  have hkc := imageCover_keystone_compat C hC f hcompat
+  -- choose a presenting C-piece for each image piece
+  have hmem : ∀ E : ↥(imageCover C hC).covers, ∃ D : ↥C.covers,
+      imagePieceDatum C.base D.1.T D.1.s ((hC.piece D.2).span_eq_top) = E.1 := by
+    intro E
+    obtain ⟨D, -, hDE⟩ := Finset.mem_image.mp E.2
+    exact ⟨D, hDE⟩
+  choose ψ hψ using hmem
+  -- the B-side family (cast along the presentation equality)
+  set f' : ∀ E : ↥(imageCover C hC).covers, presheafValue E.1 := fun E =>
+    (hψ E) ▸ (relativePiece_equiv C.base (ψ E).1 (C.hsubset (ψ E).1 (ψ E).2)
+      ((hC.piece (ψ E).2).span_eq_top) (f (ψ E))) with hf'
+  -- B-side compatibility, from the keystone-compat helper (the casts commute
+  -- past restriction via `restrictionMap_eqRec`)
+  have hcompat' : ∀ (E₁ E₂ : ↥(imageCover C hC).covers)
+      (D₃ : RationalLocData (presheafValue C.base))
+      (h₃₁ : rationalOpen D₃.T D₃.s ⊆ rationalOpen E₁.1.T E₁.1.s)
+      (h₃₂ : rationalOpen D₃.T D₃.s ⊆ rationalOpen E₂.1.T E₂.1.s),
+      restrictionMap E₁.1 D₃ h₃₁ (f' E₁) = restrictionMap E₂.1 D₃ h₃₂ (f' E₂) := by
+    intro E₁ E₂ D₃ h₃₁ h₃₂
+    refine ((restrictionMap_eqRec _ _ (hψ E₁) _ D₃ h₃₁).trans ?_).trans
+      (restrictionMap_eqRec _ _ (hψ E₂) _ D₃ h₃₂).symm
+    exact hkc (ψ E₁) (ψ E₂) D₃ _ _
+  obtain ⟨x', hx'⟩ := hCB.gluing f' hcompat'
+  refine ⟨globalSections_backward (presheafValue_concretePair C.base) x', ?_⟩
+  intro D
+  -- keystone-injectivity reduction + the canonical-map trackings
+  apply (relativePiece_equiv C.base D.1 (C.hsubset D.1 D.2)
+    ((hC.piece D.2).span_eq_top)).injective
+  rw [relativePiece_equiv_restrictionMap]
+  -- LHS = im-piece canonical of (backward x') = restriction of x' to the image piece
+  have hmemD : imagePieceDatum C.base D.1.T D.1.s ((hC.piece D.2).span_eq_top) ∈
+      (imageCover C hC).covers :=
+    Finset.mem_image.mpr ⟨D, Finset.mem_attach _ _, rfl⟩
+  have htrack : (imagePieceDatum C.base D.1.T D.1.s
+      ((hC.piece D.2).span_eq_top)).canonicalMap
+        (globalSections_backward (presheafValue_concretePair C.base) x') =
+      restrictionMap (imageCover C hC).base
+        (imagePieceDatum C.base D.1.T D.1.s ((hC.piece D.2).span_eq_top))
+        ((imageCover C hC).hsubset _ hmemD) x' := by
+    conv_rhs => rw [show x' =
+        (globalLocData (presheafValue_concretePair C.base)).canonicalMap
+          (globalSections_backward (presheafValue_concretePair C.base) x') from
+      (globalSections_canonicalMap_backward (presheafValue_concretePair C.base) x').symm]
+    exact (restrictionMapHom_canonicalMap
+      (globalLocData (presheafValue_concretePair C.base))
+      (imagePieceDatum C.base D.1.T D.1.s ((hC.piece D.2).span_eq_top))
+      ((imageCover C hC).hsubset _ hmemD)
+      (globalSections_backward (presheafValue_concretePair C.base) x')).symm
+  rw [htrack, hx' ⟨_, hmemD⟩]
+  -- f' at the D-piece is the keystone of the CHOSEN presenting piece `ψ E`;
+  -- compare with the keystone of `D` after restriction to the (equal) image
+  -- open, via the keystone-compat helper + open-equality injectivity.
+  simp only [hf']
+  have hpres := hψ ⟨imagePieceDatum C.base D.1.T D.1.s ((hC.piece D.2).span_eq_top),
+    hmemD⟩
+  have hopen_eq : rationalOpen
+      (imagePieceDatum C.base
+        (ψ ⟨_, hmemD⟩).1.T (ψ ⟨_, hmemD⟩).1.s
+        ((hC.piece (ψ ⟨_, hmemD⟩).2).span_eq_top)).T
+      (imagePieceDatum C.base
+        (ψ ⟨_, hmemD⟩).1.T (ψ ⟨_, hmemD⟩).1.s
+        ((hC.piece (ψ ⟨_, hmemD⟩).2).span_eq_top)).s =
+      rationalOpen
+        (imagePieceDatum C.base D.1.T D.1.s ((hC.piece D.2).span_eq_top)).T
+        (imagePieceDatum C.base D.1.T D.1.s ((hC.piece D.2).span_eq_top)).s := by
+    rw [hpres]
+  apply (wca_restrictionMap_bijective_of_rationalOpen_eq
+    (imagePieceDatum C.base D.1.T D.1.s ((hC.piece D.2).span_eq_top))
+    (imagePieceDatum C.base
+      (ψ ⟨_, hmemD⟩).1.T (ψ ⟨_, hmemD⟩).1.s
+      ((hC.piece (ψ ⟨_, hmemD⟩).2).span_eq_top))
+    hopen_eq.symm).injective
+  exact (restrictionMap_eqRec _ _ hpres _ _ hopen_eq.le).trans
+    (hkc D (ψ ⟨_, hmemD⟩)
+      (imagePieceDatum C.base
+        (ψ ⟨_, hmemD⟩).1.T (ψ ⟨_, hmemD⟩).1.s
+        ((hC.piece (ψ ⟨_, hmemD⟩).2).span_eq_top))
+      hopen_eq.le (le_refl _)).symm
+
+set_option maxHeartbeats 1000000 in
 set_option linter.unusedSectionVars false in
 /-- **Wedhorn's main intermediate, general base** (Wedhorn p. 83): every
-rational covering of every rational subset is `O_X`-acyclic. The whole-space
-case is `every_rational_cover_is_OXAcyclic_whole_space` (7.54 + 8.34 +
-A.3(2), all sorry-free above modulo the 7.54-assembly); the general base
-reduces to it by the **R2-transport** (Wedhorn Prop 8.2 + Remark 8.4 +
-Prop 8.16): `Spa 𝒪_X(U) ≅ U` identifies covers of `U` with whole-space
-covers of `Spa B`, `B := 𝒪_X(U)` — a complete strongly noetherian Tate ring
-by the faithful instances. The transport wiring (the
-`SpaPresheafValueEquivalence` foundation) is the residual; tracked as the
-T-R2-* board items (see `project_gluing_relativization_blocker`). -/
+rational covering (Definition 7.29) of every rational subset is `O_X`-acyclic.
+The whole-space case is `every_rational_cover_is_OXAcyclic_whole_space`
+(7.54 + 8.34 + A.3(2)); the general base reduces to it by the **R2-transport**
+(Wedhorn Prop 8.2 + Remark 8.4 + Prop 8.16): the image cover `imageCover C hC`
+of `Spa B`, `B := 𝒪_X(C.base)`, is acyclic by the whole-space case at `B`
+(`imageCover_isOXAcyclic`), and both halves transport back across the
+8.16-keystone `relativePiece_equiv` (separation via the canonical-map
+trackings; gluing via the keystone restriction squares
+`relativePiece_equiv_restrict_square`). -/
 theorem every_rational_cover_is_OXAcyclic [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
     [NonarchimedeanRing A] [HasLocLiftPowerBounded A] [CompatiblePlusSubring A]
     [letI : UniformSpace A := IsTopologicalAddGroup.rightUniformSpace A;
       CompleteSpace A]
-    (C : RationalCovering A) :
+    (C : RationalCovering A) (hC : C.IsRational) :
     C.IsOXAcyclic := by
-  sorry
+  classical
+  haveI hTateB : IsTateRing (presheafValue C.base) :=
+    presheafValue_isTateRing_faithful C.base
+  haveI : IsNoetherianRing (presheafValue C.base) :=
+    presheafValue_isNoetherianRing_faithful C.base
+  haveI : IsStronglyNoetherian (presheafValue C.base) :=
+    presheafValue_isStronglyNoetherian_faithful C.base
+  haveI : IsHuberRing (presheafValue C.base) := hTateB.toIsHuberRing
+  letI : DecidableEq (presheafValue C.base) := Classical.decEq _
+  letI : DecidableEq (RationalLocData (presheafValue C.base)) := Classical.decEq _
+  haveI : @CompleteSpace (presheafValue C.base)
+      (IsTopologicalAddGroup.rightUniformSpace (presheafValue C.base)) :=
+    presheafValue_completeSpace_rightUniformSpace C.base
+  have hplusA : (A⁺ : Set A) ⊆ C.base.P.A₀ := CompatiblePlusSubring.aplus_le_A₀ C.base
+  have hCB := imageCover_isOXAcyclic C hC hplusA
+  constructor
+  · -- SEPARATION: transport through `globalSections_equiv` at `B` + the
+    -- keystone canonical-map tracking.
+    intro x hx
+    set y := (globalLocData (presheafValue_concretePair C.base)).canonicalMap x with hy
+    have hy0 : y = 0 := by
+      refine hCB.separation y ?_
+      intro E hE
+      obtain ⟨D, -, rfl⟩ := Finset.mem_image.mp hE
+      rw [show restrictionMap (imageCover C hC).base
+          (imagePieceDatum C.base D.1.T D.1.s ((hC.piece D.2).span_eq_top))
+          ((imageCover C hC).hsubset _ hE) y =
+        (imagePieceDatum C.base D.1.T D.1.s
+          ((hC.piece D.2).span_eq_top)).canonicalMap x from
+        restrictionMapHom_canonicalMap _ _ _ x]
+      rw [← relativePiece_equiv_restrictionMap C.base D.1 (C.hsubset D.1 D.2)
+        ((hC.piece D.2).span_eq_top) x]
+      rw [hx D.1 D.2]
+      exact map_zero _
+    have hback :=
+      globalSections_backward_canonicalMap (presheafValue_concretePair C.base) x
+    rw [← hy, hy0, map_zero] at hback
+    exact hback.symm
+  · -- GLUING: transport through the keystone + its restriction squares.
+    intro f hcompat
+    exact imageCover_gluing_transport C hC hplusA f hcompat (imageCover_isOXAcyclic C hC hplusA)
 
 /-- **Wedhorn Theorem 8.28(b)** (p. 81, Wedhorn-clean form). *Let
 `A = (A, A⁺)` be an affinoid ring with `A` a strongly noetherian Tate
@@ -13828,8 +14410,8 @@ theorem isSheafy_ofStronglyNoetherianTate_clean
   classical
   refine ⟨?_, ?_⟩
   · -- embedding field: topological embedding of `productRestrictionSub`.
-    intro C
-    have hCacyc : C.IsOXAcyclic := every_rational_cover_is_OXAcyclic C
+    intro C hC
+    have hCacyc : C.IsOXAcyclic := every_rational_cover_is_OXAcyclic C hC
     -- The separation hypothesis required by `productRestrictionSub_isInducing_tate`
     -- in its existing form has shape `∀ x, ∀ D, restrictionMap _ x = 0 → x = 0`.
     -- We derive it from `hCacyc.separation` (which is the injectivity form).
@@ -13856,7 +14438,7 @@ theorem isSheafy_ofStronglyNoetherianTate_clean
       exact sub_eq_zero.mp h_diff
     exact ⟨h_inducing, h_inj⟩
   · -- gluing field: directly from `IsOXAcyclic.gluing`.
-    intro C f hcompat
-    exact (every_rational_cover_is_OXAcyclic C).gluing f hcompat
+    intro C hC f hcompat
+    exact (every_rational_cover_is_OXAcyclic C hC).gluing f hcompat
 
 end ValuationSpectrum
