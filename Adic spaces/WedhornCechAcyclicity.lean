@@ -8963,6 +8963,48 @@ theorem distinguishedProducts_refines [DecidableEq A] (LP : List (Finset A × A)
           (transversalProducts (tl.map Prod.fst)) t g ht).trans hsub⟩
 
 
+/-- **Slot-tracking cover (D-relative Step 4)**: the distinguished product
+containing `v` can be chosen with its piece INSIDE the given slot containing
+`v` (pick the slot's own `s` at that coordinate and `v`-dominant generators
+elsewhere; numerator/denominator-factor cancellation gives the containment). -/
+theorem distinguishedProducts_cover_rel [DecidableEq A]
+    (LP : List (Finset A × A))
+    (hts : ∀ p ∈ LP, p.2 ∈ p.1) (h1 : ∀ p ∈ LP, (1 : A) ∈ p.1)
+    {v : Spv A} (hv : v ∈ Spa A A⁺) :
+    ∀ p ∈ LP, v ∈ rationalOpen p.1 p.2 →
+    ∃ s ∈ distinguishedProducts LP,
+      v ∈ rationalOpen (transversalProducts (LP.map Prod.fst)) s ∧
+      rationalOpen (transversalProducts (LP.map Prod.fst)) s ⊆
+        rationalOpen p.1 p.2 := by
+  induction LP with
+  | nil => intro p hp; simp at hp
+  | cons hd tl ih =>
+    intro p hp hxp
+    have htstl : ∀ q ∈ tl, q.2 ∈ q.1 := fun q hq => hts q (List.mem_cons_of_mem _ hq)
+    have h1tl : ∀ q ∈ tl, (1 : A) ∈ q.1 := fun q hq => h1 q (List.mem_cons_of_mem _ hq)
+    rw [distinguishedProducts_cons, List.map_cons, transversalProducts_cons]
+    rcases List.mem_cons.mp hp with rfl | hp'
+    · obtain ⟨sR, hsR, hxR⟩ := exists_mem_transversalProducts_cover tl h1tl hv
+      refine ⟨p.2 * sR, Finset.mem_union_left _
+        (Finset.mul_mem_mul (Finset.mem_singleton_self _) hsR), ?_, ?_⟩
+      · rw [← rationalOpen_inter p.1 (transversalProducts (tl.map Prod.fst))
+          p.2 sR (hts p List.mem_cons_self) hsR]
+        exact ⟨hxp, hxR⟩
+      · exact rationalOpen_mul_subset_numerFactor p.1
+          (transversalProducts (tl.map Prod.fst)) p.2 sR hsR
+    · obtain ⟨sR, hsR, hxR, hsubR⟩ := ih htstl h1tl p hp' hxp
+      have hspanH : Ideal.span (hd.1 : Set A) = ⊤ :=
+        (Ideal.eq_top_iff_one _).mpr
+          (Ideal.subset_span (h1 hd List.mem_cons_self))
+      obtain ⟨tH, htH, hxH⟩ := exists_mem_rationalOpen_of_spanTop hd.1 hspanH hv
+      refine ⟨tH * sR, Finset.mem_union_right _
+        (Finset.mul_mem_mul htH hsR), ?_, ?_⟩
+      · rw [← rationalOpen_inter hd.1 (transversalProducts (tl.map Prod.fst))
+          tH sR htH (distinguishedProducts_subset tl htstl hsR)]
+        exact ⟨hxH, hxR⟩
+      · exact (rationalOpen_mul_subset_denomFactor hd.1
+          (transversalProducts (tl.map Prod.fst)) tH sR htH).trans hsubR
+
 /-- **The B-side image piece** `R(canMap T / canMap t)` over `B = presheafValue D₀`
 (Wedhorn Remark 8.4 / Prop 8.2(1) vocabulary: the rational subset of `Spa 𝒪_X(D₀)`
 corresponding to `D₀ ∩ R(T/t)`). The `hopen`-condition is `genPiece_hopen` at `B`
@@ -13144,44 +13186,94 @@ theorem exists_finite_normalized_rational_refinement [DecidableEq A]
       (∀ p ∈ LP, p.2 ∈ p.1) ∧
       (∀ p ∈ LP, (1 : A) ∈ p.1) ∧
       (∀ v ∈ Spa A A⁺, ∃ p ∈ LP, v ∈ rationalOpen p.1 p.2) ∧
+      -- D-RELATIVE refinement: per (D, v ∈ D), a slot containing v INSIDE D
+      -- (Huber's per-point normalisation lives inside the given piece).
+      (∀ D ∈ 𝒱, ∀ v ∈ rationalOpen D.T D.s, v ∈ Spa A A⁺ →
+        ∃ p ∈ LP, v ∈ rationalOpen p.1 p.2 ∧
+          rationalOpen p.1 p.2 ⊆ rationalOpen D.T D.s) ∧
       (∀ p ∈ LP, ∃ D ∈ 𝒱, rationalOpen p.1 p.2 ⊆ rationalOpen D.T D.s) := by
   classical
-  -- per-point normalized data (the landed `exists_normalized_datum_of_mem`)
-  have hpt : ∀ v : ↥(Spa A A⁺), ∃ q : Finset A × A,
-      q.2 ∈ q.1 ∧ (1 : A) ∈ q.1 ∧ (v : Spv A) ∈ rationalOpen q.1 q.2 ∧
-      ∃ D ∈ 𝒱, rationalOpen q.1 q.2 ⊆ rationalOpen D.T D.s := by
-    rintro ⟨v, hv⟩
-    obtain ⟨D, hD, hvD⟩ := hcov v hv
+  -- per-(D, v) normalized data AT THE GIVEN containing piece
+  have hpt : ∀ D ∈ 𝒱, ∀ v : {w : ↥(Spa A A⁺) //
+      (w : Spv A) ∈ rationalOpen D.T D.s}, ∃ q : Finset A × A,
+      q.2 ∈ q.1 ∧ (1 : A) ∈ q.1 ∧ (v.1 : Spv A) ∈ rationalOpen q.1 q.2 ∧
+      rationalOpen q.1 q.2 ⊆ rationalOpen D.T D.s := by
+    rintro D hD ⟨⟨v, hv⟩, hvD⟩
     obtain ⟨T', s', h1, hs', hvm, hsub⟩ := exists_normalized_datum_of_mem D hv hvD
-    exact ⟨(T', s'), hs', h1, hvm, D, hD, hsub⟩
-  choose q hq₂ hq₁ hqv hqref using hpt
-  -- finite subcover inside the (hArch-free) compact subtype
+    exact ⟨(T', s'), hs', h1, hvm, hsub⟩
+  choose q hq₂ hq₁ hqv hqsub using hpt
+  -- per-D finite subcover of the compact preimage of D's rational open
   haveI hQC : CompactSpace ↥(Spa A A⁺) := spa_compactSpace_tate_noHArch
-  obtain ⟨ι, hι⟩ := IsCompact.elim_finite_subcover isCompact_univ
-    (fun v : ↥(Spa A A⁺) => Subtype.val ⁻¹' rationalOpen (q v).1 (q v).2)
-    (fun v => rationalOpen_isOpen _ _)
-    (by
-      intro w _hw
-      simp only [Set.mem_iUnion, Set.mem_preimage]
-      exact ⟨w, hqv w⟩)
-  refine ⟨ι.toList.map q, ?_, ?_, ?_, ?_⟩
+  have hsubD : ∀ (D : RationalLocData A) (hD : D ∈ 𝒱),
+      ∃ ι : Finset {w : ↥(Spa A A⁺) //
+        (w : Spv A) ∈ rationalOpen D.T D.s},
+      ∀ w : ↥(Spa A A⁺), (w : Spv A) ∈ rationalOpen D.T D.s →
+        ∃ x ∈ ι, (w : Spv A) ∈ rationalOpen (q D hD x).1
+          (q D hD x).2 := by
+    intro D hD
+    have hcpt : IsCompact (Subtype.val ⁻¹' rationalOpen D.T D.s :
+        Set ↥(Spa A A⁺)) := isCompact_preimage_rationalOpen_noHArch D
+    obtain ⟨ι, hι⟩ := hcpt.elim_finite_subcover
+      (fun x : {w : ↥(Spa A A⁺) // (w : Spv A) ∈ rationalOpen D.T D.s} =>
+        Subtype.val ⁻¹' rationalOpen (q D hD x).1 (q D hD x).2)
+      (fun x => rationalOpen_isOpen _ _)
+      (by
+        rintro w hw
+        simp only [Set.mem_iUnion, Set.mem_preimage]
+        exact ⟨⟨w, hw⟩, hqv D hD ⟨w, hw⟩⟩)
+    refine ⟨ι, fun w hw => ?_⟩
+    have := hι hw
+    simp only [Set.mem_iUnion, Set.mem_preimage] at this
+    obtain ⟨x, hx, hmem⟩ := this
+    exact ⟨x, hx, hmem⟩
+  choose ι hι using hsubD
+  -- assemble: the join of the per-D slot lists
+  refine ⟨(𝒱.toList.attach.map (fun D =>
+    (ι D.1 (Finset.mem_toList.mp D.2)).toList.map
+      (q D.1 (Finset.mem_toList.mp D.2)))).flatten, ?_, ?_, ?_, ?_, ?_⟩
   · intro p hp
-    rw [List.mem_map] at hp
-    obtain ⟨v, -, rfl⟩ := hp
-    exact hq₂ v
+    rw [List.mem_flatten] at hp
+    obtain ⟨l, hl, hpl⟩ := hp
+    rw [List.mem_map] at hl
+    obtain ⟨D, -, rfl⟩ := hl
+    rw [List.mem_map] at hpl
+    obtain ⟨x, -, rfl⟩ := hpl
+    exact hq₂ _ _ _
   · intro p hp
-    rw [List.mem_map] at hp
-    obtain ⟨v, -, rfl⟩ := hp
-    exact hq₁ v
-  · intro w hw
-    have hmem := hι (Set.mem_univ (⟨w, hw⟩ : ↥(Spa A A⁺)))
-    simp only [Set.mem_iUnion, Set.mem_preimage] at hmem
-    obtain ⟨v, hvι, hmem⟩ := hmem
-    exact ⟨q v, List.mem_map.mpr ⟨v, Finset.mem_toList.mpr hvι, rfl⟩, hmem⟩
+    rw [List.mem_flatten] at hp
+    obtain ⟨l, hl, hpl⟩ := hp
+    rw [List.mem_map] at hl
+    obtain ⟨D, -, rfl⟩ := hl
+    rw [List.mem_map] at hpl
+    obtain ⟨x, -, rfl⟩ := hpl
+    exact hq₁ _ _ _
+  · -- global cover: route through the containing piece
+    intro w hw
+    obtain ⟨D, hD, hwD⟩ := hcov w hw
+    obtain ⟨x, hx, hmem⟩ := hι D hD ⟨w, hw⟩ hwD
+    refine ⟨q D hD x, ?_, hmem⟩
+    rw [List.mem_flatten]
+    exact ⟨(ι D hD).toList.map (q D hD),
+      List.mem_map.mpr ⟨⟨D, Finset.mem_toList.mpr hD⟩,
+        List.mem_attach _ _, rfl⟩,
+      List.mem_map.mpr ⟨x, Finset.mem_toList.mpr hx, rfl⟩⟩
+  · -- D-relative refinement
+    intro D hD w hwD hw
+    obtain ⟨x, hx, hmem⟩ := hι D hD ⟨w, hw⟩ hwD
+    refine ⟨q D hD x, ?_, hmem, hqsub D hD x⟩
+    rw [List.mem_flatten]
+    exact ⟨(ι D hD).toList.map (q D hD),
+      List.mem_map.mpr ⟨⟨D, Finset.mem_toList.mpr hD⟩,
+        List.mem_attach _ _, rfl⟩,
+      List.mem_map.mpr ⟨x, Finset.mem_toList.mpr hx, rfl⟩⟩
   · intro p hp
-    rw [List.mem_map] at hp
-    obtain ⟨v, -, rfl⟩ := hp
-    exact hqref v
+    rw [List.mem_flatten] at hp
+    obtain ⟨l, hl, hpl⟩ := hp
+    rw [List.mem_map] at hl
+    obtain ⟨D, hD, rfl⟩ := hl
+    rw [List.mem_map] at hpl
+    obtain ⟨x, -, rfl⟩ := hpl
+    exact ⟨D.1, Finset.mem_toList.mp D.2, hqsub _ _ _⟩
 
 /-- **Wedhorn Lemma 7.54 (whole space, FAITHFUL — Huber [Hu3] 2.6 product trick).**
 *"Every open covering of `X = Spa A` has a refinement `𝒰 = (U_t)_{t∈T}` of the form
@@ -13213,7 +13305,7 @@ theorem exists_form_a_refinement_coversSpa [DecidableEq A]
     ∃ S : Finset A, Ideal.span (S : Set A) = ⊤ ∧
       (∀ v ∈ Spa A A⁺, ∃ f ∈ S, v ∈ rationalOpen S f) ∧
       (∀ f ∈ S, ∃ D ∈ 𝒱, rationalOpen S f ⊆ rationalOpen D.T D.s) := by
-  obtain ⟨LP, hts, h1, hcovLP, hrefLP⟩ :=
+  obtain ⟨LP, hts, h1, hcovLP, hrelLP, hrefLP⟩ :=
     exists_finite_normalized_rational_refinement 𝒱 hcov
   haveI : IsAdicComplete (IsTateRing.principalPair A).toPairOfDefinition.I
       (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
@@ -13295,7 +13387,55 @@ theorem exists_form_a_refinement [DecidableEq A]
           rationalOpen (piece f).T (piece f).s ⊆ rationalOpen D.T D.s) ∧
       (∀ f ∈ S, ∃ D ∈ C.covers,
         rationalOpen (piece f).T (piece f).s ⊆ rationalOpen D.T D.s) := by
-  sorry
+  classical
+  -- whole-space cover by the C-pieces (through hbase)
+  have hcov𝒱 : ∀ v ∈ Spa A A⁺, ∃ D ∈ C.covers, v ∈ rationalOpen D.T D.s :=
+    fun v hv => C.hcover v (hbase v hv)
+  obtain ⟨LP, hts, h1, hcovLP, hrelLP, hrefLP⟩ :=
+    exists_finite_normalized_rational_refinement C.covers hcov𝒱
+  haveI : IsAdicComplete (IsTateRing.principalPair A).toPairOfDefinition.I
+      (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
+    principalPair_isAdicComplete_of_stronglyNoetherianTate
+  have hAplus : (A⁺ : Set A) ⊆
+      (IsTateRing.principalPair A).toPairOfDefinition.A₀ :=
+    CompatiblePlusSubring.aplus_le_A₀
+      (globalLocData (IsTateRing.principalPair A).toPairOfDefinition)
+  have hspanS : Ideal.span ((distinguishedProducts LP : Finset A) : Set A) = ⊤ :=
+    span_top_of_distinguished_products LP hts h1 hcovLP
+      (IsTateRing.principalPair A).toPairOfDefinition hAplus
+  -- the form-(a) pieces: R(S/f) at the base pair (genPieceDatum)
+  refine ⟨distinguishedProducts LP,
+    fun f => genPieceDatum C.base.P (distinguishedProducts LP) f hspanS,
+    hspanS, fun f _ => genPieceDatum_T _ _ _ _, fun f _ => genPieceDatum_s _ _ _ _,
+    fun f _ => genPieceDatum_P _ _ _ _, ?_, ?_, ?_⟩
+  · -- pieces sit inside the base
+    intro f hf
+    rw [genPieceDatum_T, genPieceDatum_s,
+      ← rationalOpen_distinguished_eq LP hts h1 hcovLP]
+    obtain ⟨p, hp, hsub⟩ := distinguishedProducts_refines LP f hf
+    obtain ⟨D, hD, hDsub⟩ := hrefLP p hp
+    exact hsub.trans (hDsub.trans (C.hsubset D hD))
+  · -- D-RELATIVE cover via the slot-tracking distinguished product
+    intro D hD v hvD
+    have hvspa : v ∈ Spa A A⁺ := hvD.1
+    obtain ⟨p, hp, hvp, hpsub⟩ := hrelLP D hD v hvD hvspa
+    obtain ⟨s, hsS, hvs, hssub⟩ :=
+      distinguishedProducts_cover_rel LP hts h1 hvspa p hp hvp
+    refine ⟨s, hsS, ?_, ?_⟩
+    · rw [genPieceDatum_T, genPieceDatum_s,
+        ← rationalOpen_distinguished_eq LP hts h1 hcovLP]
+      exact hvs
+    · rw [genPieceDatum_T, genPieceDatum_s,
+        ← rationalOpen_distinguished_eq LP hts h1 hcovLP]
+      exact hssub.trans hpsub
+  · -- each piece refines into some C-piece
+    intro f hf
+    obtain ⟨p, hp, hsub⟩ := distinguishedProducts_refines LP f hf
+    obtain ⟨D, hD, hDsub⟩ := hrefLP p hp
+    refine ⟨D, hD, ?_⟩
+    rw [genPieceDatum_T, genPieceDatum_s,
+      ← rationalOpen_distinguished_eq LP hts h1 hcovLP]
+    exact hsub.trans hDsub
 
 theorem exists_ideal_gen_refinement [DecidableEq A]
     [IsTateRing A] [IsNoetherianRing A] [IsStronglyNoetherian A] [T2Space A]
