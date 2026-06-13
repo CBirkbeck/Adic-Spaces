@@ -73,60 +73,14 @@ theorem restrictionMapHom_canonicalMap (D₀ D' : RationalLocData A)
 
 end Helpers
 
-/-! ## Hidden-obligation audit pass 3 (2026-05-17): Wedhorn 7.55 reduction
-
-Item 4 from the audit. Wedhorn Prop 8.30 (page 81) reduces to Lemma
-8.31(1)/(2) via:
-1. Example 6.38: WLOG U = Spa A (the bigger rational is again strong-noeth Tate);
-2. Remark 7.55: any rational `V = R(T/s) ⊆ Spa A` admits a description
-   `O_X(V) ≅ A⟨X_1, …, X_n⟩ / (s·X_1 - t_1, …, s·X_n - t_n)` where `T = {t_1, …, t_n}`;
-3. Each generator `(s·X_i - t_i)` is the "Laurent pair" form, flat by 8.31(2).
-
-The intermediate step is the explicit ring isomorphism that's the missing
-audit lemma. -/
-
-section AuditPass3
-
-variable {A : Type*} [CommRing A] [TopologicalSpace A] [IsTopologicalRing A]
-  [PlusSubring A] [IsHuberRing A] [IsTateRing A] [IsNoetherianRing A]
-  [T2Space A] [NonarchimedeanRing A]
-
-/-- **(Wedhorn Remark 7.55, clean ring-iso form — STATEMENT BUG, 2026-05-18)**
-
-⚠ **B2 (b2_log entry 6, 2026-05-18):** the Lean statement below uses
-`MvPolynomial D.T A` (algebraic polynomial ring) which gives quotient
-`A[X_t]/(s·X_t = t) ≅ A[1/s]` — the *algebraic* localization, no topology.
-But `presheafValue D = Completion(Localization.Away D.s)` in the
-localization topology. The two coincide only when `A[1/s]` is already
-complete (e.g., `A` discrete). Counterexample: `A = ℤ` with `p`-adic
-topology, `D.s = p`, `D.T = ∅`. RHS = `MvPolynomial ∅ ℤ ≅ ℤ`. LHS =
-`Completion(ℤ[1/p]) = ℚ_p ≠ ℤ`.
-
-The intended statement (per docstring `A⟨X⟩` notation) uses the **Tate
-algebra** in `|D.T|` variables (project's `restrictedMvPowerSeriesSubring`),
-not `MvPolynomial`. With Tate algebra, the equivalence is Wedhorn 7.55
-exactly. Fix: replace `MvPolynomial` with `restrictedMvPowerSeriesSubring`
-(or equivalent Tate-algebra encoding) and quotient by the same ideal.
-
-Discharge plan (for the *corrected* statement using `A⟨X⟩`): induction on
-`n`. The base case `n = 0` is `R(∅/s) = R(s) = Spa(A[1/s])` and
-`presheafValue ≃+* completion of A[1/s]` already exists in the project
-(`PresheafIdentification.lean`). The inductive step adjoins one more
-variable via the "Wedhorn 7.55" `Localization.Away` identification
-applied to `A → A⟨X_1⟩/(s·X_1 - t_1)`.
-
-**Note**: stated for arbitrary finset; the package shape returns the
-ring iso bundled with a `HasLocLiftPowerBounded`-style continuity assertion
-(omitted here for brevity; project's `presheafValue` API handles it). -/
-theorem presheafValue_eq_quotient_AlangleX_iterated
-    (D : RationalLocData A) :
-    Nonempty (presheafValue D ≃+*
-      MvPolynomial D.T A ⧸ Ideal.span
-        (Set.range (fun t : D.T =>
-          MvPolynomial.X (R := A) t * MvPolynomial.C D.s
-            - MvPolynomial.C (t : A)))) :=
-  sorry
-
-end AuditPass3
+-- DELETED 2026-06-11 (false orphan): the audit-pass-3 section held only
+-- `presheafValue_eq_quotient_AlangleX_iterated`, a `sorry` whose own docstring
+-- flagged it FALSE (b2_log #6: `MvPolynomial D.T A ⧸ (s·Xₜ − t)` = the *algebraic*
+-- `A[1/s]`, but `presheafValue D` is its *completion* in the localization topology —
+-- counterexample `A = ℤ` p-adic, `s = p`: RHS ≅ ℤ, LHS ≅ ℚ_p). It was referenced
+-- nowhere, and the FAITHFUL Wedhorn-7.55/Example-6.38 comparison iso `presheafValue D
+-- ≃+* C⧸ker` (Tate algebra `restrictedMvPowerSeriesSubring`, NOT `MvPolynomial`) has
+-- since landed in `Example638.lean`/`MvTateAlgebraTopology.lean` (axiom-clean). Per the
+-- quote-or-delete discipline (false + orphan + superseded), the dead stub is removed.
 
 end ValuationSpectrum
