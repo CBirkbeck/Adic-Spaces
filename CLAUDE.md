@@ -33,6 +33,51 @@ Forbidden patterns observed in past sessions:
 
 When you reach for any of these, stop and either (1) actually prove the thing without the addition, or (2) leave the theorem with a `sorry` body — possibly decomposed into sub-lemma sorries — and report the obstruction concretely.
 
+## BINDING RULE — Wedhorn-faithfulness (mirror the source; never invent a route)
+
+As binding as the rule above. It applies to YOU and to EVERY agent you launch.
+
+The recurring, expensive failure in this project is this: a proof gets decomposed into
+sub-lemmas that *diverge from Wedhorn's actual argument*, and the decomposition then bottoms
+out at a lemma Wedhorn never proves — which is reliably either **mathlib-lacking infrastructure**
+(e.g. a restricted-power-series Fubini) or **outright false** (e.g. "strongly noetherian ⇒
+noetherian ring of definition", or "noetherian ⇒ strongly noetherian", or the dead `L21`).
+Every such episode is wasted work, and the cause is always the same: leaving the source.
+
+Rules:
+
+1. **Cite the source on every declaration.** Each `theorem`/`def`/`lemma` formalizing a Wedhorn
+   result carries, in its docstring, the exact citation: statement number, page, AND the line
+   range in `/private/tmp/wedhorn.txt` — e.g. "Wedhorn Remark 6.37(1), p. 54 (wedhorn.txt:2682)".
+   A declaration with no source citation is suspect by default.
+
+2. **Read Wedhorn's proof, then transcribe its skeleton, BEFORE decomposing.** Open
+   `/private/tmp/wedhorn.txt`, read the actual proof, and write down the chain of propositions it
+   invokes with their exact hypotheses and dependencies. Your Lean decomposition must mirror
+   *that* chain. Do NOT decompose by "what looks provable in Lean" or "what connects to the code
+   we already have" — those pulls are exactly what produce the divergence.
+
+3. **No orphan leaves.** A sub-lemma with no Wedhorn counterpart is permitted ONLY as a genuine
+   mathlib-level prerequisite (a general algebra/topology fact), and it must be labelled
+   `-- INFRASTRUCTURE (not in Wedhorn)`. If discharging a step requires you to *build substantial
+   missing infrastructure*, STOP — that is the tell that you have left Wedhorn's route. Re-read
+   the source for the real argument before writing another line.
+
+4. **Never use memory or a conversation summary as the source of a statement or a proof route.**
+   They drift from both Wedhorn and the code. Re-read the Wedhorn passage and the actual `.lean`
+   for everything you touch. Memory/summaries are for pointers ("X lives in file Y"), never for
+   "what Wedhorn proves" or "how the proof goes".
+
+5. **Propagate to every launched agent.** An agent given a formalization task MUST receive, in its
+   prompt: this rule, the verbatim Wedhorn passage for its target (with wedhorn.txt line numbers),
+   and the proof-map skeleton for its part. Never launch an agent with a bare goal.
+
+**Acceptance test** for any leaf on the board: you can quote the Wedhorn passage (verbatim, with
+wedhorn.txt line numbers) that justifies it. If you cannot, it is an artifact — delete it and find
+Wedhorn's real route. Plan top-down from `/private/tmp/wedhorn.txt`, reading from the headline
+theorem downward, before writing code. The current plan for Thm 8.28(b) is
+`docs/WEDHORN-8.28b-PROOFMAP.md`.
+
 ## Project Overview
 
 A Lean 4 formalization of adic spaces, building on Mathlib. The project follows Wedhorn's *Adic Spaces* textbook. Uses Lean 4 v4.29.0-rc3 with Mathlib v4.29.0-rc3.

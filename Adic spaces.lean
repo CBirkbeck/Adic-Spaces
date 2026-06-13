@@ -86,6 +86,7 @@ import «Adic spaces».TateAcyclicityResiduals
 import «Adic spaces».TateAlgebra
 import «Adic spaces».TateAlgebraTopology
 import «Adic spaces».TateAlgebraWedhorn
+import «Adic spaces».MvTateAlgebraTopology
 import «Adic spaces».WedhornCechAcyclicity
 import «Adic spaces».Tilting
 import «Adic spaces».Uniform
