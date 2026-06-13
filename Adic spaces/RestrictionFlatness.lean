@@ -866,6 +866,43 @@ theorem restrictionMap_flat_trans
   haveI : Module.Flat (presheafValue D₁) (presheafValue D) := flat_D₁_D
   exact Module.Flat.trans (presheafValue E) (presheafValue D₁) (presheafValue D)
 
+/-- The self-restriction `𝒪_X(E) → 𝒪_X(E)` is flat (it is the identity ring hom,
+so the module is the regular module). Base case of the chain fold. -/
+theorem restrictionMapHom_refl_flat (E : RationalLocData A)
+    (h : rationalOpen E.T E.s ⊆ rationalOpen E.T E.s) :
+    @Module.Flat (presheafValue E) (presheafValue E) _ _
+      ((restrictionMapHom E E h).toModule) := by
+  have hid : restrictionMapHom E E h = RingHom.id (presheafValue E) := by
+    ext x; exact congrFun (restrictionMap_id E) x
+  rw [hid]
+  exact Module.Flat.self
+
+/-- **Cumulative containment of a descending chain of rational locales**: if each
+`rationalOpen (X (i+1)) ⊆ rationalOpen (X i)`, then `rationalOpen (X n) ⊆ rationalOpen (X 0)`
+for every `n`. Defined by the obvious recursion so that the `n+1` case is *definitionally*
+`(hstep n).trans (… n)` — the chain fold relies on this for proof-irrelevant matching. -/
+theorem rationalOpen_chain_contains (X : ℕ → RationalLocData A)
+    (hstep : ∀ i, rationalOpen (X (i + 1)).T (X (i + 1)).s ⊆ rationalOpen (X i).T (X i).s) :
+    ∀ n, rationalOpen (X n).T (X n).s ⊆ rationalOpen (X 0).T (X 0).s
+  | 0 => le_refl _
+  | k + 1 => (hstep k).trans (rationalOpen_chain_contains X hstep k)
+
+/-- **Arbitrary-length chain flatness** (Wedhorn Remark 7.55 fold): for a descending
+chain of rational locales `X 0 ⊇ X 1 ⊇ ⋯` with each step's restriction map flat, the
+composite restriction `𝒪_X(X 0) → 𝒪_X(X n)` is flat for every `n`. Supersedes the
+explicit depth-3..7 lemmas; folds the per-step flatness by `restrictionMap_flat_trans`. -/
+theorem restrictionMap_flat_chain (X : ℕ → RationalLocData A)
+    (hstep : ∀ i, rationalOpen (X (i + 1)).T (X (i + 1)).s ⊆ rationalOpen (X i).T (X i).s)
+    (hflat : ∀ i, @Module.Flat (presheafValue (X i)) (presheafValue (X (i + 1))) _ _
+      ((restrictionMapHom (X i) (X (i + 1)) (hstep i)).toModule)) :
+    ∀ n, @Module.Flat (presheafValue (X 0)) (presheafValue (X n)) _ _
+      ((restrictionMapHom (X 0) (X n) (rationalOpen_chain_contains X hstep n)).toModule)
+  | 0 => restrictionMapHom_refl_flat (X 0) (rationalOpen_chain_contains X hstep 0)
+  | k + 1 =>
+    restrictionMap_flat_trans (X 0) (X k) (X (k + 1))
+      (rationalOpen_chain_contains X hstep k) (hstep k)
+      (restrictionMap_flat_chain X hstep hflat k) (hflat k)
+
 /-! ### Chain composition extended to depth N (list version)
 
 Generalises `restrictionMap_flat_trans` to chains of arbitrary length. Given
@@ -874,7 +911,8 @@ a list of intermediate rational locales `E = L₀, L₁, ..., L_n = D` with each
 flat, conclude the composite restriction `O(E) → O(D)` is flat.
 
 Proof: induction on the list length, applying `restrictionMap_flat_trans`
-at each step. -/
+at each step. (See also the recursion-free `restrictionMap_flat_chain` above,
+which folds an arbitrary-length descending chain directly.) -/
 
 /-- Inductive step for chain flatness: given flatness of N consecutive
 restriction maps, the composed restriction is flat.
