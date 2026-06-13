@@ -39,7 +39,7 @@ variable {Γ}
 
 instance : SetLike (ConvexSubgroup Γ) Γ where
   coe H := H.carrier
-  coe_injective' := by
+  coe_injective := by
     intro ⟨H₁, _⟩ ⟨H₂, _⟩ h
     congr 1
     exact Subgroup.ext (Set.ext_iff.mp h)

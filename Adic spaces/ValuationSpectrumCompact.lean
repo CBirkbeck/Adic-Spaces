@@ -352,6 +352,7 @@ def IsValuationChar.toValuativeRel {r : A × A → Prop} (hr : IsValuationChar r
   vle_trans := hr.vle_trans
   vle_add := hr.vle_add
   mul_vle_mul_left := hr.mul_vle_mul_left
+  vle_mul_comm := by intro x y; rw [mul_comm]; exact (hr.vle_total _ _).elim id id
   vle_mul_cancel := hr.vle_mul_cancel
   not_vle_one_zero := hr.not_vle_one_zero
 

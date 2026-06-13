@@ -593,7 +593,7 @@ theorem mulArchimedean_ofPrime_of_height_one (A : ValuationSubring K)
   · exact ⟨0, hx ▸ (show (0 : W.ValueGroup) ≤ y ^ 0 by simp)⟩
   · obtain ⟨n, hn⟩ := harch_units.arch (Units.mk0 x hx)
       (show 1 < Units.mk0 y (ne_of_gt (lt_trans zero_lt_one hy)) from hy)
-    exact ⟨n, by simpa [Units.val_pow_eq_pow_val] using hn⟩
+    exact ⟨n, by simpa only [Units.val_pow_eq_pow_val, Units.val_mk0, ← Units.val_le_val] using hn⟩
 
 /-- **Round-trip: H ≤ convexSubgroupOfPrime(primeOfConvexSubgroup H).**
 

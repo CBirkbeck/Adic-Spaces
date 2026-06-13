@@ -575,7 +575,7 @@ theorem exists_spa_point_via_restrictToConvex (P : PairOfDefinition A)
         intro γ hγ
         obtain ⟨n, hn⟩ := ConvexSubgroup.withZero_inv_pow_cofinal_of_convexGenerated
           hu_max_inv_gt1 γ hγ
-        exact ⟨n, by convert hn using 2⟩
+        exact ⟨n, by simpa only [g_cont_def, inv_inv] using hn⟩
       exact Valuation.isContinuous_of_le_one_and_pow_cofinal P v_ext h_le_ext
         hg_bound h_cofinal
     · intro f hf

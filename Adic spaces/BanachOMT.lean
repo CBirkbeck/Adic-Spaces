@@ -312,7 +312,8 @@ theorem _sub_sub_lemma_D_1_cauchy_builder
     apply hsum_lemma k n
     intro j
     have h := hstep (n + 1 + (j : ℕ))
-    convert h using 2
+    rw [show n + 1 + ((j : ℕ) + 1) = n + 1 + (j : ℕ) + 1 from by omega]
+    exact h
   -- basis is a HasBasis for nhds 0.
   have hbasis_basis : (nhds (0 : G)).HasBasis (fun _ : ℕ => True) basis :=
     ⟨fun V => ⟨fun hV => (hcofinal V hV).imp (fun _ h => ⟨trivial, h⟩),
@@ -462,7 +463,7 @@ theorem banach_two_of_three
    -- eq : (G ⧸ f.ker) ≃+ H induced by surjectivity, plus completeness of
    -- the quotient (`QuotientAddGroup.completeSpace_right'`).
    fun ⟨hsurj, hopen⟩ => by
-     haveI hk_normal : f.ker.Normal := AddSubgroup.normal_of_comm _
+     haveI hk_normal : f.ker.Normal := AddSubgroup.normal_of_isAddCommutative _
      haveI : FirstCountableTopology G := UniformSpace.firstCountableTopology G
      letI τQ : UniformSpace (G ⧸ f.ker) :=
        IsTopologicalAddGroup.rightUniformSpace (G ⧸ f.ker)

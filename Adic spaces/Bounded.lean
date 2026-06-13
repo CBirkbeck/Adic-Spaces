@@ -348,7 +348,7 @@ theorem isBounded_finset_sum [IsTopologicalRing A] {ι : Type*} (s : Finset ι)
     IsBounded (∑ i ∈ s, f i) := by
   classical
   induction s using Finset.induction with
-  | empty => simpa using isBounded_singleton_zero
+  | empty => rw [Finset.sum_empty]; exact isBounded_singleton_zero
   | insert _ _ hni ih => rw [Finset.sum_insert hni]; exact
       (hf _ (Finset.mem_insert_self _ _)).add (ih fun j hj ↦ hf j (Finset.mem_insert_of_mem hj))
 

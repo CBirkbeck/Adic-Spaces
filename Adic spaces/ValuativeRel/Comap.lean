@@ -30,6 +30,7 @@ variable {A B : Type*} [CommRing A] [CommRing B]
   vle_trans h₁ h₂ := v.vle_trans h₁ h₂
   vle_add h₁ h₂ := by simpa [map_add] using v.vle_add h₁ h₂
   mul_vle_mul_left h z := by simpa [map_mul] using v.mul_vle_mul_left h (φ z)
+  vle_mul_comm := by simp only [map_mul]; exact v.vle_mul_comm
   vle_mul_cancel h₀ h := by
     rw [map_zero] at h₀
     simpa [map_mul] using v.vle_mul_cancel h₀ (by simpa [map_mul] using h)

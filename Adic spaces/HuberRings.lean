@@ -322,7 +322,13 @@ theorem IsTateRing.isOpen_topologicalNilradical :
 /-- The `Set` version of `isOpen_topologicalNilradical`. -/
 theorem IsTateRing.isOpen_topologicallyNilpotentElements :
     IsOpen (TopologicalRing.topologicallyNilpotentElements A) := by
-  convert IsTateRing.isOpen_topologicalNilradical (A := A)
+  have heq : TopologicalRing.topologicallyNilpotentElements A
+      = ((topologicalNilradical A : Ideal A) : Set A) := by
+    ext a
+    simp only [TopologicalRing.topologicallyNilpotentElements, Set.mem_setOf_eq, SetLike.mem_coe,
+      IsTopologicallyNilpotent.mem_topologicalNilradical_iff]
+  rw [heq]
+  exact IsTateRing.isOpen_topologicalNilradical (A := A)
 
 omit [IsLinearTopology A A] in
 /-- **`A°°` is open (Wedhorn Prop 6.13(1)) — no `[IsLinearTopology]`.** Faithful version: `A°°`
@@ -916,9 +922,8 @@ theorem IsTateRing.isAdicHom_of_continuous_with_pairs [IsTateRing A] [IsHuberRin
     nilpotentUnit_principalData PB (Units.map (φ : A →* B) u)
       (show IsTopologicallyNilpotent ((Units.map (φ : A →* B) u : B))
         from Units.coe_map (φ : A →* B) u ▸ hv_nil)
-  set vL : PB.A₀ := ⟨(φ u) ^ L, Units.coe_map (φ : A →* B) u ▸ hv_L⟩
-  have hmB' : PB.I ^ mB ≤ Ideal.span {vL ^ M} := by
-    convert hmB using 2
+  set vL : PB.A₀ := ⟨↑((Units.map (φ : A →* B)) u) ^ L, hv_L⟩ with hvL_def
+  have hmB' : PB.I ^ mB ≤ Ideal.span {vL ^ M} := hmB
   refine ⟨PA.withPrincipal hN_mem hmA,
     PB.withPrincipal hM_mem hmB', h_map, ?_⟩
   simp only [restrictRingHom_withPrincipal, PairOfDefinition.withPrincipal_I]

@@ -735,7 +735,7 @@ private theorem mem_prime_of_rational_subset_open {A : Type*} [CommRing A]
     exact ⟨fun h ↦ Ideal.Quotient.eq_zero_iff_mem.mp
       ((IsFractionRing.injective (A ⧸ p) (FractionRing (A ⧸ p))).eq_iff.mp
         (by rwa [map_zero])),
-      fun ha ↦ by rw [Ideal.Quotient.eq_zero_iff_mem.mpr ha, map_zero]; rfl⟩
+      fun ha ↦ by rw [Ideal.Quotient.eq_zero_iff_mem.mpr ha, map_zero]⟩
   have hw_one_or_zero : ∀ (a : A), w a = 0 ∨ w a = 1 := by
     intro a
     simp only [w, Valuation.comap_apply, φ, RingHom.comp_apply]
@@ -1972,7 +1972,9 @@ theorem isIntegral_of_forall_continuous_valuation_le_one
             intro γ hγ
             obtain ⟨n, hn⟩ := ConvexSubgroup.withZero_inv_pow_cofinal_of_convexGenerated
               hu_inv_gt1 γ hγ
-            exact ⟨n, by convert hn using 2⟩
+            exact ⟨n, by
+              convert hn using 2
+              exact WithZero.coe_inj.mpr (Subtype.ext (inv_inv u_max).symm)⟩
           exact Valuation.isContinuous_of_le_one_and_pow_cofinal P v_ext h_le_ext
             hg_bound h_cofinal
     · -- Empty P.I: degenerate case.
@@ -2175,7 +2177,7 @@ private theorem mem_prime_of_rational_subset_discrete {A : Type*} [CommRing A]
     exact ⟨fun h ↦ Ideal.Quotient.eq_zero_iff_mem.mp
       ((IsFractionRing.injective (A ⧸ p) (FractionRing (A ⧸ p))).eq_iff.mp
         (by rwa [map_zero])),
-      fun ha ↦ by rw [Ideal.Quotient.eq_zero_iff_mem.mpr ha, map_zero]; rfl⟩
+      fun ha ↦ by rw [Ideal.Quotient.eq_zero_iff_mem.mpr ha, map_zero]⟩
   have hw_Ds : w D'.s = 1 := by
     simp only [w, Valuation.comap_apply, φ, RingHom.comp_apply]
     apply Valuation.one_apply_of_ne_zero
@@ -2431,7 +2433,7 @@ private theorem base_s_mem_annihilator_radical {A : Type*} [CommRing A]
     exact ⟨fun h ↦ Ideal.Quotient.eq_zero_iff_mem.mp
       ((IsFractionRing.injective (A ⧸ p) (FractionRing (A ⧸ p))).eq_iff.mp
         (by rwa [map_zero])),
-      fun hb ↦ by rw [Ideal.Quotient.eq_zero_iff_mem.mpr hb, map_zero]; rfl⟩
+      fun hb ↦ by rw [Ideal.Quotient.eq_zero_iff_mem.mpr hb, map_zero]⟩
   have hw_s : w C.base.s = 1 := by
     simp only [w, Valuation.comap_apply, φ, RingHom.comp_apply]
     apply Valuation.one_apply_of_ne_zero; intro heq; apply hs_notin
@@ -3442,15 +3444,15 @@ private theorem mulArchimedean_withZero_of_mulArchimedean_units
     exact absurd hy (not_lt.mpr zero_le_one)
   by_cases hx : x = 0
   · exact ⟨0, by simp [hx]⟩
-  · set yu : Γ₀ˣ := Units.mk0 y hy_ne
-    set xu : Γ₀ˣ := Units.mk0 x hx
+  · set yu : Γ₀ˣ := Units.mk0 y hy_ne with hyu_eq
+    set xu : Γ₀ˣ := Units.mk0 x hx with hxu_eq
     have hyu : 1 < yu := by
       rw [← Units.val_lt_val]
-      simpa using hy
+      simpa only [hyu_eq, Units.val_one, Units.val_mk0] using hy
     obtain ⟨n, hn⟩ := MulArchimedean.arch xu hyu
     refine ⟨n, ?_⟩
     rw [← Units.val_le_val] at hn
-    simpa using hn
+    simpa only [hxu_eq, hyu_eq, Units.val_pow_eq_pow_val, Units.val_mk0] using hn
 
 /-- **(Wedhorn 7.52(2), clean version — pass-4 audit)** *"Let `A` be a
 complete affinoid ring. An element `f ∈ A` is a unit if and only if

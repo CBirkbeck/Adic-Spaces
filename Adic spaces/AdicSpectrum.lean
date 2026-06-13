@@ -222,7 +222,7 @@ lemma exists_mem_spa_supp_eq_of_prime [DiscreteTopology A]
     exact ⟨fun h ↦ Ideal.Quotient.eq_zero_iff_mem.mp
       ((IsFractionRing.injective (A ⧸ p) (FractionRing (A ⧸ p))).eq_iff.mp
         (by rwa [map_zero])),
-      fun ha ↦ by rw [Ideal.Quotient.eq_zero_iff_mem.mpr ha, map_zero]; rfl⟩
+      fun ha ↦ by rw [Ideal.Quotient.eq_zero_iff_mem.mpr ha, map_zero]⟩
 
 end Prop752
 

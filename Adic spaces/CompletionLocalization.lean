@@ -479,7 +479,7 @@ noncomputable def completionLocSubringEquiv :
   have hui : IsUniformInducing D₀.locSubringToCompleted := by
     refine isUniformEmbedding_subtype_val.isUniformInducing.isUniformInducing_comp_iff.mp ?_
     change IsUniformInducing (Subtype.val ∘ ⇑D₀.locSubringToCompleted)
-    convert locSubringToPresheafValue_isUniformInducing D₀ using 1
+    exact locSubringToPresheafValue_isUniformInducing D₀
   have hdense : DenseRange D₀.locSubringToCompleted := by
     intro ⟨x, hx⟩
     rw [mem_closure_iff_nhds]

@@ -322,7 +322,7 @@ theorem varInclHom_isRestricted {k : ℕ} (j : Fin k) (f : MvPowerSeries (Fin 1)
   simp only [Set.mem_compl_iff, Set.mem_preimage] at he
   have he2 : varInclFun j f e ∉ U := by
     change (MvPowerSeries.coeff e) (varInclHom j f) ∉ U at he
-    convert he using 1
+    exact he
   rw [varInclFun_apply] at he2
   split_ifs at he2 with h
   · refine ⟨Finsupp.single 0 (e j), he2, ?_⟩
@@ -1013,7 +1013,7 @@ theorem flat_quotient_fSubX [DiscreteTopology A] [IsNoetherianRing A] (f : A) :
     congr 1
     have h := congr_fun (congr_arg DFunLike.coe (quotientFSubXToA_comp_AToQuotientFSubX f)) a
     simp only [RingHom.comp_apply, RingHom.id_apply] at h
-    convert h using 1
+    convert h using 1 <;> first | rfl | simp
   exact Module.Flat.of_linearEquiv
     { e.toAddEquiv with
       map_smul' := hsmul }
@@ -1346,7 +1346,7 @@ theorem Module.Flat.pi_self {R : Type u} [CommRing R] [IsNoetherianRing R]
     intro j
     have hker := (s j).prop
     simp only [LinearMap.mem_ker, relMapFlat] at hker
-    convert hker using 1
+    simpa only [LinearMap.coe_mk, AddHom.coe_mk] using hker
 
 /-- The multivariate power series ring `MvPowerSeries σ R` is flat over noetherian `R`.
 Since `MvPowerSeries σ R = (σ →₀ ℕ) → R` as an `R`-module, this is a direct

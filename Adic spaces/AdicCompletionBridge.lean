@@ -415,9 +415,10 @@ theorem ker_evalₐ_eq {R : Type*} [CommRing R] (I : Ideal R)
         obtain ⟨r, hr_eq⟩ := Submodule.Quotient.mk_surjective _ (x.val m)
         have hr_mem : r ∈ (I ^ n • ⊤ : Submodule R R) := by
           rw [← Submodule.Quotient.mk_eq_zero]
-          have : AdicCompletion.transitionMap I R (le_of_lt hmn) (x.val m) = 0 := by
+          have hT : AdicCompletion.transitionMap I R (le_of_lt hmn) (x.val m) = 0 := by
             rw [x.property (le_of_lt hmn)]; exact hxn
-          rw [← hr_eq] at this; convert this using 1
+          rw [← hr_eq] at hT
+          simpa [AdicCompletion.transitionMap_ideal_mk] using hT
         have h1 : (I ^ n • ⊤ : Submodule R R).mkQ r = 0 :=
           (Submodule.Quotient.mk_eq_zero _).mpr hr_mem
         rw [show x.val m = Submodule.Quotient.mk r from hr_eq.symm]

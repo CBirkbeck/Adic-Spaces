@@ -56,7 +56,7 @@ instance : Category CompleteTopCommRingCat.{u} where
 instance (R S : CompleteTopCommRingCat.{u}) :
     FunLike { f : R →+* S // Continuous f } R S where
   coe f := f.val
-  coe_injective' _ _ h := Subtype.ext (DFunLike.coe_injective h)
+  coe_injective _ _ h := Subtype.ext (DFunLike.coe_injective h)
 
 /-- `CompleteTopCommRingCat` is a concrete category. -/
 instance : ConcreteCategory CompleteTopCommRingCat.{u}

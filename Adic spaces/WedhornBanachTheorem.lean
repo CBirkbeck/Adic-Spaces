@@ -1091,9 +1091,22 @@ theorem _sub_lemma_L4_3_strict_via_closed_image
   have hf_rangeRestrict_open : IsOpenMap f.rangeRestrict :=
     wedhorn_6_16_of_topNilpUnit hϖ_nil ϖ.isUnit f.rangeRestrict
       hf_rangeRestrict_cont hf_rangeRestrict_surj
-  -- Convert: Set.rangeFactorization f and f.rangeRestrict are defeq as functions
-  -- M → ↥(LinearMap.range f) (via Set.range f = LinearMap.range f as Set N).
-  convert hf_rangeRestrict_open using 1
+  -- `Set.rangeFactorization f` factors through `f.rangeRestrict` via the
+  -- (value-preserving) homeomorphism `↥(LinearMap.range f) ≃ₜ ↥(Set.range f)`
+  -- (the two subtypes have the same underlying set, `LinearMap.coe_range`).
+  let e : ↥(LinearMap.range f) ≃ₜ ↥(Set.range ⇑f) :=
+    { toFun := fun x => ⟨x.1, Set.mem_range.mpr (LinearMap.mem_range.mp x.2)⟩
+      invFun := fun x => ⟨x.1, LinearMap.mem_range.mpr (Set.mem_range.mp x.2)⟩
+      left_inv := fun _ => rfl
+      right_inv := fun _ => rfl
+      continuous_toFun := continuous_subtype_val.subtype_mk _
+      continuous_invFun := continuous_subtype_val.subtype_mk _ }
+  have hcomp : Set.rangeFactorization ⇑f = ⇑e ∘ ⇑f.rangeRestrict := by
+    funext a
+    apply Subtype.coe_injective
+    rfl
+  rw [hcomp]
+  exact e.isOpenMap.comp hf_rangeRestrict_open
 
 /-- **Sub-lemma L4.4 — Uniqueness of complete countably-generated A-module topology**.
 

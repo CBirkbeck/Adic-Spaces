@@ -159,6 +159,7 @@ private lemma embed_comp_valuation_eq {Γ₀ : Type*}
         ⟨1, (ValuativeRel.posSubmonoid A).one_mem⟩)) = v a
   simp only [ValuativeRel.ValueGroupWithZero.embed_mk, map_one, div_one,
     MonoidWithZeroHom.ValueGroup₀.embedding_restrict₀]
+  rfl
 
 /-- If `v : Valuation A Γ₀` is continuous, then `ofValuation v` is continuous. -/
 lemma isContinuous_ofValuation_of {Γ₀ : Type*}
@@ -166,7 +167,8 @@ lemma isContinuous_ofValuation_of {Γ₀ : Type*}
     (hv : v.IsContinuous) : (ofValuation v).IsContinuous := by
   letI : ValuativeRel A := ValuativeRel.ofValuation v
   haveI := Valuation.Compatible.ofValuation v
-  have h_sm := MonoidWithZeroHom.ValueGroup₀.embedding_strictMono (f := (v : A →*₀ Γ₀))
+  have h_sm := MonoidWithZeroHom.ValueGroup₀.embedding_strictMono
+    (f := MonoidWithZeroHom.ofClass v)
   intro δ
   have heq : { a : A | (ValuativeRel.valuation A) a < δ } =
       { a : A | v a < MonoidWithZeroHom.ValueGroup₀.embedding
@@ -228,7 +230,7 @@ lemma IsContinuous.isOpen_setOf_ge [ContinuousAdd A] {v : Valuation A Γ₀}
     have hEq : { a : A | (0 : Γ₀) ≤ v a } = Set.univ := by
       ext a
       simp only [Set.mem_setOf_eq, Set.mem_univ, iff_true]
-      exact LinearOrderedCommMonoidWithZero.zero_le (v a)
+      exact zero_le' (a := v a)
     rw [hEq]
     exact isOpen_univ
   · have hUnit_open : IsOpen ((v.ltAddSubgroup (Units.mk0 γ hγ)) : Set A) :=

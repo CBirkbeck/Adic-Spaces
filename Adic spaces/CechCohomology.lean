@@ -637,9 +637,10 @@ def cechDiffHom (F : AbPresheaf X)
     CechCochain F U q →+ CechCochain F U (q + 1) where
   toFun := cechDiff F U q
   map_zero' := by
-    ext σ; simp only [cechDiff]
-    convert Finset.sum_const_zero using 1
-    apply Finset.sum_congr rfl; intro j _
+    ext σ
+    show cechDiff F U q 0 σ = 0
+    simp only [cechDiff]
+    refine Finset.sum_eq_zero fun j _ => ?_
     have h0 : (0 : CechCochain F U q)
         (FiniteCover.face j σ) =
         (0 : F.obj (U.inter (FiniteCover.face j σ))) := rfl
