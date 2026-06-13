@@ -1334,29 +1334,43 @@ theorem prop_8_30_basic_laurent_step_flat
       right_inv := e.apply_symm_apply }
 
 omit [CompatiblePlusSubring A] in
-/-- **GENUINE RESIDUAL — the Remark-7.55 chain decomposition for Prop 8.30** (Wedhorn p. 81,
-`wedhorn.txt:4099`–`4104`; Remark 7.55, `wedhorn.txt:3504`–`3517`).
+/-- **GENUINE RESIDUAL — whole-space Prop 8.30 over `B = 𝒪_X(D)` (Remark-7.55 chain)**
+(Wedhorn Remark 7.55, `wedhorn.txt:3504`–`3517`).
 
-Wedhorn reduces an arbitrary rational `U = D' ⊆ V = D` to a finite chain of *basic-Laurent* steps
-`V = X₀ ⊇ X₁ ⊇ ⋯ ⊇ Xₙ = U`, where `X₀ = {1 ≤ x(s/u)}` for the dominating unit `u ∈ B×`
-(`cor_7_32_dominating_unit`, `WedhornCechAcyclicity.lean:1305`, sorry-free) and each `Xᵢ ⊆ Xᵢ₋₁`
-adds one generator (a `LaurentNormalized` basic-Laurent shape over the intermediate base
-`O_X(Xᵢ₋₁)`). Flatness of `O_X(D) → O_X(D')` is then the *composite* of the per-step flatness
-(each step discharged FAITHFULLY by `prop_8_30_basic_laurent_step_flat`), folded by
-`Module.Flat.trans`.
+This is the *second* of Wedhorn's two reductions, AFTER "we may assume `X = V`"
+(`prop_8_30_remark755_chain`'s keystone base change): for the rational subset `im E`
+of the *whole space* `Spa B`, the canonical restriction `B → 𝒪_B(im E)` is flat.
 
-**Why isolated.** The faithful per-step flat engine `prop_8_30_basic_laurent_step_flat` is now
-written and its flat-transport logic is sorry-free (it consumes only the pre-existing upstream
-Wedhorn-6.18 `isStronglyNoetherian` residual, not the `CompatiblePlusSubring`-class obstruction the
-prior pass feared — that class is false-in-general for a completion and is no longer needed). What
-remains is the *geometric* chain-decomposition object: the inductive sequence `Xᵢ` of intermediate
-rational locales for an arbitrary `D'` (the repo has the dominating unit `X₀` via
-`cor_7_32_dominating_unit` and `laurent_cover_from_dominating_unit` — both sorry-free
-as of 2026-06-11 — but the inductive `Xᵢ`-chain + the per-step ambient-↔-relative intertwining
-bookkeeping for an arbitrary `D'`, plus the `LaurentNormalized` + generators-in-`A₀` discharge that
-feeds each `prop_8_30_basic_laurent_step_flat` step, are not yet built). This is the missing geometric
-content of Remark 7.55; it adds NO hypothesis to `prop_8_30_relative_laurent_flat`. Isolated per the
-CLAUDE.md sub-lemma-with-`sorry` rule. -/
+Wedhorn (Remark 7.55) decomposes `Spa B ⊇ X₀ ⊇ X₁ ⊇ ⋯ ⊇ Xₙ = im E` into *basic-Laurent*
+steps: `X₀ = {1 ≤ x(s/u)}` for the dominating unit `u ∈ B×` (Cor 7.32) and
+`Xᵢ = Xᵢ₋₁ ∩ {x(tᵢ) ≤ x(s)}`. Each step `Xᵢ ⊆ Xᵢ₋₁` is a single `LaurentNormalized`
+generator, flat by `prop_8_30_basic_laurent_step_flat` (PROVEN); the composite
+`B → 𝒪_B(im E)` folds by `Module.Flat.trans`.
+
+**Why isolated.** The per-step engine is sorry-free; what remains is the *geometric*
+chain-object: the inductive sequence `Xᵢ` over the intermediate bases `𝒪_B(Xᵢ₋₁)`
+(`cor_7_32_dominating_unit` supplies `X₀`, sorry-free; the inductive `Xᵢ`-chain + the
+`LaurentNormalized`/generators-in-`A₀` discharge per step are the missing content).
+NO added hypothesis (the `B`-instances are derived from the faithful instances).
+Isolated per the CLAUDE.md sub-lemma-with-`sorry` rule. -/
+theorem prop_8_30_imagePiece_wholeSpace_flat
+    (D E : RationalLocData A) (hspanE : Ideal.span (E.T : Set A) = ⊤) :
+    @Module.Flat (presheafValue D) (presheafValue (imagePieceDatum D E.T E.s hspanE)) _ _
+      ((imagePieceDatum D E.T E.s hspanE).canonicalMap).toModule := by
+  sorry
+
+omit [CompatiblePlusSubring A] in
+/-- **The Remark-7.55 chain decomposition for Prop 8.30** (Wedhorn p. 81,
+`wedhorn.txt:4099`–`4104`): flatness of `𝒪_X(D) → 𝒪_X(D')` for `D' ⊆ D` rational.
+
+Wedhorn's FIRST reduction ("we may assume `X = V`") is now PROVEN here via the
+8.16-keystone `relativePiece_equiv`: base-change to `B := 𝒪_X(D)` identifies
+`𝒪_X(D') ≅ 𝒪_B(im D')` (`im D'` a rational subset of the whole space `Spa B`),
+intertwining the restriction `𝒪_X(D) → 𝒪_X(D')` with the whole-space canonical
+restriction `B → 𝒪_B(im D')` (`relativePiece_equiv_restrictionMap`). Flatness
+transports across the iso by `Module.Flat.of_linearEquiv`, reducing to the
+whole-space residual `prop_8_30_imagePiece_wholeSpace_flat` (Wedhorn's SECOND
+reduction, the genuine Remark 7.55 chain). -/
 theorem prop_8_30_remark755_chain
     (D D' : RationalLocData A)
     (h : rationalOpen D'.T D'.s ⊆ rationalOpen D.T D.s)
@@ -1369,7 +1383,32 @@ theorem prop_8_30_remark755_chain
     [IsStronglyNoetherian (presheafValue D)] :
     @Module.Flat (presheafValue D) (presheafValue D') _ _
       (restrictionMapHom D D' h).toModule := by
-  sorry
+  -- Wedhorn "we may assume X = V": base-change to B := 𝒪_X(D) via the 8.16-keystone.
+  set W := imagePieceDatum D D'.T D'.s hD'.span_eq_top with hW
+  set e := relativePiece_equiv D D' h hD'.span_eq_top with he
+  -- Whole-space flatness over B (Remark 7.55 chain residual).
+  have hflatW : @Module.Flat (presheafValue D) (presheafValue W) _ _
+      (W.canonicalMap).toModule :=
+    prop_8_30_imagePiece_wholeSpace_flat D D' hD'.span_eq_top
+  -- Transport across e (intertwining restrictionMapHom with the B-canonical map).
+  letI : Module (presheafValue D) (presheafValue D') := (restrictionMapHom D D' h).toModule
+  letI : Module (presheafValue D) (presheafValue W) := W.canonicalMap.toModule
+  have he_smul : ∀ (a : presheafValue D) (x : presheafValue D'), e (a • x) = a • e x := by
+    intro a x
+    change e (restrictionMapHom D D' h a * x) = W.canonicalMap a * e x
+    rw [e.map_mul]
+    congr 1
+    exact relativePiece_equiv_restrictionMap D D' h hD'.span_eq_top a
+  exact @Module.Flat.of_linearEquiv (presheafValue D)
+    (presheafValue W) (presheafValue D')
+    _ _ _ _ _ hflatW
+    { toLinearMap :=
+        { toFun := e
+          map_add' := e.map_add
+          map_smul' := he_smul }
+      invFun := e.symm
+      left_inv := e.symm_apply_apply
+      right_inv := e.apply_symm_apply }
 
 omit [CompatiblePlusSubring A] in
 theorem prop_8_30_relative_laurent_flat
