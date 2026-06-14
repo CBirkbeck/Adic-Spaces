@@ -103,7 +103,8 @@ theorem presheafValue_ringOfDef_isOpen (D₀ : RationalLocData A) :
     obtain ⟨d, _, hdy⟩ := hy
     exact ⟨d, by
       have hdy' : (locSubring D₀.P D₀.T D₀.s).subtype d = y := hdy
-      rw [RingHom.comp_apply, hdy']; exact hyx⟩
+      show D₀.coeRingHom ((locSubring D₀.P D₀.T D₀.s).subtype d) = x
+      rw [hdy']; exact hyx⟩
   have hclosure_sub : ∀ n, closure (f '' (locNhd D₀.P D₀.T D₀.s n :
       Set (Localization.Away D₀.s))) ⊆
       (presheafValue_ringOfDef D₀ : Set (presheafValue D₀)) :=
@@ -520,7 +521,7 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A) (n : ℕ)
       -- First show the quotient is discrete (J^n is open).
       have htop_eq : (instTopologicalSpaceSubtype :
           TopologicalSpace (locSubring D₀.P D₀.T D₀.s)) = J.adicTopology := by
-        change TopologicalSpace.induced _ _ = _; convert hadic_eq using 1
+        exact hadic_eq
       -- R/J^n is discrete: J^n is open (adic nhd), quotient map is open.
       have hJn_open : IsOpen (SetLike.coe (J ^ n).toAddSubgroup :
           Set (locSubring D₀.P D₀.T D₀.s)) := by
@@ -533,16 +534,8 @@ private theorem idealOfDef_pow_val_isClosed (D₀ : RationalLocData A) (n : ℕ)
               J.adic_basis.toRing_subgroups_basis.toRingFilterBasis)
         exact AddSubgroup.isOpen_of_mem_nhds _
           (J.hasBasis_nhds_zero_adic.mem_of_mem (i := n) trivial)
-      haveI hdisc : DiscreteTopology (locSubring D₀.P D₀.T D₀.s ⧸ J ^ n) := by
-        rw [discreteTopology_iff_isOpen_singleton_zero]
-        convert @QuotientAddGroup.isOpenMap_coe _ _ _ inferInstance
-          (N := (J ^ n).toAddSubgroup) _ hJn_open using 1
-        ext x; constructor
-        · rintro rfl; exact ⟨0, (J ^ n).zero_mem, rfl⟩
-        · rintro ⟨a, ha, heq⟩
-          rw [Set.mem_singleton_iff, ← heq]
-          change Ideal.Quotient.mk (J ^ n) a = 0
-          exact Ideal.Quotient.eq_zero_iff_mem.mpr ha
+      haveI hdisc : DiscreteTopology (locSubring D₀.P D₀.T D₀.s ⧸ J ^ n) :=
+        QuotientAddGroup.discreteTopology hJn_open
       -- Derive uniform space instances from TopologyComparison.lean pattern:
       haveI : @IsTopologicalAddGroup (locSubring D₀.P D₀.T D₀.s ⧸ J ^ n)
           inferInstance _ :=

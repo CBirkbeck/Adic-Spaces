@@ -435,17 +435,14 @@ theorem ringStalkMap_comp {X Y Z : TopRingPresheafedSpace.{u}}
     (α : X ⟶ Y) (β : Y ⟶ Z) (x : X) :
     ringStalkMap (α ≫ β) x =
       ringStalkMap β (ConcreteCategory.hom α.base x) ≫ ringStalkMap α x := by
-  dsimp [ringStalkMap, TopCat.Presheaf.stalkFunctor, TopCat.Presheaf.stalkPushforward,
-    Functor.whiskerRight]
-  apply colimit.hom_ext
-  rintro ⟨U, hU⟩
-  simp only [Functor.whiskeringLeft_obj_obj, Functor.comp_obj, Functor.op_obj,
-    OpenNhds.inclusion_obj, Functor.map_comp, TopCat.hom_comp,
-    ContinuousMap.comp_apply, ι_colimMap_assoc, Presheaf.pushforward_obj_obj,
-    Opens.map_comp_obj, Functor.whiskerLeft_app, OpenNhds.map_obj,
-    colimit.ι_pre, Category.assoc, colimit.ι_pre_assoc]
-  erw [CategoryTheory.Functor.map_id, Category.id_comp,
-    CategoryTheory.Functor.map_id, Category.id_comp]
+  -- `ringStalkMap α x` is definitionally `((mapPresheaf fgt).map α).stalkMap x`, so
+  -- functoriality reduces to mathlib's `PresheafedSpace.stalkMap.comp`.
+  show (CompleteTopCommRingCat.forgetToCommRingCat.mapPresheaf.map (α ≫ β)).stalkMap x = _
+  rw [AlgebraicGeometry.PresheafedSpace.stalkMap.congr_hom _ _
+        (CompleteTopCommRingCat.forgetToCommRingCat.mapPresheaf.map_comp α β) x,
+      AlgebraicGeometry.PresheafedSpace.stalkMap.comp]
+  simp only [eqToHom_refl, Category.id_comp]
+  rfl
 
 /-! ### The category 𝒱^pre (Definition 8.5 of Wedhorn) -/
 
@@ -662,7 +659,7 @@ theorem exists_spa_point_in_rationalOpen_of_isOpen_prime
     exact ⟨fun h ↦ Ideal.Quotient.eq_zero_iff_mem.mp
       ((IsFractionRing.injective (A ⧸ p) (FractionRing (A ⧸ p))).eq_iff.mp
         (by rwa [map_zero])),
-      fun ha ↦ by rw [Ideal.Quotient.eq_zero_iff_mem.mpr ha, map_zero]; rfl⟩
+      fun ha ↦ by rw [Ideal.Quotient.eq_zero_iff_mem.mpr ha, map_zero]⟩
   have hv_supp_eq : v.supp = p := by
     rw [supp_ofValuation]; ext a; exact hw_mem_iff a
   have hw_s : w s = 1 := by

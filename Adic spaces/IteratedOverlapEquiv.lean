@@ -284,7 +284,6 @@ private theorem iteratedOverlap_forwardLocHom_to_B_generators_powerBounded
             divByS (1 : B) (iteratedOverlapDatum_B P D₀ f hLocLift_B).s := by
         have hmm := congrArg (· * divByS (1 : B) (iteratedOverlapDatum_B P D₀ f hLocLift_B).s)
           hcm
-        simp only at hmm
         rwa [mul_assoc, hinv_f, mul_one] at hmm
       -- Source generator `divByS (D₀.s · D₀.s) (D₀.s · f)` becomes the forward image.
       -- The forward image lives in `Loc((iteratedOverlapDatum_B).s)`. We need to
@@ -464,7 +463,6 @@ private theorem iteratedOverlap_forwardLocHom_to_B_generators_powerBounded
             divByS (1 : B) (iteratedOverlapDatum_B P D₀ f hLocLift_B).s := by
           have hmm := congrArg
             (· * divByS (1 : B) (iteratedOverlapDatum_B P D₀ f hLocLift_B).s) hcm
-          simp only at hmm
           rwa [mul_assoc, hinv_f, mul_one] at hmm
         have hresult : iteratedOverlap_forwardLocHom_to_B P D₀ f hLocLift_B
             (divByS (a * D₀.s) (laurentOverlapDatum D₀ f).s) =

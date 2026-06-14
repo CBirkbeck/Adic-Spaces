@@ -1787,7 +1787,6 @@ theorem iteratedMinus_forwardLocHom_generators_powerBounded
         algebraMap B (Localization.Away (D₀.canonicalMap f)) (D₀.canonicalMap a) *
           divByS (1 : B) (D₀.canonicalMap f) := by
       have := congrArg (· * divByS (1 : B) (D₀.canonicalMap f)) hforward_rel
-      simp only at this
       rwa [mul_assoc, hinv_f, mul_one] at this
     rw [hforward_eq]
     -- Membership: both factors in `locSubring (iteratedMinusDatum_B)`.

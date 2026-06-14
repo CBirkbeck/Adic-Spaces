@@ -577,9 +577,9 @@ theorem hSpa_surj_from_spanTop
   have hcomap := IsLocalization.comap_map_of_isPrime_disjoint
     (Submonoid.powers (C.base.canonicalMap D.1.s))
     (presheafValue D.1) hp hdisj
-  -- The algebraMap is definitionally equal to restrictionMapHom under the algebra
-  -- structure we set up.
-  convert hcomap using 1
+  -- `Ideal.under (presheafValue C.base)` unfolds to `Ideal.comap (algebraMap …)`, and the
+  -- algebra map is definitionally `restrictionMapHom` under the algebra structure we set up.
+  exact hcomap
 
 /-! ### Flatness discharge for `flat_over_base` (via Prop 8.15)
 

@@ -688,6 +688,8 @@ theorem LaurentTree.leaves_ofBalancedList_eq_image (D₀ : RationalLocData A)
         from rfl]
       rw [if_pos rfl]
       convert hσ' using 2
+      funext k
+      exact Fin.cases_succ _
     · obtain ⟨σ', hσ'⟩ := ih (laurentMinusDatum D₀ f) D hR
       refine ⟨Fin.cases false σ', ?_⟩
       rw [LaurentTree.balancedLeafBase_cons]
@@ -695,6 +697,8 @@ theorem LaurentTree.leaves_ofBalancedList_eq_image (D₀ : RationalLocData A)
         from rfl]
       rw [if_neg (by decide)]
       convert hσ' using 2
+      funext k
+      exact Fin.cases_succ _
 
 /-! ## Unit property at minus leaves of the balanced tree
 

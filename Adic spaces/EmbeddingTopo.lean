@@ -1737,6 +1737,7 @@ theorem productRestrictionSub_leafTree_isInducing
   change _ = TopologicalSpace.induced (fun x => restrictionMap C.base C.base _ x) _
   rw [restrictionMap_id]
   exact induced_id.symm
+  · rfl
 
 /-! ### Homeomorphism: disjoint-union Pi factors as product
 

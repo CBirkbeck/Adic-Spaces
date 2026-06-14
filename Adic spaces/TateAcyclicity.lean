@@ -520,7 +520,7 @@ private theorem discrete_gluing {A : Type*} [CommRing A]
       exact ⟨fun h ↦ Ideal.Quotient.eq_zero_iff_mem.mp
         ((IsFractionRing.injective (A ⧸ p) (FractionRing (A ⧸ p))).eq_iff.mp
           (by rwa [map_zero])),
-        fun hb ↦ by rw [Ideal.Quotient.eq_zero_iff_mem.mpr hb, map_zero]; rfl⟩
+        fun hb ↦ by rw [Ideal.Quotient.eq_zero_iff_mem.mpr hb, map_zero]⟩
     have hw_s : w C.base.s = 1 := by
       simp only [w, Valuation.comap_apply, φ, RingHom.comp_apply]
       apply Valuation.one_apply_of_ne_zero; intro heq; apply hbs_notin

@@ -1223,16 +1223,17 @@ private theorem coeRingHom_locSubring_mem_range [IsTateRing A] [IsNoetherianRing
     rintro _ (⟨a, -, rfl⟩ | ⟨⟨t, ht⟩, rfl⟩)
     · -- `coeRingHom (algebraMap a) = canonicalMap a = example638_evalHom (algebraMap a)`.
       refine ⟨algebraMap A _ a, ?_⟩
-      rw [example638_evalHom_algebraMap]; rfl
+      erw [example638_evalHom_algebraMap]; rfl
     · -- `coeRingHom (divByS t s) = example638_genTuple (equivFin ⟨t, ht⟩) = evalHom Xⱼ`.
       refine ⟨⟨MvPowerSeries.X (D.T.equivFin ⟨t, ht⟩),
         MvPowerSeries.X_isRestricted _⟩, ?_⟩
-      rw [example638_evalHom_X]
+      erw [example638_evalHom_X]
       simp only [example638_genTuple, Equiv.symm_apply_apply]
   · -- 0
     exact ⟨0, by rw [map_zero, map_zero]⟩
   · -- 1
-    exact ⟨1, by rw [map_one, map_one]⟩
+    rw [map_one]
+    exact (example638_evalHom D).range.one_mem
   · -- add
     rintro x y - - ⟨px, hpx⟩ ⟨py, hpy⟩
     exact ⟨px + py, by rw [map_add, map_add, hpx, hpy]⟩
@@ -1577,7 +1578,7 @@ private theorem example638_isUnit_mk_s [IsTateRing A] [IsNoetherianRing A]
   rw [map_one, map_mul, example638_kerLift_mk, example638_kerLift_mk,
     example638_evalHom_algebraMap]
   -- `ē(mk c) = example638_evalHom c = invS`; goal: `canonicalMap s · invS = 1`.
-  rw [hc]
+  erw [hc]
   exact canonicalMap_s_mul_invS D
 
 /-! #### Step 3 — the backward map `presheafValue D → C ⧸ ker` -/
@@ -2194,7 +2195,7 @@ private theorem presheafValue_mvRestricted_surjection
       RingHom.kerLift_mk Ψ _]
     rw [show RingHom.kerLift Ψ (Ideal.Quotient.mk (RingHom.ker Ψ) (ι c)) = Ψ (ι c) from
       RingHom.kerLift_mk Ψ _]
-    rw [← hkey c, hc]
+    rw [← hkey c]; erw [hc]
     -- `Ψ(algebraMap s) = g s = algebraMap _ T (canonicalMap s)`; goal:
     -- `algebraMap _ T (canonicalMap s) · algebraMap _ T (invS D) = 1`.
     rw [show Ψ ((algebraMap A (restrictedMvPowerSeriesSubring (D.T.card + m) A)) D.s) =
@@ -2472,7 +2473,8 @@ private theorem presheafValue_mvRestricted_surjection
               MvPolynomial.coe_X]
         intro p
         have hp := RingHom.congr_fun hiU_eq p
-        simpa only [RingHom.comp_apply, MvPolynomial.coeToMvPowerSeries.ringHom_apply] using hp
+        simpa only [RingHom.comp_apply, MvPolynomial.coeToMvPowerSeries.ringHom_apply,
+          Subring.coe_subtype] using hp
       intro p v
       rw [hiU_val p, MvPolynomial.coeff_coe, MvPolynomial.coeff_map]
     -- (iii) each `fU (X j) = mk (Z_{n+j})` is power-bounded in `γ`, so the product-power range is.

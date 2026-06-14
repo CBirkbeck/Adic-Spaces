@@ -8702,7 +8702,7 @@ theorem prod_mem_distinguishedProducts [DecidableEq A]
         (fun p hp => by
           obtain ⟨a, ha, rfl⟩ := List.mem_map.mp hp
           exact hmem a (List.mem_cons_of_mem _ ha))
-      simpa [List.map_map, Function.comp] using hP
+      simpa [List.map_map, Function.comp_def] using hP
     · refine Finset.mem_union_right _ ?_
       exact Finset.mul_mem_mul (hmem hd List.mem_cons_self)
         (ih (fun p hp => hmem p (List.mem_cons_of_mem _ hp)) ⟨e, he', hee⟩)

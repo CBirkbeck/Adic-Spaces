@@ -331,14 +331,14 @@ theorem canonicalValuation_le_one_of_vle {R : Type*} [CommRing R] [TopologicalSp
     [IsTopologicalRing R] (w : Spv R) {d : R} (h : w.vle d 1) :
     ValuationSpectrum.canonicalValuation R w d ≤ 1 := by
   letI : ValuativeRel R := w.toValuativeRel
-  simpa using (Valuation.vle_iff_le (ValuativeRel.valuation R)).mp h
+  exact (Valuation.vle_iff_le (ValuativeRel.valuation R)).mp h
 
 /-- The iff form of `canonicalValuation_le_one_of_vle`. -/
 theorem vle_one_iff_canonicalValuation_le {R : Type*} [CommRing R] [TopologicalSpace R]
     [IsTopologicalRing R] (w : Spv R) {d : R} :
     w.vle d 1 ↔ ValuationSpectrum.canonicalValuation R w d ≤ 1 := by
   letI : ValuativeRel R := w.toValuativeRel
-  simpa using Valuation.vle_iff_le (ValuativeRel.valuation R) (x := d) (y := 1)
+  exact Valuation.vle_iff_le (ValuativeRel.valuation R) (x := d) (y := 1)
 
 /-- **`hw_loc` threading (Wedhorn 8.2, wedhorn.txt:3739-3740).** If `v ∈ rationalOpen D.T D.s`
 (`v(t) ≤ v(s)`, `v(s) ≠ 0`) and `w` extends `v` to `Localization.Away D.s` (`comap algebraMap w = v`),
@@ -527,7 +527,7 @@ theorem spa_completion_of_spa_localization
           rw [Subring.mem_comap, Valuation.mem_integer_iff]
           have hφd : φhat (D.coeRingHom d) = φ d := by
             rw [hφhat_def]; exact UniformSpace.Completion.extensionHom_coe φ hφ d
-          rw [hφd, hφ_def]
+          erw [hφd]
           show Valued.v ((scResHom D w d : WithVal val) : val.Completion) ≤ 1
           rw [Valued.valuedCompletion_apply, scResHom_val D w d]
           exact canonicalValuation_le_one_of_vle w (hw_loc d hd)

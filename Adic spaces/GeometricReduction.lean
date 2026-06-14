@@ -2196,7 +2196,6 @@ theorem rationalOpen_laurentMinusDatum_decomp [DecidableEq A]
   letI : DecidableEq A := Classical.decEq _
   have h_mul : (laurentMinusDatum D₀ f).T = insert D₀.s D₀.T * ({D₀.s, f} : Finset A) := by
     simp only [laurentMinusDatum, Finset.mul_def, Finset.product_eq_sprod]
-    rfl
   have h_s_mul : (laurentMinusDatum D₀ f).s = D₀.s * f := rfl
   have h_inter := rationalOpen_inter (insert D₀.s D₀.T) ({D₀.s, f} : Finset A)
     D₀.s f (Finset.mem_insert_self _ _)
