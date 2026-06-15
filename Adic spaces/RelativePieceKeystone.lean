@@ -1334,6 +1334,30 @@ theorem prop_8_30_basic_laurent_step_flat
       right_inv := e.apply_symm_apply }
 
 omit [CompatiblePlusSubring A] in
+/-- **Remark 7.55, step 0 — the dominating unit over `B = 𝒪_X(D)`** (Wedhorn p.70: *"Since `U` is
+quasi-compact, there exists by Corollary 7.32 a unit `u ∈ A×` such that `|u(x)| < |s(x)|` for all
+`x ∈ U`"*). For the image piece `W := imagePieceDatum D E.T E.s hspanE` of the whole space `Spa B`,
+there is a unit `u ∈ B×` strictly dominated by the denominator `W.s` on `rationalOpen W` — the
+witness for the base `X₀ = {1 ≤ x(W.s/u)}` of the Remark-7.55 chain. Proven via the singleton
+Cor 7.32 (`exists_dominating_unit_noHArch`, sorry-free) at `B`, on the quasi-compact `rationalOpen W`
+(`isCompact_preimage_rationalOpen_noHArch`); `W.s ≠ 0` on `rationalOpen W` by definition. -/
+theorem remark755_dominating_unit_over_presheafValue
+    (D E : RationalLocData A) (hspanE : Ideal.span (E.T : Set A) = ⊤) :
+    ∃ u : (presheafValue D)ˣ,
+      ∀ y : ↥(Spa (presheafValue D) (presheafValue D)⁺),
+        (y.1 : Spv (presheafValue D)) ∈
+          rationalOpen (imagePieceDatum D E.T E.s hspanE).T (imagePieceDatum D E.T E.s hspanE).s →
+        (y.1.vle (u : presheafValue D) (imagePieceDatum D E.T E.s hspanE).s ∧
+         ¬ y.1.vle (imagePieceDatum D E.T E.s hspanE).s (u : presheafValue D)) := by
+  haveI hTate : IsTateRing (presheafValue D) := presheafValue_isTateRing_concrete D
+  haveI : IsHuberRing (presheafValue D) := hTate.toIsHuberRing
+  set W := imagePieceDatum D E.T E.s hspanE with hW
+  have hY := isCompact_preimage_rationalOpen_noHArch (A := presheafValue D) W
+  obtain ⟨u, hu⟩ := exists_dominating_unit_noHArch (A := presheafValue D) hY W.s
+    (fun y hy => (Set.mem_preimage.mp hy).2.2)
+  exact ⟨u, fun y hy => hu y (Set.mem_preimage.mpr hy)⟩
+
+omit [CompatiblePlusSubring A] in
 /-- **GENUINE RESIDUAL — whole-space Prop 8.30 over `B = 𝒪_X(D)` (Remark-7.55 chain)**
 (Wedhorn Remark 7.55, `wedhorn.txt:3504`–`3517`).
 

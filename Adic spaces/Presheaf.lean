@@ -2692,22 +2692,31 @@ Each is verified against the cited Wedhorn page. -/
 --   • `Adic spaces/StructureSheaf.lean` (Spa-presheafValue identification)
 -- Presheaf.lean keeps only the lemmas whose statements use no imports beyond it.
 
-/-- **(Wedhorn Prop 7.51, p.69 — part 2: Spa-point on max ideal)** *"Let `A`
-be a complete affinoid ring and let `m ⊂ A` be a maximal ideal. There
-exists `v ∈ Spa A` with `supp v = m`."*
+/-- **(Wedhorn Prop 7.51(2), the non-open residual — faithful 7.49 route)** For a maximal ideal
+`𝔪` of a complete affinoid ring that is **not open**, there is a Spa point with support `𝔪`.
 
-Pass-3 audit item 21. Discharge plan: residue field `A / 𝔪` is a complete
-non-archimedean field (uses `maxIdeal_isClosed_of_complete_huber` to get
-T2, plus completeness inheritance). On a complete non-arch field, the
-trivial valuation `|·|_𝔪 : A → ℝ≥0` (= 0 if x ∈ 𝔪, 1 if x ∉ 𝔪 from the
-field structure) lifts to `Spa A`. Membership in `A⁺` follows because the
-trivial-1 valuation on a field has all `1`'s ≤ `1`. -/
+This is the genuine deep half of Prop 7.51(2). The CORRECTED faithful route (reviewer Q3 — NOT the
+trivial valuation, which is continuous only when `𝔪` is open): `𝔪` is closed
+(`maxIdeal_isClosed_of_complete_huber`), so `A/𝔪` is a nonzero Hausdorff complete affinoid; by
+**Wedhorn Prop 7.49** `Spa(A/𝔪) ≠ ∅`, and `{v ∈ Spa A ; supp v = 𝔪} = Spa(A/𝔪)`, so pulling a point
+back along `A → A/𝔪` gives the claim. The deep leaf is Prop 7.49 (Spa-nonemptiness, via Lemma 7.45 +
+the spectral retraction) together with the quotient-affinoid structure on `A/𝔪` — neither yet in the
+repo. Isolated as a named `sorry` per CLAUDE.md (it is Wedhorn's own Prop 7.49, not an orphan). -/
+theorem exists_spa_point_supp_eq_nonOpen_maxIdeal_of_complete
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A] [T2Space A] [NonarchimedeanRing A]
+    (𝔪 : Ideal A) [𝔪.IsMaximal] (_h𝔪 : ¬ IsOpen (𝔪 : Set A)) :
+    ∃ v ∈ Spa A A⁺, v.supp = 𝔪 :=
+  sorry
+
 theorem exists_spa_point_supp_eq_maxIdeal_of_complete
     {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
     [IsTopologicalRing A] [IsHuberRing A] [T2Space A] [NonarchimedeanRing A]
     (𝔪 : Ideal A) [𝔪.IsMaximal] :
-    ∃ v ∈ Spa A A⁺, v.supp = 𝔪 :=
-  sorry
+    ∃ v ∈ Spa A A⁺, v.supp = 𝔪 := by
+  by_cases h : IsOpen (𝔪 : Set A)
+  · exact exists_mem_spa_supp_eq 𝔪 h
+  · exact exists_spa_point_supp_eq_nonOpen_maxIdeal_of_complete 𝔪 h
 
 -- Note: `maxIdeal_isClosed_of_complete_huber` and the bundled
 -- `prop_7_51_maxIdeal_closed_and_spa_point` are stated **below**
@@ -3024,6 +3033,29 @@ theorem prop_7_51_maxIdeal_closed_and_spa_point
     IsClosed (𝔪 : Set A) ∧ ∃ v ∈ Spa A A⁺, v.supp = 𝔪 :=
   ⟨maxIdeal_isClosed_of_complete_huber 𝔪,
    exists_spa_point_supp_eq_maxIdeal_of_complete 𝔪⟩
+
+/-- **Wedhorn 7.52(2), pair-free form (Nullstellensatz unit criterion).** For a complete
+affinoid ring `(A, A⁺)` (complete Huber + T2 + non-archimedean), `f` is a unit iff `v(f) ≠ 0`
+for every `v ∈ Spa(A, A⁺)`.
+
+This is the **pair-independent** form: unlike `PairOfDefinition.isUnit_iff_forall_not_vle_zero_of_complete`
+(Lemma745), which needs a pair `P` with `A⁺ ⊆ P.A₀`, it consumes the pair-free Prop 7.51(2)
+`exists_spa_point_supp_eq_maxIdeal_of_complete` directly — Wedhorn's actual 7.51 route (`𝔪` closed +
+`A/𝔪` Hausdorff + Prop 7.49), which uses NO `A⁺ ⊆ A₀`. This is exactly what lets the faithful (LL)
+instance fire for completions `B = presheafValue D` without the false-for-completions
+`CompatiblePlusSubring B`. -/
+theorem isUnit_iff_forall_not_vle_zero_of_complete_pairFree
+    {A : Type*} [CommRing A] [TopologicalSpace A] [PlusSubring A]
+    [IsTopologicalRing A] [IsHuberRing A] [T2Space A] [NonarchimedeanRing A]
+    (f : A) :
+    IsUnit f ↔ ∀ v ∈ Spa A A⁺, ¬ v.vle f 0 := by
+  refine ⟨fun hu v _ => not_vle_zero_of_isUnit hu v, fun h => ?_⟩
+  by_contra hf
+  obtain ⟨𝔪, h𝔪, hf𝔪⟩ :=
+    Ideal.exists_le_maximal (Ideal.span {f}) (Ideal.span_singleton_ne_top hf)
+  haveI := h𝔪
+  obtain ⟨v, hv, hsupp⟩ := exists_spa_point_supp_eq_maxIdeal_of_complete 𝔪
+  exact h v hv ((v.mem_supp_iff f).mp (hsupp.ge (hf𝔪 (Ideal.mem_span_singleton_self f))))
 
 /-- **(T-H.2.a.1 sub-step)** Topologically nilpotent elements transfer
 under the algebra map `A → Localization.Away D.s` (with localization
